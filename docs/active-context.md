@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-22
+Updated: 2026-08-23
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -137,6 +137,15 @@ pack current. The power/USB observer track is complete. See
   use fastboot, ACM/NCM, and later key-only SSH.
 
 ## Next execution sequence
+
+Generation 101 is consumed and must never be retried. The exact signed bundle
+transfer, PREPARE, and COMMIT passed, then recovery USB departed at 06:31:56
+and no target NCM/ACM appeared. The exact phone exposed stock slot-A USB about
+30 seconds later and subsequently returned responsive fastboot. No staging SSH
+command ran, so the 16 GiB image was not written. The replacement minimal init
+is the only new target layer; its exact failing line remains unproven. Avoid a
+second speculative staging initramfs: stage the already-verified image through
+stock slot-A ADB into userdata and reuse the mature local-root boot path.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

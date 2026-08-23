@@ -89,8 +89,8 @@ awk -F '\t' \
 		  $3 ~ /no claim or phone boot occurred; never boot or flash$/)) &&
 		NF == 3 { power_history++ ; next }
 	$1 == "build/local-image-stage-v1-generation101-20260823-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact UFS-capable local-image staging cycle; RAM-only kernel and recovery; only userdata image path writable after explicit SSH command; externally consumed exact claim required; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 101 RAM-only cycle; signed transfer, PREPARE, and COMMIT passed, but the replacement minimal target init produced no observable NCM/ACM before stock slot-A return; no staging SSH command or image write occurred; never retry or flash" &&
 		NF == 3 { local_stage++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
