@@ -156,6 +156,13 @@ UUID, label, and seal are correct, but it lacks V9's required
 sealed target mode to the already-tested bounded `local-write/current` path;
 it may create that one probe, relock, and continue to read-only Arch.
 
+Generation 103 is consumed. Its NCM stayed reachable for 60 seconds, matching
+the exact `ufs-power` failure delay after pairing local-write initramfs policy
+with V8's intentionally forced-read-only UFS kernel. No probe or storage write
+occurred. The bounded writer successor reuses the exact Generation-64
+write-capable Image/DTB/module lineage that already persisted this probe format;
+it does not modify the charging/read-only production baseline.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact

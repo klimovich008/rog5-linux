@@ -149,6 +149,13 @@ cannot complete. The target-only V10 successor uses the existing bounded
 `local-write/current` mode to create only that probe inside the image, relock
 all storage, and continue into the normal read-only runtime.
 
+Generation 103 proved the target-only change was insufficient: NCM stayed
+reachable for 60 seconds, but its V8 kernel deliberately forces UFS read-only
+before registration and cannot satisfy local-write power containment. No probe
+or target write occurred. The next writer uses the exact live-proven Generation
+64 bounded-write Image, DTB, and UFS modules only for the short probe cycle;
+the charging/read-only baseline returns for the subsequent Arch boot.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving
