@@ -156,6 +156,13 @@ or target write occurred. The next writer uses the exact live-proven Generation
 64 bounded-write Image, DTB, and UFS modules only for the short probe cycle;
 the charging/read-only baseline returns for the subsequent Arch boot.
 
+Generation 104 used that exact writer lineage and exposed target NCM for 14
+seconds before rollback, matching the historical post-probe UFS-health path.
+The stage listener attached after departure, so the write outcome remains
+ambiguous and the candidate is permanently consumed. The read-only successor
+accepts one canonical prior-boot UUID from the probe itself; this is bounded to
+the freshly staged image proven marker-free before the sole writer ran.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving

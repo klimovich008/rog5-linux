@@ -26,7 +26,8 @@ epoch=1681862400
 
 case $storage_mode in
 	read-only)
-		printf '%s\n' "$probe_boot_id" |
+		[ "$probe_boot_id" = any-prior ] ||
+			printf '%s\n' "$probe_boot_id" |
 			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || {
 			echo 'FAIL EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' >&2
 			exit 1

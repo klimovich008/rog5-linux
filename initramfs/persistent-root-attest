@@ -86,12 +86,16 @@ case $expected_ufs_storage_mode in
 		probe_boot_id=$current_boot_id
 		;;
 	read-only)
-		printf '%s\n' "$expected_probe_boot_id" |
-			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
-			fail 'write-probe producer identity is invalid'
-		[ "$expected_probe_boot_id" != "$current_boot_id" ] ||
-			fail 'write-probe producer is not from an earlier boot'
-		probe_boot_id=$expected_probe_boot_id
+		if [ "$expected_probe_boot_id" = any-prior ]; then
+			probe_boot_id=any-prior
+		else
+			printf '%s\n' "$expected_probe_boot_id" |
+				grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+				fail 'write-probe producer identity is invalid'
+			[ "$expected_probe_boot_id" != "$current_boot_id" ] ||
+				fail 'write-probe producer is not from an earlier boot'
+			probe_boot_id=$expected_probe_boot_id
+		fi
 		;;
 	*) fail 'UFS storage mode changed' ;;
 esac
@@ -105,8 +109,20 @@ done
 	fail 'local-image write-probe metadata changed'
 [ "$(wc -l <"$probe_path")" -eq 3 ] &&
 	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" &&
-	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" &&
-	grep -Fxq "boot_id=$probe_boot_id" "$probe_path" ||
+	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" ||
+	fail 'local-image write-probe content changed'
+if [ "$probe_boot_id" = any-prior ]; then
+	probe_boot_id=$(sed -n 's/^boot_id=//p' "$probe_path") ||
+		fail 'write-probe producer identity is unavailable'
+	[ "$(grep -c '^boot_id=' "$probe_path")" -eq 1 ] ||
+		fail 'write-probe producer identity is ambiguous'
+	printf '%s\n' "$probe_boot_id" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		fail 'write-probe producer identity is invalid'
+	[ "$probe_boot_id" != "$current_boot_id" ] ||
+		fail 'write-probe producer is not from an earlier boot'
+fi
+grep -Fxq "boot_id=$probe_boot_id" "$probe_path" ||
 	fail 'local-image write-probe content changed'
 progress local-image-write-pass
 

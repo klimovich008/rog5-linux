@@ -163,6 +163,13 @@ occurred. The bounded writer successor reuses the exact Generation-64
 write-capable Image/DTB/module lineage that already persisted this probe format;
 it does not modify the charging/read-only production baseline.
 
+Generation 104 is consumed after a 14-second target-NCM window. This matches
+the known Generation-64 probe-write then UFS-health rollback, but the stage
+listener missed the window, so success is not assumed. The next read-only
+target accepts exactly one canonical, non-current producer UUID from the probe;
+the freshly staged image was independently proven marker-free before the sole
+writer, so a valid probe now uniquely answers the write question.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact

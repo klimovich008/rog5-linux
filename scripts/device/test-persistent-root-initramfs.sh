@@ -14,7 +14,7 @@ ufs_modules=${4:-}
 storage_mode=${UFS_STORAGE_MODE:-read-only}
 writer_boot_id=7c3afb64-8e84-4f4b-87f4-88d19c2646de
 case $storage_mode in
-	read-only) sealed_probe_boot_id=$writer_boot_id ;;
+	read-only) sealed_probe_boot_id=${EXPECTED_PROBE_BOOT_ID:-$writer_boot_id} ;;
 	local-write) sealed_probe_boot_id=current ;;
 	*) sealed_probe_boot_id=$writer_boot_id ;;
 esac
@@ -88,6 +88,10 @@ grep -Fq 'EXPECTED_PROBE_BOOT_ID must be current for local-write' "$builder" ||
 	fail 'P2 builder does not preserve current-boot write semantics'
 grep -Fq 'EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \
 	"$builder" || fail 'P2 builder does not pin read-only marker lineage'
+grep -Fq '[ "$probe_boot_id" = any-prior ]' "$builder" ||
+	fail 'P2 builder lacks the sealed prior-writer discovery policy'
+grep -Fq '[ "$expected_probe_boot_id" = any-prior ]' "$init" "$attest" ||
+	fail 'P2 runtime lacks exact prior-writer discovery policy'
 grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
 	fail 'P2 builder does not seal the selected storage mode'
 grep -Fq 'expected_physical_count=116' "$init"
@@ -403,6 +407,18 @@ fi
 grep -Fxq \
 	'FAIL EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \
 	"$work/read-only-current.err"
+if [ -n "$ufs_modules" ]; then
+	UFS_STORAGE_MODE=read-only EXPECTED_PROBE_BOOT_ID=any-prior \
+		"$builder" "$base" "$verifier" \
+		"$work/read-only-any-prior.cpio.gz" "$ufs_modules" >/dev/null
+else
+	UFS_STORAGE_MODE=read-only EXPECTED_PROBE_BOOT_ID=any-prior \
+		"$builder" "$base" "$verifier" \
+		"$work/read-only-any-prior.cpio.gz" >/dev/null
+fi
+gzip -dc "$work/read-only-any-prior.cpio.gz" |
+	cpio -i --quiet --to-stdout init |
+	grep -Fxq 'expected_probe_boot_id=any-prior'
 if PERSISTENT_ROOT_POWER_MODULES_ROOT="$work/missing-modules" \
 	PERSISTENT_ROOT_CHARGE_FIRMWARE_DIR= \
 	REQUIRE_DEFERRED_UFS_MODULES=0 \
