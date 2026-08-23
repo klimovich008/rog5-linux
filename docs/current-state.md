@@ -163,6 +163,14 @@ ambiguous and the candidate is permanently consumed. The read-only successor
 accepts one canonical prior-boot UUID from the probe itself; this is bounded to
 the freshly staged image proven marker-free before the sole writer ran.
 
+Generation 105 repeated the read-only target but manual multi-call host
+orchestration again attached after its 19-second NCM window. The target is
+consumed without a probe verdict. The next cycle reuses byte-identical target
+bytes and runs exclusively through the repository's continuous persistent-root
+lifecycle, which historically captured 14-second writer stages and carries
+network activation, stage reception, host-key pinning, SSH, and fallback in one
+process.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving
