@@ -52,16 +52,18 @@ class PowerUsbGenerationTest(unittest.TestCase):
         shell = GENERATOR.SHELL_LOCK.read_text(encoding="ascii")
         self.assertIn("readonly POWER_USB_TARGET_RELEASE=", shell)
         self.assertIn("readonly POWER_USB_TARGET_TIMEOUT=", shell)
-        self.assertIn("readonly POWER_USB_PROBE_PHASE=early-initramfs", shell)
+        probe_phase = self.integration["probe_phase"]
+        self.assertIn(f"readonly POWER_USB_PROBE_PHASE={probe_phase}", shell)
         self.assertEqual(
             GENERATOR.TARGET_LOCK.read_text(encoding="ascii").splitlines()[-1],
-            "power_usb_probe_phase=early-initramfs",
+            f"power_usb_probe_phase={probe_phase}",
         )
         self.assertNotIn(self.record["candidate"], GENERATOR.TARGET_LOCK.read_text())
 
     def test_early_probe_phase_selects_initramfs_capability(self) -> None:
         mutated = deepcopy(self.source)
         mutated["integration"]["probe_phase"] = "early-initramfs"
+        mutated["record"]["profile"] = "diagnostic-initramfs-v1"
         mutated["capability"]["target_commands"] = [
             "ip",
             "modprobe",
@@ -73,15 +75,22 @@ class PowerUsbGenerationTest(unittest.TestCase):
 
     def test_probe_phase_and_bundle_profile_must_agree(self) -> None:
         mutated = deepcopy(self.source)
-        mutated["record"]["profile"] = "network-root-v1"
+        mutated["record"]["profile"] = (
+            "network-root-v1"
+            if self.record["profile"] == "diagnostic-initramfs-v1"
+            else "diagnostic-initramfs-v1"
+        )
         with self.assertRaises(GENERATOR.GenerationError):
             GENERATOR.validate(mutated)
 
     def test_timing_lattice_is_central_and_exact(self) -> None:
         timing = GENERATOR.validate_timing(self.source, self.record)
-        self.assertEqual(timing["rollback_timeout_seconds"], 300)
+        self.assertEqual(
+            timing["rollback_timeout_seconds"],
+            int(self.record["rollback_timeout"]),
+        )
         mutated = deepcopy(self.source)
-        mutated["timing"]["rollback_timeout_seconds"] = 299
+        mutated["timing"]["rollback_timeout_seconds"] -= 1
         with self.assertRaises(GENERATOR.GenerationError):
             GENERATOR.validate_timing(mutated, mutated["record"])
 
