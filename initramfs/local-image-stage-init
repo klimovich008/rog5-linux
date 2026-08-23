@@ -1,0 +1,164 @@
+#!/bin/sh
+set -eu
+set -f
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+expected_release=7.1.4-gae717d919f87
+expected_bundle=local-image-stage-v1
+expected_udc=a600000.usb
+expected_physical_count=116
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
+status=/run/rog5-local-image-stage.status
+
+log() {
+	echo "rog5-local-image-stage: $*" >/dev/kmsg 2>/dev/null || true
+}
+
+return_bootloader() {
+	sync || true
+	"$reboot_helper" || true
+	while :; do sleep 3600; done
+}
+
+fail() {
+	log "FAIL $*"
+	printf 'state=FAIL\nreason=%s\n' "$1" >"$status" 2>/dev/null || true
+	return_bootloader
+}
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
+mkdir -p /dev/pts /run /var/log /run/sshd /sys/kernel/config
+mount -t devpts devpts /dev/pts
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+echo /sbin/mdev >/proc/sys/kernel/hotplug
+mdev -s
+hostname rog5-local-image-stage
+
+(
+	sleep 900
+	log 'watchdog deadline reached'
+	return_bootloader
+) &
+watchdog=$!
+printf '%s\n' "$watchdog" >/run/rog5-local-image-stage-watchdog.pid
+
+[ "$(uname -r)" = "$expected_release" ] || fail kernel-release
+bundle_count=0
+persistent_count=0
+discovery_count=0
+for token in $(cat /proc/cmdline); do
+	[ "$token" = "rog5.bundle=$expected_bundle" ] && bundle_count=$((bundle_count + 1))
+	[ "$token" = rog5.persistent_ro=1 ] && persistent_count=$((persistent_count + 1))
+	[ "$token" = rog5.ufs_discovery=1 ] && discovery_count=$((discovery_count + 1))
+done
+[ "$bundle_count:$persistent_count:$discovery_count" = 1:1:1 ] || fail command-line
+
+mount -t configfs configfs /sys/kernel/config
+gadget=/sys/kernel/config/usb_gadget/rog5-local-image-stage
+mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"
+echo 0x1d6b >"$gadget/idVendor"
+echo 0x0104 >"$gadget/idProduct"
+echo 0xef >"$gadget/bDeviceClass"
+echo 0x02 >"$gadget/bDeviceSubClass"
+echo 0x01 >"$gadget/bDeviceProtocol"
+echo Linux >"$gadget/strings/0x409/manufacturer"
+echo 'ROG5 local image stage' >"$gadget/strings/0x409/product"
+echo 'NCM SSH and ACM status' >"$gadget/configs/c.1/strings/0x409/configuration"
+mkdir -p "$gadget/functions/ncm.usb0" "$gadget/functions/acm.usb0"
+ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
+ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+
+attempt=0
+while [ "$attempt" -lt 200 ] && [ ! -e "/sys/class/udc/$expected_udc" ]; do
+	attempt=$((attempt + 1)); sleep 0.1
+done
+set -- /sys/class/udc/*
+[ "$#" -eq 1 ] && [ -e "$1" ] && [ "$(basename "$1")" = "$expected_udc" ] ||
+	fail udc-identity
+echo "$expected_udc" >"$gadget/UDC"
+mdev -s
+attempt=0
+while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
+	attempt=$((attempt + 1)); sleep 0.1
+done
+[ -e /sys/class/net/usb0 ] || fail ncm-absent
+ip link set usb0 up
+ip address add 169.254.77.2/30 dev usb0
+
+attempt=0
+while [ "$attempt" -lt 150 ]; do
+	[ "$(cat /sys/class/net/usb0/carrier 2>/dev/null || echo 0)" = 1 ] && break
+	attempt=$((attempt + 1)); sleep 0.1
+done
+[ "$attempt" -lt 150 ] || fail ncm-carrier
+
+/sbin/rog5-load-persistent-power-usb >/run/rog5-power-usb-loader.result ||
+	fail power-usb
+
+for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
+	insmod "/rog5-ufs-modules/$module" || fail ufs-module
+done
+for module in phy_qcom_qmp_ufs ufshcd_core ufshcd_pltfrm ufs_qcom; do
+	grep -q "^$module " /proc/modules || fail ufs-module-state
+done
+mdev -s
+
+attempt=0
+while [ "$attempt" -lt 200 ]; do
+	count=0
+	for disk in /sys/class/block/*; do
+		[ -e "$disk/device" ] || continue
+		[ ! -e "$disk/partition" ] || continue
+		count=$((count + 1))
+	done
+	[ "$count" -eq "$expected_physical_count" ] && break
+	attempt=$((attempt + 1)); sleep 0.1
+done
+[ "$count" -eq "$expected_physical_count" ] || fail ufs-count
+
+userdata=
+matches=0
+for sys_disk in /sys/class/block/*; do
+	[ -e "$sys_disk/device" ] || continue
+	[ ! -e "$sys_disk/partition" ] || continue
+	disk=$(basename "$sys_disk")
+	case $disk in sd[a-z]) ;; *) continue ;; esac
+	for sys_block in "$sys_disk"/"$disk"*; do
+		[ -e "$sys_block/partition" ] || continue
+		[ "$(sed -n 's/^PARTNAME=//p' "$sys_block/uevent" | sed -n '1p')" = userdata ] || continue
+		[ "$(cat "$sys_disk/size")" = 494927872 ] || continue
+		[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] || continue
+		[ "$(cat "$sys_block/partition")" = 23 ] || continue
+		[ "$(cat "$sys_block/start")" = 18821440 ] || continue
+		[ "$(cat "$sys_block/size")" = 476106392 ] || continue
+		matches=$((matches + 1)); userdata=/dev/$(basename "$sys_block")
+	done
+done
+[ "$matches" -eq 1 ] && [ -b "$userdata" ] || fail userdata-identity
+printf '%s\n' "$userdata" >/run/rog5-userdata-device
+chmod 0444 /run/rog5-userdata-device
+
+for sys_block in /sys/class/block/*; do
+	[ -e "$sys_block/dev" ] || continue
+	[ -e "$sys_block/device" ] || [ -e "$sys_block/partition" ] || continue
+	device=/dev/$(basename "$sys_block")
+	[ -b "$device" ] || continue
+	blockdev --setro "$device" || fail storage-lock
+done
+[ -z "$(awk '$1 ~ "^/dev/sd" { print }' /proc/mounts)" ] || fail storage-mounted
+
+ssh-keygen -q -t ed25519 -N '' -f /run/ssh_host_ed25519_key
+/usr/sbin/sshd -h /run/ssh_host_ed25519_key -E /var/log/sshd.log
+printf 'state=READY\nuserdata=%s\nstorage=read-only\nssh=key-only\n' "$userdata" >"$status"
+chmod 0444 "$status"
+
+(
+	while :; do
+		if [ -c /dev/ttyGS0 ]; then cat "$status" >/dev/ttyGS0 2>/dev/null || true; fi
+		sleep 1
+	done
+) &
+log 'ready for one exact compressed-image staging command over key-only SSH'
+while :; do sleep 3600; done

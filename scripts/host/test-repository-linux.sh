@@ -272,6 +272,7 @@ shared_tests=(
 	scripts/device/test-persistent-root-handoff.sh
 	scripts/device/test-persistent-root-initramfs.sh
 	scripts/device/test-stage-local-arch-image.sh
+	scripts/device/test-local-image-stage-initramfs.sh
 	scripts/device/test-mainline-persistent-root-build.sh
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/host/test-verify-dedicated-linux-layout.py
