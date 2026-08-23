@@ -213,6 +213,7 @@ fi
 power_usb_module_root=
 if [ "$power_usb_modules" -eq 1 ]; then
 	for symbol in \
+		CONFIG_NVMEM_SPMI_SDAM=y CONFIG_NVMEM_REBOOT_MODE=y \
 		CONFIG_QRTR=m CONFIG_QRTR_SMD=m \
 		CONFIG_BATTERY_QCOM_BATTMGR=m \
 		CONFIG_TYPEC=m CONFIG_TYPEC_UCSI=m CONFIG_UCSI_PMIC_GLINK=m \

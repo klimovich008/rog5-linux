@@ -8,6 +8,7 @@ default_source=/home/deck/.local/state/rog5-qmp-ufs-first-clock-runtime-pm-stage
 	exit 1
 }
 explicit_source=${ROG5_COMPOSED_SOURCE+x}
+explicit_config=${ROG5_COMPOSED_CONFIG+x}
 source_repository=${ROG5_COMPOSED_SOURCE:-$default_source}
 config=${ROG5_COMPOSED_CONFIG:-$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root}
 module_root=${ROG5_COMPOSED_MODULE_ROOT:-}
@@ -32,6 +33,14 @@ fail() {
 	fail 'persistent-root power/USB fragment is absent'
 [ -f "$config" ] && [ ! -L "$config" ] ||
 	fail 'persistent-root kernel config is absent'
+for symbol in CONFIG_NVMEM_SPMI_SDAM=y CONFIG_NVMEM_REBOOT_MODE=y; do
+	grep -Fqx "$symbol" "$fragment" ||
+		fail "power/USB fragment lacks early reboot support: $symbol"
+	if [ -n "$explicit_config" ]; then
+		grep -Fqx "$symbol" "$config" ||
+			fail "kernel config lacks early reboot support: $symbol"
+	fi
+done
 
 if [ -d "$source_repository/.git" ]; then
 	[ ! -L "$source_repository" ] && [ ! -L "$source_repository/.git" ] ||

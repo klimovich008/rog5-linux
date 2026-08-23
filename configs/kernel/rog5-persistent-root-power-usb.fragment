@@ -1,5 +1,9 @@
 # Local Arch root plus the V26-proven side-port charging transport. Keep this
 # module closure on the composed kernel ABI; V26 modules are not reusable.
+# Keep Qualcomm's standard PMK8350 reboot-mode path available before initramfs
+# failures: restart2("bootloader") cannot depend on modules loaded later.
+CONFIG_NVMEM_SPMI_SDAM=y
+CONFIG_NVMEM_REBOOT_MODE=y
 CONFIG_QRTR=m
 CONFIG_QRTR_SMD=m
 CONFIG_BATTERY_QCOM_BATTMGR=m

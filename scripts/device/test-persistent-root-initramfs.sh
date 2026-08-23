@@ -46,7 +46,9 @@ binary_integration=0
 if [ -s "$base" ] && [ -x "$verifier" ] && [ -s "$config" ]; then
 	binary_integration=1
 	config_sha256=$(sha256sum "$config" | cut -d ' ' -f 1)
-	if [ -n "$ufs_modules" ]; then
+	if [ -n "${PERSISTENT_ROOT_POWER_MODULES_ROOT:-}" ]; then
+		expected_config_sha256=15e1ea493ac1e654ef9f162ec9134207522ead67660dc16ab62771d9a9e638d6
+	elif [ -n "$ufs_modules" ]; then
 		case $storage_mode in
 			read-only)
 				expected_config_sha256=b959774825e2bca7c634e55cd00e838121fde8d95fd214ffeead732ce92e35e6
@@ -113,6 +115,15 @@ grep -Fq 'bootloader restart returned; forcing emergency reset' "$init" ||
 	fail 'P2 target does not retain a last-resort reset after restart2'
 grep -Fq 'bootloader restart returned; triggering emergency reset' "$shutdown" ||
 	fail 'P2 shutdown does not retain a last-resort reset after restart2'
+for reboot_mode_contract in \
+	'reboot_mode_driver=/sys/bus/platform/drivers/nvmem-reboot-mode' \
+	'[ -L "$reboot_mode_driver/reboot-mode" ]' \
+	'/sys/devices/platform/reboot-mode/of_node/compatible' \
+	'nvmem-reboot-mode' \
+	"fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15"; do
+	grep -Fq "$reboot_mode_contract" "$init" ||
+		fail 'P2 target does not prove early Qualcomm reboot-mode readiness'
+done
 python3 - "$init" "$shutdown" <<'PY'
 from pathlib import Path
 import sys

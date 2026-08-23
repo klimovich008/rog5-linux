@@ -14,6 +14,10 @@ bad=$stage/v26
 mkdir -p "$bad/lib/modules/7.1.4-g7a5cef0db479"
 cp "$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root" \
 	"$stage/writable.config"
+sed -i \
+	-e 's/^CONFIG_NVMEM_SPMI_SDAM=m$/CONFIG_NVMEM_SPMI_SDAM=y/' \
+	-e 's/^CONFIG_NVMEM_REBOOT_MODE=m$/CONFIG_NVMEM_REBOOT_MODE=y/' \
+	"$stage/writable.config"
 sed -i 's/^CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y$/# CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY is not set/' \
 	"$stage/writable.config"
 if ROG5_COMPOSED_MODULE_ROOT="$bad" "$checker" \
@@ -31,10 +35,21 @@ fi
 grep -Fq 'kernel config lacks CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' "$stage/err"
 
 for symbol in CONFIG_BATTERY_QCOM_BATTMGR=m CONFIG_UCSI_PMIC_GLINK=m \
-	CONFIG_QCOM_Q6V5_PAS=m CONFIG_QCOM_PMIC_GLINK=m; do
+	CONFIG_QCOM_Q6V5_PAS=m CONFIG_QCOM_PMIC_GLINK=m \
+	CONFIG_NVMEM_SPMI_SDAM=y CONFIG_NVMEM_REBOOT_MODE=y; do
 	grep -Fqx "$symbol" \
 		"$repo/configs/kernel/rog5-persistent-root-power-usb.fragment"
 done
+
+cp "$repo/artifacts/persistent-root-p2/config-7.1.4-persistent-root" \
+	"$stage/no-reboot.config"
+if ROG5_COMPOSED_CONFIG="$stage/no-reboot.config" "$checker" \
+	>"$stage/out" 2>"$stage/err"; then
+	echo 'FAIL composition checker accepted modular reboot-mode support' >&2
+	exit 1
+fi
+grep -Fq 'kernel config lacks early reboot support: CONFIG_NVMEM_SPMI_SDAM=y' \
+	"$stage/err"
 
 for exact in \
 	'POWER_USB_MODULES=1' \

@@ -101,6 +101,9 @@ Observed pattern:
   wrapper had `CONFIG_PROC_CHILDREN` disabled.
 - Tools such as `/usr/bin/time` and command options such as `cmp -r` were assumed to exist on the build host.
 - ACM tooling required a canonical sysfs location while a short USB path was supplied.
+- A fixed `restart2("bootloader")` helper rebooted mainline, but the PMK8350
+  SDAM and NVMEM reboot-mode drivers were modules absent from the sealed
+  initramfs, so Linux could not persist the bootloader reason.
 
 Cost:
 
@@ -112,6 +115,8 @@ Prevention:
 - Test scripts against the extracted exact initramfs/rootfs with its shell and utilities.
 - Use POSIX/BusyBox-compatible commands in recovery unless a packaged binary is explicitly verified.
 - Preflight every required capability before transfer or candidate consumption.
+- A reboot command is usable only when the exact target proves its underlying
+  reboot-mode provider is bound before any failure that may invoke it.
 - Create every helper-owned marker under its required umask before spawning
   the process that publishes or consumes its identity.
 - Propagate bounded machine classifications from sealed helpers instead of
