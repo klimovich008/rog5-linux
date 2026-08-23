@@ -1851,7 +1851,7 @@ case $profile in
 	persistent-root-local-image-reboot-mode-v16-generation109-live-v1)
 		expected_boot_image=build/persistent-root-local-image-reboot-mode-v16-generation109-20260823-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact continuous-lifecycle read-only Arch boot after verified userdata restaging; clean-twin PMK8350 reboot-mode kernel, charging/UFS/NCM, pinned SSH, slot-A fallback; never flash or retry after entry'
-		expected_boot_role='admitted unbooted Generation 109 candidate; verified userdata-only restage plus clean-twin PMK8350 reboot-mode kernel, target-bound reboot proof, charging/UFS/NCM, pinned SSH, and slot-A fallback; one RAM-only use only; never flash'
+		expected_boot_role='unbooted admitted Generation 109 candidate; verified userdata-only restage plus clean-twin PMK8350 reboot-mode kernel, target-bound reboot proof, charging/UFS/NCM, pinned SSH, and slot-A fallback; one RAM-only use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

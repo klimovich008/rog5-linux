@@ -5,7 +5,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 
 grep -Fq "expected_boot_role='consumed Generation 108 continuous-lifecycle Arch cycle; UFS and read-only userdata mount passed, deployed rog5/images was absent, and restart2 reached slot-A unauthorized recovery because target reboot-mode modules were unavailable; no target write; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='admitted unbooted Generation 109 candidate; verified userdata-only restage plus clean-twin PMK8350 reboot-mode kernel, target-bound reboot proof, charging/UFS/NCM, pinned SSH, and slot-A fallback; one RAM-only use only; never flash'" "$gate"
+grep -Fq "expected_boot_role='unbooted admitted Generation 109 candidate; verified userdata-only restage plus clean-twin PMK8350 reboot-mode kernel, target-bound reboot proof, charging/UFS/NCM, pinned SSH, and slot-A fallback; one RAM-only use only; never flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
