@@ -354,6 +354,12 @@ keeps UFS disabled and its network-root initramfs rejects every physical block
 device, so it cannot stage userdata. The corrected successor must retain the
 proven `ae717` UFS-capable kernel/DT bytes and change only the target initramfs
 and one-use identity. No V27 claim or phone boot occurred.
+The corrected `local-image-stage-v1` target now has signed manifest
+`cef076e59fd114ad2559178f115d2873c3a62912a1a00f5028f6a02e392d7271`
+and recovery generation 101 SHA-256
+`e4451a7bd042ff4de9593f0649c405d712f7ce2a75ac598d36cd0a5f60a8b267`.
+It is unbooted and admitted for one RAM-only cycle. The exact compressed image
+is prepared on the host; no claim has entered and no phone contact occurred.
 4. After the power/USB boundary passes, continue the existing read-only UFS/local-image
    path to key-only SSH and measure power under one bounded server-style load.
 5. Resume native persistent layout work only after the combined path repeats.
