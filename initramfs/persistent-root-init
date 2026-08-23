@@ -38,6 +38,7 @@ stage_record=/run/rog5-persistent-root-stage.record
 stage_reporter_pid=
 target_boot_id=
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
+reboot_mode_driver=/sys/bus/platform/drivers/nvmem-reboot-mode
 
 log() {
 	for kmsg in /dev/kmsg /newroot/dev/kmsg; do
@@ -147,6 +148,23 @@ force_rollback() {
 	done
 }
 
+wait_for_reboot_mode() {
+	attempt=0
+	while [ "$attempt" -lt 100 ]; do
+		if [ -L "$reboot_mode_driver/reboot-mode" ] &&
+			[ "$(basename "$(readlink -f \
+				"$reboot_mode_driver/reboot-mode")")" = reboot-mode ] &&
+			[ "$(tr '\000' '\n' \
+				</sys/devices/platform/reboot-mode/of_node/compatible)" = \
+				nvmem-reboot-mode ]; then
+			return 0
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	return 1
+}
+
 fail_stage() {
 	reason=$1
 	stage=$2
@@ -154,7 +172,7 @@ fail_stage() {
 	case "$stage:$delay" in
 		cmdline:5|kernel-release-file:20|kernel-release-identity:25|\
 ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
-usb:15|ufs-rendezvous:15|ufs-module:20) ;;
+usb:15|reboot-mode:15|ufs-rendezvous:15|ufs-module:20) ;;
 		*)
 			log 'invalid failure timing marker'
 			force_rollback
@@ -1454,6 +1472,9 @@ fi
 arm_watchdog
 if ! configure_usb; then
 	fail_stage 'USB recovery transport failed' usb 15
+fi
+if ! wait_for_reboot_mode; then
+	fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15
 fi
 
 if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||

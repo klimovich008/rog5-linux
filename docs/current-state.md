@@ -197,6 +197,16 @@ and the sealed initramfs contains neither module, so the Qualcomm bootloader
 reason was not written; slot A entered unauthorized ASUS recovery ADB. The
 next cycle requires restored userdata content and proven reboot-mode support.
 
+The offline Generation 109/V16 successor now provides that kernel support.
+Two fresh container builds are byte-identical: config SHA-256 `15e1ea49...`,
+Image SHA-256 `1a1958fe...`, 15 charging modules, and four deferred UFS
+modules. Only `CONFIG_NVMEM_SPMI_SDAM` and `CONFIG_NVMEM_REBOOT_MODE` move
+from modules to built-ins. The unchanged DTB already contains the standard
+PMK8350 SDAM reboot cell and `mode-bootloader = <2>`. The target additionally
+requires the bound `nvmem-reboot-mode` device before UFS. Generation 109 is
+signed but authority-free and absent from live policy; userdata restoration
+and a separate admission remain pending.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving
