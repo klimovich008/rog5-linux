@@ -37,6 +37,7 @@ stage_sequence=0
 stage_record=/run/rog5-persistent-root-stage.record
 stage_reporter_pid=
 target_boot_id=
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
 
 log() {
 	for kmsg in /dev/kmsg /newroot/dev/kmsg; do
@@ -135,7 +136,11 @@ fail_local_stage() {
 }
 
 force_rollback() {
-	log 'forcing storage-quiescent emergency reset'
+	log 'requesting storage-quiescent bootloader restart'
+	if [ -x "$reboot_helper" ]; then
+		"$reboot_helper" || true
+	fi
+	log 'bootloader restart returned; forcing emergency reset'
 	while :; do
 		printf b >/proc/sysrq-trigger 2>/dev/null || true
 		sleep 5
@@ -166,7 +171,11 @@ arm_watchdog() {
 		exec 8>/dev/kmsg
 		exec 9>/proc/sysrq-trigger
 		sleep "$recovery_timeout"
-		echo 'rog5-persistent-root: watchdog expired; using emergency reset' >&8
+		echo 'rog5-persistent-root: watchdog expired; requesting bootloader restart' >&8
+		if [ -x "$reboot_helper" ]; then
+			"$reboot_helper" || true
+		fi
+		echo 'rog5-persistent-root: bootloader restart returned; using emergency reset' >&8
 		printf b >&9
 		while :; do sleep 3600; done
 	) &
@@ -1463,6 +1472,7 @@ target_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
 	fail_stage 'target boot identity is unavailable' kernel-release-file 20
 case "$expected_ufs_storage_mode:$expected_probe_boot_id" in
 	local-write:current) ;;
+	read-only:any-prior) ;;
 	read-only:*)
 		printf '%s\n' "$expected_probe_boot_id" |
 			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||

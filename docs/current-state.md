@@ -171,6 +171,22 @@ lifecycle, which historically captured 14-second writer stages and carries
 network activation, stage reception, host-key pinning, SSH, and fallback in one
 process.
 
+Generation 106 ran through that continuous lifecycle. Host networking and the
+stage listener were ready two seconds after target NCM, but zero stages arrived
+before an exact 20-second rollback. Source audit proved the cause: the new
+`any-prior` policy was implemented in marker verification but omitted from the
+earlier pre-reporter policy gate, which therefore emitted the
+`kernel-release-file` 20-second failure. The corrected successor adds that one
+missing accepted case and changes no kernel or DT.
+
+Generation 107 was built but never booted. Before admission, rollback review
+found that persistent-root failures and shutdown still used SysRq hard reset,
+which can route active slot A into ASUS recovery now that userdata contains a
+Linux filesystem. Generation 107 is revoked unbooted. Generation 108 retains
+the same kernel, DTB, charging/UFS/NCM stack, and `any-prior` correction, and
+adds the reviewed fixed `RESTART2("bootloader")` helper before the emergency
+SysRq fallback in failure, watchdog, and shutdown paths. Slot A is unchanged.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving
