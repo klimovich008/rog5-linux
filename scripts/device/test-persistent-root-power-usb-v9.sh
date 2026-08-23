@@ -13,6 +13,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "persistent-root-power-usb-v9"
+assert record["status"] == "consumed"
 assert record["profile"] == "persistent-root-ro-v1"
 assert record["target_release"] == "7.1.4-gae717d919f87"
 assert record["artifacts"]["Image"]["sha256"] == "a4648dd425616adff2dfb07590be4f85d17d5305e1f72830eb85e668490046d6"

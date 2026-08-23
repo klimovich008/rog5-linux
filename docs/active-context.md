@@ -144,8 +144,17 @@ and no target NCM/ACM appeared. The exact phone exposed stock slot-A USB about
 30 seconds later and subsequently returned responsive fastboot. No staging SSH
 command ran, so the 16 GiB image was not written. The replacement minimal init
 is the only new target layer; its exact failing line remains unproven. Avoid a
-second speculative staging initramfs: stage the already-verified image through
-stock slot-A ADB into userdata and reuse the mature local-root boot path.
+second speculative staging initramfs: place the already-verified image through
+one exact userdata-only sparse transfer and reuse the mature local-root path.
+
+The actual staging route used one exact Android-sparse `userdata` image because
+stock Android cannot boot the new plaintext ext4. Four chunks completed in
+38.194 seconds; no GPT or other partition changed. Generation 102 then exposed
+`ROG5 persistent root` NCM/ACM for 15 seconds and rolled back. The new image's
+UUID, label, and seal are correct, but it lacks V9's required
+`/var/lib/rog5/local-image-write-probe-v1`. V10 therefore changes only the
+sealed target mode to the already-tested bounded `local-write/current` path;
+it may create that one probe, relock, and continue to read-only Arch.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

@@ -1,11 +1,11 @@
 {
   "format": "rog5-recovery-candidate-v1",
-  "candidate": "persistent-root-power-usb-v9",
-  "status": "consumed",
+  "candidate": "persistent-root-power-usb-v10",
+  "status": "offline",
   "authority": "none",
-  "bundle": "persistent-root-power-usb-v9",
+  "bundle": "persistent-root-power-usb-v10",
   "profile": "persistent-root-ro-v1",
-  "target_id": "persistent-root-power-usb-v9",
+  "target_id": "persistent-root-power-usb-v10",
   "target_release": "7.1.4-gae717d919f87",
   "rollback_timeout": "900",
   "target_timeout": "600",
@@ -27,9 +27,9 @@
       "sha256": "4f6518b3fddd1695c9059f1faeedf0458dabdba5c779ee72bededff9c56c76b8"
     },
     "initramfs.cpio.gz": {
-      "path": "artifacts/persistent-root-power-usb-v9/initramfs.cpio.gz",
-      "size": 23810495,
-      "sha256": "4326c052b568a04143befc43c84b177487ccb5b13a1762b22ed178fb1f32ba97"
+      "path": "artifacts/persistent-root-power-usb-v10/initramfs.cpio.gz",
+      "size": 23810962,
+      "sha256": "3e3a377f54f6bb78f6e0e0d90ec27e8a4580700996d8c1fbaa414c62afe5c14f"
     }
   }
 }
