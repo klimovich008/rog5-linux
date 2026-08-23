@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-local-image-restart2-v15-generation108-live-v1"
-BUNDLE = "persistent-root-local-image-restart2-v15"
+PROFILE_ID = "persistent-root-local-image-reboot-mode-v16-generation109-live-v1"
+BUNDLE = "persistent-root-local-image-reboot-mode-v16"
 MANIFEST_SHA256 = (
-    "7b8e11102e707d426f12be5956e9e166bad4b58f7ffe6185922200fdeef17643"
+    "3c0e549c62f3c41c5385987ae6cef76d14e7b8c4d1475b367f85251409cfdadf"
 )
 RECOVERY_SHA256 = (
-    "74008dcc4f5a06690ef95756d8bb07d2df09e11879d408a6d84f1445cea14145"
+    "900449001d9e30358ac1bd934ea6fe8e83b2bbfa63cadd2176761f5107e14955"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -55,16 +55,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"persistent-root-local-image-restart2-v15-generation108-live-v1\n"
-    b"candidate=persistent-root-local-image-restart2-v15\n"
+    b"persistent-root-local-image-reboot-mode-v16-generation109-live-v1\n"
+    b"candidate=persistent-root-local-image-reboot-mode-v16\n"
     b"manifest_sha256="
-    b"7b8e11102e707d426f12be5956e9e166bad4b58f7ffe6185922200fdeef17643\n"
+    b"3c0e549c62f3c41c5385987ae6cef76d14e7b8c4d1475b367f85251409cfdadf\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-persistent-root-local-image-restart2-v15-claim.py"
+    / "scripts/host/consume-persistent-root-local-image-reboot-mode-v16-claim.py"
 )
 TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 persistent root"
@@ -72,7 +72,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-image-restart2-v15-generation108-20260823-r1"
+    / "build/persistent-root-local-image-reboot-mode-v16-generation109-20260823-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -99,10 +99,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-image-restart2-v15",
+    admission_profile="persistent-root-local-image-reboot-mode-v16",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-image-restart2-v15",
-    build_profile="persistent-root-local-image-restart2-v15",
+    runtime_profile="persistent-root-local-image-reboot-mode-v16",
+    build_profile="persistent-root-local-image-reboot-mode-v16",
     diagnostic=False,
 )
 

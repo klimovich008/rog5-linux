@@ -2,8 +2,8 @@
 
 Date: 2026-08-23
 
-Result: **OFFLINE PASS; NO BOOT AUTHORITY.** No phone contact, claim, flash, or
-storage access occurred.
+Result: **OFFLINE BUILD PASS; LATER ADMITTED AFTER USERDATA RESTAGE.** No phone
+boot or claim occurred during the build checkpoint.
 
 Primary question: can mainline prove the standard Qualcomm bootloader reboot
 reason path before any persistent-root failure relies on restart2?
@@ -32,6 +32,11 @@ all 15 charging modules, and all four deferred UFS modules. Final identities:
 - Generation 109 RAM-only wrapper: `900449001d9e30358ac1bd934ea6fe8e83b2bbfa63cadd2176761f5107e14955`
 
 The two kernel outputs occupy 3.0 GiB each; the signed target/wrapper state is
-164 MiB. Generation 109 remains absent from temporary-boot policy, claim
-consumers, and the live runner. Restoring and verifying the userdata payload
-is a separate prerequisite before admission.
+164 MiB. After the build checkpoint, exact fastboot serial, product, slot A,
+USB path, 8.714 V battery, SOC gate, ext4 type, and userdata geometry all
+matched the retained execution record. The approved sparse image SHA-256
+`ddb26042f561ac7e73acb7c77a2325fbb9c4ddf76aa3f7e80ca3daabe9b4fa51`
+was written to `userdata` only in four successful chunks in 38.964 seconds.
+GPT and every other partition were untouched. Generation 109 was then wired
+into one exact claim, policy row, gate profile, and continuous runner; its
+claim remains unconsumed pending exact-head CI and connected preflight.
