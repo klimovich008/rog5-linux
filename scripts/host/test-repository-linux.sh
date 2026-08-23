@@ -275,6 +275,7 @@ shared_tests=(
 	scripts/device/test-local-image-stage-initramfs.sh
 	scripts/device/test-persistent-root-power-usb-v9.sh
 	scripts/device/test-persistent-root-power-usb-v10.sh
+	scripts/device/test-persistent-root-local-image-probe-writer-v11.sh
 	scripts/device/test-mainline-persistent-root-build.sh
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/host/test-verify-dedicated-linux-layout.py
