@@ -134,12 +134,20 @@ initramfs. That corrected target was signed and consumed once as
 COMMIT passed, but its replacement minimal target init exposed no NCM/ACM
 before stock slot-A return about 30 seconds later. No staging SSH command ran
 and no image write occurred. The exact failure line is unproven; the Image and
-DTB remain independently live-proven. The next staging route uses stock slot-A
-ADB to place the verified image under Android userdata, then the mature
-mainline local-root path reads that bounded file. A later separate cycle will
+DTB remain independently live-proven. Because stock Android cannot boot the
+new plaintext ext4, staging uses one host-built Android-sparse userdata image;
+the mature mainline local-root path then reads that bounded file. A later cycle will
 boot the image read-only, retain
 side-port charging/NCM, and benchmark SSH against Generation 20's approximately
 380 seconds.
+
+The verified sparse userdata image was written once in four exact chunks, with
+GPT and every other partition unchanged. Generation 102 then exposed mature
+target NCM/ACM for 15 seconds before rollback. Offline inspection proves the
+new image lacks V9's required prior-write probe, so that read-only composition
+cannot complete. The target-only V10 successor uses the existing bounded
+`local-write/current` mode to create only that probe inside the image, relock
+all storage, and continue into the normal read-only runtime.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
