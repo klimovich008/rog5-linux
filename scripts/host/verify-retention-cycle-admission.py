@@ -908,6 +908,22 @@ EXPECTED_CLAIMS.update(
         ),
     }
 )
+EXPECTED_CLAIMS["local-image-stage-ncm-v9-generation118-observer-v1"] = (
+    b"format=rog5-retention-boot-consumption-v1\n"
+    b"retention_profile=local-image-stage-ncm-v9-generation118-postmortem-v1\n"
+    b"cycle_sha256="
+    b"5b49c45578d578df82422dba92f21d2adc283e526ce16d00c295dbd21364c8c7\n"
+    b"claim_role=observer\n"
+    b"recovery_profile=local-image-stage-ncm-v9-generation118-observer-v1\n"
+    b"recovery_sha256="
+    b"4fef0b9acd38bf06009db1c26314e6ec910b32a06f251012b4efc2910c13325c\n"
+    b"peer_recovery_sha256="
+    b"6e1fc8bf8e2c5f65d0e391c6b5275c8dceaf9f1c236d9feee23367a27e4ae1dc\n"
+    b"candidate=local-image-stage-ncm-v9\n"
+    b"manifest_sha256="
+    b"ec657d94aea6a71aa7efab80bcddba7794256209609ddc7031bd37764c17a4b5\n"
+    b"state=BOOT_CLAIMED\n"
+)
 EXPECTED_SEQUENCE_REFERENCE = {
     "path": "scripts/host/retention-cycle-sequence-reference.py",
     "size": 11923,
@@ -950,7 +966,7 @@ EXPECTED_ADAPTER_FIXTURE = {
 EXPECTED_EXECUTOR_CONTRACT = {
     "path": "scripts/host/retention-cycle-executor-contract.py",
     "size": 14562,
-    "sha256": "100de8314db8d9bc4a68f574f0b8d2f7a3f30f84e77267558e64fc0c10ce23f0",
+    "sha256": "6673ccbe6903057cb685b7778975968809a8bafc19c32386511387dbdad14945",
     "mode": "0644",
     "implementation": "pure-process-contract-v1",
     "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
@@ -978,7 +994,7 @@ EXPECTED_EXECUTOR_BOUNDARY = {
     "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
     "mode": "0644",
     "implementation": "pure-descriptor-output-boundary-v1",
-    "executor_contract_sha256": "100de8314db8d9bc4a68f574f0b8d2f7a3f30f84e77267558e64fc0c10ce23f0",
+    "executor_contract_sha256": "6673ccbe6903057cb685b7778975968809a8bafc19c32386511387dbdad14945",
     "boot_result_protocol": "rog5-retention-boot-result-v1",
     "decoded_actions": [
         "execution-claim",
