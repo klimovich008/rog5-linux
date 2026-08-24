@@ -850,7 +850,6 @@ def preflight(
     ):
         CYCLE.fixed_executable(path, offline=False)
     verify_static_artifacts(inputs)
-    exact_arch_image()
     cycle.verify_host_clean()
     CYCLE.run_capture(
         [str(cycle.dependencies.bundle_server), "preflight", BUNDLE, MANIFEST_SHA256],

@@ -118,6 +118,17 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("STOCK.fastboot(", segment)
         self.assertNotIn("wait_for_stage_host_key(", segment)
 
+    def test_ufs_baseline_preflight_does_not_require_arch_transfer(self) -> None:
+        source = MODULE_PATH.read_text()
+        preflight = source[
+            source.index("def preflight(") : source.index("def stop_recovery_host(")
+        ]
+        self.assertNotIn("exact_arch_image()", preflight)
+        self.assertIn(
+            "transfer_arch_image(cycle, target_ssh, exact_arch_image())",
+            source,
+        )
+
     def test_terminal_stage_stops_the_host_key_wait(self) -> None:
         source = MODULE_PATH.read_text()
         receive = source.index("current = receive_stage_record(listener)")
