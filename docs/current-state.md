@@ -310,6 +310,7 @@ Generation 125 is admitted once as that full-staging successor.
 Generation 125 is consumed at the 25-second bind timeout. The next selector
 attempts the exact bind directly from the expected path and performs full
 inventory validation after successful binding.
+Generation 126 is admitted once with direct exact-path binding.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

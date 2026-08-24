@@ -305,6 +305,7 @@ immediate exact bind with post-bind verification.
 Generation 125 is the admitted full-staging successor with immediate exact bind.
 Its sole cycle timed out because the pre-bind inventory scan remained too slow.
 The next target uses direct expected-path bind and post-bind full validation.
+Generation 126 is the admitted full-staging successor with that direct bind.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
