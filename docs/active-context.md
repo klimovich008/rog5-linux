@@ -318,6 +318,8 @@ Its sole cycle is consumed at the 6.903960-second immediate-return baseline.
 The exact ConfigFS store source plus the prior empty/exact UDC-class trace
 identify the one-shot post-bind class-level assertion as the failure; no target
 USB, SSH, installer, or storage path ran.
+Generation 129 is the admitted one-question successor and removes only that
+assertion while retaining exact ConfigFS readback and all later gates.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
