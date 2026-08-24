@@ -146,7 +146,7 @@ grep -Fqx 'phone_flash=forbidden' "$hotplug_manifest"
 
 busybox_root=$(mktemp -d)
 trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM
-gzip -dc "$repo/artifacts/local-image-stage-v1/initramfs.cpio.gz" |
+gzip -dc "$repo/artifacts/local-image-stage-hotplug-v3/initramfs.cpio.gz" |
 	(cd "$busybox_root" && cpio -idm --quiet --no-absolute-filenames)
 qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64)
 if "$qemu" -L "$busybox_root" "$busybox_root/bin/busybox" sh -c \
