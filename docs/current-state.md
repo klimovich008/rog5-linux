@@ -353,6 +353,9 @@ retained and must be supplied to the next initramfs build.
 Corrected Generation 132 target twins are built but unsigned and unadmitted at
 `54ab6e369a7b558c7f0952ced166ea289c16a384a46861ab5f1ea5ccd7da8406`;
 all 19 packaged modules have exact g359 vermagic. No phone candidate exists.
+Generation 132 is now signed and admitted once with manifest
+`ce0f2c191afaf5c4ed49fc513062422b54c1cab3639e462cd63e00a372b02a1b`
+and recovery `7e555e989ceed7db4f71a6f2195b802cbc532460892e4511a41a51db4ca5c114`.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
