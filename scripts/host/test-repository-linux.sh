@@ -279,6 +279,7 @@ shared_tests=(
 	scripts/device/test-local-image-stage-timing.sh
 	scripts/device/test-local-image-stage-address.sh
 	scripts/device/test-local-image-stage-configfs-udc.sh
+	scripts/device/test-local-image-stage-bind-error.sh
 	scripts/device/test-persistent-root-power-usb-v9.sh
 	scripts/device/test-persistent-root-power-usb-v10.sh
 	scripts/device/test-persistent-root-local-image-probe-writer-v11.sh
