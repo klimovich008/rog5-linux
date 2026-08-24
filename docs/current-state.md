@@ -350,6 +350,9 @@ Generation 131 is consumed and returned exact `power-usb` detail
 `7.1.4-gae717d919f87`, not target `7.1.4-g359318de534f`; the mismatch is the
 proven rejection cause. Matching g359 UFS and power/USB twin module roots are
 retained and must be supplied to the next initramfs build.
+Corrected Generation 132 target twins are built but unsigned and unadmitted at
+`54ab6e369a7b558c7f0952ced166ea289c16a384a46861ab5f1ea5ccd7da8406`;
+all 19 packaged modules have exact g359 vermagic. No phone candidate exists.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
