@@ -293,6 +293,7 @@ Generation 121 is the admitted full-staging successor with that single ordering
 correction and unchanged kernel, DTB, modules, installer, and rollback.
 Its sole cycle is consumed with no target USB. The next target removes the
 redundant second `mdev -s`; devtmpfs plus explicit UDC/usb0 polling remain.
+Generation 122 is the admitted full-staging successor with that simplification.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
