@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-runtime-dt-v26-generation135-live-v1"
-BUNDLE = "local-image-stage-runtime-dt-v26"
+PROFILE_ID = "local-image-stage-of-node-v27-generation136-live-v1"
+BUNDLE = "local-image-stage-of-node-v27"
 MANIFEST_SHA256 = (
-    "a55460c67633aaa3506747b8c4e8baf43656c71b9e9fa9abfdcb036f58bd6f8f"
+    "4c10245dfc2651f7eae4c4f466a632b7bd01c04dfe2c81f03354bf8a56159b69"
 )
 RECOVERY_SHA256 = (
-    "bf0de9becc81268934149e111e80c23fd354ad34dc0b35013788b77f318f99a8"
+    "c654a28f4ed8834dbd84e863c61ee87b2c9e4e37e10df877a8804c5e20ab9051"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-runtime-dt-v26-generation135-live-v1\n"
-    b"candidate=local-image-stage-runtime-dt-v26\n"
+    b"local-image-stage-of-node-v27-generation136-live-v1\n"
+    b"candidate=local-image-stage-of-node-v27\n"
     b"manifest_sha256="
-    b"a55460c67633aaa3506747b8c4e8baf43656c71b9e9fa9abfdcb036f58bd6f8f\n"
+    b"4c10245dfc2651f7eae4c4f466a632b7bd01c04dfe2c81f03354bf8a56159b69\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-runtime-dt-v26-claim.py"
+    / "scripts/host/consume-local-image-stage-of-node-v27-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-runtime-dt-v26-generation135-20260824-r1"
+    / "build/local-image-stage-of-node-v27-generation136-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-runtime-dt-v26",
+    admission_profile="local-image-stage-of-node-v27",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-runtime-dt-v26",
-    build_profile="local-image-stage-runtime-dt-v26",
+    runtime_profile="local-image-stage-of-node-v27",
+    build_profile="local-image-stage-of-node-v27",
     diagnostic=False,
 )
 
