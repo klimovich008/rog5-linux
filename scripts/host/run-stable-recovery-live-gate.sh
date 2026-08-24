@@ -179,6 +179,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-ufs-count-v24-generation133-live-v1 | \
 		local-image-stage-ufs-bind-v25-generation134-live-v1 | \
 		local-image-stage-runtime-dt-v26-generation135-live-v1 | \
+		local-image-stage-of-node-v27-generation136-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -2793,6 +2794,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	local-image-stage-of-node-v27-generation136-live-v1)
+		expected_boot_image=build/local-image-stage-of-node-v27-generation136-20260824-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 136 full staging cycle matching the UFS platform device by exact runtime of_node symlink identity, independent of basename; unchanged g359 modules, Image, DTB, reporter/listener, installer, storage scope, RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 136 exact-OF-node classifier; exact g359 closure and read-only platform identity, unchanged kernel/DT/stable recovery, slot-A fallback; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-of-node-v27
+		expected_bundle=local-image-stage-of-node-v27
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=564103f16f6fe6ee96c148a98677cf3870c99131ce74946aa155528df40ca927
+		expected_avb_digest=f76b5daf561c7bf2ef08f4f096ac4dfaec580b0d0855324ff87a1afb5f8e6881
+		expected_generation_record=dd436d7728a792178a482171168feeed93d3f52c1967caff167455108fd4794f
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 4c10245dfc2651f7eae4c4f466a632b7bd01c04dfe2c81f03354bf8a56159b69 ]] || fail 'OF-node V27 manifest is not pinned'
+		[[ $expected_image == c654a28f4ed8834dbd84e863c61ee87b2c9e4e37e10df877a8804c5e20ab9051 ]] || fail 'OF-node V27 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'OF-node V27 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'OF-node V27 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -4280,6 +4314,7 @@ case $profile in
 	local-image-stage-ufs-count-v24-generation133-live-v1 | \
 	local-image-stage-ufs-bind-v25-generation134-live-v1 | \
 	local-image-stage-runtime-dt-v26-generation135-live-v1 | \
+	local-image-stage-of-node-v27-generation136-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

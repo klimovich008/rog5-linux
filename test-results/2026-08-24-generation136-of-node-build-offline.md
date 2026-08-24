@@ -1,6 +1,6 @@
 # Generation 136 exact OF-node target checkpoint
 
-Result: **SIGNED AND VERIFIED; UNADMITTED.** No phone boot or claim exists.
+Result: **SIGNED, VERIFIED, AND ADMITTED ONCE.** No phone boot or claim exists.
 
 The target scans every platform device and accepts only an `of_node` symlink
 that resolves to the exact runtime UFS DT node, independent of platform-device
@@ -12,4 +12,4 @@ Signed bundle twins verify with manifest
 Authority-free Generation-136 recovery is
 `c654a28f4ed8834dbd84e863c61ee87b2c9e4e37e10df877a8804c5e20ab9051`;
 its raw stable-recovery payload is unchanged. Policy, one-use claim, candidate
-admission, and phone execution remain separate pending steps.
+admission is now recorded; phone execution remains a separate pending step.
