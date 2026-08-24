@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "local-image-stage-ufs-count-v24-generation133-live-v1",
+            "local-image-stage-ufs-bind-v25-generation134-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -66,7 +66,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
         self.assertEqual(
             MODULE.BUNDLE,
-            "local-image-stage-ufs-count-v24",
+            "local-image-stage-ufs-bind-v25",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -84,7 +84,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation133",
+            "generation134",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -101,7 +101,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-local-image-stage-ufs-count-v24-claim.py",
+            "consume-local-image-stage-ufs-bind-v25-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
