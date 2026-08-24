@@ -330,6 +330,11 @@ only that false post-bind class invariant.
 Generation 129 is admitted once with exactly that target-initramfs-only fix;
 kernel, DTB, modules, recovery raw bytes, installer, storage scope, and slot-A
 fallback remain unchanged.
+Generation 129 is consumed and proved exact target NCM enumeration for
+0.519517 seconds. The host missed the short-lived product while NetworkManager
+was still activating. The next target must publish the existing exact stage
+protocol before running the detailed power/USB loader and keep a terminal
+failure visible long enough for host capture; no UDC or kernel redesign.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

@@ -320,6 +320,9 @@ identify the one-shot post-bind class-level assertion as the failure; no target
 USB, SSH, installer, or storage path ran.
 Generation 129 is the admitted one-question successor and removes only that
 assertion while retaining exact ConfigFS readback and all later gates.
+Its sole cycle is consumed. Target NCM enumerated for 0.519517 seconds, proving
+the UDC fix, then target rollback outran host activation. The stager currently
+collapses the detailed power-loader result and has no stage reporter.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

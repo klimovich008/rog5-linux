@@ -25,7 +25,7 @@ grep -Fq "expected_boot_role='consumed Generation 125 scan-then-bind full stagin
 grep -Fq "expected_boot_role='consumed Generation 126 direct-bind full staging cycle; bind write refused with expected path present, no target USB or storage write; fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 127 classifier; ConfigFS/NCM bind succeeded and target USB persisted for 89.864 seconds; host R7 model-filter defect prevented target acceptance; no storage write; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 128 full staging cycle; immediate false post-bind UDC-class invariant forced fallback before target USB or storage; exact slot-A fallback passed; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 129 post-bind fix full staging successor; unchanged kernel/DT/modules and stable recovery, one exact target-initramfs delta, bounded userdata image installer, slot-A fallback; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 129 full staging cycle; exact target NCM enumerated for 0.519517 seconds, then target rollback before host activation; no storage write; slot-A fallback passed; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -227,8 +227,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 128 full staging cycle; exact 6.903960-second recovery-departure-to-slot-A-fastboot return proves immediate post-bind failure before target USB, SSH, installer, or storage; Linux 7.1 ConfigFS store semantics and prior empty/exact class oscillation identify the post-bind UDC-class level check as false; never retry or flash" &&
 		NF == 3 { hostfix_writer++ ; next }
 	$1 == "build/local-image-stage-postbind-v20-generation129-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 129 full staging cycle removing only the proven false post-bind UDC-class level assertion; exact ConfigFS readback, bounded exact-only bind retry, unchanged Image, DTB, modules, power/USB, UFS, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 129 full staging cycle; removing the false UDC-class check advanced to exact target NCM enumeration for 0.519517 seconds, then target rollback before host activation; no SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash" &&
 		NF == 3 { postbind_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -445,7 +445,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
