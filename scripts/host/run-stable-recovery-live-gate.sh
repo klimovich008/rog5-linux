@@ -1965,7 +1965,7 @@ case $profile in
 	local-image-stage-hotplug-v3-generation112-live-v1)
 		expected_boot_image=build/local-image-stage-hotplug-v3-generation112-20260824-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact controlled local-image staging cycle after guarding only the absent optional kernel.hotplug sysctl; unchanged bounded writer kernel, DTB, modules, installer, charging, NCM, relock, and bootloader return; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 112 hotplug-guard successor; Generation 111 target changes only one optional-sysctl guard, signed bundle and fresh RAM-only wrapper; one use only; never flash'
+		expected_boot_role='unbooted admitted Generation 112 hotplug-guard successor; Generation 111 target changes only one optional-sysctl guard, signed bundle and fresh RAM-only wrapper; one use only; never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

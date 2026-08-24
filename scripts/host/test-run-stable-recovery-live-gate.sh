@@ -8,7 +8,7 @@ grep -Fq "expected_boot_role='consumed Generation 108 continuous-lifecycle Arch 
 grep -Fq "expected_boot_role='consumed Generation 109 cycle; repeated userdata-rog5-directory after exact restage, proved built-in PMK8350 reboot-mode return to fastboot, no target write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 110 discriminator; proved ABL sparse userdata flash is ineffective, exact fastboot fallback, no target write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 111 controlled staging cycle; target USB never appeared, slot-A unauthorized recovery returned after 30.708 seconds, and no SSH transfer or storage write occurred; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 112 hotplug-guard successor; Generation 111 target changes only one optional-sysctl guard, signed bundle and fresh RAM-only wrapper; one use only; never flash'" "$gate"
+grep -Fq "expected_boot_role='unbooted admitted Generation 112 hotplug-guard successor; Generation 111 target changes only one optional-sysctl guard, signed bundle and fresh RAM-only wrapper; one use only; never flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -77,8 +77,8 @@ awk -F '\t' \
 		next
 	}
 	$1 == "build/observation-recovery-mainline-udc-v11-generation10-20260811-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact NFS-xattr retention observation recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer++ ; next }
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 111 postmortem observation; recovery reported EMPTY pstore with zero records and bytes, then exact-path stock recovery returned; absence remains inconclusive; never retry or flash" && NF == 3 { observer++ ; next }
 	$1 == "build/headless-core-v21-generation21-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one exact headless-core Arch SSH recovery with power-key indicator; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { core++ ; next }
@@ -139,7 +139,7 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 111 cycle; recovery departed after COMMIT, no target USB appeared, and exact slot-A unauthorized recovery returned 30.708 seconds later; no SSH transfer or storage write occurred; never retry or flash" &&
 		NF == 3 { stage_writer++ ; next }
 	$1 == "build/local-image-stage-hotplug-v3-generation112-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "revoked" &&
+		$2 == "allow" &&
 		$3 == "one exact controlled local-image staging cycle after guarding only the absent optional kernel.hotplug sysctl; unchanged bounded writer kernel, DTB, modules, installer, charging, NCM, relock, and bootloader return; never flash or retry after entry" &&
 		NF == 3 { hotplug_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
