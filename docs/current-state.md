@@ -250,6 +250,10 @@ Generation 115 is consumed. Its 51.961-second return selected the 45-second
 UDC-identity branch: `a600000.usb` exists, but at least one additional UDC is
 present. The strict selector correctly refused to bind; no storage was touched.
 
+Generation 116 is admitted as a no-bind UDC basename classifier. It requires the
+expected UDC, identifies one extra candidate by fixed controller-family timing,
+and has no gadget, UFS, block-device, SSH, or installer execution surface.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving

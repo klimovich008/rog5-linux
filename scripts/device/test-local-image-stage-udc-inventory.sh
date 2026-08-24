@@ -3,8 +3,12 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 init=$repo/initramfs/local-image-stage-udc-inventory-init
+candidate=$repo/configs/recovery-candidates/local-image-stage-udc-v7.json
+manifest=$repo/manifests/local-image-stage-udc-v7-generation116.manifest
+claim=$repo/scripts/host/consume-local-image-stage-udc-v7-claim.py
 
 sh -n "$init"
+python3 -m py_compile "$claim"
 for contract in \
 	'expected_release=@EXPECTED_KERNEL_RELEASE@' \
 	'expected_bundle=@EXPECTED_BUNDLE@' \
@@ -33,4 +37,21 @@ for forbidden in usb_gadget '/sys/class/block' '/dev/sd' blockdev ext4 ssh kexec
 		exit 1
 	}
 done
+python3 - "$candidate" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+c = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert c["candidate"] == "local-image-stage-udc-v7"
+assert c["status"] == "offline" and c["authority"] == "none"
+repo = Path(sys.argv[1]).resolve().parents[2]
+for a in c["artifacts"].values():
+    p = repo / a["path"]
+    assert p.stat().st_size == a["size"]
+    with p.open("rb") as f:
+        assert hashlib.file_digest(f, "sha256").hexdigest() == a["sha256"]
+PY
+grep -Fqx 'avb_generation=116' "$manifest"
+grep -Fqx 'diagnostic=one-extra-udc-basename-pattern-timing' "$manifest"
+grep -Fqx 'storage_policy=none' "$manifest"
+grep -Fqx 'phone_flash=forbidden' "$manifest"
 echo 'PASS UDC inventory classifies one extra basename without binding or storage'

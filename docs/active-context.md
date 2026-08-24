@@ -255,6 +255,10 @@ Generation 115 is consumed: initramfs `2a1312e0...`, manifest `e68acce8...`,
 wrapper `6b376583...`. Its 51.961-second return selected UDC identity: expected
 `a600000.usb` exists alongside an extra candidate. No UFS or storage path ran.
 
+Generation 116 is admitted once: initramfs `48944376...`, manifest
+`16e4bdec...`, wrapper `4c0ac096...`. It binds no UDC and classifies the sole
+extra basename into known controller patterns, unknown, or multiple buckets.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact

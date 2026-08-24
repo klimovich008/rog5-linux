@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "local-image-stage-configfs-v6-generation115-live-v1"
-BUNDLE = "local-image-stage-configfs-v6"
+PROFILE_ID = "local-image-stage-udc-v7-generation116-live-v1"
+BUNDLE = "local-image-stage-udc-v7"
 MANIFEST_SHA256 = (
-    "e68acce824da7be10502fff08522857bfc59ad5c2e53defe5e50fac802d620f3"
+    "16e4bdecca72d584c2cb00e263d9d3756778edcba7ab670ea2e95e2b601cebf9"
 )
 RECOVERY_SHA256 = (
-    "6b376583a52eebec18ba8a20deb26c7c560cacb7784285173e6c4585713a818f"
+    "4c0ac09693ed1db066f78c64bf7024da6302b4aa193ffac13435320e512c0f83"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -55,16 +55,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-configfs-v6-generation115-live-v1\n"
-    b"candidate=local-image-stage-configfs-v6\n"
+    b"local-image-stage-udc-v7-generation116-live-v1\n"
+    b"candidate=local-image-stage-udc-v7\n"
     b"manifest_sha256="
-    b"e68acce824da7be10502fff08522857bfc59ad5c2e53defe5e50fac802d620f3\n"
+    b"16e4bdecca72d584c2cb00e263d9d3756778edcba7ab670ea2e95e2b601cebf9\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-configfs-v6-claim.py"
+    / "scripts/host/consume-local-image-stage-udc-v7-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -72,7 +72,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-configfs-v6-generation115-20260824-r1"
+    / "build/local-image-stage-udc-v7-generation116-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -101,10 +101,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-configfs-v6",
+    admission_profile="local-image-stage-udc-v7",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-configfs-v6",
-    build_profile="local-image-stage-configfs-v6",
+    runtime_profile="local-image-stage-udc-v7",
+    build_profile="local-image-stage-udc-v7",
     diagnostic=False,
 )
 
