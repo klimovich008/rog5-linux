@@ -159,6 +159,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-preusb-v4-generation113-live-v1 | \
 		local-image-stage-usbmode-v5-generation114-live-v1 | \
 		local-image-stage-configfs-v6-generation115-live-v1 | \
+		local-image-stage-udc-v7-generation116-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -2113,6 +2114,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	local-image-stage-udc-v7-generation116-live-v1)
+		expected_boot_image=build/local-image-stage-udc-v7-generation116-20260824-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact no-bind extra-UDC basename classifier; expected a600000.usb must exist, classify one extra known controller family or unknown/multiple bucket by timing; no gadget or storage; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 116 extra-UDC classifier; unchanged Image and DTB, no binding, gadget, UFS, storage, SSH, or installer surface; one use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-udc-v7
+		expected_bundle=local-image-stage-udc-v7
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=07b6e90ff791f97c92ff5c2fac3932005d2e4ba4d1a9883d0d9cdbe3d684870d
+		expected_avb_digest=7ca98319888c3b659727d569c5bdc5c832526579da9ddacd070e1af7eee7ac1f
+		expected_generation_record=301cf924912958bccae7548fa1d2166f91ab8e86c14c7e57131dedeeb987da3e
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 16e4bdecca72d584c2cb00e263d9d3756778edcba7ab670ea2e95e2b601cebf9 ]] || fail 'UDC V7 manifest is not pinned'
+		[[ $expected_image == 4c0ac09693ed1db066f78c64bf7024da6302b4aa193ffac13435320e512c0f83 ]] || fail 'UDC V7 recovery image is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'UDC V7 trust key is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'UDC V7 host verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -3580,6 +3614,7 @@ case $profile in
 	local-image-stage-preusb-v4-generation113-live-v1 | \
 	local-image-stage-usbmode-v5-generation114-live-v1 | \
 	local-image-stage-configfs-v6-generation115-live-v1 | \
+	local-image-stage-udc-v7-generation116-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
