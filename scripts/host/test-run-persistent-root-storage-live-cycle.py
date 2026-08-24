@@ -30,7 +30,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ):
             self.assertTrue(
                 MODULE.stock_fastboot_returned(
-                    "pci-0000:04:00.3-usb-0:1.2"
+                    "pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2"
                 )
             )
             exact.assert_called_once_with("1-1.2")
@@ -38,7 +38,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=False):
             self.assertFalse(
                 MODULE.stock_fastboot_returned(
-                    "pci-0000:04:00.3-usb-0:1.2"
+                    "pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2"
                 )
             )
 
@@ -49,7 +49,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ):
             with self.assertRaises(MODULE.PersistentCycleError):
                 MODULE.stock_fastboot_returned(
-                    "pci-0000:04:00.3-usb-0:1.2"
+                    "pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2"
                 )
 
     def test_profile_and_artifact_identities_are_exact(self) -> None:

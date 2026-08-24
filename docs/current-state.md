@@ -284,6 +284,10 @@ target must distinguish absent `usb0`, exact preexisting address, conflicting
 address, and first-add rejection without changing any earlier USB behavior.
 Generation 120 is admitted once for exactly that address-state classification.
 It stops before carrier, charging, UFS, userdata, SSH, and storage.
+Generation 120 is consumed and selected `address-show-failed`: `usb0` became
+unqueryable immediately after link-up. The root-fix successor moves the exact
+`mdev -s` scan from post-bind to pre-bind, matching the mature working path,
+without changing the kernel, DTB, UDC policy, address command, or later stack.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

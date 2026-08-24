@@ -16,7 +16,7 @@ grep -Fq "expected_boot_role='consumed Generation 116 early UDC inventory; no-ex
 grep -Fq "expected_boot_role='consumed Generation 117 stabilized UDC inventory; no extra after five seconds proves ConfigFS-window transient with Generation 115; no binding, gadget, or storage; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 118 NCM-only full staging cycle; target USB never appeared, exact slot-A fastboot and FALLBACK_RETURNED resolution passed, no SSH transfer, installer, or storage write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 119 pre-storage timing discriminator; 77.046-second exact USB timeline selected ncm-address; no target USB, UFS, userdata, SSH, installer, or storage write; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 120 usb0 address-state discriminator; unchanged pre-address behavior, no carrier, power-USB, UFS, userdata, SSH, installer, or storage surface; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 120 usb0 address-state discriminator; 77.045-second exact USB timeline selected address-show-failed immediately after link-up; no target USB or later subsystem/storage surface; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -182,8 +182,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 119 pre-storage timing cycle; exact 77.046-second recovery-departure-to-fastboot interval selected ncm-address after subtracting the 6.903-second immediate-return baseline; no target USB, UFS, userdata, SSH, installer, or storage write; never retry or flash" &&
 		NF == 3 { timing_writer++ ; next }
 	$1 == "build/local-image-stage-address-v11-generation120-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 120 usb0 address-state discriminator; unchanged pre-address behavior, fixed 70-90 second classifications, no carrier, power-USB, UFS, userdata, SSH, installer, or storage; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 120 address-state cycle; exact 77.045-second USB timeline selected address-show-failed, proving usb0 vanished or became unqueryable immediately after link-up; no target USB, carrier, power-USB, UFS, userdata, SSH, installer, or storage; never retry or flash" &&
 		NF == 3 { address_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -400,7 +400,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
