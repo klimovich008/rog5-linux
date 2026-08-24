@@ -41,7 +41,7 @@ import sys
 
 candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert candidate["candidate"] == "local-image-stage-configfs-v6"
-assert candidate["status"] == "offline"
+assert candidate["status"] == "consumed"
 assert candidate["authority"] == "none"
 repo = Path(sys.argv[1]).resolve().parents[2]
 for artifact in candidate["artifacts"].values():

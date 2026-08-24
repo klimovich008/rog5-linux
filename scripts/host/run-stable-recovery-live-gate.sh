@@ -2078,8 +2078,8 @@ case $profile in
 		;;
 	local-image-stage-configfs-v6-generation115-live-v1)
 		expected_boot_image=build/local-image-stage-configfs-v6-generation115-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact no-storage ConfigFS beacon; classify mount, directories, descriptors, functions, links, UDC discovery, identity, binding, or successful target USB in one RAM-only cycle; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 115 ConfigFS beacon; unchanged Image and DTB, no UFS/storage/SSH/installer execution, grouped timing classifications and target USB success beacon; one use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 115 beacon; exact fastboot returned 51.961 seconds after recovery departure, selecting the 45-second UDC-identity branch: expected UDC exists but additional candidate present; no storage; never retry or flash'
+		expected_boot_role='consumed Generation 115 ConfigFS beacon; 51.961-second return selected UDC-identity branch, expected a600000.usb plus extra candidate, no gadget binding or storage; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
