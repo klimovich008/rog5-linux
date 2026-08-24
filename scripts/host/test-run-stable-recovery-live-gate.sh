@@ -12,7 +12,7 @@ grep -Fq "expected_boot_role='consumed Generation 112 hotplug-guard cycle; immed
 grep -Fq "expected_boot_role='consumed Generation 113 timing discriminator; 31.910-second exact fastboot return proved both release and command-line checks pass; no gadget, UFS, storage, SSH, or payload surface; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 114 USB-mode parity cycle; absent guarded mode path changed no runtime behavior, immediate 6.903-second fastboot fallback, no USB or storage write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 115 ConfigFS beacon; 51.961-second return selected UDC-identity branch, expected a600000.usb plus extra candidate, no gadget binding or storage; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 116 extra-UDC classifier; unchanged Image and DTB, no binding, gadget, UFS, storage, SSH, or installer surface; one use only; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 116 early UDC inventory; no-extra-yet at early sample proves late candidate race when combined with Generation 115; no binding, gadget, or storage; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -159,8 +159,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 115 beacon; exact fastboot returned 51.961 seconds after recovery departure, selecting the 45-second UDC-identity branch: expected UDC exists but additional candidate present; no storage; never retry or flash" &&
 		NF == 3 { configfs_writer++ ; next }
 	$1 == "build/local-image-stage-udc-v7-generation116-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact no-bind extra-UDC basename classifier; expected a600000.usb must exist, classify one extra known controller family or unknown/multiple bucket by timing; no gadget or storage; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 116 early inventory; exact fastboot returned in 16.887 seconds, selecting no-extra-yet and proving the additional UDC appears asynchronously after expected registration; no binding/storage; never retry or flash" &&
 		NF == 3 { udc_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -377,7 +377,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img

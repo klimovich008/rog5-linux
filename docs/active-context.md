@@ -258,6 +258,9 @@ wrapper `6b376583...`. Its 51.961-second return selected UDC identity: expected
 Generation 116 is admitted once: initramfs `48944376...`, manifest
 `16e4bdec...`, wrapper `4c0ac096...`. It binds no UDC and classifies the sole
 extra basename into known controller patterns, unknown, or multiple buckets.
+Its live early sample returned `no extra yet` in 16.887 seconds; combined with
+Generation 115, the extra UDC registers late. A five-second stabilized inventory
+is next.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
