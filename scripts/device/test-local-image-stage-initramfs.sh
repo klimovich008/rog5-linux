@@ -64,6 +64,7 @@ grep -Fq 'while [ "$attempt" -lt 2500 ]; do' "$init"
 grep -Fq 'sleep 0.01' "$init"
 grep -Fq '[ "$bound_udc" -eq 1 ] || fail udc-identity' "$init"
 grep -Fq '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity' "$init"
+grep -Fq '[ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"' "$init"
 if grep -Fq '$(udc_state)' "$init"; then
 	echo 'FAIL target still evaluates the transient post-bind UDC class' >&2
 	exit 1

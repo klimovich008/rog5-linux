@@ -193,7 +193,7 @@ while [ "$attempt" -lt 200 ]; do
 	[ "$count" -eq "$expected_physical_count" ] && break
 	attempt=$((attempt + 1)); sleep 0.1
 done
-[ "$count" -eq "$expected_physical_count" ] || fail ufs-count
+[ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
 current_stage=
 

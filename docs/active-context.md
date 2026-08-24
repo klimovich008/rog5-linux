@@ -337,6 +337,8 @@ Generation 132 target twins now package the retained matching g359 UFS and
 power/USB modules and are byte-identical, but remain unsigned and unadmitted.
 Generation 132 is signed and admitted once; its only material target delta is
 the exact g359 replacement module closure.
+Its sole cycle is consumed and advanced through power/USB plus UFS module load,
+then failed `ufs-ready/ufs-count` after 20 seconds. No storage path ran.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
