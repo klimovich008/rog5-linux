@@ -371,6 +371,8 @@ Generation 133 bytes except the read-only platform/binding/SCSI-host classifier.
 Generation 134 is consumed and proved exact `ufs-platform-0`: the runtime has
 no platform device matching address `0x1d84000`. The next classifier must read
 the runtime `/proc/device-tree` UFS node and status before changing drivers.
+Generation 135 is admitted once with runtime DT node/status classification and
+no kernel, DTB, module, or storage-scope change.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
