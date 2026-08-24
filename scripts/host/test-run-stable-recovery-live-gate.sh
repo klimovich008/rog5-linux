@@ -10,6 +10,7 @@ grep -Fq "expected_boot_role='consumed Generation 110 discriminator; proved ABL 
 grep -Fq "expected_boot_role='consumed Generation 111 controlled staging cycle; target USB never appeared, slot-A unauthorized recovery returned after 30.708 seconds, and no SSH transfer or storage write occurred; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 112 hotplug-guard cycle; immediate controlled pre-gadget fastboot fallback in 6.903 seconds, no target USB, SSH, transfer, installer, or storage write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 113 timing discriminator; 31.910-second exact fastboot return proved both release and command-line checks pass; no gadget, UFS, storage, SSH, or payload surface; never retry or flash'" "$gate"
+grep -Fq "expected_boot_role='unbooted Generation 114 USB-mode parity successor; Generation 112 full target plus one mature-path peripheral-mode transition, signed bundle and fresh RAM-only wrapper; one use only; never flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -147,6 +148,10 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 113 timing cycle; exact fastboot returned 31.910 seconds after recovery departure, proving the 25-second both-checks-pass path plus 6.9-second overhead; no USB or storage surface; never retry or flash" &&
 		NF == 3 { preusb_writer++ ; next }
+	$1 == "build/local-image-stage-usbmode-v5-generation114-20260824-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "allow" &&
+		$3 == "one exact controlled staging cycle after adding only the mature a600000 side-controller peripheral-mode transition; unchanged kernel, DTB, modules, installer, signed image, relock, and bootloader return; never flash or retry after entry" &&
+		NF == 3 { usbmode_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 25 RAM-only cycle; exact Alpine fallback returned; never retry or flash" && NF == 3 { generation25++ ; next }
@@ -313,7 +318,7 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 71 + power_usb + power_history || power_usb > 1 || power_history < 1 || local_stage != 1 || local_boot != 1 || local_write_boot != 1 || probe_writer != 1 || marker_reader != 1 || continuous_reader != 1 || early_fixed_reader != 1 || restart_reader != 1 || reboot_mode_reader != 1 || sparse_reader != 1 || stage_writer != 1 || hotplug_writer != 1 || preusb_writer != 1 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || generation77 != 1 || generation78 != 1 || generation79 != 1 || generation80 != 1 || generation81 != 1 || generation82 != 1 || generation83 != 1 || generation84 != 1 || revoked != 1) exit 1 }
+	END { if (NR != 72 + power_usb + power_history || power_usb > 1 || power_history < 1 || local_stage != 1 || local_boot != 1 || local_write_boot != 1 || probe_writer != 1 || marker_reader != 1 || continuous_reader != 1 || early_fixed_reader != 1 || restart_reader != 1 || reboot_mode_reader != 1 || sparse_reader != 1 || stage_writer != 1 || hotplug_writer != 1 || preusb_writer != 1 || usbmode_writer != 1 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || generation77 != 1 || generation78 != 1 || generation79 != 1 || generation80 != 1 || generation81 != 1 || generation82 != 1 || generation83 != 1 || generation84 != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retained admissions plus consumed history' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||
@@ -362,7 +367,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
