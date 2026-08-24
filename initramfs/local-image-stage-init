@@ -88,8 +88,9 @@ classify_zero_ufs() {
 	esac
 	platform_count=0
 	ufs_platform=
-	for candidate in /sys/bus/platform/devices/*1d84000*; do
-		[ -e "$candidate" ] || continue
+	for candidate in /sys/bus/platform/devices/*; do
+		[ -L "$candidate/of_node" ] || continue
+		[ "$(readlink -f "$candidate/of_node")" = "$ufs_dt" ] || continue
 		platform_count=$((platform_count + 1))
 		ufs_platform=$candidate
 	done
