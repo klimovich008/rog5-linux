@@ -501,6 +501,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-stage-hotplug-v3-generation112-live-v1",
         "local-image-stage-preusb-v4-generation113-live-v1",
         "local-image-stage-usbmode-v5-generation114-live-v1",
+        "local-image-stage-configfs-v6-generation115-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
