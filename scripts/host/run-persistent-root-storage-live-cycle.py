@@ -868,6 +868,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
     target_boot_id: str | None = None
     target_accepted = False
     fallback_attempted = False
+    fallback_proven = False
     resolved = False
     control_attempted = False
     recovery_ncm = None
@@ -984,6 +985,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         fallback_attempted = True
         cycle.wait_fallback(None)
         cycle.wait_host_clean(final=True)
+        fallback_proven = True
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
@@ -1017,6 +1019,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                 fallback_attempted = True
                 cycle.wait_fallback(None)
                 cycle.wait_host_clean(final=True)
+                fallback_proven = True
                 recovery_note = "; exact stock slot-A fallback and host cleanup passed"
             except BaseException as recovery_error:
                 recovery_note = f"; fallback proof failed: {recovery_error}"
@@ -1024,7 +1027,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             intent = cycle.discover_unknown_intent(
                 cycle.output("recovery-control.log"), ledger_before
             )
-        if intent is not None and not resolved and fallback_attempted:
+        if intent is not None and not resolved and fallback_proven:
             try:
                 cycle.resolve_intent(
                     intent,

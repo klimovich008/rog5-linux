@@ -1926,8 +1926,8 @@ case $profile in
 		;;
 	local-image-stage-writer-v2-generation111-live-v1)
 		expected_boot_image=build/local-image-stage-writer-v2-generation111-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact controlled userdata-local Arch image staging cycle; bounded writer kernel, side-port charging and NCM, key-only SSH transfer, exact 16-GiB image path, relock, and bootloader return; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 111 controlled local-image staging recovery; clean-twin bounded-write kernel, signed target bundle, exact installer, built-in reboot mode, and unchanged stock slot-A rescue; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 111 cycle; recovery departed after COMMIT, no target USB appeared, and exact slot-A unauthorized recovery returned 30.708 seconds later; no SSH transfer or storage write occurred; never retry or flash'
+		expected_boot_role='consumed Generation 111 controlled staging cycle; target USB never appeared, slot-A unauthorized recovery returned after 30.708 seconds, and no SSH transfer or storage write occurred; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

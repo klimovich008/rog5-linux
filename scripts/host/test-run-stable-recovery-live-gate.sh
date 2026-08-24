@@ -7,7 +7,7 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 grep -Fq "expected_boot_role='consumed Generation 108 continuous-lifecycle Arch cycle; UFS and read-only userdata mount passed, deployed rog5/images was absent, and restart2 reached slot-A unauthorized recovery because target reboot-mode modules were unavailable; no target write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 109 cycle; repeated userdata-rog5-directory after exact restage, proved built-in PMK8350 reboot-mode return to fastboot, no target write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 110 discriminator; proved ABL sparse userdata flash is ineffective, exact fastboot fallback, no target write; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 111 controlled local-image staging recovery; clean-twin bounded-write kernel, signed target bundle, exact installer, built-in reboot mode, and unchanged stock slot-A rescue; one RAM-only use only; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 111 controlled staging cycle; target USB never appeared, slot-A unauthorized recovery returned after 30.708 seconds, and no SSH transfer or storage write occurred; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -134,8 +134,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 110 read-only cycle; source metadata blocks differed, high inode and directory blocks were zero, and 4-GiB aliases remained unchanged, proving ASUS ABL sparse flash left userdata unchanged; exact fastboot fallback passed; no target write; never retry or flash" &&
 		NF == 3 { sparse_reader++ ; next }
 	$1 == "build/local-image-stage-writer-v2-generation111-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact controlled userdata-local Arch image staging cycle; bounded writer kernel, side-port charging and NCM, key-only SSH transfer, exact 16-GiB image path, relock, and bootloader return; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 111 cycle; recovery departed after COMMIT, no target USB appeared, and exact slot-A unauthorized recovery returned 30.708 seconds later; no SSH transfer or storage write occurred; never retry or flash" &&
 		NF == 3 { stage_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -352,7 +352,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 3 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img

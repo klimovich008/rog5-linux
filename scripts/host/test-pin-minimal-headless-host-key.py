@@ -21,6 +21,7 @@ MODULE_PATH = REPO / "scripts/host/pin-minimal-headless-host-key.py"
 RECOVERY_INIT = REPO / "initramfs/recovery-init"
 TARGET_INIT = REPO / "initramfs/network-root-init"
 PERSISTENT_TARGET_INIT = REPO / "initramfs/persistent-root-init"
+LOCAL_STAGE_INIT = REPO / "initramfs/local-image-stage-init"
 SPEC = importlib.util.spec_from_file_location("rog5_host_key_pin", MODULE_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError("cannot load host-key bootstrap")
@@ -176,6 +177,7 @@ class HostKeyBootstrapTest(unittest.TestCase):
         recovery = RECOVERY_INIT.read_text()
         target = TARGET_INIT.read_text()
         persistent_target = PERSISTENT_TARGET_INIT.read_text()
+        local_stage = LOCAL_STAGE_INIT.read_text()
         self.assertEqual(MODULE.RECOVERY_PRODUCT, "ROG5 recovery")
         self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 network root")
         self.assertEqual(
@@ -186,11 +188,16 @@ class HostKeyBootstrapTest(unittest.TestCase):
             MODULE.PERSISTENT_TARGET_PRODUCT,
             "ROG5 persistent root",
         )
+        self.assertEqual(
+            MODULE.LOCAL_STAGE_TARGET_PRODUCT,
+            "ROG5 local image stage",
+        )
         for source, product in (
             (recovery, MODULE.RECOVERY_PRODUCT),
             (target, MODULE.TARGET_PRODUCT),
             (target, MODULE.DIAGNOSTIC_TARGET_PRODUCT),
             (persistent_target, MODULE.PERSISTENT_TARGET_PRODUCT),
+            (local_stage, MODULE.LOCAL_STAGE_TARGET_PRODUCT),
         ):
             self.assertIn("echo 0x1d6b", source)
             self.assertIn("echo 0x0104", source)
@@ -214,6 +221,19 @@ class HostKeyBootstrapTest(unittest.TestCase):
         with self.fixture.patches():
             self.assertEqual(
                 MODULE.target_observation(MODULE.PERSISTENT_TARGET_PRODUCT),
+                ("enxrog5", "pci0000:00/usb1/1-2"),
+            )
+            with self.assertRaisesRegex(
+                MODULE.BootstrapError,
+                "raw ROG5 network root",
+            ):
+                MODULE.target_observation(MODULE.TARGET_PRODUCT)
+
+    def test_local_stage_product_is_observed_only_when_selected(self) -> None:
+        self.fixture.install_target(product="ROG5 local image stage")
+        with self.fixture.patches():
+            self.assertEqual(
+                MODULE.target_observation(MODULE.LOCAL_STAGE_TARGET_PRODUCT),
                 ("enxrog5", "pci0000:00/usb1/1-2"),
             )
             with self.assertRaisesRegex(
