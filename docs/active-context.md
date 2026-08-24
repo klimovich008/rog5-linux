@@ -282,6 +282,9 @@ usb0, carrier, or module failure. The next cycle is timing-only instrumentation
 with target behavior otherwise unchanged.
 Generation 119 is the admitted timing-only successor. It has no UFS or storage
 execution path and asks only which pre-NCM/power-USB boundary returns fastboot.
+Its sole cycle selected `ncm-address`: all earlier ConfigFS/UDC/usb0/link-up
+steps returned success, then the exact IPv4 add returned nonzero. The next
+cycle classifies only the address state and remains storage-free.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

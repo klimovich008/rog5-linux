@@ -2218,8 +2218,8 @@ case $profile in
 		;;
 	local-image-stage-timing-v10-generation119-live-v1)
 		expected_boot_image=build/local-image-stage-timing-v10-generation119-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 119 pre-storage timing discriminator; unchanged Image/DTB/power-USB path, fixed 5-85 second failure delays, no UFS, userdata, SSH, installer, or storage write; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 119 pre-storage timing discriminator; unchanged Image/DTB/power-USB behavior, fixed failure delays, no UFS, userdata, SSH, installer, or storage-write surface; never flash'
+		expected_boot_basis='consumed by the sole Generation 119 pre-storage timing cycle; exact 77.046-second recovery-departure-to-fastboot interval selected ncm-address after subtracting the 6.903-second immediate-return baseline; no target USB, UFS, userdata, SSH, installer, or storage write; never retry or flash'
+		expected_boot_role='consumed Generation 119 pre-storage timing discriminator; 77.046-second exact USB timeline selected ncm-address; no target USB, UFS, userdata, SSH, installer, or storage write; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
