@@ -224,8 +224,10 @@ charging modules, and four UFS modules with bounded data-write plus reboot mode.
 Generation 111 is consumed. Recovery departed after COMMIT, but no target USB
 appeared before slot-A unauthorized recovery returned 30.708 seconds later.
 No SSH transfer or storage write occurred. Retained host evidence therefore
-places the failure before target USB; exact reset/panic evidence still requires
-the next observation-recovery pass from fastboot.
+places the failure before target USB. Exact artifact comparison proves a fatal
+pre-gadget command: strict PID 1 wrote the absent `kernel.hotplug` sysctl while
+`CONFIG_UEVENT_HELPER` was disabled. A sealed-BusyBox regression covers the
+one-token `|| :` fix; observation recovery remains the next independent check.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

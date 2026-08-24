@@ -41,3 +41,23 @@ The failure path also set `fallback_attempted` before exact fallback proof and
 therefore resolved the intent even though stock-recovery descriptor verification
 failed. The durable record is retained as evidence but is not treated as proof;
 the runner now resolves only after `fallback_proven` is true.
+
+Systematic comparison with Generation 101 and the working Generation 102
+isolated a fatal R3 initramfs capability defect. Both failing initramfs archives
+use `set -e` and redirect to `/proc/sys/kernel/hotplug` before ConfigFS USB.
+Both exact Images have `CONFIG_UEVENT_HELPER` disabled, and Linux registers that
+sysctl only when the symbol is enabled. The exact sealed BusyBox exits status 1
+on the real procfs EACCES path and never reaches the following command. Because
+`rdinit=/init panic=10`, PID-1 exit explains the pre-USB panic/reboot sequence.
+
+A bounded Opus review independently classified this as a proven fatal defect,
+while correctly retaining initramfs-delivery and later strict-command failures
+as alternatives until ramoops or a successful USB beacon proves `/init`
+execution. The fail-first regression now executes the unguarded and guarded
+forms under the archived AArch64 BusyBox. The only source fix is `|| :` on the
+optional hotplug-helper write; `set -e`, kernel, DTB, modules, and all storage
+logic remain unchanged.
+
+Reusable classifications: R3 for the fatal exact-capability mismatch, R1 for
+the separate omitted host target-product identity, and R8 for premature intent
+resolution before exact fallback proof.
