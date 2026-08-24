@@ -23,7 +23,11 @@ PY
 
 grep -Fq 'wait_post_commit_host_cleanup(cycle)' "$runner"
 grep -Fq 'interface = activate_target_network(cycle, anchor)' "$runner"
-grep -Fq 'wait_for_stage_host_key(cycle, anchor, target_known_hosts)' "$runner"
+grep -Fq 'wait_for_target_host_key(cycle, anchor, target_known_hosts)' "$runner"
+if grep -Fq '        wait_for_stage_host_key(cycle, anchor, target_known_hosts)' "$runner"; then
+	echo 'FAIL active lifecycle still selects the SSH-only target wait' >&2
+	exit 1
+fi
 grep -Fq 'transfer_arch_image(cycle, target_ssh, exact_arch_image())' "$runner"
 
 echo 'PASS consumed V13 changed only signed identity and used the continuous lifecycle'

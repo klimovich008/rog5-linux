@@ -41,6 +41,6 @@ for name in sys.argv[1:]:
 PY
 fi
 ! grep -Fq 'persistent-root-local-image-restart2-v15-generation108-live-v1' "$runner"
-grep -Fq 'wait_for_stage_host_key(cycle, anchor, target_known_hosts)' "$runner"
+grep -Fq 'wait_for_target_host_key(cycle, anchor, target_known_hosts)' "$runner"
 
 echo 'PASS consumed V15 retains exact any-prior and restart2-first evidence'
