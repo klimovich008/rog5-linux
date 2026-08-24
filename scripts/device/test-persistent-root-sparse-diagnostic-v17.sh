@@ -6,6 +6,7 @@ candidate=$repo/configs/recovery-candidates/persistent-root-sparse-diagnostic-v1
 v16=$repo/configs/recovery-candidates/persistent-root-local-image-reboot-mode-v16.json
 initramfs=$repo/artifacts/persistent-root-sparse-diagnostic-v17/initramfs.cpio.gz
 runner=$repo/scripts/host/run-persistent-root-storage-live-cycle.py
+gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 
 python3 - "$candidate" "$v16" <<'PY'
 import json
@@ -32,7 +33,7 @@ if [ -f "$initramfs" ]; then
 	grep -Fq '1 32 1086 8224 8225 9278 14680096 14688288 14688289' "$stage/init"
 	grep -Fq '"raw-b${probe_block}-${probe_hash}"' "$stage/init"
 fi
-grep -Fq 'persistent-root-sparse-diagnostic-v17-generation110-live-v1' "$runner"
+grep -Fq 'persistent-root-sparse-diagnostic-v17-generation110-live-v1' "$gate"
 grep -Fq 'if current.state == "FAIL":' "$runner"
 
 echo 'PASS consumed V17 proves ABL sparse userdata staging is ineffective'
