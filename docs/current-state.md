@@ -229,10 +229,11 @@ pre-gadget command: strict PID 1 wrote the absent `kernel.hotplug` sysctl while
 `CONFIG_UEVENT_HELPER` was disabled. A sealed-BusyBox regression covers the
 one-token `|| :` fix; observation recovery remains the next independent check.
 
-Generation 112 is admitted once. It reuses the exact Generation 111 Image,
-DTB, modules, installer, and recovery payload; only the guarded optional sysctl
-line and fresh signed identities differ. The one-use observer reported empty
-pstore; that absence is inconclusive and the observer is permanently consumed.
+Generation 112 is consumed. Guarding the optional sysctl advanced execution,
+but no target USB appeared and exact fastboot returned only 6.903 seconds after
+recovery departure. This excludes the 20-second UDC wait and `panic=10`, leaving
+the immediate controlled kernel-release or command-line checks as the boundary.
+No SSH, transfer, installer, or storage write occurred.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

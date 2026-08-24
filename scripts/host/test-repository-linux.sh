@@ -273,6 +273,7 @@ shared_tests=(
 	scripts/device/test-persistent-root-initramfs.sh
 	scripts/device/test-stage-local-arch-image.sh
 	scripts/device/test-local-image-stage-initramfs.sh
+	scripts/device/test-local-image-stage-preusb-diagnostic.sh
 	scripts/device/test-persistent-root-power-usb-v9.sh
 	scripts/device/test-persistent-root-power-usb-v10.sh
 	scripts/device/test-persistent-root-local-image-probe-writer-v11.sh

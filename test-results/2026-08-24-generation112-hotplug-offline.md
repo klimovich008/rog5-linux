@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 112 remains unbooted.
+Result: **CONSUMED; CONTROLLED PRE-GADGET FAILURE.** Never retry or flash.
 
 Primary question: does guarding the absent optional `kernel.hotplug` sysctl let
 the otherwise byte-identical controlled writer reach target NCM/ACM and key-only
@@ -39,5 +39,12 @@ The one-use observation-only recovery then booted and reported exact EMPTY
 pstore (`records=0`, `bytes=0`, SHA-256 of empty input). This is inconclusive:
 retention may have been lost or cleared, so it is not evidence against the
 proven fatal PID-1 command. The observer is revoked permanently. Generation 112
-is admitted for one RAM-only controlled staging cycle after exact fastboot
-returns; no kernel or phone partition flash is authorized.
+was admitted for one RAM-only controlled staging cycle; no kernel or phone
+partition flash was authorized.
+
+Live result: signed transfer, PREPARE, and COMMIT passed. Recovery USB departed
+at 07:16:04.804 and exact fastboot enumerated at 07:16:11.707, 6.903 seconds
+later. No target USB, SSH, image transfer, installer, or storage write occurred.
+The direct bootloader fallback is too early for the fixed 20-second UDC wait or
+`panic=10`; the remaining immediate controlled boundary is kernel-release or
+command-line validation.

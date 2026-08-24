@@ -234,12 +234,12 @@ Generations 101 and 111: `set -e` terminated PID 1 when the optional
 sealed-AArch64-BusyBox test fails unguarded and passes guarded. Collect retained
 ramoops from a fresh RAM-only observer before treating this as the sole cause.
 
-Generation 112 is admitted once: target initramfs
-`0cb40afd...`, signed manifest `d3e3dc86...`, and RAM-only wrapper
-`dafa1030...`. Its kernel, DTB, modules, and storage logic are byte-identical to
-Generation 111; only the optional sysctl guard and fresh bundle identity differ.
-The observation-only recovery reported exact EMPTY pstore and is consumed;
-missing retention remains inconclusive rather than evidence against the panic.
+Generation 112 is consumed: target initramfs `0cb40afd...`, manifest
+`d3e3dc86...`, and wrapper `dafa1030...`. The hotplug guard advanced the target
+to an immediate controlled pre-gadget failure; exact fastboot returned 6.903
+seconds after recovery USB departure. The 20-second UDC wait and a 10-second
+panic are too long, so the next no-storage discriminator separates release,
+command-line, and both-checks-pass outcomes by fixed timing.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
