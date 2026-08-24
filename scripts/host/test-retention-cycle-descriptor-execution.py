@@ -447,7 +447,7 @@ class RetentionCycleDescriptorExecutionTest(unittest.TestCase):
             sum(
                 row[0]
                 == "build/observation-recovery-mainline-udc-v11-generation10-20260811-r1/repack/stable-recovery-a.avb.img"
-                and row[1] == "allow"
+                and row[1] == "revoked"
                 for row in rows
             ),
             1,
