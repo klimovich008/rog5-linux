@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 124 remains unbooted.
+Result: **CONSUMED; TWO-SAMPLE UDC TIMEOUT.** Never retry or flash.
 
 Generation 123 proved post-ConfigFS UDC inventory alternates only between empty
 and exact `a600000.usb`, with no wrong basename. The new selector tolerates
@@ -16,3 +16,12 @@ Signed runtime manifest SHA-256:
 `df525ae6794d14b6aa8ee9d3076490ad8bfb47e25b792e15e4e7c7f461d48020`.
 Generation-124 recovery SHA-256:
 `921173ef862bc69b0e578ffc91c97194cc00d4872e94d12eb0872d91e3807727`.
+
+Recovery USB departed at `13:06:23.244501`; fastboot appeared at
+`13:06:55.492515`, 32.248014 seconds later. This is the 25-second selector
+timeout plus restart overhead. No two consecutive 100ms exact samples occurred.
+No target USB, SSH, installer, or storage write ran; fallback passed.
+
+The next selector attempts the exact bind immediately on one exact observation,
+retries only if the expected UDC vanished, rejects wrong/multiple candidates,
+then verifies both the bound UDC field and class identity.
