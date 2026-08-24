@@ -44,7 +44,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "local-image-stage-ncm-v9-generation118-live-v1",
+            "local-image-stage-timing-v10-generation119-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
         self.assertEqual(
             MODULE.BUNDLE,
-            "local-image-stage-ncm-v9",
+            "local-image-stage-timing-v10",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -73,7 +73,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation118",
+            "generation119",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -90,7 +90,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-local-image-stage-ncm-v9-claim.py",
+            "consume-local-image-stage-timing-v10-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
@@ -113,6 +113,13 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         wait = source.index("status = CYCLE.wait_process(process, 5)", receive)
         self.assertLess(receive, terminal)
         self.assertLess(terminal, wait)
+
+    def test_fastboot_return_stops_the_post_ncm_host_key_wait(self) -> None:
+        source = MODULE_PATH.read_text()
+        start = source.index("def wait_for_target_host_key(")
+        timeout = source.index("except (TimeoutError, socket.timeout):", start)
+        next_stage = source.index("if previous is not None:", timeout)
+        self.assertIn("stock_fastboot_returned(expected_location)", source[timeout:next_stage])
 
     def test_diagnostics_capture_bounded_systemd_timing(self) -> None:
         diagnostic = MODULE.DIAGNOSTIC_COMMAND

@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-ncm-v9-generation118-live-v1"
-BUNDLE = "local-image-stage-ncm-v9"
+PROFILE_ID = "local-image-stage-timing-v10-generation119-live-v1"
+BUNDLE = "local-image-stage-timing-v10"
 MANIFEST_SHA256 = (
-    "ec657d94aea6a71aa7efab80bcddba7794256209609ddc7031bd37764c17a4b5"
+    "8f4a7343af094b5a2210a7e5e8be6d2e494a6a93f10ee63d6bf540ab43701cb7"
 )
 RECOVERY_SHA256 = (
-    "6e1fc8bf8e2c5f65d0e391c6b5275c8dceaf9f1c236d9feee23367a27e4ae1dc"
+    "9a3279dd6de28072afba7926b800760dce60bd5e737849b39c48e46af0ebe154"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-ncm-v9-generation118-live-v1\n"
-    b"candidate=local-image-stage-ncm-v9\n"
+    b"local-image-stage-timing-v10-generation119-live-v1\n"
+    b"candidate=local-image-stage-timing-v10\n"
     b"manifest_sha256="
-    b"ec657d94aea6a71aa7efab80bcddba7794256209609ddc7031bd37764c17a4b5\n"
+    b"8f4a7343af094b5a2210a7e5e8be6d2e494a6a93f10ee63d6bf540ab43701cb7\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-ncm-v9-claim.py"
+    / "scripts/host/consume-local-image-stage-timing-v10-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-ncm-v9-generation118-20260824-r1"
+    / "build/local-image-stage-timing-v10-generation119-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-ncm-v9",
+    admission_profile="local-image-stage-timing-v10",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-ncm-v9",
-    build_profile="local-image-stage-ncm-v9",
+    runtime_profile="local-image-stage-timing-v10",
+    build_profile="local-image-stage-timing-v10",
     diagnostic=False,
 )
 
@@ -615,6 +615,9 @@ def wait_for_target_host_key(
     anchor: Path,
     target_known_hosts: Path,
 ) -> StageRecord:
+    expected_location = CYCLE.read_recovery_anchor_location(
+        anchor, cycle.dependencies
+    )
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     listener.settimeout(0.5)
@@ -644,6 +647,8 @@ def wait_for_target_host_key(
             try:
                 current = receive_stage_record(listener)
             except (TimeoutError, socket.timeout):
+                if stock_fastboot_returned(expected_location):
+                    fail("exact slot-A fastboot returned before target host-key readiness")
                 continue
             if previous is not None:
                 require_stage_successor(previous, current)
