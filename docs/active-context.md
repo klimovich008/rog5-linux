@@ -340,6 +340,8 @@ the exact g359 replacement module closure.
 Its sole cycle is consumed and advanced through power/USB plus UFS module load,
 then failed `ufs-ready/ufs-count` after 20 seconds. No storage path ran.
 Generation 133 is admitted once to retain the observed physical-device count.
+Its sole cycle is consumed and proved exact `ufs-count-0`. No block device or
+storage write existed; the UFS boundary now requires architecture/source audit.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

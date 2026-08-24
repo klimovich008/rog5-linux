@@ -2694,8 +2694,8 @@ case $profile in
 		;;
 	local-image-stage-ufs-count-v24-generation133-live-v1)
 		expected_boot_image=build/local-image-stage-ufs-count-v24-generation133-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 133 full staging cycle retaining the observed UFS physical-device count in terminal stage detail; exact g359 UFS/power module closure, unchanged Image, DTB, reporter/listener, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 133 UFS-count full staging successor; exact g359 module closure and count-bearing terminal evidence, unchanged kernel/DT/stable recovery, slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 133 cycle; exact g359 power/USB and UFS module insertion passed, then the bounded UFS inventory was exactly zero; no SSH, installer, block device, mount, or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 133 cycle; exact post-module UFS physical count was zero before every storage surface; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
