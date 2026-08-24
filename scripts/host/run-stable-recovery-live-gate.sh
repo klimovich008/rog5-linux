@@ -2040,8 +2040,8 @@ case $profile in
 		;;
 	local-image-stage-usbmode-v5-generation114-live-v1)
 		expected_boot_image=build/local-image-stage-usbmode-v5-generation114-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact controlled staging cycle after adding only the mature a600000 side-controller peripheral-mode transition; unchanged kernel, DTB, modules, installer, signed image, relock, and bootloader return; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 114 USB-mode parity successor; Generation 112 full target plus one mature-path peripheral-mode transition, signed bundle and fresh RAM-only wrapper; one use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 114 cycle; guarded mainline-absent mode path was a no-op, exact fastboot repeated after 6.903 seconds before target USB, and no storage write occurred; never retry or flash'
+		expected_boot_role='consumed Generation 114 USB-mode parity cycle; absent guarded mode path changed no runtime behavior, immediate 6.903-second fastboot fallback, no USB or storage write; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

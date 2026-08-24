@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 114 remains unbooted.
+Result: **CONSUMED; USB-MODE PATH ABSENT/NO-OP.** Never retry or flash.
 
 Generation 113 proved that the exact target kernel release and all required
 command-line tokens pass. The next difference from the repeatedly working
@@ -26,3 +26,9 @@ Identities:
 No phone partition flash is authorized. The single RAM-only cycle may write
 only the exact final 16 GiB Arch image file after authenticated SSH and all
 power, identity, UFS, filesystem, and empty-content gates pass.
+
+Live result: exact fastboot returned 6.903 seconds after recovery departure,
+with no target USB, SSH, transfer, installer, or storage write. Source audit of
+the exact mainline tree found no DWC3 platform `mode` sysfs implementation, so
+the guarded parity path was absent and skipped. The next discriminator must
+classify immediate ConfigFS construction and binding directly.

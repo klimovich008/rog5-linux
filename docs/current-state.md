@@ -241,9 +241,10 @@ bootloader overhead. Release and command-line validation are exonerated. The
 next concrete parity defect is the staging init's omission of the mature path's
 `a600000.ssusb/mode=peripheral` transition before ConfigFS binding.
 
-Generation 114 is admitted once with only that mature-path peripheral-mode
-transition added to the full Generation 112 staging target. Kernel, DTB,
-modules, installer, signed Arch image, write scope, and rollback remain exact.
+Generation 114 is consumed. The guarded mode path is absent in this mainline
+tree, so it was a no-op; exact fastboot repeated after 6.903 seconds. The next
+no-storage beacon distinguishes ConfigFS mount, gadget directories, descriptors,
+functions, links, UDC discovery, and binding in one cycle.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
