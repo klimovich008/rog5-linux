@@ -392,6 +392,14 @@ and four matching g359 UFS modules. No baseline successor is admitted yet.
 Generation 137 is admitted once as a minimal UFS-only baseline using those
 exact live-proven inputs. It has NCM/stage reporting and fallback only; no
 power, SSH, userdata, installer, mount, or storage-write execution path.
+Its sole cycle is consumed. Stable NCM and all four exact modules passed, but
+the topology remained `ufs-count-0` for 20 seconds. Exact slot-A stock recovery
+USB returned; its post-reset `18d1:d001` descriptor exposed stale fallback
+policy rather than loss of rescue. The stronger retained control is Generation
+109: its ae717 Image/DT/modules passed UFS under the current wrapper and its
+built-in PMK8350 reboot-mode path returned exact fastboot. Generation 138 uses
+that live-proven lineage with the minimal NCM/UFS counter only. Do not retry
+Generation 137 or flash its non-working kernel.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

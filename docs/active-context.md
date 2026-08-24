@@ -357,6 +357,13 @@ Next re-establish the live-proven g359 UFS Image/DT baseline before power merge.
 The proven Image/DT and four original g359 UFS modules are hash-reverified;
 the next build is a minimal UFS-only successor with no power or storage write.
 Generation 137 is admitted once for that baseline; no claim or boot exists yet.
+Its sole cycle is consumed: NCM passed, but exact terminal detail was
+`ufs-count-0`. Slot-A stock recovery USB returned at the anchored path, while
+the fallback verifier rejected its now-observed `18d1:d001` descriptor because
+it still pins the older Android descriptor. Generation 109 is the stronger
+control: its ae717 target passed UFS under the current wrapper and returned
+exact fastboot through built-in PMK8350 reboot mode. Generation 138 is the
+minimal UFS/NCM successor on that exact target lineage.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
