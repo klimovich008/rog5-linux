@@ -833,6 +833,23 @@ PROFILES.update(
         CURRENT_XATTR_REFERENCE.OBSERVER_CLAIM.identifier: (
             CURRENT_XATTR_REFERENCE.OBSERVER_CLAIM.record
         ),
+        "local-image-stage-ncm-v9-generation118-observer-v1": (
+            b"format=rog5-retention-boot-consumption-v1\n"
+            b"retention_profile=local-image-stage-ncm-v9-generation118-postmortem-v1\n"
+            b"cycle_sha256="
+            b"5b49c45578d578df82422dba92f21d2adc283e526ce16d00c295dbd21364c8c7\n"
+            b"claim_role=observer\n"
+            b"recovery_profile="
+            b"local-image-stage-ncm-v9-generation118-observer-v1\n"
+            b"recovery_sha256="
+            b"4fef0b9acd38bf06009db1c26314e6ec910b32a06f251012b4efc2910c13325c\n"
+            b"peer_recovery_sha256="
+            b"6e1fc8bf8e2c5f65d0e391c6b5275c8dceaf9f1c236d9feee23367a27e4ae1dc\n"
+            b"candidate=local-image-stage-ncm-v9\n"
+            b"manifest_sha256="
+            b"ec657d94aea6a71aa7efab80bcddba7794256209609ddc7031bd37764c17a4b5\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
     }
 )
 REAL_ANCHOR_PARENT_IS_REPLACE_PROTECTED = (

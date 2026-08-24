@@ -20,14 +20,14 @@ action=${1:-policy-preflight}
 profile=${ROG5_OBSERVATION_RECOVERY_PROFILE:-}
 hold_profile=observation-host-rendezvous-v3-kmsg-production-hold-v2
 consumed_profile=retention-host-rendezvous-v3-observer-v2
-live_profile=retention-host-rendezvous-v12-nfs-xattr-observer-v1
+live_profile=local-image-stage-ncm-v9-generation118-observer-v1
 source_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
 case $profile in
 	"$hold_profile" | "$consumed_profile")
 		expected_recovery=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b
 		;;
 	"$live_profile")
-		expected_recovery=9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69
+		expected_recovery=4fef0b9acd38bf06009db1c26314e6ec910b32a06f251012b4efc2910c13325c
 		;;
 	*) fail 'current observation recovery profile is not pinned' ;;
 esac
@@ -278,16 +278,16 @@ if [[ $profile == "$live_profile" ]]; then
 			awk '{print $1}') == "$expected_recovery" ]] ||
 		fail 'observation generation AVB identity is not exact'
 	[[ $(sha256sum -- "$boot_root/avb-generation.txt" | awk '{print $1}') == \
-		0404858e83bc5b7c62d21660aa488f858c90b2667811bfdef4e8f12dedde0dda ]] ||
+		bb3e86a23e78b61c1802b29288f3e93aa9df982014fd69d1bf98f97b6104d88b ]] ||
 		fail 'observation generation record identity is not exact'
 	for record in \
 		'format=rog5-stable-recovery-avb-generation-v1' \
-		'generation=10' \
+		'generation=11' \
 		'raw_sha256=37d4c10beca3fd7fb2c17e46a7b150d88e1957b50ac43e0ed012feaa09e7546a' \
 		'source_avb_sha256=a655d4b376e9f1276c831961de8e7185967fafb72334e6b76986754adb35405b' \
-		'salt=8c4033d2c123221493f4c206cd92d97c40853c0dd44e429ced73624f6f6a842f' \
-		'digest=aea1a9c6f451b48c4cec4dd7416fa30415f8757b24b1de43bea575572e5c612e' \
-		'output_avb_sha256=9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69' \
+		'salt=241cfcf0d62c3d33c8d1d4900737076da3ec7efb57696c29bbcfb4763c7674f5' \
+		'digest=437b386fd22a954eb539eb0c939a866ae4f9eda2cda5ecdb70d6e8f8e42c182a' \
+		'output_avb_sha256=4fef0b9acd38bf06009db1c26314e6ec910b32a06f251012b4efc2910c13325c' \
 		'partition_size=100663296' \
 		'authority=none'
 	do
@@ -335,12 +335,12 @@ inventory=$repo/manifests/artifacts.tsv
 policy_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$policy")
 [[ $policy_rows == 1 ]] || fail 'observation policy row is not unique'
 policy_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 }' "$policy")
-[[ $policy_value == $'allow\tone exact NFS-xattr retention observation recovery; RAM-only; externally consumed exact claim required; never flash or retry after entry' ]] ||
+[[ $policy_value == $'allow\tone exact Generation 118 postmortem observation recovery; RAM-only, observation-only, no storage or payload; externally consumed exact claim required; never flash or retry after entry' ]] ||
 	fail 'observation policy row is not exact'
 inventory_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$inventory")
 [[ $inventory_rows == 1 ]] || fail 'observation artifact row is not unique'
 inventory_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 "\t" $4 "\t" $5 }' "$inventory")
-[[ $inventory_value == $'100663296\t9cf1163d1fce5a0c3c8858c5d961d4ad072e83995e0ffe836e987513fb528f69\tunbooted NFS-xattr retention observation recovery successor; clean-twin source wrapper with fresh deterministic AVB generation exposes retained ramoops over ACM; no payload execution path; one RAM-only use only; never flash\tno' ]] ||
+[[ $inventory_value == $'100663296\t4fef0b9acd38bf06009db1c26314e6ec910b32a06f251012b4efc2910c13325c\tunbooted Generation 118 postmortem observer; unchanged observation-only raw recovery with fresh deterministic AVB generation exposes retained ramoops over ACM; no kexec, bundle, payload, network-root, or storage surface; never flash\tno' ]] ||
 	fail 'observation artifact row is not exact'
 
 devices=$("$fastboot" devices 2>/dev/null) || fail 'fastboot devices failed'
@@ -378,9 +378,9 @@ fi
 claim_consumer=$repo/scripts/host/consume-exact-boot-claim.py
 consumer_metadata=$(stat -c '%u:%g:%a:%h:%s' -- "$claim_consumer") ||
 	fail 'cannot inspect exact-record claim consumer'
-[[ $consumer_metadata == "$(id -u):$(id -g):755:1:57737" &&
+[[ $consumer_metadata == "$(id -u):$(id -g):755:1:58575" &&
 	$(sha256sum -- "$claim_consumer" | awk '{print $1}') == \
-	9918212bbf0440d7f2ecd7d9111d4dd673dc0703eb291361faa45e5ae33820bc ]] ||
+	67b9963bb5a985620571fc5161228c37a8a011f9c7885b9d3930ea5fffd537f2 ]] ||
 	fail 'exact-record claim consumer identity is not exact'
 claim_report=$(
 	python3 -B "$claim_consumer" --verify-entered "$profile"
