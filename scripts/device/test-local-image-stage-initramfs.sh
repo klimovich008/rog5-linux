@@ -51,10 +51,10 @@ grep -Fq 'expected_bundle=@EXPECTED_BUNDLE@' "$init"
 grep -Fq 'echo /sbin/mdev >/proc/sys/kernel/hotplug || :' "$init"
 grep -Fq 'usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode' "$init"
 grep -Fq '[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || fail usb-mode' "$init"
-grep -Fq 'udc_state() {' "$init"
-grep -Fq '0:) printf' "$init"
-grep -Fq '1:$expected_udc) printf' "$init"
-grep -Fq '*) printf' "$init"
+if grep -Fq 'udc_state() {' "$init"; then
+	echo 'FAIL post-bind UDC class inventory is a transient false invariant' >&2
+	exit 1
+fi
 grep -Fq 'if echo "$expected_udc" >"$gadget/UDC"; then' "$init"
 grep -Fq 'bound_udc=1' "$init"
 grep -Fq 'if [ -e "/sys/class/udc/$expected_udc" ]; then' "$init"
@@ -64,7 +64,10 @@ grep -Fq 'while [ "$attempt" -lt 2500 ]; do' "$init"
 grep -Fq 'sleep 0.01' "$init"
 grep -Fq '[ "$bound_udc" -eq 1 ] || fail udc-identity' "$init"
 grep -Fq '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity' "$init"
-grep -Fq '[ "$(udc_state)" = expected ] || fail udc-identity' "$init"
+if grep -Fq '$(udc_state)' "$init"; then
+	echo 'FAIL target still evaluates the transient post-bind UDC class' >&2
+	exit 1
+fi
 ! grep -Fq 'acm.usb0' "$init"
 python3 - "$init" <<'PY'
 from pathlib import Path

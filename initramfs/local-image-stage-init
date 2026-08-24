@@ -71,21 +71,6 @@ echo 'NCM SSH staging' >"$gadget/configs/c.1/strings/0x409/configuration"
 mkdir -p "$gadget/functions/ncm.usb0"
 ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
 
-udc_state() {
-	count=0
-	selected=
-	for candidate in /sys/class/udc/*; do
-		[ -e "$candidate" ] || continue
-		count=$((count + 1))
-		selected=$(basename "$candidate") || return 1
-	done
-	case $count:$selected in
-		0:) printf '%s\n' absent ;;
-		1:$expected_udc) printf '%s\n' expected ;;
-		*) printf '%s\n' invalid ;;
-	esac
-}
-
 attempt=0
 bound_udc=0
 while [ "$attempt" -lt 2500 ]; do
@@ -102,7 +87,6 @@ while [ "$attempt" -lt 2500 ]; do
 done
 [ "$bound_udc" -eq 1 ] || fail udc-identity
 [ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity
-[ "$(udc_state)" = expected ] || fail udc-identity
 attempt=0
 while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
 	attempt=$((attempt + 1)); sleep 0.1
