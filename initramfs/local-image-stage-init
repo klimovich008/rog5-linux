@@ -55,6 +55,8 @@ for token in $(cat /proc/cmdline); do
 done
 [ "$bundle_count:$persistent_count:$discovery_count" = 1:1:1 ] || fail command-line
 
+usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || fail usb-mode
 mount -t configfs configfs /sys/kernel/config
 gadget=/sys/kernel/config/usb_gadget/rog5-local-image-stage
 mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"

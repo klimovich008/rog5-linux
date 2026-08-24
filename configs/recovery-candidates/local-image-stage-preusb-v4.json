@@ -1,7 +1,7 @@
 {
   "format": "rog5-recovery-candidate-v1",
   "candidate": "local-image-stage-preusb-v4",
-  "status": "offline",
+  "status": "consumed",
   "authority": "none",
   "bundle": "local-image-stage-preusb-v4",
   "profile": "persistent-root-ro-v1",

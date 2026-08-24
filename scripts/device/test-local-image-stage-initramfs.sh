@@ -44,6 +44,8 @@ done
 grep -Fq 'expected_release=@EXPECTED_KERNEL_RELEASE@' "$init"
 grep -Fq 'expected_bundle=@EXPECTED_BUNDLE@' "$init"
 grep -Fq 'echo /sbin/mdev >/proc/sys/kernel/hotplug || :' "$init"
+grep -Fq 'usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode' "$init"
+grep -Fq '[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || fail usb-mode' "$init"
 for contract in \
 	'expected_release=${EXPECTED_RELEASE:-7.1.4-gae717d919f87}' \
 	'expected_bundle=${EXPECTED_BUNDLE:-local-image-stage-v1}' \

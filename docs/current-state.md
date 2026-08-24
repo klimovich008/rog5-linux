@@ -235,10 +235,11 @@ recovery departure. This excludes the 20-second UDC wait and `panic=10`, leaving
 the immediate controlled kernel-release or command-line checks as the boundary.
 No SSH, transfer, installer, or storage write occurred.
 
-Generation 113 is admitted as a no-storage timing discriminator. It reuses the
-exact Generation 112 Image and DTB, never creates a USB gadget or block-device
-path, and returns to bootloader after 5 seconds for release mismatch, 15 seconds
-for command-line mismatch, or 25 seconds when both checks pass.
+Generation 113 is consumed. Exact fastboot returned 31.910 seconds after
+recovery departure, matching the 25-second both-checks-pass path plus measured
+bootloader overhead. Release and command-line validation are exonerated. The
+next concrete parity defect is the staging init's omission of the mature path's
+`a600000.ssusb/mode=peripheral` transition before ConfigFS binding.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
