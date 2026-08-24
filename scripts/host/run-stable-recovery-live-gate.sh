@@ -2286,8 +2286,8 @@ case $profile in
 		;;
 	local-image-stage-prebind-v12-generation121-live-v1)
 		expected_boot_image=build/local-image-stage-prebind-v12-generation121-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 121 full staging cycle with mdev moved before UDC bind; unchanged Image/DTB/address/power-USB/UFS/installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 121 full staging successor; exact mature pre-bind mdev ordering, unchanged Image/DTB/power-USB/UFS/one-file installer and fastboot rollback; never flash'
+		expected_boot_basis='consumed by the sole Generation 121 pre-bind-mdev cycle; exact 31.992-second return, no target USB, SSH, installer, or storage write; moving the second global mdev scan before bind did not fix enumeration; fallback and intent resolution passed; never retry or flash'
+		expected_boot_role='consumed Generation 121 pre-bind-mdev full staging cycle; 31.992-second return with no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
