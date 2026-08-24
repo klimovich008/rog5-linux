@@ -2728,8 +2728,8 @@ case $profile in
 		;;
 	local-image-stage-ufs-bind-v25-generation134-live-v1)
 		expected_boot_image=build/local-image-stage-ufs-bind-v25-generation134-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 134 full staging cycle classifying zero UFS inventory as missing platform device, unbound platform, bound with zero SCSI hosts, or SCSI hosts with zero blocks; unchanged g359 modules, Image, DTB, reporter/listener, installer, storage scope, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 134 UFS-binding classifier; exact g359 closure and read-only sysfs classification, unchanged kernel/DT/stable recovery, slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 134 cycle; exact zero-UFS classifier reported ufs-platform-0, proving no runtime platform device matched the 0x1d84000 controller address; no SCSI host, block device, mount, SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 134 cycle; exact classifier proved no runtime UFS platform device before every storage surface; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
