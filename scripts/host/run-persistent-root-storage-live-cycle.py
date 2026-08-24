@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "ufs-baseline-proven-v28-generation137-live-v1"
-BUNDLE = "ufs-baseline-proven-v28"
+PROFILE_ID = "ufs-reboot-baseline-v29-generation138-live-v1"
+BUNDLE = "ufs-reboot-baseline-v29"
 MANIFEST_SHA256 = (
-    "914681f89fe74cf657efc33a26c5ee18f21d31940105491c8e57d21621b555c2"
+    "836ef28ffcf42c5f883b5456da9348b06f091d532d9855eff2a38fe1280bdf4f"
 )
 RECOVERY_SHA256 = (
-    "68e3a66778bc69356f2fb2aa82adc9e48aa9ec53e6809e77c94a7da2d0f81ce4"
+    "c97163219436d0903aa6130c34f8741381060fdb3e929dbf4a494a26d1839ba8"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,24 +59,24 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"ufs-baseline-proven-v28-generation137-live-v1\n"
-    b"candidate=ufs-baseline-proven-v28\n"
+    b"ufs-reboot-baseline-v29-generation138-live-v1\n"
+    b"candidate=ufs-reboot-baseline-v29\n"
     b"manifest_sha256="
-    b"914681f89fe74cf657efc33a26c5ee18f21d31940105491c8e57d21621b555c2\n"
+    b"836ef28ffcf42c5f883b5456da9348b06f091d532d9855eff2a38fe1280bdf4f\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-ufs-baseline-proven-v28-claim.py"
+    / "scripts/host/consume-ufs-reboot-baseline-v29-claim.py"
 )
-TARGET_RELEASE = "7.1.4-g359318de534f"
+TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 local image stage"
 TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/ufs-baseline-proven-v28-generation137-20260824-r1"
+    / "build/ufs-reboot-baseline-v29-generation138-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="ufs-baseline-proven-v28",
+    admission_profile="ufs-reboot-baseline-v29",
     recovery_profile=PROFILE_ID,
-    runtime_profile="ufs-baseline-proven-v28",
-    build_profile="ufs-baseline-proven-v28",
+    runtime_profile="ufs-reboot-baseline-v29",
+    build_profile="ufs-reboot-baseline-v29",
     diagnostic=False,
 )
 
