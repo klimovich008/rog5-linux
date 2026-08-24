@@ -65,6 +65,18 @@ grep -Fq 'sleep 0.01' "$init"
 grep -Fq '[ "$bound_udc" -eq 1 ] || fail udc-identity' "$init"
 grep -Fq '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity' "$init"
 grep -Fq '[ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"' "$init"
+for contract in \
+	'classify_zero_ufs() {' \
+	'/sys/bus/platform/devices/*1d84000*' \
+	'fail "ufs-platform-$platform_count"' \
+	'fail ufs-platform-unbound' \
+	'fail "ufs-bound-host-$host_count"' \
+	'fail "ufs-host-$host_count-block-0"'; do
+	grep -Fq "$contract" "$init" || {
+		echo "FAIL missing zero-UFS classifier contract: $contract" >&2
+		exit 1
+	}
+done
 if grep -Fq '$(udc_state)' "$init"; then
 	echo 'FAIL target still evaluates the transient post-bind UDC class' >&2
 	exit 1

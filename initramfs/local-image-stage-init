@@ -75,6 +75,25 @@ start_stage_reporter() {
 	) &
 }
 
+classify_zero_ufs() {
+	platform_count=0
+	ufs_platform=
+	for candidate in /sys/bus/platform/devices/*1d84000*; do
+		[ -e "$candidate" ] || continue
+		platform_count=$((platform_count + 1))
+		ufs_platform=$candidate
+	done
+	[ "$platform_count" -eq 1 ] || fail "ufs-platform-$platform_count"
+	[ -L "$ufs_platform/driver" ] || fail ufs-platform-unbound
+	host_count=0
+	for host in /sys/class/scsi_host/host*; do
+		[ -e "$host" ] || continue
+		host_count=$((host_count + 1))
+	done
+	[ "$host_count" -gt 0 ] || fail "ufs-bound-host-$host_count"
+	fail "ufs-host-$host_count-block-0"
+}
+
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
@@ -193,6 +212,7 @@ while [ "$attempt" -lt 200 ]; do
 	[ "$count" -eq "$expected_physical_count" ] && break
 	attempt=$((attempt + 1)); sleep 0.1
 done
+[ "$count" -ne 0 ] || classify_zero_ufs
 [ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
 current_stage=
