@@ -313,6 +313,7 @@ inventory validation after successful binding.
 Generation 126 is admitted once with direct exact-path binding.
 Generation 126 is consumed: the exact bind write was synchronously refused
 while the expected UDC path remained present. Next classify the kernel errno.
+Generation 127 is admitted once for that storage-free errno classification.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
