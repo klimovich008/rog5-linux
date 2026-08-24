@@ -395,6 +395,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         cycle.wait_host_clean.assert_not_called()
 
     def test_stage_records_are_exact_monotonic_and_bounded(self) -> None:
+        self.assertIn("power-usb", MODULE.STAGES)
         boot_id = "11111111-2222-3333-4444-555555555555"
         first = (
             "format=rog5-persistent-root-stage-v2\n"
