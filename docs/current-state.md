@@ -373,6 +373,9 @@ no platform device matching address `0x1d84000`. The next classifier must read
 the runtime `/proc/device-tree` UFS node and status before changing drivers.
 Generation 135 is admitted once with runtime DT node/status classification and
 no kernel, DTB, module, or storage-scope change.
+Generation 135 is consumed and proved runtime UFS DT exists with status okay,
+but the address-name platform scan found zero. Next use exact `of_node` symlink
+identity rather than inferring platform-device names.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
