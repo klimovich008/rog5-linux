@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 117 remains unbooted.
+Result: **CONSUMED; NO EXTRA AFTER FIVE SECONDS.** Never retry or flash.
 
 Generation 115 observed expected `a600000.usb` plus an extra candidate after
 ConfigFS setup. Generation 116 sampled earlier and found no extra, proving a
@@ -17,3 +17,9 @@ signed manifest `f26c2a4c90d19250f9c3475ac5d0008e9d5024cde66a123befc9f545b50a9e0
 and wrapper `0fb3e2504c62b7718c5e72237c38c9c409c6f07c6115f02ec157a8963a925d62`.
 
 No binding, gadget, UFS, block-device, storage, SSH, or installer surface.
+
+Live result: recovery departed at 09:01:36.033 and exact fastboot appeared at
+09:01:57.705, 21.750 seconds later. This selects the five-second-stabilized
+`no extra` bucket plus bootloader overhead. Together with Generation 115, the
+extra is transient during NCM+ACM ConfigFS construction. No UDC was bound and no
+storage surface ran.

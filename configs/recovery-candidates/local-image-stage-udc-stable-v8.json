@@ -1,7 +1,7 @@
 {
   "format": "rog5-recovery-candidate-v1",
   "candidate": "local-image-stage-udc-stable-v8",
-  "status": "offline",
+  "status": "consumed",
   "authority": "none",
   "bundle": "local-image-stage-udc-stable-v8",
   "profile": "persistent-root-ro-v1",

@@ -66,7 +66,7 @@ previous = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 current = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
 assert previous["status"] == "consumed"
 assert current["candidate"] == "local-image-stage-udc-stable-v8"
-assert current["status"] == "offline" and current["authority"] == "none"
+assert current["status"] == "consumed" and current["authority"] == "none"
 assert current["artifacts"]["Image"]["sha256"] == previous["artifacts"]["Image"]["sha256"]
 assert current["artifacts"]["board.dtb"]["sha256"] == previous["artifacts"]["board.dtb"]["sha256"]
 assert current["artifacts"]["initramfs.cpio.gz"]["sha256"] == "3cf4d974f21170ab143bf34f4e10b190d69a0743951f90e870d16713d826ecb9"
