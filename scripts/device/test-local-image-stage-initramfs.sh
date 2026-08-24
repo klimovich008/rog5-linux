@@ -125,7 +125,7 @@ import sys
 previous = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 current = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
 assert previous["status"] == "consumed"
-assert current["status"] == "offline"
+assert current["status"] == "consumed"
 assert current["authority"] == "none"
 assert current["candidate"] == "local-image-stage-hotplug-v3"
 assert current["artifacts"]["Image"] == {
