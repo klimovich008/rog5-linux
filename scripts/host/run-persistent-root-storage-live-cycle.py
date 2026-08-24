@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "local-image-stage-preusb-v4-generation113-live-v1"
-BUNDLE = "local-image-stage-preusb-v4"
+PROFILE_ID = "local-image-stage-usbmode-v5-generation114-live-v1"
+BUNDLE = "local-image-stage-usbmode-v5"
 MANIFEST_SHA256 = (
-    "0ab3364d5622c3b85456f54ccdbc8fa4a9341f471a196027950fa3d352f2ffe3"
+    "78091cdfd341367996b258ebdd12ac447dfe7ab2d2e38101580bf5fc98315fe7"
 )
 RECOVERY_SHA256 = (
-    "615ab41813ed4a3c5600d346fafa3e395155483dc383edd34edd071ec64465e0"
+    "b4334d2729d876270ec86ecf955aee4f2c104dea2c9f650019dc64528d646c7e"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -55,16 +55,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-preusb-v4-generation113-live-v1\n"
-    b"candidate=local-image-stage-preusb-v4\n"
+    b"local-image-stage-usbmode-v5-generation114-live-v1\n"
+    b"candidate=local-image-stage-usbmode-v5\n"
     b"manifest_sha256="
-    b"0ab3364d5622c3b85456f54ccdbc8fa4a9341f471a196027950fa3d352f2ffe3\n"
+    b"78091cdfd341367996b258ebdd12ac447dfe7ab2d2e38101580bf5fc98315fe7\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-preusb-v4-claim.py"
+    / "scripts/host/consume-local-image-stage-usbmode-v5-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -72,7 +72,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-preusb-v4-generation113-20260824-r1"
+    / "build/local-image-stage-usbmode-v5-generation114-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -101,10 +101,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-preusb-v4",
+    admission_profile="local-image-stage-usbmode-v5",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-preusb-v4",
-    build_profile="local-image-stage-preusb-v4",
+    runtime_profile="local-image-stage-usbmode-v5",
+    build_profile="local-image-stage-usbmode-v5",
     diagnostic=False,
 )
 

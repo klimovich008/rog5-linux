@@ -10,19 +10,24 @@ successor=$repo/configs/recovery-candidates/local-image-stage-writer-v2.json
 successor_manifest=$repo/manifests/local-image-stage-writer-v2-generation111.manifest
 hotplug=$repo/configs/recovery-candidates/local-image-stage-hotplug-v3.json
 hotplug_manifest=$repo/manifests/local-image-stage-hotplug-v3-generation112.manifest
+usbmode=$repo/configs/recovery-candidates/local-image-stage-usbmode-v5.json
+usbmode_manifest=$repo/manifests/local-image-stage-usbmode-v5-generation114.manifest
 claim=$repo/scripts/host/consume-local-image-stage-claim.py
 successor_claim=$repo/scripts/host/consume-local-image-stage-writer-v2-claim.py
 hotplug_claim=$repo/scripts/host/consume-local-image-stage-hotplug-v3-claim.py
+usbmode_claim=$repo/scripts/host/consume-local-image-stage-usbmode-v5-claim.py
 
 for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
 	"$successor_manifest" "$hotplug" "$hotplug_manifest" "$claim" \
-	"$successor_claim" "$hotplug_claim"; do
+	"$successor_claim" "$hotplug_claim" "$usbmode" "$usbmode_manifest" \
+	"$usbmode_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 sh -n "$init" "$installer" "$builder"
 python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
 python3 -m py_compile "$hotplug_claim"
+python3 -m py_compile "$usbmode_claim"
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
@@ -145,6 +150,27 @@ grep -Fqx 'avb_generation=112' "$hotplug_manifest"
 grep -Fqx 'delta=guard-absent-optional-kernel-hotplug-sysctl-only' \
 	"$hotplug_manifest"
 grep -Fqx 'phone_flash=forbidden' "$hotplug_manifest"
+
+python3 - "$hotplug" "$usbmode" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+previous = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+current = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
+assert previous["status"] == "consumed"
+assert current["status"] == "offline"
+assert current["authority"] == "none"
+assert current["candidate"] == "local-image-stage-usbmode-v5"
+assert current["artifacts"]["Image"]["sha256"] == previous["artifacts"]["Image"]["sha256"]
+assert current["artifacts"]["board.dtb"]["sha256"] == previous["artifacts"]["board.dtb"]["sha256"]
+assert current["artifacts"]["initramfs.cpio.gz"]["sha256"] == \
+    "5cf22d30cc3d2cae98c700b749ebdeb3c0f74376b7246ea57cf004f17cfc8e55"
+PY
+grep -Fqx 'avb_generation=114' "$usbmode_manifest"
+grep -Fqx 'delta=add-mature-a600000-peripheral-mode-transition-only' \
+	"$usbmode_manifest"
+grep -Fqx 'phone_flash=forbidden' "$usbmode_manifest"
 
 busybox_root=$(mktemp -d)
 trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM
