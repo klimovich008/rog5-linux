@@ -2252,8 +2252,8 @@ case $profile in
 		;;
 	local-image-stage-address-v11-generation120-live-v1)
 		expected_boot_image=build/local-image-stage-address-v11-generation120-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 120 usb0 address-state discriminator; unchanged pre-address behavior, fixed 70-90 second classifications, no carrier, power-USB, UFS, userdata, SSH, installer, or storage; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 120 usb0 address-state discriminator; unchanged pre-address behavior, no carrier, power-USB, UFS, userdata, SSH, installer, or storage surface; never flash'
+		expected_boot_basis='consumed by the sole Generation 120 address-state cycle; exact 77.045-second USB timeline selected address-show-failed, proving usb0 vanished or became unqueryable immediately after link-up; no target USB, carrier, power-USB, UFS, userdata, SSH, installer, or storage; never retry or flash'
+		expected_boot_role='consumed Generation 120 usb0 address-state discriminator; 77.045-second exact USB timeline selected address-show-failed immediately after link-up; no target USB or later subsystem/storage surface; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

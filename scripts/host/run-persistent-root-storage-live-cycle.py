@@ -515,7 +515,9 @@ def alpine_fallback_is_present(expected_location: str) -> bool:
 
 
 def stock_fastboot_returned(expected_location: str) -> bool:
-    if expected_location != "pci-0000:04:00.3-usb-0:1.2":
+    if expected_location != (
+        "pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2"
+    ):
         fail("unexpected canonical USB path during fastboot return check")
     if not STOCK.exact_fastboot("1-1.2"):
         return False
