@@ -2558,8 +2558,8 @@ case $profile in
 		;;
 	local-image-stage-postbind-v20-generation129-live-v1)
 		expected_boot_image=build/local-image-stage-postbind-v20-generation129-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 129 full staging cycle removing only the proven false post-bind UDC-class level assertion; exact ConfigFS readback, bounded exact-only bind retry, unchanged Image, DTB, modules, power/USB, UFS, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 129 post-bind fix full staging successor; unchanged kernel/DT/modules and stable recovery, one exact target-initramfs delta, bounded userdata image installer, slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 129 full staging cycle; removing the false UDC-class check advanced to exact target NCM enumeration for 0.519517 seconds, then target rollback before host activation; no SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 129 full staging cycle; exact target NCM enumerated for 0.519517 seconds, then target rollback before host activation; no storage write; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
