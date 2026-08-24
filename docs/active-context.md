@@ -297,6 +297,8 @@ Generation 122 is the admitted full-staging successor with that simplification.
 Its sole cycle is consumed at the UDC identity timeout. The next cycle only
 classifies post-ConfigFS UDC inventory and binds nothing.
 Generation 123 is the admitted no-bind inventory classifier.
+Its sole cycle proved zero/exact UDC churn. The next selector tolerates absence
+but requires two consecutive exact samples and post-bind revalidation.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
