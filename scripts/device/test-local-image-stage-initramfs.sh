@@ -73,7 +73,8 @@ for contract in \
 	'dd if="$ufs_dt/status" bs=1 count=4' \
 	'fail ufs-dt-disabled' \
 	'fail ufs-dt-status-invalid' \
-	'/sys/bus/platform/devices/*1d84000*' \
+	'for candidate in /sys/bus/platform/devices/*; do' \
+	'[ "$(readlink -f "$candidate/of_node")" = "$ufs_dt" ] || continue' \
 	'fail "ufs-dt-okay-platform-$platform_count"' \
 	'fail ufs-platform-unbound' \
 	'fail "ufs-bound-host-$host_count"' \
