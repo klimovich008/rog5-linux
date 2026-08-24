@@ -293,6 +293,8 @@ Generation 121 is consumed: no target USB appeared and fastboot returned after
 31.992 seconds. Moving the second mdev scan did not fix enumeration. The next
 full-staging target removes that redundant scan entirely; the initial devtmpfs
 scan and explicit UDC/usb0 polls remain.
+Generation 122 is admitted once as the full-staging successor with no second
+USB-time mdev scan.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
