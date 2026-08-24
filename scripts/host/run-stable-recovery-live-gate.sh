@@ -175,6 +175,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-postbind-v20-generation129-live-v1 | \
 		local-image-stage-power-report-v21-generation130-live-v1 | \
 		local-image-stage-listener-v22-generation131-live-v1 | \
+		local-image-stage-abi-v23-generation132-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -2657,6 +2658,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	local-image-stage-abi-v23-generation132-live-v1)
+		expected_boot_image=build/local-image-stage-abi-v23-generation132-20260824-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 132 full staging cycle with all four UFS and fifteen power/USB modules replaced by exact 7.1.4-g359318de534f twins; unchanged Image, DTB, reporter/listener, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 132 ABI-correct full staging successor; exact g359 module closure, unchanged kernel/DT/stable recovery, bounded userdata image installer, slot-A fallback; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-abi-v23
+		expected_bundle=local-image-stage-abi-v23
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=f13fd0977f3a0a189d1452852f1702cf550e17586ad63c89ab410de1df2fbd85
+		expected_avb_digest=978876e0d428bb1d0a08fefbd235d58eed07e4ff580cf79354035daff1fff486
+		expected_generation_record=6584fd4f8152bdee7c115d8de84d028b5d68227e00ffc9740868e0db3059d092
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == ce0f2c191afaf5c4ed49fc513062422b54c1cab3639e462cd63e00a372b02a1b ]] || fail 'ABI V23 manifest is not pinned'
+		[[ $expected_image == 7e555e989ceed7db4f71a6f2195b802cbc532460892e4511a41a51db4ca5c114 ]] || fail 'ABI V23 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'ABI V23 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'ABI V23 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -4140,6 +4174,7 @@ case $profile in
 	local-image-stage-postbind-v20-generation129-live-v1 | \
 	local-image-stage-power-report-v21-generation130-live-v1 | \
 	local-image-stage-listener-v22-generation131-live-v1 | \
+	local-image-stage-abi-v23-generation132-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

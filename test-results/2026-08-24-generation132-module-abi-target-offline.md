@@ -1,6 +1,6 @@
 # Generation 132 matching-module target checkpoint
 
-Result: **TARGET TWINS PASS; UNSIGNED AND UNADMITTED.**
+Result: **SIGNED, VERIFIED, AND ADMITTED ONCE.** Never flash or retry after entry.
 
 The deterministic target twins have SHA-256
 `54ab6e369a7b558c7f0952ced166ea289c16a384a46861ab5f1ea5ccd7da8406`.
@@ -13,5 +13,12 @@ matching the earlier correct V17 composition.
 
 The builder now verifies every packaged module after composition even when no
 replacement roots were requested, and a hostile g359 build over the ae717 base
-fails before publishing output. No signing, admission, phone contact, or phone
-storage write occurred for this checkpoint.
+fails before publishing output. No phone contact or phone storage write
+occurred while building this checkpoint.
+
+Signed bundle twins verify with manifest
+`ce0f2c191afaf5c4ed49fc513062422b54c1cab3639e462cd63e00a372b02a1b`
+and the existing trust root. Generation-132 recovery is
+`7e555e989ceed7db4f71a6f2195b802cbc532460892e4511a41a51db4ca5c114`;
+the raw stable-recovery payload remains unchanged and phone flashing is
+forbidden.
