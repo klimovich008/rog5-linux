@@ -984,7 +984,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
 
         interface = activate_target_network(cycle, anchor)
         target_network_active = True
-        wait_for_stage_host_key(cycle, anchor, target_known_hosts)
+        wait_for_target_host_key(cycle, anchor, target_known_hosts)
         target_ssh = ssh_arguments(inputs, target_known_hosts)
         ssh_attempts, ssh_ready_elapsed = wait_for_authenticated_ssh(
             target_ssh,
