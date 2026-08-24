@@ -275,6 +275,9 @@ That observer found one retained 161,854-byte record, but its tail is the prior
 ASUS recovery kernel's kexec shutdown and carries no target lineage. The target
 boundary remains unclassified. Use one timing-only pre-NCM discriminator next;
 do not change the UDC gate, kernel, DTB, or modules in that cycle.
+Generation 119 is admitted once as that timing-only discriminator. It reuses
+the exact Image/DTB and power/USB path, maps pre-storage failures to fixed
+5–85 second delays, and stops before UFS, userdata, SSH, or installer code.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

@@ -1,0 +1,138 @@
+#!/bin/sh
+set -eu
+set -f
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+expected_release=@EXPECTED_KERNEL_RELEASE@
+expected_bundle=@EXPECTED_BUNDLE@
+expected_udc=a600000.usb
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
+status=/run/rog5-local-image-stage.status
+
+log() {
+	echo "rog5-local-image-stage: $*" >/dev/kmsg 2>/dev/null || true
+}
+
+return_bootloader() {
+	sync || true
+	"$reboot_helper" || true
+	while :; do sleep 3600; done
+}
+
+fail() {
+	case $1 in
+		kernel-release) delay=5 ;;
+		command-line) delay=10 ;;
+		usb-mode) delay=15 ;;
+		configfs-mount) delay=20 ;;
+		gadget-tree) delay=25 ;;
+		gadget-descriptor) delay=30 ;;
+		ncm-function) delay=35 ;;
+		ncm-link) delay=40 ;;
+		udc-identity) delay=45 ;;
+		udc-bind) delay=50 ;;
+		post-bind-mdev) delay=55 ;;
+		ncm-absent) delay=60 ;;
+		ncm-link-up) delay=65 ;;
+		ncm-address) delay=70 ;;
+		ncm-carrier) delay=75 ;;
+		power-usb) delay=80 ;;
+		timing-pass) delay=85 ;;
+		*) delay=90 ;;
+	esac
+	log "FAIL $*"
+	printf 'state=FAIL\nreason=%s\ndelay=%s\n' \
+		"$1" "$delay" >"$status" 2>/dev/null || true
+	sleep "$delay"
+	return_bootloader
+}
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
+mkdir -p /dev/pts /run /var/log /run/sshd /sys/kernel/config
+mount -t devpts devpts /dev/pts
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+echo /sbin/mdev >/proc/sys/kernel/hotplug || :
+mdev -s
+hostname rog5-local-image-stage
+
+(
+	sleep 900
+	log 'watchdog deadline reached'
+	return_bootloader
+) &
+watchdog=$!
+printf '%s\n' "$watchdog" >/run/rog5-local-image-stage-watchdog.pid
+
+[ "$(uname -r)" = "$expected_release" ] || fail kernel-release
+bundle_count=0
+persistent_count=0
+discovery_count=0
+for token in $(cat /proc/cmdline); do
+	[ "$token" = "rog5.bundle=$expected_bundle" ] && bundle_count=$((bundle_count + 1))
+	[ "$token" = rog5.persistent_ro=1 ] && persistent_count=$((persistent_count + 1))
+	[ "$token" = rog5.ufs_discovery=1 ] && discovery_count=$((discovery_count + 1))
+done
+[ "$bundle_count:$persistent_count:$discovery_count" = 1:1:1 ] || fail command-line
+
+usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || fail usb-mode
+mount -t configfs configfs /sys/kernel/config || fail configfs-mount
+gadget=/sys/kernel/config/usb_gadget/rog5-local-image-stage
+mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409" ||
+	fail gadget-tree
+echo 0x1d6b >"$gadget/idVendor" || fail gadget-descriptor
+echo 0x0104 >"$gadget/idProduct" || fail gadget-descriptor
+echo 0xef >"$gadget/bDeviceClass" || fail gadget-descriptor
+echo 0x02 >"$gadget/bDeviceSubClass" || fail gadget-descriptor
+echo 0x01 >"$gadget/bDeviceProtocol" || fail gadget-descriptor
+echo Linux >"$gadget/strings/0x409/manufacturer" || fail gadget-descriptor
+echo 'ROG5 local image stage' >"$gadget/strings/0x409/product" ||
+	fail gadget-descriptor
+echo 'NCM timing discriminator' \
+	>"$gadget/configs/c.1/strings/0x409/configuration" ||
+	fail gadget-descriptor
+mkdir -p "$gadget/functions/ncm.usb0" || fail ncm-function
+ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0" ||
+	fail ncm-link
+
+attempt=0
+stable_udc=0
+while [ "$attempt" -lt 250 ] && [ "$stable_udc" -lt 50 ]; do
+	count=0
+	selected=
+	for candidate in /sys/class/udc/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+		selected=$(basename "$candidate") || fail udc-identity
+	done
+	case $count:$selected in
+		0:) stable_udc=0 ;;
+		1:$expected_udc) stable_udc=$((stable_udc + 1)) ;;
+		*) fail udc-identity ;;
+	esac
+	attempt=$((attempt + 1))
+	sleep 0.1
+done
+[ "$stable_udc" -eq 50 ] || fail udc-identity
+echo "$expected_udc" >"$gadget/UDC" || fail udc-bind
+mdev -s || fail post-bind-mdev
+attempt=0
+while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
+	attempt=$((attempt + 1)); sleep 0.1
+done
+[ -e /sys/class/net/usb0 ] || fail ncm-absent
+ip link set usb0 up || fail ncm-link-up
+ip address add 169.254.77.2/30 dev usb0 || fail ncm-address
+
+attempt=0
+while [ "$attempt" -lt 150 ]; do
+	[ "$(cat /sys/class/net/usb0/carrier 2>/dev/null || echo 0)" = 1 ] && break
+	attempt=$((attempt + 1)); sleep 0.1
+done
+[ "$attempt" -lt 150 ] || fail ncm-carrier
+
+/sbin/rog5-load-persistent-power-usb >/run/rog5-power-usb-loader.result ||
+	fail power-usb
+fail timing-pass
