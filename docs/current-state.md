@@ -263,6 +263,10 @@ Generation 117 is now consumed: no extra remained after five seconds. Combined
 with Generation 115, the duplicate is transient during NCM+ACM ConfigFS setup.
 The production staging path is simplified to NCM-only and now requires the
 expected UDC to remain uniquely stable for five seconds before binding.
+Generation 118 is admitted once with that target-only correction. It reuses
+the clean-twin writer Image/DTB and stable recovery raw payload; one RAM-only
+cycle must either expose NCM plus key-only SSH and stage the exact Arch image,
+or return the earliest retained failure without any broader kernel change.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
