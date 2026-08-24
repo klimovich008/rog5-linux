@@ -282,6 +282,8 @@ Generation 119 is consumed. Its exact 77.046-second USB timeline selects the
 70-second `ncm-address` branch. BusyBox syntax passes independently; the next
 target must distinguish absent `usb0`, exact preexisting address, conflicting
 address, and first-add rejection without changing any earlier USB behavior.
+Generation 120 is admitted once for exactly that address-state classification.
+It stops before carrier, charging, UFS, userdata, SSH, and storage.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

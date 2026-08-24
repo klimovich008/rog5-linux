@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-timing-v10-generation119-live-v1"
-BUNDLE = "local-image-stage-timing-v10"
+PROFILE_ID = "local-image-stage-address-v11-generation120-live-v1"
+BUNDLE = "local-image-stage-address-v11"
 MANIFEST_SHA256 = (
-    "8f4a7343af094b5a2210a7e5e8be6d2e494a6a93f10ee63d6bf540ab43701cb7"
+    "fda8afcc23cdb35c782b72bc91c1975138dd8f7404acb40c7744badc03825678"
 )
 RECOVERY_SHA256 = (
-    "9a3279dd6de28072afba7926b800760dce60bd5e737849b39c48e46af0ebe154"
+    "6bd965cf81d976d76f27b90b43d102a4e6d514285d89fdf5ec8664a17897a621"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-timing-v10-generation119-live-v1\n"
-    b"candidate=local-image-stage-timing-v10\n"
+    b"local-image-stage-address-v11-generation120-live-v1\n"
+    b"candidate=local-image-stage-address-v11\n"
     b"manifest_sha256="
-    b"8f4a7343af094b5a2210a7e5e8be6d2e494a6a93f10ee63d6bf540ab43701cb7\n"
+    b"fda8afcc23cdb35c782b72bc91c1975138dd8f7404acb40c7744badc03825678\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-timing-v10-claim.py"
+    / "scripts/host/consume-local-image-stage-address-v11-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-timing-v10-generation119-20260824-r1"
+    / "build/local-image-stage-address-v11-generation120-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-timing-v10",
+    admission_profile="local-image-stage-address-v11",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-timing-v10",
-    build_profile="local-image-stage-timing-v10",
+    runtime_profile="local-image-stage-address-v11",
+    build_profile="local-image-stage-address-v11",
     diagnostic=False,
 )
 
