@@ -70,6 +70,7 @@ echo 'ROG5 local image stage' >"$gadget/strings/0x409/product"
 echo 'NCM SSH staging' >"$gadget/configs/c.1/strings/0x409/configuration"
 mkdir -p "$gadget/functions/ncm.usb0"
 ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
+mdev -s || fail pre-bind-mdev
 
 attempt=0
 stable_udc=0
@@ -91,7 +92,6 @@ while [ "$attempt" -lt 250 ] && [ "$stable_udc" -lt 50 ]; do
 done
 [ "$stable_udc" -eq 50 ] || fail udc-identity
 echo "$expected_udc" >"$gadget/UDC"
-mdev -s
 attempt=0
 while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
 	attempt=$((attempt + 1)); sleep 0.1
