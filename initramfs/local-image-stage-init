@@ -87,7 +87,7 @@ udc_state() {
 }
 
 attempt=0
-selected_udc=
+bound_udc=0
 while [ "$attempt" -lt 250 ]; do
 	first=$(udc_state) || fail udc-identity
 	case $first in
@@ -97,20 +97,20 @@ while [ "$attempt" -lt 250 ]; do
 			continue
 			;;
 		expected)
+			if echo "$expected_udc" >"$gadget/UDC"; then
+				bound_udc=1
+				break
+			fi
+			post=$(udc_state) || fail udc-identity
+			[ "$post" = absent ] || fail udc-identity
+			attempt=$((attempt + 1))
 			sleep 0.1
-			second=$(udc_state) || fail udc-identity
-			case $second in
-				expected) selected_udc=$expected_udc; break ;;
-				absent) attempt=$((attempt + 1)); continue ;;
-				*) fail udc-identity ;;
-			esac
 			;;
 		*) fail udc-identity ;;
 	esac
 done
-[ "$selected_udc" = "$expected_udc" ] || fail udc-identity
-[ "$(udc_state)" = expected ] || fail udc-identity
-echo "$expected_udc" >"$gadget/UDC"
+[ "$bound_udc" -eq 1 ] || fail udc-identity
+[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity
 [ "$(udc_state)" = expected ] || fail udc-identity
 attempt=0
 while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
