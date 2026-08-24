@@ -8,7 +8,7 @@ sh -n "$init"
 for contract in \
 	'expected_physical_count=116' \
 	'ROG5 local image stage' \
-	'publish_stage PASS count-116' \
+	'publish_stage FAIL count-116' \
 	'phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko' \
 	'rog5.ufs_discovery=1' \
 	'rog5.persistent_ro=1'; do

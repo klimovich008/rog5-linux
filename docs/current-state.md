@@ -389,6 +389,9 @@ The live-proven baseline inputs are reverified and retained: exact Image
 `7c89d9a0a7ace2b0057b6cf2b535e134da596d3f3c3c3774c5b64014e32bf234`,
 DTB `40fb477a02844c54624ffdb1b98e2cacecc679f432086b83364f0ce1523319d2`,
 and four matching g359 UFS modules. No baseline successor is admitted yet.
+Generation 137 is admitted once as a minimal UFS-only baseline using those
+exact live-proven inputs. It has NCM/stage reporting and fallback only; no
+power, SSH, userdata, installer, mount, or storage-write execution path.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
