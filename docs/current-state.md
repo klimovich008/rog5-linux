@@ -376,6 +376,9 @@ no kernel, DTB, module, or storage-scope change.
 Generation 135 is consumed and proved runtime UFS DT exists with status okay,
 but the address-name platform scan found zero. Next use exact `of_node` symlink
 identity rather than inferring platform-device names.
+Generation 136 exact-OF-node target twins are built and signed but unadmitted.
+No claim or phone boot exists; target SHA-256 is
+`ee1afba10527d7324c4dc596918f7bc1cb14be7858b540acbbbb3de2fe04f2ed`.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
