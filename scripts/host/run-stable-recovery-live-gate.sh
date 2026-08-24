@@ -2184,8 +2184,8 @@ case $profile in
 		;;
 	local-image-stage-ncm-v9-generation118-live-v1)
 		expected_boot_image=build/local-image-stage-ncm-v9-generation118-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 118 NCM-only full staging cycle; continuously unique a600000.usb for five seconds before binding, exact 16-GiB Arch image path only, RAM-only boot, never flash or retry after entry'
-		expected_boot_role='unbooted Generation 118 NCM-only full staging cycle; unchanged clean-twin writer Image/DTB, target-only initramfs, one exact userdata image path, key-only SSH, relock and fastboot fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 118 NCM-only full staging cycle; recovery transfer and COMMIT passed, target NCM never appeared, exact slot-A fastboot returned, no SSH transfer or storage write occurred, and intent resolved FALLBACK_RETURNED; never retry or flash'
+		expected_boot_role='consumed Generation 118 NCM-only full staging cycle; target USB never appeared, exact slot-A fastboot and FALLBACK_RETURNED resolution passed, no SSH transfer, installer, or storage write; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
