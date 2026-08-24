@@ -330,6 +330,17 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         MODULE.wait_post_commit_host_cleanup(cycle)
         cycle.wait_host_clean.assert_called_once_with()
 
+    def test_post_commit_forgets_the_departed_recovery_interface(self) -> None:
+        source = MODULE_PATH.read_text()
+        cleanup = source.index("        wait_post_commit_host_cleanup(cycle)\n")
+        forget = source.index("        recovery_ncm = None\n", cleanup)
+        target = source.index(
+            "        interface = activate_target_network(cycle, anchor)\n",
+            cleanup,
+        )
+        self.assertLess(cleanup, forget)
+        self.assertLess(forget, target)
+
     def test_failure_cleanup_stops_both_clients_before_host_proof(self) -> None:
         parent = mock.Mock()
         cycle = SimpleNamespace(wait_host_clean=parent.wait_host_clean)

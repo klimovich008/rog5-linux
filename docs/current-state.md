@@ -314,6 +314,10 @@ Generation 126 is admitted once with direct exact-path binding.
 Generation 126 is consumed: the exact bind write was synchronously refused
 while the expected UDC path remained present. Next classify the kernel errno.
 Generation 127 is admitted once for that storage-free errno classification.
+Generation 127 is consumed. Its target NCM product enumerated for 89.864
+seconds, proving ConfigFS bind success. The host then rejected the otherwise
+exact interface because the shared NCM model set omitted
+`ROG5_local_image_stage` (R7); no target network or storage write ran.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

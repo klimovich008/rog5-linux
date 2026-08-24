@@ -309,6 +309,9 @@ Generation 126 is the admitted full-staging successor with that direct bind.
 Its sole cycle proved a synchronous exact bind-write refusal. The next cycle
 classifies the kernel-reported ConfigFS/DWC3 errno and touches no storage.
 Generation 127 is the admitted bind-errno classifier.
+Its sole cycle selected bind-success: target NCM remained enumerated for
+89.864 seconds. A host-only R7 allowlist omission filtered the exact local-stage
+model, so the host never accepted the target and no storage path ran.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
