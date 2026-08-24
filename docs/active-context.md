@@ -276,6 +276,10 @@ Its sole cycle is consumed: target NCM never appeared, exact slot-A fastboot
 returned, no target write ran, and the intent resolved `FALLBACK_RETURNED`.
 Read retained ramoops through an observation-only recovery before changing the
 UDC gate or any downstream module path.
+The observer is consumed. It retained only the prior recovery kexec-shutdown
+tail and no target lineage, so it cannot distinguish UDC selection from bind,
+usb0, carrier, or module failure. The next cycle is timing-only instrumentation
+with target behavior otherwise unchanged.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
