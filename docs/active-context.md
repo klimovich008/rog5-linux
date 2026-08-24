@@ -265,6 +265,10 @@ is next.
 Generation 117 is admitted once: initramfs `3cf4d974...`, manifest
 `f26c2a4c...`, wrapper `0fb3e250...`. It waits five seconds after expected UDC
 registration before classifying the late extra basename and binds nothing.
+Its 21.750-second result selected no-extra after the stabilization window.
+Combined with Generation 115, the duplicate exists only during NCM+ACM setup.
+The next full staging target removes unnecessary ACM and requires five seconds
+of continuously unique `a600000.usb` before binding.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

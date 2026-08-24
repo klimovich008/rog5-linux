@@ -259,6 +259,10 @@ registration race. The next classifier waits five seconds before naming it.
 
 Generation 117 is admitted once with that stabilization window. It reuses the
 exact Image and DTB, binds no UDC, and has no gadget or storage surface.
+Generation 117 is now consumed: no extra remained after five seconds. Combined
+with Generation 115, the duplicate is transient during NCM+ACM ConfigFS setup.
+The production staging path is simplified to NCM-only and now requires the
+expected UDC to remain uniquely stable for five seconds before binding.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

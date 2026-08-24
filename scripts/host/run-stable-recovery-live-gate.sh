@@ -2150,8 +2150,8 @@ case $profile in
 		;;
 	local-image-stage-udc-stable-v8-generation117-live-v1)
 		expected_boot_image=build/local-image-stage-udc-stable-v8-generation117-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact no-bind stabilized UDC inventory; wait five seconds after expected a600000.usb registration, then classify one late extra basename or unknown/multiple bucket; no gadget or storage; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 117 stabilized UDC classifier; unchanged Image/DTB, no binding, gadget, UFS, storage, SSH, or installer; one use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 117 stabilized inventory; exact fastboot returned in 21.750 seconds, again selecting no-extra after five seconds and proving the transient appears during ConfigFS NCM+ACM setup; no binding/storage; never retry or flash'
+		expected_boot_role='consumed Generation 117 stabilized UDC inventory; no extra after five seconds proves ConfigFS-window transient with Generation 115; no binding, gadget, or storage; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

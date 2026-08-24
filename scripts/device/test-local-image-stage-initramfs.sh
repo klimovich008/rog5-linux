@@ -51,6 +51,10 @@ grep -Fq 'expected_bundle=@EXPECTED_BUNDLE@' "$init"
 grep -Fq 'echo /sbin/mdev >/proc/sys/kernel/hotplug || :' "$init"
 grep -Fq 'usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode' "$init"
 grep -Fq '[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || fail usb-mode' "$init"
+grep -Fq 'stable_udc=0' "$init"
+grep -Fq '[ "$stable_udc" -eq 50 ] || fail udc-identity' "$init"
+grep -Fq '*) fail udc-identity ;;' "$init"
+! grep -Fq 'acm.usb0' "$init"
 for contract in \
 	'expected_release=${EXPECTED_RELEASE:-7.1.4-gae717d919f87}' \
 	'expected_bundle=${EXPECTED_BUNDLE:-local-image-stage-v1}' \
