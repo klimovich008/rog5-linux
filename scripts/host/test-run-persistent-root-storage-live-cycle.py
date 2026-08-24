@@ -319,6 +319,15 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             ],
         )
 
+    def test_failed_fallback_proof_cannot_resolve_the_intent(self) -> None:
+        source = MODULE_PATH.read_text()
+        self.assertIn("fallback_proven = False", source)
+        self.assertIn("and fallback_proven:", source)
+        self.assertNotIn(
+            "and fallback_attempted:\n            try:\n                cycle.resolve_intent",
+            source,
+        )
+
     def test_failure_cleanup_without_ncm_uses_unpinned_host_proof(self) -> None:
         cycle = SimpleNamespace(wait_host_clean=mock.Mock())
         with mock.patch.object(MODULE.CYCLE, "terminate"):

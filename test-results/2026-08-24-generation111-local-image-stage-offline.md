@@ -28,3 +28,16 @@ The wrapper remains RAM-only and the target installer is the only storage-write
 surface. It accepts one exact compressed source, one exact userdata partition,
 one empty ext4 filesystem, and one final pathname before relocking every block
 device and requesting bootloader restart.
+
+Live result: **CONSUMED; PRE-USB FAILURE.** Recovery USB disconnected at
+05:27:56.653 after signed COMMIT. No target USB product enumerated. Exact slot-A
+unauthorized recovery appeared at 05:28:27.362, a 30.708-second gap. No target
+host-key, SSH-transfer, or installer log exists, so no storage write occurred.
+The host product allowlist also omitted `ROG5 local image stage`; a regression
+test now covers it, but the kernel journal proves that omission was not the
+cause of the target USB absence.
+
+The failure path also set `fallback_attempted` before exact fallback proof and
+therefore resolved the intent even though stock-recovery descriptor verification
+failed. The durable record is retained as evidence but is not treated as proof;
+the runner now resolves only after `fallback_proven` is true.

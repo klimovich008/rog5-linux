@@ -99,7 +99,7 @@ import sys
 
 candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert candidate["candidate"] == "local-image-stage-writer-v2"
-assert candidate["status"] == "offline"
+assert candidate["status"] == "consumed"
 assert candidate["authority"] == "none"
 assert candidate["target_release"] == "7.1.4-g359318de534f"
 repo = Path(sys.argv[1]).resolve().parents[2]

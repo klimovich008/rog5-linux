@@ -219,10 +219,13 @@ writer: clean twins from `359318de...` match Image `a7e0cd84...` and config
 `6329b42f...`, with `SCSI_UFS_DISCOVERY_DATA_WRITE=y`, charging, and built-in
 reboot mode. The exact installer initramfs is now packaged below.
 
-That package is now Generation 111: signed manifest `f296276d...`, target
-initramfs `077d7140...`, and unchanged RAM-only recovery payload under AVB
-generation 111. It stages only the reviewed Arch image through key-only SSH,
-then relocks storage and uses built-in reboot mode to return to fastboot.
+Generation 111 is consumed. Its signed transfer and COMMIT passed, recovery USB
+departed at 05:27:56.653, no target USB enumerated, and slot-A unauthorized
+recovery appeared at 05:28:27.362. No SSH transfer or storage write occurred.
+The host also lacked the new target product in its reviewed allowlist; that is
+fixed offline but cannot explain the complete absence of a target USB event.
+The lifecycle's premature fallback-resolution condition is also fixed; the
+existing Generation 111 resolution record remains evidence, not fallback proof.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
