@@ -520,6 +520,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-stage-power-report-v21-generation130-live-v1",
         "local-image-stage-listener-v22-generation131-live-v1",
         "local-image-stage-abi-v23-generation132-live-v1",
+        "local-image-stage-ufs-count-v24-generation133-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

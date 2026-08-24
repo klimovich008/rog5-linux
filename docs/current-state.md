@@ -360,6 +360,9 @@ Generation 132 is consumed. Exact stage evidence proves the g359 power/USB
 module chain passed and UFS modules loaded; the target then timed out at the
 generic expected-116 physical-device count before any storage write. The next
 cycle must report the observed count, not repeat this generic failure.
+Generation 133 is admitted once with only count-bearing `ufs-count-N` terminal
+evidence; all kernel, DT, module, reporter, and storage-scope inputs are
+unchanged from Generation 132.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
