@@ -967,6 +967,7 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         cycle.wait_bundle(bundle_process, control_process)
         bundle_process = None
         wait_post_commit_host_cleanup(cycle)
+        recovery_ncm = None
         status = CYCLE.wait_process(control_process, cycle.control_timeout)
         control_process = None
         if status != 0:

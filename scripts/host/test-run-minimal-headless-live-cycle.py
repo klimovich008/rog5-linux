@@ -2132,6 +2132,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
                     "ROG5_network_root",
                     "ROG5_diagnostic_network_root",
                     "ROG5_persistent_root",
+                    "ROG5_local_image_stage",
                     "ROG_Phone_5_Linux_Server",
                 }
             ),

@@ -2490,8 +2490,8 @@ case $profile in
 		;;
 	local-image-stage-bind-error-v18-generation127-live-v1)
 		expected_boot_image=build/local-image-stage-bind-error-v18-generation127-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 127 ConfigFS bind errno classifier; one exact bind attempt, dmesg errno timing, no network, power-USB, UFS, userdata, SSH, installer, or storage; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 127 ConfigFS bind errno classifier; no network or storage surface; never flash'
+		expected_boot_basis='consumed by the sole Generation 127 bind classifier; target NCM enumerated for 89.864 seconds, selecting bind-success; the host then filtered ROG5_local_image_stage from shared NCM inventory and missed the target; no target network configuration or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 127 classifier; ConfigFS/NCM bind succeeded and target USB persisted for 89.864 seconds; host R7 model-filter defect prevented target acceptance; no storage write; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
