@@ -37,6 +37,10 @@ PIN = load_module(
     "rog5_shared_host_key_pin",
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
+STOCK = load_module(
+    "rog5_stock_fallback",
+    REPO / "scripts/host/wait-stock-android-fallback.py",
+)
 
 PROFILE_ID = "local-image-stage-ncm-v9-generation118-live-v1"
 BUNDLE = "local-image-stage-ncm-v9"
@@ -510,6 +514,17 @@ def alpine_fallback_is_present(expected_location: str) -> bool:
     return PIN.fallback_returned(expected_location)
 
 
+def stock_fastboot_returned(expected_location: str) -> bool:
+    if not STOCK.exact_fastboot(expected_location):
+        return False
+    if (
+        STOCK.fastboot_value("product") != "lahaina"
+        or STOCK.fastboot_value("current-slot") != "a"
+    ):
+        fail("unexpected fastboot identity returned during target wait")
+    return True
+
+
 def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
     expected_location = CYCLE.read_recovery_anchor_location(
         anchor, cycle.dependencies
@@ -521,6 +536,8 @@ def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
         try:
             observed_interface, location = PIN.target_observation(TARGET_PRODUCT)
         except PIN.BootstrapError as error:
+            if stock_fastboot_returned(expected_location):
+                fail("exact slot-A fastboot returned before target USB appeared")
             if alpine_fallback_is_present(expected_location):
                 fail(
                     "Alpine fallback returned before persistent-root "

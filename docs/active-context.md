@@ -272,6 +272,10 @@ of continuously unique `a600000.usb` before binding.
 Generation 118 is that one admitted full-staging successor. It changes only the
 target initramfs, reuses the exact clean-twin writer Image/DTB and stable
 recovery transport, and retains one-file write containment plus fastboot return.
+Its sole cycle is consumed: target NCM never appeared, exact slot-A fastboot
+returned, no target write ran, and the intent resolved `FALLBACK_RETURNED`.
+Read retained ramoops through an observation-only recovery before changing the
+UDC gate or any downstream module path.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

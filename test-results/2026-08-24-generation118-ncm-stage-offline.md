@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 118 remains unbooted.
+Result: **CONSUMED; TARGET NCM ABSENT; FALLBACK PASSED.** Never retry or flash.
 
 The cycle answers one question: does removing unnecessary ACM and requiring
 five seconds of continuously unique `a600000.usb` allow the full staging target
@@ -22,3 +22,19 @@ If NCM and SSH appear, the existing continuous runner transfers the exact
 `/rog5/images/arch-local-a.ext4`, verifies its 16-GiB identity, relocks every
 UFS node read-only, and requests exact fastboot. No kernel or recovery image is
 flashed.
+
+The sole live cycle passed exact recovery transfer, verification, PREPARE, and
+COMMIT. No `ROG5 local image stage` USB product or NCM interface appeared before
+exact slot-A fastboot returned. No target SSH, image transfer, installer, or
+phone-storage write ran. The durable intent resolved `FALLBACK_RETURNED` and
+the battery remained safe at 8.706 V with `battery-soc-ok=yes`.
+
+The host then wasted approximately 7 minutes 40 seconds because its target wait
+recognized only the retired Alpine fallback product, not exact slot-A fastboot.
+A fail-first fixture now covers direct fastboot return, and the runner validates
+exact product `lahaina` plus slot A before ending that wait.
+
+This does not prove the target stopped at the UDC gate. A bounded Opus review
+ranked transient UDC acceptance and a later bind/module failure roughly equally
+and recommended reading this cycle's ramoops before another successor. Missing
+ramoops remains inconclusive.
