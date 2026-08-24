@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-explicit-v13-generation122-live-v1"
-BUNDLE = "local-image-stage-explicit-v13"
+PROFILE_ID = "local-image-stage-configfs-udc-v14-generation123-live-v1"
+BUNDLE = "local-image-stage-configfs-udc-v14"
 MANIFEST_SHA256 = (
-    "eb742d37c8f937a95159f96f23f5d543c6657e1cf6e235659c38e206eff79b4c"
+    "a9af841d12ecf27f28efed92562b2c5fd944a6db4f4f2e1594c26ad7b12a20dd"
 )
 RECOVERY_SHA256 = (
-    "5c693c5cbc91338c9f9d53a3c7425b51651e967729e766befe8cdfa49f472071"
+    "14a4ae239fd5b3a2ac134300f6cd7afaef4d11743af7db130db5bf226989cf4d"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-explicit-v13-generation122-live-v1\n"
-    b"candidate=local-image-stage-explicit-v13\n"
+    b"local-image-stage-configfs-udc-v14-generation123-live-v1\n"
+    b"candidate=local-image-stage-configfs-udc-v14\n"
     b"manifest_sha256="
-    b"eb742d37c8f937a95159f96f23f5d543c6657e1cf6e235659c38e206eff79b4c\n"
+    b"a9af841d12ecf27f28efed92562b2c5fd944a6db4f4f2e1594c26ad7b12a20dd\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-explicit-v13-claim.py"
+    / "scripts/host/consume-local-image-stage-configfs-udc-v14-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-explicit-v13-generation122-20260824-r1"
+    / "build/local-image-stage-configfs-udc-v14-generation123-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-explicit-v13",
+    admission_profile="local-image-stage-configfs-udc-v14",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-explicit-v13",
-    build_profile="local-image-stage-explicit-v13",
+    runtime_profile="local-image-stage-configfs-udc-v14",
+    build_profile="local-image-stage-configfs-udc-v14",
     diagnostic=False,
 )
 

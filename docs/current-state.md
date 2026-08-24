@@ -295,6 +295,10 @@ full-staging target removes that redundant scan entirely; the initial devtmpfs
 scan and explicit UDC/usb0 polls remain.
 Generation 122 is admitted once as the full-staging successor with no second
 USB-time mdev scan.
+Generation 122 is consumed and selected the 25-second UDC identity timeout.
+The next no-bind classifier names the ConfigFS-induced extra UDC or zero/expected
+churn before any gadget bind or storage path.
+Generation 123 is admitted once for that no-bind post-ConfigFS inventory.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
