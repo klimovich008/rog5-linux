@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-of-node-v27-generation136-live-v1"
-BUNDLE = "local-image-stage-of-node-v27"
+PROFILE_ID = "ufs-baseline-proven-v28-generation137-live-v1"
+BUNDLE = "ufs-baseline-proven-v28"
 MANIFEST_SHA256 = (
-    "4c10245dfc2651f7eae4c4f466a632b7bd01c04dfe2c81f03354bf8a56159b69"
+    "914681f89fe74cf657efc33a26c5ee18f21d31940105491c8e57d21621b555c2"
 )
 RECOVERY_SHA256 = (
-    "c654a28f4ed8834dbd84e863c61ee87b2c9e4e37e10df877a8804c5e20ab9051"
+    "68e3a66778bc69356f2fb2aa82adc9e48aa9ec53e6809e77c94a7da2d0f81ce4"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-of-node-v27-generation136-live-v1\n"
-    b"candidate=local-image-stage-of-node-v27\n"
+    b"ufs-baseline-proven-v28-generation137-live-v1\n"
+    b"candidate=ufs-baseline-proven-v28\n"
     b"manifest_sha256="
-    b"4c10245dfc2651f7eae4c4f466a632b7bd01c04dfe2c81f03354bf8a56159b69\n"
+    b"914681f89fe74cf657efc33a26c5ee18f21d31940105491c8e57d21621b555c2\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-of-node-v27-claim.py"
+    / "scripts/host/consume-ufs-baseline-proven-v28-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-of-node-v27-generation136-20260824-r1"
+    / "build/ufs-baseline-proven-v28-generation137-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-of-node-v27",
+    admission_profile="ufs-baseline-proven-v28",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-of-node-v27",
-    build_profile="local-image-stage-of-node-v27",
+    runtime_profile="ufs-baseline-proven-v28",
+    build_profile="ufs-baseline-proven-v28",
     diagnostic=False,
 )
 

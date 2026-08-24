@@ -155,6 +155,6 @@ while [ "$attempt" -lt 200 ]; do
 	attempt=$((attempt + 1)); sleep 0.1
 done
 [ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"
-publish_stage PASS count-116 || fail stage-publish
-sleep 15
+publish_stage FAIL count-116 || fail stage-publish
+sleep 10
 return_bootloader

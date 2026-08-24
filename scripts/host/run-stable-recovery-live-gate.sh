@@ -180,6 +180,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-ufs-bind-v25-generation134-live-v1 | \
 		local-image-stage-runtime-dt-v26-generation135-live-v1 | \
 		local-image-stage-of-node-v27-generation136-live-v1 | \
+		ufs-baseline-proven-v28-generation137-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -2827,6 +2828,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	ufs-baseline-proven-v28-generation137-live-v1)
+		expected_boot_image=build/ufs-baseline-proven-v28-generation137-20260824-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 137 minimal UFS-only cycle using the live-proven g359 Image, DTB, and four UFS modules; NCM stage reporting and bounded fallback only; no power loader, SSH, userdata, installer, mount, or storage-write path; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 137 live-proven UFS baseline; exact g359 Image/DT/module pair, UFS-only init, NCM reporter, slot-A fallback; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=ufs-baseline-proven-v28
+		expected_bundle=ufs-baseline-proven-v28
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=c40b7b3d137c8b002d32e4acbeb587f989772b77b607855db0a196156efb4614
+		expected_avb_digest=2ea88831747c78164fe27a41b9814b03f9815a233663d9d36e99e42d0dc21003
+		expected_generation_record=3bb78adc79a92887fafb04459f16ef58198ebbeceb733a43a34a0e54286d11e2
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 914681f89fe74cf657efc33a26c5ee18f21d31940105491c8e57d21621b555c2 ]] || fail 'UFS baseline V28 manifest is not pinned'
+		[[ $expected_image == 68e3a66778bc69356f2fb2aa82adc9e48aa9ec53e6809e77c94a7da2d0f81ce4 ]] || fail 'UFS baseline V28 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'UFS baseline V28 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'UFS baseline V28 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -4315,6 +4349,7 @@ case $profile in
 	local-image-stage-ufs-bind-v25-generation134-live-v1 | \
 	local-image-stage-runtime-dt-v26-generation135-live-v1 | \
 	local-image-stage-of-node-v27-generation136-live-v1 | \
+	ufs-baseline-proven-v28-generation137-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

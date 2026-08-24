@@ -524,6 +524,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-stage-ufs-bind-v25-generation134-live-v1",
         "local-image-stage-runtime-dt-v26-generation135-live-v1",
         "local-image-stage-of-node-v27-generation136-live-v1",
+        "ufs-baseline-proven-v28-generation137-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

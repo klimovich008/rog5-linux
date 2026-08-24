@@ -356,6 +356,7 @@ Its sole cycle is consumed and exact OF matching still reported platform zero.
 Next re-establish the live-proven g359 UFS Image/DT baseline before power merge.
 The proven Image/DT and four original g359 UFS modules are hash-reverified;
 the next build is a minimal UFS-only successor with no power or storage write.
+Generation 137 is admitted once for that baseline; no claim or boot exists yet.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
