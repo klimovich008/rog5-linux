@@ -303,6 +303,9 @@ Generation 123 is consumed and proved zero/exact `a600000.usb` churn with no
 unexpected name. The successor uses a bounded two-sample exact selector and
 still rejects wrong/multiple candidates plus post-bind identity loss.
 Generation 124 is admitted once as that full-staging successor.
+Generation 124 is consumed at the two-sample timeout. The next selector binds
+immediately on one exact observation, retries only absence, and verifies exact
+identity after bind.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

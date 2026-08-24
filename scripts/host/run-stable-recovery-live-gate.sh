@@ -2388,8 +2388,8 @@ case $profile in
 		;;
 	local-image-stage-two-sample-v15-generation124-live-v1)
 		expected_boot_image=build/local-image-stage-two-sample-v15-generation124-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 124 full staging cycle with absent-tolerant two-sample exact a600000.usb selection and post-bind revalidation; unchanged Image/DTB/power-USB/UFS/installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 124 two-sample exact-UDC full staging successor; unchanged Image/DTB/power-USB/UFS/one-file installer and fastboot rollback; never flash'
+		expected_boot_basis='consumed by the sole Generation 124 two-sample UDC cycle; exact 32.248-second return selected the 25-second UDC timeout, proving no two consecutive 100ms exact samples; no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 124 two-sample exact-UDC full staging cycle; no two consecutive samples, no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
