@@ -342,6 +342,9 @@ Generation 130 is consumed. The target NCM/reporter dwell lasted 10.506
 seconds, but the host invoked `wait_for_stage_host_key()` instead of the
 already-implemented `wait_for_target_host_key()` listener, so the exact detail
 was sent to no listener. No storage write occurred; fallback passed.
+Generation 131 is admitted once with the existing stage-aware wait selected.
+The target reporter and all kernel/DT/module/storage paths are unchanged under
+a fresh one-use identity.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
