@@ -8,16 +8,21 @@ builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
 candidate=$repo/configs/recovery-candidates/local-image-stage-v1.json
 successor=$repo/configs/recovery-candidates/local-image-stage-writer-v2.json
 successor_manifest=$repo/manifests/local-image-stage-writer-v2-generation111.manifest
+hotplug=$repo/configs/recovery-candidates/local-image-stage-hotplug-v3.json
+hotplug_manifest=$repo/manifests/local-image-stage-hotplug-v3-generation112.manifest
 claim=$repo/scripts/host/consume-local-image-stage-claim.py
 successor_claim=$repo/scripts/host/consume-local-image-stage-writer-v2-claim.py
+hotplug_claim=$repo/scripts/host/consume-local-image-stage-hotplug-v3-claim.py
 
 for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
-	"$successor_manifest" "$claim" "$successor_claim"; do
+	"$successor_manifest" "$hotplug" "$hotplug_manifest" "$claim" \
+	"$successor_claim" "$hotplug_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 sh -n "$init" "$installer" "$builder"
 python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
+python3 -m py_compile "$hotplug_claim"
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
@@ -111,6 +116,33 @@ for artifact in candidate["artifacts"].values():
 PY
 grep -Fqx 'avb_generation=111' "$successor_manifest"
 grep -Fqx 'phone_flash=forbidden' "$successor_manifest"
+
+python3 - "$successor" "$hotplug" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+previous = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+current = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
+assert previous["status"] == "consumed"
+assert current["status"] == "offline"
+assert current["authority"] == "none"
+assert current["candidate"] == "local-image-stage-hotplug-v3"
+assert current["artifacts"]["Image"] == {
+    **previous["artifacts"]["Image"],
+    "path": "artifacts/local-image-stage-hotplug-v3/Image",
+}
+assert current["artifacts"]["board.dtb"] == {
+    **previous["artifacts"]["board.dtb"],
+    "path": "artifacts/local-image-stage-hotplug-v3/board.dtb",
+}
+assert current["artifacts"]["initramfs.cpio.gz"]["sha256"] == \
+    "0cb40afda8d0068f9c504dde10b155dc71f74b85bc4612e89d368f97b05c8701"
+PY
+grep -Fqx 'avb_generation=112' "$hotplug_manifest"
+grep -Fqx 'delta=guard-absent-optional-kernel-hotplug-sysctl-only' \
+	"$hotplug_manifest"
+grep -Fqx 'phone_flash=forbidden' "$hotplug_manifest"
 
 busybox_root=$(mktemp -d)
 trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM

@@ -234,6 +234,12 @@ Generations 101 and 111: `set -e` terminated PID 1 when the optional
 sealed-AArch64-BusyBox test fails unguarded and passes guarded. Collect retained
 ramoops from a fresh RAM-only observer before treating this as the sole cause.
 
+Generation 112 is an offline-only prepared successor: target initramfs
+`0cb40afd...`, signed manifest `d3e3dc86...`, and RAM-only wrapper
+`dafa1030...`. It has no boot authority. Its kernel, DTB, modules, and storage
+logic are byte-identical to Generation 111; only the optional sysctl guard and
+fresh bundle identity differ.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact

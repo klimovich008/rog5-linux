@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "local-image-stage-writer-v2-generation111-live-v1"
-BUNDLE = "local-image-stage-writer-v2"
+PROFILE_ID = "local-image-stage-hotplug-v3-generation112-live-v1"
+BUNDLE = "local-image-stage-hotplug-v3"
 MANIFEST_SHA256 = (
-    "f296276d49af5db4b498d2f14afc935065adf1ec4ca4e043e2b14c7a3b707bda"
+    "d3e3dc8627c19356ca187aec1ca7abe23a635ed98ed9c10ed9fa82db9cda043a"
 )
 RECOVERY_SHA256 = (
-    "f58153ef41186b5f2a5c8b2449d432dc02b6f92a9fb4c9397298d2d026d4e7cb"
+    "dafa103015313aa0d879aaea1f24e5ead375b236abf3170b2e6ac61f3b96d8b8"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -55,16 +55,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-writer-v2-generation111-live-v1\n"
-    b"candidate=local-image-stage-writer-v2\n"
+    b"local-image-stage-hotplug-v3-generation112-live-v1\n"
+    b"candidate=local-image-stage-hotplug-v3\n"
     b"manifest_sha256="
-    b"f296276d49af5db4b498d2f14afc935065adf1ec4ca4e043e2b14c7a3b707bda\n"
+    b"d3e3dc8627c19356ca187aec1ca7abe23a635ed98ed9c10ed9fa82db9cda043a\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-writer-v2-claim.py"
+    / "scripts/host/consume-local-image-stage-hotplug-v3-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -72,7 +72,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-writer-v2-generation111-20260824-r1"
+    / "build/local-image-stage-hotplug-v3-generation112-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -101,10 +101,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-writer-v2",
+    admission_profile="local-image-stage-hotplug-v3",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-writer-v2",
-    build_profile="local-image-stage-writer-v2",
+    runtime_profile="local-image-stage-hotplug-v3",
+    build_profile="local-image-stage-hotplug-v3",
     diagnostic=False,
 )
 
