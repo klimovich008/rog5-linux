@@ -108,7 +108,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         source = MODULE_PATH.read_text()
         cleanup = source.index("        wait_post_commit_host_cleanup(cycle)\n")
         network = source.index("interface = activate_target_network(cycle, anchor)")
-        host_key = source.index("wait_for_stage_host_key(cycle, anchor, target_known_hosts)")
+        host_key = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
         transfer = source.index("transfer_arch_image(cycle, target_ssh, exact_arch_image())")
         self.assertLess(cleanup, network)
         self.assertLess(network, host_key)
@@ -116,6 +116,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         segment = source[cleanup:transfer]
         self.assertNotIn("input(", segment)
         self.assertNotIn("STOCK.fastboot(", segment)
+        self.assertNotIn("wait_for_stage_host_key(", segment)
 
     def test_terminal_stage_stops_the_host_key_wait(self) -> None:
         source = MODULE_PATH.read_text()
