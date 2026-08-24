@@ -323,6 +323,8 @@ assertion while retaining exact ConfigFS readback and all later gates.
 Its sole cycle is consumed. Target NCM enumerated for 0.519517 seconds, proving
 the UDC fix, then target rollback outran host activation. The stager currently
 collapses the detailed power-loader result and has no stage reporter.
+Generation 130 is admitted once with the existing stage reporter started before
+the loader and a ten-second terminal evidence dwell.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

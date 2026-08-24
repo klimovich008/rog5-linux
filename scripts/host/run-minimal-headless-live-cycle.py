@@ -517,6 +517,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-stage-bind-error-v18-generation127-live-v1",
         "local-image-stage-hostfix-v19-generation128-live-v1",
         "local-image-stage-postbind-v20-generation129-live-v1",
+        "local-image-stage-power-report-v21-generation130-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
