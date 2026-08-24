@@ -183,6 +183,7 @@ class StageRecord(NamedTuple):
 
 STAGES = {
     "kernel-verified",
+    "power-usb",
     "ufs-ready",
     "storage-locked",
     "userdata-resolved",

@@ -9,6 +9,11 @@ expected_udc=a600000.usb
 expected_physical_count=116
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 status=/run/rog5-local-image-stage.status
+stage_record=/run/rog5-local-image-stage.stage
+stage_sequence=0
+stage_reporting=0
+current_stage=
+target_boot_id=
 
 log() {
 	echo "rog5-local-image-stage: $*" >/dev/kmsg 2>/dev/null || true
@@ -23,7 +28,51 @@ return_bootloader() {
 fail() {
 	log "FAIL $*"
 	printf 'state=FAIL\nreason=%s\n' "$1" >"$status" 2>/dev/null || true
+	if [ "$stage_reporting" -eq 1 ] && [ -n "$current_stage" ]; then
+		publish_stage "$current_stage" FAIL "$1" || true
+		sleep 10
+	fi
 	return_bootloader
+}
+
+publish_stage() {
+	stage_name=$1
+	stage_state=$2
+	stage_detail=$3
+	case $stage_name in
+		power-usb|ufs-ready) ;;
+		*) return 1 ;;
+	esac
+	case $stage_state in ENTER|PASS|FAIL) ;; *) return 1 ;; esac
+	case $stage_detail in ''|-*|*-|*[!a-z0-9-]*) return 1 ;; esac
+	[ "${#stage_detail}" -le 128 ] || return 1
+	stage_sequence=$((stage_sequence + 1))
+	[ -n "$target_boot_id" ] || return 1
+	stage_next=$stage_record.next
+	printf '%s\n' \
+		'format=rog5-persistent-root-stage-v2' \
+		"target_release=$expected_release" \
+		"boot_id=$target_boot_id" \
+		"sequence=$stage_sequence" \
+		"stage=$stage_name" \
+		"state=$stage_state" \
+		"detail=$stage_detail" >"$stage_next" || return 1
+	chmod 0444 "$stage_next" || return 1
+	mv -f "$stage_next" "$stage_record" || return 1
+}
+
+send_stage_record() {
+	nc -n -w 1 -s 169.254.77.2 169.254.77.1 8079 \
+		<"$stage_record" >/dev/null 2>&1
+}
+
+start_stage_reporter() {
+	(
+		while :; do
+			[ ! -s "$stage_record" ] || send_stage_record || true
+			sleep 1
+		done
+	) &
 }
 
 mount -t proc proc /proc
@@ -102,8 +151,28 @@ while [ "$attempt" -lt 150 ]; do
 done
 [ "$attempt" -lt 150 ] || fail ncm-carrier
 
-/sbin/rog5-load-persistent-power-usb >/run/rog5-power-usb-loader.result ||
-	fail power-usb
+target_boot_id=$(cat /proc/sys/kernel/random/boot_id) || fail boot-id
+current_stage=power-usb
+publish_stage power-usb ENTER none || fail stage-publish
+stage_reporting=1
+start_stage_reporter || fail stage-reporter
+if ! /sbin/rog5-load-persistent-power-usb \
+	>/run/rog5-power-usb-loader.result; then
+	power_result=$(sed -n '1p' /run/rog5-power-usb-loader.result 2>/dev/null || true)
+	case $power_result in
+		power-usb-*) power_detail=${power_result#power-usb-} ;;
+		*) power_detail=loader-error ;;
+	esac
+	case $power_detail in
+		''|-*|*-|*[!a-z0-9-]*) power_detail=loader-error ;;
+	esac
+	publish_stage power-usb FAIL "$power_detail" || true
+	sleep 10
+	return_bootloader
+fi
+publish_stage power-usb PASS ready || fail stage-publish
+current_stage=ufs-ready
+publish_stage ufs-ready ENTER none || fail stage-publish
 
 for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
 	insmod "/rog5-ufs-modules/$module" || fail ufs-module
@@ -125,6 +194,8 @@ while [ "$attempt" -lt 200 ]; do
 	attempt=$((attempt + 1)); sleep 0.1
 done
 [ "$count" -eq "$expected_physical_count" ] || fail ufs-count
+publish_stage ufs-ready PASS ready || fail stage-publish
+current_stage=
 
 userdata=
 matches=0

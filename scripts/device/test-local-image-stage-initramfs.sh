@@ -68,6 +68,29 @@ if grep -Fq '$(udc_state)' "$init"; then
 	echo 'FAIL target still evaluates the transient post-bind UDC class' >&2
 	exit 1
 fi
+for contract in \
+	"'format=rog5-persistent-root-stage-v2'" \
+	'publish_stage power-usb ENTER none' \
+	'publish_stage power-usb FAIL "$power_detail"' \
+	'publish_stage power-usb PASS ready' \
+	'power_detail=${power_result#power-usb-}' \
+	'sleep 10'; do
+	grep -Fq "$contract" "$init" || {
+		echo "FAIL missing early power/USB stage contract: $contract" >&2
+		exit 1
+	}
+done
+python3 - "$init" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+carrier = source.index('fail ncm-carrier')
+enter = source.index('publish_stage power-usb ENTER none')
+reporter = source.index('start_stage_reporter', enter)
+loader = source.index('/sbin/rog5-load-persistent-power-usb', reporter)
+assert carrier < enter < reporter < loader
+PY
 ! grep -Fq 'acm.usb0' "$init"
 python3 - "$init" <<'PY'
 from pathlib import Path
