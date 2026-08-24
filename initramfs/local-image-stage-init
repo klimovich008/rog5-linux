@@ -94,7 +94,8 @@ while [ "$attempt" -lt 2500 ]; do
 			bound_udc=1
 			break
 		fi
-		[ ! -e "/sys/class/udc/$expected_udc" ] || fail udc-identity
+		[ ! -e "/sys/class/udc/$expected_udc" ] ||
+			[ -z "$(cat "$gadget/UDC")" ] || fail udc-identity
 	fi
 	attempt=$((attempt + 1))
 	sleep 0.01
