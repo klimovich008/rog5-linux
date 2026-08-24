@@ -30,7 +30,7 @@ grep -Fq "expected_boot_role='consumed Generation 130 cycle; target NCM/reporter
 grep -Fq "expected_boot_role='consumed Generation 131 cycle; exact stage detail proved qcom_q6v5 module vermagic mismatch before UFS or storage; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 132 cycle; g359 power/USB modules passed, UFS modules loaded, then bounded UFS inventory count failed before storage; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 133 cycle; exact post-module UFS physical count was zero before every storage surface; slot-A fallback passed; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 134 UFS-binding classifier; exact g359 closure and read-only sysfs classification, unchanged kernel/DT/stable recovery, slot-A fallback; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 134 cycle; exact classifier proved no runtime UFS platform device before every storage surface; slot-A fallback passed; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -252,8 +252,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 133 cycle; exact g359 power/USB and UFS module insertion passed, then the bounded UFS inventory was exactly zero; no SSH, installer, block device, mount, or storage write; exact slot-A fallback passed; never retry or flash" &&
 		NF == 3 { ufs_count_writer++ ; next }
 	$1 == "build/local-image-stage-ufs-bind-v25-generation134-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 134 full staging cycle classifying zero UFS inventory as missing platform device, unbound platform, bound with zero SCSI hosts, or SCSI hosts with zero blocks; unchanged g359 modules, Image, DTB, reporter/listener, installer, storage scope, RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 134 cycle; exact zero-UFS classifier reported ufs-platform-0, proving no runtime platform device matched the 0x1d84000 controller address; no SCSI host, block device, mount, SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash" &&
 		NF == 3 { ufs_bind_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -470,7 +470,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
