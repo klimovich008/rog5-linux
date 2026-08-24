@@ -55,18 +55,16 @@ grep -Fq 'stable_udc=0' "$init"
 grep -Fq '[ "$stable_udc" -eq 50 ] || fail udc-identity' "$init"
 grep -Fq '*) fail udc-identity ;;' "$init"
 ! grep -Fq 'acm.usb0' "$init"
-grep -Fq 'mdev -s || fail pre-bind-mdev' "$init"
 python3 - "$init" <<'PY'
 from pathlib import Path
 import sys
 
 source = Path(sys.argv[1]).read_text()
+initial_scan = source.index('\nmdev -s\n')
 link = source.index('ln -s "$gadget/functions/ncm.usb0"')
-pre_bind = source.index('mdev -s || fail pre-bind-mdev')
-select = source.index('stable_udc=0')
-bind = source.index('echo "$expected_udc" >"$gadget/UDC"')
-assert link < pre_bind < select < bind
-assert source[bind:].splitlines()[1] != 'mdev -s'
+ufs = source.index('for module in phy-qcom-qmp-ufs.ko')
+assert initial_scan < link
+assert 'mdev -s' not in source[link:ufs]
 PY
 for contract in \
 	'expected_release=${EXPECTED_RELEASE:-7.1.4-gae717d919f87}' \
