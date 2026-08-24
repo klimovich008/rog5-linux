@@ -17,7 +17,7 @@ grep -Fq "expected_boot_role='consumed Generation 117 stabilized UDC inventory; 
 grep -Fq "expected_boot_role='consumed Generation 118 NCM-only full staging cycle; target USB never appeared, exact slot-A fastboot and FALLBACK_RETURNED resolution passed, no SSH transfer, installer, or storage write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 119 pre-storage timing discriminator; 77.046-second exact USB timeline selected ncm-address; no target USB, UFS, userdata, SSH, installer, or storage write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 120 usb0 address-state discriminator; 77.045-second exact USB timeline selected address-show-failed immediately after link-up; no target USB or later subsystem/storage surface; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 121 full staging successor; exact mature pre-bind mdev ordering, unchanged Image/DTB/power-USB/UFS/one-file installer and fastboot rollback; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 121 pre-bind-mdev full staging cycle; 31.992-second return with no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -187,8 +187,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 120 address-state cycle; exact 77.045-second USB timeline selected address-show-failed, proving usb0 vanished or became unqueryable immediately after link-up; no target USB, carrier, power-USB, UFS, userdata, SSH, installer, or storage; never retry or flash" &&
 		NF == 3 { address_writer++ ; next }
 	$1 == "build/local-image-stage-prebind-v12-generation121-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 121 full staging cycle with mdev moved before UDC bind; unchanged Image/DTB/address/power-USB/UFS/installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 121 pre-bind-mdev cycle; exact 31.992-second return, no target USB, SSH, installer, or storage write; moving the second global mdev scan before bind did not fix enumeration; fallback and intent resolution passed; never retry or flash" &&
 		NF == 3 { prebind_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -405,7 +405,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
