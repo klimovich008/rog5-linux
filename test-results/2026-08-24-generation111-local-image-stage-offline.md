@@ -20,6 +20,8 @@ Offline checkpoint:
 - signed manifest: `f296276d49af5db4b498d2f14afc935065adf1ec4ca4e043e2b14c7a3b707bda`;
 - Generation 111 wrapper: `f58153ef41186b5f2a5c8b2449d432dc02b6f92a9fb4c9397298d2d026d4e7cb`;
 - focused tests: 5 seconds;
+- full local CI: 364 seconds (the first 279-second run exposed and then fixed
+  three stale historical-runner assertions; the frozen successor run passed);
 - exact sealed BusyBox `stat`, `sha256sum`, `cut`, `cat`, and shell pipeline: passed.
 
 The wrapper remains RAM-only and the target installer is the only storage-write
