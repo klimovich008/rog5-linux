@@ -2660,8 +2660,8 @@ case $profile in
 		;;
 	local-image-stage-abi-v23-generation132-live-v1)
 		expected_boot_image=build/local-image-stage-abi-v23-generation132-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 132 full staging cycle with all four UFS and fifteen power/USB modules replaced by exact 7.1.4-g359318de534f twins; unchanged Image, DTB, reporter/listener, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 132 ABI-correct full staging successor; exact g359 module closure, unchanged kernel/DT/stable recovery, bounded userdata image installer, slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 132 cycle; exact g359 power/USB module chain passed and UFS modules loaded, then stage ufs-ready failed at generic ufs-count after the bounded 20-second enumeration wait; no SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 132 cycle; g359 power/USB modules passed, UFS modules loaded, then bounded UFS inventory count failed before storage; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

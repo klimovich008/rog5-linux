@@ -1,6 +1,6 @@
 # Generation 132 matching-module target checkpoint
 
-Result: **SIGNED, VERIFIED, AND ADMITTED ONCE.** Never flash or retry after entry.
+Result: **CONSUMED; POWER/USB PASSED, UFS COUNT FAILED.** Never retry or flash.
 
 The deterministic target twins have SHA-256
 `54ab6e369a7b558c7f0952ced166ea289c16a384a46861ab5f1ea5ccd7da8406`.
@@ -22,3 +22,11 @@ and the existing trust root. Generation-132 recovery is
 `7e555e989ceed7db4f71a6f2195b802cbc532460892e4511a41a51db4ca5c114`;
 the raw stable-recovery payload remains unchanged and phone flashing is
 forbidden.
+
+Live result: the stage listener received `power-usb PASS`, then
+`ufs-ready ENTER`, followed 20.135 seconds later by terminal
+`ufs-ready/ufs-count`. This proves the exact g359 power/USB closure and all four
+UFS module loads passed. No SSH, installer, mount, or storage write occurred;
+slot-A fallback and intent resolution passed. The generic terminal detail did
+not retain the observed physical-device count, so a successor must report that
+one value rather than repeat the same question.

@@ -28,7 +28,7 @@ grep -Fq "expected_boot_role='consumed Generation 128 full staging cycle; immedi
 grep -Fq "expected_boot_role='consumed Generation 129 full staging cycle; exact target NCM enumerated for 0.519517 seconds, then target rollback before host activation; no storage write; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 130 cycle; target NCM/reporter dwell passed but host used the SSH-only helper and missed stage detail; no storage write; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 131 cycle; exact stage detail proved qcom_q6v5 module vermagic mismatch before UFS or storage; slot-A fallback passed; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 132 ABI-correct full staging successor; exact g359 module closure, unchanged kernel/DT/stable recovery, bounded userdata image installer, slot-A fallback; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 132 cycle; g359 power/USB modules passed, UFS modules loaded, then bounded UFS inventory count failed before storage; slot-A fallback passed; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -242,8 +242,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 131 cycle; exact stage listener captured power-usb/module-qcom-q6v5-load, proving the packaged module vermagic 7.1.4-gae717d919f87 mismatched target 7.1.4-g359318de534f; no UFS, SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash" &&
 		NF == 3 { listener_writer++ ; next }
 	$1 == "build/local-image-stage-abi-v23-generation132-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 132 full staging cycle with all four UFS and fifteen power/USB modules replaced by exact 7.1.4-g359318de534f twins; unchanged Image, DTB, reporter/listener, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 132 cycle; exact g359 power/USB module chain passed and UFS modules loaded, then stage ufs-ready failed at generic ufs-count after the bounded 20-second enumeration wait; no SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash" &&
 		NF == 3 { abi_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -460,7 +460,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
