@@ -13,6 +13,7 @@ for contract in \
 	'expected_release=@EXPECTED_KERNEL_RELEASE@' \
 	'expected_bundle=@EXPECTED_BUNDLE@' \
 	'[ -e "/sys/class/udc/$expected_udc" ] || delayed_return 5' \
+	'sleep 5' \
 	'[ "$extra_count" -ne 0 ] || delayed_return 10' \
 	'[ "$extra_count" -eq 1 ] || delayed_return 70' \
 	'a800000.usb) delayed_return 15' \
@@ -42,7 +43,7 @@ import hashlib, json, sys
 from pathlib import Path
 c = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert c["candidate"] == "local-image-stage-udc-v7"
-assert c["status"] == "offline" and c["authority"] == "none"
+assert c["status"] == "consumed" and c["authority"] == "none"
 repo = Path(sys.argv[1]).resolve().parents[2]
 for a in c["artifacts"].values():
     p = repo / a["path"]

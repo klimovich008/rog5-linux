@@ -36,6 +36,7 @@ while [ "$attempt" -lt 200 ] && [ ! -e "/sys/class/udc/$expected_udc" ]; do
 	sleep 0.1
 done
 [ -e "/sys/class/udc/$expected_udc" ] || delayed_return 5
+sleep 5
 
 extra_count=0
 extra_name=

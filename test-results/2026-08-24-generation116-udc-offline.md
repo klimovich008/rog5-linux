@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 116 remains unbooted.
+Result: **CONSUMED; NO EXTRA YET AT EARLY SAMPLE.** Never retry or flash.
 
 Generation 115 proved that `/sys/class/udc/a600000.usb` exists but the class has
 at least one additional entry. The strict exactly-one selector must not be
@@ -24,3 +24,8 @@ Identities:
 - Generation 116 wrapper: `4c0ac09693ed1db066f78c64bf7024da6302b4aa193ffac13435320e512c0f83`.
 
 RAM-only, one-use, no binding, and flash-forbidden.
+
+Live result: exact fastboot returned 16.887 seconds after recovery departure,
+selecting the 10-second `no extra` bucket plus bootloader overhead. Generation
+115 observed an extra later in the same boot phase, proving asynchronous UDC
+inventory change. No binding, gadget, UFS, storage, SSH, or installer ran.

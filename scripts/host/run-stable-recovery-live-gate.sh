@@ -2116,8 +2116,8 @@ case $profile in
 		;;
 	local-image-stage-udc-v7-generation116-live-v1)
 		expected_boot_image=build/local-image-stage-udc-v7-generation116-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact no-bind extra-UDC basename classifier; expected a600000.usb must exist, classify one extra known controller family or unknown/multiple bucket by timing; no gadget or storage; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 116 extra-UDC classifier; unchanged Image and DTB, no binding, gadget, UFS, storage, SSH, or installer surface; one use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 116 early inventory; exact fastboot returned in 16.887 seconds, selecting no-extra-yet and proving the additional UDC appears asynchronously after expected registration; no binding/storage; never retry or flash'
+		expected_boot_role='consumed Generation 116 early UDC inventory; no-extra-yet at early sample proves late candidate race when combined with Generation 115; no binding, gadget, or storage; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

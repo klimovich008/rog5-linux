@@ -253,6 +253,9 @@ present. The strict selector correctly refused to bind; no storage was touched.
 Generation 116 is admitted as a no-bind UDC basename classifier. It requires the
 expected UDC, identifies one extra candidate by fixed controller-family timing,
 and has no gadget, UFS, block-device, SSH, or installer execution surface.
+Generation 116 is now consumed: its early sample found no extra yet and returned
+in 16.887 seconds. Combined with Generation 115, the second UDC is a late
+registration race. The next classifier waits five seconds before naming it.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
