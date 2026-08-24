@@ -306,6 +306,7 @@ Generation 124 is admitted once as that full-staging successor.
 Generation 124 is consumed at the two-sample timeout. The next selector binds
 immediately on one exact observation, retries only absence, and verifies exact
 identity after bind.
+Generation 125 is admitted once as that full-staging successor.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
