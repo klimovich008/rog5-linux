@@ -15,7 +15,7 @@ import sys
 current = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 previous = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
 assert current["candidate"] == "persistent-root-sparse-diagnostic-v17"
-assert current["status"] == "offline"
+assert current["status"] == "consumed"
 assert previous["status"] == "consumed"
 assert current["artifacts"]["Image"] == previous["artifacts"]["Image"]
 assert current["artifacts"]["board.dtb"] == previous["artifacts"]["board.dtb"]
@@ -35,4 +35,4 @@ fi
 grep -Fq 'persistent-root-sparse-diagnostic-v17-generation110-live-v1' "$runner"
 grep -Fq 'if current.state == "FAIL":' "$runner"
 
-echo 'PASS V17 asks one read-only sparse-offset question and stops on its terminal stage'
+echo 'PASS consumed V17 proves ABL sparse userdata staging is ineffective'

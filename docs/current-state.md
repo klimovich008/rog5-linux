@@ -214,6 +214,13 @@ including the inode table and directory data around byte 60.1 GB. Generation
 110 keeps the V16 kernel/DT and adds only nine read-only block hashes covering
 the source blocks and their corrected 4-GiB aliases (32, 8224, and 8225).
 
+Generation 110 is consumed and decisive: low source metadata differs, all
+three high metadata blocks are zero, and the alias blocks remain unchanged.
+ASUS ABL accepted the sparse transfers but left userdata unchanged. Development
+has returned to the controlled mainline writer. Clean twins at source commit
+`359318de...` reproduce Image `a7e0cd84...`, config `6329b42f...`, all 15
+charging modules, and four UFS modules with bounded data-write plus reboot mode.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving

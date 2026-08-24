@@ -31,11 +31,6 @@ case $power_usb_modules in
 		exit 1
 		;;
 esac
-[ "$power_usb_modules" -eq 0 ] || [ "$storage_mode" = read-only ] || {
-	echo 'FAIL composed power/USB build requires read-only UFS' >&2
-	exit 1
-}
-
 [ -d "$source_dir/.git" ] || {
 	echo "FAIL missing source tree $source_dir" >&2
 	exit 1
@@ -112,7 +107,11 @@ kernel_make() {
 
 mkdir -p "$output_dir"
 kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 defconfig
-if [ "$storage_mode" = local-write ]; then
+if [ "$storage_mode" = local-write ] && [ "$power_usb_modules" -eq 1 ]; then
+	"$source_dir/scripts/kconfig/merge_config.sh" -m -O "$output_dir" \
+		"$output_dir/.config" "$base_fragment" "$discovery_fragment" \
+		"$root_fragment" "$write_fragment" "$power_usb_fragment"
+elif [ "$storage_mode" = local-write ]; then
 	"$source_dir/scripts/kconfig/merge_config.sh" -m -O "$output_dir" \
 		"$output_dir/.config" "$base_fragment" "$discovery_fragment" \
 		"$root_fragment" "$write_fragment"

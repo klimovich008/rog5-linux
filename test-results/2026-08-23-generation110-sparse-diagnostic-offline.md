@@ -40,3 +40,9 @@ Identities:
 - target initramfs: `9b34cb5b49b6028fba7cd7becbb76ada14e469894916a19778f3c65b043e8ba0`
 - signed manifest: `99ff5e35bf5533df7e99b5bad65aa893f68c69ced22cedd37e74d879041d15cd`
 - Generation 110 wrapper: `ce3be4ff692428d56dd92d9daf763803a32e0d129f1b01173229c1ebbe6f3578`
+
+Live result: **CONSUMED; ABL SPARSE STAGING DISPROVEN.** Device block 1,
+inode-table block 1086, and root-directory block 9278 differed from the source.
+Blocks 14680096, 14688288, and 14688289 were all 4 KiB zero blocks. Alias
+blocks 32, 8224, and 8225 retained their source values, ruling out wraparound.
+Exact fastboot fallback passed and no target write occurred.

@@ -213,6 +213,12 @@ publishes hashes for blocks 1, 32, 1086, 8224, 8225, 9278, 14680096,
 14688288, and 14688289, then returns to fastboot. The host now stops on the
 terminal stage and accepts exact slot-A fastboot as a valid fallback.
 
+Generation 110 is consumed. Its hashes prove the ABL sparse operation is a
+no-op, not a 4-GiB wrap. The next artifact is the separately scoped controlled
+writer: clean twins from `359318de...` match Image `a7e0cd84...` and config
+`6329b42f...`, with `SCSI_UFS_DISCOVERY_DATA_WRITE=y`, charging, and built-in
+reboot mode. Packaging the exact installer initramfs remains next.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact
