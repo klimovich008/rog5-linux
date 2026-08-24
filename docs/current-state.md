@@ -321,6 +321,12 @@ exact interface because the shared NCM model set omitted
 Generation 128 is the one admitted full-staging successor. It reuses the exact
 kernel, DTB, modules, installer, and stable recovery bytes; only the target
 initramfs identity/exact-unbound UDC retry and the proven host R7 fixes differ.
+Generation 128 is consumed. It returned to exact slot-A fastboot 6.903960
+seconds after recovery departure, before target USB or storage. Linux 7.1
+ConfigFS store semantics exclude bind-loop exhaustion; the immediate
+post-bind `/sys/class/udc` level check rejected the already-observed transient
+empty phase. The next target must retain exact ConfigFS readback and remove
+only that false post-bind class invariant.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

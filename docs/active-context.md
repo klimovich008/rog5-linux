@@ -314,6 +314,10 @@ Its sole cycle selected bind-success: target NCM remained enumerated for
 model, so the host never accepted the target and no storage path ran.
 Generation 128 is the admitted full-staging successor with the host parser and
 post-COMMIT cleanup fixes plus bounded retry of only an exact unbound UDC.
+Its sole cycle is consumed at the 6.903960-second immediate-return baseline.
+The exact ConfigFS store source plus the prior empty/exact UDC-class trace
+identify the one-shot post-bind class-level assertion as the failure; no target
+USB, SSH, installer, or storage path ran.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

@@ -1,6 +1,6 @@
 # Generation 128 host-fixed full staging successor
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Never flash or retry after entry.
+Result: **CONSUMED; FALSE POST-BIND UDC-CLASS INVARIANT.** Never retry or flash.
 
 Primary question: can the unchanged UFS-capable charging kernel reach exact
 NCM, key-only SSH, and stage the 16 GiB Arch image after the proven R7 host
@@ -17,3 +17,15 @@ its raw recovery bytes remain `4f9ac4e7...d9f8`.
 
 Focused host, exact sealed-BusyBox, target-initramfs, and live-gate tests pass.
 No phone contact or storage write occurred while creating this successor.
+
+Live result: recovery USB departed at `14:55:00.337539`; exact slot-A fastboot
+appeared at `14:55:07.241499`, 6.903960 seconds later. No target USB product,
+SSH, installer, or storage write occurred; fallback and intent resolution
+passed. The 25-second bind retry cannot have expired. Linux 7.1
+`gadget_dev_desc_UDC_store()` clears ConfigFS `udc_name` on every failed store,
+so the retry path cannot produce this immediate return. A successful store
+retains exact ConfigFS readback; the next statement is the one-shot
+`/sys/class/udc` inventory assertion. Generation 123 already proved that class
+alternates between empty and exact after ConfigFS setup, while Generation 127
+proved stable NCM enumeration without the post-bind assertion. This closes the
+root cause without another discriminator boot.
