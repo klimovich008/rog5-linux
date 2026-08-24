@@ -333,6 +333,8 @@ fresh target identity.
 Its sole cycle is consumed and captured exact
 `power-usb/module-qcom-q6v5-load`. Offline inspection proves the packaged
 module vermagic was ae717 while the target is g359; no storage path ran.
+Generation 132 target twins now package the retained matching g359 UFS and
+power/USB modules and are byte-identical, but remain unsigned and unadmitted.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
