@@ -3,6 +3,8 @@ set -eu
 set -f
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+expected_release=@EXPECTED_KERNEL_RELEASE@
+expected_bundle=@EXPECTED_BUNDLE@
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 expected_udc=a600000.usb
 
