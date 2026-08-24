@@ -330,6 +330,9 @@ worked, but the runner selected the SSH-only helper instead of the stage-aware
 helper. Exact fallback passed and no storage path ran.
 Generation 131 is admitted once with that one-line host call-site fix and a
 fresh target identity.
+Its sole cycle is consumed and captured exact
+`power-usb/module-qcom-q6v5-load`. Offline inspection proves the packaged
+module vermagic was ae717 while the target is g359; no storage path ran.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

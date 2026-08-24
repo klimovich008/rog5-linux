@@ -108,6 +108,7 @@ for contract in \
 	'expected_bundle=${EXPECTED_BUNDLE:-local-image-stage-v1}' \
 	'UFS_MODULES and POWER_MODULES_ROOT must be supplied together' \
 	'power/USB module inventory changed' \
+	'packaged module ABI changed:' \
 	'modinfo -F vermagic'; do
 	grep -Fq "$contract" "$builder" || {
 		echo "FAIL missing staging rebuild contract: $contract" >&2
