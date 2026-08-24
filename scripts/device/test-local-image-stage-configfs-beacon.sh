@@ -6,6 +6,8 @@ init=$repo/initramfs/local-image-stage-configfs-beacon-init
 
 sh -n "$init"
 for contract in \
+	'expected_release=@EXPECTED_KERNEL_RELEASE@' \
+	'expected_bundle=@EXPECTED_BUNDLE@' \
 	'mount -t configfs configfs /sys/kernel/config || delayed_return 5' \
 	'|| delayed_return 10' \
 	'} || delayed_return 15' \
