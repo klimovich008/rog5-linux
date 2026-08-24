@@ -2456,8 +2456,8 @@ case $profile in
 		;;
 	local-image-stage-direct-v17-generation126-live-v1)
 		expected_boot_image=build/local-image-stage-direct-v17-generation126-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 126 full staging cycle with direct 10ms exact-path UDC bind, vanished-path retry, and post-bind full validation; unchanged Image/DTB/power-USB/UFS/installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 126 direct transient-UDC bind full staging successor; unchanged Image/DTB/power-USB/UFS/one-file installer and fastboot rollback; never flash'
+		expected_boot_basis='consumed by the sole Generation 126 direct-bind cycle; exact 6.901-second immediate return proved the exact UDC bind write was refused while the expected path remained present; no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 126 direct-bind full staging cycle; bind write refused with expected path present, no target USB or storage write; fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

@@ -306,6 +306,8 @@ Generation 125 is the admitted full-staging successor with immediate exact bind.
 Its sole cycle timed out because the pre-bind inventory scan remained too slow.
 The next target uses direct expected-path bind and post-bind full validation.
 Generation 126 is the admitted full-staging successor with that direct bind.
+Its sole cycle proved a synchronous exact bind-write refusal. The next cycle
+classifies the kernel-reported ConfigFS/DWC3 errno and touches no storage.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

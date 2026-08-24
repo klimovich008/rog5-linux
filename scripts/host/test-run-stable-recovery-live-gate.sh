@@ -22,7 +22,7 @@ grep -Fq "expected_boot_role='consumed Generation 122 explicit-sysfs full stagin
 grep -Fq "expected_boot_role='consumed Generation 123 post-ConfigFS UDC inventory classifier; proved zero/exact a600000.usb churn with no unexpected UDC; no bind, network, or storage surface; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 124 two-sample exact-UDC full staging cycle; no two consecutive samples, no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 125 scan-then-bind full staging cycle; 25-second bind timeout, no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 126 direct transient-UDC bind full staging successor; unchanged Image/DTB/power-USB/UFS/one-file installer and fastboot rollback; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 126 direct-bind full staging cycle; bind write refused with expected path present, no target USB or storage write; fallback passed; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -212,8 +212,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 125 scan-then-bind cycle; exact 32.504-second return selected the 25-second bind timeout, no target USB, SSH, installer, or storage write; full inventory scan remained too slow for the transient expected UDC; fallback passed; never retry or flash" &&
 		NF == 3 { bind_writer++ ; next }
 	$1 == "build/local-image-stage-direct-v17-generation126-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 126 full staging cycle with direct 10ms exact-path UDC bind, vanished-path retry, and post-bind full validation; unchanged Image/DTB/power-USB/UFS/installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 126 direct-bind cycle; exact 6.901-second immediate return proved the exact UDC bind write was refused while the expected path remained present; no target USB, SSH, installer, or storage write; fallback passed; never retry or flash" &&
 		NF == 3 { direct_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -430,7 +430,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
