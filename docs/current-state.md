@@ -318,6 +318,9 @@ Generation 127 is consumed. Its target NCM product enumerated for 89.864
 seconds, proving ConfigFS bind success. The host then rejected the otherwise
 exact interface because the shared NCM model set omitted
 `ROG5_local_image_stage` (R7); no target network or storage write ran.
+Generation 128 is the one admitted full-staging successor. It reuses the exact
+kernel, DTB, modules, installer, and stable recovery bytes; only the target
+initramfs identity/exact-unbound UDC retry and the proven host R7 fixes differ.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

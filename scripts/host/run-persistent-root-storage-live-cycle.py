@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-bind-error-v18-generation127-live-v1"
-BUNDLE = "local-image-stage-bind-error-v18"
+PROFILE_ID = "local-image-stage-hostfix-v19-generation128-live-v1"
+BUNDLE = "local-image-stage-hostfix-v19"
 MANIFEST_SHA256 = (
-    "107b72178980a7eec7cce8e4e38a4d8d00a1ae1060234b1fdc41e38a89b4396b"
+    "d5022e9a967bda3171492caba4e4ddf1d5d22bca022cf2b27d2fa1f9e7ef911c"
 )
 RECOVERY_SHA256 = (
-    "5a1b1e8adb5336d0db720b42e2b26824f6c6fc31509aa798de9f67e9f264867c"
+    "f1cbb906fdf1ebff9f79ecebabc9775a630bf9ca923bf1206dcacdb87ce262d0"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-bind-error-v18-generation127-live-v1\n"
-    b"candidate=local-image-stage-bind-error-v18\n"
+    b"local-image-stage-hostfix-v19-generation128-live-v1\n"
+    b"candidate=local-image-stage-hostfix-v19\n"
     b"manifest_sha256="
-    b"107b72178980a7eec7cce8e4e38a4d8d00a1ae1060234b1fdc41e38a89b4396b\n"
+    b"d5022e9a967bda3171492caba4e4ddf1d5d22bca022cf2b27d2fa1f9e7ef911c\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-bind-error-v18-claim.py"
+    / "scripts/host/consume-local-image-stage-hostfix-v19-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-bind-error-v18-generation127-20260824-r1"
+    / "build/local-image-stage-hostfix-v19-generation128-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-bind-error-v18",
+    admission_profile="local-image-stage-hostfix-v19",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-bind-error-v18",
-    build_profile="local-image-stage-bind-error-v18",
+    runtime_profile="local-image-stage-hostfix-v19",
+    build_profile="local-image-stage-hostfix-v19",
     diagnostic=False,
 )
 
