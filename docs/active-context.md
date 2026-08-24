@@ -227,6 +227,13 @@ fixed offline but cannot explain the complete absence of a target USB event.
 The lifecycle's premature fallback-resolution condition is also fixed; the
 existing Generation 111 resolution record remains evidence, not fallback proof.
 
+Root cause investigation now proves one fatal pre-USB command shared by
+Generations 101 and 111: `set -e` terminated PID 1 when the optional
+`/proc/sys/kernel/hotplug` redirect failed under exact kernels with
+`CONFIG_UEVENT_HELPER` disabled. The smallest source fix is only `|| :`; a
+sealed-AArch64-BusyBox test fails unguarded and passes guarded. Collect retained
+ramoops from a fresh RAM-only observer before treating this as the sole cause.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact

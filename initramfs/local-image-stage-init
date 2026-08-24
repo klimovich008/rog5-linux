@@ -32,7 +32,7 @@ mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
 mkdir -p /dev/pts /run /var/log /run/sshd /sys/kernel/config
 mount -t devpts devpts /dev/pts
 mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
-echo /sbin/mdev >/proc/sys/kernel/hotplug
+echo /sbin/mdev >/proc/sys/kernel/hotplug || :
 mdev -s
 hostname rog5-local-image-stage
 

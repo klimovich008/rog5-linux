@@ -38,6 +38,7 @@ for contract in \
 done
 grep -Fq 'expected_release=@EXPECTED_KERNEL_RELEASE@' "$init"
 grep -Fq 'expected_bundle=@EXPECTED_BUNDLE@' "$init"
+grep -Fq 'echo /sbin/mdev >/proc/sys/kernel/hotplug || :' "$init"
 for contract in \
 	'expected_release=${EXPECTED_RELEASE:-7.1.4-gae717d919f87}' \
 	'expected_bundle=${EXPECTED_BUNDLE:-local-image-stage-v1}' \
@@ -110,5 +111,22 @@ for artifact in candidate["artifacts"].values():
 PY
 grep -Fqx 'avb_generation=111' "$successor_manifest"
 grep -Fqx 'phone_flash=forbidden' "$successor_manifest"
+
+busybox_root=$(mktemp -d)
+trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM
+gzip -dc "$repo/artifacts/local-image-stage-v1/initramfs.cpio.gz" |
+	(cd "$busybox_root" && cpio -idm --quiet --no-absolute-filenames)
+qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64)
+if "$qemu" -L "$busybox_root" "$busybox_root/bin/busybox" sh -c \
+	'set -e; echo /sbin/mdev >/proc/sys/kernel/definitely-absent; echo SURVIVED' \
+	>"$busybox_root/unguarded.out" 2>/dev/null; then
+	echo 'FAIL unguarded missing hotplug sysctl unexpectedly survived' >&2
+	exit 1
+fi
+[ ! -s "$busybox_root/unguarded.out" ]
+"$qemu" -L "$busybox_root" "$busybox_root/bin/busybox" sh -c \
+	'set -e; echo /sbin/mdev >/proc/sys/kernel/definitely-absent || :; echo SURVIVED' \
+	>"$busybox_root/guarded.out" 2>/dev/null
+grep -Fqx SURVIVED "$busybox_root/guarded.out"
 
 echo 'PASS local-image staging uses the UFS-capable composition and one bounded image path'
