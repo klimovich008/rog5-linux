@@ -395,7 +395,10 @@ power, SSH, userdata, installer, mount, or storage-write execution path.
 Its sole cycle is consumed. Stable NCM and all four exact modules passed, but
 the topology remained `ufs-count-0` for 20 seconds. Exact slot-A stock recovery
 USB returned; its post-reset `18d1:d001` descriptor exposed stale fallback
-policy rather than loss of rescue. The stronger retained control is Generation
+policy rather than loss of rescue. The targeted host correction now accepts
+that exact complete descriptor tuple, rejects mixed identities, and has passed
+against the retained preboot record and live recovery USB. The stronger
+retained control is Generation
 109: its ae717 Image/DT/modules passed UFS under the current wrapper and its
 built-in PMK8350 reboot-mode path returned exact fastboot. Generation 138 uses
 that live-proven lineage with the minimal NCM/UFS counter only. Do not retry

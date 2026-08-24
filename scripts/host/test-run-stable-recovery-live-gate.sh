@@ -33,7 +33,7 @@ grep -Fq "expected_boot_role='consumed Generation 133 cycle; exact post-module U
 grep -Fq "expected_boot_role='consumed Generation 134 cycle; exact classifier proved no runtime UFS platform device before every storage surface; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 135 cycle; runtime UFS DT was okay but address-name platform scan returned zero before storage; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 136 cycle; exact OF identity confirmed no UFS platform device under the current Image/DT pair; slot-A fallback passed; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='consumed Generation 137 cycle; live-proven g359 target still reported ufs-count-0; stock slot-A recovery USB returned but fallback descriptor policy was stale; never retry or flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 137 cycle; live-proven g359 target still reported ufs-count-0; exact stock slot-A recovery fallback passed after the current descriptor policy correction; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='unbooted Generation 138 UFS and fastboot-return baseline; Generation-109-live-proven ae717 Image/DT/module pair, minimal NCM reporter, built-in reboot mode; never flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
@@ -269,7 +269,7 @@ awk -F '\t' \
 		NF == 3 { of_node_writer++ ; next }
 	$1 == "build/ufs-baseline-proven-v28-generation137-20260824-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
-		$3 == "consumed by the sole Generation 137 cycle; exact live-proven g359 Image, DTB, and four modules still reported ufs-count-0 after stable NCM and a bounded 20-second wait; no storage surface or write; exact slot-A stock recovery USB returned but obsolete descriptor policy prevented fallback proof; never retry or flash" &&
+		$3 == "consumed by the sole Generation 137 cycle; exact live-proven g359 Image, DTB, and four modules still reported ufs-count-0 after stable NCM and a bounded 20-second wait; no storage surface or write; exact slot-A stock recovery USB returned and passed after the current descriptor policy correction; never retry or flash" &&
 		NF == 3 { proven_ufs_writer++ ; next }
 	$1 == "build/ufs-reboot-baseline-v29-generation138-20260824-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&

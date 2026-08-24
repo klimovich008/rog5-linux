@@ -21,8 +21,11 @@ No block device, mount, installer, or storage write existed.
 The exact serial returned at the anchored USB path as stock slot-A recovery
 with `18d1:d001`, product `ASUS_I005D`, and one `ff/42/01` ADB interface. The
 fallback verifier expected the older `0b05:7770` Android descriptor and
-therefore could not complete proof; this is a host-policy mismatch, not proof
-that rescue was lost. Physical fastboot confirmation remains required.
+therefore could not complete proof initially. A targeted host correction now
+accepts each complete exact tuple while rejecting mixed identities. It passed
+against this live `18d1:d001` USB and the retained slot-A preboot record,
+proving the stock recovery fallback without another phone boot. Physical
+fastboot entry is still required for the next RAM-only cycle.
 
 Generation 64 used the same target Image, DTB, and module bytes but a retained
 ASUS wrapper kernel `71b48a03...d309455`; Generation 137 used

@@ -77,17 +77,6 @@ class StockFallbackTest(unittest.TestCase):
             interface = root / "1-1.2:1.0"
             device.mkdir()
             interface.mkdir()
-            for name, value in {
-                "idVendor": "0b05",
-                "idProduct": "7770",
-                "manufacturer": "asus",
-                "product": "ROG Phone 5",
-                "serial": FALLBACK.SERIAL,
-                "bDeviceClass": "00",
-                "bDeviceSubClass": "00",
-                "bDeviceProtocol": "00",
-            }.items():
-                (device / name).write_text(value + "\n", encoding="ascii")
             for name, value in (
                 ("bInterfaceClass", "ff"),
                 ("bInterfaceSubClass", "42"),
@@ -108,8 +97,19 @@ class StockFallbackTest(unittest.TestCase):
                 f"{FALLBACK.SERIAL} unauthorized usb:1-1.2 transport_id:8\n"
             )
             self.assertEqual(FALLBACK.device_state("1-1.2"), "unauthorized")
-            values = FALLBACK.verify_unauthorized_usb("1-1.2", preboot)
-            self.assertEqual(values["evidence_mode"], "usb-unauthorized-slot-a")
+            for identity in FALLBACK.UNAUTHORIZED_USB_IDENTITIES:
+                for name, value in zip(FALLBACK.UNAUTHORIZED_USB_FIELDS, identity):
+                    (device / name).write_text(value + "\n", encoding="ascii")
+                values = FALLBACK.verify_unauthorized_usb("1-1.2", preboot)
+                self.assertEqual(
+                    values["evidence_mode"], "usb-unauthorized-slot-a"
+                )
+            mixed = list(FALLBACK.UNAUTHORIZED_USB_IDENTITIES[0])
+            mixed[1] = FALLBACK.UNAUTHORIZED_USB_IDENTITIES[1][1]
+            for name, value in zip(FALLBACK.UNAUTHORIZED_USB_FIELDS, mixed):
+                (device / name).write_text(value + "\n", encoding="ascii")
+            with self.assertRaises(FALLBACK.FallbackError):
+                FALLBACK.verify_unauthorized_usb("1-1.2", preboot)
         FALLBACK.USB_ROOT = original_root
         FALLBACK.adb = original_adb
 

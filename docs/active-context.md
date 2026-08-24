@@ -364,6 +364,9 @@ it still pins the older Android descriptor. Generation 109 is the stronger
 control: its ae717 target passed UFS under the current wrapper and returned
 exact fastboot through built-in PMK8350 reboot mode. Generation 138 is the
 minimal UFS/NCM successor on that exact target lineage.
+The fallback verifier now accepts the exact current `18d1:d001` recovery tuple
+as well as the historical complete tuple, rejects mixed identities, and passed
+the live Generation-137 recovery with its retained slot-A preboot record.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
