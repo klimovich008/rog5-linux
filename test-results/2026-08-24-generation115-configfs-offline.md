@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 115 remains unbooted.
+Result: **CONSUMED; MULTIPLE UDC CANDIDATES.** Never retry or flash.
 
 Generation 113 proved release and command-line validation pass. Generation 114
 proved the guarded platform `mode` path is absent/no-op in this mainline tree.
@@ -24,3 +24,10 @@ Identities:
 - Generation 115 wrapper: `6b376583a52eebec18ba8a20deb26c7c560cacb7784285173e6c4585713a818f`.
 
 The candidate is RAM-only, one-use, and flash-forbidden.
+
+Live result: recovery USB departed at 08:18:19.903 and exact fastboot appeared
+at 08:19:11.784, a 51.961-second interval. This exactly selects the 45-second
+UDC-identity branch plus measured bootloader overhead. The expected
+`a600000.usb` path exists, but `/sys/class/udc` contains at least one additional
+candidate. The selector correctly refused to bind. No UFS, block device,
+storage, SSH, or installer surface ran.

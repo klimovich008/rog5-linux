@@ -246,9 +246,9 @@ tree, so it was a no-op; exact fastboot repeated after 6.903 seconds. The next
 no-storage beacon distinguishes ConfigFS mount, gadget directories, descriptors,
 functions, links, UDC discovery, and binding in one cycle.
 
-Generation 115 is admitted as that no-storage ConfigFS beacon. It reuses the
-exact Image and DTB, creates no UFS or block-device path, and either exposes the
-target USB gadget or returns with a unique grouped timing classification.
+Generation 115 is consumed. Its 51.961-second return selected the 45-second
+UDC-identity branch: `a600000.usb` exists, but at least one additional UDC is
+present. The strict selector correctly refused to bind; no storage was touched.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

@@ -251,10 +251,9 @@ wrapper `b4334d27...`. The mode path is absent in this mainline tree and runtime
 timing remained 6.903 seconds. The boundary is now immediate ConfigFS setup;
 the next target is a no-storage grouped ConfigFS beacon.
 
-Generation 115 is admitted once: initramfs `2a1312e0...`, manifest
-`e68acce8...`, wrapper `6b376583...`. It has no UFS, storage, SSH, or installer
-execution and classifies every ConfigFS construction/binding group or exposes
-the exact target USB product.
+Generation 115 is consumed: initramfs `2a1312e0...`, manifest `e68acce8...`,
+wrapper `6b376583...`. Its 51.961-second return selected UDC identity: expected
+`a600000.usb` exists alongside an extra candidate. No UFS or storage path ran.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
