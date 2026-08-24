@@ -2796,8 +2796,8 @@ case $profile in
 		;;
 	local-image-stage-of-node-v27-generation136-live-v1)
 		expected_boot_image=build/local-image-stage-of-node-v27-generation136-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 136 full staging cycle matching the UFS platform device by exact runtime of_node symlink identity, independent of basename; unchanged g359 modules, Image, DTB, reporter/listener, installer, storage scope, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 136 exact-OF-node classifier; exact g359 closure and read-only platform identity, unchanged kernel/DT/stable recovery, slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 136 cycle; exact of_node platform matching still reported ufs-dt-okay-platform-0, proving the current g359 Image/DT pair creates no UFS platform device; no SCSI, block, mount, SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 136 cycle; exact OF identity confirmed no UFS platform device under the current Image/DT pair; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

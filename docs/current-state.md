@@ -381,6 +381,10 @@ No claim or phone boot exists; target SHA-256 is
 `ee1afba10527d7324c4dc596918f7bc1cb14be7858b540acbbbb3de2fe04f2ed`.
 Generation 136 is admitted once with exact OF-node platform matching; kernel,
 DTB, modules, reporter, and storage scope remain unchanged.
+Generation 136 is consumed and exact OF identity still proves no UFS platform
+device. The current pair (`a7e0cd84…`/`4f6518b3…`) is therefore retired for
+UFS work; the next cycle returns to the live-proven g359 pair
+(`7c89d9a0…`/`40fb477a…`) with a minimal UFS-only target.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
