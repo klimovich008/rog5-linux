@@ -88,26 +88,16 @@ udc_state() {
 
 attempt=0
 bound_udc=0
-while [ "$attempt" -lt 250 ]; do
-	first=$(udc_state) || fail udc-identity
-	case $first in
-		absent)
-			attempt=$((attempt + 1))
-			sleep 0.1
-			continue
-			;;
-		expected)
-			if echo "$expected_udc" >"$gadget/UDC"; then
-				bound_udc=1
-				break
-			fi
-			post=$(udc_state) || fail udc-identity
-			[ "$post" = absent ] || fail udc-identity
-			attempt=$((attempt + 1))
-			sleep 0.1
-			;;
-		*) fail udc-identity ;;
-	esac
+while [ "$attempt" -lt 2500 ]; do
+	if [ -e "/sys/class/udc/$expected_udc" ]; then
+		if echo "$expected_udc" >"$gadget/UDC"; then
+			bound_udc=1
+			break
+		fi
+		[ ! -e "/sys/class/udc/$expected_udc" ] || fail udc-identity
+	fi
+	attempt=$((attempt + 1))
+	sleep 0.01
 done
 [ "$bound_udc" -eq 1 ] || fail udc-identity
 [ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity
