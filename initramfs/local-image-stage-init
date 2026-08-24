@@ -76,6 +76,16 @@ start_stage_reporter() {
 }
 
 classify_zero_ufs() {
+	ufs_dt=/sys/firmware/devicetree/base/soc@0/ufshc@1d84000
+	[ -d "$ufs_dt" ] || fail ufs-dt-missing
+	[ -f "$ufs_dt/status" ] || fail ufs-dt-status-missing
+	ufs_dt_status=$(dd if="$ufs_dt/status" bs=1 count=4 2>/dev/null) ||
+		fail ufs-dt-status-invalid
+	case $ufs_dt_status in
+		okay) ;;
+		disa) fail ufs-dt-disabled ;;
+		*) fail ufs-dt-status-invalid ;;
+	esac
 	platform_count=0
 	ufs_platform=
 	for candidate in /sys/bus/platform/devices/*1d84000*; do
@@ -83,7 +93,7 @@ classify_zero_ufs() {
 		platform_count=$((platform_count + 1))
 		ufs_platform=$candidate
 	done
-	[ "$platform_count" -eq 1 ] || fail "ufs-platform-$platform_count"
+	[ "$platform_count" -eq 1 ] || fail "ufs-dt-okay-platform-$platform_count"
 	[ -L "$ufs_platform/driver" ] || fail ufs-platform-unbound
 	host_count=0
 	for host in /sys/class/scsi_host/host*; do

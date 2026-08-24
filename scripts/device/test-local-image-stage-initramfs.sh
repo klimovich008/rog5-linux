@@ -67,8 +67,14 @@ grep -Fq '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity' "$i
 grep -Fq '[ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"' "$init"
 for contract in \
 	'classify_zero_ufs() {' \
+	'ufs_dt=/sys/firmware/devicetree/base/soc@0/ufshc@1d84000' \
+	'fail ufs-dt-missing' \
+	'fail ufs-dt-status-missing' \
+	'dd if="$ufs_dt/status" bs=1 count=4' \
+	'fail ufs-dt-disabled' \
+	'fail ufs-dt-status-invalid' \
 	'/sys/bus/platform/devices/*1d84000*' \
-	'fail "ufs-platform-$platform_count"' \
+	'fail "ufs-dt-okay-platform-$platform_count"' \
 	'fail ufs-platform-unbound' \
 	'fail "ufs-bound-host-$host_count"' \
 	'fail "ufs-host-$host_count-block-0"'; do
