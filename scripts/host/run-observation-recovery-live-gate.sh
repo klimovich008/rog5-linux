@@ -335,12 +335,12 @@ inventory=$repo/manifests/artifacts.tsv
 policy_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$policy")
 [[ $policy_rows == 1 ]] || fail 'observation policy row is not unique'
 policy_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 }' "$policy")
-[[ $policy_value == $'allow\tone exact Generation 118 postmortem observation recovery; RAM-only, observation-only, no storage or payload; externally consumed exact claim required; never flash or retry after entry' ]] ||
+[[ $policy_value == $'revoked\tconsumed by the sole Generation 118 postmortem observation; one retained record exposed only the prior ASUS recovery kexec shutdown tail and no target lineage, so target failure remains unclassified; no payload or storage surface; never retry or flash' ]] ||
 	fail 'observation policy row is not exact'
 inventory_rows=$(awk -F '\t' -v name="$image_name" '$1 == name { count++ } END { print count + 0 }' "$inventory")
 [[ $inventory_rows == 1 ]] || fail 'observation artifact row is not unique'
 inventory_value=$(awk -F '\t' -v name="$image_name" '$1 == name { print $2 "\t" $3 "\t" $4 "\t" $5 }' "$inventory")
-[[ $inventory_value == $'100663296\t4fef0b9acd38bf06009db1c26314e6ec910b32a06f251012b4efc2910c13325c\tunbooted Generation 118 postmortem observer; unchanged observation-only raw recovery with fresh deterministic AVB generation exposes retained ramoops over ACM; no kexec, bundle, payload, network-root, or storage surface; never flash\tno' ]] ||
+[[ $inventory_value == $'100663296\t4fef0b9acd38bf06009db1c26314e6ec910b32a06f251012b4efc2910c13325c\tconsumed Generation 118 postmortem observer; retained pstore contained one prior ASUS recovery kexec-shutdown record but no target lineage, leaving the target boundary unclassified; no kexec, bundle, payload, network-root, or storage surface; never retry or flash\tno' ]] ||
 	fail 'observation artifact row is not exact'
 
 devices=$("$fastboot" devices 2>/dev/null) || fail 'fastboot devices failed'

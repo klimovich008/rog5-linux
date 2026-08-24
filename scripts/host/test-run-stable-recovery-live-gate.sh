@@ -86,8 +86,8 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 111 postmortem observation; recovery reported EMPTY pstore with zero records and bytes, then exact-path stock recovery returned; absence remains inconclusive; never retry or flash" && NF == 3 { observer++ ; next }
 	$1 == "build/observation-recovery-mainline-udc-v11-generation11-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 118 postmortem observation recovery; RAM-only, observation-only, no storage or payload; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { observer118++ ; next }
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 118 postmortem observation; one retained record exposed only the prior ASUS recovery kexec shutdown tail and no target lineage, so target failure remains unclassified; no payload or storage surface; never retry or flash" && NF == 3 { observer118++ ; next }
 	$1 == "build/headless-core-v21-generation21-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "allow" &&
 		$3 == "one exact headless-core Arch SSH recovery with power-key indicator; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { core++ ; next }
@@ -390,7 +390,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
