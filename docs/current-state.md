@@ -366,6 +366,8 @@ unchanged from Generation 132.
 Generation 133 is consumed and proved exact `ufs-count-0`: no physical UFS
 device appeared after the g359 module chain and 20-second wait. Successor
 issuance is paused for DT/config/source comparison and bounded Opus review.
+Generation 134 is admitted once after the required review. It retains all
+Generation 133 bytes except the read-only platform/binding/SCSI-host classifier.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

@@ -30,6 +30,7 @@ grep -Fq "expected_boot_role='consumed Generation 130 cycle; target NCM/reporter
 grep -Fq "expected_boot_role='consumed Generation 131 cycle; exact stage detail proved qcom_q6v5 module vermagic mismatch before UFS or storage; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 132 cycle; g359 power/USB modules passed, UFS modules loaded, then bounded UFS inventory count failed before storage; slot-A fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 133 cycle; exact post-module UFS physical count was zero before every storage surface; slot-A fallback passed; never retry or flash'" "$gate"
+grep -Fq "expected_boot_role='unbooted Generation 134 UFS-binding classifier; exact g359 closure and read-only sysfs classification, unchanged kernel/DT/stable recovery, slot-A fallback; never flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -250,6 +251,10 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 133 cycle; exact g359 power/USB and UFS module insertion passed, then the bounded UFS inventory was exactly zero; no SSH, installer, block device, mount, or storage write; exact slot-A fallback passed; never retry or flash" &&
 		NF == 3 { ufs_count_writer++ ; next }
+	$1 == "build/local-image-stage-ufs-bind-v25-generation134-20260824-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "allow" &&
+		$3 == "one exact Generation 134 full staging cycle classifying zero UFS inventory as missing platform device, unbound platform, bound with zero SCSI hosts, or SCSI hosts with zero blocks; unchanged g359 modules, Image, DTB, reporter/listener, installer, storage scope, RAM-only; never flash or retry after entry" &&
+		NF == 3 { ufs_bind_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 25 RAM-only cycle; exact Alpine fallback returned; never retry or flash" && NF == 3 { generation25++ ; next }
@@ -416,7 +421,7 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 92 + power_usb + power_history || power_usb > 1 || power_history < 1 || local_stage != 1 || local_boot != 1 || local_write_boot != 1 || probe_writer != 1 || marker_reader != 1 || continuous_reader != 1 || early_fixed_reader != 1 || restart_reader != 1 || reboot_mode_reader != 1 || sparse_reader != 1 || stage_writer != 1 || hotplug_writer != 1 || preusb_writer != 1 || usbmode_writer != 1 || configfs_writer != 1 || udc_writer != 1 || stable_udc_writer != 1 || stage_ncm != 1 || timing_writer != 1 || address_writer != 1 || prebind_writer != 1 || explicit_writer != 1 || post_configfs_udc != 1 || two_sample_writer != 1 || bind_writer != 1 || direct_writer != 1 || bind_error_writer != 1 || hostfix_writer != 1 || postbind_writer != 1 || power_report_writer != 1 || listener_writer != 1 || abi_writer != 1 || ufs_count_writer != 1 || observer != 1 || observer118 != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || generation77 != 1 || generation78 != 1 || generation79 != 1 || generation80 != 1 || generation81 != 1 || generation82 != 1 || generation83 != 1 || generation84 != 1 || revoked != 1) exit 1 }
+	END { if (NR != 93 + power_usb + power_history || power_usb > 1 || power_history < 1 || local_stage != 1 || local_boot != 1 || local_write_boot != 1 || probe_writer != 1 || marker_reader != 1 || continuous_reader != 1 || early_fixed_reader != 1 || restart_reader != 1 || reboot_mode_reader != 1 || sparse_reader != 1 || stage_writer != 1 || hotplug_writer != 1 || preusb_writer != 1 || usbmode_writer != 1 || configfs_writer != 1 || udc_writer != 1 || stable_udc_writer != 1 || stage_ncm != 1 || timing_writer != 1 || address_writer != 1 || prebind_writer != 1 || explicit_writer != 1 || post_configfs_udc != 1 || two_sample_writer != 1 || bind_writer != 1 || direct_writer != 1 || bind_error_writer != 1 || hostfix_writer != 1 || postbind_writer != 1 || power_report_writer != 1 || listener_writer != 1 || abi_writer != 1 || ufs_count_writer != 1 || ufs_bind_writer != 1 || observer != 1 || observer118 != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || generation77 != 1 || generation78 != 1 || generation79 != 1 || generation80 != 1 || generation81 != 1 || generation82 != 1 || generation83 != 1 || generation84 != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retained admissions plus consumed history' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||
@@ -465,7 +470,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
