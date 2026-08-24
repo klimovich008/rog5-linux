@@ -23,15 +23,24 @@ SPEC.loader.exec_module(MODULE)
 
 class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_exact_slot_a_fastboot_terminates_target_wait_early(self) -> None:
-        with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=True), mock.patch.object(
+        with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=True) as exact, mock.patch.object(
             MODULE.STOCK,
             "fastboot_value",
             side_effect=lambda name: {"product": "lahaina", "current-slot": "a"}[name],
         ):
-            self.assertTrue(MODULE.stock_fastboot_returned("1-1.2"))
+            self.assertTrue(
+                MODULE.stock_fastboot_returned(
+                    "pci-0000:04:00.3-usb-0:1.2"
+                )
+            )
+            exact.assert_called_once_with("1-1.2")
 
         with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=False):
-            self.assertFalse(MODULE.stock_fastboot_returned("1-1.2"))
+            self.assertFalse(
+                MODULE.stock_fastboot_returned(
+                    "pci-0000:04:00.3-usb-0:1.2"
+                )
+            )
 
         with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=True), mock.patch.object(
             MODULE.STOCK,
@@ -39,7 +48,9 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             side_effect=lambda name: {"product": "lahaina", "current-slot": "b"}[name],
         ):
             with self.assertRaises(MODULE.PersistentCycleError):
-                MODULE.stock_fastboot_returned("1-1.2")
+                MODULE.stock_fastboot_returned(
+                    "pci-0000:04:00.3-usb-0:1.2"
+                )
 
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(

@@ -15,7 +15,7 @@ grep -Fq "expected_boot_role='consumed Generation 115 ConfigFS beacon; 51.961-se
 grep -Fq "expected_boot_role='consumed Generation 116 early UDC inventory; no-extra-yet at early sample proves late candidate race when combined with Generation 115; no binding, gadget, or storage; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 117 stabilized UDC inventory; no extra after five seconds proves ConfigFS-window transient with Generation 115; no binding, gadget, or storage; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 118 NCM-only full staging cycle; target USB never appeared, exact slot-A fastboot and FALLBACK_RETURNED resolution passed, no SSH transfer, installer, or storage write; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 119 pre-storage timing discriminator; unchanged Image/DTB/power-USB behavior, fixed failure delays, no UFS, userdata, SSH, installer, or storage-write surface; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 119 pre-storage timing discriminator; 77.046-second exact USB timeline selected ncm-address; no target USB, UFS, userdata, SSH, installer, or storage write; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -177,8 +177,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 118 NCM-only full staging cycle; recovery transfer and COMMIT passed, target NCM never appeared, exact slot-A fastboot returned, no SSH transfer or storage write occurred, and intent resolved FALLBACK_RETURNED; never retry or flash" &&
 		NF == 3 { stage_ncm++ ; next }
 	$1 == "build/local-image-stage-timing-v10-generation119-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 119 pre-storage timing discriminator; unchanged Image/DTB/power-USB path, fixed 5-85 second failure delays, no UFS, userdata, SSH, installer, or storage write; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 119 pre-storage timing cycle; exact 77.046-second recovery-departure-to-fastboot interval selected ncm-address after subtracting the 6.903-second immediate-return baseline; no target USB, UFS, userdata, SSH, installer, or storage write; never retry or flash" &&
 		NF == 3 { timing_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -395,7 +395,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
