@@ -1888,8 +1888,8 @@ case $profile in
 		;;
 	persistent-root-sparse-diagnostic-v17-generation110-live-v1)
 		expected_boot_image=build/persistent-root-sparse-diagnostic-v17-generation110-20260823-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact read-only sparse-transfer discriminator; hash source, 4-GiB-alias, and high ext4 metadata blocks after the repeated rog5-directory failure, then exact fastboot fallback; never flash or retry after entry'
-		expected_boot_role='unbooted admitted Generation 110 sparse-transfer discriminator; V16 kernel/DT, target-only nine-block raw hash map, terminal-stage host short-circuit, exact fastboot fallback; one RAM-only use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 110 read-only cycle; source metadata blocks differed, high inode and directory blocks were zero, and 4-GiB aliases remained unchanged, proving ASUS ABL sparse flash left userdata unchanged; exact fastboot fallback passed; no target write; never retry or flash'
+		expected_boot_role='consumed Generation 110 discriminator; proved ABL sparse userdata flash is ineffective, exact fastboot fallback, no target write; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

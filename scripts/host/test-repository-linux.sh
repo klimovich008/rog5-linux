@@ -283,6 +283,7 @@ shared_tests=(
 	scripts/device/test-persistent-root-local-image-reboot-mode-v16.sh
 	scripts/device/test-persistent-root-sparse-diagnostic-v17.sh
 	scripts/device/test-mainline-persistent-root-build.sh
+	scripts/device/test-mainline-local-image-stage-power-usb.sh
 	scripts/host/test-backup-readonly-storage-inventory.py
 	scripts/host/test-verify-dedicated-linux-layout.py
 	scripts/host/test-storage-preflight-initramfs-contract.py
