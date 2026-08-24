@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; UNISSUED.** No phone contact or boot authority.
+Result: **OFFLINE PASS; ADMITTED ONCE.** Generation 112 remains unbooted.
 
 Primary question: does guarding the absent optional `kernel.hotplug` sysctl let
 the otherwise byte-identical controlled writer reach target NCM/ACM and key-only
@@ -33,5 +33,11 @@ Identities:
 The fail-first test executes both unguarded and guarded commands against the
 exact archived AArch64 BusyBox and real procfs EACCES behavior. The unguarded
 form exits before its marker; the guarded form reaches it. Active CI passed in
-8 seconds before packaging. The candidate remains revoked pending independent
-ramoops collection from fastboot.
+8 seconds before packaging.
+
+The one-use observation-only recovery then booted and reported exact EMPTY
+pstore (`records=0`, `bytes=0`, SHA-256 of empty input). This is inconclusive:
+retention may have been lost or cleared, so it is not evidence against the
+proven fatal PID-1 command. The observer is revoked permanently. Generation 112
+is admitted for one RAM-only controlled staging cycle after exact fastboot
+returns; no kernel or phone partition flash is authorized.

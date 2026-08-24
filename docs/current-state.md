@@ -229,10 +229,10 @@ pre-gadget command: strict PID 1 wrote the absent `kernel.hotplug` sysctl while
 `CONFIG_UEVENT_HELPER` was disabled. A sealed-BusyBox regression covers the
 one-token `|| :` fix; observation recovery remains the next independent check.
 
-Generation 112 is built but unissued. It reuses the exact Generation 111 Image,
+Generation 112 is admitted once. It reuses the exact Generation 111 Image,
 DTB, modules, installer, and recovery payload; only the guarded optional sysctl
-line and fresh signed identities differ. Do not admit it until retained ramoops
-is collected or shown unavailable from a fresh RAM-only observation recovery.
+line and fresh signed identities differ. The one-use observer reported empty
+pstore; that absence is inconclusive and the observer is permanently consumed.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
