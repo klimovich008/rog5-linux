@@ -499,6 +499,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "persistent-root-sparse-diagnostic-v17-generation110-live-v1",
         "local-image-stage-writer-v2-generation111-live-v1",
         "local-image-stage-hotplug-v3-generation112-live-v1",
+        "local-image-stage-preusb-v4-generation113-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
