@@ -25,18 +25,18 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-sparse-diagnostic-v17-generation110-live-v1",
+            "local-image-stage-writer-v2-generation111-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle_profile, "persistent-root-ro-v1")
         self.assertEqual(MODULE.PROFILE.recovery_profile, MODULE.PROFILE_ID)
         self.assertFalse(MODULE.PROFILE.diagnostic)
-        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
-        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
+        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 local image stage")
+        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-sparse-diagnostic-v17",
+            "local-image-stage-writer-v2",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -54,7 +54,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation110",
+            "generation111",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -71,17 +71,19 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-persistent-root-sparse-diagnostic-v17-claim.py",
+            "consume-local-image-stage-writer-v2-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
         source = MODULE_PATH.read_text()
         cleanup = source.index("        wait_post_commit_host_cleanup(cycle)\n")
         network = source.index("interface = activate_target_network(cycle, anchor)")
-        stages = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
+        host_key = source.index("wait_for_stage_host_key(cycle, anchor, target_known_hosts)")
+        transfer = source.index("transfer_arch_image(cycle, target_ssh, exact_arch_image())")
         self.assertLess(cleanup, network)
-        self.assertLess(network, stages)
-        segment = source[cleanup:stages]
+        self.assertLess(network, host_key)
+        self.assertLess(host_key, transfer)
+        segment = source[cleanup:transfer]
         self.assertNotIn("input(", segment)
         self.assertNotIn("fastboot", segment)
 
@@ -432,7 +434,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_contains_no_phone_storage_mutation_surface(self) -> None:
+    def test_runner_delegates_one_bounded_write_to_the_sealed_installer(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -445,7 +447,8 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
-        self.assertIn('"/usr/bin/systemctl reboot"', source)
+        self.assertIn('"/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertIn("ARCH_IMAGE_SHA256", source)
 
 
 if __name__ == "__main__":

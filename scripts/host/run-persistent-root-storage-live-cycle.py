@@ -38,13 +38,13 @@ PIN = load_module(
     REPO / "scripts/host/pin-minimal-headless-host-key.py",
 )
 
-PROFILE_ID = "persistent-root-sparse-diagnostic-v17-generation110-live-v1"
-BUNDLE = "persistent-root-sparse-diagnostic-v17"
+PROFILE_ID = "local-image-stage-writer-v2-generation111-live-v1"
+BUNDLE = "local-image-stage-writer-v2"
 MANIFEST_SHA256 = (
-    "99ff5e35bf5533df7e99b5bad65aa893f68c69ced22cedd37e74d879041d15cd"
+    "f296276d49af5db4b498d2f14afc935065adf1ec4ca4e043e2b14c7a3b707bda"
 )
 RECOVERY_SHA256 = (
-    "ce3be4ff692428d56dd92d9daf763803a32e0d129f1b01173229c1ebbe6f3578"
+    "f58153ef41186b5f2a5c8b2449d432dc02b6f92a9fb4c9397298d2d026d4e7cb"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -55,24 +55,24 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"persistent-root-sparse-diagnostic-v17-generation110-live-v1\n"
-    b"candidate=persistent-root-sparse-diagnostic-v17\n"
+    b"local-image-stage-writer-v2-generation111-live-v1\n"
+    b"candidate=local-image-stage-writer-v2\n"
     b"manifest_sha256="
-    b"99ff5e35bf5533df7e99b5bad65aa893f68c69ced22cedd37e74d879041d15cd\n"
+    b"f296276d49af5db4b498d2f14afc935065adf1ec4ca4e043e2b14c7a3b707bda\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-persistent-root-sparse-diagnostic-v17-claim.py"
+    / "scripts/host/consume-local-image-stage-writer-v2-claim.py"
 )
-TARGET_RELEASE = "7.1.4-gae717d919f87"
-TARGET_PRODUCT = "ROG5 persistent root"
-TARGET_UDEV_MODEL = "ROG5_persistent_root"
+TARGET_RELEASE = "7.1.4-g359318de534f"
+TARGET_PRODUCT = "ROG5 local image stage"
+TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-sparse-diagnostic-v17-generation110-20260823-r1"
+    / "build/local-image-stage-writer-v2-generation111-20260824-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -88,6 +88,8 @@ AUTHENTICATED_SSH_COMMAND = (
 )
 STAGE_PORT = 8079
 STAGE_RECORD_MAX_BYTES = 512
+ARCH_IMAGE_SIZE = 649960943
+ARCH_IMAGE_SHA256 = "41f75ab6c9c74e3f511fcac4a85b1c4da93695bc56bf85ab954a42f70d83ba88"
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -99,10 +101,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-sparse-diagnostic-v17",
+    admission_profile="local-image-stage-writer-v2",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-sparse-diagnostic-v17",
-    build_profile="persistent-root-sparse-diagnostic-v17",
+    runtime_profile="local-image-stage-writer-v2",
+    build_profile="local-image-stage-writer-v2",
     diagnostic=False,
 )
 
@@ -320,6 +322,19 @@ def exact_inputs() -> CYCLE.Inputs:
         evidence_dir=evidence,
         fallback_timeout=FALLBACK_TIMEOUT_SECONDS,
     )
+
+
+def exact_arch_image() -> Path:
+    image = CYCLE.caller_file(os.environ.get("ARCH_IMAGE_GZ", ""), "ARCH_IMAGE_GZ")
+    CYCLE.outside_repository(image, "ARCH_IMAGE_GZ")
+    metadata = image.stat()
+    if metadata.st_size != ARCH_IMAGE_SIZE:
+        fail("ARCH_IMAGE_GZ size changed")
+    with image.open("rb") as source:
+        digest = hashlib.file_digest(source, "sha256").hexdigest()
+    if digest != ARCH_IMAGE_SHA256:
+        fail("ARCH_IMAGE_GZ identity changed")
+    return image
 
 
 def require_file(path: Path, *, owner: int, modes: set[int]) -> None:
@@ -647,6 +662,88 @@ def wait_for_target_host_key(
     return previous
 
 
+def wait_for_stage_host_key(
+    cycle: CYCLE.LiveCycle,
+    anchor: Path,
+    target_known_hosts: Path,
+) -> None:
+    CYCLE.run_logged(
+        [
+            str(cycle.dependencies.host_key),
+            "pin-target",
+            str(anchor),
+            str(target_known_hosts),
+            TARGET_PRODUCT,
+        ],
+        cycle.output("target-host-key.log"),
+        environment=CYCLE.child_environment(
+            ALLOW_MINIMAL_HEADLESS_HOST_KEY_BOOTSTRAP="1"
+        ),
+        timeout=TARGET_WAIT_SECONDS + 30,
+    )
+
+
+def transfer_arch_image(
+    cycle: CYCLE.LiveCycle,
+    target_ssh: list[str],
+    image: Path,
+) -> None:
+    log = cycle.output("local-image-transfer.log")
+    descriptor = CYCLE.open_exclusive(log)
+    command = (
+        "umask 077; cat > /run/arch-local-a.ext4.gz; "
+        "stat -c 'size=%s mode=%a links=%h uid=%u gid=%g' "
+        "/run/arch-local-a.ext4.gz; "
+        "printf 'sha256='; sha256sum /run/arch-local-a.ext4.gz | cut -d ' ' -f 1; "
+        "printf 'result=PASS\\n'"
+    )
+    try:
+        with image.open("rb") as source:
+            result = subprocess.run(
+                [*target_ssh, command],
+                env=CYCLE.child_environment(),
+                stdin=source,
+                stdout=descriptor,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=600,
+            )
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    if result.returncode != 0:
+        fail("local Arch image transfer failed")
+    CYCLE.require_log_markers(
+        log,
+        (
+            f"size={ARCH_IMAGE_SIZE} mode=600 links=1 uid=0 gid=0",
+            f"sha256={ARCH_IMAGE_SHA256}",
+            "result=PASS",
+        ),
+    )
+
+
+def run_stage_installer(cycle: CYCLE.LiveCycle, target_ssh: list[str]) -> None:
+    log = cycle.output("local-image-installer.log")
+    status = run_optional_logged(
+        [*target_ssh, "/usr/local/sbin/rog5-install-local-arch-image"],
+        log,
+        900,
+    )
+    if status not in {0, 255}:
+        fail(f"local-image installer returned unexpected status {status}")
+    CYCLE.require_log_markers(
+        log,
+        (
+            "state=PASS",
+            "image_sha256=533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153",
+            "image_size=17179869184",
+            "filesystem_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4",
+            "filesystem_label=ROG5_ARCH_A",
+        ),
+    )
+
+
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -726,6 +823,7 @@ def preflight(
     ):
         CYCLE.fixed_executable(path, offline=False)
     verify_static_artifacts(inputs)
+    exact_arch_image()
     cycle.verify_host_clean()
     CYCLE.run_capture(
         [str(cycle.dependencies.bundle_server), "preflight", BUNDLE, MANIFEST_SHA256],
@@ -857,31 +955,20 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
 
         interface = activate_target_network(cycle, anchor)
         target_network_active = True
-        wait_for_target_host_key(cycle, anchor, target_known_hosts)
+        wait_for_stage_host_key(cycle, anchor, target_known_hosts)
         target_ssh = ssh_arguments(inputs, target_known_hosts)
         ssh_attempts, ssh_ready_elapsed = wait_for_authenticated_ssh(
             target_ssh,
             cycle.output("persistent-root-ssh-readiness.log"),
         )
-        CYCLE.run_logged(
-            [*target_ssh, RUNTIME_COMMAND],
-            cycle.output("persistent-root-runtime.log"),
-            timeout=180,
-        )
-        target_boot_id = parse_runtime_evidence(
-            cycle.output("persistent-root-runtime.log")
-        )
+        transfer_arch_image(cycle, target_ssh, exact_arch_image())
+        run_stage_installer(cycle, target_ssh)
         target_accepted = True
-        CYCLE.run_logged(
-            [*target_ssh, DIAGNOSTIC_COMMAND],
-            cycle.output("persistent-root-diagnostics.log"),
-            timeout=180,
-        )
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
             cycle.output("persistent-root-timing.record"),
             (
-                ("format", "rog5-persistent-root-timing-v1"),
+                ("format", "rog5-local-image-stage-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -889,30 +976,19 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     "authenticated_ssh_rendezvous_seconds",
                     f"{ssh_ready_elapsed:.3f}",
                 ),
-                ("seconds_to_accepted_ssh", f"{elapsed:.3f}"),
-                ("generation20_reference_seconds", "380"),
+                ("seconds_to_staged_image", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
 
-        reboot_status = run_optional_logged(
-            [*target_ssh, "/usr/bin/systemctl reboot"],
-            cycle.output("persistent-root-reboot.log"),
-            60,
-        )
-        if reboot_status not in {0, 255}:
-            fail(f"target reboot returned unexpected status {reboot_status}")
-
         fallback_attempted = True
-        fallback_boot_id = cycle.wait_fallback(None)
-        if fallback_boot_id == target_boot_id:
-            fail("fallback retained the persistent-root boot identity")
+        cycle.wait_fallback(None)
         cycle.wait_host_clean(final=True)
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only persistent-root cycle reached read-only UFS, "
-            f"local Arch, strict SSH in {elapsed:.3f}s, then exact stock slot-A fallback"
+            "PASS one RAM-only writer cycle staged the exact 16-GiB Arch image "
+            f"through strict SSH in {elapsed:.3f}s, relocked storage, and returned to fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:

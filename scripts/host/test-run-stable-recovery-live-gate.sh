@@ -6,7 +6,8 @@ gate=$repo/scripts/host/run-stable-recovery-live-gate.sh
 
 grep -Fq "expected_boot_role='consumed Generation 108 continuous-lifecycle Arch cycle; UFS and read-only userdata mount passed, deployed rog5/images was absent, and restart2 reached slot-A unauthorized recovery because target reboot-mode modules were unavailable; no target write; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 109 cycle; repeated userdata-rog5-directory after exact restage, proved built-in PMK8350 reboot-mode return to fastboot, no target write; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted admitted Generation 110 sparse-transfer discriminator; V16 kernel/DT, target-only nine-block raw hash map, terminal-stage host short-circuit, exact fastboot fallback; one RAM-only use only; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 110 discriminator; proved ABL sparse userdata flash is ineffective, exact fastboot fallback, no target write; never retry or flash'" "$gate"
+grep -Fq "expected_boot_role='unbooted Generation 111 controlled local-image staging recovery; clean-twin bounded-write kernel, signed target bundle, exact installer, built-in reboot mode, and unchanged stock slot-A rescue; one RAM-only use only; never flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -129,9 +130,13 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 109 RAM-only cycle after exact userdata restaging; target again mounted ext4 read-only but lacked rog5/images, while the built-in PMK8350 reboot-mode path returned exact fastboot; no target storage write occurred; never retry or flash" &&
 		NF == 3 { reboot_mode_reader++ ; next }
 	$1 == "build/persistent-root-sparse-diagnostic-v17-generation110-20260823-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact read-only sparse-transfer discriminator; hash source, 4-GiB-alias, and high ext4 metadata blocks after the repeated rog5-directory failure, then exact fastboot fallback; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 110 read-only cycle; source metadata blocks differed, high inode and directory blocks were zero, and 4-GiB aliases remained unchanged, proving ASUS ABL sparse flash left userdata unchanged; exact fastboot fallback passed; no target write; never retry or flash" &&
 		NF == 3 { sparse_reader++ ; next }
+	$1 == "build/local-image-stage-writer-v2-generation111-20260824-r1/repack/stable-recovery-a.avb.img" &&
+		$2 == "allow" &&
+		$3 == "one exact controlled userdata-local Arch image staging cycle; bounded writer kernel, side-port charging and NCM, key-only SSH transfer, exact 16-GiB image path, relock, and bootloader return; never flash or retry after entry" &&
+		NF == 3 { stage_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
 		$3 == "consumed by the sole Generation 25 RAM-only cycle; exact Alpine fallback returned; never retry or flash" && NF == 3 { generation25++ ; next }
@@ -298,7 +303,7 @@ awk -F '\t' \
 		$2 == "revoked" &&
 		$3 == "twice-live-accepted historical staging image; superseded as active authority by the corrected diagnostic lifecycle; never flash" && NF == 3 { revoked++ ; next }
 	{ exit 1 }
-	END { if (NR != 68 + power_usb + power_history || power_usb > 1 || power_history < 1 || local_stage != 1 || local_boot != 1 || local_write_boot != 1 || probe_writer != 1 || marker_reader != 1 || continuous_reader != 1 || early_fixed_reader != 1 || restart_reader != 1 || reboot_mode_reader != 1 || sparse_reader != 1 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || generation77 != 1 || generation78 != 1 || generation79 != 1 || generation80 != 1 || generation81 != 1 || generation82 != 1 || generation83 != 1 || generation84 != 1 || revoked != 1) exit 1 }
+	END { if (NR != 69 + power_usb + power_history || power_usb > 1 || power_history < 1 || local_stage != 1 || local_boot != 1 || local_write_boot != 1 || probe_writer != 1 || marker_reader != 1 || continuous_reader != 1 || early_fixed_reader != 1 || restart_reader != 1 || reboot_mode_reader != 1 || sparse_reader != 1 || stage_writer != 1 || observer != 1 || core != 1 || generation25 != 1 || generation26 != 1 || generation27 != 1 || generation28 != 1 || generation29 != 1 || generation30 != 1 || generation31 != 1 || generation32 != 1 || generation33 != 1 || generation34 != 1 || generation35 != 1 || generation36 != 1 || generation37 != 1 || generation38 != 1 || generation39 != 1 || generation40 != 1 || generation41 != 1 || generation42 != 1 || generation43 != 1 || generation44 != 1 || generation45 != 1 || generation46 != 1 || generation47 != 1 || generation48 != 1 || generation49 != 1 || generation50 != 1 || generation51 != 1 || generation52 != 1 || generation53 != 1 || generation54 != 1 || generation55 != 1 || generation56 != 1 || generation57 != 1 || generation58 != 1 || generation59 != 1 || generation60 != 1 || generation61 != 1 || generation62 != 1 || generation63 != 1 || generation64 != 1 || generation65 != 1 || generation66 != 1 || generation67 != 1 || generation68 != 1 || generation69 != 1 || generation70 != 1 || generation77 != 1 || generation78 != 1 || generation79 != 1 || generation80 != 1 || generation81 != 1 || generation82 != 1 || generation83 != 1 || generation84 != 1 || revoked != 1) exit 1 }
 	' "$boot_policy" ||
 	{ echo 'FAIL committed temporary-boot policy is not the exact retained admissions plus consumed history' >&2; exit 1; }
 grep -Fq '"headless-diagnostic-ssh-fatal-token-boundary-v20-live-v1"' "$lifecycle" ||

@@ -99,4 +99,6 @@ relock || fail relock
 printf 'state=PASS\nimage_sha256=%s\nimage_size=%s\nfilesystem_uuid=%s\nfilesystem_label=%s\n' \
 	"$expected_image_sha256" "$expected_image_size" "$expected_uuid" "$expected_label" >"$status"
 sync
+cat "$status"
+sleep 1
 return_bootloader

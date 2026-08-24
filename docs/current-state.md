@@ -221,6 +221,11 @@ has returned to the controlled mainline writer. Clean twins at source commit
 `359318de...` reproduce Image `a7e0cd84...`, config `6329b42f...`, all 15
 charging modules, and four UFS modules with bounded data-write plus reboot mode.
 
+Generation 111 is the admitted RAM-only successor. Its one question is whether
+that controlled writer can transfer and atomically stage the exact 16 GiB Arch
+image under `/rog5/images`, relock UFS, and return directly to fastboot. Slot A
+remains the stock rescue route; no boot partition flash is part of this cycle.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving

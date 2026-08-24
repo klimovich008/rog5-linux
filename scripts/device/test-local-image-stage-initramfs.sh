@@ -6,20 +6,24 @@ init=$repo/initramfs/local-image-stage-init
 installer=$repo/scripts/device/install-local-arch-image.sh
 builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
 candidate=$repo/configs/recovery-candidates/local-image-stage-v1.json
+successor=$repo/configs/recovery-candidates/local-image-stage-writer-v2.json
+successor_manifest=$repo/manifests/local-image-stage-writer-v2-generation111.manifest
 claim=$repo/scripts/host/consume-local-image-stage-claim.py
+successor_claim=$repo/scripts/host/consume-local-image-stage-writer-v2-claim.py
 
-for path in "$init" "$installer" "$builder" "$candidate" "$claim"; do
+for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
+	"$successor_manifest" "$claim" "$successor_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 sh -n "$init" "$installer" "$builder"
 python3 -m py_compile "$claim"
+python3 -m py_compile "$successor_claim"
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
 ! grep -Eq 'os[.](open|rename|replace|fsync)|shutil|subprocess' "$claim"
 
 for contract in \
-	'expected_release=7.1.4-gae717d919f87' \
 	'expected_physical_count=116' \
 	'expected_udc=a600000.usb' \
 	'/sbin/rog5-load-persistent-power-usb' \
@@ -29,6 +33,19 @@ for contract in \
 	'/usr/sbin/sshd -h /run/ssh_host_ed25519_key'; do
 	grep -Fq "$contract" "$init" || {
 		echo "FAIL missing staging contract: $contract" >&2
+		exit 1
+	}
+done
+grep -Fq 'expected_release=@EXPECTED_KERNEL_RELEASE@' "$init"
+grep -Fq 'expected_bundle=@EXPECTED_BUNDLE@' "$init"
+for contract in \
+	'expected_release=${EXPECTED_RELEASE:-7.1.4-gae717d919f87}' \
+	'expected_bundle=${EXPECTED_BUNDLE:-local-image-stage-v1}' \
+	'UFS_MODULES and POWER_MODULES_ROOT must be supplied together' \
+	'power/USB module inventory changed' \
+	'modinfo -F vermagic'; do
+	grep -Fq "$contract" "$builder" || {
+		echo "FAIL missing staging rebuild contract: $contract" >&2
 		exit 1
 	}
 done
@@ -43,6 +60,7 @@ for contract in \
 	'gzip -dc "$input" >"$partial"' \
 	'e2fsck -fn "$partial"' \
 	'mv -T "$partial" "$final"' \
+	'cat "$status"' \
 	'relock || fail relock'; do
 	grep -Fq "$contract" "$installer" || {
 		echo "FAIL missing bounded installer contract: $contract" >&2
@@ -72,5 +90,25 @@ for name, (size, digest) in expected.items():
     assert path.stat().st_size == size
     assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
 PY
+
+python3 - "$successor" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert candidate["candidate"] == "local-image-stage-writer-v2"
+assert candidate["status"] == "offline"
+assert candidate["authority"] == "none"
+assert candidate["target_release"] == "7.1.4-g359318de534f"
+repo = Path(sys.argv[1]).resolve().parents[2]
+for artifact in candidate["artifacts"].values():
+    path = repo / artifact["path"]
+    assert path.stat().st_size == artifact["size"]
+    assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == artifact["sha256"]
+PY
+grep -Fqx 'avb_generation=111' "$successor_manifest"
+grep -Fqx 'phone_flash=forbidden' "$successor_manifest"
 
 echo 'PASS local-image staging uses the UFS-capable composition and one bounded image path'

@@ -3,8 +3,8 @@ set -eu
 set -f
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
-expected_release=7.1.4-gae717d919f87
-expected_bundle=local-image-stage-v1
+expected_release=@EXPECTED_KERNEL_RELEASE@
+expected_bundle=@EXPECTED_BUNDLE@
 expected_udc=a600000.usb
 expected_physical_count=116
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
