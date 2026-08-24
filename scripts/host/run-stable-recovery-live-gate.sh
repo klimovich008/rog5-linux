@@ -2831,8 +2831,8 @@ case $profile in
 		;;
 	ufs-baseline-proven-v28-generation137-live-v1)
 		expected_boot_image=build/ufs-baseline-proven-v28-generation137-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='consumed by the sole Generation 137 cycle; exact live-proven g359 Image, DTB, and four modules still reported ufs-count-0 after stable NCM and a bounded 20-second wait; no storage surface or write; exact slot-A stock recovery USB returned but obsolete descriptor policy prevented fallback proof; never retry or flash'
-		expected_boot_role='consumed Generation 137 cycle; live-proven g359 target still reported ufs-count-0; stock slot-A recovery USB returned but fallback descriptor policy was stale; never retry or flash'
+		expected_boot_basis='consumed by the sole Generation 137 cycle; exact live-proven g359 Image, DTB, and four modules still reported ufs-count-0 after stable NCM and a bounded 20-second wait; no storage surface or write; exact slot-A stock recovery USB returned and passed after the current descriptor policy correction; never retry or flash'
+		expected_boot_role='consumed Generation 137 cycle; live-proven g359 target still reported ufs-count-0; exact stock slot-A recovery fallback passed after the current descriptor policy correction; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

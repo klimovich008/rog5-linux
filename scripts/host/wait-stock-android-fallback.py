@@ -33,6 +33,20 @@ BOOT_ID = re.compile(
     r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
 )
 USB_LOCATION = re.compile(r"[A-Za-z0-9._:+/-]{1,512}\Z")
+UNAUTHORIZED_USB_FIELDS = (
+    "idVendor",
+    "idProduct",
+    "manufacturer",
+    "product",
+    "serial",
+    "bDeviceClass",
+    "bDeviceSubClass",
+    "bDeviceProtocol",
+)
+UNAUTHORIZED_USB_IDENTITIES = (
+    ("0b05", "7770", "asus", "ROG Phone 5", SERIAL, "00", "00", "00"),
+    ("18d1", "d001", "asus", "ASUS_I005D", SERIAL, "00", "00", "00"),
+)
 
 
 class FallbackError(RuntimeError):
@@ -280,17 +294,11 @@ def read_preboot(path: Path, location: str) -> None:
 def verify_unauthorized_usb(location: str, preboot: Path) -> OrderedDict[str, str]:
     read_preboot(preboot, location)
     device = USB_ROOT / location
-    expected = {
-        "idVendor": "0b05",
-        "idProduct": "7770",
-        "manufacturer": "asus",
-        "product": "ROG Phone 5",
-        "serial": SERIAL,
-        "bDeviceClass": "00",
-        "bDeviceSubClass": "00",
-        "bDeviceProtocol": "00",
-    }
-    if any((device / name).read_text(encoding="ascii").strip() != value for name, value in expected.items()):
+    observed = tuple(
+        (device / name).read_text(encoding="ascii").strip()
+        for name in UNAUTHORIZED_USB_FIELDS
+    )
+    if observed not in UNAUTHORIZED_USB_IDENTITIES:
         fail("unauthorized stock Android USB descriptors are not exact")
     interfaces = sorted(USB_ROOT.glob(f"{location}:*"))
     if len(interfaces) != 1:
