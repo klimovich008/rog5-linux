@@ -246,10 +246,10 @@ wrapper `615ab418...`. Its 31.910-second return selected the 25-second
 both-checks-pass path. The next full staging successor adds only the mature
 USB path's exact `a600000.ssusb/mode=peripheral` transition before ConfigFS.
 
-Generation 114 is admitted once: initramfs `5cf22d30...`, manifest
-`78091cdf...`, wrapper `b4334d27...`. This restores the mature side-controller
-peripheral-mode step and changes no kernel, DTB, module, installer, or storage
-contract.
+Generation 114 is consumed: initramfs `5cf22d30...`, manifest `78091cdf...`,
+wrapper `b4334d27...`. The mode path is absent in this mainline tree and runtime
+timing remained 6.903 seconds. The boundary is now immediate ConfigFS setup;
+the next target is a no-storage grouped ConfigFS beacon.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
