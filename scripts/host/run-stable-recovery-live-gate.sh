@@ -2354,8 +2354,8 @@ case $profile in
 		;;
 	local-image-stage-configfs-udc-v14-generation123-live-v1)
 		expected_boot_image=build/local-image-stage-configfs-udc-v14-generation123-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 123 post-ConfigFS UDC inventory classifier; NCM function/link only, no bind, network, power-USB, UFS, userdata, SSH, installer, or storage; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 123 post-ConfigFS UDC inventory classifier; no bind, network, power-USB, UFS, userdata, SSH, installer, or storage surface; never flash'
+		expected_boot_basis='consumed by the sole Generation 123 post-ConfigFS inventory cycle; exact 107.256-second return selected 25-second inventory window plus seen-zero delay, proving zero/exact a600000.usb churn with no unexpected UDC; no bind, network, or storage; never retry or flash'
+		expected_boot_role='consumed Generation 123 post-ConfigFS UDC inventory classifier; proved zero/exact a600000.usb churn with no unexpected UDC; no bind, network, or storage surface; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
