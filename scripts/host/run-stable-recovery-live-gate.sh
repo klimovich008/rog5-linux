@@ -2626,8 +2626,8 @@ case $profile in
 		;;
 	local-image-stage-listener-v22-generation131-live-v1)
 		expected_boot_image=build/local-image-stage-listener-v22-generation131-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 131 full staging cycle selecting the existing stage-aware target wait instead of the SSH-only helper; unchanged early reporter, Image, DTB, modules, UFS, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 131 listener-wired full staging successor; unchanged kernel/DT/modules and stable recovery, fresh target identity, bounded userdata image installer, slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 131 cycle; exact stage listener captured power-usb/module-qcom-q6v5-load, proving the packaged module vermagic 7.1.4-gae717d919f87 mismatched target 7.1.4-g359318de534f; no UFS, SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 131 cycle; exact stage detail proved qcom_q6v5 module vermagic mismatch before UFS or storage; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

@@ -76,6 +76,13 @@ if [ -n "$ufs_modules" ]; then
 	[ "$(find "$stage/rog5-power-usb-modules" -type f -name '*.ko' | wc -l)" -eq 15 ] ||
 		fail 'power/USB module names collide'
 fi
+for module in "$stage/rog5-ufs-modules"/*.ko \
+	"$stage/rog5-power-usb-modules"/*.ko; do
+	[ -f "$module" ] && [ ! -L "$module" ] ||
+		fail 'packaged module inventory is incomplete'
+	[ "$(modinfo -F vermagic "$module" | awk '{print $1}')" = "$expected_release" ] ||
+		fail "packaged module ABI changed: ${module##*/}"
+done
 install -D -m 0755 "$installer" "$stage/usr/local/sbin/rog5-install-local-arch-image"
 install -D -m 0755 "$reboot_helper" "$stage/usr/libexec/rog5-reboot-bootloader"
 install -D -m 0600 "$authorized_key" "$stage/root/.ssh/authorized_keys"

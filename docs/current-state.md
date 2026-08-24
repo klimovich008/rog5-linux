@@ -345,6 +345,11 @@ was sent to no listener. No storage write occurred; fallback passed.
 Generation 131 is admitted once with the existing stage-aware wait selected.
 The target reporter and all kernel/DT/module/storage paths are unchanged under
 a fresh one-use identity.
+Generation 131 is consumed and returned exact `power-usb` detail
+`module-qcom-q6v5-load`. The packaged module was for
+`7.1.4-gae717d919f87`, not target `7.1.4-g359318de534f`; the mismatch is the
+proven rejection cause. Matching g359 UFS and power/USB twin module roots are
+retained and must be supplied to the next initramfs build.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
