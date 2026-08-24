@@ -269,6 +269,9 @@ Its 21.750-second result selected no-extra after the stabilization window.
 Combined with Generation 115, the duplicate exists only during NCM+ACM setup.
 The next full staging target removes unnecessary ACM and requires five seconds
 of continuously unique `a600000.usb` before binding.
+Generation 118 is that one admitted full-staging successor. It changes only the
+target initramfs, reuses the exact clean-twin writer Image/DTB and stable
+recovery transport, and retains one-file write containment plus fastboot return.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

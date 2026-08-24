@@ -504,6 +504,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-stage-configfs-v6-generation115-live-v1",
         "local-image-stage-udc-v7-generation116-live-v1",
         "local-image-stage-udc-stable-v8-generation117-live-v1",
+        "local-image-stage-ncm-v9-generation118-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
