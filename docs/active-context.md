@@ -354,6 +354,8 @@ policy, claim, publication, and phone boot remain pending.
 Generation 136 is now admitted once; no claim or phone boot has occurred yet.
 Its sole cycle is consumed and exact OF matching still reported platform zero.
 Next re-establish the live-proven g359 UFS Image/DT baseline before power merge.
+The proven Image/DT and four original g359 UFS modules are hash-reverified;
+the next build is a minimal UFS-only successor with no power or storage write.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
