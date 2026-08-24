@@ -2524,8 +2524,8 @@ case $profile in
 		;;
 	local-image-stage-hostfix-v19-generation128-live-v1)
 		expected_boot_image=build/local-image-stage-hostfix-v19-generation128-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 128 full staging cycle with host local-stage NCM acceptance, post-COMMIT recovery snapshot retirement, and bounded exact-unbound UDC retry; unchanged Image, DTB, modules, power/USB, UFS, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 128 host-fixed full staging successor; unchanged kernel/DT/modules, exact target-initramfs delta, bounded userdata image installer, stock slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 128 full staging cycle; exact 6.903960-second recovery-departure-to-slot-A-fastboot return proves immediate post-bind failure before target USB, SSH, installer, or storage; Linux 7.1 ConfigFS store semantics and prior empty/exact class oscillation identify the post-bind UDC-class level check as false; never retry or flash'
+		expected_boot_role='consumed Generation 128 full staging cycle; immediate false post-bind UDC-class invariant forced fallback before target USB or storage; exact slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

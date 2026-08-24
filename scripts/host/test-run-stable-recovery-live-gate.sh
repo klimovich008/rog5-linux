@@ -24,7 +24,7 @@ grep -Fq "expected_boot_role='consumed Generation 124 two-sample exact-UDC full 
 grep -Fq "expected_boot_role='consumed Generation 125 scan-then-bind full staging cycle; 25-second bind timeout, no target USB, SSH, installer, or storage write; fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 126 direct-bind full staging cycle; bind write refused with expected path present, no target USB or storage write; fallback passed; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 127 classifier; ConfigFS/NCM bind succeeded and target USB persisted for 89.864 seconds; host R7 model-filter defect prevented target acceptance; no storage write; slot-A fallback passed; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 128 host-fixed full staging successor; unchanged kernel/DT/modules, exact target-initramfs delta, bounded userdata image installer, stock slot-A fallback; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 128 full staging cycle; immediate false post-bind UDC-class invariant forced fallback before target USB or storage; exact slot-A fallback passed; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -222,8 +222,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 127 bind classifier; target NCM enumerated for 89.864 seconds, selecting bind-success; the host then filtered ROG5_local_image_stage from shared NCM inventory and missed the target; no target network configuration or storage write; exact slot-A fallback passed; never retry or flash" &&
 		NF == 3 { bind_error_writer++ ; next }
 	$1 == "build/local-image-stage-hostfix-v19-generation128-20260824-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 128 full staging cycle with host local-stage NCM acceptance, post-COMMIT recovery snapshot retirement, and bounded exact-unbound UDC retry; unchanged Image, DTB, modules, power/USB, UFS, installer, one exact userdata image path, key-only SSH, RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 128 full staging cycle; exact 6.903960-second recovery-departure-to-slot-A-fastboot return proves immediate post-bind failure before target USB, SSH, installer, or storage; Linux 7.1 ConfigFS store semantics and prior empty/exact class oscillation identify the post-bind UDC-class level check as false; never retry or flash" &&
 		NF == 3 { hostfix_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -440,7 +440,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
