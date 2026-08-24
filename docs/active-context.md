@@ -241,10 +241,10 @@ seconds after recovery USB departure. The 20-second UDC wait and a 10-second
 panic are too long, so the next no-storage discriminator separates release,
 command-line, and both-checks-pass outcomes by fixed timing.
 
-Generation 113 is the admitted discriminator: initramfs `b859c7bf...`, manifest
-`0ab3364d...`, wrapper `615ab418...`. It has no gadget, UFS, storage, SSH, or
-installer execution surface. Recovery-departure to fastboot timing selects one
-of 5-second release-fail, 15-second cmdline-fail, or 25-second checks-pass paths.
+Generation 113 is consumed: initramfs `b859c7bf...`, manifest `0ab3364d...`,
+wrapper `615ab418...`. Its 31.910-second return selected the 25-second
+both-checks-pass path. The next full staging successor adds only the mature
+USB path's exact `a600000.ssusb/mode=peripheral` transition before ConfigFS.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

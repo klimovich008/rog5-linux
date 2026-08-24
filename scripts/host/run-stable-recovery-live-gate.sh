@@ -2002,8 +2002,8 @@ case $profile in
 		;;
 	local-image-stage-preusb-v4-generation113-live-v1)
 		expected_boot_image=build/local-image-stage-preusb-v4-generation113-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact no-storage pre-USB timing discriminator; 5-second release failure, 15-second command-line failure, or 25-second both-checks-pass bootloader return; unchanged Image and DTB; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 113 pre-USB timing discriminator; no USB gadget, UFS, storage, SSH, or payload surface; fresh signed bundle and RAM-only wrapper; one use only; never flash'
+		expected_boot_basis='consumed by the sole Generation 113 timing cycle; exact fastboot returned 31.910 seconds after recovery departure, proving the 25-second both-checks-pass path plus 6.9-second overhead; no USB or storage surface; never retry or flash'
+		expected_boot_role='consumed Generation 113 timing discriminator; 31.910-second exact fastboot return proved both release and command-line checks pass; no gadget, UFS, storage, SSH, or payload surface; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

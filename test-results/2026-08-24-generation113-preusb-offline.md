@@ -2,7 +2,7 @@
 
 Date: 2026-08-24
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** No phone boot or storage access yet.
+Result: **CONSUMED; BOTH PRE-USB CHECKS PASS.** Never retry or flash.
 
 Generation 112 returned exact fastboot 6.903 seconds after recovery departure.
 That excludes its fixed 20-second UDC wait and `panic=10`, localizing the
@@ -30,3 +30,9 @@ Identities:
 The candidate is RAM-only, one-use, and flash-forbidden. Opus re-review was
 attempted after Generation 112 but the service returned HTTP 529 overloaded;
 the bounded local investigation continued from exact timing and source.
+
+Live result: recovery USB departed at 07:42:55.324 and exact fastboot appeared
+at 07:43:27.234, a 31.910-second interval. This matches the 25-second
+both-checks-pass branch plus the measured 6.9-second bootloader overhead.
+Kernel release and command-line validation are therefore exonerated. No USB
+gadget, UFS, storage, SSH, or payload path existed in this target.
