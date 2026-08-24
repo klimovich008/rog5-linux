@@ -347,6 +347,8 @@ platform, bound-without-host, or host-without-block state.
 Its sole cycle is consumed and reported exact `ufs-platform-0`; no SCSI or
 storage surface existed. Next compare runtime DT node/status to sealed DTB.
 Generation 135 is admitted once for that exact runtime DT comparison.
+Its sole cycle is consumed: runtime UFS DT is okay, address-name platform scan
+is zero, and no storage surface existed. Next scan exact `of_node` identity.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

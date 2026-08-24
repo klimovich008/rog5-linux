@@ -2762,8 +2762,8 @@ case $profile in
 		;;
 	local-image-stage-runtime-dt-v26-generation135-live-v1)
 		expected_boot_image=build/local-image-stage-runtime-dt-v26-generation135-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 135 full staging cycle reading the runtime UFS DT node and exact status before platform classification; unchanged g359 modules, Image, DTB, reporter/listener, installer, storage scope, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 135 runtime-DT classifier; exact g359 closure and read-only DT/platform evidence, unchanged kernel/DT/stable recovery, slot-A fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 135 cycle; runtime UFS DT node existed with exact okay status, while the address-name platform scan found zero candidates; no SCSI host, block, mount, SSH, installer, or storage write; exact slot-A fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 135 cycle; runtime UFS DT was okay but address-name platform scan returned zero before storage; slot-A fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
