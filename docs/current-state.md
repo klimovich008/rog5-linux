@@ -257,6 +257,9 @@ Generation 116 is now consumed: its early sample found no extra yet and returned
 in 16.887 seconds. Combined with Generation 115, the second UDC is a late
 registration race. The next classifier waits five seconds before naming it.
 
+Generation 117 is admitted once with that stabilization window. It reuses the
+exact Image and DTB, binds no UDC, and has no gadget or storage surface.
+
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
 section and advanced to an exact target `ufs-ready` failure record, proving

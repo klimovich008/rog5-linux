@@ -6,9 +6,13 @@ init=$repo/initramfs/local-image-stage-udc-inventory-init
 candidate=$repo/configs/recovery-candidates/local-image-stage-udc-v7.json
 manifest=$repo/manifests/local-image-stage-udc-v7-generation116.manifest
 claim=$repo/scripts/host/consume-local-image-stage-udc-v7-claim.py
+stable_candidate=$repo/configs/recovery-candidates/local-image-stage-udc-stable-v8.json
+stable_manifest=$repo/manifests/local-image-stage-udc-stable-v8-generation117.manifest
+stable_claim=$repo/scripts/host/consume-local-image-stage-udc-stable-v8-claim.py
 
 sh -n "$init"
 python3 -m py_compile "$claim"
+python3 -m py_compile "$stable_claim"
 for contract in \
 	'expected_release=@EXPECTED_KERNEL_RELEASE@' \
 	'expected_bundle=@EXPECTED_BUNDLE@' \
@@ -55,4 +59,19 @@ grep -Fqx 'avb_generation=116' "$manifest"
 grep -Fqx 'diagnostic=one-extra-udc-basename-pattern-timing' "$manifest"
 grep -Fqx 'storage_policy=none' "$manifest"
 grep -Fqx 'phone_flash=forbidden' "$manifest"
+python3 - "$candidate" "$stable_candidate" <<'PY'
+import json, sys
+from pathlib import Path
+previous = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+current = json.loads(Path(sys.argv[2]).read_text(encoding="ascii"))
+assert previous["status"] == "consumed"
+assert current["candidate"] == "local-image-stage-udc-stable-v8"
+assert current["status"] == "offline" and current["authority"] == "none"
+assert current["artifacts"]["Image"]["sha256"] == previous["artifacts"]["Image"]["sha256"]
+assert current["artifacts"]["board.dtb"]["sha256"] == previous["artifacts"]["board.dtb"]["sha256"]
+assert current["artifacts"]["initramfs.cpio.gz"]["sha256"] == "3cf4d974f21170ab143bf34f4e10b190d69a0743951f90e870d16713d826ecb9"
+PY
+grep -Fqx 'avb_generation=117' "$stable_manifest"
+grep -Fqx 'diagnostic=five-second-stabilized-one-extra-udc-basename' "$stable_manifest"
+grep -Fqx 'phone_flash=forbidden' "$stable_manifest"
 echo 'PASS UDC inventory classifies one extra basename without binding or storage'

@@ -262,6 +262,10 @@ Its live early sample returned `no extra yet` in 16.887 seconds; combined with
 Generation 115, the extra UDC registers late. A five-second stabilized inventory
 is next.
 
+Generation 117 is admitted once: initramfs `3cf4d974...`, manifest
+`f26c2a4c...`, wrapper `0fb3e250...`. It waits five seconds after expected UDC
+registration before classifying the late extra basename and binds nothing.
+
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
 the power/USB loader returned its legacy generic failure before UFS. Exact
