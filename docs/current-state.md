@@ -327,6 +327,9 @@ ConfigFS store semantics exclude bind-loop exhaustion; the immediate
 post-bind `/sys/class/udc` level check rejected the already-observed transient
 empty phase. The next target must retain exact ConfigFS readback and remove
 only that false post-bind class invariant.
+Generation 129 is admitted once with exactly that target-initramfs-only fix;
+kernel, DTB, modules, recovery raw bytes, installer, storage scope, and slot-A
+fallback remain unchanged.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
