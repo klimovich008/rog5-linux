@@ -33,6 +33,7 @@ if [ -f "$initramfs" ]; then
 fi
 python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
+[ -x "$successor_claim" ]
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
 python3 - "$successor" "$successor_initramfs" <<'PY'
