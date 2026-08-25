@@ -99,7 +99,7 @@ inventory and execution plan.
 | Partition | Number | First LBA | Last LBA | Blocks | Bytes | Disposition |
 |---|---:|---:|---:|---:|---:|---|
 | existing prefix | 1–22 | unchanged | 2,352,679 | unchanged | unchanged | preserve byte-for-byte |
-| `userdata` now | 23 | 2,352,680 | 61,865,978 | 59,513,299 | 243,766,472,704 | current Alpine/data ext4 |
+| `userdata` now | 23 | 2,352,680 | 61,865,978 | 59,513,299 | 243,766,472,704 | current Linux server-data ext4 |
 | `userdata` proposed | 23 | 2,352,680 | 53,477,375 | 51,124,696 | 209,406,754,816 | preserve GUID/type/name; shrink tail only |
 | `arch_root_a` proposed | 24 | 53,477,376 | 61,865,978 | 8,388,603 | 34,359,717,888 | new ext4 `ROG5_ARCH_A` |
 
@@ -153,11 +153,11 @@ that backup to the host before step 3. A power loss between ext4 shrink and GPT
 resize remains recoverable because the smaller filesystem still fits in the
 old larger partition; the reverse order is forbidden.
 
-The repository contains the sealed Stage-1 executor and host backup/ACK
-collector. The private prepared candidate, execution record, and one-use claim
-remain unconsumed and cannot run until the battery, slot-B, identity, artifact,
-backup, and claim checks all pass again. The exact tool-bearing recovery and
-disposable 4-KiB-sector transaction have passed offline. A command-level
+The repository contains the historical sealed Stage-1 executor and host
+backup/ACK collector. Its prepared candidate, execution record, and one-use
+claim are retired and cannot run. A refreshed successor must bind the battery,
+slot-A rescue, current artifact, fresh backup, and claim checks. The exact
+tool-bearing recovery and disposable 4-KiB-sector transaction passed offline. A command-level
 rehearsal first proved that
 omitting `--set-alignment=1` silently moves the recreated `userdata` start,
 then proved that the corrected option preserves the exact start, GUID, type,
@@ -181,8 +181,8 @@ prefix before changing its UUID, grows ext4, and atomically publishes the
 fresh 37,738-entry seal. Final initramfs twins are byte-identical at
 `36202033676f8d5217e3426ba05a5818e9b8787b3bae4145e050eb78a3ad0ba2`
 (6,075,358 bytes). The AArch64 verifier and storage tools pass their runtime
-closures. This is preparation only: Stage 2 cannot be issued before Stage 1
-and the intermediate Alpine fallback proof. See the
+closures. This is historical preparation only: Stage 2 cannot be issued before
+a refreshed Stage 1 and the intermediate slot-A rescue proof. See the
 [Stage-2 offline result](../test-results/2026-08-15-storage-layout-stage2-offline.md).
 
 The machine-readable public geometry is
