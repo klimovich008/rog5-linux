@@ -70,6 +70,7 @@ CLAIM_ENTRYPOINT = (
     REPO
     / "scripts/host/consume-local-image-write-benchmark-v45-claim.py"
 )
+DIRECT_STREAMER = REPO / "scripts/host/stream-local-image-direct.py"
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
 TARGET_UDEV_MODEL = "ROG5_local_image_stage"
@@ -325,6 +326,14 @@ def exact_inputs() -> CYCLE.Inputs:
         evidence_dir=evidence,
         fallback_timeout=FALLBACK_TIMEOUT_SECONDS,
     )
+
+
+def exact_arch_image() -> Path:
+    image = CYCLE.caller_artifact(
+        os.environ.get("ARCH_IMAGE_RAW", ""), "ARCH_IMAGE_RAW"
+    )
+    CYCLE.outside_repository(image, "ARCH_IMAGE_RAW")
+    return image
 
 
 def require_file(path: Path, *, owner: int, modes: set[int]) -> None:
@@ -687,117 +696,6 @@ def wait_for_stage_host_key(
     )
 
 
-def parse_partial_inspection(path: Path) -> dict[str, str]:
-    try:
-        payload = path.read_bytes()
-        if len(payload) > 4096:
-            fail("partial inspection output exceeds its bound")
-        lines = payload.decode("ascii").splitlines()
-    except (OSError, UnicodeDecodeError) as error:
-        raise PersistentCycleError("partial inspection output is unreadable") from error
-    names = (
-        "format", "partial_type", "partial_uid", "partial_gid", "partial_mode",
-        "partial_links", "partial_size", "partial_blocks_512", "final_type",
-        "rog5_stat", "images_stat", "result",
-    )
-    if len(lines) == len(names) + 1 and lines[-1] == (
-        "Timeout, server 169.254.77.2 not responding."
-    ):
-        lines.pop()
-    if len(lines) != len(names):
-        fail("partial inspection output shape changed")
-    values: dict[str, str] = {}
-    for line, name in zip(lines, names, strict=True):
-        prefix = f"{name}="
-        if not line.startswith(prefix):
-            fail(f"partial inspection field changed: {name}")
-        values[name] = line.removeprefix(prefix)
-    if values["format"] != "rog5-local-image-partial-inspection-v1":
-        fail("partial inspection format changed")
-    if values["partial_type"] not in {"absent", "regular", "symlink", "other"}:
-        fail("partial inspection type is invalid")
-    if values["final_type"] not in {"absent", "regular", "symlink", "other"}:
-        fail("partial inspection final type is invalid")
-    for name in ("partial_uid", "partial_gid", "partial_links", "partial_size", "partial_blocks_512"):
-        value = values[name]
-        if not value.isascii() or not value.isdecimal() or int(value) > 2**63 - 1:
-            fail(f"partial inspection numeric field is invalid: {name}")
-    if not re.fullmatch(r"none|[0-7]{3,4}", values["partial_mode"]):
-        fail("partial inspection mode is invalid")
-    for name in ("rog5_stat", "images_stat"):
-        if not re.fullmatch(r"[0-9]+:[0-9]+:[0-7]{3,4}:[0-9]+", values[name]):
-            fail(f"partial inspection directory metadata is invalid: {name}")
-    if values["result"] != "PASS":
-        fail("partial inspection did not pass")
-    return values
-
-
-def run_partial_inspection(
-    cycle: CYCLE.LiveCycle,
-    target_ssh: list[str],
-) -> dict[str, str]:
-    log = cycle.output("local-image-partial-inspection.log")
-    status = run_optional_logged(
-        [*target_ssh, "/usr/local/sbin/rog5-install-local-arch-image"],
-        log,
-        180,
-    )
-    if status not in {0, 255}:
-        fail(f"partial inspection returned unexpected status {status}")
-    return parse_partial_inspection(log)
-
-
-def parse_write_benchmark(path: Path) -> tuple[float, float]:
-    try:
-        lines = path.read_text(encoding="ascii").splitlines()
-    except (OSError, UnicodeDecodeError) as error:
-        raise PersistentCycleError("write benchmark output is unreadable") from error
-    if len(lines) == 11 and lines[-1] == "Timeout, server 169.254.77.2 not responding.":
-        lines.pop()
-    if len(lines) != 10 or lines[0] != "format=rog5-local-image-write-benchmark-v1":
-        fail("write benchmark output shape changed")
-    if lines[1] != "partial_size=0" or lines[2] != "partial_mode=644":
-        fail("write benchmark partial identity changed")
-    if lines[4] != "direct_size=33554432" or lines[6] != "buffered_size=33554432":
-        fail("write benchmark size marker changed")
-    seconds = []
-    for index, prefix in ((3, "direct_seconds="), (5, "buffered_seconds=")):
-        if not lines[index].startswith(prefix):
-            fail(f"write benchmark timing field changed: {prefix}")
-        value = lines[index].removeprefix(prefix)
-        if not re.fullmatch(r"[0-9]+(?:[.][0-9]+)?", value):
-            fail(f"write benchmark timing is invalid: {prefix}")
-        observed = float(value)
-        if not 0 <= observed <= 180:
-            fail(f"write benchmark timing is outside its bound: {prefix}")
-        seconds.append(observed)
-    if lines[7] != "ufs_error_lines=0":
-        fail("write benchmark observed a UFS error")
-    if not lines[8].startswith("temperature_decic="):
-        fail("write benchmark temperature field changed")
-    temperature = lines[8].removeprefix("temperature_decic=")
-    if not temperature.isdecimal() or not 0 <= int(temperature) < 550:
-        fail("write benchmark temperature is invalid")
-    if lines[9] != "result=PASS":
-        fail("write benchmark did not pass")
-    return seconds[0], seconds[1]
-
-
-def run_write_benchmark(
-    cycle: CYCLE.LiveCycle,
-    target_ssh: list[str],
-) -> tuple[float, float]:
-    log = cycle.output("local-image-write-benchmark.log")
-    status = run_optional_logged(
-        [*target_ssh, "/usr/local/sbin/rog5-install-local-arch-image"],
-        log,
-        600,
-    )
-    if status not in {0, 255}:
-        fail(f"write benchmark returned unexpected status {status}")
-    return parse_write_benchmark(log)
-
-
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -858,6 +756,7 @@ def preflight(
     cycle: CYCLE.LiveCycle,
     inputs: CYCLE.Inputs,
     gate_environment: dict[str, str],
+    arch_image: Path,
 ) -> None:
     CYCLE.verify_repository_checkpoint(cycle.dependencies.git)
     for path in (
@@ -873,10 +772,14 @@ def preflight(
         cycle.dependencies.host_key,
         cycle.dependencies.stock_fallback,
         CLAIM_ENTRYPOINT,
+        DIRECT_STREAMER,
         Path("/usr/bin/ssh"),
     ):
         CYCLE.fixed_executable(path, offline=False)
     verify_static_artifacts(inputs)
+    CYCLE.run_capture(
+        [str(DIRECT_STREAMER), str(arch_image), "--verify-only"], timeout=60
+    )
     cycle.verify_host_clean()
     CYCLE.run_capture(
         [str(cycle.dependencies.bundle_server), "preflight", BUNDLE, MANIFEST_SHA256],
@@ -911,7 +814,12 @@ def stop_recovery_host(
         cycle.wait_host_clean(recovery_ncm=recovery_ncm)
 
 
-def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str, str]) -> None:
+def run(
+    cycle: CYCLE.LiveCycle,
+    inputs: CYCLE.Inputs,
+    gate_environment: dict[str, str],
+    arch_image: Path,
+) -> None:
     anchor = cycle.output("recovery-usb.anchor")
     target_known_hosts = cycle.output("target-known-hosts")
     bundle_process = None
@@ -1015,13 +923,27 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             target_ssh,
             cycle.output("persistent-root-ssh-readiness.log"),
         )
-        direct_seconds, buffered_seconds = run_write_benchmark(cycle, target_ssh)
+        stage_started = time.monotonic()
+        stage_status = run_optional_logged(
+            [
+                str(DIRECT_STREAMER),
+                str(arch_image),
+                "--",
+                *target_ssh,
+                "/usr/local/sbin/rog5-install-local-arch-image",
+            ],
+            cycle.output("local-image-direct-stage.log"),
+            540,
+        )
+        if stage_status not in {0, 255}:
+            fail(f"direct image staging returned unexpected status {stage_status}")
+        stage_seconds = time.monotonic() - stage_started
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
             cycle.output("persistent-root-timing.record"),
             (
-                ("format", "rog5-local-image-write-benchmark-timing-v1"),
+                ("format", "rog5-local-image-direct-stage-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -1029,9 +951,8 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     "authenticated_ssh_rendezvous_seconds",
                     f"{ssh_ready_elapsed:.3f}",
                 ),
-                ("direct_write_seconds", f"{direct_seconds:.3f}"),
-                ("buffered_write_seconds", f"{buffered_seconds:.3f}"),
-                ("seconds_to_benchmark", f"{elapsed:.3f}"),
+                ("direct_stage_seconds", f"{stage_seconds:.3f}"),
+                ("seconds_to_stage", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -1043,9 +964,9 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle compared bounded direct and buffered UFS "
-            f"writes in {elapsed:.3f}s, removed the benchmark files, relocked "
-            "storage, and returned to fastboot"
+            "PASS one RAM-only cycle staged the sparse Arch image with exact "
+            f"direct extents in {elapsed:.3f}s, relocked storage, and returned "
+            "to fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:
@@ -1113,16 +1034,17 @@ def main(arguments: list[str]) -> int:
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()
+    arch_image = exact_arch_image()
     gate_environment = exact_environment()
     cycle = CYCLE.LiveCycle(dependencies, inputs, PROFILE)
-    preflight(cycle, inputs, gate_environment)
+    preflight(cycle, inputs, gate_environment, arch_image)
     if arguments == ["preflight"]:
         print(
             "PASS persistent-root storage lifecycle preflight; no claim was "
             "created and no phone boot occurred"
         )
         return 0
-    run(cycle, inputs, gate_environment)
+    run(cycle, inputs, gate_environment, arch_image)
     return 0
 
 

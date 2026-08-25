@@ -18,12 +18,20 @@ expected_release=${EXPECTED_RELEASE:-7.1.4-gae717d919f87}
 expected_bundle=${EXPECTED_BUNDLE:-local-image-stage-v1}
 ufs_modules=${UFS_MODULES:-}
 power_modules_root=${POWER_MODULES_ROOT:-}
+direct_extent_map=${DIRECT_EXTENT_MAP:-}
 epoch=1681862400
 
 fail() { echo "FAIL $*" >&2; exit 1; }
 for input in "$base" "$init" "$installer" "$authorized_key" "$reboot_helper"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || fail "unsafe input: $input"
 done
+if [ -n "$direct_extent_map" ]; then
+	[ -f "$direct_extent_map" ] && [ ! -L "$direct_extent_map" ] ||
+		fail 'unsafe direct extent map'
+	[ "$(sha256sum "$direct_extent_map" | cut -d ' ' -f 1)" = \
+		e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94 ] ||
+		fail 'direct extent map hash changed'
+fi
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ] || fail 'base hash changed'
 [ "$(sha256sum "$authorized_key" | cut -d ' ' -f 1)" = "$expected_key_sha256" ] || fail 'authorized key changed'
 [ "$(sha256sum "$reboot_helper" | cut -d ' ' -f 1)" = "$expected_reboot_sha256" ] || fail 'reboot helper changed'
@@ -84,6 +92,10 @@ for module in "$stage/rog5-ufs-modules"/*.ko \
 		fail "packaged module ABI changed: ${module##*/}"
 done
 install -D -m 0755 "$installer" "$stage/usr/local/sbin/rog5-install-local-arch-image"
+if [ -n "$direct_extent_map" ]; then
+	install -D -m 0444 "$direct_extent_map" \
+		"$stage/etc/rog5-local-image-direct-extents.tsv"
+fi
 install -D -m 0755 "$reboot_helper" "$stage/usr/libexec/rog5-reboot-bootloader"
 install -D -m 0600 "$authorized_key" "$stage/root/.ssh/authorized_keys"
 sed -i 's/^root:[^:]*/root:x/' "$stage/etc/shadow"
