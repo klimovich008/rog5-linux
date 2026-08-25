@@ -33,6 +33,9 @@ CURRENT_SUCCESSOR = (
 LOAD_BACKUP_SUCCESSOR = (
     REPO / "manifests/storage-layout-stage1-load-backup-generation167.manifest"
 )
+CURRENT_LOAD_BACKUP_SUCCESSOR = (
+    REPO / "manifests/storage-layout-stage1-load-backup-generation168.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -192,7 +195,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 4)
+        self.assertEqual(len(lines), 5)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -297,6 +300,36 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertEqual(admitted[5], fields["image_sha256"])
         self.assertIn("stale hardcoded 59513299-block filesystem", admitted[6])
         self.assertIn("before S30", admitted[6])
+
+    def test_generation168_binds_current_filesystem_and_one_admission(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CURRENT_LOAD_BACKUP_SUCCESSOR.read_text(encoding="ascii").splitlines()
+        )
+        manifest_sha256 = hashlib.sha256(CURRENT_LOAD_BACKUP_SUCCESSOR.read_bytes()).hexdigest()
+        self.assertEqual(
+            manifest_sha256,
+            "902890bd36b067fd7a262fd71334f418766777b3c8beb47711776b251878c9ea",
+        )
+        self.assertEqual(fields["prewrite_expected_filesystem_blocks"], "51124000")
+        self.assertEqual(fields["predecessor_generation"], "167")
+        self.assertEqual(
+            fields["predecessor_outcome"],
+            "consumed-pre-s30-no-write-stale-filesystem-block-count",
+        )
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], manifest_sha256)
+        self.assertEqual(admitted[5], fields["image_sha256"])
+        self.assertIn("only source delta from Generation 167", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
