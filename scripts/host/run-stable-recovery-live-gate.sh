@@ -184,6 +184,7 @@ if [[ $action == policy-preflight ]]; then
 		ufs-reboot-baseline-v29-generation138-live-v1 | \
 		ufs-power-reboot-baseline-v30-generation139-live-v1 | \
 		ufs-glob-reboot-baseline-v31-generation140-live-v1 | \
+		local-image-stage-glob-v32-generation141-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -2932,8 +2933,8 @@ case $profile in
 		;;
 	ufs-glob-reboot-baseline-v31-generation140-live-v1)
 		expected_boot_image=build/ufs-glob-reboot-baseline-v31-generation140-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 140 UFS baseline removing the proven `set -f` glob suppression and restoring the Generation-109 topology-count algorithm after the unchanged power/USB loader and ae717 UFS module chain; validates charging, UCSI, NCM, UFS, and built-in fastboot return; no SSH, mount, installer, or storage-write path; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 140 glob-enabled UFS topology baseline; unchanged ae717 Image/DT/modules and power loader, built-in reboot mode; never flash'
+		expected_boot_basis='consumed by the sole Generation 140 cycle; exact power/USB and corrected sysfs discovery proved the complete 116-node UFS topology, then built-in reboot mode returned exact fastboot; no mount or storage write; never retry or flash'
+		expected_boot_role='consumed Generation 140 cycle; power/USB and complete 116-node UFS topology passed; exact fastboot fallback passed; no write; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -2956,6 +2957,39 @@ case $profile in
 		[[ $expected_image == 9b29868ced920374291f5aa076a5ea6be7f95918d9df4c96acd217592899b78c ]] || fail 'UFS glob baseline V31 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'UFS glob baseline V31 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'UFS glob baseline V31 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-stage-glob-v32-generation141-live-v1)
+		expected_boot_image=build/local-image-stage-glob-v32-generation141-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 141 write-capable staging cycle using the Generation-140-proven power/USB, glob-enabled 116-node UFS topology, exact userdata geometry, key-only SSH, one verified 649960943-byte compressed Arch image, sealed installer, complete relock, and built-in fastboot return; writes only the bounded image file in userdata; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 141 writer; proven power/UFS topology, key-only SSH, one bounded Arch image installer, relock, built-in fastboot return; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-glob-v32
+		expected_bundle=local-image-stage-glob-v32
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=f7a5ebc5e53362401bc7674c249c7a3b89ab56f81685dbfc114f1dddc5c2916e
+		expected_avb_digest=30e6304145fe01a85ffdee4868dde59b1d3dc3153b80012b18ace74b955a0f41
+		expected_generation_record=703019527c364ddc06e101c85388c68f6b9b425054859138b82fb687f76afabc
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == d4fa6160215e68a8919f077894e8b608aa3bf645c93bf2267a90c643c78501d4 ]] || fail 'local-image glob V32 manifest is not pinned'
+		[[ $expected_image == 0cf741336db85fb6804dfe20720d8680a4f113e74f5c627326084c44977f210b ]] || fail 'local-image glob V32 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image glob V32 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image glob V32 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4455,6 +4489,7 @@ case $profile in
 	ufs-reboot-baseline-v29-generation138-live-v1 | \
 	ufs-power-reboot-baseline-v30-generation139-live-v1 | \
 	ufs-glob-reboot-baseline-v31-generation140-live-v1 | \
+	local-image-stage-glob-v32-generation141-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

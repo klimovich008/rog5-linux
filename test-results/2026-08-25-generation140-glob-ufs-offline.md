@@ -1,6 +1,7 @@
 # Generation 140 glob-enabled UFS topology baseline
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Never flash or retry after entry.
+Result: **CONSUMED; EXACT UFS TOPOLOGY PASSED; FASTBOOT PASSED.** Never retry
+or flash.
 
 Generation 139 proved the complete power/USB loader passes, including charging,
 temperature, PMIC GLINK, remoteproc, UCSI sink/device role, and NCM. UFS still
@@ -17,3 +18,9 @@ mount, installer invocation, or storage-write path exists.
 Target twins are `6f8b4620...366306b`; manifest is
 `5b19fd9c...673a832f`; Generation-140 recovery is
 `9b29868c...2899b78c`. Raw stable recovery remains unchanged.
+
+The sole RAM-only cycle passed the full power/USB loader and emitted exact
+terminal `stage=ufs-ready state=FAIL detail=count-116`. The terminal FAIL token
+is the intentional host-listener stop; `count-116` is the baseline success.
+Built-in reboot mode returned exact slot-A fastboot and cleanup passed. No
+mount or storage write existed.

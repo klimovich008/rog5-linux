@@ -376,6 +376,10 @@ Generation 139 is consumed: the complete power/USB loader passed and fastboot
 returned, but `set -f` made every fixed sysfs glob literal and forced a false
 zero UFS result. Generation 140 removes glob suppression and uses the proven
 Generation-109 disk-plus-partition topology algorithm; no storage write exists.
+Generation 140 is consumed and exact terminal `count-116` proves UFS. Exact
+fastboot fallback passed. Generation 141 uses the same power/UFS/reboot lineage
+with the full writer init corrected for globbing and topology count, key-only
+SSH transfer, one bounded image-file write, and complete relock.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
