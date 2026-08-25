@@ -67,10 +67,11 @@ temperature=$(cat "$battery/temp")
 case $temperature in ''|*[!0-9]*) fail temperature ;; esac
 [ "$temperature" -ge 0 ] && [ "$temperature" -lt 550 ] || fail temperature
 
-blockdev --setrw "$userdata" || fail partition-rw
 blockdev --setrw "$userdata_disk" || fail disk-rw
-[ "$(blockdev --getro "$userdata")" = 0 ] &&
-	[ "$(blockdev --getro "$userdata_disk")" = 0 ] || fail write-window
+[ "$(blockdev --getro "$userdata_disk")" = 0 ] || fail disk-rw-state
+blockdev --setrw "$userdata" || fail partition-rw
+[ "$(blockdev --getro "$userdata")" = 0 ] || fail partition-rw-state
+[ "$(blockdev --getro "$userdata_disk")" = 0 ] || fail write-window
 mkdir -p "$mountpoint"
 mount -t ext4 -o rw,nodev,nosuid,noatime "$userdata" "$mountpoint" || fail mount
 mounted=1

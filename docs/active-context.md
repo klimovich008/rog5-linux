@@ -405,11 +405,12 @@ the literal-asterisk content check before creating the image path and returned
 exact fastboot. The target-only successor removes that line and reports any
 future installer failure before reboot; no kernel or wrapper rebuild is
 justified by this R3 shell defect.
-Generation 147 is the unbooted target-only successor. It reuses the proven
-kernel, DTB, 19 modules, recovery raw bytes, and slot-A fallback; only the
-installer glob fix, bounded failure output, signed target identity, and fresh
-RAM-only AVB generation differ. One live cycle must either verify the complete
-16 GiB image and relock storage or return the next exact installer reason.
+Generation 147 is consumed. It passed the installer glob, exact UFS, runtime,
+first-attempt key-only SSH, and transfer, then returned exact
+`reason=write-window` before mount or image creation. The successor changes
+only parent-before-child read-write ordering and exact readback reasons; it
+retains the proven kernel, DTB, 19 modules, recovery raw bytes, storage scope,
+and slot-A fallback.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

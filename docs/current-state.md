@@ -449,11 +449,12 @@ disabled the fixed userdata and relock globs. It failed before creating an
 image path and returned exact slot-A fastboot. The successor removes only that
 line and emits a failure record before reboot; kernel, DTB, UFS modules,
 storage scope, and fallback remain unchanged.
-Generation 147 is the unbooted, one-use target-only successor. Its exact sealed
-BusyBox glob regression, clean initramfs twins, signed bundle, and fresh
-RAM-only AVB generation pass focused checks; no kernel or wrapper compilation
-ran. The next live cycle asks only whether the 16 GiB image reaches verified
-staging and complete storage relock.
+Generation 147 is consumed. It passed the corrected installer glob, UFS,
+first-attempt key-only SSH, and exact transfer, then reported
+`reason=write-window` before mount or image creation. The installer attempted
+to clear the partition while its parent disk was still read-only. The
+target-only successor clears and verifies the parent first, then the partition;
+kernel, DTB, modules, wrapper raw bytes, and storage scope remain unchanged.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

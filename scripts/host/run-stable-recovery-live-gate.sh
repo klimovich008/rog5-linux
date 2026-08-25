@@ -191,6 +191,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-stages-v36-generation145-live-v1 | \
 		local-image-stage-auth-v37-generation146-live-v1 | \
 		local-image-stage-globfix-v38-generation147-live-v1 | \
+		local-image-stage-rworder-v39-generation148-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3170,8 +3171,8 @@ case $profile in
 		;;
 	local-image-stage-globfix-v38-generation147-live-v1)
 		expected_boot_image=build/local-image-stage-globfix-v38-generation147-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 147 target-only staging cycle removing installer set -f and emitting bounded failure output before reboot; proven kernel, DTB, modules, recovery raw bytes, one image-file scope, relock, and slot-A fallback unchanged; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 147 target-only installer glob fix; proven kernel, UFS, NCM, key-only SSH, exact image transfer, bounded userdata image, relock, fastboot; never flash'
+		expected_boot_basis='consumed by the sole Generation 147 cycle; exact UFS, key-only SSH, transfer, and installer glob passed, then exact write-window failed before mount or image creation because the child was cleared before its read-only parent; fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 147 cycle; UFS, SSH, transfer, and installer glob passed, then parent-child read-write transition remained effectively read-only; no mount or image path; fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3194,6 +3195,39 @@ case $profile in
 		[[ $expected_image == 7f2203a94b4dfc98f15e2a02f29c18cf7b8dbcea24983e66597898e512292563 ]] || fail 'local-image globfix V38 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image globfix V38 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image globfix V38 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-stage-rworder-v39-generation148-live-v1)
+		expected_boot_image=build/local-image-stage-rworder-v39-generation148-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 148 target-only staging cycle clearing and verifying the parent disk before userdata; proven kernel, DTB, modules, recovery raw bytes, one image-file scope, relock, and slot-A fallback unchanged; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 148 target-only parent-before-child read-write correction; proven kernel, UFS, SSH, transfer, bounded image, relock, fastboot; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-rworder-v39
+		expected_bundle=local-image-stage-rworder-v39
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=b336cd03aa3fb1df77bc9cd52c58d05d5c324abe3d274b42eb10df214f6a4570
+		expected_avb_digest=3259932819dc1ce42464f510606e608bc7a170e6f5a98c311c68ceb77376c60b
+		expected_generation_record=d820e86414f613451861bdf63a6376cf49ad57e0426f4353976fbb3f95ea32c6
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 59a2ebc8798354545159cf24a836cc23fe9e9a031eea7c7fe181f8674ee8dab3 ]] || fail 'local-image rworder V39 manifest is not pinned'
+		[[ $expected_image == ed8611651c205a91b2ad457bb3889a366c304d3f67c7421c1cba1f0269dac002 ]] || fail 'local-image rworder V39 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image rworder V39 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image rworder V39 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4700,6 +4734,7 @@ case $profile in
 	local-image-stage-stages-v36-generation145-live-v1 | \
 	local-image-stage-auth-v37-generation146-live-v1 | \
 	local-image-stage-globfix-v38-generation147-live-v1 | \
+	local-image-stage-rworder-v39-generation148-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

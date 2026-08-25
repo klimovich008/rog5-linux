@@ -1,7 +1,6 @@
 # Generation 147 installer glob correction
 
-Result: **OFFLINE PASS; UNBOOTED; ADMITTED ONCE.** Never flash or retry after
-claim entry.
+Result: **CONSUMED; R3 WRITE-WINDOW ORDER FAILURE.** Never flash or retry.
 
 Primary question: can the already-proven UFS/NCM/key-only-SSH target stage the
 exact Arch image when the installer is allowed to expand its fixed userdata
@@ -39,3 +38,12 @@ proven kernel and wrapper raw bytes were reused.
 
 The active tier passed in 20.108 seconds. The one required full local CI run
 passed on the frozen implementation in 403.959 seconds; it was not repeated.
+
+The sole live cycle passed the exact UFS topology, runtime, first-attempt
+key-only SSH, transfer, and corrected userdata glob. It then emitted exact
+`state=FAIL/reason=write-window` and returned slot-A fastboot with complete
+host cleanup. The failure happened before userdata mount, directory creation,
+or image decompression. Source ordering cleared the partition flag before its
+read-only parent disk. The successor clears and verifies the parent first,
+then clears and verifies the partition, with a separate reason at each
+readback.

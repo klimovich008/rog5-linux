@@ -14,16 +14,20 @@ usbmode=$repo/configs/recovery-candidates/local-image-stage-usbmode-v5.json
 usbmode_manifest=$repo/manifests/local-image-stage-usbmode-v5-generation114.manifest
 globfix=$repo/configs/recovery-candidates/local-image-stage-globfix-v38.json
 globfix_manifest=$repo/manifests/local-image-stage-globfix-v38-generation147.manifest
+rworder=$repo/configs/recovery-candidates/local-image-stage-rworder-v39.json
+rworder_manifest=$repo/manifests/local-image-stage-rworder-v39-generation148.manifest
 claim=$repo/scripts/host/consume-local-image-stage-claim.py
 successor_claim=$repo/scripts/host/consume-local-image-stage-writer-v2-claim.py
 hotplug_claim=$repo/scripts/host/consume-local-image-stage-hotplug-v3-claim.py
 usbmode_claim=$repo/scripts/host/consume-local-image-stage-usbmode-v5-claim.py
 globfix_claim=$repo/scripts/host/consume-local-image-stage-globfix-v38-claim.py
+rworder_claim=$repo/scripts/host/consume-local-image-stage-rworder-v39-claim.py
 
 for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
 	"$successor_manifest" "$hotplug" "$hotplug_manifest" "$claim" \
 	"$successor_claim" "$hotplug_claim" "$usbmode" "$usbmode_manifest" \
-	"$usbmode_claim" "$globfix" "$globfix_manifest" "$globfix_claim"; do
+	"$usbmode_claim" "$globfix" "$globfix_manifest" "$globfix_claim" \
+	"$rworder" "$rworder_manifest" "$rworder_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 sh -n "$init" "$installer" "$builder"
@@ -32,10 +36,12 @@ python3 -m py_compile "$successor_claim"
 python3 -m py_compile "$hotplug_claim"
 python3 -m py_compile "$usbmode_claim"
 python3 -m py_compile "$globfix_claim"
+python3 -m py_compile "$rworder_claim"
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
 grep -Fq 'consumer["consume"](PROFILE)' "$globfix_claim"
+grep -Fq 'consumer["consume"](PROFILE)' "$rworder_claim"
 ! grep -Eq 'os[.](open|rename|replace|fsync)|shutil|subprocess' "$claim"
 
 ! grep -Fxq 'set -f' "$init" || {
@@ -178,6 +184,9 @@ source = Path(sys.argv[1]).read_text()
 failure = source.index("printf 'state=FAIL")
 reboot = source.index('return_bootloader', failure)
 assert failure < reboot
+disk_rw = source.index('blockdev --setrw "$userdata_disk"')
+partition_rw = source.index('blockdev --setrw "$userdata"')
+assert disk_rw < partition_rw
 PY
 
 python3 - "$candidate" <<'PY'
@@ -279,7 +288,7 @@ import sys
 
 candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert candidate["candidate"] == "local-image-stage-globfix-v38"
-assert candidate["status"] == "offline"
+assert candidate["status"] == "consumed"
 assert candidate["authority"] == "none"
 assert candidate["artifacts"]["Image"]["sha256"] == \
     "1a1958fe72201a3cb1fa7bdfc203ab5132cd236c5e4f95cdd13cc825bdf9ce22"
@@ -295,6 +304,27 @@ grep -Fxq 'avb_generation=147' "$globfix_manifest"
 grep -Fxq 'delta=remove-installer-noglob-and-report-failure-before-reboot' \
 	"$globfix_manifest"
 grep -Fxq 'phone_flash=forbidden' "$globfix_manifest"
+
+python3 - "$rworder" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert candidate["candidate"] == "local-image-stage-rworder-v39"
+assert candidate["status"] == "offline"
+assert candidate["authority"] == "none"
+artifact = Path(sys.argv[1]).resolve().parents[2] / \
+    candidate["artifacts"]["initramfs.cpio.gz"]["path"]
+assert artifact.stat().st_size == 23804943
+assert hashlib.file_digest(artifact.open("rb"), "sha256").hexdigest() == \
+    "efdd2a131fcc38cefc660df3f74552f4191604785bfe55ffa38ab02a71206d12"
+PY
+grep -Fxq 'avb_generation=148' "$rworder_manifest"
+grep -Fxq 'delta=set-parent-disk-rw-before-partition-with-exact-readbacks' \
+	"$rworder_manifest"
+grep -Fxq 'phone_flash=forbidden' "$rworder_manifest"
 
 busybox_root=$(mktemp -d)
 trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM

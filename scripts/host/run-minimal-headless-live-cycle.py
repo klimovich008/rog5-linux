@@ -535,6 +535,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-stage-stages-v36-generation145-live-v1",
         "local-image-stage-auth-v37-generation146-live-v1",
         "local-image-stage-globfix-v38-generation147-live-v1",
+        "local-image-stage-rworder-v39-generation148-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
