@@ -52,9 +52,48 @@ def verify(path: Path) -> dict[str, int]:
         data = json.loads(path.read_text(encoding="ascii"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         fail(f"cannot read layout: {error}")
-    root = exact_keys(data, {"format", "source_checkpoint", "ext4_checkpoint", "proposal"}, "layout")
+    root = exact_keys(
+        data,
+        {
+            "format",
+            "status",
+            "current_checkpoint",
+            "source_checkpoint",
+            "ext4_checkpoint",
+            "proposal",
+        },
+        "layout",
+    )
     if root["format"] != FORMAT:
         fail("layout format changed")
+    if root["status"] != "proposal-hold-refresh-required":
+        fail("layout status changed")
+    checkpoint = exact_keys(
+        root["current_checkpoint"],
+        {
+            "captured_date",
+            "userdata_fs_uuid",
+            "source_image_sha256",
+            "source_tree_sha256",
+            "rescue_slot",
+            "accepted_generation",
+            "historical_executors_eligible",
+        },
+        "current checkpoint",
+    )
+    if (
+        checkpoint["captured_date"] != "2026-08-25"
+        or checkpoint["userdata_fs_uuid"]
+        != "0892bacf-3e02-41b0-84a4-5f05c2df7ce5"
+        or checkpoint["source_image_sha256"]
+        != "533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153"
+        or checkpoint["source_tree_sha256"]
+        != "4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167"
+        or checkpoint["rescue_slot"] != "a"
+        or checkpoint["accepted_generation"] != 163
+        or checkpoint["historical_executors_eligible"] is not False
+    ):
+        fail("current layout checkpoint changed")
 
     source = exact_keys(
         root["source_checkpoint"],

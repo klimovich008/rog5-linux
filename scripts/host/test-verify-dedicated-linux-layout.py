@@ -42,6 +42,22 @@ class DedicatedLinuxLayoutTest(unittest.TestCase):
         self.assertEqual(result["arch_root_bytes"], 34359717888)
         self.assertEqual(result["ext4_headroom_bytes"], 161486983168)
 
+    def test_current_checkpoint_cannot_select_historical_execution(self) -> None:
+        for field, value in (
+            ("source_image_sha256", "0" * 64),
+            ("source_tree_sha256", "0" * 64),
+            ("rescue_slot", "b"),
+            ("accepted_generation", 162),
+            ("historical_executors_eligible", True),
+        ):
+            with self.subTest(field=field):
+                self.rejected(
+                    lambda data, field=field, value=value: data[
+                        "current_checkpoint"
+                    ].update({field: value}),
+                    "current layout checkpoint changed",
+                )
+
     def test_overlap_or_gap_is_rejected(self) -> None:
         self.rejected(
             lambda data: data["proposal"]["arch_root_a"].update(first_lba=53477375, size_lba=8388604),
