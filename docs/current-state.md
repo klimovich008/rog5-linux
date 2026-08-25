@@ -440,6 +440,12 @@ then the target returned fastboot inside the previously uninstrumented section
 before sshd; no transfer or write occurred. Generation 145 publishes existing
 `userdata-resolved`, `storage-locked`, and `runtime` stages around that section
 to return the exact pre-write failure reason.
+Generation 145 is consumed and proved power/UFS, userdata identity, and storage
+lock before exact `runtime/nologin-identity`: the sealed member is absent, not
+an empty regular file. The earlier SSH denial instead came from `root:!`, which
+locks all authentication. Generation 146 accepts exact nologin absence or one
+empty regular file and uses `root:x` (invalid password, unlocked account) while
+password and keyboard authentication remain disabled.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

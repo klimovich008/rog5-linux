@@ -397,6 +397,10 @@ Generation 144 is consumed: immediate target activation and UFS passed, then an
 uninstrumented post-UFS pre-SSH failure returned exact fastboot with no write.
 Generation 145 adds only existing stage records around userdata identity,
 storage lock, nologin removal, host-key creation, and sshd.
+Generation 145 is consumed at exact `runtime/nologin-identity`: no nologin file
+exists. The actual SSH blocker is locked `root:!`. Generation 146 uses an
+invalid non-locking `root:x` field with password auth disabled and accepts only
+exact nologin absence or an empty regular file; no write has yet occurred.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

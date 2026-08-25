@@ -44,7 +44,7 @@ for contract in \
 	'phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko' \
 	'blockdev --setro "$device"' \
 	'/run/rog5-userdata-device' \
-	'rm /etc/nologin || fail nologin-remove' \
+	'if [ -e /etc/nologin ] || [ -L /etc/nologin ]; then' \
 	'publish_stage runtime ENTER none' \
 	'/usr/sbin/sshd -h /run/ssh_host_ed25519_key'; do
 	grep -Fq "$contract" "$init" || {
@@ -52,6 +52,8 @@ for contract in \
 		exit 1
 	}
 done
+grep -Fq "sed -i 's/^root:[^:]*/root:x/'" "$builder"
+grep -Fq "grep -Fxq 'root:x:0:0:99999:7:::'" "$builder"
 grep -Fq 'expected_release=@EXPECTED_KERNEL_RELEASE@' "$init"
 grep -Fq 'expected_bundle=@EXPECTED_BUNDLE@' "$init"
 grep -Fq 'echo /sbin/mdev >/proc/sys/kernel/hotplug || :' "$init"
