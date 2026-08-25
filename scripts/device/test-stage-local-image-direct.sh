@@ -12,6 +12,8 @@ candidate=$repo/configs/recovery-candidates/local-image-direct-v46.json
 successor=$repo/configs/recovery-candidates/local-image-direct-v47.json
 megabyte=$repo/configs/recovery-candidates/local-image-direct-v48.json
 high_speed=$repo/configs/recovery-candidates/local-image-direct-v49.json
+high_speed_manifest=$repo/manifests/local-image-direct-v49-generation158.manifest
+high_speed_claim=$repo/scripts/host/consume-local-image-direct-v49-claim.py
 manifest=$repo/manifests/local-image-direct-v46-generation155.manifest
 claim=$repo/scripts/host/consume-local-image-direct-v46-claim.py
 successor_manifest=$repo/manifests/local-image-direct-v47-generation156.manifest
@@ -32,13 +34,16 @@ for path in "$successor_manifest" "$successor_claim" "$megabyte" \
 	"$megabyte_manifest" "$megabyte_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ]
 done
-[ -f "$high_speed" ] && [ ! -L "$high_speed" ]
+for path in "$high_speed" "$high_speed_manifest" "$high_speed_claim"; do
+	[ -f "$path" ] && [ ! -L "$path" ]
+done
 sh -n "$target" "$builder"
 python3 -m py_compile "$streamer" "$generator"
 python3 -m py_compile "$fake"
 python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
 python3 -m py_compile "$megabyte_claim"
+python3 -m py_compile "$high_speed_claim"
 [ "$(sha256sum "$map" | cut -d ' ' -f 1)" = \
 	e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94 ]
 for contract in \
@@ -130,6 +135,9 @@ assert artifact["size"] == 23806155
 assert artifact["sha256"] == \
     "411a25ed127a370f56fb5daf2d60f2e0c6280ba8a90d26e1f26c7bf450e631ca"
 PY
+grep -Fxq 'avb_generation=158' "$high_speed_manifest"
+grep -Fxq 'phone_flash=forbidden' "$high_speed_manifest"
+grep -Fq 'local-image-direct-v49-generation158-live-v1' "$high_speed_claim"
 grep -Fxq 'avb_generation=155' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"
 grep -Fq 'local-image-direct-v46-generation155-live-v1' "$claim"

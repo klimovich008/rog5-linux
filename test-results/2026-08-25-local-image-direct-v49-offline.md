@@ -1,6 +1,6 @@
 # Local-image direct V49 offline checkpoint
 
-Result: **OFFLINE PASS; UNADMITTED; UNBOOTED.** No V49 phone contact or claim.
+Result: **OFFLINE PASS; ADMITTED ONCE; UNBOOTED.** No V49 phone contact or claim.
 
 The kernel Image, DTB, target script, extent map, power modules, and three UFS
 modules are unchanged. Only `ufshcd-core.ko` changes. The writable discovery
@@ -19,4 +19,6 @@ Signed bundle manifest SHA-256 is
 Authority-free Generation-158 wrapper SHA-256 is
 `00aa48f0258df05983f955095d355de8ef52c451bb2d4d7a352f4b3f5bafe027`.
 
-V49 remains unadmitted pending full kernel/trust CI.
+Full local kernel/trust CI passed in 447 seconds. The derived Generation-158
+admission is open once; COMMIT or any ambiguous outcome permanently consumes
+it.

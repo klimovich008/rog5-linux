@@ -50,6 +50,9 @@ Generation 156 is consumed after proving 4 KiB O_DIRECT throughput cannot fit
 the watchdog. Generation 157 proved 1 MiB writes remain at the same 0.66 MiB/s.
 Source audit found the writable profile still skipped the UFS high-speed gear
 transition. V49 is a module-only high-speed successor, built but unadmitted.
+Full kernel/trust CI passed; Generation 158 is admitted once and remains
+unbooted. Its cycle captures exact UDC, SCSI/block queue, and UFS gear evidence
+before any write.
 
 ## Charging repair facts
 
