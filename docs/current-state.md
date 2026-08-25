@@ -65,7 +65,8 @@ wrapper identity. Generation 161 is consumed after passing reboot-mode,
 charging/UFS, userdata, and local-image mount, then failing `root-verify` because
 the staged-seal policy was rejected by an earlier UUID-only branch. No storage
 write occurred and exact fastboot returned. The control-flow correction is the
-only target change for the next fresh identity.
+only target change. V53/Generation 162 has clean-twin target archives, signed
+bundle twins, and a fresh authority-free wrapper; it remains unadmitted.
 
 ## Charging repair facts
 

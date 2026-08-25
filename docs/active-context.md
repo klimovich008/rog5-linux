@@ -28,7 +28,7 @@ The corrected successor changes only that host selector and early initramfs
 observability; it does not flash or replace the kernel. Generation 161 consumed
 that cycle and reached mounted local Arch before an unreachable staged-seal
 policy branch caused exact `root-verify` rollback. The next target changes only
-that control flow.
+that control flow. V53/Generation 162 is built offline and remains unadmitted.
 
 ## Completed charging repair
 
