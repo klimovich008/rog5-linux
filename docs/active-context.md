@@ -422,10 +422,10 @@ UFS path stalled in D state. The watchdog's `sync` also blocked. Exact fastboot
 returned only after the sealed helper had set the bootloader reason and
 emergency SysRq bypassed device shutdown. No full-image candidate is admitted;
 next work is a sealed sparse writer plus sync-independent emergency rollback.
-Generation 150 is the unbooted bounded write-mode benchmark. It reuses the
-Generation-149 kernel/DT/modules, preserves the exact partial image, compares
-32 MiB direct then buffered writes, and has a sync-independent emergency
-fastboot path. No full-image write occurs in this cycle.
+Generation 150 is consumed at `partial-identity` before writing benchmark
+data. Generation 151 accepts only absent or one root-owned mode-0600/0644
+partial bounded by the previous 825,884,672-byte maximum, reports it, then
+compares 32 MiB direct and buffered writes with sync-independent fallback.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-write-benchmark-v41-generation150-live-v1"
-BUNDLE = "local-image-write-benchmark-v41"
+PROFILE_ID = "local-image-write-benchmark-v42-generation151-live-v1"
+BUNDLE = "local-image-write-benchmark-v42"
 MANIFEST_SHA256 = (
-    "48022ec8595d57b4cb64445fd4802879e0c652a96db31937dc2bd6826a23361a"
+    "eda3bd6c644adb12254cf92d1c32dab1ace1982809227f0eb1917286c8cd36e9"
 )
 RECOVERY_SHA256 = (
-    "e28b4c489e9507a5dba48b5c94af844c087fcf5d01efc7371343830db577cb12"
+    "a90a25e8270e85205f1898c02e7ce8b146a0e583770cba93cf1f7e23e99a2e35"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-write-benchmark-v41-generation150-live-v1\n"
-    b"candidate=local-image-write-benchmark-v41\n"
+    b"local-image-write-benchmark-v42-generation151-live-v1\n"
+    b"candidate=local-image-write-benchmark-v42\n"
     b"manifest_sha256="
-    b"48022ec8595d57b4cb64445fd4802879e0c652a96db31937dc2bd6826a23361a\n"
+    b"eda3bd6c644adb12254cf92d1c32dab1ace1982809227f0eb1917286c8cd36e9\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-write-benchmark-v41-claim.py"
+    / "scripts/host/consume-local-image-write-benchmark-v42-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-write-benchmark-v41-generation150-20260825-r1"
+    / "build/local-image-write-benchmark-v42-generation151-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -103,10 +103,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-write-benchmark-v41",
+    admission_profile="local-image-write-benchmark-v42",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-write-benchmark-v41",
-    build_profile="local-image-write-benchmark-v41",
+    runtime_profile="local-image-write-benchmark-v42",
+    build_profile="local-image-write-benchmark-v42",
     diagnostic=False,
 )
 
@@ -695,18 +695,31 @@ def parse_write_benchmark(path: Path) -> tuple[float, float]:
         lines = payload.decode("ascii").splitlines()
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("write benchmark output is unreadable") from error
-    if len(lines) != 8 or lines[0] != "format=rog5-local-image-write-benchmark-v1":
+    if len(lines) != 10 or lines[0] != "format=rog5-local-image-write-benchmark-v1":
         fail("write benchmark output shape changed")
     expected = {
-        2: "direct_size=33554432",
-        4: "buffered_size=33554432",
-        7: "result=PASS",
+        4: "direct_size=33554432",
+        6: "buffered_size=33554432",
+        9: "result=PASS",
     }
     for index, marker in expected.items():
         if lines[index] != marker:
             fail(f"write benchmark marker changed: {marker}")
     seconds = []
-    for index, prefix in ((1, "direct_seconds="), (3, "buffered_seconds=")):
+    if not lines[1].startswith("partial_size="):
+        fail("write benchmark partial-size field changed")
+    partial_size = lines[1].removeprefix("partial_size=")
+    if not partial_size.isascii() or not partial_size.isdecimal():
+        fail("write benchmark partial size is invalid")
+    if not 0 <= int(partial_size) <= 825884672:
+        fail("write benchmark partial size exceeds its bound")
+    if lines[2] not in {"partial_mode=absent", "partial_mode=600", "partial_mode=644"}:
+        fail("write benchmark partial mode is invalid")
+    if int(partial_size) == 0 and lines[2] != "partial_mode=absent":
+        fail("write benchmark absent partial has a file mode")
+    if int(partial_size) > 0 and lines[2] == "partial_mode=absent":
+        fail("write benchmark present partial lacks a file mode")
+    for index, prefix in ((3, "direct_seconds="), (5, "buffered_seconds=")):
         if not lines[index].startswith(prefix):
             fail(f"write benchmark timing field changed: {prefix}")
         value = lines[index].removeprefix(prefix)
@@ -716,11 +729,11 @@ def parse_write_benchmark(path: Path) -> tuple[float, float]:
         if observed < 0 or observed > 180:
             fail(f"write benchmark timing is outside its bound: {prefix}")
         seconds.append(observed)
-    if lines[5] != "ufs_error_lines=0":
+    if lines[7] != "ufs_error_lines=0":
         fail("write benchmark observed a UFS error")
-    if not lines[6].startswith("temperature_decic="):
+    if not lines[8].startswith("temperature_decic="):
         fail("write benchmark temperature field changed")
-    temperature = lines[6].removeprefix("temperature_decic=")
+    temperature = lines[8].removeprefix("temperature_decic=")
     if not temperature.isascii() or not temperature.isdecimal():
         fail("write benchmark temperature is invalid")
     if not 0 <= int(temperature) < 550:

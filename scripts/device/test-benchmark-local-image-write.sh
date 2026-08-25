@@ -3,10 +3,10 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 benchmark=$repo/scripts/device/benchmark-local-image-write.sh
-base=$repo/artifacts/local-image-write-benchmark-v41/initramfs.cpio.gz
-candidate=$repo/configs/recovery-candidates/local-image-write-benchmark-v41.json
-manifest=$repo/manifests/local-image-write-benchmark-v41-generation150.manifest
-claim=$repo/scripts/host/consume-local-image-write-benchmark-v41-claim.py
+base=$repo/artifacts/local-image-write-benchmark-v42/initramfs.cpio.gz
+candidate=$repo/configs/recovery-candidates/local-image-write-benchmark-v42.json
+manifest=$repo/manifests/local-image-write-benchmark-v42-generation151.manifest
+claim=$repo/scripts/host/consume-local-image-write-benchmark-v42-claim.py
 
 [ -f "$benchmark" ] && [ ! -L "$benchmark" ]
 for path in "$base" "$candidate" "$manifest" "$claim"; do
@@ -60,20 +60,20 @@ from pathlib import Path
 import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
-assert record["candidate"] == "local-image-write-benchmark-v41"
+assert record["candidate"] == "local-image-write-benchmark-v42"
 assert record["status"] == "offline"
 assert record["authority"] == "none"
 assert record["target_release"] == "7.1.4-g359318de534f"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
 path = Path(sys.argv[2])
-assert path.stat().st_size == artifact["size"] == 23804916
+assert path.stat().st_size == artifact["size"] == 23805018
 assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
     artifact["sha256"] == \
-    "5180199dc15777cc635b1e2dc1ff94039296c563a89dd49d6f64025e19fd7513"
+    "e8334a941c54efa4cb09718e34150a94c80022ad1dfcddb6026ea4c6f9dcdd41"
 PY
-grep -Fxq 'avb_generation=150' "$manifest"
+grep -Fxq 'avb_generation=151' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"
-grep -Fq 'local-image-write-benchmark-v41-generation150-live-v1' "$claim"
+grep -Fq 'local-image-write-benchmark-v42-generation151-live-v1' "$claim"
 qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
 if [ -n "$qemu" ]; then
 	"$qemu" -L "$root" "$root/bin/busybox" dd if=/dev/zero \
