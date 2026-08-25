@@ -54,6 +54,8 @@ Full kernel/trust CI passed; Generation 158 is admitted once and remains
 consumed. The high-speed branch executed and the exact 16 GiB image staged,
 validated, published, unmounted, and relocked in about 92 seconds after SSH.
 The next cycle is read-only local-root Arch boot and strict SSH acceptance.
+V50 is the one admitted read-only staged-seal successor. Its target and signed
+bundle twins pass offline; it remains unbooted and permits no storage write.
 
 ## Charging repair facts
 

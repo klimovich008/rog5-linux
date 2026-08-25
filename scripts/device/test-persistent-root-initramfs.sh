@@ -107,6 +107,11 @@ grep -Fq '[ "$expected_probe_boot_id" = any-prior ]' "$init" "$attest" ||
 	fail 'P2 runtime lacks exact prior-writer discovery policy'
 grep -Fq 'read-only:any-prior) ;;' "$init" ||
 	fail 'P2 early boot policy rejects the sealed prior-writer mode'
+grep -Fq 'read-only:staged-seal) ;;' "$init" ||
+	fail 'P2 early boot policy rejects a host-sealed staged image'
+grep -Fq '[ "$expected_probe_boot_id" = staged-seal ]' \
+	"$builder" "$init" "$attest" ||
+	fail 'P2 staged-image policy is incomplete'
 grep -Fqx 'reboot_helper=/usr/libexec/rog5-reboot-bootloader' \
 	"$init" "$shutdown" || fail 'P2 rollback lacks the fixed restart2 helper path'
 grep -Fq '"$reboot_helper" || true' "$init" "$shutdown" ||
@@ -469,6 +474,18 @@ fi
 gzip -dc "$work/read-only-any-prior.cpio.gz" |
 	cpio -i --quiet --to-stdout init |
 	grep -Fxq 'expected_probe_boot_id=any-prior'
+if [ -n "$ufs_modules" ]; then
+	UFS_STORAGE_MODE=read-only EXPECTED_PROBE_BOOT_ID=staged-seal \
+		"$builder" "$base" "$verifier" \
+		"$work/read-only-staged-seal.cpio.gz" "$ufs_modules" >/dev/null
+else
+	UFS_STORAGE_MODE=read-only EXPECTED_PROBE_BOOT_ID=staged-seal \
+		"$builder" "$base" "$verifier" \
+		"$work/read-only-staged-seal.cpio.gz" >/dev/null
+fi
+gzip -dc "$work/read-only-staged-seal.cpio.gz" |
+	cpio -i --quiet --to-stdout init |
+	grep -Fxq 'expected_probe_boot_id=staged-seal'
 if PERSISTENT_ROOT_POWER_MODULES_ROOT="$work/missing-modules" \
 	PERSISTENT_ROOT_CHARGE_FIRMWARE_DIR= \
 	REQUIRE_DEFERRED_UFS_MODULES=0 \

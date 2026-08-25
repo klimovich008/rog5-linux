@@ -5,6 +5,10 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 candidate=$repo/configs/recovery-candidates/persistent-root-power-usb-v9.json
 initramfs=$repo/artifacts/persistent-root-power-usb-v9/initramfs.cpio.gz
 claim=$repo/scripts/host/consume-persistent-root-power-usb-v9-claim.py
+successor=$repo/configs/recovery-candidates/persistent-root-local-v50.json
+successor_initramfs=$repo/artifacts/persistent-root-local-v50/initramfs.cpio.gz
+successor_manifest=$repo/manifests/persistent-root-local-v50-generation159.manifest
+successor_claim=$repo/scripts/host/consume-persistent-root-local-v50-claim.py
 
 python3 - "$candidate" <<'PY'
 import json
@@ -28,7 +32,32 @@ if [ -f "$initramfs" ]; then
 	gzip -t "$initramfs"
 fi
 python3 -m py_compile "$claim"
+python3 -m py_compile "$successor_claim"
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
+python3 - "$successor" "$successor_initramfs" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "persistent-root-local-v50"
+assert record["status"] == "offline"
+assert record["authority"] == "none"
+assert record["target_release"] == "7.1.4-gae717d919f87"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23810585
+assert artifact["sha256"] == \
+    "a22224d24b56adfd134c9085d0a55ee29afd1c77776e84e22d31824493d77cbd"
+path = Path(sys.argv[2])
+if path.exists():
+    assert path.stat().st_size == artifact["size"]
+    assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
+        artifact["sha256"]
+PY
+grep -Fxq 'avb_generation=159' "$successor_manifest"
+grep -Fxq 'probe_policy=staged-seal-absent' "$successor_manifest"
+grep -Fq 'persistent-root-local-v50-generation159-live-v1' "$successor_claim"
 
 echo 'PASS V9 reuses the live-proven charging/UFS/local-root target under a fresh one-use identity'

@@ -86,7 +86,9 @@ case $expected_ufs_storage_mode in
 		probe_boot_id=$current_boot_id
 		;;
 	read-only)
-		if [ "$expected_probe_boot_id" = any-prior ]; then
+		if [ "$expected_probe_boot_id" = staged-seal ]; then
+			probe_boot_id=staged-seal
+		elif [ "$expected_probe_boot_id" = any-prior ]; then
 			probe_boot_id=any-prior
 		else
 			printf '%s\n' "$expected_probe_boot_id" |
@@ -99,6 +101,10 @@ case $expected_ufs_storage_mode in
 		;;
 	*) fail 'UFS storage mode changed' ;;
 esac
+if [ "$probe_boot_id" = staged-seal ]; then
+	[ ! -e "$probe_path" ] && [ ! -L "$probe_path" ] ||
+		fail 'staged local image unexpectedly carries a write probe'
+else
 for path in "$lower/var" "$lower/var/lib" "$probe_dir"; do
 	[ -d "$path" ] && [ ! -L "$path" ] ||
 		fail 'local-image write-probe ancestry changed'
@@ -124,6 +130,7 @@ if [ "$probe_boot_id" = any-prior ]; then
 fi
 grep -Fxq "boot_id=$probe_boot_id" "$probe_path" ||
 	fail 'local-image write-probe content changed'
+fi
 progress local-image-write-pass
 
 [ -e /run/rog5-p2-root-mounted ] ||

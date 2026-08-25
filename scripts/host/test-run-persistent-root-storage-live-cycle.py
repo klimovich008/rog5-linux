@@ -22,21 +22,6 @@ SPEC.loader.exec_module(MODULE)
 
 
 class PersistentRootLiveCycleTest(unittest.TestCase):
-    def test_exact_arch_image_accepts_only_the_reviewed_hardlink_shape(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            image = Path(temporary) / "arch.ext4"
-            image.touch()
-            image.chmod(0o600)
-            with image.open("r+b") as fixture:
-                fixture.truncate(17_179_869_184)
-            (Path(temporary) / "peer.ext4").hardlink_to(image)
-            with mock.patch.dict("os.environ", {"ARCH_IMAGE_RAW": str(image)}):
-                self.assertEqual(MODULE.exact_arch_image(), image)
-            image.chmod(0o444)
-            with mock.patch.dict("os.environ", {"ARCH_IMAGE_RAW": str(image)}):
-                with self.assertRaises(MODULE.PersistentCycleError):
-                    MODULE.exact_arch_image()
-
     def test_exact_slot_a_fastboot_terminates_target_wait_early(self) -> None:
         with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=True) as exact, mock.patch.object(
             MODULE.STOCK,
@@ -70,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "local-image-direct-v49-generation158-live-v1",
+            "persistent-root-local-v50-generation159-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -81,7 +66,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
         self.assertEqual(
             MODULE.BUNDLE,
-            "local-image-direct-v49",
+            "persistent-root-local-v50",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -99,7 +84,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation158",
+            "generation159",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -116,7 +101,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-local-image-direct-v49-claim.py",
+            "consume-persistent-root-local-v50-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
@@ -124,24 +109,25 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         handoff = source.index("        cycle.wait_bundle(bundle_process, control_process)\n")
         network = source.index("interface = activate_target_network(cycle, anchor)")
         host_key = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
-        stage = source.index("stage_status = run_optional_logged(")
+        runtime = source.index("runtime_status = run_optional_logged(")
         self.assertLess(handoff, network)
         self.assertLess(network, host_key)
-        self.assertLess(host_key, stage)
-        segment = source[handoff:stage]
+        self.assertLess(host_key, runtime)
+        segment = source[handoff:runtime]
         self.assertNotIn("input(", segment)
         self.assertNotIn("STOCK.fastboot(", segment)
         self.assertNotIn("wait_for_stage_host_key(", segment)
 
-    def test_direct_stage_preflight_verifies_the_exact_raw_image(self) -> None:
+    def test_local_root_preflight_has_no_image_transfer_or_write(self) -> None:
         source = MODULE_PATH.read_text()
         preflight = source[
             source.index("def preflight(") : source.index("def stop_recovery_host(")
         ]
         self.assertNotIn("ARCH_IMAGE_GZ", preflight)
         self.assertNotIn("transfer_arch_image", source)
-        self.assertIn('os.environ.get("ARCH_IMAGE_RAW", "")', source)
-        self.assertIn('str(DIRECT_STREAMER), str(arch_image), "--verify-only"', preflight)
+        self.assertNotIn("ARCH_IMAGE_RAW", source)
+        self.assertNotIn("DIRECT_STREAMER", source)
+        self.assertIn("parse_runtime_evidence(runtime_log)", source)
 
     def test_terminal_stage_stops_the_host_key_wait(self) -> None:
         source = MODULE_PATH.read_text()
@@ -514,7 +500,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_delegates_one_bounded_direct_stream_to_the_sealed_installer(self) -> None:
+    def test_runner_executes_read_only_runtime_and_systemd_reboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -527,8 +513,9 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
-        self.assertIn("DIRECT_STREAMER", source)
-        self.assertIn('"/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertIn("RUNTIME_COMMAND", source)
+        self.assertIn('"/usr/bin/systemctl reboot"', source)
+        self.assertNotIn('"/usr/local/sbin/rog5-install-local-arch-image"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
 
