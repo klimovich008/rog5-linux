@@ -429,6 +429,9 @@ then compares 32 MiB direct and buffered writes with sync-independent fallback.
 Generation 152 repeated the same boundary. Generation 153 is read-only and
 reports exact partial/final/directory metadata under `ro,noload`; no block write
 window, benchmark directory, or image write is reachable.
+Generation 153 proved the partial is regular `0:0`, mode 0644, one link, but
+empty with zero allocated blocks. This is the exact cause of the repeated
+partial-identity refusal. No successor is admitted yet.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

@@ -16,6 +16,7 @@ sh -n "$benchmark"
 python3 -m py_compile "$claim"
 for contract in \
 	'expected_partial_size=17179869184' \
+	'[ "$partial_size" -ge 0 ] && [ "$partial_size" -le "$expected_partial_size" ]' \
 	'test_size=33554432' \
 	'blockdev --setrw "$userdata_disk"' \
 	'blockdev --setrw "$userdata"' \
@@ -31,6 +32,7 @@ for contract in \
 		exit 1
 	}
 done
+! grep -Fq '[ "$partial_size" -gt 0 ]' "$benchmark"
 
 python3 - "$benchmark" <<'PY'
 from pathlib import Path

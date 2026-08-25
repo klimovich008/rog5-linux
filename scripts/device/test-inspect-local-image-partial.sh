@@ -49,7 +49,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "local-image-partial-inspect-v44"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 path = Path(sys.argv[2])
 artifact = record["artifacts"]["initramfs.cpio.gz"]

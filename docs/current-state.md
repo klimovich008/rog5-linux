@@ -475,6 +475,10 @@ Generation 152 still failed the same partial-identity boundary, disproving size
 as the remaining field. Generation 153 is a read-only `ro,noload` metadata
 inspection under the explicit-only systematic-debugging workflow. No benchmark
 or full-image write occurs until it identifies the exact differing field.
+Generation 153 consumed its read-only cycle and proved the field: the partial
+is a regular root-owned 0644 one-link file with size and allocated blocks both
+zero; final is absent and parent directories are exact. The next benchmark may
+accept that proven crash state. No full-image candidate is admitted.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
