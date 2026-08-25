@@ -79,6 +79,9 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertLess(disarm, first_setrw)
         self.assertLess(first_setrw, shrink)
         self.assertLess(shrink, transaction)
+        prewrite = source[source.index("stage_set S10_TOPOLOGY") : source.index("stage_set S30_FRESH_BACKUP")]
+        self.assertIn("verify_userdata_filesystem 51124000", prewrite)
+        self.assertNotIn("verify_userdata_filesystem 59513299", prewrite)
         legacy = source[source.index("stage_set S40_FILESYSTEM_CHECK") :]
         self.assertNotIn("mkfs", legacy)
         self.assertNotIn("/rog5/images/arch-local-a.ext4", legacy)
@@ -289,10 +292,11 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             )
         }
         admitted = rows[fields["profile"]]
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
         self.assertEqual(admitted[5], fields["image_sha256"])
-        self.assertIn("one sealed exact-GPT --load-backup transaction", admitted[6])
+        self.assertIn("stale hardcoded 59513299-block filesystem", admitted[6])
+        self.assertIn("before S30", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)

@@ -44,14 +44,15 @@ is the separately reviewed Stage-1 shrink/GPT transaction. Authority-free
 Generation 165 now binds the current twin initramfs and exact private execution
 record. The user gave exact final confirmation. Generation 165 was consumed
 before collector/ACK/write because its host template retained a short USB path;
-exact slot-A fallback passed. Byte-identical-raw Generation 166 corrects only
-that private host path, is narrowly admitted, and remains unbooted with an
-unconsumed claim. Generation 166 then reached durable backup ACK and shrank
+exact slot-A fallback passed. Byte-identical-raw Generation 166 corrected only
+that private host path, reached durable backup ACK, and shrank
 ext4, failed at the target multi-option S60 `sgdisk` edit, restored the original
 GPT, and returned through slot A. The successor seals the offline-verified
-desired GPT backup and uses the live-proven single `--load-backup` operation;
-full CI passed and Generation 167 is narrowly admitted with an unconsumed
-claim. Stage 2 is authorized only after Stage 1 passes.
+desired GPT backup and uses the live-proven single `--load-backup` operation.
+Generation 167 then failed before S30/ACK/write on the stale pre-shrink
+filesystem-block guard and returned through slot A. The unissued successor
+changes only that guard to the current 51,124,000 blocks. Stage 2 is authorized
+only after Stage 1 passes.
 
 ## Completed charging repair
 
