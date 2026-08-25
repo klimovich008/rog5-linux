@@ -55,9 +55,8 @@ validating, publishing, unmounting, and relocking the exact 16 GiB image in
 about 92 seconds after SSH. Generation 159 reached target USB but failed before
 the UFS reporter because its `ae717` reboot-mode drivers were modular and
 absent from the sealed initramfs; slot-A stock recovery returned and no storage
-write occurred. V51 packages the two exact matching modules and is the offline,
-unadmitted read-only successor. The kernel, DTB, image, and storage policy are
-unchanged.
+write occurred. V51 packages the two exact matching modules and is admitted for
+one read-only RAM boot. The kernel, DTB, image, and storage policy are unchanged.
 
 ## Charging repair facts
 
