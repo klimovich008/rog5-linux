@@ -17,3 +17,5 @@
   raw recovery bytes are unchanged. Candidate remains offline with no authority.
 - Focused initramfs, candidate, runner, and gate checks passed in 11.82 seconds.
   The active repository tier passed in 57.724 seconds.
+- Exact-head, merge-compat, candidate-publication, and QEMU CI passed for
+  `ff20d61af20dacd9f6274f43845eb9746cf126e1`. Generation 162 is admitted once.
