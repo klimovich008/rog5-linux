@@ -443,9 +443,17 @@ to return the exact pre-write failure reason.
 Generation 145 is consumed and proved power/UFS, userdata identity, and storage
 lock before exact `runtime/nologin-identity`: the sealed member is absent, not
 an empty regular file. The earlier SSH denial instead came from `root:!`, which
-locks all authentication. Generation 146 accepts exact nologin absence or one
-empty regular file and uses `root:x` (invalid password, unlocked account) while
-password and keyboard authentication remain disabled.
+locks all authentication. Generation 146 passed the corrected key-only SSH and
+exact image transfer, then hit R3 in the installer: its remaining `set -f`
+disabled the fixed userdata and relock globs. It failed before creating an
+image path and returned exact slot-A fastboot. The successor removes only that
+line and emits a failure record before reboot; kernel, DTB, UFS modules,
+storage scope, and fallback remain unchanged.
+Generation 147 is the unbooted, one-use target-only successor. Its exact sealed
+BusyBox glob regression, clean initramfs twins, signed bundle, and fresh
+RAM-only AVB generation pass focused checks; no kernel or wrapper compilation
+ran. The next live cycle asks only whether the 16 GiB image reaches verified
+staging and complete storage relock.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

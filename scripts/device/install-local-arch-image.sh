@@ -1,6 +1,5 @@
 #!/bin/sh
 set -eu
-set -f
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 input=/run/arch-local-a.ext4.gz
@@ -39,6 +38,8 @@ fail() {
 	[ "$mounted" -eq 0 ] || umount "$mountpoint" || true
 	relock || true
 	printf 'state=FAIL\nreason=%s\n' "$reason" >"$status" 2>/dev/null || true
+	cat "$status" 2>/dev/null || true
+	sleep 1
 	return_bootloader
 }
 trap 'fail interrupted' HUP INT TERM

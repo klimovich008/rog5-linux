@@ -12,15 +12,18 @@ hotplug=$repo/configs/recovery-candidates/local-image-stage-hotplug-v3.json
 hotplug_manifest=$repo/manifests/local-image-stage-hotplug-v3-generation112.manifest
 usbmode=$repo/configs/recovery-candidates/local-image-stage-usbmode-v5.json
 usbmode_manifest=$repo/manifests/local-image-stage-usbmode-v5-generation114.manifest
+globfix=$repo/configs/recovery-candidates/local-image-stage-globfix-v38.json
+globfix_manifest=$repo/manifests/local-image-stage-globfix-v38-generation147.manifest
 claim=$repo/scripts/host/consume-local-image-stage-claim.py
 successor_claim=$repo/scripts/host/consume-local-image-stage-writer-v2-claim.py
 hotplug_claim=$repo/scripts/host/consume-local-image-stage-hotplug-v3-claim.py
 usbmode_claim=$repo/scripts/host/consume-local-image-stage-usbmode-v5-claim.py
+globfix_claim=$repo/scripts/host/consume-local-image-stage-globfix-v38-claim.py
 
 for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
 	"$successor_manifest" "$hotplug" "$hotplug_manifest" "$claim" \
 	"$successor_claim" "$hotplug_claim" "$usbmode" "$usbmode_manifest" \
-	"$usbmode_claim"; do
+	"$usbmode_claim" "$globfix" "$globfix_manifest" "$globfix_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 sh -n "$init" "$installer" "$builder"
@@ -28,13 +31,19 @@ python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
 python3 -m py_compile "$hotplug_claim"
 python3 -m py_compile "$usbmode_claim"
+python3 -m py_compile "$globfix_claim"
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
+grep -Fq 'consumer["consume"](PROFILE)' "$globfix_claim"
 ! grep -Eq 'os[.](open|rename|replace|fsync)|shutil|subprocess' "$claim"
 
 ! grep -Fxq 'set -f' "$init" || {
 	echo 'FAIL local-image stage disables the fixed sysfs globs it relies on' >&2
+	exit 1
+}
+! grep -Fxq 'set -f' "$installer" || {
+	echo 'FAIL local-image installer disables its fixed userdata and relock globs' >&2
 	exit 1
 }
 for contract in \
@@ -161,6 +170,15 @@ for contract in \
 		exit 1
 	}
 done
+python3 - "$installer" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+failure = source.index("printf 'state=FAIL")
+reboot = source.index('return_bootloader', failure)
+assert failure < reboot
+PY
 
 python3 - "$candidate" <<'PY'
 import hashlib
@@ -253,12 +271,42 @@ grep -Fqx 'delta=add-mature-a600000-peripheral-mode-transition-only' \
 	"$usbmode_manifest"
 grep -Fqx 'phone_flash=forbidden' "$usbmode_manifest"
 
+python3 - "$globfix" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert candidate["candidate"] == "local-image-stage-globfix-v38"
+assert candidate["status"] == "offline"
+assert candidate["authority"] == "none"
+assert candidate["artifacts"]["Image"]["sha256"] == \
+    "1a1958fe72201a3cb1fa7bdfc203ab5132cd236c5e4f95cdd13cc825bdf9ce22"
+assert candidate["artifacts"]["board.dtb"]["sha256"] == \
+    "4f6518b3fddd1695c9059f1faeedf0458dabdba5c779ee72bededff9c56c76b8"
+artifact = Path(sys.argv[1]).resolve().parents[2] / \
+    candidate["artifacts"]["initramfs.cpio.gz"]["path"]
+assert artifact.stat().st_size == 23804816
+assert hashlib.file_digest(artifact.open("rb"), "sha256").hexdigest() == \
+    "bc9770b48f516db4b91b5955e127208ff8a04bd0c3799a429437e8d0b5b01d4b"
+PY
+grep -Fxq 'avb_generation=147' "$globfix_manifest"
+grep -Fxq 'delta=remove-installer-noglob-and-report-failure-before-reboot' \
+	"$globfix_manifest"
+grep -Fxq 'phone_flash=forbidden' "$globfix_manifest"
+
 busybox_root=$(mktemp -d)
 trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM
 gzip -dc "$repo/artifacts/local-image-stage-hotplug-v3/initramfs.cpio.gz" |
 	(cd "$busybox_root" && cpio -idm --quiet --no-absolute-filenames)
 qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
 if [ -n "$qemu" ]; then
+	mkdir "$busybox_root/glob-fixture"
+	touch "$busybox_root/glob-fixture/lost+found"
+	"$qemu" -L "$busybox_root" "$busybox_root/bin/busybox" sh -c \
+		'set -eu; mountpoint=$1; set -- "$mountpoint"/*; [ "$#" -eq 1 ] && [ "${1##*/}" = lost+found ]' \
+		sh "$busybox_root/glob-fixture"
 	if "$qemu" -L "$busybox_root" "$busybox_root/bin/busybox" sh -c \
 		'set -e; echo /sbin/mdev >/proc/sys/kernel/definitely-absent; echo SURVIVED' \
 		>"$busybox_root/unguarded.out" 2>/dev/null; then
