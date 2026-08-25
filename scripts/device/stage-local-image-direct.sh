@@ -88,17 +88,22 @@ prepare() {
 		fail images-metadata
 	if [ -e "$residual" ] || [ -L "$residual" ]; then
 		[ -d "$residual" ] && [ ! -L "$residual" ] || fail residual-identity
-		[ "$(find "$residual" -mindepth 1 -maxdepth 1)" = "$residual/buffered.bin" ] ||
-			fail residual-inventory
-		[ -f "$residual/buffered.bin" ] && [ ! -L "$residual/buffered.bin" ] ||
-			fail residual-identity
-		metadata=$(stat -c '%u:%g:%a:%h:%s' "$residual/buffered.bin") ||
-			fail residual-identity
-		case $metadata in 0:0:600:1:*|0:0:644:1:*) ;; *) fail residual-identity ;; esac
-		size=${metadata##*:}
-		case $size in ''|*[!0-9]*) fail residual-size ;; esac
-		[ "$size" -ge 0 ] && [ "$size" -le 33554432 ] || fail residual-size
-		rm "$residual/buffered.bin" || fail residual-remove
+		inventory=$(find "$residual" -mindepth 1 -maxdepth 1)
+		case $inventory in
+		'') ;;
+		"$residual/buffered.bin")
+			[ -f "$residual/buffered.bin" ] && [ ! -L "$residual/buffered.bin" ] ||
+				fail residual-identity
+			metadata=$(stat -c '%u:%g:%a:%h:%s' "$residual/buffered.bin") ||
+				fail residual-identity
+			case $metadata in 0:0:600:1:*|0:0:644:1:*) ;; *) fail residual-identity ;; esac
+			size=${metadata##*:}
+			case $size in ''|*[!0-9]*) fail residual-size ;; esac
+			[ "$size" -ge 0 ] && [ "$size" -le 33554432 ] || fail residual-size
+			rm "$residual/buffered.bin" || fail residual-remove
+			;;
+		*) fail residual-inventory ;;
+		esac
 		rmdir "$residual" || fail residual-remove
 	fi
 	[ -f "$partial" ] && [ ! -L "$partial" ] || fail partial-identity
