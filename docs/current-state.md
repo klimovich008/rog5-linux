@@ -174,6 +174,11 @@ slot A, and create one aligned 32-GiB `arch_root_a`. Historical Stage-1/2
 executors remain ineligible until refreshed against the current image, rescue,
 and backup identities; no destructive operation is authorized or pending.
 
+After the repeat milestone, eleven explicitly validated unreferenced build
+trees totaling 77,096,943,616 bytes were removed through exact KDE Trash
+entries. Free host space rose from 3.0 GB to about 75 GiB. Current candidates,
+wrapper cache, source, backups, private evidence, and VCNL work were retained.
+
 ## Immediate next gate
 
 V26 completed the early power/USB gate with stable NCM, valid battery/UCSI
