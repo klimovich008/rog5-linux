@@ -32,7 +32,7 @@ if grep -Fq '        wait_for_stage_host_key(cycle, anchor, target_known_hosts)'
 	exit 1
 fi
 ! grep -Fq 'transfer_arch_image(cycle, target_ssh, exact_arch_image())' "$runner"
-grep -Fq 'direct_seconds, buffered_seconds = run_write_benchmark(cycle, target_ssh)' \
+grep -Fq 'inspection = run_partial_inspection(cycle, target_ssh)' \
 	"$runner"
 
 echo 'PASS consumed V13 changed only signed identity and used the continuous lifecycle'
