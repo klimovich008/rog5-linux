@@ -53,7 +53,7 @@ grep -Fq "expected_boot_role='consumed Generation 153 read-only cycle; partial i
 grep -Fq "expected_boot_role='consumed Generation 154 cycle; direct 32 MiB passed in 50.25 seconds, buffered fsync blocked, sync-independent rollback returned exact fastboot; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 155 cycle; prepare failed before extent streaming and the old host discarded its reason; exact fastboot fallback; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 156 cycle; prepare and extent 1 passed, 4 KiB O_DIRECT throughput was impossible within watchdog, controlled SSH/HUP returned fastboot; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 157 1 MiB O_DIRECT successor; same fixed image path and 37 ranges; RAM-only; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 157 cycle; 1 MiB writes remained 0.66 MiB/s, proving UFS/transport fixed-bandwidth limit; controlled fallback passed; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -367,8 +367,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 156 cycle; prepare passed and extent 1 completed, but 4 KiB O_DIRECT made extent 2 run at about 0.6 MiB/s; operator ended the impossible-within-watchdog stream through SSH/HUP; exact fastboot fallback and cleanup passed; never retry or flash" &&
 		NF == 3 { local_direct_successor++ ; next }
 	$1 == "build/local-image-direct-v48-generation157-20260825-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 157 cycle replacing 4 KiB direct syscalls with exact 1 MiB byte-count/byte-seek O_DIRECT while accepting only zero or exact-size partial metadata; same 37 ranges, storage scope, kernel, DTB, modules, and fallback; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 157 cycle; prepare and extents 1-2 completed, but 1 MiB O_DIRECT remained about 0.66 MiB/s, proving syscall size was not the bottleneck; operator ended extent 3 through SSH/HUP; exact fastboot fallback and cleanup passed; never retry or flash" &&
 		NF == 3 { local_direct_megabyte++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -585,7 +585,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
