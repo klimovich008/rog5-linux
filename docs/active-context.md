@@ -398,9 +398,18 @@ uninstrumented post-UFS pre-SSH failure returned exact fastboot with no write.
 Generation 145 adds only existing stage records around userdata identity,
 storage lock, nologin removal, host-key creation, and sshd.
 Generation 145 is consumed at exact `runtime/nologin-identity`: no nologin file
-exists. The actual SSH blocker is locked `root:!`. Generation 146 uses an
-invalid non-locking `root:x` field with password auth disabled and accepts only
-exact nologin absence or an empty regular file; no write has yet occurred.
+exists. The actual SSH blocker was locked `root:!`. Generation 146 passed
+first-attempt key-only SSH and the exact gzip transfer, then its duplicate
+installer `set -f` disabled both `"$mountpoint"/*` and relock globs. It failed
+the literal-asterisk content check before creating the image path and returned
+exact fastboot. The target-only successor removes that line and reports any
+future installer failure before reboot; no kernel or wrapper rebuild is
+justified by this R3 shell defect.
+Generation 147 is the unbooted target-only successor. It reuses the proven
+kernel, DTB, 19 modules, recovery raw bytes, and slot-A fallback; only the
+installer glob fix, bounded failure output, signed target identity, and fresh
+RAM-only AVB generation differ. One live cycle must either verify the complete
+16 GiB image and relock storage or return the next exact installer reason.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

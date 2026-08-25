@@ -190,6 +190,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-fast-v35-generation144-live-v1 | \
 		local-image-stage-stages-v36-generation145-live-v1 | \
 		local-image-stage-auth-v37-generation146-live-v1 | \
+		local-image-stage-globfix-v38-generation147-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3136,8 +3137,8 @@ case $profile in
 		;;
 	local-image-stage-auth-v37-generation146-live-v1)
 		expected_boot_image=build/local-image-stage-auth-v37-generation146-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 146 bounded staging cycle accepting nologin only when absent or one empty regular file and using an invalid-but-unlocked root:x shadow field with password and keyboard auth disabled; otherwise identical proven writer, one image file, relock, fastboot; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 146 writer; absent-or-empty nologin and unlocked key-only root account, proven UFS, bounded installer, relock, fastboot; never flash'
+		expected_boot_basis='consumed by the sole Generation 146 cycle; exact UFS, key-only SSH, and gzip transfer passed, then installer set -f suppressed its userdata and relock globs and failed before creating an image path; exact fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 146 cycle; key-only SSH and exact gzip transfer passed, then installer set -f suppressed userdata/relock globs and failed before creating an image path; exact fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3160,6 +3161,39 @@ case $profile in
 		[[ $expected_image == 7ebb3394bf47630b6dabe73ef0bbd8c9164582d4b6e8a378c91889e7ed0433e8 ]] || fail 'local-image auth V37 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image auth V37 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image auth V37 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-stage-globfix-v38-generation147-live-v1)
+		expected_boot_image=build/local-image-stage-globfix-v38-generation147-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 147 target-only staging cycle removing installer set -f and emitting bounded failure output before reboot; proven kernel, DTB, modules, recovery raw bytes, one image-file scope, relock, and slot-A fallback unchanged; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 147 target-only installer glob fix; proven kernel, UFS, NCM, key-only SSH, exact image transfer, bounded userdata image, relock, fastboot; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-globfix-v38
+		expected_bundle=local-image-stage-globfix-v38
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=71ac845d9e123e9710f31875619059bcbfc201c34448f48e728341dd4a7a796c
+		expected_avb_digest=e415a75606a0e235ca431aa5b876cb444737895b46236f2c0dc65c2f9496828d
+		expected_generation_record=8e0eb6d6816daf5493f2cf37c6ff3fb7bc940d7d31f9902156a1a3114727cf08
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 1930e049f1f180e90cfcb8e877cb1108e1f1b9a15f3beaf421f4aeac3901a1e6 ]] || fail 'local-image globfix V38 manifest is not pinned'
+		[[ $expected_image == 7f2203a94b4dfc98f15e2a02f29c18cf7b8dbcea24983e66597898e512292563 ]] || fail 'local-image globfix V38 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image globfix V38 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image globfix V38 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4665,6 +4699,7 @@ case $profile in
 	local-image-stage-fast-v35-generation144-live-v1 | \
 	local-image-stage-stages-v36-generation145-live-v1 | \
 	local-image-stage-auth-v37-generation146-live-v1 | \
+	local-image-stage-globfix-v38-generation147-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
