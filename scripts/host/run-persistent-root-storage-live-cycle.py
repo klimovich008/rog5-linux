@@ -329,9 +329,24 @@ def exact_inputs() -> CYCLE.Inputs:
 
 
 def exact_arch_image() -> Path:
-    image = CYCLE.caller_artifact(
-        os.environ.get("ARCH_IMAGE_RAW", ""), "ARCH_IMAGE_RAW"
-    )
+    value = os.environ.get("ARCH_IMAGE_RAW", "")
+    image = Path(value)
+    try:
+        metadata = image.lstat()
+        canonical = image.resolve(strict=True)
+    except OSError as error:
+        raise PersistentCycleError("ARCH_IMAGE_RAW is unavailable") from error
+    if (
+        not image.is_absolute()
+        or canonical != image
+        or not stat.S_ISREG(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or stat.S_IMODE(metadata.st_mode) != 0o600
+        or metadata.st_nlink != 2
+        or metadata.st_size != 17_179_869_184
+    ):
+        fail("ARCH_IMAGE_RAW metadata changed")
     CYCLE.outside_repository(image, "ARCH_IMAGE_RAW")
     return image
 
