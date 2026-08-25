@@ -39,7 +39,8 @@ custom reboot-mode path avoids the stock-recovery loop. The next stager uses
 aligned direct writes and skips sparse holes; buffered writeback is excluded.
 V46 now passes offline with 37 direct ranges totaling 1.85 GiB, clean-twin
 target initramfses, signed bundle twins, and an authority-free Generation-155
-wrapper. It remains unadmitted and unbooted pending full CI.
+wrapper. Full local CI and exact-head/merge/QEMU GitHub checks passed; it is
+now admitted once and remains unbooted.
 
 ## Charging repair facts
 

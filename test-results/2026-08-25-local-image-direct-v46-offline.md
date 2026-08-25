@@ -1,6 +1,6 @@
 # Local-image direct V46 offline checkpoint
 
-Result: **OFFLINE PASS; UNADMITTED; UNBOOTED.** No phone contact or claim.
+Result: **OFFLINE PASS; ADMITTED ONCE; UNBOOTED.** No phone contact or claim.
 
 The exact 16 GiB Arch image is represented by one generated 37-range map:
 
@@ -24,4 +24,6 @@ the raw recovery payload remains
 
 The generic packager now accepts authority-free offline
 `persistent-root-ro-v1` records, with an unknown-profile refusal regression.
-Admission remains a separate change after full CI.
+After full local CI (433 seconds) and exact-head/merge/QEMU GitHub success on
+the reviewed implementation, Generation 155 was admitted for one RAM-only
+cycle. COMMIT or any ambiguous outcome permanently consumes it.
