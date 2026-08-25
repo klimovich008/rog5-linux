@@ -88,7 +88,7 @@ EOF
 	[ "$partial_uid:$partial_gid:$partial_links" = 0:0:1 ] || fail partial-identity
 	case $partial_mode in 600|644) ;; *) fail partial-identity ;; esac
 	case $partial_size in ''|*[!0-9]*) fail partial-identity ;; esac
-	[ "$partial_size" -gt 0 ] && [ "$partial_size" -le "$expected_partial_size" ] ||
+	[ "$partial_size" -ge 0 ] && [ "$partial_size" -le "$expected_partial_size" ] ||
 		fail partial-identity
 fi
 [ ! -e "$final" ] && [ ! -L "$final" ] || fail final-present

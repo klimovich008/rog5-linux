@@ -524,19 +524,20 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "partial_gid=0\n"
             "partial_mode=644\n"
             "partial_links=1\n"
-            "partial_size=825884672\n"
-            "partial_blocks_512=1613056\n"
+            "partial_size=0\n"
+            "partial_blocks_512=0\n"
             "final_type=absent\n"
             "rog5_stat=0:0:700:3\n"
             "images_stat=0:0:700:2\n"
             "result=PASS\n"
+            "Timeout, server 169.254.77.2 not responding.\n"
         )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "inspection.log"
             path.write_text(valid, encoding="ascii")
             parsed = MODULE.parse_partial_inspection(path)
             self.assertEqual(parsed["partial_type"], "regular")
-            self.assertEqual(parsed["partial_size"], "825884672")
+            self.assertEqual(parsed["partial_size"], "0")
             for mutation in (
                 valid.replace("partial_type=regular", "partial_type=unknown"),
                 valid.replace("partial_uid=0", "partial_uid=-1"),

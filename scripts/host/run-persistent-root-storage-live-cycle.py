@@ -700,6 +700,10 @@ def parse_partial_inspection(path: Path) -> dict[str, str]:
         "partial_links", "partial_size", "partial_blocks_512", "final_type",
         "rog5_stat", "images_stat", "result",
     )
+    if len(lines) == len(names) + 1 and lines[-1] == (
+        "Timeout, server 169.254.77.2 not responding."
+    ):
+        lines.pop()
     if len(lines) != len(names):
         fail("partial inspection output shape changed")
     values: dict[str, str] = {}
