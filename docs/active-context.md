@@ -42,8 +42,9 @@ ext4 blocks, all block devices read-only, zero mounts, and no write; automatic
 rollback reached exact slot-A recovery on the anchored side port. The next gate
 is the separately reviewed Stage-1 shrink/GPT transaction. Authority-free
 Generation 165 now binds the current twin initramfs and exact private execution
-record, but has no policy row, claim, phone-boot permission, or destructive
-authority. Stage 2 remains offline.
+record. The user gave exact final confirmation and one narrow admission now
+exists; its claim remains unconsumed and no Stage-1 phone boot or write has
+occurred. Stage 2 remains offline.
 
 ## Completed charging repair
 

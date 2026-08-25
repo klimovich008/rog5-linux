@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import hashlib
+import importlib.util
 import re
 import stat
 import subprocess
@@ -21,6 +22,7 @@ REBOOT_SOURCE = REPO / "tools/reboot_bootloader/rog5-reboot-bootloader.c"
 MANIFEST = REPO / "manifests/userdata-ext4-reset-generation99.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
+STAGE1_BOOT_POLICY = REPO / "manifests/storage-layout-stage1-temporary-boot-v1.tsv"
 CURRENT = REPO / "manifests/storage-layout-stage1-current-20260825.manifest"
 CURRENT_CANDIDATE = (
     REPO / "manifests/storage-layout-stage1-current-generation165.manifest"
@@ -113,6 +115,10 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertEqual(fields["preflight_generation"], "164")
         self.assertEqual(fields["preflight_ext4_minimum_blocks"], "1219496")
         self.assertEqual(
+            fields["collector_execution_record_sha256"],
+            "080aea76796bd3f0fad230796086adb14d45ca55557d6a40af2aa77b2a00b955",
+        )
+        self.assertEqual(
             fields["image_sha256"],
             "1a00e9061c027c804458732cfc93ba7175ee6821d821f9d86ffa079383fd5fc2",
         )
@@ -157,6 +163,49 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         cmdline = arguments[arguments.index(b"--cmdline") + 1].decode("ascii")
         self.assertEqual(cmdline.split().count("rog5.recovery_timeout=900"), 1)
         self.assertNotIn("rog5.recovery_timeout=300", cmdline.split())
+
+    def test_current_stage1_admission_and_claim_are_exact(self) -> None:
+        manifest_sha256 = hashlib.sha256(CURRENT_CANDIDATE.read_bytes()).hexdigest()
+        self.assertEqual(
+            manifest_sha256,
+            "7e3bb797375f5b3a38a4bf76bb57f2a51e344b36a9613e0f25cf2e6c97862215",
+        )
+        lines = STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()
+        self.assertEqual(
+            lines[0],
+            "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
+            "image_size\timage_sha256\tbasis",
+        )
+        self.assertEqual(len(lines), 2)
+        fields = lines[1].split("\t")
+        self.assertEqual(
+            fields[:6],
+            [
+                "storage-layout-stage1-current-generation165-live-v1",
+                "allow",
+                manifest_sha256,
+                "build/storage-layout-stage1-current-generation165-20260825-r1/"
+                "repack/stable-recovery-a.avb.img",
+                "100663296",
+                "1a00e9061c027c804458732cfc93ba7175ee6821d821f9d86ffa079383fd5fc2",
+            ],
+        )
+        self.assertIn("durable fresh backup ACK", fields[6])
+        self.assertIn("never flash or retry after entry", fields[6])
+        expected_claim = (
+            "format=rog5-temporary-boot-consumption-v1\n"
+            "recovery_profile=storage-layout-stage1-current-generation165-live-v1\n"
+            "candidate=storage-layout-stage1-current\n"
+            f"manifest_sha256={manifest_sha256}\n"
+            "state=BOOT_CLAIMED\n"
+        ).encode("ascii")
+        spec = importlib.util.spec_from_file_location("stage1_claims", CLAIM_CONSUMER)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader if spec else None)
+        module = importlib.util.module_from_spec(spec)
+        assert spec is not None and spec.loader is not None
+        spec.loader.exec_module(module)
+        self.assertEqual(module.expected_record(fields[0]), expected_claim)
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
