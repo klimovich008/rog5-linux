@@ -59,7 +59,7 @@ spawn_fixture() {
 spawn_unreaped_fixture() {
 	fixture=$work/watchdog-unreaped-fixture
 	pid_file=$work/unreaped.pid
-	printf '%s\n' '#!/bin/sh' 'sleep 600' 'exit 0' >"$fixture"
+	printf '%s\n' '#!/bin/sh' 'exec sleep 600' >"$fixture"
 	chmod 0700 "$fixture"
 	python3 - "$fixture" "$pid_file" <<'PY' &
 import pathlib
@@ -84,6 +84,10 @@ PY
 	fixture_pid=$(cat "$pid_file")
 	[ "$(awk '{ print $4 }' "/proc/$fixture_pid/stat")" = "$fixture_supervisor_pid" ] || {
 		echo 'FAIL unreaped watchdog parent is not stable' >&2
+		exit 1
+	}
+	[ ! -s "/proc/$fixture_pid/task/$fixture_pid/children" ] || {
+		echo 'FAIL unreaped watchdog fixture created an orphanable child' >&2
 		exit 1
 	}
 }
