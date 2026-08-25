@@ -330,7 +330,7 @@ class CandidateTests(unittest.TestCase):
             fields[:6],
             [
                 CURRENT_PROFILE,
-                "allow",
+                "revoked",
                 CURRENT_MANIFEST_SHA256,
                 "build/storage-preflight-current-generation164-20260825-r1/"
                 "repack/stable-recovery-a.avb.img",
@@ -338,8 +338,10 @@ class CandidateTests(unittest.TestCase):
                 "d9a500dd7285b6f7789df89c8da0735f75bb04ee893808bb4f59de1e9e46fdf1",
             ],
         )
-        self.assertIn("no mounts, writes, GPT operations", fields[6])
-        self.assertIn("never flash or retry after entry", fields[6])
+        self.assertIn("exact PASS", fields[6])
+        self.assertIn("minimum 1219496 blocks", fields[6])
+        self.assertIn("zero mounts and no write", fields[6])
+        self.assertIn("never retry or flash", fields[6])
         expected_claim = (
             "format=rog5-temporary-boot-consumption-v1\n"
             f"recovery_profile={CURRENT_PROFILE}\n"
