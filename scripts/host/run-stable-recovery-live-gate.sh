@@ -192,6 +192,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-auth-v37-generation146-live-v1 | \
 		local-image-stage-globfix-v38-generation147-live-v1 | \
 		local-image-stage-rworder-v39-generation148-live-v1 | \
+		local-image-stage-writekernel-v40-generation149-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3204,8 +3205,8 @@ case $profile in
 		;;
 	local-image-stage-rworder-v39-generation148-live-v1)
 		expected_boot_image=build/local-image-stage-rworder-v39-generation148-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 148 target-only staging cycle clearing and verifying the parent disk before userdata; proven kernel, DTB, modules, recovery raw bytes, one image-file scope, relock, and slot-A fallback unchanged; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 148 target-only parent-before-child read-write correction; proven kernel, UFS, SSH, transfer, bounded image, relock, fastboot; never flash'
+		expected_boot_basis='consumed by the sole Generation 148 cycle; exact UFS, SSH, and transfer passed, then disk-rw-state proved the deployed ae717 Image lacks bounded data-write support; no mount or image path; fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 148 cycle; exact disk-rw-state proved the deployed ae717 Image is compile-time read-only; no mount or image path; fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3228,6 +3229,39 @@ case $profile in
 		[[ $expected_image == ed8611651c205a91b2ad457bb3889a366c304d3f67c7421c1cba1f0269dac002 ]] || fail 'local-image rworder V39 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image rworder V39 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image rworder V39 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-stage-writekernel-v40-generation149-live-v1)
+		expected_boot_image=build/local-image-stage-writekernel-v40-generation149-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 149 staging cycle composing the retained clean-twin bounded-write kernel and matching modules with the corrected stager; same DTB, one image-file scope, relock, recovery raw bytes, and slot-A fallback; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 149 clean-twin bounded-write kernel composition with corrected stager, charging, UFS, relock, fastboot; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-writekernel-v40
+		expected_bundle=local-image-stage-writekernel-v40
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=2480863b45bcb0d9dd3618ccb175e1dcb74d20ad04c00721ade82c6904ebf585
+		expected_avb_digest=a4f4f71055b2d7301692d435c4c831f30923225de98736399f62f828e34f92e5
+		expected_generation_record=c2e3e0354675281a351653a4524213fa5b8c1dee3138ad74a7ea8183520a39b6
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 4ed06aa453489f7666c3f7ccb55e519a9fa4074c03edda496326810beed57606 ]] || fail 'local-image writekernel V40 manifest is not pinned'
+		[[ $expected_image == e001c6e580b3a07ee0c863e2a4d72b1a4e68c74edd01cae79e46907870bcadfa ]] || fail 'local-image writekernel V40 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image writekernel V40 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image writekernel V40 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4735,6 +4769,7 @@ case $profile in
 	local-image-stage-auth-v37-generation146-live-v1 | \
 	local-image-stage-globfix-v38-generation147-live-v1 | \
 	local-image-stage-rworder-v39-generation148-live-v1 | \
+	local-image-stage-writekernel-v40-generation149-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

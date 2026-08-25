@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-rworder-v39-generation148-live-v1"
-BUNDLE = "local-image-stage-rworder-v39"
+PROFILE_ID = "local-image-stage-writekernel-v40-generation149-live-v1"
+BUNDLE = "local-image-stage-writekernel-v40"
 MANIFEST_SHA256 = (
-    "59a2ebc8798354545159cf24a836cc23fe9e9a031eea7c7fe181f8674ee8dab3"
+    "4ed06aa453489f7666c3f7ccb55e519a9fa4074c03edda496326810beed57606"
 )
 RECOVERY_SHA256 = (
-    "ed8611651c205a91b2ad457bb3889a366c304d3f67c7421c1cba1f0269dac002"
+    "e001c6e580b3a07ee0c863e2a4d72b1a4e68c74edd01cae79e46907870bcadfa"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,24 +59,24 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-rworder-v39-generation148-live-v1\n"
-    b"candidate=local-image-stage-rworder-v39\n"
+    b"local-image-stage-writekernel-v40-generation149-live-v1\n"
+    b"candidate=local-image-stage-writekernel-v40\n"
     b"manifest_sha256="
-    b"59a2ebc8798354545159cf24a836cc23fe9e9a031eea7c7fe181f8674ee8dab3\n"
+    b"4ed06aa453489f7666c3f7ccb55e519a9fa4074c03edda496326810beed57606\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-rworder-v39-claim.py"
+    / "scripts/host/consume-local-image-stage-writekernel-v40-claim.py"
 )
-TARGET_RELEASE = "7.1.4-gae717d919f87"
+TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
 TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-rworder-v39-generation148-20260825-r1"
+    / "build/local-image-stage-writekernel-v40-generation149-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-rworder-v39",
+    admission_profile="local-image-stage-writekernel-v40",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-rworder-v39",
-    build_profile="local-image-stage-rworder-v39",
+    runtime_profile="local-image-stage-writekernel-v40",
+    build_profile="local-image-stage-writekernel-v40",
     diagnostic=False,
 )
 

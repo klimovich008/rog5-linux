@@ -455,6 +455,11 @@ first-attempt key-only SSH, and exact transfer, then reported
 to clear the partition while its parent disk was still read-only. The
 target-only successor clears and verifies the parent first, then the partition;
 kernel, DTB, modules, wrapper raw bytes, and storage scope remain unchanged.
+Generation 148 is consumed at exact `disk-rw-state`. Source/config inspection
+proves the deployed ae717 Image lacks bounded UFS data-write support, so this
+is R2 composition rather than another blockdev defect. The next target uses
+the retained clean-twin write-capable Image and matching 19 modules; it remains
+RAM-only and keeps the same DTB, installer, write scope, and slot-A fallback.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

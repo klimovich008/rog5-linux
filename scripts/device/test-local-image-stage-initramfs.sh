@@ -16,18 +16,22 @@ globfix=$repo/configs/recovery-candidates/local-image-stage-globfix-v38.json
 globfix_manifest=$repo/manifests/local-image-stage-globfix-v38-generation147.manifest
 rworder=$repo/configs/recovery-candidates/local-image-stage-rworder-v39.json
 rworder_manifest=$repo/manifests/local-image-stage-rworder-v39-generation148.manifest
+writekernel=$repo/configs/recovery-candidates/local-image-stage-writekernel-v40.json
+writekernel_manifest=$repo/manifests/local-image-stage-writekernel-v40-generation149.manifest
 claim=$repo/scripts/host/consume-local-image-stage-claim.py
 successor_claim=$repo/scripts/host/consume-local-image-stage-writer-v2-claim.py
 hotplug_claim=$repo/scripts/host/consume-local-image-stage-hotplug-v3-claim.py
 usbmode_claim=$repo/scripts/host/consume-local-image-stage-usbmode-v5-claim.py
 globfix_claim=$repo/scripts/host/consume-local-image-stage-globfix-v38-claim.py
 rworder_claim=$repo/scripts/host/consume-local-image-stage-rworder-v39-claim.py
+writekernel_claim=$repo/scripts/host/consume-local-image-stage-writekernel-v40-claim.py
 
 for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
 	"$successor_manifest" "$hotplug" "$hotplug_manifest" "$claim" \
 	"$successor_claim" "$hotplug_claim" "$usbmode" "$usbmode_manifest" \
 	"$usbmode_claim" "$globfix" "$globfix_manifest" "$globfix_claim" \
-	"$rworder" "$rworder_manifest" "$rworder_claim"; do
+	"$rworder" "$rworder_manifest" "$rworder_claim" "$writekernel" \
+	"$writekernel_manifest" "$writekernel_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 sh -n "$init" "$installer" "$builder"
@@ -37,11 +41,13 @@ python3 -m py_compile "$hotplug_claim"
 python3 -m py_compile "$usbmode_claim"
 python3 -m py_compile "$globfix_claim"
 python3 -m py_compile "$rworder_claim"
+python3 -m py_compile "$writekernel_claim"
 grep -Fq 'consume-exact-boot-claim.py' "$claim"
 grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
 grep -Fq 'consumer["consume"](PROFILE)' "$globfix_claim"
 grep -Fq 'consumer["consume"](PROFILE)' "$rworder_claim"
+grep -Fq 'consumer["consume"](PROFILE)' "$writekernel_claim"
 ! grep -Eq 'os[.](open|rename|replace|fsync)|shutil|subprocess' "$claim"
 
 ! grep -Fxq 'set -f' "$init" || {
@@ -313,7 +319,7 @@ import sys
 
 candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert candidate["candidate"] == "local-image-stage-rworder-v39"
-assert candidate["status"] == "offline"
+assert candidate["status"] == "consumed"
 assert candidate["authority"] == "none"
 artifact = Path(sys.argv[1]).resolve().parents[2] / \
     candidate["artifacts"]["initramfs.cpio.gz"]["path"]
@@ -325,6 +331,46 @@ grep -Fxq 'avb_generation=148' "$rworder_manifest"
 grep -Fxq 'delta=set-parent-disk-rw-before-partition-with-exact-readbacks' \
 	"$rworder_manifest"
 grep -Fxq 'phone_flash=forbidden' "$rworder_manifest"
+
+python3 - "$writekernel" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+candidate = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert candidate["candidate"] == "local-image-stage-writekernel-v40"
+assert candidate["status"] == "offline"
+assert candidate["authority"] == "none"
+assert candidate["target_release"] == "7.1.4-g359318de534f"
+assert candidate["artifacts"]["Image"]["sha256"] == \
+    "a7e0cd84238d9e0c399a6c93d3c7a5996571dc3536b10c7323cbe1455dbad01e"
+artifact = Path(sys.argv[1]).resolve().parents[2] / \
+    candidate["artifacts"]["initramfs.cpio.gz"]["path"]
+assert artifact.stat().st_size == 23804743
+assert hashlib.file_digest(artifact.open("rb"), "sha256").hexdigest() == \
+    "6ed0954e7f01fe5fd437a05872783824b5c975fa9d38d0e561b02fe80871fac8"
+PY
+grep -Fxq 'avb_generation=149' "$writekernel_manifest"
+grep -Fxq 'delta=compose-clean-twin-bounded-write-kernel-with-corrected-stager' \
+	"$writekernel_manifest"
+grep -Fxq 'phone_flash=forbidden' "$writekernel_manifest"
+retained_write_twins=0
+for retained in \
+	/home/deck/.local/state/rog5-local-image-stage-write-kernel-a-20260823-r1 \
+	/home/deck/.local/state/rog5-local-image-stage-write-kernel-b-20260823-r1; do
+	[ -d "$retained" ] || continue
+	retained_write_twins=$((retained_write_twins + 1))
+	grep -Fxq 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y' "$retained/.config"
+	grep -Fxq 'CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y' "$retained/.config"
+	grep -Fxq 'CONFIG_NVMEM_SPMI_SDAM=y' "$retained/.config"
+	grep -Fxq 'CONFIG_NVMEM_REBOOT_MODE=y' "$retained/.config"
+	[ "$(sha256sum "$retained/arch/arm64/boot/Image" | cut -d ' ' -f 1)" = \
+		a7e0cd84238d9e0c399a6c93d3c7a5996571dc3536b10c7323cbe1455dbad01e ]
+	[ "$(find "$retained/deferred-ufs-modules" -type f -name '*.ko' | wc -l)" -eq 4 ]
+	[ "$(find "$retained/power-usb-modules" -type f -name '*.ko' | wc -l)" -eq 15 ]
+done
+[ "$retained_write_twins" -eq 0 ] || [ "$retained_write_twins" -eq 2 ]
 
 busybox_root=$(mktemp -d)
 trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM

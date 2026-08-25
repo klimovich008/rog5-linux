@@ -411,6 +411,11 @@ first-attempt key-only SSH, and transfer, then returned exact
 only parent-before-child read-write ordering and exact readback reasons; it
 retains the proven kernel, DTB, 19 modules, recovery raw bytes, storage scope,
 and slot-A fallback.
+Generation 148 is consumed at exact `disk-rw-state`. The deployed ae717 config
+is compile-time read-only and cannot satisfy the installer regardless of
+BLKROSET ordering. The successor reuses the retained clean-twin g359
+write-capable Image, matching four UFS and 15 charging modules, current DTB and
+installer, and unchanged RAM-only recovery/fallback.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
