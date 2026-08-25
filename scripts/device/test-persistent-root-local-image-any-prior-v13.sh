@@ -21,7 +21,10 @@ assert current["target_release"] == previous["target_release"]
 assert current["artifacts"] == previous["artifacts"]
 PY
 
-grep -Fq 'wait_post_commit_host_cleanup(cycle)' "$runner"
+! grep -Fq 'wait_post_commit_host_cleanup(cycle)' "$runner"
+bundle_line=$(grep -n 'cycle.wait_bundle(bundle_process, control_process)' "$runner" | cut -d: -f1)
+target_line=$(grep -n 'interface = activate_target_network(cycle, anchor)' "$runner" | cut -d: -f1)
+[ -n "$bundle_line" ] && [ -n "$target_line" ] && [ "$bundle_line" -lt "$target_line" ]
 grep -Fq 'interface = activate_target_network(cycle, anchor)' "$runner"
 grep -Fq 'wait_for_target_host_key(cycle, anchor, target_known_hosts)' "$runner"
 if grep -Fq '        wait_for_stage_host_key(cycle, anchor, target_known_hosts)' "$runner"; then

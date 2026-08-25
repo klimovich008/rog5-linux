@@ -389,6 +389,10 @@ NetworkManager ownership result on the new NCM interface. No write occurred and
 fastboot fallback passed. Generation 143 changes only host observation:
 no-address/unknown is transitional, any escaped `/30` or final unknown remains
 fatal.
+Generation 143 is consumed before host-key readiness because redundant
+post-COMMIT cleanup delayed target activation. No write occurred. Generation
+144 removes only that duplicate wait after the bundle server's canonical
+cleanup; final fallback cleanup remains unchanged and mandatory.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "local-image-stage-nm-v34-generation143-live-v1",
+            "local-image-stage-fast-v35-generation144-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -66,7 +66,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
         self.assertEqual(
             MODULE.BUNDLE,
-            "local-image-stage-nm-v34",
+            "local-image-stage-fast-v35",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -84,7 +84,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation143",
+            "generation144",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -101,19 +101,19 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-local-image-stage-nm-v34-claim.py",
+            "consume-local-image-stage-fast-v35-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
         source = MODULE_PATH.read_text()
-        cleanup = source.index("        wait_post_commit_host_cleanup(cycle)\n")
+        handoff = source.index("        cycle.wait_bundle(bundle_process, control_process)\n")
         network = source.index("interface = activate_target_network(cycle, anchor)")
         host_key = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
         transfer = source.index("transfer_arch_image(cycle, target_ssh, exact_arch_image())")
-        self.assertLess(cleanup, network)
+        self.assertLess(handoff, network)
         self.assertLess(network, host_key)
         self.assertLess(host_key, transfer)
-        segment = source[cleanup:transfer]
+        segment = source[handoff:transfer]
         self.assertNotIn("input(", segment)
         self.assertNotIn("STOCK.fastboot(", segment)
         self.assertNotIn("wait_for_stage_host_key(", segment)
@@ -337,20 +337,16 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             ["/usr/bin/sudo", "-n", "/usr/bin/nmcli"],
         )
 
-    def test_post_commit_cleanup_allows_recovery_usb_to_reenumerate(self) -> None:
-        cycle = SimpleNamespace(wait_host_clean=mock.Mock())
-        MODULE.wait_post_commit_host_cleanup(cycle)
-        cycle.wait_host_clean.assert_called_once_with()
-
-    def test_post_commit_forgets_the_departed_recovery_interface(self) -> None:
+    def test_post_commit_activates_target_without_redundant_cleanup_wait(self) -> None:
         source = MODULE_PATH.read_text()
-        cleanup = source.index("        wait_post_commit_host_cleanup(cycle)\n")
-        forget = source.index("        recovery_ncm = None\n", cleanup)
+        handoff = source.index("        cycle.wait_bundle(bundle_process, control_process)\n")
+        forget = source.index("        recovery_ncm = None\n", handoff)
         target = source.index(
             "        interface = activate_target_network(cycle, anchor)\n",
-            cleanup,
+            handoff,
         )
-        self.assertLess(cleanup, forget)
+        self.assertNotIn("wait_post_commit_host_cleanup", source)
+        self.assertLess(handoff, forget)
         self.assertLess(forget, target)
 
     def test_failure_cleanup_stops_both_clients_before_host_proof(self) -> None:
