@@ -4,7 +4,6 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 candidate=$repo/configs/recovery-candidates/persistent-root-local-image-any-prior-v13.json
 v12=$repo/configs/recovery-candidates/persistent-root-local-image-any-prior-v12.json
-runner=$repo/scripts/host/run-persistent-root-storage-live-cycle.py
 
 python3 - "$candidate" "$v12" <<'PY'
 import json
@@ -21,18 +20,4 @@ assert current["target_release"] == previous["target_release"]
 assert current["artifacts"] == previous["artifacts"]
 PY
 
-! grep -Fq 'wait_post_commit_host_cleanup(cycle)' "$runner"
-bundle_line=$(grep -n 'cycle.wait_bundle(bundle_process, control_process)' "$runner" | cut -d: -f1)
-target_line=$(grep -n 'interface = activate_target_network(cycle, anchor)' "$runner" | cut -d: -f1)
-[ -n "$bundle_line" ] && [ -n "$target_line" ] && [ "$bundle_line" -lt "$target_line" ]
-grep -Fq 'interface = activate_target_network(cycle, anchor)' "$runner"
-grep -Fq 'wait_for_target_host_key(cycle, anchor, target_known_hosts)' "$runner"
-if grep -Fq '        wait_for_stage_host_key(cycle, anchor, target_known_hosts)' "$runner"; then
-	echo 'FAIL active lifecycle still selects the SSH-only target wait' >&2
-	exit 1
-fi
-! grep -Fq 'transfer_arch_image(cycle, target_ssh, exact_arch_image())' "$runner"
-grep -Fq 'inspection = run_partial_inspection(cycle, target_ssh)' \
-	"$runner"
-
-echo 'PASS consumed V13 changed only signed identity and used the continuous lifecycle'
+echo 'PASS consumed V13 changed only signed identity; active lifecycle is tested separately'
