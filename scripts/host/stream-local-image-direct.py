@@ -85,7 +85,7 @@ def run(
 ) -> None:
     result = subprocess.run(
         command,
-        stdin=stdin,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=False,

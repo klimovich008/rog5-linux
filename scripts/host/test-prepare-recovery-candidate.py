@@ -169,9 +169,17 @@ class RecoveryCandidateTest(unittest.TestCase):
             with self.assertRaises(RUNNER.CandidateError):
                 RUNNER.load_candidate("fixture")
 
-    def test_offline_non_network_root_profile_refuses(self) -> None:
+    def test_offline_persistent_root_profile_packages(self) -> None:
         record = copy.deepcopy(self.record)
         record["status"] = "offline"
+        self.write_record(record)
+        loaded = RUNNER.load_candidate("fixture")
+        self.assertEqual(loaded["profile"], "persistent-root-ro-v1")
+
+    def test_offline_unknown_profile_refuses(self) -> None:
+        record = copy.deepcopy(self.record)
+        record["status"] = "offline"
+        record["profile"] = "unknown-v1"
         self.write_record(record)
         with self.assertRaises(RUNNER.CandidateError):
             RUNNER.load_candidate("fixture")

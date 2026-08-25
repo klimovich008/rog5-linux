@@ -37,6 +37,9 @@ the buffered fsync path remained blocked past 180 seconds. The independent
 sync-free rollback returned directly to exact slot-A fastboot, proving the
 custom reboot-mode path avoids the stock-recovery loop. The next stager uses
 aligned direct writes and skips sparse holes; buffered writeback is excluded.
+V46 now passes offline with 37 direct ranges totaling 1.85 GiB, clean-twin
+target initramfses, signed bundle twins, and an authority-free Generation-155
+wrapper. It remains unadmitted and unbooted pending full CI.
 
 ## Charging repair facts
 
