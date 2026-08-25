@@ -466,11 +466,11 @@ about 826 MB before UFS I/O, gzip, and `sync` became uninterruptible. Exact
 fastboot fallback required the already-set restart2 reason plus emergency
 SysRq. The next stager must be sparse/extents-aware and must not block emergency
 rollback on `sync`; no full-image successor is admitted.
-Generation 150 is consumed at exact `partial-identity` before any benchmark
-write. Generation 151 accepts only safe bounded post-crash partial states and
-reports the observed tuple before comparing one 32 MiB aligned direct write
-against one 32 MiB buffered write. Its independent restart2-plus-SysRq
-watchdog never calls `sync`. Full-image staging remains paused.
+Generations 150 and 151 are consumed at exact `partial-identity` before any
+benchmark write; the partial continued growing after the earlier snapshot.
+Generation 152 bounds it by the original fixed 16 GiB logical image size while
+retaining exact type/owner/mode/link checks, then compares 32 MiB direct and
+buffered writes with sync-independent fallback. Full-image staging is paused.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

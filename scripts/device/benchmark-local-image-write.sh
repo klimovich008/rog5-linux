@@ -9,7 +9,7 @@ mountpoint=/mnt/userdata
 partial=$mountpoint/rog5/images/arch-local-a.ext4.partial
 final=$mountpoint/rog5/images/arch-local-a.ext4
 benchmark=$mountpoint/rog5/images/write-benchmark
-expected_partial_size=825884672
+expected_partial_size=17179869184
 test_size=33554432
 mounted=0
 
