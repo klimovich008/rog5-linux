@@ -112,6 +112,25 @@ grep -Fq 'read-only:staged-seal) ;;' "$init" ||
 grep -Fq '[ "$expected_probe_boot_id" = staged-seal ]' \
 	"$builder" "$init" "$attest" ||
 	fail 'P2 staged-image policy is incomplete'
+for contract in \
+	'load_reboot_mode_modules() {' \
+	'nvmem_qcom-spmi-sdam.ko nvmem-reboot-mode.ko' \
+	"fail_stage 'Qualcomm reboot-mode modules failed' reboot-mode 15"; do
+	grep -Fq "$contract" "$init" ||
+		fail "P2 target lacks reboot-mode module contract: $contract"
+done
+grep -Fq 'REBOOT_MODE_MODULES' "$builder" ||
+	fail 'P2 builder cannot package matching reboot-mode modules'
+python3 - "$init" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+usb = source.index("if ! configure_usb; then")
+load = source.index("if ! load_reboot_mode_modules; then", usb)
+wait = source.index("if ! wait_for_reboot_mode; then", load)
+assert usb < load < wait
+PY
 grep -Fqx 'reboot_helper=/usr/libexec/rog5-reboot-bootloader' \
 	"$init" "$shutdown" || fail 'P2 rollback lacks the fixed restart2 helper path'
 grep -Fq '"$reboot_helper" || true' "$init" "$shutdown" ||

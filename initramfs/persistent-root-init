@@ -39,6 +39,7 @@ stage_reporter_pid=
 target_boot_id=
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 reboot_mode_driver=/sys/bus/platform/drivers/nvmem-reboot-mode
+reboot_mode_modules=/rog5-reboot-mode-modules
 
 log() {
 	for kmsg in /dev/kmsg /newroot/dev/kmsg; do
@@ -163,6 +164,17 @@ wait_for_reboot_mode() {
 		sleep 0.1
 	done
 	return 1
+}
+
+load_reboot_mode_modules() {
+	[ -d "$reboot_mode_modules" ] || return 0
+	[ "$(find "$reboot_mode_modules" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 2 ] ||
+		return 1
+	for module in nvmem_qcom-spmi-sdam.ko nvmem-reboot-mode.ko; do
+		path=$reboot_mode_modules/$module
+		[ -f "$path" ] && [ ! -L "$path" ] || return 1
+		insmod "$path" || return 1
+	done
 }
 
 fail_stage() {
@@ -1488,6 +1500,9 @@ fi
 arm_watchdog
 if ! configure_usb; then
 	fail_stage 'USB recovery transport failed' usb 15
+fi
+if ! load_reboot_mode_modules; then
+	fail_stage 'Qualcomm reboot-mode modules failed' reboot-mode 15
 fi
 if ! wait_for_reboot_mode; then
 	fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15

@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "persistent-root-local-v50-generation159-live-v1"
-BUNDLE = "persistent-root-local-v50"
+PROFILE_ID = "persistent-root-local-v51-generation160-live-v1"
+BUNDLE = "persistent-root-local-v51"
 MANIFEST_SHA256 = (
-    "b5f3c2665a5ac68d255449102c06d210348b4c88c1457c762e31ec58d1febe03"
+    "15c928ac9ba0856ad6320d9b7ff4d1b78a0ecc0f4bb62b5cfaeec64978915ca3"
 )
 RECOVERY_SHA256 = (
-    "cca9661162c335d0dcd774bf55544acee3cc8d8950f8ddd96a2979ee2b6f076a"
+    "e2c8c41b5e016f9f32b42f01555c58203b1f826d5a743875c59de7708c95ba28"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"persistent-root-local-v50-generation159-live-v1\n"
-    b"candidate=persistent-root-local-v50\n"
+    b"persistent-root-local-v51-generation160-live-v1\n"
+    b"candidate=persistent-root-local-v51\n"
     b"manifest_sha256="
-    b"b5f3c2665a5ac68d255449102c06d210348b4c88c1457c762e31ec58d1febe03\n"
+    b"15c928ac9ba0856ad6320d9b7ff4d1b78a0ecc0f4bb62b5cfaeec64978915ca3\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-persistent-root-local-v50-claim.py"
+    / "scripts/host/consume-persistent-root-local-v51-claim.py"
 )
 TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-root-local-v50-generation159-20260825-r1"
+    / "build/persistent-root-local-v51-generation160-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -125,10 +125,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-root-local-v50",
+    admission_profile="persistent-root-local-v51",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-root-local-v50",
-    build_profile="persistent-root-local-v50",
+    runtime_profile="persistent-root-local-v51",
+    build_profile="persistent-root-local-v51",
     diagnostic=False,
 )
 
