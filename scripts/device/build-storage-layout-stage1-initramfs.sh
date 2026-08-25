@@ -1,22 +1,24 @@
 #!/bin/sh
 set -eu
 
-base=${1:?usage: build-storage-layout-stage1-initramfs.sh BASE INIT EXECUTOR WATCHDOG_DISARM PRIVATE_CONFIG PRIVATE_CONFIG_SHA256 SGDISK_APK POPT_APK LIBGCC_APK LIBSTDCXX_APK MUSL_APK LIBUUID_APK REBOOT_BOOTLOADER OUTPUT}
+base=${1:?usage: build-storage-layout-stage1-initramfs.sh BASE INIT EXECUTOR WATCHDOG_DISARM PRIVATE_CONFIG PRIVATE_CONFIG_SHA256 NEW_GPT NEW_GPT_SHA256 SGDISK_APK POPT_APK LIBGCC_APK LIBSTDCXX_APK MUSL_APK LIBUUID_APK REBOOT_BOOTLOADER OUTPUT}
 init=${2:?missing recovery init}
 executor=${3:?missing stage-1 executor}
 watchdog_disarm=${4:?missing watchdog disarm helper}
 private_config=${5:?missing private stage-1 config}
 private_config_sha256=${6:?missing private config SHA-256}
-sgdisk_apk=${7:?missing sgdisk package}
-popt_apk=${8:?missing popt package}
-libgcc_apk=${9:?missing libgcc package}
-libstdcpp_apk=${10:?missing libstdc++ package}
-musl_apk=${11:?missing musl package}
-libuuid_apk=${12:?missing libuuid package}
-reboot_bootloader=${13:?missing reboot-to-bootloader helper}
-output=${14:?missing output}
+new_gpt=${7:?missing reviewed new GPT backup}
+new_gpt_sha256=${8:?missing reviewed new GPT backup SHA-256}
+sgdisk_apk=${9:?missing sgdisk package}
+popt_apk=${10:?missing popt package}
+libgcc_apk=${11:?missing libgcc package}
+libstdcpp_apk=${12:?missing libstdc++ package}
+musl_apk=${13:?missing musl package}
+libuuid_apk=${14:?missing libuuid package}
+reboot_bootloader=${15:?missing reboot-to-bootloader helper}
+output=${16:?missing output}
 epoch=1681862400
-executor_sha256=28c7aeaa37703bc6dad458c0f028417678e6f0f9fa2efebd87e4e27eac0e6d74
+executor_sha256=70a5c1e3521521f471cd91fc3531899ed01d92f5ba88c8a68a85cb7f6dfb6cc5
 watchdog_disarm_sha256=ba40a89f0e20f17accb04283e36e859822070450bee44de8924255801cbef2fb
 reboot_bootloader_sha256=68d6a69e597e9fa86ee956ee9fadc15f4283e7dd2a6032b924449330bb3e4785
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
@@ -39,7 +41,7 @@ for command in awk basename chmod cpio cut dirname find grep gzip install \
 	command -v "$command" >/dev/null ||
 		fail "missing storage-layout build command: $command"
 done
-for input in "$base" "$init" "$executor" "$watchdog_disarm" "$private_config" "$sgdisk_apk" \
+for input in "$base" "$init" "$executor" "$watchdog_disarm" "$private_config" "$new_gpt" "$sgdisk_apk" \
 	"$popt_apk" "$libgcc_apk" "$libstdcpp_apk" "$musl_apk" "$libuuid_apk" \
 	"$reboot_bootloader" "$readonly_builder"; do
 	[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
@@ -51,15 +53,17 @@ done
 	fail 'initramfs programs must be executable'
 [ ! -e "$output" ] && [ ! -L "$output" ] ||
 	fail 'storage-layout output already exists'
-case $private_config_sha256 in
-	????????????????????????????????????????????????????????????????) ;;
-	*) fail 'private config SHA-256 is not canonical' ;;
+case $private_config_sha256:$new_gpt_sha256 in
+	????????????????????????????????????????????????????????????????:????????????????????????????????????????????????????????????????) ;;
+	*) fail 'private input SHA-256 is not canonical' ;;
 esac
-case $private_config_sha256 in *[!0-9a-f]*) fail 'private config SHA-256 is not canonical' ;; esac
+case $private_config_sha256$new_gpt_sha256 in *[!0-9a-f]*) fail 'private input SHA-256 is not canonical' ;; esac
 check_hash "$executor" "$executor_sha256"
 check_hash "$watchdog_disarm" "$watchdog_disarm_sha256"
 check_hash "$reboot_bootloader" "$reboot_bootloader_sha256"
 check_hash "$private_config" "$private_config_sha256"
+check_hash "$new_gpt" "$new_gpt_sha256"
+[ "$(stat -c %s "$new_gpt")" = 5632 ] || fail 'reviewed new GPT backup size changed'
 
 for key in format operation_id disk_guid userdata_type_guid \
 	userdata_unique_guid userdata_fs_uuid; do
@@ -74,10 +78,11 @@ if awk -F= '
 		$2 ~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/ { next }
 	$1 == "arch_root_unique_guid" &&
 		$2 ~ /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/ { root=1; next }
+	$1 == "new_gpt_sha256" && $2 ~ /^[0-9a-f]{64}$/ { new_gpt=1; next }
 	{ ok=0 }
 	END {
 		if (format == "rog5-storage-layout-stage1-v1")
-			exit !(ok && NR == 7 && root == 1)
+			exit !(ok && NR == 8 && root == 1 && new_gpt == 1)
 		if (format == "rog5-userdata-ext4-reset-v1")
 			exit !(ok && NR == 6 && root == 0)
 		exit 1
@@ -118,6 +123,8 @@ install -m 0755 "$reboot_bootloader" \
 	"$stage/usr/libexec/rog5-reboot-bootloader"
 install -m 0400 "$private_config" "$stage/etc/rog5/storage-layout-stage1.conf"
 chmod 0400 "$stage/etc/rog5/storage-layout-stage1.conf"
+install -m 0400 "$new_gpt" "$stage/etc/rog5/storage-layout-stage1-new.gpt"
+chmod 0400 "$stage/etc/rog5/storage-layout-stage1-new.gpt"
 
 [ ! -e "$stage/usr/libexec/rog5-recovery-control" ] ||
 	fail 'interactive recovery control survived stage-1 packaging'
@@ -142,6 +149,8 @@ cmp "$stage/usr/libexec/rog5-reboot-bootloader" "$reboot_bootloader" ||
 	fail 'packaged reboot-to-bootloader helper changed'
 cmp "$stage/etc/rog5/storage-layout-stage1.conf" "$private_config" ||
 	fail 'packaged private config changed'
+cmp "$stage/etc/rog5/storage-layout-stage1-new.gpt" "$new_gpt" ||
+	fail 'packaged reviewed new GPT backup changed'
 
 find "$stage" -exec touch -h -d "@$epoch" {} +
 (cd "$stage" && find . -mindepth 1 -print0 | sort -z |

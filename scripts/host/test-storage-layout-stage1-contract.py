@@ -49,15 +49,13 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "51124000",
             "53477375",
             "53477376",
-            "--set-alignment=1",
+            "/etc/rog5/storage-layout-stage1-new.gpt",
             'sgdisk --backup="$gpt_backup" "$disk"',
             '"$watchdog_disarm"',
             'blockdev --setrw "$disk"',
             'blockdev --setrw "$userdata"',
             'resize2fs "$userdata" 51124000',
-            "--delete=23",
-            "--new=23:2352680:53477375",
-            "--new=24:53477376:61865978",
+            'sgdisk --load-backup="$new_gpt" "$disk"',
             'sgdisk --load-backup="$gpt_backup" "$disk"',
             'blockdev --setro "$device"',
         ):
@@ -70,7 +68,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         disarm = source.index('"$watchdog_disarm"')
         first_setrw = source.rindex('blockdev --setrw "$disk"')
         shrink = source.index('resize2fs "$userdata" 51124000')
-        transaction = source.index("--delete=23")
+        transaction = source.index('sgdisk --load-backup="$new_gpt" "$disk"')
         self.assertLess(backup, ack)
         self.assertLess(ready, backup_begin)
         self.assertLess(backup_begin, ack)
@@ -82,6 +80,15 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertNotIn("mkfs", legacy)
         self.assertNotIn("/rog5/images/arch-local-a.ext4", legacy)
         self.assertNotIn("ROG5_LAYOUT_TEST", source)
+        transaction_source = source[source.index("stage_set S60_GPT_TRANSACTION") :]
+        for forbidden in (
+            "--delete=",
+            "--new=",
+            "--set-alignment=",
+            "--partition-guid=",
+            "--attributes=",
+        ):
+            self.assertNotIn(forbidden, transaction_source)
 
     def test_current_checkpoint_is_offline_and_current_bound(self) -> None:
         fields = dict(
@@ -245,10 +252,11 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             )
         }
         admitted = rows[fields["profile"]]
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], hashlib.sha256(CURRENT_SUCCESSOR.read_bytes()).hexdigest())
         self.assertEqual(admitted[5], fields["image_sha256"])
-        self.assertIn("byte-identical raw Stage-1 successor", admitted[6])
+        self.assertIn("ext4 shrank to 51124000 blocks", admitted[6])
+        self.assertIn("exact fresh GPT restoration succeeded", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
@@ -394,10 +402,13 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "storage-layout-stage1-v1",
             "/usr/libexec/rog5-storage-layout-stage1",
             "/etc/rog5/storage-layout-stage1.conf",
+            "/etc/rog5/storage-layout-stage1-new.gpt",
             'check_hash "$executor"',
             'check_hash "$watchdog_disarm" "$watchdog_disarm_sha256"',
             'check_hash "$private_config" "$private_config_sha256"',
+            'check_hash "$new_gpt" "$new_gpt_sha256"',
             'chmod 0400 "$stage/etc/rog5/storage-layout-stage1.conf"',
+            'chmod 0400 "$stage/etc/rog5/storage-layout-stage1-new.gpt"',
             "find . -mindepth 1 -print0 | sort -z",
             "cpio --null -o --quiet --format=newc --owner=0:0 --reproducible",
             "gzip -n",
