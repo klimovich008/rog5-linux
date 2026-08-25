@@ -36,3 +36,6 @@ passed; source frozen across twin build; one candidate record; exact BusyBox
 fixture passed; unchanged 900/600-second lattice retained; prior real SSH
 timeout classified; sufficient disk check remains part of connected preflight;
 proven kernel and wrapper raw bytes were reused.
+
+The active tier passed in 20.108 seconds. The one required full local CI run
+passed on the frozen implementation in 403.959 seconds; it was not repeated.
