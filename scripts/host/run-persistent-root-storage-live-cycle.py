@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-direct-v48-generation157-live-v1"
-BUNDLE = "local-image-direct-v48"
+PROFILE_ID = "local-image-direct-v49-generation158-live-v1"
+BUNDLE = "local-image-direct-v49"
 MANIFEST_SHA256 = (
-    "b20c4ae492aecbf000c258456031c30f74847f816af347f40084d6c7569bbba2"
+    "ac33ccf7cef86f43834f672d652537b7b5790c8949825f8449088a7721c30459"
 )
 RECOVERY_SHA256 = (
-    "a1bf83388dc820764af0735aaa32eddad416b24a97c10e23a6d9e383846316ac"
+    "00aa48f0258df05983f955095d355de8ef52c451bb2d4d7a352f4b3f5bafe027"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-direct-v48-generation157-live-v1\n"
-    b"candidate=local-image-direct-v48\n"
+    b"local-image-direct-v49-generation158-live-v1\n"
+    b"candidate=local-image-direct-v49\n"
     b"manifest_sha256="
-    b"b20c4ae492aecbf000c258456031c30f74847f816af347f40084d6c7569bbba2\n"
+    b"ac33ccf7cef86f43834f672d652537b7b5790c8949825f8449088a7721c30459\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-direct-v48-claim.py"
+    / "scripts/host/consume-local-image-direct-v49-claim.py"
 )
 DIRECT_STREAMER = REPO / "scripts/host/stream-local-image-direct.py"
 TARGET_RELEASE = "7.1.4-g359318de534f"
@@ -77,7 +77,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-direct-v48-generation157-20260825-r1"
+    / "build/local-image-direct-v49-generation158-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -126,10 +126,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-direct-v48",
+    admission_profile="local-image-direct-v49",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-direct-v48",
-    build_profile="local-image-direct-v48",
+    runtime_profile="local-image-direct-v49",
+    build_profile="local-image-direct-v49",
     diagnostic=False,
 )
 
