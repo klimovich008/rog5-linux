@@ -21,9 +21,11 @@ RAM-only `fastboot boot` until a persistent design explicitly preserves it.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
-fastboot between development cycles. Generation 159 also returned there after
-its sealed target omitted the modular Qualcomm reboot-mode drivers. V51 fixes
-that composition defect without changing or flashing the kernel.
+fastboot between development cycles. Generation 160 returned directly to
+fastboot after exposing the persistent-root NCM gadget for 23 seconds. The host
+had selected the obsolete staging product, so it never activated networking.
+The corrected successor changes only that host selector and early initramfs
+observability; it does not flash or replace the kernel.
 
 ## Completed charging repair
 

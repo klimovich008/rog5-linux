@@ -1501,17 +1501,12 @@ arm_watchdog
 if ! configure_usb; then
 	fail_stage 'USB recovery transport failed' usb 15
 fi
-if ! load_reboot_mode_modules; then
-	fail_stage 'Qualcomm reboot-mode modules failed' reboot-mode 15
-fi
-if ! wait_for_reboot_mode; then
-	fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15
-fi
 
 if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||
 	[ "$discovery_count" -ne 1 ] || [ "$discovery_invalid" -ne 0 ]; then
 	fail_stage 'invalid persistent-root command line' cmdline 5
 fi
+
 running_kernel_release=
 if ! IFS= read -r running_kernel_release <"$release_file"; then
 	fail_stage 'running kernel release is unavailable' \
@@ -1543,6 +1538,16 @@ printf '%s\n' "$target_boot_id" |
 publish_or_rollback kernel-verified PASS
 start_stage_reporter
 publish_or_rollback ufs-ready ENTER
+
+if ! load_reboot_mode_modules; then
+	publish_stage ufs-ready FAIL reboot-mode-module-load || true
+	fail_stage 'Qualcomm reboot-mode modules failed' reboot-mode 15
+fi
+if ! wait_for_reboot_mode; then
+	publish_stage ufs-ready FAIL reboot-mode-unavailable || true
+	fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15
+fi
+
 if [ -x /sbin/rog5-load-persistent-power-usb ]; then
 	power_usb_failure=
 	if ! power_usb_failure=$(/sbin/rog5-load-persistent-power-usb); then

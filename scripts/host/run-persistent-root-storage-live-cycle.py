@@ -71,8 +71,8 @@ CLAIM_ENTRYPOINT = (
     / "scripts/host/consume-persistent-root-local-v51-claim.py"
 )
 TARGET_RELEASE = "7.1.4-gae717d919f87"
-TARGET_PRODUCT = "ROG5 local image stage"
-TARGET_UDEV_MODEL = "ROG5_local_image_stage"
+TARGET_PRODUCT = "ROG5 persistent root"
+TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO

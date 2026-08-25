@@ -127,10 +127,15 @@ import sys
 
 source = Path(sys.argv[1]).read_text()
 usb = source.index("if ! configure_usb; then")
-load = source.index("if ! load_reboot_mode_modules; then", usb)
+report = source.index("start_stage_reporter", usb)
+load = source.index("if ! load_reboot_mode_modules; then", report)
 wait = source.index("if ! wait_for_reboot_mode; then", load)
-assert usb < load < wait
+assert usb < report < load < wait
 PY
+for detail in reboot-mode-module-load reboot-mode-unavailable; do
+	grep -Fq "publish_stage ufs-ready FAIL $detail" "$init" ||
+		fail "P2 reboot-mode failure is not observable: $detail"
+done
 grep -Fqx 'reboot_helper=/usr/libexec/rog5-reboot-bootloader' \
 	"$init" "$shutdown" || fail 'P2 rollback lacks the fixed restart2 helper path'
 grep -Fq '"$reboot_helper" || true' "$init" "$shutdown" ||

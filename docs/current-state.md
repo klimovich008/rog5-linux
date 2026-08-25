@@ -55,8 +55,12 @@ validating, publishing, unmounting, and relocking the exact 16 GiB image in
 about 92 seconds after SSH. Generation 159 reached target USB but failed before
 the UFS reporter because its `ae717` reboot-mode drivers were modular and
 absent from the sealed initramfs; slot-A stock recovery returned and no storage
-write occurred. V51 packages the two exact matching modules and is admitted for
-one read-only RAM boot. The kernel, DTB, image, and storage policy are unchanged.
+write occurred. V51 packaged the two exact matching modules and is now consumed:
+mainline exposed the correct persistent-root NCM gadget for 23 seconds, but the
+host selected the obsolete staging product and never activated networking. No
+storage write occurred and exact slot-A fastboot returned. The corrected host
+selector now matches the sealed gadget; the target reporter starts before the
+reboot-mode gate so the next fresh identity returns a discriminating result.
 
 ## Charging repair facts
 
