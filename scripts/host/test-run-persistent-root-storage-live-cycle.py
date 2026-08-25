@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "local-image-write-benchmark-v43-generation152-live-v1",
+            "local-image-partial-inspect-v44-generation153-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -66,7 +66,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
         self.assertEqual(
             MODULE.BUNDLE,
-            "local-image-write-benchmark-v43",
+            "local-image-partial-inspect-v44",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -84,7 +84,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation152",
+            "generation153",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -101,7 +101,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-local-image-write-benchmark-v43-claim.py",
+            "consume-local-image-partial-inspect-v44-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
@@ -110,7 +110,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         network = source.index("interface = activate_target_network(cycle, anchor)")
         host_key = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
         benchmark = source.index(
-            "direct_seconds, buffered_seconds = run_write_benchmark(cycle, target_ssh)"
+            "inspection = run_partial_inspection(cycle, target_ssh)"
         )
         self.assertLess(handoff, network)
         self.assertLess(network, host_key)
@@ -127,7 +127,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ]
         self.assertNotIn("ARCH_IMAGE_GZ", preflight)
         self.assertNotIn("transfer_arch_image", source)
-        self.assertIn("run_write_benchmark(cycle, target_ssh)", source)
+        self.assertIn("run_partial_inspection(cycle, target_ssh)", source)
 
     def test_terminal_stage_stops_the_host_key_wait(self) -> None:
         source = MODULE_PATH.read_text()
@@ -516,34 +516,37 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn('"/usr/local/sbin/rog5-install-local-arch-image"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
-    def test_write_benchmark_parser_is_exact_and_bounded(self) -> None:
+    def test_partial_inspection_parser_is_exact_and_bounded(self) -> None:
         valid = (
-            "format=rog5-local-image-write-benchmark-v1\n"
-            "partial_size=825884672\n"
+            "format=rog5-local-image-partial-inspection-v1\n"
+            "partial_type=regular\n"
+            "partial_uid=0\n"
+            "partial_gid=0\n"
             "partial_mode=644\n"
-            "direct_seconds=1.25\n"
-            "direct_size=33554432\n"
-            "buffered_seconds=42.50\n"
-            "buffered_size=33554432\n"
-            "ufs_error_lines=0\n"
-            "temperature_decic=315\n"
+            "partial_links=1\n"
+            "partial_size=825884672\n"
+            "partial_blocks_512=1613056\n"
+            "final_type=absent\n"
+            "rog5_stat=0:0:700:3\n"
+            "images_stat=0:0:700:2\n"
             "result=PASS\n"
         )
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "benchmark.log"
+            path = Path(directory) / "inspection.log"
             path.write_text(valid, encoding="ascii")
-            self.assertEqual(MODULE.parse_write_benchmark(path), (1.25, 42.5))
+            parsed = MODULE.parse_partial_inspection(path)
+            self.assertEqual(parsed["partial_type"], "regular")
+            self.assertEqual(parsed["partial_size"], "825884672")
             for mutation in (
-                valid.replace("direct_seconds=1.25", "direct_seconds=181"),
-                valid.replace("ufs_error_lines=0", "ufs_error_lines=1"),
-                valid.replace("temperature_decic=315", "temperature_decic=550"),
-                valid.replace("partial_size=825884672", "partial_size=17179869185"),
-                valid.replace("partial_mode=644", "partial_mode=777"),
+                valid.replace("partial_type=regular", "partial_type=unknown"),
+                valid.replace("partial_uid=0", "partial_uid=-1"),
+                valid.replace("partial_mode=644", "partial_mode=999"),
+                valid.replace("rog5_stat=0:0:700:3", "rog5_stat=bad"),
                 valid + "extra=yes\n",
             ):
                 path.write_text(mutation, encoding="ascii")
                 with self.assertRaises(MODULE.PersistentCycleError):
-                    MODULE.parse_write_benchmark(path)
+                    MODULE.parse_partial_inspection(path)
 
 
 if __name__ == "__main__":

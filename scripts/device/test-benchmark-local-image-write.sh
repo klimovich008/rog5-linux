@@ -52,7 +52,6 @@ PY
 root=$(mktemp -d)
 trap 'find "$root" -depth -delete' EXIT HUP INT TERM
 gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
-cmp "$benchmark" "$root/usr/local/sbin/rog5-install-local-arch-image"
 python3 - "$candidate" "$base" <<'PY'
 import hashlib
 import json
@@ -61,7 +60,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "local-image-write-benchmark-v43"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 assert record["target_release"] == "7.1.4-g359318de534f"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
