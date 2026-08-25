@@ -74,5 +74,7 @@
   tests require that operation and reject all prior `--delete`, `--new`, GUID,
   attribute, and alignment options after S60.
 - Clean successor initramfs twins match at `f30d412c...`; authority-free AVB
-  Generation 167 is prepared at `3f16f069...` but remains unissued pending the
-  storage-code CI checkpoint.
+  Generation 167 is prepared at `3f16f069...`. Full storage/trust CI passed on
+  frozen implementation commit `827af45` in 6m55.105s. The separate generated
+  manifest and one narrow admission now bind the exact candidate; its one-use
+  claim remains unconsumed.

@@ -30,6 +30,9 @@ CURRENT_CANDIDATE = (
 CURRENT_SUCCESSOR = (
     REPO / "manifests/storage-layout-stage1-current-generation166.manifest"
 )
+LOAD_BACKUP_SUCCESSOR = (
+    REPO / "manifests/storage-layout-stage1-load-backup-generation167.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -186,7 +189,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 3)
+        self.assertEqual(len(lines), 4)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -257,6 +260,39 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertEqual(admitted[5], fields["image_sha256"])
         self.assertIn("ext4 shrank to 51124000 blocks", admitted[6])
         self.assertIn("exact fresh GPT restoration succeeded", admitted[6])
+
+    def test_generation167_seals_one_exact_gpt_load_and_admission(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in LOAD_BACKUP_SUCCESSOR.read_text(encoding="ascii").splitlines()
+        )
+        manifest_sha256 = hashlib.sha256(LOAD_BACKUP_SUCCESSOR.read_bytes()).hexdigest()
+        self.assertEqual(
+            manifest_sha256,
+            "f9df41fb58858b9eeed9528650f1461d0a71bd2bb0bd8dd926f740ad65954ccf",
+        )
+        self.assertEqual(fields["gpt_transaction"], "one-sealed-sgdisk-load-backup")
+        self.assertEqual(fields["current_filesystem_blocks"], "51124000")
+        self.assertEqual(
+            fields["sealed_new_gpt_sha256"],
+            "6774a2e5aa7defcb8197910a2b56ddc61be44f2681038c400f9a5ee0eb057a0e",
+        )
+        self.assertEqual(
+            fields["generation166_backup_set_sha256"],
+            "1a6295725cb63ab27f90022e5061be6552eec7d6a4297cc4f5ff088543948679",
+        )
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], manifest_sha256)
+        self.assertEqual(admitted[5], fields["image_sha256"])
+        self.assertIn("one sealed exact-GPT --load-backup transaction", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
