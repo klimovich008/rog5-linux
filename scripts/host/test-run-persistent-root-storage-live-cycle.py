@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-root-local-v52-generation161-live-v1",
+            "persistent-root-local-v53-generation162-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -71,7 +71,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-root-local-v52",
+            "persistent-root-local-v53",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -89,7 +89,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation161",
+            "generation162",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -106,7 +106,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-persistent-root-local-v52-claim.py",
+            "consume-persistent-root-local-v53-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:

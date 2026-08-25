@@ -205,6 +205,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-local-v50-generation159-live-v1 | \
 		persistent-root-local-v51-generation160-live-v1 | \
 		persistent-root-local-v52-generation161-live-v1 | \
+		persistent-root-local-v53-generation162-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3677,6 +3678,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-v53-generation162-live-v1)
+		expected_boot_image=build/persistent-root-local-v53-generation162-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 162 read-only boot of the staged-seal 16 GiB local Arch image with reachable staged-seal absence verification; userdata and image ro-noload, OverlayFS/systemd, power/USB, key-only SSH, controlled reboot, exact fastboot fallback; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 162 read-only local Arch successor with reachable staged-seal absence policy; RAM-only, never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=persistent-root-local-v53
+		expected_bundle=persistent-root-local-v53
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=edc90d45ad49717e6584f53e8ae1fdcd754bdb3a4c2685988e1fb4313519772d
+		expected_avb_digest=b7d33cd4f65cc65bd80dba016ff57be174ce4c93b1147ad7f30d4b8376be998b
+		expected_generation_record=904fbd6ad9571109f1036bad192b62e90a98b8e3529cc12e53921e0b80a85ed2
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 4a55d0f6010779abc0cc7ecc22367a1b75451b2fc3bfb26a4922d02557d316ca ]] || fail 'persistent-root local V53 manifest is not pinned'
+		[[ $expected_image == d642f0e0f9a42e1bc308ae62d310bb35403417c4f671442074ecc9aac2092df3 ]] || fail 'persistent-root local V53 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'persistent-root local V53 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'persistent-root local V53 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -5190,6 +5224,7 @@ case $profile in
 	persistent-root-local-v50-generation159-live-v1 | \
 	persistent-root-local-v51-generation160-live-v1 | \
 	persistent-root-local-v52-generation161-live-v1 | \
+	persistent-root-local-v53-generation162-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

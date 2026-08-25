@@ -5,10 +5,10 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 candidate=$repo/configs/recovery-candidates/persistent-root-power-usb-v9.json
 initramfs=$repo/artifacts/persistent-root-power-usb-v9/initramfs.cpio.gz
 claim=$repo/scripts/host/consume-persistent-root-power-usb-v9-claim.py
-successor=$repo/configs/recovery-candidates/persistent-root-local-v52.json
-successor_initramfs=$repo/artifacts/persistent-root-local-v52/initramfs.cpio.gz
-successor_manifest=$repo/manifests/persistent-root-local-v52-generation161.manifest
-successor_claim=$repo/scripts/host/consume-persistent-root-local-v52-claim.py
+successor=$repo/configs/recovery-candidates/persistent-root-local-v53.json
+successor_initramfs=$repo/artifacts/persistent-root-local-v53/initramfs.cpio.gz
+successor_manifest=$repo/manifests/persistent-root-local-v53-generation162.manifest
+successor_claim=$repo/scripts/host/consume-persistent-root-local-v53-claim.py
 
 python3 - "$candidate" <<'PY'
 import json
@@ -43,25 +43,25 @@ from pathlib import Path
 import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
-assert record["candidate"] == "persistent-root-local-v52"
-assert record["status"] == "consumed"
+assert record["candidate"] == "persistent-root-local-v53"
+assert record["status"] == "offline"
 assert record["authority"] == "none"
 assert record["target_release"] == "7.1.4-gae717d919f87"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
-assert artifact["size"] == 24007291
+assert artifact["size"] == 24007271
 assert artifact["sha256"] == \
-    "10201034765f9278ac1113952bbe4f81a559d2307b33a74729b4361ab282957f"
+    "9a2659ac403ee8c3cba6767b90c79d61bb601bddf61e408cce6953ca9086e0cb"
 path = Path(sys.argv[2])
 if path.exists():
     assert path.stat().st_size == artifact["size"]
     assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
         artifact["sha256"]
 PY
-grep -Fxq 'avb_generation=161' "$successor_manifest"
+grep -Fxq 'avb_generation=162' "$successor_manifest"
 grep -Fxq 'probe_policy=staged-seal-absent' "$successor_manifest"
-grep -Fxq 'observer=pre-reboot-mode-stage-reporting' "$successor_manifest"
+grep -Fxq 'observer=staged-seal-control-flow-fixed' "$successor_manifest"
 grep -Fxq 'sdam_module_sha256=31ca158c428ce41b03b56ebf6af9c4c73664a0b87823c71803f2777e22e044df' "$successor_manifest"
 grep -Fxq 'reboot_mode_module_sha256=6fff7c58aea3759d84652b9188e000ac3816517c5fdbb2958b556083afc92db3' "$successor_manifest"
-grep -Fq 'persistent-root-local-v52-generation161-live-v1' "$successor_claim"
+grep -Fq 'persistent-root-local-v53-generation162-live-v1' "$successor_claim"
 
 echo 'PASS V9 reuses the live-proven charging/UFS/local-root target under a fresh one-use identity'
