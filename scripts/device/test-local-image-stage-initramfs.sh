@@ -45,6 +45,7 @@ for contract in \
 	'blockdev --setro "$device"' \
 	'/run/rog5-userdata-device' \
 	'rm /etc/nologin || fail nologin-remove' \
+	'publish_stage runtime ENTER none' \
 	'/usr/sbin/sshd -h /run/ssh_host_ed25519_key'; do
 	grep -Fq "$contract" "$init" || {
 		echo "FAIL missing staging contract: $contract" >&2

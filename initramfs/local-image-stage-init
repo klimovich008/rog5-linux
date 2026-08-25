@@ -55,7 +55,7 @@ publish_stage() {
 	stage_state=$2
 	stage_detail=$3
 	case $stage_name in
-		power-usb|ufs-ready) ;;
+		power-usb|ufs-ready|userdata-resolved|storage-locked|runtime) ;;
 		*) return 1 ;;
 	esac
 	case $stage_state in ENTER|PASS|FAIL) ;; *) return 1 ;; esac
@@ -236,8 +236,9 @@ done
 [ "$count" -ne 0 ] || classify_zero_ufs
 [ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
-current_stage=
 
+current_stage=userdata-resolved
+publish_stage userdata-resolved ENTER none || fail stage-publish
 userdata=
 matches=0
 for sys_disk in /sys/class/block/*; do
@@ -259,7 +260,10 @@ done
 [ "$matches" -eq 1 ] && [ -b "$userdata" ] || fail userdata-identity
 printf '%s\n' "$userdata" >/run/rog5-userdata-device
 chmod 0444 /run/rog5-userdata-device
+publish_stage userdata-resolved PASS ready || fail stage-publish
 
+current_stage=storage-locked
+publish_stage storage-locked ENTER none || fail stage-publish
 for sys_block in /sys/class/block/*; do
 	[ -e "$sys_block/dev" ] || continue
 	[ -e "$sys_block/device" ] || [ -e "$sys_block/partition" ] || continue
@@ -268,7 +272,10 @@ for sys_block in /sys/class/block/*; do
 	blockdev --setro "$device" || fail storage-lock
 done
 [ -z "$(awk '$1 ~ "^/dev/sd" { print }' /proc/mounts)" ] || fail storage-mounted
+publish_stage storage-locked PASS ready || fail stage-publish
 
+current_stage=runtime
+publish_stage runtime ENTER none || fail stage-publish
 [ -f /etc/nologin ] && [ ! -L /etc/nologin ] && [ ! -s /etc/nologin ] ||
 	fail nologin-identity
 rm /etc/nologin || fail nologin-remove
@@ -277,6 +284,8 @@ ssh-keygen -q -t ed25519 -N '' -f /run/ssh_host_ed25519_key
 /usr/sbin/sshd -h /run/ssh_host_ed25519_key -E /var/log/sshd.log
 printf 'state=READY\nuserdata=%s\nstorage=read-only\nssh=key-only\n' "$userdata" >"$status"
 chmod 0444 "$status"
+publish_stage runtime PASS ready || fail stage-publish
+current_stage=
 
 log 'ready for one exact compressed-image staging command over key-only SSH'
 while :; do sleep 3600; done

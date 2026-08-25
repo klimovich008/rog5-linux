@@ -435,6 +435,11 @@ redundant post-COMMIT `wait_host_clean()` delayed target profile activation
 until the target returned fastboot. No stage, transfer, or write occurred.
 Generation 144 relies on the bundle server's completed canonical cleanup and
 activates target networking immediately; final cleanup remains mandatory.
+Generation 144 is consumed. Immediate activation worked and exact UFS passed,
+then the target returned fastboot inside the previously uninstrumented section
+before sshd; no transfer or write occurred. Generation 145 publishes existing
+`userdata-resolved`, `storage-locked`, and `runtime` stages around that section
+to return the exact pre-write failure reason.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

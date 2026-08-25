@@ -393,6 +393,10 @@ Generation 143 is consumed before host-key readiness because redundant
 post-COMMIT cleanup delayed target activation. No write occurred. Generation
 144 removes only that duplicate wait after the bundle server's canonical
 cleanup; final fallback cleanup remains unchanged and mandatory.
+Generation 144 is consumed: immediate target activation and UFS passed, then an
+uninstrumented post-UFS pre-SSH failure returned exact fastboot with no write.
+Generation 145 adds only existing stage records around userdata identity,
+storage lock, nologin removal, host-key creation, and sshd.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
