@@ -1,6 +1,6 @@
 # Local-image direct V47 offline checkpoint
 
-Result: **OFFLINE PASS; ADMITTED ONCE; UNBOOTED.** No V47 phone contact or claim.
+Result: **OFFLINE PASS; LIVE CONSUMED; FALLBACK_RETURNED.** Never retry.
 
 Generation 155 reached target runtime and key-only SSH, then failed during
 prepare before any extent stream. The host discarded the target's bounded
@@ -19,3 +19,11 @@ Authority-free Generation-156 wrapper SHA-256 is
 Focused target, streamer, lifecycle, and gate checks passed. The reviewed V47
 implementation passed exact-head and merge CI before its derived one-use
 admission. COMMIT or any ambiguous outcome permanently consumes it.
+
+## Live result
+
+Prepare passed and extent 1 completed. Extent 2 then remained active at about
+0.6 MiB/s because the target issued one O_DIRECT syscall per 4 KiB block. The
+operator ended the stream after the watchdog deadline was proven impossible;
+SSH/HUP triggered the existing emergency return and exact fastboot plus host
+cleanup passed. The fixed image path remains unpublished.

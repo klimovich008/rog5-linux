@@ -46,7 +46,9 @@ accepts only the proven empty or one-file benchmark residual forms.
 V47 is built offline with preserved target failures and both exact residual
 forms. Its target twins, signed bundle twins, and authority-free Generation
 156 wrapper pass. Its reviewed implementation passed exact-head and merge CI;
-the derived Generation-156 admission is open once and remains unbooted.
+Generation 156 is consumed after proving 4 KiB O_DIRECT throughput cannot fit
+the watchdog. V48 replaces only that syscall granularity with exact 1 MiB
+byte-count/byte-seek direct I/O and is admitted once, unbooted.
 
 ## Charging repair facts
 

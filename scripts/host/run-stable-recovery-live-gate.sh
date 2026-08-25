@@ -200,6 +200,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-write-benchmark-v45-generation154-live-v1 | \
 		local-image-direct-v46-generation155-live-v1 | \
 		local-image-direct-v47-generation156-live-v1 | \
+		local-image-direct-v48-generation157-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3476,8 +3477,8 @@ case $profile in
 		;;
 	local-image-direct-v47-generation156-live-v1)
 		expected_boot_image=build/local-image-direct-v47-generation156-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 156 cycle preserving bounded target failures and accepting only empty or one exact bounded buffered-file residual before staging the reviewed 16 GiB Arch image through 37 ordered direct extents; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 156 direct-image successor; preserves failure output and exact residual variants; RAM-only; never flash'
+		expected_boot_basis='consumed by the sole Generation 156 cycle; prepare passed and extent 1 completed, but 4 KiB O_DIRECT made extent 2 run at about 0.6 MiB/s; operator ended the impossible-within-watchdog stream through SSH/HUP; exact fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 156 cycle; prepare and extent 1 passed, 4 KiB O_DIRECT throughput was impossible within watchdog, controlled SSH/HUP returned fastboot; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3500,6 +3501,39 @@ case $profile in
 		[[ $expected_image == 7069dcc4bcd9a8475d8eea0a6d74d3ad09269ddeacb047a98d0c7afaaea56962 ]] || fail 'local-image direct V47 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image direct V47 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image direct V47 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-direct-v48-generation157-live-v1)
+		expected_boot_image=build/local-image-direct-v48-generation157-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 157 cycle replacing 4 KiB direct syscalls with exact 1 MiB byte-count/byte-seek O_DIRECT while accepting only zero or exact-size partial metadata; same 37 ranges, storage scope, kernel, DTB, modules, and fallback; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 157 1 MiB O_DIRECT successor; same fixed image path and 37 ranges; RAM-only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-direct-v48
+		expected_bundle=local-image-direct-v48
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=805b71d11e1bd3c1cd15edf2cdda7ab527c3d2075fa4ac55bb2e32705a703a42
+		expected_avb_digest=3ebbbb763213f0e5b4394184a3d3dabd370873a0583e5334c76c8e9717a159d2
+		expected_generation_record=e7017b5de5fb8e39ed1513754288e0871578135e79188ada56a1c4aa5c6da58c
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == b20c4ae492aecbf000c258456031c30f74847f816af347f40084d6c7569bbba2 ]] || fail 'local-image direct V48 manifest is not pinned'
+		[[ $expected_image == a1bf83388dc820764af0735aaa32eddad416b24a97c10e23a6d9e383846316ac ]] || fail 'local-image direct V48 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image direct V48 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image direct V48 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -5015,6 +5049,7 @@ case $profile in
 	local-image-write-benchmark-v45-generation154-live-v1 | \
 	local-image-direct-v46-generation155-live-v1 | \
 	local-image-direct-v47-generation156-live-v1 | \
+	local-image-direct-v48-generation157-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

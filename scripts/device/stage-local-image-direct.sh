@@ -108,7 +108,10 @@ prepare() {
 	fi
 	[ -f "$partial" ] && [ ! -L "$partial" ] || fail partial-identity
 	metadata=$(stat -c '%u:%g:%a:%h:%s' "$partial") || fail partial-identity
-	case $metadata in 0:0:600:1:0|0:0:644:1:0) ;; *) fail partial-identity ;; esac
+	case $metadata in
+	0:0:600:1:0|0:0:644:1:0|0:0:600:1:$image_size|0:0:644:1:$image_size) ;;
+	*) fail partial-identity ;;
+	esac
 	truncate -s 0 "$partial" || fail partial-truncate
 	truncate -s "$image_size" "$partial" || fail partial-truncate
 	chmod 0600 "$partial"
@@ -130,9 +133,17 @@ $record
 EOF
 	[ "$found" = "$index" ] || fail extent-map
 	stats=/run/rog5-local-image-direct-dd.stats
-	dd of="$partial" bs=4096 seek="$offset" count="$count" iflag=fullblock \
-		oflag=direct conv=notrunc status=noxfer 2>"$stats" || fail direct-write
-	[ "$(cat "$stats")" = "$(printf '%s+0 records in\n%s+0 records out' "$count" "$count")" ] ||
+	offset_bytes=$((offset * 4096))
+	count_bytes=$((count * 4096))
+	full_records=$((count_bytes / 1048576))
+	partial_records=0
+	[ "$((count_bytes % 1048576))" -eq 0 ] || partial_records=1
+	dd of="$partial" ibs=1048576 obs=1048576 seek="$offset_bytes" \
+		count="$count_bytes" iflag=count_bytes,fullblock \
+		oflag=seek_bytes,direct conv=notrunc status=noxfer 2>"$stats" ||
+		fail direct-write
+	[ "$(cat "$stats")" = "$(printf '%s+%s records in\n%s+%s records out' \
+		"$full_records" "$partial_records" "$full_records" "$partial_records")" ] ||
 		fail direct-count
 	printf '%s\n' "$((index + 1))" >"$next_record"
 	printf 'format=rog5-local-image-direct-extent-v1\nindex=%s\nblocks=%s\nresult=PASS\n' \

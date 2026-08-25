@@ -10,10 +10,13 @@ builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
 fake=$repo/scripts/host/test-fixtures/local-image-direct-fake-target.py
 candidate=$repo/configs/recovery-candidates/local-image-direct-v46.json
 successor=$repo/configs/recovery-candidates/local-image-direct-v47.json
+megabyte=$repo/configs/recovery-candidates/local-image-direct-v48.json
 manifest=$repo/manifests/local-image-direct-v46-generation155.manifest
 claim=$repo/scripts/host/consume-local-image-direct-v46-claim.py
 successor_manifest=$repo/manifests/local-image-direct-v47-generation156.manifest
 successor_claim=$repo/scripts/host/consume-local-image-direct-v47-claim.py
+megabyte_manifest=$repo/manifests/local-image-direct-v48-generation157.manifest
+megabyte_claim=$repo/scripts/host/consume-local-image-direct-v48-claim.py
 source=/home/deck/.local/state/rog5-local-image-v28-20260823-r1/arch-local-a.ext4
 busybox_base=$repo/artifacts/local-image-write-benchmark-v45/initramfs.cpio.gz
 [ -f "$busybox_base" ] ||
@@ -24,7 +27,8 @@ for path in "$target" "$streamer" "$generator" "$map" "$builder" "$fake" \
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 [ -f "$successor" ] && [ ! -L "$successor" ]
-for path in "$successor_manifest" "$successor_claim"; do
+for path in "$successor_manifest" "$successor_claim" "$megabyte" \
+	"$megabyte_manifest" "$megabyte_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ]
 done
 sh -n "$target" "$builder"
@@ -32,6 +36,7 @@ python3 -m py_compile "$streamer" "$generator"
 python3 -m py_compile "$fake"
 python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
+python3 -m py_compile "$megabyte_claim"
 [ "$(sha256sum "$map" | cut -d ' ' -f 1)" = \
 	e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94 ]
 for contract in \
@@ -51,8 +56,9 @@ else
 	echo 'SKIP direct extent regeneration: retained reviewed image is absent' >&2
 fi
 for contract in \
-	'iflag=fullblock' \
-	'oflag=direct conv=notrunc status=noxfer' \
+	'ibs=1048576 obs=1048576' \
+	'iflag=count_bytes,fullblock' \
+	'oflag=seek_bytes,direct conv=notrunc status=noxfer' \
 	'timeout -k 5 180 sync -f "$partial"' \
 	'timeout -k 5 180 e2fsck -fn "$partial"' \
 	'mv -T "$partial" "$final"' \
@@ -87,12 +93,26 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "local-image-direct-v47"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
 assert artifact["size"] == 23806146
 assert artifact["sha256"] == \
     "d89983cd80e86dfc5f332e84482eae977ede5d1ff7880db49b6eabd4b06dc71f"
+PY
+python3 - "$megabyte" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "local-image-direct-v48"
+assert record["status"] == "offline"
+assert record["authority"] == "none"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23806263
+assert artifact["sha256"] == \
+    "27ea9cda1dfc8b032c78eae06e76d1424ceadcc786c17a3418e125950d6256c9"
 PY
 grep -Fxq 'avb_generation=155' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"
@@ -100,6 +120,9 @@ grep -Fq 'local-image-direct-v46-generation155-live-v1' "$claim"
 grep -Fxq 'avb_generation=156' "$successor_manifest"
 grep -Fxq 'phone_flash=forbidden' "$successor_manifest"
 grep -Fq 'local-image-direct-v47-generation156-live-v1' "$successor_claim"
+grep -Fxq 'avb_generation=157' "$megabyte_manifest"
+grep -Fxq 'phone_flash=forbidden' "$megabyte_manifest"
+grep -Fq 'local-image-direct-v48-generation157-live-v1' "$megabyte_claim"
 python3 - "$streamer" <<'PY'
 from pathlib import Path
 import sys
@@ -118,11 +141,12 @@ gzip -dc "$busybox_base" |
 qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
 if [ -n "$qemu" ]; then
 	truncate -s 8192 "$root/output"
-	dd if=/dev/zero bs=4096 count=2 status=none |
+	dd if=/dev/zero bs=4096 count=3 status=none |
 		"$qemu" -L "$root" "$root/bin/busybox" dd of="$root/output" \
-		bs=4096 count=2 iflag=fullblock oflag=direct conv=notrunc \
+		ibs=1048576 obs=1048576 count=12288 seek=4096 \
+		iflag=count_bytes,fullblock oflag=seek_bytes,direct conv=notrunc \
 		status=noxfer 2>"$root/stats"
-	[ "$(cat "$root/stats")" = "$(printf '2+0 records in\n2+0 records out')" ]
+	[ "$(cat "$root/stats")" = "$(printf '0+1 records in\n0+1 records out')" ]
 else
 	echo 'SKIP sealed BusyBox direct-write dialect: qemu-user is unavailable' >&2
 fi
