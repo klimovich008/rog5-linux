@@ -419,6 +419,11 @@ power/USB telemetry, NCM, and automatic fastboot return. Generation 141 moves
 to the real staging objective: the same proven lineage plus corrected full
 writer init, key-only SSH, the hash-verified 649,960,943-byte Arch gzip, one
 bounded userdata image-file install, and complete storage relock.
+Generation 141 is consumed. UFS passed and the target host key was pinned, but
+OpenSSH reset pre-auth with `Not allowed at this time` because the sealed base
+retained a zero-byte `/etc/nologin`; no image transfer or write occurred.
+Generation 142 validates and removes only that volatile boot-inhibition file
+before starting key-only sshd, with all writer and storage bounds unchanged.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

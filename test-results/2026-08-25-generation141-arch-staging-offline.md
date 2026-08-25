@@ -1,6 +1,7 @@
 # Generation 141 local Arch staging
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Never flash or retry after entry.
+Result: **CONSUMED; UFS PASSED; SSH BLOCKED BEFORE AUTH; NO WRITE.** Never
+retry or flash.
 
 Generation 140 passed exact power/USB telemetry, NCM, all four UFS modules, the
 complete 116-node topology, and built-in fastboot return. The full staging init
@@ -16,3 +17,8 @@ relocking every block node and returning to fastboot.
 Target twins are `d56fab0e...9ef1cfc`; manifest is
 `d4fa6160...c78501d4`; Generation-141 recovery is
 `0cf74133...977f210b`. Raw stable recovery remains unchanged.
+
+The sole RAM-only cycle passed UFS and target host-key pinning, but every SSH
+attempt reset pre-auth with `Not allowed at this time`. The sealed base had an
+empty `/etc/nologin`. No image transfer, installer, mount, or storage write ran;
+the bounded watchdog remains responsible for exact fastboot fallback.
