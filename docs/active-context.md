@@ -426,6 +426,9 @@ Generations 150 and 151 are consumed at `partial-identity` before benchmark
 data. Generation 152 accepts only absent or one root-owned mode-0600/0644
 partial bounded by the fixed 17,179,869,184-byte logical image, reports it,
 then compares 32 MiB direct and buffered writes with sync-independent fallback.
+Generation 152 repeated the same boundary. Generation 153 is read-only and
+reports exact partial/final/directory metadata under `ro,noload`; no block write
+window, benchmark directory, or image write is reachable.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

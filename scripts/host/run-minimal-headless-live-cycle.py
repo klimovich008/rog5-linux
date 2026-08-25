@@ -540,6 +540,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-write-benchmark-v41-generation150-live-v1",
         "local-image-write-benchmark-v42-generation151-live-v1",
         "local-image-write-benchmark-v43-generation152-live-v1",
+        "local-image-partial-inspect-v44-generation153-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

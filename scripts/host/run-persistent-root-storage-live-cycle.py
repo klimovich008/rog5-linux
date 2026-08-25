@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-write-benchmark-v43-generation152-live-v1"
-BUNDLE = "local-image-write-benchmark-v43"
+PROFILE_ID = "local-image-partial-inspect-v44-generation153-live-v1"
+BUNDLE = "local-image-partial-inspect-v44"
 MANIFEST_SHA256 = (
-    "65203683173ceacfa412d5dad54662bf46a7aa823016e2129c9aea869f3cf0c6"
+    "f5d6229a85f2842cb3c0242f01b7788fc99f6443ade34d330ccd251433856dde"
 )
 RECOVERY_SHA256 = (
-    "c51667b372cc5a731adae10917f69ea33faa0bf4d76f0aa05db89cb248ca5489"
+    "d05d4730a65bc6b2c1018b436996bb9aea56fead90a08f23e50516594845152b"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-write-benchmark-v43-generation152-live-v1\n"
-    b"candidate=local-image-write-benchmark-v43\n"
+    b"local-image-partial-inspect-v44-generation153-live-v1\n"
+    b"candidate=local-image-partial-inspect-v44\n"
     b"manifest_sha256="
-    b"65203683173ceacfa412d5dad54662bf46a7aa823016e2129c9aea869f3cf0c6\n"
+    b"f5d6229a85f2842cb3c0242f01b7788fc99f6443ade34d330ccd251433856dde\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-write-benchmark-v43-claim.py"
+    / "scripts/host/consume-local-image-partial-inspect-v44-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-write-benchmark-v43-generation152-20260825-r1"
+    / "build/local-image-partial-inspect-v44-generation153-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -103,10 +103,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-write-benchmark-v43",
+    admission_profile="local-image-partial-inspect-v44",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-write-benchmark-v43",
-    build_profile="local-image-write-benchmark-v43",
+    runtime_profile="local-image-partial-inspect-v44",
+    build_profile="local-image-partial-inspect-v44",
     diagnostic=False,
 )
 
@@ -687,73 +687,60 @@ def wait_for_stage_host_key(
     )
 
 
-def parse_write_benchmark(path: Path) -> tuple[float, float]:
+def parse_partial_inspection(path: Path) -> dict[str, str]:
     try:
         payload = path.read_bytes()
         if len(payload) > 4096:
-            fail("write benchmark output exceeds its bound")
+            fail("partial inspection output exceeds its bound")
         lines = payload.decode("ascii").splitlines()
     except (OSError, UnicodeDecodeError) as error:
-        raise PersistentCycleError("write benchmark output is unreadable") from error
-    if len(lines) != 10 or lines[0] != "format=rog5-local-image-write-benchmark-v1":
-        fail("write benchmark output shape changed")
-    expected = {
-        4: "direct_size=33554432",
-        6: "buffered_size=33554432",
-        9: "result=PASS",
-    }
-    for index, marker in expected.items():
-        if lines[index] != marker:
-            fail(f"write benchmark marker changed: {marker}")
-    seconds = []
-    if not lines[1].startswith("partial_size="):
-        fail("write benchmark partial-size field changed")
-    partial_size = lines[1].removeprefix("partial_size=")
-    if not partial_size.isascii() or not partial_size.isdecimal():
-        fail("write benchmark partial size is invalid")
-    if not 0 <= int(partial_size) <= 17179869184:
-        fail("write benchmark partial size exceeds its bound")
-    if lines[2] not in {"partial_mode=absent", "partial_mode=600", "partial_mode=644"}:
-        fail("write benchmark partial mode is invalid")
-    if int(partial_size) == 0 and lines[2] != "partial_mode=absent":
-        fail("write benchmark absent partial has a file mode")
-    if int(partial_size) > 0 and lines[2] == "partial_mode=absent":
-        fail("write benchmark present partial lacks a file mode")
-    for index, prefix in ((3, "direct_seconds="), (5, "buffered_seconds=")):
-        if not lines[index].startswith(prefix):
-            fail(f"write benchmark timing field changed: {prefix}")
-        value = lines[index].removeprefix(prefix)
-        if not re.fullmatch(r"[0-9]+(?:[.][0-9]+)?", value):
-            fail(f"write benchmark timing is invalid: {prefix}")
-        observed = float(value)
-        if observed < 0 or observed > 180:
-            fail(f"write benchmark timing is outside its bound: {prefix}")
-        seconds.append(observed)
-    if lines[7] != "ufs_error_lines=0":
-        fail("write benchmark observed a UFS error")
-    if not lines[8].startswith("temperature_decic="):
-        fail("write benchmark temperature field changed")
-    temperature = lines[8].removeprefix("temperature_decic=")
-    if not temperature.isascii() or not temperature.isdecimal():
-        fail("write benchmark temperature is invalid")
-    if not 0 <= int(temperature) < 550:
-        fail("write benchmark temperature is unsafe")
-    return seconds[0], seconds[1]
+        raise PersistentCycleError("partial inspection output is unreadable") from error
+    names = (
+        "format", "partial_type", "partial_uid", "partial_gid", "partial_mode",
+        "partial_links", "partial_size", "partial_blocks_512", "final_type",
+        "rog5_stat", "images_stat", "result",
+    )
+    if len(lines) != len(names):
+        fail("partial inspection output shape changed")
+    values: dict[str, str] = {}
+    for line, name in zip(lines, names, strict=True):
+        prefix = f"{name}="
+        if not line.startswith(prefix):
+            fail(f"partial inspection field changed: {name}")
+        values[name] = line.removeprefix(prefix)
+    if values["format"] != "rog5-local-image-partial-inspection-v1":
+        fail("partial inspection format changed")
+    if values["partial_type"] not in {"absent", "regular", "symlink", "other"}:
+        fail("partial inspection type is invalid")
+    if values["final_type"] not in {"absent", "regular", "symlink", "other"}:
+        fail("partial inspection final type is invalid")
+    for name in ("partial_uid", "partial_gid", "partial_links", "partial_size", "partial_blocks_512"):
+        value = values[name]
+        if not value.isascii() or not value.isdecimal() or int(value) > 2**63 - 1:
+            fail(f"partial inspection numeric field is invalid: {name}")
+    if not re.fullmatch(r"none|[0-7]{3,4}", values["partial_mode"]):
+        fail("partial inspection mode is invalid")
+    for name in ("rog5_stat", "images_stat"):
+        if not re.fullmatch(r"[0-9]+:[0-9]+:[0-7]{3,4}:[0-9]+", values[name]):
+            fail(f"partial inspection directory metadata is invalid: {name}")
+    if values["result"] != "PASS":
+        fail("partial inspection did not pass")
+    return values
 
 
-def run_write_benchmark(
+def run_partial_inspection(
     cycle: CYCLE.LiveCycle,
     target_ssh: list[str],
-) -> tuple[float, float]:
-    log = cycle.output("local-image-write-benchmark.log")
+) -> dict[str, str]:
+    log = cycle.output("local-image-partial-inspection.log")
     status = run_optional_logged(
         [*target_ssh, "/usr/local/sbin/rog5-install-local-arch-image"],
         log,
-        600,
+        180,
     )
     if status not in {0, 255}:
-        fail(f"write benchmark returned unexpected status {status}")
-    return parse_write_benchmark(log)
+        fail(f"partial inspection returned unexpected status {status}")
+    return parse_partial_inspection(log)
 
 
 def parse_runtime_evidence(path: Path) -> str:
@@ -973,13 +960,13 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             target_ssh,
             cycle.output("persistent-root-ssh-readiness.log"),
         )
-        direct_seconds, buffered_seconds = run_write_benchmark(cycle, target_ssh)
+        inspection = run_partial_inspection(cycle, target_ssh)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
             cycle.output("persistent-root-timing.record"),
             (
-                ("format", "rog5-local-image-write-benchmark-timing-v1"),
+                ("format", "rog5-local-image-partial-inspection-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -987,9 +974,11 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     "authenticated_ssh_rendezvous_seconds",
                     f"{ssh_ready_elapsed:.3f}",
                 ),
-                ("direct_write_seconds", f"{direct_seconds:.3f}"),
-                ("buffered_write_seconds", f"{buffered_seconds:.3f}"),
-                ("seconds_to_benchmark", f"{elapsed:.3f}"),
+                ("partial_type", inspection["partial_type"]),
+                ("partial_mode", inspection["partial_mode"]),
+                ("partial_size", inspection["partial_size"]),
+                ("partial_links", inspection["partial_links"]),
+                ("seconds_to_inspection", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -1001,9 +990,8 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle compared bounded direct and buffered UFS "
-            f"writes in {elapsed:.3f}s, removed the benchmark files, relocked "
-            "storage, and returned to fastboot"
+            "PASS one RAM-only cycle inspected the exact partial-image metadata "
+            f"read-only in {elapsed:.3f}s and returned to fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:

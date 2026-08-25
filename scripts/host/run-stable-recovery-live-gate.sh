@@ -196,6 +196,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-write-benchmark-v41-generation150-live-v1 | \
 		local-image-write-benchmark-v42-generation151-live-v1 | \
 		local-image-write-benchmark-v43-generation152-live-v1 | \
+		local-image-partial-inspect-v44-generation153-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3340,8 +3341,8 @@ case $profile in
 		;;
 	local-image-write-benchmark-v43-generation152-live-v1)
 		expected_boot_image=build/local-image-write-benchmark-v43-generation152-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 152 cycle accepting only absent or one root-owned mode-0600/0644 partial no larger than the fixed 17179869184-byte logical image, then comparing one 32 MiB aligned direct write with one 32 MiB buffered write; disposable cleanup and sync-independent fallback; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 152 logical-size-bounded partial classifier plus direct-versus-buffered UFS benchmark; never flash'
+		expected_boot_basis='consumed by the sole Generation 152 cycle; partial-identity still failed under the full logical-image size bound, proving type, owner, mode, link count, or another field differs; no benchmark directory or write; exact fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 152 cycle; partial-identity still failed under the full logical-size bound, proving another metadata field differs; no benchmark write; exact fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3364,6 +3365,39 @@ case $profile in
 		[[ $expected_image == c51667b372cc5a731adae10917f69ea33faa0bf4d76f0aa05db89cb248ca5489 ]] || fail 'local-image write benchmark V43 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image write benchmark V43 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image write benchmark V43 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-partial-inspect-v44-generation153-live-v1)
+		expected_boot_image=build/local-image-partial-inspect-v44-generation153-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 153 read-only cycle mounting userdata ro,noload and reporting exact partial type, owner, mode, links, size, blocks, final state, and directory metadata; no block write window or file mutation; sync-independent fallback; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 153 read-only exact partial-metadata inspection with sync-independent fastboot fallback; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-partial-inspect-v44
+		expected_bundle=local-image-partial-inspect-v44
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=52f991bb75356b71653edcc05bc7c4b4140cffa9e7c447c4dea7be7a8370ab6a
+		expected_avb_digest=9fe951932f36a0ae77d65e7cf787f142d310233ae8a1926e4afe493accaf07a9
+		expected_generation_record=bc5c690dad1b312b380a063e4b50c5aa0b7d7113d8b29a9f005b3ea7ef87295d
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == f5d6229a85f2842cb3c0242f01b7788fc99f6443ade34d330ccd251433856dde ]] || fail 'local-image partial inspection V44 manifest is not pinned'
+		[[ $expected_image == d05d4730a65bc6b2c1018b436996bb9aea56fead90a08f23e50516594845152b ]] || fail 'local-image partial inspection V44 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image partial inspection V44 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image partial inspection V44 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4875,6 +4909,7 @@ case $profile in
 	local-image-write-benchmark-v41-generation150-live-v1 | \
 	local-image-write-benchmark-v42-generation151-live-v1 | \
 	local-image-write-benchmark-v43-generation152-live-v1 | \
+	local-image-partial-inspect-v44-generation153-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

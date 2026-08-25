@@ -471,6 +471,10 @@ benchmark write; the partial continued growing after the earlier snapshot.
 Generation 152 bounds it by the original fixed 16 GiB logical image size while
 retaining exact type/owner/mode/link checks, then compares 32 MiB direct and
 buffered writes with sync-independent fallback. Full-image staging is paused.
+Generation 152 still failed the same partial-identity boundary, disproving size
+as the remaining field. Generation 153 is a read-only `ro,noload` metadata
+inspection under the explicit-only systematic-debugging workflow. No benchmark
+or full-image write occurs until it identifies the exact differing field.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
