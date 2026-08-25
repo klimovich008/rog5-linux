@@ -44,6 +44,7 @@ for contract in \
 	'phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko' \
 	'blockdev --setro "$device"' \
 	'/run/rog5-userdata-device' \
+	'rm /etc/nologin || fail nologin-remove' \
 	'/usr/sbin/sshd -h /run/ssh_host_ed25519_key'; do
 	grep -Fq "$contract" "$init" || {
 		echo "FAIL missing staging contract: $contract" >&2

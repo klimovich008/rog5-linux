@@ -269,6 +269,10 @@ for sys_block in /sys/class/block/*; do
 done
 [ -z "$(awk '$1 ~ "^/dev/sd" { print }' /proc/mounts)" ] || fail storage-mounted
 
+[ -f /etc/nologin ] && [ ! -L /etc/nologin ] && [ ! -s /etc/nologin ] ||
+	fail nologin-identity
+rm /etc/nologin || fail nologin-remove
+[ ! -e /etc/nologin ] && [ ! -L /etc/nologin ] || fail nologin-present
 ssh-keygen -q -t ed25519 -N '' -f /run/ssh_host_ed25519_key
 /usr/sbin/sshd -h /run/ssh_host_ed25519_key -E /var/log/sshd.log
 printf 'state=READY\nuserdata=%s\nstorage=read-only\nssh=key-only\n' "$userdata" >"$status"

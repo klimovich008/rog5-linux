@@ -185,6 +185,7 @@ if [[ $action == policy-preflight ]]; then
 		ufs-power-reboot-baseline-v30-generation139-live-v1 | \
 		ufs-glob-reboot-baseline-v31-generation140-live-v1 | \
 		local-image-stage-glob-v32-generation141-live-v1 | \
+		local-image-stage-ssh-v33-generation142-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -2966,8 +2967,8 @@ case $profile in
 		;;
 	local-image-stage-glob-v32-generation141-live-v1)
 		expected_boot_image=build/local-image-stage-glob-v32-generation141-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 141 write-capable staging cycle using the Generation-140-proven power/USB, glob-enabled 116-node UFS topology, exact userdata geometry, key-only SSH, one verified 649960943-byte compressed Arch image, sealed installer, complete relock, and built-in fastboot return; writes only the bounded image file in userdata; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 141 writer; proven power/UFS topology, key-only SSH, one bounded Arch image installer, relock, built-in fastboot return; never flash'
+		expected_boot_basis='consumed by the sole Generation 141 cycle; power/USB and UFS passed and target host key was pinned, but zero-byte `/etc/nologin` blocked OpenSSH before authentication; no image transfer, installer, mount, or storage write; bounded watchdog fallback; never retry or flash'
+		expected_boot_role='consumed Generation 141 cycle; UFS passed but sealed nologin blocked SSH before transfer or write; bounded fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -2990,6 +2991,39 @@ case $profile in
 		[[ $expected_image == 0cf741336db85fb6804dfe20720d8680a4f113e74f5c627326084c44977f210b ]] || fail 'local-image glob V32 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image glob V32 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image glob V32 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-stage-ssh-v33-generation142-live-v1)
+		expected_boot_image=build/local-image-stage-ssh-v33-generation142-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 142 bounded staging cycle removing only the sealed zero-byte `/etc/nologin` before key-only sshd; retains Generation-140-proven power/UFS topology, exact userdata, verified Arch gzip, sealed installer, complete relock, and built-in fastboot return; writes only one bounded image file; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 142 writer; removes exact nologin before key-only SSH, proven UFS, bounded image installer, relock, fastboot return; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-ssh-v33
+		expected_bundle=local-image-stage-ssh-v33
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=302b9471b121e78ee316405526e1d5d394e3af6b99d14b90154c94a44a0d7495
+		expected_avb_digest=cb5f694445e4be43acebb4c0644209f3b35343ea6ee3ca422cab204f3c850002
+		expected_generation_record=4d7d3f43e753b0c27563d3052a4cf18566a1d7b01048ed26c99dc7ecd4360fd8
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 333527612db0575cad1df5066bf1dce17c3d4e8a53a7b9b45db1c25936ed831f ]] || fail 'local-image SSH V33 manifest is not pinned'
+		[[ $expected_image == 246d5c374495a72690a17ec808aef7b0165cd7f95268bdca453330df2af3ea28 ]] || fail 'local-image SSH V33 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image SSH V33 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image SSH V33 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4490,6 +4524,7 @@ case $profile in
 	ufs-power-reboot-baseline-v30-generation139-live-v1 | \
 	ufs-glob-reboot-baseline-v31-generation140-live-v1 | \
 	local-image-stage-glob-v32-generation141-live-v1 | \
+	local-image-stage-ssh-v33-generation142-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

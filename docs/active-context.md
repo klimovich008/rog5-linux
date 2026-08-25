@@ -380,6 +380,10 @@ Generation 140 is consumed and exact terminal `count-116` proves UFS. Exact
 fastboot fallback passed. Generation 141 uses the same power/UFS/reboot lineage
 with the full writer init corrected for globbing and topology count, key-only
 SSH transfer, one bounded image-file write, and complete relock.
+Generation 141 is consumed: UFS passed and host-key pinning passed, but sealed
+`/etc/nologin` rejected every SSH connection before authentication. No image
+bytes or storage command ran. Generation 142 removes only that exact empty
+regular file before key-only sshd; all write and fallback bounds are unchanged.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
