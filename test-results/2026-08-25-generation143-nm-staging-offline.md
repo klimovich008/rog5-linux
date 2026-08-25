@@ -1,6 +1,6 @@
 # Generation 143 NetworkManager-race staging successor
 
-Result: **OFFLINE PASS; ADMITTED ONCE.** Never flash or retry after entry.
+Result: **CONSUMED BEFORE HOST-KEY READINESS; NO WRITE.** Never retry or flash.
 
 Generation 142 transferred and committed the signed target, then post-COMMIT
 cleanup observed its newly enumerated NCM interface before NetworkManager
@@ -13,3 +13,8 @@ no managed-state field is recorded as ownership-unknown. Non-final cleanup may
 accept it only while no host `/30` escaped; final cleanup still rejects unknown
 ownership, and any address on an unknown interface remains fatal. The signed
 writer target differs only in its fresh bundle identity.
+
+The NetworkManager ownership classification no longer aborted. The redundant
+post-COMMIT cleanup wait still delayed target activation until exact fastboot
+returned before host-key readiness. No stage, transfer, installer, or storage
+write evidence exists; exact fallback and cleanup passed.

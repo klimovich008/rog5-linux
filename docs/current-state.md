@@ -430,6 +430,11 @@ No target stage, SSH, transfer, installer, or write evidence exists; exact
 fastboot fallback passed. Generation 143 observes that no-address interface as
 ownership-unknown during non-final cleanup, while escaped `/30` and final
 unmanaged state still fail.
+Generation 143 is consumed: the NetworkManager classification fix held, but a
+redundant post-COMMIT `wait_host_clean()` delayed target profile activation
+until the target returned fastboot. No stage, transfer, or write occurred.
+Generation 144 relies on the bundle server's completed canonical cleanup and
+activates target networking immediately; final cleanup remains mandatory.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
