@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-partial-inspect-v44-generation153-live-v1"
-BUNDLE = "local-image-partial-inspect-v44"
+PROFILE_ID = "local-image-write-benchmark-v45-generation154-live-v1"
+BUNDLE = "local-image-write-benchmark-v45"
 MANIFEST_SHA256 = (
-    "f5d6229a85f2842cb3c0242f01b7788fc99f6443ade34d330ccd251433856dde"
+    "14741fb36498f039e1711719ad542fa88e5b3b990a147d0877dbd8b400b8f25e"
 )
 RECOVERY_SHA256 = (
-    "d05d4730a65bc6b2c1018b436996bb9aea56fead90a08f23e50516594845152b"
+    "49fbe0fa5f243a522d29f8fcab34dc4618ad797d3ca9e36124c3db568324b839"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-partial-inspect-v44-generation153-live-v1\n"
-    b"candidate=local-image-partial-inspect-v44\n"
+    b"local-image-write-benchmark-v45-generation154-live-v1\n"
+    b"candidate=local-image-write-benchmark-v45\n"
     b"manifest_sha256="
-    b"f5d6229a85f2842cb3c0242f01b7788fc99f6443ade34d330ccd251433856dde\n"
+    b"14741fb36498f039e1711719ad542fa88e5b3b990a147d0877dbd8b400b8f25e\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-partial-inspect-v44-claim.py"
+    / "scripts/host/consume-local-image-write-benchmark-v45-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-partial-inspect-v44-generation153-20260825-r1"
+    / "build/local-image-write-benchmark-v45-generation154-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -103,10 +103,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-partial-inspect-v44",
+    admission_profile="local-image-write-benchmark-v45",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-partial-inspect-v44",
-    build_profile="local-image-partial-inspect-v44",
+    runtime_profile="local-image-write-benchmark-v45",
+    build_profile="local-image-write-benchmark-v45",
     diagnostic=False,
 )
 
@@ -747,6 +747,57 @@ def run_partial_inspection(
     return parse_partial_inspection(log)
 
 
+def parse_write_benchmark(path: Path) -> tuple[float, float]:
+    try:
+        lines = path.read_text(encoding="ascii").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise PersistentCycleError("write benchmark output is unreadable") from error
+    if len(lines) == 11 and lines[-1] == "Timeout, server 169.254.77.2 not responding.":
+        lines.pop()
+    if len(lines) != 10 or lines[0] != "format=rog5-local-image-write-benchmark-v1":
+        fail("write benchmark output shape changed")
+    if lines[1] != "partial_size=0" or lines[2] != "partial_mode=644":
+        fail("write benchmark partial identity changed")
+    if lines[4] != "direct_size=33554432" or lines[6] != "buffered_size=33554432":
+        fail("write benchmark size marker changed")
+    seconds = []
+    for index, prefix in ((3, "direct_seconds="), (5, "buffered_seconds=")):
+        if not lines[index].startswith(prefix):
+            fail(f"write benchmark timing field changed: {prefix}")
+        value = lines[index].removeprefix(prefix)
+        if not re.fullmatch(r"[0-9]+(?:[.][0-9]+)?", value):
+            fail(f"write benchmark timing is invalid: {prefix}")
+        observed = float(value)
+        if not 0 <= observed <= 180:
+            fail(f"write benchmark timing is outside its bound: {prefix}")
+        seconds.append(observed)
+    if lines[7] != "ufs_error_lines=0":
+        fail("write benchmark observed a UFS error")
+    if not lines[8].startswith("temperature_decic="):
+        fail("write benchmark temperature field changed")
+    temperature = lines[8].removeprefix("temperature_decic=")
+    if not temperature.isdecimal() or not 0 <= int(temperature) < 550:
+        fail("write benchmark temperature is invalid")
+    if lines[9] != "result=PASS":
+        fail("write benchmark did not pass")
+    return seconds[0], seconds[1]
+
+
+def run_write_benchmark(
+    cycle: CYCLE.LiveCycle,
+    target_ssh: list[str],
+) -> tuple[float, float]:
+    log = cycle.output("local-image-write-benchmark.log")
+    status = run_optional_logged(
+        [*target_ssh, "/usr/local/sbin/rog5-install-local-arch-image"],
+        log,
+        600,
+    )
+    if status not in {0, 255}:
+        fail(f"write benchmark returned unexpected status {status}")
+    return parse_write_benchmark(log)
+
+
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -964,13 +1015,13 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             target_ssh,
             cycle.output("persistent-root-ssh-readiness.log"),
         )
-        inspection = run_partial_inspection(cycle, target_ssh)
+        direct_seconds, buffered_seconds = run_write_benchmark(cycle, target_ssh)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
             cycle.output("persistent-root-timing.record"),
             (
-                ("format", "rog5-local-image-partial-inspection-timing-v1"),
+                ("format", "rog5-local-image-write-benchmark-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -978,11 +1029,9 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     "authenticated_ssh_rendezvous_seconds",
                     f"{ssh_ready_elapsed:.3f}",
                 ),
-                ("partial_type", inspection["partial_type"]),
-                ("partial_mode", inspection["partial_mode"]),
-                ("partial_size", inspection["partial_size"]),
-                ("partial_links", inspection["partial_links"]),
-                ("seconds_to_inspection", f"{elapsed:.3f}"),
+                ("direct_write_seconds", f"{direct_seconds:.3f}"),
+                ("buffered_write_seconds", f"{buffered_seconds:.3f}"),
+                ("seconds_to_benchmark", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -994,8 +1043,9 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle inspected the exact partial-image metadata "
-            f"read-only in {elapsed:.3f}s and returned to fastboot"
+            "PASS one RAM-only cycle compared bounded direct and buffered UFS "
+            f"writes in {elapsed:.3f}s, removed the benchmark files, relocked "
+            "storage, and returned to fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:

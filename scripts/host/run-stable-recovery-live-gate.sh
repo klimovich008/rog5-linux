@@ -197,6 +197,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-write-benchmark-v42-generation151-live-v1 | \
 		local-image-write-benchmark-v43-generation152-live-v1 | \
 		local-image-partial-inspect-v44-generation153-live-v1 | \
+		local-image-write-benchmark-v45-generation154-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3405,6 +3406,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	local-image-write-benchmark-v45-generation154-live-v1)
+		expected_boot_image=build/local-image-write-benchmark-v45-generation154-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 154 cycle accepting the proven root-owned regular mode-0644 one-link zero-length partial, then comparing one 32 MiB aligned direct write with one 32 MiB buffered write; disposable cleanup and sync-independent fallback; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 154 zero-length-partial-aware direct-versus-buffered UFS benchmark; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-write-benchmark-v45
+		expected_bundle=local-image-write-benchmark-v45
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=f12517ba837c44633708dce9ea272b8a8eacaa25710fd8eab007b02a147f2a85
+		expected_avb_digest=54171e4abfa9406c55b4bb28ae66132018cf58cc9a15d9a18ef519d9d5e9fb16
+		expected_generation_record=36c4e08f65573803f9737290a505f7f200b50e1211107e89ce115a30b58a248e
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 14741fb36498f039e1711719ad542fa88e5b3b990a147d0877dbd8b400b8f25e ]] || fail 'local-image write benchmark V45 manifest is not pinned'
+		[[ $expected_image == 49fbe0fa5f243a522d29f8fcab34dc4618ad797d3ca9e36124c3db568324b839 ]] || fail 'local-image write benchmark V45 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image write benchmark V45 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image write benchmark V45 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -4910,6 +4944,7 @@ case $profile in
 	local-image-write-benchmark-v42-generation151-live-v1 | \
 	local-image-write-benchmark-v43-generation152-live-v1 | \
 	local-image-partial-inspect-v44-generation153-live-v1 | \
+	local-image-write-benchmark-v45-generation154-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

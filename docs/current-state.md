@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-23
+Updated: 2026-08-25
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -23,6 +23,22 @@ use Git history and dated `test-results/` records for older generations.
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
 | Persistent Arch layout | Active next phase | Integrate proven side power with local-image Arch + key-only SSH before native repartitioning |
 | VCNL36866 | Preserved, paused | Separate dirty worktree; no current subsystem expansion |
+
+## Immediate checkpoint
+
+The phone is currently exact fastboot on slot A with the battery gate passed.
+Normal slot-A Android boot is intentionally unavailable because userdata is
+now the Linux ext4 filesystem; Android therefore enters stock recovery. This
+is not a mainline crash and must not be addressed by flashing an experimental
+kernel over the rescue slot.
+
+Generation 153 proved the interrupted image partial is a regular root-owned
+0644 one-link file with zero size and zero allocated blocks. Generation 154
+is the unbooted one-use RAM-only successor. It changes only the sealed target
+initramfs and compares one 32 MiB direct write with one 32 MiB buffered write,
+then removes both disposable files, relocks storage, and returns through the
+built-in reboot-mode path to fastboot. Full-image staging remains paused until
+that measurement selects the write method.
 
 ## Charging repair facts
 
