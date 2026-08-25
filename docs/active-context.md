@@ -66,6 +66,9 @@ buffered fsync blocked beyond 180 seconds. Its independent sync-free timer
 returned directly to exact slot-A fastboot, so the recovery-loop concern is
 resolved without flashing. The next target must stage the image with aligned
 direct writes and sparse-hole skipping; buffered writeback is forbidden.
+Generation 155/V46 is the one admitted RAM-only successor: 37 ordered aligned
+direct ranges totaling 1,850,654,720 bytes recreate the reviewed 16 GiB Arch
+image at one fixed path. Full local CI and exact-head/merge/QEMU checks passed.
 
 ## Current physical evidence
 
