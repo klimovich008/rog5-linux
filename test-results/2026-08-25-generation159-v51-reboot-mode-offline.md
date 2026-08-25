@@ -11,4 +11,5 @@
 - Clean module twins matched. Clean target-initramfs twins matched at SHA-256
   `d2810bc803e262ea0628913d9db18d5615dead8f4b84e2e72ddfa0773d536c81`.
 - Focused checkpoint passed in 11.7 seconds. Full local `ci` passed once in
-  456.377 seconds. V51 remains offline and unadmitted pending publication.
+  456.377 seconds. Exact-head, merge-compat, QEMU, and candidate-publication CI
+  passed for `b5816d5f86a647020289b8f13c07f44fa5059fbd`. V51 is admitted once.
