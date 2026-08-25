@@ -186,10 +186,12 @@ the exact 37,736-entry source tree as its native-root seal. Clean twins match at
 remains offline HOLD and cannot be considered until Stage 1 succeeds and
 slot-A rescue is reproven.
 
-A fresh authority-free Generation-164 wrapper now reissues the live-proven V4
+A fresh authority-free Generation-164 wrapper reissues the live-proven V4
 read-only storage preflight bytes and binds the current layout, userdata UUID,
-source image, slot-A rescue, and Generation-163 evidence. It remains offline;
-no claim, admission, or phone boot exists.
+source image, slot-A rescue, and Generation-163 evidence. Exact-head CI passed
+and one separate narrow read-only admission exists. Its one-use claim remains
+unconsumed; no phone boot, mount, storage write, GPT operation, or destructive
+authority exists yet.
 
 After the repeat milestone, eleven explicitly validated unreferenced build
 trees totaling 77,096,943,616 bytes were removed through exact KDE Trash
