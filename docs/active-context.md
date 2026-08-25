@@ -50,7 +50,8 @@ unconsumed claim. Generation 166 then reached durable backup ACK and shrank
 ext4, failed at the target multi-option S60 `sgdisk` edit, restored the original
 GPT, and returned through slot A. The successor seals the offline-verified
 desired GPT backup and uses the live-proven single `--load-backup` operation;
-it remains unissued pending CI. Stage 2 is authorized only after Stage 1 passes.
+full CI passed and Generation 167 is narrowly admitted with an unconsumed
+claim. Stage 2 is authorized only after Stage 1 passes.
 
 ## Completed charging repair
 

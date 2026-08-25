@@ -189,6 +189,8 @@ passed, and slot-A recovery returned. The current recoverable state is a
 51,124,000-block ext4 filesystem inside the restored original userdata
 partition, with no partition 24. The unissued successor seals the exact desired
 GPT backup and uses the live-proven single `sgdisk --load-backup` operation.
+Full CI passed; Generation 167 is narrowly admitted and remains unbooted with
+an unconsumed claim.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
