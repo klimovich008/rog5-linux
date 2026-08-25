@@ -978,6 +978,8 @@ def run(
 
         fallback_attempted = True
         cycle.wait_fallback(None)
+        if not stock_fastboot_returned(gate_environment["ROG5_EXPECTED_USB_LOCATION"]):
+            fail("accepted local-root cycle did not return to exact slot-A fastboot")
         cycle.wait_host_clean(final=True)
         fallback_proven = True
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
@@ -985,7 +987,7 @@ def run(
         print(
             "PASS one RAM-only cycle booted the local Arch image, passed "
             f"systemd and key-only SSH in {elapsed:.3f}s, and returned to "
-            "fastboot"
+            "exact fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:

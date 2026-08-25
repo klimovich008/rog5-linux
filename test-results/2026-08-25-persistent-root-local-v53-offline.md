@@ -19,3 +19,20 @@
   The active repository tier passed in 57.724 seconds.
 - Exact-head, merge-compat, candidate-publication, and QEMU CI passed for
   `ff20d61af20dacd9f6274f43845eb9746cf126e1`. Generation 162 is admitted once.
+
+## Generation 162 live result
+
+- Local Arch passed read-only UFS, exact root verification, tmpfs OverlayFS,
+  systemd, side-port power/NCM, strict key-only SSH, and runtime attestation.
+- Runtime acceptance completed in 325.697 seconds; authenticated SSH required
+  seven attempts and 118.985 seconds while Arch cleared its boot-time nologin.
+- Power evidence: battery 8.686 V at 30.1 C, side USB online at 5.036 V / 500 mA,
+  Type-C device/sink, direct NCM route.
+- Runtime reported 116 physical block nodes, exactly two read-only block-backed
+  mounts, zero blocked device queries, zero blocked SCSI commands, zero journal
+  recovery events, and zero UFS errors.
+- `systemctl reboot` entered stock slot-A recovery. Source proves exitrd copied
+  `/shutdown`, but not `/usr/libexec/rog5-reboot-bootloader` referenced by that
+  script; it therefore fell through to SysRq.
+- Generation 162 is consumed. The next repeat copies the existing static helper
+  into exitrd and refuses success unless exact slot-A fastboot returns.

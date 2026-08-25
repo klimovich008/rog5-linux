@@ -153,6 +153,8 @@ grep -Fqx 'reboot_helper=/usr/libexec/rog5-reboot-bootloader' \
 	"$init" "$shutdown" || fail 'P2 rollback lacks the fixed restart2 helper path'
 grep -Fq '"$reboot_helper" || true' "$init" "$shutdown" ||
 	fail 'P2 rollback does not request restart2'
+grep -Fq 'cp -p "$reboot_helper" "$exitrd$reboot_helper"' "$init" ||
+	fail 'P2 exitrd omits the restart2 helper used by shutdown'
 grep -Fq 'bootloader restart returned; forcing emergency reset' "$init" ||
 	fail 'P2 target does not retain a last-resort reset after restart2'
 grep -Fq 'bootloader restart returned; triggering emergency reset' "$shutdown" ||
