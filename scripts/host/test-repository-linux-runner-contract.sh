@@ -150,6 +150,12 @@ RUNNER="$runner" PID_FILE="$work/completed.pid" \
 	parallel_group_has_other_members "$group_pid"
 	terminate_parallel_group "$group_pid"
 	wait "$group_pid" 2>/dev/null || true
+	attempt=0
+	while /bin/kill -0 -- "-$group_pid" 2>/dev/null &&
+		[ "$attempt" -lt 100 ]; do
+		sleep 0.01
+		attempt=$((attempt + 1))
+	done
 	! /bin/kill -0 -- "-$group_pid" 2>/dev/null
 '
 completed_status=$?
