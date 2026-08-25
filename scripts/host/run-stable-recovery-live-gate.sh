@@ -3544,8 +3544,8 @@ case $profile in
 		;;
 	local-image-direct-v49-generation158-live-v1)
 		expected_boot_image=build/local-image-direct-v49-generation158-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 158 cycle testing the module-only UFS standard high-speed gear transition before the unchanged 37-range direct image stage; exact UFS link snapshot, optional device writes remain disabled, RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 158 module-only UFS high-speed-gear successor; authority-free, RAM-only, never flash'
+		expected_boot_basis='consumed by the sole Generation 158 cycle; high-speed UFS branch executed, all 37 extents staged, fsync/e2fsck/publish/unmount/relock and target final PASS completed in about 92 seconds after SSH; host rejected only the known trailing timeout CRLF; exact fastboot fallback passed; never retry or flash'
+		expected_boot_role='consumed Generation 158 cycle; UFS high-speed fixed throughput and exact 16 GiB image publish completed; target PASS, host CRLF-only misclassification, exact fastboot; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

@@ -54,7 +54,7 @@ grep -Fq "expected_boot_role='consumed Generation 154 cycle; direct 32 MiB passe
 grep -Fq "expected_boot_role='consumed Generation 155 cycle; prepare failed before extent streaming and the old host discarded its reason; exact fastboot fallback; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 156 cycle; prepare and extent 1 passed, 4 KiB O_DIRECT throughput was impossible within watchdog, controlled SSH/HUP returned fastboot; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 157 cycle; 1 MiB writes remained 0.66 MiB/s, proving UFS/transport fixed-bandwidth limit; controlled fallback passed; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 158 module-only UFS high-speed-gear successor; authority-free, RAM-only, never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 158 cycle; UFS high-speed fixed throughput and exact 16 GiB image publish completed; target PASS, host CRLF-only misclassification, exact fastboot; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -372,8 +372,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 157 cycle; prepare and extents 1-2 completed, but 1 MiB O_DIRECT remained about 0.66 MiB/s, proving syscall size was not the bottleneck; operator ended extent 3 through SSH/HUP; exact fastboot fallback and cleanup passed; never retry or flash" &&
 		NF == 3 { local_direct_megabyte++ ; next }
 	$1 == "build/local-image-direct-v49-generation158-20260825-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 158 cycle testing the module-only UFS standard high-speed gear transition before the unchanged 37-range direct image stage; exact UFS link snapshot, optional device writes remain disabled, RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 158 cycle; high-speed UFS branch executed, all 37 extents staged, fsync/e2fsck/publish/unmount/relock and target final PASS completed in about 92 seconds after SSH; host rejected only the known trailing timeout CRLF; exact fastboot fallback passed; never retry or flash" &&
 		NF == 3 { local_high_speed++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -590,7 +590,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
