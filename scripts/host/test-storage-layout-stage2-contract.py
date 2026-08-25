@@ -15,6 +15,7 @@ BUILDER = REPO / "scripts/device/build-storage-layout-stage2-initramfs.sh"
 COLLECTOR = REPO / "scripts/host/collect-storage-layout-stage2.py"
 SEAL = REPO / "configs/storage/rog5-native-root-v1.seal"
 INIT = REPO / "initramfs/recovery-init"
+CURRENT = REPO / "manifests/storage-layout-stage2-current-20260825.manifest"
 
 
 class StorageLayoutStage2ContractTest(unittest.TestCase):
@@ -84,6 +85,25 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertNotIn("ROG5_LAYOUT_TEST", source)
         self.assertNotIn('"$status" -eq 1', source)
 
+    def test_current_checkpoint_is_offline_and_current_bound(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CURRENT.read_text(encoding="ascii").splitlines()
+        )
+        self.assertEqual(fields["status"], "offline-hold")
+        self.assertEqual(fields["destructive_authority"], "none")
+        self.assertEqual(fields["phone_boot"], "forbidden")
+        self.assertEqual(
+            fields["source_image_sha256"],
+            "533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153",
+        )
+        self.assertEqual(
+            fields["source_tree_sha256"],
+            "4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167",
+        )
+        self.assertEqual(fields["rescue_slot"], "a")
+        self.assertEqual(fields["accepted_generation"], "163")
+
     def test_executor_classifies_partial_before_clone(self) -> None:
         source = self.executable_source(EXECUTOR)
         partial = source.index("target_state=partial", source.index("stage_set S40_CLONE"))
@@ -101,15 +121,15 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(len(payload), 430)
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
-            "8dbc66163adde6919d9e48974a035e1a3d27c8d0304befbc806cd284d167be68",
+            "02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876",
         )
         lines = payload.decode("ascii").splitlines()
         self.assertEqual(len(lines), 13)
-        self.assertIn("tree_entries=37738", lines)
-        self.assertIn("tree_regular_files=27605", lines)
-        self.assertIn("tree_directories=1903", lines)
+        self.assertIn("tree_entries=37736", lines)
+        self.assertIn("tree_regular_files=27604", lines)
+        self.assertIn("tree_directories=1902", lines)
         self.assertIn(
-            "tree_sha256=c804445418eea694667f6529086d7eeaa8e4a82293c86c692e0ebc379fd28e38",
+            "tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167",
             lines,
         )
 

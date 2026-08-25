@@ -180,6 +180,12 @@ image/tree, slot-A rescue, and Generation-163 baseline. Clean twins match at
 phone boot, or destructive authority. A fresh read-only physical preflight and
 host backup receipt still precede final destructive review.
 
+The refreshed Stage-2 archive now binds the same current checkpoint and uses
+the exact 37,736-entry source tree as its native-root seal. Clean twins match at
+`ae67a6fd...`; the sealed AArch64 clone/UUID/fsck/grow closure passes. Stage 2
+remains offline HOLD and cannot be considered until Stage 1 succeeds and
+slot-A rescue is reproven.
+
 After the repeat milestone, eleven explicitly validated unreferenced build
 trees totaling 77,096,943,616 bytes were removed through exact KDE Trash
 entries. Free host space rose from 3.0 GB to about 75 GiB. Current candidates,

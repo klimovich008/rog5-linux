@@ -16,7 +16,7 @@ target_mount=/mnt/native-root
 source_bytes=17179869184
 source_blocks=4194304
 target_blocks=8388603
-native_seal_sha256=8dbc66163adde6919d9e48974a035e1a3d27c8d0304befbc806cd284d167be68
+native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 old_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 disk=
 userdata=
@@ -504,6 +504,6 @@ verify_ext4 "$arch_root" "$expected_target_uuid" "$target_blocks" ROG5_ARCH_A \
 	/run/rog5-layout-stage2-final-root.log || fail final_native_root_changed
 
 stage=S99_COMPLETE
-emit "status=PASS stage=$stage reason=none operation_id=$operation_id source_sha256=$expected_source_hash target_uuid=$expected_target_uuid target_blocks=$target_blocks native_seal_sha256=$native_seal_sha256 tree_sha256=c804445418eea694667f6529086d7eeaa8e4a82293c86c692e0ebc379fd28e38 all_read_only=1 block_mounts=0"
+emit "status=PASS stage=$stage reason=none operation_id=$operation_id source_sha256=$expected_source_hash target_uuid=$expected_target_uuid target_blocks=$target_blocks native_seal_sha256=$native_seal_sha256 tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167 all_read_only=1 block_mounts=0"
 log "complete; target_uuid=$expected_target_uuid"
 exit 0
