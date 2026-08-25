@@ -367,6 +367,11 @@ minimal UFS/NCM successor on that exact target lineage.
 The fallback verifier now accepts the exact current `18d1:d001` recovery tuple
 as well as the historical complete tuple, rejects mixed identities, and passed
 the live Generation-137 recovery with its retained slot-A preboot record.
+Generation 138 is consumed: exact ae717 UFS still reported count zero, while
+built-in reboot mode returned exact fastboot. The sealed Generation-109 init
+loads its 15-module PMIC GLINK/remoteproc/UCSI stack before UFS; the minimal
+successor had packaged but never executed that loader. Generation 139 restores
+that exact dependency order and still exposes no storage-write path.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

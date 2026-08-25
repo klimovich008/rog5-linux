@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "ufs-reboot-baseline-v29-generation138-live-v1"
-BUNDLE = "ufs-reboot-baseline-v29"
+PROFILE_ID = "ufs-power-reboot-baseline-v30-generation139-live-v1"
+BUNDLE = "ufs-power-reboot-baseline-v30"
 MANIFEST_SHA256 = (
-    "836ef28ffcf42c5f883b5456da9348b06f091d532d9855eff2a38fe1280bdf4f"
+    "21d28652ffd53bb3472194e781d32b6a32ce7cd377ed39c8f741f38384af10fc"
 )
 RECOVERY_SHA256 = (
-    "c97163219436d0903aa6130c34f8741381060fdb3e929dbf4a494a26d1839ba8"
+    "a33451c6c46500ad738fc8985f1fe2d6c00bfdb8ac8f2380811478c0816cd8af"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"ufs-reboot-baseline-v29-generation138-live-v1\n"
-    b"candidate=ufs-reboot-baseline-v29\n"
+    b"ufs-power-reboot-baseline-v30-generation139-live-v1\n"
+    b"candidate=ufs-power-reboot-baseline-v30\n"
     b"manifest_sha256="
-    b"836ef28ffcf42c5f883b5456da9348b06f091d532d9855eff2a38fe1280bdf4f\n"
+    b"21d28652ffd53bb3472194e781d32b6a32ce7cd377ed39c8f741f38384af10fc\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-ufs-reboot-baseline-v29-claim.py"
+    / "scripts/host/consume-ufs-power-reboot-baseline-v30-claim.py"
 )
 TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/ufs-reboot-baseline-v29-generation138-20260824-r1"
+    / "build/ufs-power-reboot-baseline-v30-generation139-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="ufs-reboot-baseline-v29",
+    admission_profile="ufs-power-reboot-baseline-v30",
     recovery_profile=PROFILE_ID,
-    runtime_profile="ufs-reboot-baseline-v29",
-    build_profile="ufs-reboot-baseline-v29",
+    runtime_profile="ufs-power-reboot-baseline-v30",
+    build_profile="ufs-power-reboot-baseline-v30",
     diagnostic=False,
 )
 

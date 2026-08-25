@@ -526,6 +526,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "local-image-stage-of-node-v27-generation136-live-v1",
         "ufs-baseline-proven-v28-generation137-live-v1",
         "ufs-reboot-baseline-v29-generation138-live-v1",
+        "ufs-power-reboot-baseline-v30-generation139-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

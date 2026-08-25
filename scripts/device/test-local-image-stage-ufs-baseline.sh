@@ -18,7 +18,6 @@ for contract in \
 	}
 done
 for forbidden in \
-	rog5-load-persistent-power-usb \
 	rog5-install-local-arch-image \
 	sshd ssh-keygen blockdev '/dev/sd' 'mount -t ext4' userdata; do
 	if grep -Fq "$forbidden" "$init"; then
@@ -27,4 +26,11 @@ for forbidden in \
 	fi
 done
 
-echo 'PASS minimal UFS baseline has NCM observability and no power or storage path'
+loader=$(grep -n '/sbin/rog5-load-persistent-power-usb' "$init" | cut -d: -f1)
+ufs=$(grep -n 'for module in phy-qcom-qmp-ufs[.]ko' "$init" | cut -d: -f1)
+[ -n "$loader" ] && [ -n "$ufs" ] && [ "$loader" -lt "$ufs" ] || {
+	echo 'FAIL power/USB loader must precede the UFS module chain' >&2
+	exit 1
+}
+
+echo 'PASS minimal UFS baseline loads proven power/USB dependencies before UFS and exposes no storage path'
