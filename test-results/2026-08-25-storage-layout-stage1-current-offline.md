@@ -78,3 +78,18 @@
   frozen implementation commit `827af45` in 6m55.105s. The separate generated
   manifest and one narrow admission now bind the exact candidate; its one-use
   claim remains unconsumed.
+
+## Generation 167 prewrite result
+
+- Generation 167 consumed its sole cycle and exact slot-A fallback passed.
+  Recovery USB appeared, but the target exited before ACM stabilization and no
+  Stage-1 backup directory was created.
+- Source inspection proved the exact stale predicate: S10 still called
+  `verify_userdata_filesystem 59513299` even though Generation 166 had already
+  shrunk ext4 to 51,124,000 blocks before restoring the original GPT. This is
+  R2 and occurred before S30, collector readiness, fresh backup, ACK, writable
+  block device, GPT load, or any new storage write.
+- The successor changes only that prewrite expectation to the current verified
+  51,124,000 blocks. A source regression test requires the new value before S30
+  and forbids the old value. Clean target-initramfs twins match at
+  `282d9360...`; no successor manifest, admission, or claim exists yet.

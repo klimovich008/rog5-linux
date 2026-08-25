@@ -388,7 +388,7 @@ verify_partition 23 2352680 61865978 "$expected_userdata_type_guid" \
 	"$expected_userdata_guid" userdata || fail userdata_identity_changed
 partition_absent 24 || fail partition_24_already_exists
 if [ "$operation_mode" = layout_stage1 ]; then
-	verify_userdata_filesystem 59513299 || fail userdata_filesystem_changed
+	verify_userdata_filesystem 51124000 || fail userdata_filesystem_changed
 else
 	read_userdata_ext4_magic || fail userdata_magic_read_failed
 	[ "$ext_magic" != 53ef ] || fail userdata_already_ext4
