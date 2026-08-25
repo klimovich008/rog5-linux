@@ -1,7 +1,6 @@
 # Generation 150 bounded UFS write benchmark
 
-Result: **OFFLINE PASS; UNBOOTED; ADMITTED ONCE.** Never flash or retry after
-claim entry.
+Result: **CONSUMED; POST-CRASH PARTIAL IDENTITY REFUSAL.** Never flash or retry.
 
 Primary question: does aligned direct I/O avoid the UFS stall seen during
 Generation 149's buffered dense image write?
@@ -28,3 +27,10 @@ Generation-150 RAM-only AVB SHA-256:
 
 The bounded Opus review timed out after five minutes without a verdict. No
 recommendation from it was treated as evidence.
+
+The sole cycle passed power/USB, UFS, runtime, and key-only SSH, then emitted
+exact `reason=partial-identity` before creating the benchmark directory or
+writing data. Ext4 recovery changed the partial file from its pre-crash exact
+tuple. Exact fastboot fallback and host cleanup passed. The successor accepts
+only absence or one root-owned regular mode-0600/0644 partial no larger than
+the previously observed 825,884,672 bytes and reports its exact state.

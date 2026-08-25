@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "local-image-write-benchmark-v41-generation150-live-v1",
+            "local-image-write-benchmark-v42-generation151-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -66,7 +66,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
         self.assertEqual(
             MODULE.BUNDLE,
-            "local-image-write-benchmark-v41",
+            "local-image-write-benchmark-v42",
         )
         for digest in (
             MODULE.MANIFEST_SHA256,
@@ -84,7 +84,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation150",
+            "generation151",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -101,7 +101,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.CLAIM_ENTRYPOINT.name,
-            "consume-local-image-write-benchmark-v41-claim.py",
+            "consume-local-image-write-benchmark-v42-claim.py",
         )
 
     def test_continuous_runner_has_no_manual_boundary_after_commit(self) -> None:
@@ -519,6 +519,8 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_write_benchmark_parser_is_exact_and_bounded(self) -> None:
         valid = (
             "format=rog5-local-image-write-benchmark-v1\n"
+            "partial_size=825884672\n"
+            "partial_mode=644\n"
             "direct_seconds=1.25\n"
             "direct_size=33554432\n"
             "buffered_seconds=42.50\n"
@@ -535,6 +537,8 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 valid.replace("direct_seconds=1.25", "direct_seconds=181"),
                 valid.replace("ufs_error_lines=0", "ufs_error_lines=1"),
                 valid.replace("temperature_decic=315", "temperature_decic=550"),
+                valid.replace("partial_size=825884672", "partial_size=825884673"),
+                valid.replace("partial_mode=644", "partial_mode=777"),
                 valid + "extra=yes\n",
             ):
                 path.write_text(mutation, encoding="ascii")

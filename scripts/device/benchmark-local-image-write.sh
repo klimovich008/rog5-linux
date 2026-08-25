@@ -77,14 +77,27 @@ mounted=1
 
 [ "$(stat -c '%u:%g:%a:%h' "$mountpoint/rog5")" = 0:0:700:3 ] || fail rog5-metadata
 [ "$(stat -c '%u:%g:%a:%h' "$mountpoint/rog5/images")" = 0:0:700:2 ] || fail images-metadata
-[ -f "$partial" ] && [ ! -L "$partial" ] &&
-	[ "$(stat -c '%u:%g:%a:%h:%s' "$partial")" = "0:0:644:1:$expected_partial_size" ] ||
-	fail partial-identity
+partial_size=0
+partial_mode=absent
+if [ -e "$partial" ] || [ -L "$partial" ]; then
+	[ -f "$partial" ] && [ ! -L "$partial" ] || fail partial-identity
+	metadata=$(stat -c '%u:%g:%a:%h:%s' "$partial") || fail partial-identity
+	IFS=: read -r partial_uid partial_gid partial_mode partial_links partial_size <<EOF
+$metadata
+EOF
+	[ "$partial_uid:$partial_gid:$partial_links" = 0:0:1 ] || fail partial-identity
+	case $partial_mode in 600|644) ;; *) fail partial-identity ;; esac
+	case $partial_size in ''|*[!0-9]*) fail partial-identity ;; esac
+	[ "$partial_size" -gt 0 ] && [ "$partial_size" -le "$expected_partial_size" ] ||
+		fail partial-identity
+fi
 [ ! -e "$final" ] && [ ! -L "$final" ] || fail final-present
 [ ! -e "$benchmark" ] && [ ! -L "$benchmark" ] || fail benchmark-present
 mkdir -m 0700 "$benchmark"
 
 printf '%s\n' 'format=rog5-local-image-write-benchmark-v1'
+printf 'partial_size=%s\n' "$partial_size"
+printf 'partial_mode=%s\n' "$partial_mode"
 if ! /usr/bin/time -f 'direct_seconds=%e' -o /run/rog5-direct.time \
 	timeout -k 5 180 dd if=/dev/zero of="$benchmark/direct.bin" \
 		bs=1048576 count=32 oflag=direct conv=fsync status=none; then

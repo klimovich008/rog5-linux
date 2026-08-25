@@ -194,6 +194,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-rworder-v39-generation148-live-v1 | \
 		local-image-stage-writekernel-v40-generation149-live-v1 | \
 		local-image-write-benchmark-v41-generation150-live-v1 | \
+		local-image-write-benchmark-v42-generation151-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3272,8 +3273,8 @@ case $profile in
 		;;
 	local-image-write-benchmark-v41-generation150-live-v1)
 		expected_boot_image=build/local-image-write-benchmark-v41-generation150-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 150 cycle comparing one 32 MiB aligned direct write with one 32 MiB buffered write inside the reviewed userdata image directory; existing partial preserved; disposable files removed on success; sync-independent restart2-plus-SysRq fallback; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 150 direct-versus-buffered 32 MiB UFS benchmark with sync-independent fastboot fallback; never flash'
+		expected_boot_basis='consumed by the sole Generation 150 cycle; UFS and SSH passed, then the benchmark rejected post-crash partial metadata before creating its benchmark directory or writing data; exact fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 150 cycle; post-crash partial metadata differed from the exact pre-crash tuple, so no benchmark write ran; exact fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3296,6 +3297,39 @@ case $profile in
 		[[ $expected_image == e28b4c489e9507a5dba48b5c94af844c087fcf5d01efc7371343830db577cb12 ]] || fail 'local-image write benchmark V41 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image write benchmark V41 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image write benchmark V41 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-write-benchmark-v42-generation151-live-v1)
+		expected_boot_image=build/local-image-write-benchmark-v42-generation151-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 151 cycle accepting only absent or one root-owned mode-0600/0644 partial no larger than 825884672 bytes, then comparing one 32 MiB aligned direct write with one 32 MiB buffered write; disposable files removed on success; sync-independent fallback; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 151 crash-bounded partial classifier plus direct-versus-buffered 32 MiB UFS benchmark; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-write-benchmark-v42
+		expected_bundle=local-image-write-benchmark-v42
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=7704027d03708d62e0a20f58aa1286f40c0a4a6078e655593fd7f5dc84cbdc1a
+		expected_avb_digest=60c556599105d17c63f71ef3834a37787d6b5e268f989a1f248c620b1b87fdba
+		expected_generation_record=4d21a50bac3c86271fa26f66f75ee57e97daf0c82f4fae2e8b053c9f3b7046db
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == eda3bd6c644adb12254cf92d1c32dab1ace1982809227f0eb1917286c8cd36e9 ]] || fail 'local-image write benchmark V42 manifest is not pinned'
+		[[ $expected_image == a90a25e8270e85205f1898c02e7ce8b146a0e583770cba93cf1f7e23e99a2e35 ]] || fail 'local-image write benchmark V42 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image write benchmark V42 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image write benchmark V42 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4805,6 +4839,7 @@ case $profile in
 	local-image-stage-rworder-v39-generation148-live-v1 | \
 	local-image-stage-writekernel-v40-generation149-live-v1 | \
 	local-image-write-benchmark-v41-generation150-live-v1 | \
+	local-image-write-benchmark-v42-generation151-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
