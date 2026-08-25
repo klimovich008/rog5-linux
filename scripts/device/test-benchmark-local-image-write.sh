@@ -9,9 +9,10 @@ manifest=$repo/manifests/local-image-write-benchmark-v45-generation154.manifest
 claim=$repo/scripts/host/consume-local-image-write-benchmark-v45-claim.py
 
 [ -f "$benchmark" ] && [ ! -L "$benchmark" ]
-for path in "$base" "$candidate" "$manifest" "$claim"; do
+for path in "$candidate" "$manifest" "$claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ]
 done
+[ ! -e "$base" ] || { [ -f "$base" ] && [ ! -L "$base" ]; }
 sh -n "$benchmark"
 python3 -m py_compile "$claim"
 for contract in \
@@ -51,9 +52,6 @@ buffered = source.index('of="$benchmark/buffered.bin"')
 assert direct < buffered
 PY
 
-root=$(mktemp -d)
-trap 'find "$root" -depth -delete' EXIT HUP INT TERM
-gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 python3 - "$candidate" "$base" <<'PY'
 import hashlib
 import json
@@ -66,25 +64,35 @@ assert record["status"] == "offline"
 assert record["authority"] == "none"
 assert record["target_release"] == "7.1.4-g359318de534f"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
-path = Path(sys.argv[2])
-assert path.stat().st_size == artifact["size"] == 23805026
-assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
-    artifact["sha256"] == \
+assert artifact["size"] == 23805026
+assert artifact["sha256"] == \
     "d017b3d1bbf6b7c9974d7aba1083c3332a7aeec5611eaf00c0445e8d06f82259"
+path = Path(sys.argv[2])
+if path.exists():
+    assert path.stat().st_size == artifact["size"]
+    assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
+        artifact["sha256"]
 PY
 grep -Fxq 'avb_generation=154' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"
 grep -Fq 'local-image-write-benchmark-v45-generation154-live-v1' "$claim"
-qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
-if [ -n "$qemu" ]; then
-	"$qemu" -L "$root" "$root/bin/busybox" dd if=/dev/zero \
-		of="$root/direct.bin" bs=1048576 count=4 oflag=direct conv=fsync status=none
-	"$qemu" -L "$root" "$root/bin/busybox" dd if=/dev/zero \
-		of="$root/buffered.bin" bs=1048576 count=4 conv=fsync status=none
-	[ "$(stat -c %s "$root/direct.bin")" -eq 4194304 ]
-	[ "$(stat -c %s "$root/buffered.bin")" -eq 4194304 ]
+if [ -f "$base" ]; then
+	root=$(mktemp -d)
+	trap 'find "$root" -depth -delete' EXIT HUP INT TERM
+	gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
+	qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
+	if [ -n "$qemu" ]; then
+		"$qemu" -L "$root" "$root/bin/busybox" dd if=/dev/zero \
+			of="$root/direct.bin" bs=1048576 count=4 oflag=direct conv=fsync status=none
+		"$qemu" -L "$root" "$root/bin/busybox" dd if=/dev/zero \
+			of="$root/buffered.bin" bs=1048576 count=4 conv=fsync status=none
+		[ "$(stat -c %s "$root/direct.bin")" -eq 4194304 ]
+		[ "$(stat -c %s "$root/buffered.bin")" -eq 4194304 ]
+	else
+		echo 'SKIP sealed AArch64 BusyBox direct-I/O execution: qemu-user is unavailable' >&2
+	fi
 else
-	echo 'SKIP sealed AArch64 BusyBox direct-I/O execution: qemu-user is unavailable' >&2
+	echo 'SKIP retained Generation 154 initramfs checks: ignored artifact is absent' >&2
 fi
 
 echo 'PASS local-image write benchmark is bounded, direct-first, and sync-independent on emergency fallback'
