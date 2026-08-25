@@ -34,6 +34,10 @@ PROFILE_V4 = "storage-preflight-v4-generation74-live-v1"
 MANIFEST_V4_SHA256 = (
     "4ab1ad92b75b975c887bca9b1f4d2617f0d9267dd1b179bb36a0f37c791bff64"
 )
+CURRENT_PROFILE = "storage-preflight-current-generation164-live-v1"
+CURRENT_MANIFEST_SHA256 = (
+    "8f0f1f5c22231e7c2090299c1b0878b38e09b1839ecaf9cf8cdaf2643e365f6a"
+)
 
 EXPECTED = OrderedDict(
     (
@@ -298,7 +302,7 @@ class CandidateTests(unittest.TestCase):
             line.split("=", 1)
             for line in CURRENT.read_text(encoding="ascii").splitlines()
         )
-        self.assertEqual(fields["profile"], "storage-preflight-current-generation164-live-v1")
+        self.assertEqual(fields["profile"], CURRENT_PROFILE)
         self.assertEqual(fields["status"], "offline")
         self.assertEqual(fields["authority"], "none")
         self.assertEqual(fields["phone_boot"], "forbidden")
@@ -313,6 +317,38 @@ class CandidateTests(unittest.TestCase):
             "d9a500dd7285b6f7789df89c8da0735f75bb04ee893808bb4f59de1e9e46fdf1",
         )
 
+    def test_generation164_admission_and_claim_are_exact(self) -> None:
+        self.assertEqual(digest(CURRENT), CURRENT_MANIFEST_SHA256)
+        lines = POLICY.read_text(encoding="ascii").splitlines()
+        self.assertEqual(len(lines), 6)
+        fields = next(
+            line.split("\t")
+            for line in lines[1:]
+            if line.startswith(CURRENT_PROFILE + "\t")
+        )
+        self.assertEqual(
+            fields[:6],
+            [
+                CURRENT_PROFILE,
+                "allow",
+                CURRENT_MANIFEST_SHA256,
+                "build/storage-preflight-current-generation164-20260825-r1/"
+                "repack/stable-recovery-a.avb.img",
+                "100663296",
+                "d9a500dd7285b6f7789df89c8da0735f75bb04ee893808bb4f59de1e9e46fdf1",
+            ],
+        )
+        self.assertIn("no mounts, writes, GPT operations", fields[6])
+        self.assertIn("never flash or retry after entry", fields[6])
+        expected_claim = (
+            "format=rog5-temporary-boot-consumption-v1\n"
+            f"recovery_profile={CURRENT_PROFILE}\n"
+            "candidate=storage-preflight-current\n"
+            f"manifest_sha256={CURRENT_MANIFEST_SHA256}\n"
+            "state=BOOT_CLAIMED\n"
+        ).encode("ascii")
+        self.assertEqual(CLAIMS.expected_record(CURRENT_PROFILE), expected_claim)
+
     def test_consumed_manifest_remains_exact(self) -> None:
         values = canonical_manifest()
         self.assertEqual(values, EXPECTED)
@@ -325,7 +361,7 @@ class CandidateTests(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 5)
+        self.assertEqual(len(lines), 6)
         fields = next(
             line.split("\t") for line in lines[1:] if line.startswith(PROFILE + "\t")
         )
