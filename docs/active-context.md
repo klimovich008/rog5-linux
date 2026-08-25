@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-23
+Updated: 2026-08-25
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -18,6 +18,11 @@ history, `test-results/`, and `docs/archive-index.md`.
 
 Slot A is the permanent charging and recovery route. Future Linux work uses
 RAM-only `fastboot boot` until a persistent design explicitly preserves it.
+
+Normal slot-A Android boot now enters stock recovery because userdata was
+deliberately converted to the Linux ext4 filesystem. Keep the phone in
+fastboot between development cycles; do not flash an experimental kernel to
+hide this expected recovery fallback.
 
 ## Completed charging repair
 
@@ -55,6 +60,13 @@ Immediate work is Linux power over the side data port:
 5. prove net-positive charging and safe temperature under sustained load;
 6. keep NCM, key-only SSH, and rollback stable throughout;
 7. return to persistent local-root Arch only after this foundation passes.
+
+Immediate active checkpoint: Generation 153 proved the crash partial is exact
+regular root-owned 0644, one link, zero bytes, zero blocks. Generation 154 is
+the unbooted RAM-only benchmark successor. It performs only one 32 MiB direct
+and one 32 MiB buffered write inside the bounded image directory, deletes the
+test files, relocks UFS, and returns to exact fastboot. Its result selects the
+sparse-aware full-image staging method; it does not flash any phone partition.
 
 ## Current physical evidence
 
