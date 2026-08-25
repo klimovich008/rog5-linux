@@ -71,6 +71,8 @@ consumed after passing local Arch, systemd, power/USB, runtime attestation, and
 key-only SSH in 325.697 seconds. Its exitrd omitted the restart2 helper used by
 shutdown, so the final reboot entered stock recovery. The next repeat adds that
 unchanged helper to exitrd and requires exact fastboot before success.
+V54/Generation 163 is built offline with clean target and signed bundle twins;
+it remains unadmitted.
 
 ## Charging repair facts
 
