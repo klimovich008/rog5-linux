@@ -92,4 +92,6 @@
 - The successor changes only that prewrite expectation to the current verified
   51,124,000 blocks. A source regression test requires the new value before S30
   and forbids the old value. Clean target-initramfs twins match at
-  `282d9360...`; no successor manifest, admission, or claim exists yet.
+  `282d9360...`; full CI passed on `74ffd15` in 6m53.439s. Generation 168 AVB
+  twins match at `e5d54cf3...`; one narrow generated admission exists and its
+  claim remains unconsumed.

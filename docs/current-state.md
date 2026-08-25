@@ -191,7 +191,8 @@ GPT backup and uses the live-proven single `sgdisk --load-backup` operation.
 Generation 167 then failed before S30/ACK/write because
 the executor still expected the pre-shrink 59,513,299-block filesystem. Exact
 slot-A fallback passed. The unissued successor changes only this guard to the
-current verified 51,124,000 blocks.
+current verified 51,124,000 blocks. Full CI passed; Generation 168 is narrowly
+admitted and remains unbooted with an unconsumed claim.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

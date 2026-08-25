@@ -149,6 +149,14 @@ CLAIMS = {
         b"f9df41fb58858b9eeed9528650f1461d0a71bd2bb0bd8dd926f740ad65954ccf\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "storage-layout-stage1-load-backup-generation168-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=storage-layout-stage1-load-backup-generation168-live-v1\n"
+        b"candidate=storage-layout-stage1-load-backup\n"
+        b"manifest_sha256="
+        b"902890bd36b067fd7a262fd71334f418766777b3c8beb47711776b251878c9ea\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-preflight-v3-generation73-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
