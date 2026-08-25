@@ -26,3 +26,10 @@
 - Status remains HOLD awaiting the exact final destructive confirmation. No
   policy admission, claim, boot authority, phone contact, partition operation,
   or storage write exists for Generation 165.
+- The first full-CI attempt exposed a host-only stale identity tuple in the
+  dormant retention process contract after prior claim/live-gate edits. The
+  exact three current program size/hash tuples and their dependent profile
+  bindings were refreshed; 59 focused executor/boundary/runtime/admission tests
+  then passed. The frozen repository `ci` tier passed in 7m26.974s. This fix
+  changes no wrapper, Stage-1 executor, initramfs, phone command, or candidate
+  byte.
