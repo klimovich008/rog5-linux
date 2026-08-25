@@ -174,6 +174,12 @@ slot A, and create one aligned 32-GiB `arch_root_a`. Historical Stage-1/2
 executors remain ineligible until refreshed against the current image, rescue,
 and backup identities; no destructive operation is authorized or pending.
 
+The refreshed Stage-1 initramfs now binds the current userdata UUID, source
+image/tree, slot-A rescue, and Generation-163 baseline. Clean twins match at
+`b9851f3e...`; the artifact remains offline HOLD with no candidate, claim,
+phone boot, or destructive authority. A fresh read-only physical preflight and
+host backup receipt still precede final destructive review.
+
 After the repeat milestone, eleven explicitly validated unreferenced build
 trees totaling 77,096,943,616 bytes were removed through exact KDE Trash
 entries. Free host space rose from 3.0 GB to about 75 GiB. Current candidates,
