@@ -17,6 +17,7 @@ MANIFEST = REPO / "manifests/storage-preflight-v1-generation71.manifest"
 MANIFEST_V2 = REPO / "manifests/storage-preflight-v2-generation72.manifest"
 MANIFEST_V3 = REPO / "manifests/storage-preflight-v3-generation73.manifest"
 MANIFEST_V4 = REPO / "manifests/storage-preflight-v4-generation74.manifest"
+CURRENT = REPO / "manifests/storage-preflight-current-generation164.manifest"
 POLICY = REPO / "manifests/storage-preflight-temporary-boot-v1.tsv"
 CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 PROFILE = "storage-preflight-v1-generation71-live-v1"
@@ -292,6 +293,26 @@ def canonical_manifest(path: Path = MANIFEST) -> OrderedDict[str, str]:
 
 
 class CandidateTests(unittest.TestCase):
+    def test_generation164_is_current_bound_and_has_no_authority(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CURRENT.read_text(encoding="ascii").splitlines()
+        )
+        self.assertEqual(fields["profile"], "storage-preflight-current-generation164-live-v1")
+        self.assertEqual(fields["status"], "offline")
+        self.assertEqual(fields["authority"], "none")
+        self.assertEqual(fields["phone_boot"], "forbidden")
+        self.assertEqual(fields["rescue_slot"], "a")
+        self.assertEqual(fields["accepted_generation"], "163")
+        self.assertEqual(
+            fields["layout_sha256"],
+            "6b64b3ca5e58a270c1afd358b5a6fd59793e2b331c73a7fe62b58ef5bbe3440f",
+        )
+        self.assertEqual(
+            fields["image_sha256"],
+            "d9a500dd7285b6f7789df89c8da0735f75bb04ee893808bb4f59de1e9e46fdf1",
+        )
+
     def test_consumed_manifest_remains_exact(self) -> None:
         values = canonical_manifest()
         self.assertEqual(values, EXPECTED)
