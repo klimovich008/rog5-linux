@@ -1,6 +1,6 @@
 # Local-image direct V46 offline checkpoint
 
-Result: **OFFLINE PASS; ADMITTED ONCE; UNBOOTED.** No phone contact or claim.
+Result: **OFFLINE PASS; LIVE CONSUMED; FALLBACK_RETURNED.** Never retry.
 
 The exact 16 GiB Arch image is represented by one generated 37-range map:
 
@@ -27,3 +27,16 @@ The generic packager now accepts authority-free offline
 After full local CI (433 seconds) and exact-head/merge/QEMU GitHub success on
 the reviewed implementation, Generation 155 was admitted for one RAM-only
 cycle. COMMIT or any ambiguous outcome permanently consumes it.
+
+## Live result
+
+The target passed NCM, power/USB, UFS, storage lock, runtime, and key-only SSH.
+Its fixed `prepare` operation then failed before any extent stream. The old
+host streamer replaced the target's bounded failure record with a generic
+message, so the exact target predicate is unavailable. Exact slot-A fastboot
+and host cleanup passed; intent resolved `FALLBACK_RETURNED`.
+
+Failure class: **R7 host observability**, with a probable exact residual-state
+mismatch. Generation 154 durably synced an empty benchmark directory before
+the later buffered file stalled, while V46 accepted only one populated
+residual directory.

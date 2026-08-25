@@ -39,8 +39,13 @@ custom reboot-mode path avoids the stock-recovery loop. The next stager uses
 aligned direct writes and skips sparse holes; buffered writeback is excluded.
 V46 now passes offline with 37 direct ranges totaling 1.85 GiB, clean-twin
 target initramfses, signed bundle twins, and an authority-free Generation-155
-wrapper. Full local CI and exact-head/merge/QEMU GitHub checks passed; it is
-now admitted once and remains unbooted.
+wrapper. Generation 155 is consumed: it reached runtime and SSH, then prepare
+failed before extent streaming while the host discarded the exact reason.
+Fastboot fallback passed. The successor preserves bounded target failures and
+accepts only the proven empty or one-file benchmark residual forms.
+V47 is built offline with preserved target failures and both exact residual
+forms. Its target twins, signed bundle twins, and authority-free Generation
+156 wrapper pass; it remains unadmitted and unbooted.
 
 ## Charging repair facts
 

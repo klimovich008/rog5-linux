@@ -95,6 +95,8 @@ def run(
     if allow_disconnect and output == expected + disconnect:
         output = expected
     if result.returncode not in accepted or output != expected:
+        if len(output) <= 4096 and b"\0" not in output:
+            sys.stdout.buffer.write(output)
         fail(f"target command failed: {command[-2:]}")
     sys.stdout.buffer.write(output)
 
@@ -131,6 +133,8 @@ def stream_extent(
         f"index={index}\nblocks={count}\nresult=PASS\n"
     ).encode("ascii")
     if returncode != 0 or output != expected:
+        if len(output) <= 4096 and b"\0" not in output:
+            sys.stdout.buffer.write(output)
         fail(f"target rejected direct extent {index}")
     sys.stdout.buffer.write(output)
 

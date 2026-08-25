@@ -3442,8 +3442,8 @@ case $profile in
 		;;
 	local-image-direct-v46-generation155-live-v1)
 		expected_boot_image=build/local-image-direct-v46-generation155-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 155 cycle staging the reviewed 16 GiB Arch image through 37 ordered aligned direct extents totaling 1850654720 bytes; exact source and map hashes, fixed image path, bounded finalize, sync-independent fallback; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 155 exact sparse direct-image stage; 37 ordered extents, fixed image path, RAM-only, never flash'
+		expected_boot_basis='consumed by the sole Generation 155 cycle; target reached runtime and key-only SSH, then prepare failed before any extent stream; host discarded the bounded target reason; exact fastboot fallback and cleanup passed; resolved FALLBACK_RETURNED; never retry or flash'
+		expected_boot_role='consumed Generation 155 cycle; prepare failed before extent streaming and the old host discarded its reason; exact fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

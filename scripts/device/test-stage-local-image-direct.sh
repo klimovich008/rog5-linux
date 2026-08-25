@@ -9,6 +9,7 @@ map=$repo/configs/storage/local-image-direct-extents.tsv
 builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
 fake=$repo/scripts/host/test-fixtures/local-image-direct-fake-target.py
 candidate=$repo/configs/recovery-candidates/local-image-direct-v46.json
+successor=$repo/configs/recovery-candidates/local-image-direct-v47.json
 manifest=$repo/manifests/local-image-direct-v46-generation155.manifest
 claim=$repo/scripts/host/consume-local-image-direct-v46-claim.py
 source=/home/deck/.local/state/rog5-local-image-v28-20260823-r1/arch-local-a.ext4
@@ -20,6 +21,7 @@ for path in "$target" "$streamer" "$generator" "$map" "$builder" "$fake" \
 	"$candidate" "$manifest" "$claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
+[ -f "$successor" ] && [ ! -L "$successor" ]
 sh -n "$target" "$builder"
 python3 -m py_compile "$streamer" "$generator"
 python3 -m py_compile "$fake"
@@ -53,6 +55,8 @@ for contract in \
 	grep -Fq "$contract" "$target"
 done
 ! grep -Fq 'find "$residual" -mindepth 1 -maxdepth 1 -printf' "$target"
+grep -Fq 'case $inventory in' "$target"
+grep -Fq "'') ;;" "$target"
 grep -Fq 'DIRECT_EXTENT_MAP' "$builder"
 grep -Fq 'rog5-local-image-direct-extents.tsv' "$builder"
 python3 - "$candidate" <<'PY'
@@ -62,7 +66,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "local-image-direct-v46"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 assert record["target_release"] == "7.1.4-g359318de534f"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
@@ -70,9 +74,33 @@ assert artifact["size"] == 23806105
 assert artifact["sha256"] == \
     "732a107f835d882560b84e60d00caf9f3c6e10890d7e4456e7acf354d764cfc1"
 PY
+python3 - "$successor" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "local-image-direct-v47"
+assert record["status"] == "offline"
+assert record["authority"] == "none"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23806146
+assert artifact["sha256"] == \
+    "d89983cd80e86dfc5f332e84482eae977ede5d1ff7880db49b6eabd4b06dc71f"
+PY
 grep -Fxq 'avb_generation=155' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"
 grep -Fq 'local-image-direct-v46-generation155-live-v1' "$claim"
+python3 - "$streamer" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+start = source.index("def run(")
+failure = source.index('fail(f"target command failed:', start)
+preserve = source.rindex("sys.stdout.buffer.write(output)", start, failure)
+assert preserve < failure
+PY
 
 root=$work/root
 mkdir "$root"
