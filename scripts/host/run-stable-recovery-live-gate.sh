@@ -3409,7 +3409,7 @@ case $profile in
 	local-image-write-benchmark-v45-generation154-live-v1)
 		expected_boot_image=build/local-image-write-benchmark-v45-generation154-20260825-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact Generation 154 cycle accepting the proven root-owned regular mode-0644 one-link zero-length partial, then comparing one 32 MiB aligned direct write with one 32 MiB buffered write; disposable cleanup and sync-independent fallback; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 154 zero-length-partial-aware direct-versus-buffered UFS benchmark; never flash'
+		expected_boot_role='consumed Generation 154 cycle; direct 32 MiB passed in 50.25 seconds, buffered fsync blocked, sync-independent rollback returned exact fastboot; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

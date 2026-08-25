@@ -61,12 +61,11 @@ Immediate work is Linux power over the side data port:
 6. keep NCM, key-only SSH, and rollback stable throughout;
 7. return to persistent local-root Arch only after this foundation passes.
 
-Immediate active checkpoint: Generation 153 proved the crash partial is exact
-regular root-owned 0644, one link, zero bytes, zero blocks. Generation 154 is
-the unbooted RAM-only benchmark successor. It performs only one 32 MiB direct
-and one 32 MiB buffered write inside the bounded image directory, deletes the
-test files, relocks UFS, and returns to exact fastboot. Its result selects the
-sparse-aware full-image staging method; it does not flash any phone partition.
+Generation 154 is consumed. Direct 32 MiB I/O passed in 50.25 seconds while
+buffered fsync blocked beyond 180 seconds. Its independent sync-free timer
+returned directly to exact slot-A fastboot, so the recovery-loop concern is
+resolved without flashing. The next target must stage the image with aligned
+direct writes and sparse-hole skipping; buffered writeback is forbidden.
 
 ## Current physical evidence
 
