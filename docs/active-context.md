@@ -36,11 +36,12 @@ V54/Generation 163 repeated local Arch/systemd/key-only SSH in
 338.141 seconds and returned to exact fastboot; the RAM-only local-root MVP is
 now reproducible.
 
-The immediate gate is Generation 164: one separately admitted RAM-only,
-read-only storage preflight using retained live-proven V4 bytes, rebound to
-the current userdata UUID, dedicated-layout proposal, source image, slot-A
-rescue, and Generation-163 baseline. Its one-use claim is unconsumed. Stage 1
-and Stage 2 remain offline and have no destructive authority.
+Generation 164 consumed and permanently revoked the current RAM-only read-only
+storage preflight. It passed exact UFS/GPT/ext4 geometry with 1,219,496 minimum
+ext4 blocks, all block devices read-only, zero mounts, and no write; automatic
+rollback reached exact slot-A recovery on the anchored side port. The next gate
+is the separately reviewed Stage-1 shrink/GPT transaction. Stage 1 and Stage 2
+remain offline and have no destructive authority.
 
 ## Completed charging repair
 

@@ -186,12 +186,12 @@ the exact 37,736-entry source tree as its native-root seal. Clean twins match at
 remains offline HOLD and cannot be considered until Stage 1 succeeds and
 slot-A rescue is reproven.
 
-A fresh authority-free Generation-164 wrapper reissues the live-proven V4
-read-only storage preflight bytes and binds the current layout, userdata UUID,
-source image, slot-A rescue, and Generation-163 evidence. Exact-head CI passed
-and one separate narrow read-only admission exists. Its one-use claim remains
-unconsumed; no phone boot, mount, storage write, GPT operation, or destructive
-authority exists yet.
+Generation 164 consumed one exact RAM-only read-only preflight and is revoked.
+It passed current UFS/GPT/ext4 geometry with only 1,219,496 minimum ext4 blocks,
+all block nodes read-only, zero mounts, and no storage write. Automatic rollback
+reached exact slot-A unauthorized-ADB recovery on the anchored side port 18.79
+seconds after recovery USB disappeared. Stage 1 and Stage 2 remain offline with
+no destructive authority.
 
 After the repeat milestone, eleven explicitly validated unreferenced build
 trees totaling 77,096,943,616 bytes were removed through exact KDE Trash
