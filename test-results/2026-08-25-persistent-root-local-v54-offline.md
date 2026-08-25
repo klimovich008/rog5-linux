@@ -17,3 +17,5 @@
   `e05a9d1d8ec27345344a3b70241a9c07f6e8600956af7f52d7453f457a482104`.
   Candidate remains offline with no authority.
 - Focused initramfs, candidate, runner, and gate checks passed in 11.91 seconds.
+- Exact-head, merge-compat, candidate-publication, and QEMU CI passed for
+  `c1ef6b61cda81f4f72fcf187ec624256695abf44`. Generation 163 is admitted once.
