@@ -50,3 +50,29 @@
   `cc348a62...`; focused Stage-1, collector, generic-claim, runtime-closure and
   admission tests pass. One narrow admission exists and its claim is
   unconsumed.
+
+## Generation 166 live result and Generation 167 correction
+
+- Generation 166 consumed its sole cycle. The canonical collector path passed,
+  fresh GPT/raw backups were durably written and ACKed as set
+  `1a6295725cb63ab27f90022e5061be6552eec7d6a4297cc4f5ff088543948679`,
+  watchdog disarm passed, and ext4 shrank to exactly 51,124,000 blocks.
+- The target then returned exact
+  `S60_GPT_TRANSACTION/gpt_transaction_failed/gpt_restored=yes`. The original
+  GPT was restored from the fresh in-RAM backup and exact slot-A recovery
+  returned. The recoverable intermediate is the smaller filesystem inside the
+  original larger partition; partition 24 is absent.
+- Replaying the exact multi-option transaction against that fresh backup on a
+  disposable 4-KiB-sector host loop succeeded with exact proposed geometry.
+  Target `sgdisk --load-backup` is independently proven by the successful live
+  restoration, isolating the failure to target-side multi-option editing rather
+  than UFS write or backup-load support.
+- The successor removes target-side GPT option reconstruction. It seals the
+  exact verified 5,632-byte desired GPT backup at SHA-256
+  `6774a2e5aa7defcb8197910a2b56ddc61be44f2681038c400f9a5ee0eb057a0e`
+  and performs one already-proven `sgdisk --load-backup` transaction. Source
+  tests require that operation and reject all prior `--delete`, `--new`, GUID,
+  attribute, and alignment options after S60.
+- Clean successor initramfs twins match at `f30d412c...`; authority-free AVB
+  Generation 167 is prepared at `3f16f069...` but remains unissued pending the
+  storage-code CI checkpoint.

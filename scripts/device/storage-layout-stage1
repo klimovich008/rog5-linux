@@ -7,6 +7,7 @@ export TZ=UTC
 
 protocol=ROG5_LAYOUT_STAGE1_V1
 config=/etc/rog5/storage-layout-stage1.conf
+new_gpt=/etc/rog5/storage-layout-stage1-new.gpt
 watchdog_disarm=/usr/libexec/rog5-disarm-recovery-layout-watchdog
 reboot_bootloader=/usr/libexec/rog5-reboot-bootloader
 gpt_backup=/run/rog5-layout-stage1.gpt
@@ -112,7 +113,7 @@ check_config() {
 	config_format=$(config_value format) || return 1
 	case $config_format in
 		rog5-storage-layout-stage1-v1)
-			[ "$(wc -l <"$config")" = 7 ] || return 1
+			[ "$(wc -l <"$config")" = 8 ] || return 1
 			operation_mode=layout_stage1
 			;;
 		rog5-userdata-ext4-reset-v1)
@@ -128,8 +129,10 @@ check_config() {
 	expected_userdata_fs_uuid=$(config_value userdata_fs_uuid) || return 1
 	if [ "$operation_mode" = layout_stage1 ]; then
 		expected_root_guid=$(config_value arch_root_unique_guid) || return 1
+		expected_new_gpt_sha256=$(config_value new_gpt_sha256) || return 1
 	else
 		expected_root_guid=
+		expected_new_gpt_sha256=
 	fi
 	printf '%s\n' "$operation_id" | grep -Eq '^[0-9a-f]{32}$' || return 1
 	guid_is_canonical "$expected_disk_guid" || return 1
@@ -139,6 +142,16 @@ check_config() {
 	if [ "$operation_mode" = layout_stage1 ]; then
 		guid_is_canonical "$expected_root_guid" || return 1
 		[ "$expected_userdata_guid" != "$expected_root_guid" ] || return 1
+		printf '%s\n' "$expected_new_gpt_sha256" |
+			grep -Eq '^[0-9a-f]{64}$' || return 1
+		[ -f "$new_gpt" ] && [ ! -L "$new_gpt" ] || return 1
+		[ "$(stat -c %u "$new_gpt" 2>/dev/null)" = 0 ] || return 1
+		[ "$(stat -c %g "$new_gpt" 2>/dev/null)" = 0 ] || return 1
+		[ "$(stat -c %a "$new_gpt" 2>/dev/null)" = 400 ] || return 1
+		[ "$(stat -c %h "$new_gpt" 2>/dev/null)" = 1 ] || return 1
+		[ "$(stat -c %s "$new_gpt" 2>/dev/null)" = 5632 ] || return 1
+		[ "$(sha256sum "$new_gpt" | awk '{print $1}')" =
+			"$expected_new_gpt_sha256" ] || return 1
 	fi
 }
 
@@ -502,19 +515,8 @@ verify_userdata_filesystem 51124000 || fail shrunk_filesystem_invalid
 
 stage_set S60_GPT_TRANSACTION
 gpt_write_started=1
-sgdisk --set-alignment=1 \
-	--delete=23 \
-	--new=23:2352680:53477375 \
-	--typecode=23:"$expected_userdata_type_guid" \
-	--change-name=23:userdata \
-	--partition-guid=23:"$expected_userdata_guid" \
-	--attributes=23:=:0000000000000000 \
-	--new=24:53477376:61865978 \
-	--typecode=24:0fc63daf-8483-4772-8e79-3d69d8477de4 \
-	--change-name=24:arch_root_a \
-	--partition-guid=24:"$expected_root_guid" \
-	--attributes=24:=:0000000000000000 \
-	"$disk" >/run/rog5-layout-stage1-sgdisk.log 2>&1 || fail gpt_transaction_failed
+sgdisk --load-backup="$new_gpt" "$disk" \
+	>/run/rog5-layout-stage1-sgdisk.log 2>&1 || fail gpt_transaction_failed
 sync || fail sync_after_gpt_failed
 blockdev --rereadpt "$disk" >/dev/null 2>&1 ||
 	partprobe "$disk" >/dev/null 2>&1 || fail partition_reread_failed

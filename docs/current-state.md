@@ -183,7 +183,12 @@ confirmed by the user. Generation 165 was consumed pre-ACK with no write when
 host preflight caught a historical short/full USB-path mismatch; exact slot-A
 fallback passed. Byte-identical-raw Generation 166 corrects only the private
 collector path, is narrowly admitted, and remains unbooted with an unconsumed
-claim.
+claim. Generation 166 then consumed its cycle: fresh backups and ext4 shrink
+passed, the target multi-option `sgdisk` edit failed at S60, fresh-GPT restore
+passed, and slot-A recovery returned. The current recoverable state is a
+51,124,000-block ext4 filesystem inside the restored original userdata
+partition, with no partition 24. The unissued successor seals the exact desired
+GPT backup and uses the live-proven single `sgdisk --load-backup` operation.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
