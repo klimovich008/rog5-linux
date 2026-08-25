@@ -23,10 +23,14 @@
   retained backup hashes, current preflight, exact commands, abort conditions,
   and rollback limitations at SHA-256
   `4e7f9e88bb53d69d16c546980eb36ec14a23a525c896e0602d2c75928134bac2`.
-- The user supplied the exact final destructive confirmation. One narrow
-  Generation-165 policy row now admits only the confirmed RAM-only shrink/GPT
-  operation. Its one-use claim remains unconsumed; no phone boot, partition
-  operation, or storage write has occurred yet.
+- The user supplied the exact final destructive confirmation. Generation 165
+  entered its one-use claim and booted once, but host preflight caught that its
+  private collector template still used short USB path `1-1.2` while the
+  collector requires the canonical full sysfs path. The collector never
+  started: no readiness record, fresh backup ACK, writable block device,
+  resize, GPT command, partition operation, or storage write occurred. Exact
+  slot-A unauthorized-ADB fallback passed. Generation 165 is consumed and
+  revoked with R1 classification.
 - The first full-CI attempt exposed a host-only stale identity tuple in the
   dormant retention process contract after prior claim/live-gate edits. The
   exact three current program size/hash tuples and their dependent profile
@@ -39,3 +43,10 @@
   `080aea76796bd3f0fad230796086adb14d45ca55557d6a40af2aa77b2a00b955`.
   The candidate manifest intentionally no longer pins the claim-consumer source
   that embeds the manifest hash, eliminating that recursive identity cycle.
+- Generation 166 reuses byte-identical raw wrapper SHA-256 `780dcfc2...` under
+  fresh AVB SHA-256 `4843d18e...` and changes only the private host template to
+  canonical location
+  `pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2`. Its manifest is
+  `cc348a62...`; focused Stage-1, collector, generic-claim, runtime-closure and
+  admission tests pass. One narrow admission exists and its claim is
+  unconsumed.
