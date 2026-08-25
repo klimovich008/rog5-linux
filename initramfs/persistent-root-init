@@ -891,6 +891,14 @@ verify_exact_local_image_probe() {
 		/mnt/probe-root|/mnt/root-ro|/.rog5/root-ro) ;;
 		*) return 1 ;;
 	esac
+	probe_dir=$probe_root/var/lib/rog5
+	probe_path=$probe_dir/local-image-write-probe-v1
+	case "$expected_ufs_storage_mode:$expected_probe_boot_id" in
+		read-only:staged-seal)
+			[ ! -e "$probe_path" ] && [ ! -L "$probe_path" ]
+			return
+			;;
+	esac
 	case $expected_ufs_storage_mode in
 		local-write)
 			[ "$expected_probe_boot_id" = current ] || return 1
@@ -909,12 +917,6 @@ verify_exact_local_image_probe() {
 			;;
 		*) return 1 ;;
 	esac
-	probe_dir=$probe_root/var/lib/rog5
-	probe_path=$probe_dir/local-image-write-probe-v1
-	if [ "$expected_probe_boot_id" = staged-seal ]; then
-		[ ! -e "$probe_path" ] && [ ! -L "$probe_path" ]
-		return
-	fi
 	for path in "$probe_root/var" "$probe_root/var/lib" "$probe_dir"; do
 		[ -d "$path" ] && [ ! -L "$path" ] || return 1
 	done

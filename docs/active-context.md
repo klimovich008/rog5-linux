@@ -25,8 +25,10 @@ fastboot between development cycles. Generation 160 returned directly to
 fastboot after exposing the persistent-root NCM gadget for 23 seconds. The host
 had selected the obsolete staging product, so it never activated networking.
 The corrected successor changes only that host selector and early initramfs
-observability; it does not flash or replace the kernel. V52/Generation 161 is
-built offline and remains unadmitted.
+observability; it does not flash or replace the kernel. Generation 161 consumed
+that cycle and reached mounted local Arch before an unreachable staged-seal
+policy branch caused exact `root-verify` rollback. The next target changes only
+that control flow.
 
 ## Completed charging repair
 
