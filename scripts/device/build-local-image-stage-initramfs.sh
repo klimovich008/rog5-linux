@@ -86,7 +86,9 @@ done
 install -D -m 0755 "$installer" "$stage/usr/local/sbin/rog5-install-local-arch-image"
 install -D -m 0755 "$reboot_helper" "$stage/usr/libexec/rog5-reboot-bootloader"
 install -D -m 0600 "$authorized_key" "$stage/root/.ssh/authorized_keys"
-sed -i 's/^root:[^:]*/root:!/' "$stage/etc/shadow"
+sed -i 's/^root:[^:]*/root:x/' "$stage/etc/shadow"
+grep -Fxq 'root:x:0:0:99999:7:::' "$stage/etc/shadow" ||
+	fail 'root key-only account state changed'
 grep -Fxq 'PermitRootLogin prohibit-password' "$stage/etc/ssh/sshd_config"
 grep -Fxq 'PasswordAuthentication no' "$stage/etc/ssh/sshd_config"
 grep -Fxq 'PubkeyAuthentication yes' "$stage/etc/ssh/sshd_config"

@@ -276,9 +276,11 @@ publish_stage storage-locked PASS ready || fail stage-publish
 
 current_stage=runtime
 publish_stage runtime ENTER none || fail stage-publish
-[ -f /etc/nologin ] && [ ! -L /etc/nologin ] && [ ! -s /etc/nologin ] ||
-	fail nologin-identity
-rm /etc/nologin || fail nologin-remove
+if [ -e /etc/nologin ] || [ -L /etc/nologin ]; then
+	[ -f /etc/nologin ] && [ ! -L /etc/nologin ] && [ ! -s /etc/nologin ] ||
+		fail nologin-identity
+	rm /etc/nologin || fail nologin-remove
+fi
 [ ! -e /etc/nologin ] && [ ! -L /etc/nologin ] || fail nologin-present
 ssh-keygen -q -t ed25519 -N '' -f /run/ssh_host_ed25519_key
 /usr/sbin/sshd -h /run/ssh_host_ed25519_key -E /var/log/sshd.log
