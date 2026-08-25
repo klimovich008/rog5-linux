@@ -899,6 +899,10 @@ verify_exact_local_image_probe() {
 	esac
 	probe_dir=$probe_root/var/lib/rog5
 	probe_path=$probe_dir/local-image-write-probe-v1
+	if [ "$expected_probe_boot_id" = staged-seal ]; then
+		[ ! -e "$probe_path" ] && [ ! -L "$probe_path" ]
+		return
+	fi
 	for path in "$probe_root/var" "$probe_root/var/lib" "$probe_dir"; do
 		[ -d "$path" ] && [ ! -L "$path" ] || return 1
 	done
@@ -1506,6 +1510,7 @@ target_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
 case "$expected_ufs_storage_mode:$expected_probe_boot_id" in
 	local-write:current) ;;
 	read-only:any-prior) ;;
+	read-only:staged-seal) ;;
 	read-only:*)
 		printf '%s\n' "$expected_probe_boot_id" |
 			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||

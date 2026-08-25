@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-direct-v49-generation158-live-v1"
-BUNDLE = "local-image-direct-v49"
+PROFILE_ID = "persistent-root-local-v50-generation159-live-v1"
+BUNDLE = "persistent-root-local-v50"
 MANIFEST_SHA256 = (
-    "ac33ccf7cef86f43834f672d652537b7b5790c8949825f8449088a7721c30459"
+    "b5f3c2665a5ac68d255449102c06d210348b4c88c1457c762e31ec58d1febe03"
 )
 RECOVERY_SHA256 = (
-    "00aa48f0258df05983f955095d355de8ef52c451bb2d4d7a352f4b3f5bafe027"
+    "cca9661162c335d0dcd774bf55544acee3cc8d8950f8ddd96a2979ee2b6f076a"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,25 +59,24 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-direct-v49-generation158-live-v1\n"
-    b"candidate=local-image-direct-v49\n"
+    b"persistent-root-local-v50-generation159-live-v1\n"
+    b"candidate=persistent-root-local-v50\n"
     b"manifest_sha256="
-    b"ac33ccf7cef86f43834f672d652537b7b5790c8949825f8449088a7721c30459\n"
+    b"b5f3c2665a5ac68d255449102c06d210348b4c88c1457c762e31ec58d1febe03\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-direct-v49-claim.py"
+    / "scripts/host/consume-persistent-root-local-v50-claim.py"
 )
-DIRECT_STREAMER = REPO / "scripts/host/stream-local-image-direct.py"
-TARGET_RELEASE = "7.1.4-g359318de534f"
+TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 local image stage"
 TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-direct-v49-generation158-20260825-r1"
+    / "build/persistent-root-local-v50-generation159-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -126,10 +125,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-direct-v49",
+    admission_profile="persistent-root-local-v50",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-direct-v49",
-    build_profile="local-image-direct-v49",
+    runtime_profile="persistent-root-local-v50",
+    build_profile="persistent-root-local-v50",
     diagnostic=False,
 )
 
@@ -348,29 +347,6 @@ def exact_inputs() -> CYCLE.Inputs:
         evidence_dir=evidence,
         fallback_timeout=FALLBACK_TIMEOUT_SECONDS,
     )
-
-
-def exact_arch_image() -> Path:
-    value = os.environ.get("ARCH_IMAGE_RAW", "")
-    image = Path(value)
-    try:
-        metadata = image.lstat()
-        canonical = image.resolve(strict=True)
-    except OSError as error:
-        raise PersistentCycleError("ARCH_IMAGE_RAW is unavailable") from error
-    if (
-        not image.is_absolute()
-        or canonical != image
-        or not stat.S_ISREG(metadata.st_mode)
-        or stat.S_ISLNK(metadata.st_mode)
-        or metadata.st_uid != os.geteuid()
-        or stat.S_IMODE(metadata.st_mode) != 0o600
-        or metadata.st_nlink != 2
-        or metadata.st_size != 17_179_869_184
-    ):
-        fail("ARCH_IMAGE_RAW metadata changed")
-    CYCLE.outside_repository(image, "ARCH_IMAGE_RAW")
-    return image
 
 
 def require_file(path: Path, *, owner: int, modes: set[int]) -> None:
@@ -793,7 +769,6 @@ def preflight(
     cycle: CYCLE.LiveCycle,
     inputs: CYCLE.Inputs,
     gate_environment: dict[str, str],
-    arch_image: Path,
 ) -> None:
     CYCLE.verify_repository_checkpoint(cycle.dependencies.git)
     for path in (
@@ -809,14 +784,10 @@ def preflight(
         cycle.dependencies.host_key,
         cycle.dependencies.stock_fallback,
         CLAIM_ENTRYPOINT,
-        DIRECT_STREAMER,
         Path("/usr/bin/ssh"),
     ):
         CYCLE.fixed_executable(path, offline=False)
     verify_static_artifacts(inputs)
-    CYCLE.run_capture(
-        [str(DIRECT_STREAMER), str(arch_image), "--verify-only"], timeout=60
-    )
     cycle.verify_host_clean()
     CYCLE.run_capture(
         [str(cycle.dependencies.bundle_server), "preflight", BUNDLE, MANIFEST_SHA256],
@@ -855,7 +826,6 @@ def run(
     cycle: CYCLE.LiveCycle,
     inputs: CYCLE.Inputs,
     gate_environment: dict[str, str],
-    arch_image: Path,
 ) -> None:
     anchor = cycle.output("recovery-usb.anchor")
     target_known_hosts = cycle.output("target-known-hosts")
@@ -966,27 +936,33 @@ def run(
             30,
         ) != 0:
             fail("UFS link snapshot failed")
-        stage_started = time.monotonic()
-        stage_status = run_optional_logged(
-            [
-                str(DIRECT_STREAMER),
-                str(arch_image),
-                "--",
-                *target_ssh,
-                "/usr/local/sbin/rog5-install-local-arch-image",
-            ],
-            cycle.output("local-image-direct-stage.log"),
-            540,
+        runtime_log = cycle.output("persistent-root-runtime.log")
+        runtime_status = run_optional_logged(
+            [*target_ssh, RUNTIME_COMMAND], runtime_log, 180
         )
-        if stage_status not in {0, 255}:
-            fail(f"direct image staging returned unexpected status {stage_status}")
-        stage_seconds = time.monotonic() - stage_started
+        if runtime_status != 0:
+            fail(f"local-root runtime acceptance returned {runtime_status}")
+        target_boot_id = parse_runtime_evidence(runtime_log)
+        diagnostic_status = run_optional_logged(
+            [*target_ssh, DIAGNOSTIC_COMMAND],
+            cycle.output("persistent-root-diagnostics.log"),
+            180,
+        )
+        if diagnostic_status != 0:
+            fail(f"local-root diagnostics returned {diagnostic_status}")
+        reboot_status = run_optional_logged(
+            [*target_ssh, "/usr/bin/systemctl reboot"],
+            cycle.output("persistent-root-reboot.log"),
+            60,
+        )
+        if reboot_status not in {0, 255}:
+            fail(f"local-root reboot returned unexpected status {reboot_status}")
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
             cycle.output("persistent-root-timing.record"),
             (
-                ("format", "rog5-local-image-direct-stage-timing-v1"),
+                ("format", "rog5-local-root-runtime-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -994,8 +970,8 @@ def run(
                     "authenticated_ssh_rendezvous_seconds",
                     f"{ssh_ready_elapsed:.3f}",
                 ),
-                ("direct_stage_seconds", f"{stage_seconds:.3f}"),
-                ("seconds_to_stage", f"{elapsed:.3f}"),
+                ("target_boot_id", target_boot_id),
+                ("seconds_to_runtime_acceptance", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -1007,9 +983,9 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle staged the sparse Arch image with exact "
-            f"direct extents in {elapsed:.3f}s, relocked storage, and returned "
-            "to fastboot"
+            "PASS one RAM-only cycle booted the local Arch image, passed "
+            f"systemd and key-only SSH in {elapsed:.3f}s, and returned to "
+            "fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:
@@ -1077,17 +1053,16 @@ def main(arguments: list[str]) -> int:
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()
-    arch_image = exact_arch_image()
     gate_environment = exact_environment()
     cycle = CYCLE.LiveCycle(dependencies, inputs, PROFILE)
-    preflight(cycle, inputs, gate_environment, arch_image)
+    preflight(cycle, inputs, gate_environment)
     if arguments == ["preflight"]:
         print(
             "PASS persistent-root storage lifecycle preflight; no claim was "
             "created and no phone boot occurred"
         )
         return 0
-    run(cycle, inputs, gate_environment, arch_image)
+    run(cycle, inputs, gate_environment)
     return 0
 
 

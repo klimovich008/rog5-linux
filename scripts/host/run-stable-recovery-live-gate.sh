@@ -202,6 +202,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-direct-v47-generation156-live-v1 | \
 		local-image-direct-v48-generation157-live-v1 | \
 		local-image-direct-v49-generation158-live-v1 | \
+		persistent-root-local-v50-generation159-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3575,6 +3576,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-root-local-v50-generation159-live-v1)
+		expected_boot_image=build/persistent-root-local-v50-generation159-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 159 read-only boot of the staged-seal 16 GiB local Arch image; userdata and image ro-noload, OverlayFS/systemd, power/USB, key-only SSH, systemd timing, controlled reboot, exact fastboot fallback; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 159 read-only staged-seal local Arch runtime acceptance; RAM-only, never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=persistent-root-local-v50
+		expected_bundle=persistent-root-local-v50
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=a14b3c62b6706871df6c19216b2c464c392967a599963babe372259a40e52e90
+		expected_avb_digest=83502bb2d2c30021553165b72d342881ae232858856b5f1c0045af25565fc9fd
+		expected_generation_record=66086a7369d934e5aa5f4b6508756c2eda673a825349e022529938b4f692b4f8
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == b5f3c2665a5ac68d255449102c06d210348b4c88c1457c762e31ec58d1febe03 ]] || fail 'persistent-root local V50 manifest is not pinned'
+		[[ $expected_image == cca9661162c335d0dcd774bf55544acee3cc8d8950f8ddd96a2979ee2b6f076a ]] || fail 'persistent-root local V50 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'persistent-root local V50 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'persistent-root local V50 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -5085,6 +5119,7 @@ case $profile in
 	local-image-direct-v47-generation156-live-v1 | \
 	local-image-direct-v48-generation157-live-v1 | \
 	local-image-direct-v49-generation158-live-v1 | \
+	persistent-root-local-v50-generation159-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
