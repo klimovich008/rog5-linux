@@ -393,8 +393,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 162 cycle; local Arch, power/USB, read-only UFS, OverlayFS, systemd, runtime attestation, and key-only SSH passed in 325.697 seconds; exitrd omitted its restart2 helper and systemctl reboot returned stock recovery; never retry or flash" &&
 		NF == 3 { local_runtime_sealfix++ ; next }
 	$1 == "build/persistent-root-local-v54-generation163-20260825-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 163 repeat of the read-only local Arch server with the restart2 helper sealed into exitrd and exact-fastboot acceptance; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 163 cycle; local Arch, read-only UFS, OverlayFS, systemd, power/NCM, runtime attestation, key-only SSH, exitrd restart2, and exact slot-A fastboot passed in 338.141 seconds; never retry or flash" &&
 		NF == 3 { local_runtime_exitrd++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -611,7 +611,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img

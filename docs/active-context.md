@@ -32,7 +32,9 @@ that control flow. Generation 162 then passed local Arch/systemd/key-only SSH
 in 325.697 seconds. Its final reboot entered stock recovery because exitrd
 omitted the restart2 helper referenced by shutdown; the repeat adds only that
 helper and requires exact fastboot success.
-V54/Generation 163 is built offline and remains unadmitted.
+V54/Generation 163 repeated local Arch/systemd/key-only SSH in
+338.141 seconds and returned to exact fastboot; the RAM-only local-root MVP is
+now reproducible.
 
 ## Completed charging repair
 

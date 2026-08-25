@@ -19,3 +19,16 @@
 - Focused initramfs, candidate, runner, and gate checks passed in 11.91 seconds.
 - Exact-head, merge-compat, candidate-publication, and QEMU CI passed for
   `c1ef6b61cda81f4f72fcf187ec624256695abf44`. Generation 163 is admitted once.
+
+## Generation 163 live result
+
+- The complete local Arch path repeated successfully in 338.141 seconds.
+- Authenticated SSH passed after six attempts and 118.634 seconds.
+- Runtime attestation again proved 116 physical block nodes, two read-only
+  block-backed mounts, strict key-only SSH, zero blocked device/SCSI operations,
+  zero journal recovery events, and zero UFS errors.
+- Side power remained online at 5.035 V / 500 mA; battery was 8.690 V at 30.1 C.
+- `systemctl reboot` entered the sealed exitrd; its included restart2 helper
+  returned the exact phone to slot-A fastboot. Battery remained healthy at
+  8.703 V.
+- Generation 163 is consumed. The RAM-only local-root MVP is now reproducible.
