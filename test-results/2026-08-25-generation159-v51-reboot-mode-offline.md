@@ -13,3 +13,18 @@
 - Focused checkpoint passed in 11.7 seconds. Full local `ci` passed once in
   456.377 seconds. Exact-head, merge-compat, QEMU, and candidate-publication CI
   passed for `b5816d5f86a647020289b8f13c07f44fa5059fbd`. V51 is admitted once.
+
+## Generation 160 live result
+
+- Recovery transfer, verification, PREPARE, COMMIT, and kexec handoff passed.
+- Host kernel evidence proves `ROG5 persistent root` NCM enumerated at 15:17:28
+  and remained present for 23 seconds. The runner incorrectly selected
+  `ROG5 local image stage`, so target networking and stage reception never ran.
+- Classification: R7 host-only identity selector. The target did execute, so
+  Generation 160 remains irreversibly consumed.
+- No target storage write ran. Exact slot-A fastboot fallback and host cleanup
+  passed; battery remained healthy.
+- The host selector now derives the identity used by the sealed persistent-root
+  gadget. Existing stage reporting is moved before the reboot-mode module gate
+  so the next fresh identity either continues or returns the exact early target
+  failure.

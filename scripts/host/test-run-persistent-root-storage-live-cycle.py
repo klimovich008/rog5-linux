@@ -62,8 +62,13 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.PROFILE.bundle_profile, "persistent-root-ro-v1")
         self.assertEqual(MODULE.PROFILE.recovery_profile, MODULE.PROFILE_ID)
         self.assertFalse(MODULE.PROFILE.diagnostic)
-        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 local image stage")
-        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
+        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
+        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
+        sealed_init = (REPO / "initramfs/persistent-root-init").read_text()
+        self.assertIn(
+            f"echo '{MODULE.TARGET_PRODUCT}' >\"$gadget/strings/0x409/product\"",
+            sealed_init,
+        )
         self.assertEqual(
             MODULE.BUNDLE,
             "persistent-root-local-v51",

@@ -381,8 +381,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 159 cycle; target NCM appeared but no stage arrived before slot-A stock recovery, proving failure before UFS reporter; ae717 reboot-mode drivers were modular and absent from initramfs; no storage write; never retry or flash" &&
 		NF == 3 { local_runtime++ ; next }
 	$1 == "build/persistent-root-local-v51-generation160-20260825-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 160 read-only boot of the staged-seal 16 GiB local Arch image with exact ae717 reboot-mode modules; userdata and image ro-noload, OverlayFS/systemd, power/USB, key-only SSH, systemd timing, controlled reboot, exact fastboot fallback; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 160 cycle; target persistent-root NCM enumerated for 23 seconds, but the host selected the obsolete local-image-stage product and never activated networking; no storage write; exact slot-A fastboot fallback passed; never retry or flash" &&
 		NF == 3 { local_runtime_successor++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -599,7 +599,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
