@@ -22,6 +22,21 @@ SPEC.loader.exec_module(MODULE)
 
 
 class PersistentRootLiveCycleTest(unittest.TestCase):
+    def test_exact_arch_image_accepts_only_the_reviewed_hardlink_shape(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            image = Path(temporary) / "arch.ext4"
+            image.touch()
+            image.chmod(0o600)
+            with image.open("r+b") as fixture:
+                fixture.truncate(17_179_869_184)
+            (Path(temporary) / "peer.ext4").hardlink_to(image)
+            with mock.patch.dict("os.environ", {"ARCH_IMAGE_RAW": str(image)}):
+                self.assertEqual(MODULE.exact_arch_image(), image)
+            image.chmod(0o444)
+            with mock.patch.dict("os.environ", {"ARCH_IMAGE_RAW": str(image)}):
+                with self.assertRaises(MODULE.PersistentCycleError):
+                    MODULE.exact_arch_image()
+
     def test_exact_slot_a_fastboot_terminates_target_wait_early(self) -> None:
         with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=True) as exact, mock.patch.object(
             MODULE.STOCK,
