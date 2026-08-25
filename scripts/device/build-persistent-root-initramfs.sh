@@ -8,6 +8,7 @@ ufs_modules=${4:-}
 require_deferred_ufs_modules=${REQUIRE_DEFERRED_UFS_MODULES:-0}
 power_modules_root=${PERSISTENT_ROOT_POWER_MODULES_ROOT:-}
 charge_firmware_dir=${PERSISTENT_ROOT_CHARGE_FIRMWARE_DIR:-}
+reboot_mode_modules=${REBOOT_MODE_MODULES:-}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
@@ -113,6 +114,16 @@ if [ -n "$power_modules_root" ]; then
 	[ "$firmware_tree_sha" = \
 		52442f69be8a91347499bc7a5c45060ad2458bb711cf51f8a7fdd64c5d2d412b ] || {
 		echo 'FAIL charging firmware identity changed' >&2
+		exit 1
+	}
+fi
+if [ -n "$reboot_mode_modules" ]; then
+	[ -d "$reboot_mode_modules" ] && [ ! -L "$reboot_mode_modules" ] || {
+		echo 'FAIL unsafe reboot-mode module input' >&2
+		exit 1
+	}
+	[ "$(find "$reboot_mode_modules" -mindepth 1 -maxdepth 1 -type f -name '*.ko' | wc -l)" -eq 2 ] || {
+		echo 'FAIL reboot-mode module inventory changed' >&2
 		exit 1
 	}
 fi
@@ -232,6 +243,19 @@ readelf -h "$stage/usr/libexec/rog5-reboot-bootloader" |
 	grep -q '(NEEDED)'
 ! readelf -l "$stage/usr/libexec/rog5-reboot-bootloader" |
 	grep -q 'Requesting program interpreter'
+rm -rf -- "$stage/rog5-reboot-mode-modules"
+if [ -n "$reboot_mode_modules" ]; then
+	install -d -m 0755 "$stage/rog5-reboot-mode-modules"
+	for module in nvmem_qcom-spmi-sdam.ko nvmem-reboot-mode.ko; do
+		path=$reboot_mode_modules/$module
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(modinfo -F vermagic "$path" | awk '{ print $1 }')" = "$expected_release" ] || {
+			echo "FAIL reboot-mode module release changed: $module" >&2
+			exit 1
+		}
+		install -m 0644 "$path" "$stage/rog5-reboot-mode-modules/$module"
+	done
+fi
 rm -rf -- "$stage/rog5-power-usb-modules" "$stage/opt/rog5-charge-firmware"
 if [ -n "$power_modules_root" ]; then
 	install -D -m 0755 "$power_loader" \

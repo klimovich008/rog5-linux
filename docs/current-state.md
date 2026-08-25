@@ -50,12 +50,14 @@ Generation 156 is consumed after proving 4 KiB O_DIRECT throughput cannot fit
 the watchdog. Generation 157 proved 1 MiB writes remain at the same 0.66 MiB/s.
 Source audit found the writable profile still skipped the UFS high-speed gear
 transition. V49 is a module-only high-speed successor, built but unadmitted.
-Full kernel/trust CI passed; Generation 158 is admitted once and remains
-consumed. The high-speed branch executed and the exact 16 GiB image staged,
-validated, published, unmounted, and relocked in about 92 seconds after SSH.
-The next cycle is read-only local-root Arch boot and strict SSH acceptance.
-V50 is the one admitted read-only staged-seal successor. Its target and signed
-bundle twins pass offline; it remains unbooted and permits no storage write.
+Full kernel/trust CI passed; Generation 158 is consumed after staging,
+validating, publishing, unmounting, and relocking the exact 16 GiB image in
+about 92 seconds after SSH. Generation 159 reached target USB but failed before
+the UFS reporter because its `ae717` reboot-mode drivers were modular and
+absent from the sealed initramfs; slot-A stock recovery returned and no storage
+write occurred. V51 packages the two exact matching modules and is the offline,
+unadmitted read-only successor. The kernel, DTB, image, and storage policy are
+unchanged.
 
 ## Charging repair facts
 
