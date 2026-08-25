@@ -17,9 +17,9 @@ musl_apk=${13:?missing musl package}
 libuuid_apk=${14:?missing libuuid package}
 output=${15:?missing output}
 epoch=1681862400
-executor_sha256=2d816164f369b1ba00f16952416a80ef3bc2f427b6945d3af0702ed0035a6245
+executor_sha256=a7d582108c3dd0c810d6fee1223544457ef401e49892f4a08b1f9986771524e1
 watchdog_disarm_sha256=ba40a89f0e20f17accb04283e36e859822070450bee44de8924255801cbef2fb
-native_seal_sha256=8dbc66163adde6919d9e48974a035e1a3d27c8d0304befbc806cd284d167be68
+native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 verifier_sha256=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 readonly_builder=$script_dir/build-storage-preflight-initramfs.sh
