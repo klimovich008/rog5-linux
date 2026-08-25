@@ -372,6 +372,10 @@ built-in reboot mode returned exact fastboot. The sealed Generation-109 init
 loads its 15-module PMIC GLINK/remoteproc/UCSI stack before UFS; the minimal
 successor had packaged but never executed that loader. Generation 139 restores
 that exact dependency order and still exposes no storage-write path.
+Generation 139 is consumed: the complete power/USB loader passed and fastboot
+returned, but `set -f` made every fixed sysfs glob literal and forced a false
+zero UFS result. Generation 140 removes glob suppression and uses the proven
+Generation-109 disk-plus-partition topology algorithm; no storage write exists.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but

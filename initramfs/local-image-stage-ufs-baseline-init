@@ -1,12 +1,11 @@
 #!/bin/sh
 set -eu
-set -f
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 expected_release=@EXPECTED_KERNEL_RELEASE@
 expected_bundle=@EXPECTED_BUNDLE@
 expected_udc=a600000.usb
-expected_physical_count=116
+expected_topology_count=116
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 stage_record=/run/rog5-ufs-baseline.stage
 stage_sequence=0
@@ -62,6 +61,22 @@ fail() {
 	[ -z "$target_boot_id" ] || publish_stage FAIL "$reason" || true
 	sleep 10
 	return_bootloader
+}
+
+topology_count() {
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			count=$((count + 1))
+		done
+	done
+	printf '%s\n' "$count"
 }
 
 mount -t proc proc /proc
@@ -154,16 +169,11 @@ mdev -s
 
 attempt=0
 while [ "$attempt" -lt 200 ]; do
-	count=0
-	for disk in /sys/class/block/*; do
-		[ -e "$disk/device" ] || continue
-		[ ! -e "$disk/partition" ] || continue
-		count=$((count + 1))
-	done
-	[ "$count" -eq "$expected_physical_count" ] && break
+	count=$(topology_count)
+	[ "$count" -eq "$expected_topology_count" ] && break
 	attempt=$((attempt + 1)); sleep 0.1
 done
-[ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"
+[ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"
 publish_stage FAIL count-116 || fail stage-publish
 sleep 10
 return_bootloader
