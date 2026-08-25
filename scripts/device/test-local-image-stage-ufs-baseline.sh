@@ -5,8 +5,12 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 init=$repo/initramfs/local-image-stage-ufs-baseline-init
 
 sh -n "$init"
+! grep -Fxq 'set -f' "$init" || {
+	echo 'FAIL UFS baseline disables the fixed sysfs globs it relies on' >&2
+	exit 1
+}
 for contract in \
-	'expected_physical_count=116' \
+	'expected_topology_count=116' \
 	'ROG5 local image stage' \
 	'publish_stage FAIL count-116' \
 	'phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko' \

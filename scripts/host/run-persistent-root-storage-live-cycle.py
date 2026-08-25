@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "ufs-power-reboot-baseline-v30-generation139-live-v1"
-BUNDLE = "ufs-power-reboot-baseline-v30"
+PROFILE_ID = "ufs-glob-reboot-baseline-v31-generation140-live-v1"
+BUNDLE = "ufs-glob-reboot-baseline-v31"
 MANIFEST_SHA256 = (
-    "21d28652ffd53bb3472194e781d32b6a32ce7cd377ed39c8f741f38384af10fc"
+    "5b19fd9c2df7bb9f1b61a4b879416b92e17b66c3d31294015ce918f0673a832f"
 )
 RECOVERY_SHA256 = (
-    "a33451c6c46500ad738fc8985f1fe2d6c00bfdb8ac8f2380811478c0816cd8af"
+    "9b29868ced920374291f5aa076a5ea6be7f95918d9df4c96acd217592899b78c"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"ufs-power-reboot-baseline-v30-generation139-live-v1\n"
-    b"candidate=ufs-power-reboot-baseline-v30\n"
+    b"ufs-glob-reboot-baseline-v31-generation140-live-v1\n"
+    b"candidate=ufs-glob-reboot-baseline-v31\n"
     b"manifest_sha256="
-    b"21d28652ffd53bb3472194e781d32b6a32ce7cd377ed39c8f741f38384af10fc\n"
+    b"5b19fd9c2df7bb9f1b61a4b879416b92e17b66c3d31294015ce918f0673a832f\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-ufs-power-reboot-baseline-v30-claim.py"
+    / "scripts/host/consume-ufs-glob-reboot-baseline-v31-claim.py"
 )
 TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/ufs-power-reboot-baseline-v30-generation139-20260825-r1"
+    / "build/ufs-glob-reboot-baseline-v31-generation140-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="ufs-power-reboot-baseline-v30",
+    admission_profile="ufs-glob-reboot-baseline-v31",
     recovery_profile=PROFILE_ID,
-    runtime_profile="ufs-power-reboot-baseline-v30",
-    build_profile="ufs-power-reboot-baseline-v30",
+    runtime_profile="ufs-glob-reboot-baseline-v31",
+    build_profile="ufs-glob-reboot-baseline-v31",
     diagnostic=False,
 )
 

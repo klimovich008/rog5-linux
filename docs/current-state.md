@@ -408,6 +408,12 @@ exact fastboot, but UFS remained `ufs-count-0`. Exact comparison with the
 sealed Generation-109 init proved the minimal init omitted its packaged
 15-module PMIC GLINK/remoteproc/UCSI loader before UFS. Generation 139 restores
 that single proven ordering dependency while keeping storage unreachable.
+Generation 139 is consumed. The full power/USB loader passed, but UFS still
+reported zero because the minimal init's `set -f` disabled pathname expansion;
+all `/sys/class/block/*` and earlier platform-device classifiers had iterated a
+literal asterisk. Generation 140 removes that line and restores Generation
+109's exact 116-node disk-plus-partition topology count. Storage remains
+unreachable until that count passes.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
