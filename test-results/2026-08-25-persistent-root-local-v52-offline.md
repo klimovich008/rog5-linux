@@ -21,4 +21,6 @@
   repository tier passed in 61.103 seconds; its legacy sparse-map check accounts
   for 34.309 seconds.
 - Full local CI passed once in 464.307 seconds at the frozen candidate source.
-- Candidate state is offline with no authority and no phone boot.
+- Exact-head, merge-compat, QEMU, and candidate-publication CI passed for
+  `b5c2f78803fe4b26d41d1099061d6c899a1a778f`. Generation 161 is admitted once;
+  no phone boot has occurred.
