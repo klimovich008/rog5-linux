@@ -1,6 +1,6 @@
 # Local-image direct V49 offline checkpoint
 
-Result: **OFFLINE PASS; ADMITTED ONCE; UNBOOTED.** No V49 phone contact or claim.
+Result: **OFFLINE PASS; LIVE STORAGE PASS; CONSUMED.** Never retry.
 
 The kernel Image, DTB, target script, extent map, power modules, and three UFS
 modules are unchanged. Only `ufshcd-core.ko` changes. The writable discovery
@@ -22,3 +22,15 @@ Authority-free Generation-158 wrapper SHA-256 is
 Full local kernel/trust CI passed in 447 seconds. The derived Generation-158
 admission is open once; COMMIT or any ambiguous outcome permanently consumes
 it.
+
+## Live result
+
+The link snapshot proved USB high-speed, SCSI queue depth 31, and execution of
+the bounded UFS high-speed gear branch. All 37 extents then completed. Target
+finalization passed exact fsync, read-only e2fsck, atomic rename, directory
+sync, unmount, and storage relock. From the pre-write snapshot to the complete
+target log was about 92 seconds.
+
+The host saw the complete final PASS followed by the known SSH timeout line
+with CRLF and misclassified only that transport trailer. Exact fastboot and
+host cleanup passed. The image is published and must not be restaged.

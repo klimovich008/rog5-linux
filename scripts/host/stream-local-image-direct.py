@@ -91,8 +91,13 @@ def run(
         check=False,
     )
     output = result.stdout
-    disconnect = b"Timeout, server 169.254.77.2 not responding.\n"
-    if allow_disconnect and output == expected + disconnect:
+    disconnects = (
+        b"Timeout, server 169.254.77.2 not responding.\n",
+        b"Timeout, server 169.254.77.2 not responding.\r\n",
+    )
+    if allow_disconnect and output in {
+        expected + disconnect for disconnect in disconnects
+    }:
         output = expected
     if result.returncode not in accepted or output != expected:
         if len(output) <= 4096 and b"\0" not in output:

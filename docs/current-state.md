@@ -51,8 +51,9 @@ the watchdog. Generation 157 proved 1 MiB writes remain at the same 0.66 MiB/s.
 Source audit found the writable profile still skipped the UFS high-speed gear
 transition. V49 is a module-only high-speed successor, built but unadmitted.
 Full kernel/trust CI passed; Generation 158 is admitted once and remains
-unbooted. Its cycle captures exact UDC, SCSI/block queue, and UFS gear evidence
-before any write.
+consumed. The high-speed branch executed and the exact 16 GiB image staged,
+validated, published, unmounted, and relocked in about 92 seconds after SSH.
+The next cycle is read-only local-root Arch boot and strict SSH acceptance.
 
 ## Charging repair facts
 

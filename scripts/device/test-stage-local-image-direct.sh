@@ -128,7 +128,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "local-image-direct-v49"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
 assert artifact["size"] == 23806155
@@ -156,6 +156,7 @@ start = source.index("def run(")
 failure = source.index('fail(f"target command failed:', start)
 preserve = source.rindex("sys.stdout.buffer.write(output)", start, failure)
 assert preserve < failure
+assert 'b"Timeout, server 169.254.77.2 not responding.\\r\\n"' in source
 PY
 
 root=$work/root
