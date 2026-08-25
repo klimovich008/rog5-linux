@@ -175,6 +175,7 @@ def validate_candidate_record(
     if status == "offline" and profile not in {
         "diagnostic-initramfs-v1",
         "network-root-v1",
+        "persistent-root-ro-v1",
     }:
         raise CandidateError("offline candidate is not a network-root profile")
     if require_string(record, "authority") != "none":
