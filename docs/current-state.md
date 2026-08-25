@@ -168,6 +168,12 @@ The active handoff documents had grown to 3,723 lines. Historical facts remain
 recoverable from Git; new work updates these concise summaries instead of
 appending lifecycle transcripts.
 
+Generation 163 reactivates the verified dedicated-layout geometry as a
+proposal: shrink only the tail of ext4 `userdata`, preserve partitions 1–22 and
+slot A, and create one aligned 32-GiB `arch_root_a`. Historical Stage-1/2
+executors remain ineligible until refreshed against the current image, rescue,
+and backup identities; no destructive operation is authorized or pending.
+
 ## Immediate next gate
 
 V26 completed the early power/USB gate with stable NCM, valid battery/UCSI

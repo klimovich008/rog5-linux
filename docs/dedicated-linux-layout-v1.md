@@ -1,31 +1,29 @@
 # Dedicated Linux storage layout v1
 
-> Superseded after the WW33 restoration: raw `userdata` is metadata-encrypted
-> F2FS ciphertext, not the ext4 filesystem assumed here. Do not execute this
-> shrink/GPT plan. The active no-GPT reset is defined by
-> `configs/storage/rog5-userdata-ext4-reset-v1.json`; this file is retained as
-> historical design evidence only.
+> Reactivated as a geometry proposal after Generation 99 converted unchanged
+> `userdata` to ext4 and Generations 162–163 repeatedly booted the staged local
+> Arch image. Do not execute the historical Stage-1/2 artifacts: their fallback
+> and source-image assumptions predate the current slot-A rescue and staged-seal
+> image. A refreshed executor, read-only preflight, and exact final confirmation
+> are still required.
 
 ## Recommendation
 
 Use the tail of the existing large `userdata` partition for one aligned
 32-GiB native Arch root. Keep every partition before `userdata` unchanged,
-including Android `super` and `metadata`, and keep the remaining approximately
-195 GiB of `userdata` as the Alpine recovery root and persistent server-data
-filesystem.
+including Android `super` and `metadata`, keep slot A as the ASUS charging and
+recovery route, and retain the remaining approximately 195 GiB of `userdata`
+for persistent server data and signed recovery bundles.
 
 This is the smallest Phase-3 layout change that gives Arch a native block
 filesystem. It avoids both boot-slot changes and unnecessary reclamation of
 the 7-GiB `super` partition. The latter is too small for a comfortable Arch
 root after the current sealed tree, package updates, and rollback space.
 
-Status: **the sealed Stage-1 executor is implemented, offline-rehearsed, and
-read-only phone-preflighted. Its prepared one-use candidate and claim remain
-unconsumed and unbooted; no phone partition or filesystem mutation has run.**
-Execution is paused at the battery gate. Active-slot metadata is restored to B
-after slot-A recovery entered Qualcomm crashdump. Neither installed slot is an
-accepted charging path; see the
-[low-battery recovery hold](asus-charging-recovery.md).
+Status: **geometry reverified; execution HOLD.** The historical executor is not
+eligible for reuse. The current battery and slot-A charging route are healthy,
+but a successor must bind the current userdata filesystem, staged image, backup
+set, slot-A rescue, and exact Generation-163 local-root baseline.
 
 ## Verified input
 
@@ -140,8 +138,8 @@ The eventual operation is deliberately limited to these mutations:
    LBAs 53,477,376–61,865,978;
 6. reread and revalidate both GPT copies, partitions 1–22, the 51,124,000-block
    clean filesystem, and all physical read-only locks;
-7. prove the unchanged Alpine recovery still boots before any partition-24
-   write;
+7. prove the unchanged slot-A ASUS charging/recovery route still works before
+   any partition-24 write;
 8. in a separately gated Stage 2, raw-clone the freshly attested 16-GiB local
    image into partition 24, verify the clone prefix, change only its filesystem
    UUID, grow it to the partition, and create a fresh native-root tree seal;
@@ -169,15 +167,12 @@ The final phone command, private identity bindings, generated partition UUID,
 and fresh pre-write backup hash are kept together in a private execution
 record for the required final confirmation.
 
-The source image was refreshed read-only from the exact Alpine fallback after
-the Generation-64 controlled marker write. It is clean, 17,179,869,184 bytes,
-and now hashes to
-`a51ee69000bcdf56b87ef0045d517fa60cffe92a21fba728e80fc37c4380b3ce`.
-Its current 37,738-entry tree hashes to
-`c804445418eea694667f6529086d7eeaa8e4a82293c86c692e0ebc379fd28e38`;
-the old Generation-53 seal remains provenance but no longer claims the current
-tree. Stage 2 must bind this refreshed identity, not the stale original image
-hash.
+The current staged image is clean, 17,179,869,184 bytes, and hashes to
+`533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153`.
+Its active tree seal is
+`4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167`.
+Any refreshed Stage 2 must bind these exact identities rather than either
+historical image lineage below.
 
 That Stage-2 path is now implemented offline as a distinct sealed executor.
 It verifies the source hash and tree before disarming the recovery timer,
