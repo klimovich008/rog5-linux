@@ -21,6 +21,7 @@ REBOOT_SOURCE = REPO / "tools/reboot_bootloader/rog5-reboot-bootloader.c"
 MANIFEST = REPO / "manifests/userdata-ext4-reset-generation99.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
+CURRENT = REPO / "manifests/storage-layout-stage1-current-20260825.manifest"
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -73,6 +74,25 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertNotIn("mkfs", legacy)
         self.assertNotIn("/rog5/images/arch-local-a.ext4", legacy)
         self.assertNotIn("ROG5_LAYOUT_TEST", source)
+
+    def test_current_checkpoint_is_offline_and_current_bound(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CURRENT.read_text(encoding="ascii").splitlines()
+        )
+        self.assertEqual(fields["status"], "offline-hold")
+        self.assertEqual(fields["destructive_authority"], "none")
+        self.assertEqual(fields["phone_boot"], "forbidden")
+        self.assertEqual(
+            fields["userdata_fs_uuid"],
+            "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
+        )
+        self.assertEqual(
+            fields["source_image_sha256"],
+            "533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153",
+        )
+        self.assertEqual(fields["rescue_slot"], "a")
+        self.assertEqual(fields["accepted_generation"], "163")
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
