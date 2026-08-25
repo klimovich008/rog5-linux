@@ -3,10 +3,10 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 benchmark=$repo/scripts/device/benchmark-local-image-write.sh
-base=$repo/artifacts/local-image-write-benchmark-v42/initramfs.cpio.gz
-candidate=$repo/configs/recovery-candidates/local-image-write-benchmark-v42.json
-manifest=$repo/manifests/local-image-write-benchmark-v42-generation151.manifest
-claim=$repo/scripts/host/consume-local-image-write-benchmark-v42-claim.py
+base=$repo/artifacts/local-image-write-benchmark-v43/initramfs.cpio.gz
+candidate=$repo/configs/recovery-candidates/local-image-write-benchmark-v43.json
+manifest=$repo/manifests/local-image-write-benchmark-v43-generation152.manifest
+claim=$repo/scripts/host/consume-local-image-write-benchmark-v43-claim.py
 
 [ -f "$benchmark" ] && [ ! -L "$benchmark" ]
 for path in "$base" "$candidate" "$manifest" "$claim"; do
@@ -15,7 +15,7 @@ done
 sh -n "$benchmark"
 python3 -m py_compile "$claim"
 for contract in \
-	'expected_partial_size=825884672' \
+	'expected_partial_size=17179869184' \
 	'test_size=33554432' \
 	'blockdev --setrw "$userdata_disk"' \
 	'blockdev --setrw "$userdata"' \
@@ -60,20 +60,20 @@ from pathlib import Path
 import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
-assert record["candidate"] == "local-image-write-benchmark-v42"
+assert record["candidate"] == "local-image-write-benchmark-v43"
 assert record["status"] == "offline"
 assert record["authority"] == "none"
 assert record["target_release"] == "7.1.4-g359318de534f"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
 path = Path(sys.argv[2])
-assert path.stat().st_size == artifact["size"] == 23805018
+assert path.stat().st_size == artifact["size"] == 23805025
 assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
     artifact["sha256"] == \
-    "e8334a941c54efa4cb09718e34150a94c80022ad1dfcddb6026ea4c6f9dcdd41"
+    "a85ee290d37326bf900d20c0d813240bc78ac258c7c1e1e937953fbc9dbe63c0"
 PY
-grep -Fxq 'avb_generation=151' "$manifest"
+grep -Fxq 'avb_generation=152' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"
-grep -Fq 'local-image-write-benchmark-v42-generation151-live-v1' "$claim"
+grep -Fq 'local-image-write-benchmark-v43-generation152-live-v1' "$claim"
 qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
 if [ -n "$qemu" ]; then
 	"$qemu" -L "$root" "$root/bin/busybox" dd if=/dev/zero \

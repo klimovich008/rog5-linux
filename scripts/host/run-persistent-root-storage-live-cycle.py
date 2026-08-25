@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-write-benchmark-v42-generation151-live-v1"
-BUNDLE = "local-image-write-benchmark-v42"
+PROFILE_ID = "local-image-write-benchmark-v43-generation152-live-v1"
+BUNDLE = "local-image-write-benchmark-v43"
 MANIFEST_SHA256 = (
-    "eda3bd6c644adb12254cf92d1c32dab1ace1982809227f0eb1917286c8cd36e9"
+    "65203683173ceacfa412d5dad54662bf46a7aa823016e2129c9aea869f3cf0c6"
 )
 RECOVERY_SHA256 = (
-    "a90a25e8270e85205f1898c02e7ce8b146a0e583770cba93cf1f7e23e99a2e35"
+    "c51667b372cc5a731adae10917f69ea33faa0bf4d76f0aa05db89cb248ca5489"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-write-benchmark-v42-generation151-live-v1\n"
-    b"candidate=local-image-write-benchmark-v42\n"
+    b"local-image-write-benchmark-v43-generation152-live-v1\n"
+    b"candidate=local-image-write-benchmark-v43\n"
     b"manifest_sha256="
-    b"eda3bd6c644adb12254cf92d1c32dab1ace1982809227f0eb1917286c8cd36e9\n"
+    b"65203683173ceacfa412d5dad54662bf46a7aa823016e2129c9aea869f3cf0c6\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-write-benchmark-v42-claim.py"
+    / "scripts/host/consume-local-image-write-benchmark-v43-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-write-benchmark-v42-generation151-20260825-r1"
+    / "build/local-image-write-benchmark-v43-generation152-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -103,10 +103,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-write-benchmark-v42",
+    admission_profile="local-image-write-benchmark-v43",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-write-benchmark-v42",
-    build_profile="local-image-write-benchmark-v42",
+    runtime_profile="local-image-write-benchmark-v43",
+    build_profile="local-image-write-benchmark-v43",
     diagnostic=False,
 )
 
@@ -711,7 +711,7 @@ def parse_write_benchmark(path: Path) -> tuple[float, float]:
     partial_size = lines[1].removeprefix("partial_size=")
     if not partial_size.isascii() or not partial_size.isdecimal():
         fail("write benchmark partial size is invalid")
-    if not 0 <= int(partial_size) <= 825884672:
+    if not 0 <= int(partial_size) <= 17179869184:
         fail("write benchmark partial size exceeds its bound")
     if lines[2] not in {"partial_mode=absent", "partial_mode=600", "partial_mode=644"}:
         fail("write benchmark partial mode is invalid")

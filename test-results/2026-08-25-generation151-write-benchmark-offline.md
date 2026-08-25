@@ -1,7 +1,6 @@
 # Generation 151 crash-bounded UFS write benchmark
 
-Result: **OFFLINE PASS; UNBOOTED; ADMITTED ONCE.** Never flash or retry after
-claim entry.
+Result: **CONSUMED; TRANSIENT PARTIAL-SIZE CEILING.** Never flash or retry.
 
 Generation 150 proved the write benchmark itself did not run because ext4
 recovery changed the partial file's exact pre-crash tuple. Generation 151
@@ -19,3 +18,9 @@ Signed bundle manifest SHA-256:
 `eda3bd6c644adb12254cf92d1c32dab1ace1982809227f0eb1917286c8cd36e9`.
 Generation-151 RAM-only AVB SHA-256:
 `a90a25e8270e85205f1898c02e7ce8b146a0e583770cba93cf1f7e23e99a2e35`.
+
+The sole cycle again passed UFS and SSH but returned exact
+`reason=partial-identity` before benchmark creation or data writes. The partial
+continued growing after the prior 825,884,672-byte snapshot while D-state I/O
+drained. The next ceiling is the fixed 17,179,869,184-byte logical image size;
+all pathname, type, owner, mode, and link checks remain unchanged.
