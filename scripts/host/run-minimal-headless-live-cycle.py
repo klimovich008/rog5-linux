@@ -530,6 +530,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "ufs-glob-reboot-baseline-v31-generation140-live-v1",
         "local-image-stage-glob-v32-generation141-live-v1",
         "local-image-stage-ssh-v33-generation142-live-v1",
+        "local-image-stage-nm-v34-generation143-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
@@ -3233,9 +3234,7 @@ class LiveCycle:
                 )
                 managed = managed_result.stdout.strip()
             if managed_result.returncode != 0 or managed not in {"yes", "no"}:
-                raise HostIdentityObservationError(
-                    "cannot inspect NetworkManager ownership of ROG5 link"
-                )
+                managed = ""
             snapshots.append(
                 InterfaceSnapshot(
                     name=name,

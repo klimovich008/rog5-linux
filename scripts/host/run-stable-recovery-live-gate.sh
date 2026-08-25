@@ -186,6 +186,7 @@ if [[ $action == policy-preflight ]]; then
 		ufs-glob-reboot-baseline-v31-generation140-live-v1 | \
 		local-image-stage-glob-v32-generation141-live-v1 | \
 		local-image-stage-ssh-v33-generation142-live-v1 | \
+		local-image-stage-nm-v34-generation143-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3000,8 +3001,8 @@ case $profile in
 		;;
 	local-image-stage-ssh-v33-generation142-live-v1)
 		expected_boot_image=build/local-image-stage-ssh-v33-generation142-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 142 bounded staging cycle removing only the sealed zero-byte `/etc/nologin` before key-only sshd; retains Generation-140-proven power/UFS topology, exact userdata, verified Arch gzip, sealed installer, complete relock, and built-in fastboot return; writes only one bounded image file; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 142 writer; removes exact nologin before key-only SSH, proven UFS, bounded image installer, relock, fastboot return; never flash'
+		expected_boot_basis='consumed by the sole Generation 142 cycle; post-COMMIT cleanup hit a transient NetworkManager ownership gap on newly enumerated target NCM before target activation, no target stage/SSH/transfer/installer/write evidence, exact fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 142 cycle; transient host NetworkManager ownership gap before target activation; no stage, transfer, or write; exact fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3024,6 +3025,39 @@ case $profile in
 		[[ $expected_image == 246d5c374495a72690a17ec808aef7b0165cd7f95268bdca453330df2af3ea28 ]] || fail 'local-image SSH V33 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image SSH V33 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image SSH V33 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	local-image-stage-nm-v34-generation143-live-v1)
+		expected_boot_image=build/local-image-stage-nm-v34-generation143-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 143 bounded staging cycle treating a newly enumerated no-address NCM interface with unavailable NetworkManager fields as ownership-unknown during non-final cleanup while still rejecting any escaped /30 and requiring managed final cleanup; otherwise identical proven writer, one image file, relock, fastboot; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 143 writer; bounded NM transition fix, proven UFS/SSH target, one image installer, relock, fastboot return; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=local-image-stage-nm-v34
+		expected_bundle=local-image-stage-nm-v34
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=a1547e01d533f5d0c4d81328799942fe3b032ee9828af7531d49531484784426
+		expected_avb_digest=c763b51213f2c5cd5189ff42a96e399050bad61ef9311b94c6d80cbb33932cfc
+		expected_generation_record=2e110d65e9114bd8b4b1fb3b51ac39c0cff5bfdfa6be4387cda31accd85795d0
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 0179be7e66ac350caf2483ab15df63ef95ddfc76bbc5b56a3bbf7139aa155208 ]] || fail 'local-image NM V34 manifest is not pinned'
+		[[ $expected_image == 341b81e39a96de5b697ef400aeeb01b8cb1cac04fd6f41579f75233f9a6a460a ]] || fail 'local-image NM V34 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'local-image NM V34 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'local-image NM V34 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4525,6 +4559,7 @@ case $profile in
 	ufs-glob-reboot-baseline-v31-generation140-live-v1 | \
 	local-image-stage-glob-v32-generation141-live-v1 | \
 	local-image-stage-ssh-v33-generation142-live-v1 | \
+	local-image-stage-nm-v34-generation143-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

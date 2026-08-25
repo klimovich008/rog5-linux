@@ -424,6 +424,12 @@ OpenSSH reset pre-auth with `Not allowed at this time` because the sealed base
 retained a zero-byte `/etc/nologin`; no image transfer or write occurred.
 Generation 142 validates and removes only that volatile boot-inhibition file
 before starting key-only sshd, with all writer and storage bounds unchanged.
+Generation 142 is consumed by an R6 host-only race: post-COMMIT cleanup saw the
+new target NCM interface before NetworkManager exposed either ownership field.
+No target stage, SSH, transfer, installer, or write evidence exists; exact
+fastboot fallback passed. Generation 143 observes that no-address interface as
+ownership-unknown during non-final cleanup, while escaped `/30` and final
+unmanaged state still fail.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

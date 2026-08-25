@@ -384,6 +384,11 @@ Generation 141 is consumed: UFS passed and host-key pinning passed, but sealed
 `/etc/nologin` rejected every SSH connection before authentication. No image
 bytes or storage command ran. Generation 142 removes only that exact empty
 regular file before key-only sshd; all write and fallback bounds are unchanged.
+Generation 142 is consumed before target acceptance by a transient empty
+NetworkManager ownership result on the new NCM interface. No write occurred and
+fastboot fallback passed. Generation 143 changes only host observation:
+no-address/unknown is transitional, any escaped `/30` or final unknown remains
+fatal.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
