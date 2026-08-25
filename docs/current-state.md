@@ -61,8 +61,11 @@ host selected the obsolete staging product and never activated networking. No
 storage write occurred and exact slot-A fastboot returned. The corrected host
 selector now matches the sealed gadget; the target reporter starts before the
 reboot-mode gate. V52/Generation 161 has clean-twin target archives and a fresh
-wrapper identity. Exact-head, merge, QEMU, and publication CI passed; V52 is
-admitted once.
+wrapper identity. Generation 161 is consumed after passing reboot-mode,
+charging/UFS, userdata, and local-image mount, then failing `root-verify` because
+the staged-seal policy was rejected by an earlier UUID-only branch. No storage
+write occurred and exact fastboot returned. The control-flow correction is the
+only target change for the next fresh identity.
 
 ## Charging repair facts
 

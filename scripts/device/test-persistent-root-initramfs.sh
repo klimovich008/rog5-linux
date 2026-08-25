@@ -132,6 +132,19 @@ load = source.index("if ! load_reboot_mode_modules; then", report)
 wait = source.index("if ! wait_for_reboot_mode; then", load)
 assert usb < report < load < wait
 PY
+python3 - "$init" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+function = source[source.index("verify_exact_local_image_probe() {"):
+                  source.index("write_exact_local_image_probe() {")]
+staged = function.index("read-only:staged-seal)")
+uuid_only = function.index("grep -Eq '^[0-9a-f]{8}-", staged)
+assert staged < uuid_only
+assert function.count("read-only:staged-seal)") == 1
+assert "[ ! -e \"$probe_path\" ] && [ ! -L \"$probe_path\" ]" in function
+PY
 for detail in reboot-mode-module-load reboot-mode-unavailable; do
 	grep -Fq "publish_stage ufs-ready FAIL $detail" "$init" ||
 		fail "P2 reboot-mode failure is not observable: $detail"

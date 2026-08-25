@@ -24,3 +24,17 @@
 - Exact-head, merge-compat, QEMU, and candidate-publication CI passed for
   `b5c2f78803fe4b26d41d1099061d6c899a1a778f`. Generation 161 is admitted once;
   no phone boot has occurred.
+
+## Generation 161 live result
+
+- Recovery transfer, PREPARE, COMMIT, and target NCM passed. The host selected
+  the exact persistent-root product and activated the `/30` link.
+- Target stages proved reboot-mode modules, charging/UFS, userdata resolution,
+  userdata mount, image resolution, and read-only image mount passed.
+- Terminal result was sequence 15, `root-verify/FAIL`.
+- The exact host image independently matches every seal, UUID, mode, size, and
+  boot-critical hash. Source inspection proves `staged-seal` was first passed
+  through the UUID-only read-only branch, so its later absence check was
+  unreachable.
+- Classification: R1 policy/control-flow defect. No storage write occurred;
+  exact slot-A fastboot fallback and host cleanup passed.

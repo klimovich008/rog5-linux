@@ -44,7 +44,7 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "persistent-root-local-v52"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 assert record["target_release"] == "7.1.4-gae717d919f87"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
