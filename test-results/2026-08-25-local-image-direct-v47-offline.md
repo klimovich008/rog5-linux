@@ -1,6 +1,6 @@
 # Local-image direct V47 offline checkpoint
 
-Result: **OFFLINE PASS; UNADMITTED; UNBOOTED.** No V47 phone contact or claim.
+Result: **OFFLINE PASS; ADMITTED ONCE; UNBOOTED.** No V47 phone contact or claim.
 
 Generation 155 reached target runtime and key-only SSH, then failed during
 prepare before any extent stream. The host discarded the target's bounded
@@ -16,4 +16,6 @@ and size 23,806,146 bytes. Signed bundle manifest SHA-256 is
 
 Authority-free Generation-156 wrapper SHA-256 is
 `7069dcc4bcd9a8475d8eea0a6d74d3ad09269ddeacb047a98d0c7afaaea56962`.
-It remains unadmitted pending focused checks and exact-head CI.
+Focused target, streamer, lifecycle, and gate checks passed. The reviewed V47
+implementation passed exact-head and merge CI before its derived one-use
+admission. COMMIT or any ambiguous outcome permanently consumes it.

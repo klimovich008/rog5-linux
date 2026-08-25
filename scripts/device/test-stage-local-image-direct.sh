@@ -12,6 +12,8 @@ candidate=$repo/configs/recovery-candidates/local-image-direct-v46.json
 successor=$repo/configs/recovery-candidates/local-image-direct-v47.json
 manifest=$repo/manifests/local-image-direct-v46-generation155.manifest
 claim=$repo/scripts/host/consume-local-image-direct-v46-claim.py
+successor_manifest=$repo/manifests/local-image-direct-v47-generation156.manifest
+successor_claim=$repo/scripts/host/consume-local-image-direct-v47-claim.py
 source=/home/deck/.local/state/rog5-local-image-v28-20260823-r1/arch-local-a.ext4
 busybox_base=$repo/artifacts/local-image-write-benchmark-v45/initramfs.cpio.gz
 [ -f "$busybox_base" ] ||
@@ -22,10 +24,14 @@ for path in "$target" "$streamer" "$generator" "$map" "$builder" "$fake" \
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 [ -f "$successor" ] && [ ! -L "$successor" ]
+for path in "$successor_manifest" "$successor_claim"; do
+	[ -f "$path" ] && [ ! -L "$path" ]
+done
 sh -n "$target" "$builder"
 python3 -m py_compile "$streamer" "$generator"
 python3 -m py_compile "$fake"
 python3 -m py_compile "$claim"
+python3 -m py_compile "$successor_claim"
 [ "$(sha256sum "$map" | cut -d ' ' -f 1)" = \
 	e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94 ]
 for contract in \
@@ -91,6 +97,9 @@ PY
 grep -Fxq 'avb_generation=155' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"
 grep -Fq 'local-image-direct-v46-generation155-live-v1' "$claim"
+grep -Fxq 'avb_generation=156' "$successor_manifest"
+grep -Fxq 'phone_flash=forbidden' "$successor_manifest"
+grep -Fq 'local-image-direct-v47-generation156-live-v1' "$successor_claim"
 python3 - "$streamer" <<'PY'
 from pathlib import Path
 import sys

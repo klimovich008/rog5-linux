@@ -45,7 +45,8 @@ Fastboot fallback passed. The successor preserves bounded target failures and
 accepts only the proven empty or one-file benchmark residual forms.
 V47 is built offline with preserved target failures and both exact residual
 forms. Its target twins, signed bundle twins, and authority-free Generation
-156 wrapper pass; it remains unadmitted and unbooted.
+156 wrapper pass. Its reviewed implementation passed exact-head and merge CI;
+the derived Generation-156 admission is open once and remains unbooted.
 
 ## Charging repair facts
 
