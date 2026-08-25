@@ -460,6 +460,12 @@ proves the deployed ae717 Image lacks bounded UFS data-write support, so this
 is R2 composition rather than another blockdev defect. The next target uses
 the retained clean-twin write-capable Image and matching 19 modules; it remains
 RAM-only and keeps the same DTB, installer, write scope, and slot-A fallback.
+Generation 149 is consumed. The write-capable kernel cleared the prior R2
+boundary and mounted userdata RW, but dense 16 GiB gzip expansion reached only
+about 826 MB before UFS I/O, gzip, and `sync` became uninterruptible. Exact
+fastboot fallback required the already-set restart2 reason plus emergency
+SysRq. The next stager must be sparse/extents-aware and must not block emergency
+rollback on `sync`; no successor is currently admitted.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

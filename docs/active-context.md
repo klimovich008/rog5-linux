@@ -416,6 +416,12 @@ is compile-time read-only and cannot satisfy the installer regardless of
 BLKROSET ordering. The successor reuses the retained clean-twin g359
 write-capable Image, matching four UFS and 15 charging modules, current DTB and
 installer, and unchanged RAM-only recovery/fallback.
+Generation 149 is consumed. It proved the bounded-write kernel composition,
+then dense decompression created an 825,884,672-byte partial image before the
+UFS path stalled in D state. The watchdog's `sync` also blocked. Exact fastboot
+returned only after the sealed helper had set the bootloader reason and
+emergency SysRq bypassed device shutdown. No candidate is admitted; next work
+is a sealed sparse writer plus sync-independent emergency rollback.
 
 Generation 78 is consumed. Removing BTF from `pdr_interface.ko` advanced the
 combined target from no stage evidence to exact sequence 3 at `ufs-ready`, but
