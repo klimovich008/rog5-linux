@@ -45,7 +45,7 @@ grep -Fq "expected_boot_role='consumed Generation 145 cycle; runtime nologin-ide
 grep -Fq "expected_boot_role='consumed Generation 146 cycle; key-only SSH and exact gzip transfer passed, then installer set -f suppressed userdata/relock globs and failed before creating an image path; exact fastboot fallback; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 147 cycle; UFS, SSH, transfer, and installer glob passed, then parent-child read-write transition remained effectively read-only; no mount or image path; fastboot fallback; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 148 cycle; exact disk-rw-state proved the deployed ae717 Image is compile-time read-only; no mount or image path; fastboot fallback; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 149 clean-twin bounded-write kernel composition with corrected stager, charging, UFS, relock, fastboot; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 149 cycle; bounded-write kernel worked, but dense 16 GiB decompression reached about 826 MB then UFS I/O stalled in D state; emergency exact fastboot fallback; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -327,8 +327,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 148 cycle; exact UFS, SSH, and transfer passed, then disk-rw-state proved the deployed ae717 Image lacks bounded data-write support; no mount or image path; fastboot fallback and cleanup passed; never retry or flash" &&
 		NF == 3 { local_rworder_writer++ ; next }
 	$1 == "build/local-image-stage-writekernel-v40-generation149-20260825-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 149 staging cycle composing the retained clean-twin bounded-write kernel and matching modules with the corrected stager; same DTB, one image-file scope, relock, recovery raw bytes, and slot-A fallback; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 149 cycle; write-capable UFS, SSH, and transfer passed, dense decompression created about 826 MB of the bounded partial file, then gzip and sync entered uninterruptible UFS I/O; exact bootloader fallback required the sealed restart reason plus emergency SysRq; never retry or flash" &&
 		NF == 3 { local_writekernel_writer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -545,7 +545,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img

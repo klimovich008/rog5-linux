@@ -3238,8 +3238,8 @@ case $profile in
 		;;
 	local-image-stage-writekernel-v40-generation149-live-v1)
 		expected_boot_image=build/local-image-stage-writekernel-v40-generation149-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 149 staging cycle composing the retained clean-twin bounded-write kernel and matching modules with the corrected stager; same DTB, one image-file scope, relock, recovery raw bytes, and slot-A fallback; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 149 clean-twin bounded-write kernel composition with corrected stager, charging, UFS, relock, fastboot; never flash'
+		expected_boot_basis='consumed by the sole Generation 149 cycle; write-capable UFS, SSH, and transfer passed, dense decompression created about 826 MB of the bounded partial file, then gzip and sync entered uninterruptible UFS I/O; exact bootloader fallback required the sealed restart reason plus emergency SysRq; never retry or flash'
+		expected_boot_role='consumed Generation 149 cycle; bounded-write kernel worked, but dense 16 GiB decompression reached about 826 MB then UFS I/O stalled in D state; emergency exact fastboot fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
