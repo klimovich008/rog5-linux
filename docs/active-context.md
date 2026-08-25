@@ -28,7 +28,10 @@ The corrected successor changes only that host selector and early initramfs
 observability; it does not flash or replace the kernel. Generation 161 consumed
 that cycle and reached mounted local Arch before an unreachable staged-seal
 policy branch caused exact `root-verify` rollback. The next target changes only
-that control flow. V53/Generation 162 is built offline and remains unadmitted.
+that control flow. Generation 162 then passed local Arch/systemd/key-only SSH
+in 325.697 seconds. Its final reboot entered stock recovery because exitrd
+omitted the restart2 helper referenced by shutdown; the repeat adds only that
+helper and requires exact fastboot success.
 
 ## Completed charging repair
 

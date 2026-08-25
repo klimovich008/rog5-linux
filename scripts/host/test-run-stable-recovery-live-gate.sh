@@ -389,8 +389,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 161 cycle; reboot-mode, charging/UFS, userdata, and image mount passed, then staged-seal was rejected by an unreachable-policy control-flow defect at root-verify; no storage write; exact fastboot fallback passed; never retry or flash" &&
 		NF == 3 { local_runtime_observer++ ; next }
 	$1 == "build/persistent-root-local-v53-generation162-20260825-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 162 read-only boot of the staged-seal 16 GiB local Arch image with reachable staged-seal absence verification; userdata and image ro-noload, OverlayFS/systemd, power/USB, key-only SSH, controlled reboot, exact fastboot fallback; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 162 cycle; local Arch, power/USB, read-only UFS, OverlayFS, systemd, runtime attestation, and key-only SSH passed in 325.697 seconds; exitrd omitted its restart2 helper and systemctl reboot returned stock recovery; never retry or flash" &&
 		NF == 3 { local_runtime_sealfix++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -607,7 +607,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img

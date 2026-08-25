@@ -67,7 +67,10 @@ the staged-seal policy was rejected by an earlier UUID-only branch. No storage
 write occurred and exact fastboot returned. The control-flow correction is the
 only target change. V53/Generation 162 has clean-twin target archives, signed
 bundle twins, and a fresh wrapper. Exact-head publication CI passed; V53 is
-admitted once.
+consumed after passing local Arch, systemd, power/USB, runtime attestation, and
+key-only SSH in 325.697 seconds. Its exitrd omitted the restart2 helper used by
+shutdown, so the final reboot entered stock recovery. The next repeat adds that
+unchanged helper to exitrd and requires exact fastboot before success.
 
 ## Charging repair facts
 

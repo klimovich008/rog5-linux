@@ -149,6 +149,16 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         next_stage = source.index("if previous is not None:", timeout)
         self.assertIn("stock_fastboot_returned(expected_location)", source[timeout:next_stage])
 
+    def test_success_requires_exact_slot_a_fastboot(self) -> None:
+        source = MODULE_PATH.read_text()
+        fallback = source.index("        cycle.wait_fallback(None)\n")
+        exact = source.index("        if not stock_fastboot_returned(", fallback)
+        clean = source.index("        cycle.wait_host_clean(final=True)\n", exact)
+        resolved = source.index('        cycle.resolve_intent(intent, "TARGET_ACCEPTED")\n', clean)
+        self.assertLess(fallback, exact)
+        self.assertLess(exact, clean)
+        self.assertLess(clean, resolved)
+
     def test_diagnostics_capture_bounded_systemd_timing(self) -> None:
         diagnostic = MODULE.DIAGNOSTIC_COMMAND
         self.assertIn("=== systemd time ===", diagnostic)

@@ -1337,7 +1337,7 @@ EOF
 prepare_runtime() {
 	exitrd=/run/initramfs
 	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
-		"$exitrd/sys" "$exitrd/run" "$exitrd/oldroot" \
+		"$exitrd/sys" "$exitrd/run" "$exitrd/usr/libexec" "$exitrd/oldroot" \
 		"$exitrd/oldsys" || return 1
 	cp -p /bin/busybox "$exitrd/bin/busybox" || return 1
 	cp -p /lib/ld-musl-aarch64.so.1 \
@@ -1345,6 +1345,8 @@ prepare_runtime() {
 	ln -s ld-musl-aarch64.so.1 \
 		"$exitrd/lib/libc.musl-aarch64.so.1" || return 1
 	ln -s busybox "$exitrd/bin/sh" || return 1
+	cp -p "$reboot_helper" "$exitrd$reboot_helper" || return 1
+	[ -x "$exitrd$reboot_helper" ] || return 1
 	cp -p /shutdown "$exitrd/shutdown" || return 1
 	chroot "$exitrd" /bin/sh -n /shutdown || return 1
 
