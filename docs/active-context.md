@@ -40,8 +40,10 @@ Generation 164 consumed and permanently revoked the current RAM-only read-only
 storage preflight. It passed exact UFS/GPT/ext4 geometry with 1,219,496 minimum
 ext4 blocks, all block devices read-only, zero mounts, and no write; automatic
 rollback reached exact slot-A recovery on the anchored side port. The next gate
-is the separately reviewed Stage-1 shrink/GPT transaction. Stage 1 and Stage 2
-remain offline and have no destructive authority.
+is the separately reviewed Stage-1 shrink/GPT transaction. Authority-free
+Generation 165 now binds the current twin initramfs and exact private execution
+record, but has no policy row, claim, phone-boot permission, or destructive
+authority. Stage 2 remains offline.
 
 ## Completed charging repair
 

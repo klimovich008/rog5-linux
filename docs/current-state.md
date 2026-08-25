@@ -174,11 +174,13 @@ slot A, and create one aligned 32-GiB `arch_root_a`. Historical Stage-1/2
 executors remain ineligible until refreshed against the current image, rescue,
 and backup identities; no destructive operation is authorized or pending.
 
-The refreshed Stage-1 initramfs now binds the current userdata UUID, source
+The refreshed Stage-1 initramfs binds the current userdata UUID, source
 image/tree, slot-A rescue, and Generation-163 baseline. Clean twins match at
-`b9851f3e...`; the artifact remains offline HOLD with no candidate, claim,
-phone boot, or destructive authority. A fresh read-only physical preflight and
-host backup receipt still precede final destructive review.
+`b9851f3e...`. After the Generation-164 read-only PASS, it was repacked as
+authority-free Generation 165; raw twins match at `780dcfc2...` and final AVB
+twins at `1a00e906...`. The exact execution record exists privately. It remains
+HOLD awaiting final destructive confirmation, with no policy admission, claim,
+phone boot, or write authority.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
