@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-writekernel-v40-generation149-live-v1"
-BUNDLE = "local-image-stage-writekernel-v40"
+PROFILE_ID = "local-image-write-benchmark-v41-generation150-live-v1"
+BUNDLE = "local-image-write-benchmark-v41"
 MANIFEST_SHA256 = (
-    "4ed06aa453489f7666c3f7ccb55e519a9fa4074c03edda496326810beed57606"
+    "48022ec8595d57b4cb64445fd4802879e0c652a96db31937dc2bd6826a23361a"
 )
 RECOVERY_SHA256 = (
-    "e001c6e580b3a07ee0c863e2a4d72b1a4e68c74edd01cae79e46907870bcadfa"
+    "e28b4c489e9507a5dba48b5c94af844c087fcf5d01efc7371343830db577cb12"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-writekernel-v40-generation149-live-v1\n"
-    b"candidate=local-image-stage-writekernel-v40\n"
+    b"local-image-write-benchmark-v41-generation150-live-v1\n"
+    b"candidate=local-image-write-benchmark-v41\n"
     b"manifest_sha256="
-    b"4ed06aa453489f7666c3f7ccb55e519a9fa4074c03edda496326810beed57606\n"
+    b"48022ec8595d57b4cb64445fd4802879e0c652a96db31937dc2bd6826a23361a\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-writekernel-v40-claim.py"
+    / "scripts/host/consume-local-image-write-benchmark-v41-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-writekernel-v40-generation149-20260825-r1"
+    / "build/local-image-write-benchmark-v41-generation150-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -92,8 +92,6 @@ AUTHENTICATED_SSH_COMMAND = (
 )
 STAGE_PORT = 8079
 STAGE_RECORD_MAX_BYTES = 512
-ARCH_IMAGE_SIZE = 649960943
-ARCH_IMAGE_SHA256 = "41f75ab6c9c74e3f511fcac4a85b1c4da93695bc56bf85ab954a42f70d83ba88"
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -105,10 +103,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-writekernel-v40",
+    admission_profile="local-image-write-benchmark-v41",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-writekernel-v40",
-    build_profile="local-image-stage-writekernel-v40",
+    runtime_profile="local-image-write-benchmark-v41",
+    build_profile="local-image-write-benchmark-v41",
     diagnostic=False,
 )
 
@@ -327,19 +325,6 @@ def exact_inputs() -> CYCLE.Inputs:
         evidence_dir=evidence,
         fallback_timeout=FALLBACK_TIMEOUT_SECONDS,
     )
-
-
-def exact_arch_image() -> Path:
-    image = CYCLE.caller_file(os.environ.get("ARCH_IMAGE_GZ", ""), "ARCH_IMAGE_GZ")
-    CYCLE.outside_repository(image, "ARCH_IMAGE_GZ")
-    metadata = image.stat()
-    if metadata.st_size != ARCH_IMAGE_SIZE:
-        fail("ARCH_IMAGE_GZ size changed")
-    with image.open("rb") as source:
-        digest = hashlib.file_digest(source, "sha256").hexdigest()
-    if digest != ARCH_IMAGE_SHA256:
-        fail("ARCH_IMAGE_GZ identity changed")
-    return image
 
 
 def require_file(path: Path, *, owner: int, modes: set[int]) -> None:
@@ -702,65 +687,60 @@ def wait_for_stage_host_key(
     )
 
 
-def transfer_arch_image(
+def parse_write_benchmark(path: Path) -> tuple[float, float]:
+    try:
+        payload = path.read_bytes()
+        if len(payload) > 4096:
+            fail("write benchmark output exceeds its bound")
+        lines = payload.decode("ascii").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise PersistentCycleError("write benchmark output is unreadable") from error
+    if len(lines) != 8 or lines[0] != "format=rog5-local-image-write-benchmark-v1":
+        fail("write benchmark output shape changed")
+    expected = {
+        2: "direct_size=33554432",
+        4: "buffered_size=33554432",
+        7: "result=PASS",
+    }
+    for index, marker in expected.items():
+        if lines[index] != marker:
+            fail(f"write benchmark marker changed: {marker}")
+    seconds = []
+    for index, prefix in ((1, "direct_seconds="), (3, "buffered_seconds=")):
+        if not lines[index].startswith(prefix):
+            fail(f"write benchmark timing field changed: {prefix}")
+        value = lines[index].removeprefix(prefix)
+        if not re.fullmatch(r"[0-9]+(?:[.][0-9]+)?", value):
+            fail(f"write benchmark timing is invalid: {prefix}")
+        observed = float(value)
+        if observed < 0 or observed > 180:
+            fail(f"write benchmark timing is outside its bound: {prefix}")
+        seconds.append(observed)
+    if lines[5] != "ufs_error_lines=0":
+        fail("write benchmark observed a UFS error")
+    if not lines[6].startswith("temperature_decic="):
+        fail("write benchmark temperature field changed")
+    temperature = lines[6].removeprefix("temperature_decic=")
+    if not temperature.isascii() or not temperature.isdecimal():
+        fail("write benchmark temperature is invalid")
+    if not 0 <= int(temperature) < 550:
+        fail("write benchmark temperature is unsafe")
+    return seconds[0], seconds[1]
+
+
+def run_write_benchmark(
     cycle: CYCLE.LiveCycle,
     target_ssh: list[str],
-    image: Path,
-) -> None:
-    log = cycle.output("local-image-transfer.log")
-    descriptor = CYCLE.open_exclusive(log)
-    command = (
-        "umask 077; cat > /run/arch-local-a.ext4.gz; "
-        "stat -c 'size=%s mode=%a links=%h uid=%u gid=%g' "
-        "/run/arch-local-a.ext4.gz; "
-        "printf 'sha256='; sha256sum /run/arch-local-a.ext4.gz | cut -d ' ' -f 1; "
-        "printf 'result=PASS\\n'"
-    )
-    try:
-        with image.open("rb") as source:
-            result = subprocess.run(
-                [*target_ssh, command],
-                env=CYCLE.child_environment(),
-                stdin=source,
-                stdout=descriptor,
-                stderr=subprocess.STDOUT,
-                check=False,
-                timeout=600,
-            )
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-    if result.returncode != 0:
-        fail("local Arch image transfer failed")
-    CYCLE.require_log_markers(
-        log,
-        (
-            f"size={ARCH_IMAGE_SIZE} mode=600 links=1 uid=0 gid=0",
-            f"sha256={ARCH_IMAGE_SHA256}",
-            "result=PASS",
-        ),
-    )
-
-
-def run_stage_installer(cycle: CYCLE.LiveCycle, target_ssh: list[str]) -> None:
-    log = cycle.output("local-image-installer.log")
+) -> tuple[float, float]:
+    log = cycle.output("local-image-write-benchmark.log")
     status = run_optional_logged(
         [*target_ssh, "/usr/local/sbin/rog5-install-local-arch-image"],
         log,
-        900,
+        600,
     )
     if status not in {0, 255}:
-        fail(f"local-image installer returned unexpected status {status}")
-    CYCLE.require_log_markers(
-        log,
-        (
-            "state=PASS",
-            "image_sha256=533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153",
-            "image_size=17179869184",
-            "filesystem_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4",
-            "filesystem_label=ROG5_ARCH_A",
-        ),
-    )
+        fail(f"write benchmark returned unexpected status {status}")
+    return parse_write_benchmark(log)
 
 
 def parse_runtime_evidence(path: Path) -> str:
@@ -842,7 +822,6 @@ def preflight(
     ):
         CYCLE.fixed_executable(path, offline=False)
     verify_static_artifacts(inputs)
-    exact_arch_image()
     cycle.verify_host_clean()
     CYCLE.run_capture(
         [str(cycle.dependencies.bundle_server), "preflight", BUNDLE, MANIFEST_SHA256],
@@ -981,14 +960,13 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
             target_ssh,
             cycle.output("persistent-root-ssh-readiness.log"),
         )
-        transfer_arch_image(cycle, target_ssh, exact_arch_image())
-        run_stage_installer(cycle, target_ssh)
+        direct_seconds, buffered_seconds = run_write_benchmark(cycle, target_ssh)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
             cycle.output("persistent-root-timing.record"),
             (
-                ("format", "rog5-local-image-stage-timing-v1"),
+                ("format", "rog5-local-image-write-benchmark-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -996,7 +974,9 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
                     "authenticated_ssh_rendezvous_seconds",
                     f"{ssh_ready_elapsed:.3f}",
                 ),
-                ("seconds_to_staged_image", f"{elapsed:.3f}"),
+                ("direct_write_seconds", f"{direct_seconds:.3f}"),
+                ("buffered_write_seconds", f"{buffered_seconds:.3f}"),
+                ("seconds_to_benchmark", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -1008,8 +988,9 @@ def run(cycle: CYCLE.LiveCycle, inputs: CYCLE.Inputs, gate_environment: dict[str
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only writer cycle staged the exact 16-GiB Arch image "
-            f"through strict SSH in {elapsed:.3f}s, relocked storage, and returned to fastboot"
+            "PASS one RAM-only cycle compared bounded direct and buffered UFS "
+            f"writes in {elapsed:.3f}s, removed the benchmark files, relocked "
+            "storage, and returned to fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:
