@@ -22,6 +22,9 @@ MANIFEST = REPO / "manifests/userdata-ext4-reset-generation99.manifest"
 CLAIM_CONSUMER = REPO / "scripts/host/consume-exact-boot-claim.py"
 BOOT_POLICY = REPO / "manifests/userdata-ext4-reset-temporary-boot-v1.tsv"
 CURRENT = REPO / "manifests/storage-layout-stage1-current-20260825.manifest"
+CURRENT_CANDIDATE = (
+    REPO / "manifests/storage-layout-stage1-current-generation165.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -93,6 +96,67 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         )
         self.assertEqual(fields["rescue_slot"], "a")
         self.assertEqual(fields["accepted_generation"], "163")
+
+    def test_current_candidate_is_exact_and_has_no_authority(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CURRENT_CANDIDATE.read_text(encoding="ascii").splitlines()
+        )
+        self.assertEqual(
+            fields["profile"],
+            "storage-layout-stage1-current-generation165-live-v1",
+        )
+        self.assertEqual(fields["status"], "awaiting-final-confirmation")
+        self.assertEqual(fields["destructive_authority"], "none")
+        self.assertEqual(fields["phone_boot"], "forbidden")
+        self.assertEqual(fields["rescue_slot"], "a")
+        self.assertEqual(fields["preflight_generation"], "164")
+        self.assertEqual(fields["preflight_ext4_minimum_blocks"], "1219496")
+        self.assertEqual(
+            fields["image_sha256"],
+            "1a00e9061c027c804458732cfc93ba7175ee6821d821f9d86ffa079383fd5fc2",
+        )
+        self.assertEqual(
+            fields["initramfs_sha256"],
+            "b9851f3e1d901fb32f2ea32dab8042a8bdc109dd30b1d1e06a10664befae294f",
+        )
+        image = REPO / fields["image_path"]
+        if not image.exists():
+            return
+        raw = image.with_name("stable-recovery-a.raw.img")
+        twin = image.with_name("stable-recovery-b.avb.img")
+        self.assertEqual(image.stat().st_size, int(fields["image_size"]))
+        self.assertEqual(hashlib.sha256(image.read_bytes()).hexdigest(), fields["image_sha256"])
+        self.assertEqual(hashlib.sha256(raw.read_bytes()).hexdigest(), fields["raw_image_sha256"])
+        self.assertEqual(image.read_bytes(), twin.read_bytes())
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [
+                    "python3",
+                    str(REPO / "artifacts/android-boot-tools-v1/unpack_bootimg.py"),
+                    "--boot_img",
+                    str(raw),
+                    "--out",
+                    directory,
+                    "--format=mkbootimg",
+                    "--null",
+                ],
+                check=True,
+                capture_output=True,
+            )
+            unpacked = Path(directory)
+            self.assertEqual(
+                hashlib.sha256((unpacked / "kernel").read_bytes()).hexdigest(),
+                fields["kernel_sha256"],
+            )
+            self.assertEqual(
+                hashlib.sha256((unpacked / "ramdisk").read_bytes()).hexdigest(),
+                fields["initramfs_sha256"],
+            )
+        arguments = result.stdout.split(b"\0")
+        cmdline = arguments[arguments.index(b"--cmdline") + 1].decode("ascii")
+        self.assertEqual(cmdline.split().count("rog5.recovery_timeout=900"), 1)
+        self.assertNotIn("rog5.recovery_timeout=300", cmdline.split())
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
