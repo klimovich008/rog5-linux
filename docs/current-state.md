@@ -414,6 +414,11 @@ all `/sys/class/block/*` and earlier platform-device classifiers had iterated a
 literal asterisk. Generation 140 removes that line and restores Generation
 109's exact 116-node disk-plus-partition topology count. Storage remains
 unreachable until that count passes.
+Generation 140 is consumed and passed the exact complete 116-node UFS topology,
+power/USB telemetry, NCM, and automatic fastboot return. Generation 141 moves
+to the real staging objective: the same proven lineage plus corrected full
+writer init, key-only SSH, the hash-verified 649,960,943-byte Arch gzip, one
+bounded userdata image-file install, and complete storage relock.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

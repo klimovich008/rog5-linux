@@ -528,6 +528,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "ufs-reboot-baseline-v29-generation138-live-v1",
         "ufs-power-reboot-baseline-v30-generation139-live-v1",
         "ufs-glob-reboot-baseline-v31-generation140-live-v1",
+        "local-image-stage-glob-v32-generation141-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

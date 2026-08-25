@@ -33,8 +33,12 @@ grep -Fq 'consumer.CLAIMS[PROFILE] = EXPECTED' "$claim"
 grep -Fq 'consumer.consume(PROFILE)' "$claim"
 ! grep -Eq 'os[.](open|rename|replace|fsync)|shutil|subprocess' "$claim"
 
+! grep -Fxq 'set -f' "$init" || {
+	echo 'FAIL local-image stage disables the fixed sysfs globs it relies on' >&2
+	exit 1
+}
 for contract in \
-	'expected_physical_count=116' \
+	'expected_topology_count=116' \
 	'expected_udc=a600000.usb' \
 	'/sbin/rog5-load-persistent-power-usb' \
 	'phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko' \
@@ -64,7 +68,7 @@ grep -Fq 'while [ "$attempt" -lt 2500 ]; do' "$init"
 grep -Fq 'sleep 0.01' "$init"
 grep -Fq '[ "$bound_udc" -eq 1 ] || fail udc-identity' "$init"
 grep -Fq '[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || fail udc-identity' "$init"
-grep -Fq '[ "$count" -eq "$expected_physical_count" ] || fail "ufs-count-$count"' "$init"
+grep -Fq '[ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"' "$init"
 for contract in \
 	'classify_zero_ufs() {' \
 	'ufs_dt=/sys/firmware/devicetree/base/soc@0/ufshc@1d84000' \
