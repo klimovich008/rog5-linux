@@ -60,7 +60,8 @@ mainline exposed the correct persistent-root NCM gadget for 23 seconds, but the
 host selected the obsolete staging product and never activated networking. No
 storage write occurred and exact slot-A fastboot returned. The corrected host
 selector now matches the sealed gadget; the target reporter starts before the
-reboot-mode gate so the next fresh identity returns a discriminating result.
+reboot-mode gate. V52/Generation 161 is built offline with clean-twin target
+archives and a fresh authority-free wrapper identity; it remains unadmitted.
 
 ## Charging repair facts
 
