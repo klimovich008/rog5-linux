@@ -11,6 +11,7 @@ fake=$repo/scripts/host/test-fixtures/local-image-direct-fake-target.py
 candidate=$repo/configs/recovery-candidates/local-image-direct-v46.json
 successor=$repo/configs/recovery-candidates/local-image-direct-v47.json
 megabyte=$repo/configs/recovery-candidates/local-image-direct-v48.json
+high_speed=$repo/configs/recovery-candidates/local-image-direct-v49.json
 manifest=$repo/manifests/local-image-direct-v46-generation155.manifest
 claim=$repo/scripts/host/consume-local-image-direct-v46-claim.py
 successor_manifest=$repo/manifests/local-image-direct-v47-generation156.manifest
@@ -31,6 +32,7 @@ for path in "$successor_manifest" "$successor_claim" "$megabyte" \
 	"$megabyte_manifest" "$megabyte_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ]
 done
+[ -f "$high_speed" ] && [ ! -L "$high_speed" ]
 sh -n "$target" "$builder"
 python3 -m py_compile "$streamer" "$generator"
 python3 -m py_compile "$fake"
@@ -107,12 +109,26 @@ import sys
 
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "local-image-direct-v48"
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 artifact = record["artifacts"]["initramfs.cpio.gz"]
 assert artifact["size"] == 23806263
 assert artifact["sha256"] == \
     "27ea9cda1dfc8b032c78eae06e76d1424ceadcc786c17a3418e125950d6256c9"
+PY
+python3 - "$high_speed" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "local-image-direct-v49"
+assert record["status"] == "offline"
+assert record["authority"] == "none"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23806155
+assert artifact["sha256"] == \
+    "411a25ed127a370f56fb5daf2d60f2e0c6280ba8a90d26e1f26c7bf450e631ca"
 PY
 grep -Fxq 'avb_generation=155' "$manifest"
 grep -Fxq 'phone_flash=forbidden' "$manifest"

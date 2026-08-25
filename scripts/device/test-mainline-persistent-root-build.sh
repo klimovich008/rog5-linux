@@ -6,11 +6,12 @@ fragment=$repo/configs/kernel/rog5-persistent-root.fragment
 deferred_fragment=$repo/configs/kernel/rog5-ufs-deferred-probe.fragment
 write_fragment=$repo/configs/kernel/rog5-ufs-local-write.fragment
 write_patch=$repo/patches/linux-7.1.4/0033-ufs-permit-bounded-data-writes-under-discovery-containment.patch
+gear_patch=$repo/patches/linux-7.1.4/0034-ufs-enable-high-speed-for-bounded-data-writes.patch
 builder=$repo/scripts/device/build-mainline-persistent-root.sh
 verifier=$repo/scripts/device/verify-mainline-persistent-root-build.sh
 meta_verifier=$repo/scripts/device/verify-build-meta-hash.sh
 
-for path in "$fragment" "$deferred_fragment" "$write_fragment" "$write_patch" \
+for path in "$fragment" "$deferred_fragment" "$write_fragment" "$write_patch" "$gear_patch" \
 	"$builder" "$verifier" \
 	"$meta_verifier"; do
 	[ -f "$path" ] || {
@@ -31,6 +32,13 @@ grep -Fq 'IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE))' "$write_patch"
 	echo 'FAIL local-write patch weakens the UFS query-write gate' >&2
 	exit 1
 }
+grep -Fq 'QUERY_ATTR_IDN_REF_CLK_FREQ && !index && !selector' "$gear_patch"
+grep -Fq 'IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE)' "$gear_patch"
+grep -Fq 'bounded data-write high-speed gear switch enabled' "$gear_patch"
+grep -Fq 'ufshcd_config_pwr_mode()' "$gear_patch"
+[ "$(grep -Fc 'UPIU_QUERY_OPCODE_WRITE_ATTR' "$gear_patch")" -eq 1 ]
+! grep -Eq '^\+.*(ufshcd_force_reset_auto_bkops|ufshcd_set_timestamp_attr|ufshcd_configure_wb)' \
+	"$gear_patch"
 
 for symbol in \
 	CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y \

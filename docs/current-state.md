@@ -47,8 +47,9 @@ V47 is built offline with preserved target failures and both exact residual
 forms. Its target twins, signed bundle twins, and authority-free Generation
 156 wrapper pass. Its reviewed implementation passed exact-head and merge CI;
 Generation 156 is consumed after proving 4 KiB O_DIRECT throughput cannot fit
-the watchdog. V48 replaces only that syscall granularity with exact 1 MiB
-byte-count/byte-seek direct I/O and is admitted once, unbooted.
+the watchdog. Generation 157 proved 1 MiB writes remain at the same 0.66 MiB/s.
+Source audit found the writable profile still skipped the UFS high-speed gear
+transition. V49 is a module-only high-speed successor, built but unadmitted.
 
 ## Charging repair facts
 

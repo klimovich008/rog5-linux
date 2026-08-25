@@ -91,6 +91,28 @@ AUTHENTICATED_SSH_OUTPUT_MAX_BYTES = 4096
 AUTHENTICATED_SSH_COMMAND = (
     f"printf '%s\\n' '{AUTHENTICATED_SSH_READY_MARKER}'"
 )
+UFS_LINK_SNAPSHOT_COMMAND = r"""
+set -eu
+printf '%s\n' 'format=rog5-ufs-link-snapshot-v1'
+printf '%s\n' '=== udc ==='
+for path in /sys/class/udc/*/current_speed /sys/class/udc/*/state; do
+    [ ! -r "$path" ] || { printf '%s=' "$path"; cat "$path"; }
+done
+printf '%s\n' '=== scsi ==='
+for path in /sys/class/scsi_device/*/device/queue_depth; do
+    [ ! -r "$path" ] || { printf '%s=' "$path"; cat "$path"; }
+done
+printf '%s\n' '=== block ==='
+for path in /sys/class/block/sd*/queue/logical_block_size \
+    /sys/class/block/sd*/queue/max_sectors_kb \
+    /sys/class/block/sd*/queue/nr_requests \
+    /sys/class/block/sd*/queue/write_cache; do
+    [ ! -r "$path" ] || { printf '%s=' "$path"; cat "$path"; }
+done
+printf '%s\n' '=== ufs-dmesg ==='
+dmesg | grep -Ei 'ufs|gear|lane|pwr' | tail -80 || true
+printf '%s\n' 'result=PASS'
+""".strip()
 STAGE_PORT = 8079
 STAGE_RECORD_MAX_BYTES = 512
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -938,6 +960,12 @@ def run(
             target_ssh,
             cycle.output("persistent-root-ssh-readiness.log"),
         )
+        if run_optional_logged(
+            [*target_ssh, UFS_LINK_SNAPSHOT_COMMAND],
+            cycle.output("ufs-link-snapshot.log"),
+            30,
+        ) != 0:
+            fail("UFS link snapshot failed")
         stage_started = time.monotonic()
         stage_status = run_optional_logged(
             [

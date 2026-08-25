@@ -3510,8 +3510,8 @@ case $profile in
 		;;
 	local-image-direct-v48-generation157-live-v1)
 		expected_boot_image=build/local-image-direct-v48-generation157-20260825-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 157 cycle replacing 4 KiB direct syscalls with exact 1 MiB byte-count/byte-seek O_DIRECT while accepting only zero or exact-size partial metadata; same 37 ranges, storage scope, kernel, DTB, modules, and fallback; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 157 1 MiB O_DIRECT successor; same fixed image path and 37 ranges; RAM-only; never flash'
+		expected_boot_basis='consumed by the sole Generation 157 cycle; prepare and extents 1-2 completed, but 1 MiB O_DIRECT remained about 0.66 MiB/s, proving syscall size was not the bottleneck; operator ended extent 3 through SSH/HUP; exact fastboot fallback and cleanup passed; never retry or flash'
+		expected_boot_role='consumed Generation 157 cycle; 1 MiB writes remained 0.66 MiB/s, proving UFS/transport fixed-bandwidth limit; controlled fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
