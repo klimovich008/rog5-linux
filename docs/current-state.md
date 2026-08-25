@@ -465,7 +465,12 @@ boundary and mounted userdata RW, but dense 16 GiB gzip expansion reached only
 about 826 MB before UFS I/O, gzip, and `sync` became uninterruptible. Exact
 fastboot fallback required the already-set restart2 reason plus emergency
 SysRq. The next stager must be sparse/extents-aware and must not block emergency
-rollback on `sync`; no successor is currently admitted.
+rollback on `sync`; no full-image successor is admitted.
+Generation 150 is the unbooted one-use discriminator. It preserves the exact
+partial image and compares one 32 MiB aligned direct write against one 32 MiB
+buffered write, then removes only those disposable files. Its independent
+restart2-plus-SysRq watchdog never calls `sync`. Full-image staging remains
+paused until this benchmark identifies a viable write mode.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that
