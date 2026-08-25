@@ -9,6 +9,9 @@ map=$repo/configs/storage/local-image-direct-extents.tsv
 builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
 fake=$repo/scripts/host/test-fixtures/local-image-direct-fake-target.py
 source=/home/deck/.local/state/rog5-local-image-v28-20260823-r1/arch-local-a.ext4
+busybox_base=$repo/artifacts/local-image-write-benchmark-v45/initramfs.cpio.gz
+[ -f "$busybox_base" ] ||
+	busybox_base=$repo/artifacts/local-image-partial-inspect-v44/initramfs.cpio.gz
 
 for path in "$target" "$streamer" "$generator" "$map" "$builder" "$fake"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
@@ -50,7 +53,7 @@ grep -Fq 'rog5-local-image-direct-extents.tsv' "$builder"
 
 root=$work/root
 mkdir "$root"
-gzip -dc "$repo/artifacts/local-image-write-benchmark-v45/initramfs.cpio.gz" |
+gzip -dc "$busybox_base" |
 	(cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
 if [ -n "$qemu" ]; then
