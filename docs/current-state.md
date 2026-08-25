@@ -179,8 +179,9 @@ image/tree, slot-A rescue, and Generation-163 baseline. Clean twins match at
 `b9851f3e...`. After the Generation-164 read-only PASS, it was repacked as
 authority-free Generation 165; raw twins match at `780dcfc2...` and final AVB
 twins at `1a00e906...`. The exact execution record exists privately. It remains
-HOLD awaiting final destructive confirmation, with no policy admission, claim,
-phone boot, or write authority.
+unbooted after exact final user confirmation; one narrow admission exists and
+its one-use claim remains unconsumed. No phone boot or storage write has
+occurred for Generation 165.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

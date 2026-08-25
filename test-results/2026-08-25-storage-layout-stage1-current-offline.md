@@ -23,9 +23,10 @@
   retained backup hashes, current preflight, exact commands, abort conditions,
   and rollback limitations at SHA-256
   `4e7f9e88bb53d69d16c546980eb36ec14a23a525c896e0602d2c75928134bac2`.
-- Status remains HOLD awaiting the exact final destructive confirmation. No
-  policy admission, claim, boot authority, phone contact, partition operation,
-  or storage write exists for Generation 165.
+- The user supplied the exact final destructive confirmation. One narrow
+  Generation-165 policy row now admits only the confirmed RAM-only shrink/GPT
+  operation. Its one-use claim remains unconsumed; no phone boot, partition
+  operation, or storage write has occurred yet.
 - The first full-CI attempt exposed a host-only stale identity tuple in the
   dormant retention process contract after prior claim/live-gate edits. The
   exact three current program size/hash tuples and their dependent profile
@@ -33,3 +34,8 @@
   then passed. The frozen repository `ci` tier passed in 7m26.974s. This fix
   changes no wrapper, Stage-1 executor, initramfs, phone command, or candidate
   byte.
+- The collector-compatible canonical execution template is separately retained
+  at SHA-256
+  `080aea76796bd3f0fad230796086adb14d45ca55557d6a40af2aa77b2a00b955`.
+  The candidate manifest intentionally no longer pins the claim-consumer source
+  that embeds the manifest hash, eliminating that recursive identity cycle.
