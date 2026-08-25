@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "local-image-stage-ssh-v33-generation142-live-v1"
-BUNDLE = "local-image-stage-ssh-v33"
+PROFILE_ID = "local-image-stage-nm-v34-generation143-live-v1"
+BUNDLE = "local-image-stage-nm-v34"
 MANIFEST_SHA256 = (
-    "333527612db0575cad1df5066bf1dce17c3d4e8a53a7b9b45db1c25936ed831f"
+    "0179be7e66ac350caf2483ab15df63ef95ddfc76bbc5b56a3bbf7139aa155208"
 )
 RECOVERY_SHA256 = (
-    "246d5c374495a72690a17ec808aef7b0165cd7f95268bdca453330df2af3ea28"
+    "341b81e39a96de5b697ef400aeeb01b8cb1cac04fd6f41579f75233f9a6a460a"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,16 +59,16 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"local-image-stage-ssh-v33-generation142-live-v1\n"
-    b"candidate=local-image-stage-ssh-v33\n"
+    b"local-image-stage-nm-v34-generation143-live-v1\n"
+    b"candidate=local-image-stage-nm-v34\n"
     b"manifest_sha256="
-    b"333527612db0575cad1df5066bf1dce17c3d4e8a53a7b9b45db1c25936ed831f\n"
+    b"0179be7e66ac350caf2483ab15df63ef95ddfc76bbc5b56a3bbf7139aa155208\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
-    / "scripts/host/consume-local-image-stage-ssh-v33-claim.py"
+    / "scripts/host/consume-local-image-stage-nm-v34-claim.py"
 )
 TARGET_RELEASE = "7.1.4-gae717d919f87"
 TARGET_PRODUCT = "ROG5 local image stage"
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/local-image-stage-ssh-v33-generation142-20260825-r1"
+    / "build/local-image-stage-nm-v34-generation143-20260825-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -105,10 +105,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="local-image-stage-ssh-v33",
+    admission_profile="local-image-stage-nm-v34",
     recovery_profile=PROFILE_ID,
-    runtime_profile="local-image-stage-ssh-v33",
-    build_profile="local-image-stage-ssh-v33",
+    runtime_profile="local-image-stage-nm-v34",
+    build_profile="local-image-stage-nm-v34",
     diagnostic=False,
 )
 

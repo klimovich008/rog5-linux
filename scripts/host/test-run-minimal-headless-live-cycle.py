@@ -2156,7 +2156,7 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_networkmanager_classification_gap_is_retryable(self):
+    def test_networkmanager_classification_gap_is_observed_without_ownership(self):
         dependencies = SimpleNamespace(
             sys_class_net=self.fixture.sys_class_net,
             udevadm=Path("/usr/bin/udevadm"),
@@ -2185,8 +2185,12 @@ class MinimalHeadlessLiveCycleTest(unittest.TestCase):
             subprocess.CompletedProcess((), 10, "", ""),
         )
         with mock.patch.object(CYCLE, "run_capture", side_effect=results):
-            with self.assertRaises(CYCLE.HostIdentityObservationError):
-                cycle.rog5_ncm_interfaces(deadline=time.monotonic() + 5)
+            snapshots = cycle.rog5_ncm_interfaces(
+                deadline=time.monotonic() + 5
+            )
+        self.assertEqual(len(snapshots), 1)
+        self.assertEqual(snapshots[0].network_manager_managed, "")
+        self.assertEqual(snapshots[0].addresses, ("169.254.77.1/30",))
 
     def test_production_cleanup_uses_privileged_export_proof(self):
         with mock.patch.dict(
