@@ -27,6 +27,9 @@ CURRENT = REPO / "manifests/storage-layout-stage1-current-20260825.manifest"
 CURRENT_CANDIDATE = (
     REPO / "manifests/storage-layout-stage1-current-generation165.manifest"
 )
+CURRENT_SUCCESSOR = (
+    REPO / "manifests/storage-layout-stage1-current-generation166.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -176,13 +179,14 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 2)
-        fields = lines[1].split("\t")
+        self.assertEqual(len(lines), 3)
+        rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
+        fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
             fields[:6],
             [
                 "storage-layout-stage1-current-generation165-live-v1",
-                "allow",
+                "revoked",
                 manifest_sha256,
                 "build/storage-layout-stage1-current-generation165-20260825-r1/"
                 "repack/stable-recovery-a.avb.img",
@@ -190,8 +194,8 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 "1a00e9061c027c804458732cfc93ba7175ee6821d821f9d86ffa079383fd5fc2",
             ],
         )
-        self.assertIn("durable fresh backup ACK", fields[6])
-        self.assertIn("never flash or retry after entry", fields[6])
+        self.assertIn("stopped before collector", fields[6])
+        self.assertIn("never retry or flash", fields[6])
         expected_claim = (
             "format=rog5-temporary-boot-consumption-v1\n"
             "recovery_profile=storage-layout-stage1-current-generation165-live-v1\n"
@@ -206,6 +210,45 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         assert spec is not None and spec.loader is not None
         spec.loader.exec_module(module)
         self.assertEqual(module.expected_record(fields[0]), expected_claim)
+
+    def test_generation166_successor_is_exact_full_path_and_admitted_once(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CURRENT_SUCCESSOR.read_text(encoding="ascii").splitlines()
+        )
+        self.assertEqual(
+            hashlib.sha256(CURRENT_SUCCESSOR.read_bytes()).hexdigest(),
+            "cc348a62688135492e36e02604b7a197b081cc671e0c65f48969015414963d88",
+        )
+        self.assertEqual(fields["predecessor_generation"], "165")
+        self.assertEqual(
+            fields["predecessor_outcome"],
+            "consumed-pre-ack-no-write-short-usb-path",
+        )
+        self.assertEqual(
+            fields["collector_usb_location"],
+            "pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2",
+        )
+        self.assertEqual(
+            fields["raw_image_sha256"],
+            "780dcfc2da571e76375f3e60eddf90e2b1a6881c5d13b5076aeec8a167ade98a",
+        )
+        self.assertEqual(
+            fields["collector_execution_record_sha256"],
+            "25b57fda9061839167c229cdf4a92dccf4b90f21b2ce7218695b698541307901",
+        )
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], hashlib.sha256(CURRENT_SUCCESSOR.read_bytes()).hexdigest())
+        self.assertEqual(admitted[5], fields["image_sha256"])
+        self.assertIn("byte-identical raw Stage-1 successor", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
