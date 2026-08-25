@@ -50,7 +50,7 @@ grep -Fq "expected_boot_role='consumed Generation 150 cycle; post-crash partial 
 grep -Fq "expected_boot_role='consumed Generation 151 cycle; partial exceeded the transient 825884672-byte snapshot while prior D-state I/O drained, so no benchmark write ran; exact fastboot fallback; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 152 cycle; partial-identity still failed under the full logical-size bound, proving another metadata field differs; no benchmark write; exact fastboot fallback; never retry or flash'" "$gate"
 grep -Fq "expected_boot_role='consumed Generation 153 read-only cycle; partial is regular root-owned mode 0644 one link with zero size and zero blocks; final absent; exact fastboot fallback; never retry or flash'" "$gate"
-grep -Fq "expected_boot_role='unbooted Generation 154 zero-length-partial-aware direct-versus-buffered UFS benchmark; never flash'" "$gate"
+grep -Fq "expected_boot_role='consumed Generation 154 cycle; direct 32 MiB passed in 50.25 seconds, buffered fsync blocked, sync-independent rollback returned exact fastboot; never retry or flash'" "$gate"
 generated_power=$repo/scripts/host/generated-power-usb-active.sh
 source "$generated_power"
 lifecycle=$repo/scripts/host/run-minimal-headless-live-cycle.py
@@ -352,8 +352,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 153 read-only cycle; exact evidence proves the partial is regular root-owned mode 0644 one link with size zero and zero allocated blocks, final absent, and parent directories exact; no phone write; fastboot fallback passed; never retry or flash" &&
 		NF == 3 { local_partial_inspect++ ; next }
 	$1 == "build/local-image-write-benchmark-v45-generation154-20260825-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 154 cycle accepting the proven root-owned regular mode-0644 one-link zero-length partial, then comparing one 32 MiB aligned direct write with one 32 MiB buffered write; disposable cleanup and sync-independent fallback; RAM-only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 154 cycle; direct 32 MiB completed in 50.25 seconds, buffered fsync remained blocked past its 180-second bound, and the sync-independent timer returned exact slot-A fastboot; candidate resolved FALLBACK_RETURNED; never retry or flash" &&
 		NF == 3 { local_write_benchmark_v45++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -570,7 +570,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img

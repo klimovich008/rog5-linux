@@ -32,13 +32,11 @@ now the Linux ext4 filesystem; Android therefore enters stock recovery. This
 is not a mainline crash and must not be addressed by flashing an experimental
 kernel over the rescue slot.
 
-Generation 153 proved the interrupted image partial is a regular root-owned
-0644 one-link file with zero size and zero allocated blocks. Generation 154
-is the unbooted one-use RAM-only successor. It changes only the sealed target
-initramfs and compares one 32 MiB direct write with one 32 MiB buffered write,
-then removes both disposable files, relocks storage, and returns through the
-built-in reboot-mode path to fastboot. Full-image staging remains paused until
-that measurement selects the write method.
+Generation 154 is consumed. Its direct 32 MiB write completed in 50.25 seconds;
+the buffered fsync path remained blocked past 180 seconds. The independent
+sync-free rollback returned directly to exact slot-A fastboot, proving the
+custom reboot-mode path avoids the stock-recovery loop. The next stager uses
+aligned direct writes and skips sparse holes; buffered writeback is excluded.
 
 ## Charging repair facts
 
