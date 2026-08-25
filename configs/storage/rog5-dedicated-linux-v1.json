@@ -1,5 +1,15 @@
 {
   "format": "rog5-dedicated-linux-layout-v1",
+  "status": "proposal-hold-refresh-required",
+  "current_checkpoint": {
+    "captured_date": "2026-08-25",
+    "userdata_fs_uuid": "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
+    "source_image_sha256": "533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153",
+    "source_tree_sha256": "4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167",
+    "rescue_slot": "a",
+    "accepted_generation": 163,
+    "historical_executors_eligible": false
+  },
   "source_checkpoint": {
     "captured_date": "2026-08-14",
     "lun_bytes": 253403070464,
