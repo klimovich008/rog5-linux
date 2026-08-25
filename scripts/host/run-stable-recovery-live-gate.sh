@@ -182,6 +182,7 @@ if [[ $action == policy-preflight ]]; then
 		local-image-stage-of-node-v27-generation136-live-v1 | \
 		ufs-baseline-proven-v28-generation137-live-v1 | \
 		ufs-reboot-baseline-v29-generation138-live-v1 | \
+		ufs-power-reboot-baseline-v30-generation139-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -2864,8 +2865,8 @@ case $profile in
 		;;
 	ufs-reboot-baseline-v29-generation138-live-v1)
 		expected_boot_image=build/ufs-reboot-baseline-v29-generation138-20260824-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 138 UFS and fastboot-return baseline using the Generation-109-live-proven ae717 Image, DTB, and four modules; NCM stage reporting, built-in PMK8350 reboot mode, and bounded fallback only; no SSH, mount, installer, or storage-write path; RAM-only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 138 UFS and fastboot-return baseline; Generation-109-live-proven ae717 Image/DT/module pair, minimal NCM reporter, built-in reboot mode; never flash'
+		expected_boot_basis='consumed by the sole Generation 138 cycle; exact ae717 Image, DTB, and four UFS modules still reported ufs-count-0 because the minimal init omitted the packaged power/USB dependency loader; built-in reboot mode returned exact fastboot; no storage surface or write; never retry or flash'
+		expected_boot_role='consumed Generation 138 cycle; ae717 target still reported ufs-count-0 because minimal init omitted the packaged power/USB loader; exact fastboot fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -2888,6 +2889,39 @@ case $profile in
 		[[ $expected_image == c97163219436d0903aa6130c34f8741381060fdb3e929dbf4a494a26d1839ba8 ]] || fail 'UFS reboot baseline V29 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'UFS reboot baseline V29 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'UFS reboot baseline V29 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	ufs-power-reboot-baseline-v30-generation139-live-v1)
+		expected_boot_image=build/ufs-power-reboot-baseline-v30-generation139-20260825-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 139 UFS baseline restoring the Generation-109-live-proven power/USB loader before the unchanged ae717 UFS module chain; validates charging, temperature, UCSI sink/device role, NCM, UFS, and built-in fastboot return; no SSH, mount, installer, or storage-write path; RAM-only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 139 power/USB-before-UFS baseline; unchanged ae717 Image/DT/modules, minimal reporter, built-in reboot mode; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+		expected_initramfs=c57ca89da4bddb5f369c4342fc83bd78a738b7733e507e13be454ac501d2f7fb
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=ufs-power-reboot-baseline-v30
+		expected_bundle=ufs-power-reboot-baseline-v30
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-gae717d919f87
+		expected_target_timeout=600
+		expected_avb_salt=c28264670666fbce5c099912cfd9865d2f65492f48f3bd049fdab216e7a31f11
+		expected_avb_digest=119ed2162b32adc397a39b857d27a58fd1cdeb1790cfe54c5f14dda58598a897
+		expected_generation_record=46a550f35e38582cd577cd09d5158548688a997b38f89b7bd75264f35228a33d
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 21d28652ffd53bb3472194e781d32b6a32ce7cd377ed39c8f741f38384af10fc ]] || fail 'UFS power baseline V30 manifest is not pinned'
+		[[ $expected_image == a33451c6c46500ad738fc8985f1fe2d6c00bfdb8ac8f2380811478c0816cd8af ]] || fail 'UFS power baseline V30 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'UFS power baseline V30 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'UFS power baseline V30 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -4385,6 +4419,7 @@ case $profile in
 	local-image-stage-of-node-v27-generation136-live-v1 | \
 	ufs-baseline-proven-v28-generation137-live-v1 | \
 	ufs-reboot-baseline-v29-generation138-live-v1 | \
+	ufs-power-reboot-baseline-v30-generation139-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

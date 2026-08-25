@@ -403,6 +403,11 @@ retained control is Generation
 built-in PMK8350 reboot-mode path returned exact fastboot. Generation 138 uses
 that live-proven lineage with the minimal NCM/UFS counter only. Do not retry
 Generation 137 or flash its non-working kernel.
+Generation 138 is consumed. Built-in PMK8350 reboot mode worked and returned
+exact fastboot, but UFS remained `ufs-count-0`. Exact comparison with the
+sealed Generation-109 init proved the minimal init omitted its packaged
+15-module PMIC GLINK/remoteproc/UCSI loader before UFS. Generation 139 restores
+that single proven ordering dependency while keeping storage unreachable.
 
 Generation 77 rolled back before any target stage because its packaged
 `pdr_interface.ko` retained rejected BTF. Generation 78 removed only that

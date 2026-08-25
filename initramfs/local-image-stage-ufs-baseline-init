@@ -135,6 +135,15 @@ target_boot_id=$(cat /proc/sys/kernel/random/boot_id) || fail boot-id
 publish_stage ENTER none || fail stage-publish
 start_stage_reporter
 
+power_failure=
+if ! power_failure=$(/sbin/rog5-load-persistent-power-usb); then
+	case $power_failure in
+		power-usb-*) fail "$power_failure" ;;
+		*) fail power-loader-contract ;;
+	esac
+fi
+[ -z "$power_failure" ] || fail power-loader-output
+
 for module in phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko; do
 	insmod "/rog5-ufs-modules/$module" || fail "ufs-module-${module%.ko}"
 done
