@@ -59,7 +59,8 @@ grep -Fq 'consumer["consume"](PROFILE)' "$writekernel_claim"
 	exit 1
 }
 for contract in \
-	'expected_topology_count=116' \
+	'expected_topology_count=117' \
+	'"$sys_block/size")" = 408997568' \
 	'expected_udc=a600000.usb' \
 	'/sbin/rog5-load-persistent-power-usb' \
 	'phy-qcom-qmp-ufs.ko ufshcd-core.ko ufshcd-pltfrm.ko ufs-qcom.ko' \

@@ -5,7 +5,7 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 expected_release=@EXPECTED_KERNEL_RELEASE@
 expected_bundle=@EXPECTED_BUNDLE@
 expected_udc=a600000.usb
-expected_topology_count=116
+expected_topology_count=117
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 status=/run/rog5-local-image-stage.status
 stage_record=/run/rog5-local-image-stage.stage
@@ -253,7 +253,7 @@ for sys_disk in /sys/class/block/*; do
 		[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] || continue
 		[ "$(cat "$sys_block/partition")" = 23 ] || continue
 		[ "$(cat "$sys_block/start")" = 18821440 ] || continue
-		[ "$(cat "$sys_block/size")" = 476106392 ] || continue
+		[ "$(cat "$sys_block/size")" = 408997568 ] || continue
 		matches=$((matches + 1)); userdata=/dev/$(basename "$sys_block")
 	done
 done
