@@ -54,6 +54,9 @@ FILESYSTEM_DIAGNOSTIC = (
 NO_REREAD_SUCCESSOR = (
     REPO / "manifests/storage-layout-stage1-production-generation174.manifest"
 )
+FIXED_REGION_SUCCESSOR = (
+    REPO / "manifests/storage-layout-stage1-production-generation175.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -295,7 +298,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 11)
+        self.assertEqual(len(lines), 12)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -424,7 +427,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -452,7 +455,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -482,7 +485,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -509,7 +512,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -536,7 +539,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -561,12 +564,35 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
         self.assertIn("old_userdata_mapping_changed", admitted[6])
         self.assertIn("DiskSync issues BLKRRPART", admitted[6])
+
+    def test_generation175_binds_fixed_regions_and_exact_busybox_write_contract(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in FIXED_REGION_SUCCESSOR.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(FIXED_REGION_SUCCESSOR.read_bytes()).hexdigest()
+        self.assertEqual(digest, "7dc95a58248ba2613f09da8a032449e8a8e2f0b635aee66445fd518f4494ae4f")
+        self.assertEqual(fields["gpt_transaction"], "sealed-secondary-then-primary-fixed-region-writes-no-live-partitioner")
+        self.assertEqual(fields["target_dd_contract"], "exact-busybox-conv-notrunc")
+        self.assertEqual(fields["post_write_readback"], "exact-primary-and-secondary-regions")
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], digest)
+        self.assertIn("secondary-then-primary GPT regions", admitted[6])
 
     def test_generation171_is_receive_only_exact_config_discriminator(self) -> None:
         fields = dict(
@@ -588,7 +614,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
