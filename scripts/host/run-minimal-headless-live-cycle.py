@@ -3844,7 +3844,7 @@ class LiveCycle:
                 fail("stock fallback anchor does not end at the exact USB port")
             timeout = max(
                 1,
-                min(900, int(fallback_deadline - time.monotonic() + 0.999)),
+                int(fallback_deadline - time.monotonic() + 0.999),
             )
             identity = self.output("fallback-identity.record")
             run_logged(

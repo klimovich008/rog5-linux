@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -146,6 +147,16 @@ class StockFallbackTest(unittest.TestCase):
             values = FALLBACK.verify_fastboot("1-1.2", preboot)
             self.assertEqual(values["evidence_mode"], "fastboot-slot-a")
             self.assertEqual(values["usb_config"], "fastboot")
+
+    def test_deadline_boundary_gets_one_final_identity_sample(self) -> None:
+        with mock.patch.object(
+            FALLBACK, "device_state", return_value="absent"
+        ), mock.patch.object(
+            FALLBACK, "exact_fastboot", side_effect=(False, True)
+        ), mock.patch.object(
+            FALLBACK.time, "monotonic", side_effect=(0.0, 1.0)
+        ), mock.patch.object(FALLBACK.time, "sleep"):
+            self.assertEqual(FALLBACK.wait_device("1-1.2", 1.0), "fastboot")
 
     def test_wrong_slot_fingerprint_digest_and_usb_path_refuse(self) -> None:
         self.assertFalse(FALLBACK.exact_device("1-1.3"))

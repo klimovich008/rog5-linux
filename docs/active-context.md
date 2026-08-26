@@ -39,14 +39,14 @@ Generation 197 is consumed at the same generic prewrite watchdog boundary; p24
 remains untouched. No further writable successor is allowed without a finite
 classification.
 
-Generation 198 is the only admitted successor and contains the read-only p24
-probe, not the clone. Every watchdog arm predicate now has a unique stage
-reason. Clean-twin target initramfs SHA-256 is
-`52303ff9187c571c8c572d7ef3e2296a9c5e6670d6205a702baf335e4378fb72`;
-signed bundle manifest is
-`a289b401846593d0a6c49250da810c2b2f602596b878f2eb51dcf88ac85afb56`;
-and fresh wrapper SHA-256 is
-`7325231b26f8ad636da8aa66dc4176bb2c71b49fe054b23a47103fcc54d0ce4a`.
+Generation 198 is consumed. The watchdog armed and target emitted the exact
+`storage-locked` stage, proving the prior generic watchdog failures were not a
+kernel stall. A host R7 parser typo allowed only `storage-relock`, closed the
+listener, and discarded later evidence. The 900-second target fallback then
+returned exact slot-A fastboot at the host wait deadline; a canonical fallback
+record was captured and intent resolved `FALLBACK_RETURNED`. No p24 write path
+was packaged. The parser and fallback deadline race are fixed offline; no
+Generation-198 artifact may be retried.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
