@@ -204,7 +204,7 @@ frames before classifying departure versus changed identity. Generation 170
 was a byte-identical-raw receive-only successor. Generation 170 captured exact
 `S00_CONFIG/invalid_private_config` with zero host bytes and no write. The next
 receive-only diagnostic exposes the exact finite config predicate and still
-stops at S30.
+stops at S30. Generation 171 is narrowly admitted with an unconsumed claim.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
