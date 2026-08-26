@@ -85,6 +85,11 @@ Generation 174 removed the explicit reread but still returned exact
 Retained upstream source proves `sgdisk` calls `DiskSync()`, sleeps, and issues
 `BLKRRPART` after writing. A future transaction must therefore avoid a live
 partitioning tool and write independently verified fixed GPT regions directly.
+Generation 175 did so and passed exact Stage 1: fresh backup ACK, secondary then
+primary fixed-region writes, exact readback, new p23/p24 GPT geometry, protected
+partitions, clean 51,124,000-block ext4, relock, S99, and automatic fastboot all
+passed. The next gate is a separate RAM-only read-only boot proving that the
+kernel enumerates the persisted p23/p24 layout before any Stage-2 clone write.
 
 ## Completed charging repair
 
