@@ -34,7 +34,7 @@ grep -Fq '=== Stage-2 partitions ===' \
 grep -Fq 'qcom-battmgr-bat/temp' \
 	"$repo/scripts/host/run-persistent-root-storage-live-cycle.py"
 gzip -t "$initramfs"
-grep -Fq 'unbooted authority-free Generation 191 mainline Stage-2 read-only preflight' \
+grep -Fq 'unbooted Generation 191 mainline Stage-2 read-only preflight; RAM-only, never flash' \
 	"$repo/manifests/artifacts.tsv"
 
 echo 'PASS mainline Stage-2 read-only target reuses proven charging/UFS bytes with current geometry'
