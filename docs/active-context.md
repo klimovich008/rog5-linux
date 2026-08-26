@@ -129,6 +129,13 @@ reported the complete p24 identity: only attributes differ, at exact
 ASUS Image contains none of those mainline-only strings. The next preflight
 accepts that exact persisted attribute and reports marker telemetry as
 `unsupported`, without changing clone or write authority.
+Generation 183 is consumed. Its corrected stable-wrapper recovery ACM existed
+for 12.81 seconds, but the collector lost the stream on disconnect before a
+terminal record was retained. No storage write path ran. Restart2 did not
+retain the bootloader reason on this return, so the phone is in slot-A
+unauthorized stock recovery. Preserve partial records and add a bounded
+host-open rendezvous before a successor; a physical fastboot entry is required
+now.
 
 ## Completed charging repair
 

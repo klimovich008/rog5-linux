@@ -274,6 +274,13 @@ mainline-only marker strings. The next correction accepts the exact persisted
 partition attribute and classifies unavailable marker telemetry as
 `unsupported`; it keeps the live-proven wrapper Image and all storage-write
 paths unreachable during preflight.
+Generation 183 contained those corrections and exposed recovery ACM for 12.81
+seconds, but the collector disconnected before retaining a terminal record.
+No storage write path was reached. The phone then returned to slot-A stock
+recovery instead of fastboot. The candidate is consumed; the next host-side
+work must preserve partial validated Stage-2 records and establish a bounded
+host-open rendezvous before another cycle. One physical fastboot entry is now
+required because stock recovery ADB is unauthorized.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
