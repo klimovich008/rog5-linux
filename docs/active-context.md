@@ -116,6 +116,12 @@ nodes. The executor then rejected partition 24 as
 returned exact slot-A fastboot. The next gate is a read-only exact-field report,
 not a clone: identify the missing UFS marker/count and the mismatching canonical
 partition-24 field first.
+Generation 181 is consumed after a distinct pre-ACM regression: fastboot
+returned in 7.33 seconds with no recovery USB and no storage path. Its rebuilt
+wrapper Image `d98f53c1...` replaced the live-proven `8dc38de4...` Image even
+though Generation 180 already proved that stable Image plus an external boot
+ramdisk. The next read-only control must reuse the live-proven Image and change
+only a fresh external one-use ramdisk; do not rebuild the ASUS kernel again.
 
 ## Completed charging repair
 
