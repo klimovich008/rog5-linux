@@ -207,7 +207,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-local-v52-generation161-live-v1 | \
 		persistent-root-local-v53-generation162-live-v1 | \
 		persistent-root-local-v54-generation163-live-v1 | \
-		storage-layout-stage2-mainline-readonly-v2-generation192-live-v1 | \
+		storage-layout-stage2-mainline-readonly-v3-generation193-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3747,10 +3747,10 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
-	storage-layout-stage2-mainline-readonly-v2-generation192-live-v1)
-		expected_boot_image=build/storage-layout-stage2-mainline-readonly-v2-generation192-20260826-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 192 mainline read-only Stage-2 preflight; current full responder, p23/p24 geometry, qcom-battmgr, thermal, UFS, local Arch, key-only SSH, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 192 mainline Stage-2 read-only preflight; current recovery responder, RAM-only, never flash'
+	storage-layout-stage2-mainline-readonly-v3-generation193-live-v1)
+		expected_boot_image=build/storage-layout-stage2-mainline-readonly-v3-generation193-20260826-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 193 mainline Stage-2 read-only diagnostics; payload bytes unchanged, fresh identity, RAM-only, never flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3760,17 +3760,17 @@ case $profile in
 		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
 		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
 		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
-		expected_target_id=storage-layout-stage2-mainline-readonly-v2
-		expected_bundle=storage-layout-stage2-mainline-readonly-v2
+		expected_target_id=storage-layout-stage2-mainline-readonly-v3
+		expected_bundle=storage-layout-stage2-mainline-readonly-v3
 		expected_bundle_profile=persistent-root-ro-v1
 		expected_target_release=7.1.4-gae717d919f87
 		expected_target_timeout=600
-		expected_avb_salt=d8536c68b496ad3311fd01f6284240d6b03f0d45db3faad8f7dc2c0750ae0987
-		expected_avb_digest=3760e058a9d4d4bbb5b79000f074ebc84bce322297f52c6e16468afd2e278d27
-		expected_generation_record=5b733fc3905dd3df83c184d29cd21c8d4126d1726b201f00467c4bb0e4d77499
+		expected_avb_salt=7193f5b8dedb241a7e7635e324afa838a93649ef492702e5234f92d834d3a445
+		expected_avb_digest=c13534248973a227f502a07522b257f0187730cdc13fbe64a45d483b90d27f12
+		expected_generation_record=8ee7473424acf47374df731a32c21c632b3b6601a106a6a324b613e852c6b7ca
 		recovery_init=$repo/initramfs/recovery-init
-		[[ $expected_manifest == c2b05bfbebb23a8936a54678ce68954a4634d4d966dbc02afe08f253a13058af ]] || fail 'mainline Stage-2 read-only manifest is not pinned'
-		[[ $expected_image == 33b13786ec6a95ea79c757a8d3dc4d40fc42e7a08a438d312ea76ddc268dec0d ]] || fail 'mainline Stage-2 read-only recovery is not pinned'
+		[[ $expected_manifest == 1384d198998f3a055487c747b38f59f0abcfb452049d7b77879f9e0cf1e0380a ]] || fail 'mainline Stage-2 read-only manifest is not pinned'
+		[[ $expected_image == ac161f0677aa4148882cf822c7a1af36ef9f79ba5af80e5639c2b85312d3e30a ]] || fail 'mainline Stage-2 read-only recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'mainline Stage-2 read-only trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'mainline Stage-2 read-only verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
@@ -5295,7 +5295,7 @@ case $profile in
 	persistent-root-local-v52-generation161-live-v1 | \
 	persistent-root-local-v53-generation162-live-v1 | \
 	persistent-root-local-v54-generation163-live-v1 | \
-	storage-layout-stage2-mainline-readonly-v2-generation192-live-v1 | \
+	storage-layout-stage2-mainline-readonly-v3-generation193-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

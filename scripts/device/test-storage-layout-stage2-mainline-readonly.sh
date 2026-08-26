@@ -4,6 +4,7 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 candidate=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-readonly-v1.json
 successor=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-readonly-v2.json
+current=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-readonly-v3.json
 initramfs=$repo/artifacts/storage-layout-stage2-mainline-readonly-v1/initramfs.cpio.gz
 
 python3 - "$candidate" "$initramfs" <<'PY'
@@ -24,6 +25,18 @@ path = Path(sys.argv[2])
 assert path.stat().st_size == artifact["size"] == 24007505
 assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
     artifact["sha256"] == \
+    "a060e1c0e13516fa58a41b203bb5014965a335096cbc257dee91883bcc8224ba"
+PY
+python3 - "$current" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "storage-layout-stage2-mainline-readonly-v3"
+assert record["bundle"] == record["candidate"] == record["target_id"]
+assert record["status"] == "offline" and record["authority"] == "none"
+assert record["artifacts"]["initramfs.cpio.gz"]["sha256"] == \
     "a060e1c0e13516fa58a41b203bb5014965a335096cbc257dee91883bcc8224ba"
 PY
 python3 - "$successor" <<'PY'
@@ -54,6 +67,8 @@ gzip -t "$initramfs"
 grep -Fq 'consumed Generation 191 pre-ACM recovery mismatch' \
 	"$repo/manifests/artifacts.tsv"
 grep -Fq 'consumed Generation 192 mainline runtime PASS' \
+	"$repo/manifests/artifacts.tsv"
+grep -Fq 'unbooted Generation 193 mainline Stage-2 read-only diagnostics' \
 	"$repo/manifests/artifacts.tsv"
 
 echo 'PASS mainline Stage-2 read-only target reuses proven charging/UFS bytes with current geometry'
