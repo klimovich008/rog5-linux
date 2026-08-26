@@ -112,6 +112,38 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         for state in ("untouched", "partial", "cloned", "native", "final"):
             self.assertIn(f"target_state={state}", source)
 
+    def test_read_only_preflight_exits_before_watchdog_or_write_window(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        start = source.index('if [ "$operation_mode" = read_only_preflight ]; then')
+        end = source.index("\nfi\n", start) + 4
+        preflight = source[start:end]
+        for contract in (
+            "verify_safe_temperature",
+            "no_physical_mounts",
+            "lock_storage",
+            "resolve_exact_storage",
+            "userdata_blocks=51124000",
+            "arch_root_empty=1",
+            "all_read_only=1",
+            "block_mounts=0",
+            "exit 0",
+        ):
+            self.assertIn(contract, preflight)
+        for forbidden in (
+            "watchdog_disarm",
+            "open_write_window",
+            "blockdev --setrw",
+            "dd if=",
+            "tune2fs",
+            "resize2fs",
+            "mount ",
+        ):
+            self.assertNotIn(forbidden, preflight)
+
+        collector = self.executable_source(COLLECTOR)
+        self.assertIn('choices=("clone", "preflight")', collector)
+        self.assertIn("Stage-2 preflight PASS identity or sequence changed", collector)
+
     def test_native_seal_is_the_refreshed_tree(self) -> None:
         payload = SEAL.read_bytes()
         self.assertFalse(

@@ -17,7 +17,7 @@ musl_apk=${13:?missing musl package}
 libuuid_apk=${14:?missing libuuid package}
 output=${15:?missing output}
 epoch=1681862400
-executor_sha256=a7d582108c3dd0c810d6fee1223544457ef401e49892f4a08b1f9986771524e1
+executor_sha256=8a75d45ea1048ddd1a2756e2f85cf1ce3d1e63b14fbdd4381afacd514d27e477
 watchdog_disarm_sha256=ba40a89f0e20f17accb04283e36e859822070450bee44de8924255801cbef2fb
 native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 verifier_sha256=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
@@ -66,8 +66,8 @@ check_hash "$private_config" "$private_config_sha256"
 check_hash "$native_seal" "$native_seal_sha256"
 check_hash "$verifier" "$verifier_sha256"
 
-[ "$(wc -l <"$private_config")" = 10 ] || fail 'private config line count changed'
-for key in operation_id disk_guid userdata_type_guid userdata_unique_guid \
+[ "$(wc -l <"$private_config")" = 11 ] || fail 'private config line count changed'
+for key in mode operation_id disk_guid userdata_type_guid userdata_unique_guid \
 	userdata_fs_uuid arch_root_unique_guid source_image_uuid \
 	source_image_sha256 target_fs_uuid; do
 	[ "$(grep -c "^${key}=" "$private_config")" = 1 ] ||
@@ -78,6 +78,7 @@ done
 if awk -F= '
 	BEGIN { ok=1 }
 	$1 == "format" && $2 == "rog5-storage-layout-stage2-v1" { next }
+	$1 == "mode" && $2 ~ /^(read_only_preflight|clone)$/ { next }
 	$1 == "operation_id" && $2 ~ /^[0-9a-f]{32}$/ { next }
 	$1 == "source_image_sha256" && $2 ~ /^[0-9a-f]{64}$/ { next }
 	$1 ~ /^(disk_guid|userdata_type_guid|userdata_unique_guid|userdata_fs_uuid|arch_root_unique_guid|source_image_uuid|target_fs_uuid)$/ &&

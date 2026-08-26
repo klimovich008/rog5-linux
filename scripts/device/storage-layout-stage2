@@ -27,6 +27,7 @@ source_mounted=0
 target_mounted=0
 transport_ready=0
 target_state=untouched
+operation_mode=
 stage=S00_CONFIG
 
 log() {
@@ -116,8 +117,10 @@ check_config() {
 	[ -f "$config" ] && [ ! -L "$config" ] || return 1
 	[ "$(stat -c '%u:%g:%a:%h' "$config" 2>/dev/null)" = 0:0:400:1 ] ||
 		return 1
-	[ "$(wc -l <"$config")" = 10 ] || return 1
+	[ "$(wc -l <"$config")" = 11 ] || return 1
 	[ "$(config_value format)" = rog5-storage-layout-stage2-v1 ] || return 1
+	operation_mode=$(config_value mode) || return 1
+	case $operation_mode in read_only_preflight|clone) ;; *) return 1 ;; esac
 	operation_id=$(config_value operation_id) || return 1
 	expected_disk_guid=$(config_value disk_guid) || return 1
 	expected_userdata_type_guid=$(config_value userdata_type_guid) || return 1
@@ -375,6 +378,17 @@ fi
 [ ! -s /run/rog5-layout-stage2-empty-root.log ] || fail arch_root_signature_output
 gpt_before=$(gpt_identity_hash /run/rog5-layout-stage2-gpt.before) ||
 	fail gpt_identity_unreadable
+
+if [ "$operation_mode" = read_only_preflight ]; then
+	verify_safe_temperature || fail temperature_unsafe
+	no_physical_mounts || fail physical_block_mounted
+	lock_storage || fail storage_relock_failed
+	resolve_exact_storage || fail final_topology_identity
+	stage=S99_COMPLETE
+	emit "status=PASS stage=$stage reason=none operation_id=$operation_id userdata_uuid=$expected_userdata_fs_uuid userdata_blocks=51124000 arch_root_guid=$expected_root_guid arch_root_empty=1 all_read_only=1 block_mounts=0"
+	log 'read-only new-layout preflight complete'
+	exit 0
+fi
 
 stage_set S20_SOURCE
 verify_safe_temperature || fail temperature_unsafe
