@@ -174,6 +174,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertIn("unexpected Stage-2 guard record", collector)
         self.assertIn("Stage-2 guard classification changed", collector)
         self.assertIn("Stage-2 partition classification changed", collector)
+        self.assertIn("Stage-2 signature classification changed", collector)
         self.assertIn('options.output / "transcript.partial"', collector)
         self.assertIn("os.fsync(partial_fd)", collector)
 
@@ -271,7 +272,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["terminal_delivery_hold_seconds"], "3")
         self.assertEqual(fields["fallback"], "restart2-bootloader-before-generic-reset")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -287,7 +288,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["wrapper_physical_count"], "117")
         self.assertEqual(fields["stage1_wrapper_physical_count"], "116")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -303,7 +304,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["pre_usb_aggregate_count"], "deferred-for-read-only-preflight-only")
         self.assertEqual(fields["exact_storage_resolver"], "required")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -319,7 +320,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["usb_order"], "bind-before-deferred-ufs-guards")
         self.assertEqual(fields["clone_mode_order"], "unchanged-pre-usb-fail-closed")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -334,7 +335,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertIn("auto_markers", fields["guard_record"])
         self.assertEqual(fields["partition_record"], "number,read,first,last,type,unique,name,attrs")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -351,7 +352,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["kernel_rebuild"], "forbidden")
         self.assertEqual(fields["recovery_timeout_seconds"], "900")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -367,7 +368,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["expected_arch_root_attrs"], "0004000000000000")
         self.assertEqual(fields["kernel_rebuild"], "forbidden")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -383,7 +384,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["partial_transcript"], "fsync-each-validated-record")
         self.assertEqual(fields["kernel_rebuild"], "forbidden")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -398,9 +399,9 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["deferred_guard_counts"], "initialized-before-optional-probe")
         self.assertEqual(fields["partial_transcript"], "fsync-each-validated-record")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
         admitted = next(row for row in rows if row[0] == fields["profile"])
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
 
 

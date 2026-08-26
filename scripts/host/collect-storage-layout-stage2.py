@@ -113,6 +113,7 @@ def capture(
     next_stage = 0
     guards_seen = result_profile == "clone"
     partition_seen = result_profile == "clone"
+    signature_seen = False
     for _ in range(64):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -187,6 +188,26 @@ def capture(
             if on_record is not None:
                 on_record(payload)
             partition_seen = True
+            continue
+        if status == "status=SIGNATURE":
+            if result_profile != "preflight" or signature_seen or not partition_seen:
+                fail("unexpected Stage-2 signature record")
+            fields = exact_fields(
+                tokens,
+                ("status", "type", "uuid", "label", "bytes", "sha256"),
+            )
+            if (
+                re.fullmatch(r"[A-Za-z0-9._+-]{1,32}|invalid", fields["type"])
+                is None
+                or fields["uuid"] not in {"present", "absent"}
+                or fields["label"] not in {"present", "absent"}
+                or re.fullmatch(r"[1-9][0-9]{0,3}", fields["bytes"]) is None
+                or HEX64.fullmatch(fields["sha256"]) is None
+            ):
+                fail("Stage-2 signature classification changed")
+            if on_record is not None:
+                on_record(payload)
+            signature_seen = True
             continue
         if status == "status=RUNNING":
             fields = exact_fields(tokens, ("status", "stage", "reason"))

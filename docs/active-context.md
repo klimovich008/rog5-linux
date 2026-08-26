@@ -143,6 +143,11 @@ markers as `unsupported` skipped the function that initialized five counters,
 then `set -u` exited before the guard report and executor. The counters are now
 initialized in the deferred-guard block. No storage path ran; the phone again
 returned to unauthorized slot-A recovery.
+Generation 185 passed every corrected wrapper/guard/partition check and returned
+directly to exact fastboot. It stopped at `arch_root_not_empty`: BusyBox
+`blkid` recognizes a residual signature in p24, which is the former userdata
+tail. No write occurred. The next read-only discriminator reports only the
+bounded signature type, UUID/label presence, byte count, and output hash.
 
 ## Completed charging repair
 
