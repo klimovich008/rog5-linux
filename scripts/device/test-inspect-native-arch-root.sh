@@ -6,6 +6,9 @@ target=$repo/scripts/device/inspect-native-arch-root.sh
 candidate=$repo/configs/recovery-candidates/storage-layout-stage2-native-postmortem-v1.json
 artifact=$repo/artifacts/storage-layout-stage2-native-postmortem-v1/initramfs.cpio.gz
 manifest=$repo/manifests/storage-layout-stage2-native-postmortem-v1-generation195.manifest
+watchdog_candidate=$repo/configs/recovery-candidates/storage-layout-stage2-watchdog-probe-v1.json
+watchdog_artifact=$repo/artifacts/storage-layout-stage2-watchdog-probe-v1/initramfs.cpio.gz
+watchdog_manifest=$repo/manifests/storage-layout-stage2-watchdog-probe-v1-generation198.manifest
 
 sh -n "$target"
 for contract in \
@@ -53,5 +56,25 @@ grep -Fqx 'storage_policy=read-only-p24-disposition' "$manifest"
 grep -Fqx 'inspection_bound=4MiB-prefix-plus-superblock-plus-known-tree' "$manifest"
 grep -Fq 'build/storage-layout-stage2-native-postmortem-v1-generation195-20260826-r1/repack/stable-recovery-a.avb.img' \
 	"$repo/manifests/temporary-boot-images.tsv"
+
+python3 - "$watchdog_candidate" "$watchdog_artifact" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "storage-layout-stage2-watchdog-probe-v1"
+assert record["candidate"] == record["bundle"] == record["target_id"]
+assert record["status"] == "offline" and record["authority"] == "none"
+item = record["artifacts"]["initramfs.cpio.gz"]
+path = Path(sys.argv[2])
+assert path.stat().st_size == item["size"] == 23910865
+assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
+    item["sha256"] == \
+    "52303ff9187c571c8c572d7ef3e2296a9c5e6670d6205a702baf335e4378fb72"
+PY
+grep -Fqx 'avb_generation=198' "$watchdog_manifest"
+grep -Fqx 'storage_policy=read-only-watchdog-discriminator' "$watchdog_manifest"
 
 echo 'PASS native-root postmortem is exact-geometry, read-only, bounded, and disposition-complete'
