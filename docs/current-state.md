@@ -288,6 +288,13 @@ found the exact cause: the `unsupported` marker path skipped the function that
 initialized five count variables, then `set -u` terminated PID 1 before the
 guard report. Those variables are now initialized in the deferred-guard block
 before the optional probe. No storage path ran; slot-A recovery returned.
+Generation 185 passed the initialized guard path, durable ACM transport, exact
+117-node topology, persisted bit-50 partition identity, relock, and automatic
+fastboot fallback. It stopped read-only at `arch_root_not_empty`: `blkid`
+recognized an unclassified residual signature in partition 24, which occupies
+the old tail of the formerly larger userdata filesystem. No write occurred.
+The next read-only cycle reports the bounded signature type and hashed raw
+output before deciding whether that residual is safe to overwrite.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

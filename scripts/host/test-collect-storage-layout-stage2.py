@@ -129,6 +129,24 @@ def partition(**changes: str) -> bytes:
     ).encode()
 
 
+def signature(**changes: str) -> bytes:
+    fields = {
+        "status": "SIGNATURE",
+        "type": "ext4",
+        "uuid": "present",
+        "label": "present",
+        "bytes": "96",
+        "sha256": "1" * 64,
+    }
+    fields.update(changes)
+    return (
+        MODULE.PREFIX
+        + " "
+        + " ".join(f"{name}={value}" for name, value in fields.items())
+        + "\n"
+    ).encode()
+
+
 class CollectorTest(unittest.TestCase):
     def records(self) -> list[bytes]:
         return [*(running(stage) for stage in MODULE.STAGES), passing()]
@@ -334,6 +352,55 @@ class CollectorTest(unittest.TestCase):
                 retained.append,
             )
         self.assertEqual(retained, [first])
+
+    def test_preflight_signature_failure_is_retained_exactly(self) -> None:
+        terminal = (
+            f"{MODULE.PREFIX} status=FAIL stage=S10_TOPOLOGY "
+            "reason=arch_root_not_empty target_state=untouched cleanup=0 relock=0\n"
+        ).encode()
+        records = [
+            running("S00_CONFIG"),
+            guards(power="unsupported"),
+            running("S10_TOPOLOGY"),
+            partition(),
+            signature(),
+            terminal,
+        ]
+        retained: list[bytes] = []
+        transcript, result = MODULE.capture(
+            FakeTransport(records),
+            OPERATION,
+            TARGET_UUID,
+            1.0,
+            "preflight",
+            retained.append,
+        )
+        self.assertEqual(result, terminal)
+        self.assertEqual(transcript, b"".join(records))
+        self.assertEqual(retained, records)
+
+    def test_hostile_signature_record_is_rejected(self) -> None:
+        base = [
+            running("S00_CONFIG"),
+            guards(power="unsupported"),
+            running("S10_TOPOLOGY"),
+            partition(),
+        ]
+        for record in (
+            signature(type="ext 4"),
+            signature(uuid="unknown"),
+            signature(bytes="0"),
+            signature(sha256="0"),
+        ):
+            with self.subTest(record=record):
+                with self.assertRaises(MODULE.Stage2ProtocolError):
+                    MODULE.capture(
+                        FakeTransport([*base, record]),
+                        OPERATION,
+                        TARGET_UUID,
+                        1.0,
+                        "preflight",
+                    )
 
 
 if __name__ == "__main__":
