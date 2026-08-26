@@ -79,12 +79,13 @@ The separate false-`ARMED` shell path now returns explicitly on every failed
 predicate and waits through the first 5-second ping. Exact fastboot and
 `TARGET_ACCEPTED` passed; no phone storage was writable.
 
-Generation 201 is the unbooted read-only runtime-ABI proof. It contains the
-exact `3fcea56e...` module, explicit watchdog predicate returns and a six-second
-first-ping liveness gate. Target twins are `6cbb2aae...`, signed bundle twins
-are `eaadc075...`, and the cached wrapper envelope is `871e25ca...`. It must
-prove module/class/device/driver/compatible/process presence and exact fastboot
-before any writable clone successor is issued.
+Generation 201 is consumed with no storage writes. The exact-ABI module removed
+the load rejection, but upstream KPSS watchdog arming produced no reporter
+frame, NCM TX timeout near 11 seconds, target USB loss near 13 seconds and stock
+slot-A recovery return. Durable intent is `FALLBACK_RETURNED`. The upstream
+`qcom,kpss-wdt` architecture is stopped; matching register offsets did not
+prove ASUS downstream clock/bark/bite/secure-reset semantics. Further watchdog
+work must use the retained `qcom,msm-watchdog` design and remain read-only.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
