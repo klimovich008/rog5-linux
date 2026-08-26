@@ -34,6 +34,8 @@ grep -Fq '=== Stage-2 partitions ===' \
 grep -Fq 'qcom-battmgr-bat/temp' \
 	"$repo/scripts/host/run-persistent-root-storage-live-cycle.py"
 gzip -t "$initramfs"
+[ "$(sha256sum "$repo/artifacts/recovery-init-generation163/recovery-init" | cut -d ' ' -f 1)" = \
+	e81ed4d2bfa88d2b8ab818025653faa5b7511e5dfe7f4fb69c9184bb1691a442 ]
 grep -Fq 'unbooted Generation 191 mainline Stage-2 read-only preflight; RAM-only, never flash' \
 	"$repo/manifests/artifacts.tsv"
 
