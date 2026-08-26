@@ -200,10 +200,13 @@ class InitPolicyTest(unittest.TestCase):
             source,
         )
         self.assertIn("expected_wrapper_physical_count=116", source)
+        self.assertIn("expected_stage2_physical_count=117", source)
         self.assertIn(
-            '"$expected_wrapper_physical_count"',
+            '"$recovery_mode" != storage-layout-stage2-v1',
             source,
         )
+        self.assertIn('expected_count=$expected_stage2_physical_count', source)
+        self.assertIn('"$expected_count"', source)
 
     def test_recovery_udc_selection_accepts_exact_wrapper_inventory(self) -> None:
         accepted = self.run_recovery_udc_case(

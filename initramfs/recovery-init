@@ -5,6 +5,7 @@ export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 export LC_ALL=C
 export TZ=UTC
 expected_wrapper_physical_count=116
+expected_stage2_physical_count=117
 empty_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 zero_sha256=0000000000000000000000000000000000000000000000000000000000000000
 bundle_root=/run/rog5-bundles
@@ -265,8 +266,11 @@ physical_topology_count() {
 verify_wrapper_storage_contract() {
 	case $release in
 		5.4.*)
+			expected_count=$expected_wrapper_physical_count
+			[ "$recovery_mode" != storage-layout-stage2-v1 ] ||
+				expected_count=$expected_stage2_physical_count
 			[ "$(cat /run/rog5-physical-block-count)" -eq \
-				"$expected_wrapper_physical_count" ]
+				"$expected_count" ]
 			;;
 		*) return 0 ;;
 	esac
