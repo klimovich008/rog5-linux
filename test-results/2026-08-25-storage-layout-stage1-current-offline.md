@@ -188,6 +188,24 @@
   disk while retaining the already-proven old p23 kernel mapping, reboot, and
   require a separate next-boot read-only enumeration gate before Stage 2.
 
+## Generation 174 internal-reread result
+
+- Generation 174 consumed its one RAM-only cycle after exact-head, merge,
+  publication, and QEMU CI passed. Fresh backup and new on-disk GPT checks
+  passed, then the new mapping guard returned exact
+  `S70_POSTVERIFY/old_userdata_mapping_changed/gpt_restored=yes`.
+- The explicit `blockdev --rereadpt`, `partprobe`, and `mdev -s` calls were
+  absent. Therefore the partition mapping changed inside the remaining writer.
+  Upstream `gptfdisk` source confirms `DiskIO::DiskSync()` performs `fsync()`
+  followed by Linux `ioctl(fd, BLKRRPART)` after a write.
+- The old GPT was restored exactly and restart2 returned the phone to fastboot
+  at 8.709 V. No candidate is currently admitted.
+- Class: R3. The next architecture must generate exact primary/secondary GPT
+  regions offline, verify their CRC/geometry and protected entries, then write
+  those fixed regions without invoking a partitioning tool on the live block
+  device. New-layout kernel enumeration remains a separate next-boot read-only
+  gate before Stage 2.
+
 ## Generation 167 prewrite result
 
 - Generation 167 consumed its sole cycle and exact slot-A fallback passed.
