@@ -122,6 +122,13 @@ wrapper Image `d98f53c1...` replaced the live-proven `8dc38de4...` Image even
 though Generation 180 already proved that stable Image plus an external boot
 ramdisk. The next read-only control must reuse the live-proven Image and change
 only a fresh external one-use ramdisk; do not rebuild the ASUS kernel again.
+Generation 182 did exactly that and restored ACM. It proved the rebuilt Image,
+not the diagnostic script, caused Generation 181's pre-USB return. It also
+reported the complete p24 identity: only attributes differ, at exact
+`0004000000000000`; UFS custom-marker counts are all zero because the stable
+ASUS Image contains none of those mainline-only strings. The next preflight
+accepts that exact persisted attribute and reports marker telemetry as
+`unsupported`, without changing clone or write authority.
 
 ## Completed charging repair
 

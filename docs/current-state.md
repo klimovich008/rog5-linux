@@ -265,6 +265,15 @@ not embed Generation 180's external ramdisk; rebuilding the built-in initramfs
 was therefore unnecessary and introduced the only unmeasured boot boundary.
 The next control keeps the live-proven Image and replaces only the external,
 one-use read-only ramdisk.
+Generation 182 passed that control: recovery ACM returned, proving the rebuilt
+Generation-181 Image caused the pre-USB regression. The exact report found all
+partition-24 fields correct except GPT attributes
+`0004000000000000` (bit 50), and all custom UFS marker counts zero. Offline
+Image inspection confirms the stable ASUS wrapper contains none of those
+mainline-only marker strings. The next correction accepts the exact persisted
+partition attribute and classifies unavailable marker telemetry as
+`unsupported`; it keeps the live-proven wrapper Image and all storage-write
+paths unreachable during preflight.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

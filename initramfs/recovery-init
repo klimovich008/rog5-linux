@@ -952,12 +952,16 @@ log "fixed recovery control ready; state=$udc_state carrier=$carrier"
 if [ "$stage2_readonly_preflight" = 1 ]; then
 	guard_discovery=fail
 	guard_isolation=fail
-	guard_power=fail
+	guard_power=unsupported
 	guard_inventory=fail
 	wrapper_count=0
 	wait_for_ufs_discovery && guard_discovery=pass
 	isolate_storage && guard_isolation=pass
-	verify_ufs_power_containment && guard_power=pass
+	if [ -r /proc/config.gz ] && gzip -dc /proc/config.gz |
+		grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y'; then
+		guard_power=fail
+		verify_ufs_power_containment && guard_power=pass
+	fi
 	write_ufs_inventory && guard_inventory=pass
 	if [ -s /run/rog5-physical-block-count ]; then
 		wrapper_count=$(cat /run/rog5-physical-block-count)

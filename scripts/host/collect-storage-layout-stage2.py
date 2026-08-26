@@ -139,13 +139,17 @@ def capture(
                     "wrapper_physical_count",
                 ),
             )
-            if any(fields[name] not in {"pass", "fail"} for name in (
-                "discovery", "isolation", "power", "inventory"
-            )) or any(
+            if (
+                any(fields[name] not in {"pass", "fail"} for name in (
+                    "discovery", "isolation", "inventory"
+                ))
+                or fields["power"] not in {"pass", "fail", "unsupported"}
+                or any(
                 re.fullmatch(r"[0-9]{1,6}", fields[name]) is None
                 for name in (
                     "auto_markers", "host_markers", "wlun_markers",
                     "blocked_queries", "blocked_scsi", "wrapper_physical_count",
+                )
                 )
             ):
                 fail("Stage-2 guard classification changed")
