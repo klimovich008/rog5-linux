@@ -304,6 +304,13 @@ executor advanced past that gate and stopped at the independent
 `temperature_unsafe` check. The target remained untouched and exact fastboot
 returned at 8713 mV. Stage-2 clone remains closed until the exact missing or
 unsafe temperature predicate is classified offline or by one read-only cycle.
+Generation 190 classified it as `temperature_battery_absent`: the stable ASUS
+wrapper exposes no `type=Battery` supply. It again returned untouched to exact
+fastboot at 8714 mV. The wrapper track is closed for Stage 2. Retained
+Generation-158 evidence independently proves the mainline V49 runtime has
+qcom-battmgr gating, bounded high-speed UFS writes, and completed the same
+16-GiB source staging/finalization in about 92 seconds. Stage 2 now ports its
+exact storage checks to that proven mainline runtime, beginning read-only.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
