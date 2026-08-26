@@ -46,11 +46,17 @@ then the helper rejected the optional `timeout` sysfs file. Linux source proves
 that file is absent under this exact `CONFIG_WATCHDOG_SYSFS=n` build. Exact
 slot-A fastboot and fallback intent resolution passed.
 
-Generation 197 is the sole active successor. It keeps the same Image, DTB,
-watchdog module and clone implementation, removing only the unsupported sysfs
-observation. Driver/compatible/device identity, foreground process liveness,
-the `-T 30 -t 5` watchdog request, sealed source validation, p24-only write,
-grow/seal/relock and exact fallback remain mandatory.
+Generation 197 is consumed with no p24 write. The watchdog still failed at the
+same generic boundary after removal of the optional sysfs read. A systematic
+review and bounded Opus advisory therefore stopped writable successors. Binary
+inspection independently disproved Opus's driver/compatible guesses: the exact
+module contains `qcom_wdt` and the exact DTB contains only `qcom,kpss-wdt`.
+
+Generation 198 is the sole active successor and is read-only. It converts every
+remaining watchdog predicate into a finite stage reason—module, insmod, mdev,
+class count/path, device node, driver, compatible read/value, process, or
+record publication. If the watchdog succeeds, the existing read-only p24 probe
+must complete and return exact fastboot. No clone command is packaged.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

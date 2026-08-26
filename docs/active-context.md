@@ -35,16 +35,18 @@ Generation 196 is consumed before storage writes: the watchdog module loaded,
 but an optional sysfs timeout assertion was incompatible with
 `CONFIG_WATCHDOG_SYSFS=n`. Exact fastboot and fallback resolution passed.
 
-Generation 197 is the only admitted successor. It changes only that unsupported
-assertion; the corrected clone and stock-address-grounded APSS watchdog remain.
-Clean-twin target initramfs SHA-256 is
-`721f45d2dc97958470ae496afe6b2383ec93642e0a5823031a716b1dcbf5a0eb`;
-DTB SHA-256 remains
-`9d1bcd7f2dbbdfb0dfe48124de4a0763712c3375465d72987f18bb316435427e`;
+Generation 197 is consumed at the same generic prewrite watchdog boundary; p24
+remains untouched. No further writable successor is allowed without a finite
+classification.
+
+Generation 198 is the only admitted successor and contains the read-only p24
+probe, not the clone. Every watchdog arm predicate now has a unique stage
+reason. Clean-twin target initramfs SHA-256 is
+`52303ff9187c571c8c572d7ef3e2296a9c5e6670d6205a702baf335e4378fb72`;
 signed bundle manifest is
-`dd3455a16c59c61d56d78636c3de94a9230e9d25aa895f36834d9e041dfcd6a3`;
+`a289b401846593d0a6c49250da810c2b2f602596b878f2eb51dcf88ac85afb56`;
 and fresh wrapper SHA-256 is
-`77fe96e4c2930684aac953a1f2f3145024f501dde7ac07d3c78bdd7540eb0d36`.
+`7325231b26f8ad636da8aa66dc4176bb2c71b49fe054b23a47103fcc54d0ce4a`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
