@@ -346,7 +346,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -374,7 +374,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -404,7 +404,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -431,11 +431,12 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
-        self.assertIn("finite config predicate reasons", admitted[6])
+        self.assertIn("exact ordered S00, S10, S20 and S30", admitted[6])
+        self.assertIn("observer sent zero bytes", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
@@ -607,6 +608,19 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "Success never returns",
         ):
             self.assertIn(contract, source)
+
+    def test_every_storage_layout_rollback_prefers_restart2_bootloader(self) -> None:
+        source = self.executable_source(INIT)
+        start = source.index("force_rollback() {")
+        end = source.index("\n}\n", start) + 2
+        rollback = source[start:end]
+        self.assertIn("storage-layout-stage1-v1|storage-layout-stage2-v1", rollback)
+        self.assertIn("/usr/libexec/rog5-reboot-bootloader", rollback)
+        self.assertLess(
+            rollback.index("/usr/libexec/rog5-reboot-bootloader"),
+            rollback.index("reboot -f"),
+        )
+        self.assertIn("echo b >/proc/sysrq-trigger", rollback)
 
     def test_generation99_publication_is_exact_and_admitted_once(self) -> None:
         payload = MANIFEST.read_bytes()

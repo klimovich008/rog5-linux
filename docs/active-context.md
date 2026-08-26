@@ -64,7 +64,10 @@ evidence before classifying `DEPARTED` versus `CHANGED`. Generation 170 is a
 byte-identical-raw receive-only successor. Generation 170 captured exact
 `S00_CONFIG/invalid_private_config` with zero host bytes and no write. The next
 receive-only diagnostic exposes the exact finite config predicate and still
-stops at S30. Generation 171 is narrowly admitted with an unconsumed claim.
+stops at S30. Generation 171 passed exact S00-S30 with zero host bytes and no
+write, then returned through slot A. Storage-layout rollback now invokes the
+sealed restart2 bootloader helper before generic reboot, removing the recurring
+stock-recovery/manual-button bottleneck in future cycles.
 
 ## Completed charging repair
 

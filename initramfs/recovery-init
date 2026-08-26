@@ -113,6 +113,15 @@ snapshot_postmortem() {
 }
 
 force_rollback() {
+	case ${recovery_mode-} in
+		storage-layout-stage1-v1|storage-layout-stage2-v1)
+			if [ -x /usr/libexec/rog5-reboot-bootloader ] &&
+				[ ! -L /usr/libexec/rog5-reboot-bootloader ]; then
+				/usr/libexec/rog5-reboot-bootloader
+				log 'storage-layout bootloader restart2 returned; using reset fallback'
+			fi
+			;;
+	esac
 	(
 		sleep 5
 		while :; do
