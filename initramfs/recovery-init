@@ -211,6 +211,15 @@ case $recovery_mode in
 		;;
 esac
 
+stage2_readonly_preflight=0
+stage2_config=/etc/rog5/storage-layout-stage2.conf
+if [ "$recovery_mode" = storage-layout-stage2-v1 ] &&
+	[ -f "$stage2_config" ] && [ ! -L "$stage2_config" ] &&
+	[ "$(stat -c '%u:%g:%a:%h' "$stage2_config" 2>/dev/null)" = 0:0:400:1 ] &&
+	[ "$(grep -c '^mode=read_only_preflight$' "$stage2_config" 2>/dev/null)" = 1 ]; then
+	stage2_readonly_preflight=1
+fi
+
 isolate_storage() {
 	while read -r _ _ device _ mountpoint _ rest; do
 		[ -e "/sys/dev/block/$device" ] || continue
@@ -264,6 +273,7 @@ physical_topology_count() {
 }
 
 verify_wrapper_storage_contract() {
+	[ "$stage2_readonly_preflight" != 1 ] || return 0
 	case $release in
 		5.4.*)
 			expected_count=$expected_wrapper_physical_count

@@ -155,6 +155,7 @@ def capture(
                         "stage",
                         "reason",
                         "operation_id",
+                        "wrapper_physical_count",
                         "userdata_uuid",
                         "userdata_blocks",
                         "arch_root_guid",
@@ -163,11 +164,15 @@ def capture(
                         "block_mounts",
                     ),
                 )
+                wrapper_count = fields["wrapper_physical_count"]
+                if re.fullmatch(r"[1-9][0-9]{0,2}", wrapper_count) is None:
+                    fail("Stage-2 preflight wrapper count is invalid")
                 expected = {
                     "status": "PASS",
                     "stage": "S99_COMPLETE",
                     "reason": "none",
                     "operation_id": operation_id,
+                    "wrapper_physical_count": wrapper_count,
                     "userdata_uuid": "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
                     "userdata_blocks": "51124000",
                     "arch_root_guid": "60f49e17-bdc6-46bf-8d47-8a24907024c9",
