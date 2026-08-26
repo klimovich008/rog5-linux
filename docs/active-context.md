@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-25
+Updated: 2026-08-26
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -18,6 +18,25 @@ history, `test-results/`, and `docs/archive-index.md`.
 
 Slot A is the permanent charging and recovery route. Future Linux work uses
 RAM-only `fastboot boot` until a persistent design explicitly preserves it.
+
+## Active storage cycle
+
+Generation 194 is consumed and permanently non-retryable. It reached mainline
+UFS/NCM/key-only SSH, then froze during the redundant full 16 GiB source hash.
+No clone-write marker was observed, but transport loss makes p24 disposition
+unknown. Exact fastboot returned after 19m31s; the 900-second shell timer was
+delayed by the same kernel/UFS stall and is not independent rollback.
+
+Generation 195 is the only admitted successor: a RAM-only, read-only p24
+postmortem using the existing V49 UFS/charging/NCM target. Its clean-twin
+initramfs SHA-256 is
+`5cf50f5b2cb2a68611e07c61241c1160a47b2e91d36bd3007de86ff3a382f879`;
+its signed bundle manifest is
+`307188a2c6d6630e8f5732d7d0b84e297a6dd171cc687100a4714a565b4303f1`;
+and its fresh wrapper SHA-256 is
+`2f0a27f224ddbf5fa68e43be6c02b932750cb2dcea3b990fc54dd64dd2758ba1`.
+The cycle asks only whether p24 is non-ext4, a source clone, a complete grown
+target, or partial ext4. It performs no repair or storage write.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
