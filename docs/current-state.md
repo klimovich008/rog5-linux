@@ -239,6 +239,11 @@ expected 116 physical block nodes, while the correct post-Stage-1 topology is
 117 after p24 creation. No Stage-2 write path was reachable, and packaged
 restart2 returned exact fastboot. Stage 1 remains intact. The successor makes
 the count mode-specific: Stage 1 remains 116 and Stage 2 requires exactly 117.
+Generation 178 contained that exact packed fix but still returned before ACM,
+proving another pre-USB recovery guard remains. No Stage-2 write path was
+reachable and exact fastboot returned. The next read-only discriminator moves
+only aggregate wrapper-count admission behind USB; exact p23/p24 geometry,
+read-only state, and zero mounts remain mandatory in the executor.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
