@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-mainline-clone-v4-generation199-live-v1",
+            "storage-layout-stage2-watchdog-lifetime-v1-generation200-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,10 +72,10 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-mainline-clone-v4",
+            "storage-layout-stage2-watchdog-lifetime-v1",
         )
 
-    def test_clone_artifact_and_admission_identities_are_exact(self) -> None:
+    def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.COMPONENT_ROOT.name,
             "storage-layout-stage2-mainline-readonly-v2-recovery-components-20260826-r1",
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation199",
+            "generation200",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -168,7 +168,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(
             (
-                "format=rog5-native-clone-runtime-v1",
+                "format=rog5-watchdog-lifetime-v1",
                 "boot_id=11111111-2222-3333-4444-555555555555",
                 "uptime_seconds=21.00",
                 "state=READY",
@@ -176,6 +176,17 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 "storage=read-only",
                 "ssh=key-only",
                 "userdata=/dev/sdg23",
+                "watchdog_record=present",
+                f"watchdog_record_sha256={'1' * 64}",
+                "watchdog_pid=123",
+                "watchdog_process=absent",
+                "watchdog_log_bytes=0",
+                "watchdog_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "watchdog_log_hex=",
+                "watchdog_driver=qcom_wdt",
+                "watchdog_compatible=qcom,kpss-wdt",
+                "watchdog_device=present",
+                "watchdog_module=present",
                 "result=PASS",
                 "",
             )
@@ -190,13 +201,24 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
 
     def test_runtime_evidence_rejects_missing_duplicate_and_wrong_storage(self) -> None:
         baseline = [
-            "format=rog5-native-clone-runtime-v1",
+            "format=rog5-watchdog-lifetime-v1",
             "boot_id=11111111-2222-3333-4444-555555555555",
             "state=READY",
             "physical_blocks=117",
             "storage=read-only",
             "ssh=key-only",
             "userdata=/dev/sda23",
+            "watchdog_record=present",
+            f"watchdog_record_sha256={'1' * 64}",
+            "watchdog_pid=123",
+            "watchdog_process=absent",
+            "watchdog_log_bytes=0",
+            "watchdog_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "watchdog_log_hex=",
+            "watchdog_driver=qcom_wdt",
+            "watchdog_compatible=qcom,kpss-wdt",
+            "watchdog_device=present",
+            "watchdog_module=present",
             "result=PASS",
         ]
         hostile = (
@@ -459,7 +481,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_executes_only_sealed_clone_then_waits_for_fastboot(self) -> None:
+    def test_runner_executes_only_readonly_watchdog_probe_then_fastboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -473,9 +495,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
         self.assertIn("RUNTIME_COMMAND", source)
-        self.assertIn('CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
-        self.assertIn("parse_clone_evidence(clone_log)", source)
-        self.assertIn("ALLOW_STAGE2_P24_CLONE", source)
+        self.assertNotIn('CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertNotIn("parse_clone_evidence(clone_log)", source)
+        self.assertIn("ALLOW_STAGE2_WATCHDOG_LIFETIME", source)
+        self.assertIn("watchdog_log_hex=", source)
+        self.assertIn('bytes" -le 4096', source)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
