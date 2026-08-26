@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-native-postmortem-v1-generation195-live-v1"
-BUNDLE = "storage-layout-stage2-native-postmortem-v1"
+PROFILE_ID = "storage-layout-stage2-mainline-clone-v2-generation196-live-v1"
+BUNDLE = "storage-layout-stage2-mainline-clone-v2"
 MANIFEST_SHA256 = (
-    "307188a2c6d6630e8f5732d7d0b84e297a6dd171cc687100a4714a565b4303f1"
+    "cea60920ad773c05cf85ec396461ecdaa49b14d7ea481bf1f5d5e64ef9233cf3"
 )
 RECOVERY_SHA256 = (
-    "2f0a27f224ddbf5fa68e43be6c02b932750cb2dcea3b990fc54dd64dd2758ba1"
+    "60d574154d1f8ea5297a9e3663932a8504d4d0382a5f40a74749e530ff9a15a0"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-native-postmortem-v1-generation195-live-v1\n"
-    b"candidate=storage-layout-stage2-native-postmortem-v1\n"
+    b"storage-layout-stage2-mainline-clone-v2-generation196-live-v1\n"
+    b"candidate=storage-layout-stage2-mainline-clone-v2\n"
     b"manifest_sha256="
-    b"307188a2c6d6630e8f5732d7d0b84e297a6dd171cc687100a4714a565b4303f1\n"
+    b"cea60920ad773c05cf85ec396461ecdaa49b14d7ea481bf1f5d5e64ef9233cf3\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-native-postmortem-v1-generation195-20260826-r1"
+    / "build/storage-layout-stage2-mainline-clone-v2-generation196-20260826-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-native-postmortem-v1",
+    admission_profile="storage-layout-stage2-mainline-clone-v2",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-native-postmortem-v1",
-    build_profile="storage-layout-stage2-native-postmortem-v1",
+    runtime_profile="storage-layout-stage2-mainline-clone-v2",
+    build_profile="storage-layout-stage2-mainline-clone-v2",
     diagnostic=False,
 )
 
@@ -139,7 +139,7 @@ RUNTIME_COMMAND = r"""
 set -eu
 [ -f /run/rog5-local-image-stage.status ]
 [ -f /run/rog5-power-usb-ready ]
-printf '%s\n' 'format=rog5-native-postmortem-runtime-v1'
+printf '%s\n' 'format=rog5-native-clone-runtime-v1'
 printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime
 cat /run/rog5-local-image-stage.status
@@ -153,7 +153,7 @@ printf 'physical_blocks=%s\n' "$count"
 printf '%s\n' 'result=PASS'
 """.strip()
 
-POSTMORTEM_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
+CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
 
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
@@ -657,7 +657,7 @@ def parse_runtime_evidence(path: Path) -> str:
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("runtime evidence is unreadable") from error
     required = {
-        "format=rog5-native-postmortem-runtime-v1",
+        "format=rog5-native-clone-runtime-v1",
         "state=READY",
         "physical_blocks=117",
         "storage=read-only",
@@ -680,59 +680,24 @@ def parse_runtime_evidence(path: Path) -> str:
     return boot_ids[0]
 
 
-def parse_postmortem_evidence(path: Path) -> str:
+def parse_clone_evidence(path: Path) -> None:
     try:
         lines = path.read_text(encoding="ascii").splitlines()
     except (OSError, UnicodeDecodeError) as error:
-        raise PersistentCycleError("postmortem evidence is unreadable") from error
-    lines = [
-        line for line in lines if line.startswith("ROG5_NATIVE_POSTMORTEM_V1 ")
+        raise PersistentCycleError("clone evidence is unreadable") from error
+    lines = [line for line in lines if line.startswith("ROG5_NATIVE_CLONE_V1 ")]
+    expected = [
+        "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
+        "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
+        "ROG5_NATIVE_CLONE_V1 stage=filesystem status=GROW",
+        "ROG5_NATIVE_CLONE_V1 stage=seal status=WRITE",
+        "ROG5_NATIVE_CLONE_V1 stage=readonly status=VERIFY",
+        "ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS "
+        "target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b "
+        "target_blocks=8388603",
     ]
-    if len(lines) != 2 or lines[0] != (
-        "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ"
-    ):
-        fail("postmortem evidence lacks the exact read-only sequence")
-    prefix = r"[0-9a-f]{64}"
-    non_ext4 = re.fullmatch(
-        rf"ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
-        rf"disposition=non-ext4 prefix_sha256=({prefix})",
-        lines[1],
-    )
-    if non_ext4:
-        return "non-ext4"
-    ext4 = re.fullmatch(
-        rf"ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
-        rf"disposition=(source-clone|grown-target|partial-ext4) "
-        rf"uuid=([^ ]+) blocks=([0-9]+) state=(.+?) label=(.+?) "
-        rf"tree=(PASS|SKIP) prefix_sha256=({prefix})",
-        lines[1],
-    )
-    if ext4 is None:
-        fail("postmortem evidence has no exact terminal disposition")
-    disposition, uuid, blocks, state, label, tree, _prefix = ext4.groups()
-    known = {
-        "source-clone": (
-            "598a876b-a8db-4859-a01a-1b864b0a87f4",
-            "4194304",
-        ),
-        "grown-target": (
-            "8b03827a-cc2d-4408-8558-e9b61195f96b",
-            "8388603",
-        ),
-    }
-    if disposition in known:
-        if (uuid, blocks, state, label, tree) != (
-            *known[disposition],
-            "clean",
-            "ROG5_ARCH_A",
-            "PASS",
-        ):
-            fail("postmortem known filesystem disposition is inconsistent")
-    elif tree != "SKIP" or any(
-        (uuid, blocks) == identity for identity in known.values()
-    ):
-        fail("postmortem partial filesystem disposition is inconsistent")
-    return disposition
+    if lines != expected:
+        fail("clone evidence is not the exact successful sequence")
 
 
 def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int:
@@ -931,22 +896,19 @@ def run(
         if runtime_status != 0:
             fail(f"local-root runtime acceptance returned {runtime_status}")
         target_boot_id = parse_runtime_evidence(runtime_log)
-        postmortem_log = cycle.output("native-postmortem.log")
-        postmortem_status = run_optional_logged(
-            [*target_ssh, POSTMORTEM_COMMAND], postmortem_log, 300
+        clone_log = cycle.output("native-clone.log")
+        clone_status = run_optional_logged(
+            [*target_ssh, CLONE_COMMAND], clone_log, 850
         )
-        if postmortem_status not in {0, 255}:
-            fail(
-                "native postmortem returned unexpected status "
-                f"{postmortem_status}"
-            )
-        disposition = parse_postmortem_evidence(postmortem_log)
+        if clone_status not in {0, 255}:
+            fail(f"native clone returned unexpected status {clone_status}")
+        parse_clone_evidence(clone_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("native-postmortem-timing.record"),
+            cycle.output("native-clone-timing.record"),
             (
-                ("format", "rog5-native-postmortem-timing-v1"),
+                ("format", "rog5-native-clone-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -955,8 +917,7 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("disposition", disposition),
-                ("seconds_to_postmortem_completion", f"{elapsed:.3f}"),
+                ("seconds_to_clone_completion", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -968,8 +929,8 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle classified native p24 as "
-            f"{disposition} in {elapsed:.3f}s and returned to exact fastboot"
+            "PASS one RAM-only cycle cloned, grew, sealed, and verified "
+            f"native p24 in {elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:
@@ -1035,13 +996,8 @@ def main(arguments: list[str]) -> int:
         "ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE"
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
-    if arguments == ["run"] and os.environ.get(
-        "ALLOW_STAGE2_P24_POSTMORTEM"
-    ) != "1":
-        fail(
-            "set ALLOW_STAGE2_P24_POSTMORTEM=1 for the exact read-only p24 "
-            "postmortem"
-        )
+    if arguments == ["run"] and os.environ.get("ALLOW_STAGE2_P24_CLONE") != "1":
+        fail("set ALLOW_STAGE2_P24_CLONE=1 for the exact p24 clone")
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()
     gate_environment = exact_environment()

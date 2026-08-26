@@ -27,16 +27,21 @@ No clone-write marker was observed, but transport loss makes p24 disposition
 unknown. Exact fastboot returned after 19m31s; the 900-second shell timer was
 delayed by the same kernel/UFS stall and is not independent rollback.
 
-Generation 195 is the only admitted successor: a RAM-only, read-only p24
-postmortem using the existing V49 UFS/charging/NCM target. Its clean-twin
-initramfs SHA-256 is
-`5cf50f5b2cb2a68611e07c61241c1160a47b2e91d36bd3007de86ff3a382f879`;
-its signed bundle manifest is
-`307188a2c6d6630e8f5732d7d0b84e297a6dd171cc687100a4714a565b4303f1`;
-and its fresh wrapper SHA-256 is
-`2f0a27f224ddbf5fa68e43be6c02b932750cb2dcea3b990fc54dd64dd2758ba1`.
-The cycle asks only whether p24 is non-ext4, a source clone, a complete grown
-target, or partial ext4. It performs no repair or storage write.
+Generation 195 passed and is consumed: p24 is non-ext4 and its first 4 MiB is
+exactly zero-filled. The target and stock-slot-A fastboot proofs passed, and
+the durable intent is `TARGET_ACCEPTED`.
+
+Generation 196 is the only admitted successor. Its corrected clone target uses
+read-only loop/tree source validation rather than the 16 GiB sparse-file hash,
+and arms the stock-address-grounded APSS watchdog before p24 writes. Clean-twin
+target initramfs SHA-256 is
+`7d530c37d9ede1febd3aa2854bb8b7abffee24d5071fb426df35f12abba2854d`;
+DTB SHA-256 is
+`9d1bcd7f2dbbdfb0dfe48124de4a0763712c3375465d72987f18bb316435427e`;
+signed bundle manifest is
+`cea60920ad773c05cf85ec396461ecdaa49b14d7ea481bf1f5d5e64ef9233cf3`;
+and fresh wrapper SHA-256 is
+`60d574154d1f8ea5297a9e3663932a8504d4d0382a5f40a74749e530ff9a15a0`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
