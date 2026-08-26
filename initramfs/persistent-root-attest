@@ -14,7 +14,7 @@ progress() {
 	echo "rog5-p2-attest: PROGRESS $* uptime=$uptime" >/dev/kmsg
 }
 
-expected_physical_count=116
+expected_physical_count=117
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
 expected_image_bytes=17179869184
