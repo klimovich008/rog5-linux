@@ -155,6 +155,11 @@ Generation 189 passed the corrected signature gate, proving p24 has no
 recognizable bounded signature output, then failed separately at
 `temperature_unsafe`. It returned exact fastboot with the target untouched.
 The clone gate remains closed pending exact temperature-predicate evidence.
+Generation 190 proved the stable wrapper has no `type=Battery` supply and again
+returned untouched to exact fastboot. No more wrapper successors are planned.
+The next read-only gate reuses the Generation-158 mainline V49 charging/UFS
+runtime, which already passed qcom-battmgr safety checks and completed bounded
+high-speed 16-GiB staging in about 92 seconds.
 
 ## Completed charging repair
 
