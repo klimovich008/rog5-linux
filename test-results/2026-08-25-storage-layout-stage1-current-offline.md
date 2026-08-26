@@ -206,6 +206,24 @@
   device. New-layout kernel enumeration remains a separate next-boot read-only
   gate before Stage 2.
 
+## Generation 175 Stage-1 PASS
+
+- Generation 175 consumed one exact RAM-only cycle after local full CI and
+  exact-head, merge, publication, and QEMU CI passed.
+- The target used only the sealed 20 KiB secondary and 24 KiB primary GPT
+  regions generated offline from the fresh old regions plus the reviewed GPT
+  backup. The exact sealed BusyBox `dd` used `conv=notrunc`; no live
+  partitioning writer or partition-table reread ran on the success path.
+- Fresh backup ACK, secondary-then-primary writes, sync, exact region readback,
+  GPT CRC/geometry, disk GUID, partitions 1-22 seal, unchanged old kernel p23
+  mapping, clean 51,124,000-block ext4, read-only fsck, relock, and S99 all
+  passed. Terminal evidence SHA-256 is
+  `c5a68c5d52b5eabf10d76b6c8217adf72b92c58b7837c2e0ee2a630dc0b4c32a`.
+- Restart2 returned exact slot-A fastboot at 8.712 V. Stage 1 is complete.
+  Stage 2 remains prohibited until a separate next-boot read-only candidate
+  proves exact new p23/p24 kernel enumeration, userdata cleanliness, empty p24,
+  all storage read-only, zero block mounts, and fallback.
+
 ## Generation 167 prewrite result
 
 - Generation 167 consumed its sole cycle and exact slot-A fallback passed.
