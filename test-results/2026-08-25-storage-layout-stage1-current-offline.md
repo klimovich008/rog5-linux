@@ -135,6 +135,23 @@
   Generation 171 clean twins use AVB SHA-256 `65a672c4...`; one narrow
   receive-only admission exists and its claim is unconsumed.
 
+## Generation 171 prewrite PASS and fastboot fallback correction
+
+- Generation 171 consumed one receive-only cycle and durably captured ordered
+  `S00_CONFIG`, `S10_TOPOLOGY`, `S20_PROTECTED_SEAL`, and
+  `S30_FRESH_BACKUP`, with outcome `REACHED_S30_NO_HOST_BYTES_SENT` and exact
+  anchored USB identity. This proves the rewritten config check, current GPT,
+  51,124,000-block ext4 state, partition-24 absence, and protected seal.
+- The observer sent zero bytes and intentionally stopped at S30; no readiness,
+  backup, ACK, writable device, GPT load, or storage write occurred. Exact
+  slot-A fallback passed.
+- The repeated operator bottleneck was traced to recovery-init's generic
+  `force_rollback()` using `reboot -f`, which enters slot-A recovery. Storage
+  Stage-1/2 rollback now calls the existing sealed restart2 `bootloader` helper
+  first for all early, watchdog, failure, and success paths. Generic reboot and
+  SysRq remain fallback if restart2 unexpectedly returns. Twenty-one focused
+  Stage-1 source tests pass.
+
 ## Generation 167 prewrite result
 
 - Generation 167 consumed its sole cycle and exact slot-A fallback passed.
