@@ -61,14 +61,13 @@ waiter sampled the same deadline and missed the boundary transition. No p24
 write path was packaged; durable intent is `FALLBACK_RETURNED`. Both host-only
 R7 defects now have focused regressions and a 30-second host fallback margin.
 
-Generation 199 is the unbooted active successor. It restores the bounded p24
-clone command on top of the exact Generation-198-proven watchdog, charging,
-UFS, NCM and `storage-locked` path. Target initramfs clean twins match at
-`e4635df6...`; signed bundle twins match at `d941385a...`. The stable recovery
-raw payload is a wrapper-cache hit, so only the Generation-199 AVB envelope
-changed (`334d1022...`). The sole live question is whether the sealed 16 GiB
-source can be restored, grown, sealed and verified on p24 before exact fastboot
-fallback. Slot A and p23 remain preserved; the write scope is p24 only.
+Generation 199 is consumed with no p24 write. Mainline UFS, NCM, runtime and
+key-only SSH passed in 7.86 seconds. The watchdog helper had survived its
+200 ms init check but was no longer alive when the clone command began, so the
+target failed before source verification or any write window. Exact slot-A
+fastboot and durable `FALLBACK_RETURNED` resolution passed. The next cycle must
+be read-only and capture the bounded watchdog stderr/status at the first
+5-second ping; another clone candidate is not justified yet.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

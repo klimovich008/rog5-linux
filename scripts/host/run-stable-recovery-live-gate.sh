@@ -3953,8 +3953,8 @@ case $profile in
 		;;
 	storage-layout-stage2-mainline-clone-v4-generation199-live-v1)
 		expected_boot_image=build/storage-layout-stage2-mainline-clone-v4-generation199-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 199 p24 clone from the verified sealed p23 source into Generation-195-proven zero/non-ext4 p24; proven APSS watchdog, exact storage-locked parser, allocated-block restore, UUID/grow/seal/relock, 930-second host fallback margin, and exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 199 p24 clone; cached stable raw recovery, exact signed target, p23 read-only and p24-only write, RAM-only; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 199 prewrite watchdog-lifetime failure; mainline UFS/NCM/runtime/key-only SSH passed in 7.86 seconds, then the watchdog process was absent before source verification or any p24 write window; exact slot-A fastboot and FALLBACK_RETURNED resolution passed; never retry or flash'
+		expected_boot_role='consumed Generation 199 prewrite watchdog-lifetime failure; runtime passed, watchdog process disappeared before source verification/write window, exact fastboot passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
