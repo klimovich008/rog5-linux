@@ -151,6 +151,47 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             4,
         )
 
+    def test_post_gpt_checks_keep_the_proven_kernel_mapping_until_reboot(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        transaction = source[source.index("stage_set S60_GPT_TRANSACTION") :]
+        for forbidden in ("blockdev --rereadpt", "partprobe", "mdev -s"):
+            self.assertNotIn(forbidden, transaction)
+        self.assertIn("verify_old_userdata_mapping || fail old_userdata_mapping_changed", transaction)
+        self.assertIn('e2fsck -fn "$userdata"', transaction)
+        self.assertNotIn('e2fsck -f -p "$userdata"', transaction)
+
+        restore_start = source.index("restore_original_gpt() {")
+        restore_end = source.index("\n}\n", restore_start) + 2
+        restore = source[restore_start:restore_end]
+        for forbidden in ("blockdev --rereadpt", "partprobe", "mdev -s"):
+            self.assertNotIn(forbidden, restore)
+        self.assertIn("verify_gpt_unchanged || return 1", restore)
+
+        old_first = new_first = 2352680
+        old_last = 61865978
+        new_last = 53477375
+        filesystem_blocks = 51124000
+        old_blocks = old_last - old_first + 1
+        new_blocks = new_last - new_first + 1
+        self.assertEqual(new_first, old_first)
+        self.assertLessEqual(filesystem_blocks, new_blocks)
+        self.assertLessEqual(new_blocks, old_blocks)
+        self.assertEqual(new_blocks - filesystem_blocks, 696)
+
+        start = source.index("verify_old_userdata_mapping() {")
+        end = source.index("\n}\n", start) + 2
+        verifier = source[start:end]
+        for identity in (
+            '"$sys_userdata/partition")" = 23',
+            '"$partition_name" = userdata',
+            '"$sys_userdata/dev")" = "$userdata_dev"',
+            '"$sys_userdata/start")" = 18821440',
+            '"$sys_userdata/size")" = 476106392',
+            '"$(blockdev --getsize64 "$userdata")" = 243766472704',
+            '"$(blockdev --getss "$userdata")" = 4096',
+        ):
+            self.assertIn(identity, verifier)
+
     def test_current_checkpoint_is_offline_and_current_bound(self) -> None:
         fields = dict(
             line.split("=", 1)
@@ -376,7 +417,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -404,7 +445,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -434,7 +475,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -461,7 +502,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -488,11 +529,12 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
-        self.assertIn("finite exact post-GPT filesystem reason", admitted[6])
+        self.assertIn("filesystem_dumpe2fs_failed", admitted[6])
+        self.assertIn("restart2 returned exact fastboot", admitted[6])
 
     def test_generation171_is_receive_only_exact_config_discriminator(self) -> None:
         fields = dict(
@@ -514,7 +556,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)

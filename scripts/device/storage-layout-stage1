@@ -15,6 +15,8 @@ primary_backup=/run/rog5-layout-stage1.primary.raw
 secondary_backup=/run/rog5-layout-stage1.secondary.raw
 disk=
 userdata=
+userdata_name=
+userdata_dev=
 operation_mode=
 gpt_write_started=0
 gpt_verified=0
@@ -65,13 +67,11 @@ restore_original_gpt() {
 	sgdisk --load-backup="$gpt_backup" "$disk" \
 		>/run/rog5-layout-stage1-restore.log 2>&1 || return 1
 	sync || return 1
-	blockdev --rereadpt "$disk" >/dev/null 2>&1 ||
-		partprobe "$disk" >/dev/null 2>&1 || return 1
-	mdev -s >/dev/null 2>&1 || return 1
 	sgdisk -v "$disk" >/run/rog5-layout-stage1-restored-verify.log 2>&1 ||
 		return 1
 	grep -Fq 'No problems found.' /run/rog5-layout-stage1-restored-verify.log ||
 		return 1
+	verify_gpt_unchanged || return 1
 	return 0
 }
 
@@ -216,6 +216,8 @@ resolve_exact_storage() {
 			continue
 		[ "$(blockdev --getss "$candidate" 2>/dev/null)" = 4096 ] || continue
 		candidate_userdata=
+		candidate_userdata_name=
+		candidate_userdata_dev=
 		name=$(basename "$sys_disk")
 		for sys_partition in "$sys_disk"/"$name"*; do
 			[ -e "$sys_partition/partition" ] || continue
@@ -226,15 +228,33 @@ resolve_exact_storage() {
 			[ "$(cat "$sys_partition/start")" = 18821440 ] || continue
 			[ "$(cat "$sys_partition/size")" = 476106392 ] || continue
 			candidate_userdata=/dev/$(basename "$sys_partition")
+			candidate_userdata_name=$(basename "$sys_partition")
+			candidate_userdata_dev=$(cat "$sys_partition/dev") || return 1
 		done
 		[ -n "$candidate_userdata" ] || continue
 		disk=$candidate
 		userdata=$candidate_userdata
+		userdata_name=$candidate_userdata_name
+		userdata_dev=$candidate_userdata_dev
 		disk_count=$((disk_count + 1))
 	done
 	[ "$disk_count" -eq 1 ] || return 1
 	[ "$(blockdev --getro "$disk")" = 1 ] || return 1
 	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
+}
+
+verify_old_userdata_mapping() {
+	sys_userdata=/sys/class/block/$userdata_name
+	[ -b "$userdata" ] && [ -e "$sys_userdata/partition" ] || return 1
+	[ "$(cat "$sys_userdata/partition")" = 23 ] || return 1
+	partition_name=$(sed -n 's/^PARTNAME=//p' "$sys_userdata/uevent" |
+		sed -n '1p')
+	[ "$partition_name" = userdata ] || return 1
+	[ "$(cat "$sys_userdata/dev")" = "$userdata_dev" ] || return 1
+	[ "$(cat "$sys_userdata/start")" = 18821440 ] || return 1
+	[ "$(cat "$sys_userdata/size")" = 476106392 ] || return 1
+	[ "$(blockdev --getsize64 "$userdata")" = 243766472704 ] || return 1
+	[ "$(blockdev --getss "$userdata")" = 4096 ] || return 1
 }
 
 sgdisk_value() {
@@ -563,9 +583,6 @@ gpt_write_started=1
 sgdisk --load-backup="$new_gpt" "$disk" \
 	>/run/rog5-layout-stage1-sgdisk.log 2>&1 || fail gpt_transaction_failed
 sync || fail sync_after_gpt_failed
-blockdev --rereadpt "$disk" >/dev/null 2>&1 ||
-	partprobe "$disk" >/dev/null 2>&1 || fail partition_reread_failed
-mdev -s >/dev/null 2>&1 || fail device_rescan_failed
 
 stage_set S70_POSTVERIFY
 sgdisk -v "$disk" >/run/rog5-layout-stage1-gpt-verify.log 2>&1 ||
@@ -581,14 +598,11 @@ verify_partition 24 53477376 61865978 \
 protected_after=$(protected_partition_hash /run/rog5-layout-stage1-protected.after) ||
 	fail protected_partition_read_failed
 [ "$protected_after" = "$protected_before" ] || fail protected_partitions_changed
+verify_old_userdata_mapping || fail old_userdata_mapping_changed
 filesystem_reason=post_gpt_filesystem_invalid
 verify_userdata_filesystem 51124000 || fail "$filesystem_reason"
-if e2fsck -f -p "$userdata" >/run/rog5-layout-stage1-e2fsck-after.log 2>&1; then
-	:
-else
-	fsck_status=$?
-	[ "$fsck_status" -eq 1 ] || fail e2fsck_after_failed
-fi
+e2fsck -fn "$userdata" >/run/rog5-layout-stage1-e2fsck-after.log 2>&1 ||
+	fail e2fsck_after_failed
 filesystem_reason=final_filesystem_invalid
 verify_userdata_filesystem 51124000 || fail "$filesystem_reason"
 
