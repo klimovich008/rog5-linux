@@ -278,6 +278,8 @@ shared_tests=(
 	scripts/device/test-local-image-stage-initramfs.sh
 	scripts/device/test-clone-local-image-to-arch-root.sh
 	scripts/device/test-inspect-native-arch-root.sh
+	scripts/device/test-qcom-wdt-candidate-dtb.sh
+	scripts/device/test-build-qcom-wdt-module.sh
 	scripts/device/test-local-image-stage-preusb-diagnostic.sh
 	scripts/device/test-local-image-stage-configfs-beacon.sh
 	scripts/device/test-local-image-stage-udc-inventory.sh

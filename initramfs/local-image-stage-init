@@ -120,6 +120,33 @@ classify_zero_ufs() {
 	fail "ufs-host-$host_count-block-0"
 }
 
+arm_hardware_watchdog() {
+	module=/rog5-watchdog-modules/qcom-wdt.ko
+	record=/run/rog5-hardware-watchdog.status
+	if [ ! -e "$module" ]; then
+		printf 'format=rog5-hardware-watchdog-v1\nstate=ABSENT\n' >"$record"
+		chmod 0444 "$record"
+		return 0
+	fi
+	[ -f "$module" ] && [ ! -L "$module" ] || return 1
+	insmod "$module" || return 1
+	mdev -s
+	[ "$(find /sys/class/watchdog -mindepth 1 -maxdepth 1 -name 'watchdog*' | wc -l)" -eq 1 ] || return 1
+	watchdog_sys=/sys/class/watchdog/watchdog0
+	[ -d "$watchdog_sys" ] && [ -c /dev/watchdog0 ] || return 1
+	[ "$(basename "$(readlink -f "$watchdog_sys/device/driver")")" = qcom_wdt ] || return 1
+	compatible=$(tr '\000' '\n' <"$watchdog_sys/device/of_node/compatible" | sed -n '1p') || return 1
+	[ "$compatible" = qcom,kpss-wdt ] || return 1
+	/sbin/watchdog -F -T 30 -t 5 /dev/watchdog0 >/run/rog5-hardware-watchdog.log 2>&1 &
+	hardware_watchdog_pid=$!
+	sleep 0.2
+	kill -0 "$hardware_watchdog_pid" 2>/dev/null || return 1
+	[ "$(cat "$watchdog_sys/timeout")" = 30 ] || return 1
+	printf 'format=rog5-hardware-watchdog-v1\nstate=ARMED\ndriver=qcom_wdt\ncompatible=qcom,kpss-wdt\ntimeout_seconds=30\npid=%s\n' \
+		"$hardware_watchdog_pid" >"$record" || return 1
+	chmod 0444 "$record" || return 1
+}
+
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
@@ -236,6 +263,7 @@ done
 [ "$count" -ne 0 ] || classify_zero_ufs
 [ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
+arm_hardware_watchdog || fail hardware-watchdog
 
 current_stage=userdata-resolved
 publish_stage userdata-resolved ENTER none || fail stage-publish
