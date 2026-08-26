@@ -13,6 +13,9 @@ successor_manifest=$repo/manifests/storage-layout-stage2-mainline-clone-v2-gener
 current=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-clone-v3.json
 current_initramfs=$repo/artifacts/storage-layout-stage2-mainline-clone-v3/initramfs.cpio.gz
 current_manifest=$repo/manifests/storage-layout-stage2-mainline-clone-v3-generation197.manifest
+active=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-clone-v4.json
+active_initramfs=$repo/artifacts/storage-layout-stage2-mainline-clone-v4/initramfs.cpio.gz
+active_manifest=$repo/manifests/storage-layout-stage2-mainline-clone-v4-generation199.manifest
 
 sh -n "$target"
 for contract in \
@@ -123,5 +126,25 @@ assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
 PY
 grep -Fqx 'avb_generation=197' "$current_manifest"
 grep -Fqx 'watchdog=qcom-kpss-30s-ping5s-no-sysfs-dependency' "$current_manifest"
+
+python3 - "$active" "$active_initramfs" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "storage-layout-stage2-mainline-clone-v4"
+assert record["candidate"] == record["bundle"] == record["target_id"]
+assert record["status"] == "offline" and record["authority"] == "none"
+item = record["artifacts"]["initramfs.cpio.gz"]
+path = Path(sys.argv[2])
+assert path.stat().st_size == item["size"] == 23911869
+assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
+    item["sha256"] == \
+    "e4635df68dda96876b92a9a50d5f249fc32761bdecbce873f63201148f326480"
+PY
+grep -Fqx 'avb_generation=199' "$active_manifest"
+grep -Fqx 'watchdog=qcom-kpss-30s-ping5s' "$active_manifest"
 
 echo 'PASS p24 clone is exact-scope, allocated-block, power/thermal-gated, sealed, and hostile-destination tested'
