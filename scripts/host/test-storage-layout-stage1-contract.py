@@ -39,6 +39,9 @@ CURRENT_LOAD_BACKUP_SUCCESSOR = (
 PREWRITE_OBSERVER = (
     REPO / "manifests/storage-layout-stage1-prewrite-observer-generation169.manifest"
 )
+CURRENT_PREWRITE_OBSERVER = (
+    REPO / "manifests/storage-layout-stage1-prewrite-observer-generation170.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -198,7 +201,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 6)
+        self.assertEqual(len(lines), 7)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -327,7 +330,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -355,13 +358,41 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
         self.assertEqual(admitted[5], fields["image_sha256"])
         self.assertIn("expected target departure", admitted[6])
         self.assertIn("before durable evidence publication", admitted[6])
+
+    def test_generation170_retains_receive_only_evidence_across_departure(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CURRENT_PREWRITE_OBSERVER.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(CURRENT_PREWRITE_OBSERVER.read_bytes()).hexdigest()
+        self.assertEqual(
+            digest,
+            "74aaa7c64929f33d1758853c0a191d6e9104f97f7f81e3d13c32095c319c9553",
+        )
+        self.assertEqual(fields["raw_identity"], "byte-identical-to-consumed-generations168-169")
+        self.assertEqual(
+            fields["observer_publication"],
+            "validated-evidence-before-departure-classification",
+        )
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], digest)
+        self.assertIn("publication ordered before expected departure", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)

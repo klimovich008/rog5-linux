@@ -113,7 +113,9 @@
 - The host-only correction classifies zero product/interface after capture as
   `DEPARTED`, writes and fsyncs validated evidence before treating a changed
   identity as terminal, and keeps changed identity distinct. Seven focused
-  tests pass. No target bytes change.
+  tests pass. Generation 170 reissues the same raw target bytes under fresh AVB
+  SHA-256 `56f8a8b3...`; one receive-only admission exists and its claim is
+  unconsumed. No target bytes change.
 
 ## Generation 167 prewrite result
 

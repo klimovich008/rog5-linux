@@ -200,7 +200,9 @@ uses a receive-only observer that stops at S30 without sending any host bytes.
 Generation 169 captured a verdict but discarded it when expected target
 departure failed post-capture USB revalidation. No host bytes or write occurred
 and slot-A fallback passed. The corrected observer durably writes validated
-frames before classifying departure versus changed identity.
+frames before classifying departure versus changed identity. Generation 170
+is a byte-identical-raw receive-only successor with one narrow admission and an
+unconsumed claim.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
