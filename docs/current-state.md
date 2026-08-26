@@ -300,6 +300,11 @@ quoted BusyBox `blkid` output exceeded the initial 1-KiB private evidence cap.
 It failed before emitting signature content or writing storage and returned to
 exact fastboot. The successor changes only that text-output bound to 64 KiB;
 the parser, hash, read-only scope, and refusal remain unchanged.
+Generation 187 proved the full BusyBox `blkid` stream exceeds even 64 KiB, so
+increasing the cap again would be unsafe and uninformative. It emitted no
+signature content, wrote nothing, and returned exact fastboot. The successor
+captures only a fixed 4-KiB prefix from a second read-only invocation and adds
+an explicit truncation flag; unbounded accumulation is removed.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

@@ -18,7 +18,7 @@ libuuid_apk=${14:?missing libuuid package}
 reboot_bootloader=${15:?missing reboot-to-bootloader helper}
 output=${16:?missing output}
 epoch=1681862400
-executor_sha256=91c189cff69ffbfbeb53d3a5b14c2636210c0468d1ab6cdefd687aa5549c6526
+executor_sha256=c214bb55b3d68674b6a84703e09188f96dd628740662627589ee05e1057b315c
 watchdog_disarm_sha256=ba40a89f0e20f17accb04283e36e859822070450bee44de8924255801cbef2fb
 native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 verifier_sha256=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
@@ -137,7 +137,7 @@ for path in init usr/libexec/rog5-storage-layout-stage2 \
 	usr/sbin/resize2fs; do
 	[ -e "$stage/$path" ] || fail "stage-2 initramfs lacks $path"
 done
-for path in bin/dd usr/bin/sha256sum sbin/blockdev usr/sbin/partprobe \
+for path in bin/dd usr/bin/head usr/bin/sha256sum sbin/blockdev usr/sbin/partprobe \
 	sbin/losetup bin/mount bin/umount sbin/blkid bin/cp bin/mv bin/sync; do
 	[ -L "$stage/$path" ] && [ "$(readlink "$stage/$path")" = /bin/busybox ] ||
 		fail "stage-2 initramfs lacks fixed BusyBox applet: $path"

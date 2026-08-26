@@ -152,6 +152,10 @@ Generation 186 is consumed after the same read-only boundary exceeded the
 initial 1-KiB `blkid` evidence cap. No signature bytes were emitted, no storage
 write occurred, and exact fastboot returned. The successor changes only the
 private text-output bound to 64 KiB while retaining exact parsing and refusal.
+Generation 187 is consumed after the full `blkid` stream exceeded even 64 KiB.
+No content was emitted, no storage write occurred, and exact fastboot returned.
+The successor removes full accumulation: it records only a fixed 4-KiB prefix,
+its hash, and an explicit truncation flag before refusing.
 
 ## Completed charging repair
 

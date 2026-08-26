@@ -135,6 +135,7 @@ def signature(**changes: str) -> bytes:
         "type": "ext4",
         "uuid": "present",
         "label": "present",
+        "truncated": "0",
         "bytes": "96",
         "sha256": "1" * 64,
     }
@@ -389,8 +390,9 @@ class CollectorTest(unittest.TestCase):
         for record in (
             signature(type="ext 4"),
             signature(uuid="unknown"),
+            signature(truncated="unknown"),
             signature(bytes="0"),
-            signature(bytes="100000"),
+            signature(bytes="10000"),
             signature(sha256="0"),
         ):
             with self.subTest(record=record):
