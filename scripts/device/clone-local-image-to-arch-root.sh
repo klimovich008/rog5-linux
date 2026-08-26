@@ -6,19 +6,22 @@ status=/run/rog5-local-image-stage.status
 userdata_record=/run/rog5-userdata-device
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 source_mount=/mnt/userdata
+source_verify_mount=/mnt/source-root
 target_mount=/mnt/native-root
 source_image=$source_mount/rog5/images/arch-local-a.ext4
 native_seal=/etc/rog5/native-root-v1.seal
 verifier=/usr/local/sbin/persistent-root-verify
 source_bytes=17179869184
 source_blocks=4194304
-source_sha256=533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153
 source_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 target_blocks=8388603
 target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
 native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 userdata_mounted=0
+source_mounted=0
+source_loop_attached=0
 target_mounted=0
+source_loop=
 disk=
 userdata=
 arch_root=
@@ -39,6 +42,14 @@ relock() {
 
 cleanup() {
 	result=0
+	if [ "$source_mounted" -eq 1 ]; then
+		umount "$source_verify_mount" >/dev/null 2>&1 || result=1
+		source_mounted=0
+	fi
+	if [ "$source_loop_attached" -eq 1 ]; then
+		losetup -d "$source_loop" >/dev/null 2>&1 || result=1
+		source_loop_attached=0
+	fi
 	if [ "$target_mounted" -eq 1 ]; then
 		umount "$target_mount" >/dev/null 2>&1 || result=1
 		target_mounted=0
@@ -193,13 +204,28 @@ verify_power_thermal || fail power-thermal
 	[ "$(sha256sum "$native_seal" | awk '{print $1}')" = "$native_seal_sha256" ] || fail native-seal
 
 emit source VERIFY
-mkdir -p "$source_mount" "$target_mount"
+mkdir -p "$source_mount" "$source_verify_mount" "$target_mount"
 mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$userdata" "$source_mount" || fail userdata-mount
 userdata_mounted=1
 verify_mount_count 1 || fail userdata-mount-scope
 [ -f "$source_image" ] && [ ! -L "$source_image" ] &&
 	[ "$(stat -c '%u:%g:%a:%s:%h' "$source_image")" = "0:0:600:$source_bytes:1" ] || fail source-metadata
-[ "$(sha256sum "$source_image" | awk '{print $1}')" = "$source_sha256" ] || fail source-hash
+source_loop=$(losetup -f) || fail source-loop
+case $source_loop in /dev/loop[0-9]*) ;; *) fail source-loop ;; esac
+losetup -r "$source_loop" "$source_image" || fail source-loop-attach
+source_loop_attached=1
+[ "$(blockdev --getro "$source_loop")" = 1 ] &&
+	[ "$(blockdev --getsize64 "$source_loop")" = "$source_bytes" ] || fail source-loop-identity
+verify_ext4 "$source_loop" "$source_uuid" "$source_blocks" /run/rog5-native-clone-source-fs.log || fail source-filesystem
+mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$source_loop" "$source_verify_mount" || fail source-mount
+source_mounted=1
+verify_mount_count 2 || fail source-mount-scope
+"$verifier" "$source_verify_mount" "$native_seal" "$native_seal_sha256" >/run/rog5-native-clone-source-tree.log 2>&1 || fail source-tree
+umount "$source_verify_mount" || fail source-unmount
+source_mounted=0
+losetup -d "$source_loop" || fail source-loop-detach
+source_loop_attached=0
+verify_mount_count 1 || fail source-cleanup
 
 emit clone WRITE
 verify_power_thermal || fail power-thermal-prewrite
