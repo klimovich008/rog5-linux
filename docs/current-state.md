@@ -281,6 +281,13 @@ recovery instead of fastboot. The candidate is consumed; the next host-side
 work must preserve partial validated Stage-2 records and establish a bounded
 host-open rendezvous before another cycle. One physical fastboot entry is now
 required because stock recovery ADB is unauthorized.
+Generation 184 added the collector hold and durable validated-prefix journal.
+Its journal remained exactly empty while recovery USB repeated Generation
+183's 12.81-second lifetime, proving the executor never started. Source tracing
+found the exact cause: the `unsupported` marker path skipped the function that
+initialized five count variables, then `set -u` terminated PID 1 before the
+guard report. Those variables are now initialized in the deferred-guard block
+before the optional probe. No storage path ran; slot-A recovery returned.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

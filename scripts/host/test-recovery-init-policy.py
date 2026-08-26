@@ -229,6 +229,16 @@ class InitPolicyTest(unittest.TestCase):
         ):
             self.assertIn(field, source)
         self.assertIn("Stage-2 deferred guards ready", source)
+        deferred = source[source.index('if [ "$stage2_readonly_preflight" = 1 ]; then'):]
+        optional_probe = deferred.index("CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y")
+        for assignment in (
+            "auto_count=0",
+            "host_count=0",
+            "wlun_count=0",
+            "blocked_query_count=0",
+            "blocked_scsi_count=0",
+        ):
+            self.assertLess(deferred.index(assignment), optional_probe)
         self.assertIn("stage2_collector_hold_seconds=1", source)
         hold = source.index("holding Stage-2 emission for the prestarted host collector")
         execute = source.index("/usr/libexec/rog5-storage-layout-stage2", hold)

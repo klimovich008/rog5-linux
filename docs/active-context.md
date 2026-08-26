@@ -136,6 +136,13 @@ retain the bootloader reason on this return, so the phone is in slot-A
 unauthorized stock recovery. Preserve partial records and add a bounded
 host-open rendezvous before a successor; a physical fastboot entry is required
 now.
+Generation 184 is consumed. Its fsynced partial transcript is exactly empty and
+its recovery USB lifetime matched Generation 183, proving no Stage-2 record was
+emitted. The exact source defect is an unbound-variable exit: classifying UFS
+markers as `unsupported` skipped the function that initialized five counters,
+then `set -u` exited before the guard report and executor. The counters are now
+initialized in the deferred-guard block. No storage path ran; the phone again
+returned to unauthorized slot-A recovery.
 
 ## Completed charging repair
 
