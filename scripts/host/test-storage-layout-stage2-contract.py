@@ -172,6 +172,8 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertIn("unexpected Stage-2 guard record", collector)
         self.assertIn("Stage-2 guard classification changed", collector)
         self.assertIn("Stage-2 partition classification changed", collector)
+        self.assertIn('options.output / "transcript.partial"', collector)
+        self.assertIn("os.fsync(partial_fd)", collector)
 
     def test_native_seal_is_the_refreshed_tree(self) -> None:
         payload = SEAL.read_bytes()

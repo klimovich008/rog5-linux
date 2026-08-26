@@ -12,7 +12,7 @@ import re
 import stat
 import sys
 import time
-from typing import NoReturn, Protocol
+from typing import Callable, NoReturn, Protocol
 
 
 PREFIX = "ROG5_LAYOUT_STAGE2_V1"
@@ -105,6 +105,7 @@ def capture(
     target_uuid: str,
     timeout: float,
     result_profile: str = "clone",
+    on_record: Callable[[bytes], None] | None = None,
 ) -> tuple[bytes, bytes]:
     deadline = time.monotonic() + timeout
     transcript = bytearray()
@@ -153,6 +154,8 @@ def capture(
                 )
             ):
                 fail("Stage-2 guard classification changed")
+            if on_record is not None:
+                on_record(payload)
             guards_seen = True
             continue
         if status == "status=PARTITION":
@@ -181,6 +184,8 @@ def capture(
                 "first", "last", "type", "unique", "name", "attrs"
             )):
                 fail("Stage-2 partition classification changed")
+            if on_record is not None:
+                on_record(payload)
             partition_seen = True
             continue
         if status == "status=RUNNING":
@@ -189,6 +194,8 @@ def capture(
                 fail("unexpected Stage-2 running record")
             if fields["stage"] != stages[next_stage]:
                 fail("Stage-2 sequence changed")
+            if on_record is not None:
+                on_record(payload)
             next_stage += 1
             continue
         if status == "status=FAIL":
@@ -210,6 +217,8 @@ def capture(
                 fail("Stage-2 target-state classification changed")
             if fields["cleanup"] not in {"0", "1"} or fields["relock"] not in {"0", "1"}:
                 fail("Stage-2 cleanup classification changed")
+            if on_record is not None:
+                on_record(payload)
             return bytes(transcript), payload
         if status == "status=PASS":
             if result_profile == "preflight":
@@ -252,6 +261,8 @@ def capture(
                     or not partition_seen
                 ):
                     fail("Stage-2 preflight PASS identity or sequence changed")
+                if on_record is not None:
+                    on_record(payload)
                 return bytes(transcript), payload
             fields = exact_fields(
                 tokens,
@@ -284,6 +295,8 @@ def capture(
             }
             if fields != expected or next_stage != len(stages):
                 fail("Stage-2 PASS identity or sequence changed")
+            if on_record is not None:
+                on_record(payload)
             return bytes(transcript), payload
         fail("unexpected Stage-2 status")
     fail("Stage-2 record count exceeded its bound")
@@ -314,21 +327,54 @@ def main(arguments: list[str]) -> int:
             fail("sealed SHA-256 constant is invalid")
     prepare_output(options.output)
 
-    stage1 = load_module("collect-storage-layout-stage1.py", "rog5_stage2_serial")
-    preflight = load_module("collect-storage-preflight-report.py", "rog5_stage2_usb")
-    identity = preflight.wait_storage_acm(
-        options.usb_location, options.enumeration_timeout
+    partial_path = options.output / "transcript.partial"
+    partial_fd = os.open(
+        partial_path,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW,
+        0o600,
     )
-    with stage1.RawSerial(identity.path) as transport:
-        transcript, terminal = capture(
-            transport,
-            options.operation_id,
-            options.target_uuid,
-            options.operation_timeout,
-            options.result_profile,
+    output_fd = os.open(
+        options.output,
+        os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW,
+    )
+    try:
+        os.fsync(output_fd)
+    finally:
+        os.close(output_fd)
+    retained = bytearray()
+
+    def retain_record(payload: bytes) -> None:
+        view = memoryview(payload)
+        while view:
+            written = os.write(partial_fd, view)
+            if written < 1:
+                fail("Stage-2 partial transcript write made no progress")
+            view = view[written:]
+        os.fsync(partial_fd)
+        retained.extend(payload)
+
+    try:
+        stage1 = load_module("collect-storage-layout-stage1.py", "rog5_stage2_serial")
+        preflight = load_module("collect-storage-preflight-report.py", "rog5_stage2_usb")
+        identity = preflight.wait_storage_acm(
+            options.usb_location, options.enumeration_timeout
         )
+        with stage1.RawSerial(identity.path) as transport:
+            transcript, terminal = capture(
+                transport,
+                options.operation_id,
+                options.target_uuid,
+                options.operation_timeout,
+                options.result_profile,
+                retain_record,
+            )
+    finally:
+        os.close(partial_fd)
+    if transcript != bytes(retained):
+        fail("Stage-2 durable transcript differs from accepted records")
     preflight.revalidate_storage_acm(identity)
-    stage1.write_exact(options.output / "transcript.txt", transcript)
+    partial_path.rename(options.output / "transcript.txt")
+    stage1.fsync_directory(options.output)
     stage1.write_exact(options.output / "terminal.txt", terminal)
     fields = exact_fields(parse_line(terminal), tuple(
         token.partition("=")[0] for token in terminal.decode("ascii").strip().split(" ")[1:]

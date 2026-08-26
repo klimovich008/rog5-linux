@@ -307,6 +307,34 @@ class CollectorTest(unittest.TestCase):
                 1.0,
             )
 
+    def test_validated_prefix_is_retained_before_disconnect(self) -> None:
+        records = [running("S00_CONFIG"), guards(), running("S10_TOPOLOGY")]
+        retained: list[bytes] = []
+        with self.assertRaisesRegex(MODULE.Stage2ProtocolError, "fixture exhausted"):
+            MODULE.capture(
+                FakeTransport(records),
+                OPERATION,
+                TARGET_UUID,
+                1.0,
+                "preflight",
+                retained.append,
+            )
+        self.assertEqual(retained, records)
+
+    def test_invalid_record_is_not_retained(self) -> None:
+        first = running("S00_CONFIG")
+        retained: list[bytes] = []
+        with self.assertRaises(MODULE.Stage2ProtocolError):
+            MODULE.capture(
+                FakeTransport([first, guards(discovery="unknown")]),
+                OPERATION,
+                TARGET_UUID,
+                1.0,
+                "preflight",
+                retained.append,
+            )
+        self.assertEqual(retained, [first])
+
 
 if __name__ == "__main__":
     unittest.main()

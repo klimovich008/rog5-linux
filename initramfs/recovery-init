@@ -16,6 +16,7 @@ expected_udc_test=dummy_udc.0
 expected_udc_inventory_count=3
 udc_class_dir=/sys/class/udc
 udc_poll_attempts=200
+stage2_collector_hold_seconds=1
 
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
@@ -1005,6 +1006,10 @@ if [ "$recovery_mode" = storage-layout-stage1-v1 ]; then
 	force_rollback
 fi
 if [ "$recovery_mode" = storage-layout-stage2-v1 ]; then
+	if [ "$stage2_readonly_preflight" = 1 ]; then
+		log 'holding Stage-2 emission for the prestarted host collector'
+		sleep "$stage2_collector_hold_seconds"
+	fi
 	if ! /usr/libexec/rog5-storage-layout-stage2; then
 		log 'terminal storage-layout stage-2 failure visible for 10 seconds before rollback'
 		sleep 10
