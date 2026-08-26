@@ -207,6 +207,10 @@ class InitPolicyTest(unittest.TestCase):
         )
         self.assertIn('expected_count=$expected_stage2_physical_count', source)
         self.assertIn('"$expected_count"', source)
+        self.assertIn("stage2_readonly_preflight=0", source)
+        self.assertIn("stage2_readonly_preflight=1", source)
+        self.assertIn('[ "$stage2_readonly_preflight" != 1 ] || return 0', source)
+        self.assertIn("^mode=read_only_preflight$", source)
 
     def test_recovery_udc_selection_accepts_exact_wrapper_inventory(self) -> None:
         accepted = self.run_recovery_udc_case(

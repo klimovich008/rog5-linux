@@ -126,6 +126,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
             "no_physical_mounts",
             "lock_storage",
             "resolve_exact_storage",
+            "wrapper_physical_count=",
             "userdata_blocks=51124000",
             "arch_root_empty=1",
             "all_read_only=1",
@@ -148,6 +149,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         collector = self.executable_source(COLLECTOR)
         self.assertIn('choices=("clone", "preflight")', collector)
         self.assertIn("Stage-2 preflight PASS identity or sequence changed", collector)
+        self.assertIn("Stage-2 preflight wrapper count is invalid", collector)
 
     def test_native_seal_is_the_refreshed_tree(self) -> None:
         payload = SEAL.read_bytes()

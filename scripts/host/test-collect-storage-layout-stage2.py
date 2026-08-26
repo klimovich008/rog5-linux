@@ -68,6 +68,7 @@ def preflight_passing(**changes: str) -> bytes:
         "stage": "S99_COMPLETE",
         "reason": "none",
         "operation_id": OPERATION,
+        "wrapper_physical_count": "117",
         "userdata_uuid": "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
         "userdata_blocks": "51124000",
         "arch_root_guid": "60f49e17-bdc6-46bf-8d47-8a24907024c9",
@@ -105,6 +106,8 @@ class CollectorTest(unittest.TestCase):
         self.assertEqual(transcript, b"".join(records))
         for changes in (
             {"userdata_blocks": "51123999"},
+            {"wrapper_physical_count": "0"},
+            {"wrapper_physical_count": "1000"},
             {"arch_root_empty": "0"},
             {"all_read_only": "0"},
             {"block_mounts": "1"},
@@ -116,7 +119,8 @@ class CollectorTest(unittest.TestCase):
                     preflight_passing(**changes),
                 ]
                 with self.assertRaisesRegex(
-                    MODULE.Stage2ProtocolError, "preflight PASS identity"
+                    MODULE.Stage2ProtocolError,
+                    "preflight (PASS identity|wrapper count)",
                 ):
                     MODULE.capture(
                         FakeTransport(hostile),
