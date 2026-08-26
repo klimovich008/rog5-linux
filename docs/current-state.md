@@ -323,6 +323,13 @@ local Arch, runtime attestation, and strict SSH. At 254 seconds it reported
 zero blocked UFS commands/errors. The host alone rejected the stale literal
 `physical_blocks=116`; exact fallback and intent resolution passed. The
 successor changes only that host parser and signed one-use identity.
+Generation 193 passed the complete mainline read-only Stage-2 gate in 339.080
+seconds. It proved exact read-only p23/p24, local Arch/systemd/key-only SSH,
+battery 8.701 V at 30.1 C, side USB online with +312 mA input, 30 safe thermal
+zones with 39.5 C maximum, and zero UFS errors. Intent resolved
+`TARGET_ACCEPTED` and exact slot-A fastboot returned at 8.718 V. Stage-2 clone
+is now technically eligible under the previously authorized bounded p24-only
+write plan.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

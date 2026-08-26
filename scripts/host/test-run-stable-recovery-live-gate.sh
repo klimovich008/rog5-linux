@@ -405,8 +405,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 192 cycle; mainline runtime passed at 254 seconds with 117 physical nodes, two read-only backing mounts, strict SSH and zero UFS errors, but host acceptance still required stale physical_blocks=116; exact fallback and intent resolution passed; no p24 write; never retry or flash" &&
 		NF == 3 { stage2_mainline_v2++ ; next }
 	$1 == "build/storage-layout-stage2-mainline-readonly-v3-generation193-20260826-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed successful Generation 193 read-only cycle; exact p23/p24, 117 read-only nodes, local Arch/systemd/strict SSH, 30.1 C battery, +312 mA USB input, 39.5 C max thermal, zero UFS errors, and exact fastboot passed in 339.080 seconds; no p24 write; never retry or flash" &&
 		NF == 3 { stage2_mainline_v3++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -623,7 +623,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
