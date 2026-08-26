@@ -36,6 +36,9 @@ LOAD_BACKUP_SUCCESSOR = (
 CURRENT_LOAD_BACKUP_SUCCESSOR = (
     REPO / "manifests/storage-layout-stage1-load-backup-generation168.manifest"
 )
+PREWRITE_OBSERVER = (
+    REPO / "manifests/storage-layout-stage1-prewrite-observer-generation169.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -195,7 +198,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 5)
+        self.assertEqual(len(lines), 6)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -326,10 +329,38 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         }
         self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
         self.assertEqual(admitted[5], fields["image_sha256"])
-        self.assertIn("only source delta from Generation 167", admitted[6])
+        self.assertIn("no terminal stage was captured", admitted[6])
+
+    def test_generation169_is_byte_exact_receive_only_discriminator(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in PREWRITE_OBSERVER.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(PREWRITE_OBSERVER.read_bytes()).hexdigest()
+        self.assertEqual(
+            digest,
+            "c129243271b42c6efb38e3248d5a2ba58b11346720f8c188250efa5f8482e207",
+        )
+        self.assertEqual(fields["raw_identity"], "byte-identical-to-consumed-generation168")
+        self.assertEqual(fields["observer_mode"], "receive-only-start-before-fastboot-boot")
+        self.assertEqual(fields["readiness"], "forbidden")
+        self.assertEqual(fields["backup_ack"], "forbidden")
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], digest)
+        self.assertEqual(admitted[5], fields["image_sha256"])
+        self.assertIn("observer starts before boot and sends no readiness", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)

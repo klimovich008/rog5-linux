@@ -51,9 +51,12 @@ GPT, and returned through slot A. The successor seals the offline-verified
 desired GPT backup and uses the live-proven single `--load-backup` operation.
 Generation 167 then failed before S30/ACK/write on the stale pre-shrink
 filesystem-block guard and returned through slot A. The unissued successor
-changes only that guard to the current 51,124,000 blocks. Full CI passed;
-Generation 168 is narrowly admitted and remains unbooted with an unconsumed
-claim. Stage 2 is authorized only after Stage 1 passes.
+changes only that guard to the current 51,124,000 blocks. Full CI passed.
+Generation 168 then lost its pre-S30 record before the anchor-first
+collector started; no ACK/write occurred and slot-A fallback passed. After the
+required systematic/Opus review, Generation 169 reissues byte-identical raw
+target bytes with a receive-only collector started before boot. It stops at S30
+without readiness or ACK. Stage 2 is authorized only after Stage 1 passes.
 
 ## Completed charging repair
 
