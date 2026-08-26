@@ -111,6 +111,7 @@ def capture(
     stages = STAGES if result_profile == "clone" else STAGES[:2]
     next_stage = 0
     guards_seen = result_profile == "clone"
+    partition_seen = result_profile == "clone"
     for _ in range(64):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -130,14 +131,53 @@ def capture(
                     "isolation",
                     "power",
                     "inventory",
+                    "auto_markers",
+                    "host_markers",
+                    "wlun_markers",
+                    "blocked_queries",
+                    "blocked_scsi",
                     "wrapper_physical_count",
                 ),
             )
             if any(fields[name] not in {"pass", "fail"} for name in (
                 "discovery", "isolation", "power", "inventory"
-            )) or re.fullmatch(r"[0-9]{1,3}", fields["wrapper_physical_count"]) is None:
+            )) or any(
+                re.fullmatch(r"[0-9]{1,6}", fields[name]) is None
+                for name in (
+                    "auto_markers", "host_markers", "wlun_markers",
+                    "blocked_queries", "blocked_scsi", "wrapper_physical_count",
+                )
+            ):
                 fail("Stage-2 guard classification changed")
             guards_seen = True
+            continue
+        if status == "status=PARTITION":
+            if result_profile != "preflight" or partition_seen or next_stage != 2:
+                fail("unexpected Stage-2 partition record")
+            fields = exact_fields(
+                tokens,
+                (
+                    "status", "number", "read", "first", "last", "type",
+                    "unique", "name", "attrs",
+                ),
+            )
+            if fields["number"] != "24" or fields["read"] not in {"pass", "fail"}:
+                fail("Stage-2 partition classification changed")
+            if fields["read"] == "pass":
+                if (
+                    re.fullmatch(r"[0-9]{1,12}", fields["first"]) is None
+                    or re.fullmatch(r"[0-9]{1,12}", fields["last"]) is None
+                    or UUID.fullmatch(fields["type"]) is None
+                    or UUID.fullmatch(fields["unique"]) is None
+                    or re.fullmatch(r"[A-Za-z0-9._-]{1,36}", fields["name"]) is None
+                    or re.fullmatch(r"[0-9a-f]{16}", fields["attrs"]) is None
+                ):
+                    fail("Stage-2 partition classification changed")
+            elif any(fields[name] != "invalid" for name in (
+                "first", "last", "type", "unique", "name", "attrs"
+            )):
+                fail("Stage-2 partition classification changed")
+            partition_seen = True
             continue
         if status == "status=RUNNING":
             fields = exact_fields(tokens, ("status", "stage", "reason"))
@@ -201,7 +241,12 @@ def capture(
                     "all_read_only": "1",
                     "block_mounts": "0",
                 }
-                if fields != expected or next_stage != len(stages) or not guards_seen:
+                if (
+                    fields != expected
+                    or next_stage != len(stages)
+                    or not guards_seen
+                    or not partition_seen
+                ):
                     fail("Stage-2 preflight PASS identity or sequence changed")
                 return bytes(transcript), payload
             fields = exact_fields(

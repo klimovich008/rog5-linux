@@ -92,7 +92,33 @@ def guards(**changes: str) -> bytes:
         "isolation": "pass",
         "power": "pass",
         "inventory": "pass",
+        "auto_markers": "1",
+        "host_markers": "1",
+        "wlun_markers": "8",
+        "blocked_queries": "0",
+        "blocked_scsi": "0",
         "wrapper_physical_count": "117",
+    }
+    fields.update(changes)
+    return (
+        MODULE.PREFIX
+        + " "
+        + " ".join(f"{name}={value}" for name, value in fields.items())
+        + "\n"
+    ).encode()
+
+
+def partition(**changes: str) -> bytes:
+    fields = {
+        "status": "PARTITION",
+        "number": "24",
+        "read": "pass",
+        "first": "53477376",
+        "last": "61865978",
+        "type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "unique": "60f49e17-bdc6-46bf-8d47-8a24907024c9",
+        "name": "arch_root_a",
+        "attrs": "0000000000000000",
     }
     fields.update(changes)
     return (
@@ -120,6 +146,7 @@ class CollectorTest(unittest.TestCase):
             running("S00_CONFIG"),
             guards(),
             running("S10_TOPOLOGY"),
+            partition(),
             preflight_passing(),
         ]
         transcript, terminal = MODULE.capture(
@@ -140,6 +167,7 @@ class CollectorTest(unittest.TestCase):
                     running("S00_CONFIG"),
                     guards(),
                     running("S10_TOPOLOGY"),
+                    partition(),
                     preflight_passing(**changes),
                 ]
                 with self.assertRaisesRegex(
@@ -160,6 +188,26 @@ class CollectorTest(unittest.TestCase):
             [running("S00_CONFIG"), guards(discovery="unknown"), running("S10_TOPOLOGY")],
             [running("S00_CONFIG"), guards(), guards(), running("S10_TOPOLOGY")],
         ):
+            with self.subTest(records=records):
+                with self.assertRaises(MODULE.Stage2ProtocolError):
+                    MODULE.capture(
+                        FakeTransport(records),
+                        OPERATION,
+                        TARGET_UUID,
+                        1.0,
+                        "preflight",
+                    )
+
+    def test_preflight_requires_one_canonical_partition_record(self) -> None:
+        base = [running("S00_CONFIG"), guards(), running("S10_TOPOLOGY")]
+        hostile = (
+            [*base, preflight_passing()],
+            [*base, partition(number="23"), preflight_passing()],
+            [*base, partition(first="invalid"), preflight_passing()],
+            [*base, partition(read="fail"), preflight_passing()],
+            [*base, partition(), partition(), preflight_passing()],
+        )
+        for records in hostile:
             with self.subTest(records=records):
                 with self.assertRaises(MODULE.Stage2ProtocolError):
                     MODULE.capture(
