@@ -183,6 +183,10 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertIn('if capture_bounded_signature "$arch_root"', self.executable_source(EXECUTOR))
         self.assertNotIn('if blkid "$arch_root"', self.executable_source(EXECUTOR))
         self.assertEqual(self.executable_source(EXECUTOR).count('blkid "$signature_source"'), 1)
+        self.assertEqual(self.executable_source(EXECUTOR).count('verify_safe_temperature /sys'), 3)
+        self.assertIn('battery_type" = Battery', self.executable_source(EXECUTOR))
+        self.assertIn('temperature_reason=battery_ambiguous', self.executable_source(EXECUTOR))
+        self.assertIn('temperature_reason=thermal_unsafe', self.executable_source(EXECUTOR))
         self.assertIn('options.output / "transcript.partial"', collector)
         self.assertIn("os.fsync(partial_fd)", collector)
 

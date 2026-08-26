@@ -9,7 +9,7 @@ fail() {
 	exit 1
 }
 
-for command in awk chmod dumpe2fs mkfs.ext4 mktemp sed truncate; do
+for command in awk chmod dumpe2fs mkdir mkfs.ext4 mktemp sed truncate; do
 	command -v "$command" >/dev/null ||
 		fail "missing Stage-2 fixture command: $command"
 done
@@ -57,4 +57,36 @@ fi
 [ -f "$empty_signature" ] && [ ! -s "$empty_signature" ] ||
 	fail 'zero-output blkid fixture did not remain an empty bounded capture'
 
-echo 'PASS Stage-2 runtime rejects zero-output successful blkid and accepts only exact clean ext4 geometry'
+sysfs=$work/sys
+mkdir -p "$sysfs/class/power_supply/vendor-battery" \
+	"$sysfs/class/thermal/thermal_zone0"
+printf 'Battery\n' >"$sysfs/class/power_supply/vendor-battery/type"
+printf '320\n' >"$sysfs/class/power_supply/vendor-battery/temp"
+printf '41000\n' >"$sysfs/class/thermal/thermal_zone0/temp"
+(
+	. "$functions"
+	verify_safe_temperature "$sysfs"
+) || fail 'safe type-discovered battery and thermal fixture was rejected'
+
+mkdir -p "$sysfs/class/power_supply/second-battery"
+printf 'Battery\n' >"$sysfs/class/power_supply/second-battery/type"
+printf '330\n' >"$sysfs/class/power_supply/second-battery/temp"
+(
+	. "$functions"
+	if verify_safe_temperature "$sysfs"; then
+		exit 1
+	fi
+	[ "$temperature_reason" = battery_ambiguous ]
+) || fail 'multiple Battery supplies were not classified exactly'
+rm -rf "$sysfs/class/power_supply/second-battery"
+
+printf '70000\n' >"$sysfs/class/thermal/thermal_zone0/temp"
+(
+	. "$functions"
+	if verify_safe_temperature "$sysfs"; then
+		exit 1
+	fi
+	[ "$temperature_reason" = thermal_unsafe ]
+) || fail 'unsafe thermal fixture was not classified exactly'
+
+echo 'PASS Stage-2 runtime covers zero-output blkid, exact ext4, and type-discovered temperature gates'
