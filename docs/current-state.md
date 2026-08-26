@@ -197,6 +197,10 @@ started the collector; no ACK/write occurred and slot-A fallback passed. A
 systematic/Opus review selected collector-before-boot as the smallest
 discriminator. Generation 169 is byte-identical at the raw target layer and
 uses a receive-only observer that stops at S30 without sending any host bytes.
+Generation 169 captured a verdict but discarded it when expected target
+departure failed post-capture USB revalidation. No host bytes or write occurred
+and slot-A fallback passed. The corrected observer durably writes validated
+frames before classifying departure versus changed identity.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
