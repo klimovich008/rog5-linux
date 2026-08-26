@@ -95,11 +95,11 @@ grep -Fq \
 [[ $(grep -Fc 'check_hash "$source_initramfs" "$expected_initramfs"' \
 	"$gate") -eq 1 ]] ||
 	fail 'current archive identity check is not unique'
-[[ $(grep -Fc 'verify-stable-recovery-initramfs.sh' "$gate") -eq 1 ]] ||
+[[ $(grep -Fc '"$initramfs_verifier" \' "$gate") -eq 1 ]] ||
 	fail 'stable-recovery initramfs verifier call is not unique'
 hash_line=$(grep -n 'check_hash "$source_initramfs" "$expected_initramfs"' \
 	"$gate" | cut -d: -f1)
-verify_line=$(grep -n 'verify-stable-recovery-initramfs.sh' "$gate" | cut -d: -f1)
+verify_line=$(grep -nF '"$initramfs_verifier" \' "$gate" | cut -d: -f1)
 [[ $hash_line =~ ^[0-9]+$ && $verify_line =~ ^[0-9]+$ &&
 	$hash_line -lt $verify_line ]] ||
 	fail 'current archive identity is not checked before exact init verification'
