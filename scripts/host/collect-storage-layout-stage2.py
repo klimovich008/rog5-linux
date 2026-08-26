@@ -110,6 +110,7 @@ def capture(
     transcript = bytearray()
     stages = STAGES if result_profile == "clone" else STAGES[:2]
     next_stage = 0
+    guards_seen = result_profile == "clone"
     for _ in range(64):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -118,6 +119,26 @@ def capture(
         transcript.extend(payload)
         tokens = parse_line(payload)
         status = tokens[1] if len(tokens) > 1 else ""
+        if status == "status=GUARDS":
+            if result_profile != "preflight" or guards_seen or next_stage != 1:
+                fail("unexpected Stage-2 guard record")
+            fields = exact_fields(
+                tokens,
+                (
+                    "status",
+                    "discovery",
+                    "isolation",
+                    "power",
+                    "inventory",
+                    "wrapper_physical_count",
+                ),
+            )
+            if any(fields[name] not in {"pass", "fail"} for name in (
+                "discovery", "isolation", "power", "inventory"
+            )) or re.fullmatch(r"[0-9]{1,3}", fields["wrapper_physical_count"]) is None:
+                fail("Stage-2 guard classification changed")
+            guards_seen = True
+            continue
         if status == "status=RUNNING":
             fields = exact_fields(tokens, ("status", "stage", "reason"))
             if fields["reason"] != "none" or next_stage >= len(stages):
@@ -180,7 +201,7 @@ def capture(
                     "all_read_only": "1",
                     "block_mounts": "0",
                 }
-                if fields != expected or next_stage != len(stages):
+                if fields != expected or next_stage != len(stages) or not guards_seen:
                     fail("Stage-2 preflight PASS identity or sequence changed")
                 return bytes(transcript), payload
             fields = exact_fields(

@@ -119,7 +119,10 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
 
     def test_read_only_preflight_exits_before_watchdog_or_write_window(self) -> None:
         source = self.executable_source(EXECUTOR)
-        start = source.index('if [ "$operation_mode" = read_only_preflight ]; then')
+        start = source.index(
+            'if [ "$operation_mode" = read_only_preflight ]; then',
+            source.index("gpt_before="),
+        )
         end = source.index("\nfi\n", start) + 4
         preflight = source[start:end]
         for contract in (
@@ -147,10 +150,15 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, preflight)
 
+        self.assertIn("recovery_guard_report_invalid", source)
+        self.assertIn('emit "status=GUARDS $guard_fields"', source)
+
         collector = self.executable_source(COLLECTOR)
         self.assertIn('choices=("clone", "preflight")', collector)
         self.assertIn("Stage-2 preflight PASS identity or sequence changed", collector)
         self.assertIn("Stage-2 preflight wrapper count is invalid", collector)
+        self.assertIn("unexpected Stage-2 guard record", collector)
+        self.assertIn("Stage-2 guard classification changed", collector)
 
     def test_native_seal_is_the_refreshed_tree(self) -> None:
         payload = SEAL.read_bytes()

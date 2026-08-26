@@ -357,6 +357,17 @@ trap 'fail interrupted' HUP INT TERM
 
 stage_set S00_CONFIG
 check_config || fail invalid_private_config
+if [ "$operation_mode" = read_only_preflight ]; then
+	guard_report=/run/rog5-stage2-preflight-guards
+	[ -f "$guard_report" ] && [ ! -L "$guard_report" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$guard_report" 2>/dev/null)" = 0:0:600:1 ] ||
+		fail recovery_guard_report_invalid
+	guard_fields=$(cat "$guard_report") || fail recovery_guard_report_invalid
+	printf '%s\n' "$guard_fields" | grep -Eq \
+		'^discovery=(pass|fail) isolation=(pass|fail) power=(pass|fail) inventory=(pass|fail) wrapper_physical_count=[0-9]+$' ||
+		fail recovery_guard_report_invalid
+	emit "status=GUARDS $guard_fields"
+fi
 [ -x "$verifier" ] && [ ! -L "$verifier" ] || fail verifier_unavailable
 [ -x "$watchdog_disarm" ] && [ ! -L "$watchdog_disarm" ] ||
 	fail watchdog_helper_unavailable

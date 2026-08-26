@@ -763,7 +763,7 @@ if [ "$ufs_discovery_count" -gt 1 ] || [ "$ufs_discovery_invalid" = 1 ]; then
 	log 'invalid UFS discovery command line; rebooting'
 	force_rollback
 fi
-if [ "$ufs_discovery" = 1 ]; then
+if [ "$stage2_readonly_preflight" != 1 ] && [ "$ufs_discovery" = 1 ]; then
 	if [ ! -r /proc/config.gz ] ||
 		! gzip -dc /proc/config.gz |
 			grep -qx 'CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y'; then
@@ -781,15 +781,15 @@ if [ "$ufs_discovery" = 1 ]; then
 	fi
 fi
 
-if ! isolate_storage; then
+if [ "$stage2_readonly_preflight" != 1 ] && ! isolate_storage; then
 	log 'storage isolation failed; rebooting'
 	force_rollback
 fi
-if ! verify_wrapper_storage_contract; then
+if [ "$stage2_readonly_preflight" != 1 ] && ! verify_wrapper_storage_contract; then
 	log 'ASUS wrapper storage topology mismatch before USB configuration'
 	force_rollback
 fi
-if [ "$ufs_discovery" = 1 ]; then
+if [ "$stage2_readonly_preflight" != 1 ] && [ "$ufs_discovery" = 1 ]; then
 	[ "$(cat /run/rog5-physical-block-count)" -gt 0 ] || {
 		log 'UFS discovery did not enumerate a physical disk'
 		force_rollback
@@ -831,15 +831,15 @@ fi
 	log 'ACM device node missing after rescan; rollback timer remains armed'
 	force_rollback
 }
-if ! isolate_storage; then
+if [ "$stage2_readonly_preflight" != 1 ] && ! isolate_storage; then
 	log 'storage isolation failed after device-node rescan; rebooting'
 	force_rollback
 fi
-if ! verify_wrapper_storage_contract; then
+if [ "$stage2_readonly_preflight" != 1 ] && ! verify_wrapper_storage_contract; then
 	log 'ASUS wrapper storage topology mismatch after device-node rescan'
 	force_rollback
 fi
-if [ "$ufs_discovery" = 1 ] &&
+if [ "$stage2_readonly_preflight" != 1 ] && [ "$ufs_discovery" = 1 ] &&
 	! verify_ufs_power_containment; then
 	log 'UFS power containment failed after device-node rescan; rebooting'
 	force_rollback
@@ -946,6 +946,33 @@ while [ "$attempt" -lt 100 ]; do
 	attempt=$((attempt + 1))
 done
 log "fixed recovery control ready; state=$udc_state carrier=$carrier"
+
+if [ "$stage2_readonly_preflight" = 1 ]; then
+	guard_discovery=fail
+	guard_isolation=fail
+	guard_power=fail
+	guard_inventory=fail
+	wrapper_count=0
+	wait_for_ufs_discovery && guard_discovery=pass
+	isolate_storage && guard_isolation=pass
+	verify_ufs_power_containment && guard_power=pass
+	write_ufs_inventory && guard_inventory=pass
+	if [ -s /run/rog5-physical-block-count ]; then
+		wrapper_count=$(cat /run/rog5-physical-block-count)
+	fi
+	case $wrapper_count in ''|*[!0-9]*) wrapper_count=0 ;; esac
+	guard_report=/run/rog5-stage2-preflight-guards
+	guard_report_tmp=/run/.rog5-stage2-preflight-guards.$$
+	if ! printf 'discovery=%s isolation=%s power=%s inventory=%s wrapper_physical_count=%s\n' \
+		"$guard_discovery" "$guard_isolation" "$guard_power" \
+		"$guard_inventory" "$wrapper_count" >"$guard_report_tmp" ||
+		! chmod 0600 "$guard_report_tmp" ||
+		! mv -f "$guard_report_tmp" "$guard_report"; then
+		log 'cannot publish Stage-2 preflight guard report; rebooting'
+		force_rollback
+	fi
+	log "Stage-2 deferred guards ready; discovery=$guard_discovery isolation=$guard_isolation power=$guard_power inventory=$guard_inventory count=$wrapper_count"
+fi
 
 if [ "$recovery_mode" = storage-preflight-v2 ]; then
 	if ! run_storage_preflight; then
