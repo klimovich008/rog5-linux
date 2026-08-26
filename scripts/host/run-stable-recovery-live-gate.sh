@@ -3767,7 +3767,7 @@ case $profile in
 		expected_avb_salt=76a5817993f00fcf331b0a0b6bb719f56d0fb3b42d8fbac6aa3efe0e91d0fd6e
 		expected_avb_digest=e90f8d8fadc9e2a11f3eac04ca2b771075fa7dbbf29585c30b3efb072748a49e
 		expected_generation_record=d695b8e99b51331e491317d42146329fc7f0e2417cd3bdb4e85dd30effbed8b9
-		recovery_init=$repo/initramfs/recovery-init
+		recovery_init=$repo/artifacts/recovery-init-generation163/recovery-init
 		[[ $expected_manifest == 75c44d8d069dd79e448fd546aaa3cabb60fa9fada04e8f4310f9d2d04f490e65 ]] || fail 'mainline Stage-2 read-only manifest is not pinned'
 		[[ $expected_image == 49f28d5a9950659e355dda731b112c6980ae94663da287e54785341803c52918 ]] || fail 'mainline Stage-2 read-only recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'mainline Stage-2 read-only trust is not pinned'
