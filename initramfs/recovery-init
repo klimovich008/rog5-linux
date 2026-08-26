@@ -4,7 +4,7 @@ set -u
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin
 export LC_ALL=C
 export TZ=UTC
-expected_wrapper_physical_count=116
+expected_wrapper_physical_count=117
 expected_stage2_physical_count=117
 empty_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 zero_sha256=0000000000000000000000000000000000000000000000000000000000000000
@@ -515,7 +515,7 @@ run_storage_preflight() {
 				"$sys_partition/uevent" | sed -n '1p')
 			[ "$partition_name" = userdata ] || continue
 			[ "$(cat "$sys_partition/start")" = 18821440 ] || continue
-			[ "$(cat "$sys_partition/size")" = 476106392 ] || continue
+			[ "$(cat "$sys_partition/size")" = 408997568 ] || continue
 			candidate_userdata=/dev/$(basename "$sys_partition")
 		done
 		[ -n "$candidate_userdata" ] || continue

@@ -202,13 +202,14 @@ class InitPolicyTest(unittest.TestCase):
             "grep -Eq '^session=[0-9a-f]{32}$'",
             source,
         )
-        self.assertIn("expected_wrapper_physical_count=116", source)
+        self.assertIn("expected_wrapper_physical_count=117", source)
         self.assertIn("expected_stage2_physical_count=117", source)
         self.assertIn(
             '"$recovery_mode" != storage-layout-stage2-v1',
             source,
         )
         self.assertIn('expected_count=$expected_stage2_physical_count', source)
+        self.assertIn('"$sys_partition/size")" = 408997568', source)
         self.assertIn('"$expected_count"', source)
         self.assertIn("stage2_readonly_preflight=0", source)
         self.assertIn("stage2_readonly_preflight=1", source)

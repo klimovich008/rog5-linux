@@ -311,6 +311,12 @@ Generation-158 evidence independently proves the mainline V49 runtime has
 qcom-battmgr gating, bounded high-speed UFS writes, and completed the same
 16-GiB source staging/finalization in about 92 seconds. Stage 2 now ports its
 exact storage checks to that proven mainline runtime, beginning read-only.
+Generation 191 used the correct fresh mainline target bundle but reused the
+historical V54 recovery ramdisk. Its pre-Stage-1 recovery topology rejected the
+current 117-node p23/p24 layout before ACM, so the target never executed and no
+storage write occurred; stock slot-A recovery returned. The successor keeps
+the proven wrapper kernel and mainline target, but rebuilds only the full
+recovery ramdisk from current 117-node source.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

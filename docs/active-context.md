@@ -160,6 +160,11 @@ returned untouched to exact fastboot. No more wrapper successors are planned.
 The next read-only gate reuses the Generation-158 mainline V49 charging/UFS
 runtime, which already passed qcom-battmgr safety checks and completed bounded
 high-speed 16-GiB staging in about 92 seconds.
+Generation 191 was consumed before recovery ACM: its reused V54 recovery
+ramdisk still expected the pre-Stage-1 topology. The target bundle never ran,
+phone storage remained untouched, and slot-A stock recovery returned. The
+next successor changes only the full recovery ramdisk to current 117-node
+source; wrapper kernel and mainline target remain frozen.
 
 ## Completed charging repair
 
