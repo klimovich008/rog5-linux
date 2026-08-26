@@ -234,6 +234,11 @@ Generation 176 consumed the first read-only gate but completed or failed before
 ACM stabilized, so no target verdict survived; no write path was reachable. Its
 Stage-2 wrapper also omitted the restart2 helper and therefore entered stock
 recovery. The successor changes only terminal delivery hold and helper packaging.
+Generation 177 proved the remaining pre-USB cause: recovery-init globally
+expected 116 physical block nodes, while the correct post-Stage-1 topology is
+117 after p24 creation. No Stage-2 write path was reachable, and packaged
+restart2 returned exact fastboot. Stage 1 remains intact. The successor makes
+the count mode-specific: Stage 1 remains 116 and Stage 2 requires exactly 117.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

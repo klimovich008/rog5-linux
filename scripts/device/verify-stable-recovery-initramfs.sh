@@ -173,6 +173,7 @@ fi
 
 grep -Fq 'pid=%s\nstarttime=%s\n' "$stage/init"
 grep -Fq 'expected_wrapper_physical_count=116' "$stage/init"
+grep -Fq 'expected_stage2_physical_count=117' "$stage/init"
 grep -Fq 'mount -t pstore -o ro pstore /sys/fs/pstore' "$stage/init"
 grep -Fq '/run/rog5-postmortem.status' "$stage/init"
 grep -Fq "grep -Eq '^session=[0-9a-f]{32}$'" "$stage/init"
