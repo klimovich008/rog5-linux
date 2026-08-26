@@ -60,7 +60,9 @@ without readiness or ACK. Stage 2 is authorized only after Stage 1 passes.
 Generation 169 captured a receive-only verdict but discarded it before
 publication when expected departure failed final USB revalidation. No write
 occurred and slot-A fallback passed. The host-only successor writes validated
-evidence before classifying `DEPARTED` versus `CHANGED`.
+evidence before classifying `DEPARTED` versus `CHANGED`. Generation 170 is a
+byte-identical-raw receive-only successor with one narrow admission and an
+unconsumed claim.
 
 ## Completed charging repair
 
