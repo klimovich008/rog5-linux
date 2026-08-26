@@ -370,6 +370,14 @@ PROFILES.update(
             b"faecb6ded2dea36099195dbb0e611e39a47dfef733ba3f94d9f17bd127a2e345\n"
             b"state=BOOT_CLAIMED\n"
         ),
+        "storage-layout-stage2-preflight-generation187-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=storage-layout-stage2-preflight-generation187-live-v1\n"
+            b"candidate=storage-layout-stage2-preflight\n"
+            b"manifest_sha256="
+            b"b9f01bbc792cc41c054fb3c00e39bf8703ab122f74262a3efae83c444e9b987b\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "storage-preflight-v3-generation73-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
