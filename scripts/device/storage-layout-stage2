@@ -387,6 +387,7 @@ if [ "$operation_mode" = read_only_preflight ]; then
 	stage=S99_COMPLETE
 	emit "status=PASS stage=$stage reason=none operation_id=$operation_id userdata_uuid=$expected_userdata_fs_uuid userdata_blocks=51124000 arch_root_guid=$expected_root_guid arch_root_empty=1 all_read_only=1 block_mounts=0"
 	log 'read-only new-layout preflight complete'
+	sleep 3
 	exit 0
 fi
 
