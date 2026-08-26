@@ -201,7 +201,7 @@ def capture(
                 is None
                 or fields["uuid"] not in {"present", "absent"}
                 or fields["label"] not in {"present", "absent"}
-                or re.fullmatch(r"[1-9][0-9]{0,3}", fields["bytes"]) is None
+                or re.fullmatch(r"[1-9][0-9]{0,4}", fields["bytes"]) is None
                 or HEX64.fullmatch(fields["sha256"]) is None
             ):
                 fail("Stage-2 signature classification changed")

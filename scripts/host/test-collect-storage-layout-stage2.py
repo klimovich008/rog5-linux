@@ -390,6 +390,7 @@ class CollectorTest(unittest.TestCase):
             signature(type="ext 4"),
             signature(uuid="unknown"),
             signature(bytes="0"),
+            signature(bytes="100000"),
             signature(sha256="0"),
         ):
             with self.subTest(record=record):

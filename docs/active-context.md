@@ -148,6 +148,10 @@ directly to exact fastboot. It stopped at `arch_root_not_empty`: BusyBox
 `blkid` recognizes a residual signature in p24, which is the former userdata
 tail. No write occurred. The next read-only discriminator reports only the
 bounded signature type, UUID/label presence, byte count, and output hash.
+Generation 186 is consumed after the same read-only boundary exceeded the
+initial 1-KiB `blkid` evidence cap. No signature bytes were emitted, no storage
+write occurred, and exact fastboot returned. The successor changes only the
+private text-output bound to 64 KiB while retaining exact parsing and refusal.
 
 ## Completed charging repair
 
