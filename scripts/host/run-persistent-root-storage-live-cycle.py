@@ -78,7 +78,10 @@ LIVE_ROOT = (
     REPO
     / "build/storage-layout-stage2-mainline-readonly-v2-generation192-20260826-r1"
 )
-COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
+COMPONENT_ROOT = (
+    REPO
+    / "build/storage-layout-stage2-mainline-readonly-v2-recovery-components-20260826-r1"
+)
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450

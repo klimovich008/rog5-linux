@@ -90,6 +90,10 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "temp_millic=",
         ):
             self.assertIn(contract, source)
+        self.assertEqual(
+            MODULE.COMPONENT_ROOT.name,
+            "storage-layout-stage2-mainline-readonly-v2-recovery-components-20260826-r1",
+        )
         for digest in (
             MODULE.MANIFEST_SHA256,
             MODULE.RECOVERY_SHA256,
