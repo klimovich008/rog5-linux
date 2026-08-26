@@ -128,6 +128,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
             "arch_root_empty=1",
             "all_read_only=1",
             "block_mounts=0",
+            "sleep 3",
             "exit 0",
         ):
             self.assertIn(contract, preflight)
@@ -194,6 +195,8 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
             'check_hash "$native_seal" "$native_seal_sha256"',
             'install -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"',
             'check_hash "$verifier" "$verifier_sha256"',
+            'check_hash "$reboot_bootloader" "$reboot_bootloader_sha256"',
+            'install -m 0755 "$reboot_bootloader" "$stage/usr/libexec/rog5-reboot-bootloader"',
             "find . -mindepth 1 -print0 | sort -z",
             "gzip -n",
         ):
@@ -224,8 +227,9 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0][0], fields["profile"])
-        self.assertEqual(rows[0][1], "allow")
+        self.assertEqual(rows[0][1], "revoked")
         self.assertEqual(rows[0][2], digest)
+        self.assertIn("no write path was reachable", rows[0][6])
 
 
 if __name__ == "__main__":

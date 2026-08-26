@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-base=${1:?usage: build-storage-layout-stage2-initramfs.sh BASE INIT EXECUTOR WATCHDOG_DISARM PRIVATE_CONFIG PRIVATE_CONFIG_SHA256 NATIVE_SEAL VERIFIER SGDISK_APK POPT_APK LIBGCC_APK LIBSTDCXX_APK MUSL_APK LIBUUID_APK OUTPUT}
+base=${1:?usage: build-storage-layout-stage2-initramfs.sh BASE INIT EXECUTOR WATCHDOG_DISARM PRIVATE_CONFIG PRIVATE_CONFIG_SHA256 NATIVE_SEAL VERIFIER SGDISK_APK POPT_APK LIBGCC_APK LIBSTDCXX_APK MUSL_APK LIBUUID_APK REBOOT_BOOTLOADER OUTPUT}
 init=${2:?missing recovery init}
 executor=${3:?missing stage-2 executor}
 watchdog_disarm=${4:?missing watchdog disarm helper}
@@ -15,12 +15,14 @@ libgcc_apk=${11:?missing libgcc package}
 libstdcpp_apk=${12:?missing libstdc++ package}
 musl_apk=${13:?missing musl package}
 libuuid_apk=${14:?missing libuuid package}
-output=${15:?missing output}
+reboot_bootloader=${15:?missing reboot-to-bootloader helper}
+output=${16:?missing output}
 epoch=1681862400
-executor_sha256=8a75d45ea1048ddd1a2756e2f85cf1ce3d1e63b14fbdd4381afacd514d27e477
+executor_sha256=acec195b49e3f35494473fdb603d986c3dc495dfe5e65726d131105620d7b51a
 watchdog_disarm_sha256=ba40a89f0e20f17accb04283e36e859822070450bee44de8924255801cbef2fb
 native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 verifier_sha256=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
+reboot_bootloader_sha256=68d6a69e597e9fa86ee956ee9fadc15f4283e7dd2a6032b924449330bb3e4785
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 readonly_builder=$script_dir/build-storage-preflight-initramfs.sh
 export LC_ALL=C
@@ -44,12 +46,13 @@ done
 for input in "$base" "$init" "$executor" "$watchdog_disarm" \
 	"$private_config" "$native_seal" "$verifier" "$sgdisk_apk" "$popt_apk" \
 	"$libgcc_apk" "$libstdcpp_apk" "$musl_apk" "$libuuid_apk" \
-	"$readonly_builder"; do
+	"$reboot_bootloader" "$readonly_builder"; do
 	[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
 		fail "unsafe storage-layout input: $(basename "$input")"
 done
 [ -x "$init" ] && [ -x "$executor" ] && [ -x "$watchdog_disarm" ] &&
-	[ -x "$verifier" ] && [ -x "$readonly_builder" ] ||
+	[ -x "$verifier" ] && [ -x "$reboot_bootloader" ] &&
+	[ -x "$readonly_builder" ] ||
 	fail 'initramfs programs must be executable'
 [ ! -e "$output" ] && [ ! -L "$output" ] ||
 	fail 'storage-layout output already exists'
@@ -65,6 +68,7 @@ check_hash "$watchdog_disarm" "$watchdog_disarm_sha256"
 check_hash "$private_config" "$private_config_sha256"
 check_hash "$native_seal" "$native_seal_sha256"
 check_hash "$verifier" "$verifier_sha256"
+check_hash "$reboot_bootloader" "$reboot_bootloader_sha256"
 
 [ "$(wc -l <"$private_config")" = 11 ] || fail 'private config line count changed'
 for key in mode operation_id disk_guid userdata_type_guid userdata_unique_guid \
@@ -118,6 +122,7 @@ install -m 0755 "$executor" "$stage/usr/libexec/rog5-storage-layout-stage2"
 install -m 0755 "$watchdog_disarm" \
 	"$stage/usr/libexec/rog5-disarm-recovery-layout-watchdog"
 install -m 0755 "$verifier" "$stage/usr/libexec/rog5-persistent-root-verify"
+install -m 0755 "$reboot_bootloader" "$stage/usr/libexec/rog5-reboot-bootloader"
 install -m 0400 "$private_config" "$stage/etc/rog5/storage-layout-stage2.conf"
 install -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"
 
@@ -126,7 +131,8 @@ install -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"
 [ ! -e "$stage/usr/sbin/kexec" ] || fail 'kexec survived stage-2 packaging'
 for path in init usr/libexec/rog5-storage-layout-stage2 \
 	usr/libexec/rog5-disarm-recovery-layout-watchdog \
-	usr/libexec/rog5-persistent-root-verify etc/rog5/native-root-v1.seal \
+	usr/libexec/rog5-persistent-root-verify usr/libexec/rog5-reboot-bootloader \
+	etc/rog5/native-root-v1.seal \
 	usr/bin/sgdisk sbin/e2fsck usr/sbin/tune2fs usr/sbin/dumpe2fs \
 	usr/sbin/resize2fs; do
 	[ -e "$stage/$path" ] || fail "stage-2 initramfs lacks $path"
@@ -149,6 +155,8 @@ cmp "$stage/usr/libexec/rog5-disarm-recovery-layout-watchdog" \
 	"$watchdog_disarm" || fail 'packaged watchdog helper changed'
 cmp "$stage/usr/libexec/rog5-persistent-root-verify" "$verifier" ||
 	fail 'packaged verifier changed'
+cmp "$stage/usr/libexec/rog5-reboot-bootloader" "$reboot_bootloader" ||
+	fail 'packaged reboot-to-bootloader helper changed'
 cmp "$stage/etc/rog5/storage-layout-stage2.conf" "$private_config" ||
 	fail 'packaged private config changed'
 cmp "$stage/etc/rog5/native-root-v1.seal" "$native_seal" ||

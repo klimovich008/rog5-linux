@@ -230,6 +230,10 @@ primary fixed-region writes, exact readback, new p23/p24 GPT geometry, protected
 partitions, clean 51,124,000-block ext4, relock, S99, and automatic fastboot all
 passed. The next gate is a separate RAM-only read-only boot proving that the
 kernel enumerates the persisted p23/p24 layout before any Stage-2 clone write.
+Generation 176 consumed the first read-only gate but completed or failed before
+ACM stabilized, so no target verdict survived; no write path was reachable. Its
+Stage-2 wrapper also omitted the restart2 helper and therefore entered stock
+recovery. The successor changes only terminal delivery hold and helper packaging.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
