@@ -208,6 +208,10 @@ stops at S30. Generation 171 passed exact S00-S30 with zero host bytes and no
 write, then returned through slot A. Storage-layout rollback now invokes the
 sealed restart2 bootloader helper before generic reboot, removing the recurring
 stock-recovery/manual-button bottleneck in future cycles.
+Full CI passed for production Generation 172. It binds the exact S00-S30 proof,
+current filesystem, sealed GPT load, normal fresh-backup/ACK collector, and
+restart2 fastboot fallback; one narrow admission exists and its claim remains
+unconsumed.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

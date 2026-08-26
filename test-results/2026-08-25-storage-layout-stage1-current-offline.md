@@ -151,6 +151,11 @@
   first for all early, watchdog, failure, and success paths. Generic reboot and
   SysRq remain fallback if restart2 unexpectedly returns. Twenty-one focused
   Stage-1 source tests pass.
+- Production Generation 172 clean initramfs twins match at `97c71ef0...` and
+  AVB twins at `fa8d5ca4...`. Full recovery/storage CI passed on `5aec551` in
+  7m24.105s. The candidate binds Generation-171 S00-S30 evidence, the current
+  filesystem, sealed GPT, normal fresh-backup collector, and restart2 fastboot
+  fallback; one narrow admission exists and its claim is unconsumed.
 
 ## Generation 167 prewrite result
 
