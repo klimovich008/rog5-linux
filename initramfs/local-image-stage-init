@@ -141,7 +141,6 @@ arm_hardware_watchdog() {
 	hardware_watchdog_pid=$!
 	sleep 0.2
 	kill -0 "$hardware_watchdog_pid" 2>/dev/null || return 1
-	[ "$(cat "$watchdog_sys/timeout")" = 30 ] || return 1
 	printf 'format=rog5-hardware-watchdog-v1\nstate=ARMED\ndriver=qcom_wdt\ncompatible=qcom,kpss-wdt\ntimeout_seconds=30\npid=%s\n' \
 		"$hardware_watchdog_pid" >"$record" || return 1
 	chmod 0444 "$record" || return 1

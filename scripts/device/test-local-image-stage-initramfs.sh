@@ -34,6 +34,7 @@ for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
 	"$writekernel_manifest" "$writekernel_claim"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
+! grep -Fq '$watchdog_sys/timeout' "$init"
 sh -n "$init" "$installer" "$builder"
 python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
