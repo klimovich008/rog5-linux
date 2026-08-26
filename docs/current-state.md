@@ -35,14 +35,18 @@ watchdogs began at 20:39:32; the userspace rollback did not run at its nominal
 the prior rollback was not independent of a kernel/UFS stall. p24 disposition
 is not inferred from the missing marker.
 
-Generation 195 is the sole active successor. It reads only a bounded 4 MiB
-prefix, ext4 superblock fields and—only for an exact known filesystem—a
-read-only sealed tree. It contains no repair or write command and will classify
-p24 as `non-ext4`, `source-clone`, `grown-target` or `partial-ext4`. The clone
-successor has already replaced the full sparse-file hash with loop-mounted,
-read-only ext4 identity and sealed-tree verification. Hardware-watchdog work
-remains required before another writable cycle because the built target has
-`CONFIG_QCOM_WDT=m` but packages, loads and opens no matching watchdog module.
+Generation 195 passed: p24 is `non-ext4` and its first 4 MiB hash is exactly
+the SHA-256 of 4 MiB of zeros. Target runtime, exact slot-A fastboot fallback,
+and intent resolution as `TARGET_ACCEPTED` passed; the later host failure was
+only a redundant second fastboot-path check, now removed.
+
+Generation 196 is the sole active successor. It replaces the full sparse-file
+hash with loop-mounted read-only ext4 identity and sealed-tree verification,
+then uses allocated-block restore, UUID/grow/seal/relock on p24 only. The stock
+WW33 DT proves APSS watchdog MMIO `0x17c10000`; the successor adds that exact
+node, packages the clean-twin `qcom_wdt` module, and opens a 30-second watchdog
+pinged every five seconds before any storage write. A kernel stall can no
+longer depend solely on the delayed shell timer.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

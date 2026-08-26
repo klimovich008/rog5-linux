@@ -6,6 +6,10 @@ target=$repo/scripts/device/clone-local-image-to-arch-root.sh
 builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
 candidate=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-clone-v1.json
 artifact=$repo/artifacts/storage-layout-stage2-mainline-clone-v1/initramfs.cpio.gz
+successor=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-clone-v2.json
+successor_initramfs=$repo/artifacts/storage-layout-stage2-mainline-clone-v2/initramfs.cpio.gz
+successor_dtb=$repo/artifacts/storage-layout-stage2-mainline-clone-v2/board.dtb
+successor_manifest=$repo/manifests/storage-layout-stage2-mainline-clone-v2-generation196.manifest
 
 sh -n "$target"
 for contract in \
@@ -65,5 +69,36 @@ assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
     item["sha256"] == \
     "a4d096eae3909c61fe0ea3eefb70b09e58e74e481c0b695024709c2ede3d9e99"
 PY
+
+python3 - "$successor" "$successor_initramfs" "$successor_dtb" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "storage-layout-stage2-mainline-clone-v2"
+assert record["candidate"] == record["bundle"] == record["target_id"]
+assert record["status"] == "offline" and record["authority"] == "none"
+expected = {
+    "initramfs.cpio.gz": (
+        Path(sys.argv[2]),
+        23912736,
+        "7d530c37d9ede1febd3aa2854bb8b7abffee24d5071fb426df35f12abba2854d",
+    ),
+    "board.dtb": (
+        Path(sys.argv[3]),
+        103226,
+        "9d1bcd7f2dbbdfb0dfe48124de4a0763712c3375465d72987f18bb316435427e",
+    ),
+}
+for name, (path, size, digest) in expected.items():
+    item = record["artifacts"][name]
+    assert path.stat().st_size == item["size"] == size
+    assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
+        item["sha256"] == digest
+PY
+grep -Fqx 'avb_generation=196' "$successor_manifest"
+grep -Fqx 'watchdog=qcom-kpss-30s-ping5s' "$successor_manifest"
 
 echo 'PASS p24 clone is exact-scope, allocated-block, power/thermal-gated, sealed, and hostile-destination tested'
