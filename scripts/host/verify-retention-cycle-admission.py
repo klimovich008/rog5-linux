@@ -1053,6 +1053,17 @@ EXPECTED_CLAIMS[
     "1384d198998f3a055487c747b38f59f0abcfb452049d7b77879f9e0cf1e0380a\n"
     "state=BOOT_CLAIMED\n"
 ).encode("ascii")
+EXPECTED_CLAIMS[
+    "storage-layout-stage2-mainline-clone-v1-generation194-live-v1"
+] = (
+    "format=rog5-temporary-boot-consumption-v1\n"
+    "recovery_profile="
+    "storage-layout-stage2-mainline-clone-v1-generation194-live-v1\n"
+    "candidate=storage-layout-stage2-mainline-clone-v1\n"
+    "manifest_sha256="
+    "115fc705b9e3eb396ba75760ca0db4bae663ccc95fadc1ead21b84b874d97f06\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 EXPECTED_CLAIMS["persistent-root-local-image-write-mountpoint-v42-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=persistent-root-local-image-write-mountpoint-v42-live-v1\n"

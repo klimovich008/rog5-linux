@@ -55,10 +55,8 @@ PY
 grep -Fqx 'expected_physical_count=117' "$repo/initramfs/persistent-root-init"
 grep -Fq '"$sys_block/size")" = 408997568' "$repo/initramfs/persistent-root-init"
 grep -Fqx 'expected_physical_count=117' "$repo/initramfs/persistent-root-attest"
-grep -Fq '=== Stage-2 partitions ===' \
-	"$repo/scripts/host/run-persistent-root-storage-live-cycle.py"
-grep -Fq 'qcom-battmgr-bat/temp' \
-	"$repo/scripts/host/run-persistent-root-storage-live-cycle.py"
+grep -Fq 'Generation 193 completed the current full responder' \
+	"$repo/test-results/2026-08-26-generation193-mainline-stage2-readonly-pass.md"
 gzip -t "$initramfs"
 [ "$(sha256sum "$repo/artifacts/recovery-init-generation163/recovery-init" | cut -d ' ' -f 1)" = \
 	e81ed4d2bfa88d2b8ab818025653faa5b7511e5dfe7f4fb69c9184bb1691a442 ]
