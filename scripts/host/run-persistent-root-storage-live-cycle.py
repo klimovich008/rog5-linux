@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-mainline-readonly-v1-generation191-live-v1"
-BUNDLE = "storage-layout-stage2-mainline-readonly-v1"
+PROFILE_ID = "storage-layout-stage2-mainline-readonly-v2-generation192-live-v1"
+BUNDLE = "storage-layout-stage2-mainline-readonly-v2"
 MANIFEST_SHA256 = (
-    "75c44d8d069dd79e448fd546aaa3cabb60fa9fada04e8f4310f9d2d04f490e65"
+    "c2b05bfbebb23a8936a54678ce68954a4634d4d966dbc02afe08f253a13058af"
 )
 RECOVERY_SHA256 = (
-    "49f28d5a9950659e355dda731b112c6980ae94663da287e54785341803c52918"
+    "33b13786ec6a95ea79c757a8d3dc4d40fc42e7a08a438d312ea76ddc268dec0d"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-mainline-readonly-v1-generation191-live-v1\n"
-    b"candidate=storage-layout-stage2-mainline-readonly-v1\n"
+    b"storage-layout-stage2-mainline-readonly-v2-generation192-live-v1\n"
+    b"candidate=storage-layout-stage2-mainline-readonly-v2\n"
     b"manifest_sha256="
-    b"75c44d8d069dd79e448fd546aaa3cabb60fa9fada04e8f4310f9d2d04f490e65\n"
+    b"c2b05bfbebb23a8936a54678ce68954a4634d4d966dbc02afe08f253a13058af\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-mainline-readonly-v1-generation191-20260826-r1"
+    / "build/storage-layout-stage2-mainline-readonly-v2-generation192-20260826-r1"
 )
 COMPONENT_ROOT = REPO / "build/persistent-root-v13-recovery-components-20260823-r1"
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
@@ -125,10 +125,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-mainline-readonly-v1",
+    admission_profile="storage-layout-stage2-mainline-readonly-v2",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-mainline-readonly-v1",
-    build_profile="storage-layout-stage2-mainline-readonly-v1",
+    runtime_profile="storage-layout-stage2-mainline-readonly-v2",
+    build_profile="storage-layout-stage2-mainline-readonly-v2",
     diagnostic=False,
 )
 

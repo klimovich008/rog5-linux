@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-mainline-readonly-v1-generation191-live-v1",
+            "storage-layout-stage2-mainline-readonly-v2-generation192-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -71,7 +71,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-mainline-readonly-v1",
+            "storage-layout-stage2-mainline-readonly-v2",
         )
 
     def test_diagnostics_cover_stage2_identity_power_and_thermal(self) -> None:
@@ -106,7 +106,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation191",
+            "generation192",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
