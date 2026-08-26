@@ -14,7 +14,7 @@ import sys
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "storage-layout-stage2-mainline-readonly-v1"
 assert record["bundle"] == record["candidate"] == record["target_id"]
-assert record["status"] == "offline"
+assert record["status"] == "consumed"
 assert record["authority"] == "none"
 assert record["profile"] == "persistent-root-ro-v1"
 assert record["target_release"] == "7.1.4-gae717d919f87"
@@ -38,7 +38,7 @@ gzip -t "$initramfs"
 	e81ed4d2bfa88d2b8ab818025653faa5b7511e5dfe7f4fb69c9184bb1691a442 ]
 [ "$(sha256sum "$repo/artifacts/recovery-init-generation163/verify-stable-recovery-initramfs.sh" | cut -d ' ' -f 1)" = \
 	3c72a1d8072b4b222aea6950482c31a292e34f3296deefe18987d2d02facfd07 ]
-grep -Fq 'unbooted Generation 191 mainline Stage-2 read-only preflight; RAM-only, never flash' \
+grep -Fq 'consumed Generation 191 pre-ACM recovery mismatch' \
 	"$repo/manifests/artifacts.tsv"
 
 echo 'PASS mainline Stage-2 read-only target reuses proven charging/UFS bytes with current geometry'
