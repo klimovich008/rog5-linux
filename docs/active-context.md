@@ -64,7 +64,7 @@ evidence before classifying `DEPARTED` versus `CHANGED`. Generation 170 is a
 byte-identical-raw receive-only successor. Generation 170 captured exact
 `S00_CONFIG/invalid_private_config` with zero host bytes and no write. The next
 receive-only diagnostic exposes the exact finite config predicate and still
-stops at S30.
+stops at S30. Generation 171 is narrowly admitted with an unconsumed claim.
 
 ## Completed charging repair
 

@@ -132,6 +132,8 @@
   non-secret reason for every config path, owner/group/mode/link/count/value,
   GUID, sealed-GPT size, and hash predicate. Nineteen focused source tests pass.
   The receive-only host continues to stop at S30 and cannot authorize mutation.
+  Generation 171 clean twins use AVB SHA-256 `65a672c4...`; one narrow
+  receive-only admission exists and its claim is unconsumed.
 
 ## Generation 167 prewrite result
 

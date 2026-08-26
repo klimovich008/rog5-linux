@@ -42,6 +42,9 @@ PREWRITE_OBSERVER = (
 CURRENT_PREWRITE_OBSERVER = (
     REPO / "manifests/storage-layout-stage1-prewrite-observer-generation170.manifest"
 )
+CONFIG_DIAGNOSTIC = (
+    REPO / "manifests/storage-layout-stage1-config-diag-generation171.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -214,7 +217,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 7)
+        self.assertEqual(len(lines), 8)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -343,7 +346,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -371,7 +374,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -401,12 +404,38 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
         self.assertIn("exact S00_CONFIG invalid_private_config", admitted[6])
         self.assertIn("observer sent zero bytes", admitted[6])
+
+    def test_generation171_is_receive_only_exact_config_discriminator(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in CONFIG_DIAGNOSTIC.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(CONFIG_DIAGNOSTIC.read_bytes()).hexdigest()
+        self.assertEqual(
+            digest,
+            "acee0a4e68fdc3e5e0dd60618719bb25e6a28f2afff602d1f329fead3a6d0b64",
+        )
+        self.assertEqual(fields["config_failure_contract"], "finite-nonsecret-exact-predicate")
+        self.assertEqual(fields["readiness"], "forbidden")
+        self.assertEqual(fields["backup_ack"], "forbidden")
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], digest)
+        self.assertIn("finite config predicate reasons", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
