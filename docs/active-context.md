@@ -61,8 +61,10 @@ Generation 169 captured a receive-only verdict but discarded it before
 publication when expected departure failed final USB revalidation. No write
 occurred and slot-A fallback passed. The host-only successor writes validated
 evidence before classifying `DEPARTED` versus `CHANGED`. Generation 170 is a
-byte-identical-raw receive-only successor with one narrow admission and an
-unconsumed claim.
+byte-identical-raw receive-only successor. Generation 170 captured exact
+`S00_CONFIG/invalid_private_config` with zero host bytes and no write. The next
+receive-only diagnostic exposes the exact finite config predicate and still
+stops at S30.
 
 ## Completed charging repair
 

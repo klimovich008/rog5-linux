@@ -117,6 +117,22 @@
   SHA-256 `56f8a8b3...`; one receive-only admission exists and its claim is
   unconsumed. No target bytes change.
 
+## Generation 170 exact root boundary
+
+- Generation 170 consumed one receive-only cycle and durably captured exact
+  `S00_CONFIG/invalid_private_config/gpt_restored=not_needed` with
+  `post_capture_identity=DEPARTED`. The observer sent zero bytes; no readiness,
+  backup, ACK, writable device, or storage write occurred. Exact slot-A
+  fallback passed.
+- This proves Generations 167-170 failed before topology/filesystem checks; the
+  51,124,000-block predicate was not reached. Offline archive inspection proves
+  canonical config/GPT content and metadata, but cannot identify which runtime
+  predicate differs.
+- The next diagnostic replaces the generic config failure with a finite,
+  non-secret reason for every config path, owner/group/mode/link/count/value,
+  GUID, sealed-GPT size, and hash predicate. Nineteen focused source tests pass.
+  The receive-only host continues to stop at S30 and cannot authorize mutation.
+
 ## Generation 167 prewrite result
 
 - Generation 167 consumed its sole cycle and exact slot-A fallback passed.
