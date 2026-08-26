@@ -229,6 +229,10 @@ class InitPolicyTest(unittest.TestCase):
         ):
             self.assertIn(field, source)
         self.assertIn("Stage-2 deferred guards ready", source)
+        self.assertIn("stage2_collector_hold_seconds=1", source)
+        hold = source.index("holding Stage-2 emission for the prestarted host collector")
+        execute = source.index("/usr/libexec/rog5-storage-layout-stage2", hold)
+        self.assertLess(hold, execute)
 
     def test_recovery_udc_selection_accepts_exact_wrapper_inventory(self) -> None:
         accepted = self.run_recovery_udc_case(
