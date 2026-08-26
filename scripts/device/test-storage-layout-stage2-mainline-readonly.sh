@@ -3,6 +3,7 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 candidate=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-readonly-v1.json
+successor=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-readonly-v2.json
 initramfs=$repo/artifacts/storage-layout-stage2-mainline-readonly-v1/initramfs.cpio.gz
 
 python3 - "$candidate" "$initramfs" <<'PY'
@@ -25,6 +26,18 @@ assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
     artifact["sha256"] == \
     "a060e1c0e13516fa58a41b203bb5014965a335096cbc257dee91883bcc8224ba"
 PY
+python3 - "$successor" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "storage-layout-stage2-mainline-readonly-v2"
+assert record["bundle"] == record["candidate"] == record["target_id"]
+assert record["status"] == "offline" and record["authority"] == "none"
+assert record["artifacts"]["initramfs.cpio.gz"]["sha256"] == \
+    "a060e1c0e13516fa58a41b203bb5014965a335096cbc257dee91883bcc8224ba"
+PY
 
 grep -Fqx 'expected_physical_count=117' "$repo/initramfs/persistent-root-init"
 grep -Fq '"$sys_block/size")" = 408997568' "$repo/initramfs/persistent-root-init"
@@ -39,6 +52,8 @@ gzip -t "$initramfs"
 [ "$(sha256sum "$repo/artifacts/recovery-init-generation163/verify-stable-recovery-initramfs.sh" | cut -d ' ' -f 1)" = \
 	3c72a1d8072b4b222aea6950482c31a292e34f3296deefe18987d2d02facfd07 ]
 grep -Fq 'consumed Generation 191 pre-ACM recovery mismatch' \
+	"$repo/manifests/artifacts.tsv"
+grep -Fq 'unbooted Generation 192 mainline Stage-2 read-only preflight' \
 	"$repo/manifests/artifacts.tsv"
 
 echo 'PASS mainline Stage-2 read-only target reuses proven charging/UFS bytes with current geometry'
