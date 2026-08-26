@@ -153,9 +153,23 @@
   Stage-1 source tests pass.
 - Production Generation 172 clean initramfs twins match at `97c71ef0...` and
   AVB twins at `fa8d5ca4...`. Full recovery/storage CI passed on `5aec551` in
-  7m24.105s. The candidate binds Generation-171 S00-S30 evidence, the current
+  7m24.105s. The candidate bound Generation-171 S00-S30 evidence, the current
   filesystem, sealed GPT, normal fresh-backup collector, and restart2 fastboot
-  fallback; one narrow admission exists and its claim is unconsumed.
+  fallback.
+
+## Generation 172 post-GPT result
+
+- Generation 172 consumed its production cycle. Fresh backup set
+  `1b746fe5f704905ed2463911599217d3eb781c872630872a1df516e131a67405`
+  was durably fsynced and ACKed. Sealed GPT load, exact new p23/p24 geometry,
+  disk GUID, and partitions 1-22 seal all passed.
+- The target then returned exact
+  `S70_POSTVERIFY/post_gpt_filesystem_invalid/gpt_restored=yes`. The old GPT was
+  restored and the new restart2 path returned exact fastboot automatically,
+  eliminating the manual recovery reboot bottleneck.
+- Filesystem verification now emits finite reasons for dumpe2fs, block count,
+  block size, clean state, UUID, and recovery features. The storage sequence is
+  unchanged; twenty-three focused Stage-1 tests pass.
 
 ## Generation 167 prewrite result
 
