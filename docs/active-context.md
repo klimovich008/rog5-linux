@@ -165,6 +165,11 @@ ramdisk still expected the pre-Stage-1 topology. The target bundle never ran,
 phone storage remained untouched, and slot-A stock recovery returned. The
 next successor changes only the full recovery ramdisk to current 117-node
 source; wrapper kernel and mainline target remain frozen.
+Generation 192 reached healthy mainline runtime and key-only SSH at 254
+seconds. Runtime evidence was correct for the current layout
+(`physical_blocks=117`, two read-only backing mounts, zero UFS errors), but the
+host parser still required 116. Exact fallback passed. The next successor is
+host-parser/identity-only; target and recovery payload bytes stay unchanged.
 
 ## Completed charging repair
 

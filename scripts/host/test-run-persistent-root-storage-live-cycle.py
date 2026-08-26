@@ -209,7 +209,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 "uptime_seconds=21.00",
                 "status=PASS",
                 f"kernel={MODULE.TARGET_RELEASE}",
-                "physical_blocks=116",
+                "physical_blocks=117",
                 "block_backed_mounts=2",
                 "userdata_mount=ro-noload",
                 "local_image_mount=ro-noload",
@@ -240,7 +240,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "boot_id=11111111-2222-3333-4444-555555555555",
             "status=PASS",
             f"kernel={MODULE.TARGET_RELEASE}",
-            "physical_blocks=116",
+            "physical_blocks=117",
             "block_backed_mounts=2",
             "userdata_mount=ro-noload",
             "local_image_mount=ro-noload",
@@ -257,7 +257,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         hostile = (
             baseline[:-2] + ["userdata_device=/dev/mmcblk0p23", "result=PASS"],
             baseline + ["boot_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"],
-            [line for line in baseline if line != "physical_blocks=116"],
+            [line for line in baseline if line != "physical_blocks=117"],
             baseline + ["blocked_scsi_commands=0"],
         )
         with tempfile.TemporaryDirectory() as temporary:

@@ -317,6 +317,12 @@ current 117-node p23/p24 layout before ACM, so the target never executed and no
 storage write occurred; stock slot-A recovery returned. The successor keeps
 the proven wrapper kernel and mainline target, but rebuilds only the full
 recovery ramdisk from current 117-node source.
+Generation 192 then passed the current full responder, kexec, mainline UFS,
+local Arch, runtime attestation, and strict SSH. At 254 seconds it reported
+117 physical nodes, exactly two read-only backing mounts, `/dev/sda23`, and
+zero blocked UFS commands/errors. The host alone rejected the stale literal
+`physical_blocks=116`; exact fallback and intent resolution passed. The
+successor changes only that host parser and signed one-use identity.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
