@@ -91,6 +91,11 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertNotIn("ROG5_LAYOUT_TEST", source)
         self.assertNotIn('"$status" -eq 1', source)
 
+    def test_builder_pins_the_current_executor(self) -> None:
+        builder = self.executable_source(BUILDER)
+        digest = hashlib.sha256(EXECUTOR.read_bytes()).hexdigest()
+        self.assertIn(f"executor_sha256={digest}", builder)
+
     def test_current_checkpoint_is_offline_and_current_bound(self) -> None:
         fields = dict(
             line.split("=", 1)
