@@ -23,6 +23,7 @@ PREFLIGHT_POST_USB = REPO / "manifests/storage-layout-stage2-preflight-generatio
 PREFLIGHT_USB_FIRST = REPO / "manifests/storage-layout-stage2-preflight-generation180.manifest"
 PREFLIGHT_EXACT_FIELDS = REPO / "manifests/storage-layout-stage2-preflight-generation181.manifest"
 PREFLIGHT_STABLE_IMAGE = REPO / "manifests/storage-layout-stage2-preflight-generation182.manifest"
+PREFLIGHT_CORRECTED = REPO / "manifests/storage-layout-stage2-preflight-generation183.manifest"
 BOOT_POLICY = REPO / "manifests/storage-layout-stage2-temporary-boot-v1.tsv"
 
 
@@ -250,7 +251,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["storage_write"], "forbidden")
         self.assertEqual(fields["watchdog_disarm"], "forbidden")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(len(rows), 7)
+        self.assertEqual(len(rows), 8)
         self.assertEqual(rows[0][0], fields["profile"])
         self.assertEqual(rows[0][1], "revoked")
         self.assertEqual(rows[0][2], digest)
@@ -266,7 +267,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["terminal_delivery_hold_seconds"], "3")
         self.assertEqual(fields["fallback"], "restart2-bootloader-before-generic-reset")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -282,7 +283,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["wrapper_physical_count"], "117")
         self.assertEqual(fields["stage1_wrapper_physical_count"], "116")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -298,7 +299,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["pre_usb_aggregate_count"], "deferred-for-read-only-preflight-only")
         self.assertEqual(fields["exact_storage_resolver"], "required")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -314,7 +315,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["usb_order"], "bind-before-deferred-ufs-guards")
         self.assertEqual(fields["clone_mode_order"], "unchanged-pre-usb-fail-closed")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -329,7 +330,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertIn("auto_markers", fields["guard_record"])
         self.assertEqual(fields["partition_record"], "number,read,first,last,type,unique,name,attrs")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -346,9 +347,25 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["kernel_rebuild"], "forbidden")
         self.assertEqual(fields["recovery_timeout_seconds"], "900")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(sum(row[1] == "allow" for row in rows), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
         admitted = next(row for row in rows if row[0] == fields["profile"])
         self.assertEqual(admitted[1], "revoked")
+        self.assertEqual(admitted[2], digest)
+
+    def test_generation183_accepts_exact_observed_wrapper_state(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in PREFLIGHT_CORRECTED.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(PREFLIGHT_CORRECTED.read_bytes()).hexdigest()
+        self.assertEqual(digest, "ab476c8cca14aff156943ff72e6fd2bf702df02b2069f191cedc2c93f757d2ba")
+        self.assertEqual(fields["power_marker_status"], "unsupported-on-stable-wrapper")
+        self.assertEqual(fields["expected_arch_root_attrs"], "0004000000000000")
+        self.assertEqual(fields["kernel_rebuild"], "forbidden")
+        rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        admitted = next(row for row in rows if row[0] == fields["profile"])
+        self.assertEqual(admitted[1], "allow")
         self.assertEqual(admitted[2], digest)
 
 
