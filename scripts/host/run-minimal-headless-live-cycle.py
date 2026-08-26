@@ -557,6 +557,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "storage-layout-stage2-mainline-clone-v2-generation196-live-v1",
         "storage-layout-stage2-mainline-clone-v3-generation197-live-v1",
         "storage-layout-stage2-watchdog-probe-v1-generation198-live-v1",
+        "storage-layout-stage2-mainline-clone-v4-generation199-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

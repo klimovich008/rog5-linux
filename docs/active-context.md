@@ -48,6 +48,15 @@ record was captured and intent resolved `FALLBACK_RETURNED`. No p24 write path
 was packaged. The parser and fallback deadline race are fixed offline; no
 Generation-198 artifact may be retried.
 
+Generation 199 is the unbooted p24-clone successor. It uses the exact proven
+g359 kernel, watchdog DTB/module, power/UFS modules and stable raw recovery.
+Only the target initramfs and generation envelope changed. Clean target twins
+are `e4635df6...`, signed bundle twins are `d941385a...`, and the Generation-199
+wrapper is `334d1022...`. The operation verifies the sealed p23 image through a
+read-only loop mount, opens only the disk and `arch_root_a` write window,
+restores allocated blocks, assigns the reviewed UUID, grows and verifies ext4,
+seals the tree, relocks all UFS nodes, and returns to exact slot-A fastboot.
+
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
 fastboot between development cycles. Generation 160 returned directly to
