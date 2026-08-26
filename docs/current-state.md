@@ -256,6 +256,15 @@ power containment failed. The executor independently rejected partition 24 as
 directly to exact slot-A fastboot. The next read-only discriminator must report
 the individual UFS marker counts and canonical partition-24 fields before any
 Stage-2 clone candidate is considered.
+Generation 181 attempted that report with a freshly rebuilt ASUS wrapper, but
+returned to exact fastboot in 7.33 seconds without exposing recovery USB. No
+storage path ran. Offline comparison proves its initramfs differs only in the
+intended init, executor, and operation record, while the wrapper Image changed
+from the live-proven `8dc38de4...` to `d98f53c1...`. The live-proven Image does
+not embed Generation 180's external ramdisk; rebuilding the built-in initramfs
+was therefore unnecessary and introduced the only unmeasured boot boundary.
+The next control keeps the live-proven Image and replaces only the external,
+one-use read-only ramdisk.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
