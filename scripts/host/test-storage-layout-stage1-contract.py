@@ -45,6 +45,9 @@ CURRENT_PREWRITE_OBSERVER = (
 CONFIG_DIAGNOSTIC = (
     REPO / "manifests/storage-layout-stage1-config-diag-generation171.manifest"
 )
+PRODUCTION_SUCCESSOR = (
+    REPO / "manifests/storage-layout-stage1-production-generation172.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -217,7 +220,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 8)
+        self.assertEqual(len(lines), 9)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -346,7 +349,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -374,7 +377,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -404,12 +407,38 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
         self.assertIn("exact S00_CONFIG invalid_private_config", admitted[6])
         self.assertIn("observer sent zero bytes", admitted[6])
+
+    def test_generation172_binds_s30_proof_gpt_load_and_fastboot_fallback(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in PRODUCTION_SUCCESSOR.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(PRODUCTION_SUCCESSOR.read_bytes()).hexdigest()
+        self.assertEqual(
+            digest,
+            "8df8f0152e66180f368c55f31e9b788ea3d120ce87117d3386ef2cd7f46fead0",
+        )
+        self.assertEqual(fields["generation171_prewrite_outcome"], "exact-s00-s10-s20-s30-no-host-bytes")
+        self.assertEqual(fields["gpt_transaction"], "one-sealed-sgdisk-load-backup")
+        self.assertEqual(fields["fallback"], "restart2-bootloader-before-generic-reset")
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], digest)
+        self.assertIn("ACKs only after fresh durable backup", admitted[6])
 
     def test_generation171_is_receive_only_exact_config_discriminator(self) -> None:
         fields = dict(
@@ -431,7 +460,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
