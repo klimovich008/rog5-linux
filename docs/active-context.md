@@ -170,6 +170,11 @@ seconds. Runtime evidence was correct for the current layout
 (`physical_blocks=117`, two read-only backing mounts, zero UFS errors), but the
 host parser still required 116. Exact fallback passed. The next successor is
 host-parser/identity-only; target and recovery payload bytes stay unchanged.
+Generation 193 then passed end-to-end in 339.080 seconds: exact p23/p24,
+read-only local Arch, systemd, strict SSH, 30.1 C battery, +312 mA USB input,
+39.5 C maximum thermal, zero UFS errors, and exact fastboot fallback. The
+read-only gate is complete; active work moves to the separately authorized
+p24-only Stage-2 clone and native-root verification.
 
 ## Completed charging repair
 
