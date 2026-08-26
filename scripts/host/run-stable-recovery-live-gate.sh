@@ -211,6 +211,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-mainline-clone-v1-generation194-live-v1 | \
 		storage-layout-stage2-native-postmortem-v1-generation195-live-v1 | \
 		storage-layout-stage2-mainline-clone-v2-generation196-live-v1 | \
+		storage-layout-stage2-mainline-clone-v3-generation197-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3851,8 +3852,8 @@ case $profile in
 		;;
 	storage-layout-stage2-mainline-clone-v2-generation196-live-v1)
 		expected_boot_image=build/storage-layout-stage2-mainline-clone-v2-generation196-20260826-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 196 p24 clone from the verified sealed p23 source into Generation-195-proven zero/non-ext4 p24; read-only loop/tree source validation, 30-second APSS watchdog, allocated-block restore, UUID/grow/seal/relock, and exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 196 native p24 clone; exact signed bundle, 30-second APSS watchdog, p23 read-only, p24-only payload write, power/thermal gates, relock, RAM-only; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 196 prewrite watchdog probe; exact UFS passed, qcom-wdt load/open advanced to the optional timeout-sysfs check, then failed closed because CONFIG_WATCHDOG_SYSFS is disabled; no p24 write, exact slot-A fastboot and intent fallback resolution passed; never retry or flash'
+		expected_boot_role='consumed Generation 196 prewrite watchdog probe; failed only optional timeout sysfs under CONFIG_WATCHDOG_SYSFS=n, no p24 write, exact fastboot/fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3875,6 +3876,39 @@ case $profile in
 		[[ $expected_image == 60d574154d1f8ea5297a9e3663932a8504d4d0382a5f40a74749e530ff9a15a0 ]] || fail 'native p24 clone v2 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native p24 clone v2 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native p24 clone v2 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	storage-layout-stage2-mainline-clone-v3-generation197-live-v1)
+		expected_boot_image=build/storage-layout-stage2-mainline-clone-v3-generation197-20260826-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 197 p24 clone from the verified sealed p23 source into zero/non-ext4 p24; qcom-wdt driver/device/process liveness without optional sysfs, 30-second APSS watchdog, read-only source validation, allocated restore, UUID/grow/seal/relock, and exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 197 native p24 clone; exact signed bundle, 30-second APSS watchdog without optional sysfs, p23 read-only, p24-only write, relock, RAM-only; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-mainline-clone-v3
+		expected_bundle=storage-layout-stage2-mainline-clone-v3
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=ac8d26f163f5ca5f1c0806d19f781cf43e4294c0f01b1a42ba6efadeee862a5a
+		expected_avb_digest=22942b4587fb1a01610f537ff685e97f3b014f78382c950112fca29444e28481
+		expected_generation_record=313760eb8c7674bd39dc3af68e6a4105ebdacad9297f4c827f0300ee3ab73a15
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == dd3455a16c59c61d56d78636c3de94a9230e9d25aa895f36834d9e041dfcd6a3 ]] || fail 'native p24 clone v3 manifest is not pinned'
+		[[ $expected_image == 77fe96e4c2930684aac953a1f2f3145024f501dde7ac07d3c78bdd7540eb0d36 ]] || fail 'native p24 clone v3 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native p24 clone v3 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native p24 clone v3 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -5401,6 +5435,7 @@ case $profile in
 	storage-layout-stage2-mainline-clone-v1-generation194-live-v1 | \
 	storage-layout-stage2-native-postmortem-v1-generation195-live-v1 | \
 	storage-layout-stage2-mainline-clone-v2-generation196-live-v1 | \
+	storage-layout-stage2-mainline-clone-v3-generation197-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

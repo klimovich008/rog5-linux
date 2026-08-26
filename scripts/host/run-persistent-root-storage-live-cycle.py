@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-mainline-clone-v2-generation196-live-v1"
-BUNDLE = "storage-layout-stage2-mainline-clone-v2"
+PROFILE_ID = "storage-layout-stage2-mainline-clone-v3-generation197-live-v1"
+BUNDLE = "storage-layout-stage2-mainline-clone-v3"
 MANIFEST_SHA256 = (
-    "cea60920ad773c05cf85ec396461ecdaa49b14d7ea481bf1f5d5e64ef9233cf3"
+    "dd3455a16c59c61d56d78636c3de94a9230e9d25aa895f36834d9e041dfcd6a3"
 )
 RECOVERY_SHA256 = (
-    "60d574154d1f8ea5297a9e3663932a8504d4d0382a5f40a74749e530ff9a15a0"
+    "77fe96e4c2930684aac953a1f2f3145024f501dde7ac07d3c78bdd7540eb0d36"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-mainline-clone-v2-generation196-live-v1\n"
-    b"candidate=storage-layout-stage2-mainline-clone-v2\n"
+    b"storage-layout-stage2-mainline-clone-v3-generation197-live-v1\n"
+    b"candidate=storage-layout-stage2-mainline-clone-v3\n"
     b"manifest_sha256="
-    b"cea60920ad773c05cf85ec396461ecdaa49b14d7ea481bf1f5d5e64ef9233cf3\n"
+    b"dd3455a16c59c61d56d78636c3de94a9230e9d25aa895f36834d9e041dfcd6a3\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-mainline-clone-v2-generation196-20260826-r1"
+    / "build/storage-layout-stage2-mainline-clone-v3-generation197-20260826-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-mainline-clone-v2",
+    admission_profile="storage-layout-stage2-mainline-clone-v3",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-mainline-clone-v2",
-    build_profile="storage-layout-stage2-mainline-clone-v2",
+    runtime_profile="storage-layout-stage2-mainline-clone-v3",
+    build_profile="storage-layout-stage2-mainline-clone-v3",
     diagnostic=False,
 )
 

@@ -10,6 +10,9 @@ successor=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-clone
 successor_initramfs=$repo/artifacts/storage-layout-stage2-mainline-clone-v2/initramfs.cpio.gz
 successor_dtb=$repo/artifacts/storage-layout-stage2-mainline-clone-v2/board.dtb
 successor_manifest=$repo/manifests/storage-layout-stage2-mainline-clone-v2-generation196.manifest
+current=$repo/configs/recovery-candidates/storage-layout-stage2-mainline-clone-v3.json
+current_initramfs=$repo/artifacts/storage-layout-stage2-mainline-clone-v3/initramfs.cpio.gz
+current_manifest=$repo/manifests/storage-layout-stage2-mainline-clone-v3-generation197.manifest
 
 sh -n "$target"
 for contract in \
@@ -79,7 +82,7 @@ import sys
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "storage-layout-stage2-mainline-clone-v2"
 assert record["candidate"] == record["bundle"] == record["target_id"]
-assert record["status"] == "offline" and record["authority"] == "none"
+assert record["status"] == "consumed" and record["authority"] == "none"
 expected = {
     "initramfs.cpio.gz": (
         Path(sys.argv[2]),
@@ -100,5 +103,25 @@ for name, (path, size, digest) in expected.items():
 PY
 grep -Fqx 'avb_generation=196' "$successor_manifest"
 grep -Fqx 'watchdog=qcom-kpss-30s-ping5s' "$successor_manifest"
+
+python3 - "$current" "$current_initramfs" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "storage-layout-stage2-mainline-clone-v3"
+assert record["candidate"] == record["bundle"] == record["target_id"]
+assert record["status"] == "offline" and record["authority"] == "none"
+item = record["artifacts"]["initramfs.cpio.gz"]
+path = Path(sys.argv[2])
+assert path.stat().st_size == item["size"] == 23912989
+assert hashlib.file_digest(path.open("rb"), "sha256").hexdigest() == \
+    item["sha256"] == \
+    "721f45d2dc97958470ae496afe6b2383ec93642e0a5823031a716b1dcbf5a0eb"
+PY
+grep -Fqx 'avb_generation=197' "$current_manifest"
+grep -Fqx 'watchdog=qcom-kpss-30s-ping5s-no-sysfs-dependency' "$current_manifest"
 
 echo 'PASS p24 clone is exact-scope, allocated-block, power/thermal-gated, sealed, and hostile-destination tested'
