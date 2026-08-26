@@ -347,21 +347,64 @@ is_integer() {
 }
 
 verify_safe_temperature() {
-	battery_path=/sys/class/power_supply/battery/temp
-	[ -r "$battery_path" ] || return 1
-	battery_temp=$(cat "$battery_path") || return 1
-	is_integer "$battery_temp" || return 1
-	[ "$battery_temp" -ge -200 ] && [ "$battery_temp" -lt 500 ] || return 1
-	thermal_count=0
-	for thermal_path in /sys/class/thermal/thermal_zone*/temp; do
-		[ -r "$thermal_path" ] || continue
-		thermal_temp=$(cat "$thermal_path") || return 1
-		is_integer "$thermal_temp" || return 1
-		[ "$thermal_temp" -ge -40000 ] && [ "$thermal_temp" -lt 65000 ] ||
+	temperature_sysfs=$1
+	temperature_reason=battery_absent
+	battery_count=0
+	battery_path=
+	for battery_candidate in "$temperature_sysfs"/class/power_supply/*; do
+		[ -r "$battery_candidate/type" ] || continue
+		battery_type=$(cat "$battery_candidate/type") || {
+			temperature_reason=battery_type_error
 			return 1
+		}
+		[ "$battery_type" = Battery ] || continue
+		battery_count=$((battery_count + 1))
+		battery_path=$battery_candidate
+	done
+	case $battery_count in
+		0) return 1 ;;
+		1) ;;
+		*) temperature_reason=battery_ambiguous; return 1 ;;
+	esac
+	[ -r "$battery_path/temp" ] || {
+		temperature_reason=battery_temp_absent
+		return 1
+	}
+	battery_temp=$(cat "$battery_path/temp") || {
+		temperature_reason=battery_temp_error
+		return 1
+	}
+	is_integer "$battery_temp" || {
+		temperature_reason=battery_temp_invalid
+		return 1
+	}
+	[ "$battery_temp" -ge -200 ] && [ "$battery_temp" -lt 500 ] || {
+		temperature_reason=battery_unsafe
+		return 1
+	}
+	temperature_reason=thermal_absent
+	thermal_count=0
+	for thermal_path in "$temperature_sysfs"/class/thermal/thermal_zone*/temp; do
+		[ -e "$thermal_path" ] || continue
+		[ -r "$thermal_path" ] || {
+			temperature_reason=thermal_temp_absent
+			return 1
+		}
+		thermal_temp=$(cat "$thermal_path") || {
+			temperature_reason=thermal_temp_error
+			return 1
+		}
+		is_integer "$thermal_temp" || {
+			temperature_reason=thermal_temp_invalid
+			return 1
+		}
+		[ "$thermal_temp" -ge -40000 ] && [ "$thermal_temp" -lt 65000 ] ||
+			{ temperature_reason=thermal_unsafe; return 1; }
 		thermal_count=$((thermal_count + 1))
 	done
-	[ "$thermal_count" -gt 0 ]
+	[ "$thermal_count" -gt 0 ] || return 1
+	temperature_reason=safe
+	return 0
 }
 
 run_e2fsck() {
@@ -463,7 +506,7 @@ if [ "$operation_mode" = read_only_preflight ]; then
 		fail wrapper_physical_count_unavailable
 	case $wrapper_physical_count in ''|*[!0-9]*) fail wrapper_physical_count_invalid ;; esac
 	[ "$wrapper_physical_count" -gt 0 ] || fail wrapper_physical_count_invalid
-	verify_safe_temperature || fail temperature_unsafe
+	verify_safe_temperature /sys || fail "temperature_$temperature_reason"
 	no_physical_mounts || fail physical_block_mounted
 	lock_storage || fail storage_relock_failed
 	resolve_exact_storage || fail final_topology_identity
@@ -475,7 +518,7 @@ if [ "$operation_mode" = read_only_preflight ]; then
 fi
 
 stage_set S20_SOURCE
-verify_safe_temperature || fail temperature_unsafe
+verify_safe_temperature /sys || fail "temperature_$temperature_reason"
 mkdir -p /mnt/userdata "$source_mount" "$target_mount"
 mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime \
 	"$userdata" /mnt/userdata || fail userdata_mount_failed
@@ -504,7 +547,7 @@ verify_mount_count 2 || fail source_mount_scope
 	"$old_seal_sha256" ] || fail source_provenance_seal_changed
 
 stage_set S30_WATCHDOG_DISARM
-verify_safe_temperature || fail temperature_unsafe
+verify_safe_temperature /sys || fail "temperature_$temperature_reason"
 "$watchdog_disarm" >/run/rog5-layout-stage2-watchdog-disarm.log 2>&1 ||
 	fail rollback_watchdog_disarm_failed
 [ ! -e /run/rog5-recovery-armed ] &&
