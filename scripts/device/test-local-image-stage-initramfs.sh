@@ -89,6 +89,31 @@ for contract in \
 	'*) fail hardware-watchdog-unknown'; do
 	grep -Fq "$contract" "$init" || exit 1
 done
+python3 - "$init" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+arm = source[source.index("arm_hardware_watchdog() {") : source.index("\nmount -t proc")]
+assert "sleep 6" in arm
+assert "sleep 0.2" not in arm
+for reason in (
+    "hardware-watchdog-module",
+    "hardware-watchdog-insmod",
+    "hardware-watchdog-mdev",
+    "hardware-watchdog-class-count",
+    "hardware-watchdog-class-path",
+    "hardware-watchdog-device-node",
+    "hardware-watchdog-driver",
+    "hardware-watchdog-compatible-read",
+    "hardware-watchdog-compatible",
+    "hardware-watchdog-process",
+    "hardware-watchdog-record",
+    "hardware-watchdog-record-mode",
+):
+    offset = arm.index(f"hardware_watchdog_fail {reason}")
+    assert "return 1" in arm[offset : offset + 100]
+PY
 grep -Fq "sed -i 's/^root:[^:]*/root:x/'" "$builder"
 grep -Fq "grep -Fxq 'root:x:0:0:99999:7:::'" "$builder"
 grep -Fq 'expected_release=@EXPECTED_KERNEL_RELEASE@' "$init"

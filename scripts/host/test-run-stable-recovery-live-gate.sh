@@ -433,8 +433,8 @@ awk -F '\t' \
 		$3 == "consumed Generation 199 prewrite watchdog-lifetime failure; mainline UFS/NCM/runtime/key-only SSH passed in 7.86 seconds, then the watchdog process was absent before source verification or any p24 write window; exact slot-A fastboot and FALLBACK_RETURNED resolution passed; never retry or flash" &&
 		NF == 3 { stage2_clone_v4++ ; next }
 	$1 == "build/storage-layout-stage2-watchdog-lifetime-v1-generation200-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 200 read-only watchdog first-ping lifetime probe after Generation 199 process disappearance; bounded helper record, PID, stderr hex, class/device/driver/compatible and module evidence, no clone command or storage write path, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed successful Generation 200 read-only watchdog lifetime probe; runtime at 7.90 seconds proved qcom_wdt, class and device absent, BusyBox failed ENOENT opening watchdog0, and dmesg proved struct-module ABI size mismatch; exact fastboot and TARGET_ACCEPTED resolution passed; never retry or flash" &&
 		NF == 3 { stage2_watchdog_lifetime++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -651,12 +651,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	$1 == "build/storage-layout-stage2-watchdog-lifetime-v1-generation200-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 200 read-only watchdog first-ping lifetime probe after Generation 199 process disappearance; bounded helper record, PID, stderr hex, class/device/driver/compatible and module evidence, no clone command or storage write path, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT" && NF == 3 {
-		stage2_watchdog_lifetime++
-	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 && stage2_watchdog_lifetime == 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -673,7 +668,7 @@ grep -Fq "expected_boot_basis='consumed by the sole Generation 198 read-only cyc
 	{ echo 'FAIL Generation 198 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed Generation 199 prewrite watchdog-lifetime failure; mainline UFS/NCM/runtime/key-only SSH passed in 7.86 seconds, then the watchdog process was absent before source verification or any p24 write window; exact slot-A fastboot and FALLBACK_RETURNED resolution passed; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 199 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 200 read-only watchdog first-ping lifetime probe after Generation 199 process disappearance; bounded helper record, PID, stderr hex, class/device/driver/compatible and module evidence, no clone command or storage write path, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed successful Generation 200 read-only watchdog lifetime probe; runtime at 7.90 seconds proved qcom_wdt, class and device absent, BusyBox failed ENOENT opening watchdog0, and dmesg proved struct-module ABI size mismatch; exact fastboot and TARGET_ACCEPTED resolution passed; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 200 gate basis differs from policy' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \

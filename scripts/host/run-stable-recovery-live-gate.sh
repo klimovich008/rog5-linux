@@ -3987,8 +3987,8 @@ case $profile in
 		;;
 	storage-layout-stage2-watchdog-lifetime-v1-generation200-live-v1)
 		expected_boot_image=build/storage-layout-stage2-watchdog-lifetime-v1-generation200-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 200 read-only watchdog first-ping lifetime probe after Generation 199 process disappearance; bounded helper record, PID, stderr hex, class/device/driver/compatible and module evidence, no clone command or storage write path, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 200 read-only watchdog lifetime probe; cached stable raw recovery and exact signed target; never flash or retry after COMMIT'
+		expected_boot_basis='consumed successful Generation 200 read-only watchdog lifetime probe; runtime at 7.90 seconds proved qcom_wdt, class and device absent, BusyBox failed ENOENT opening watchdog0, and dmesg proved struct-module ABI size mismatch; exact fastboot and TARGET_ACCEPTED resolution passed; never retry or flash'
+		expected_boot_role='consumed Generation 200 read-only proof of rejected qcom_wdt struct-module ABI and false shell admission; exact fastboot passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

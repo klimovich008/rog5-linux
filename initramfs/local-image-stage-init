@@ -134,32 +134,36 @@ arm_hardware_watchdog() {
 		return 0
 	fi
 	[ -f "$module" ] && [ ! -L "$module" ] ||
-		hardware_watchdog_fail hardware-watchdog-module
-	insmod "$module" || hardware_watchdog_fail hardware-watchdog-insmod
-	mdev -s || hardware_watchdog_fail hardware-watchdog-mdev
+		{ hardware_watchdog_fail hardware-watchdog-module; return 1; }
+	insmod "$module" ||
+		{ hardware_watchdog_fail hardware-watchdog-insmod; return 1; }
+	mdev -s ||
+		{ hardware_watchdog_fail hardware-watchdog-mdev; return 1; }
 	[ "$(find /sys/class/watchdog -mindepth 1 -maxdepth 1 -name 'watchdog*' | wc -l)" -eq 1 ] ||
-		hardware_watchdog_fail hardware-watchdog-class-count
+		{ hardware_watchdog_fail hardware-watchdog-class-count; return 1; }
 	watchdog_sys=/sys/class/watchdog/watchdog0
 	[ -d "$watchdog_sys" ] ||
-		hardware_watchdog_fail hardware-watchdog-class-path
+		{ hardware_watchdog_fail hardware-watchdog-class-path; return 1; }
 	[ -c /dev/watchdog0 ] ||
-		hardware_watchdog_fail hardware-watchdog-device-node
+		{ hardware_watchdog_fail hardware-watchdog-device-node; return 1; }
 	[ "$(basename "$(readlink -f "$watchdog_sys/device/driver")")" = qcom_wdt ] ||
-		hardware_watchdog_fail hardware-watchdog-driver
-	compatible=$(tr '\000' '\n' <"$watchdog_sys/device/of_node/compatible" | sed -n '1p') ||
+		{ hardware_watchdog_fail hardware-watchdog-driver; return 1; }
+	if ! compatible=$(tr '\000' '\n' <"$watchdog_sys/device/of_node/compatible" | sed -n '1p'); then
 		hardware_watchdog_fail hardware-watchdog-compatible-read
+		return 1
+	fi
 	[ "$compatible" = qcom,kpss-wdt ] ||
-		hardware_watchdog_fail hardware-watchdog-compatible
+		{ hardware_watchdog_fail hardware-watchdog-compatible; return 1; }
 	/sbin/watchdog -F -T 30 -t 5 /dev/watchdog0 >/run/rog5-hardware-watchdog.log 2>&1 &
 	hardware_watchdog_pid=$!
-	sleep 0.2
+	sleep 6
 	kill -0 "$hardware_watchdog_pid" 2>/dev/null ||
-		hardware_watchdog_fail hardware-watchdog-process
+		{ hardware_watchdog_fail hardware-watchdog-process; return 1; }
 	printf 'format=rog5-hardware-watchdog-v1\nstate=ARMED\ndriver=qcom_wdt\ncompatible=qcom,kpss-wdt\ntimeout_seconds=30\npid=%s\n' \
 		"$hardware_watchdog_pid" >"$record" ||
-		hardware_watchdog_fail hardware-watchdog-record
+		{ hardware_watchdog_fail hardware-watchdog-record; return 1; }
 	chmod 0444 "$record" ||
-		hardware_watchdog_fail hardware-watchdog-record-mode
+		{ hardware_watchdog_fail hardware-watchdog-record-mode; return 1; }
 }
 
 mount -t proc proc /proc

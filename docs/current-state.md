@@ -69,12 +69,15 @@ fastboot and durable `FALLBACK_RETURNED` resolution passed. The next cycle must
 be read-only and capture the bounded watchdog stderr/status at the first
 5-second ping; another clone candidate is not justified yet.
 
-Generation 200 is the unbooted read-only discriminator. It reuses the exact
-kernel, DTB, watchdog and power/UFS modules, packages no clone command, and
-returns a bounded typed snapshot of the watchdog record, PID liveness, stderr
-hex, class device, driver, compatible and module state. Target clean twins are
-`d06df9fd...`; signed bundle twins are `8544f57d...`; the cached raw recovery
-uses Generation-200 envelope `5e4bdaeb...`. No phone-storage write path exists.
+Generation 200 passed read-only and is consumed. At 7.90 seconds it proved the
+watchdog module/class/device absent and captured BusyBox `ENOENT` opening
+`/dev/watchdog0`; adjacent dmesg proved `qcom_wdt` was rejected because its
+`struct module` section size differed from the running kernel. The old module
+used reconstructed Clang-20/no-BTF inputs (`0x4c0`). Exact running-output,
+Clang-18/BTF twins now match at `3fcea56e...` with the required `0x500` section.
+The separate false-`ARMED` shell path now returns explicitly on every failed
+predicate and waits through the first 5-second ping. Exact fastboot and
+`TARGET_ACCEPTED` passed; no phone storage was writable.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
