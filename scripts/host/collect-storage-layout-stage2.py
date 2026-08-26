@@ -194,14 +194,18 @@ def capture(
                 fail("unexpected Stage-2 signature record")
             fields = exact_fields(
                 tokens,
-                ("status", "type", "uuid", "label", "bytes", "sha256"),
+                (
+                    "status", "type", "uuid", "label", "truncated", "bytes",
+                    "sha256",
+                ),
             )
             if (
                 re.fullmatch(r"[A-Za-z0-9._+-]{1,32}|invalid", fields["type"])
                 is None
                 or fields["uuid"] not in {"present", "absent"}
                 or fields["label"] not in {"present", "absent"}
-                or re.fullmatch(r"[1-9][0-9]{0,4}", fields["bytes"]) is None
+                or fields["truncated"] not in {"0", "1"}
+                or re.fullmatch(r"[1-9][0-9]{0,3}", fields["bytes"]) is None
                 or HEX64.fullmatch(fields["sha256"]) is None
             ):
                 fail("Stage-2 signature classification changed")

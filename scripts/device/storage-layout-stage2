@@ -410,11 +410,24 @@ verify_partition 24 53477376 61865978 \
 	arch_root_a 0004000000000000 || fail arch_root_identity_changed
 verify_ext4 "$userdata" "$expected_userdata_fs_uuid" 51124000 rog5-linux \
 	/run/rog5-layout-stage2-userdata.log || fail userdata_filesystem_changed
-if blkid "$arch_root" >/run/rog5-layout-stage2-empty-root.log 2>&1; then
+if blkid "$arch_root" >/dev/null 2>&1; then
 	signature_log=/run/rog5-layout-stage2-empty-root.log
+	signature_capture=/run/rog5-layout-stage2-empty-root.capture
+	blkid "$arch_root" 2>&1 | head -c 4097 >"$signature_capture"
+	signature_capture_bytes=$(stat -c %s "$signature_capture") ||
+		fail arch_root_signature_stat
+	if [ "$signature_capture_bytes" -gt 4096 ]; then
+		head -c 4096 "$signature_capture" >"$signature_log" ||
+			fail arch_root_signature_capture
+		signature_truncated=1
+	else
+		mv "$signature_capture" "$signature_log" ||
+			fail arch_root_signature_capture
+		signature_truncated=0
+	fi
 	signature_bytes=$(stat -c %s "$signature_log") || fail arch_root_signature_stat
 	case $signature_bytes in ''|*[!0-9]*) fail arch_root_signature_stat ;; esac
-	[ "$signature_bytes" -gt 0 ] && [ "$signature_bytes" -le 65536 ] ||
+	[ "$signature_bytes" -gt 0 ] && [ "$signature_bytes" -le 4096 ] ||
 		fail arch_root_signature_size
 	signature_sha256=$(sha256sum "$signature_log" | awk '{print $1}') ||
 		fail arch_root_signature_hash
@@ -426,7 +439,7 @@ if blkid "$arch_root" >/run/rog5-layout-stage2-empty-root.log 2>&1; then
 	grep -Eq 'UUID="[^"]+"' "$signature_log" && signature_uuid=present
 	signature_label=absent
 	grep -Eq 'LABEL="[^"]+"' "$signature_log" && signature_label=present
-	emit "status=SIGNATURE type=$signature_type uuid=$signature_uuid label=$signature_label bytes=$signature_bytes sha256=$signature_sha256"
+	emit "status=SIGNATURE type=$signature_type uuid=$signature_uuid label=$signature_label truncated=$signature_truncated bytes=$signature_bytes sha256=$signature_sha256"
 	fail arch_root_not_empty
 fi
 [ ! -s /run/rog5-layout-stage2-empty-root.log ] || fail arch_root_signature_output
