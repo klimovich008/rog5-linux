@@ -48,6 +48,9 @@ CONFIG_DIAGNOSTIC = (
 PRODUCTION_SUCCESSOR = (
     REPO / "manifests/storage-layout-stage1-production-generation172.manifest"
 )
+FILESYSTEM_DIAGNOSTIC = (
+    REPO / "manifests/storage-layout-stage1-production-generation173.manifest"
+)
 
 
 class StorageLayoutStage1ContractTest(unittest.TestCase):
@@ -244,7 +247,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "profile\tstatus\tcandidate_manifest_sha256\timage_path\t"
             "image_size\timage_sha256\tbasis",
         )
-        self.assertEqual(len(lines), 9)
+        self.assertEqual(len(lines), 10)
         rows = {row[0]: row for row in (line.split("\t") for line in lines[1:])}
         fields = rows["storage-layout-stage1-current-generation165-live-v1"]
         self.assertEqual(
@@ -373,7 +376,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -401,7 +404,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -431,7 +434,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -458,12 +461,38 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
         self.assertIn("sealed GPT load and new geometry", admitted[6])
         self.assertIn("restart2 returned exact fastboot automatically", admitted[6])
+
+    def test_generation173_binds_only_the_finite_filesystem_discriminator(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in FILESYSTEM_DIAGNOSTIC.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(FILESYSTEM_DIAGNOSTIC.read_bytes()).hexdigest()
+        self.assertEqual(
+            digest,
+            "09895a561a5086542463ba3fce4ecd4daf632fd8bb311e425ac385060cea3754",
+        )
+        self.assertEqual(fields["generation172_result"], "sealed-gpt-and-geometry-pass-generic-s70-filesystem-failure")
+        self.assertEqual(fields["filesystem_failure_contract"], "finite-exact-post-gpt-reason")
+        self.assertEqual(fields["gpt_transaction"], "one-sealed-sgdisk-load-backup")
+        rows = {
+            row[0]: row
+            for row in (
+                line.split("\t")
+                for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
+            )
+        }
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        admitted = rows[fields["profile"]]
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], digest)
+        self.assertIn("finite exact post-GPT filesystem reason", admitted[6])
 
     def test_generation171_is_receive_only_exact_config_discriminator(self) -> None:
         fields = dict(
@@ -485,7 +514,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
