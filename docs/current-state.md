@@ -40,13 +40,17 @@ the SHA-256 of 4 MiB of zeros. Target runtime, exact slot-A fastboot fallback,
 and intent resolution as `TARGET_ACCEPTED` passed; the later host failure was
 only a redundant second fastboot-path check, now removed.
 
-Generation 196 is the sole active successor. It replaces the full sparse-file
-hash with loop-mounted read-only ext4 identity and sealed-tree verification,
-then uses allocated-block restore, UUID/grow/seal/relock on p24 only. The stock
-WW33 DT proves APSS watchdog MMIO `0x17c10000`; the successor adds that exact
-node, packages the clean-twin `qcom_wdt` module, and opens a 30-second watchdog
-pinged every five seconds before any storage write. A kernel stall can no
-longer depend solely on the delayed shell timer.
+Generation 196 is consumed with no p24 write. Exact UFS passed and the
+stock-grounded `qcom_wdt` module loaded/opened far enough to start the watchdog,
+then the helper rejected the optional `timeout` sysfs file. Linux source proves
+that file is absent under this exact `CONFIG_WATCHDOG_SYSFS=n` build. Exact
+slot-A fastboot and fallback intent resolution passed.
+
+Generation 197 is the sole active successor. It keeps the same Image, DTB,
+watchdog module and clone implementation, removing only the unsupported sysfs
+observation. Driver/compatible/device identity, foreground process liveness,
+the `-T 30 -t 5` watchdog request, sealed source validation, p24-only write,
+grow/seal/relock and exact fallback remain mandatory.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
