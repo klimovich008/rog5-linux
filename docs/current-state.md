@@ -244,6 +244,11 @@ proving another pre-USB recovery guard remains. No Stage-2 write path was
 reachable and exact fastboot returned. The next read-only discriminator moves
 only aggregate wrapper-count admission behind USB; exact p23/p24 geometry,
 read-only state, and zero mounts remain mandatory in the executor.
+Generation 179 deferred only the aggregate count but still returned before ACM,
+proving an earlier UFS discovery, isolation, power-containment, or inventory
+guard rejects before USB. No write path was reachable and exact fastboot
+returned. The next sealed read-only mode binds USB first, then reports each UFS
+guard; clone mode retains the current pre-USB fail-closed ordering.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
