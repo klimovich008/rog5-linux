@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hardware-free tests for the exact p24 clone live runner."""
+"""Hardware-free tests for the exact read-only p24 postmortem runner."""
 
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-mainline-clone-v1-generation194-live-v1",
+            "storage-layout-stage2-native-postmortem-v1-generation195-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -71,10 +71,10 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-mainline-clone-v1",
+            "storage-layout-stage2-native-postmortem-v1",
         )
 
-    def test_clone_artifact_and_admission_identities_are_exact(self) -> None:
+    def test_postmortem_artifact_and_admission_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.COMPONENT_ROOT.name,
             "storage-layout-stage2-mainline-readonly-v2-recovery-components-20260826-r1",
@@ -95,7 +95,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation194",
+            "generation195",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -168,7 +168,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(
             (
-                "format=rog5-native-clone-runtime-v1",
+                "format=rog5-native-postmortem-runtime-v1",
                 "boot_id=11111111-2222-3333-4444-555555555555",
                 "uptime_seconds=21.00",
                 "state=READY",
@@ -190,7 +190,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
 
     def test_runtime_evidence_rejects_missing_duplicate_and_wrong_storage(self) -> None:
         baseline = [
-            "format=rog5-native-clone-runtime-v1",
+            "format=rog5-native-postmortem-runtime-v1",
             "boot_id=11111111-2222-3333-4444-555555555555",
             "state=READY",
             "physical_blocks=117",
@@ -452,7 +452,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_executes_only_the_sealed_clone_then_waits_for_fastboot(self) -> None:
+    def test_runner_executes_only_read_only_postmortem_then_waits_for_fastboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -466,36 +466,64 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
         self.assertIn("RUNTIME_COMMAND", source)
-        self.assertIn('CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
-        self.assertIn("parse_clone_evidence(clone_log)", source)
-        self.assertIn("ALLOW_STAGE2_P24_CLONE", source)
+        self.assertIn('POSTMORTEM_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertIn("parse_postmortem_evidence(postmortem_log)", source)
+        self.assertIn("ALLOW_STAGE2_P24_POSTMORTEM", source)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
-    def test_clone_evidence_is_exact_and_ignores_only_transport_noise(self) -> None:
-        expected = [
-            "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
-            "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
-            "ROG5_NATIVE_CLONE_V1 stage=filesystem status=GROW",
-            "ROG5_NATIVE_CLONE_V1 stage=seal status=WRITE",
-            "ROG5_NATIVE_CLONE_V1 stage=readonly status=VERIFY",
-            "ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS "
-            "target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b "
-            "target_blocks=8388603",
-        ]
+    def test_postmortem_evidence_is_exact_and_disposition_complete(self) -> None:
+        prefix = "1" * 64
+        start = "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ"
+        terminals = (
+            (
+                "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
+                f"disposition=non-ext4 prefix_sha256={prefix}",
+                "non-ext4",
+            ),
+            (
+                "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
+                "disposition=source-clone "
+                "uuid=598a876b-a8db-4859-a01a-1b864b0a87f4 "
+                "blocks=4194304 state=clean label=ROG5_ARCH_A tree=PASS "
+                f"prefix_sha256={prefix}",
+                "source-clone",
+            ),
+            (
+                "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
+                "disposition=grown-target "
+                "uuid=8b03827a-cc2d-4408-8558-e9b61195f96b "
+                "blocks=8388603 state=clean label=ROG5_ARCH_A tree=PASS "
+                f"prefix_sha256={prefix}",
+                "grown-target",
+            ),
+            (
+                "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
+                "disposition=partial-ext4 uuid=bad blocks=1 state=not-clean "
+                f"label=<none> tree=SKIP prefix_sha256={prefix}",
+                "partial-ext4",
+            ),
+        )
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "clone.log"
-            path.write_text("\n".join([*expected, "Connection closed"]) + "\n")
-            MODULE.parse_clone_evidence(path)
-            for hostile in (
-                expected[:-1],
-                [*expected, expected[-1]],
-                [*expected[:-1], expected[-1].replace("PASS", "FAIL")],
-                [expected[1], expected[0], *expected[2:]],
-            ):
-                path.write_text("\n".join(hostile) + "\n")
+            path = Path(temporary) / "postmortem.log"
+            for terminal, disposition in terminals:
+                path.write_text(
+                    "\n".join((start, terminal, "Connection closed")) + "\n"
+                )
+                self.assertEqual(
+                    MODULE.parse_postmortem_evidence(path), disposition
+                )
+            hostile = (
+                [start],
+                [start, terminals[1][0], terminals[1][0]],
+                [start, terminals[1][0].replace("tree=PASS", "tree=SKIP")],
+                [start, terminals[3][0].replace("tree=SKIP", "tree=PASS")],
+                [terminals[0][0], start],
+            )
+            for payload in hostile:
+                path.write_text("\n".join(payload) + "\n")
                 with self.assertRaises(MODULE.PersistentCycleError):
-                    MODULE.parse_clone_evidence(path)
+                    MODULE.parse_postmortem_evidence(path)
 
 
 if __name__ == "__main__":

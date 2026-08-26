@@ -53,7 +53,7 @@ import sys
 record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
 assert record["candidate"] == "storage-layout-stage2-mainline-clone-v1"
 assert record["candidate"] == record["bundle"] == record["target_id"]
-assert record["status"] == "offline" and record["authority"] == "none"
+assert record["status"] == "consumed" and record["authority"] == "none"
 assert record["target_release"] == "7.1.4-g359318de534f"
 item = record["artifacts"]["initramfs.cpio.gz"]
 path = Path(sys.argv[2])

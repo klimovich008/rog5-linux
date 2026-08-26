@@ -209,6 +209,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-root-local-v54-generation163-live-v1 | \
 		storage-layout-stage2-mainline-readonly-v3-generation193-live-v1 | \
 		storage-layout-stage2-mainline-clone-v1-generation194-live-v1 | \
+		storage-layout-stage2-native-postmortem-v1-generation195-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -3783,8 +3784,8 @@ case $profile in
 		;;
 	storage-layout-stage2-mainline-clone-v1-generation194-live-v1)
 		expected_boot_image=build/storage-layout-stage2-mainline-clone-v1-generation194-20260826-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 194 allocated-block clone from the verified p23 Arch image into p24; verify source hash, power, thermal, exact geometry, UUID, grown tree seal, read-only relock, and exact slot-A fastboot return; RAM-only wrapper, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 194 native p24 clone; exact signed bundle, p23 source read-only, p24-only payload write, power/thermal gates, relock, RAM-only; never flash or retry after COMMIT'
+		expected_boot_basis='consumed by the sole Generation 194 cycle; mainline reached exact UFS/NCM/SSH, then the redundant 16 GiB source hash stalled UFS and NCM before any observed clone-WRITE marker; host NCM watchdog timed out, rollback returned exact fastboot after 19m31s, intent remains UNKNOWN, and p24 disposition requires read-only proof; never retry or flash'
+		expected_boot_role='consumed ambiguous Generation 194 native p24 clone; source hash stalled UFS/NCM before any observed write marker, exact fastboot returned after 19m31s, p24 disposition unknown; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -3807,6 +3808,39 @@ case $profile in
 		[[ $expected_image == 5cf38e13d9b694ed22dd02b18550817d2f10260d5581559f4078a7ee9db026e9 ]] || fail 'native p24 clone recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native p24 clone trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native p24 clone verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	storage-layout-stage2-native-postmortem-v1-generation195-live-v1)
+		expected_boot_image=build/storage-layout-stage2-native-postmortem-v1-generation195-20260826-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 195 read-only p24 disposition cycle after ambiguous Generation 194; bounded 4 MiB prefix, superblock, and known-tree inspection with every UFS node read-only, no filesystem repair or write, and exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 195 read-only p24 postmortem; exact signed bundle, all UFS nodes read-only, bounded inspection, RAM-only, never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-native-postmortem-v1
+		expected_bundle=storage-layout-stage2-native-postmortem-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=2a1f6370a86ec644061f5bace8818b6e5af28d1a60a2e51a717a4e9e2408f169
+		expected_avb_digest=4d392b1647e2c2d06c5b21e921585900084081c801ab94e9f7202447e125eb7f
+		expected_generation_record=1cde286fe60bf155e9b7b9aba3722952686f50bb1afc093223d989ec3267364c
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 307188a2c6d6630e8f5732d7d0b84e297a6dd171cc687100a4714a565b4303f1 ]] || fail 'native p24 postmortem manifest is not pinned'
+		[[ $expected_image == 2f0a27f224ddbf5fa68e43be6c02b932750cb2dcea3b990fc54dd64dd2758ba1 ]] || fail 'native p24 postmortem recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native p24 postmortem trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native p24 postmortem verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -5331,6 +5365,7 @@ case $profile in
 	persistent-root-local-v54-generation163-live-v1 | \
 	storage-layout-stage2-mainline-readonly-v3-generation193-live-v1 | \
 	storage-layout-stage2-mainline-clone-v1-generation194-live-v1 | \
+	storage-layout-stage2-native-postmortem-v1-generation195-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

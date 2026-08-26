@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-25
+Updated: 2026-08-26
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -25,6 +25,24 @@ use Git history and dated `test-results/` records for older generations.
 | VCNL36866 | Preserved, paused | Separate dirty worktree; no current subsystem expansion |
 
 ## Immediate checkpoint
+
+Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
+is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
+key-only SSH in about seven seconds, then the redundant full 16 GiB source
+hash stalled UFS and NCM before any observed clone-write marker. Host NCM
+watchdogs began at 20:39:32; the userspace rollback did not run at its nominal
+900-second deadline and exact fastboot returned only at 20:56:21. This proves
+the prior rollback was not independent of a kernel/UFS stall. p24 disposition
+is not inferred from the missing marker.
+
+Generation 195 is the sole active successor. It reads only a bounded 4 MiB
+prefix, ext4 superblock fields and—only for an exact known filesystem—a
+read-only sealed tree. It contains no repair or write command and will classify
+p24 as `non-ext4`, `source-clone`, `grown-target` or `partial-ext4`. The clone
+successor has already replaced the full sparse-file hash with loop-mounted,
+read-only ext4 identity and sealed-tree verification. Hardware-watchdog work
+remains required before another writable cycle because the built target has
+`CONFIG_QCOM_WDT=m` but packages, loads and opens no matching watchdog module.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
