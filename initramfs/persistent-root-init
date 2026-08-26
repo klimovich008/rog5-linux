@@ -13,7 +13,7 @@ echo /sbin/mdev >/proc/sys/kernel/hotplug
 hostname rog5-persistent-root
 mdev -s
 
-expected_physical_count=116
+expected_physical_count=117
 expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
 expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
@@ -395,7 +395,7 @@ find_exact_userdata() {
 				continue
 			[ "$(cat "$sys_block/partition")" = 23 ] || continue
 			[ "$(cat "$sys_block/start")" = 18821440 ] || continue
-			[ "$(cat "$sys_block/size")" = 476106392 ] || continue
+			[ "$(cat "$sys_block/size")" = 408997568 ] || continue
 			[ "$(sed -n 's/^DEVNAME=//p' "$sys_block/uevent")" = \
 				"$name" ] || continue
 			[ "$(cat "$sys_block/ro")" = 1 ] || continue

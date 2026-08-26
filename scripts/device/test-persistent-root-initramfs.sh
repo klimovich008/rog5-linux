@@ -180,7 +180,7 @@ for name in sys.argv[1:]:
 PY
 grep -Fq 'expected_ufs_storage_mode=$storage_mode' "$builder" ||
 	fail 'P2 builder does not seal the selected storage mode'
-grep -Fq 'expected_physical_count=116' "$init"
+grep -Fq 'expected_physical_count=117' "$init"
 grep -Fq "'format=rog5-persistent-root-stage-v2'" "$init" ||
 	fail 'P2 target lacks bounded stage-detail framing'
 grep -Fq 'stage_detail=${3:-none}' "$init" ||

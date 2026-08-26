@@ -161,6 +161,35 @@ printf '%s\n' '=== mounts ==='
 cat /proc/mounts
 printf '%s\n' '=== UFS inventory ==='
 cat /run/rog5-p2-ufs-inventory.tsv
+printf '%s\n' '=== Stage-2 partitions ==='
+for path in /sys/class/block/sd*/sd*; do
+    [ -r "$path/uevent" ] || continue
+    partname=$(sed -n 's/^PARTNAME=//p' "$path/uevent")
+    case $partname in userdata|arch_root_a) ;; *) continue ;; esac
+    printf 'name=%s partname=%s partition=' "${path##*/}" "$partname"
+    cat "$path/partition"
+    printf 'start_sectors='; cat "$path/start"
+    printf 'size_sectors='; cat "$path/size"
+    printf 'read_only='; cat "$path/ro"
+done
+printf '%s\n' '=== Battery and USB ==='
+for path in /sys/class/power_supply/qcom-battmgr-bat/type \
+    /sys/class/power_supply/qcom-battmgr-bat/temp \
+    /sys/class/power_supply/qcom-battmgr-bat/voltage_now \
+    /sys/class/power_supply/qcom-battmgr-bat/current_now \
+    /sys/class/power_supply/qcom-battmgr-bat/status \
+    /sys/class/power_supply/qcom-battmgr-usb/online \
+    /sys/class/power_supply/qcom-battmgr-usb/voltage_now \
+    /sys/class/power_supply/qcom-battmgr-usb/current_now; do
+    [ ! -r "$path" ] || { printf '%s=' "$path"; cat "$path"; }
+done
+printf '%s\n' '=== Thermal zones ==='
+for zone in /sys/class/thermal/thermal_zone*; do
+    [ -r "$zone/temp" ] || continue
+    printf 'zone=%s type=' "${zone##*/}"
+    cat "$zone/type"
+    printf 'temp_millic='; cat "$zone/temp"
+done
 printf '%s\n' '=== initramfs verification ==='
 cat /run/rog5-p2-root-verification.txt
 printf '%s\n' '=== systemd time ==='

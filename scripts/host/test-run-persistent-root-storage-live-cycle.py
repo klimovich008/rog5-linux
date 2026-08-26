@@ -73,6 +73,23 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.BUNDLE,
             "persistent-root-local-v54",
         )
+
+    def test_diagnostics_cover_stage2_identity_power_and_thermal(self) -> None:
+        source = MODULE.DIAGNOSTIC_COMMAND
+        for contract in (
+            "=== Stage-2 partitions ===",
+            "userdata|arch_root_a",
+            "start_sectors=",
+            "size_sectors=",
+            "read_only=",
+            "=== Battery and USB ===",
+            "qcom-battmgr-bat/temp",
+            "qcom-battmgr-bat/current_now",
+            "qcom-battmgr-usb/online",
+            "=== Thermal zones ===",
+            "temp_millic=",
+        ):
+            self.assertIn(contract, source)
         for digest in (
             MODULE.MANIFEST_SHA256,
             MODULE.RECOVERY_SHA256,

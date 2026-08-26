@@ -62,7 +62,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         logical: str = "4096",
         partition: str = "23",
         start: str = "18821440",
-        size: str = "476106392",
+        size: str = "408997568",
         readonly: str = "1",
         devname: str | None = None,
     ) -> Path:
