@@ -7,6 +7,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import unittest
+from unittest import mock
 
 
 SOURCE = Path(__file__).with_name("observe-storage-layout-stage1-prewrite.py")
@@ -102,6 +103,48 @@ class ObserverTests(unittest.TestCase):
             "fastboot boot",
         ):
             self.assertNotIn(forbidden, source)
+
+    def test_expected_departure_is_classified_without_discarding_result(self) -> None:
+        identity = object()
+        with (
+            mock.patch.object(
+                MODULE.PREFLIGHT,
+                "revalidate_storage_acm",
+                side_effect=MODULE.PREFLIGHT.PreflightError("departed"),
+            ),
+            mock.patch.object(
+                MODULE.PREFLIGHT, "storage_product_locations", return_value=set()
+            ),
+            mock.patch.object(
+                MODULE.PREFLIGHT, "storage_acm_identities", return_value=[]
+            ),
+        ):
+            self.assertEqual(MODULE.classify_post_capture(identity), "DEPARTED")
+
+    def test_changed_identity_remains_distinct_from_expected_departure(self) -> None:
+        identity = object()
+        with (
+            mock.patch.object(
+                MODULE.PREFLIGHT,
+                "revalidate_storage_acm",
+                side_effect=MODULE.PREFLIGHT.PreflightError("changed"),
+            ),
+            mock.patch.object(
+                MODULE.PREFLIGHT,
+                "storage_product_locations",
+                return_value={"wrong"},
+            ),
+            mock.patch.object(
+                MODULE.PREFLIGHT, "storage_acm_identities", return_value=[]
+            ),
+        ):
+            self.assertEqual(MODULE.classify_post_capture(identity), "CHANGED")
+
+    def test_evidence_is_written_before_changed_identity_becomes_terminal(self) -> None:
+        source = SOURCE.read_text(encoding="utf-8")
+        write = source.index("STAGE1.write_exact(options.output, payload)")
+        changed = source.index('if post_identity == "CHANGED":', write)
+        self.assertLess(write, changed)
 
 
 if __name__ == "__main__":

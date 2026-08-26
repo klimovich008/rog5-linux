@@ -101,6 +101,20 @@
   fresh AVB SHA-256 `95007839...`. Its sole question is the exact prewrite
   stage/reason; no mutation is authorized by the host observer.
 
+## Generation 169 observer result
+
+- Generation 169 consumed its sole receive-only cycle. The observer was running
+  before boot, attached to exact recovery ACM, parsed a complete verdict in
+  memory, and sent zero bytes. The target then departed as expected.
+- The host discarded that validated verdict because post-capture USB
+  revalidation ran before evidence publication and treated zero remaining
+  products/interfaces as an error. No output file, readiness, backup, ACK,
+  writable device, or storage write exists; exact slot-A fallback passed.
+- The host-only correction classifies zero product/interface after capture as
+  `DEPARTED`, writes and fsyncs validated evidence before treating a changed
+  identity as terminal, and keeps changed identity distinct. Seven focused
+  tests pass. No target bytes change.
+
 ## Generation 167 prewrite result
 
 - Generation 167 consumed its sole cycle and exact slot-A fallback passed.

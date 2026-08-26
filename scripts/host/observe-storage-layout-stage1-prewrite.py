@@ -124,6 +124,18 @@ def safe_output(path: Path) -> None:
         fail("prewrite output metadata is unsafe")
 
 
+def classify_post_capture(identity) -> str:
+    try:
+        PREFLIGHT.revalidate_storage_acm(identity)
+    except (PREFLIGHT.PreflightError, PREFLIGHT.CORE.CollectorError, OSError):
+        products = PREFLIGHT.storage_product_locations()
+        interfaces = PREFLIGHT.storage_acm_identities()
+        if not products and not interfaces:
+            return "DEPARTED"
+        return "CHANGED"
+    return "PRESENT"
+
+
 def main(arguments: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--usb-location", required=True)
@@ -142,11 +154,12 @@ def main(arguments: list[str]) -> int:
     started = time.time_ns()
     with STAGE1.RawSerial(identity.path) as transport:
         result = observe(transport, options.capture_timeout)
-    PREFLIGHT.revalidate_storage_acm(identity)
+    post_identity = classify_post_capture(identity)
     result.update(
         {
             "ended_unix_ns": time.time_ns(),
             "operation_id": options.operation_id,
+            "post_capture_identity": post_identity,
             "started_unix_ns": started,
             "usb_location": identity.location,
         }
@@ -156,6 +169,8 @@ def main(arguments: list[str]) -> int:
     ).encode("ascii")
     STAGE1.write_exact(options.output, payload)
     STAGE1.fsync_directory(options.output.parent)
+    if post_identity == "CHANGED":
+        fail("validated prewrite evidence retained after USB identity changed")
     print(f"PASS Stage-1 receive-only prewrite outcome={result['outcome']}")
     return 0
 
