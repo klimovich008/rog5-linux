@@ -277,6 +277,7 @@ shared_tests=(
 	scripts/device/test-stage-local-arch-image.sh
 	scripts/device/test-local-image-stage-initramfs.sh
 	scripts/device/test-clone-local-image-to-arch-root.sh
+	scripts/device/test-inspect-native-arch-root.sh
 	scripts/device/test-local-image-stage-preusb-diagnostic.sh
 	scripts/device/test-local-image-stage-configfs-beacon.sh
 	scripts/device/test-local-image-stage-udc-inventory.sh

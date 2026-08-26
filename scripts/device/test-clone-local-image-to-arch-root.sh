@@ -17,12 +17,16 @@ for contract in \
 	'target_blocks=8388603' \
 	'[ "$count" -eq 117 ]' \
 	'"$verifier" "$target_mount"' \
+	'losetup -r "$source_loop" "$source_image"' \
+	'"$verifier" "$source_verify_mount" "$native_seal"' \
+	'verify_mount_count 2' \
 	'ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS'; do
 	grep -Fq "$contract" "$target" || {
 		echo "FAIL missing native-clone contract: $contract" >&2
 		exit 1
 	}
 done
+! grep -Fq 'sha256sum "$source_image"' "$target"
 ! grep -Eq 'sgdisk|mkfs|fastboot|/dev/sd[a-z]24' "$target"
 grep -Fq 'native_seal=${NATIVE_SEAL:-}' "$builder"
 grep -Fq 'ln -s /proc/mounts "$stage/etc/mtab"' "$builder"
