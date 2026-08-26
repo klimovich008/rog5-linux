@@ -43,7 +43,7 @@ fi
 if [ -n "$watchdog_module" ]; then
 	[ -f "$watchdog_module" ] && [ ! -L "$watchdog_module" ] &&
 		[ "$(sha256sum "$watchdog_module" | cut -d ' ' -f 1)" = \
-			0b83b3b5aecc77390f82f2aabc1e24f3ef590e331986a7772a480f214a7b42c2 ] &&
+			3fcea56eab46bc5ea006461e3c18c21875c046b7b12db3262bf8cd400f0e16c6 ] &&
 		[ "$(modinfo -F vermagic "$watchdog_module" | awk '{print $1}')" = \
 			"$expected_release" ] || fail 'watchdog module identity changed'
 fi

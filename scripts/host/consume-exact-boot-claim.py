@@ -423,6 +423,15 @@ CLAIMS = {
         b"8544f57d85d0a75af067fa02ec2747f01a6c0fa6c666b94a5ea0931b61444452\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile="
+        b"storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1\n"
+        b"candidate=storage-layout-stage2-watchdog-lifetime-v2\n"
+        b"manifest_sha256="
+        b"eaadc07583a675edf398e8d74c73658e3e0783a839fceee3d3510f1a403fe741\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-preflight-v3-generation73-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
