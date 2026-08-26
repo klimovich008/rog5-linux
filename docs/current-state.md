@@ -295,6 +295,11 @@ recognized an unclassified residual signature in partition 24, which occupies
 the old tail of the formerly larger userdata filesystem. No write occurred.
 The next read-only cycle reports the bounded signature type and hashed raw
 output before deciding whether that residual is safe to overwrite.
+Generation 186 reached the same exact residual-signature boundary but the one
+quoted BusyBox `blkid` output exceeded the initial 1-KiB private evidence cap.
+It failed before emitting signature content or writing storage and returned to
+exact fastboot. The successor changes only that text-output bound to 64 KiB;
+the parser, hash, read-only scope, and refusal remain unchanged.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

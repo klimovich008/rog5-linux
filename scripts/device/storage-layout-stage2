@@ -414,7 +414,7 @@ if blkid "$arch_root" >/run/rog5-layout-stage2-empty-root.log 2>&1; then
 	signature_log=/run/rog5-layout-stage2-empty-root.log
 	signature_bytes=$(stat -c %s "$signature_log") || fail arch_root_signature_stat
 	case $signature_bytes in ''|*[!0-9]*) fail arch_root_signature_stat ;; esac
-	[ "$signature_bytes" -gt 0 ] && [ "$signature_bytes" -le 1024 ] ||
+	[ "$signature_bytes" -gt 0 ] && [ "$signature_bytes" -le 65536 ] ||
 		fail arch_root_signature_size
 	signature_sha256=$(sha256sum "$signature_log" | awk '{print $1}') ||
 		fail arch_root_signature_hash
