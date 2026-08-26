@@ -56,12 +56,14 @@ watchdog userspace lifetime, not UFS, NCM, recovery, or the clone algorithm.
 The next candidate must be read-only and capture the exact helper log/status
 after its first 5-second ping; do not issue another writable clone yet.
 
-Generation 200 is the unbooted active read-only successor. It captures the
-exact watchdog helper record, process state, bounded 4096-byte stderr hex,
-driver, compatible, device node and module state after runtime/SSH. Its target
-archive is `d06df9fd...`, signed manifest `8544f57d...`, and RAM-only wrapper
-`5e4bdaeb...`. The clone helper is not invoked and no storage write path is
-reachable.
+Generation 200 passed read-only and is consumed. It proved BusyBox failed
+`ENOENT` because `qcom_wdt` never loaded; dmesg identified an exact
+`.gnu.linkonce.this_module` size mismatch. The rejected reconstructed module
+was `0x4c0`; clean twins built against the actual g359 output and original
+Clang-18/BTF environment are `3fcea56e...` with size `0x500`. Every watchdog
+predicate now returns explicitly despite the outer `if !`, and admission waits
+six seconds to cover the first ping. The next cycle remains read-only until
+this corrected module is physically proven loaded, alive and reset-capable.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
