@@ -172,7 +172,7 @@ if grep -Eq \
 fi
 
 grep -Fq 'pid=%s\nstarttime=%s\n' "$stage/init"
-grep -Fq 'expected_wrapper_physical_count=116' "$stage/init"
+grep -Fq 'expected_wrapper_physical_count=117' "$stage/init"
 grep -Fq 'expected_stage2_physical_count=117' "$stage/init"
 grep -Fq 'mount -t pstore -o ro pstore /sys/fs/pstore' "$stage/init"
 grep -Fq '/run/rog5-postmortem.status' "$stage/init"
@@ -242,12 +242,12 @@ esac
 lease_line=$(grep -n '^watchdog_lease=/run/rog5-recovery-watchdog.lease$' \
 	"$stage/init" | cut -d: -f1)
 isolation_count=$(
-	grep -c '^if ! isolate_storage; then$' "$stage/init" || true
+	grep -c '^if \[ "$stage2_readonly_preflight" != 1 \] && ! isolate_storage; then$' "$stage/init" || true
 )
 [ "$isolation_count" -eq 2 ] ||
 	fail 'stable recovery must invoke storage isolation exactly twice'
 isolation_lines=$(
-	grep -n '^if ! isolate_storage; then$' "$stage/init" | cut -d: -f1
+	grep -n '^if \[ "$stage2_readonly_preflight" != 1 \] && ! isolate_storage; then$' "$stage/init" | cut -d: -f1
 )
 pre_storage_line=$(printf '%s\n' "$isolation_lines" | sed -n '1p')
 post_storage_line=$(printf '%s\n' "$isolation_lines" | sed -n '2p')
