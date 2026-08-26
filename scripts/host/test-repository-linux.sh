@@ -302,6 +302,7 @@ shared_tests=(
 	scripts/device/test-userdata-ext4-reset-runtime.sh
 	scripts/device/test-disarm-recovery-layout-watchdog.sh
 	scripts/host/test-collect-storage-layout-stage1.py
+	scripts/host/test-observe-storage-layout-stage1-prewrite.py
 	scripts/host/test-storage-layout-stage2-contract.py
 	scripts/host/test-collect-storage-layout-stage2.py
 	scripts/device/test-storage-layout-stage2-runtime.sh
