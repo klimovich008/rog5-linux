@@ -153,6 +153,8 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
 
         self.assertIn("recovery_guard_report_invalid", source)
         self.assertIn('emit "status=GUARDS $guard_fields"', source)
+        self.assertIn("emit_partition_observation 24", source)
+        self.assertIn('status=PARTITION number=$number', source)
 
         collector = self.executable_source(COLLECTOR)
         self.assertIn('choices=("clone", "preflight")', collector)
@@ -160,6 +162,7 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertIn("Stage-2 preflight wrapper count is invalid", collector)
         self.assertIn("unexpected Stage-2 guard record", collector)
         self.assertIn("Stage-2 guard classification changed", collector)
+        self.assertIn("Stage-2 partition classification changed", collector)
 
     def test_native_seal_is_the_refreshed_tree(self) -> None:
         payload = SEAL.read_bytes()

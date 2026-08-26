@@ -390,6 +390,8 @@ verify_ufs_power_containment() {
 	auto_count=0
 	host_count=0
 	wlun_count=0
+	blocked_query_count=0
+	blocked_scsi_count=0
 	while [ "$attempt" -lt 100 ]; do
 		auto_count=$(dmesg | grep -F -c "$auto_marker" || true)
 		host_count=$(dmesg | grep -F -c "$host_marker" || true)
@@ -960,12 +962,19 @@ if [ "$stage2_readonly_preflight" = 1 ]; then
 	if [ -s /run/rog5-physical-block-count ]; then
 		wrapper_count=$(cat /run/rog5-physical-block-count)
 	fi
+	case $auto_count in ''|*[!0-9]*) auto_count=0 ;; esac
+	case $host_count in ''|*[!0-9]*) host_count=0 ;; esac
+	case $wlun_count in ''|*[!0-9]*) wlun_count=0 ;; esac
+	case $blocked_query_count in ''|*[!0-9]*) blocked_query_count=0 ;; esac
+	case $blocked_scsi_count in ''|*[!0-9]*) blocked_scsi_count=0 ;; esac
 	case $wrapper_count in ''|*[!0-9]*) wrapper_count=0 ;; esac
 	guard_report=/run/rog5-stage2-preflight-guards
 	guard_report_tmp=/run/.rog5-stage2-preflight-guards.$$
-	if ! printf 'discovery=%s isolation=%s power=%s inventory=%s wrapper_physical_count=%s\n' \
+	if ! printf 'discovery=%s isolation=%s power=%s inventory=%s auto_markers=%s host_markers=%s wlun_markers=%s blocked_queries=%s blocked_scsi=%s wrapper_physical_count=%s\n' \
 		"$guard_discovery" "$guard_isolation" "$guard_power" \
-		"$guard_inventory" "$wrapper_count" >"$guard_report_tmp" ||
+		"$guard_inventory" "$auto_count" "$host_count" "$wlun_count" \
+		"$blocked_query_count" "$blocked_scsi_count" "$wrapper_count" \
+		>"$guard_report_tmp" ||
 		! chmod 0600 "$guard_report_tmp" ||
 		! mv -f "$guard_report_tmp" "$guard_report"; then
 		log 'cannot publish Stage-2 preflight guard report; rebooting'

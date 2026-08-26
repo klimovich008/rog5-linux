@@ -236,6 +236,31 @@ verify_partition() {
 		[ "$actual_attrs" = 0000000000000000 ]
 }
 
+emit_partition_observation() {
+	number=$1
+	info=/run/rog5-layout-stage2-partition-observation-$number.log
+	if ! sgdisk -i="$number" "$disk" >"$info" 2>&1; then
+		emit "status=PARTITION number=$number read=fail first=invalid last=invalid type=invalid unique=invalid name=invalid attrs=invalid"
+		return 0
+	fi
+	observed_first=$(sed -n 's/^First sector: \([0-9][0-9]*\).*/\1/p' "$info")
+	observed_last=$(sed -n 's/^Last sector: \([0-9][0-9]*\).*/\1/p' "$info")
+	observed_type=$(sgdisk_value 'Partition GUID code' "$info" | awk '{print $1}' |
+		tr 'A-F' 'a-f')
+	observed_unique=$(sgdisk_value 'Partition unique GUID' "$info" | tr 'A-F' 'a-f')
+	observed_name=$(sed -n "s/^Partition name: '\(.*\)'$/\1/p" "$info")
+	observed_attrs=$(sgdisk_value 'Attribute flags' "$info" | tr 'A-F' 'a-f')
+	case $observed_first in ''|*[!0-9]*) observed_first=invalid ;; esac
+	case $observed_last in ''|*[!0-9]*) observed_last=invalid ;; esac
+	guid_is_canonical "$observed_type" || observed_type=invalid
+	guid_is_canonical "$observed_unique" || observed_unique=invalid
+	printf '%s\n' "$observed_name" | grep -Eq '^[A-Za-z0-9._-]{1,36}$' ||
+		observed_name=invalid
+	printf '%s\n' "$observed_attrs" | grep -Eq '^[0-9a-f]{16}$' ||
+		observed_attrs=invalid
+	emit "status=PARTITION number=$number read=pass first=$observed_first last=$observed_last type=$observed_type unique=$observed_unique name=$observed_name attrs=$observed_attrs"
+}
+
 gpt_identity_hash() {
 	output=$1
 	: >"$output" || return 1
@@ -364,7 +389,7 @@ if [ "$operation_mode" = read_only_preflight ]; then
 		fail recovery_guard_report_invalid
 	guard_fields=$(cat "$guard_report") || fail recovery_guard_report_invalid
 	printf '%s\n' "$guard_fields" | grep -Eq \
-		'^discovery=(pass|fail) isolation=(pass|fail) power=(pass|fail) inventory=(pass|fail) wrapper_physical_count=[0-9]+$' ||
+		'^discovery=(pass|fail) isolation=(pass|fail) power=(pass|fail) inventory=(pass|fail) auto_markers=[0-9]+ host_markers=[0-9]+ wlun_markers=[0-9]+ blocked_queries=[0-9]+ blocked_scsi=[0-9]+ wrapper_physical_count=[0-9]+$' ||
 		fail recovery_guard_report_invalid
 	emit "status=GUARDS $guard_fields"
 fi
@@ -375,6 +400,7 @@ fi
 stage_set S10_TOPOLOGY
 no_physical_mounts || fail physical_block_mounted
 resolve_exact_storage || fail topology_identity
+emit_partition_observation 24
 verify_disk_guid || fail disk_guid_changed
 verify_partition 23 2352680 53477375 "$expected_userdata_type_guid" \
 	"$expected_userdata_guid" userdata || fail userdata_identity_changed

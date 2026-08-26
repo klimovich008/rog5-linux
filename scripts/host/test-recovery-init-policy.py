@@ -219,6 +219,14 @@ class InitPolicyTest(unittest.TestCase):
         self.assertIn("guard_power=fail", source)
         self.assertIn("guard_inventory=fail", source)
         self.assertIn("/run/rog5-stage2-preflight-guards", source)
+        for field in (
+            "auto_markers",
+            "host_markers",
+            "wlun_markers",
+            "blocked_queries",
+            "blocked_scsi",
+        ):
+            self.assertIn(field, source)
         self.assertIn("Stage-2 deferred guards ready", source)
 
     def test_recovery_udc_selection_accepts_exact_wrapper_inventory(self) -> None:
