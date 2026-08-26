@@ -151,6 +151,10 @@ executor now captures once, bounds at 4097 bytes, and considers only non-empty
 output a signature. A zero-output-success runtime fixture fails on the old
 code and passes on the correction. Generation 188 is consumed and revoked;
 no Stage-2 write, mount, or watchdog disarm occurred.
+Generation 189 passed the corrected signature gate, proving p24 has no
+recognizable bounded signature output, then failed separately at
+`temperature_unsafe`. It returned exact fastboot with the target untouched.
+The clone gate remains closed pending exact temperature-predicate evidence.
 
 ## Completed charging repair
 
