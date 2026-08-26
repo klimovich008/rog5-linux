@@ -79,6 +79,28 @@
   manifest and one narrow admission now bind the exact candidate; its one-use
   claim remains unconsumed.
 
+## Generation 168 observation loss / Generation 169 discriminator
+
+- Generation 168 consumed its sole cycle. Recovery USB appeared but departed
+  before the anchor-first lifecycle started the collector. No terminal record,
+  backup directory, readiness, ACK, writable device, or storage write exists;
+  exact slot-A fallback passed.
+- After two pre-S30 observation losses, the explicit systematic-debugging skill
+  and a bounded read-only Claude Opus review were used. Opus ranked a fast
+  target S00/S10/S20 failure plus host observation loss highest and recommended
+  collector-before-boot as the smallest safe discriminator. Independent review
+  confirmed all config lines, every filesystem call site, embedded root:root
+  0400 config/GPT metadata, hashes, and BusyBox sha256sum closure.
+- A new receive-only observer waits for the exact recovery ACM before boot,
+  parses ordered S00/S10/S20/FAIL or S30, and sends zero bytes. At S30 it exits
+  without readiness or ACK, so the cycle cannot cross the storage write gate.
+  Four focused hostile tests pass. The active tier was blocked by an unrelated
+  stale local-image direct extent map before reaching this test; the focused
+  observer and repository-runner contract tests pass.
+- Generation 169 reissues byte-identical Generation-168 raw target bytes under
+  fresh AVB SHA-256 `95007839...`. Its sole question is the exact prewrite
+  stage/reason; no mutation is authorized by the host observer.
+
 ## Generation 167 prewrite result
 
 - Generation 167 consumed its sole cycle and exact slot-A fallback passed.

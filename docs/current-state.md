@@ -191,8 +191,12 @@ GPT backup and uses the live-proven single `sgdisk --load-backup` operation.
 Generation 167 then failed before S30/ACK/write because
 the executor still expected the pre-shrink 59,513,299-block filesystem. Exact
 slot-A fallback passed. The unissued successor changes only this guard to the
-current verified 51,124,000 blocks. Full CI passed; Generation 168 is narrowly
-admitted and remains unbooted with an unconsumed claim.
+current verified 51,124,000 blocks. Full CI passed. Generation 168 then
+lost its short pre-S30 diagnostic window before the anchor-first lifecycle
+started the collector; no ACK/write occurred and slot-A fallback passed. A
+systematic/Opus review selected collector-before-boot as the smallest
+discriminator. Generation 169 is byte-identical at the raw target layer and
+uses a receive-only observer that stops at S30 without sending any host bytes.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
