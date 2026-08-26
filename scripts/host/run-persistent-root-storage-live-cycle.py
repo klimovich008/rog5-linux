@@ -750,7 +750,7 @@ def parse_runtime_evidence(path: Path) -> str:
         "format=rog5-persistent-root-live-evidence-v1",
         f"kernel={TARGET_RELEASE}",
         "status=PASS",
-        "physical_blocks=116",
+        "physical_blocks=117",
         "block_backed_mounts=2",
         "userdata_mount=ro-noload",
         "local_image_mount=ro-noload",

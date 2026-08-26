@@ -401,8 +401,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 191 cycle; historical V54 recovery expected pre-Stage-1 userdata/topology and returned before ACM on the current 117-node p23/p24 layout; target bundle never executed, no storage write, stock slot-A recovery returned; never retry or flash" &&
 		NF == 3 { stage2_mainline++ ; next }
 	$1 == "build/storage-layout-stage2-mainline-readonly-v2-generation192-20260826-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 192 mainline read-only Stage-2 preflight; current full responder, p23/p24 geometry, qcom-battmgr, thermal, UFS, local Arch, key-only SSH, and exact fastboot; externally consumed exact claim required; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 192 cycle; mainline runtime passed at 254 seconds with 117 physical nodes, two read-only backing mounts, strict SSH and zero UFS errors, but host acceptance still required stale physical_blocks=116; exact fallback and intent resolution passed; no p24 write; never retry or flash" &&
 		NF == 3 { stage2_mainline_v2++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -619,7 +619,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 192 mainline read-only Stage-2 preflight; current full responder, p23/p24 geometry, qcom-battmgr, thermal, UFS, local Arch, key-only SSH, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
