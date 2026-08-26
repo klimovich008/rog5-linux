@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hardware-free tests for the read-only persistent-root live runner."""
+"""Hardware-free tests for the exact p24 clone live runner."""
 
 from __future__ import annotations
 
@@ -55,41 +55,26 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_profile_and_artifact_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-mainline-readonly-v3-generation193-live-v1",
+            "storage-layout-stage2-mainline-clone-v1-generation194-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle_profile, "persistent-root-ro-v1")
         self.assertEqual(MODULE.PROFILE.recovery_profile, MODULE.PROFILE_ID)
         self.assertFalse(MODULE.PROFILE.diagnostic)
-        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
-        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
-        sealed_init = (REPO / "initramfs/persistent-root-init").read_text()
+        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 local image stage")
+        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
+        sealed_init = (REPO / "initramfs/local-image-stage-init").read_text()
         self.assertIn(
             f"echo '{MODULE.TARGET_PRODUCT}' >\"$gadget/strings/0x409/product\"",
             sealed_init,
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-mainline-readonly-v3",
+            "storage-layout-stage2-mainline-clone-v1",
         )
 
-    def test_diagnostics_cover_stage2_identity_power_and_thermal(self) -> None:
-        source = MODULE.DIAGNOSTIC_COMMAND
-        for contract in (
-            "=== Stage-2 partitions ===",
-            "userdata|arch_root_a",
-            "start_sectors=",
-            "size_sectors=",
-            "read_only=",
-            "=== Battery and USB ===",
-            "qcom-battmgr-bat/temp",
-            "qcom-battmgr-bat/current_now",
-            "qcom-battmgr-usb/online",
-            "=== Thermal zones ===",
-            "temp_millic=",
-        ):
-            self.assertIn(contract, source)
+    def test_clone_artifact_and_admission_identities_are_exact(self) -> None:
         self.assertEqual(
             MODULE.COMPONENT_ROOT.name,
             "storage-layout-stage2-mainline-readonly-v2-recovery-components-20260826-r1",
@@ -110,7 +95,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation193",
+            "generation194",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -180,48 +165,17 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertLess(exact, clean)
         self.assertLess(clean, resolved)
 
-    def test_diagnostics_capture_bounded_systemd_timing(self) -> None:
-        diagnostic = MODULE.DIAGNOSTIC_COMMAND
-        self.assertIn("=== systemd time ===", diagnostic)
-        self.assertIn("systemd-analyze time", diagnostic)
-        self.assertIn("systemd-analyze blame --no-pager", diagnostic)
-        self.assertIn("sed -n '1,80p'", diagnostic)
-        self.assertIn("systemd-analyze critical-chain --no-pager", diagnostic)
-        self.assertIn(
-            "systemd-analyze critical-chain --no-pager rog5-early-sshd.service",
-            diagnostic,
-        )
-        self.assertIn(
-            "rog5-sshd-ed25519-key.service",
-            diagnostic,
-        )
-        self.assertIn("sshdgenkeys.service", diagnostic)
-        self.assertIn("rog5-early-sshd.service", diagnostic)
-        self.assertIn("ssh_host_*_key*", diagnostic)
-        self.assertIn("=== side-port power/USB ===", diagnostic)
-        self.assertIn("/run/rog5-power-usb-ready", diagnostic)
-
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(
             (
-                "format=rog5-persistent-root-live-evidence-v1",
+                "format=rog5-native-clone-runtime-v1",
                 "boot_id=11111111-2222-3333-4444-555555555555",
                 "uptime_seconds=21.00",
-                "status=PASS",
-                f"kernel={MODULE.TARGET_RELEASE}",
+                "state=READY",
                 "physical_blocks=117",
-                "block_backed_mounts=2",
-                "userdata_mount=ro-noload",
-                "local_image_mount=ro-noload",
-                "local_image_write_probe=PASS",
-                "root=local-ext4-overlay-tmpfs",
-                "blocked_device_queries=0",
-                "blocked_scsi_commands=0",
-                "journal_recovery_events=0",
-                "ufs_error_events=0",
-                "backlights=0",
-                "ssh=strict-key-only",
-                "userdata_device=/dev/sdg23",
+                "storage=read-only",
+                "ssh=key-only",
+                "userdata=/dev/sdg23",
                 "result=PASS",
                 "",
             )
@@ -236,29 +190,20 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
 
     def test_runtime_evidence_rejects_missing_duplicate_and_wrong_storage(self) -> None:
         baseline = [
-            "format=rog5-persistent-root-live-evidence-v1",
+            "format=rog5-native-clone-runtime-v1",
             "boot_id=11111111-2222-3333-4444-555555555555",
-            "status=PASS",
-            f"kernel={MODULE.TARGET_RELEASE}",
+            "state=READY",
             "physical_blocks=117",
-            "block_backed_mounts=2",
-            "userdata_mount=ro-noload",
-            "local_image_mount=ro-noload",
-            "local_image_write_probe=PASS",
-            "root=local-ext4-overlay-tmpfs",
-            "blocked_device_queries=0",
-            "blocked_scsi_commands=0",
-            "journal_recovery_events=0",
-            "ufs_error_events=0",
-            "ssh=strict-key-only",
-            "userdata_device=/dev/sda23",
+            "storage=read-only",
+            "ssh=key-only",
+            "userdata=/dev/sda23",
             "result=PASS",
         ]
         hostile = (
-            baseline[:-2] + ["userdata_device=/dev/mmcblk0p23", "result=PASS"],
+            baseline[:-2] + ["userdata=/dev/mmcblk0p23", "result=PASS"],
             baseline + ["boot_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"],
             [line for line in baseline if line != "physical_blocks=117"],
-            baseline + ["blocked_scsi_commands=0"],
+            baseline + ["storage=read-only"],
         )
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "runtime.log"
@@ -446,44 +391,15 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             f"target_release={MODULE.TARGET_RELEASE}\n"
             f"boot_id={boot_id}\n"
             "sequence=6\n"
-            "stage=root-verify\n"
+            "stage=runtime\n"
             "state=ENTER\n"
             "detail=none\n"
         ).encode()
         parsed = MODULE.parse_stage_record(first)
         self.assertEqual(parsed.sequence, 6)
-        self.assertEqual(parsed.stage, "root-verify")
+        self.assertEqual(parsed.stage, "runtime")
         self.assertEqual(parsed.state, "ENTER")
         self.assertEqual(parsed.detail, "none")
-
-        image_write = first.replace(b"root-verify", b"image-write")
-        self.assertEqual(
-            MODULE.parse_stage_record(image_write).stage, "image-write"
-        )
-        for stage in (
-            "userdata-unmount",
-            "image-write-window",
-            "write-window-precheck",
-            "userdata-partition-rw",
-            "userdata-disk-rw",
-            "write-window-selected-disk-blockdev",
-            "write-window-selected-disk-sysfs",
-            "write-window-selected-part-blockdev",
-            "write-window-selected-part-sysfs",
-            "write-window-other-disk-blockdev",
-            "write-window-other-disk-sysfs",
-            "write-window-other-part-blockdev",
-            "write-window-other-part-sysfs",
-            "write-window-count",
-            "userdata-rw",
-            "image-loop-rw",
-            "image-fs-rw",
-            "image-probe",
-            "storage-relock",
-        ):
-            with self.subTest(stage=stage):
-                payload = first.replace(b"root-verify", stage.encode("ascii"))
-                self.assertEqual(MODULE.parse_stage_record(payload).stage, stage)
 
         second = first.replace(b"sequence=6", b"sequence=7").replace(
             b"state=ENTER", b"state=PASS"
@@ -493,7 +409,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         for hostile in (
             first.rstrip(b"\n"),
             first + b"extra=1\n",
-            first.replace(b"root-verify", b"unknown"),
+            first.replace(b"runtime", b"unknown"),
             first.replace(b"state=ENTER", b"state=UNKNOWN"),
             first.replace(b"detail=none", b"detail=UPPERCASE"),
             first.replace(b"detail=none", b"detail=bad/value"),
@@ -511,7 +427,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         changed_duplicate = MODULE.StageRecord(
             boot_id=parsed.boot_id,
             sequence=parsed.sequence,
-            stage="overlay",
+            stage="ufs-ready",
             state=parsed.state,
             detail=parsed.detail,
             payload=parsed.payload,
@@ -536,7 +452,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_executes_read_only_runtime_and_systemd_reboot(self) -> None:
+    def test_runner_executes_only_the_sealed_clone_then_waits_for_fastboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -550,9 +466,36 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
         self.assertIn("RUNTIME_COMMAND", source)
-        self.assertIn('"/usr/bin/systemctl reboot"', source)
-        self.assertNotIn('"/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertIn('CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertIn("parse_clone_evidence(clone_log)", source)
+        self.assertIn("ALLOW_STAGE2_P24_CLONE", source)
+        self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
+
+    def test_clone_evidence_is_exact_and_ignores_only_transport_noise(self) -> None:
+        expected = [
+            "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
+            "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
+            "ROG5_NATIVE_CLONE_V1 stage=filesystem status=GROW",
+            "ROG5_NATIVE_CLONE_V1 stage=seal status=WRITE",
+            "ROG5_NATIVE_CLONE_V1 stage=readonly status=VERIFY",
+            "ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS "
+            "target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b "
+            "target_blocks=8388603",
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "clone.log"
+            path.write_text("\n".join([*expected, "Connection closed"]) + "\n")
+            MODULE.parse_clone_evidence(path)
+            for hostile in (
+                expected[:-1],
+                [*expected, expected[-1]],
+                [*expected[:-1], expected[-1].replace("PASS", "FAIL")],
+                [expected[1], expected[0], *expected[2:]],
+            ):
+                path.write_text("\n".join(hostile) + "\n")
+                with self.assertRaises(MODULE.PersistentCycleError):
+                    MODULE.parse_clone_evidence(path)
 
 
 if __name__ == "__main__":

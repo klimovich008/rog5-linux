@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-mainline-readonly-v3-generation193-live-v1"
-BUNDLE = "storage-layout-stage2-mainline-readonly-v3"
+PROFILE_ID = "storage-layout-stage2-mainline-clone-v1-generation194-live-v1"
+BUNDLE = "storage-layout-stage2-mainline-clone-v1"
 MANIFEST_SHA256 = (
-    "1384d198998f3a055487c747b38f59f0abcfb452049d7b77879f9e0cf1e0380a"
+    "115fc705b9e3eb396ba75760ca0db4bae663ccc95fadc1ead21b84b874d97f06"
 )
 RECOVERY_SHA256 = (
-    "ac161f0677aa4148882cf822c7a1af36ef9f79ba5af80e5639c2b85312d3e30a"
+    "5cf38e13d9b694ed22dd02b18550817d2f10260d5581559f4078a7ee9db026e9"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-mainline-readonly-v3-generation193-live-v1\n"
-    b"candidate=storage-layout-stage2-mainline-readonly-v3\n"
+    b"storage-layout-stage2-mainline-clone-v1-generation194-live-v1\n"
+    b"candidate=storage-layout-stage2-mainline-clone-v1\n"
     b"manifest_sha256="
-    b"1384d198998f3a055487c747b38f59f0abcfb452049d7b77879f9e0cf1e0380a\n"
+    b"115fc705b9e3eb396ba75760ca0db4bae663ccc95fadc1ead21b84b874d97f06\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -70,13 +70,13 @@ CLAIM_ENTRYPOINT = (
     REPO
     / "scripts/host/consume-exact-boot-claim.py"
 )
-TARGET_RELEASE = "7.1.4-gae717d919f87"
-TARGET_PRODUCT = "ROG5 persistent root"
-TARGET_UDEV_MODEL = "ROG5_persistent_root"
+TARGET_RELEASE = "7.1.4-g359318de534f"
+TARGET_PRODUCT = "ROG5 local image stage"
+TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-mainline-readonly-v3-generation193-20260826-r1"
+    / "build/storage-layout-stage2-mainline-clone-v1-generation194-20260826-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,93 +128,32 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-mainline-readonly-v3",
+    admission_profile="storage-layout-stage2-mainline-clone-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-mainline-readonly-v3",
-    build_profile="storage-layout-stage2-mainline-readonly-v3",
+    runtime_profile="storage-layout-stage2-mainline-clone-v1",
+    build_profile="storage-layout-stage2-mainline-clone-v1",
     diagnostic=False,
 )
 
 RUNTIME_COMMAND = r"""
 set -eu
-i=0
-while [ ! -f /run/rog5-p2-ready ] && [ "$i" -lt 300 ]; do
-    i=$((i + 1))
-    sleep 0.5
-done
-[ -f /run/rog5-p2-ready ]
+[ -f /run/rog5-local-image-stage.status ]
 [ -f /run/rog5-power-usb-ready ]
-printf '%s\n' 'format=rog5-persistent-root-live-evidence-v1'
+printf '%s\n' 'format=rog5-native-clone-runtime-v1'
 printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime
-cat /run/rog5-p2-ready
-printf 'userdata_device='; cat /run/rog5-p2-userdata-device
+cat /run/rog5-local-image-stage.status
+count=0
+for path in /sys/class/block/*; do
+    [ -e "$path/dev" ] || continue
+    [ -e "$path/device" ] || [ -e "$path/partition" ] || continue
+    count=$((count + 1))
+done
+printf 'physical_blocks=%s\n' "$count"
 printf '%s\n' 'result=PASS'
 """.strip()
 
-DIAGNOSTIC_COMMAND = r"""
-set -eu
-printf '%s\n' '=== ready ==='
-cat /run/rog5-p2-ready
-printf '%s\n' '=== userdata ==='
-cat /run/rog5-p2-userdata-device
-printf '%s\n' '=== side-port power/USB ==='
-cat /run/rog5-power-usb-ready
-printf '%s\n' '=== mounts ==='
-cat /proc/mounts
-printf '%s\n' '=== UFS inventory ==='
-cat /run/rog5-p2-ufs-inventory.tsv
-printf '%s\n' '=== Stage-2 partitions ==='
-for path in /sys/class/block/sd*/sd*; do
-    [ -r "$path/uevent" ] || continue
-    partname=$(sed -n 's/^PARTNAME=//p' "$path/uevent")
-    case $partname in userdata|arch_root_a) ;; *) continue ;; esac
-    printf 'name=%s partname=%s partition=' "${path##*/}" "$partname"
-    cat "$path/partition"
-    printf 'start_sectors='; cat "$path/start"
-    printf 'size_sectors='; cat "$path/size"
-    printf 'read_only='; cat "$path/ro"
-done
-printf '%s\n' '=== Battery and USB ==='
-for path in /sys/class/power_supply/qcom-battmgr-bat/type \
-    /sys/class/power_supply/qcom-battmgr-bat/temp \
-    /sys/class/power_supply/qcom-battmgr-bat/voltage_now \
-    /sys/class/power_supply/qcom-battmgr-bat/current_now \
-    /sys/class/power_supply/qcom-battmgr-bat/status \
-    /sys/class/power_supply/qcom-battmgr-usb/online \
-    /sys/class/power_supply/qcom-battmgr-usb/voltage_now \
-    /sys/class/power_supply/qcom-battmgr-usb/current_now; do
-    [ ! -r "$path" ] || { printf '%s=' "$path"; cat "$path"; }
-done
-printf '%s\n' '=== Thermal zones ==='
-for zone in /sys/class/thermal/thermal_zone*; do
-    [ -r "$zone/temp" ] || continue
-    printf 'zone=%s type=' "${zone##*/}"
-    cat "$zone/type"
-    printf 'temp_millic='; cat "$zone/temp"
-done
-printf '%s\n' '=== initramfs verification ==='
-cat /run/rog5-p2-root-verification.txt
-printf '%s\n' '=== systemd time ==='
-systemd-analyze time
-printf '%s\n' '=== systemd blame ==='
-systemd-analyze blame --no-pager | sed -n '1,80p'
-printf '%s\n' '=== systemd critical chain ==='
-systemd-analyze critical-chain --no-pager
-printf '%s\n' '=== sshd critical chain ==='
-systemd-analyze critical-chain --no-pager rog5-early-sshd.service
-printf '%s\n' '=== Ed25519 key critical chain ==='
-systemd-analyze critical-chain --no-pager rog5-sshd-ed25519-key.service
-printf '%s\n' '=== ssh host-key services ==='
-systemctl show --no-pager -p LoadState -p ActiveState -p SubState \
-	sshdgenkeys.service rog5-sshd-ed25519-key.service \
-	rog5-early-sshd.service sshd.service
-printf '%s\n' '=== ssh host-key inventory ==='
-find /etc/ssh -maxdepth 1 -type f -name 'ssh_host_*_key*' \
-    -printf '%f %m\n' | sort
-printf '%s\n' '=== dmesg ==='
-dmesg
-""".strip()
+CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
 
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
@@ -234,40 +173,11 @@ class StageRecord(NamedTuple):
 
 
 STAGES = {
-    "kernel-verified",
     "power-usb",
     "ufs-ready",
-    "storage-locked",
     "userdata-resolved",
-    "userdata-mount",
-    "image-resolved",
-    "image-write",
-    "image-write-window",
-    "userdata-unmount",
-    "write-window-precheck",
-    "userdata-partition-rw",
-    "userdata-disk-rw",
-    "write-window-selected-disk-blockdev",
-    "write-window-selected-disk-sysfs",
-    "write-window-selected-part-blockdev",
-    "write-window-selected-part-sysfs",
-    "write-window-other-disk-blockdev",
-    "write-window-other-disk-sysfs",
-    "write-window-other-part-blockdev",
-    "write-window-other-part-sysfs",
-    "write-window-count",
-    "userdata-rw",
-    "image-loop-rw",
-    "image-fs-rw",
-    "image-probe",
     "storage-relock",
-    "image-mount",
-    "root-verify",
-    "ufs-health",
-    "overlay",
     "runtime",
-    "final-storage",
-    "switch-root",
 }
 STAGE_STATES = {"ENTER", "PASS", "FAIL"}
 
@@ -747,20 +657,11 @@ def parse_runtime_evidence(path: Path) -> str:
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("runtime evidence is unreadable") from error
     required = {
-        "format=rog5-persistent-root-live-evidence-v1",
-        f"kernel={TARGET_RELEASE}",
-        "status=PASS",
+        "format=rog5-native-clone-runtime-v1",
+        "state=READY",
         "physical_blocks=117",
-        "block_backed_mounts=2",
-        "userdata_mount=ro-noload",
-        "local_image_mount=ro-noload",
-        "local_image_write_probe=PASS",
-        "root=local-ext4-overlay-tmpfs",
-        "blocked_device_queries=0",
-        "blocked_scsi_commands=0",
-        "journal_recovery_events=0",
-        "ufs_error_events=0",
-        "ssh=strict-key-only",
+        "storage=read-only",
+        "ssh=key-only",
         "result=PASS",
     }
     for marker in required:
@@ -770,13 +671,33 @@ def parse_runtime_evidence(path: Path) -> str:
     if len(boot_ids) != 1 or not BOOT_ID.fullmatch(boot_ids[0]):
         fail("runtime evidence has no unique target boot identity")
     userdata = [
-        line.removeprefix("userdata_device=")
+        line.removeprefix("userdata=")
         for line in lines
-        if line.startswith("userdata_device=")
+        if line.startswith("userdata=")
     ]
     if len(userdata) != 1 or not re.fullmatch(r"/dev/sd[a-z]23", userdata[0]):
         fail("runtime evidence has no exact dynamic userdata identity")
     return boot_ids[0]
+
+
+def parse_clone_evidence(path: Path) -> None:
+    try:
+        lines = path.read_text(encoding="ascii").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise PersistentCycleError("clone evidence is unreadable") from error
+    lines = [line for line in lines if line.startswith("ROG5_NATIVE_CLONE_V1 ")]
+    expected = [
+        "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
+        "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
+        "ROG5_NATIVE_CLONE_V1 stage=filesystem status=GROW",
+        "ROG5_NATIVE_CLONE_V1 stage=seal status=WRITE",
+        "ROG5_NATIVE_CLONE_V1 stage=readonly status=VERIFY",
+        "ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS "
+        "target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b "
+        "target_blocks=8388603",
+    ]
+    if lines != expected:
+        fail("clone evidence is not the exact successful sequence")
 
 
 def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int:
@@ -975,26 +896,19 @@ def run(
         if runtime_status != 0:
             fail(f"local-root runtime acceptance returned {runtime_status}")
         target_boot_id = parse_runtime_evidence(runtime_log)
-        diagnostic_status = run_optional_logged(
-            [*target_ssh, DIAGNOSTIC_COMMAND],
-            cycle.output("persistent-root-diagnostics.log"),
-            180,
+        clone_log = cycle.output("native-clone.log")
+        clone_status = run_optional_logged(
+            [*target_ssh, CLONE_COMMAND], clone_log, 850
         )
-        if diagnostic_status != 0:
-            fail(f"local-root diagnostics returned {diagnostic_status}")
-        reboot_status = run_optional_logged(
-            [*target_ssh, "/usr/bin/systemctl reboot"],
-            cycle.output("persistent-root-reboot.log"),
-            60,
-        )
-        if reboot_status not in {0, 255}:
-            fail(f"local-root reboot returned unexpected status {reboot_status}")
+        if clone_status not in {0, 255}:
+            fail(f"native clone returned unexpected status {clone_status}")
+        parse_clone_evidence(clone_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("persistent-root-timing.record"),
+            cycle.output("native-clone-timing.record"),
             (
-                ("format", "rog5-local-root-runtime-timing-v1"),
+                ("format", "rog5-native-clone-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -1003,7 +917,7 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("seconds_to_runtime_acceptance", f"{elapsed:.3f}"),
+                ("seconds_to_clone_completion", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -1017,9 +931,8 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle booted the local Arch image, passed "
-            f"systemd and key-only SSH in {elapsed:.3f}s, and returned to "
-            "exact fastboot"
+            "PASS one RAM-only cycle cloned, grew, sealed, and verified "
+            f"native p24 in {elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:
@@ -1085,6 +998,8 @@ def main(arguments: list[str]) -> int:
         "ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE"
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
+    if arguments == ["run"] and os.environ.get("ALLOW_STAGE2_P24_CLONE") != "1":
+        fail("set ALLOW_STAGE2_P24_CLONE=1 for the exact p24 clone")
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()
     gate_environment = exact_environment()
