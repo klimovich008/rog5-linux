@@ -618,6 +618,8 @@ awk -F '\t' \
 	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
+grep -Fq "expected_boot_basis='one exact Generation 191 mainline read-only Stage-2 preflight; current p23/p24 geometry, qcom-battmgr, thermal, UFS, local Arch, key-only SSH, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
+	{ echo 'FAIL Generation 191 gate basis differs from policy' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
