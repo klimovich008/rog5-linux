@@ -16,6 +16,8 @@ COLLECTOR = REPO / "scripts/host/collect-storage-layout-stage2.py"
 SEAL = REPO / "configs/storage/rog5-native-root-v1.seal"
 INIT = REPO / "initramfs/recovery-init"
 CURRENT = REPO / "manifests/storage-layout-stage2-current-20260825.manifest"
+PREFLIGHT = REPO / "manifests/storage-layout-stage2-preflight-generation176.manifest"
+BOOT_POLICY = REPO / "manifests/storage-layout-stage2-temporary-boot-v1.tsv"
 
 
 class StorageLayoutStage2ContractTest(unittest.TestCase):
@@ -208,6 +210,22 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
             "revalidate_storage_acm",
         ):
             self.assertIn(contract, source)
+
+    def test_generation176_is_one_exact_read_only_admission(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in PREFLIGHT.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(PREFLIGHT.read_bytes()).hexdigest()
+        self.assertEqual(digest, "3ee8244a6ccef26f594cf4aceecb2efc1e27b731fa7bdfc03917602def1b9f8d")
+        self.assertEqual(fields["mode"], "read_only_preflight")
+        self.assertEqual(fields["storage_write"], "forbidden")
+        self.assertEqual(fields["watchdog_disarm"], "forbidden")
+        rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], fields["profile"])
+        self.assertEqual(rows[0][1], "allow")
+        self.assertEqual(rows[0][2], digest)
 
 
 if __name__ == "__main__":

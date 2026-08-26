@@ -93,8 +93,8 @@ OBSERVER_ENVIRONMENT_NAMES = tuple(
 
 PROGRAM_IDENTITIES = {
     "scripts/host/consume-exact-boot-claim.py": (
-        63447,
-        "a05a65d2d81975396557a066f692fc69d474b723c09c7487c57cc3df6dc5c1e3",
+        63849,
+        "3864e5e8bc63f1a46629e2e3677b9bf0473b059db6b8ae08c8ce0417a84d353e",
         "0755",
     ),
     "scripts/host/run-stable-recovery-live-gate.sh": (
