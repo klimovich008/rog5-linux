@@ -118,7 +118,7 @@ def partition(**changes: str) -> bytes:
         "type": "0fc63daf-8483-4772-8e79-3d69d8477de4",
         "unique": "60f49e17-bdc6-46bf-8d47-8a24907024c9",
         "name": "arch_root_a",
-        "attrs": "0000000000000000",
+        "attrs": "0004000000000000",
     }
     fields.update(changes)
     return (
@@ -197,6 +197,25 @@ class CollectorTest(unittest.TestCase):
                         1.0,
                         "preflight",
                     )
+
+    def test_unsupported_wrapper_power_markers_are_nonfatal(self) -> None:
+        records = [
+            running("S00_CONFIG"),
+            guards(
+                power="unsupported",
+                auto_markers="0",
+                host_markers="0",
+                wlun_markers="0",
+            ),
+            running("S10_TOPOLOGY"),
+            partition(),
+            preflight_passing(),
+        ]
+        transcript, terminal = MODULE.capture(
+            FakeTransport(records), OPERATION, TARGET_UUID, 1.0, "preflight"
+        )
+        self.assertEqual(terminal, preflight_passing())
+        self.assertEqual(transcript, b"".join(records))
 
     def test_preflight_requires_one_canonical_partition_record(self) -> None:
         base = [running("S00_CONFIG"), guards(), running("S10_TOPOLOGY")]

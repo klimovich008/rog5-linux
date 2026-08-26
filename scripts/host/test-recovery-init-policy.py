@@ -216,6 +216,7 @@ class InitPolicyTest(unittest.TestCase):
         self.assertIn("^mode=read_only_preflight$", source)
         self.assertIn("guard_discovery=fail", source)
         self.assertIn("guard_isolation=fail", source)
+        self.assertIn("guard_power=unsupported", source)
         self.assertIn("guard_power=fail", source)
         self.assertIn("guard_inventory=fail", source)
         self.assertIn("/run/rog5-stage2-preflight-guards", source)

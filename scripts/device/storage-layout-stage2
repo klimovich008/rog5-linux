@@ -219,7 +219,7 @@ verify_disk_guid() {
 }
 
 verify_partition() {
-	number=$1 first=$2 last=$3 type_guid=$4 unique_guid=$5 name=$6
+	number=$1 first=$2 last=$3 type_guid=$4 unique_guid=$5 name=$6 attrs=$7
 	info=/run/rog5-layout-stage2-partition-$number.log
 	sgdisk -i="$number" "$disk" >"$info" 2>&1 || return 1
 	actual_first=$(sed -n 's/^First sector: \([0-9][0-9]*\).*/\1/p' "$info")
@@ -233,7 +233,7 @@ verify_partition() {
 		[ "$actual_type" = "$type_guid" ] &&
 		[ "$actual_unique" = "$unique_guid" ] &&
 		[ "$actual_name" = "$name" ] &&
-		[ "$actual_attrs" = 0000000000000000 ]
+		[ "$actual_attrs" = "$attrs" ]
 }
 
 emit_partition_observation() {
@@ -389,7 +389,7 @@ if [ "$operation_mode" = read_only_preflight ]; then
 		fail recovery_guard_report_invalid
 	guard_fields=$(cat "$guard_report") || fail recovery_guard_report_invalid
 	printf '%s\n' "$guard_fields" | grep -Eq \
-		'^discovery=(pass|fail) isolation=(pass|fail) power=(pass|fail) inventory=(pass|fail) auto_markers=[0-9]+ host_markers=[0-9]+ wlun_markers=[0-9]+ blocked_queries=[0-9]+ blocked_scsi=[0-9]+ wrapper_physical_count=[0-9]+$' ||
+		'^discovery=(pass|fail) isolation=(pass|fail) power=(pass|fail|unsupported) inventory=(pass|fail) auto_markers=[0-9]+ host_markers=[0-9]+ wlun_markers=[0-9]+ blocked_queries=[0-9]+ blocked_scsi=[0-9]+ wrapper_physical_count=[0-9]+$' ||
 		fail recovery_guard_report_invalid
 	emit "status=GUARDS $guard_fields"
 fi
@@ -403,10 +403,11 @@ resolve_exact_storage || fail topology_identity
 emit_partition_observation 24
 verify_disk_guid || fail disk_guid_changed
 verify_partition 23 2352680 53477375 "$expected_userdata_type_guid" \
-	"$expected_userdata_guid" userdata || fail userdata_identity_changed
+	"$expected_userdata_guid" userdata 0000000000000000 ||
+	fail userdata_identity_changed
 verify_partition 24 53477376 61865978 \
 	0fc63daf-8483-4772-8e79-3d69d8477de4 "$expected_root_guid" \
-	arch_root_a || fail arch_root_identity_changed
+	arch_root_a 0004000000000000 || fail arch_root_identity_changed
 verify_ext4 "$userdata" "$expected_userdata_fs_uuid" 51124000 rog5-linux \
 	/run/rog5-layout-stage2-userdata.log || fail userdata_filesystem_changed
 if blkid "$arch_root" >/run/rog5-layout-stage2-empty-root.log 2>&1; then
