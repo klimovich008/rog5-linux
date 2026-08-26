@@ -80,7 +80,13 @@ for contract in \
 	'/rog5-watchdog-modules/qcom-wdt.ko' \
 	'compatible=qcom,kpss-wdt' \
 	'/sbin/watchdog -F -T 30 -t 5 /dev/watchdog0' \
-	'arm_hardware_watchdog || fail hardware-watchdog'; do
+	'hardware_watchdog_fail hardware-watchdog-insmod' \
+	'hardware_watchdog_fail hardware-watchdog-class-count' \
+	'hardware_watchdog_fail hardware-watchdog-device-node' \
+	'hardware_watchdog_fail hardware-watchdog-driver' \
+	'hardware_watchdog_fail hardware-watchdog-compatible' \
+	'hardware_watchdog_fail hardware-watchdog-process' \
+	'*) fail hardware-watchdog-unknown'; do
 	grep -Fq "$contract" "$init" || exit 1
 done
 grep -Fq "sed -i 's/^root:[^:]*/root:x/'" "$builder"
