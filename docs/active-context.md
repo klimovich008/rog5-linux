@@ -80,6 +80,11 @@ Generation 173 reproduced the boundary and classified it exactly as
 restart2 path returned exact fastboot. This is R3: the executor assumed that
 one immediate `BLKRRPART`/BusyBox `mdev -s` pass made the pre-transaction p23
 pathname usable. Stage 1 remains incomplete; no candidate is currently allowed.
+Generation 174 removed the explicit reread but still returned exact
+`S70_POSTVERIFY/old_userdata_mapping_changed`; rollback and fastboot passed.
+Retained upstream source proves `sgdisk` calls `DiskSync()`, sleeps, and issues
+`BLKRRPART` after writing. A future transaction must therefore avoid a live
+partitioning tool and write independently verified fixed GPT regions directly.
 
 ## Completed charging repair
 
