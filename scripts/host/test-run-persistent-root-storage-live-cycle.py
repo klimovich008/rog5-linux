@@ -155,14 +155,13 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         next_stage = source.index("if previous is not None:", timeout)
         self.assertIn("stock_fastboot_returned(expected_location)", source[timeout:next_stage])
 
-    def test_success_requires_exact_slot_a_fastboot(self) -> None:
+    def test_success_uses_the_exact_fallback_proof_once(self) -> None:
         source = MODULE_PATH.read_text()
         fallback = source.index("        cycle.wait_fallback(None)\n")
-        exact = source.index("        if not stock_fastboot_returned(", fallback)
-        clean = source.index("        cycle.wait_host_clean(final=True)\n", exact)
+        clean = source.index("        cycle.wait_host_clean(final=True)\n", fallback)
         resolved = source.index('        cycle.resolve_intent(intent, "TARGET_ACCEPTED")\n', clean)
-        self.assertLess(fallback, exact)
-        self.assertLess(exact, clean)
+        segment = source[fallback:clean]
+        self.assertNotIn("stock_fastboot_returned(", segment)
         self.assertLess(clean, resolved)
 
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
