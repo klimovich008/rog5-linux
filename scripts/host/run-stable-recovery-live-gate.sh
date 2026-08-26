@@ -3748,7 +3748,7 @@ case $profile in
 		;;
 	storage-layout-stage2-mainline-readonly-v1-generation191-live-v1)
 		expected_boot_image=build/storage-layout-stage2-mainline-readonly-v1-generation191-20260826-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 191 mainline read-only Stage-2 preflight with current p23/p24 geometry, qcom-battmgr, thermal, UFS, local Arch, key-only SSH, and exact fastboot fallback; RAM-only; never flash or retry after entry'
+		expected_boot_basis='one exact Generation 191 mainline read-only Stage-2 preflight; current p23/p24 geometry, qcom-battmgr, thermal, UFS, local Arch, key-only SSH, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'
 		expected_boot_role='unbooted Generation 191 mainline Stage-2 read-only preflight; RAM-only, never flash'
 		expected_boot_tracked=no
 		component_layout=structured
