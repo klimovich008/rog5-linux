@@ -69,6 +69,13 @@ fastboot and durable `FALLBACK_RETURNED` resolution passed. The next cycle must
 be read-only and capture the bounded watchdog stderr/status at the first
 5-second ping; another clone candidate is not justified yet.
 
+Generation 200 is the unbooted read-only discriminator. It reuses the exact
+kernel, DTB, watchdog and power/UFS modules, packages no clone command, and
+returns a bounded typed snapshot of the watchdog record, PID liveness, stderr
+hex, class device, driver, compatible and module state. Target clean twins are
+`d06df9fd...`; signed bundle twins are `8544f57d...`; the cached raw recovery
+uses Generation-200 envelope `5e4bdaeb...`. No phone-storage write path exists.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This

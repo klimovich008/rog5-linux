@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-mainline-clone-v4-generation199-live-v1"
-BUNDLE = "storage-layout-stage2-mainline-clone-v4"
+PROFILE_ID = "storage-layout-stage2-watchdog-lifetime-v1-generation200-live-v1"
+BUNDLE = "storage-layout-stage2-watchdog-lifetime-v1"
 MANIFEST_SHA256 = (
-    "d941385ab07dfa59142a3ff25eed6329a209b57f58d86157171ed6829e5ce5a3"
+    "8544f57d85d0a75af067fa02ec2747f01a6c0fa6c666b94a5ea0931b61444452"
 )
 RECOVERY_SHA256 = (
-    "334d10225c20d1410798df64af4ad3e6f14d7baf4b7261430b434d2764d1d0c9"
+    "5e4bdaeb27e658f62d65e82c3f3081b05ac7d3caf87ee86223ecf1e9e53bd4a9"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-mainline-clone-v4-generation199-live-v1\n"
-    b"candidate=storage-layout-stage2-mainline-clone-v4\n"
+    b"storage-layout-stage2-watchdog-lifetime-v1-generation200-live-v1\n"
+    b"candidate=storage-layout-stage2-watchdog-lifetime-v1\n"
     b"manifest_sha256="
-    b"d941385ab07dfa59142a3ff25eed6329a209b57f58d86157171ed6829e5ce5a3\n"
+    b"8544f57d85d0a75af067fa02ec2747f01a6c0fa6c666b94a5ea0931b61444452\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-mainline-clone-v4-generation199-20260827-r1"
+    / "build/storage-layout-stage2-watchdog-lifetime-v1-generation200-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-mainline-clone-v4",
+    admission_profile="storage-layout-stage2-watchdog-lifetime-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-mainline-clone-v4",
-    build_profile="storage-layout-stage2-mainline-clone-v4",
+    runtime_profile="storage-layout-stage2-watchdog-lifetime-v1",
+    build_profile="storage-layout-stage2-watchdog-lifetime-v1",
     diagnostic=False,
 )
 
@@ -139,7 +139,7 @@ RUNTIME_COMMAND = r"""
 set -eu
 [ -f /run/rog5-local-image-stage.status ]
 [ -f /run/rog5-power-usb-ready ]
-printf '%s\n' 'format=rog5-native-clone-runtime-v1'
+printf '%s\n' 'format=rog5-watchdog-lifetime-v1'
 printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime
 cat /run/rog5-local-image-stage.status
@@ -150,10 +150,46 @@ for path in /sys/class/block/*; do
     count=$((count + 1))
 done
 printf 'physical_blocks=%s\n' "$count"
+record=/run/rog5-hardware-watchdog.status
+log=/run/rog5-hardware-watchdog.log
+if [ -f "$record" ] && [ ! -L "$record" ]; then
+	printf '%s\n' 'watchdog_record=present'
+	printf 'watchdog_record_sha256='; sha256sum "$record" | awk '{print $1}'
+	pid=$(sed -n 's/^pid=//p' "$record")
+	printf 'watchdog_pid=%s\n' "${pid:-none}"
+	if [ -n "${pid:-}" ] && kill -0 "$pid" 2>/dev/null; then
+		printf '%s\n' 'watchdog_process=present'
+	else
+		printf '%s\n' 'watchdog_process=absent'
+	fi
+else
+	printf '%s\n' 'watchdog_record=absent' 'watchdog_record_sha256=none' \
+		'watchdog_pid=none' 'watchdog_process=absent'
+fi
+if [ -f "$log" ] && [ ! -L "$log" ]; then
+	bytes=$(stat -c %s "$log")
+	case $bytes in ''|*[!0-9]*) bytes=error ;; esac
+	printf 'watchdog_log_bytes=%s\n' "$bytes"
+	if [ "$bytes" != error ] && [ "$bytes" -le 4096 ]; then
+		printf 'watchdog_log_sha256='; sha256sum "$log" | awk '{print $1}'
+		printf 'watchdog_log_hex='; od -An -tx1 -v "$log" | tr -d ' \n'; printf '\n'
+	else
+		printf '%s\n' 'watchdog_log_sha256=error' 'watchdog_log_hex=error'
+	fi
+else
+	printf '%s\n' 'watchdog_log_bytes=absent' 'watchdog_log_sha256=none' \
+		'watchdog_log_hex=none'
+fi
+printf 'watchdog_driver='; basename "$(readlink -f /sys/class/watchdog/watchdog0/device/driver 2>/dev/null || printf absent)"
+if [ -r /sys/class/watchdog/watchdog0/device/of_node/compatible ]; then
+	printf 'watchdog_compatible='; tr '\000' '\n' </sys/class/watchdog/watchdog0/device/of_node/compatible | sed -n '1p'
+else
+	printf '%s\n' 'watchdog_compatible=absent'
+fi
+[ -c /dev/watchdog0 ] && printf '%s\n' 'watchdog_device=present' || printf '%s\n' 'watchdog_device=absent'
+grep -q '^qcom_wdt ' /proc/modules && printf '%s\n' 'watchdog_module=present' || printf '%s\n' 'watchdog_module=absent'
 printf '%s\n' 'result=PASS'
 """.strip()
-
-CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
 
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
@@ -657,7 +693,7 @@ def parse_runtime_evidence(path: Path) -> str:
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("runtime evidence is unreadable") from error
     required = {
-        "format=rog5-native-clone-runtime-v1",
+        "format=rog5-watchdog-lifetime-v1",
         "state=READY",
         "physical_blocks=117",
         "storage=read-only",
@@ -677,6 +713,51 @@ def parse_runtime_evidence(path: Path) -> str:
     ]
     if len(userdata) != 1 or not re.fullmatch(r"/dev/sd[a-z]23", userdata[0]):
         fail("runtime evidence has no exact dynamic userdata identity")
+    def field(prefix: str) -> str:
+        values = [line.removeprefix(prefix) for line in lines if line.startswith(prefix)]
+        if len(values) != 1:
+            fail(f"runtime evidence lacks one exact field: {prefix}")
+        return values[0]
+
+    record_state = field("watchdog_record=")
+    record_sha256 = field("watchdog_record_sha256=")
+    pid = field("watchdog_pid=")
+    process_state = field("watchdog_process=")
+    log_bytes = field("watchdog_log_bytes=")
+    log_sha256 = field("watchdog_log_sha256=")
+    log_hex = field("watchdog_log_hex=")
+    driver = field("watchdog_driver=")
+    compatible = field("watchdog_compatible=")
+    device_state = field("watchdog_device=")
+    module_state = field("watchdog_module=")
+    if record_state not in {"present", "absent"}:
+        fail("watchdog record state is invalid")
+    if not (SHA256.fullmatch(record_sha256) or record_sha256 == "none"):
+        fail("watchdog record hash is invalid")
+    if not (pid == "none" or re.fullmatch(r"[1-9][0-9]{0,8}", pid)):
+        fail("watchdog pid is invalid")
+    if process_state not in {"present", "absent"}:
+        fail("watchdog process state is invalid")
+    if log_bytes.isdecimal():
+        size = int(log_bytes)
+        if size > 4096 or not SHA256.fullmatch(log_sha256) or not re.fullmatch(
+            rf"[0-9a-f]{{{size * 2}}}", log_hex
+        ):
+            fail("watchdog log evidence is invalid")
+    elif (log_bytes, log_sha256, log_hex) not in {
+        ("absent", "none", "none"),
+        ("error", "error", "error"),
+    }:
+        fail("watchdog log classification is invalid")
+    if not re.fullmatch(r"[A-Za-z0-9,._+-]{1,64}", driver):
+        fail("watchdog driver identity is invalid")
+    if not re.fullmatch(r"[A-Za-z0-9,._+-]{1,64}", compatible):
+        fail("watchdog compatible identity is invalid")
+    if device_state not in {"present", "absent"} or module_state not in {
+        "present",
+        "absent",
+    }:
+        fail("watchdog device or module state is invalid")
     return boot_ids[0]
 
 
@@ -896,19 +977,12 @@ def run(
         if runtime_status != 0:
             fail(f"local-root runtime acceptance returned {runtime_status}")
         target_boot_id = parse_runtime_evidence(runtime_log)
-        clone_log = cycle.output("native-clone.log")
-        clone_status = run_optional_logged(
-            [*target_ssh, CLONE_COMMAND], clone_log, 850
-        )
-        if clone_status not in {0, 255}:
-            fail(f"native clone returned unexpected status {clone_status}")
-        parse_clone_evidence(clone_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("native-clone-timing.record"),
+            cycle.output("watchdog-lifetime-timing.record"),
             (
-                ("format", "rog5-native-clone-timing-v1"),
+                ("format", "rog5-watchdog-lifetime-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -917,7 +991,7 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("seconds_to_clone_completion", f"{elapsed:.3f}"),
+                ("seconds_to_watchdog_evidence", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -929,7 +1003,7 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle cloned and verified native p24 in "
+            "PASS one RAM-only cycle captured watchdog lifetime evidence in "
             f"{elapsed:.3f}s"
         )
     except BaseException as original:
@@ -997,9 +1071,9 @@ def main(arguments: list[str]) -> int:
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
     if arguments == ["run"] and os.environ.get(
-        "ALLOW_STAGE2_P24_CLONE"
+        "ALLOW_STAGE2_WATCHDOG_LIFETIME"
     ) != "1":
-        fail("set ALLOW_STAGE2_P24_CLONE=1 for the bounded native p24 clone")
+        fail("set ALLOW_STAGE2_WATCHDOG_LIFETIME=1 for the read-only watchdog probe")
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()
     gate_environment = exact_environment()

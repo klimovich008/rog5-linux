@@ -56,6 +56,13 @@ watchdog userspace lifetime, not UFS, NCM, recovery, or the clone algorithm.
 The next candidate must be read-only and capture the exact helper log/status
 after its first 5-second ping; do not issue another writable clone yet.
 
+Generation 200 is the unbooted active read-only successor. It captures the
+exact watchdog helper record, process state, bounded 4096-byte stderr hex,
+driver, compatible, device node and module state after runtime/SSH. Its target
+archive is `d06df9fd...`, signed manifest `8544f57d...`, and RAM-only wrapper
+`5e4bdaeb...`. The clone helper is not invoked and no storage write path is
+reachable.
+
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
 fastboot between development cycles. Generation 160 returned directly to
