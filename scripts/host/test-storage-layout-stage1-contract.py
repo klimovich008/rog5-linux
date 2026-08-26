@@ -105,6 +105,19 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, transaction_source)
 
+    def test_config_failures_are_finite_specific_and_prewrite(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        start = source.index("check_config() {")
+        end = source.index("\n}\n", start) + 2
+        config_check = source[start:end]
+        reasons = re.findall(r"config_reason=([a-z0-9_]+)", config_check)
+        self.assertGreaterEqual(len(reasons), 30)
+        self.assertEqual(len(reasons), len(set(reasons)))
+        self.assertTrue(all(reason.startswith("config_") for reason in reasons))
+        dispatch = source.index('check_config || fail "$config_reason"')
+        topology = source.index("stage_set S10_TOPOLOGY")
+        self.assertLess(dispatch, topology)
+
     def test_current_checkpoint_is_offline_and_current_bound(self) -> None:
         fields = dict(
             line.split("=", 1)
@@ -330,7 +343,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -358,7 +371,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -388,11 +401,12 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
-        self.assertIn("publication ordered before expected departure", admitted[6])
+        self.assertIn("exact S00_CONFIG invalid_private_config", admitted[6])
+        self.assertIn("observer sent zero bytes", admitted[6])
 
     def test_userdata_reset_is_backup_gated_and_never_changes_gpt(self) -> None:
         source = self.executable_source(EXECUTOR)
