@@ -73,13 +73,15 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "51124000",
             "53477375",
             "53477376",
-            "/etc/rog5/storage-layout-stage1-new.gpt",
+            "/etc/rog5/storage-layout-stage1-new-primary.raw",
+            "/etc/rog5/storage-layout-stage1-new-secondary.raw",
             'sgdisk --backup="$gpt_backup" "$disk"',
             '"$watchdog_disarm"',
             'blockdev --setrw "$disk"',
             'blockdev --setrw "$userdata"',
             'resize2fs "$userdata" 51124000',
-            'sgdisk --load-backup="$new_gpt" "$disk"',
+            'dd if="$new_secondary" of="$disk" bs=4096 seek=61865979 count=5 conv=notrunc',
+            'dd if="$new_primary" of="$disk" bs=4096 count=6 conv=notrunc',
             'sgdisk --load-backup="$gpt_backup" "$disk"',
             'blockdev --setro "$device"',
         ):
@@ -92,7 +94,8 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         disarm = source.index('"$watchdog_disarm"')
         first_setrw = source.rindex('blockdev --setrw "$disk"')
         shrink = source.index('resize2fs "$userdata" 51124000')
-        transaction = source.index('sgdisk --load-backup="$new_gpt" "$disk"')
+        transaction = source.index('dd if="$new_secondary" of="$disk"')
+        primary_write = source.index('dd if="$new_primary" of="$disk"')
         self.assertLess(backup, ack)
         self.assertLess(ready, backup_begin)
         self.assertLess(backup_begin, ack)
@@ -100,6 +103,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         self.assertLess(disarm, first_setrw)
         self.assertLess(first_setrw, shrink)
         self.assertLess(shrink, transaction)
+        self.assertLess(transaction, primary_write)
         prewrite = source[source.index("stage_set S10_TOPOLOGY") : source.index("stage_set S30_FRESH_BACKUP")]
         self.assertIn("verify_userdata_filesystem 51124000", prewrite)
         self.assertNotIn("verify_userdata_filesystem 59513299", prewrite)
@@ -735,13 +739,15 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
             "storage-layout-stage1-v1",
             "/usr/libexec/rog5-storage-layout-stage1",
             "/etc/rog5/storage-layout-stage1.conf",
-            "/etc/rog5/storage-layout-stage1-new.gpt",
+            "/etc/rog5/storage-layout-stage1-new-primary.raw",
+            "/etc/rog5/storage-layout-stage1-new-secondary.raw",
             'check_hash "$executor"',
             'check_hash "$watchdog_disarm" "$watchdog_disarm_sha256"',
             'check_hash "$private_config" "$private_config_sha256"',
-            'check_hash "$new_gpt" "$new_gpt_sha256"',
+            'check_hash "$new_primary" "$new_primary_sha256"',
+            'check_hash "$new_secondary" "$new_secondary_sha256"',
             'chmod 0400 "$stage/etc/rog5/storage-layout-stage1.conf"',
-            'chmod 0400 "$stage/etc/rog5/storage-layout-stage1-new.gpt"',
+            'chmod 0400 "$stage/etc/rog5/storage-layout-stage1-new-primary.raw"',
             "find . -mindepth 1 -print0 | sort -z",
             "cpio --null -o --quiet --format=newc --owner=0:0 --reproducible",
             "gzip -n",

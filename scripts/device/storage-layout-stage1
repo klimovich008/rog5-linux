@@ -7,7 +7,8 @@ export TZ=UTC
 
 protocol=ROG5_LAYOUT_STAGE1_V1
 config=/etc/rog5/storage-layout-stage1.conf
-new_gpt=/etc/rog5/storage-layout-stage1-new.gpt
+new_primary=/etc/rog5/storage-layout-stage1-new-primary.raw
+new_secondary=/etc/rog5/storage-layout-stage1-new-secondary.raw
 watchdog_disarm=/usr/libexec/rog5-disarm-recovery-layout-watchdog
 reboot_bootloader=/usr/libexec/rog5-reboot-bootloader
 gpt_backup=/run/rog5-layout-stage1.gpt
@@ -118,8 +119,8 @@ check_config() {
 	config_format=$(config_value format) || {
 		config_reason=config_format_missing; return 1; }
 	case $config_format in
-		rog5-storage-layout-stage1-v1)
-			[ "$(wc -l <"$config")" = 8 ] || {
+		rog5-storage-layout-stage1-v2)
+			[ "$(wc -l <"$config")" = 9 ] || {
 				config_reason=config_layout_line_count_invalid; return 1; }
 			operation_mode=layout_stage1
 			;;
@@ -143,11 +144,14 @@ check_config() {
 	if [ "$operation_mode" = layout_stage1 ]; then
 		expected_root_guid=$(config_value arch_root_unique_guid) || {
 			config_reason=config_root_guid_missing; return 1; }
-		expected_new_gpt_sha256=$(config_value new_gpt_sha256) || {
-			config_reason=config_new_gpt_sha256_missing; return 1; }
+		expected_new_primary_sha256=$(config_value new_primary_sha256) || {
+			config_reason=config_new_primary_sha256_missing; return 1; }
+		expected_new_secondary_sha256=$(config_value new_secondary_sha256) || {
+			config_reason=config_new_secondary_sha256_missing; return 1; }
 	else
 		expected_root_guid=
-		expected_new_gpt_sha256=
+		expected_new_primary_sha256=
+		expected_new_secondary_sha256=
 	fi
 	printf '%s\n' "$operation_id" | grep -Eq '^[0-9a-f]{32}$' || {
 		config_reason=config_operation_id_invalid; return 1; }
@@ -164,26 +168,32 @@ check_config() {
 			config_reason=config_root_guid_invalid; return 1; }
 		[ "$expected_userdata_guid" != "$expected_root_guid" ] || {
 			config_reason=config_root_guid_reused; return 1; }
-		printf '%s\n' "$expected_new_gpt_sha256" |
-			grep -Eq '^[0-9a-f]{64}$' || {
-			config_reason=config_new_gpt_sha256_invalid; return 1; }
-		[ -f "$new_gpt" ] && [ ! -L "$new_gpt" ] || {
-			config_reason=config_new_gpt_path_invalid; return 1; }
-		[ "$(stat -c %u "$new_gpt" 2>/dev/null)" = 0 ] || {
-			config_reason=config_new_gpt_owner_invalid; return 1; }
-		[ "$(stat -c %g "$new_gpt" 2>/dev/null)" = 0 ] || {
-			config_reason=config_new_gpt_group_invalid; return 1; }
-		[ "$(stat -c %a "$new_gpt" 2>/dev/null)" = 400 ] || {
-			config_reason=config_new_gpt_mode_invalid; return 1; }
-		[ "$(stat -c %h "$new_gpt" 2>/dev/null)" = 1 ] || {
-			config_reason=config_new_gpt_link_count_invalid; return 1; }
-		[ "$(stat -c %s "$new_gpt" 2>/dev/null)" = 5632 ] || {
-			config_reason=config_new_gpt_size_invalid; return 1; }
-		observed_new_gpt_sha256=$(sha256sum "$new_gpt" 2>/dev/null |
-			awk '{print $1}') || {
-			config_reason=config_new_gpt_hash_unavailable; return 1; }
-		[ "$observed_new_gpt_sha256" = "$expected_new_gpt_sha256" ] || {
-			config_reason=config_new_gpt_hash_mismatch; return 1; }
+		for value in "$expected_new_primary_sha256" "$expected_new_secondary_sha256"; do
+			printf '%s\n' "$value" | grep -Eq '^[0-9a-f]{64}$' || {
+				config_reason=config_new_region_sha256_invalid; return 1; }
+		done
+		for specification in "$new_primary:24576:$expected_new_primary_sha256" \
+			"$new_secondary:20480:$expected_new_secondary_sha256"; do
+			path=${specification%%:*}
+			remainder=${specification#*:}
+			size=${remainder%%:*}
+			expected_hash=${remainder#*:}
+			[ -f "$path" ] && [ ! -L "$path" ] || {
+				config_reason=config_new_region_path_invalid; return 1; }
+			[ "$(stat -c %u "$path" 2>/dev/null)" = 0 ] &&
+				[ "$(stat -c %g "$path" 2>/dev/null)" = 0 ] || {
+				config_reason=config_new_region_owner_invalid; return 1; }
+			[ "$(stat -c %a "$path" 2>/dev/null)" = 400 ] || {
+				config_reason=config_new_region_mode_invalid; return 1; }
+			[ "$(stat -c %h "$path" 2>/dev/null)" = 1 ] || {
+				config_reason=config_new_region_link_count_invalid; return 1; }
+			[ "$(stat -c %s "$path" 2>/dev/null)" = "$size" ] || {
+				config_reason=config_new_region_size_invalid; return 1; }
+			observed_hash=$(sha256sum "$path" 2>/dev/null | awk '{print $1}') || {
+				config_reason=config_new_region_hash_unavailable; return 1; }
+			[ "$observed_hash" = "$expected_hash" ] || {
+				config_reason=config_new_region_hash_mismatch; return 1; }
+		done
 	fi
 }
 
@@ -372,6 +382,16 @@ verify_gpt_unchanged() {
 		skip=61865979 count=5 2>/dev/null || return 1
 	cmp "$primary_backup" /run/rog5-layout-stage1-primary.after >/dev/null 2>&1 &&
 		cmp "$secondary_backup" /run/rog5-layout-stage1-secondary.after >/dev/null 2>&1
+}
+
+verify_new_gpt_regions() {
+	dd if="$disk" of=/run/rog5-layout-stage1-new-primary.after bs=4096 count=6 \
+		2>/dev/null || return 1
+	dd if="$disk" of=/run/rog5-layout-stage1-new-secondary.after bs=4096 \
+		skip=61865979 count=5 2>/dev/null || return 1
+	cmp "$new_primary" /run/rog5-layout-stage1-new-primary.after >/dev/null 2>&1 &&
+		cmp "$new_secondary" /run/rog5-layout-stage1-new-secondary.after \
+			>/dev/null 2>&1
 }
 
 run_userdata_ext4_reset() {
@@ -580,11 +600,16 @@ verify_userdata_filesystem 51124000 || fail "$filesystem_reason"
 
 stage_set S60_GPT_TRANSACTION
 gpt_write_started=1
-sgdisk --load-backup="$new_gpt" "$disk" \
-	>/run/rog5-layout-stage1-sgdisk.log 2>&1 || fail gpt_transaction_failed
+dd if="$new_secondary" of="$disk" bs=4096 seek=61865979 count=5 conv=notrunc \
+	2>/run/rog5-layout-stage1-secondary-write.log ||
+	fail secondary_gpt_write_failed
+dd if="$new_primary" of="$disk" bs=4096 count=6 conv=notrunc \
+	2>/run/rog5-layout-stage1-primary-write.log ||
+	fail primary_gpt_write_failed
 sync || fail sync_after_gpt_failed
 
 stage_set S70_POSTVERIFY
+verify_new_gpt_regions || fail new_gpt_region_readback_failed
 sgdisk -v "$disk" >/run/rog5-layout-stage1-gpt-verify.log 2>&1 ||
 	fail gpt_verify_failed
 grep -Fq 'No problems found.' /run/rog5-layout-stage1-gpt-verify.log ||
