@@ -36,6 +36,8 @@ grep -Fq 'qcom-battmgr-bat/temp' \
 gzip -t "$initramfs"
 [ "$(sha256sum "$repo/artifacts/recovery-init-generation163/recovery-init" | cut -d ' ' -f 1)" = \
 	e81ed4d2bfa88d2b8ab818025653faa5b7511e5dfe7f4fb69c9184bb1691a442 ]
+[ "$(sha256sum "$repo/artifacts/recovery-init-generation163/verify-stable-recovery-initramfs.sh" | cut -d ' ' -f 1)" = \
+	3c72a1d8072b4b222aea6950482c31a292e34f3296deefe18987d2d02facfd07 ]
 grep -Fq 'unbooted Generation 191 mainline Stage-2 read-only preflight; RAM-only, never flash' \
 	"$repo/manifests/artifacts.tsv"
 

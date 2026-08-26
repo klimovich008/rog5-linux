@@ -286,6 +286,7 @@ expected_target_release=7.1.4-g7a5cef0db479
 expected_target_timeout=480
 initramfs_contract=
 initramfs_verifier_expected=
+initramfs_verifier=$repo/scripts/device/verify-stable-recovery-initramfs.sh
 recovery_init=-
 consumed_deployment_manifest=457273993a9ce3cb0a9c735ef29e96101c1303720cafefc774aed12972a6926e
 consumed_r2_manifest=9ea27452207962da1e4bc749ac305e3478fde557b93c2f307635527b0d11d630
@@ -3768,6 +3769,7 @@ case $profile in
 		expected_avb_digest=e90f8d8fadc9e2a11f3eac04ca2b771075fa7dbbf29585c30b3efb072748a49e
 		expected_generation_record=d695b8e99b51331e491317d42146329fc7f0e2417cd3bdb4e85dd30effbed8b9
 		recovery_init=$repo/artifacts/recovery-init-generation163/recovery-init
+		initramfs_verifier=$repo/artifacts/recovery-init-generation163/verify-stable-recovery-initramfs.sh
 		[[ $expected_manifest == 75c44d8d069dd79e448fd546aaa3cabb60fa9fada04e8f4310f9d2d04f490e65 ]] || fail 'mainline Stage-2 read-only manifest is not pinned'
 		[[ $expected_image == 49f28d5a9950659e355dda731b112c6980ae94663da287e54785341803c52918 ]] || fail 'mainline Stage-2 read-only recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'mainline Stage-2 read-only trust is not pinned'
@@ -5573,7 +5575,7 @@ if [[ $requires_qualified_cpio == 1 ]]; then
 fi
 
 env PATH="$initramfs_path" \
-	"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$initramfs_verifier" \
 	"$source_initramfs" "$recovery_init" "$control" "$fetcher" "$verifier" \
 	"$trust_key" "$initramfs_contract" "$initramfs_verifier_expected"
 
