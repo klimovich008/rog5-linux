@@ -140,7 +140,7 @@ def property_value(name: str) -> str:
 
 
 def wait_device(location: str, deadline: float) -> str:
-    while time.monotonic() < deadline:
+    while True:
         try:
             state = device_state(location)
             if state in {"authorized", "unauthorized"}:
@@ -149,7 +149,10 @@ def wait_device(location: str, deadline: float) -> str:
                 return "fastboot"
         except (FallbackError, subprocess.TimeoutExpired):
             pass
-        time.sleep(1)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        time.sleep(min(1, remaining))
     fail("exact stock Android USB identity did not appear")
 
 
@@ -381,7 +384,7 @@ def main(arguments: list[str]) -> int:
         or ".." in Path(location).parts
         or not timeout_text.isascii()
         or not timeout_text.isdecimal()
-        or not 60 <= int(timeout_text) <= 900
+        or not 60 <= int(timeout_text) <= 930
     ):
         fail("stock fallback wait inputs are invalid")
     deadline = time.monotonic() + int(timeout_text)

@@ -53,6 +53,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 )
 
     def test_profile_and_artifact_identities_are_exact(self) -> None:
+        self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
             "storage-layout-stage2-watchdog-probe-v1-generation198-live-v1",
@@ -384,6 +385,8 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
 
     def test_stage_records_are_exact_monotonic_and_bounded(self) -> None:
         self.assertIn("power-usb", MODULE.STAGES)
+        self.assertIn("storage-locked", MODULE.STAGES)
+        self.assertNotIn("storage-relock", MODULE.STAGES)
         boot_id = "11111111-2222-3333-4444-555555555555"
         first = (
             "format=rog5-persistent-root-stage-v2\n"
@@ -405,10 +408,15 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         later = MODULE.parse_stage_record(second)
         MODULE.require_stage_successor(parsed, later)
+        locked = MODULE.parse_stage_record(
+            first.replace(b"stage=runtime", b"stage=storage-locked")
+        )
+        self.assertEqual(locked.stage, "storage-locked")
         for hostile in (
             first.rstrip(b"\n"),
             first + b"extra=1\n",
             first.replace(b"runtime", b"unknown"),
+            first.replace(b"runtime", b"storage-relock"),
             first.replace(b"state=ENTER", b"state=UNKNOWN"),
             first.replace(b"detail=none", b"detail=UPPERCASE"),
             first.replace(b"detail=none", b"detail=bad/value"),

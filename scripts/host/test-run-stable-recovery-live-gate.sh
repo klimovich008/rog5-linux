@@ -425,8 +425,8 @@ awk -F '\t' \
 		$3 == "consumed Generation 197 prewrite watchdog probe; exact UFS passed but the remaining generic hardware-watchdog predicate failed, no p24 write occurred, exact slot-A fastboot and fallback intent resolution passed; never retry or flash" &&
 		NF == 3 { stage2_clone_v3++ ; next }
 	$1 == "build/storage-layout-stage2-watchdog-probe-v1-generation198-20260826-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 198 read-only watchdog discriminator after two generic prewrite failures; finite module/class/device/driver/compatible/process stage classification, p24 remains read-only, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed by the sole Generation 198 read-only cycle; the watchdog armed and target emitted storage-locked, but the host parser allowed only the nonexistent storage-relock spelling; the 900-second target fallback returned exact slot-A fastboot at the host deadline, no p24 write path was packaged, and intent resolved FALLBACK_RETURNED; never retry or flash" &&
 		NF == 3 { stage2_watchdog_probe++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -643,12 +643,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	$1 == "build/storage-layout-stage2-watchdog-probe-v1-generation198-20260826-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 198 read-only watchdog discriminator after two generic prewrite failures; finite module/class/device/driver/compatible/process stage classification, p24 remains read-only, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT" && NF == 3 {
-		stage2_watchdog_probe++
-	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 && stage2_watchdog_probe == 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -661,7 +656,7 @@ grep -Fq "expected_boot_basis='consumed Generation 196 prewrite watchdog probe; 
 	{ echo 'FAIL Generation 196 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed Generation 197 prewrite watchdog probe; exact UFS passed but the remaining generic hardware-watchdog predicate failed, no p24 write occurred, exact slot-A fastboot and fallback intent resolution passed; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 197 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 198 read-only watchdog discriminator after two generic prewrite failures; finite module/class/device/driver/compatible/process stage classification, p24 remains read-only, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed by the sole Generation 198 read-only cycle; the watchdog armed and target emitted storage-locked, but the host parser allowed only the nonexistent storage-relock spelling; the 900-second target fallback returned exact slot-A fastboot at the host deadline, no p24 write path was packaged, and intent resolved FALLBACK_RETURNED; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 198 gate basis differs from policy' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \

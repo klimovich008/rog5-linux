@@ -3919,8 +3919,8 @@ case $profile in
 		;;
 	storage-layout-stage2-watchdog-probe-v1-generation198-live-v1)
 		expected_boot_image=build/storage-layout-stage2-watchdog-probe-v1-generation198-20260826-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 198 read-only watchdog discriminator after two generic prewrite failures; finite module/class/device/driver/compatible/process stage classification, p24 remains read-only, exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 198 read-only watchdog discriminator; exact signed bundle, finite arm-stage evidence, p24 read-only, RAM-only; never flash or retry after COMMIT'
+		expected_boot_basis='consumed by the sole Generation 198 read-only cycle; the watchdog armed and target emitted storage-locked, but the host parser allowed only the nonexistent storage-relock spelling; the 900-second target fallback returned exact slot-A fastboot at the host deadline, no p24 write path was packaged, and intent resolved FALLBACK_RETURNED; never retry or flash'
+		expected_boot_role='consumed Generation 198 read-only watchdog cycle; target advanced to storage-locked, host parser rejected that exact stage, bounded fallback returned exact fastboot, no p24 write path was packaged; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

@@ -85,7 +85,7 @@ COMPONENT_ROOT = (
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
-FALLBACK_TIMEOUT_SECONDS = 900
+FALLBACK_TIMEOUT_SECONDS = 930
 AUTHENTICATED_SSH_WAIT_SECONDS = 150
 AUTHENTICATED_SSH_ATTEMPT_SECONDS = 20
 AUTHENTICATED_SSH_READY_MARKER = "ROG5_AUTHENTICATED_SSH_READY_V1"
@@ -176,7 +176,7 @@ STAGES = {
     "power-usb",
     "ufs-ready",
     "userdata-resolved",
-    "storage-relock",
+    "storage-locked",
     "runtime",
 }
 STAGE_STATES = {"ENTER", "PASS", "FAIL"}

@@ -52,11 +52,14 @@ review and bounded Opus advisory therefore stopped writable successors. Binary
 inspection independently disproved Opus's driver/compatible guesses: the exact
 module contains `qcom_wdt` and the exact DTB contains only `qcom,kpss-wdt`.
 
-Generation 198 is the sole active successor and is read-only. It converts every
-remaining watchdog predicate into a finite stage reason—module, insmod, mdev,
-class count/path, device node, driver, compatible read/value, process, or
-record publication. If the watchdog succeeds, the existing read-only p24 probe
-must complete and return exact fastboot. No clone command is packaged.
+Generation 198 is consumed and permanently non-retryable. It proved that the
+watchdog armed and the target advanced to the exact `storage-locked` stage.
+The host then rejected that valid frame because its parser allowed the
+nonexistent `storage-relock` spelling. The target remained alive for its full
+900-second bounded window and returned to exact slot-A fastboot, but the host
+waiter sampled the same deadline and missed the boundary transition. No p24
+write path was packaged; durable intent is `FALLBACK_RETURNED`. Both host-only
+R7 defects now have focused regressions and a 30-second host fallback margin.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
