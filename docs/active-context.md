@@ -143,19 +143,14 @@ markers as `unsupported` skipped the function that initialized five counters,
 then `set -u` exited before the guard report and executor. The counters are now
 initialized in the deferred-guard block. No storage path ran; the phone again
 returned to unauthorized slot-A recovery.
-Generation 185 passed every corrected wrapper/guard/partition check and returned
-directly to exact fastboot. It stopped at `arch_root_not_empty`: BusyBox
-`blkid` recognizes a residual signature in p24, which is the former userdata
-tail. No write occurred. The next read-only discriminator reports only the
-bounded signature type, UUID/label presence, byte count, and output hash.
-Generation 186 is consumed after the same read-only boundary exceeded the
-initial 1-KiB `blkid` evidence cap. No signature bytes were emitted, no storage
-write occurred, and exact fastboot returned. The successor changes only the
-private text-output bound to 64 KiB while retaining exact parsing and refusal.
-Generation 187 is consumed after the full `blkid` stream exceeded even 64 KiB.
-No content was emitted, no storage write occurred, and exact fastboot returned.
-The successor removes full accumulation: it records only a fixed 4-KiB prefix,
-its hash, and an explicit truncation flag before refusing.
+Generations 185-188 all reached exact p24 identity and returned safely with the
+target untouched. Their `arch_root_signature_size` result was a false-positive
+control-flow defect, not evidence of a residual signature or oversized output:
+the exact sealed BusyBox 1.37 `blkid` returns success with zero output. The
+executor now captures once, bounds at 4097 bytes, and considers only non-empty
+output a signature. A zero-output-success runtime fixture fails on the old
+code and passes on the correction. Generation 188 is consumed and revoked;
+no Stage-2 write, mount, or watchdog disarm occurred.
 
 ## Completed charging repair
 

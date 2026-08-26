@@ -288,23 +288,17 @@ found the exact cause: the `unsupported` marker path skipped the function that
 initialized five count variables, then `set -u` terminated PID 1 before the
 guard report. Those variables are now initialized in the deferred-guard block
 before the optional probe. No storage path ran; slot-A recovery returned.
-Generation 185 passed the initialized guard path, durable ACM transport, exact
-117-node topology, persisted bit-50 partition identity, relock, and automatic
-fastboot fallback. It stopped read-only at `arch_root_not_empty`: `blkid`
-recognized an unclassified residual signature in partition 24, which occupies
-the old tail of the formerly larger userdata filesystem. No write occurred.
-The next read-only cycle reports the bounded signature type and hashed raw
-output before deciding whether that residual is safe to overwrite.
-Generation 186 reached the same exact residual-signature boundary but the one
-quoted BusyBox `blkid` output exceeded the initial 1-KiB private evidence cap.
-It failed before emitting signature content or writing storage and returned to
-exact fastboot. The successor changes only that text-output bound to 64 KiB;
-the parser, hash, read-only scope, and refusal remain unchanged.
-Generation 187 proved the full BusyBox `blkid` stream exceeds even 64 KiB, so
-increasing the cap again would be unsafe and uninformative. It emitted no
-signature content, wrote nothing, and returned exact fastboot. The successor
-captures only a fixed 4-KiB prefix from a second read-only invocation and adds
-an explicit truncation flag; unbounded accumulation is removed.
+Generations 185-188 passed durable ACM, exact 117-node topology, persisted
+bit-50 p24 identity, untouched-target cleanup, and exact fastboot fallback.
+Their common `arch_root_signature_size` result did not prove a residual
+signature or oversized output. Offline execution of the exact sealed BusyBox
+1.37 showed that `blkid` returns success with zero output even for `/dev/null`
+and a nonexistent path. The executor incorrectly treated exit status as
+signature presence. Generation 188's bounded second capture was therefore
+empty. The corrected executor invokes `blkid` once, bounds output at 4097
+bytes, and classifies a signature only when the capture is non-empty. A
+zero-output-success regression now runs before another candidate. No storage
+write, mount, or watchdog disarm occurred in any of these cycles.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

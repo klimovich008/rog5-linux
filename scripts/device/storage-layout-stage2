@@ -97,6 +97,19 @@ fail() {
 	exit 1
 }
 
+capture_bounded_signature() {
+	signature_source=$1
+	signature_capture=$2
+	blkid "$signature_source" 2>&1 | head -c 4097 >"$signature_capture" ||
+		fail arch_root_signature_capture
+	signature_capture_bytes=$(stat -c %s "$signature_capture") ||
+		fail arch_root_signature_stat
+	case $signature_capture_bytes in
+		''|*[!0-9]*) fail arch_root_signature_stat ;;
+	esac
+	[ "$signature_capture_bytes" -gt 0 ]
+}
+
 config_value() {
 	key=$1
 	count=$(grep -c "^${key}=" "$config" 2>/dev/null) || return 1
@@ -410,12 +423,9 @@ verify_partition 24 53477376 61865978 \
 	arch_root_a 0004000000000000 || fail arch_root_identity_changed
 verify_ext4 "$userdata" "$expected_userdata_fs_uuid" 51124000 rog5-linux \
 	/run/rog5-layout-stage2-userdata.log || fail userdata_filesystem_changed
-if blkid "$arch_root" >/dev/null 2>&1; then
-	signature_log=/run/rog5-layout-stage2-empty-root.log
-	signature_capture=/run/rog5-layout-stage2-empty-root.capture
-	blkid "$arch_root" 2>&1 | head -c 4097 >"$signature_capture"
-	signature_capture_bytes=$(stat -c %s "$signature_capture") ||
-		fail arch_root_signature_stat
+signature_log=/run/rog5-layout-stage2-empty-root.log
+signature_capture=/run/rog5-layout-stage2-empty-root.capture
+if capture_bounded_signature "$arch_root" "$signature_capture"; then
 	if [ "$signature_capture_bytes" -gt 4096 ]; then
 		head -c 4096 "$signature_capture" >"$signature_log" ||
 			fail arch_root_signature_capture
@@ -442,6 +452,8 @@ if blkid "$arch_root" >/dev/null 2>&1; then
 	emit "status=SIGNATURE type=$signature_type uuid=$signature_uuid label=$signature_label truncated=$signature_truncated bytes=$signature_bytes sha256=$signature_sha256"
 	fail arch_root_not_empty
 fi
+[ "$signature_capture_bytes" -eq 0 ] || fail arch_root_signature_size
+rm -f "$signature_capture" || fail arch_root_signature_capture
 [ ! -s /run/rog5-layout-stage2-empty-root.log ] || fail arch_root_signature_output
 gpt_before=$(gpt_identity_hash /run/rog5-layout-stage2-gpt.before) ||
 	fail gpt_identity_unreadable
