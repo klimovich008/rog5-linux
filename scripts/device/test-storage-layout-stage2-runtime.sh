@@ -46,4 +46,15 @@ mkfs.ext4 -q -F -b 4096 -m 1 -L ROG5_ARCH_A -U "$uuid" "$fixture"
 	verify_ext4 "$fixture" "$uuid" 16384 rog5-linux "$work/wrong-label.log"
 ) && fail 'wrong filesystem label was accepted'
 
-echo 'PASS Stage-2 ext4 parser accepts only the exact clean UUID, label, and geometry'
+empty_signature=$work/empty-signature.log
+if (
+	. "$functions"
+	blkid() { return 0; }
+	capture_bounded_signature /dev/null "$empty_signature"
+); then
+	fail 'zero-output successful blkid was accepted as a signature'
+fi
+[ -f "$empty_signature" ] && [ ! -s "$empty_signature" ] ||
+	fail 'zero-output blkid fixture did not remain an empty bounded capture'
+
+echo 'PASS Stage-2 runtime rejects zero-output successful blkid and accepts only exact clean ext4 geometry'
