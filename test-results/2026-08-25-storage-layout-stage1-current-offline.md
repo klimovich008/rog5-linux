@@ -171,6 +171,23 @@
   block size, clean state, UUID, and recovery features. The storage sequence is
   unchanged; twenty-three focused Stage-1 tests pass.
 
+## Generation 173 exact S70 result
+
+- Generation 173 consumed one RAM-only cycle. Its fresh backup bytes matched
+  Generation 172, and sealed GPT load, exact new p23/p24 geometry, disk GUID,
+  and protected partitions 1-22 all passed.
+- The first post-reread filesystem command failed exactly as
+  `S70_POSTVERIFY/filesystem_dumpe2fs_failed`. The old GPT was restored and
+  restart2 returned the exact phone to fastboot; battery and slot-A gates still
+  pass.
+- Class: R3. The target had resolved p23 before the transaction, then assumed
+  one immediate `BLKRRPART` plus BusyBox `mdev -s` made that pathname usable.
+  No post-reread sysfs/devnode convergence contract existed.
+- After two S70 failures, successor issuance stopped. A bounded Opus review
+  supported deleting the unnecessary in-kernel reread: verify the new GPT on
+  disk while retaining the already-proven old p23 kernel mapping, reboot, and
+  require a separate next-boot read-only enumeration gate before Stage 2.
+
 ## Generation 167 prewrite result
 
 - Generation 167 consumed its sole cycle and exact slot-A fallback passed.

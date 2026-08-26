@@ -215,6 +215,11 @@ Generation 172 then passed fresh backup ACK and the sealed GPT/new geometry,
 failed at generic S70 filesystem verification, restored the old GPT, and
 returned directly to exact fastboot. The successor changes only filesystem
 failure classification; the storage sequence is unchanged.
+Generation 173 reproduced the boundary and classified it exactly as
+`S70_POSTVERIFY/filesystem_dumpe2fs_failed`. The old GPT was restored and the
+restart2 path returned exact fastboot. This is R3: the executor assumed that
+one immediate `BLKRRPART`/BusyBox `mdev -s` pass made the pre-transaction p23
+pathname usable. Stage 1 remains incomplete; no candidate is currently allowed.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at
