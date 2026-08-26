@@ -429,8 +429,8 @@ awk -F '\t' \
 		$3 == "consumed by the sole Generation 198 read-only cycle; the watchdog armed and target emitted storage-locked, but the host parser allowed only the nonexistent storage-relock spelling; the 900-second target fallback returned exact slot-A fastboot at the host deadline, no p24 write path was packaged, and intent resolved FALLBACK_RETURNED; never retry or flash" &&
 		NF == 3 { stage2_watchdog_probe++ ; next }
 	$1 == "build/storage-layout-stage2-mainline-clone-v4-generation199-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 199 p24 clone from the verified sealed p23 source into Generation-195-proven zero/non-ext4 p24; proven APSS watchdog, exact storage-locked parser, allocated-block restore, UUID/grow/seal/relock, 930-second host fallback margin, and exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed Generation 199 prewrite watchdog-lifetime failure; mainline UFS/NCM/runtime/key-only SSH passed in 7.86 seconds, then the watchdog process was absent before source verification or any p24 write window; exact slot-A fastboot and FALLBACK_RETURNED resolution passed; never retry or flash" &&
 		NF == 3 { stage2_clone_v4++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -647,12 +647,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	$1 == "build/storage-layout-stage2-mainline-clone-v4-generation199-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 199 p24 clone from the verified sealed p23 source into Generation-195-proven zero/non-ext4 p24; proven APSS watchdog, exact storage-locked parser, allocated-block restore, UUID/grow/seal/relock, 930-second host fallback margin, and exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT" && NF == 3 {
-		stage2_clone_v4++
-	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 && stage2_clone_v4 == 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -667,7 +662,7 @@ grep -Fq "expected_boot_basis='consumed Generation 197 prewrite watchdog probe; 
 	{ echo 'FAIL Generation 197 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed by the sole Generation 198 read-only cycle; the watchdog armed and target emitted storage-locked, but the host parser allowed only the nonexistent storage-relock spelling; the 900-second target fallback returned exact slot-A fastboot at the host deadline, no p24 write path was packaged, and intent resolved FALLBACK_RETURNED; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 198 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 199 p24 clone from the verified sealed p23 source into Generation-195-proven zero/non-ext4 p24; proven APSS watchdog, exact storage-locked parser, allocated-block restore, UUID/grow/seal/relock, 930-second host fallback margin, and exact slot-A fastboot return; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed Generation 199 prewrite watchdog-lifetime failure; mainline UFS/NCM/runtime/key-only SSH passed in 7.86 seconds, then the watchdog process was absent before source verification or any p24 write window; exact slot-A fastboot and FALLBACK_RETURNED resolution passed; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 199 gate basis differs from policy' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
