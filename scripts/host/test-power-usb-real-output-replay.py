@@ -172,9 +172,7 @@ class RealOutputReplayTest(unittest.TestCase):
         )
         self.assertIn(
             markers[1],
-            (REPO / "scripts/host/run-persistent-root-storage-live-cycle.py").read_text(
-                encoding="utf-8"
-            ),
+            (REPO / "initramfs/persistent-root-attest").read_text(encoding="utf-8"),
         )
 
 
