@@ -74,6 +74,14 @@ for contract in \
 		exit 1
 	}
 done
+for contract in \
+	'arm_hardware_watchdog() {' \
+	'/rog5-watchdog-modules/qcom-wdt.ko' \
+	'compatible=qcom,kpss-wdt' \
+	'/sbin/watchdog -F -T 30 -t 5 /dev/watchdog0' \
+	'arm_hardware_watchdog || fail hardware-watchdog'; do
+	grep -Fq "$contract" "$init" || exit 1
+done
 grep -Fq "sed -i 's/^root:[^:]*/root:x/'" "$builder"
 grep -Fq "grep -Fxq 'root:x:0:0:99999:7:::'" "$builder"
 grep -Fq 'expected_release=@EXPECTED_KERNEL_RELEASE@' "$init"
@@ -165,6 +173,8 @@ for contract in \
 		exit 1
 	}
 done
+grep -Fq 'watchdog_module=${WATCHDOG_MODULE:-}' "$builder"
+grep -Fq 'watchdog module identity changed' "$builder"
 ! grep -Fq 'verify_no_phone_storage' "$init"
 ! grep -Fq 'mount_network_root' "$init"
 

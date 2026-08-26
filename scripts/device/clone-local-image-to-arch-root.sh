@@ -10,6 +10,7 @@ source_verify_mount=/mnt/source-root
 target_mount=/mnt/native-root
 source_image=$source_mount/rog5/images/arch-local-a.ext4
 native_seal=/etc/rog5/native-root-v1.seal
+hardware_watchdog=/run/rog5-hardware-watchdog.status
 verifier=/usr/local/sbin/persistent-root-verify
 source_bytes=17179869184
 source_blocks=4194304
@@ -200,6 +201,18 @@ verify_mount_count 0 || fail prewrite-mounts
 verify_lock_state 0 || fail prewrite-locks
 verify_power_thermal || fail power-thermal
 [ -x "$verifier" ] && [ ! -L "$verifier" ] || fail verifier
+[ -f "$hardware_watchdog" ] && [ ! -L "$hardware_watchdog" ] || fail hardware-watchdog
+for marker in \
+	'format=rog5-hardware-watchdog-v1' \
+	'state=ARMED' \
+	'driver=qcom_wdt' \
+	'compatible=qcom,kpss-wdt' \
+	'timeout_seconds=30'; do
+	[ "$(grep -Fxc "$marker" "$hardware_watchdog")" -eq 1 ] || fail hardware-watchdog
+done
+hardware_watchdog_pid=$(sed -n 's/^pid=//p' "$hardware_watchdog")
+case $hardware_watchdog_pid in ''|*[!0-9]*) fail hardware-watchdog ;; esac
+kill -0 "$hardware_watchdog_pid" 2>/dev/null || fail hardware-watchdog
 [ -f "$native_seal" ] && [ ! -L "$native_seal" ] &&
 	[ "$(sha256sum "$native_seal" | awk '{print $1}')" = "$native_seal_sha256" ] || fail native-seal
 

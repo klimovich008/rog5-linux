@@ -20,6 +20,9 @@ for contract in \
 	'losetup -r "$source_loop" "$source_image"' \
 	'"$verifier" "$source_verify_mount" "$native_seal"' \
 	'verify_mount_count 2' \
+	'format=rog5-hardware-watchdog-v1' \
+	'timeout_seconds=30' \
+	'kill -0 "$hardware_watchdog_pid"' \
 	'ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS'; do
 	grep -Fq "$contract" "$target" || {
 		echo "FAIL missing native-clone contract: $contract" >&2
