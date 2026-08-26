@@ -17,6 +17,7 @@ SEAL = REPO / "configs/storage/rog5-native-root-v1.seal"
 INIT = REPO / "initramfs/recovery-init"
 CURRENT = REPO / "manifests/storage-layout-stage2-current-20260825.manifest"
 PREFLIGHT = REPO / "manifests/storage-layout-stage2-preflight-generation176.manifest"
+PREFLIGHT_SUCCESSOR = REPO / "manifests/storage-layout-stage2-preflight-generation177.manifest"
 BOOT_POLICY = REPO / "manifests/storage-layout-stage2-temporary-boot-v1.tsv"
 
 
@@ -225,11 +226,26 @@ class StorageLayoutStage2ContractTest(unittest.TestCase):
         self.assertEqual(fields["storage_write"], "forbidden")
         self.assertEqual(fields["watchdog_disarm"], "forbidden")
         rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
-        self.assertEqual(len(rows), 1)
+        self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0][0], fields["profile"])
         self.assertEqual(rows[0][1], "revoked")
         self.assertEqual(rows[0][2], digest)
         self.assertIn("no write path was reachable", rows[0][6])
+
+    def test_generation177_binds_delivery_hold_helper_and_one_admission(self) -> None:
+        fields = dict(
+            line.split("=", 1)
+            for line in PREFLIGHT_SUCCESSOR.read_text(encoding="ascii").splitlines()
+        )
+        digest = hashlib.sha256(PREFLIGHT_SUCCESSOR.read_bytes()).hexdigest()
+        self.assertEqual(digest, "8764447295144136ef58f759ca2f118da36025a49bdc2e13c918cd2a97a48381")
+        self.assertEqual(fields["terminal_delivery_hold_seconds"], "3")
+        self.assertEqual(fields["fallback"], "restart2-bootloader-before-generic-reset")
+        rows = [line.split("\t") for line in BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]]
+        self.assertEqual(sum(row[1] == "allow" for row in rows), 1)
+        admitted = next(row for row in rows if row[0] == fields["profile"])
+        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[2], digest)
 
 
 if __name__ == "__main__":
