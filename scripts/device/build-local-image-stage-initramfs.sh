@@ -19,6 +19,7 @@ expected_bundle=${EXPECTED_BUNDLE:-local-image-stage-v1}
 ufs_modules=${UFS_MODULES:-}
 power_modules_root=${POWER_MODULES_ROOT:-}
 direct_extent_map=${DIRECT_EXTENT_MAP:-}
+native_seal=${NATIVE_SEAL:-}
 epoch=1681862400
 
 fail() { echo "FAIL $*" >&2; exit 1; }
@@ -31,6 +32,12 @@ if [ -n "$direct_extent_map" ]; then
 	[ "$(sha256sum "$direct_extent_map" | cut -d ' ' -f 1)" = \
 		e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94 ] ||
 		fail 'direct extent map hash changed'
+fi
+if [ -n "$native_seal" ]; then
+	[ -f "$native_seal" ] && [ ! -L "$native_seal" ] &&
+		[ "$(sha256sum "$native_seal" | cut -d ' ' -f 1)" = \
+			02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876 ] ||
+		fail 'native seal identity changed'
 fi
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ] || fail 'base hash changed'
 [ "$(sha256sum "$authorized_key" | cut -d ' ' -f 1)" = "$expected_key_sha256" ] || fail 'authorized key changed'
@@ -92,6 +99,11 @@ for module in "$stage/rog5-ufs-modules"/*.ko \
 		fail "packaged module ABI changed: ${module##*/}"
 done
 install -D -m 0755 "$installer" "$stage/usr/local/sbin/rog5-install-local-arch-image"
+if [ -n "$native_seal" ]; then
+	install -D -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"
+	rm -f "$stage/etc/mtab"
+	ln -s /proc/mounts "$stage/etc/mtab"
+fi
 if [ -n "$direct_extent_map" ]; then
 	install -D -m 0444 "$direct_extent_map" \
 		"$stage/etc/rog5-local-image-direct-extents.tsv"
