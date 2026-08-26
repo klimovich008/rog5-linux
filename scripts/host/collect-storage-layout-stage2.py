@@ -104,9 +104,11 @@ def capture(
     operation_id: str,
     target_uuid: str,
     timeout: float,
+    result_profile: str = "clone",
 ) -> tuple[bytes, bytes]:
     deadline = time.monotonic() + timeout
     transcript = bytearray()
+    stages = STAGES if result_profile == "clone" else STAGES[:2]
     next_stage = 0
     for _ in range(64):
         remaining = deadline - time.monotonic()
@@ -118,9 +120,9 @@ def capture(
         status = tokens[1] if len(tokens) > 1 else ""
         if status == "status=RUNNING":
             fields = exact_fields(tokens, ("status", "stage", "reason"))
-            if fields["reason"] != "none" or next_stage >= len(STAGES):
+            if fields["reason"] != "none" or next_stage >= len(stages):
                 fail("unexpected Stage-2 running record")
-            if fields["stage"] != STAGES[next_stage]:
+            if fields["stage"] != stages[next_stage]:
                 fail("Stage-2 sequence changed")
             next_stage += 1
             continue
@@ -129,9 +131,9 @@ def capture(
                 tokens,
                 ("status", "stage", "reason", "target_state", "cleanup", "relock"),
             )
-            if fields["stage"] not in STAGES or fields["reason"] == "none":
+            if fields["stage"] not in stages or fields["reason"] == "none":
                 fail("Stage-2 failure classification changed")
-            if next_stage == 0 or fields["stage"] != STAGES[next_stage - 1]:
+            if next_stage == 0 or fields["stage"] != stages[next_stage - 1]:
                 fail("Stage-2 failure stage contradicts progress")
             if fields["target_state"] not in {
                 "untouched",
@@ -145,6 +147,37 @@ def capture(
                 fail("Stage-2 cleanup classification changed")
             return bytes(transcript), payload
         if status == "status=PASS":
+            if result_profile == "preflight":
+                fields = exact_fields(
+                    tokens,
+                    (
+                        "status",
+                        "stage",
+                        "reason",
+                        "operation_id",
+                        "userdata_uuid",
+                        "userdata_blocks",
+                        "arch_root_guid",
+                        "arch_root_empty",
+                        "all_read_only",
+                        "block_mounts",
+                    ),
+                )
+                expected = {
+                    "status": "PASS",
+                    "stage": "S99_COMPLETE",
+                    "reason": "none",
+                    "operation_id": operation_id,
+                    "userdata_uuid": "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
+                    "userdata_blocks": "51124000",
+                    "arch_root_guid": "60f49e17-bdc6-46bf-8d47-8a24907024c9",
+                    "arch_root_empty": "1",
+                    "all_read_only": "1",
+                    "block_mounts": "0",
+                }
+                if fields != expected or next_stage != len(stages):
+                    fail("Stage-2 preflight PASS identity or sequence changed")
+                return bytes(transcript), payload
             fields = exact_fields(
                 tokens,
                 (
@@ -174,7 +207,7 @@ def capture(
                 "all_read_only": "1",
                 "block_mounts": "0",
             }
-            if fields != expected or next_stage != len(STAGES):
+            if fields != expected or next_stage != len(stages):
                 fail("Stage-2 PASS identity or sequence changed")
             return bytes(transcript), payload
         fail("unexpected Stage-2 status")
@@ -189,6 +222,9 @@ def parse_arguments(arguments: list[str]) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--enumeration-timeout", type=int, default=120)
     parser.add_argument("--operation-timeout", type=int, default=900)
+    parser.add_argument(
+        "--result-profile", choices=("clone", "preflight"), default="clone"
+    )
     return parser.parse_args(arguments)
 
 
@@ -214,6 +250,7 @@ def main(arguments: list[str]) -> int:
             options.operation_id,
             options.target_uuid,
             options.operation_timeout,
+            options.result_profile,
         )
     preflight.revalidate_storage_acm(identity)
     stage1.write_exact(options.output / "transcript.txt", transcript)
@@ -222,7 +259,7 @@ def main(arguments: list[str]) -> int:
         token.partition("=")[0] for token in terminal.decode("ascii").strip().split(" ")[1:]
     ))
     manifest = {
-        "format": "rog5-storage-layout-stage2-result-v1",
+        "format": f"rog5-storage-layout-stage2-{options.result_profile}-result-v1",
         "operation_id": options.operation_id,
         "status": fields["status"],
         "target_uuid": options.target_uuid,

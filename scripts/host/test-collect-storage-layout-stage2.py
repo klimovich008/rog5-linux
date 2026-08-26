@@ -62,6 +62,28 @@ def passing(**changes: str) -> bytes:
     ).encode()
 
 
+def preflight_passing(**changes: str) -> bytes:
+    fields = {
+        "status": "PASS",
+        "stage": "S99_COMPLETE",
+        "reason": "none",
+        "operation_id": OPERATION,
+        "userdata_uuid": "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
+        "userdata_blocks": "51124000",
+        "arch_root_guid": "60f49e17-bdc6-46bf-8d47-8a24907024c9",
+        "arch_root_empty": "1",
+        "all_read_only": "1",
+        "block_mounts": "0",
+    }
+    fields.update(changes)
+    return (
+        MODULE.PREFIX
+        + " "
+        + " ".join(f"{name}={value}" for name, value in fields.items())
+        + "\n"
+    ).encode()
+
+
 class CollectorTest(unittest.TestCase):
     def records(self) -> list[bytes]:
         return [*(running(stage) for stage in MODULE.STAGES), passing()]
@@ -73,6 +95,36 @@ class CollectorTest(unittest.TestCase):
         )
         self.assertEqual(terminal, passing())
         self.assertEqual(transcript, b"".join(self.records()))
+
+    def test_exact_read_only_preflight_and_hostile_mutations(self) -> None:
+        records = [running("S00_CONFIG"), running("S10_TOPOLOGY"), preflight_passing()]
+        transcript, terminal = MODULE.capture(
+            FakeTransport(records), OPERATION, TARGET_UUID, 1.0, "preflight"
+        )
+        self.assertEqual(terminal, preflight_passing())
+        self.assertEqual(transcript, b"".join(records))
+        for changes in (
+            {"userdata_blocks": "51123999"},
+            {"arch_root_empty": "0"},
+            {"all_read_only": "0"},
+            {"block_mounts": "1"},
+        ):
+            with self.subTest(changes=changes):
+                hostile = [
+                    running("S00_CONFIG"),
+                    running("S10_TOPOLOGY"),
+                    preflight_passing(**changes),
+                ]
+                with self.assertRaisesRegex(
+                    MODULE.Stage2ProtocolError, "preflight PASS identity"
+                ):
+                    MODULE.capture(
+                        FakeTransport(hostile),
+                        OPERATION,
+                        TARGET_UUID,
+                        1.0,
+                        "preflight",
+                    )
 
     def test_skipped_or_duplicate_stage_is_rejected(self) -> None:
         for records in (
