@@ -85,6 +85,24 @@ def preflight_passing(**changes: str) -> bytes:
     ).encode()
 
 
+def guards(**changes: str) -> bytes:
+    fields = {
+        "status": "GUARDS",
+        "discovery": "pass",
+        "isolation": "pass",
+        "power": "pass",
+        "inventory": "pass",
+        "wrapper_physical_count": "117",
+    }
+    fields.update(changes)
+    return (
+        MODULE.PREFIX
+        + " "
+        + " ".join(f"{name}={value}" for name, value in fields.items())
+        + "\n"
+    ).encode()
+
+
 class CollectorTest(unittest.TestCase):
     def records(self) -> list[bytes]:
         return [*(running(stage) for stage in MODULE.STAGES), passing()]
@@ -98,7 +116,12 @@ class CollectorTest(unittest.TestCase):
         self.assertEqual(transcript, b"".join(self.records()))
 
     def test_exact_read_only_preflight_and_hostile_mutations(self) -> None:
-        records = [running("S00_CONFIG"), running("S10_TOPOLOGY"), preflight_passing()]
+        records = [
+            running("S00_CONFIG"),
+            guards(),
+            running("S10_TOPOLOGY"),
+            preflight_passing(),
+        ]
         transcript, terminal = MODULE.capture(
             FakeTransport(records), OPERATION, TARGET_UUID, 1.0, "preflight"
         )
@@ -115,6 +138,7 @@ class CollectorTest(unittest.TestCase):
             with self.subTest(changes=changes):
                 hostile = [
                     running("S00_CONFIG"),
+                    guards(),
                     running("S10_TOPOLOGY"),
                     preflight_passing(**changes),
                 ]
@@ -124,6 +148,22 @@ class CollectorTest(unittest.TestCase):
                 ):
                     MODULE.capture(
                         FakeTransport(hostile),
+                        OPERATION,
+                        TARGET_UUID,
+                        1.0,
+                        "preflight",
+                    )
+
+    def test_preflight_requires_one_exact_guard_record(self) -> None:
+        for records in (
+            [running("S00_CONFIG"), running("S10_TOPOLOGY"), preflight_passing()],
+            [running("S00_CONFIG"), guards(discovery="unknown"), running("S10_TOPOLOGY")],
+            [running("S00_CONFIG"), guards(), guards(), running("S10_TOPOLOGY")],
+        ):
+            with self.subTest(records=records):
+                with self.assertRaises(MODULE.Stage2ProtocolError):
+                    MODULE.capture(
+                        FakeTransport(records),
                         OPERATION,
                         TARGET_UUID,
                         1.0,

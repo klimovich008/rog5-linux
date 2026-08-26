@@ -167,13 +167,16 @@ class InitPolicyTest(unittest.TestCase):
         lease = source.index(
             "watchdog_lease=/run/rog5-recovery-watchdog.lease"
         )
-        self.assertEqual(source.count("if ! isolate_storage; then"), 2)
-        first_isolation = source.index("if ! isolate_storage; then")
+        isolation_guard = (
+            'if [ "$stage2_readonly_preflight" != 1 ] && ! isolate_storage; then'
+        )
+        self.assertEqual(source.count(isolation_guard), 2)
+        first_isolation = source.index(isolation_guard)
         pre_contract = source.index(
             "ASUS wrapper storage topology mismatch before USB configuration"
         )
         second_isolation = source.index(
-            "if ! isolate_storage; then",
+            isolation_guard,
             first_isolation + 1,
         )
         post_contract = source.index(
@@ -211,6 +214,12 @@ class InitPolicyTest(unittest.TestCase):
         self.assertIn("stage2_readonly_preflight=1", source)
         self.assertIn('[ "$stage2_readonly_preflight" != 1 ] || return 0', source)
         self.assertIn("^mode=read_only_preflight$", source)
+        self.assertIn("guard_discovery=fail", source)
+        self.assertIn("guard_isolation=fail", source)
+        self.assertIn("guard_power=fail", source)
+        self.assertIn("guard_inventory=fail", source)
+        self.assertIn("/run/rog5-stage2-preflight-guards", source)
+        self.assertIn("Stage-2 deferred guards ready", source)
 
     def test_recovery_udc_selection_accepts_exact_wrapper_inventory(self) -> None:
         accepted = self.run_recovery_udc_case(
@@ -433,7 +442,9 @@ class InitPolicyTest(unittest.TestCase):
             "needs_recovery|orphan_present",
             body,
         )
-        first_isolation = source.index("if ! isolate_storage; then")
+        first_isolation = source.index(
+            'if [ "$stage2_readonly_preflight" != 1 ] && ! isolate_storage; then'
+        )
         configfs = source.index("mount -t configfs configfs /sys/kernel/config")
         reporter = source.index("serve_storage_preflight_report &")
         bind = source.index("if ! udc=$(bind_expected_udc); then")
