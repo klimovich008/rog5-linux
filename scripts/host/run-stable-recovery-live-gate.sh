@@ -4021,8 +4021,8 @@ case $profile in
 		;;
 	storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1)
 		expected_boot_image=build/storage-layout-stage2-watchdog-lifetime-v2-generation201-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 201 read-only proof of the running-kernel ABI qcom_wdt module, explicit shell failure returns, six-second first-ping liveness, class/device/driver/compatible/process evidence and exact fastboot; no storage write path; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 201 read-only watchdog runtime-ABI proof; cached stable raw recovery; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 201 watchdog-reset cycle; exact-ABI qcom_wdt arming produced no reporter frame, NCM TX timeout at 11 seconds, target USB loss at 13 seconds and stock slot-A recovery return; no storage write path, FALLBACK_RETURNED resolved; never retry or flash'
+		expected_boot_role='consumed Generation 201 target loss after exact-ABI upstream KPSS watchdog arming; stock recovery fallback, no storage writes; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

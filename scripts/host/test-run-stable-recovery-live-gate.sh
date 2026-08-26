@@ -437,8 +437,8 @@ awk -F '\t' \
 		$3 == "consumed successful Generation 200 read-only watchdog lifetime probe; runtime at 7.90 seconds proved qcom_wdt, class and device absent, BusyBox failed ENOENT opening watchdog0, and dmesg proved struct-module ABI size mismatch; exact fastboot and TARGET_ACCEPTED resolution passed; never retry or flash" &&
 		NF == 3 { stage2_watchdog_lifetime++ ; next }
 	$1 == "build/storage-layout-stage2-watchdog-lifetime-v2-generation201-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 201 read-only proof of the running-kernel ABI qcom_wdt module, explicit shell failure returns, six-second first-ping liveness, class/device/driver/compatible/process evidence and exact fastboot; no storage write path; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed Generation 201 watchdog-reset cycle; exact-ABI qcom_wdt arming produced no reporter frame, NCM TX timeout at 11 seconds, target USB loss at 13 seconds and stock slot-A recovery return; no storage write path, FALLBACK_RETURNED resolved; never retry or flash" &&
 		NF == 3 { stage2_watchdog_runtime_abi++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -655,12 +655,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	$1 == "build/storage-layout-stage2-watchdog-lifetime-v2-generation201-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 201 read-only proof of the running-kernel ABI qcom_wdt module, explicit shell failure returns, six-second first-ping liveness, class/device/driver/compatible/process evidence and exact fastboot; no storage write path; RAM-only, never flash or retry after COMMIT" && NF == 3 {
-		stage2_watchdog_runtime_abi++
-	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 && stage2_watchdog_runtime_abi == 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -679,7 +674,7 @@ grep -Fq "expected_boot_basis='consumed Generation 199 prewrite watchdog-lifetim
 	{ echo 'FAIL Generation 199 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed successful Generation 200 read-only watchdog lifetime probe; runtime at 7.90 seconds proved qcom_wdt, class and device absent, BusyBox failed ENOENT opening watchdog0, and dmesg proved struct-module ABI size mismatch; exact fastboot and TARGET_ACCEPTED resolution passed; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 200 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 201 read-only proof of the running-kernel ABI qcom_wdt module, explicit shell failure returns, six-second first-ping liveness, class/device/driver/compatible/process evidence and exact fastboot; no storage write path; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed Generation 201 watchdog-reset cycle; exact-ABI qcom_wdt arming produced no reporter frame, NCM TX timeout at 11 seconds, target USB loss at 13 seconds and stock slot-A recovery return; no storage write path, FALLBACK_RETURNED resolved; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 201 gate basis differs from policy' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
