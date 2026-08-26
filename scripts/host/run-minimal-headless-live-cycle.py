@@ -551,6 +551,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "persistent-root-local-v52-generation161-live-v1",
         "persistent-root-local-v53-generation162-live-v1",
         "persistent-root-local-v54-generation163-live-v1",
+        "storage-layout-stage2-mainline-readonly-v1-generation191-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
