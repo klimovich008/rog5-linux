@@ -65,6 +65,12 @@ predicate now returns explicitly despite the outer `if !`, and admission waits
 six seconds to cover the first ping. The next cycle remains read-only until
 this corrected module is physically proven loaded, alive and reset-capable.
 
+Generation 201 is the unbooted active read-only proof for that corrected path.
+It packages the `3fcea56e...` module and waits six seconds before publishing
+`ARMED`; its target, signed-manifest and wrapper identities are `6cbb2aae...`,
+`eaadc075...` and `871e25ca...`. No clone helper is invoked and no storage
+write path is reachable.
+
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
 fastboot between development cycles. Generation 160 returned directly to
