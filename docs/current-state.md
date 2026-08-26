@@ -249,6 +249,13 @@ proving an earlier UFS discovery, isolation, power-containment, or inventory
 guard rejects before USB. No write path was reachable and exact fastboot
 returned. The next sealed read-only mode binds USB first, then reports each UFS
 guard; clone mode retains the current pre-USB fail-closed ordering.
+Generation 180 consumed that read-only cycle and made the boundary visible:
+UFS discovery, isolation, inventory, and the exact 117-node count passed;
+power containment failed. The executor independently rejected partition 24 as
+`arch_root_identity_changed` while the target remained untouched, then returned
+directly to exact slot-A fastboot. The next read-only discriminator must report
+the individual UFS marker counts and canonical partition-24 fields before any
+Stage-2 clone candidate is considered.
 
 The refreshed Stage-2 archive now binds the same current checkpoint and uses
 the exact 37,736-entry source tree as its native-root seal. Clean twins match at

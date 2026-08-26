@@ -109,6 +109,13 @@ proving an earlier UFS discovery, isolation, power-containment, or inventory
 guard rejects before USB. No write path was reachable and exact fastboot
 returned. The next sealed read-only mode binds USB first, then reports each UFS
 guard; clone mode retains the current pre-USB fail-closed ordering.
+Generation 180 consumed that read-only cycle. It reported discovery, isolation,
+and inventory `pass`, power containment `fail`, and exactly 117 physical block
+nodes. The executor then rejected partition 24 as
+`arch_root_identity_changed` with `target_state=untouched`; packaged restart2
+returned exact slot-A fastboot. The next gate is a read-only exact-field report,
+not a clone: identify the missing UFS marker/count and the mismatching canonical
+partition-24 field first.
 
 ## Completed charging repair
 
