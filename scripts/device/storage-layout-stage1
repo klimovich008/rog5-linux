@@ -298,17 +298,27 @@ filesystem_value() {
 verify_userdata_filesystem() {
 	expected_blocks=$1
 	dumpe2fs -h "$userdata" >/run/rog5-layout-stage1-superblock.log 2>&1 ||
-		return 1
+		{ filesystem_reason=filesystem_dumpe2fs_failed; return 1; }
 	blocks=$(filesystem_value 'Block count' /run/rog5-layout-stage1-superblock.log)
 	block_size=$(filesystem_value 'Block size' /run/rog5-layout-stage1-superblock.log)
 	state_value=$(filesystem_value 'Filesystem state' /run/rog5-layout-stage1-superblock.log)
 	uuid=$(filesystem_value 'Filesystem UUID' /run/rog5-layout-stage1-superblock.log |
 		tr 'A-F' 'a-f')
 	features=$(filesystem_value 'Filesystem features' /run/rog5-layout-stage1-superblock.log)
-	[ "$blocks" = "$expected_blocks" ] && [ "$block_size" = 4096 ] &&
-		[ "$state_value" = clean ] && [ "$uuid" = "$expected_userdata_fs_uuid" ] &&
-		! printf '%s\n' "$features" |
-			grep -Eq '(^| )(needs_recovery|orphan_present)( |$)'
+	[ "$blocks" = "$expected_blocks" ] || {
+		filesystem_reason=filesystem_block_count_changed; return 1; }
+	[ "$block_size" = 4096 ] || {
+		filesystem_reason=filesystem_block_size_changed; return 1; }
+	[ "$state_value" = clean ] || {
+		filesystem_reason=filesystem_state_not_clean; return 1; }
+	[ "$uuid" = "$expected_userdata_fs_uuid" ] || {
+		filesystem_reason=filesystem_uuid_changed; return 1; }
+	if printf '%s\n' "$features" |
+		grep -Eq '(^| )(needs_recovery|orphan_present)( |$)'; then
+		filesystem_reason=filesystem_recovery_feature_present
+		return 1
+	fi
+	return 0
 }
 
 read_userdata_ext4_magic() {
@@ -421,7 +431,8 @@ verify_partition 23 2352680 61865978 "$expected_userdata_type_guid" \
 	"$expected_userdata_guid" userdata || fail userdata_identity_changed
 partition_absent 24 || fail partition_24_already_exists
 if [ "$operation_mode" = layout_stage1 ]; then
-	verify_userdata_filesystem 51124000 || fail userdata_filesystem_changed
+	filesystem_reason=userdata_filesystem_changed
+	verify_userdata_filesystem 51124000 || fail "$filesystem_reason"
 else
 	read_userdata_ext4_magic || fail userdata_magic_read_failed
 	[ "$ext_magic" != 53ef ] || fail userdata_already_ext4
@@ -544,7 +555,8 @@ stage_set S50_SHRINK
 resize2fs "$userdata" 51124000 >/run/rog5-layout-stage1-shrink.log 2>&1 ||
 	fail shrink_failed
 sync || fail sync_after_shrink_failed
-verify_userdata_filesystem 51124000 || fail shrunk_filesystem_invalid
+filesystem_reason=shrunk_filesystem_invalid
+verify_userdata_filesystem 51124000 || fail "$filesystem_reason"
 
 stage_set S60_GPT_TRANSACTION
 gpt_write_started=1
@@ -569,14 +581,16 @@ verify_partition 24 53477376 61865978 \
 protected_after=$(protected_partition_hash /run/rog5-layout-stage1-protected.after) ||
 	fail protected_partition_read_failed
 [ "$protected_after" = "$protected_before" ] || fail protected_partitions_changed
-verify_userdata_filesystem 51124000 || fail post_gpt_filesystem_invalid
+filesystem_reason=post_gpt_filesystem_invalid
+verify_userdata_filesystem 51124000 || fail "$filesystem_reason"
 if e2fsck -f -p "$userdata" >/run/rog5-layout-stage1-e2fsck-after.log 2>&1; then
 	:
 else
 	fsck_status=$?
 	[ "$fsck_status" -eq 1 ] || fail e2fsck_after_failed
 fi
-verify_userdata_filesystem 51124000 || fail final_filesystem_invalid
+filesystem_reason=final_filesystem_invalid
+verify_userdata_filesystem 51124000 || fail "$filesystem_reason"
 
 gpt_verified=1
 stage_set S80_LOCK

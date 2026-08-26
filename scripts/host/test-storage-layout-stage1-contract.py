@@ -124,6 +124,30 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
         topology = source.index("stage_set S10_TOPOLOGY")
         self.assertLess(dispatch, topology)
 
+    def test_filesystem_failures_are_finite_and_stage_correlated(self) -> None:
+        source = self.executable_source(EXECUTOR)
+        start = source.index("verify_userdata_filesystem() {")
+        end = source.index("\n}\n", start) + 2
+        verifier = source[start:end]
+        reasons = re.findall(r"filesystem_reason=([a-z0-9_]+)", verifier)
+        self.assertEqual(
+            reasons,
+            [
+                "filesystem_dumpe2fs_failed",
+                "filesystem_block_count_changed",
+                "filesystem_block_size_changed",
+                "filesystem_state_not_clean",
+                "filesystem_uuid_changed",
+                "filesystem_recovery_feature_present",
+            ],
+        )
+        self.assertEqual(
+            source.count(
+                'verify_userdata_filesystem 51124000 || fail "$filesystem_reason"'
+            ),
+            4,
+        )
+
     def test_current_checkpoint_is_offline_and_current_bound(self) -> None:
         fields = dict(
             line.split("=", 1)
@@ -349,7 +373,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], manifest_sha256)
@@ -377,7 +401,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -407,7 +431,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
@@ -434,11 +458,12 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
-        self.assertEqual(admitted[1], "allow")
+        self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
-        self.assertIn("ACKs only after fresh durable backup", admitted[6])
+        self.assertIn("sealed GPT load and new geometry", admitted[6])
+        self.assertIn("restart2 returned exact fastboot automatically", admitted[6])
 
     def test_generation171_is_receive_only_exact_config_discriminator(self) -> None:
         fields = dict(
@@ -460,7 +485,7 @@ class StorageLayoutStage1ContractTest(unittest.TestCase):
                 for line in STAGE1_BOOT_POLICY.read_text(encoding="ascii").splitlines()[1:]
             )
         }
-        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 1)
+        self.assertEqual(sum(row[1] == "allow" for row in rows.values()), 0)
         admitted = rows[fields["profile"]]
         self.assertEqual(admitted[1], "revoked")
         self.assertEqual(admitted[2], digest)
