@@ -351,6 +351,15 @@ CLAIMS = {
         b"c2b05bfbebb23a8936a54678ce68954a4634d4d966dbc02afe08f253a13058af\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "storage-layout-stage2-mainline-readonly-v3-generation193-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile="
+        b"storage-layout-stage2-mainline-readonly-v3-generation193-live-v1\n"
+        b"candidate=storage-layout-stage2-mainline-readonly-v3\n"
+        b"manifest_sha256="
+        b"1384d198998f3a055487c747b38f59f0abcfb452049d7b77879f9e0cf1e0380a\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-preflight-v3-generation73-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"

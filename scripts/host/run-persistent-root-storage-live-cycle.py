@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-mainline-readonly-v2-generation192-live-v1"
-BUNDLE = "storage-layout-stage2-mainline-readonly-v2"
+PROFILE_ID = "storage-layout-stage2-mainline-readonly-v3-generation193-live-v1"
+BUNDLE = "storage-layout-stage2-mainline-readonly-v3"
 MANIFEST_SHA256 = (
-    "c2b05bfbebb23a8936a54678ce68954a4634d4d966dbc02afe08f253a13058af"
+    "1384d198998f3a055487c747b38f59f0abcfb452049d7b77879f9e0cf1e0380a"
 )
 RECOVERY_SHA256 = (
-    "33b13786ec6a95ea79c757a8d3dc4d40fc42e7a08a438d312ea76ddc268dec0d"
+    "ac161f0677aa4148882cf822c7a1af36ef9f79ba5af80e5639c2b85312d3e30a"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-mainline-readonly-v2-generation192-live-v1\n"
-    b"candidate=storage-layout-stage2-mainline-readonly-v2\n"
+    b"storage-layout-stage2-mainline-readonly-v3-generation193-live-v1\n"
+    b"candidate=storage-layout-stage2-mainline-readonly-v3\n"
     b"manifest_sha256="
-    b"c2b05bfbebb23a8936a54678ce68954a4634d4d966dbc02afe08f253a13058af\n"
+    b"1384d198998f3a055487c747b38f59f0abcfb452049d7b77879f9e0cf1e0380a\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-mainline-readonly-v2-generation192-20260826-r1"
+    / "build/storage-layout-stage2-mainline-readonly-v3-generation193-20260826-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-mainline-readonly-v2",
+    admission_profile="storage-layout-stage2-mainline-readonly-v3",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-mainline-readonly-v2",
-    build_profile="storage-layout-stage2-mainline-readonly-v2",
+    runtime_profile="storage-layout-stage2-mainline-readonly-v3",
+    build_profile="storage-layout-stage2-mainline-readonly-v3",
     diagnostic=False,
 )
 
