@@ -77,6 +77,12 @@ A read-only watchdog register observer is built offline at module hash
 BARK, BITE and clock rate from the stock MMIO range. No WDT registration,
 interrupt or register write exists. Physical admission waits for fastboot.
 
+Generation 202 is built but unbooted. Exact target, signed-manifest, observer
+DTB and wrapper identities are `810b9e83...`, `57359d0f...`, `b8b80f1a...`
+and `c4808cae...`. The sole question is the inherited EN/STS/BARK/BITE/clock
+snapshot before any watchdog registration or write. No phone storage is
+reachable. Connected preflight still requires physical fastboot.
+
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
 fastboot between development cycles. Generation 160 returned directly to

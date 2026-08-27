@@ -216,6 +216,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-mainline-clone-v4-generation199-live-v1 | \
 		storage-layout-stage2-watchdog-lifetime-v1-generation200-live-v1 | \
 		storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1 | \
+		storage-layout-stage2-watchdog-observer-v1-generation202-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -4052,6 +4053,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	storage-layout-stage2-watchdog-observer-v1-generation202-live-v1)
+		expected_boot_image=build/storage-layout-stage2-watchdog-observer-v1-generation202-20260827-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 202 read-only observation of inherited SM8350 watchdog clock, EN, STS, bark and bite registers before any watchdog driver registration or MMIO write; no IRQ, no storage write path, exact fallback; RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 202 read-only watchdog register observer; cached stable raw recovery; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-watchdog-observer-v1
+		expected_bundle=storage-layout-stage2-watchdog-observer-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=53af579b1373c9fee10e0cf139512ea5019cef90374de3c31bfc3e8733e30b92
+		expected_avb_digest=ad81d7d9d6489ad51c880a51b0464c5b5666f43fda563f604889401a57b9ff13
+		expected_generation_record=647eb90aa7a346b00ded24117e9150e0b7bf4e14869046351b5eac689d665d6a
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 57359d0f1e3a3471c733d79985edca7f271e352fb92cfa81d9fa94b65b76e4d2 ]] || fail 'watchdog observer manifest is not pinned'
+		[[ $expected_image == c4808cae310cada395c5a0025400e2ab6e7508c452fa157b16146135fa6e4d4f ]] || fail 'watchdog observer recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'watchdog observer trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'watchdog observer verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -5576,6 +5610,7 @@ case $profile in
 	storage-layout-stage2-mainline-clone-v4-generation199-live-v1 | \
 	storage-layout-stage2-watchdog-lifetime-v1-generation200-live-v1 | \
 	storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1 | \
+	storage-layout-stage2-watchdog-observer-v1-generation202-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
