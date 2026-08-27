@@ -23,6 +23,7 @@ native_seal=${NATIVE_SEAL:-}
 watchdog_module=${WATCHDOG_MODULE:-}
 watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}
 watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}
+watchdog_mmio_helper=${WATCHDOG_MMIO_HELPER:-}
 epoch=1681862400
 
 fail() { echo "FAIL $*" >&2; exit 1; }
@@ -61,6 +62,14 @@ if [ -n "$watchdog_observer_module" ]; then
 fi
 [ "$watchdog_mmio_observer" -eq 0 ] || [ -z "$watchdog_module$watchdog_observer_module" ] ||
 	fail 'watchdog and observer modes are mutually exclusive'
+if [ "$watchdog_mmio_observer" -eq 1 ]; then
+	[ -f "$watchdog_mmio_helper" ] && [ ! -L "$watchdog_mmio_helper" ] &&
+		[ "$(sha256sum "$watchdog_mmio_helper" | cut -d ' ' -f 1)" = \
+			e253cddbfaf4cf67e22764583c730a66ef00ae34aa77fc565d284e06ba70e89c ] ||
+		fail 'watchdog MMIO helper identity changed'
+else
+	[ -z "$watchdog_mmio_helper" ] || fail 'unexpected watchdog MMIO helper'
+fi
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ] || fail 'base hash changed'
 [ "$(sha256sum "$authorized_key" | cut -d ' ' -f 1)" = "$expected_key_sha256" ] || fail 'authorized key changed'
 [ "$(sha256sum "$reboot_helper" | cut -d ' ' -f 1)" = "$expected_reboot_sha256" ] || fail 'reboot helper changed'
@@ -131,6 +140,8 @@ if [ -n "$watchdog_observer_module" ]; then
 fi
 if [ "$watchdog_mmio_observer" -eq 1 ]; then
 	install -D -m 0444 /dev/null "$stage/rog5-watchdog-mmio-observer"
+	install -D -m 0755 "$watchdog_mmio_helper" \
+		"$stage/usr/libexec/rog5-watchdog-mmio-snapshot"
 fi
 if [ -n "$native_seal" ]; then
 	install -D -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"
