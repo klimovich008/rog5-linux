@@ -155,11 +155,12 @@ after target enumeration while the exact gadget remained configured; repeated
 host CDC-NCM TX watchdogs followed. The 840-second softdog, its 60-second
 emergency restart and the 930-second fallback proof all failed. The p24 range
 is partial/unknown; physical fastboot and a read-only postmortem are required.
-Generation 220 is the unbooted authority-free read-only discriminator. It
-proves the exact p23 segment-3A source hash, compares p24 in bounded 4 MiB
-chunks, and preserves all storage read-only while recovery captures retained
-pstore. Target/manifest/wrapper hashes are `d7060edf...`, `c6373ab8...`, and
-`a833700d...`.
+Generation 220 passed read-only and is consumed. The p23 segment-3A source
+matched `4c1a8175...`; p24 matched exactly 16,384 blocks / 64 MiB before the
+all-zero mismatch at block 1,480,465. Generation 219 therefore stalled on the
+destination-write path after exactly 64 MiB. Pstore was empty/inconclusive;
+softdog disarmed, `TARGET_ACCEPTED` resolved, and exact fastboot returned in
+439.436 seconds.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

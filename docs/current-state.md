@@ -204,16 +204,17 @@ and its 60-second emergency restart failed, and the 930-second fallback proof
 expired. The p24 subrange is partial/unknown and requires physical fastboot
 recovery followed by read-only postmortem evidence.
 
-Generation 220 is the unbooted authority-free read-only discriminator. It
-reads the exact 111,427,584-byte segment-3A source range from p23 once, proves
-its expected SHA-256, then compares p24 in 4 MiB chunks and reports the first
-mismatch while every block device remains read-only. Stable recovery captures
-the retained Generation-219 pstore state before COMMIT. Target, manifest, and
-wrapper hashes are `d7060edf...`, `c6373ab8...`, and `a833700d...`.
+Generation 220 passed read-only and is consumed. The exact p23 segment-3A
+source range matched SHA-256 `4c1a8175...`. p24 matched its first 16,384 blocks
+/ 64 MiB, then the 4 MiB chunk at block 1,480,465 was entirely zero instead of
+source hash `b5ada401...`. Thus Generation 219 completed exactly 64 MiB before
+the destination-write hard stall. Recovery pstore was empty and remains
+inconclusive. Softdog disarmed, durable intent resolved `TARGET_ACCEPTED`, and
+exact slot-A fastboot returned in 439.436 seconds.
 
-The phone is currently hard-hung in the Generation-219 mainline gadget and
-requires a physical force-reboot to exact slot-A fastboot before further live
-work. The preboot battery gate passed at 8.701 V.
+The phone is currently exact slot-A fastboot on the anchored USB path after
+Generation 220 returned automatically. Battery voltage is 8.699 V and
+`battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
 is not a mainline crash and must not be addressed by flashing an experimental
