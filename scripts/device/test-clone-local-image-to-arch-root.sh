@@ -26,9 +26,11 @@ for contract in \
 	'target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b' \
 	'target_blocks=8388603' \
 	'[ "$count" -eq 117 ]' \
-	'"$verifier" "$target_mount"' \
 	'losetup -r "$source_loop" "$source_image"' \
-	'"$verifier" "$source_verify_mount" "$native_seal"' \
+	'verify_boot_critical_root "$source_verify_mount"' \
+	'verify_boot_critical_root "$target_mount"' \
+	'dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0' \
+	'6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932' \
 	'verify_mount_count 2' \
 	'/rog5-softdog-modules/softdog.ko' \
 	'soft_margin=840' \
@@ -45,6 +47,7 @@ for contract in \
 	}
 done
 ! grep -Fq 'sha256sum "$source_image"' "$target"
+! grep -Fq 'persistent-root-verify' "$target"
 ! grep -Eq 'sgdisk|mkfs|fastboot|/dev/sd[a-z]24' "$target"
 python3 - "$target" <<'PY'
 from pathlib import Path

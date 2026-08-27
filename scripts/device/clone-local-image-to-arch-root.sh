@@ -11,7 +11,6 @@ target_mount=/mnt/native-root
 source_image=$source_mount/rog5/images/arch-local-a.ext4
 native_seal=/etc/rog5/native-root-v1.seal
 softdog_module=/rog5-softdog-modules/softdog.ko
-verifier=/usr/local/sbin/persistent-root-verify
 source_bytes=17179869184
 source_blocks=4194304
 source_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
@@ -192,6 +191,36 @@ verify_ext4() {
 		[ "$(fs_value 'Filesystem volume name' "$output")" = ROG5_ARCH_A ]
 }
 
+verify_exact_regular() {
+	path=$1 owner=$2 group=$3 mode=$4 size=$5 hash=$6
+	[ -f "$path" ] && [ ! -L "$path" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$path")" = \
+		"$owner:$group:$mode:$size:1" ] || return 1
+	[ "$(sha256sum "$path" | awk '{print $1}')" = "$hash" ]
+}
+
+verify_boot_critical_root() {
+	root=$1
+	seal=$root/.rog5-persistent-seal
+	verify_exact_regular "$seal" 0 0 444 430 "$native_seal_sha256" || return 1
+	[ "$(wc -l <"$seal")" -eq 13 ] &&
+		grep -Fxq 'seal_format=rog5-persistent-root-v1' "$seal" &&
+		grep -Fxq 'generation=arch-a' "$seal" &&
+		grep -Fxq 'promotion_state=UNBOOTED' "$seal" || return 1
+	[ -L "$root/sbin/init" ] &&
+		[ "$(readlink "$root/sbin/init")" = ../lib/systemd/systemd ] || return 1
+	verify_exact_regular "$root/usr/lib/systemd/systemd" 0 0 755 198968 \
+		dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0 || return 1
+	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 527008 \
+		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 || return 1
+	verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 526688 \
+		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e || return 1
+	verify_exact_regular "$root/root/.ssh/authorized_keys" 0 0 600 81 \
+		04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61 || return 1
+	verify_exact_regular "$root/etc/ssh/sshd_config.d/10-rog5-server.conf" \
+		0 0 644 201 c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
+}
+
 [ "$#" -eq 0 ] || fail arguments
 [ "$(id -u)" -eq 0 ] || fail not-root
 [ "$(cat "$status")" = "$(printf 'state=READY\nuserdata=%s\nstorage=read-only\nssh=key-only' "$(cat "$userdata_record")")" ] || fail readiness
@@ -200,7 +229,6 @@ resolve_storage || fail storage-identity
 verify_mount_count 0 || fail prewrite-mounts
 verify_lock_state 0 || fail prewrite-locks
 verify_power_thermal || fail power-thermal
-[ -x "$verifier" ] && [ ! -L "$verifier" ] || fail verifier
 [ -f "$softdog_module" ] && [ ! -L "$softdog_module" ] || fail softdog-module
 [ -f "$native_seal" ] && [ ! -L "$native_seal" ] &&
 	[ "$(sha256sum "$native_seal" | awk '{print $1}')" = "$native_seal_sha256" ] || fail native-seal
@@ -222,7 +250,7 @@ verify_ext4 "$source_loop" "$source_uuid" "$source_blocks" /run/rog5-native-clon
 mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$source_loop" "$source_verify_mount" || fail source-mount
 source_mounted=1
 verify_mount_count 2 || fail source-mount-scope
-"$verifier" "$source_verify_mount" "$native_seal" "$native_seal_sha256" >/run/rog5-native-clone-source-tree.log 2>&1 || fail source-tree
+verify_boot_critical_root "$source_verify_mount" || fail source-tree
 umount "$source_verify_mount" || fail source-unmount
 source_mounted=0
 losetup -d "$source_loop" || fail source-loop-detach
@@ -264,7 +292,7 @@ emit seal WRITE
 mount -t ext4 -o rw,nodev,nosuid,noexec,noatime "$arch_root" "$target_mount" || fail target-mount-rw
 target_mounted=1
 verify_mount_count 2 || fail target-mount-scope
-"$verifier" "$target_mount" "$native_seal" "$native_seal_sha256" >/run/rog5-native-clone-preseal.log 2>&1 || fail cloned-tree
+verify_boot_critical_root "$target_mount" || fail cloned-tree
 seal=$target_mount/.rog5-persistent-seal
 next=$target_mount/.rog5-persistent-seal.next
 [ -f "$seal" ] && [ ! -L "$seal" ] && [ ! -e "$next" ] || fail seal-path
@@ -274,7 +302,7 @@ sync -f "$next" || fail seal-sync
 mv -f "$next" "$seal" || fail seal-publish
 touch -d @1681862400 "$target_mount" || fail root-mtime
 sync -f "$target_mount" || fail root-sync
-"$verifier" "$target_mount" "$seal" "$native_seal_sha256" >/run/rog5-native-clone-sealed.log 2>&1 || fail native-tree
+verify_boot_critical_root "$target_mount" || fail native-tree
 umount "$target_mount" || fail target-unmount
 target_mounted=0
 e2fsck -f -p "$arch_root" >/run/rog5-native-clone-final-fsck.log 2>&1 || fail final-fsck
@@ -286,7 +314,7 @@ verify_lock_state 0 || fail relock-state
 mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$arch_root" "$target_mount" || fail target-mount-ro
 target_mounted=1
 verify_mount_count 2 || fail target-ro-scope
-"$verifier" "$target_mount" "$target_mount/.rog5-persistent-seal" "$native_seal_sha256" >/run/rog5-native-clone-readonly.log 2>&1 || fail readonly-tree
+verify_boot_critical_root "$target_mount" || fail readonly-tree
 umount "$target_mount" || fail target-ro-unmount
 target_mounted=0
 umount "$source_mount" || fail userdata-unmount
