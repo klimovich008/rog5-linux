@@ -166,6 +166,23 @@ arm_hardware_watchdog() {
 		{ hardware_watchdog_fail hardware-watchdog-record-mode; return 1; }
 }
 
+load_watchdog_observer() {
+	module=/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko
+	record=/run/rog5-watchdog-observer.status
+	[ -f "$module" ] && [ ! -L "$module" ] || return 1
+	insmod "$module" || return 1
+	grep -q '^rog5_qcom_wdt_observer ' /proc/modules || return 1
+	[ "$(find /sys/class/watchdog -mindepth 1 -maxdepth 1 -name 'watchdog*' | wc -l)" -eq 0 ] ||
+		return 1
+	set -- /dev/watchdog*
+	[ "$#" -eq 1 ] && [ "$1" = '/dev/watchdog*' ] || return 1
+	dmesg | grep -Eq 'ROG5_WDT_OBSERVER_V1 rate=[0-9]+ en=[0-9a-f]{8} sts=[0-9a-f]{8} bark=[0-9a-f]{8} bite=[0-9a-f]{8}' ||
+		return 1
+	printf '%s\n' 'format=rog5-watchdog-observer-v1' 'state=READY' >"$record" ||
+		return 1
+	chmod 0444 "$record" || return 1
+}
+
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
@@ -282,12 +299,16 @@ done
 [ "$count" -ne 0 ] || classify_zero_ufs
 [ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
-if ! arm_hardware_watchdog; then
-	hardware_watchdog_reason=$(sed -n '1p' /run/rog5-hardware-watchdog.failure 2>/dev/null || true)
-	case $hardware_watchdog_reason in
-		hardware-watchdog-*) fail "$hardware_watchdog_reason" ;;
-		*) fail hardware-watchdog-unknown ;;
-	esac
+if [ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then
+	load_watchdog_observer || fail watchdog-observer
+else
+	if ! arm_hardware_watchdog; then
+		hardware_watchdog_reason=$(sed -n '1p' /run/rog5-hardware-watchdog.failure 2>/dev/null || true)
+		case $hardware_watchdog_reason in
+			hardware-watchdog-*) fail "$hardware_watchdog_reason" ;;
+			*) fail hardware-watchdog-unknown ;;
+		esac
+	fi
 fi
 
 current_stage=userdata-resolved

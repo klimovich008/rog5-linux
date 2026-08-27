@@ -21,6 +21,7 @@ power_modules_root=${POWER_MODULES_ROOT:-}
 direct_extent_map=${DIRECT_EXTENT_MAP:-}
 native_seal=${NATIVE_SEAL:-}
 watchdog_module=${WATCHDOG_MODULE:-}
+watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}
 epoch=1681862400
 
 fail() { echo "FAIL $*" >&2; exit 1; }
@@ -46,6 +47,14 @@ if [ -n "$watchdog_module" ]; then
 			3fcea56eab46bc5ea006461e3c18c21875c046b7b12db3262bf8cd400f0e16c6 ] &&
 		[ "$(modinfo -F vermagic "$watchdog_module" | awk '{print $1}')" = \
 			"$expected_release" ] || fail 'watchdog module identity changed'
+fi
+if [ -n "$watchdog_observer_module" ]; then
+	[ -z "$watchdog_module" ] || fail 'watchdog and observer modules are mutually exclusive'
+	[ -f "$watchdog_observer_module" ] && [ ! -L "$watchdog_observer_module" ] &&
+		[ "$(sha256sum "$watchdog_observer_module" | cut -d ' ' -f 1)" = \
+			b06271c62e22292e043b082c3c5f2da46f8d98f36f3521c16ec389dcb40036d1 ] &&
+		[ "$(modinfo -F vermagic "$watchdog_observer_module" | awk '{print $1}')" = \
+			"$expected_release" ] || fail 'watchdog observer module identity changed'
 fi
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ] || fail 'base hash changed'
 [ "$(sha256sum "$authorized_key" | cut -d ' ' -f 1)" = "$expected_key_sha256" ] || fail 'authorized key changed'
@@ -110,6 +119,10 @@ install -D -m 0755 "$installer" "$stage/usr/local/sbin/rog5-install-local-arch-i
 if [ -n "$watchdog_module" ]; then
 	install -D -m 0644 "$watchdog_module" \
 		"$stage/rog5-watchdog-modules/qcom-wdt.ko"
+fi
+if [ -n "$watchdog_observer_module" ]; then
+	install -D -m 0644 "$watchdog_observer_module" \
+		"$stage/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko"
 fi
 if [ -n "$native_seal" ]; then
 	install -D -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"
