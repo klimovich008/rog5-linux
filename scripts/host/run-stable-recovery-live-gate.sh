@@ -229,6 +229,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-direct-chunk1-v1-generation212-live-v1 | \
 		storage-layout-stage2-direct-extent18-v1-generation213-live-v1 | \
 		storage-layout-stage2-direct-extent19-v1-generation214-live-v1 | \
+		storage-layout-stage2-direct-extent20-seg1-v1-generation215-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -4494,6 +4495,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	storage-layout-stage2-direct-extent20-seg1-v1-generation215-live-v1)
+		expected_boot_image=build/storage-layout-stage2-direct-extent20-seg1-v1-generation215-20260827-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 215 direct p24 overwrite of extent-20 segment 1 at block 1355264 for 54409 blocks, with exact evidence, sync, relock and softdog disarm; RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 215 direct extent-20 segment 1; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-direct-extent20-seg1-v1
+		expected_bundle=storage-layout-stage2-direct-extent20-seg1-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=8ba0b5d46abe6c6b2663c15e609dbe46b9dfbbb2abaff6a69d7ebdc45d34ec93
+		expected_avb_digest=841d9223fe0ab8c532718b0fa1ef39a9a2cf351e04130892ef212cc8f8b4e5f3
+		expected_generation_record=14b08e28f72841fda0ef44c749d787a2d4f3bf02fdc14ea2aaa57560eed05802
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 140124bc1647493f9c2db270c338397bdb9de71caa9b9e86ca97c760e69def72 ]] || fail 'extent20 segment1 manifest is not pinned'
+		[[ $expected_image == bfc0f6c41fca197a46effda1c9c358f1724e52d8bb8272a8bb9e84fc83fcd4be ]] || fail 'extent20 segment1 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'extent20 segment1 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'extent20 segment1 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -6031,6 +6065,7 @@ case $profile in
 	storage-layout-stage2-direct-chunk1-v1-generation212-live-v1 | \
 	storage-layout-stage2-direct-extent18-v1-generation213-live-v1 | \
 	storage-layout-stage2-direct-extent19-v1-generation214-live-v1 | \
+	storage-layout-stage2-direct-extent20-seg1-v1-generation215-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
