@@ -457,8 +457,8 @@ awk -F '\t' \
 		$3 == "consumed Generation 205 arm64 devmem-read classifier; exact watchdog-mmio-en proved read() rejected the first MMIO access, exact fastboot and FALLBACK_RETURNED passed, no storage path; never retry or flash" &&
 		NF == 3 { stage2_watchdog_mmio_v2++ ; next }
 	$1 == "build/storage-layout-stage2-watchdog-mmap-v1-generation206-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 206 read-only mmap watchdog snapshot with open/mmap/bus-fault classification; no MMIO write, watchdog registration or storage dependency; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed Generation 206 APSS-MMIO classifier; read-only mmap succeeded but first register access raised SIGBUS, exact fastboot and FALLBACK_RETURNED passed, no storage path; never retry or flash" &&
 		NF == 3 { stage2_watchdog_mmap++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -675,7 +675,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -704,7 +704,7 @@ grep -Fq "expected_boot_basis='consumed Generation 204 MMIO-read classifier; tar
 	{ echo 'FAIL Generation 204 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed Generation 205 arm64 devmem-read classifier; exact watchdog-mmio-en proved read() rejected the first MMIO access, exact fastboot and FALLBACK_RETURNED passed, no storage path; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 205 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 206 read-only mmap watchdog snapshot with open/mmap/bus-fault classification; no MMIO write, watchdog registration or storage dependency; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed Generation 206 APSS-MMIO classifier; read-only mmap succeeded but first register access raised SIGBUS, exact fastboot and FALLBACK_RETURNED passed, no storage path; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 206 gate basis differs from policy' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img" &&
@@ -720,7 +720,7 @@ awk -F '\t' '
 	{ echo 'FAIL Generation 205 artifact role differs from live gate' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/storage-layout-stage2-watchdog-mmap-v1-generation206-20260827-r1/repack/stable-recovery-a.avb.img" &&
-	$4 == "unbooted Generation 206 read-only mmap watchdog snapshot; never flash or retry after COMMIT" && NF == 5 { found++ }
+	$4 == "consumed Generation 206 APSS MMIO SIGBUS; exact fallback, no writes; never retry or flash" && NF == 5 { found++ }
 	END { exit found == 1 ? 0 : 1 }
 ' "$artifact_manifest" ||
 	{ echo 'FAIL Generation 206 artifact role differs from live gate' >&2; exit 1; }
