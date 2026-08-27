@@ -137,6 +137,7 @@ active_tests=(
 	scripts/device/test-inspect-local-image-partial.sh
 	scripts/device/test-benchmark-local-image-write.sh
 	scripts/device/test-stage-local-image-direct.sh
+	scripts/device/test-inspect-native-clone-progress.sh
 	scripts/device/test-power-usb-active-dtb.sh
 	scripts/device/test-persistent-root-power-usb-dtb.sh
 	scripts/device/test-persistent-root-power-usb-composition.sh

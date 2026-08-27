@@ -204,7 +204,9 @@ and its 60-second emergency restart failed, and the 930-second fallback proof
 expired. The p24 subrange is partial/unknown and requires physical fastboot
 recovery followed by read-only postmortem evidence.
 
-The phone is currently exact fastboot on slot A with the battery gate passed.
+The phone is currently hard-hung in the Generation-219 mainline gadget and
+requires a physical force-reboot to exact slot-A fastboot before further live
+work. The preboot battery gate passed at 8.701 V.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
 is not a mainline crash and must not be addressed by flashing an experimental
