@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-native-progress-v1-generation220-live-v1",
+            "storage-layout-stage2-native-verify-v1-generation221-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-native-progress-v1",
+            "storage-layout-stage2-native-verify-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation220",
+            "generation221",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -176,7 +176,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(
             (
-                "format=rog5-native-progress-runtime-v1",
+                "format=rog5-native-verify-runtime-v1",
                 "boot_id=11111111-2222-3333-4444-555555555555",
                 "uptime_seconds=21.00",
                 "state=READY",
@@ -220,7 +220,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
 
     def test_runtime_evidence_rejects_missing_duplicate_and_wrong_storage(self) -> None:
         baseline = [
-            "format=rog5-native-progress-runtime-v1",
+            "format=rog5-native-verify-runtime-v1",
             "boot_id=11111111-2222-3333-4444-555555555555",
             "state=READY",
             "physical_blocks=117",
@@ -508,7 +508,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_executes_one_read_only_progress_probe_then_fastboot(self) -> None:
+    def test_runner_executes_one_read_only_native_verify_then_fastboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -523,109 +523,45 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn('"prepare-commit",', source)
         self.assertIn("RUNTIME_COMMAND", source)
         self.assertIn(
-            'PROGRESS_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"',
+            'VERIFY_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"',
             source,
         )
-        self.assertIn("parse_progress_evidence(progress_log)", source)
-        self.assertIn("ALLOW_STAGE2_READONLY_PROGRESS", source)
+        self.assertIn("parse_verify_evidence(verify_log)", source)
+        self.assertIn("ALLOW_STAGE2_READONLY_VERIFY", source)
         self.assertNotIn("ALLOW_STAGE2_P24_CLONE", source)
-        self.assertIn("progress_log, 850", source)
+        self.assertIn("verify_log, 850", source)
         self.assertLess(850, MODULE.FALLBACK_TIMEOUT_SECONDS)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
-    def test_progress_evidence_is_exact_and_hostile(self) -> None:
-        prefix = [
-            "ROG5_NATIVE_PROGRESS_V1 stage=watchdog status=ARMED",
-            "ROG5_NATIVE_PROGRESS_V1 stage=source status=BEGIN "
-            "offset=1464081 blocks=27204",
-            "ROG5_NATIVE_PROGRESS_V1 stage=source status=PASS "
-            "offset=1464081 blocks=27204 "
-            f"sha256={MODULE.PROGRESS_SOURCE_SHA256}",
-            "ROG5_NATIVE_PROGRESS_V1 stage=target status=BEGIN "
-            "offset=1464081 blocks=27204",
+    def test_native_verify_evidence_is_exact_and_hostile(self) -> None:
+        expected = [
+            "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ",
+            "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
+            "disposition=grown-target "
+            "uuid=8b03827a-cc2d-4408-8558-e9b61195f96b blocks=8388603 "
+            "state=clean label=ROG5_ARCH_A tree=BOOT_CRITICAL_PASS "
+            "prefix_sha256="
+            "4624159a5ad652036ad1facfc3e1dcf0c38024d1a3d7aeda9e7c9d92a13a0647",
         ]
-
-        def evidence(mismatch_at: int | None) -> list[str]:
-            lines = list(prefix)
-            matched = 0
-            mismatch_offset = "none"
-            mismatch_blocks = 0
-            for index, offset, blocks in MODULE.progress_chunks():
-                if mismatch_at == index:
-                    mismatch_offset = str(offset)
-                    mismatch_blocks = blocks
-                    lines.append(
-                        "ROG5_NATIVE_PROGRESS_V1 stage=target status=MISMATCH "
-                        f"chunk={index} offset={offset} blocks={blocks} "
-                        f"matched_blocks={matched} source_sha256={'a' * 64} "
-                        f"target_sha256={'b' * 64}"
-                    )
-                    break
-                lines.append(
-                    "ROG5_NATIVE_PROGRESS_V1 stage=target status=MATCH "
-                    f"chunk={index} offset={offset} blocks={blocks} "
-                    f"sha256={(index + 1):064x}"
-                )
-                matched += blocks
-            disposition = (
-                "all-matched"
-                if matched == MODULE.PROGRESS_BLOCK_COUNT
-                else "partial"
-            )
-            lines.extend(
-                (
-                    "ROG5_NATIVE_PROGRESS_V1 stage=watchdog status=DISARMED",
-                    "ROG5_NATIVE_PROGRESS_V1 stage=terminal status=PASS "
-                    f"disposition={disposition} "
-                    f"source_sha256={MODULE.PROGRESS_SOURCE_SHA256} "
-                    f"matched_blocks={matched} "
-                    f"mismatch_offset={mismatch_offset} "
-                    f"mismatch_blocks={mismatch_blocks} all_read_only=1",
-                )
-            )
-            return lines
-
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "progress.log"
-            all_matched = evidence(None)
+            path = Path(temporary) / "verify.log"
             path.write_text(
-                "\n".join([*all_matched, "Connection closed"]) + "\n"
+                "\n".join([*expected, "Connection closed"]) + "\n"
             )
-            result = MODULE.parse_progress_evidence(path)
-            self.assertEqual(result.disposition, "all-matched")
-            self.assertEqual(result.matched_blocks, 27_204)
-
-            partial = evidence(2)
-            path.write_text("\n".join(partial) + "\n")
-            result = MODULE.parse_progress_evidence(path)
-            self.assertEqual(result.disposition, "partial")
-            self.assertEqual(result.matched_blocks, 2_048)
-            self.assertEqual(result.mismatch_offset, "1466129")
-
+            MODULE.parse_verify_evidence(path)
             hostile = (
-                all_matched[:2],
-                [*all_matched, all_matched[-1]],
-                [
-                    *all_matched[:2],
-                    all_matched[2].replace(
-                        MODULE.PROGRESS_SOURCE_SHA256, "0" * 64
-                    ),
-                    *all_matched[3:],
-                ],
-                [*partial[:-2], partial[-3], *partial[-2:]],
-                [
-                    line.replace("source_sha256=" + "a" * 64,
-                                 "source_sha256=" + "b" * 64)
-                    if "status=MISMATCH" in line else line
-                    for line in partial
-                ],
-                [all_matched[1], all_matched[0], *all_matched[2:]],
+                expected[:1],
+                [*expected, expected[-1]],
+                [expected[1], expected[0]],
+                [expected[0], expected[1].replace("grown-target", "partial-ext4")],
+                [expected[0], expected[1].replace("BOOT_CRITICAL_PASS", "SKIP")],
+                [expected[0], expected[1].replace("8388603", "4194304")],
             )
             for payload in hostile:
                 path.write_text("\n".join(payload) + "\n")
                 with self.assertRaises(MODULE.PersistentCycleError):
-                    MODULE.parse_progress_evidence(path)
+                    MODULE.parse_verify_evidence(path)
 
 
 if __name__ == "__main__":
