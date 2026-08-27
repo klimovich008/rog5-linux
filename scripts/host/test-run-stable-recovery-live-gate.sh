@@ -533,8 +533,8 @@ awk -F '\t' \
 		$3 == "consumed Generation 224 read-only postrepair verifier; exact ext4 geometry but clean-with-errors state, tree skipped, exact slot-A fallback returned; never retry or flash" &&
 		NF == 3 { stage2_native_postrepair++ ; next }
 	$1 == "build/storage-layout-stage2-native-fsck-v1-generation225-20260828-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 225 p24-only e2fsck-preen repair after exact clean-with-errors and repaired-tree precheck, 600-second softdog, post-fsck clean/tree proof and relock; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed successful Generation 225 p24-only e2fsck-preen repair; status 1, clean ext4, full repaired tree, relock, TARGET_ACCEPTED and exact slot-A fastboot in 151.211 seconds; never retry or flash" &&
 		NF == 3 { stage2_native_fsck++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -751,7 +751,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -940,7 +940,7 @@ awk -F '\t' '
 	{ echo 'FAIL Generation 224 artifact role differs from live gate' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/storage-layout-stage2-native-fsck-v1-generation225-20260828-r1/repack/stable-recovery-a.avb.img" &&
-	$4 == "unbooted Generation 225 p24-only fsck repair; never flash or retry after COMMIT" && NF == 5 { found++ }
+	$4 == "consumed successful Generation 225 p24 fsck repair; status 1, clean exact tree, relock and TARGET_ACCEPTED; never retry or flash" && NF == 5 { found++ }
 	END { exit found == 1 ? 0 : 1 }
 ' "$artifact_manifest" ||
 	{ echo 'FAIL Generation 225 artifact role differs from live gate' >&2; exit 1; }

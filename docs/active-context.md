@@ -174,10 +174,11 @@ chunks. Generation 223 is consumed: old-hash preconditions, both writes and
 in-mount new hashes passed, then the post-unmount clean-state assertion failed.
 Exact fallback passed. Generation 224 is consumed and proved p24 is
 `clean with errors`; tree verification was skipped and no write occurred.
-Generation 225 is the unbooted p24-only `e2fsck -p` repair with repaired-hash
-precheck, 600-second softdog, post-fsck clean/tree proof and full relock.
-Target/manifest/wrapper hashes are `868d9644...`, `60db65fd...`, and
-`3459568e...`.
+Generation 225 passed and is consumed. It proved both repaired hashes, repaired
+ext4 with `e2fsck -p` status 1, then proved clean state, the full seven-item
+tree, relock, `TARGET_ACCEPTED`, and exact fastboot in 151.211 seconds. The next
+cycle is a fresh RAM-only native-root/systemd/key-only-SSH boot test; persistent
+slot-B installation remains separate.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
