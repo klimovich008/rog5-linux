@@ -238,6 +238,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-native-verify-v1-generation221-live-v1 | \
 		storage-layout-stage2-native-tree-detail-v1-generation222-live-v1 | \
 		storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1 | \
+		storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -4800,6 +4801,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1)
+		expected_boot_image=build/storage-layout-stage2-native-postrepair-verify-v1-generation224-20260827-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 224 read-only postrepair ext4 state and seven-item boot-critical verification cycle; no storage writes, RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 224 read-only postrepair verifier; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-native-postrepair-verify-v1
+		expected_bundle=storage-layout-stage2-native-postrepair-verify-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=b0ba46822c96e42f2f524973fb788a778611b84f8bee3f8ef0a7a9f6d2252639
+		expected_avb_digest=1204b7b3c81ba416c81acc4febe60e8b66a5a7fde8cae1207648edbe446732a6
+		expected_generation_record=2452dd1be362f89745cb5499ee9ab93152094a8d31ba3d7c5e743f1c14b5343a
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 7cbec8fedf21126234d164654ac08577be00e0143672fed711874fc6f19b4ba0 ]] || fail 'native postrepair manifest is not pinned'
+		[[ $expected_image == 4dc088168db899b82981470b294ff04bc312913d4f277cd903298e6d027e2de0 ]] || fail 'native postrepair recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native postrepair trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native postrepair verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -6346,6 +6380,7 @@ case $profile in
 	storage-layout-stage2-native-verify-v1-generation221-live-v1 | \
 	storage-layout-stage2-native-tree-detail-v1-generation222-live-v1 | \
 	storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1 | \
+	storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

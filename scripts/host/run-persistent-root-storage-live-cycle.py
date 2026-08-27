@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1"
-BUNDLE = "storage-layout-stage2-native-ssh-repair-v1"
+PROFILE_ID = "storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1"
+BUNDLE = "storage-layout-stage2-native-postrepair-verify-v1"
 MANIFEST_SHA256 = (
-    "a510c69ee2f3f1957773428c58fdd1ea20b0f80296f0edfbd2c59d6e5dd46289"
+    "7cbec8fedf21126234d164654ac08577be00e0143672fed711874fc6f19b4ba0"
 )
 RECOVERY_SHA256 = (
-    "1add84c6c6b9eeab00237ceb8a1313405728543d98f4adefcd6d2178b77a2753"
+    "4dc088168db899b82981470b294ff04bc312913d4f277cd903298e6d027e2de0"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1\n"
-    b"candidate=storage-layout-stage2-native-ssh-repair-v1\n"
+    b"storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1\n"
+    b"candidate=storage-layout-stage2-native-postrepair-verify-v1\n"
     b"manifest_sha256="
-    b"a510c69ee2f3f1957773428c58fdd1ea20b0f80296f0edfbd2c59d6e5dd46289\n"
+    b"7cbec8fedf21126234d164654ac08577be00e0143672fed711874fc6f19b4ba0\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-native-ssh-repair-v1-generation223-20260827-r1"
+    / "build/storage-layout-stage2-native-postrepair-verify-v1-generation224-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -132,10 +132,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-native-ssh-repair-v1",
+    admission_profile="storage-layout-stage2-native-postrepair-verify-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-native-ssh-repair-v1",
-    build_profile="storage-layout-stage2-native-ssh-repair-v1",
+    runtime_profile="storage-layout-stage2-native-postrepair-verify-v1",
+    build_profile="storage-layout-stage2-native-postrepair-verify-v1",
     diagnostic=False,
 )
 
@@ -1029,7 +1029,9 @@ def run(
                 "native verifier returned unexpected status "
                 f"{verify_status}"
             )
-        parse_repair_evidence(verify_log)
+        tree = parse_verify_evidence(verify_log)
+        if tree.disposition != "BOOT_CRITICAL_PASS":
+            fail("post-repair tree is not exact")
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
@@ -1044,10 +1046,9 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("disposition", "ssh-binaries-repaired"),
-                ("files", "sshd,ssh-keygen"),
-                ("bytes", "1053696"),
-                ("storage", "RELOCKED"),
+                ("disposition", "grown-target"),
+                ("tree", tree.disposition),
+                ("mismatches", "none"),
                 ("seconds_to_verification", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
@@ -1060,7 +1061,7 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle repaired and verified sshd and ssh-keygen in "
+            "PASS one RAM-only cycle verified the repaired native Arch root in "
             f"{elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
@@ -1128,11 +1129,11 @@ def main(arguments: list[str]) -> int:
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
     if arguments == ["run"] and os.environ.get(
-        "ALLOW_STAGE2_NATIVE_SSH_REPAIR"
+        "ALLOW_STAGE2_READONLY_VERIFY"
     ) != "1":
         fail(
-            "set ALLOW_STAGE2_NATIVE_SSH_REPAIR=1 for the exact two-file "
-            "native-root repair"
+            "set ALLOW_STAGE2_READONLY_VERIFY=1 for the exact read-only "
+            "post-repair verification"
         )
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()

@@ -170,10 +170,11 @@ slot-A fastboot fallback passed; no storage write occurred. The host image and
 exact sealed BusyBox satisfy every expected predicate. Generation 222 passed
 and is consumed: only `sshd` and `ssh-keygen` content differed; metadata and the
 other five boot-critical objects matched. Both files cross sparse zero-FILL
-chunks. Generation 223 is the unbooted exact-two-file repair with old-hash
-preconditions, power/thermal gates, 120-second softdog, post-write hashes and
-full relock. Target/manifest/wrapper hashes are `4c678635...`, `a510c69e...`,
-and `1add84c6...`.
+chunks. Generation 223 is consumed: old-hash preconditions, both writes and
+in-mount new hashes passed, then the post-unmount clean-state assertion failed.
+Exact fallback passed; final p24 state remains unknown. Generation 224 is the
+unbooted read-only ext4/tree verifier. Target/manifest/wrapper hashes are
+`5f57f785...`, `7cbec8fe...`, and `4dc08816...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
