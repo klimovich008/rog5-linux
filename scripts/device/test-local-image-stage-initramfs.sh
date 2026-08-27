@@ -207,6 +207,18 @@ for contract in \
 done
 grep -Fq 'watchdog_module=${WATCHDOG_MODULE:-}' "$builder"
 grep -Fq 'watchdog module identity changed' "$builder"
+grep -Fq 'watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}' "$builder"
+grep -Fq 'watchdog and observer modules are mutually exclusive' "$builder"
+grep -Fq 'b06271c62e22292e043b082c3c5f2da46f8d98f36f3521c16ec389dcb40036d1' "$builder"
+for contract in \
+	'load_watchdog_observer() {' \
+	'/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko' \
+	"grep -q '^rog5_qcom_wdt_observer ' /proc/modules" \
+	'ROG5_WDT_OBSERVER_V1 rate=' \
+	'[ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then' \
+	'load_watchdog_observer || fail watchdog-observer'; do
+	grep -Fq "$contract" "$init" || exit 1
+done
 ! grep -Fq 'verify_no_phone_storage' "$init"
 ! grep -Fq 'mount_network_root' "$init"
 
