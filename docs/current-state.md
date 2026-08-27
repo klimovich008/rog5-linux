@@ -175,10 +175,10 @@ emitted exact PASS, synced, relocked, disarmed softdog, resolved
 Extents 1–19 now have complete PASS evidence totaling 670,892,032 bytes.
 
 Extent 20 is split into four contiguous bounded segments because its intact
-891,424,768 bytes cannot fit the measured softdog window. Generation 215 is the
-unbooted authority-free segment-1 successor: offset block 1,355,264, 54,409
-blocks / 222,859,264 bytes. Target/manifest/wrapper hashes are `e37981c3...`,
-`140124bc...` and `bfc0f6c4...`.
+891,424,768 bytes cannot fit the measured softdog window. Generation 215 passed
+segment 1 at offset block 1,355,264 for 54,409 blocks / 222,859,264 bytes,
+synced, relocked, disarmed softdog, resolved `TARGET_ACCEPTED`, and returned
+exact slot-A fastboot in 480.461 seconds.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
