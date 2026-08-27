@@ -133,10 +133,10 @@ Generation 214 passed and is consumed. Extent 19 copied 185,159,680 bytes,
 synced, relocked, disarmed softdog, resolved `TARGET_ACCEPTED`, and returned
 exact slot-A fastboot in 415.724 seconds. Extents 1–19 now have complete PASS
 evidence totaling 670,892,032 bytes.
-Extent 20 is split into four bounded contiguous segments. Generation 215 is
-the unbooted authority-free segment-1 successor: offset 1,355,264, count
-54,409 blocks / 222,859,264 bytes, with target/manifest/wrapper hashes
-`e37981c3...`, `140124bc...` and `bfc0f6c4...`.
+Extent 20 is split into four bounded contiguous segments. Generation 215 passed
+segment 1 at offset 1,355,264 for 54,409 blocks / 222,859,264 bytes, synced,
+relocked, disarmed softdog, resolved `TARGET_ACCEPTED`, and returned exact
+slot-A fastboot in 480.461 seconds.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
