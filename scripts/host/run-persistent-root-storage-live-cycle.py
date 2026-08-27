@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-direct-extent20-seg3a-v1-generation219-live-v1"
-BUNDLE = "storage-layout-stage2-direct-extent20-seg3a-v1"
+PROFILE_ID = "storage-layout-stage2-native-progress-v1-generation220-live-v1"
+BUNDLE = "storage-layout-stage2-native-progress-v1"
 MANIFEST_SHA256 = (
-    "f95bc32ff18a90f4015f3a51603cb875f46eeeb64c18b6735eccf5947b01014f"
+    "c6373ab89d55d494c9e4336200ca9fe3399a05c1eb66908e70a359dd77cbaddb"
 )
 RECOVERY_SHA256 = (
-    "ac55ace2eba58bb2984576e88b4bd58163733cd00b78a0ee85711c185150a6d0"
+    "a833700db1b1492ed118a71ad3f4c1a1ae14b845038da2acb374c6f971e6be5e"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-direct-extent20-seg3a-v1-generation219-live-v1\n"
-    b"candidate=storage-layout-stage2-direct-extent20-seg3a-v1\n"
+    b"storage-layout-stage2-native-progress-v1-generation220-live-v1\n"
+    b"candidate=storage-layout-stage2-native-progress-v1\n"
     b"manifest_sha256="
-    b"f95bc32ff18a90f4015f3a51603cb875f46eeeb64c18b6735eccf5947b01014f\n"
+    b"c6373ab89d55d494c9e4336200ca9fe3399a05c1eb66908e70a359dd77cbaddb\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-direct-extent20-seg3a-v1-generation219-20260827-r1"
+    / "build/storage-layout-stage2-native-progress-v1-generation220-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -118,6 +118,23 @@ printf '%s\n' 'result=PASS'
 STAGE_PORT = 8079
 STAGE_RECORD_MAX_BYTES = 512
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+PROGRESS_MATCH = re.compile(
+    r"ROG5_NATIVE_PROGRESS_V1 stage=target status=MATCH "
+    r"chunk=([0-9]+) offset=([0-9]+) blocks=([0-9]+) "
+    r"sha256=([0-9a-f]{64})\Z"
+)
+PROGRESS_MISMATCH = re.compile(
+    r"ROG5_NATIVE_PROGRESS_V1 stage=target status=MISMATCH "
+    r"chunk=([0-9]+) offset=([0-9]+) blocks=([0-9]+) "
+    r"matched_blocks=([0-9]+) source_sha256=([0-9a-f]{64}) "
+    r"target_sha256=([0-9a-f]{64})\Z"
+)
+PROGRESS_OFFSET_BLOCKS = 1_464_081
+PROGRESS_BLOCK_COUNT = 27_204
+PROGRESS_CHUNK_BLOCKS = 1_024
+PROGRESS_SOURCE_SHA256 = (
+    "4c1a8175892ba930d69efca326ffc7c63055540bfdb4f6483b379662aba6a22d"
+)
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
@@ -128,10 +145,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-direct-extent20-seg3a-v1",
+    admission_profile="storage-layout-stage2-native-progress-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-direct-extent20-seg3a-v1",
-    build_profile="storage-layout-stage2-direct-extent20-seg3a-v1",
+    runtime_profile="storage-layout-stage2-native-progress-v1",
+    build_profile="storage-layout-stage2-native-progress-v1",
     diagnostic=False,
 )
 
@@ -139,7 +156,7 @@ RUNTIME_COMMAND = r"""
 set -eu
 [ -f /run/rog5-local-image-stage.status ]
 [ -f /run/rog5-power-usb-ready ]
-printf '%s\n' 'format=rog5-native-clone-runtime-v1'
+printf '%s\n' 'format=rog5-native-progress-runtime-v1'
 printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime
 cat /run/rog5-local-image-stage.status
@@ -153,7 +170,7 @@ printf 'physical_blocks=%s\n' "$count"
 printf '%s\n' 'result=PASS'
 """.strip()
 
-CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
+PROGRESS_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
 
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
@@ -170,6 +187,14 @@ class StageRecord(NamedTuple):
     state: str
     detail: str
     payload: bytes
+
+
+class ProgressEvidence(NamedTuple):
+    disposition: str
+    source_sha256: str
+    matched_blocks: int
+    mismatch_offset: str
+    mismatch_blocks: int
 
 
 STAGES = {
@@ -669,7 +694,7 @@ def parse_runtime_evidence(path: Path) -> str:
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("runtime evidence is unreadable") from error
     required = {
-        "format=rog5-native-clone-runtime-v1",
+        "format=rog5-native-progress-runtime-v1",
         "state=READY",
         "physical_blocks=117",
         "storage=read-only",
@@ -692,37 +717,85 @@ def parse_runtime_evidence(path: Path) -> str:
     return boot_ids[0]
 
 
-def parse_clone_evidence(path: Path) -> None:
+def progress_chunks() -> tuple[tuple[int, int, int], ...]:
+    chunks = []
+    relative = 0
+    index = 0
+    while relative < PROGRESS_BLOCK_COUNT:
+        blocks = min(PROGRESS_CHUNK_BLOCKS, PROGRESS_BLOCK_COUNT - relative)
+        chunks.append((index, PROGRESS_OFFSET_BLOCKS + relative, blocks))
+        relative += blocks
+        index += 1
+    return tuple(chunks)
+
+
+def parse_progress_evidence(path: Path) -> ProgressEvidence:
     try:
         lines = path.read_text(encoding="ascii").splitlines()
     except (OSError, UnicodeDecodeError) as error:
-        raise PersistentCycleError("clone evidence is unreadable") from error
-    lines = [line for line in lines if line.startswith("ROG5_NATIVE_CLONE_V1 ")]
-    expected = [
-        "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
-        "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
-        "ROG5_NATIVE_CLONE_V1 stage=watchdog status=ARMED",
+        raise PersistentCycleError("progress evidence is unreadable") from error
+    lines = [
+        line for line in lines if line.startswith("ROG5_NATIVE_PROGRESS_V1 ")
     ]
-    extents = ((20, 3, 1464081, 27204),)
-    for index, segment, offset, blocks in extents:
-        expected.extend(
-            (
-                "ROG5_NATIVE_CLONE_V1 stage=extent status=BEGIN "
-                f"index={index} segment={segment} offset={offset} blocks={blocks}",
-                "ROG5_NATIVE_CLONE_V1 stage=extent status=PASS "
-                f"index={index} segment={segment} offset={offset} blocks={blocks}",
-            )
-        )
-    expected.extend(
-        (
-            "ROG5_NATIVE_CLONE_V1 stage=watchdog status=DISARMED",
-            "ROG5_NATIVE_CLONE_V1 stage=terminal status=CHUNK_PASS "
-            "first=20 last=20 segment=3 offset=1464081 blocks=27204 "
-            "bytes=111427584",
-        )
+    prefix = [
+        "ROG5_NATIVE_PROGRESS_V1 stage=watchdog status=ARMED",
+        "ROG5_NATIVE_PROGRESS_V1 stage=source status=BEGIN "
+        f"offset={PROGRESS_OFFSET_BLOCKS} blocks={PROGRESS_BLOCK_COUNT}",
+        "ROG5_NATIVE_PROGRESS_V1 stage=source status=PASS "
+        f"offset={PROGRESS_OFFSET_BLOCKS} blocks={PROGRESS_BLOCK_COUNT} "
+        f"sha256={PROGRESS_SOURCE_SHA256}",
+        "ROG5_NATIVE_PROGRESS_V1 stage=target status=BEGIN "
+        f"offset={PROGRESS_OFFSET_BLOCKS} blocks={PROGRESS_BLOCK_COUNT}",
+    ]
+    if lines[: len(prefix)] != prefix:
+        fail("progress evidence lacks the exact source-read prefix")
+    position = len(prefix)
+    matched_blocks = 0
+    mismatch_offset = "none"
+    mismatch_blocks = 0
+    for index, offset, blocks in progress_chunks():
+        if position >= len(lines):
+            fail("progress evidence ended before a target disposition")
+        match = PROGRESS_MATCH.fullmatch(lines[position])
+        if match is not None:
+            if tuple(map(int, match.groups()[:3])) != (index, offset, blocks):
+                fail("progress MATCH geometry is not exact")
+            matched_blocks += blocks
+            position += 1
+            continue
+        mismatch = PROGRESS_MISMATCH.fullmatch(lines[position])
+        if mismatch is None:
+            fail("progress target record is not canonical")
+        observed = tuple(map(int, mismatch.groups()[:4]))
+        if observed != (index, offset, blocks, matched_blocks):
+            fail("progress MISMATCH geometry is not exact")
+        if mismatch.group(5) == mismatch.group(6):
+            fail("progress MISMATCH retained equal hashes")
+        mismatch_offset = str(offset)
+        mismatch_blocks = blocks
+        position += 1
+        break
+    disposition = (
+        "all-matched" if matched_blocks == PROGRESS_BLOCK_COUNT else "partial"
     )
-    if lines != expected:
-        fail("clone evidence is not the exact successful sequence")
+    if disposition == "all-matched" and mismatch_offset != "none":
+        fail("all-matched progress retained a mismatch")
+    terminal = [
+        "ROG5_NATIVE_PROGRESS_V1 stage=watchdog status=DISARMED",
+        "ROG5_NATIVE_PROGRESS_V1 stage=terminal status=PASS "
+        f"disposition={disposition} source_sha256={PROGRESS_SOURCE_SHA256} "
+        f"matched_blocks={matched_blocks} mismatch_offset={mismatch_offset} "
+        f"mismatch_blocks={mismatch_blocks} all_read_only=1",
+    ]
+    if lines[position:] != terminal:
+        fail("progress evidence lacks the exact terminal sequence")
+    return ProgressEvidence(
+        disposition,
+        PROGRESS_SOURCE_SHA256,
+        matched_blocks,
+        mismatch_offset,
+        mismatch_blocks,
+    )
 
 
 def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int:
@@ -950,19 +1023,22 @@ def run(
         if runtime_status != 0:
             fail(f"local-root runtime acceptance returned {runtime_status}")
         target_boot_id = parse_runtime_evidence(runtime_log)
-        clone_log = cycle.output("native-clone.log")
-        clone_status = run_optional_logged(
-            [*target_ssh, CLONE_COMMAND], clone_log, 850
+        progress_log = cycle.output("native-progress.log")
+        progress_status = run_optional_logged(
+            [*target_ssh, PROGRESS_COMMAND], progress_log, 850
         )
-        if clone_status not in {0, 255}:
-            fail(f"native clone returned unexpected status {clone_status}")
-        parse_clone_evidence(clone_log)
+        if progress_status not in {0, 255}:
+            fail(
+                "native progress observer returned unexpected status "
+                f"{progress_status}"
+            )
+        progress = parse_progress_evidence(progress_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("native-clone-timing.record"),
+            cycle.output("native-progress-timing.record"),
             (
-                ("format", "rog5-native-clone-timing-v1"),
+                ("format", "rog5-native-progress-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -971,7 +1047,11 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("seconds_to_clone_completion", f"{elapsed:.3f}"),
+                ("disposition", progress.disposition),
+                ("matched_blocks", str(progress.matched_blocks)),
+                ("mismatch_offset", progress.mismatch_offset),
+                ("mismatch_blocks", str(progress.mismatch_blocks)),
+                ("seconds_to_progress_completion", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
@@ -983,7 +1063,8 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle wrote direct-clone extent 20 segment 3A in "
+            "PASS one RAM-only cycle measured read-only segment-3A progress "
+            f"as {progress.disposition} ({progress.matched_blocks} blocks) in "
             f"{elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
@@ -1050,8 +1131,13 @@ def main(arguments: list[str]) -> int:
         "ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE"
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
-    if arguments == ["run"] and os.environ.get("ALLOW_STAGE2_P24_CLONE") != "1":
-        fail("set ALLOW_STAGE2_P24_CLONE=1 for the exact p24 clone")
+    if arguments == ["run"] and os.environ.get(
+        "ALLOW_STAGE2_READONLY_PROGRESS"
+    ) != "1":
+        fail(
+            "set ALLOW_STAGE2_READONLY_PROGRESS=1 for the exact read-only "
+            "segment progress probe"
+        )
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()
     gate_environment = exact_environment()

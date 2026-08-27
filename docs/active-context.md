@@ -155,6 +155,11 @@ after target enumeration while the exact gadget remained configured; repeated
 host CDC-NCM TX watchdogs followed. The 840-second softdog, its 60-second
 emergency restart and the 930-second fallback proof all failed. The p24 range
 is partial/unknown; physical fastboot and a read-only postmortem are required.
+Generation 220 is the unbooted authority-free read-only discriminator. It
+proves the exact p23 segment-3A source hash, compares p24 in bounded 4 MiB
+chunks, and preserves all storage read-only while recovery captures retained
+pstore. Target/manifest/wrapper hashes are `d7060edf...`, `c6373ab8...`, and
+`a833700d...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
