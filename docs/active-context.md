@@ -100,9 +100,9 @@ offline twin and fixture tests. Generation 206 is consumed after exact
 SIGBUS. Exact fastboot and `FALLBACK_RETURNED` passed. Stop direct MMIO work;
 evaluate standard kernel `softdog` offline for the Stage-2 clone rollback.
 Exact-ABI `softdog.ko` twins now pass offline at `ab0175a4...`; no candidate
-or phone execution has been created from them. Generation 207 is the unbooted
-authority-free 20-second bootloader-expiry proof with target/manifest/wrapper
-hashes `8326d6d5...`, `ec5d0890...` and `e0d4cf6f...`.
+or phone execution has been created from them. Generation 207 passed and is
+consumed: `softdog-armed-20` was followed by automatic exact slot-A fastboot
+23.6 seconds later, with `TARGET_ACCEPTED` and no UFS/storage access.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

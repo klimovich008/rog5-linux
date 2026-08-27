@@ -1010,8 +1010,8 @@ def run(
             cycle.resolve_intent(intent, "TARGET_ACCEPTED")
             resolved = True
             print(
-                "PASS one RAM-only cycle captured inherited watchdog "
-                f"registers in {elapsed:.3f}s"
+                "PASS one RAM-only cycle captured watchdog probe evidence "
+                f"in {elapsed:.3f}s"
             )
             return
         target_ssh = ssh_arguments(inputs, target_known_hosts)
