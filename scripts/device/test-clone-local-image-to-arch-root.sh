@@ -19,7 +19,12 @@ active_manifest=$repo/manifests/storage-layout-stage2-mainline-clone-v4-generati
 
 sh -n "$target"
 for contract in \
-	'e2image -ra -p "$source_image" "$arch_root"' \
+	'extent_map=/etc/rog5-local-image-direct-extents.tsv' \
+	'extent_count=37' \
+	'extent_bytes=1850654720' \
+	'iflag=skip_bytes,count_bytes,fullblock' \
+	'oflag=seek_bytes,direct conv=notrunc status=noxfer' \
+	'fail direct-clone' \
 	'24:arch_root_a)' \
 	'67108824' \
 	'verify_lock_state 2' \
@@ -48,6 +53,7 @@ for contract in \
 done
 ! grep -Fq 'sha256sum "$source_image"' "$target"
 ! grep -Fq 'persistent-root-verify' "$target"
+! grep -Fq 'e2image -ra' "$target"
 ! grep -Eq 'sgdisk|mkfs|fastboot|/dev/sd[a-z]24' "$target"
 python3 - "$target" <<'PY'
 from pathlib import Path
