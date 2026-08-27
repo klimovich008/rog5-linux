@@ -188,6 +188,12 @@ watchdog_observer_detail() {
 		sed -n '1p'
 }
 
+read_watchdog_mmio() {
+	address=$1
+	dd if=/dev/mem bs=4 skip=$((address / 4)) count=1 2>/dev/null |
+		od -An -tx4 -v | tr -d ' \n'
+}
+
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
@@ -269,7 +275,18 @@ current_stage=power-usb
 publish_stage power-usb ENTER none || fail stage-publish
 stage_reporting=1
 start_stage_reporter || fail stage-reporter
-if [ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then
+if [ -e /rog5-watchdog-mmio-observer ]; then
+	[ -c /dev/mem ] || fail watchdog-mmio-devmem
+	observer_en=$(read_watchdog_mmio 0x17c10008) || fail watchdog-mmio-en
+	observer_sts=$(read_watchdog_mmio 0x17c1000c) || fail watchdog-mmio-sts
+	observer_bark=$(read_watchdog_mmio 0x17c10010) || fail watchdog-mmio-bark
+	observer_bite=$(read_watchdog_mmio 0x17c10014) || fail watchdog-mmio-bite
+	observer_detail=wdt-r32765-e$observer_en-s$observer_sts-b$observer_bark-i$observer_bite
+	printf '%s\n' "$observer_detail" |
+		grep -Eq '^wdt-r32765-e[0-9a-f]{8}-s[0-9a-f]{8}-b[0-9a-f]{8}-i[0-9a-f]{8}$' ||
+		fail watchdog-mmio-detail
+	publish_stage power-usb ENTER "$observer_detail" || fail stage-publish
+elif [ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then
 	load_watchdog_observer || fail watchdog-observer
 	observer_detail=$(watchdog_observer_detail) || fail watchdog-observer-detail
 	printf '%s\n' "$observer_detail" |
@@ -312,7 +329,8 @@ done
 [ "$count" -ne 0 ] || classify_zero_ufs
 [ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
-if [ ! -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then
+if [ ! -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ] &&
+	[ ! -e /rog5-watchdog-mmio-observer ]; then
 	if ! arm_hardware_watchdog; then
 		hardware_watchdog_reason=$(sed -n '1p' /run/rog5-hardware-watchdog.failure 2>/dev/null || true)
 		case $hardware_watchdog_reason in

@@ -101,10 +101,12 @@ before mainline. No stage frame survived. The next read-only target loads the
 observer immediately after NCM carrier and repeatedly publishes compact
 `wdt-r<rate>-e<EN>-s<STS>-b<BARK>-i<BITE>` evidence before power/UFS/SSH.
 
-Generation 203 is the unbooted active early observer. Target twins and signed
-bundle twins are `0758d78f...` and `e984aa8b...`; the cached wrapper envelope
-is `4df798b0...`. The host accepts the first exact compact register stage as
-the cycle result without waiting for SSH. No watchdog or storage write exists.
+Generation 203 is consumed with no writes. Loading the external observer before
+power/UFS still produced no stage frame before inherited reset, so module
+relocation/probe is too slow for this deadline. Generation 204 is the unbooted
+module-free successor: exact BusyBox `dd`/`od` reads `/dev/mem` immediately
+after carrier and publishes the same compact stage. Its target, signed manifest
+and wrapper are `bb090ddd...`, `596df1af...` and `8ecd4f34...`.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

@@ -218,6 +218,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1 | \
 		storage-layout-stage2-watchdog-observer-v1-generation202-live-v1 | \
 		storage-layout-stage2-watchdog-observer-v2-generation203-live-v1 | \
+		storage-layout-stage2-watchdog-mmio-v1-generation204-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -4089,8 +4090,8 @@ case $profile in
 		;;
 	storage-layout-stage2-watchdog-observer-v2-generation203-live-v1)
 		expected_boot_image=build/storage-layout-stage2-watchdog-observer-v2-generation203-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 203 read-only early inherited-watchdog register snapshot published through the repeated stage channel immediately after NCM carrier and before power/UFS/SSH; no watchdog registration, MMIO write or storage path; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 203 read-only early inherited-watchdog observer; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 203 early module observer; NCM still timed out and target reset before any stage frame, proving external module relocation/probe is too slow for inherited watchdog deadline; no MMIO or storage writes, FALLBACK_RETURNED resolved; never retry or flash'
+		expected_boot_role='consumed Generation 203 proof that external observer module cannot publish before inherited reset; no writes; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -4113,6 +4114,39 @@ case $profile in
 		[[ $expected_image == 4df798b0a29de1dff34b7f2d32dfcef3e9b80f543d83411583bcc6a81e3cf2b4 ]] || fail 'early watchdog observer recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'early watchdog observer trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'early watchdog observer verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	storage-layout-stage2-watchdog-mmio-v1-generation204-live-v1)
+		expected_boot_image=build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 204 immediate read-only /dev/mem snapshot of inherited watchdog EN, STS, bark and bite, published through repeated stage immediately after NCM carrier; no module, IRQ, MMIO write, power/UFS or storage dependency; RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 204 immediate module-free inherited-watchdog observer; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-watchdog-mmio-v1
+		expected_bundle=storage-layout-stage2-watchdog-mmio-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=26b67945446dd3fa00f94c3eb5121f184d9cb4d1a0589eed0f16f43861eb2bd1
+		expected_avb_digest=6d42b23feeb07b0ea773a427e4f8ad5b23740573dc357e868a5d6bef5b9b543c
+		expected_generation_record=10c09a8b57147bb01fdb0900679311138e4ca8cd06d307ac7ca3d932c5f66947
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 596df1af9bc9a3cc3710be7802559983849f2ef381a38f105414d2df7e0dcaf8 ]] || fail 'watchdog MMIO manifest is not pinned'
+		[[ $expected_image == 8ecd4f345e1e675995859e3dc511a538316a0d2e42d0c5088cb309b9a502f43e ]] || fail 'watchdog MMIO recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'watchdog MMIO trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'watchdog MMIO verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -5646,6 +5680,7 @@ case $profile in
 	storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1 | \
 	storage-layout-stage2-watchdog-observer-v1-generation202-live-v1 | \
 	storage-layout-stage2-watchdog-observer-v2-generation203-live-v1 | \
+	storage-layout-stage2-watchdog-mmio-v1-generation204-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

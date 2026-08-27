@@ -22,9 +22,11 @@ direct_extent_map=${DIRECT_EXTENT_MAP:-}
 native_seal=${NATIVE_SEAL:-}
 watchdog_module=${WATCHDOG_MODULE:-}
 watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}
+watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}
 epoch=1681862400
 
 fail() { echo "FAIL $*" >&2; exit 1; }
+case "$watchdog_mmio_observer" in 0|1) ;; *) fail 'invalid watchdog MMIO observer mode' ;; esac
 for input in "$base" "$init" "$installer" "$authorized_key" "$reboot_helper"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || fail "unsafe input: $input"
 done
@@ -49,13 +51,16 @@ if [ -n "$watchdog_module" ]; then
 			"$expected_release" ] || fail 'watchdog module identity changed'
 fi
 if [ -n "$watchdog_observer_module" ]; then
-	[ -z "$watchdog_module" ] || fail 'watchdog and observer modules are mutually exclusive'
+	[ -z "$watchdog_module" ] && [ "$watchdog_mmio_observer" -eq 0 ] ||
+		fail 'watchdog and observer modes are mutually exclusive'
 	[ -f "$watchdog_observer_module" ] && [ ! -L "$watchdog_observer_module" ] &&
 		[ "$(sha256sum "$watchdog_observer_module" | cut -d ' ' -f 1)" = \
 			b06271c62e22292e043b082c3c5f2da46f8d98f36f3521c16ec389dcb40036d1 ] &&
 		[ "$(modinfo -F vermagic "$watchdog_observer_module" | awk '{print $1}')" = \
 			"$expected_release" ] || fail 'watchdog observer module identity changed'
 fi
+[ "$watchdog_mmio_observer" -eq 0 ] || [ -z "$watchdog_module$watchdog_observer_module" ] ||
+	fail 'watchdog and observer modes are mutually exclusive'
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ] || fail 'base hash changed'
 [ "$(sha256sum "$authorized_key" | cut -d ' ' -f 1)" = "$expected_key_sha256" ] || fail 'authorized key changed'
 [ "$(sha256sum "$reboot_helper" | cut -d ' ' -f 1)" = "$expected_reboot_sha256" ] || fail 'reboot helper changed'
@@ -123,6 +128,9 @@ fi
 if [ -n "$watchdog_observer_module" ]; then
 	install -D -m 0644 "$watchdog_observer_module" \
 		"$stage/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko"
+fi
+if [ "$watchdog_mmio_observer" -eq 1 ]; then
+	install -D -m 0444 /dev/null "$stage/rog5-watchdog-mmio-observer"
 fi
 if [ -n "$native_seal" ]; then
 	install -D -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"

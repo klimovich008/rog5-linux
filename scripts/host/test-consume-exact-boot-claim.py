@@ -519,6 +519,13 @@ PROFILES.update(
             b"e984aa8be8b6d3ce24071035edfbd63e73b8fc08a32a2b5c31b9e63a9562cdb1\n"
             b"state=BOOT_CLAIMED\n"
         ),
+        "storage-layout-stage2-watchdog-mmio-v1-generation204-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=storage-layout-stage2-watchdog-mmio-v1-generation204-live-v1\n"
+            b"candidate=storage-layout-stage2-watchdog-mmio-v1\n"
+            b"manifest_sha256=596df1af9bc9a3cc3710be7802559983849f2ef381a38f105414d2df7e0dcaf8\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "storage-preflight-v3-generation73-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
