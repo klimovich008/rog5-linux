@@ -7,7 +7,6 @@ userdata_record=/run/rog5-userdata-device
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 target_mount=/mnt/native-root
 native_seal=/etc/rog5/native-root-v1.seal
-verifier=/usr/local/sbin/persistent-root-verify
 source_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 source_blocks=4194304
 target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
@@ -105,6 +104,40 @@ verify_mount_count() {
 
 fs_value() { sed -n "s/^$1:[[:space:]]*//p" "$2" | sed -n '1p'; }
 
+verify_exact_regular() {
+	path=$1 owner=$2 group=$3 mode=$4 size=$5 hash=$6
+	[ -f "$path" ] && [ ! -L "$path" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$path")" = \
+		"$owner:$group:$mode:$size:1" ] || return 1
+	[ "$(sha256sum "$path" | awk '{print $1}')" = "$hash" ]
+}
+
+verify_boot_critical_root() {
+	root=$1
+	seal=$root/.rog5-persistent-seal
+	verify_exact_regular "$seal" 0 0 444 430 "$native_seal_sha256" || return 1
+	[ "$(wc -l <"$seal")" -eq 13 ] &&
+		grep -Fxq 'seal_format=rog5-persistent-root-v1' "$seal" &&
+		grep -Fxq 'generation=arch-a' "$seal" &&
+		grep -Fxq 'promotion_state=UNBOOTED' "$seal" || return 1
+	[ -L "$root/sbin/init" ] &&
+		[ "$(readlink "$root/sbin/init")" = ../lib/systemd/systemd ] || return 1
+	verify_exact_regular "$root/usr/lib/systemd/systemd" 0 0 755 198968 \
+		dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0 ||
+		return 1
+	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 527008 \
+		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 ||
+		return 1
+	verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 526688 \
+		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e ||
+		return 1
+	verify_exact_regular "$root/root/.ssh/authorized_keys" 0 0 600 81 \
+		04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61 ||
+		return 1
+	verify_exact_regular "$root/etc/ssh/sshd_config.d/10-rog5-server.conf" \
+		0 0 644 201 c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
+}
+
 [ "$#" -eq 0 ] || fail arguments
 [ "$(id -u)" -eq 0 ] || fail not-root
 [ "$(cat "$status")" = "$(printf 'state=READY\nuserdata=%s\nstorage=read-only\nssh=key-only' "$(cat "$userdata_record")")" ] || fail readiness
@@ -112,7 +145,6 @@ resolve_storage || fail storage-identity
 [ "$(cat "$userdata_record")" = "$userdata" ] || fail userdata-record
 verify_mount_count 0 || fail preinspect-mounts
 verify_read_only || fail preinspect-locks
-[ -x "$verifier" ] && [ ! -L "$verifier" ] || fail verifier
 [ -f "$native_seal" ] && [ ! -L "$native_seal" ] &&
 	[ "$(sha256sum "$native_seal" | awk '{print $1}')" = "$native_seal_sha256" ] || fail native-seal
 
@@ -145,8 +177,8 @@ if [ "$disposition" != partial-ext4 ]; then
 	mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$arch_root" "$target_mount" || fail target-mount
 	target_mounted=1
 	verify_mount_count 1 || fail target-mount-scope
-	"$verifier" "$target_mount" "$native_seal" "$native_seal_sha256" >/run/rog5-native-postmortem-tree.log 2>&1 || fail target-tree
-	tree=PASS
+	verify_boot_critical_root "$target_mount" || fail target-tree
+	tree=BOOT_CRITICAL_PASS
 	umount "$target_mount" || fail target-unmount
 	target_mounted=0
 fi

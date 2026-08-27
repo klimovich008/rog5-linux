@@ -24,7 +24,10 @@ for contract in \
 	'disposition=grown-target' \
 	'disposition=partial-ext4' \
 	'ro,noload,nodev,nosuid,noexec,noatime' \
-	'"$verifier" "$target_mount" "$native_seal"' \
+	'verify_boot_critical_root "$target_mount"' \
+	'tree=BOOT_CRITICAL_PASS' \
+	'dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0' \
+	'6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932' \
 	'ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS'; do
 	grep -Fq "$contract" "$target" || {
 		echo "FAIL missing native-root postmortem contract: $contract" >&2
@@ -77,4 +80,4 @@ PY
 grep -Fqx 'avb_generation=198' "$watchdog_manifest"
 grep -Fqx 'storage_policy=read-only-watchdog-discriminator' "$watchdog_manifest"
 
-echo 'PASS native-root postmortem is exact-geometry, read-only, bounded, and disposition-complete'
+echo 'PASS native-root postmortem is exact-geometry, read-only, boot-critical, and disposition-complete'
