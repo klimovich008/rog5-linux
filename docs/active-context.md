@@ -88,7 +88,10 @@ inherited deadline and no stage survived. Generation 204 is the active
 module-free read-only successor. It uses exact sealed BusyBox `dd`/`od` on
 `/dev/mem` immediately after NCM carrier, before power/UFS, and publishes the
 register tuple directly. Target/manifest/wrapper hashes are `bb090ddd...`,
-`596df1af...` and `8ecd4f34...`; no write path exists.
+`596df1af...` and `8ecd4f34...`; no write path existed. Generation 204 is now
+consumed after `watchdog-mmio-detail`: `dd | od | tr` masked the first command's
+failure. The corrected target uses explicit four-byte files and publishes every
+accepted register separately before the final tuple.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
