@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1",
+            "storage-layout-stage2-native-fsck-v1-generation225-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-native-postrepair-verify-v1",
+            "storage-layout-stage2-native-fsck-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation224",
+            "generation225",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -526,9 +526,9 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             'VERIFY_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"',
             source,
         )
-        self.assertIn("parse_verify_evidence(verify_log)", source)
-        self.assertIn("ALLOW_STAGE2_READONLY_VERIFY", source)
-        self.assertNotIn("ALLOW_STAGE2_NATIVE_SSH_REPAIR", source)
+        self.assertIn("parse_fsck_evidence(verify_log)", source)
+        self.assertIn("ALLOW_STAGE2_NATIVE_FSCK", source)
+        self.assertNotIn("ALLOW_STAGE2_READONLY_VERIFY", source)
         self.assertNotIn("ALLOW_STAGE2_P24_CLONE", source)
         self.assertIn("verify_log, 850", source)
         self.assertLess(850, MODULE.FALLBACK_TIMEOUT_SECONDS)
@@ -638,6 +638,34 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 path.write_text("\n".join(payload) + "\n")
                 with self.assertRaises(MODULE.PersistentCycleError):
                     MODULE.parse_repair_evidence(path)
+
+    def test_native_fsck_evidence_is_exact_and_hostile(self) -> None:
+        prefix = [
+            "ROG5_NATIVE_REPAIR_V1 stage=fsck status=BEGIN",
+            "ROG5_NATIVE_REPAIR_V1 stage=watchdog status=ARMED",
+            "ROG5_NATIVE_REPAIR_V1 stage=watchdog status=DISARMED",
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "fsck.log"
+            for status in (0, 1, 2):
+                terminal = (
+                    "ROG5_NATIVE_REPAIR_V1 stage=terminal status=PASS "
+                    f"operation=fsck status_code={status} "
+                    "storage=RELOCKED tree=PASS"
+                )
+                path.write_text("\n".join([*prefix, terminal]) + "\n")
+                self.assertEqual(MODULE.parse_fsck_evidence(path), status)
+            hostile = (
+                prefix,
+                [prefix[1], prefix[0], prefix[2], terminal],
+                [*prefix, terminal.replace("status_code=2", "status_code=4")],
+                [*prefix, terminal.replace("RELOCKED", "WRITABLE")],
+                [*prefix, terminal, terminal],
+            )
+            for payload in hostile:
+                path.write_text("\n".join(payload) + "\n")
+                with self.assertRaises(MODULE.PersistentCycleError):
+                    MODULE.parse_fsck_evidence(path)
 
 
 if __name__ == "__main__":

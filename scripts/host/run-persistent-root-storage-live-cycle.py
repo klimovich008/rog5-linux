@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1"
-BUNDLE = "storage-layout-stage2-native-postrepair-verify-v1"
+PROFILE_ID = "storage-layout-stage2-native-fsck-v1-generation225-live-v1"
+BUNDLE = "storage-layout-stage2-native-fsck-v1"
 MANIFEST_SHA256 = (
-    "7cbec8fedf21126234d164654ac08577be00e0143672fed711874fc6f19b4ba0"
+    "60db65fda138a675a002f05d49fb9f6bf9e5fabaf4d19c60b13b325415c7f2bd"
 )
 RECOVERY_SHA256 = (
-    "4dc088168db899b82981470b294ff04bc312913d4f277cd903298e6d027e2de0"
+    "3459568ed88f3f4ae94b58ae20017e1ed944652c9c8cf7e3dce04e022d90d340"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1\n"
-    b"candidate=storage-layout-stage2-native-postrepair-verify-v1\n"
+    b"storage-layout-stage2-native-fsck-v1-generation225-live-v1\n"
+    b"candidate=storage-layout-stage2-native-fsck-v1\n"
     b"manifest_sha256="
-    b"7cbec8fedf21126234d164654ac08577be00e0143672fed711874fc6f19b4ba0\n"
+    b"60db65fda138a675a002f05d49fb9f6bf9e5fabaf4d19c60b13b325415c7f2bd\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-native-postrepair-verify-v1-generation224-20260827-r1"
+    / "build/storage-layout-stage2-native-fsck-v1-generation225-20260828-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -132,10 +132,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-native-postrepair-verify-v1",
+    admission_profile="storage-layout-stage2-native-fsck-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-native-postrepair-verify-v1",
-    build_profile="storage-layout-stage2-native-postrepair-verify-v1",
+    runtime_profile="storage-layout-stage2-native-fsck-v1",
+    build_profile="storage-layout-stage2-native-fsck-v1",
     diagnostic=False,
 )
 
@@ -795,6 +795,29 @@ def parse_repair_evidence(path: Path) -> None:
         fail("native repair evidence is not the exact successful sequence")
 
 
+def parse_fsck_evidence(path: Path) -> int:
+    try:
+        lines = path.read_text(encoding="ascii").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise PersistentCycleError("native fsck evidence is unreadable") from error
+    lines = [line for line in lines if line.startswith("ROG5_NATIVE_REPAIR_V1 ")]
+    prefix = [
+        "ROG5_NATIVE_REPAIR_V1 stage=fsck status=BEGIN",
+        "ROG5_NATIVE_REPAIR_V1 stage=watchdog status=ARMED",
+        "ROG5_NATIVE_REPAIR_V1 stage=watchdog status=DISARMED",
+    ]
+    if len(lines) != 4 or lines[:3] != prefix:
+        fail("native fsck evidence lacks its exact prefix")
+    match = re.fullmatch(
+        r"ROG5_NATIVE_REPAIR_V1 stage=terminal status=PASS operation=fsck "
+        r"status_code=([012]) storage=RELOCKED tree=PASS",
+        lines[3],
+    )
+    if match is None:
+        fail("native fsck evidence lacks its exact terminal record")
+    return int(match.group(1))
+
+
 def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int:
     descriptor = CYCLE.open_exclusive(path)
     try:
@@ -1029,9 +1052,7 @@ def run(
                 "native verifier returned unexpected status "
                 f"{verify_status}"
             )
-        tree = parse_verify_evidence(verify_log)
-        if tree.disposition != "BOOT_CRITICAL_PASS":
-            fail("post-repair tree is not exact")
+        fsck_status = parse_fsck_evidence(verify_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
@@ -1046,9 +1067,10 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("disposition", "grown-target"),
-                ("tree", tree.disposition),
-                ("mismatches", "none"),
+                ("disposition", "fsck-repaired"),
+                ("fsck_status", str(fsck_status)),
+                ("storage", "RELOCKED"),
+                ("tree", "PASS"),
                 ("seconds_to_verification", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
@@ -1061,7 +1083,7 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle verified the repaired native Arch root in "
+            f"PASS one RAM-only cycle repaired ext4 (status {fsck_status}) in "
             f"{elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
@@ -1129,11 +1151,11 @@ def main(arguments: list[str]) -> int:
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
     if arguments == ["run"] and os.environ.get(
-        "ALLOW_STAGE2_READONLY_VERIFY"
+        "ALLOW_STAGE2_NATIVE_FSCK"
     ) != "1":
         fail(
-            "set ALLOW_STAGE2_READONLY_VERIFY=1 for the exact read-only "
-            "post-repair verification"
+            "set ALLOW_STAGE2_NATIVE_FSCK=1 for the exact p24-only "
+            "filesystem repair"
         )
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()

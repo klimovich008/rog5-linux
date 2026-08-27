@@ -172,9 +172,12 @@ and is consumed: only `sshd` and `ssh-keygen` content differed; metadata and the
 other five boot-critical objects matched. Both files cross sparse zero-FILL
 chunks. Generation 223 is consumed: old-hash preconditions, both writes and
 in-mount new hashes passed, then the post-unmount clean-state assertion failed.
-Exact fallback passed; final p24 state remains unknown. Generation 224 is the
-unbooted read-only ext4/tree verifier. Target/manifest/wrapper hashes are
-`5f57f785...`, `7cbec8fe...`, and `4dc08816...`.
+Exact fallback passed. Generation 224 is consumed and proved p24 is
+`clean with errors`; tree verification was skipped and no write occurred.
+Generation 225 is the unbooted p24-only `e2fsck -p` repair with repaired-hash
+precheck, 600-second softdog, post-fsck clean/tree proof and full relock.
+Target/manifest/wrapper hashes are `868d9644...`, `60db65fd...`, and
+`3459568e...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

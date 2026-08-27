@@ -8,6 +8,7 @@ reboot_helper=/usr/libexec/rog5-reboot-bootloader
 target_mount=/mnt/native-root
 repair_root=/etc/rog5-native-repair
 softdog_module=/rog5-softdog-modules/softdog.ko
+fsck_marker=/etc/rog5-native-fsck-only
 target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
 target_blocks=8388603
 old_sshd=cfcf0874754fe466ddc6fbb5e8ff185ae7083bbd2684b84f1c0bbfcb0b9676ac
@@ -163,8 +164,12 @@ verify_lock_state() {
 
 fs_value() { sed -n "s/^$1:[[:space:]]*//p" "$2" | sed -n '1p'; }
 verify_ext4() {
+	verify_ext4_state clean
+}
+verify_ext4_state() {
+	expected_state=$1
 	dumpe2fs -h "$arch_root" >/run/rog5-native-repair-fs.log 2>&1 || return 1
-	[ "$(fs_value 'Filesystem state' /run/rog5-native-repair-fs.log)" = clean ] &&
+	[ "$(fs_value 'Filesystem state' /run/rog5-native-repair-fs.log)" = "$expected_state" ] &&
 		[ "$(fs_value 'Block size' /run/rog5-native-repair-fs.log)" = 4096 ] &&
 		[ "$(fs_value 'Block count' /run/rog5-native-repair-fs.log)" = "$target_blocks" ] &&
 		[ "$(fs_value 'Filesystem UUID' /run/rog5-native-repair-fs.log | tr A-F a-f)" = "$target_uuid" ] &&
@@ -192,6 +197,56 @@ verify_common_tree() {
 		c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
 }
 
+run_fsck_repair() {
+	verify_ext4_state 'clean with errors' || fail pre-fsck-state
+	mkdir -p "$target_mount"
+	mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$arch_root" "$target_mount" || fail pre-fsck-mount
+	target_mounted=1
+	verify_common_tree "$target_mount" || fail pre-fsck-common-tree
+	exact_file "$target_mount/usr/bin/sshd" 0:0:755:527008:1 "$new_sshd" || fail pre-fsck-sshd
+	exact_file "$target_mount/usr/bin/ssh-keygen" 0:0:755:526688:1 "$new_keygen" || fail pre-fsck-keygen
+	umount "$target_mount" || fail pre-fsck-unmount
+	target_mounted=0
+
+	emit fsck BEGIN
+	[ "$(find /sys/class/watchdog -mindepth 1 -maxdepth 1 -name 'watchdog*' | wc -l)" -eq 0 ] || fail softdog-preexisting
+	insmod "$softdog_module" soft_margin=600 soft_reboot_cmd=bootloader nowayout=0 soft_noboot=0 soft_panic=0 || fail softdog-insmod
+	attempt=0
+	while [ "$attempt" -lt 50 ]; do
+		[ -c /dev/watchdog0 ] && break
+		attempt=$((attempt + 1)); sleep 0.1
+	done
+	[ -c /dev/watchdog0 ] || fail softdog-device
+	exec 9>/dev/watchdog0 || fail softdog-open
+	printf '\0' >&9 || fail softdog-arm
+	emit watchdog ARMED
+	blockdev --setrw "$disk" || fail disk-write-window
+	blockdev --setrw "$arch_root" || fail target-write-window
+	verify_lock_state 2 || fail write-window
+	set +e
+	e2fsck -p "$arch_root" >/run/rog5-native-repair-fsck.log 2>&1
+	fsck_status=$?
+	set -e
+	case $fsck_status in 0|1|2) ;; *) fail fsck-$fsck_status ;; esac
+	blockdev --setro "$arch_root" || fail target-relock
+	blockdev --setro "$disk" || fail disk-relock
+	verify_lock_state 0 || fail relock-state
+	verify_ext4 || fail post-fsck-state
+	mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$arch_root" "$target_mount" || fail post-fsck-mount
+	target_mounted=1
+	verify_common_tree "$target_mount" || fail post-fsck-common-tree
+	exact_file "$target_mount/usr/bin/sshd" 0:0:755:527008:1 "$new_sshd" || fail post-fsck-sshd
+	exact_file "$target_mount/usr/bin/ssh-keygen" 0:0:755:526688:1 "$new_keygen" || fail post-fsck-keygen
+	umount "$target_mount" || fail post-fsck-unmount
+	target_mounted=0
+	verify_mount_count 0 && verify_lock_state 0 || fail final-cleanup
+	printf V >&9 || fail softdog-disarm
+	exec 9>&-
+	emit watchdog DISARMED
+	printf 'ROG5_NATIVE_REPAIR_V1 stage=terminal status=PASS operation=fsck status_code=%s storage=RELOCKED tree=PASS\n' "$fsck_status"
+	return_bootloader
+}
+
 [ "$#" -eq 0 ] || fail arguments
 [ "$(id -u)" -eq 0 ] || fail not-root
 [ "$(cat "$status")" = "$(printf 'state=READY\nuserdata=%s\nstorage=read-only\nssh=key-only' "$(cat "$userdata_record")")" ] || fail readiness
@@ -201,6 +256,9 @@ verify_mount_count 0 || fail prewrite-mounts
 verify_lock_state 0 || fail prewrite-locks
 verify_power_thermal || fail power-thermal
 [ -f "$softdog_module" ] && [ ! -L "$softdog_module" ] || fail softdog-module
+if [ -f "$fsck_marker" ] && [ ! -L "$fsck_marker" ]; then
+	run_fsck_repair
+fi
 exact_file "$repair_root/sshd" 0:0:444:527008:1 "$new_sshd" || fail repair-sshd
 exact_file "$repair_root/ssh-keygen" 0:0:444:526688:1 "$new_keygen" || fail repair-keygen
 

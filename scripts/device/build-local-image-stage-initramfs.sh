@@ -21,6 +21,7 @@ power_modules_root=${POWER_MODULES_ROOT:-}
 direct_extent_map=${DIRECT_EXTENT_MAP:-}
 native_seal=${NATIVE_SEAL:-}
 native_repair_root=${NATIVE_REPAIR_ROOT:-}
+native_fsck_only=${NATIVE_FSCK_ONLY:-0}
 watchdog_module=${WATCHDOG_MODULE:-}
 watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}
 softdog_module=${SOFTDOG_MODULE:-}
@@ -32,6 +33,7 @@ epoch=1681862400
 fail() { echo "FAIL $*" >&2; exit 1; }
 case "$watchdog_mmio_observer" in 0|1) ;; *) fail 'invalid watchdog MMIO observer mode' ;; esac
 case "$softdog_probe" in 0|1) ;; *) fail 'invalid softdog probe mode' ;; esac
+case "$native_fsck_only" in 0|1) ;; *) fail 'invalid native fsck mode' ;; esac
 for input in "$base" "$init" "$installer" "$authorized_key" "$reboot_helper"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || fail "unsafe input: $input"
 done
@@ -62,6 +64,8 @@ if [ -n "$native_repair_root" ]; then
 		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e ] ||
 		fail 'native repair ssh-keygen changed'
 fi
+[ "$native_fsck_only" -eq 0 ] || [ -z "$native_repair_root" ] ||
+	fail 'native fsck and binary repair modes are mutually exclusive'
 if [ -n "$watchdog_module" ]; then
 	[ -f "$watchdog_module" ] && [ ! -L "$watchdog_module" ] &&
 		[ "$(sha256sum "$watchdog_module" | cut -d ' ' -f 1)" = \
@@ -190,6 +194,9 @@ if [ -n "$native_repair_root" ]; then
 		"$stage/etc/rog5-native-repair/sshd"
 	install -D -m 0444 "$native_repair_root/ssh-keygen" \
 		"$stage/etc/rog5-native-repair/ssh-keygen"
+fi
+if [ "$native_fsck_only" -eq 1 ]; then
+	install -D -m 0444 /dev/null "$stage/etc/rog5-native-fsck-only"
 fi
 if [ -n "$direct_extent_map" ]; then
 	install -D -m 0444 "$direct_extent_map" \
