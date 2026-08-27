@@ -94,11 +94,12 @@ registration or IRQ request. Exact running-ABI module twins match at
 `b06271c6...`. This must observe firmware state before any downstream port is
 allowed to arm the hardware.
 
-Generation 202 is the unbooted active observer candidate. Its target twins,
-signed bundle twins, DTB and cached wrapper envelope are `810b9e83...`,
-`57359d0f...`, `b8b80f1a...` and `c4808cae...`. It is authority-free and has
-no watchdog registration, IRQ, MMIO write, clone invocation or phone-storage
-write path. Connected admission waits for physical fastboot restoration.
+Generation 202 is consumed with no storage writes. Its MMIO-read-only observer
+made no watchdog write, yet NCM disconnected at about 12 seconds and stock
+slot-A recovery returned, proving an ASUS watchdog is inherited already armed
+before mainline. No stage frame survived. The next read-only target loads the
+observer immediately after NCM carrier and repeatedly publishes compact
+`wdt-r<rate>-e<EN>-s<STS>-b<BARK>-i<BITE>` evidence before power/UFS/SSH.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
