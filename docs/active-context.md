@@ -99,6 +99,8 @@ offline twin and fixture tests. Generation 206 is consumed after exact
 `watchdog-mmio-bus`: mmap succeeded, but the first APSS register read raised
 SIGBUS. Exact fastboot and `FALLBACK_RETURNED` passed. Stop direct MMIO work;
 evaluate standard kernel `softdog` offline for the Stage-2 clone rollback.
+Exact-ABI `softdog.ko` twins now pass offline at `ab0175a4...`; no candidate
+or phone execution has been created from them.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
