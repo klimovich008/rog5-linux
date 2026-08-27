@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-watchdog-mmap-v1-generation206-live-v1"
-BUNDLE = "storage-layout-stage2-watchdog-mmap-v1"
+PROFILE_ID = "storage-layout-stage2-softdog-probe-v1-generation207-live-v1"
+BUNDLE = "storage-layout-stage2-softdog-probe-v1"
 MANIFEST_SHA256 = (
-    "840e40b59cd266f9545773c971f38e85ded0165349b3b61997dcb1f6f5ee7d97"
+    "ec5d0890e83589c9b564908a511d266c873e9d7f5a76d7c16b4024e0c5dd8344"
 )
 RECOVERY_SHA256 = (
-    "87807c2cdad742674dec4dfbc532f651e13da597cb2d39a583478cef64c2bc9f"
+    "e0d4cf6f1c0dbbc09d8a41922b64161d438fdd31b4348ba94872e29f770fb906"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-watchdog-mmap-v1-generation206-live-v1\n"
-    b"candidate=storage-layout-stage2-watchdog-mmap-v1\n"
+    b"storage-layout-stage2-softdog-probe-v1-generation207-live-v1\n"
+    b"candidate=storage-layout-stage2-softdog-probe-v1\n"
     b"manifest_sha256="
-    b"840e40b59cd266f9545773c971f38e85ded0165349b3b61997dcb1f6f5ee7d97\n"
+    b"ec5d0890e83589c9b564908a511d266c873e9d7f5a76d7c16b4024e0c5dd8344\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-watchdog-mmap-v1-generation206-20260827-r1"
+    / "build/storage-layout-stage2-softdog-probe-v1-generation207-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-watchdog-mmap-v1",
+    admission_profile="storage-layout-stage2-softdog-probe-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-watchdog-mmap-v1",
-    build_profile="storage-layout-stage2-watchdog-mmap-v1",
+    runtime_profile="storage-layout-stage2-softdog-probe-v1",
+    build_profile="storage-layout-stage2-softdog-probe-v1",
     diagnostic=False,
 )
 
@@ -227,6 +227,7 @@ WATCHDOG_OBSERVER_DETAIL = re.compile(
     r"wdt-r[0-9]{1,12}-e[0-9a-f]{8}-s[0-9a-f]{8}-"
     r"b[0-9a-f]{8}-i[0-9a-f]{8}\Z"
 )
+SOFTDOG_PROBE_DETAIL = "softdog-armed-20"
 
 
 def parse_stage_record(payload: bytes) -> StageRecord:
@@ -654,7 +655,10 @@ def wait_for_target_host_key(
             )
             os.fsync(stage_log)
             previous = current
-            if WATCHDOG_OBSERVER_DETAIL.fullmatch(current.detail):
+            if (
+                WATCHDOG_OBSERVER_DETAIL.fullmatch(current.detail)
+                or current.detail == SOFTDOG_PROBE_DETAIL
+            ):
                 CYCLE.terminate(process)
                 process = None
                 return current
@@ -981,7 +985,10 @@ def run(
         interface = activate_target_network(cycle, anchor)
         target_network_active = True
         accepted_stage = wait_for_target_host_key(cycle, anchor, target_known_hosts)
-        if WATCHDOG_OBSERVER_DETAIL.fullmatch(accepted_stage.detail):
+        if (
+            WATCHDOG_OBSERVER_DETAIL.fullmatch(accepted_stage.detail)
+            or accepted_stage.detail == SOFTDOG_PROBE_DETAIL
+        ):
             target_accepted = True
             elapsed = time.monotonic() - boot_started
             CYCLE.write_record(

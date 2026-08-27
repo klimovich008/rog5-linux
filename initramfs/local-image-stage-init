@@ -269,7 +269,20 @@ current_stage=power-usb
 publish_stage power-usb ENTER none || fail stage-publish
 stage_reporting=1
 start_stage_reporter || fail stage-reporter
-if [ -e /rog5-watchdog-mmio-observer ]; then
+if [ -e /rog5-softdog-probe/softdog.ko ]; then
+	[ "$(find /sys/class/watchdog -mindepth 1 -maxdepth 1 -name 'watchdog*' | wc -l)" -eq 0 ] ||
+		fail softdog-preexisting
+	insmod /rog5-softdog-probe/softdog.ko soft_margin=20 \
+		soft_reboot_cmd=bootloader nowayout=0 soft_noboot=0 soft_panic=0 ||
+		fail softdog-insmod
+	grep -q '^softdog ' /proc/modules || fail softdog-module
+	[ -c /dev/watchdog0 ] || fail softdog-device
+	exec 9>/dev/watchdog0 || fail softdog-open
+	printf '\0' >&9 || fail softdog-arm
+	publish_stage power-usb ENTER softdog-armed-20 || fail stage-publish
+	sleep 60
+	fail softdog-no-reboot
+elif [ -e /rog5-watchdog-mmio-observer ]; then
 	[ -c /dev/mem ] || fail watchdog-mmio-devmem
 	if observer_detail=$(/usr/libexec/rog5-watchdog-mmio-snapshot \
 		2>/run/rog5-watchdog-mmio-snapshot.error); then

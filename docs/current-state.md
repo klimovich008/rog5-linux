@@ -123,6 +123,11 @@ The exact g359 Clang-18/BTF outputs now produce byte-identical external
 `7.1.4-g359318de534f` and `struct module` size `0x500`. This is an offline
 module proof only; no softdog candidate or live authority exists yet.
 
+Generation 207 is the unbooted authority-free expiry probe. It arms exact-ABI
+softdog for 20 seconds with `soft_reboot_cmd=bootloader`, publishes one stage,
+and performs no UFS or storage access. Target/manifest/wrapper hashes are
+`8326d6d5...`, `ec5d0890...` and `e0d4cf6f...`.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This

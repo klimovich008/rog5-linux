@@ -211,10 +211,12 @@ done
 grep -Fq 'watchdog_module=${WATCHDOG_MODULE:-}' "$builder"
 grep -Fq 'watchdog module identity changed' "$builder"
 grep -Fq 'watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}' "$builder"
+grep -Fq 'softdog_module=${SOFTDOG_MODULE:-}' "$builder"
 grep -Fq 'watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}' "$builder"
 grep -Fq 'watchdog_mmio_helper=${WATCHDOG_MMIO_HELPER:-}' "$builder"
 grep -Fq 'watchdog and observer modes are mutually exclusive' "$builder"
 grep -Fq 'b06271c62e22292e043b082c3c5f2da46f8d98f36f3521c16ec389dcb40036d1' "$builder"
+grep -Fq 'ab0175a40b7dd6186d07b4166d5c2ea3ef3f94f9f0ddf9e08d19e431be294dc4' "$builder"
 for contract in \
 	'load_watchdog_observer() {' \
 	'observer_detail=$(/usr/libexec/rog5-watchdog-mmio-snapshot' \
@@ -228,6 +230,16 @@ for contract in \
 	'wdt-r[0-9]{1,12}-e[0-9a-f]{8}-s[0-9a-f]{8}-b[0-9a-f]{8}-i[0-9a-f]{8}' \
 	'[ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then' \
 	'load_watchdog_observer || fail watchdog-observer'; do
+	grep -Fq "$contract" "$init" || exit 1
+done
+for contract in \
+	'/rog5-softdog-probe/softdog.ko' \
+	'soft_margin=20' \
+	'soft_reboot_cmd=bootloader' \
+	'exec 9>/dev/watchdog0' \
+	"printf '\\0' >&9" \
+	'publish_stage power-usb ENTER softdog-armed-20' \
+	'fail softdog-no-reboot'; do
 	grep -Fq "$contract" "$init" || exit 1
 done
 ! grep -Fq 'dd if=/dev/mem' "$init"
@@ -249,12 +261,13 @@ import sys
 
 source = Path(sys.argv[1]).read_text()
 reporter = source.index("start_stage_reporter || fail stage-reporter")
+softdog = source.index("insmod /rog5-softdog-probe/softdog.ko", reporter)
 mmio = source.index("observer_detail=$(/usr/libexec/rog5-watchdog-mmio-snapshot", reporter)
 observer = source.index("load_watchdog_observer || fail watchdog-observer", reporter)
 detail = source.index('publish_stage power-usb ENTER "$observer_detail"', observer)
 power = source.index("/sbin/rog5-load-persistent-power-usb", detail)
 ufs = source.index("for module in phy-qcom-qmp-ufs.ko", power)
-assert reporter < mmio < observer < detail < power < ufs
+assert reporter < softdog < mmio < observer < detail < power < ufs
 PY
 ! grep -Fq 'verify_no_phone_storage' "$init"
 ! grep -Fq 'mount_network_root' "$init"
