@@ -183,6 +183,11 @@ load_watchdog_observer() {
 	chmod 0444 "$record" || return 1
 }
 
+watchdog_observer_detail() {
+	dmesg | sed -n 's/^.*ROG5_WDT_OBSERVER_V1 rate=\([0-9]*\) en=\([0-9a-f]*\) sts=\([0-9a-f]*\) bark=\([0-9a-f]*\) bite=\([0-9a-f]*\)$/wdt-r\1-e\2-s\3-b\4-i\5/p' |
+		sed -n '1p'
+}
+
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
@@ -264,6 +269,14 @@ current_stage=power-usb
 publish_stage power-usb ENTER none || fail stage-publish
 stage_reporting=1
 start_stage_reporter || fail stage-reporter
+if [ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then
+	load_watchdog_observer || fail watchdog-observer
+	observer_detail=$(watchdog_observer_detail) || fail watchdog-observer-detail
+	printf '%s\n' "$observer_detail" |
+		grep -Eq '^wdt-r[0-9]{1,12}-e[0-9a-f]{8}-s[0-9a-f]{8}-b[0-9a-f]{8}-i[0-9a-f]{8}$' ||
+		fail watchdog-observer-detail
+	publish_stage power-usb ENTER "$observer_detail" || fail stage-publish
+fi
 if ! /sbin/rog5-load-persistent-power-usb \
 	>/run/rog5-power-usb-loader.result; then
 	power_result=$(sed -n '1p' /run/rog5-power-usb-loader.result 2>/dev/null || true)
@@ -299,9 +312,7 @@ done
 [ "$count" -ne 0 ] || classify_zero_ufs
 [ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
-if [ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then
-	load_watchdog_observer || fail watchdog-observer
-else
+if [ ! -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then
 	if ! arm_hardware_watchdog; then
 		hardware_watchdog_reason=$(sed -n '1p' /run/rog5-hardware-watchdog.failure 2>/dev/null || true)
 		case $hardware_watchdog_reason in

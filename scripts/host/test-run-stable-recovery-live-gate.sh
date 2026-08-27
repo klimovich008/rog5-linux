@@ -441,8 +441,8 @@ awk -F '\t' \
 		$3 == "consumed Generation 201 watchdog-reset cycle; exact-ABI qcom_wdt arming produced no reporter frame, NCM TX timeout at 11 seconds, target USB loss at 13 seconds and stock slot-A recovery return; no storage write path, FALLBACK_RETURNED resolved; never retry or flash" &&
 		NF == 3 { stage2_watchdog_runtime_abi++ ; next }
 	$1 == "build/storage-layout-stage2-watchdog-observer-v1-generation202-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 202 read-only observation of inherited SM8350 watchdog clock, EN, STS, bark and bite registers before any watchdog driver registration or MMIO write; no IRQ, no storage write path, exact fallback; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed Generation 202 inherited-watchdog timing proof; MMIO-read-only observer made no watchdog write, yet target NCM disconnected at 12 seconds and stock slot-A recovery returned, proving the watchdog was armed before mainline; no reporter frame or storage writes, FALLBACK_RETURNED resolved; never retry or flash" &&
 		NF == 3 { stage2_watchdog_observer++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -659,12 +659,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	$1 == "build/storage-layout-stage2-watchdog-observer-v1-generation202-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 202 read-only observation of inherited SM8350 watchdog clock, EN, STS, bark and bite registers before any watchdog driver registration or MMIO write; no IRQ, no storage write path, exact fallback; RAM-only, never flash or retry after COMMIT" && NF == 3 {
-		stage2_watchdog_observer++
-	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 && stage2_watchdog_observer == 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -685,7 +680,7 @@ grep -Fq "expected_boot_basis='consumed successful Generation 200 read-only watc
 	{ echo 'FAIL Generation 200 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed Generation 201 watchdog-reset cycle; exact-ABI qcom_wdt arming produced no reporter frame, NCM TX timeout at 11 seconds, target USB loss at 13 seconds and stock slot-A recovery return; no storage write path, FALLBACK_RETURNED resolved; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 201 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 202 read-only observation of inherited SM8350 watchdog clock, EN, STS, bark and bite registers before any watchdog driver registration or MMIO write; no IRQ, no storage write path, exact fallback; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed Generation 202 inherited-watchdog timing proof; MMIO-read-only observer made no watchdog write, yet target NCM disconnected at 12 seconds and stock slot-A recovery returned, proving the watchdog was armed before mainline; no reporter frame or storage writes, FALLBACK_RETURNED resolved; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 202 gate basis differs from policy' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \

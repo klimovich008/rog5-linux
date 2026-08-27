@@ -215,10 +215,24 @@ for contract in \
 	'/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko' \
 	"grep -q '^rog5_qcom_wdt_observer ' /proc/modules" \
 	'ROG5_WDT_OBSERVER_V1 rate=' \
+	'watchdog_observer_detail() {' \
+	'wdt-r[0-9]{1,12}-e[0-9a-f]{8}-s[0-9a-f]{8}-b[0-9a-f]{8}-i[0-9a-f]{8}' \
 	'[ -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ]; then' \
 	'load_watchdog_observer || fail watchdog-observer'; do
 	grep -Fq "$contract" "$init" || exit 1
 done
+python3 - "$init" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+reporter = source.index("start_stage_reporter || fail stage-reporter")
+observer = source.index("load_watchdog_observer || fail watchdog-observer", reporter)
+detail = source.index('publish_stage power-usb ENTER "$observer_detail"', observer)
+power = source.index("/sbin/rog5-load-persistent-power-usb", detail)
+ufs = source.index("for module in phy-qcom-qmp-ufs.ko", power)
+assert reporter < observer < detail < power < ufs
+PY
 ! grep -Fq 'verify_no_phone_storage' "$init"
 ! grep -Fq 'mount_network_root' "$init"
 
