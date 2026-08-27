@@ -569,6 +569,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "storage-layout-stage2-softdog-clone-v1-generation208-live-v1",
         "storage-layout-stage2-softdog-clone-v2-generation209-live-v1",
         "storage-layout-stage2-native-postmortem-v2-generation210-live-v1",
+        "storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

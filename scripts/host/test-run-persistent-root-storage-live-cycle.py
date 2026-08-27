@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-native-postmortem-v2-generation210-live-v1",
+            "storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-native-postmortem-v2",
+            "storage-layout-stage2-softdog-direct-clone-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation210",
+            "generation211",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -508,7 +508,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_executes_one_readonly_postmortem_then_fastboot(self) -> None:
+    def test_runner_executes_one_bounded_clone_then_fastboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -522,26 +522,30 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
         self.assertIn("RUNTIME_COMMAND", source)
-        self.assertIn('POSTMORTEM_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
-        self.assertIn("parse_postmortem_evidence(postmortem_log)", source)
-        self.assertIn("ALLOW_STAGE2_P24_POSTMORTEM", source)
-        self.assertIn("postmortem_log, 850", source)
+        self.assertIn('CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertIn("parse_clone_evidence(clone_log)", source)
+        self.assertIn("ALLOW_STAGE2_P24_CLONE", source)
+        self.assertIn("clone_log, 850", source)
         self.assertLess(850, MODULE.FALLBACK_TIMEOUT_SECONDS)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
-    def test_postmortem_evidence_is_exact(self) -> None:
+    def test_clone_evidence_is_exact(self) -> None:
         expected = [
-            "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ",
-            "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
-            "disposition=partial-ext4 uuid=598a876b-a8db-4859-a01a-1b864b0a87f4 "
-            "blocks=4194304 state=clean label=ROG5_ARCH_A tree=SKIP "
-            f"prefix_sha256={'1' * 64}",
+            "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
+            "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
+            "ROG5_NATIVE_CLONE_V1 stage=watchdog status=ARMED",
+            "ROG5_NATIVE_CLONE_V1 stage=filesystem status=GROW",
+            "ROG5_NATIVE_CLONE_V1 stage=seal status=WRITE",
+            "ROG5_NATIVE_CLONE_V1 stage=readonly status=VERIFY",
+            "ROG5_NATIVE_CLONE_V1 stage=watchdog status=DISARMED",
+            "ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS "
+            "target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b target_blocks=8388603",
         ]
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "clone.log"
             path.write_text("\n".join([*expected, "Connection closed"]) + "\n")
-            MODULE.parse_postmortem_evidence(path)
+            MODULE.parse_clone_evidence(path)
             hostile = (
                 expected[:1],
                 [*expected, expected[-1]],
@@ -551,7 +555,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             for payload in hostile:
                 path.write_text("\n".join(payload) + "\n")
                 with self.assertRaises(MODULE.PersistentCycleError):
-                    MODULE.parse_postmortem_evidence(path)
+                    MODULE.parse_clone_evidence(path)
 
 
 if __name__ == "__main__":
