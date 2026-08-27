@@ -87,6 +87,13 @@ slot-A recovery return. Durable intent is `FALLBACK_RETURNED`. The upstream
 prove ASUS downstream clock/bark/bite/secure-reset semantics. Further watchdog
 work must use the retained `qcom,msm-watchdog` design and remain read-only.
 
+The next offline artifact is a diagnostic-only `rog5,sm8350-wdt-observer`.
+It maps the stock `0x17c10000/0x1000` resource and reads only EN, STS, bark,
+bite and the declared clock rate; it performs no MMIO write, watchdog
+registration or IRQ request. Exact running-ABI module twins match at
+`b06271c6...`. This must observe firmware state before any downstream port is
+allowed to arm the hardware.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This

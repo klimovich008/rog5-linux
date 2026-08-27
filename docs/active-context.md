@@ -72,6 +72,11 @@ slot-A recovery. No reporter or storage-write path ran; intent resolved
 watchdog track is an offline port/review of ASUS/QTI `qcom,msm-watchdog`; the
 phone must first be returned physically from unauthorized recovery to fastboot.
 
+A read-only watchdog register observer is built offline at module hash
+`b06271c6...`. It uses a private diagnostic compatible and only reads EN, STS,
+BARK, BITE and clock rate from the stock MMIO range. No WDT registration,
+interrupt or register write exists. Physical admission waits for fastboot.
+
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
 fastboot between development cycles. Generation 160 returned directly to
