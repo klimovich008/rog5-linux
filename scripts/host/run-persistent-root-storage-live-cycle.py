@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-softdog-clone-v2-generation209-live-v1"
-BUNDLE = "storage-layout-stage2-softdog-clone-v2"
+PROFILE_ID = "storage-layout-stage2-native-postmortem-v2-generation210-live-v1"
+BUNDLE = "storage-layout-stage2-native-postmortem-v2"
 MANIFEST_SHA256 = (
-    "dd9a427854d7ad9a1b762774b3a7ac859c2710bc0b077a0959a819ade274afd1"
+    "b4dd750fc3493d13512cd602580913c9cd2944c04de6d7e45c4c6eeaa471bfef"
 )
 RECOVERY_SHA256 = (
-    "66251f0ddf8c0cc5335d7bf4fc465da1f41103378431d1afa1bf5484200a3bd5"
+    "e6b23d66d929a1f62ac9fe83bc47ad682b5e72ac63093976119ed92d93da681f"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-softdog-clone-v2-generation209-live-v1\n"
-    b"candidate=storage-layout-stage2-softdog-clone-v2\n"
+    b"storage-layout-stage2-native-postmortem-v2-generation210-live-v1\n"
+    b"candidate=storage-layout-stage2-native-postmortem-v2\n"
     b"manifest_sha256="
-    b"dd9a427854d7ad9a1b762774b3a7ac859c2710bc0b077a0959a819ade274afd1\n"
+    b"b4dd750fc3493d13512cd602580913c9cd2944c04de6d7e45c4c6eeaa471bfef\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-softdog-clone-v2-generation209-20260827-r1"
+    / "build/storage-layout-stage2-native-postmortem-v2-generation210-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-softdog-clone-v2",
+    admission_profile="storage-layout-stage2-native-postmortem-v2",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-softdog-clone-v2",
-    build_profile="storage-layout-stage2-softdog-clone-v2",
+    runtime_profile="storage-layout-stage2-native-postmortem-v2",
+    build_profile="storage-layout-stage2-native-postmortem-v2",
     diagnostic=False,
 )
 
@@ -153,7 +153,7 @@ printf 'physical_blocks=%s\n' "$count"
 printf '%s\n' 'result=PASS'
 """.strip()
 
-CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
+POSTMORTEM_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
 
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
@@ -692,26 +692,32 @@ def parse_runtime_evidence(path: Path) -> str:
     return boot_ids[0]
 
 
-def parse_clone_evidence(path: Path) -> None:
+def parse_postmortem_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="ascii").splitlines()
     except (OSError, UnicodeDecodeError) as error:
-        raise PersistentCycleError("clone evidence is unreadable") from error
-    lines = [line for line in lines if line.startswith("ROG5_NATIVE_CLONE_V1 ")]
-    expected = [
-        "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
-        "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
-        "ROG5_NATIVE_CLONE_V1 stage=watchdog status=ARMED",
-        "ROG5_NATIVE_CLONE_V1 stage=filesystem status=GROW",
-        "ROG5_NATIVE_CLONE_V1 stage=seal status=WRITE",
-        "ROG5_NATIVE_CLONE_V1 stage=readonly status=VERIFY",
-        "ROG5_NATIVE_CLONE_V1 stage=watchdog status=DISARMED",
-        "ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS "
-        "target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b "
-        "target_blocks=8388603",
-    ]
-    if lines != expected:
-        fail("clone evidence is not the exact successful sequence")
+        raise PersistentCycleError("postmortem evidence is unreadable") from error
+    lines = [line for line in lines if line.startswith("ROG5_NATIVE_POSTMORTEM_V1 ")]
+    if len(lines) != 2 or lines[0] != (
+        "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ"
+    ):
+        fail("postmortem evidence sequence is invalid")
+    terminal = lines[1]
+    non_ext4 = re.fullmatch(
+        r"ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
+        r"disposition=non-ext4 prefix_sha256=([0-9a-f]{64})",
+        terminal,
+    )
+    ext4 = re.fullmatch(
+        r"ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
+        r"disposition=(source-clone|grown-target|partial-ext4) "
+        r"uuid=([0-9a-f-]{36}) blocks=([0-9]+) state=([^ ]+) "
+        r"label=([^ ]+) tree=(PASS|SKIP) prefix_sha256=([0-9a-f]{64})",
+        terminal,
+    )
+    if non_ext4 is None and ext4 is None:
+        fail("postmortem terminal evidence is invalid")
+    return terminal
 
 
 def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int:
@@ -939,19 +945,19 @@ def run(
         if runtime_status != 0:
             fail(f"local-root runtime acceptance returned {runtime_status}")
         target_boot_id = parse_runtime_evidence(runtime_log)
-        clone_log = cycle.output("native-clone.log")
-        clone_status = run_optional_logged(
-            [*target_ssh, CLONE_COMMAND], clone_log, 850
+        postmortem_log = cycle.output("native-postmortem.log")
+        postmortem_status = run_optional_logged(
+            [*target_ssh, POSTMORTEM_COMMAND], postmortem_log, 850
         )
-        if clone_status not in {0, 255}:
-            fail(f"native clone returned unexpected status {clone_status}")
-        parse_clone_evidence(clone_log)
+        if postmortem_status not in {0, 255}:
+            fail(f"native postmortem returned unexpected status {postmortem_status}")
+        terminal = parse_postmortem_evidence(postmortem_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("native-clone-timing.record"),
+            cycle.output("native-postmortem-timing.record"),
             (
-                ("format", "rog5-native-clone-timing-v1"),
+                ("format", "rog5-native-postmortem-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -960,7 +966,8 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("seconds_to_clone_completion", f"{elapsed:.3f}"),
+                ("seconds_to_postmortem", f"{elapsed:.3f}"),
+                ("terminal_sha256", hashlib.sha256(terminal.encode()).hexdigest()),
                 ("result", "PASS"),
             ),
         )
@@ -972,8 +979,8 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle cloned, grew, sealed, and verified "
-            f"native p24 in {elapsed:.3f}s and returned to exact fastboot"
+            "PASS one RAM-only cycle classified native p24 in "
+            f"{elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:
@@ -1039,8 +1046,8 @@ def main(arguments: list[str]) -> int:
         "ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE"
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
-    if arguments == ["run"] and os.environ.get("ALLOW_STAGE2_P24_CLONE") != "1":
-        fail("set ALLOW_STAGE2_P24_CLONE=1 for the exact p24 clone")
+    if arguments == ["run"] and os.environ.get("ALLOW_STAGE2_P24_POSTMORTEM") != "1":
+        fail("set ALLOW_STAGE2_P24_POSTMORTEM=1 for read-only p24 inspection")
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()
     gate_environment = exact_environment()

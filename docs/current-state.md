@@ -139,6 +139,11 @@ admission and softdog passed, but `e2image -ra` hit its 420-second bound and
 emitted exact clone failure. Cleanup, exact fastboot and `FALLBACK_RETURNED`
 passed. p24 is partial/unknown; the next cycle must be read-only postmortem.
 
+Generation 210 is the unbooted authority-free read-only postmortem successor.
+It inspects only p24 prefix, superblock, ext4 identity/cleanliness and known
+seal ancestry. Target/manifest/wrapper hashes are `a0e786f7...`, `b4dd750f...`
+and `e6b23d66...`.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
