@@ -149,9 +149,12 @@ Generation 218 passed and is consumed. Segment 2B copied 27,204 blocks /
 111,427,584 bytes at offset 1,436,877, synced, relocked, disarmed softdog,
 resolved `TARGET_ACCEPTED`, and returned exact slot-A fastboot in 294.734
 seconds. The next uncopied extent-20 range begins at block 1,464,081.
-Generation 219 is the unbooted authority-free segment-3A successor: offset
-1,464,081, count 27,204 blocks / 111,427,584 bytes, with
-target/manifest/wrapper hashes `2248045c...`, `f95bc32f...` and `ac55ace2...`.
+Generation 219 is consumed and permanently non-retryable. Segment 3A emitted
+BEGIN at block 1,464,081 but no PASS. NCM stopped responding about 158 seconds
+after target enumeration while the exact gadget remained configured; repeated
+host CDC-NCM TX watchdogs followed. The 840-second softdog, its 60-second
+emergency restart and the 930-second fallback proof all failed. The p24 range
+is partial/unknown; physical fastboot and a read-only postmortem are required.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
