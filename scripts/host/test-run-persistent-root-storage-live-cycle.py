@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1",
+            "storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-native-ssh-repair-v1",
+            "storage-layout-stage2-native-postrepair-verify-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation223",
+            "generation224",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -526,9 +526,9 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             'VERIFY_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"',
             source,
         )
-        self.assertIn("parse_repair_evidence(verify_log)", source)
-        self.assertIn("ALLOW_STAGE2_NATIVE_SSH_REPAIR", source)
-        self.assertNotIn("ALLOW_STAGE2_READONLY_VERIFY", source)
+        self.assertIn("parse_verify_evidence(verify_log)", source)
+        self.assertIn("ALLOW_STAGE2_READONLY_VERIFY", source)
+        self.assertNotIn("ALLOW_STAGE2_NATIVE_SSH_REPAIR", source)
         self.assertNotIn("ALLOW_STAGE2_P24_CLONE", source)
         self.assertIn("verify_log, 850", source)
         self.assertLess(850, MODULE.FALLBACK_TIMEOUT_SECONDS)

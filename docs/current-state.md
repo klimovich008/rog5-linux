@@ -224,14 +224,15 @@ yet known. Generation 222 passed and is consumed. It proved exact metadata for
 all seven objects and exact content for five; only `sshd` and `ssh-keygen` had
 content hashes `cfcf0874...` and `535ad8b0...`. Their expected zero ranges
 cross sparse zero-FILL chunks, making incomplete zero materialization the
-leading hypothesis. Generation 223 is the unbooted repair: it requires those
-exact old hashes, a safe power/thermal state, and a 120-second softdog; writes
-only the two sealed binaries, verifies them, relocks p24 and returns fastboot.
-Target/manifest/wrapper hashes are `4c678635...`, `a510c69e...`, and
-`1add84c6...`.
+leading hypothesis. Generation 223 is consumed. Its old-hash preconditions,
+two writes and in-mount new hashes passed, then the post-unmount clean-state
+assertion failed; exact slot-A fallback returned and final state is not
+inferred. Generation 224 is the unbooted read-only verifier for ext4 state and
+all seven boot-critical objects. Target/manifest/wrapper hashes are
+`5f57f785...`, `7cbec8fe...`, and `4dc08816...`.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 222 returned automatically. Battery voltage is 8.696 V and
+Generation 223 returned automatically. Battery voltage is 8.693 V and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
