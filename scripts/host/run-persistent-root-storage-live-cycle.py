@@ -703,7 +703,7 @@ def parse_clone_evidence(path: Path) -> None:
         "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
         "ROG5_NATIVE_CLONE_V1 stage=watchdog status=ARMED",
     ]
-    extents = ((20, 2, 1409673, 54408),)
+    extents = ((20, 2, 1409673, 27204),)
     for index, segment, offset, blocks in extents:
         expected.extend(
             (
@@ -717,8 +717,8 @@ def parse_clone_evidence(path: Path) -> None:
         (
             "ROG5_NATIVE_CLONE_V1 stage=watchdog status=DISARMED",
             "ROG5_NATIVE_CLONE_V1 stage=terminal status=CHUNK_PASS "
-            "first=20 last=20 segment=2 offset=1409673 blocks=54408 "
-            "bytes=222855168",
+            "first=20 last=20 segment=2 offset=1409673 blocks=27204 "
+            "bytes=111427584",
         )
     )
     if lines != expected:
@@ -983,7 +983,7 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle wrote direct-clone extent 20 segment 2 in "
+            "PASS one RAM-only cycle wrote direct-clone extent 20 segment 2A in "
             f"{elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
