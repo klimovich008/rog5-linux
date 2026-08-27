@@ -125,6 +125,8 @@ Generation 212 is consumed and permanently non-retryable. Extents 1–17
 (443,023,360 bytes) emitted PASS; extent 18 emitted BEGIN but not PASS before
 the 840-second softdog fallback. Exact slot-A fastboot, cleanup, and
 `FALLBACK_RETURNED` passed. The next writer overwrites only extent 18.
+Generation 213 is the unbooted authority-free extent-18 successor with
+target/manifest/wrapper hashes `65133edc...`, `7fde21cb...` and `e948c69c...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

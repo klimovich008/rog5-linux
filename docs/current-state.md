@@ -164,6 +164,11 @@ softdog bound without an extent-18 PASS. Exact slot-A fastboot, cleanup, and
 `FALLBACK_RETURNED` passed. This is R4: the 670,892,032-byte chunk exceeded the
 measured same-device throughput. The next writer overwrites only extent 18.
 
+Generation 213 is the unbooted authority-free extent-18 successor. It reuses
+the exact proven wrapper, kernel, DTB, module closure, extent map and softdog;
+only the target script, bundle identity and AVB generation differ. Target,
+manifest and wrapper hashes are `65133edc...`, `7fde21cb...` and `e948c69c...`.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
