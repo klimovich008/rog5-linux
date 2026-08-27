@@ -110,9 +110,10 @@ and wrapper were `bb090ddd...`, `596df1af...` and `8ecd4f34...`. Generation
 204 is consumed after exact `watchdog-mmio-detail`: the shell pipeline masked
 an empty/failed `dd`. The successor uses explicit four-byte files, validates
 each command/size/value and publishes EN/STS/BARK/BITE separately before the
-final tuple. No storage write occurred. Generation 205 is that unbooted,
-authority-free successor; its target, signed manifest and wrapper are
-`30b169dd...`, `436f32b6...` and `c456a202...`.
+final tuple. No storage write occurred. Generation 205 is consumed after exact
+`watchdog-mmio-en`; arm64 source proves `/dev/mem` `read()` rejects MMIO in
+`valid_phys_addr_range()`. Exact fastboot and `FALLBACK_RETURNED` passed. The
+offline successor changes only this access to a static read-only mmap helper.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

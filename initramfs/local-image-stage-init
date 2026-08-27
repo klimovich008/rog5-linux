@@ -188,19 +188,6 @@ watchdog_observer_detail() {
 		sed -n '1p'
 }
 
-read_watchdog_mmio() {
-	address=$1
-	name=$2
-	output=/run/rog5-watchdog-mmio-$name.bin
-	dd if=/dev/mem of="$output" bs=4 skip=$((address / 4)) count=1 2>"$output.error" ||
-		return 1
-	[ "$(stat -c %s "$output")" = 4 ] || return 1
-	value=$(od -An -tx4 -v "$output") || return 1
-	value=$(printf '%s' "$value" | tr -d ' \n') || return 1
-	printf '%s\n' "$value" | grep -Eq '^[0-9a-f]{8}$' || return 1
-	printf '%s\n' "$value"
-}
-
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
@@ -284,15 +271,20 @@ stage_reporting=1
 start_stage_reporter || fail stage-reporter
 if [ -e /rog5-watchdog-mmio-observer ]; then
 	[ -c /dev/mem ] || fail watchdog-mmio-devmem
-	observer_en=$(read_watchdog_mmio 0x17c10008 en) || fail watchdog-mmio-en
-	publish_stage power-usb ENTER "wdt-en-$observer_en" || fail stage-publish
-	observer_sts=$(read_watchdog_mmio 0x17c1000c sts) || fail watchdog-mmio-sts
-	publish_stage power-usb ENTER "wdt-sts-$observer_sts" || fail stage-publish
-	observer_bark=$(read_watchdog_mmio 0x17c10010 bark) || fail watchdog-mmio-bark
-	publish_stage power-usb ENTER "wdt-bark-$observer_bark" || fail stage-publish
-	observer_bite=$(read_watchdog_mmio 0x17c10014 bite) || fail watchdog-mmio-bite
-	publish_stage power-usb ENTER "wdt-bite-$observer_bite" || fail stage-publish
-	observer_detail=wdt-r32765-e$observer_en-s$observer_sts-b$observer_bark-i$observer_bite
+	if observer_detail=$(/usr/libexec/rog5-watchdog-mmio-snapshot \
+		2>/run/rog5-watchdog-mmio-snapshot.error); then
+		:
+	else
+		observer_status=$?
+		case "$observer_status" in
+		2) fail watchdog-mmio-open ;;
+		3) fail watchdog-mmio-mmap ;;
+		4) fail watchdog-mmio-bus ;;
+		5) fail watchdog-mmio-signal ;;
+		64) fail watchdog-mmio-usage ;;
+		*) fail watchdog-mmio-helper ;;
+		esac
+	fi
 	printf '%s\n' "$observer_detail" |
 		grep -Eq '^wdt-r32765-e[0-9a-f]{8}-s[0-9a-f]{8}-b[0-9a-f]{8}-i[0-9a-f]{8}$' ||
 		fail watchdog-mmio-detail

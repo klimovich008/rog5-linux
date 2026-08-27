@@ -5,6 +5,8 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 init=$repo/initramfs/local-image-stage-init
 installer=$repo/scripts/device/install-local-arch-image.sh
 builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
+mmio_helper_source=$repo/tools/watchdog_mmio_snapshot/rog5-watchdog-mmio-snapshot.c
+mmio_helper_builder=$repo/scripts/device/build-watchdog-mmio-snapshot.sh
 candidate=$repo/configs/recovery-candidates/local-image-stage-v1.json
 successor=$repo/configs/recovery-candidates/local-image-stage-writer-v2.json
 successor_manifest=$repo/manifests/local-image-stage-writer-v2-generation111.manifest
@@ -31,11 +33,12 @@ for path in "$init" "$installer" "$builder" "$candidate" "$successor" \
 	"$successor_claim" "$hotplug_claim" "$usbmode" "$usbmode_manifest" \
 	"$usbmode_claim" "$globfix" "$globfix_manifest" "$globfix_claim" \
 	"$rworder" "$rworder_manifest" "$rworder_claim" "$writekernel" \
-	"$writekernel_manifest" "$writekernel_claim"; do
+	"$writekernel_manifest" "$writekernel_claim" "$mmio_helper_source" \
+	"$mmio_helper_builder"; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
 done
 ! grep -Fq '$watchdog_sys/timeout' "$init"
-sh -n "$init" "$installer" "$builder"
+sh -n "$init" "$installer" "$builder" "$mmio_helper_builder"
 python3 -m py_compile "$claim"
 python3 -m py_compile "$successor_claim"
 python3 -m py_compile "$hotplug_claim"
@@ -209,19 +212,15 @@ grep -Fq 'watchdog_module=${WATCHDOG_MODULE:-}' "$builder"
 grep -Fq 'watchdog module identity changed' "$builder"
 grep -Fq 'watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}' "$builder"
 grep -Fq 'watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}' "$builder"
+grep -Fq 'watchdog_mmio_helper=${WATCHDOG_MMIO_HELPER:-}' "$builder"
 grep -Fq 'watchdog and observer modes are mutually exclusive' "$builder"
 grep -Fq 'b06271c62e22292e043b082c3c5f2da46f8d98f36f3521c16ec389dcb40036d1' "$builder"
 for contract in \
 	'load_watchdog_observer() {' \
-	'read_watchdog_mmio() {' \
-	'dd if=/dev/mem of="$output" bs=4 skip=$((address / 4)) count=1' \
-	'[ "$(stat -c %s "$output")" = 4 ]' \
-	'publish_stage power-usb ENTER "wdt-en-$observer_en"' \
-	'publish_stage power-usb ENTER "wdt-sts-$observer_sts"' \
-	'publish_stage power-usb ENTER "wdt-bark-$observer_bark"' \
-	'publish_stage power-usb ENTER "wdt-bite-$observer_bite"' \
+	'observer_detail=$(/usr/libexec/rog5-watchdog-mmio-snapshot' \
+	'3) fail watchdog-mmio-mmap ;;' \
+	'4) fail watchdog-mmio-bus ;;' \
 	'watchdog-mmio-observer' \
-	'observer_detail=wdt-r32765-e$observer_en-s$observer_sts-b$observer_bark-i$observer_bite' \
 	'/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko' \
 	"grep -q '^rog5_qcom_wdt_observer ' /proc/modules" \
 	'ROG5_WDT_OBSERVER_V1 rate=' \
@@ -231,13 +230,26 @@ for contract in \
 	'load_watchdog_observer || fail watchdog-observer'; do
 	grep -Fq "$contract" "$init" || exit 1
 done
+! grep -Fq 'dd if=/dev/mem' "$init"
+for contract in \
+	'mmap(NULL, ROG5_MMIO_SIZE, PROT_READ, MAP_SHARED, fd,' \
+	'#define ROG5_MMIO_BASE 0x17c10000' \
+	'#define WDT_EN 0x08' \
+	'#define WDT_STS 0x0c' \
+	'#define WDT_BARK_TIME 0x10' \
+	'#define WDT_BITE_TIME 0x14' \
+	'open(ROG5_MMIO_PATH, O_RDONLY | O_CLOEXEC | O_SYNC)' \
+	'return 4;'; do
+	grep -Fq "$contract" "$mmio_helper_source" || exit 1
+done
+! grep -Eq 'PROT_WRITE|O_RDWR|O_WRONLY|[^a-z]write\(' "$mmio_helper_source"
 python3 - "$init" <<'PY'
 from pathlib import Path
 import sys
 
 source = Path(sys.argv[1]).read_text()
 reporter = source.index("start_stage_reporter || fail stage-reporter")
-mmio = source.index("observer_en=$(read_watchdog_mmio 0x17c10008 en)", reporter)
+mmio = source.index("observer_detail=$(/usr/libexec/rog5-watchdog-mmio-snapshot", reporter)
 observer = source.index("load_watchdog_observer || fail watchdog-observer", reporter)
 detail = source.index('publish_stage power-usb ENTER "$observer_detail"', observer)
 power = source.index("/sbin/rog5-load-persistent-power-usb", detail)
@@ -453,7 +465,16 @@ done
 [ "$retained_write_twins" -eq 0 ] || [ "$retained_write_twins" -eq 2 ]
 
 busybox_root=$(mktemp -d)
-trap 'find "$busybox_root" -depth -delete' EXIT HUP INT TERM
+mmio_test_root=$(mktemp -d)
+trap 'find "$busybox_root" "$mmio_test_root" -depth -delete' EXIT HUP INT TERM
+truncate -s 4096 "$mmio_test_root/mmio.bin"
+printf '\001\000\000\000\002\000\000\000\000\000\001\000\000\000\002\000' |
+	dd of="$mmio_test_root/mmio.bin" bs=1 seek=8 conv=notrunc status=none
+cc -std=c11 -O2 -Wall -Wextra -Werror \
+	-DROG5_MMIO_PATH="\"$mmio_test_root/mmio.bin\"" \
+	-DROG5_MMIO_BASE=0 "$mmio_helper_source" -o "$mmio_test_root/helper"
+[ "$("$mmio_test_root/helper")" = \
+	'wdt-r32765-e00000001-s00000002-b00010000-i00020000' ]
 gzip -dc "$repo/artifacts/local-image-stage-hotplug-v3/initramfs.cpio.gz" |
 	(cd "$busybox_root" && cpio -idm --quiet --no-absolute-filenames)
 qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
