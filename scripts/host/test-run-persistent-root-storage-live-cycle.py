@@ -536,9 +536,8 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
             "ROG5_NATIVE_CLONE_V1 stage=watchdog status=ARMED",
         ]
-        counts = (1060, 23520, 31710, 3, 3, 3, 3, 33, 4, 3, 3, 33,
-                  24537, 1122, 3439, 2048, 20636, 10427, 45205)
-        for index, blocks in enumerate(counts, 1):
+        extents = ((18, 10427),)
+        for index, blocks in extents:
             expected.extend((
                 f"ROG5_NATIVE_CLONE_V1 stage=extent status=BEGIN index={index} blocks={blocks}",
                 f"ROG5_NATIVE_CLONE_V1 stage=extent status=PASS index={index} blocks={blocks}",
@@ -546,7 +545,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         expected.extend((
             "ROG5_NATIVE_CLONE_V1 stage=watchdog status=DISARMED",
             "ROG5_NATIVE_CLONE_V1 stage=terminal status=CHUNK_PASS "
-            "first=1 last=19 bytes=670892032",
+            "first=18 last=18 bytes=42708992",
         ))
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "clone.log"

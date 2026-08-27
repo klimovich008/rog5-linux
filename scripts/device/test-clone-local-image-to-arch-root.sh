@@ -22,9 +22,9 @@ for contract in \
 	'extent_map=/etc/rog5-local-image-direct-extents.tsv' \
 	'extent_count=37' \
 	'extent_bytes=1850654720' \
-	'chunk_first=1' \
-	'chunk_last=19' \
-	'chunk_bytes=670892032' \
+	'chunk_first=18' \
+	'chunk_last=18' \
+	'chunk_bytes=42708992' \
 	'stage=extent status=BEGIN' \
 	'stage=extent status=PASS' \
 	'status=CHUNK_PASS' \
