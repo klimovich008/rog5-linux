@@ -121,6 +121,8 @@ successors are frozen pending per-extent systematic debugging.
 Systematic review now selects three fixed chunk boots: extents 1–19
 (670,892,032 bytes), extent 20 (891,424,768 bytes), and extents 21–37
 (288,337,920 bytes), with per-extent progress and relock after each.
+Generation 212 is the unbooted authority-free chunk-1 candidate with
+target/manifest/wrapper hashes `cee5e7c6...`, `20e853d5...` and `f9996fc3...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

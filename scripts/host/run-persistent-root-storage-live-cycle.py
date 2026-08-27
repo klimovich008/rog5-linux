@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1"
-BUNDLE = "storage-layout-stage2-softdog-direct-clone-v1"
+PROFILE_ID = "storage-layout-stage2-direct-chunk1-v1-generation212-live-v1"
+BUNDLE = "storage-layout-stage2-direct-chunk1-v1"
 MANIFEST_SHA256 = (
-    "7dec2c357c4f3e229abf0eb8c71cecfdda71008b4ed2238f0b85040e8e19971b"
+    "20e853d57dac1a105cb8e26fbb0c0f9a96ccca9f8461c8b84a8a54dae781a1cb"
 )
 RECOVERY_SHA256 = (
-    "dba34fa3af95cfcb766cf1ef89ab23c93f04f22a9e4a3b925f7073947138c5b2"
+    "f9996fc37a20a8274c29d9c0065dc77d7de93cef50a6a7f081334c2c06e53f54"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1\n"
-    b"candidate=storage-layout-stage2-softdog-direct-clone-v1\n"
+    b"storage-layout-stage2-direct-chunk1-v1-generation212-live-v1\n"
+    b"candidate=storage-layout-stage2-direct-chunk1-v1\n"
     b"manifest_sha256="
-    b"7dec2c357c4f3e229abf0eb8c71cecfdda71008b4ed2238f0b85040e8e19971b\n"
+    b"20e853d57dac1a105cb8e26fbb0c0f9a96ccca9f8461c8b84a8a54dae781a1cb\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-softdog-direct-clone-v1-generation211-20260827-r1"
+    / "build/storage-layout-stage2-direct-chunk1-v1-generation212-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-softdog-direct-clone-v1",
+    admission_profile="storage-layout-stage2-direct-chunk1-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-softdog-direct-clone-v1",
-    build_profile="storage-layout-stage2-softdog-direct-clone-v1",
+    runtime_profile="storage-layout-stage2-direct-chunk1-v1",
+    build_profile="storage-layout-stage2-direct-chunk1-v1",
     diagnostic=False,
 )
 
