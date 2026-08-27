@@ -4293,8 +4293,8 @@ case $profile in
 		;;
 	storage-layout-stage2-softdog-clone-v2-generation209-live-v1)
 		expected_boot_image=build/storage-layout-stage2-softdog-clone-v2-generation209-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 209 bounded-critical clone from verified userdata image to p24, followed by grow, seal, read-only verification and relock under proven softdog; RAM-only kernel, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 209 bounded-critical softdog p24 clone; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 209 partial p24 clone; source admission and softdog passed, e2image hit 420-second bound, exact fastboot and cleanup passed, p24 disposition unknown; never retry or flash'
+		expected_boot_role='consumed Generation 209 partial p24 clone timeout; exact fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
