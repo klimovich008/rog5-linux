@@ -204,6 +204,13 @@ and its 60-second emergency restart failed, and the 930-second fallback proof
 expired. The p24 subrange is partial/unknown and requires physical fastboot
 recovery followed by read-only postmortem evidence.
 
+Generation 220 is the unbooted authority-free read-only discriminator. It
+reads the exact 111,427,584-byte segment-3A source range from p23 once, proves
+its expected SHA-256, then compares p24 in 4 MiB chunks and reports the first
+mismatch while every block device remains read-only. Stable recovery captures
+the retained Generation-219 pstore state before COMMIT. Target, manifest, and
+wrapper hashes are `d7060edf...`, `c6373ab8...`, and `a833700d...`.
+
 The phone is currently hard-hung in the Generation-219 mainline gadget and
 requires a physical force-reboot to exact slot-A fastboot before further live
 work. The preboot battery gate passed at 8.701 V.
