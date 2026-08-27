@@ -153,6 +153,11 @@ arm. No further stage arrived before the 840-second fallback returned exact
 fastboot. p24 is partial/unknown. This is the second clone-boundary throughput
 failure; successors are frozen pending systematic per-extent observability.
 
+Systematic review selects three fixed one-use direct-write chunks: extents
+1–19 (670,892,032 bytes), extent 20 (891,424,768 bytes), and extents 21–37
+(288,337,920 bytes). Each chunk will emit per-extent progress, sync, relock,
+and return fastboot; final fsck/grow/seal occurs only after all chunks pass.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
