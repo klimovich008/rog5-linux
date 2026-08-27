@@ -141,6 +141,9 @@ Generation 216 is consumed and permanently non-retryable. Segment 2 emitted
 BEGIN at block 1,409,673 but no PASS; NCM failed after about 224 seconds while
 the exact target gadget remained enumerated. Softdog and fallback proof both
 failed. The subrange is partial/unknown; physical fastboot recovery is required.
+Generation 217 is the unbooted authority-free half-size successor: offset
+1,409,673, count 27,204 blocks / 111,427,584 bytes, with
+target/manifest/wrapper hashes `111d2384...`, `9dbc63ae...` and `7fcaf943...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
