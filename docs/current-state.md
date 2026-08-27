@@ -186,10 +186,10 @@ the exact USB gadget remained enumerated. Softdog and the independent fallback
 wait did not restore fastboot. The subrange is partial/unknown and requires a
 smaller overwrite after physical recovery.
 
-Generation 217 is the unbooted authority-free half-size successor for the
-failed subrange: offset block 1,409,673, 27,204 blocks / 111,427,584 bytes.
-Target/manifest/wrapper hashes are `111d2384...`, `9dbc63ae...` and
-`7fcaf943...`. Phone execution waits for physical fastboot recovery.
+Generation 217 passed and is consumed. Segment 2A copied 27,204 blocks /
+111,427,584 bytes at offset 1,409,673, synced, relocked, disarmed softdog,
+resolved `TARGET_ACCEPTED`, and returned exact slot-A fastboot in 296.065
+seconds. The remaining segment-2 half begins at block 1,436,877.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
