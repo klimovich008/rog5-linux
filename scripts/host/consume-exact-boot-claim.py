@@ -583,6 +583,13 @@ CLAIMS = {
         b"manifest_sha256=907b2447757ad3c0e9d7f3d3ffed0e89e044585fddfbf97b6717a63c99e7b9e9\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1\n"
+        b"candidate=storage-layout-stage2-native-ssh-repair-v1\n"
+        b"manifest_sha256=a510c69ee2f3f1957773428c58fdd1ea20b0f80296f0edfbd2c59d6e5dd46289\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-preflight-v3-generation73-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"

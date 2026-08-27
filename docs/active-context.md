@@ -167,9 +167,13 @@ did not re-enumerate the phone; never reflash automatically. Generation 221 is
 consumed: grown ext4 geometry/UUID/label/clean state passed, but its aggregate
 boot-critical tree predicate failed. UFS/NCM/key-only SSH and exact automatic
 slot-A fastboot fallback passed; no storage write occurred. The host image and
-exact sealed BusyBox satisfy every expected predicate. Generation 222 is the
-unbooted read-only per-item metadata/hash classifier. Target/manifest/wrapper
-hashes are `b3c272a6...`, `907b2447...`, and `7ae03ecb...`.
+exact sealed BusyBox satisfy every expected predicate. Generation 222 passed
+and is consumed: only `sshd` and `ssh-keygen` content differed; metadata and the
+other five boot-critical objects matched. Both files cross sparse zero-FILL
+chunks. Generation 223 is the unbooted exact-two-file repair with old-hash
+preconditions, power/thermal gates, 120-second softdog, post-write hashes and
+full relock. Target/manifest/wrapper hashes are `4c678635...`, `a510c69e...`,
+and `1add84c6...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
