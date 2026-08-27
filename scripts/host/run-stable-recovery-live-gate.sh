@@ -4429,8 +4429,8 @@ case $profile in
 		;;
 	storage-layout-stage2-direct-extent18-v1-generation213-live-v1)
 		expected_boot_image=build/storage-layout-stage2-direct-extent18-v1-generation213-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 213 direct p24 overwrite of extent 18 with BEGIN/PASS evidence, sync, relock and softdog disarm; no fsck, grow or seal; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 213 direct extent 18; never flash or retry after COMMIT'
+		expected_boot_basis='consumed successful Generation 213 extent-18 overwrite; exact PASS, sync, relock, softdog disarm, TARGET_ACCEPTED and slot-A fastboot in 174.265 seconds; never retry or flash'
+		expected_boot_role='consumed successful Generation 213 extent-18 overwrite; exact fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
