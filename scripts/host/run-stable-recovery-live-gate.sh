@@ -235,6 +235,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-direct-extent20-seg2b-v1-generation218-live-v1 | \
 		storage-layout-stage2-direct-extent20-seg3a-v1-generation219-live-v1 | \
 		storage-layout-stage2-native-progress-v1-generation220-live-v1 | \
+		storage-layout-stage2-native-verify-v1-generation221-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -4698,6 +4699,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	storage-layout-stage2-native-verify-v1-generation221-live-v1)
+		expected_boot_image=build/storage-layout-stage2-native-verify-v1-generation221-20260827-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 221 read-only grown-p24 geometry, UUID, clean-state, seal and boot-critical verification cycle; no storage writes, RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 221 read-only native-root verifier; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-native-verify-v1
+		expected_bundle=storage-layout-stage2-native-verify-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=06b31d559761d2854576a127019441a2af94cc177a222e3ee55ef62c242a48fb
+		expected_avb_digest=e00bb2ffe08be0d431631f7564def7ca6c03cee40a2a29de6549d37333643ace
+		expected_generation_record=4d80a242720a65d0170f78aa057e39c1a7a16b9f9a93d1735319f13e94990bcc
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 4767bb1a9b480c1245df34e0f8a926ceaaf9be4686880420d39e6100cbd6c008 ]] || fail 'native verify manifest is not pinned'
+		[[ $expected_image == f5bf62e1f62d49a6bd8df8bae8d8ddb889e11651678888b9962a2813520bd01a ]] || fail 'native verify recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native verify trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native verify verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -6241,6 +6275,7 @@ case $profile in
 	storage-layout-stage2-direct-extent20-seg2b-v1-generation218-live-v1 | \
 	storage-layout-stage2-direct-extent20-seg3a-v1-generation219-live-v1 | \
 	storage-layout-stage2-native-progress-v1-generation220-live-v1 | \
+	storage-layout-stage2-native-verify-v1-generation221-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

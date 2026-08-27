@@ -161,6 +161,12 @@ all-zero mismatch at block 1,480,465. Generation 219 therefore stalled on the
 destination-write path after exactly 64 MiB. Pstore was empty/inconclusive;
 softdog disarmed, `TARGET_ACCEPTED` resolved, and exact fastboot returned in
 439.436 seconds.
+Stock fastboot then accepted all four fully covering RAW/zero-FILL p24 sparse
+segments in 476.272 seconds. Post-flash USB control stalled and the host reset
+did not re-enumerate the phone; never reflash automatically. Generation 221 is
+the unbooted read-only verifier for grown ext4 geometry/UUID, clean state, seal
+and boot-critical files. Target/manifest/wrapper hashes are `93472744...`,
+`4767bb1a...`, and `f5bf62e1...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

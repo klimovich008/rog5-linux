@@ -212,6 +212,15 @@ the destination-write hard stall. Recovery pstore was empty and remains
 inconclusive. Softdog disarmed, durable intent resolved `TARGET_ACCEPTED`, and
 exact slot-A fastboot returned in 439.436 seconds.
 
+Stock fastboot accepted all four fully covering RAW/zero-FILL sparse segments
+for `arch_root_a` in 476.272 seconds. The post-flash USB control endpoint then
+stalled and the host reset could not re-enumerate the phone; no second flash is
+allowed. Generation 221 is the unbooted authority-free verifier for the next
+physical fastboot return. It checks exact grown ext4 geometry/UUID, clean
+state, seal, init, systemd, sshd, authorized key and SSH policy while all UFS
+nodes remain read-only. Target/manifest/wrapper hashes are `93472744...`,
+`4767bb1a...`, and `f5bf62e1...`.
+
 The phone is currently exact slot-A fastboot on the anchored USB path after
 Generation 220 returned automatically. Battery voltage is 8.699 V and
 `battery-soc-ok=yes`.
