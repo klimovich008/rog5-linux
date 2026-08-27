@@ -115,8 +115,9 @@ proving a partial/corrupt clone. Exact fastboot and `FALLBACK_RETURNED` passed.
 The next writer must overwrite all known allocated source extents directly.
 That 37-range direct overwrite is now implemented and focused-tested offline;
 no new candidate or phone write has been issued.
-Generation 211 is the unbooted authority-free direct-clone successor with
-target/manifest/wrapper hashes `fda5dd9e...`, `7dec2c35...` and `dba34fa3...`.
+Generation 211 is consumed after direct clone entry and softdog arm; no further
+stage arrived before the 840-second exact-fastboot fallback. p24 is partial and
+successors are frozen pending per-extent systematic debugging.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

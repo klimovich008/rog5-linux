@@ -148,10 +148,10 @@ The clone script now implements that exact 37-range/1,850,654,720-byte direct
 overwrite using sealed BusyBox byte-skip/count semantics and direct output.
 Focused hostile tests pass; no successor candidate has been issued yet.
 
-Generation 211 is the unbooted authority-free direct-clone successor. It embeds
-the exact extent map and retains softdog, fsck, grow, seal, read-only
-verification and all-node relock. Target/manifest/wrapper hashes are
-`fda5dd9e...`, `7dec2c35...` and `dba34fa3...`.
+Generation 211 is consumed after source admission, `clone WRITE`, and softdog
+arm. No further stage arrived before the 840-second fallback returned exact
+fastboot. p24 is partial/unknown. This is the second clone-boundary throughput
+failure; successors are frozen pending systematic per-extent observability.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
