@@ -4361,8 +4361,8 @@ case $profile in
 		;;
 	storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1)
 		expected_boot_image=build/storage-layout-stage2-softdog-direct-clone-v1-generation211-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 211 37-range direct overwrite from verified userdata image to p24, then fsck, grow, seal, read-only verification and relock under proven softdog; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 211 direct p24 clone; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 211 direct p24 clone timeout; source admission and softdog passed, no post-arm stage before 840-second fallback, p24 partial/unknown; never retry or flash'
+		expected_boot_role='consumed Generation 211 direct p24 clone timeout; exact fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
