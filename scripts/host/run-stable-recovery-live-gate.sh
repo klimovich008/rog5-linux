@@ -4327,8 +4327,8 @@ case $profile in
 		;;
 	storage-layout-stage2-native-postmortem-v2-generation210-live-v1)
 		expected_boot_image=build/storage-layout-stage2-native-postmortem-v2-generation210-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 210 read-only p24 postmortem after partial clone; inspect prefix, ext4 identity, cleanliness and seal ancestry; no write-capable command; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 210 read-only p24 postmortem; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 210 read-only p24 postmortem; ext4 magic present but dumpe2fs failed, proving partial/corrupt clone; exact fastboot and FALLBACK_RETURNED passed; never retry or flash'
+		expected_boot_role='consumed Generation 210 partial-ext4 postmortem; exact fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
