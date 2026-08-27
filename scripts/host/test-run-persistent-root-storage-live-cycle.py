@@ -536,7 +536,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
             "ROG5_NATIVE_CLONE_V1 stage=watchdog status=ARMED",
         ]
-        extents = ((20, 2, 1409673, 27204),)
+        extents = ((20, 2, 1436877, 27204),)
         for index, segment, offset, blocks in extents:
             expected.extend((
                 "ROG5_NATIVE_CLONE_V1 stage=extent status=BEGIN "
@@ -547,7 +547,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         expected.extend((
             "ROG5_NATIVE_CLONE_V1 stage=watchdog status=DISARMED",
             "ROG5_NATIVE_CLONE_V1 stage=terminal status=CHUNK_PASS "
-            "first=20 last=20 segment=2 offset=1409673 blocks=27204 "
+            "first=20 last=20 segment=2 offset=1436877 blocks=27204 "
             "bytes=111427584",
         ))
         with tempfile.TemporaryDirectory() as temporary:
