@@ -24,8 +24,8 @@ for contract in \
 	'extent_bytes=1850654720' \
 	'chunk_first=20' \
 	'chunk_last=20' \
-	'chunk_segment=2' \
-	'chunk_offset_blocks=1436877' \
+	'chunk_segment=3' \
+	'chunk_offset_blocks=1464081' \
 	'chunk_block_count=27204' \
 	'chunk_bytes=111427584' \
 	'extent20_offset_blocks=1355264' \
@@ -81,9 +81,9 @@ def value(name: str) -> int:
     return int(match.group(1))
 
 assert value("chunk_first") == value("chunk_last") == 20
-assert value("chunk_segment") == 2
+assert value("chunk_segment") == 3
 assert value("chunk_offset_blocks") == (
-    value("extent20_offset_blocks") + 54409 + 27204
+    value("extent20_offset_blocks") + 54409 + 27204 + 27204
 )
 assert value("chunk_block_count") == 27204
 assert value("chunk_bytes") == value("chunk_block_count") * 4096
