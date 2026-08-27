@@ -137,9 +137,10 @@ Extent 20 is split into four bounded contiguous segments. Generation 215 passed
 segment 1 at offset 1,355,264 for 54,409 blocks / 222,859,264 bytes, synced,
 relocked, disarmed softdog, resolved `TARGET_ACCEPTED`, and returned exact
 slot-A fastboot in 480.461 seconds.
-Generation 216 is the unbooted authority-free extent-20 segment-2 successor:
-offset 1,409,673, count 54,408 blocks / 222,855,168 bytes, with
-target/manifest/wrapper hashes `e0ccf465...`, `774135c1...` and `ab992342...`.
+Generation 216 is consumed and permanently non-retryable. Segment 2 emitted
+BEGIN at block 1,409,673 but no PASS; NCM failed after about 224 seconds while
+the exact target gadget remained enumerated. Softdog and fallback proof both
+failed. The subrange is partial/unknown; physical fastboot recovery is required.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

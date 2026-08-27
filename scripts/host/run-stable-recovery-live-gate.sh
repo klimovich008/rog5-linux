@@ -4531,8 +4531,8 @@ case $profile in
 		;;
 	storage-layout-stage2-direct-extent20-seg2-v1-generation216-live-v1)
 		expected_boot_image=build/storage-layout-stage2-direct-extent20-seg2-v1-generation216-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 216 direct p24 overwrite of extent-20 segment 2 at block 1409673 for 54408 blocks, with exact evidence, sync, relock and softdog disarm; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 216 direct extent-20 segment 2; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 216 extent-20 segment-2 stall; BEGIN emitted without PASS, NCM failed, exact gadget remained enumerated, softdog and fallback proof failed; p24 subrange partial/unknown; never retry or flash'
+		expected_boot_role='consumed Generation 216 segment-2 stall without autonomous fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

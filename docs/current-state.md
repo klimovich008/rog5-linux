@@ -180,10 +180,11 @@ segment 1 at offset block 1,355,264 for 54,409 blocks / 222,859,264 bytes,
 synced, relocked, disarmed softdog, resolved `TARGET_ACCEPTED`, and returned
 exact slot-A fastboot in 480.461 seconds.
 
-Generation 216 is the unbooted authority-free extent-20 segment-2 successor:
-offset block 1,409,673, 54,408 blocks / 222,855,168 bytes. It reuses every
-proven kernel/recovery input. Target/manifest/wrapper hashes are `e0ccf465...`,
-`774135c1...` and `ab992342...`.
+Generation 216 is consumed and permanently non-retryable. Segment 2 emitted
+BEGIN at block 1,409,673 but no PASS; NCM failed after about 224 seconds while
+the exact USB gadget remained enumerated. Softdog and the independent fallback
+wait did not restore fastboot. The subrange is partial/unknown and requires a
+smaller overwrite after physical recovery.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
