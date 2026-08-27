@@ -106,9 +106,10 @@ consumed: `softdog-armed-20` was followed by automatic exact slot-A fastboot
 Generation 208 is consumed before writes: runtime passed in 6.95 seconds, but
 full source-tree verification exceeded 850 seconds with only `source VERIFY`.
 Exact fastboot/cleanup passed; softdog and the p24 write window were not armed.
-Generation 209 is the unbooted authority-free bounded-critical p24 clone
-successor with target/manifest/wrapper hashes `9b6a14d1...`, `dd9a4278...`
-and `66251f0d...`.
+Generation 209 is consumed: source admission and softdog passed, then the p24
+`e2image` clone hit its 420-second bound. Exact fastboot/cleanup and
+`FALLBACK_RETURNED` passed. p24 is partial/unknown and requires read-only
+postmortem before another write.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
