@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-softdog-clone-v1-generation208-live-v1"
-BUNDLE = "storage-layout-stage2-softdog-clone-v1"
+PROFILE_ID = "storage-layout-stage2-softdog-clone-v2-generation209-live-v1"
+BUNDLE = "storage-layout-stage2-softdog-clone-v2"
 MANIFEST_SHA256 = (
-    "8aab1a2c3eb96fc275caf05f7ea1e99f58197f1c13ecd024bac4ed68d2b277c4"
+    "dd9a427854d7ad9a1b762774b3a7ac859c2710bc0b077a0959a819ade274afd1"
 )
 RECOVERY_SHA256 = (
-    "0b0ca68bdbc0968f25482ad3d38439771b3d919745bc816b3870e29620b7bc99"
+    "66251f0ddf8c0cc5335d7bf4fc465da1f41103378431d1afa1bf5484200a3bd5"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-softdog-clone-v1-generation208-live-v1\n"
-    b"candidate=storage-layout-stage2-softdog-clone-v1\n"
+    b"storage-layout-stage2-softdog-clone-v2-generation209-live-v1\n"
+    b"candidate=storage-layout-stage2-softdog-clone-v2\n"
     b"manifest_sha256="
-    b"8aab1a2c3eb96fc275caf05f7ea1e99f58197f1c13ecd024bac4ed68d2b277c4\n"
+    b"dd9a427854d7ad9a1b762774b3a7ac859c2710bc0b077a0959a819ade274afd1\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-softdog-clone-v1-generation208-20260827-r1"
+    / "build/storage-layout-stage2-softdog-clone-v2-generation209-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-softdog-clone-v1",
+    admission_profile="storage-layout-stage2-softdog-clone-v2",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-softdog-clone-v1",
-    build_profile="storage-layout-stage2-softdog-clone-v1",
+    runtime_profile="storage-layout-stage2-softdog-clone-v2",
+    build_profile="storage-layout-stage2-softdog-clone-v2",
     diagnostic=False,
 )
 

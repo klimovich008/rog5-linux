@@ -134,6 +134,12 @@ the redundant full source-tree verifier exceeded 850 seconds with only
 write window were never armed. The successor uses bounded boot-critical source
 admission instead of repeated full-tree scans.
 
+Generation 209 is the unbooted authority-free bounded-critical successor. It
+retains the exact p24 write/grow/seal/relock sequence and proven softdog, but
+checks only the live-proven boot-critical source identities. Target, signed
+manifest and wrapper hashes are `9b6a14d1...`, `dd9a4278...` and
+`66251f0d...`.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
