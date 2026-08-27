@@ -169,10 +169,10 @@ emitted exact PASS, synced, relocked all storage, disarmed softdog, resolved
 `TARGET_ACCEPTED`, and returned exact slot-A fastboot in 174.265 seconds.
 Extents 1–18 (485,732,352 bytes) are proven; extent 19 is next.
 
-Generation 214 is the unbooted authority-free extent-19 successor. It reuses
-all proven kernel/recovery inputs and writes only 45,205 blocks / 185,159,680
-bytes. Target/manifest/wrapper hashes are `eee8f69a...`, `6459d0b3...` and
-`19045e36...`.
+Generation 214 passed and is consumed. Extent 19 copied 185,159,680 bytes,
+emitted exact PASS, synced, relocked, disarmed softdog, resolved
+`TARGET_ACCEPTED`, and returned exact slot-A fastboot in 415.724 seconds.
+Extents 1–19 now have complete PASS evidence totaling 670,892,032 bytes.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

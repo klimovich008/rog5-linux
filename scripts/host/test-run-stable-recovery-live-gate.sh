@@ -489,8 +489,8 @@ awk -F '\t' \
 		$3 == "consumed successful Generation 213 extent-18 overwrite; exact PASS, sync, relock, softdog disarm, TARGET_ACCEPTED and slot-A fastboot in 174.265 seconds; never retry or flash" &&
 		NF == 3 { stage2_extent18++ ; next }
 	$1 == "build/storage-layout-stage2-direct-extent19-v1-generation214-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 214 direct p24 overwrite of extent 19 with BEGIN/PASS evidence, sync, relock and softdog disarm; no fsck, grow or seal; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed successful Generation 214 extent-19 overwrite; exact PASS, sync, relock, softdog disarm, TARGET_ACCEPTED and slot-A fastboot in 415.724 seconds; never retry or flash" &&
 		NF == 3 { stage2_extent19++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -707,7 +707,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -752,7 +752,7 @@ grep -Fq "expected_boot_basis='consumed Generation 212 chunk timeout; extents 1-
 	{ echo 'FAIL Generation 212 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed successful Generation 213 extent-18 overwrite; exact PASS, sync, relock, softdog disarm, TARGET_ACCEPTED and slot-A fastboot in 174.265 seconds; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 213 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 214 direct p24 overwrite of extent 19 with BEGIN/PASS evidence, sync, relock and softdog disarm; no fsck, grow or seal; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed successful Generation 214 extent-19 overwrite; exact PASS, sync, relock, softdog disarm, TARGET_ACCEPTED and slot-A fastboot in 415.724 seconds; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 214 gate basis differs from policy' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img" &&
@@ -816,7 +816,7 @@ awk -F '\t' '
 	{ echo 'FAIL Generation 213 artifact role differs from live gate' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/storage-layout-stage2-direct-extent19-v1-generation214-20260827-r1/repack/stable-recovery-a.avb.img" &&
-	$4 == "unbooted Generation 214 direct extent 19; never flash or retry after COMMIT" && NF == 5 { found++ }
+	$4 == "consumed successful Generation 214 extent-19 overwrite; exact fallback; never retry or flash" && NF == 5 { found++ }
 	END { exit found == 1 ? 0 : 1 }
 ' "$artifact_manifest" ||
 	{ echo 'FAIL Generation 214 artifact role differs from live gate' >&2; exit 1; }
