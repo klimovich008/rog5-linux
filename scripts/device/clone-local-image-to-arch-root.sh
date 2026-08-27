@@ -11,12 +11,16 @@ target_mount=/mnt/native-root
 source_image=$source_mount/rog5/images/arch-local-a.ext4
 native_seal=/etc/rog5/native-root-v1.seal
 softdog_module=/rog5-softdog-modules/softdog.ko
+extent_map=/etc/rog5-local-image-direct-extents.tsv
 source_bytes=17179869184
 source_blocks=4194304
 source_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 target_blocks=8388603
 target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
 native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
+extent_map_sha256=e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94
+extent_count=37
+extent_bytes=1850654720
 userdata_mounted=0
 source_mounted=0
 source_loop_attached=0
@@ -232,6 +236,10 @@ verify_power_thermal || fail power-thermal
 [ -f "$softdog_module" ] && [ ! -L "$softdog_module" ] || fail softdog-module
 [ -f "$native_seal" ] && [ ! -L "$native_seal" ] &&
 	[ "$(sha256sum "$native_seal" | awk '{print $1}')" = "$native_seal_sha256" ] || fail native-seal
+[ -f "$extent_map" ] && [ ! -L "$extent_map" ] &&
+	[ "$(sha256sum "$extent_map" | awk '{print $1}')" = "$extent_map_sha256" ] &&
+	grep -Fxq "extent_count=$extent_count" "$extent_map" &&
+	grep -Fxq "data_bytes=$extent_bytes" "$extent_map" || fail extent-map
 
 emit source VERIFY
 mkdir -p "$source_mount" "$source_verify_mount" "$target_mount"
@@ -276,7 +284,27 @@ emit watchdog ARMED
 blockdev --setrw "$disk" || fail disk-write-window
 blockdev --setrw "$arch_root" || fail target-write-window
 verify_lock_state 2 || fail write-window
-timeout -k 5 420 e2image -ra -p "$source_image" "$arch_root" > /run/rog5-native-clone-e2image.log 2>&1 || fail clone
+written_extents=0
+direct_bytes=0
+tab=$(printf '\t')
+while IFS="$tab" read -r index offset count; do
+	case $index in ''|*[!0-9]*) continue ;; esac
+	[ "$index" -eq "$((written_extents + 1))" ] || fail extent-order
+	case $offset in ''|*[!0-9]*) fail extent-map ;; esac
+	case $count in ''|*[!0-9]*) fail extent-map ;; esac
+	offset_bytes=$((offset * 4096))
+	count_bytes=$((count * 4096))
+	stats=/run/rog5-native-clone-dd-$index.stats
+	dd if="$source_image" of="$arch_root" ibs=1048576 obs=1048576 \
+		skip="$offset_bytes" seek="$offset_bytes" count="$count_bytes" \
+		iflag=skip_bytes,count_bytes,fullblock \
+		oflag=seek_bytes,direct conv=notrunc status=noxfer 2>"$stats" ||
+		fail direct-clone
+	written_extents=$index
+	direct_bytes=$((direct_bytes + count_bytes))
+done <"$extent_map"
+[ "$written_extents" -eq "$extent_count" ] &&
+	[ "$direct_bytes" -eq "$extent_bytes" ] || fail extent-incomplete
 sync || fail clone-sync
 e2fsck -f -p "$arch_root" >/run/rog5-native-clone-fsck.log 2>&1 || fail clone-fsck
 verify_ext4 "$arch_root" "$source_uuid" "$source_blocks" /run/rog5-native-clone-source-fs.log || fail clone-identity

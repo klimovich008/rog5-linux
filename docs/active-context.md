@@ -113,6 +113,8 @@ postmortem before another write.
 Generation 210 is consumed read-only: p24 has ext4 magic but `dumpe2fs` failed,
 proving a partial/corrupt clone. Exact fastboot and `FALLBACK_RETURNED` passed.
 The next writer must overwrite all known allocated source extents directly.
+That 37-range direct overwrite is now implemented and focused-tested offline;
+no new candidate or phone write has been issued.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

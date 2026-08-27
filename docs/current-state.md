@@ -144,6 +144,10 @@ Generation 210 is consumed read-only. It found ext4 magic on p24, but
 clone. Exact fastboot and `FALLBACK_RETURNED` passed. The next writer must
 overwrite all known allocated source extents with the proven direct map.
 
+The clone script now implements that exact 37-range/1,850,654,720-byte direct
+overwrite using sealed BusyBox byte-skip/count semantics and direct output.
+Focused hostile tests pass; no successor candidate has been issued yet.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
