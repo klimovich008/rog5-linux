@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-watchdog-mmap-v1-generation206-live-v1",
+            "storage-layout-stage2-softdog-probe-v1-generation207-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-watchdog-mmap-v1",
+            "storage-layout-stage2-softdog-probe-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation206",
+            "generation207",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -148,6 +148,14 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         wait = source.index("status = CYCLE.wait_process(process, 5)", receive)
         self.assertLess(receive, terminal)
         self.assertLess(terminal, wait)
+
+    def test_softdog_armed_stage_is_an_exact_terminal_successor(self) -> None:
+        source = MODULE_PATH.read_text()
+        self.assertEqual(MODULE.SOFTDOG_PROBE_DETAIL, "softdog-armed-20")
+        self.assertEqual(source.count("or current.detail == SOFTDOG_PROBE_DETAIL"), 1)
+        self.assertEqual(
+            source.count("or accepted_stage.detail == SOFTDOG_PROBE_DETAIL"), 1
+        )
 
     def test_fastboot_return_stops_the_post_ncm_host_key_wait(self) -> None:
         source = MODULE_PATH.read_text()
@@ -520,7 +528,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("watchdog_log_hex=", source)
         self.assertIn('bytes" -le 4096', source)
         observer = source.index(
-            "if WATCHDOG_OBSERVER_DETAIL.fullmatch(accepted_stage.detail):"
+            "WATCHDOG_OBSERVER_DETAIL.fullmatch(accepted_stage.detail)"
         )
         ssh = source.index("target_ssh = ssh_arguments", observer)
         self.assertLess(observer, ssh)

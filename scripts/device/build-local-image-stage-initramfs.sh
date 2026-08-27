@@ -22,6 +22,7 @@ direct_extent_map=${DIRECT_EXTENT_MAP:-}
 native_seal=${NATIVE_SEAL:-}
 watchdog_module=${WATCHDOG_MODULE:-}
 watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}
+softdog_module=${SOFTDOG_MODULE:-}
 watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}
 watchdog_mmio_helper=${WATCHDOG_MMIO_HELPER:-}
 epoch=1681862400
@@ -62,6 +63,16 @@ if [ -n "$watchdog_observer_module" ]; then
 fi
 [ "$watchdog_mmio_observer" -eq 0 ] || [ -z "$watchdog_module$watchdog_observer_module" ] ||
 	fail 'watchdog and observer modes are mutually exclusive'
+if [ -n "$softdog_module" ]; then
+	[ -z "$watchdog_module$watchdog_observer_module" ] &&
+		[ "$watchdog_mmio_observer" -eq 0 ] ||
+		fail 'softdog probe and watchdog observer modes are mutually exclusive'
+	[ -f "$softdog_module" ] && [ ! -L "$softdog_module" ] &&
+		[ "$(sha256sum "$softdog_module" | cut -d ' ' -f 1)" = \
+			ab0175a40b7dd6186d07b4166d5c2ea3ef3f94f9f0ddf9e08d19e431be294dc4 ] &&
+		[ "$(modinfo -F vermagic "$softdog_module" | awk '{print $1}')" = \
+			"$expected_release" ] || fail 'softdog module identity changed'
+fi
 if [ "$watchdog_mmio_observer" -eq 1 ]; then
 	[ -f "$watchdog_mmio_helper" ] && [ ! -L "$watchdog_mmio_helper" ] &&
 		[ "$(sha256sum "$watchdog_mmio_helper" | cut -d ' ' -f 1)" = \
@@ -137,6 +148,9 @@ fi
 if [ -n "$watchdog_observer_module" ]; then
 	install -D -m 0644 "$watchdog_observer_module" \
 		"$stage/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko"
+fi
+if [ -n "$softdog_module" ]; then
+	install -D -m 0644 "$softdog_module" "$stage/rog5-softdog-probe/softdog.ko"
 fi
 if [ "$watchdog_mmio_observer" -eq 1 ]; then
 	install -D -m 0444 /dev/null "$stage/rog5-watchdog-mmio-observer"
