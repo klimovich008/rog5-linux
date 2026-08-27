@@ -145,6 +145,9 @@ Generation 217 passed and is consumed. Segment 2A copied 27,204 blocks /
 111,427,584 bytes at offset 1,409,673, synced, relocked, disarmed softdog,
 resolved `TARGET_ACCEPTED`, and returned exact slot-A fastboot in 296.065
 seconds. Segment 2B begins at block 1,436,877.
+Generation 218 is the unbooted authority-free segment-2B successor: offset
+1,436,877, count 27,204 blocks / 111,427,584 bytes, with
+target/manifest/wrapper hashes `b9d81be7...`, `f607405e...` and `5085953b...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

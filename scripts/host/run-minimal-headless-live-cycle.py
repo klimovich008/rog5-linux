@@ -576,6 +576,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "storage-layout-stage2-direct-extent20-seg1-v1-generation215-live-v1",
         "storage-layout-stage2-direct-extent20-seg2-v1-generation216-live-v1",
         "storage-layout-stage2-direct-extent20-seg2a-v1-generation217-live-v1",
+        "storage-layout-stage2-direct-extent20-seg2b-v1-generation218-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
