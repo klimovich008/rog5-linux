@@ -499,6 +499,13 @@ CLAIMS = {
         b"manifest_sha256=b4dd750fc3493d13512cd602580913c9cd2944c04de6d7e45c4c6eeaa471bfef\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1\n"
+        b"candidate=storage-layout-stage2-softdog-direct-clone-v1\n"
+        b"manifest_sha256=7dec2c357c4f3e229abf0eb8c71cecfdda71008b4ed2238f0b85040e8e19971b\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-preflight-v3-generation73-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"

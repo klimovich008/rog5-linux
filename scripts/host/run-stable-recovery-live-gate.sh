@@ -225,6 +225,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-softdog-clone-v1-generation208-live-v1 | \
 		storage-layout-stage2-softdog-clone-v2-generation209-live-v1 | \
 		storage-layout-stage2-native-postmortem-v2-generation210-live-v1 | \
+		storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -4358,6 +4359,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1)
+		expected_boot_image=build/storage-layout-stage2-softdog-direct-clone-v1-generation211-20260827-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 211 37-range direct overwrite from verified userdata image to p24, then fsck, grow, seal, read-only verification and relock under proven softdog; RAM-only, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 211 direct p24 clone; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=storage-layout-stage2-softdog-direct-clone-v1
+		expected_bundle=storage-layout-stage2-softdog-direct-clone-v1
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=18a116610e3330cec44443e487e2393a9aa0063b1b333620c8674580c9f81b21
+		expected_avb_digest=66a11afc31818a0ed027e126e55c4a6484d579138ea47fbd494999d170924c4b
+		expected_generation_record=c9a28b19f1fba7655858c69514c1ea27fc2cd85ea70a96cd0c4fecf98be1e085
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 7dec2c357c4f3e229abf0eb8c71cecfdda71008b4ed2238f0b85040e8e19971b ]] || fail 'direct clone manifest is not pinned'
+		[[ $expected_image == dba34fa3af95cfcb766cf1ef89ab23c93f04f22a9e4a3b925f7073947138c5b2 ]] || fail 'direct clone recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'direct clone trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'direct clone verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -5891,6 +5925,7 @@ case $profile in
 	storage-layout-stage2-softdog-clone-v1-generation208-live-v1 | \
 	storage-layout-stage2-softdog-clone-v2-generation209-live-v1 | \
 	storage-layout-stage2-native-postmortem-v2-generation210-live-v1 | \
+	storage-layout-stage2-softdog-direct-clone-v1-generation211-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
