@@ -101,6 +101,11 @@ before mainline. No stage frame survived. The next read-only target loads the
 observer immediately after NCM carrier and repeatedly publishes compact
 `wdt-r<rate>-e<EN>-s<STS>-b<BARK>-i<BITE>` evidence before power/UFS/SSH.
 
+Generation 203 is the unbooted active early observer. Target twins and signed
+bundle twins are `0758d78f...` and `e984aa8b...`; the cached wrapper envelope
+is `4df798b0...`. The host accepts the first exact compact register stage as
+the cycle result without waiting for SSH. No watchdog or storage write exists.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
