@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-direct-extent20-seg1-v1-generation215-live-v1"
-BUNDLE = "storage-layout-stage2-direct-extent20-seg1-v1"
+PROFILE_ID = "storage-layout-stage2-direct-extent20-seg2-v1-generation216-live-v1"
+BUNDLE = "storage-layout-stage2-direct-extent20-seg2-v1"
 MANIFEST_SHA256 = (
-    "140124bc1647493f9c2db270c338397bdb9de71caa9b9e86ca97c760e69def72"
+    "774135c181bb33fc8ab799f825f7a9ac97ac11f1d85d8386540348dfad57bf34"
 )
 RECOVERY_SHA256 = (
-    "bfc0f6c41fca197a46effda1c9c358f1724e52d8bb8272a8bb9e84fc83fcd4be"
+    "ab9923425b67b425bf7a6ad9b6a5c220fe198091ca97ece96f16b908aa060879"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-direct-extent20-seg1-v1-generation215-live-v1\n"
-    b"candidate=storage-layout-stage2-direct-extent20-seg1-v1\n"
+    b"storage-layout-stage2-direct-extent20-seg2-v1-generation216-live-v1\n"
+    b"candidate=storage-layout-stage2-direct-extent20-seg2-v1\n"
     b"manifest_sha256="
-    b"140124bc1647493f9c2db270c338397bdb9de71caa9b9e86ca97c760e69def72\n"
+    b"774135c181bb33fc8ab799f825f7a9ac97ac11f1d85d8386540348dfad57bf34\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-direct-extent20-seg1-v1-generation215-20260827-r1"
+    / "build/storage-layout-stage2-direct-extent20-seg2-v1-generation216-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-direct-extent20-seg1-v1",
+    admission_profile="storage-layout-stage2-direct-extent20-seg2-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-direct-extent20-seg1-v1",
-    build_profile="storage-layout-stage2-direct-extent20-seg1-v1",
+    runtime_profile="storage-layout-stage2-direct-extent20-seg2-v1",
+    build_profile="storage-layout-stage2-direct-extent20-seg2-v1",
     diagnostic=False,
 )
 
