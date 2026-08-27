@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-26
+Updated: 2026-08-27
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -91,7 +91,9 @@ register tuple directly. Target/manifest/wrapper hashes are `bb090ddd...`,
 `596df1af...` and `8ecd4f34...`; no write path existed. Generation 204 is now
 consumed after `watchdog-mmio-detail`: `dd | od | tr` masked the first command's
 failure. The corrected target uses explicit four-byte files and publishes every
-accepted register separately before the final tuple.
+accepted register separately before the final tuple. Generation 205 is the
+unbooted, authority-free successor with target/manifest/wrapper hashes
+`30b169dd...`, `436f32b6...` and `c456a202...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
