@@ -128,11 +128,11 @@ published `softdog-armed-20`, and returned automatically to exact slot-A
 fastboot 23.6 seconds later. `TARGET_ACCEPTED` resolved and no UFS/storage path
 ran. The Stage-2 clone may now use this kernel-timer rollback architecture.
 
-Generation 208 is the unbooted authority-free Stage-2 clone successor. It
-copies only the verified local Arch image to p24, grows and seals it, verifies
-it read-only, relocks all 117 UFS nodes, and uses the proven softdog fallback.
-Target/manifest/wrapper hashes are `a8614653...`, `8aab1a2c...` and
-`0b0ca68b...`.
+Generation 208 is consumed before writes. Runtime passed in 6.95 seconds, then
+the redundant full source-tree verifier exceeded 850 seconds with only
+`source VERIFY` emitted. Exact fastboot and cleanup passed; softdog and the p24
+write window were never armed. The successor uses bounded boot-critical source
+admission instead of repeated full-tree scans.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
