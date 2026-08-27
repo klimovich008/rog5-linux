@@ -105,37 +105,57 @@ verify_mount_count() {
 fs_value() { sed -n "s/^$1:[[:space:]]*//p" "$2" | sed -n '1p'; }
 
 verify_exact_regular() {
-	path=$1 owner=$2 group=$3 mode=$4 size=$5 hash=$6
-	[ -f "$path" ] && [ ! -L "$path" ] || return 1
-	[ "$(stat -c '%u:%g:%a:%s:%h' "$path")" = \
-		"$owner:$group:$mode:$size:1" ] || return 1
-	[ "$(sha256sum "$path" | awk '{print $1}')" = "$hash" ]
+	item=$1 path=$2 expected_metadata=$3 expected_hash=$4
+	metadata=none
+	hash=none
+	status=MISMATCH
+	if [ -f "$path" ] && [ ! -L "$path" ]; then
+		metadata=$(stat -c '%u:%g:%a:%s:%h' "$path" 2>/dev/null || printf error)
+		hash=$(sha256sum "$path" 2>/dev/null | awk '{print $1}' || printf error)
+		if [ "$metadata" = "$expected_metadata" ] && [ "$hash" = "$expected_hash" ]; then
+			status=PASS
+		fi
+	fi
+	printf 'ROG5_NATIVE_TREE_V1 item=%s status=%s metadata=%s sha256=%s\n' \
+		"$item" "$status" "$metadata" "$hash"
+	[ "$status" = PASS ]
+}
+
+verify_exact_link() {
+	item=$1 path=$2 expected_hash=$3
+	metadata=none
+	hash=none
+	status=MISMATCH
+	if [ -L "$path" ]; then
+		metadata=symlink
+		target=$(readlink "$path" 2>/dev/null || printf error)
+		hash=$(printf %s "$target" | sha256sum | awk '{print $1}')
+		[ "$hash" != "$expected_hash" ] || status=PASS
+	fi
+	printf 'ROG5_NATIVE_TREE_V1 item=%s status=%s metadata=%s sha256=%s\n' \
+		"$item" "$status" "$metadata" "$hash"
+	[ "$status" = PASS ]
 }
 
 verify_boot_critical_root() {
 	root=$1
 	seal=$root/.rog5-persistent-seal
-	verify_exact_regular "$seal" 0 0 444 430 "$native_seal_sha256" || return 1
-	[ "$(wc -l <"$seal")" -eq 13 ] &&
-		grep -Fxq 'seal_format=rog5-persistent-root-v1' "$seal" &&
-		grep -Fxq 'generation=arch-a' "$seal" &&
-		grep -Fxq 'promotion_state=UNBOOTED' "$seal" || return 1
-	[ -L "$root/sbin/init" ] &&
-		[ "$(readlink "$root/sbin/init")" = ../lib/systemd/systemd ] || return 1
-	verify_exact_regular "$root/usr/lib/systemd/systemd" 0 0 755 198968 \
-		dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0 ||
-		return 1
-	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 527008 \
-		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 ||
-		return 1
-	verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 526688 \
-		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e ||
-		return 1
-	verify_exact_regular "$root/root/.ssh/authorized_keys" 0 0 600 81 \
-		04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61 ||
-		return 1
-	verify_exact_regular "$root/etc/ssh/sshd_config.d/10-rog5-server.conf" \
-		0 0 644 201 c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
+	result=0
+	verify_exact_regular seal "$seal" 0:0:444:430:1 "$native_seal_sha256" || result=1
+	verify_exact_link init "$root/sbin/init" \
+		a8da8f10c8ab68bf1cc2234032b9ba3fd66d16ea84872acca9461c985224dc94 || result=1
+	verify_exact_regular systemd "$root/usr/lib/systemd/systemd" 0:0:755:198968:1 \
+		dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0 || result=1
+	verify_exact_regular sshd "$root/usr/bin/sshd" 0:0:755:527008:1 \
+		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 || result=1
+	verify_exact_regular ssh-keygen "$root/usr/bin/ssh-keygen" 0:0:755:526688:1 \
+		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e || result=1
+	verify_exact_regular authorized-keys "$root/root/.ssh/authorized_keys" 0:0:600:81:1 \
+		04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61 || result=1
+	verify_exact_regular ssh-policy \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" 0:0:644:201:1 \
+		c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693 || result=1
+	return "$result"
 }
 
 [ "$#" -eq 0 ] || fail arguments
@@ -177,8 +197,11 @@ if [ "$disposition" != partial-ext4 ]; then
 	mount -t ext4 -o ro,noload,nodev,nosuid,noexec,noatime "$arch_root" "$target_mount" || fail target-mount
 	target_mounted=1
 	verify_mount_count 1 || fail target-mount-scope
-	verify_boot_critical_root "$target_mount" || fail target-tree
-	tree=BOOT_CRITICAL_PASS
+	if verify_boot_critical_root "$target_mount"; then
+		tree=BOOT_CRITICAL_PASS
+	else
+		tree=BOOT_CRITICAL_MISMATCH
+	fi
 	umount "$target_mount" || fail target-unmount
 	target_mounted=0
 fi

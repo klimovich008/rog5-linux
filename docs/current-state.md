@@ -215,11 +215,15 @@ exact slot-A fastboot returned in 439.436 seconds.
 Stock fastboot accepted all four fully covering RAW/zero-FILL sparse segments
 for `arch_root_a` in 476.272 seconds. The post-flash USB control endpoint then
 stalled and the host reset could not re-enumerate the phone; no second flash is
-allowed. Generation 221 is the unbooted authority-free verifier for the next
-physical fastboot return. It checks exact grown ext4 geometry/UUID, clean
-state, seal, init, systemd, sshd, authorized key and SSH policy while all UFS
-nodes remain read-only. Target/manifest/wrapper hashes are `93472744...`,
-`4767bb1a...`, and `f5bf62e1...`.
+allowed. Generation 221 is consumed: exact grown ext4 geometry, UUID, label and
+clean state passed, but its aggregate boot-critical tree predicate failed.
+Mainline UFS/NCM/key-only SSH and automatic slot-A fastboot fallback passed;
+no storage write occurred. The host-finalized image passes the same predicates
+under the exact sealed AArch64 BusyBox, so the on-device differing inode is not
+yet known. Generation 222 is the unbooted read-only successor. It emits fixed
+metadata/hash records for the seal, init, systemd, sshd, ssh-keygen, authorized
+key and SSH policy. Target/manifest/wrapper hashes are `b3c272a6...`,
+`907b2447...`, and `7ae03ecb...`.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
 Generation 220 returned automatically. Battery voltage is 8.699 V and

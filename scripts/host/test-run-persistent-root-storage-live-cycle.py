@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-native-verify-v1-generation221-live-v1",
+            "storage-layout-stage2-native-tree-detail-v1-generation222-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-native-verify-v1",
+            "storage-layout-stage2-native-tree-detail-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation221",
+            "generation222",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -535,28 +535,77 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
     def test_native_verify_evidence_is_exact_and_hostile(self) -> None:
-        expected = [
-            "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ",
+        tree = [
+            "ROG5_NATIVE_TREE_V1 item=seal status=PASS metadata=0:0:444:430:1 "
+            "sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876",
+            "ROG5_NATIVE_TREE_V1 item=init status=PASS metadata=symlink "
+            "sha256=a8da8f10c8ab68bf1cc2234032b9ba3fd66d16ea84872acca9461c985224dc94",
+            "ROG5_NATIVE_TREE_V1 item=systemd status=PASS metadata=0:0:755:198968:1 "
+            "sha256=dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0",
+            "ROG5_NATIVE_TREE_V1 item=sshd status=PASS metadata=0:0:755:527008:1 "
+            "sha256=6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932",
+            "ROG5_NATIVE_TREE_V1 item=ssh-keygen status=PASS metadata=0:0:755:526688:1 "
+            "sha256=e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e",
+            "ROG5_NATIVE_TREE_V1 item=authorized-keys status=PASS metadata=0:0:600:81:1 "
+            "sha256=04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61",
+            "ROG5_NATIVE_TREE_V1 item=ssh-policy status=PASS metadata=0:0:644:201:1 "
+            "sha256=c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693",
+        ]
+        terminal = (
             "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
             "disposition=grown-target "
             "uuid=8b03827a-cc2d-4408-8558-e9b61195f96b blocks=8388603 "
             "state=clean label=ROG5_ARCH_A tree=BOOT_CRITICAL_PASS "
             "prefix_sha256="
-            "4624159a5ad652036ad1facfc3e1dcf0c38024d1a3d7aeda9e7c9d92a13a0647",
+            "4624159a5ad652036ad1facfc3e1dcf0c38024d1a3d7aeda9e7c9d92a13a0647"
+        )
+        expected = [
+            "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ",
+            *tree,
+            terminal,
         ]
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "verify.log"
             path.write_text(
                 "\n".join([*expected, "Connection closed"]) + "\n"
             )
-            MODULE.parse_verify_evidence(path)
+            result = MODULE.parse_verify_evidence(path)
+            self.assertEqual(result.disposition, "BOOT_CRITICAL_PASS")
+            self.assertEqual(result.mismatches, ())
+
+            mismatch = list(expected)
+            mismatch[4] = mismatch[4].replace(
+                "status=PASS", "status=MISMATCH"
+            ).replace(
+                "6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932",
+                "0" * 64,
+            )
+            mismatch[-1] = mismatch[-1].replace(
+                "BOOT_CRITICAL_PASS", "BOOT_CRITICAL_MISMATCH"
+            )
+            path.write_text("\n".join(mismatch) + "\n")
+            result = MODULE.parse_verify_evidence(path)
+            self.assertEqual(result.mismatches, ("sshd",))
             hostile = (
                 expected[:1],
                 [*expected, expected[-1]],
                 [expected[1], expected[0]],
-                [expected[0], expected[1].replace("grown-target", "partial-ext4")],
-                [expected[0], expected[1].replace("BOOT_CRITICAL_PASS", "SKIP")],
-                [expected[0], expected[1].replace("8388603", "4194304")],
+                [expected[0], *tree, terminal.replace("grown-target", "partial-ext4")],
+                [expected[0], *tree, terminal.replace("BOOT_CRITICAL_PASS", "SKIP")],
+                [expected[0], *tree, terminal.replace("8388603", "4194304")],
+                [expected[0], *tree[:-1], terminal],
+                [expected[0], *tree, tree[-1], terminal],
+                [
+                    expected[0],
+                    tree[0].replace("status=PASS", "status=MISMATCH"),
+                    *tree[1:],
+                    terminal,
+                ],
+                [
+                    expected[0],
+                    *tree,
+                    "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=FAIL reason=target-tree",
+                ],
             )
             for payload in hostile:
                 path.write_text("\n".join(payload) + "\n")

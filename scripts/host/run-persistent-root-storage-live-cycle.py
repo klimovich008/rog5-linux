@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-native-verify-v1-generation221-live-v1"
-BUNDLE = "storage-layout-stage2-native-verify-v1"
+PROFILE_ID = "storage-layout-stage2-native-tree-detail-v1-generation222-live-v1"
+BUNDLE = "storage-layout-stage2-native-tree-detail-v1"
 MANIFEST_SHA256 = (
-    "4767bb1a9b480c1245df34e0f8a926ceaaf9be4686880420d39e6100cbd6c008"
+    "907b2447757ad3c0e9d7f3d3ffed0e89e044585fddfbf97b6717a63c99e7b9e9"
 )
 RECOVERY_SHA256 = (
-    "f5bf62e1f62d49a6bd8df8bae8d8ddb889e11651678888b9962a2813520bd01a"
+    "7ae03ecb424ff3ac4a51f01bbffb5a0d3a39934efaf3de9a489688f9dc628e6a"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-native-verify-v1-generation221-live-v1\n"
-    b"candidate=storage-layout-stage2-native-verify-v1\n"
+    b"storage-layout-stage2-native-tree-detail-v1-generation222-live-v1\n"
+    b"candidate=storage-layout-stage2-native-tree-detail-v1\n"
     b"manifest_sha256="
-    b"4767bb1a9b480c1245df34e0f8a926ceaaf9be4686880420d39e6100cbd6c008\n"
+    b"907b2447757ad3c0e9d7f3d3ffed0e89e044585fddfbf97b6717a63c99e7b9e9\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-native-verify-v1-generation221-20260827-r1"
+    / "build/storage-layout-stage2-native-tree-detail-v1-generation222-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -118,6 +118,10 @@ printf '%s\n' 'result=PASS'
 STAGE_PORT = 8079
 STAGE_RECORD_MAX_BYTES = 512
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+TREE_RECORD = re.compile(
+    r"ROG5_NATIVE_TREE_V1 item=([a-z-]+) status=(PASS|MISMATCH) "
+    r"metadata=([^ ]+) sha256=([0-9a-f]{64}|none|error)\Z"
+)
 BOOT_ID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}\Z"
@@ -128,10 +132,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-native-verify-v1",
+    admission_profile="storage-layout-stage2-native-tree-detail-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-native-verify-v1",
-    build_profile="storage-layout-stage2-native-verify-v1",
+    runtime_profile="storage-layout-stage2-native-tree-detail-v1",
+    build_profile="storage-layout-stage2-native-tree-detail-v1",
     diagnostic=False,
 )
 
@@ -170,6 +174,11 @@ class StageRecord(NamedTuple):
     state: str
     detail: str
     payload: bytes
+
+
+class TreeEvidence(NamedTuple):
+    disposition: str
+    mismatches: tuple[str, ...]
 
 
 STAGES = {
@@ -692,24 +701,81 @@ def parse_runtime_evidence(path: Path) -> str:
     return boot_ids[0]
 
 
-def parse_verify_evidence(path: Path) -> None:
+def parse_verify_evidence(path: Path) -> TreeEvidence:
     try:
         lines = path.read_text(encoding="ascii").splitlines()
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("native verification evidence is unreadable") from error
     lines = [
-        line for line in lines if line.startswith("ROG5_NATIVE_POSTMORTEM_V1 ")
+        line
+        for line in lines
+        if line.startswith(("ROG5_NATIVE_POSTMORTEM_V1 ", "ROG5_NATIVE_TREE_V1 "))
     ]
-    expected = [
-        "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ",
+    if not lines or lines[0] != (
+        "ROG5_NATIVE_POSTMORTEM_V1 stage=inspect status=READ"
+    ):
+        fail("native verification evidence lacks its exact inspect record")
+    expected = (
+        (
+            "seal",
+            "0:0:444:430:1",
+            "02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876",
+        ),
+        (
+            "init",
+            "symlink",
+            "a8da8f10c8ab68bf1cc2234032b9ba3fd66d16ea84872acca9461c985224dc94",
+        ),
+        (
+            "systemd",
+            "0:0:755:198968:1",
+            "dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0",
+        ),
+        (
+            "sshd",
+            "0:0:755:527008:1",
+            "6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932",
+        ),
+        (
+            "ssh-keygen",
+            "0:0:755:526688:1",
+            "e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e",
+        ),
+        (
+            "authorized-keys",
+            "0:0:600:81:1",
+            "04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61",
+        ),
+        (
+            "ssh-policy",
+            "0:0:644:201:1",
+            "c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693",
+        ),
+    )
+    if len(lines) != len(expected) + 2:
+        fail("native verification evidence has the wrong record count")
+    mismatches = []
+    for line, (item, metadata, digest) in zip(lines[1:-1], expected, strict=True):
+        match = TREE_RECORD.fullmatch(line)
+        if match is None or match.group(1) != item:
+            fail("native tree evidence is malformed or out of order")
+        observed = (match.group(3), match.group(4))
+        exact = observed == (metadata, digest)
+        if (match.group(2) == "PASS") != exact:
+            fail("native tree status contradicts its bounded observation")
+        if not exact:
+            mismatches.append(item)
+    tree = "BOOT_CRITICAL_MISMATCH" if mismatches else "BOOT_CRITICAL_PASS"
+    terminal = (
         "ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS "
         "disposition=grown-target "
         "uuid=8b03827a-cc2d-4408-8558-e9b61195f96b blocks=8388603 "
-        "state=clean label=ROG5_ARCH_A tree=BOOT_CRITICAL_PASS "
-        "prefix_sha256=4624159a5ad652036ad1facfc3e1dcf0c38024d1a3d7aeda9e7c9d92a13a0647",
-    ]
-    if lines != expected:
-        fail("native verification evidence is not the exact successful sequence")
+        f"state=clean label=ROG5_ARCH_A tree={tree} "
+        "prefix_sha256=4624159a5ad652036ad1facfc3e1dcf0c38024d1a3d7aeda9e7c9d92a13a0647"
+    )
+    if lines[-1] != terminal:
+        fail("native verification evidence lacks its exact terminal record")
+    return TreeEvidence(tree, tuple(mismatches))
 
 
 def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int:
@@ -946,7 +1012,7 @@ def run(
                 "native verifier returned unexpected status "
                 f"{verify_status}"
             )
-        parse_verify_evidence(verify_log)
+        tree = parse_verify_evidence(verify_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
@@ -962,6 +1028,8 @@ def run(
                 ),
                 ("target_boot_id", target_boot_id),
                 ("disposition", "grown-target"),
+                ("tree", tree.disposition),
+                ("mismatches", ",".join(tree.mismatches) or "none"),
                 ("seconds_to_verification", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
@@ -974,7 +1042,8 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only cycle verified the grown native Arch root in "
+            "PASS one RAM-only cycle classified the grown native Arch root "
+            f"as {tree.disposition} ({','.join(tree.mismatches) or 'none'}) in "
             f"{elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
