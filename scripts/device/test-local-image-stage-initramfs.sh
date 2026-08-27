@@ -208,10 +208,15 @@ done
 grep -Fq 'watchdog_module=${WATCHDOG_MODULE:-}' "$builder"
 grep -Fq 'watchdog module identity changed' "$builder"
 grep -Fq 'watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}' "$builder"
-grep -Fq 'watchdog and observer modules are mutually exclusive' "$builder"
+grep -Fq 'watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}' "$builder"
+grep -Fq 'watchdog and observer modes are mutually exclusive' "$builder"
 grep -Fq 'b06271c62e22292e043b082c3c5f2da46f8d98f36f3521c16ec389dcb40036d1' "$builder"
 for contract in \
 	'load_watchdog_observer() {' \
+	'read_watchdog_mmio() {' \
+	'dd if=/dev/mem bs=4 skip=$((address / 4)) count=1' \
+	'watchdog-mmio-observer' \
+	'observer_detail=wdt-r32765-e$observer_en-s$observer_sts-b$observer_bark-i$observer_bite' \
 	'/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko' \
 	"grep -q '^rog5_qcom_wdt_observer ' /proc/modules" \
 	'ROG5_WDT_OBSERVER_V1 rate=' \
@@ -227,11 +232,12 @@ import sys
 
 source = Path(sys.argv[1]).read_text()
 reporter = source.index("start_stage_reporter || fail stage-reporter")
+mmio = source.index("observer_en=$(read_watchdog_mmio 0x17c10008)", reporter)
 observer = source.index("load_watchdog_observer || fail watchdog-observer", reporter)
 detail = source.index('publish_stage power-usb ENTER "$observer_detail"', observer)
 power = source.index("/sbin/rog5-load-persistent-power-usb", detail)
 ufs = source.index("for module in phy-qcom-qmp-ufs.ko", power)
-assert reporter < observer < detail < power < ufs
+assert reporter < mmio < observer < detail < power < ufs
 PY
 ! grep -Fq 'verify_no_phone_storage' "$init"
 ! grep -Fq 'mount_network_root' "$init"

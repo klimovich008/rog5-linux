@@ -83,10 +83,12 @@ is inherited armed. No storage write occurred. The next observer moves ahead
 of power/UFS and publishes its register snapshot through the existing repeated
 stage record before the inherited deadline.
 
-Generation 203 is built but unbooted. It publishes the compact register tuple
-immediately after NCM carrier, and the host treats that exact stage as accepted
-evidence before SSH. Target, manifest and wrapper hashes are `0758d78f...`,
-`e984aa8b...` and `4df798b0...`; no write path is present.
+Generation 203 is consumed: external-module relocation/probe still missed the
+inherited deadline and no stage survived. Generation 204 is the active
+module-free read-only successor. It uses exact sealed BusyBox `dd`/`od` on
+`/dev/mem` immediately after NCM carrier, before power/UFS, and publishes the
+register tuple directly. Target/manifest/wrapper hashes are `bb090ddd...`,
+`596df1af...` and `8ecd4f34...`; no write path exists.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
