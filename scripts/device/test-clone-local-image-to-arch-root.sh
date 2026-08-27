@@ -22,6 +22,12 @@ for contract in \
 	'extent_map=/etc/rog5-local-image-direct-extents.tsv' \
 	'extent_count=37' \
 	'extent_bytes=1850654720' \
+	'chunk_first=1' \
+	'chunk_last=19' \
+	'chunk_bytes=670892032' \
+	'stage=extent status=BEGIN' \
+	'stage=extent status=PASS' \
+	'status=CHUNK_PASS' \
 	'iflag=skip_bytes,count_bytes,fullblock' \
 	'oflag=seek_bytes,direct conv=notrunc status=noxfer' \
 	'fail direct-clone' \
@@ -63,11 +69,13 @@ source = Path(sys.argv[1]).read_text()
 arm = source.index("printf '\\0' >&9")
 write = source.index('blockdev --setrw "$disk"', arm)
 relock = source.index('verify_lock_state 0 || fail relock-state', write)
-verify = source.index('verify_power_thermal || fail final-power-thermal', relock)
-disarm = source.index('printf V >&9', verify)
-terminal = source.index("stage=terminal status=PASS", disarm)
-assert arm < write < relock < verify < disarm < terminal
-assert source.count("printf V >&9") == 1
+disarm = source.index('printf V >&9', relock)
+chunk_terminal = source.index("stage=terminal status=CHUNK_PASS", disarm)
+verify = source.index('verify_power_thermal || fail final-power-thermal', chunk_terminal)
+final_disarm = source.index('printf V >&9', verify)
+terminal = source.index("stage=terminal status=PASS", final_disarm)
+assert arm < write < relock < disarm < chunk_terminal < verify < final_disarm < terminal
+assert source.count("printf V >&9") == 2
 PY
 grep -Fq 'native_seal=${NATIVE_SEAL:-}' "$builder"
 grep -Fq 'ln -s /proc/mounts "$stage/etc/mtab"' "$builder"

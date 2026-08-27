@@ -21,6 +21,9 @@ native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a
 extent_map_sha256=e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94
 extent_count=37
 extent_bytes=1850654720
+chunk_first=1
+chunk_last=19
+chunk_bytes=670892032
 userdata_mounted=0
 source_mounted=0
 source_loop_attached=0
@@ -284,28 +287,45 @@ emit watchdog ARMED
 blockdev --setrw "$disk" || fail disk-write-window
 blockdev --setrw "$arch_root" || fail target-write-window
 verify_lock_state 2 || fail write-window
-written_extents=0
+written_extents=$((chunk_first - 1))
 direct_bytes=0
 tab=$(printf '\t')
 while IFS="$tab" read -r index offset count; do
 	case $index in ''|*[!0-9]*) continue ;; esac
+	[ "$index" -ge "$chunk_first" ] || continue
+	[ "$index" -le "$chunk_last" ] || break
 	[ "$index" -eq "$((written_extents + 1))" ] || fail extent-order
 	case $offset in ''|*[!0-9]*) fail extent-map ;; esac
 	case $count in ''|*[!0-9]*) fail extent-map ;; esac
 	offset_bytes=$((offset * 4096))
 	count_bytes=$((count * 4096))
 	stats=/run/rog5-native-clone-dd-$index.stats
+	printf 'ROG5_NATIVE_CLONE_V1 stage=extent status=BEGIN index=%s blocks=%s\n' \
+		"$index" "$count"
 	dd if="$source_image" of="$arch_root" ibs=1048576 obs=1048576 \
 		skip="$offset_bytes" seek="$offset_bytes" count="$count_bytes" \
 		iflag=skip_bytes,count_bytes,fullblock \
 		oflag=seek_bytes,direct conv=notrunc status=noxfer 2>"$stats" ||
 		fail direct-clone
+	printf 'ROG5_NATIVE_CLONE_V1 stage=extent status=PASS index=%s blocks=%s\n' \
+		"$index" "$count"
 	written_extents=$index
 	direct_bytes=$((direct_bytes + count_bytes))
 done <"$extent_map"
-[ "$written_extents" -eq "$extent_count" ] &&
-	[ "$direct_bytes" -eq "$extent_bytes" ] || fail extent-incomplete
+[ "$written_extents" -eq "$chunk_last" ] &&
+	[ "$direct_bytes" -eq "$chunk_bytes" ] || fail extent-incomplete
 sync || fail clone-sync
+[ "$chunk_last" -eq "$extent_count" ] || {
+	blockdev --setro "$arch_root" || fail target-relock
+	blockdev --setro "$disk" || fail disk-relock
+	verify_lock_state 0 || fail relock-state
+	printf V >&9 || fail softdog-disarm
+	exec 9>&-
+	emit watchdog DISARMED
+	printf 'ROG5_NATIVE_CLONE_V1 stage=terminal status=CHUNK_PASS first=%s last=%s bytes=%s\n' \
+		"$chunk_first" "$chunk_last" "$chunk_bytes"
+	return_bootloader
+}
 e2fsck -f -p "$arch_root" >/run/rog5-native-clone-fsck.log 2>&1 || fail clone-fsck
 verify_ext4 "$arch_root" "$source_uuid" "$source_blocks" /run/rog5-native-clone-source-fs.log || fail clone-identity
 
