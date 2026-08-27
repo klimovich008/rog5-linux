@@ -118,6 +118,9 @@ no new candidate or phone write has been issued.
 Generation 211 is consumed after direct clone entry and softdog arm; no further
 stage arrived before the 840-second exact-fastboot fallback. p24 is partial and
 successors are frozen pending per-extent systematic debugging.
+Systematic review now selects three fixed chunk boots: extents 1–19
+(670,892,032 bytes), extent 20 (891,424,768 bytes), and extents 21–37
+(288,337,920 bytes), with per-extent progress and relock after each.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
