@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1"
-BUNDLE = "storage-layout-stage2-watchdog-lifetime-v2"
+PROFILE_ID = "storage-layout-stage2-watchdog-observer-v1-generation202-live-v1"
+BUNDLE = "storage-layout-stage2-watchdog-observer-v1"
 MANIFEST_SHA256 = (
-    "eaadc07583a675edf398e8d74c73658e3e0783a839fceee3d3510f1a403fe741"
+    "57359d0f1e3a3471c733d79985edca7f271e352fb92cfa81d9fa94b65b76e4d2"
 )
 RECOVERY_SHA256 = (
-    "871e25cad01596d4b6ee62c61c12c6aff64d917b7f3bc5d565e371e9da1e1eb3"
+    "c4808cae310cada395c5a0025400e2ab6e7508c452fa157b16146135fa6e4d4f"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1\n"
-    b"candidate=storage-layout-stage2-watchdog-lifetime-v2\n"
+    b"storage-layout-stage2-watchdog-observer-v1-generation202-live-v1\n"
+    b"candidate=storage-layout-stage2-watchdog-observer-v1\n"
     b"manifest_sha256="
-    b"eaadc07583a675edf398e8d74c73658e3e0783a839fceee3d3510f1a403fe741\n"
+    b"57359d0f1e3a3471c733d79985edca7f271e352fb92cfa81d9fa94b65b76e4d2\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-watchdog-lifetime-v2-generation201-20260827-r1"
+    / "build/storage-layout-stage2-watchdog-observer-v1-generation202-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-watchdog-lifetime-v2",
+    admission_profile="storage-layout-stage2-watchdog-observer-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-watchdog-lifetime-v2",
-    build_profile="storage-layout-stage2-watchdog-lifetime-v2",
+    runtime_profile="storage-layout-stage2-watchdog-observer-v1",
+    build_profile="storage-layout-stage2-watchdog-observer-v1",
     diagnostic=False,
 )
 
@@ -188,6 +188,13 @@ else
 fi
 [ -c /dev/watchdog0 ] && printf '%s\n' 'watchdog_device=present' || printf '%s\n' 'watchdog_device=absent'
 grep -q '^qcom_wdt ' /proc/modules && printf '%s\n' 'watchdog_module=present' || printf '%s\n' 'watchdog_module=absent'
+observer_count=$(dmesg | grep -c 'ROG5_WDT_OBSERVER_V1 ' || true)
+case $observer_count in
+	0) observer=absent ;;
+	1) observer=$(dmesg | sed -n 's/^.*ROG5_WDT_OBSERVER_V1 /ROG5_WDT_OBSERVER_V1 /p') ;;
+	*) observer=error ;;
+esac
+printf 'watchdog_observer=%s\n' "$observer"
 printf '%s\n' 'result=PASS'
 """.strip()
 
@@ -730,6 +737,7 @@ def parse_runtime_evidence(path: Path) -> str:
     compatible = field("watchdog_compatible=")
     device_state = field("watchdog_device=")
     module_state = field("watchdog_module=")
+    observer = field("watchdog_observer=")
     if record_state not in {"present", "absent"}:
         fail("watchdog record state is invalid")
     if not (SHA256.fullmatch(record_sha256) or record_sha256 == "none"):
@@ -758,6 +766,12 @@ def parse_runtime_evidence(path: Path) -> str:
         "absent",
     }:
         fail("watchdog device or module state is invalid")
+    if observer not in {"absent", "error"} and not re.fullmatch(
+        r"ROG5_WDT_OBSERVER_V1 rate=[0-9]{1,12} en=[0-9a-f]{8} "
+        r"sts=[0-9a-f]{8} bark=[0-9a-f]{8} bite=[0-9a-f]{8}",
+        observer,
+    ):
+        fail("watchdog observer evidence is invalid")
     return boot_ids[0]
 
 

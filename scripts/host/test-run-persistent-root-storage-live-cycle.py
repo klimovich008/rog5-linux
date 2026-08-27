@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1",
+            "storage-layout-stage2-watchdog-observer-v1-generation202-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-watchdog-lifetime-v2",
+            "storage-layout-stage2-watchdog-observer-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation201",
+            "generation202",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -187,6 +187,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 "watchdog_compatible=qcom,kpss-wdt",
                 "watchdog_device=present",
                 "watchdog_module=present",
+                "watchdog_observer=absent",
                 "result=PASS",
                 "",
             )
@@ -194,6 +195,16 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "runtime.log"
             path.write_text(payload)
+            self.assertEqual(
+                MODULE.parse_runtime_evidence(path),
+                "11111111-2222-3333-4444-555555555555",
+            )
+            observed = payload.replace(
+                "watchdog_observer=absent",
+                "watchdog_observer=ROG5_WDT_OBSERVER_V1 rate=32764 "
+                "en=00000001 sts=00000001 bark=000b0000 bite=000c8000",
+            )
+            path.write_text(observed)
             self.assertEqual(
                 MODULE.parse_runtime_evidence(path),
                 "11111111-2222-3333-4444-555555555555",
@@ -219,6 +230,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             "watchdog_compatible=qcom,kpss-wdt",
             "watchdog_device=present",
             "watchdog_module=present",
+            "watchdog_observer=absent",
             "result=PASS",
         ]
         hostile = (
