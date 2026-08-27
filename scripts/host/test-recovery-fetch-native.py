@@ -1895,7 +1895,7 @@ class NativeRecoveryFetchTest(unittest.TestCase):
         self.assertFalse((root / self.payload.bundle).exists())
 
         with RawFetchServer(reply_handler(self.payload)) as retry_server:
-            retry = self.invoke(root, retry_server.port)
+            retry = self.invoke(root, retry_server.port, timeout_ms=2_000)
         self.assert_success(retry)
         self.assert_published(root)
 
@@ -1960,7 +1960,11 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                 with RawFetchServer(
                     reply_handler(self.payload)
                 ) as retry_server:
-                    retry = self.invoke(root, retry_server.port)
+                    retry = self.invoke(
+                        root,
+                        retry_server.port,
+                        timeout_ms=2_000,
+                    )
                 self.assert_success(retry)
                 self.assert_published(root)
 
