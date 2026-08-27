@@ -23,6 +23,9 @@ expected_image_label=ROG5_ARCH_A
 expected_probe_bytes=132
 expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
+expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
+expected_native_bytes=34359717888
+expected_native_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
 lower=/.rog5/root-ro
 image=/.rog5/userdata-ro/rog5/images/arch-local-a.ext4
 userdata_record=/run/rog5-p2-userdata-device
@@ -46,34 +49,51 @@ progress start
 	fail 'resolved userdata identity record is absent'
 IFS= read -r userdata <"$userdata_record" ||
 	fail 'resolved userdata identity record is unreadable'
-case $userdata in /dev/sd[a-z]23) ;; *) fail 'resolved userdata node is unsafe' ;; esac
+case $expected_native_root_mode:$userdata in
+	0:/dev/sd[a-z]23|1:/dev/sd[a-z]24) ;;
+	*) fail 'resolved root node is unsafe' ;;
+esac
 userdata_name=${userdata##*/}
 [ -b "$userdata" ] && [ -e "/sys/class/block/$userdata_name/partition" ] ||
 	fail 'resolved userdata device disappeared'
-[ -f "$loop_record" ] && [ ! -L "$loop_record" ] &&
-	[ "$(stat -c %a "$loop_record")" = 444 ] ||
-	fail 'resolved local-image loop record is absent'
-IFS= read -r root_loop <"$loop_record" ||
-	fail 'resolved local-image loop record is unreadable'
-case $root_loop in /dev/loop[0-9]*) ;; *) fail 'resolved loop node is unsafe' ;; esac
-loop_name=${root_loop##*/}
-[ -b "$root_loop" ] && [ -d "/sys/class/block/$loop_name/loop" ] ||
-	fail 'resolved local-image loop disappeared'
-[ "$(runtime_blockdev --getro "$root_loop")" = 1 ] &&
-	[ "$(runtime_blockdev --getsize64 "$root_loop")" = \
-	"$expected_image_bytes" ] ||
-	fail 'local-image loop is not exact and read-only'
-[ -f "$image" ] && [ ! -L "$image" ] &&
-	[ "$(stat -c '%u:%g:%a:%s:%h' "$image")" = \
-	"0:0:600:$expected_image_bytes:1" ] ||
-	fail 'published local image metadata changed'
-blkid_record=$(blkid "$root_loop") || fail 'local-image filesystem identity is absent'
-printf '%s\n' "$blkid_record" | grep -Fq " UUID=\"$expected_image_uuid\"" ||
-	fail 'local-image UUID changed'
+if [ "$expected_native_root_mode" -eq 1 ]; then
+	root_loop=$userdata
+	loop_name=$userdata_name
+	[ ! -e "$loop_record" ] && [ ! -L "$loop_record" ] ||
+		fail 'native root unexpectedly retained a loop record'
+	[ "$(runtime_blockdev --getro "$root_loop")" = 1 ] &&
+		[ "$(runtime_blockdev --getsize64 "$root_loop")" = \
+		"$expected_native_bytes" ] ||
+		fail 'native root is not exact and read-only'
+	blkid_record=$(blkid "$root_loop") || fail 'native-root filesystem identity is absent'
+	printf '%s\n' "$blkid_record" | grep -Fq " UUID=\"$expected_native_uuid\"" ||
+		fail 'native-root UUID changed'
+else
+	[ -f "$loop_record" ] && [ ! -L "$loop_record" ] &&
+		[ "$(stat -c %a "$loop_record")" = 444 ] ||
+		fail 'resolved local-image loop record is absent'
+	IFS= read -r root_loop <"$loop_record" ||
+		fail 'resolved local-image loop record is unreadable'
+	case $root_loop in /dev/loop[0-9]*) ;; *) fail 'resolved loop node is unsafe' ;; esac
+	loop_name=${root_loop##*/}
+	[ -b "$root_loop" ] && [ -d "/sys/class/block/$loop_name/loop" ] ||
+		fail 'resolved local-image loop disappeared'
+	[ "$(runtime_blockdev --getro "$root_loop")" = 1 ] &&
+		[ "$(runtime_blockdev --getsize64 "$root_loop")" = \
+		"$expected_image_bytes" ] ||
+		fail 'local-image loop is not exact and read-only'
+	[ -f "$image" ] && [ ! -L "$image" ] &&
+		[ "$(stat -c '%u:%g:%a:%s:%h' "$image")" = \
+		"0:0:600:$expected_image_bytes:1" ] ||
+		fail 'published local image metadata changed'
+	blkid_record=$(blkid "$root_loop") || fail 'local-image filesystem identity is absent'
+	printf '%s\n' "$blkid_record" | grep -Fq " UUID=\"$expected_image_uuid\"" ||
+		fail 'local-image UUID changed'
+fi
 printf '%s\n' "$blkid_record" | grep -Fq " LABEL=\"$expected_image_label\"" ||
-	fail 'local-image label changed'
+	fail 'root filesystem label changed'
 printf '%s\n' "$blkid_record" | grep -Fq ' TYPE="ext4"' ||
-	fail 'local-image filesystem type changed'
+	fail 'root filesystem type changed'
 
 probe_dir=$lower/var/lib/rog5
 probe_path=$probe_dir/local-image-write-probe-v1
@@ -145,19 +165,23 @@ grep -Fxq \
 [ "$(sha256sum "$lower/.rog5-source-seal" | cut -d ' ' -f 1)" = \
 	"$expected_source_seal_sha256" ] ||
 	fail 'mounted lower source seal changed after handoff'
-[ ! -e /.rog5/userdata-ro/rog5/state/good ] ||
-	fail 'unbooted root was promoted'
-[ ! -e /.rog5/userdata-ro/rog5/state/next ] ||
-	fail 'unbooted root was selected'
+if [ "$expected_native_root_mode" -eq 0 ]; then
+	[ ! -e /.rog5/userdata-ro/rog5/state/good ] ||
+		fail 'unbooted root was promoted'
+	[ ! -e /.rog5/userdata-ro/rog5/state/next ] ||
+		fail 'unbooted root was selected'
+fi
 
 awk '$1 == "overlay" && $2 == "/" && $3 == "overlay" &&
 	$4 ~ /(^|,)rw(,|$)/ { found++ }
 	END { exit found != 1 }' /proc/mounts ||
 	fail 'active root is not a writable volatile overlay'
-awk -v userdata="$userdata" '$1 == userdata && $2 == "/.rog5/userdata-ro" &&
-	$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ { found++ }
-	END { exit found != 1 }' /proc/mounts ||
-	fail 'userdata backing mount is not the exact read-only ext4 partition'
+if [ "$expected_native_root_mode" -eq 0 ]; then
+	awk -v userdata="$userdata" '$1 == userdata && $2 == "/.rog5/userdata-ro" &&
+		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ { found++ }
+		END { exit found != 1 }' /proc/mounts ||
+		fail 'userdata backing mount is not the exact read-only ext4 partition'
+fi
 awk -v loop="$root_loop" '$1 == loop && $2 == "/.rog5/root-ro" &&
 	$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ &&
 	$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ { found++ }
@@ -174,7 +198,8 @@ IFS= read -r expected_loop <"/sys/class/block/$loop_name/dev"
 while read -r _ _ device _ mountpoint _ rest; do
 	[ -e "/sys/dev/block/$device" ] || continue
 	block_mounts=$((block_mounts + 1))
-	if [ "$device" = "$expected_device" ] &&
+	if [ "$expected_native_root_mode" -eq 0 ] &&
+		[ "$device" = "$expected_device" ] &&
 		[ "$mountpoint" = /.rog5/userdata-ro ]; then
 		continue
 	fi
@@ -184,7 +209,7 @@ while read -r _ _ device _ mountpoint _ rest; do
 	fi
 	fail "unexpected block-backed mount: $mountpoint"
 done </proc/self/mountinfo
-[ "$block_mounts" -eq 2 ] ||
+[ "$block_mounts" -eq "$((2 - expected_native_root_mode))" ] ||
 	fail 'physical block-backed mount count changed'
 progress mounts-pass
 
@@ -262,11 +287,20 @@ trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
 	printf '%s\n' 'status=PASS'
 	printf '%s\n' "kernel=$(uname -r)"
 	printf '%s\n' "physical_blocks=$physical_count"
-	printf '%s\n' 'block_backed_mounts=2'
-	printf '%s\n' 'userdata_mount=ro-noload'
-	printf '%s\n' 'local_image_mount=ro-noload'
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		printf '%s\n' 'block_backed_mounts=1'
+		printf '%s\n' 'root_mount=native-root-ro-noload'
+	else
+		printf '%s\n' 'block_backed_mounts=2'
+		printf '%s\n' 'userdata_mount=ro-noload'
+		printf '%s\n' 'local_image_mount=ro-noload'
+	fi
 	printf '%s\n' 'local_image_write_probe=PASS'
-	printf '%s\n' 'root=local-ext4-overlay-tmpfs'
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		printf '%s\n' 'root=native-ext4-overlay-tmpfs'
+	else
+		printf '%s\n' 'root=local-ext4-overlay-tmpfs'
+	fi
 	printf '%s\n' "blocked_device_queries=$blocked_query_count"
 	printf '%s\n' "blocked_scsi_commands=$blocked_scsi_count"
 	printf '%s\n' "journal_recovery_events=$journal_recovery_count"

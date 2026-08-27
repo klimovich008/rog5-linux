@@ -37,6 +37,7 @@ awk '
 ' "$init" >"$functions"
 grep -Fq 'handoff_persistent_root() {' "$functions" ||
 	fail 'persistent-root handoff functions could not be isolated'
+expected_native_root_mode=0
 # shellcheck disable=SC1090
 . "$functions"
 
@@ -71,6 +72,12 @@ handoff_move_count=0
 handoff_persistent_root || fail 'complete persistent-root handoff was rejected'
 [ "$handoff_move_count" -eq 7 ] ||
 	fail 'complete persistent-root handoff did not move seven mounts'
+expected_native_root_mode=1
+handoff_move_count=0
+handoff_persistent_root || fail 'complete native-root handoff was rejected'
+[ "$handoff_move_count" -eq 6 ] ||
+	fail 'complete native-root handoff did not move six mounts'
+expected_native_root_mode=0
 
 failure_log=$work/switch-root-failure
 probe=$work/switch-root-failure-probe.sh

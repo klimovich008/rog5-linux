@@ -17,6 +17,7 @@ expected_physical_count=117
 expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
 expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
+expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
 expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
@@ -407,6 +408,41 @@ find_exact_userdata() {
 	printf '%s/%s\n' "$dev_root" "$found"
 }
 
+find_exact_arch_root() {
+	[ "$#" -eq 2 ] || return 1
+	sys_block_root=$1
+	dev_root=$2
+	name_count=0
+	exact_count=0
+	found=
+	for sys_disk in "$sys_block_root"/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk") || return 1
+		case $disk in sd[a-z]) ;; *) continue ;; esac
+		for sys_block in "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/partition" ] || continue
+			partition_name=$(sed -n 's/^PARTNAME=//p' \
+				"$sys_block/uevent" | sed -n '1p')
+			[ "$partition_name" = arch_root_a ] || continue
+			name_count=$((name_count + 1))
+			name=$(basename "$sys_block") || return 1
+			[ "$name" = "${disk}24" ] || continue
+			[ "$(cat "$sys_disk/size")" = 494927872 ] || continue
+			[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] || continue
+			[ "$(cat "$sys_block/partition")" = 24 ] || continue
+			[ "$(cat "$sys_block/start")" = 427819008 ] || continue
+			[ "$(cat "$sys_block/size")" = 67108824 ] || continue
+			[ "$(sed -n 's/^DEVNAME=//p' "$sys_block/uevent")" = "$name" ] || continue
+			[ "$(cat "$sys_block/ro")" = 1 ] || continue
+			exact_count=$((exact_count + 1))
+			found=$name
+		done
+	done
+	[ "$name_count" -eq 1 ] && [ "$exact_count" -eq 1 ] || return 1
+	printf '%s/%s\n' "$dev_root" "$found"
+}
+
 write_ufs_inventory() {
 	inventory=/run/rog5-p2-ufs-inventory.tsv
 	printf 'name\tkind\tpartition_number\tpartition_name\tmajor_minor\tread_only\tstart_sectors\tsize_sectors\tlogical_block_bytes\n' \
@@ -621,6 +657,17 @@ verify_only_userdata_mount() {
 verify_userdata_and_image_mounts() {
 	count=0
 	userdata_name=${userdata##*/}
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		expected_root=$(cat "/sys/class/block/$userdata_name/dev") || return 1
+		while read -r _ _ device _ mountpoint _ rest; do
+			[ -e "/sys/dev/block/$device" ] || continue
+			count=$((count + 1))
+			[ "$device" = "$expected_root" ] &&
+				[ "$mountpoint" = /mnt/root-ro ] || return 1
+		done </proc/self/mountinfo
+		[ "$count" -eq 1 ]
+		return
+	fi
 	loop_name=${root_loop##*/}
 	expected_userdata=$(cat "/sys/class/block/$userdata_name/dev") || return 1
 	expected_loop=$(cat "/sys/class/block/$loop_name/dev") || return 1
@@ -731,6 +778,22 @@ mount_persistent_root() {
 	mount_persistent_root_failure=mkdir
 	mkdir -p /mnt/userdata /mnt/root-ro /mnt/probe-root /mnt/state /newroot ||
 		return 1
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		mount_persistent_root_failure=native-mount
+		mount -t ext4 -o ro,noload,nodev,nosuid,noatime \
+			"$userdata" /mnt/root-ro || return 1
+		mount_persistent_root_failure=native-mount-table
+		awk -v root="$userdata" '$1 == root && $2 == "/mnt/root-ro" &&
+			$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ &&
+			$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ {
+				found++
+			}
+			END { exit found != 1 }' /proc/mounts || return 1
+		verify_userdata_and_image_mounts || return 1
+		verify_physical_storage_read_only || return 1
+		mount_persistent_root_failure=none
+		return 0
+	fi
 	mount_persistent_root_failure=filesystem-probe
 	classify_userdata_filesystem || return 1
 	mount_persistent_root_failure=mount-call
@@ -791,6 +854,10 @@ publish_sparse_block_probe() {
 }
 
 resolve_local_root_image() {
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		root_image=$userdata
+		return 0
+	fi
 	root_image=/mnt/userdata/rog5/images/arch-local-a.ext4
 	[ -f "$root_image" ] && [ ! -L "$root_image" ] || return 1
 	[ "$(stat -c '%u:%g:%a:%s:%h' "$root_image")" = \
@@ -1069,6 +1136,10 @@ run_local_image_write_probe() {
 }
 
 mount_local_root_image() {
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		verify_userdata_and_image_mounts
+		return
+	fi
 	root_loop=$(losetup -f) || return 1
 	case $root_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
 	loop_name=${root_loop##*/}
@@ -1432,11 +1503,13 @@ handoff_persistent_root() {
 		"$handoff_newroot/run" || return 1
 	touch "$handoff_run/rog5-p2-root-mounted" || return 1
 
-	if ! move_handoff_mount "$handoff_userdata" \
-		"$handoff_newroot/.rog5/userdata-ro"; then
-		return 1
+	if [ "$expected_native_root_mode" -eq 0 ]; then
+		if ! move_handoff_mount "$handoff_userdata" \
+			"$handoff_newroot/.rog5/userdata-ro"; then
+			return 1
+		fi
+		handoff_moved_userdata=1
 	fi
-	handoff_moved_userdata=1
 	if ! move_handoff_mount "$handoff_root" \
 		"$handoff_newroot/.rog5/root-ro"; then
 		rollback_handoff_mounts || true
@@ -1543,13 +1616,18 @@ publish_or_rollback kernel-verified PASS
 start_stage_reporter
 publish_or_rollback ufs-ready ENTER
 
-if ! load_reboot_mode_modules; then
-	publish_stage ufs-ready FAIL reboot-mode-module-load || true
-	fail_stage 'Qualcomm reboot-mode modules failed' reboot-mode 15
-fi
-if ! wait_for_reboot_mode; then
-	publish_stage ufs-ready FAIL reboot-mode-unavailable || true
-	fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15
+if [ "$expected_native_root_mode" -eq 0 ]; then
+	if ! load_reboot_mode_modules; then
+		publish_stage ufs-ready FAIL reboot-mode-module-load || true
+		fail_stage 'Qualcomm reboot-mode modules failed' reboot-mode 15
+	fi
+	if ! wait_for_reboot_mode; then
+		publish_stage ufs-ready FAIL reboot-mode-unavailable || true
+		fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15
+	fi
+else
+	[ -x "$reboot_helper" ] ||
+		fail_stage 'restart2 bootloader helper is unavailable' reboot-mode 15
 fi
 
 if [ -x /sbin/rog5-load-persistent-power-usb ]; then
@@ -1608,7 +1686,11 @@ if ! lock_physical_storage; then
 fi
 publish_or_rollback storage-locked PASS
 publish_or_rollback userdata-resolved ENTER
-userdata=$(find_exact_userdata /sys/class/block /dev) ||
+if [ "$expected_native_root_mode" -eq 1 ]; then
+	userdata=$(find_exact_arch_root /sys/class/block /dev)
+else
+	userdata=$(find_exact_userdata /sys/class/block /dev)
+fi ||
 	{
 		publish_stage userdata-resolved FAIL || true
 		fail_stage 'exact userdata identity failed' userdata 80
