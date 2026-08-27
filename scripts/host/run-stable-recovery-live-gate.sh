@@ -4123,8 +4123,8 @@ case $profile in
 		;;
 	storage-layout-stage2-watchdog-mmio-v1-generation204-live-v1)
 		expected_boot_image=build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 204 immediate read-only /dev/mem snapshot of inherited watchdog EN, STS, bark and bite, published through repeated stage immediately after NCM carrier; no module, IRQ, MMIO write, power/UFS or storage dependency; RAM-only, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 204 immediate module-free inherited-watchdog observer; never flash or retry after COMMIT'
+		expected_boot_basis='consumed Generation 204 MMIO-read classifier; target reported watchdog-mmio-detail before writes, proving the pipeline masked an empty or invalid register read; exact fastboot and FALLBACK_RETURNED passed, no storage writes; never retry or flash'
+		expected_boot_role='consumed Generation 204 pipeline-masked MMIO read failure; exact fallback, no writes; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

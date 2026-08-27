@@ -106,7 +106,11 @@ power/UFS still produced no stage frame before inherited reset, so module
 relocation/probe is too slow for this deadline. Generation 204 is the unbooted
 module-free successor: exact BusyBox `dd`/`od` reads `/dev/mem` immediately
 after carrier and publishes the same compact stage. Its target, signed manifest
-and wrapper are `bb090ddd...`, `596df1af...` and `8ecd4f34...`.
+and wrapper were `bb090ddd...`, `596df1af...` and `8ecd4f34...`. Generation
+204 is consumed after exact `watchdog-mmio-detail`: the shell pipeline masked
+an empty/failed `dd`. The successor uses explicit four-byte files, validates
+each command/size/value and publishes EN/STS/BARK/BITE separately before the
+final tuple. No storage write occurred.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

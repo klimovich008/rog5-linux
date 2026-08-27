@@ -449,8 +449,8 @@ awk -F '\t' \
 		$3 == "consumed Generation 203 early module observer; NCM still timed out and target reset before any stage frame, proving external module relocation/probe is too slow for inherited watchdog deadline; no MMIO or storage writes, FALLBACK_RETURNED resolved; never retry or flash" &&
 		NF == 3 { stage2_watchdog_observer_v2++ ; next }
 	$1 == "build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 204 immediate read-only /dev/mem snapshot of inherited watchdog EN, STS, bark and bite, published through repeated stage immediately after NCM carrier; no module, IRQ, MMIO write, power/UFS or storage dependency; RAM-only, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed Generation 204 MMIO-read classifier; target reported watchdog-mmio-detail before writes, proving the pipeline masked an empty or invalid register read; exact fastboot and FALLBACK_RETURNED passed, no storage writes; never retry or flash" &&
 		NF == 3 { stage2_watchdog_mmio++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -667,12 +667,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	$1 == "build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 204 immediate read-only /dev/mem snapshot of inherited watchdog EN, STS, bark and bite, published through repeated stage immediately after NCM carrier; no module, IRQ, MMIO write, power/UFS or storage dependency; RAM-only, never flash or retry after COMMIT" && NF == 3 {
-		stage2_watchdog_mmio++
-	}
-	END { exit allowed == 2 + power_usb && power_usb <= 1 && stage2_watchdog_mmio == 1 ? 0 : 1 }
+	END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -697,11 +692,11 @@ grep -Fq "expected_boot_basis='consumed Generation 202 inherited-watchdog timing
 	{ echo 'FAIL Generation 202 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='consumed Generation 203 early module observer; NCM still timed out and target reset before any stage frame, proving external module relocation/probe is too slow for inherited watchdog deadline; no MMIO or storage writes, FALLBACK_RETURNED resolved; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 203 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 204 immediate read-only /dev/mem snapshot of inherited watchdog EN, STS, bark and bite, published through repeated stage immediately after NCM carrier; no module, IRQ, MMIO write, power/UFS or storage dependency; RAM-only, never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed Generation 204 MMIO-read classifier; target reported watchdog-mmio-detail before writes, proving the pipeline masked an empty or invalid register read; exact fastboot and FALLBACK_RETURNED passed, no storage writes; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 204 gate basis differs from policy' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img" &&
-	$4 == "unbooted Generation 204 immediate module-free inherited-watchdog observer; never flash or retry after COMMIT" && NF == 5 { found++ }
+	$4 == "consumed Generation 204 pipeline-masked MMIO read failure; exact fallback, no writes; never retry or flash" && NF == 5 { found++ }
 	END { exit found == 1 ? 0 : 1 }
 ' "$artifact_manifest" ||
 	{ echo 'FAIL Generation 204 artifact role differs from live gate' >&2; exit 1; }
