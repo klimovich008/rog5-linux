@@ -30,9 +30,14 @@ for contract in \
 	'losetup -r "$source_loop" "$source_image"' \
 	'"$verifier" "$source_verify_mount" "$native_seal"' \
 	'verify_mount_count 2' \
-	'format=rog5-hardware-watchdog-v1' \
-	'timeout_seconds=30' \
-	'kill -0 "$hardware_watchdog_pid"' \
+	'/rog5-softdog-modules/softdog.ko' \
+	'soft_margin=840' \
+	'soft_reboot_cmd=bootloader' \
+	'exec 9>/dev/watchdog0' \
+	"printf '\\0' >&9" \
+	'emit watchdog ARMED' \
+	'printf V >&9' \
+	'emit watchdog DISARMED' \
 	'ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS'; do
 	grep -Fq "$contract" "$target" || {
 		echo "FAIL missing native-clone contract: $contract" >&2
@@ -41,6 +46,20 @@ for contract in \
 done
 ! grep -Fq 'sha256sum "$source_image"' "$target"
 ! grep -Eq 'sgdisk|mkfs|fastboot|/dev/sd[a-z]24' "$target"
+python3 - "$target" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+arm = source.index("printf '\\0' >&9")
+write = source.index('blockdev --setrw "$disk"', arm)
+relock = source.index('verify_lock_state 0 || fail relock-state', write)
+verify = source.index('verify_power_thermal || fail final-power-thermal', relock)
+disarm = source.index('printf V >&9', verify)
+terminal = source.index("stage=terminal status=PASS", disarm)
+assert arm < write < relock < verify < disarm < terminal
+assert source.count("printf V >&9") == 1
+PY
 grep -Fq 'native_seal=${NATIVE_SEAL:-}' "$builder"
 grep -Fq 'ln -s /proc/mounts "$stage/etc/mtab"' "$builder"
 

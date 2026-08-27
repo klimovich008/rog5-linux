@@ -346,7 +346,8 @@ done
 [ "$count" -eq "$expected_topology_count" ] || fail "ufs-count-$count"
 publish_stage ufs-ready PASS ready || fail stage-publish
 if [ ! -e /rog5-watchdog-observer/rog5-qcom-wdt-observer.ko ] &&
-	[ ! -e /rog5-watchdog-mmio-observer ]; then
+	[ ! -e /rog5-watchdog-mmio-observer ] &&
+	[ ! -e /rog5-softdog-modules/softdog.ko ]; then
 	if ! arm_hardware_watchdog; then
 		hardware_watchdog_reason=$(sed -n '1p' /run/rog5-hardware-watchdog.failure 2>/dev/null || true)
 		case $hardware_watchdog_reason in

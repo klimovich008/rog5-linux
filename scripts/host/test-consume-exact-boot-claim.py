@@ -547,6 +547,13 @@ PROFILES.update(
             b"manifest_sha256=ec5d0890e83589c9b564908a511d266c873e9d7f5a76d7c16b4024e0c5dd8344\n"
             b"state=BOOT_CLAIMED\n"
         ),
+        "storage-layout-stage2-softdog-clone-v1-generation208-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=storage-layout-stage2-softdog-clone-v1-generation208-live-v1\n"
+            b"candidate=storage-layout-stage2-softdog-clone-v1\n"
+            b"manifest_sha256=8aab1a2c3eb96fc275caf05f7ea1e99f58197f1c13ecd024bac4ed68d2b277c4\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "storage-preflight-v3-generation73-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
