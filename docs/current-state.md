@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-26
+Updated: 2026-08-27
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -110,7 +110,9 @@ and wrapper were `bb090ddd...`, `596df1af...` and `8ecd4f34...`. Generation
 204 is consumed after exact `watchdog-mmio-detail`: the shell pipeline masked
 an empty/failed `dd`. The successor uses explicit four-byte files, validates
 each command/size/value and publishes EN/STS/BARK/BITE separately before the
-final tuple. No storage write occurred.
+final tuple. No storage write occurred. Generation 205 is that unbooted,
+authority-free successor; its target, signed manifest and wrapper are
+`30b169dd...`, `436f32b6...` and `c456a202...`.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is

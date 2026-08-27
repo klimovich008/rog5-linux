@@ -457,6 +457,13 @@ CLAIMS = {
         b"manifest_sha256=596df1af9bc9a3cc3710be7802559983849f2ef381a38f105414d2df7e0dcaf8\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "storage-layout-stage2-watchdog-mmio-v2-generation205-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=storage-layout-stage2-watchdog-mmio-v2-generation205-live-v1\n"
+        b"candidate=storage-layout-stage2-watchdog-mmio-v2\n"
+        b"manifest_sha256=436f32b67473360af215486d275966cc9b3504dfaf9b6e3a704f5ce8a188dcd0\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-preflight-v3-generation73-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
