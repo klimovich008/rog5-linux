@@ -83,6 +83,11 @@ is inherited armed. No storage write occurred. The next observer moves ahead
 of power/UFS and publishes its register snapshot through the existing repeated
 stage record before the inherited deadline.
 
+Generation 203 is built but unbooted. It publishes the compact register tuple
+immediately after NCM carrier, and the host treats that exact stage as accepted
+evidence before SSH. Target, manifest and wrapper hashes are `0758d78f...`,
+`e984aa8b...` and `4df798b0...`; no write path is present.
+
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
 fastboot between development cycles. Generation 160 returned directly to

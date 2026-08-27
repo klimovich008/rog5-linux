@@ -561,6 +561,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "storage-layout-stage2-watchdog-lifetime-v1-generation200-live-v1",
         "storage-layout-stage2-watchdog-lifetime-v2-generation201-live-v1",
         "storage-layout-stage2-watchdog-observer-v1-generation202-live-v1",
+        "storage-layout-stage2-watchdog-observer-v2-generation203-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

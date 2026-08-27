@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-watchdog-observer-v1-generation202-live-v1",
+            "storage-layout-stage2-watchdog-observer-v2-generation203-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-watchdog-observer-v1",
+            "storage-layout-stage2-watchdog-observer-v2",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation202",
+            "generation203",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -446,6 +446,13 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             first.replace(b"stage=runtime", b"stage=storage-locked")
         )
         self.assertEqual(locked.stage, "storage-locked")
+        observer_detail = (
+            b"wdt-r32764-e00000001-s00000001-b000b0000-i000c8000"
+        )
+        observer = MODULE.parse_stage_record(
+            first.replace(b"detail=none", b"detail=" + observer_detail)
+        )
+        self.assertRegex(observer.detail, MODULE.WATCHDOG_OBSERVER_DETAIL)
         for hostile in (
             first.rstrip(b"\n"),
             first + b"extra=1\n",
@@ -512,6 +519,12 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("ALLOW_STAGE2_WATCHDOG_LIFETIME", source)
         self.assertIn("watchdog_log_hex=", source)
         self.assertIn('bytes" -le 4096', source)
+        observer = source.index(
+            "if WATCHDOG_OBSERVER_DETAIL.fullmatch(accepted_stage.detail):"
+        )
+        ssh = source.index("target_ssh = ssh_arguments", observer)
+        self.assertLess(observer, ssh)
+        self.assertIn('cycle.resolve_intent(intent, "TARGET_ACCEPTED")', source[observer:ssh])
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
