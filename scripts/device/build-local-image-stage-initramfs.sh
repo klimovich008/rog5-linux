@@ -20,6 +20,7 @@ ufs_modules=${UFS_MODULES:-}
 power_modules_root=${POWER_MODULES_ROOT:-}
 direct_extent_map=${DIRECT_EXTENT_MAP:-}
 native_seal=${NATIVE_SEAL:-}
+native_repair_root=${NATIVE_REPAIR_ROOT:-}
 watchdog_module=${WATCHDOG_MODULE:-}
 watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}
 softdog_module=${SOFTDOG_MODULE:-}
@@ -46,6 +47,20 @@ if [ -n "$native_seal" ]; then
 		[ "$(sha256sum "$native_seal" | cut -d ' ' -f 1)" = \
 			02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876 ] ||
 		fail 'native seal identity changed'
+fi
+if [ -n "$native_repair_root" ]; then
+	[ -d "$native_repair_root" ] && [ ! -L "$native_repair_root" ] ||
+		fail 'unsafe native repair root'
+	[ "$(find "$native_repair_root" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 2 ] ||
+		fail 'native repair inventory changed'
+	[ "$(stat -c '%s' "$native_repair_root/sshd")" = 527008 ] &&
+		[ "$(sha256sum "$native_repair_root/sshd" | cut -d ' ' -f 1)" = \
+		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 ] ||
+		fail 'native repair sshd changed'
+	[ "$(stat -c '%s' "$native_repair_root/ssh-keygen")" = 526688 ] &&
+		[ "$(sha256sum "$native_repair_root/ssh-keygen" | cut -d ' ' -f 1)" = \
+		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e ] ||
+		fail 'native repair ssh-keygen changed'
 fi
 if [ -n "$watchdog_module" ]; then
 	[ -f "$watchdog_module" ] && [ ! -L "$watchdog_module" ] &&
@@ -169,6 +184,12 @@ if [ -n "$native_seal" ]; then
 	install -D -m 0444 "$native_seal" "$stage/etc/rog5/native-root-v1.seal"
 	rm -f "$stage/etc/mtab"
 	ln -s /proc/mounts "$stage/etc/mtab"
+fi
+if [ -n "$native_repair_root" ]; then
+	install -D -m 0444 "$native_repair_root/sshd" \
+		"$stage/etc/rog5-native-repair/sshd"
+	install -D -m 0444 "$native_repair_root/ssh-keygen" \
+		"$stage/etc/rog5-native-repair/ssh-keygen"
 fi
 if [ -n "$direct_extent_map" ]; then
 	install -D -m 0444 "$direct_extent_map" \

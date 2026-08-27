@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-native-tree-detail-v1-generation222-live-v1",
+            "storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-native-tree-detail-v1",
+            "storage-layout-stage2-native-ssh-repair-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation222",
+            "generation223",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -526,8 +526,9 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             'VERIFY_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"',
             source,
         )
-        self.assertIn("parse_verify_evidence(verify_log)", source)
-        self.assertIn("ALLOW_STAGE2_READONLY_VERIFY", source)
+        self.assertIn("parse_repair_evidence(verify_log)", source)
+        self.assertIn("ALLOW_STAGE2_NATIVE_SSH_REPAIR", source)
+        self.assertNotIn("ALLOW_STAGE2_READONLY_VERIFY", source)
         self.assertNotIn("ALLOW_STAGE2_P24_CLONE", source)
         self.assertIn("verify_log, 850", source)
         self.assertLess(850, MODULE.FALLBACK_TIMEOUT_SECONDS)
@@ -611,6 +612,32 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 path.write_text("\n".join(payload) + "\n")
                 with self.assertRaises(MODULE.PersistentCycleError):
                     MODULE.parse_verify_evidence(path)
+
+    def test_native_repair_evidence_is_exact_and_hostile(self) -> None:
+        expected = [
+            "ROG5_NATIVE_REPAIR_V1 stage=repair status=BEGIN",
+            "ROG5_NATIVE_REPAIR_V1 stage=watchdog status=ARMED",
+            "ROG5_NATIVE_REPAIR_V1 stage=watchdog status=DISARMED",
+            "ROG5_NATIVE_REPAIR_V1 stage=terminal status=PASS "
+            "files=sshd,ssh-keygen bytes=1053696 storage=RELOCKED",
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "repair.log"
+            path.write_text("\n".join([*expected, "Connection closed"]) + "\n")
+            MODULE.parse_repair_evidence(path)
+            hostile = (
+                expected[:-1],
+                [*expected, expected[-1]],
+                [expected[1], expected[0], *expected[2:]],
+                [*expected[:-1], expected[-1].replace("RELOCKED", "WRITABLE")],
+                [*expected[:-1], expected[-1].replace("1053696", "1053695")],
+                [expected[0], expected[1], expected[-1]],
+                [expected[0], expected[1], "ROG5_NATIVE_REPAIR_V1 stage=terminal status=FAIL reason=write-sshd"],
+            )
+            for payload in hostile:
+                path.write_text("\n".join(payload) + "\n")
+                with self.assertRaises(MODULE.PersistentCycleError):
+                    MODULE.parse_repair_evidence(path)
 
 
 if __name__ == "__main__":

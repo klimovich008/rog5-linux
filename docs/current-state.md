@@ -220,13 +220,18 @@ clean state passed, but its aggregate boot-critical tree predicate failed.
 Mainline UFS/NCM/key-only SSH and automatic slot-A fastboot fallback passed;
 no storage write occurred. The host-finalized image passes the same predicates
 under the exact sealed AArch64 BusyBox, so the on-device differing inode is not
-yet known. Generation 222 is the unbooted read-only successor. It emits fixed
-metadata/hash records for the seal, init, systemd, sshd, ssh-keygen, authorized
-key and SSH policy. Target/manifest/wrapper hashes are `b3c272a6...`,
-`907b2447...`, and `7ae03ecb...`.
+yet known. Generation 222 passed and is consumed. It proved exact metadata for
+all seven objects and exact content for five; only `sshd` and `ssh-keygen` had
+content hashes `cfcf0874...` and `535ad8b0...`. Their expected zero ranges
+cross sparse zero-FILL chunks, making incomplete zero materialization the
+leading hypothesis. Generation 223 is the unbooted repair: it requires those
+exact old hashes, a safe power/thermal state, and a 120-second softdog; writes
+only the two sealed binaries, verifies them, relocks p24 and returns fastboot.
+Target/manifest/wrapper hashes are `4c678635...`, `a510c69e...`, and
+`1add84c6...`.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 220 returned automatically. Battery voltage is 8.699 V and
+Generation 222 returned automatically. Battery voltage is 8.696 V and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
