@@ -110,8 +110,9 @@ Generation 209 is consumed: source admission and softdog passed, then the p24
 `e2image` clone hit its 420-second bound. Exact fastboot/cleanup and
 `FALLBACK_RETURNED` passed. p24 is partial/unknown and requires read-only
 postmortem before another write.
-Generation 210 is the unbooted authority-free read-only p24 postmortem with
-target/manifest/wrapper hashes `a0e786f7...`, `b4dd750f...` and `e6b23d66...`.
+Generation 210 is consumed read-only: p24 has ext4 magic but `dumpe2fs` failed,
+proving a partial/corrupt clone. Exact fastboot and `FALLBACK_RETURNED` passed.
+The next writer must overwrite all known allocated source extents directly.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
