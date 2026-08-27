@@ -98,8 +98,8 @@ PROGRAM_IDENTITIES = {
         "0755",
     ),
     "scripts/host/run-stable-recovery-live-gate.sh": (
-        447872,
-        "a845ffd0bfad50edfbe43ebfbf60fcc7539e9f5d2f3f2fe51fa179b5e3b72e10",
+        447897,
+        "589bd6dd8fb5864f4bb88a7183a1bd9ef646e142d24e2a20c82611515e248473",
         "0755",
     ),
     "scripts/host/fallback-acm-control.py": (
