@@ -113,7 +113,9 @@ each command/size/value and publishes EN/STS/BARK/BITE separately before the
 final tuple. No storage write occurred. Generation 205 is consumed after exact
 `watchdog-mmio-en`; arm64 source proves `/dev/mem` `read()` rejects MMIO in
 `valid_phys_addr_range()`. Exact fastboot and `FALLBACK_RETURNED` passed. The
-offline successor changes only this access to a static read-only mmap helper.
+Generation-206 successor changes only this access to a static read-only mmap
+helper. Its target, signed manifest and wrapper are `59d077a8...`,
+`840e40b5...` and `87807c2c...`; it remains unbooted and authority-free.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
