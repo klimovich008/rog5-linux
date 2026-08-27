@@ -699,6 +699,12 @@ grep -Fq "expected_boot_basis='consumed Generation 203 early module observer; NC
 	{ echo 'FAIL Generation 203 gate basis differs from policy' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 204 immediate read-only /dev/mem snapshot of inherited watchdog EN, STS, bark and bite, published through repeated stage immediately after NCM carrier; no module, IRQ, MMIO write, power/UFS or storage dependency; RAM-only, never flash or retry after COMMIT'" "$gate" ||
 	{ echo 'FAIL Generation 204 gate basis differs from policy' >&2; exit 1; }
+awk -F '\t' '
+	$1 == "build/storage-layout-stage2-watchdog-mmio-v1-generation204-20260827-r1/repack/stable-recovery-a.avb.img" &&
+	$4 == "unbooted Generation 204 immediate module-free inherited-watchdog observer; never flash or retry after COMMIT" && NF == 5 { found++ }
+	END { exit found == 1 ? 0 : 1 }
+' "$artifact_manifest" ||
+	{ echo 'FAIL Generation 204 artifact role differs from live gate' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
