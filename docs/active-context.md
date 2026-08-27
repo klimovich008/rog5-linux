@@ -129,8 +129,10 @@ Generation 213 passed and is consumed. Extent 18 emitted exact PASS for
 42,708,992 bytes, synced, relocked, disarmed softdog, resolved
 `TARGET_ACCEPTED`, and returned exact slot-A fastboot in 174.265 seconds.
 Extents 1–18 (485,732,352 bytes) are proven; extent 19 is next.
-Generation 214 is the unbooted authority-free extent-19 successor with
-target/manifest/wrapper hashes `eee8f69a...`, `6459d0b3...` and `19045e36...`.
+Generation 214 passed and is consumed. Extent 19 copied 185,159,680 bytes,
+synced, relocked, disarmed softdog, resolved `TARGET_ACCEPTED`, and returned
+exact slot-A fastboot in 415.724 seconds. Extents 1–19 now have complete PASS
+evidence totaling 670,892,032 bytes.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
