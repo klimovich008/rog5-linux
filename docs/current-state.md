@@ -226,13 +226,16 @@ content hashes `cfcf0874...` and `535ad8b0...`. Their expected zero ranges
 cross sparse zero-FILL chunks, making incomplete zero materialization the
 leading hypothesis. Generation 223 is consumed. Its old-hash preconditions,
 two writes and in-mount new hashes passed, then the post-unmount clean-state
-assertion failed; exact slot-A fallback returned and final state is not
-inferred. Generation 224 is the unbooted read-only verifier for ext4 state and
-all seven boot-critical objects. Target/manifest/wrapper hashes are
-`5f57f785...`, `7cbec8fe...`, and `4dc08816...`.
+assertion failed; exact slot-A fallback returned. Generation 224 is consumed
+and proved exact geometry with ext4 state `clean with errors`; it therefore
+skipped the tree and made no write. Generation 225 is the unbooted bounded
+repair. It first proves that state plus both repaired hashes, then runs only
+`e2fsck -p` on p24 under a 600-second softdog, verifies clean ext4 and the full
+tree, relocks storage and returns fastboot. Target/manifest/wrapper hashes are
+`868d9644...`, `60db65fd...`, and `3459568e...`.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 223 returned automatically. Battery voltage is 8.693 V and
+Generation 224 returned automatically. Battery voltage is 8.694 V and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This

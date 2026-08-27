@@ -583,6 +583,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "storage-layout-stage2-native-tree-detail-v1-generation222-live-v1",
         "storage-layout-stage2-native-ssh-repair-v1-generation223-live-v1",
         "storage-layout-stage2-native-postrepair-verify-v1-generation224-live-v1",
+        "storage-layout-stage2-native-fsck-v1-generation225-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(

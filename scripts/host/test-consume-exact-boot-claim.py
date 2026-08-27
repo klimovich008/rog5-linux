@@ -666,6 +666,13 @@ PROFILES.update(
             b"manifest_sha256=7cbec8fedf21126234d164654ac08577be00e0143672fed711874fc6f19b4ba0\n"
             b"state=BOOT_CLAIMED\n"
         ),
+        "storage-layout-stage2-native-fsck-v1-generation225-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=storage-layout-stage2-native-fsck-v1-generation225-live-v1\n"
+            b"candidate=storage-layout-stage2-native-fsck-v1\n"
+            b"manifest_sha256=60db65fda138a675a002f05d49fb9f6bf9e5fabaf4d19c60b13b325415c7f2bd\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "storage-preflight-v3-generation73-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
