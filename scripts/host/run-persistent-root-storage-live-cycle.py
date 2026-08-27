@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-watchdog-mmio-v2-generation205-live-v1"
-BUNDLE = "storage-layout-stage2-watchdog-mmio-v2"
+PROFILE_ID = "storage-layout-stage2-watchdog-mmap-v1-generation206-live-v1"
+BUNDLE = "storage-layout-stage2-watchdog-mmap-v1"
 MANIFEST_SHA256 = (
-    "436f32b67473360af215486d275966cc9b3504dfaf9b6e3a704f5ce8a188dcd0"
+    "840e40b59cd266f9545773c971f38e85ded0165349b3b61997dcb1f6f5ee7d97"
 )
 RECOVERY_SHA256 = (
-    "c456a202220c431e7ff55f6bb696242a2eb2916b8bf896ef07cc7220e92d3539"
+    "87807c2cdad742674dec4dfbc532f651e13da597cb2d39a583478cef64c2bc9f"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-watchdog-mmio-v2-generation205-live-v1\n"
-    b"candidate=storage-layout-stage2-watchdog-mmio-v2\n"
+    b"storage-layout-stage2-watchdog-mmap-v1-generation206-live-v1\n"
+    b"candidate=storage-layout-stage2-watchdog-mmap-v1\n"
     b"manifest_sha256="
-    b"436f32b67473360af215486d275966cc9b3504dfaf9b6e3a704f5ce8a188dcd0\n"
+    b"840e40b59cd266f9545773c971f38e85ded0165349b3b61997dcb1f6f5ee7d97\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_local_image_stage"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-watchdog-mmio-v2-generation205-20260827-r1"
+    / "build/storage-layout-stage2-watchdog-mmap-v1-generation206-20260827-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -128,10 +128,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-watchdog-mmio-v2",
+    admission_profile="storage-layout-stage2-watchdog-mmap-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-watchdog-mmio-v2",
-    build_profile="storage-layout-stage2-watchdog-mmio-v2",
+    runtime_profile="storage-layout-stage2-watchdog-mmap-v1",
+    build_profile="storage-layout-stage2-watchdog-mmap-v1",
     diagnostic=False,
 )
 

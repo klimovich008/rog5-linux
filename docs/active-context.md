@@ -95,7 +95,9 @@ accepted register separately before the final tuple. Generation 205 is
 consumed after exact `watchdog-mmio-en`; arm64 `/dev/mem` `read()` accepts only
 mapped memblock RAM and rejects this MMIO page before access. Exact fastboot
 and `FALLBACK_RETURNED` passed. A static read-only mmap helper now passes
-offline twin and fixture tests; no successor candidate exists yet.
+offline twin and fixture tests. Generation 206 is the unbooted authority-free
+successor with target/manifest/wrapper hashes `59d077a8...`, `840e40b5...`
+and `87807c2c...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
