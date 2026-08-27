@@ -196,6 +196,10 @@ Generation 218 passed and is consumed. Segment 2B copied 27,204 blocks /
 resolved `TARGET_ACCEPTED`, and returned exact slot-A fastboot in 294.734
 seconds. The next uncopied extent-20 range begins at block 1,464,081.
 
+Generation 219 is the unbooted authority-free segment-3A successor: offset
+block 1,464,081, 27,204 blocks / 111,427,584 bytes. Target/manifest/wrapper
+hashes are `2248045c...`, `f95bc32f...` and `ac55ace2...`.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This

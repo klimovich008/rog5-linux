@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-direct-extent20-seg2b-v1-generation218-live-v1",
+            "storage-layout-stage2-direct-extent20-seg3a-v1-generation219-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-direct-extent20-seg2b-v1",
+            "storage-layout-stage2-direct-extent20-seg3a-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation218",
+            "generation219",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
