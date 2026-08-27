@@ -118,6 +118,11 @@ register access raised SIGBUS. Exact fastboot and `FALLBACK_RETURNED` passed.
 Direct `0x17c10000` observation is closed; the next offline rollback design
 uses standard kernel `softdog`, not another MMIO successor.
 
+The exact g359 Clang-18/BTF outputs now produce byte-identical external
+`softdog.ko` twins at `ab0175a4...`, with vermagic
+`7.1.4-g359318de534f` and `struct module` size `0x500`. This is an offline
+module proof only; no softdog candidate or live authority exists yet.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
