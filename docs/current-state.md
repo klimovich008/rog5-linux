@@ -180,6 +180,11 @@ segment 1 at offset block 1,355,264 for 54,409 blocks / 222,859,264 bytes,
 synced, relocked, disarmed softdog, resolved `TARGET_ACCEPTED`, and returned
 exact slot-A fastboot in 480.461 seconds.
 
+Generation 216 is the unbooted authority-free extent-20 segment-2 successor:
+offset block 1,409,673, 54,408 blocks / 222,855,168 bytes. It reuses every
+proven kernel/recovery input. Target/manifest/wrapper hashes are `e0ccf465...`,
+`774135c1...` and `ab992342...`.
+
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
