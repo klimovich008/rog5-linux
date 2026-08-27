@@ -21,9 +21,14 @@ native_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a
 extent_map_sha256=e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94
 extent_count=37
 extent_bytes=1850654720
-chunk_first=19
-chunk_last=19
-chunk_bytes=185159680
+chunk_first=20
+chunk_last=20
+chunk_segment=1
+chunk_offset_blocks=1355264
+chunk_block_count=54409
+chunk_bytes=222859264
+extent20_offset_blocks=1355264
+extent20_block_count=217633
 userdata_mounted=0
 source_mounted=0
 source_loop_attached=0
@@ -289,6 +294,14 @@ blockdev --setrw "$arch_root" || fail target-write-window
 verify_lock_state 2 || fail write-window
 written_extents=$((chunk_first - 1))
 direct_bytes=0
+[ "$chunk_first" -eq 20 ] && [ "$chunk_last" -eq 20 ] &&
+	[ "$chunk_segment" -ge 1 ] && [ "$chunk_segment" -le 4 ] &&
+	[ "$chunk_block_count" -gt 0 ] &&
+	[ "$chunk_bytes" -eq "$((chunk_block_count * 4096))" ] &&
+	[ "$chunk_offset_blocks" -ge "$extent20_offset_blocks" ] &&
+	[ "$((chunk_offset_blocks + chunk_block_count))" -le \
+		"$((extent20_offset_blocks + extent20_block_count))" ] ||
+	fail chunk-contract
 tab=$(printf '\t')
 while IFS="$tab" read -r index offset count; do
 	case $index in ''|*[!0-9]*) continue ;; esac
@@ -297,18 +310,22 @@ while IFS="$tab" read -r index offset count; do
 	[ "$index" -eq "$((written_extents + 1))" ] || fail extent-order
 	case $offset in ''|*[!0-9]*) fail extent-map ;; esac
 	case $count in ''|*[!0-9]*) fail extent-map ;; esac
+	[ "$offset" -eq "$extent20_offset_blocks" ] &&
+		[ "$count" -eq "$extent20_block_count" ] || fail extent20-map
+	offset=$chunk_offset_blocks
+	count=$chunk_block_count
 	offset_bytes=$((offset * 4096))
 	count_bytes=$((count * 4096))
 	stats=/run/rog5-native-clone-dd-$index.stats
-	printf 'ROG5_NATIVE_CLONE_V1 stage=extent status=BEGIN index=%s blocks=%s\n' \
-		"$index" "$count"
+	printf 'ROG5_NATIVE_CLONE_V1 stage=extent status=BEGIN index=%s segment=%s offset=%s blocks=%s\n' \
+		"$index" "$chunk_segment" "$offset" "$count"
 	dd if="$source_image" of="$arch_root" ibs=1048576 obs=1048576 \
 		skip="$offset_bytes" seek="$offset_bytes" count="$count_bytes" \
 		iflag=skip_bytes,count_bytes,fullblock \
 		oflag=seek_bytes,direct conv=notrunc status=noxfer 2>"$stats" ||
 		fail direct-clone
-	printf 'ROG5_NATIVE_CLONE_V1 stage=extent status=PASS index=%s blocks=%s\n' \
-		"$index" "$count"
+	printf 'ROG5_NATIVE_CLONE_V1 stage=extent status=PASS index=%s segment=%s offset=%s blocks=%s\n' \
+		"$index" "$chunk_segment" "$offset" "$count"
 	written_extents=$index
 	direct_bytes=$((direct_bytes + count_bytes))
 done <"$extent_map"
@@ -322,8 +339,9 @@ sync || fail clone-sync
 	printf V >&9 || fail softdog-disarm
 	exec 9>&-
 	emit watchdog DISARMED
-	printf 'ROG5_NATIVE_CLONE_V1 stage=terminal status=CHUNK_PASS first=%s last=%s bytes=%s\n' \
-		"$chunk_first" "$chunk_last" "$chunk_bytes"
+	printf 'ROG5_NATIVE_CLONE_V1 stage=terminal status=CHUNK_PASS first=%s last=%s segment=%s offset=%s blocks=%s bytes=%s\n' \
+		"$chunk_first" "$chunk_last" "$chunk_segment" \
+		"$chunk_offset_blocks" "$chunk_block_count" "$chunk_bytes"
 	return_bootloader
 }
 e2fsck -f -p "$arch_root" >/run/rog5-native-clone-fsck.log 2>&1 || fail clone-fsck

@@ -22,12 +22,20 @@ for contract in \
 	'extent_map=/etc/rog5-local-image-direct-extents.tsv' \
 	'extent_count=37' \
 	'extent_bytes=1850654720' \
-	'chunk_first=19' \
-	'chunk_last=19' \
-	'chunk_bytes=185159680' \
+	'chunk_first=20' \
+	'chunk_last=20' \
+	'chunk_segment=1' \
+	'chunk_offset_blocks=1355264' \
+	'chunk_block_count=54409' \
+	'chunk_bytes=222859264' \
+	'extent20_offset_blocks=1355264' \
+	'extent20_block_count=217633' \
+	'fail chunk-contract' \
+	'fail extent20-map' \
 	'stage=extent status=BEGIN' \
 	'stage=extent status=PASS' \
 	'status=CHUNK_PASS' \
+	'segment=%s offset=%s blocks=%s' \
 	'iflag=skip_bytes,count_bytes,fullblock' \
 	'oflag=seek_bytes,direct conv=notrunc status=noxfer' \
 	'fail direct-clone' \
@@ -63,18 +71,36 @@ done
 ! grep -Eq 'sgdisk|mkfs|fastboot|/dev/sd[a-z]24' "$target"
 python3 - "$target" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 source = Path(sys.argv[1]).read_text()
+def value(name: str) -> int:
+    match = re.search(rf"^{name}=([0-9]+)$", source, re.MULTILINE)
+    assert match is not None
+    return int(match.group(1))
+
+assert value("chunk_first") == value("chunk_last") == 20
+assert value("chunk_segment") == 1
+assert value("chunk_offset_blocks") == value("extent20_offset_blocks")
+assert value("chunk_block_count") == 54409
+assert value("chunk_bytes") == value("chunk_block_count") * 4096
+assert value("chunk_offset_blocks") + value("chunk_block_count") <= (
+    value("extent20_offset_blocks") + value("extent20_block_count")
+)
 arm = source.index("printf '\\0' >&9")
 write = source.index('blockdev --setrw "$disk"', arm)
+map_check = source.index('[ "$offset" -eq "$extent20_offset_blocks" ]', write)
+override = source.index('offset=$chunk_offset_blocks', map_check)
+direct = source.index('dd if="$source_image"', override)
 relock = source.index('verify_lock_state 0 || fail relock-state', write)
 disarm = source.index('printf V >&9', relock)
 chunk_terminal = source.index("stage=terminal status=CHUNK_PASS", disarm)
 verify = source.index('verify_power_thermal || fail final-power-thermal', chunk_terminal)
 final_disarm = source.index('printf V >&9', verify)
 terminal = source.index("stage=terminal status=PASS", final_disarm)
-assert arm < write < relock < disarm < chunk_terminal < verify < final_disarm < terminal
+assert arm < write < map_check < override < direct < relock < disarm
+assert disarm < chunk_terminal < verify < final_disarm < terminal
 assert source.count("printf V >&9") == 2
 PY
 grep -Fq 'native_seal=${NATIVE_SEAL:-}' "$builder"
