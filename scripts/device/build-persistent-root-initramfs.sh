@@ -23,6 +23,7 @@ expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba
 expected_reboot_source=a8f7c1499928a10832d413555e3c9fbb54ea70e46c7a2988ce5430b547840d0b
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
 storage_mode=${UFS_STORAGE_MODE:-read-only}
+native_root_mode=${PERSISTENT_ROOT_NATIVE_PARTITION:-0}
 writer_boot_id=7c3afb64-8e84-4f4b-87f4-88d19c2646de
 probe_boot_id=${EXPECTED_PROBE_BOOT_ID:-$writer_boot_id}
 epoch=1681862400
@@ -48,6 +49,10 @@ case $storage_mode in
 		echo 'FAIL UFS_STORAGE_MODE must be read-only or local-write' >&2
 		exit 1
 		;;
+esac
+case $native_root_mode in 0|1) ;; *)
+	echo 'FAIL PERSISTENT_ROOT_NATIVE_PARTITION must be 0 or 1' >&2
+	exit 1
 esac
 
 case $require_deferred_ufs_modules in
@@ -230,6 +235,13 @@ grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$stage/init"
 sed -i "s/@EXPECTED_PROBE_BOOT_ID@/$probe_boot_id/" "$stage/init"
 grep -Fqx "expected_probe_boot_id=$probe_boot_id" "$stage/init"
 ! grep -Fq '@EXPECTED_PROBE_BOOT_ID@' "$stage/init"
+[ "$(grep -Fc '@EXPECTED_NATIVE_ROOT_MODE@' "$stage/init")" -eq 1 ] || {
+	echo 'FAIL persistent-root init has no unique native-root placeholder' >&2
+	exit 1
+}
+sed -i "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" "$stage/init"
+grep -Fqx "expected_native_root_mode=$native_root_mode" "$stage/init"
+! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -d -m 0755 "$stage/usr/libexec"
 clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
@@ -313,10 +325,16 @@ install -D -m 0755 "$attest" "$attest_stage"
 	echo 'FAIL persistent-root attestation has no unique write-probe producer placeholder' >&2
 	exit 1
 }
+[ "$(grep -Fc '@EXPECTED_NATIVE_ROOT_MODE@' "$attest_stage")" -eq 1 ] || {
+	echo 'FAIL persistent-root attestation has no unique native-root placeholder' >&2
+	exit 1
+}
 sed -i "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" "$attest_stage"
 sed -i "s/@EXPECTED_PROBE_BOOT_ID@/$probe_boot_id/" "$attest_stage"
+sed -i "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" "$attest_stage"
 grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$attest_stage"
 grep -Fqx "expected_probe_boot_id=$probe_boot_id" "$attest_stage"
+grep -Fqx "expected_native_root_mode=$native_root_mode" "$attest_stage"
 ! grep -Fq '@EXPECTED_' "$attest_stage"
 install -m 0755 "$verifier" \
 	"$stage/usr/local/sbin/persistent-root-verify"

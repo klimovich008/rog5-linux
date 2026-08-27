@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "storage-layout-stage2-native-fsck-v1-generation225-live-v1"
-BUNDLE = "storage-layout-stage2-native-fsck-v1"
+PROFILE_ID = "persistent-native-root-v1-generation226-live-v1"
+BUNDLE = "persistent-native-root-v1"
 MANIFEST_SHA256 = (
-    "60db65fda138a675a002f05d49fb9f6bf9e5fabaf4d19c60b13b325415c7f2bd"
+    "4dc87544ec35dc9747a9e2a860b93fc4765228d5ab5acb0a54f67dec59fa9af3"
 )
 RECOVERY_SHA256 = (
-    "3459568ed88f3f4ae94b58ae20017e1ed944652c9c8cf7e3dce04e022d90d340"
+    "ba13d5f69f17b5434624a4714c10b54f4feb5b48584b02c6f9874ca63bff75e5"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"storage-layout-stage2-native-fsck-v1-generation225-live-v1\n"
-    b"candidate=storage-layout-stage2-native-fsck-v1\n"
+    b"persistent-native-root-v1-generation226-live-v1\n"
+    b"candidate=persistent-native-root-v1\n"
     b"manifest_sha256="
-    b"60db65fda138a675a002f05d49fb9f6bf9e5fabaf4d19c60b13b325415c7f2bd\n"
+    b"4dc87544ec35dc9747a9e2a860b93fc4765228d5ab5acb0a54f67dec59fa9af3\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -71,12 +71,12 @@ CLAIM_ENTRYPOINT = (
     / "scripts/host/consume-exact-boot-claim.py"
 )
 TARGET_RELEASE = "7.1.4-g359318de534f"
-TARGET_PRODUCT = "ROG5 local image stage"
-TARGET_UDEV_MODEL = "ROG5_local_image_stage"
+TARGET_PRODUCT = "ROG5 persistent root"
+TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/storage-layout-stage2-native-fsck-v1-generation225-20260828-r1"
+    / "build/persistent-native-root-v1-generation226-20260828-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -132,32 +132,30 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="storage-layout-stage2-native-fsck-v1",
+    admission_profile="persistent-native-root-v1",
     recovery_profile=PROFILE_ID,
-    runtime_profile="storage-layout-stage2-native-fsck-v1",
-    build_profile="storage-layout-stage2-native-fsck-v1",
+    runtime_profile="persistent-native-root-v1",
+    build_profile="persistent-native-root-v1",
     diagnostic=False,
 )
 
 RUNTIME_COMMAND = r"""
 set -eu
-[ -f /run/rog5-local-image-stage.status ]
-[ -f /run/rog5-power-usb-ready ]
-printf '%s\n' 'format=rog5-native-verify-runtime-v1'
+ready=/run/rog5-p2-ready
+[ -f "$ready" ]
+printf '%s\n' 'format=rog5-native-root-runtime-v1'
 printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime
-cat /run/rog5-local-image-stage.status
-count=0
-for path in /sys/class/block/*; do
-    [ -e "$path/dev" ] || continue
-    [ -e "$path/device" ] || [ -e "$path/partition" ] || continue
-    count=$((count + 1))
-done
-printf 'physical_blocks=%s\n' "$count"
+cat "$ready"
+[ "$(cat /proc/1/comm)" = systemd ]
+[ "$(systemctl is-system-running)" = running ]
+systemctl is-active --quiet rog5-early-sshd.service
+systemctl is-active --quiet rog5-p2-ready.service
+failed=$(systemctl --failed --no-legend --plain | awk 'NF { count++ } END { print count + 0 }')
+printf 'failed_units=%s\n' "$failed"
+[ "$failed" -eq 0 ]
 printf '%s\n' 'result=PASS'
 """.strip()
-
-VERIFY_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"
 
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
@@ -182,11 +180,20 @@ class TreeEvidence(NamedTuple):
 
 
 STAGES = {
+    "kernel-verified",
     "power-usb",
     "ufs-ready",
     "userdata-resolved",
     "storage-locked",
+    "userdata-mount",
+    "image-resolved",
+    "image-mount",
+    "root-verify",
+    "ufs-health",
+    "overlay",
     "runtime",
+    "final-storage",
+    "switch-root",
 }
 STAGE_STATES = {"ENTER", "PASS", "FAIL"}
 WATCHDOG_OBSERVER_DETAIL = re.compile(
@@ -678,11 +685,19 @@ def parse_runtime_evidence(path: Path) -> str:
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("runtime evidence is unreadable") from error
     required = {
-        "format=rog5-native-verify-runtime-v1",
-        "state=READY",
+        "format=rog5-native-root-runtime-v1",
+        "status=PASS",
+        "kernel=7.1.4-g359318de534f",
         "physical_blocks=117",
-        "storage=read-only",
-        "ssh=key-only",
+        "block_backed_mounts=1",
+        "root_mount=native-root-ro-noload",
+        "root=native-ext4-overlay-tmpfs",
+        "blocked_device_queries=0",
+        "blocked_scsi_commands=0",
+        "journal_recovery_events=0",
+        "ufs_error_events=0",
+        "ssh=strict-key-only",
+        "failed_units=0",
         "result=PASS",
     }
     for marker in required:
@@ -691,13 +706,6 @@ def parse_runtime_evidence(path: Path) -> str:
     boot_ids = [line.removeprefix("boot_id=") for line in lines if line.startswith("boot_id=")]
     if len(boot_ids) != 1 or not BOOT_ID.fullmatch(boot_ids[0]):
         fail("runtime evidence has no unique target boot identity")
-    userdata = [
-        line.removeprefix("userdata=")
-        for line in lines
-        if line.startswith("userdata=")
-    ]
-    if len(userdata) != 1 or not re.fullmatch(r"/dev/sd[a-z]23", userdata[0]):
-        fail("runtime evidence has no exact dynamic userdata identity")
     return boot_ids[0]
 
 
@@ -1043,22 +1051,12 @@ def run(
         if runtime_status != 0:
             fail(f"local-root runtime acceptance returned {runtime_status}")
         target_boot_id = parse_runtime_evidence(runtime_log)
-        verify_log = cycle.output("native-verify.log")
-        verify_status = run_optional_logged(
-            [*target_ssh, VERIFY_COMMAND], verify_log, 850
-        )
-        if verify_status not in {0, 255}:
-            fail(
-                "native verifier returned unexpected status "
-                f"{verify_status}"
-            )
-        fsck_status = parse_fsck_evidence(verify_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("native-verify-timing.record"),
+            cycle.output("native-root-boot-timing.record"),
             (
-                ("format", "rog5-native-verify-timing-v1"),
+                ("format", "rog5-native-root-boot-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", str(ssh_attempts)),
@@ -1067,14 +1065,21 @@ def run(
                     f"{ssh_ready_elapsed:.3f}",
                 ),
                 ("target_boot_id", target_boot_id),
-                ("disposition", "fsck-repaired"),
-                ("fsck_status", str(fsck_status)),
-                ("storage", "RELOCKED"),
-                ("tree", "PASS"),
-                ("seconds_to_verification", f"{elapsed:.3f}"),
+                ("disposition", "systemd-ssh-ready"),
+                ("root", "native-ext4-overlay-tmpfs"),
+                ("storage", "read-only"),
+                ("seconds_to_native_ready", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
+
+        reboot_status = run_optional_logged(
+            [*target_ssh, "/run/initramfs/usr/libexec/rog5-reboot-bootloader"],
+            cycle.output("native-root-reboot.log"),
+            30,
+        )
+        if reboot_status not in {0, 255}:
+            fail(f"native-root restart2 returned unexpected status {reboot_status}")
 
         fallback_attempted = True
         cycle.wait_fallback(None)
@@ -1083,7 +1088,7 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            f"PASS one RAM-only cycle repaired ext4 (status {fsck_status}) in "
+            "PASS one RAM-only native-root cycle reached systemd and key-only SSH in "
             f"{elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
@@ -1151,11 +1156,11 @@ def main(arguments: list[str]) -> int:
     ) != "1":
         fail("set ALLOW_PERSISTENT_ROOT_STORAGE_LIVE_CYCLE=1 for one RAM-only cycle")
     if arguments == ["run"] and os.environ.get(
-        "ALLOW_STAGE2_NATIVE_FSCK"
+        "ALLOW_NATIVE_ROOT_BOOT"
     ) != "1":
         fail(
-            "set ALLOW_STAGE2_NATIVE_FSCK=1 for the exact p24-only "
-            "filesystem repair"
+            "set ALLOW_NATIVE_ROOT_BOOT=1 for one exact RAM-only "
+            "native-root boot"
         )
     dependencies = CYCLE.Dependencies.from_environment()
     inputs = exact_inputs()

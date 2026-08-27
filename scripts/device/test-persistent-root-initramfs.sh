@@ -87,16 +87,33 @@ grep -Fqx 'expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@' "$init" ||
 	fail 'P2 target lacks the sealed UFS storage-mode placeholder'
 grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$init" ||
 	fail 'P2 target lacks the sealed write-probe producer placeholder'
+grep -Fqx 'expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@' "$init" ||
+	fail 'P2 target lacks the sealed native-root mode placeholder'
 grep -Fqx 'expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@' "$attest" ||
 	fail 'P2 attestation lacks the sealed UFS storage-mode placeholder'
 grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$attest" ||
 	fail 'P2 attestation lacks the sealed write-probe producer placeholder'
+grep -Fqx 'expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@' "$attest" ||
+	fail 'P2 attestation lacks the sealed native-root mode placeholder'
 grep -Fq '[ "$expected_ufs_storage_mode" = local-write ]' "$init" ||
 	fail 'P2 target lacks the local-write UFS policy branch'
 grep -Fq "'ROG5 UFS discovery: forced read-only before registration'" "$init" ||
 	fail 'local-write policy does not reject the discovery-only disk guard'
 grep -Fq 'UFS_STORAGE_MODE must be read-only or local-write' "$builder" ||
 	fail 'P2 builder does not fail closed on the storage mode'
+grep -Fq 'PERSISTENT_ROOT_NATIVE_PARTITION must be 0 or 1' "$builder" ||
+	fail 'P2 builder does not fail closed on native-root mode'
+for contract in \
+	'find_exact_arch_root() {' \
+	'[ "$partition_name" = arch_root_a ]' \
+	'[ "$(cat "$sys_block/start")" = 427819008 ]' \
+	'[ "$(cat "$sys_block/size")" = 67108824 ]' \
+	'[ "$expected_native_root_mode" -eq 1 ]' \
+	'"$userdata" /mnt/root-ro' \
+	'[ "$expected_native_root_mode" -eq 0 ]'; do
+	grep -Fq "$contract" "$init" ||
+		fail "P2 native-root contract is missing: $contract"
+done
 grep -Fq 'EXPECTED_PROBE_BOOT_ID must be current for local-write' "$builder" ||
 	fail 'P2 builder does not preserve current-boot write semantics'
 grep -Fq 'EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \
@@ -493,6 +510,13 @@ if UFS_STORAGE_MODE=invalid "$builder" "$base" "$verifier" \
 fi
 grep -Fxq 'FAIL UFS_STORAGE_MODE must be read-only or local-write' \
 	"$work/invalid.err"
+if PERSISTENT_ROOT_NATIVE_PARTITION=2 \
+	"$builder" "$base" "$verifier" "$work/invalid-native.cpio.gz" \
+	>"$work/invalid-native.out" 2>"$work/invalid-native.err"; then
+	fail 'P2 builder accepted an invalid native-root mode'
+fi
+grep -Fxq 'FAIL PERSISTENT_ROOT_NATIVE_PARTITION must be 0 or 1' \
+	"$work/invalid-native.err"
 if UFS_STORAGE_MODE=read-only EXPECTED_PROBE_BOOT_ID=current \
 	"$builder" "$base" "$verifier" "$work/read-only-current.cpio.gz" \
 	>"$work/read-only-current.out" 2>"$work/read-only-current.err"; then
@@ -525,6 +549,20 @@ fi
 gzip -dc "$work/read-only-staged-seal.cpio.gz" |
 	cpio -i --quiet --to-stdout init |
 	grep -Fxq 'expected_probe_boot_id=staged-seal'
+if [ -n "$ufs_modules" ]; then
+	PERSISTENT_ROOT_NATIVE_PARTITION=1 UFS_STORAGE_MODE=read-only \
+		EXPECTED_PROBE_BOOT_ID=staged-seal \
+		"$builder" "$base" "$verifier" \
+		"$work/native-root.cpio.gz" "$ufs_modules" >/dev/null
+else
+	PERSISTENT_ROOT_NATIVE_PARTITION=1 UFS_STORAGE_MODE=read-only \
+		EXPECTED_PROBE_BOOT_ID=staged-seal \
+		"$builder" "$base" "$verifier" \
+		"$work/native-root.cpio.gz" >/dev/null
+fi
+gzip -dc "$work/native-root.cpio.gz" |
+	cpio -i --quiet --to-stdout init |
+	grep -Fxq 'expected_native_root_mode=1'
 if PERSISTENT_ROOT_POWER_MODULES_ROOT="$work/missing-modules" \
 	PERSISTENT_ROOT_CHARGE_FIRMWARE_DIR= \
 	REQUIRE_DEFERRED_UFS_MODULES=0 \
@@ -570,6 +608,7 @@ gzip -dc "$work/a.cpio.gz" |
 sed -e "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
 	-e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
 	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
+	-e 's/@EXPECTED_NATIVE_ROOT_MODE@/0/' \
 	"$init" >"$work/expected-init"
 cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
@@ -581,6 +620,7 @@ readelf -h "$work/root/usr/libexec/rog5-reboot-bootloader" |
 	grep -q 'Requesting program interpreter'
 sed -e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
 	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
+	-e 's/@EXPECTED_NATIVE_ROOT_MODE@/0/' \
 	"$attest" >"$work/expected-attest"
 cmp "$work/root/usr/local/sbin/rog5-p2-attest" "$work/expected-attest"
 cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
@@ -601,9 +641,15 @@ grep -Fqx "expected_kernel_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}" \
 grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$work/root/init"
 ! grep -Fq '@EXPECTED_UFS_STORAGE_MODE@' "$work/root/init"
 grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" "$work/root/init"
+grep -Fxq 'expected_native_root_mode=0' "$work/root/init"
 grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
+grep -Fxq 'expected_native_root_mode=0' \
+	"$work/root/usr/local/sbin/rog5-p2-attest"
 ! grep -Fq '@EXPECTED_PROBE_BOOT_ID@' "$work/root/init" \
+	"$work/root/usr/local/sbin/rog5-p2-attest"
+! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' "$work/root/init"
+! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
 
 if [ -n "$ufs_modules" ]; then
@@ -667,6 +713,7 @@ awk '
 	copy { print }
 ' "$init" >"$handoff_functions"
 grep -Fq 'handoff_persistent_root() {' "$handoff_functions"
+expected_native_root_mode=0
 # shellcheck disable=SC1090
 . "$handoff_functions"
 handoff_tree=$work/handoff

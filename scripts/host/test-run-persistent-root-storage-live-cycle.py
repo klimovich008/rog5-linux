@@ -56,23 +56,23 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-native-fsck-v1-generation225-live-v1",
+            "persistent-native-root-v1-generation226-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle_profile, "persistent-root-ro-v1")
         self.assertEqual(MODULE.PROFILE.recovery_profile, MODULE.PROFILE_ID)
         self.assertFalse(MODULE.PROFILE.diagnostic)
-        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 local image stage")
-        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_local_image_stage")
-        sealed_init = (REPO / "initramfs/local-image-stage-init").read_text()
+        self.assertEqual(MODULE.TARGET_PRODUCT, "ROG5 persistent root")
+        self.assertEqual(MODULE.TARGET_UDEV_MODEL, "ROG5_persistent_root")
+        sealed_init = (REPO / "initramfs/persistent-root-init").read_text()
         self.assertIn(
             f"echo '{MODULE.TARGET_PRODUCT}' >\"$gadget/strings/0x409/product\"",
             sealed_init,
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-native-fsck-v1",
+            "persistent-native-root-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation225",
+            "generation226",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -173,29 +173,26 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("stock_fastboot_returned(", segment)
         self.assertLess(clean, resolved)
 
-    def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
+    def test_runtime_evidence_accepts_exact_native_root(self) -> None:
         payload = "\n".join(
             (
-                "format=rog5-native-verify-runtime-v1",
+                "format=rog5-native-root-runtime-v1",
                 "boot_id=11111111-2222-3333-4444-555555555555",
                 "uptime_seconds=21.00",
-                "state=READY",
+                "status=PASS",
+                "kernel=7.1.4-g359318de534f",
                 "physical_blocks=117",
-                "storage=read-only",
-                "ssh=key-only",
-                "userdata=/dev/sdg23",
-                "watchdog_record=present",
-                f"watchdog_record_sha256={'1' * 64}",
-                "watchdog_pid=123",
-                "watchdog_process=absent",
-                "watchdog_log_bytes=0",
-                "watchdog_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                "watchdog_log_hex=",
-                "watchdog_driver=qcom_wdt",
-                "watchdog_compatible=qcom,kpss-wdt",
-                "watchdog_device=present",
-                "watchdog_module=present",
-                "watchdog_observer=absent",
+                "block_backed_mounts=1",
+                "root_mount=native-root-ro-noload",
+                "local_image_write_probe=PASS",
+                "root=native-ext4-overlay-tmpfs",
+                "blocked_device_queries=0",
+                "blocked_scsi_commands=0",
+                "journal_recovery_events=0",
+                "ufs_error_events=0",
+                "backlights=0",
+                "ssh=strict-key-only",
+                "failed_units=0",
                 "result=PASS",
                 "",
             )
@@ -207,45 +204,29 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 MODULE.parse_runtime_evidence(path),
                 "11111111-2222-3333-4444-555555555555",
             )
-            observed = payload.replace(
-                "watchdog_observer=absent",
-                "watchdog_observer=ROG5_WDT_OBSERVER_V1 rate=32764 "
-                "en=00000001 sts=00000001 bark=000b0000 bite=000c8000",
-            )
-            path.write_text(observed)
-            self.assertEqual(
-                MODULE.parse_runtime_evidence(path),
-                "11111111-2222-3333-4444-555555555555",
-            )
-
-    def test_runtime_evidence_rejects_missing_duplicate_and_wrong_storage(self) -> None:
+    def test_runtime_evidence_rejects_missing_duplicate_and_wrong_root(self) -> None:
         baseline = [
-            "format=rog5-native-verify-runtime-v1",
+            "format=rog5-native-root-runtime-v1",
             "boot_id=11111111-2222-3333-4444-555555555555",
-            "state=READY",
+            "status=PASS",
+            "kernel=7.1.4-g359318de534f",
             "physical_blocks=117",
-            "storage=read-only",
-            "ssh=key-only",
-            "userdata=/dev/sda23",
-            "watchdog_record=present",
-            f"watchdog_record_sha256={'1' * 64}",
-            "watchdog_pid=123",
-            "watchdog_process=absent",
-            "watchdog_log_bytes=0",
-            "watchdog_log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            "watchdog_log_hex=",
-            "watchdog_driver=qcom_wdt",
-            "watchdog_compatible=qcom,kpss-wdt",
-            "watchdog_device=present",
-            "watchdog_module=present",
-            "watchdog_observer=absent",
+            "block_backed_mounts=1",
+            "root_mount=native-root-ro-noload",
+            "root=native-ext4-overlay-tmpfs",
+            "blocked_device_queries=0",
+            "blocked_scsi_commands=0",
+            "journal_recovery_events=0",
+            "ufs_error_events=0",
+            "ssh=strict-key-only",
+            "failed_units=0",
             "result=PASS",
         ]
         hostile = (
-            baseline[:-2] + ["userdata=/dev/mmcblk0p23", "result=PASS"],
+            [line.replace("native-ext4", "local-ext4") for line in baseline],
             baseline + ["boot_id=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"],
             [line for line in baseline if line != "physical_blocks=117"],
-            baseline + ["storage=read-only"],
+            baseline + ["root=native-ext4-overlay-tmpfs"],
         )
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "runtime.log"
@@ -508,7 +489,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_executes_one_read_only_native_verify_then_fastboot(self) -> None:
+    def test_runner_executes_one_read_only_native_boot_then_fastboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -522,16 +503,13 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
         self.assertIn("RUNTIME_COMMAND", source)
-        self.assertIn(
-            'VERIFY_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"',
-            source,
-        )
-        self.assertIn("parse_fsck_evidence(verify_log)", source)
-        self.assertIn("ALLOW_STAGE2_NATIVE_FSCK", source)
-        self.assertNotIn("ALLOW_STAGE2_READONLY_VERIFY", source)
+        self.assertNotIn("VERIFY_COMMAND", source)
+        self.assertIn("parse_runtime_evidence(runtime_log)", source)
+        self.assertIn("ALLOW_NATIVE_ROOT_BOOT", source)
+        self.assertNotIn("ALLOW_STAGE2_NATIVE_FSCK", source)
         self.assertNotIn("ALLOW_STAGE2_P24_CLONE", source)
-        self.assertIn("verify_log, 850", source)
-        self.assertLess(850, MODULE.FALLBACK_TIMEOUT_SECONDS)
+        self.assertIn("/run/initramfs/usr/libexec/rog5-reboot-bootloader", source)
+        self.assertIn("native-root-reboot.log", source)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
