@@ -158,10 +158,11 @@ Systematic review selects three fixed one-use direct-write chunks: extents
 (288,337,920 bytes). Each chunk will emit per-extent progress, sync, relock,
 and return fastboot; final fsck/grow/seal occurs only after all chunks pass.
 
-Generation 212 is the unbooted authority-free chunk-1 successor. It writes
-extents 1–19 (670,892,032 bytes), emits BEGIN/PASS per extent, syncs, relocks,
-disarms softdog, and returns fastboot. Target/manifest/wrapper hashes are
-`cee5e7c6...`, `20e853d5...` and `f9996fc3...`.
+Generation 212 is consumed and permanently non-retryable. It copied and proved
+extents 1–17 (443,023,360 bytes), began extent 18, then reached the 840-second
+softdog bound without an extent-18 PASS. Exact slot-A fastboot, cleanup, and
+`FALLBACK_RETURNED` passed. This is R4: the 670,892,032-byte chunk exceeded the
+measured same-device throughput. The next writer overwrites only extent 18.
 
 The phone is currently exact fastboot on slot A with the battery gate passed.
 Normal slot-A Android boot is intentionally unavailable because userdata is
