@@ -56,7 +56,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "storage-layout-stage2-softdog-probe-v1-generation207-live-v1",
+            "storage-layout-stage2-softdog-clone-v1-generation208-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +72,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "storage-layout-stage2-softdog-probe-v1",
+            "storage-layout-stage2-softdog-clone-v1",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +96,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation207",
+            "generation208",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -176,7 +176,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
     def test_runtime_evidence_accepts_dynamic_device_letter(self) -> None:
         payload = "\n".join(
             (
-                "format=rog5-watchdog-lifetime-v1",
+                "format=rog5-native-clone-runtime-v1",
                 "boot_id=11111111-2222-3333-4444-555555555555",
                 "uptime_seconds=21.00",
                 "state=READY",
@@ -220,7 +220,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
 
     def test_runtime_evidence_rejects_missing_duplicate_and_wrong_storage(self) -> None:
         baseline = [
-            "format=rog5-watchdog-lifetime-v1",
+            "format=rog5-native-clone-runtime-v1",
             "boot_id=11111111-2222-3333-4444-555555555555",
             "state=READY",
             "physical_blocks=117",
@@ -508,7 +508,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("capture_postmortem", source)
         self.assertNotIn("exact Alpine fallback", source)
 
-    def test_runner_executes_only_readonly_watchdog_probe_then_fastboot(self) -> None:
+    def test_runner_executes_one_bounded_clone_then_fastboot(self) -> None:
         source = MODULE_PATH.read_text()
         for forbidden in (
             "fastboot flash",
@@ -522,17 +522,12 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
         self.assertIn("RUNTIME_COMMAND", source)
-        self.assertNotIn('CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
-        self.assertNotIn("parse_clone_evidence(clone_log)", source)
-        self.assertIn("ALLOW_STAGE2_WATCHDOG_LIFETIME", source)
-        self.assertIn("watchdog_log_hex=", source)
-        self.assertIn('bytes" -le 4096', source)
-        observer = source.index(
-            "WATCHDOG_OBSERVER_DETAIL.fullmatch(accepted_stage.detail)"
-        )
-        ssh = source.index("target_ssh = ssh_arguments", observer)
-        self.assertLess(observer, ssh)
-        self.assertIn('cycle.resolve_intent(intent, "TARGET_ACCEPTED")', source[observer:ssh])
+        self.assertIn('CLONE_COMMAND = "/usr/local/sbin/rog5-install-local-arch-image"', source)
+        self.assertIn("parse_clone_evidence(clone_log)", source)
+        self.assertIn("ALLOW_STAGE2_P24_CLONE", source)
+        self.assertIn("clone_log, 850", source)
+        self.assertLess(840, 850)
+        self.assertLess(850, MODULE.FALLBACK_TIMEOUT_SECONDS)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
@@ -540,9 +535,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         expected = [
             "ROG5_NATIVE_CLONE_V1 stage=source status=VERIFY",
             "ROG5_NATIVE_CLONE_V1 stage=clone status=WRITE",
+            "ROG5_NATIVE_CLONE_V1 stage=watchdog status=ARMED",
             "ROG5_NATIVE_CLONE_V1 stage=filesystem status=GROW",
             "ROG5_NATIVE_CLONE_V1 stage=seal status=WRITE",
             "ROG5_NATIVE_CLONE_V1 stage=readonly status=VERIFY",
+            "ROG5_NATIVE_CLONE_V1 stage=watchdog status=DISARMED",
             "ROG5_NATIVE_CLONE_V1 stage=terminal status=PASS "
             "target_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b "
             "target_blocks=8388603",

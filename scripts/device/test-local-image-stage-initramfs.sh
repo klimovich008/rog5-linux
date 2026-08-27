@@ -212,6 +212,7 @@ grep -Fq 'watchdog_module=${WATCHDOG_MODULE:-}' "$builder"
 grep -Fq 'watchdog module identity changed' "$builder"
 grep -Fq 'watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}' "$builder"
 grep -Fq 'softdog_module=${SOFTDOG_MODULE:-}' "$builder"
+grep -Fq 'softdog_probe=${SOFTDOG_PROBE:-0}' "$builder"
 grep -Fq 'watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}' "$builder"
 grep -Fq 'watchdog_mmio_helper=${WATCHDOG_MMIO_HELPER:-}' "$builder"
 grep -Fq 'watchdog and observer modes are mutually exclusive' "$builder"
@@ -242,6 +243,7 @@ for contract in \
 	'fail softdog-no-reboot'; do
 	grep -Fq "$contract" "$init" || exit 1
 done
+grep -Fq '"$stage/rog5-softdog-modules/softdog.ko"' "$builder"
 ! grep -Fq 'dd if=/dev/mem' "$init"
 for contract in \
 	'mmap(NULL, ROG5_MMIO_SIZE, PROT_READ, MAP_SHARED, fd,' \

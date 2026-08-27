@@ -23,12 +23,14 @@ native_seal=${NATIVE_SEAL:-}
 watchdog_module=${WATCHDOG_MODULE:-}
 watchdog_observer_module=${WATCHDOG_OBSERVER_MODULE:-}
 softdog_module=${SOFTDOG_MODULE:-}
+softdog_probe=${SOFTDOG_PROBE:-0}
 watchdog_mmio_observer=${WATCHDOG_MMIO_OBSERVER:-0}
 watchdog_mmio_helper=${WATCHDOG_MMIO_HELPER:-}
 epoch=1681862400
 
 fail() { echo "FAIL $*" >&2; exit 1; }
 case "$watchdog_mmio_observer" in 0|1) ;; *) fail 'invalid watchdog MMIO observer mode' ;; esac
+case "$softdog_probe" in 0|1) ;; *) fail 'invalid softdog probe mode' ;; esac
 for input in "$base" "$init" "$installer" "$authorized_key" "$reboot_helper"; do
 	[ -f "$input" ] && [ ! -L "$input" ] || fail "unsafe input: $input"
 done
@@ -72,6 +74,8 @@ if [ -n "$softdog_module" ]; then
 			ab0175a40b7dd6186d07b4166d5c2ea3ef3f94f9f0ddf9e08d19e431be294dc4 ] &&
 		[ "$(modinfo -F vermagic "$softdog_module" | awk '{print $1}')" = \
 			"$expected_release" ] || fail 'softdog module identity changed'
+	else
+	[ "$softdog_probe" -eq 0 ] || fail 'softdog probe requires exact module'
 fi
 if [ "$watchdog_mmio_observer" -eq 1 ]; then
 	[ -f "$watchdog_mmio_helper" ] && [ ! -L "$watchdog_mmio_helper" ] &&
@@ -150,7 +154,11 @@ if [ -n "$watchdog_observer_module" ]; then
 		"$stage/rog5-watchdog-observer/rog5-qcom-wdt-observer.ko"
 fi
 if [ -n "$softdog_module" ]; then
-	install -D -m 0644 "$softdog_module" "$stage/rog5-softdog-probe/softdog.ko"
+	if [ "$softdog_probe" -eq 1 ]; then
+		install -D -m 0644 "$softdog_module" "$stage/rog5-softdog-probe/softdog.ko"
+	else
+		install -D -m 0644 "$softdog_module" "$stage/rog5-softdog-modules/softdog.ko"
+	fi
 fi
 if [ "$watchdog_mmio_observer" -eq 1 ]; then
 	install -D -m 0444 /dev/null "$stage/rog5-watchdog-mmio-observer"

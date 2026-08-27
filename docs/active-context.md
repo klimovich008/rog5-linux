@@ -103,6 +103,9 @@ Exact-ABI `softdog.ko` twins now pass offline at `ab0175a4...`; no candidate
 or phone execution has been created from them. Generation 207 passed and is
 consumed: `softdog-armed-20` was followed by automatic exact slot-A fastboot
 23.6 seconds later, with `TARGET_ACCEPTED` and no UFS/storage access.
+Generation 208 is the unbooted authority-free p24 clone successor with the
+same g359 Image/DTB and softdog rollback. Target/manifest/wrapper hashes are
+`a8614653...`, `8aab1a2c...` and `0b0ca68b...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
