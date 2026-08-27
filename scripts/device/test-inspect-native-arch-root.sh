@@ -26,6 +26,15 @@ for contract in \
 	'ro,noload,nodev,nosuid,noexec,noatime' \
 	'verify_boot_critical_root "$target_mount"' \
 	'tree=BOOT_CRITICAL_PASS' \
+	'tree=BOOT_CRITICAL_MISMATCH' \
+	'ROG5_NATIVE_TREE_V1 item=%s status=%s metadata=%s sha256=%s' \
+	'verify_exact_regular seal' \
+	'verify_exact_link init' \
+	'verify_exact_regular systemd' \
+	'verify_exact_regular sshd' \
+	'verify_exact_regular ssh-keygen' \
+	'verify_exact_regular authorized-keys' \
+	'verify_exact_regular ssh-policy' \
 	'dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0' \
 	'6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932' \
 	'ROG5_NATIVE_POSTMORTEM_V1 stage=terminal status=PASS'; do
@@ -34,6 +43,8 @@ for contract in \
 		exit 1
 	}
 done
+[ "$(grep -Fc 'verify_exact_regular ' "$target")" -eq 6 ]
+[ "$(grep -Fc 'verify_exact_link ' "$target")" -eq 1 ]
 ! grep -Eq 'blockdev --setrw|mount .*-o rw|e2fsck|resize2fs|tune2fs|e2image|mkfs|sgdisk|fastboot|sha256sum "\$arch_root"' "$target"
 
 python3 - "$candidate" "$artifact" <<'PY'

@@ -164,9 +164,12 @@ softdog disarmed, `TARGET_ACCEPTED` resolved, and exact fastboot returned in
 Stock fastboot then accepted all four fully covering RAW/zero-FILL p24 sparse
 segments in 476.272 seconds. Post-flash USB control stalled and the host reset
 did not re-enumerate the phone; never reflash automatically. Generation 221 is
-the unbooted read-only verifier for grown ext4 geometry/UUID, clean state, seal
-and boot-critical files. Target/manifest/wrapper hashes are `93472744...`,
-`4767bb1a...`, and `f5bf62e1...`.
+consumed: grown ext4 geometry/UUID/label/clean state passed, but its aggregate
+boot-critical tree predicate failed. UFS/NCM/key-only SSH and exact automatic
+slot-A fastboot fallback passed; no storage write occurred. The host image and
+exact sealed BusyBox satisfy every expected predicate. Generation 222 is the
+unbooted read-only per-item metadata/hash classifier. Target/manifest/wrapper
+hashes are `b3c272a6...`, `907b2447...`, and `7ae03ecb...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
