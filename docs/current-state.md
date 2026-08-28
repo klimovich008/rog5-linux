@@ -265,7 +265,9 @@ predicates and zero failed units before exact fastboot fallback. Generation
 switch-root, stable NCM, first-attempt key SSH in 0.166 seconds, UFS, full
 systemd readiness with zero failed units, and direct exact slot-A fastboot.
 Intent resolved `TARGET_ACCEPTED`. A fresh repeat remains required before any
-persistent slot-B boot installation.
+persistent slot-B boot installation. Generation 233 is that unbooted exact
+repeat: unchanged target and raw recovery under a fresh signed v8 intent and
+AVB generation.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
 Generation 232. Battery voltage remains above the accepted gate and

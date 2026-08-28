@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "persistent-native-root-v7-generation232-live-v1"
-BUNDLE = "persistent-native-root-v7"
+PROFILE_ID = "persistent-native-root-v8-generation233-live-v1"
+BUNDLE = "persistent-native-root-v8"
 MANIFEST_SHA256 = (
-    "772615e8488932270a9571c93fa75b0cd9dba1f4191d015281a5e35c056ab0ac"
+    "7e57c523fa344808fbf551635993d1e712243cf5a93e82ddc83ac9785ca48992"
 )
 RECOVERY_SHA256 = (
-    "5a5e321010146a0f5c4af65a195d9222df082dce68e27449c74681acec22fa64"
+    "5c8bee56d1703e9315be0aa2ddb7bd27d5be6dafc445e07cd27edbb11f41d3b9"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"persistent-native-root-v7-generation232-live-v1\n"
-    b"candidate=persistent-native-root-v7\n"
+    b"persistent-native-root-v8-generation233-live-v1\n"
+    b"candidate=persistent-native-root-v8\n"
     b"manifest_sha256="
-    b"772615e8488932270a9571c93fa75b0cd9dba1f4191d015281a5e35c056ab0ac\n"
+    b"7e57c523fa344808fbf551635993d1e712243cf5a93e82ddc83ac9785ca48992\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-native-root-v7-generation232-20260828-r1"
+    / "build/persistent-native-root-v8-generation233-20260828-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -161,10 +161,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-native-root-v7",
+    admission_profile="persistent-native-root-v8",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-native-root-v7",
-    build_profile="persistent-native-root-v7",
+    runtime_profile="persistent-native-root-v8",
+    build_profile="persistent-native-root-v8",
     diagnostic=False,
 )
 
