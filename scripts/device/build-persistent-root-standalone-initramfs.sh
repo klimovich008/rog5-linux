@@ -7,6 +7,11 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 shutdown=$repo/initramfs/persistent-root-shutdown-standalone
 expected_base=cf3f6dadfb7567da064b27ce341d2224328c8046e3bef870424dbe8ddf471827
+expected_release=7.1.4-g359318de534f
+storage_mode=read-only
+probe_boot_id=staged-seal
+native_root_mode=1
+ssh_diagnostic_mode=0
 epoch=1681862400
 
 [ -f "$base" ] && [ ! -L "$base" ] &&
@@ -23,6 +28,20 @@ gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 
 (cd "$root" && find . -type f ! -path ./init ! -path ./shutdown -print0 | sort -z | xargs -0 sha256sum) >"$work/before"
 install -m 0755 "$init" "$root/init"
+for placeholder in \
+	EXPECTED_KERNEL_RELEASE EXPECTED_UFS_STORAGE_MODE \
+	EXPECTED_PROBE_BOOT_ID EXPECTED_NATIVE_ROOT_MODE \
+	EXPECTED_SSH_DIAGNOSTIC_MODE; do
+	[ "$(grep -Fc "@$placeholder@" "$root/init")" -eq 1 ]
+done
+sed -i \
+	-e "s/@EXPECTED_KERNEL_RELEASE@/$expected_release/" \
+	-e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
+	-e "s/@EXPECTED_PROBE_BOOT_ID@/$probe_boot_id/" \
+	-e "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" \
+	-e "s/@EXPECTED_SSH_DIAGNOSTIC_MODE@/$ssh_diagnostic_mode/" \
+	"$root/init"
+! grep -Fq '@EXPECTED_' "$root/init"
 install -m 0755 "$shutdown" "$root/shutdown"
 (cd "$root" && find . -type f ! -path ./init ! -path ./shutdown -print0 | sort -z | xargs -0 sha256sum) >"$work/after"
 cmp "$work/before" "$work/after"
