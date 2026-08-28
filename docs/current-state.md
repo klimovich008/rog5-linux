@@ -275,6 +275,11 @@ path, exact read-only p24 resolution, 180-second bootloader fallback, clean
 wrapper twins and a standalone-shutdown target. No boot_b write is authorized
 until p24 staging and repeated RAM-only loader tests pass.
 
+The release bundle is now staged on p24. Loader v1 RAM-only test 1 failed
+closed before target NCM and returned to unauthorized slot-A recovery rather
+than fastboot. Its exact stage is unknown until pstore is collected; v1 must
+not be retried unchanged and boot_b remains untouched.
+
 The phone is currently exact slot-A fastboot on the anchored USB path after
 Generation 232. Battery voltage remains above the accepted gate and
 `battery-soc-ok=yes`.
