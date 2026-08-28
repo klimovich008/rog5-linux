@@ -42,6 +42,10 @@ target_boot_id=
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 reboot_mode_driver=/sys/bus/platform/drivers/nvmem-reboot-mode
 reboot_mode_modules=/rog5-reboot-mode-modules
+watchdog_pid=
+watchdog_pid_file=/run/rog5-p2-watchdog.pid
+watchdog_kmsg=/dev/kmsg
+watchdog_sysrq=/proc/sysrq-trigger
 
 log() {
 	for kmsg in /dev/kmsg /newroot/dev/kmsg; do
@@ -200,8 +204,8 @@ usb:15|reboot-mode:15|ufs-rendezvous:15|ufs-module:20) ;;
 
 arm_watchdog() {
 	(
-		exec 8>/dev/kmsg
-		exec 9>/proc/sysrq-trigger
+		exec 8>"$watchdog_kmsg"
+		exec 9>"$watchdog_sysrq"
 		sleep "$recovery_timeout"
 		echo 'rog5-persistent-root: watchdog expired; requesting bootloader restart' >&8
 		if [ -x "$reboot_helper" ]; then
@@ -211,8 +215,21 @@ arm_watchdog() {
 		printf b >&9
 		while :; do sleep 3600; done
 	) &
-	echo $! >/run/rog5-p2-watchdog.pid
+	watchdog_pid=$!
+	printf '%s\n' "$watchdog_pid" >"$watchdog_pid_file"
 	log "emergency-reset watchdog armed for $recovery_timeout seconds"
+}
+
+disarm_watchdog() {
+	case $watchdog_pid in ''|*[!0-9]*) return 1 ;; esac
+	[ -f "$watchdog_pid_file" ] && [ ! -L "$watchdog_pid_file" ] || return 1
+	[ "$(cat "$watchdog_pid_file")" = "$watchdog_pid" ] || return 1
+	kill "$watchdog_pid" 2>/dev/null || return 1
+	wait "$watchdog_pid" 2>/dev/null || true
+	! kill -0 "$watchdog_pid" 2>/dev/null || return 1
+	rm -f "$watchdog_pid_file" || return 1
+	watchdog_pid=
+	log 'emergency-reset watchdog disarmed after successful handoff'
 }
 
 physical_topology_count() {
@@ -1911,6 +1928,12 @@ if ! publish_stage switch-root PASS; then
 	fail_local_stage switch-root 'post-handoff stage publication failed'
 fi
 report_current_stage_once || true
+
+if ! disarm_watchdog; then
+	rollback_handoff_mounts || true
+	stage_record=/run/rog5-persistent-root-stage.record
+	fail_local_stage switch-root 'successful handoff watchdog disarm failed'
+fi
 
 trap switch_root_failure EXIT
 exec switch_root /newroot /sbin/init
