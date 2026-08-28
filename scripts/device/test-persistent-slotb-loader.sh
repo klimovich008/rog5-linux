@@ -149,8 +149,18 @@ if [ -f "$base" ] && [ -f "$target_base" ]; then
 	mkdir "$work/loader" "$work/target"
 	gzip -dc "$work/loader.cpio.gz" | (cd "$work/loader" && cpio -idm --quiet --no-absolute-filenames)
 	gzip -dc "$work/target.cpio.gz" | (cd "$work/target" && cpio -idm --quiet --no-absolute-filenames)
+	cp "$target_init" "$work/expected-target-init"
+	sed -i \
+		-e 's/@EXPECTED_KERNEL_RELEASE@/7.1.4-g359318de534f/' \
+		-e 's/@EXPECTED_UFS_STORAGE_MODE@/read-only/' \
+		-e 's/@EXPECTED_PROBE_BOOT_ID@/staged-seal/' \
+		-e 's/@EXPECTED_NATIVE_ROOT_MODE@/1/' \
+		-e 's/@EXPECTED_SSH_DIAGNOSTIC_MODE@/0/' \
+		"$work/expected-target-init"
+	! grep -Fq '@EXPECTED_' "$work/expected-target-init"
 	cmp "$work/loader/init" "$init"
-	cmp "$work/target/init" "$target_init"
+	cmp "$work/target/init" "$work/expected-target-init"
+	! grep -Fq '@EXPECTED_' "$work/target/init"
 	cmp "$work/target/shutdown" "$shutdown"
 	[ -x "$work/loader/usr/libexec/rog5-reboot-bootloader" ]
 	[ "$(stat -c %s "$work/loader.cpio.gz")" -lt 8388608 ]
