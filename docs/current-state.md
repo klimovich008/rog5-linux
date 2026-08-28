@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-27
+Updated: 2026-08-28
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -236,16 +236,21 @@ seconds. p24 is now eligible for a fresh RAM-only native-root boot test; no
 persistent boot artifact is authorized yet. Generation 226 is consumed: exact
 p24 resolution, root verification, OverlayFS/runtime/final-storage and
 switch-root passed, and final sshd exposed a host key, but all authenticated
-SSH attempts returned 255 until exact slot-A fallback. Offline inspection
-proved p24 root remained account-locked (`root:!…`). Generation 227 is the
-unbooted successor; it changes only the tmpfs upper `/etc/shadow` to `root:x`,
-proves the immutable lower remains locked, and keeps password/keyboard auth
-disabled. Target/manifest/wrapper hashes are `4e56b805...`, `6c89b951...`, and
-`084cd19b...`.
+SSH attempts returned 255 until exact slot-A fallback. Generation 227 is also
+consumed: its volatile `root:x` change reached the same switch-root/host-key
+boundary and all 127 SSH attempts returned 255 before slot-A recovery fallback.
+Exact AArch64 QEMU controls accept the same key with both `root:x` and the
+original `root:!…`, disproving the prior locked-root diagnosis. The later
+pre-KEX `Not allowed at this time` is an accumulated OpenSSH source penalty,
+not proof of the first refusal. Generation 228 is the unbooted diagnostic-only
+successor: one client attempt, one bounded target OpenSSH/PAM/config/namespace
+record over NCM, then direct restart2. Target/manifest/wrapper hashes are
+`2a2d6c49...`, `b165584d...`, and `7710a133...`.
 
-The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 225 returned automatically. Battery voltage is 8.693 V and
-`battery-soc-ok=yes`.
+The phone currently exposes slot-A unauthorized recovery on the anchored USB
+path after Generation 227 fallback. Its preboot battery gate passed at 8.709 V
+with `battery-soc-ok=yes`; manual bootloader fastboot is required before any
+Generation-228 connected preflight.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
 is not a mainline crash and must not be addressed by flashing an experimental

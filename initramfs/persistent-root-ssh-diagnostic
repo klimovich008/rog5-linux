@@ -1,0 +1,157 @@
+#!/bin/sh
+set -eu
+
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1
+runtime_busybox=/run/initramfs/bin/busybox
+debug_log=/run/rog5-sshd-debug.log
+record=/run/rog5-native-ssh-diagnostic.record
+temporary=$record.$$
+reboot_helper=/run/initramfs/usr/libexec/rog5-reboot-bootloader
+
+bb() {
+	"$runtime_loader" "$runtime_busybox" "$@"
+}
+
+metadata() {
+	path=$1
+	if [ -L "$path" ]; then
+		printf '%s\n' symlink
+	elif [ -e "$path" ]; then
+		bb stat -c '%u:%g:%a:%s:%h' "$path" 2>/dev/null ||
+			printf '%s\n' error
+	else
+		printf '%s\n' absent
+	fi
+}
+
+shadow_class() {
+	path=$1
+	if [ ! -f "$path" ] || [ -L "$path" ]; then
+		printf '%s\n' unavailable
+		return
+	fi
+	value=$(bb sed -n 's/^root:\([^:]*\):.*/\1/p' "$path") || {
+		printf '%s\n' error
+		return
+	}
+	case $value in
+		x) printf '%s\n' x ;;
+		!*) printf '%s\n' locked ;;
+		'') printf '%s\n' empty ;;
+		*) printf '%s\n' other ;;
+	esac
+}
+
+path_state() {
+	path=$1
+	if [ -L "$path" ]; then
+		printf '%s\n' symlink
+	elif [ -f "$path" ]; then
+		printf 'regular-%s\n' "$(bb stat -c %s "$path" 2>/dev/null || printf error)"
+	elif [ -e "$path" ]; then
+		printf '%s\n' other
+	else
+		printf '%s\n' absent
+	fi
+}
+
+trap 'bb rm -f -- "$temporary"' EXIT HUP INT TERM
+
+[ -f "$runtime_busybox" ] && [ ! -L "$runtime_busybox" ] &&
+	[ -x "$runtime_busybox" ] && [ -f "$runtime_loader" ] &&
+	[ ! -L "$runtime_loader" ] && [ -x "$runtime_loader" ] || exit 1
+
+auth_event=absent
+attempt=0
+while [ "$attempt" -lt 1800 ]; do
+	if [ -f "$debug_log" ] && [ ! -L "$debug_log" ] &&
+		bb grep -Eq \
+		'userauth-request for user root|Failed publickey for root|Accepted publickey for root|User root not allowed|PAM:|prohibited by RefuseConnection' \
+		"$debug_log"; then
+		auth_event=present
+		break
+	fi
+	attempt=$((attempt + 1))
+	bb sleep 0.1
+done
+
+target_release=$(bb cat /proc/sys/kernel/osrelease 2>/dev/null || printf error)
+boot_id=$(bb cat /proc/sys/kernel/random/boot_id 2>/dev/null || printf error)
+system_state=$(systemctl is-system-running 2>/dev/null || true)
+case $system_state in
+	starting|running|degraded|maintenance|stopping|offline) ;;
+	*) system_state=error ;;
+esac
+if systemctl is-active --quiet rog5-early-sshd.service; then
+	early_sshd=active
+else
+	early_sshd=inactive
+fi
+
+sshd_settings=$(/usr/bin/sshd -T 2>/dev/null || true)
+setting() {
+	name=$1
+	value=$(printf '%s\n' "$sshd_settings" |
+		bb awk -v key="$name" '$1 == key { print $2; count++ } END { if (count != 1) exit 1 }') ||
+		value=error
+	printf '%s\n' "$value"
+}
+penalty_line=$(printf '%s\n' "$sshd_settings" |
+	bb awk '$1 == "persourcepenalties" { print; count++ } END { if (count != 1) exit 1 }') ||
+	penalty_line=error
+penalty_sha256=$(printf '%s\n' "$penalty_line" |
+	bb sha256sum | bb cut -d ' ' -f 1)
+
+if [ -f "$debug_log" ] && [ ! -L "$debug_log" ]; then
+	log_bytes=$(bb wc -c <"$debug_log" | bb tr -d ' ')
+	log_sha256=$(bb sha256sum "$debug_log" | bb cut -d ' ' -f 1)
+	log_tail_hex=$(bb tail -c 4096 "$debug_log" |
+		bb od -An -tx1 -v | bb tr -d ' \n')
+	[ -n "$log_tail_hex" ] || log_tail_hex=none
+else
+	log_bytes=0
+	log_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+	log_tail_hex=none
+fi
+
+{
+	printf '%s\n' \
+		'format=rog5-native-ssh-diagnostic-v1' \
+		"target_release=$target_release" \
+		"boot_id=$boot_id" \
+		"auth_event=$auth_event" \
+		"shadow_class=$(shadow_class /etc/shadow)" \
+		"shadow_metadata=$(metadata /etc/shadow)" \
+		"lower_shadow_class=$(shadow_class /.rog5/root-ro/etc/shadow)" \
+		"lower_shadow_metadata=$(metadata /.rog5/root-ro/etc/shadow)" \
+		"root_metadata=$(metadata /root)" \
+		"root_ssh_metadata=$(metadata /root/.ssh)" \
+		"authorized_keys_metadata=$(metadata /root/.ssh/authorized_keys)" \
+		"run_nologin=$(path_state /run/nologin)" \
+		"etc_nologin=$(path_state /etc/nologin)" \
+		"system_state=$system_state" \
+		"early_sshd=$early_sshd" \
+		"sshd_usepam=$(setting usepam)" \
+		"sshd_permitrootlogin=$(setting permitrootlogin)" \
+		"sshd_pubkeyauthentication=$(setting pubkeyauthentication)" \
+		"sshd_passwordauthentication=$(setting passwordauthentication)" \
+		"sshd_kbdinteractiveauthentication=$(setting kbdinteractiveauthentication)" \
+		"sshd_persourcepenalties_sha256=$penalty_sha256" \
+		"log_bytes=$log_bytes" \
+		"log_sha256=$log_sha256" \
+		"log_tail_hex=$log_tail_hex" \
+		'result=PASS'
+} >"$temporary"
+bb chmod 0400 "$temporary"
+bb mv -f "$temporary" "$record"
+trap - EXIT HUP INT TERM
+
+bb nc -n -w 5 -s 169.254.77.2 169.254.77.1 8078 <"$record" || true
+bb sleep 2
+if [ -x "$reboot_helper" ]; then
+	"$reboot_helper" || true
+fi
+printf b >/proc/sysrq-trigger
+while :; do bb sleep 3600; done

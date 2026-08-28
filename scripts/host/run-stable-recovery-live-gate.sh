@@ -242,6 +242,7 @@ if [[ $action == policy-preflight ]]; then
 		storage-layout-stage2-native-fsck-v1-generation225-live-v1 | \
 		persistent-native-root-v1-generation226-live-v1 | \
 		persistent-native-root-v2-generation227-live-v1 | \
+		persistent-native-root-v3-generation228-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -4906,7 +4907,7 @@ case $profile in
 	persistent-native-root-v2-generation227-live-v1)
 		expected_boot_image=build/persistent-native-root-v2-generation227-20260828-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact Generation 227 RAM-only native-p24 systemd/SSH cycle with volatile-only root account unlock, immutable lower-root proof, password and keyboard auth disabled, charging/UFS evidence and restart2 fallback; no phone storage write, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 227 native-p24 systemd/key-only-SSH successor; never flash or retry after COMMIT'
+		expected_boot_role='consumed Generation 227 native-p24 cycle; switch-root and host-key pin passed, 127 SSH attempts returned 255, exact offline AArch64 controls disproved the locked-root diagnosis, and slot-A recovery fallback passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
@@ -4929,6 +4930,39 @@ case $profile in
 		[[ $expected_image == 084cd19b6eeda72e079972e5b910b5c143762d64a53bae383b69a8143592896b ]] || fail 'native root v2 recovery is not pinned'
 		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native root v2 trust is not pinned'
 		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native root v2 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
+	persistent-native-root-v3-generation228-live-v1)
+		expected_boot_image=build/persistent-native-root-v3-generation228-20260828-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact Generation 228 RAM-only native-p24 SSH diagnostic: one client attempt, bounded target OpenSSH/PAM/config/namespace transcript over NCM, direct restart2 fallback, no phone storage write, never flash or retry after COMMIT'
+		expected_boot_role='unbooted Generation 228 first-SSH-attempt discriminator with direct restart2-to-fastboot proof; never flash or retry after COMMIT'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=persistent-native-root-v3
+		expected_bundle=persistent-native-root-v3
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=5f9ec7a8215a514785c2c4ae822af712e5f094c3adfd1b48894033f98861e5bd
+		expected_avb_digest=ae64a97f5f7c3cd942a4937cd7847526798d3ada5e0582b665fa9cf935d63f1d
+		expected_generation_record=6e36c799779a16e3c7212d48ae2bfe45dc085e117a2772b1cd9d59d324ad0cbd
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == b165584d1e335efad249552d9fd3de6554f411149de08aa9dcf9403b608aca1e ]] || fail 'native root v3 manifest is not pinned'
+		[[ $expected_image == 7710a1335a51296eaa1214fee854d89d1ed356ff45a7d032f807115ae0cbe612 ]] || fail 'native root v3 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native root v3 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native root v3 verifier is not pinned'
 		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
 		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
 		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
@@ -6486,6 +6520,7 @@ case $profile in
 	storage-layout-stage2-native-fsck-v1-generation225-live-v1 | \
 	persistent-native-root-v1-generation226-live-v1 | \
 	persistent-native-root-v2-generation227-live-v1 | \
+	persistent-native-root-v3-generation228-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

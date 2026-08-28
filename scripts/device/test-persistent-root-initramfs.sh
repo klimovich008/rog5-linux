@@ -4,6 +4,7 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
+ssh_diagnostic=$repo/initramfs/persistent-root-ssh-diagnostic
 shutdown=$repo/initramfs/persistent-root-shutdown
 builder=$repo/scripts/device/build-persistent-root-initramfs.sh
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
@@ -32,6 +33,8 @@ done
 for path in "$init" "$attest" "$shutdown" "$builder" "$power_loader"; do
 	[ -x "$path" ] || fail "missing executable P2 source: $path"
 done
+[ -x "$ssh_diagnostic" ] ||
+	fail 'missing executable native-root SSH diagnostic source'
 [ -f "$reboot_source" ] && [ ! -L "$reboot_source" ] ||
 	fail 'missing persistent-root restart2 helper source'
 for reboot_contract in \
@@ -89,6 +92,8 @@ grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$init" ||
 	fail 'P2 target lacks the sealed write-probe producer placeholder'
 grep -Fqx 'expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@' "$init" ||
 	fail 'P2 target lacks the sealed native-root mode placeholder'
+grep -Fqx 'expected_ssh_diagnostic_mode=@EXPECTED_SSH_DIAGNOSTIC_MODE@' "$init" ||
+	fail 'P2 target lacks the sealed SSH diagnostic-mode placeholder'
 grep -Fqx 'expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@' "$attest" ||
 	fail 'P2 attestation lacks the sealed UFS storage-mode placeholder'
 grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$attest" ||
@@ -103,6 +108,18 @@ grep -Fq 'UFS_STORAGE_MODE must be read-only or local-write' "$builder" ||
 	fail 'P2 builder does not fail closed on the storage mode'
 grep -Fq 'PERSISTENT_ROOT_NATIVE_PARTITION must be 0 or 1' "$builder" ||
 	fail 'P2 builder does not fail closed on native-root mode'
+grep -Fq 'PERSISTENT_ROOT_SSH_DIAGNOSTIC must be 0 or 1' "$builder" ||
+	fail 'P2 builder does not fail closed on SSH diagnostic mode'
+for contract in \
+	'format=rog5-native-ssh-diagnostic-v1' \
+	'while [ "$attempt" -lt 1800 ]; do' \
+	'169.254.77.1 8078' \
+	'/run/rog5-sshd-debug.log' \
+	'/run/initramfs/usr/libexec/rog5-reboot-bootloader' \
+	'log_tail_hex='; do
+	grep -Fq "$contract" "$ssh_diagnostic" ||
+		fail "native-root SSH diagnostic contract is missing: $contract"
+done
 for contract in \
 	'find_exact_arch_root() {' \
 	'[ "$partition_name" = arch_root_a ]' \
@@ -638,6 +655,7 @@ sed -e "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
 	-e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
 	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
 	-e 's/@EXPECTED_NATIVE_ROOT_MODE@/0/' \
+	-e 's/@EXPECTED_SSH_DIAGNOSTIC_MODE@/0/' \
 	"$init" >"$work/expected-init"
 cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
@@ -663,6 +681,19 @@ readelf -d "$work/root/bin/busybox" |
 if command -v qemu-aarch64-static >/dev/null 2>&1; then
 	qemu-aarch64-static "$work/root/lib/ld-musl-aarch64.so.1" \
 		"$work/root/bin/busybox" true
+	printf '%s' '0123456789abcdef' >"$work/diagnostic-log"
+	diagnostic_hex=$(
+		qemu-aarch64-static "$work/root/lib/ld-musl-aarch64.so.1" \
+			"$work/root/bin/busybox" tail -c 4 "$work/diagnostic-log" |
+		qemu-aarch64-static "$work/root/lib/ld-musl-aarch64.so.1" \
+			"$work/root/bin/busybox" od -An -tx1 -v |
+		qemu-aarch64-static "$work/root/lib/ld-musl-aarch64.so.1" \
+			"$work/root/bin/busybox" tr -d ' \n'
+	)
+	[ "$diagnostic_hex" = 63646566 ] ||
+		fail 'sealed BusyBox diagnostic tail/od/tr dialect changed'
+	qemu-aarch64-static "$work/root/lib/ld-musl-aarch64.so.1" \
+		"$work/root/bin/busybox" sleep 0.1
 fi
 grep -Fqx "expected_kernel_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}" \
 	"$work/root/init"
@@ -671,6 +702,7 @@ grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$work/root/init"
 ! grep -Fq '@EXPECTED_UFS_STORAGE_MODE@' "$work/root/init"
 grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" "$work/root/init"
 grep -Fxq 'expected_native_root_mode=0' "$work/root/init"
+grep -Fxq 'expected_ssh_diagnostic_mode=0' "$work/root/init"
 grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
 grep -Fxq 'expected_native_root_mode=0' \
@@ -680,6 +712,23 @@ grep -Fxq 'expected_native_root_mode=0' \
 ! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' "$work/root/init"
 ! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
+
+PERSISTENT_ROOT_NATIVE_PARTITION=1 \
+	PERSISTENT_ROOT_SSH_DIAGNOSTIC=1 \
+	UFS_STORAGE_MODE=read-only EXPECTED_PROBE_BOOT_ID=staged-seal \
+	"$builder" "$base" "$verifier" \
+	"$work/native-ssh-diagnostic.cpio.gz" ${ufs_modules:+"$ufs_modules"} >/dev/null
+mkdir "$work/diagnostic-root"
+gzip -dc "$work/native-ssh-diagnostic.cpio.gz" |
+	(cd "$work/diagnostic-root" && cpio -idm --quiet --no-absolute-filenames)
+grep -Fxq 'expected_native_root_mode=1' "$work/diagnostic-root/init"
+grep -Fxq 'expected_ssh_diagnostic_mode=1' "$work/diagnostic-root/init"
+cmp "$work/diagnostic-root/usr/local/sbin/rog5-ssh-diagnostic" \
+	"$ssh_diagnostic"
+grep -Fq 'ExecStart=/usr/bin/sshd -D -e -o LogLevel=DEBUG3' \
+	"$work/diagnostic-root/init"
+grep -Fq 'ExecStart=/run/rog5-ssh-diagnostic' \
+	"$work/diagnostic-root/init"
 
 if [ -n "$ufs_modules" ]; then
 	module_inventory=$(find "$work/root/rog5-ufs-modules" \

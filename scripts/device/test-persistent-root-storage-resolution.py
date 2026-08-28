@@ -746,6 +746,7 @@ chmod() {
 '''
         script = (
             "set -u\n"
+            + "expected_ssh_diagnostic_mode=0\n"
             + helper
             + verifier
             + '\nfixture_root="$1"\nfixture_lower="$2"\n'
