@@ -40,8 +40,10 @@ Loader v3 is now consumed after the same invisible transport and 57.605-second
 stock-recovery return. The confirmed R3 cause is loader `set -f`, which disabled
 all required UDC/storage globs while the old fixture silently ran with globbing
 enabled. The corrected fail-first regression passes after removing that one
-line. Build and validate Loader v4 before another RAM-only attempt. `boot_b` is
-untouched; the phone currently exposes stock-recovery unauthorized ADB.
+line. Loader-v4 clean twins are built at Image `e61a2b67...`, raw boot
+`e8d739e7...`, and AVB boot `8cd2c82e...`; full local CI passes and exact-head
+CI remains. The phone currently exposes stock-recovery unauthorized ADB and
+`boot_b` remains untouched.
 
 ## Active storage cycle
 
