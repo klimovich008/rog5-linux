@@ -390,6 +390,7 @@ grep -Fq 'move_handoff_mount "$handoff_state"' "$init"
 grep -Fq 'move_handoff_mount "$handoff_root"' "$init"
 grep -Fq 'rollback_handoff_mounts || true' "$init"
 grep -Fq 'trap switch_root_failure EXIT' "$init"
+grep -Fq 'disarm_watchdog' "$init"
 grep -Fq 'publish_stage switch-root PASS' "$init"
 grep -Fq 'stage_record=$handoff_newroot/run/rog5-persistent-root-stage.record' \
 	"$init"
@@ -397,6 +398,9 @@ grep -Fq 'stage_record=/run/rog5-persistent-root-stage.record' "$init"
 grep -Fq 'report_current_stage_once || true' "$init"
 grep -Fq 'boot_id=$target_boot_id' "$init"
 grep -Fq 'exec switch_root /newroot /sbin/init' "$init"
+disarm_line=$(grep -n '^if ! disarm_watchdog; then$' "$init" | cut -d: -f1)
+switch_exec_line=$(grep -n '^exec switch_root /newroot /sbin/init$' "$init" | cut -d: -f1)
+[ "$disarm_line" -lt "$switch_exec_line" ]
 [ "$(grep -Ec '^[[:space:]]*mount --move ' "$init")" -eq 1 ] ||
 	fail 'persistent-root handoff has a direct or missing mount move'
 grep -Fq 'unmanaged-devices=interface-name:usb0' "$init"
@@ -899,5 +903,28 @@ fi
 [ "$switch_root_failure_status" -eq 77 ]
 printf 'rollback\nfailed\nforced\n' >"$work/expected-switch-root-failure"
 cmp "$switch_root_failure_log" "$work/expected-switch-root-failure"
+
+watchdog_functions=$work/watchdog-functions.sh
+awk '
+	/^arm_watchdog\(\) \{/ { copy=1 }
+	/^physical_topology_count\(\) \{/ { copy=0 }
+	copy { print }
+' "$init" >"$watchdog_functions"
+# shellcheck disable=SC1090
+. "$watchdog_functions"
+recovery_timeout=1
+reboot_helper=$work/missing-reboot-helper
+watchdog_pid_file=$work/watchdog.pid
+watchdog_kmsg=$work/watchdog.kmsg
+watchdog_sysrq=$work/watchdog.sysrq
+log() { :; }
+: >"$watchdog_kmsg"
+: >"$watchdog_sysrq"
+arm_watchdog
+disarm_watchdog
+sleep 2
+[ ! -e "$watchdog_pid_file" ]
+[ ! -s "$watchdog_sysrq" ]
+! grep -Fq 'watchdog expired' "$watchdog_kmsg"
 
 echo 'PASS deterministic credential-free P2 initramfs pins exact UFS, one bounded image write, read-only runtime, tmpfs OverlayFS, restart2 rollback, and emergency SysRq fallback'
