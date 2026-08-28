@@ -44,8 +44,12 @@ set the ASUS SSUSB controller to peripheral mode or wait for exact
 `a600000.dwc3`, unlike every working wrapper path. The fail-first correction
 now passes hostile UDC fixtures offline. Loader-v3 clean twins are built at
 Image `5c1dd3ec...`, raw boot `fc859f89...`, and AVB boot `806933a8...`.
-`boot_b` remains untouched. Full local CI passes; exact-head CI remains before
-one fresh RAM-only v3 attempt.
+Full local and exact-head CI passed. Loader v3 is now consumed with the same invisible
+transport and 57.605-second stock-recovery return. Systematic debugging proved
+the actual R3 defect: loader `set -f` disabled every UDC/storage glob, while the
+fixture ran with glob expansion enabled. The corrected fail-first test now
+reproduces that shell option and passes after the one-line removal. Loader v4
+must be rebuilt and revalidated; `boot_b` remains untouched.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and

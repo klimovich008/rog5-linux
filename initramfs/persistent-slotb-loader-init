@@ -1,6 +1,5 @@
 #!/bin/sh
 set -eu
-set -f
 
 export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/libexec
 
