@@ -190,10 +190,12 @@ systemd was not operational. Root/key/config/nologin identities were exact;
 direct restart2 returned fastboot and `TARGET_ACCEPTED` resolved. Generation
 229 proved volatile `UsePAM no`: first-attempt key authentication passed in
 0.169 seconds and UFS remained healthy. Runtime failed because several p24
-executables (`systemctl`, `stat`, `tail`) have zeroed allocated blocks from the
+executables (`systemctl`, `stat`, `tail`) had zeroed allocated blocks from the
 old sparse FILL transfer; the verified host image contains their correct
-AArch64 bytes. Direct restart2 returned exact fastboot. The next operation is
-a p24-only allocated-RAW sparse repair, not another kernel/SSH successor.
+AArch64 bytes. Direct restart2 returned exact fastboot. The p24-only
+allocated-RAW sparse repair completed in 60.847 seconds. Generation 230 is the
+fresh read-only native-root acceptance; it reuses the proven target bytes and
+stable raw recovery while changing only signed intent and AVB generation.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
