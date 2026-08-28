@@ -203,8 +203,9 @@ exact fastboot fallback. Generation 232 waits at most 90 seconds for marker,
 PID1, system state, and both units simultaneously. It passed the complete
 native-root/systemd/key-only-SSH/UFS/NCM path and direct exact fastboot return
 in 255.879 seconds with zero failed units. A fresh repeat remains required
-before persistent slot-B installation. Generation 233 is the unbooted exact
-repeat with unchanged target and raw recovery bytes.
+before persistent slot-B installation. Generation 233 passed the exact repeat
+in 249.912 seconds with zero failed units and direct exact fastboot return.
+The repeated-pass baseline is frozen; persistent slot-B loader work is active.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
