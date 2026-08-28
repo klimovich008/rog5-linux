@@ -34,8 +34,13 @@ done
 for contract in \
 	'format=rog5-slotb-loader-progress-v1' \
 	'ROG5 slot B loader' \
-	'*a600000*' \
-	'[ "$matches" -eq 1 ]' \
+	'expected_udc=a600000.dwc3' \
+	'udc_class=/sys/class/udc' \
+	'usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode' \
+	'echo peripheral >"$usb_mode"' \
+	'single_expected_udc' \
+	'[ "$first" = "$second" ]' \
+	'[ "$(cat "$gadget/UDC")" = "$expected_udc" ]' \
 	'set_stage S20 PASS storage_resolved' \
 	'set_stage S40 PASS selector_verified' \
 	'set_stage S60 PASS bundle_verified' \
@@ -45,12 +50,48 @@ for contract in \
 	'set_stage terminal FAIL "$1"'; do
 	grep -Fq "$contract" "$init"
 done
+mode_line=$(grep -n 'echo peripheral >"$usb_mode"' "$init" | cut -d: -f1)
+configfs_line=$(grep -n 'mount -t configfs configfs /sys/kernel/config' "$init" | cut -d: -f1)
+bind_line=$(grep -n 'printf.*>"$gadget/UDC"' "$init" | cut -d: -f1)
+[ "$mode_line" -lt "$configfs_line" ]
+[ "$configfs_line" -lt "$bind_line" ]
 grep -Fq '"$bb" reboot -f' "$shutdown"
 ! grep -Fq 'rog5-reboot-bootloader' "$shutdown"
 
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+awk '
+	/^single_expected_udc\(\) \{/ { copy=1 }
+	copy { print }
+	copy && /^}/ { exit }
+' "$init" >"$work/single-expected-udc.sh"
+# shellcheck disable=SC1090
+. "$work/single-expected-udc.sh"
+expected_udc=a600000.dwc3
+udc_class=$work/udc
+mkdir "$udc_class"
+mkdir "$udc_class/a600000.dwc3"
+[ "$(single_expected_udc)" = a600000.dwc3 ]
+mkdir "$udc_class/a800000.dwc3"
+[ "$(single_expected_udc)" = a600000.dwc3 ]
+mkdir "$udc_class/other-a600000.dwc3"
+! single_expected_udc >/dev/null
+rmdir "$udc_class/other-a600000.dwc3" "$udc_class/a600000.dwc3"
+mkdir "$udc_class/a600000.usb"
+! single_expected_udc >/dev/null
+rmdir "$udc_class/a600000.usb"
+mkdir "$udc_class/renamed-a600000.dwc3"
+! single_expected_udc >/dev/null
+rmdir "$udc_class/renamed-a600000.dwc3"
+! single_expected_udc >/dev/null
+mkdir "$udc_class/a600000.dwc3"
+first=$(single_expected_udc)
+rmdir "$udc_class/a600000.dwc3"
+mkdir "$udc_class/a600000.usb"
+! second=$(single_expected_udc)
+[ "$first" = a600000.dwc3 ]
+
 if [ -f "$base" ] && [ -f "$target_base" ]; then
-	work=$(mktemp -d)
-	trap 'rm -rf -- "$work"' EXIT HUP INT TERM
 	awk '
 		/^read_selector\(\) \{/ { copy=1 }
 		copy { print }

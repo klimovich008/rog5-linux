@@ -13,6 +13,9 @@ target_mount=/mnt/arch
 watchdog_seconds=180
 status_file=/run/rog5-slotb-loader.status
 reporter_pid=
+expected_udc=a600000.dwc3
+udc_class=/sys/class/udc
+usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 disk=
 arch_root=
 
@@ -36,7 +39,28 @@ report_stage() {
 	done
 }
 
+single_expected_udc() {
+	found=
+	matches=0
+	for candidate in "$udc_class"/*; do
+		[ -e "$candidate" ] || continue
+		name=$(basename "$candidate")
+		case $name in
+			*a600000*) found=$name; matches=$((matches + 1)) ;;
+		esac
+	done
+	[ "$matches" -eq 1 ] && [ "$found" = "$expected_udc" ] || return 1
+	printf '%s\n' "$found"
+}
+
 configure_loader_usb() {
+	attempt=0
+	while [ "$attempt" -lt 100 ] && [ ! -e "$usb_mode" ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -e "$usb_mode" ] || return 1
+	echo peripheral >"$usb_mode" || return 1
 	mkdir -p /sys/kernel/config
 	mount -t configfs configfs /sys/kernel/config 2>/dev/null || return 1
 	gadget=/sys/kernel/config/usb_gadget/rog5-slotb-loader
@@ -48,17 +72,24 @@ configure_loader_usb() {
 	echo 'loader progress' >"$gadget/configs/c.1/strings/0x409/configuration"
 	mkdir "$gadget/functions/acm.usb0"
 	ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+	mdev -s || return 1
 	udc=
-	matches=0
-	for candidate in /sys/class/udc/*; do
-		[ -e "$candidate" ] || continue
-		case $(basename "$candidate") in
-			*a600000*) udc=$(basename "$candidate"); matches=$((matches + 1)) ;;
-		esac
+	attempt=0
+	while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
+		if first=$(single_expected_udc); then
+			sleep 0.1
+			second=$(single_expected_udc) || return 1
+			[ "$first" = "$second" ] || return 1
+			udc=$first
+			break
+		fi
+		sleep 0.1
+		attempt=$((attempt + 1))
 	done
-	[ "$matches" -eq 1 ] && [ -n "$udc" ] || return 1
-	echo "$udc" >"$gadget/UDC" || return 1
-	mdev -s
+	[ "$udc" = "$expected_udc" ] || return 1
+	printf '%s\n' "$udc" >"$gadget/UDC" || return 1
+	[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || return 1
+	[ "$(single_expected_udc)" = "$expected_udc" ] || return 1
 	attempt=0
 	while [ "$attempt" -lt 100 ] && [ ! -c /dev/ttyGS0 ]; do
 		sleep 0.1
