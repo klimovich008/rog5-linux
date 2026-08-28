@@ -253,12 +253,16 @@ defect: `systemctl`, `stat`, and `tail` had zeroed allocated blocks from the
 prior sparse FILL transfer. Direct restart2 returned fastboot and intent
 resolved `FALLBACK_RETURNED`. The p24-only repair then completed in 60.847
 seconds with all 590,019 allocated ext4 blocks encoded RAW and only free
-blocks DONT_CARE. Generation 230 is the unbooted read-only postrepair
-acceptance using unchanged proven target bytes under a fresh signed v5 intent
-and AVB generation; no kernel rebuild was justified.
+blocks DONT_CARE. Generation 230 then proved repaired p24, root verification,
+OverlayFS, switch-root, NCM, first-attempt key SSH in 0.106 seconds, and UFS.
+Its runtime check raced `/run/rog5-p2-ready`; a bounded follow-up snapshot
+proved systemd running, both required units active, and zero failed units.
+Exact slot-A fastboot returned and intent resolved `FALLBACK_RETURNED`.
+Generation 231 is the unbooted successor and changes only the host runtime
+command to wait at most 90 seconds for the existing ready marker.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-the p24 repair. Battery voltage is 8.711 V and
+Generation 230. Battery voltage is 8.709 V and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This

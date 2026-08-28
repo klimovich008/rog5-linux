@@ -193,9 +193,12 @@ direct restart2 returned fastboot and `TARGET_ACCEPTED` resolved. Generation
 executables (`systemctl`, `stat`, `tail`) had zeroed allocated blocks from the
 old sparse FILL transfer; the verified host image contains their correct
 AArch64 bytes. Direct restart2 returned exact fastboot. The p24-only
-allocated-RAW sparse repair completed in 60.847 seconds. Generation 230 is the
-fresh read-only native-root acceptance; it reuses the proven target bytes and
-stable raw recovery while changing only signed intent and AVB generation.
+allocated-RAW sparse repair completed in 60.847 seconds. Generation 230 proved
+repaired p24 through switch-root, NCM, first key auth and UFS, then its host
+runtime command raced the not-yet-present ready marker. A later snapshot
+proved systemd running with zero failed units before exact fastboot fallback.
+Generation 231 changes only the host command to wait at most 90 seconds for
+that existing ready marker; target and raw recovery bytes remain unchanged.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
