@@ -249,14 +249,16 @@ until the client timed out. Direct restart2 returned exact fastboot and intent
 resolved `TARGET_ACCEPTED`. Generation 229 proved the functional SSH fix: its
 first key authentication passed in 0.169 seconds with volatile `UsePAM no`,
 and the UFS snapshot passed. Runtime then exposed a separate p24 content
-defect: `systemctl`, `stat`, and `tail` have zeroed allocated blocks from the
+defect: `systemctl`, `stat`, and `tail` had zeroed allocated blocks from the
 prior sparse FILL transfer. Direct restart2 returned fastboot and intent
-resolved `FALLBACK_RETURNED`. The next operation is a p24-only sparse repair
-with all 590,019 allocated ext4 blocks encoded RAW and only free blocks
-DONT_CARE; no kernel successor is justified.
+resolved `FALLBACK_RETURNED`. The p24-only repair then completed in 60.847
+seconds with all 590,019 allocated ext4 blocks encoded RAW and only free
+blocks DONT_CARE. Generation 230 is the unbooted read-only postrepair
+acceptance using unchanged proven target bytes under a fresh signed v5 intent
+and AVB generation; no kernel rebuild was justified.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 229 direct restart2. Battery voltage is 8.711 V and
+the p24 repair. Battery voltage is 8.711 V and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
