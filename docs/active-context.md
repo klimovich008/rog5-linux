@@ -29,9 +29,13 @@ pstore snapshot was empty and therefore inconclusive.
 
 Loader v2 adds only an ACM stage reporter to identify the earliest loader
 boundary. Clean twins are byte-identical: wrapper Image `55a9da9d...`, raw boot
-`1d79ee93...`, AVB boot `b54b0e9a...`. Focused, active, and full local tests
-pass; exact-head CI remains before one RAM-only v2 attempt. `boot_b` is untouched.
-The phone currently exposes stock-recovery unauthorized ADB, not fastboot.
+`1d79ee93...`, AVB boot `b54b0e9a...`. It is consumed after no loader USB
+identity appeared and stock slot-A recovery returned 57.321 seconds later.
+Systematic comparison found that v2 omitted the required SSUSB peripheral-mode
+transition and exact UDC wait used by all working ASUS-wrapper paths. A
+fail-first correction now passes hostile UDC fixtures. Build and validate
+Loader v3 before another RAM-only attempt. `boot_b` is untouched; the phone
+currently exposes stock-recovery unauthorized ADB, not fastboot.
 
 ## Active storage cycle
 

@@ -37,8 +37,13 @@ Loader v2 is the current offline discriminator. It changes only the loader
 initramfs by adding an ACM-only stage reporter (`S00` through `S90` or one exact
 failure reason) on exactly one `a600000` UDC. Clean wrapper twins are
 byte-identical at Image `55a9da9d...`, raw boot `1d79ee93...`, and AVB boot
-`b54b0e9a...`. No v2 phone boot or `boot_b` write has occurred. The next live
-gate is one RAM-only v2 boot from true fastboot after full and exact-head CI.
+`b54b0e9a...`. Loader v2 is now consumed: no loader USB identity appeared and
+stock slot-A recovery returned 57.321 seconds after fastboot detached.
+Deployed-byte and host-event evidence found a concrete R3 omission: v2 did not
+set the ASUS SSUSB controller to peripheral mode or wait for exact
+`a600000.dwc3`, unlike every working wrapper path. The fail-first correction
+now passes hostile UDC fixtures offline. `boot_b` remains untouched; Loader v3
+must be rebuilt and revalidated before another RAM-only attempt.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
