@@ -206,6 +206,9 @@ in 255.879 seconds with zero failed units. A fresh repeat remains required
 before persistent slot-B installation. Generation 233 passed the exact repeat
 in 249.912 seconds with zero failed units and direct exact fastboot return.
 The repeated-pass baseline is frozen; persistent slot-B loader work is active.
+Loader v1 now passes offline using the existing hardened verifier and a local
+signed bundle on read-only p24. Repeated RAM-only loader tests remain the next
+gate before boot_b installation.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
