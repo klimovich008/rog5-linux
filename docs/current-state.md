@@ -50,8 +50,12 @@ the actual R3 defect: loader `set -f` disabled every UDC/storage glob, while the
 fixture ran with glob expansion enabled. The corrected fail-first test now
 reproduces that shell option and passes after the one-line removal. Loader v4
 clean twins are built at Image `e61a2b67...`, raw boot `e8d739e7...`, and AVB
-boot `8cd2c82e...`. Full local CI passes; exact-head CI remains and `boot_b` is
-untouched.
+boot `8cd2c82e...`. Full local and exact-head CI passed, but v4 produced the
+same zero-USB 57.601-second return to stock recovery and is consumed. Freeze
+the per-loader embedded-kernel rebuild route. The next bounded composition
+reuses exact live-proven Generation-233 kernel `838425a8...` with corrected
+loader ramdisk `b29757ca...`; deterministic fresh AVB twins are `dc59b4ab...`.
+No phone storage or `boot_b` was modified.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and

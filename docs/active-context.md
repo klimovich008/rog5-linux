@@ -41,9 +41,12 @@ stock-recovery return. The confirmed R3 cause is loader `set -f`, which disabled
 all required UDC/storage globs while the old fixture silently ran with globbing
 enabled. The corrected fail-first regression passes after removing that one
 line. Loader-v4 clean twins are built at Image `e61a2b67...`, raw boot
-`e8d739e7...`, and AVB boot `8cd2c82e...`; full local CI passes and exact-head
-CI remains. The phone currently exposes stock-recovery unauthorized ADB and
-`boot_b` remains untouched.
+`e8d739e7...`, and AVB boot `8cd2c82e...`; full local/exact-head CI passed, but
+v4 returned to stock recovery after 57.601 seconds with no loader USB. Freeze
+that embedded-kernel route. The current unbooted successor keeps proven
+Generation-233 kernel `838425a8...`, changes only the external corrected loader
+ramdisk `b29757ca...`, and has fresh AVB twins `dc59b4ab...`. The phone exposes
+stock-recovery unauthorized ADB and `boot_b` remains untouched.
 
 ## Active storage cycle
 
