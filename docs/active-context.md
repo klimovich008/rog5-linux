@@ -35,9 +35,13 @@ Systematic comparison found that v2 omitted the required SSUSB peripheral-mode
 transition and exact UDC wait used by all working ASUS-wrapper paths. A
 fail-first correction now passes hostile UDC fixtures. Clean v3 twins are built at
 Image `5c1dd3ec...`, raw boot `fc859f89...`, and AVB boot `806933a8...`;
-full local CI passes and exact-head CI remains before another RAM-only attempt.
-`boot_b` is untouched; the phone currently exposes stock-recovery unauthorized
-ADB, not fastboot.
+full local and exact-head CI passed.
+Loader v3 is now consumed after the same invisible transport and 57.605-second
+stock-recovery return. The confirmed R3 cause is loader `set -f`, which disabled
+all required UDC/storage globs while the old fixture silently ran with globbing
+enabled. The corrected fail-first regression passes after removing that one
+line. Build and validate Loader v4 before another RAM-only attempt. `boot_b` is
+untouched; the phone currently exposes stock-recovery unauthorized ADB.
 
 ## Active storage cycle
 

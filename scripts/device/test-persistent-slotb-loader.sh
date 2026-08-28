@@ -13,6 +13,10 @@ for path in "$init" "$shutdown" "$loader_builder" "$target_builder"; do
 	[ -x "$path" ]
 	sh -n "$path"
 done
+if grep -qx 'set -f' "$init"; then
+	echo 'FAIL slot-B loader disables required fixed-path glob expansion' >&2
+	exit 1
+fi
 
 for contract in \
 	'24:arch_root_a' \
@@ -73,6 +77,10 @@ mkdir "$udc_class"
 mkdir "$udc_class/a600000.dwc3"
 [ "$(single_expected_udc)" = a600000.dwc3 ]
 mkdir "$udc_class/a800000.dwc3"
+[ "$(single_expected_udc)" = a600000.dwc3 ]
+set -f
+! single_expected_udc >/dev/null
+set +f
 [ "$(single_expected_udc)" = a600000.dwc3 ]
 mkdir "$udc_class/other-a600000.dwc3"
 ! single_expected_udc >/dev/null
