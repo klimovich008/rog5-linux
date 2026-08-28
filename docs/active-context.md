@@ -188,10 +188,12 @@ Generation 228 captured the initial failure: the correct key offer reached
 sshd, then target processing stopped at `PAM: initializing for "root"` while
 systemd was not operational. Root/key/config/nologin identities were exact;
 direct restart2 returned fastboot and `TARGET_ACCEPTED` resolved. Generation
-229 is the unbooted functional successor: volatile `UsePAM no` only for the
-strict key-only early sshd, one authentication attempt, then full runtime/UFS
-acceptance. Target, manifest, and wrapper are `cf3f6dad...`, `5ac2a406...`,
-and `056f2ca5...`.
+229 proved volatile `UsePAM no`: first-attempt key authentication passed in
+0.169 seconds and UFS remained healthy. Runtime failed because several p24
+executables (`systemctl`, `stat`, `tail`) have zeroed allocated blocks from the
+old sparse FILL transfer; the verified host image contains their correct
+AArch64 bytes. Direct restart2 returned exact fastboot. The next operation is
+a p24-only allocated-RAW sparse repair, not another kernel/SSH successor.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

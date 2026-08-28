@@ -4974,7 +4974,7 @@ case $profile in
 	persistent-native-root-v4-generation229-live-v1)
 		expected_boot_image=build/persistent-native-root-v4-generation229-20260828-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact Generation 229 RAM-only native-p24 functional boot with volatile UsePAM=no for strict key-only early SSH, one authentication attempt, systemd/runtime/UFS acceptance and direct restart2 fastboot; no phone storage write, never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 229 native-p24 functional successor with volatile PAM-free key-only early SSH and direct fastboot return; never flash or retry after COMMIT'
+		expected_boot_role='consumed Generation 229 native-p24 cycle; first key auth passed in 0.169 seconds with UsePAM no, UFS snapshot passed, runtime exposed zeroed allocated executable blocks, direct fastboot and FALLBACK_RETURNED passed; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783

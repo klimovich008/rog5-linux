@@ -549,8 +549,8 @@ awk -F '\t' \
 		$3 == "consumed successful Generation 228 first-SSH-attempt discriminator; exact root/key/config state, client timeout while target blocked at PAM initialization, TARGET_ACCEPTED and direct fastboot return; never retry or flash" &&
 		NF == 3 { persistent_native_root_v3++ ; next }
 	$1 == "build/persistent-native-root-v4-generation229-20260828-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 229 RAM-only native-p24 functional boot with volatile UsePAM=no for strict key-only early SSH, one authentication attempt, systemd/runtime/UFS acceptance and direct restart2 fastboot; no phone storage write, never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed Generation 229 native-p24 cycle; first key auth passed in 0.169 seconds with UsePAM no, UFS snapshot passed, runtime failed because p24 systemctl/stat/tail allocated blocks were zeroed by the prior sparse FILL transfer; direct fastboot and FALLBACK_RETURNED passed; never retry or flash" &&
 		NF == 3 { persistent_native_root_v4++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -767,7 +767,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -980,7 +980,7 @@ awk -F '\t' '
 	{ echo 'FAIL Generation 228 artifact role differs from live gate' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/persistent-native-root-v4-generation229-20260828-r1/repack/stable-recovery-a.avb.img" &&
-	$4 == "unbooted Generation 229 native-p24 functional successor with volatile PAM-free key-only early SSH and direct fastboot return; never flash or retry after COMMIT" && NF == 5 { found++ }
+	$4 == "consumed Generation 229 native-p24 cycle; first key auth passed with PAM disabled, runtime exposed zeroed allocated executable blocks, direct fastboot returned; never retry or flash" && NF == 5 { found++ }
 	END { exit found == 1 ? 0 : 1 }
 ' "$artifact_manifest" ||
 	{ echo 'FAIL Generation 229 artifact role differs from live gate' >&2; exit 1; }
