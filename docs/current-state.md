@@ -258,11 +258,14 @@ OverlayFS, switch-root, NCM, first-attempt key SSH in 0.106 seconds, and UFS.
 Its runtime check raced `/run/rog5-p2-ready`; a bounded follow-up snapshot
 proved systemd running, both required units active, and zero failed units.
 Exact slot-A fastboot returned and intent resolved `FALLBACK_RETURNED`.
-Generation 231 is the unbooted successor and changes only the host runtime
-command to wait at most 90 seconds for the existing ready marker.
+Generation 231 passed that marker and p24 attestation, but the marker preceded
+systemd's final active/running publication; a later snapshot again proved all
+predicates and zero failed units before exact fastboot fallback. Generation
+232 is the unbooted successor and waits at most 90 seconds for the marker,
+PID1, system state, and both required units simultaneously.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 230. Battery voltage is 8.709 V and
+Generation 231. Battery voltage remains above the accepted gate and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This

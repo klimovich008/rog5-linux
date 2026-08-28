@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "persistent-native-root-v6-generation231-live-v1"
-BUNDLE = "persistent-native-root-v6"
+PROFILE_ID = "persistent-native-root-v7-generation232-live-v1"
+BUNDLE = "persistent-native-root-v7"
 MANIFEST_SHA256 = (
-    "2725e66cc321d9d019d86a298090f89d5bac68df45fda4d807e12bb35ec0497a"
+    "772615e8488932270a9571c93fa75b0cd9dba1f4191d015281a5e35c056ab0ac"
 )
 RECOVERY_SHA256 = (
-    "92c093c825d2d8d8141d5be53cab34e1dbdc42bf4f058833864237d8188d7fca"
+    "5a5e321010146a0f5c4af65a195d9222df082dce68e27449c74681acec22fa64"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"persistent-native-root-v6-generation231-live-v1\n"
-    b"candidate=persistent-native-root-v6\n"
+    b"persistent-native-root-v7-generation232-live-v1\n"
+    b"candidate=persistent-native-root-v7\n"
     b"manifest_sha256="
-    b"2725e66cc321d9d019d86a298090f89d5bac68df45fda4d807e12bb35ec0497a\n"
+    b"772615e8488932270a9571c93fa75b0cd9dba1f4191d015281a5e35c056ab0ac\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-native-root-v6-generation231-20260828-r1"
+    / "build/persistent-native-root-v7-generation232-20260828-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -161,22 +161,29 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-native-root-v6",
+    admission_profile="persistent-native-root-v7",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-native-root-v6",
-    build_profile="persistent-native-root-v6",
+    runtime_profile="persistent-native-root-v7",
+    build_profile="persistent-native-root-v7",
     diagnostic=False,
 )
 
 RUNTIME_COMMAND = r"""
 set -eu
 ready=/run/rog5-p2-ready
+runtime_ready() {
+    [ -f "$ready" ] &&
+        [ "$(cat /proc/1/comm)" = systemd ] &&
+        [ "$(systemctl is-system-running 2>/dev/null || true)" = running ] &&
+        systemctl is-active --quiet rog5-early-sshd.service &&
+        systemctl is-active --quiet rog5-p2-ready.service
+}
 ready_wait=0
-while [ ! -f "$ready" ] && [ "$ready_wait" -lt 90 ]; do
+while ! runtime_ready && [ "$ready_wait" -lt 90 ]; do
     sleep 1
     ready_wait=$((ready_wait + 1))
 done
-[ -f "$ready" ]
+runtime_ready
 printf '%s\n' 'format=rog5-native-root-runtime-v1'
 printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime_seconds='; awk '{ print $1 }' /proc/uptime

@@ -41,12 +41,15 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn('ready=/run/rog5-p2-ready', command)
         self.assertIn('ready_wait=0', command)
         self.assertIn(
-            'while [ ! -f "$ready" ] && [ "$ready_wait" -lt 90 ]; do',
+            'while ! runtime_ready && [ "$ready_wait" -lt 90 ]; do',
             command,
         )
         self.assertEqual(command.count('sleep 1'), 1)
         self.assertIn('ready_wait=$((ready_wait + 1))', command)
-        self.assertIn('[ -f "$ready" ]', command)
+        self.assertIn('runtime_ready() {', command)
+        self.assertEqual(command.count('runtime_ready\n'), 1)
+        self.assertIn('systemctl is-active --quiet rog5-early-sshd.service', command)
+        self.assertIn('systemctl is-active --quiet rog5-p2-ready.service', command)
 
     def test_exact_slot_a_fastboot_terminates_target_wait_early(self) -> None:
         with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=True) as exact, mock.patch.object(
@@ -82,7 +85,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-native-root-v6-generation231-live-v1",
+            "persistent-native-root-v7-generation232-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -98,7 +101,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-native-root-v6",
+            "persistent-native-root-v7",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -122,7 +125,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation231",
+            "generation232",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
