@@ -61,6 +61,15 @@ for USB/watchdog/rollback and adds one local-loader mode afterward. Full local
 CI passes; recovery ramdisk, raw boot, and AVB twins are `31c4c075...`,
 `f235719b...`, and `5a8b3424...`. No phone storage or `boot_b` was modified.
 
+That canonical path passed twice RAM-only. Fresh persistent AVB `2867666c...`
+was then flashed only to `boot_b`, slot B was activated, and two persistent
+boots passed with distinct boot IDs. Both reached native Arch, systemd
+`running`, key-only SSH, zero failed units, high-speed NCM, read-only UFS/root,
+charging telemetry, and safe thermals. One initialization-time NCM interruption
+recovered without reset. The phone remains running persistent slot-B Linux;
+slot A is untouched. Root changes are still volatile in tmpfs OverlayFS, so
+persistent service state is the active phase.
+
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
 key-only SSH in about seven seconds, then the redundant full 16 GiB source
