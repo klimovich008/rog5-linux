@@ -687,6 +687,13 @@ PROFILES.update(
             b"manifest_sha256=6c89b951cc340b4503cc6f6b828f46a04cf6e7508b95dc55a9ca4649a865ea82\n"
             b"state=BOOT_CLAIMED\n"
         ),
+        "persistent-native-root-v3-generation228-live-v1": (
+            b"format=rog5-temporary-boot-consumption-v1\n"
+            b"recovery_profile=persistent-native-root-v3-generation228-live-v1\n"
+            b"candidate=persistent-native-root-v3\n"
+            b"manifest_sha256=b165584d1e335efad249552d9fd3de6554f411149de08aa9dcf9403b608aca1e\n"
+            b"state=BOOT_CLAIMED\n"
+        ),
         "storage-preflight-v3-generation73-live-v1": (
             b"format=rog5-temporary-boot-consumption-v1\n"
             b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"

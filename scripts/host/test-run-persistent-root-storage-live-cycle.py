@@ -22,6 +22,17 @@ SPEC.loader.exec_module(MODULE)
 
 
 class PersistentRootLiveCycleTest(unittest.TestCase):
+    def test_ssh_diagnostic_successor_uses_one_attempt_and_one_bounded_record(self) -> None:
+        source = MODULE_PATH.read_text()
+        self.assertEqual(MODULE.SSH_DIAGNOSTIC_PORT, 8078)
+        self.assertEqual(MODULE.SSH_DIAGNOSTIC_MAX_BYTES, 16384)
+        self.assertIn("run_one_authenticated_ssh_diagnostic", source)
+        self.assertIn("receive_ssh_diagnostic", source)
+        self.assertIn("native-root-ssh-client.log", source)
+        self.assertIn("native-root-ssh-target.record", source)
+        self.assertNotIn("wait_for_authenticated_ssh(", source)
+        self.assertNotIn("while True:\n            now = time.monotonic()", source)
+
     def test_exact_slot_a_fastboot_terminates_target_wait_early(self) -> None:
         with mock.patch.object(MODULE.STOCK, "exact_fastboot", return_value=True) as exact, mock.patch.object(
             MODULE.STOCK,
@@ -56,7 +67,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-native-root-v2-generation227-live-v1",
+            "persistent-native-root-v3-generation228-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -72,7 +83,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-native-root-v2",
+            "persistent-native-root-v3",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -96,7 +107,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation227",
+            "generation228",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -121,11 +132,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         handoff = source.index("        cycle.wait_bundle(bundle_process, control_process)\n")
         network = source.index("interface = activate_target_network(cycle, anchor)")
         host_key = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
-        runtime = source.index("runtime_status = run_optional_logged(")
+        diagnostic = source.index("run_one_authenticated_ssh_diagnostic(", host_key)
         self.assertLess(handoff, network)
         self.assertLess(network, host_key)
-        self.assertLess(host_key, runtime)
-        segment = source[handoff:runtime]
+        self.assertLess(host_key, diagnostic)
+        segment = source[handoff:diagnostic]
         self.assertNotIn("input(", segment)
         self.assertNotIn("STOCK.fastboot(", segment)
         self.assertNotIn("wait_for_stage_host_key(", segment)
@@ -139,7 +150,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("transfer_arch_image", source)
         self.assertNotIn("ARCH_IMAGE_RAW", source)
         self.assertNotIn("DIRECT_STREAMER", source)
-        self.assertIn("parse_runtime_evidence(runtime_log)", source)
+        self.assertIn("receive_ssh_diagnostic", source)
 
     def test_terminal_stage_stops_the_host_key_wait(self) -> None:
         source = MODULE_PATH.read_text()
@@ -247,81 +258,135 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("HostKeyAlias=rog5-minimal-headless-v1", joined)
         self.assertNotIn("StrictHostKeyChecking=no", joined)
 
-    def test_authenticated_ssh_rendezvous_retries_cold_session_startup(self) -> None:
-        failures = (
-            subprocess.CompletedProcess([], 255, "connection timed out\n"),
-            subprocess.TimeoutExpired("ssh", 20),
-            subprocess.CompletedProcess(
-                [], 0, f"{MODULE.AUTHENTICATED_SSH_READY_MARKER}\n"
-            ),
-        )
+    def test_one_ssh_attempt_retains_complete_bounded_transcript(self) -> None:
+        result = subprocess.CompletedProcess([], 255, "first refusal\n")
         with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
-            MODULE.CYCLE, "run_capture", side_effect=failures
+            MODULE.CYCLE, "run_capture", return_value=result
         ) as runner, mock.patch.object(
-            MODULE.time, "monotonic", side_effect=(0.0, 0.0, 1.0, 2.0, 3.0)
-        ), mock.patch.object(MODULE.time, "sleep") as sleep:
-            attempts, elapsed = MODULE.wait_for_authenticated_ssh(
-                ["ssh", "root@169.254.77.2"],
-                Path(temporary) / "readiness.log",
-            )
-        self.assertEqual(attempts, 3)
-        self.assertEqual(elapsed, 3.0)
-        self.assertEqual(runner.call_count, 3)
-        self.assertEqual(sleep.call_count, 2)
-        for call in runner.call_args_list:
-            self.assertEqual(call.args[0][-1], MODULE.AUTHENTICATED_SSH_COMMAND)
-
-    def test_authenticated_ssh_rendezvous_accepts_one_bounded_marker_line(self) -> None:
-        cold_success = subprocess.CompletedProcess(
-            [],
-            0,
-            "cold-session startup notice\n"
-            f"{MODULE.AUTHENTICATED_SSH_READY_MARKER}\n",
-        )
-        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
-            MODULE.CYCLE, "run_capture", return_value=cold_success
-        ), mock.patch.object(
-            MODULE.time, "monotonic", side_effect=(0.0, 0.0, 1.0)
+            MODULE.time, "monotonic", side_effect=(0.0, 1.25)
         ):
-            attempts, elapsed = MODULE.wait_for_authenticated_ssh(
+            status, elapsed = MODULE.run_one_authenticated_ssh_diagnostic(
                 ["ssh", "root@169.254.77.2"],
-                Path(temporary) / "readiness.log",
+                Path(temporary) / "client.log",
             )
-        self.assertEqual(attempts, 1)
-        self.assertEqual(elapsed, 1.0)
-
-    def test_authenticated_ssh_rendezvous_is_bounded(self) -> None:
-        unavailable = subprocess.CompletedProcess([], 255, "unavailable\n")
-        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
-            MODULE.CYCLE, "run_capture", return_value=unavailable
-        ) as runner, mock.patch.object(
-            MODULE.time, "monotonic", side_effect=(0.0, 0.0, 151.0)
-        ), mock.patch.object(MODULE.time, "sleep"):
-            with self.assertRaisesRegex(
-                MODULE.PersistentCycleError,
-                "authenticated SSH did not become ready",
-            ):
-                MODULE.wait_for_authenticated_ssh(
-                    ["ssh", "root@169.254.77.2"],
-                    Path(temporary) / "readiness.log",
-                )
+            payload = (Path(temporary) / "client.log").read_text()
+        self.assertEqual(status, 255)
+        self.assertEqual(elapsed, 1.25)
         self.assertEqual(runner.call_count, 1)
+        self.assertIn("status=255\n", payload)
+        self.assertIn("output_hex=6669727374207265667573616c0a\n", payload)
 
-    def test_authenticated_ssh_rendezvous_rejects_wrong_success_output(self) -> None:
-        wrong = subprocess.CompletedProcess([], 0, "wrong target\n")
+    def test_one_ssh_attempt_rejects_oversized_output(self) -> None:
+        result = subprocess.CompletedProcess(
+            [], 255, "x" * (MODULE.SSH_CLIENT_MAX_BYTES + 1)
+        )
         with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
-            MODULE.CYCLE, "run_capture", return_value=wrong
-        ), mock.patch.object(
-            MODULE.time, "monotonic", side_effect=(0.0, 0.0)
-        ):
+            MODULE.CYCLE, "run_capture", return_value=result
+        ), mock.patch.object(MODULE.time, "monotonic", side_effect=(0.0, 1.0)):
             with self.assertRaisesRegex(
-                MODULE.PersistentCycleError,
-                "unexpected authenticated SSH readiness output",
+                MODULE.PersistentCycleError, "transcript exceeded"
             ):
-                MODULE.wait_for_authenticated_ssh(
-                    ["ssh", "root@169.254.77.2"],
-                    Path(temporary) / "readiness.log",
+                MODULE.run_one_authenticated_ssh_diagnostic(
+                    ["ssh"], Path(temporary) / "client.log"
                 )
+
+    def test_target_ssh_diagnostic_is_exact_bounded_and_boot_correlated(self) -> None:
+        boot_id = "12345678-1234-1234-1234-123456789abc"
+        values = {
+            "format": "rog5-native-ssh-diagnostic-v1",
+            "target_release": MODULE.TARGET_RELEASE,
+            "boot_id": boot_id,
+            "auth_event": "present",
+            "shadow_class": "x",
+            "shadow_metadata": "0:0:600:123:1",
+            "lower_shadow_class": "locked",
+            "lower_shadow_metadata": "0:0:600:234:1",
+            "root_metadata": "0:0:700:4096:3",
+            "root_ssh_metadata": "0:0:700:4096:2",
+            "authorized_keys_metadata": "0:0:600:81:1",
+            "run_nologin": "absent",
+            "etc_nologin": "absent",
+            "system_state": "starting",
+            "early_sshd": "active",
+            "sshd_usepam": "yes",
+            "sshd_permitrootlogin": "prohibit-password",
+            "sshd_pubkeyauthentication": "yes",
+            "sshd_passwordauthentication": "no",
+            "sshd_kbdinteractiveauthentication": "no",
+            "sshd_persourcepenalties_sha256": "1" * 64,
+            "log_bytes": "12",
+            "log_sha256": "2" * 64,
+            "log_tail_hex": "414243",
+            "result": "PASS",
+        }
+
+        def payload(overrides: dict[str, str] | None = None) -> bytes:
+            current = {**values, **(overrides or {})}
+            return "".join(
+                f"{name}={current[name]}\n" for name in MODULE.SSH_DIAGNOSTIC_FIELDS
+            ).encode("ascii")
+
+        class Connection:
+            def __init__(self, raw: bytes) -> None:
+                self.raw = raw
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def settimeout(self, _timeout: float) -> None:
+                pass
+
+            def recv(self, _maximum: int) -> bytes:
+                raw, self.raw = self.raw, b""
+                return raw
+
+            def getsockname(self):
+                return ("169.254.77.1", MODULE.SSH_DIAGNOSTIC_PORT)
+
+        class Listener:
+            def __init__(self, raw: bytes) -> None:
+                self.raw = raw
+
+            def accept(self):
+                return Connection(self.raw), ("169.254.77.2", 40000)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "target.record"
+            parsed = MODULE.receive_ssh_diagnostic(
+                Listener(payload()), boot_id, output
+            )
+            self.assertEqual(parsed["shadow_class"], "x")
+            self.assertEqual(output.read_bytes(), payload())
+            with self.assertRaises(MODULE.PersistentCycleError):
+                MODULE.receive_ssh_diagnostic(
+                    Listener(payload({"boot_id": "0" * 36})),
+                    boot_id,
+                    Path(temporary) / "wrong.record",
+                )
+
+    def test_fastboot_fallback_record_rejects_recovery(self) -> None:
+        base = (
+            "format=rog5-stock-android-fallback-v1\n"
+            "serial=M5AIKN00F0353YH\n"
+            "usb_location=1-1.2\n"
+            "evidence_mode=fastboot-slot-a\n"
+            "slot_suffix=_a\n"
+            "usb_config=fastboot\n"
+            "result=PASS\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "fallback.record"
+            path.write_text(base)
+            self.assertTrue(MODULE.exact_fastboot_fallback_record(path))
+            path.write_text(
+                base.replace("fastboot-slot-a", "usb-unauthorized-slot-a").replace(
+                    "usb_config=fastboot", "usb_config=adb-unauthorized"
+                )
+            )
+            self.assertFalse(MODULE.exact_fastboot_fallback_record(path))
 
     def test_nmcli_has_one_unprivileged_then_noninteractive_sudo_path(self) -> None:
         results = (
@@ -502,14 +567,12 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
-        self.assertIn("RUNTIME_COMMAND", source)
-        self.assertNotIn("VERIFY_COMMAND", source)
-        self.assertIn("parse_runtime_evidence(runtime_log)", source)
+        self.assertIn("run_one_authenticated_ssh_diagnostic", source)
+        self.assertIn("receive_ssh_diagnostic", source)
         self.assertIn("ALLOW_NATIVE_ROOT_BOOT", source)
         self.assertNotIn("ALLOW_STAGE2_NATIVE_FSCK", source)
         self.assertNotIn("ALLOW_STAGE2_P24_CLONE", source)
-        self.assertIn("/run/initramfs/usr/libexec/rog5-reboot-bootloader", source)
-        self.assertIn("native-root-reboot.log", source)
+        self.assertIn("exact_fastboot_fallback_record", source)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 

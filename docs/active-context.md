@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-27
+Updated: 2026-08-28
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -180,11 +180,14 @@ tree, relock, `TARGET_ACCEPTED`, and exact fastboot in 151.211 seconds. The next
 cycle is a fresh RAM-only native-root/systemd/key-only-SSH boot test; persistent
 slot-B installation remains separate. Generation 226 is consumed: p24,
 OverlayFS, final storage and switch-root passed and sshd exposed a host key, but
-the account remained locked and every key-auth attempt returned 255. Generation
-227 is the unbooted volatile-only fix: OverlayFS `/etc/shadow` becomes `root:x`
-while p24 remains locked and password/keyboard auth remain disabled.
-Target/manifest/wrapper hashes are `4e56b805...`, `6c89b951...`, and
-`084cd19b...`.
+every key-auth attempt returned 255. Generation 227 is consumed at the same
+boundary despite volatile `root:x`; exact AArch64 QEMU controls prove both the
+locked and unlocked source-image account accept the key under `UsePAM yes`.
+The observed later `Not allowed at this time` is source-penalty amplification;
+the first refusal remains unclassified. Generation 228 is the unbooted
+diagnostic-only successor: one SSH attempt, bounded target OpenSSH/PAM/config
+evidence over NCM, and direct restart2-to-fastboot proof. Target, signed
+manifest, and wrapper are `2a2d6c49...`, `b165584d...`, and `7710a133...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

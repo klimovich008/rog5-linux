@@ -12,6 +12,7 @@ reboot_mode_modules=${REBOOT_MODE_MODULES:-}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
+ssh_diagnostic=$repo/initramfs/persistent-root-ssh-diagnostic
 shutdown=$repo/initramfs/persistent-root-shutdown
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
@@ -24,6 +25,7 @@ expected_reboot_source=a8f7c1499928a10832d413555e3c9fbb54ea70e46c7a2988ce5430b54
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
 storage_mode=${UFS_STORAGE_MODE:-read-only}
 native_root_mode=${PERSISTENT_ROOT_NATIVE_PARTITION:-0}
+ssh_diagnostic_mode=${PERSISTENT_ROOT_SSH_DIAGNOSTIC:-0}
 writer_boot_id=7c3afb64-8e84-4f4b-87f4-88d19c2646de
 probe_boot_id=${EXPECTED_PROBE_BOOT_ID:-$writer_boot_id}
 epoch=1681862400
@@ -54,6 +56,10 @@ case $native_root_mode in 0|1) ;; *)
 	echo 'FAIL PERSISTENT_ROOT_NATIVE_PARTITION must be 0 or 1' >&2
 	exit 1
 esac
+case $ssh_diagnostic_mode in 0|1) ;; *)
+	echo 'FAIL PERSISTENT_ROOT_SSH_DIAGNOSTIC must be 0 or 1' >&2
+	exit 1
+esac
 
 case $require_deferred_ufs_modules in
 	0) ;;
@@ -81,12 +87,17 @@ printf '%s\n' "$expected_release" |
 	exit 1
 }
 
-for path in "$init" "$attest" "$shutdown"; do
+for path in "$init" "$attest" "$ssh_diagnostic" "$shutdown"; do
 	[ -x "$path" ] || {
 		echo "FAIL missing executable P2 initramfs source: $path" >&2
 		exit 1
 	}
 done
+[ "$(sha256sum "$ssh_diagnostic" | cut -d ' ' -f 1)" = \
+	f70ff15b2fb7c1112b5f5cdde732a5b366c6f9c793081c527dc1b295b9095728 ] || {
+	echo 'FAIL persistent-root SSH diagnostic source changed' >&2
+	exit 1
+}
 [ -f "$reboot_source" ] && [ ! -L "$reboot_source" ] &&
 	[ "$(sha256sum "$reboot_source" | cut -d ' ' -f 1)" = \
 		"$expected_reboot_source" ] || {
@@ -242,6 +253,13 @@ grep -Fqx "expected_probe_boot_id=$probe_boot_id" "$stage/init"
 sed -i "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" "$stage/init"
 grep -Fqx "expected_native_root_mode=$native_root_mode" "$stage/init"
 ! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' "$stage/init"
+[ "$(grep -Fc '@EXPECTED_SSH_DIAGNOSTIC_MODE@' "$stage/init")" -eq 1 ] || {
+	echo 'FAIL persistent-root init has no unique SSH diagnostic placeholder' >&2
+	exit 1
+}
+sed -i "s/@EXPECTED_SSH_DIAGNOSTIC_MODE@/$ssh_diagnostic_mode/" "$stage/init"
+grep -Fqx "expected_ssh_diagnostic_mode=$ssh_diagnostic_mode" "$stage/init"
+! grep -Fq '@EXPECTED_SSH_DIAGNOSTIC_MODE@' "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -d -m 0755 "$stage/usr/libexec"
 clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
@@ -317,6 +335,11 @@ if [ -n "$power_modules_root" ]; then
 fi
 attest_stage=$stage/usr/local/sbin/rog5-p2-attest
 install -D -m 0755 "$attest" "$attest_stage"
+rm -f "$stage/usr/local/sbin/rog5-ssh-diagnostic"
+if [ "$ssh_diagnostic_mode" -eq 1 ]; then
+	install -m 0755 "$ssh_diagnostic" \
+		"$stage/usr/local/sbin/rog5-ssh-diagnostic"
+fi
 [ "$(grep -Fc '@EXPECTED_UFS_STORAGE_MODE@' "$attest_stage")" -eq 1 ] || {
 	echo 'FAIL persistent-root attestation has no unique UFS storage-mode placeholder' >&2
 	exit 1

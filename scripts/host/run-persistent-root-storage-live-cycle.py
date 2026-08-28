@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "persistent-native-root-v2-generation227-live-v1"
-BUNDLE = "persistent-native-root-v2"
+PROFILE_ID = "persistent-native-root-v3-generation228-live-v1"
+BUNDLE = "persistent-native-root-v3"
 MANIFEST_SHA256 = (
-    "6c89b951cc340b4503cc6f6b828f46a04cf6e7508b95dc55a9ca4649a865ea82"
+    "b165584d1e335efad249552d9fd3de6554f411149de08aa9dcf9403b608aca1e"
 )
 RECOVERY_SHA256 = (
-    "084cd19b6eeda72e079972e5b910b5c143762d64a53bae383b69a8143592896b"
+    "7710a1335a51296eaa1214fee854d89d1ed356ff45a7d032f807115ae0cbe612"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"persistent-native-root-v2-generation227-live-v1\n"
-    b"candidate=persistent-native-root-v2\n"
+    b"persistent-native-root-v3-generation228-live-v1\n"
+    b"candidate=persistent-native-root-v3\n"
     b"manifest_sha256="
-    b"6c89b951cc340b4503cc6f6b828f46a04cf6e7508b95dc55a9ca4649a865ea82\n"
+    b"b165584d1e335efad249552d9fd3de6554f411149de08aa9dcf9403b608aca1e\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-native-root-v2-generation227-20260828-r1"
+    / "build/persistent-native-root-v3-generation228-20260828-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -86,12 +86,41 @@ TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 930
-AUTHENTICATED_SSH_WAIT_SECONDS = 150
 AUTHENTICATED_SSH_ATTEMPT_SECONDS = 20
 AUTHENTICATED_SSH_READY_MARKER = "ROG5_AUTHENTICATED_SSH_READY_V1"
-AUTHENTICATED_SSH_OUTPUT_MAX_BYTES = 4096
 AUTHENTICATED_SSH_COMMAND = (
     f"printf '%s\\n' '{AUTHENTICATED_SSH_READY_MARKER}'"
+)
+SSH_DIAGNOSTIC_PORT = 8078
+SSH_DIAGNOSTIC_MAX_BYTES = 16384
+SSH_CLIENT_MAX_BYTES = 32768
+SSH_CLIENT_RECORD_MAX_BYTES = 131072
+SSH_DIAGNOSTIC_FIELDS = (
+    "format",
+    "target_release",
+    "boot_id",
+    "auth_event",
+    "shadow_class",
+    "shadow_metadata",
+    "lower_shadow_class",
+    "lower_shadow_metadata",
+    "root_metadata",
+    "root_ssh_metadata",
+    "authorized_keys_metadata",
+    "run_nologin",
+    "etc_nologin",
+    "system_state",
+    "early_sshd",
+    "sshd_usepam",
+    "sshd_permitrootlogin",
+    "sshd_pubkeyauthentication",
+    "sshd_passwordauthentication",
+    "sshd_kbdinteractiveauthentication",
+    "sshd_persourcepenalties_sha256",
+    "log_bytes",
+    "log_sha256",
+    "log_tail_hex",
+    "result",
 )
 UFS_LINK_SNAPSHOT_COMMAND = r"""
 set -eu
@@ -132,10 +161,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-native-root-v2",
+    admission_profile="persistent-native-root-v3",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-native-root-v2",
-    build_profile="persistent-native-root-v2",
+    runtime_profile="persistent-native-root-v3",
+    build_profile="persistent-native-root-v3",
     diagnostic=False,
 )
 
@@ -348,6 +377,9 @@ def verify_static_artifacts(inputs: CYCLE.Inputs) -> None:
 def ssh_arguments(inputs: CYCLE.Inputs, known_hosts: Path) -> list[str]:
     return [
         "/usr/bin/ssh",
+        "-F",
+        "/dev/null",
+        "-vvv",
         "-i",
         str(inputs.ssh_key),
         "-o",
@@ -370,92 +402,147 @@ def ssh_arguments(inputs: CYCLE.Inputs, known_hosts: Path) -> list[str]:
         "ServerAliveInterval=5",
         "-o",
         "ServerAliveCountMax=3",
+        "-o",
+        "ConnectionAttempts=1",
         f"root@{PIN.TARGET_ADDRESS}",
     ]
 
 
-def wait_for_authenticated_ssh(
-    target_ssh: list[str],
-    log_path: Path,
-) -> tuple[int, float]:
-    """Wait for one complete key-authenticated session, not only TCP/22."""
-    started = time.monotonic()
-    deadline = started + AUTHENTICATED_SSH_WAIT_SECONDS
-    attempts = 0
-    descriptor = CYCLE.open_exclusive(log_path)
+def write_private_payload(path: Path, payload: bytes, maximum: int) -> None:
+    if not payload or len(payload) > maximum:
+        fail("private diagnostic payload is outside its fixed bound")
+    descriptor = CYCLE.open_exclusive(path)
     try:
-        os.write(
-            descriptor,
-            b"format=rog5-authenticated-ssh-rendezvous-v1\n",
-        )
-        while True:
-            now = time.monotonic()
-            if now >= deadline:
-                os.write(descriptor, b"result=FAIL\n")
-                os.fsync(descriptor)
-                fail(
-                    "authenticated SSH did not become ready within "
-                    f"{AUTHENTICATED_SSH_WAIT_SECONDS} seconds"
-                )
-            attempts += 1
-            timeout = min(
-                AUTHENTICATED_SSH_ATTEMPT_SECONDS,
-                max(1.0, deadline - now),
-            )
-            try:
-                result = CYCLE.run_capture(
-                    [*target_ssh, AUTHENTICATED_SSH_COMMAND],
-                    timeout=timeout,
-                    check=False,
-                )
-            except subprocess.TimeoutExpired:
-                status = "timeout"
-            else:
-                if result.returncode == 0:
-                    output = result.stdout.encode("utf-8")
-                    output_sha256 = hashlib.sha256(output).hexdigest()
-                    marker_count = result.stdout.splitlines().count(
-                        AUTHENTICATED_SSH_READY_MARKER
-                    )
-                    if (
-                        len(output) > AUTHENTICATED_SSH_OUTPUT_MAX_BYTES
-                        or "\x00" in result.stdout
-                        or marker_count != 1
-                    ):
-                        os.write(
-                            descriptor,
-                            (
-                                f"attempt={attempts} status=unexpected-output "
-                                f"output_bytes={len(output)} "
-                                f"output_sha256={output_sha256}\n"
-                                "result=FAIL\n"
-                            ).encode("ascii"),
-                        )
-                        os.fsync(descriptor)
-                        fail("unexpected authenticated SSH readiness output")
-                    elapsed = time.monotonic() - started
-                    os.write(
-                        descriptor,
-                        (
-                            f"attempt={attempts} status=ready "
-                            f"output_bytes={len(output)} "
-                            f"output_sha256={output_sha256}\n"
-                            f"attempts={attempts}\n"
-                            f"elapsed_seconds={elapsed:.3f}\n"
-                            "result=PASS\n"
-                        ).encode("ascii"),
-                    )
-                    os.fsync(descriptor)
-                    return attempts, elapsed
-                status = f"exit-{result.returncode}"
-            os.write(
-                descriptor,
-                f"attempt={attempts} status={status}\n".encode("ascii"),
-            )
-            os.fsync(descriptor)
-            time.sleep(1.0)
+        os.write(descriptor, payload)
+        os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def run_one_authenticated_ssh_diagnostic(
+    target_ssh: list[str], log_path: Path
+) -> tuple[int, float]:
+    """Run one key-auth attempt and retain its complete bounded transcript."""
+    started = time.monotonic()
+    try:
+        result = CYCLE.run_capture(
+            [*target_ssh, AUTHENTICATED_SSH_COMMAND],
+            timeout=AUTHENTICATED_SSH_ATTEMPT_SECONDS,
+            check=False,
+        )
+        output = result.stdout.encode("utf-8")
+        status = result.returncode
+    except subprocess.TimeoutExpired as error:
+        partial = error.stdout or ""
+        output = partial if isinstance(partial, bytes) else partial.encode("utf-8")
+        status = 124
+    if len(output) > SSH_CLIENT_MAX_BYTES or b"\x00" in output:
+        fail("one SSH client transcript exceeded its fixed bound")
+    elapsed = time.monotonic() - started
+    payload = (
+        "format=rog5-native-ssh-client-diagnostic-v1\n"
+        f"status={status}\n"
+        f"elapsed_seconds={elapsed:.3f}\n"
+        f"output_bytes={len(output)}\n"
+        f"output_sha256={hashlib.sha256(output).hexdigest()}\n"
+        f"output_hex={output.hex() or 'none'}\n"
+        "result=PASS\n"
+    ).encode("ascii")
+    write_private_payload(log_path, payload, SSH_CLIENT_RECORD_MAX_BYTES)
+    return status, elapsed
+
+
+def open_ssh_diagnostic_listener() -> socket.socket:
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.settimeout(60.0)
+    listener.bind(("169.254.77.1", SSH_DIAGNOSTIC_PORT))
+    listener.listen(1)
+    return listener
+
+
+def receive_ssh_diagnostic(
+    listener: socket.socket, expected_boot_id: str, output: Path
+) -> dict[str, str]:
+    connection, peer = listener.accept()
+    with connection:
+        connection.settimeout(5.0)
+        payload = bytearray()
+        while len(payload) <= SSH_DIAGNOSTIC_MAX_BYTES:
+            block = connection.recv(SSH_DIAGNOSTIC_MAX_BYTES + 1 - len(payload))
+            if not block:
+                break
+            payload.extend(block)
+        local = connection.getsockname()
+    if peer[0] != "169.254.77.2" or local[0] != "169.254.77.1":
+        fail("SSH diagnostic used the wrong source or host address")
+    raw = bytes(payload)
+    if not raw or len(raw) > SSH_DIAGNOSTIC_MAX_BYTES:
+        fail("SSH diagnostic exceeded its fixed bound")
+    try:
+        text = raw.decode("ascii")
+    except UnicodeDecodeError as error:
+        raise PersistentCycleError("SSH diagnostic is not ASCII") from error
+    if not text.endswith("\n") or "\r" in text or "\x00" in text:
+        fail("SSH diagnostic framing is invalid")
+    lines = text.splitlines()
+    if len(lines) != len(SSH_DIAGNOSTIC_FIELDS):
+        fail("SSH diagnostic field count changed")
+    values: dict[str, str] = {}
+    for expected, line in zip(SSH_DIAGNOSTIC_FIELDS, lines, strict=True):
+        prefix = f"{expected}="
+        if not line.startswith(prefix):
+            fail("SSH diagnostic field order changed")
+        value = line[len(prefix):]
+        if not value:
+            fail("SSH diagnostic contains an empty field")
+        values[expected] = value
+    metadata = re.compile(r"(?:absent|symlink|error|[0-9]+:[0-9]+:[0-7]+:[0-9]+:[0-9]+)\Z")
+    path_state = re.compile(r"(?:absent|symlink|other|regular-(?:error|[0-9]+))\Z")
+    if (
+        values["format"] != "rog5-native-ssh-diagnostic-v1"
+        or values["target_release"] != TARGET_RELEASE
+        or values["boot_id"] != expected_boot_id
+        or values["auth_event"] not in {"present", "absent"}
+        or values["shadow_class"] not in {"x", "locked", "empty", "other", "unavailable", "error"}
+        or values["lower_shadow_class"] not in {"x", "locked", "empty", "other", "unavailable", "error"}
+        or any(
+            not metadata.fullmatch(values[name])
+            for name in (
+                "shadow_metadata",
+                "lower_shadow_metadata",
+                "root_metadata",
+                "root_ssh_metadata",
+                "authorized_keys_metadata",
+            )
+        )
+        or not path_state.fullmatch(values["run_nologin"])
+        or not path_state.fullmatch(values["etc_nologin"])
+        or values["system_state"] not in {"starting", "running", "degraded", "maintenance", "stopping", "offline", "error"}
+        or values["early_sshd"] not in {"active", "inactive"}
+        or values["sshd_usepam"] not in {"yes", "no", "error"}
+        or values["sshd_permitrootlogin"] not in {"prohibit-password", "without-password", "no", "yes", "error"}
+        or values["sshd_pubkeyauthentication"] not in {"yes", "no", "error"}
+        or values["sshd_passwordauthentication"] not in {"yes", "no", "error"}
+        or values["sshd_kbdinteractiveauthentication"] not in {"yes", "no", "error"}
+        or not SHA256.fullmatch(values["sshd_persourcepenalties_sha256"])
+        or not values["log_bytes"].isascii()
+        or not values["log_bytes"].isdecimal()
+        or not 0 <= int(values["log_bytes"]) <= 10_000_000
+        or not SHA256.fullmatch(values["log_sha256"])
+        or (
+            values["log_tail_hex"] != "none"
+            and (
+                len(values["log_tail_hex"]) > 8192
+                or len(values["log_tail_hex"]) % 2 != 0
+                or re.fullmatch(r"[0-9a-f]+", values["log_tail_hex"]) is None
+            )
+        )
+        or values["result"] != "PASS"
+    ):
+        fail("SSH diagnostic content is invalid")
+    write_private_payload(output, raw, SSH_DIAGNOSTIC_MAX_BYTES)
+    return values
 
 
 def privileged_nmcli(arguments: list[str]) -> None:
@@ -490,6 +577,22 @@ def stock_fastboot_returned(expected_location: str) -> bool:
     ):
         fail("unexpected fastboot identity returned during target wait")
     return True
+
+
+def exact_fastboot_fallback_record(path: Path) -> bool:
+    try:
+        lines = path.read_text(encoding="ascii").splitlines()
+    except (OSError, UnicodeError):
+        return False
+    return (
+        "format=rog5-stock-android-fallback-v1" in lines
+        and "serial=M5AIKN00F0353YH" in lines
+        and "usb_location=1-1.2" in lines
+        and "evidence_mode=fastboot-slot-a" in lines
+        and "slot_suffix=_a" in lines
+        and "usb_config=fastboot" in lines
+        and lines.count("result=PASS") == 1
+    )
 
 
 def activate_target_network(cycle: CYCLE.LiveCycle, anchor: Path) -> str:
@@ -1034,62 +1137,51 @@ def run(
             )
             return
         target_ssh = ssh_arguments(inputs, target_known_hosts)
-        ssh_attempts, ssh_ready_elapsed = wait_for_authenticated_ssh(
-            target_ssh,
-            cycle.output("persistent-root-ssh-readiness.log"),
-        )
-        if run_optional_logged(
-            [*target_ssh, UFS_LINK_SNAPSHOT_COMMAND],
-            cycle.output("ufs-link-snapshot.log"),
-            30,
-        ) != 0:
-            fail("UFS link snapshot failed")
-        runtime_log = cycle.output("persistent-root-runtime.log")
-        runtime_status = run_optional_logged(
-            [*target_ssh, RUNTIME_COMMAND], runtime_log, 180
-        )
-        if runtime_status != 0:
-            fail(f"local-root runtime acceptance returned {runtime_status}")
-        target_boot_id = parse_runtime_evidence(runtime_log)
+        diagnostic_listener = open_ssh_diagnostic_listener()
+        try:
+            ssh_status, ssh_elapsed = run_one_authenticated_ssh_diagnostic(
+                target_ssh,
+                cycle.output("native-root-ssh-client.log"),
+            )
+            diagnostic = receive_ssh_diagnostic(
+                diagnostic_listener,
+                accepted_stage.boot_id,
+                cycle.output("native-root-ssh-target.record"),
+            )
+        finally:
+            diagnostic_listener.close()
+        if diagnostic["auth_event"] != "present" or int(diagnostic["log_bytes"]) == 0:
+            fail("target SSH diagnostic did not observe the first authentication")
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("native-root-boot-timing.record"),
+            cycle.output("native-root-ssh-diagnostic-timing.record"),
             (
-                ("format", "rog5-native-root-boot-timing-v1"),
+                ("format", "rog5-native-root-ssh-diagnostic-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
-                ("authenticated_ssh_attempts", str(ssh_attempts)),
-                (
-                    "authenticated_ssh_rendezvous_seconds",
-                    f"{ssh_ready_elapsed:.3f}",
-                ),
-                ("target_boot_id", target_boot_id),
-                ("disposition", "systemd-ssh-ready"),
+                ("authenticated_ssh_attempts", "1"),
+                ("authenticated_ssh_status", str(ssh_status)),
+                ("authenticated_ssh_seconds", f"{ssh_elapsed:.3f}"),
+                ("target_boot_id", accepted_stage.boot_id),
+                ("disposition", "first-ssh-attempt-captured"),
                 ("root", "native-ext4-overlay-tmpfs"),
                 ("storage", "read-only"),
-                ("seconds_to_native_ready", f"{elapsed:.3f}"),
+                ("seconds_to_diagnostic", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
-
-        reboot_status = run_optional_logged(
-            [*target_ssh, "/run/initramfs/usr/libexec/rog5-reboot-bootloader"],
-            cycle.output("native-root-reboot.log"),
-            30,
-        )
-        if reboot_status not in {0, 255}:
-            fail(f"native-root restart2 returned unexpected status {reboot_status}")
-
         fallback_attempted = True
         cycle.wait_fallback(None)
         cycle.wait_host_clean(final=True)
         fallback_proven = True
+        if not exact_fastboot_fallback_record(cycle.output("fallback-identity.record")):
+            fail("diagnostic target did not return through exact slot-A fastboot")
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only native-root cycle reached systemd and key-only SSH in "
-            f"{elapsed:.3f}s and returned to exact fastboot"
+            "PASS one RAM-only native-root cycle captured the first SSH attempt "
+            f"in {elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:
         if control_process is not None and control_process.process.poll() is not None and intent is None:

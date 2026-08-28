@@ -18,6 +18,7 @@ expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
 expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
+expected_ssh_diagnostic_mode=@EXPECTED_SSH_DIAGNOSTIC_MODE@
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
 expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
@@ -1371,8 +1372,11 @@ prepare_volatile_systemd_state() {
 	ed25519_unit=$runtime/systemd/system/rog5-sshd-ed25519-key.service
 	early_sshd_unit=$runtime/systemd/system/rog5-early-sshd.service
 	early_sshd_wants=$runtime/systemd/system/sysinit.target.wants/rog5-early-sshd.service
+	ssh_diagnostic_unit=$runtime/systemd/system/rog5-ssh-diagnostic.service
+	ssh_diagnostic_wants=$runtime/systemd/system/sysinit.target.wants/rog5-ssh-diagnostic.service
 	for path in "$sshdgenkeys_mask" "$stock_sshd_mask" "$ed25519_unit" \
-		"$early_sshd_unit" "$early_sshd_wants"; do
+		"$early_sshd_unit" "$early_sshd_wants" "$ssh_diagnostic_unit" \
+		"$ssh_diagnostic_wants"; do
 		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
 	done
 	ln -s /dev/null "$sshdgenkeys_mask" || return 1
@@ -1392,7 +1396,45 @@ ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key
 Type=oneshot
 ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
 EOF
-	cat >"$early_sshd_unit" <<'EOF'
+	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
+		cat >"$early_sshd_unit" <<'EOF'
+[Unit]
+Description=Start strict SSH with one bounded diagnostic transcript
+DefaultDependencies=no
+Requires=rog5-sshd-ed25519-key.service
+After=rog5-sshd-ed25519-key.service
+Before=basic.target
+
+[Service]
+ExecStart=/usr/bin/sshd -D -e -o LogLevel=DEBUG3
+StandardError=append:/run/rog5-sshd-debug.log
+KillMode=process
+Restart=on-failure
+RestartSec=2s
+RuntimeDirectory=sshd
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=sysinit.target
+EOF
+		cat >"$ssh_diagnostic_unit" <<'EOF'
+[Unit]
+Description=Capture one native-root SSH authentication result
+DefaultDependencies=no
+Requires=rog5-early-sshd.service
+After=rog5-early-sshd.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-ssh-diagnostic
+EOF
+		ln -s ../rog5-ssh-diagnostic.service "$ssh_diagnostic_wants" || return 1
+		[ -L "$ssh_diagnostic_wants" ] &&
+			[ "$(readlink "$ssh_diagnostic_wants")" = \
+			../rog5-ssh-diagnostic.service ] || return 1
+	else
+		cat >"$early_sshd_unit" <<'EOF'
 [Unit]
 Description=Start strict SSH before the general Arch boot transaction
 DefaultDependencies=no
@@ -1411,6 +1453,7 @@ RuntimeDirectoryMode=0755
 [Install]
 WantedBy=sysinit.target
 EOF
+	fi
 	ln -s ../rog5-early-sshd.service "$early_sshd_wants" || return 1
 	[ -L "$early_sshd_wants" ] &&
 		[ "$(readlink "$early_sshd_wants")" = \
@@ -1420,9 +1463,20 @@ EOF
 	verify_exact_regular "$ed25519_unit" 0 0 644 274 \
 		99390fa5afe975b46a4f62f7f532c3062acfa69e85970d5a7aeb28a7ccfadd09 ||
 		return 1
-	verify_exact_regular "$early_sshd_unit" 0 0 644 366 \
-		a9b6c3b487755dcb9e0726773b5f6376cadfa192244d8f7c24d9fd3837661359 ||
-		return 1
+	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
+		chown 0:0 "$ssh_diagnostic_unit" || return 1
+		chmod 0644 "$ssh_diagnostic_unit" || return 1
+		grep -Fqx 'ExecStart=/usr/bin/sshd -D -e -o LogLevel=DEBUG3' \
+			"$early_sshd_unit" || return 1
+		grep -Fqx 'StandardError=append:/run/rog5-sshd-debug.log' \
+			"$early_sshd_unit" || return 1
+		grep -Fqx 'ExecStart=/run/rog5-ssh-diagnostic' \
+			"$ssh_diagnostic_unit" || return 1
+	else
+		verify_exact_regular "$early_sshd_unit" 0 0 644 366 \
+			a9b6c3b487755dcb9e0726773b5f6376cadfa192244d8f7c24d9fd3837661359 ||
+			return 1
+	fi
 	return 0
 }
 
@@ -1444,6 +1498,14 @@ prepare_runtime() {
 
 	cp -p /usr/local/sbin/rog5-p2-attest /run/rog5-p2-attest ||
 		return 1
+	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
+		cp -p /usr/local/sbin/rog5-ssh-diagnostic \
+			/run/rog5-ssh-diagnostic || return 1
+		[ -x /run/rog5-ssh-diagnostic ] || return 1
+	else
+		[ ! -e /usr/local/sbin/rog5-ssh-diagnostic ] &&
+			[ ! -L /usr/local/sbin/rog5-ssh-diagnostic ] || return 1
+	fi
 	prepare_volatile_root_account /newroot /mnt/root-ro || return 1
 	mkdir -p /run/NetworkManager/conf.d /run/udev/rules.d \
 		/run/systemd/system/sysinit.target.wants
