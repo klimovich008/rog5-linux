@@ -221,6 +221,7 @@ arm_watchdog() {
 }
 
 disarm_watchdog() {
+	disarm_log=${1:-}
 	case $watchdog_pid in ''|*[!0-9]*) return 1 ;; esac
 	[ -f "$watchdog_pid_file" ] && [ ! -L "$watchdog_pid_file" ] || return 1
 	[ "$(cat "$watchdog_pid_file")" = "$watchdog_pid" ] || return 1
@@ -229,7 +230,13 @@ disarm_watchdog() {
 	! kill -0 "$watchdog_pid" 2>/dev/null || return 1
 	rm -f "$watchdog_pid_file" || return 1
 	watchdog_pid=
-	log 'emergency-reset watchdog disarmed after successful handoff'
+	if [ -n "$disarm_log" ]; then
+		printf '%s\n' \
+			'rog5-persistent-root: emergency-reset watchdog disarmed after successful handoff' \
+			>"$disarm_log" || return 1
+	else
+		log 'emergency-reset watchdog disarmed after successful handoff'
+	fi
 }
 
 physical_topology_count() {
@@ -1929,7 +1936,8 @@ if ! publish_stage switch-root PASS; then
 fi
 report_current_stage_once || true
 
-if ! disarm_watchdog; then
+watchdog_pid_file=$handoff_newroot/run/rog5-p2-watchdog.pid
+if ! disarm_watchdog "$handoff_newroot/dev/kmsg"; then
 	rollback_handoff_mounts || true
 	stage_record=/run/rog5-persistent-root-stage.record
 	fail_local_stage switch-root 'successful handoff watchdog disarm failed'

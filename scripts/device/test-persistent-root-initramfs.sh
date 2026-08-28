@@ -396,9 +396,14 @@ grep -Fq 'stage_record=$handoff_newroot/run/rog5-persistent-root-stage.record' \
 	"$init"
 grep -Fq 'stage_record=/run/rog5-persistent-root-stage.record' "$init"
 grep -Fq 'report_current_stage_once || true' "$init"
+grep -Fq \
+	'watchdog_pid_file=$handoff_newroot/run/rog5-p2-watchdog.pid' "$init"
+grep -Fq 'disarm_watchdog "$handoff_newroot/dev/kmsg"' "$init"
 grep -Fq 'boot_id=$target_boot_id' "$init"
 grep -Fq 'exec switch_root /newroot /sbin/init' "$init"
-disarm_line=$(grep -n '^if ! disarm_watchdog; then$' "$init" | cut -d: -f1)
+disarm_line=$(grep -n \
+	'^if ! disarm_watchdog "$handoff_newroot/dev/kmsg"; then$' "$init" |
+	cut -d: -f1)
 switch_exec_line=$(grep -n '^exec switch_root /newroot /sbin/init$' "$init" | cut -d: -f1)
 [ "$disarm_line" -lt "$switch_exec_line" ]
 [ "$(grep -Ec '^[[:space:]]*mount --move ' "$init")" -eq 1 ] ||
@@ -926,5 +931,24 @@ sleep 2
 [ ! -e "$watchdog_pid_file" ]
 [ ! -s "$watchdog_sysrq" ]
 ! grep -Fq 'watchdog expired' "$watchdog_kmsg"
+
+mkdir -p "$work/pre-handoff-run" "$work/newroot/run" "$work/newroot/dev"
+recovery_timeout=1
+watchdog_pid_file=$work/pre-handoff-run/rog5-p2-watchdog.pid
+watchdog_kmsg=$work/post-handoff-watchdog.kmsg
+watchdog_sysrq=$work/post-handoff-watchdog.sysrq
+: >"$watchdog_kmsg"
+: >"$watchdog_sysrq"
+: >"$work/newroot/dev/kmsg"
+arm_watchdog
+mv "$watchdog_pid_file" "$work/newroot/run/rog5-p2-watchdog.pid"
+watchdog_pid_file=$work/newroot/run/rog5-p2-watchdog.pid
+disarm_watchdog "$work/newroot/dev/kmsg"
+sleep 2
+[ ! -e "$watchdog_pid_file" ]
+[ ! -s "$watchdog_sysrq" ]
+grep -Fqx \
+	'rog5-persistent-root: emergency-reset watchdog disarmed after successful handoff' \
+	"$work/newroot/dev/kmsg"
 
 echo 'PASS deterministic credential-free P2 initramfs pins exact UFS, one bounded image write, read-only runtime, tmpfs OverlayFS, restart2 rollback, and emergency SysRq fallback'
