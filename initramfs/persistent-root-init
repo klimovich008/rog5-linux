@@ -1299,6 +1299,27 @@ mount_overlay_root() {
 	return 0
 }
 
+prepare_volatile_root_account() {
+	root=$1
+	lower=$2
+	shadow=$root/etc/shadow
+	lower_shadow=$lower/etc/shadow
+	for path in "$shadow" "$lower_shadow"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:600:1 ] ||
+			return 1
+		[ "$(grep -c '^root:' "$path")" -eq 1 ] || return 1
+	done
+	root_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
+		return 1
+	case $root_password in !*) ;; *) return 1 ;; esac
+	sed -i 's/^root:[^:]*/root:x/' "$shadow" || return 1
+	grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
+	root_password_after=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
+		return 1
+	[ "$root_password_after" = "$root_password" ]
+}
+
 prepare_volatile_systemd_state() {
 	root=$1
 	lower=$2
@@ -1423,6 +1444,7 @@ prepare_runtime() {
 
 	cp -p /usr/local/sbin/rog5-p2-attest /run/rog5-p2-attest ||
 		return 1
+	prepare_volatile_root_account /newroot /mnt/root-ro || return 1
 	mkdir -p /run/NetworkManager/conf.d /run/udev/rules.d \
 		/run/systemd/system/sysinit.target.wants
 	cat >/run/NetworkManager/conf.d/10-rog5-p2.conf <<'EOF'

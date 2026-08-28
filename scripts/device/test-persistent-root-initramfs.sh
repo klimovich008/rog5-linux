@@ -114,6 +114,35 @@ for contract in \
 	grep -Fq "$contract" "$init" ||
 		fail "P2 native-root contract is missing: $contract"
 done
+for contract in \
+	'prepare_volatile_root_account() {' \
+	"sed -i 's/^root:[^:]*/root:x/'" \
+	"grep -Eq '^root:x:[0-9]+:{6}$'" \
+	'prepare_volatile_root_account /newroot /mnt/root-ro'; do
+	grep -Fq "$contract" "$init" ||
+		fail "P2 volatile root-account contract is missing: $contract"
+done
+(
+	account_work=$(mktemp -d)
+	trap 'rm -rf -- "$account_work"' EXIT HUP INT TERM
+	awk '
+		/^prepare_volatile_root_account\(\) \{/ { copy=1 }
+		/^prepare_volatile_systemd_state\(\) \{/ { copy=0 }
+		copy { print }
+	' "$init" >"$account_work/function.sh"
+	# shellcheck disable=SC1090
+	. "$account_work/function.sh"
+	mkdir -p "$account_work/root/etc" "$account_work/lower/etc"
+	printf '%s\n' 'root:!$y$fixture:20610::::::' \
+		>"$account_work/lower/etc/shadow"
+	cp "$account_work/lower/etc/shadow" "$account_work/root/etc/shadow"
+	chmod 0600 "$account_work/root/etc/shadow" \
+		"$account_work/lower/etc/shadow"
+	stat() { printf '%s\n' 0:0:600:1; }
+	prepare_volatile_root_account "$account_work/root" "$account_work/lower"
+	grep -Fxq 'root:x:20610::::::' "$account_work/root/etc/shadow"
+	grep -Fxq 'root:!$y$fixture:20610::::::' "$account_work/lower/etc/shadow"
+)
 grep -Fq 'EXPECTED_PROBE_BOOT_ID must be current for local-write' "$builder" ||
 	fail 'P2 builder does not preserve current-boot write semantics'
 grep -Fq 'EXPECTED_PROBE_BOOT_ID must pin a writer UUID for read-only' \

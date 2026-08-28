@@ -165,6 +165,14 @@ grep -Fxq \
 [ "$(sha256sum "$lower/.rog5-source-seal" | cut -d ' ' -f 1)" = \
 	"$expected_source_seal_sha256" ] ||
 	fail 'mounted lower source seal changed after handoff'
+[ "$(stat -c '%u:%g:%a:%h' /etc/shadow)" = 0:0:600:1 ] &&
+	grep -Eq '^root:x:[0-9]+:{6}$' /etc/shadow ||
+	fail 'volatile root account state is not key-login capable'
+lower_root_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower/etc/shadow") ||
+	fail 'lower root account state is unreadable'
+case $lower_root_password in !*) ;; *)
+	fail 'lower root account state changed persistently' ;;
+esac
 if [ "$expected_native_root_mode" -eq 0 ]; then
 	[ ! -e /.rog5/userdata-ro/rog5/state/good ] ||
 		fail 'unbooted root was promoted'

@@ -611,6 +611,13 @@ CLAIMS = {
         b"manifest_sha256=4dc87544ec35dc9747a9e2a860b93fc4765228d5ab5acb0a54f67dec59fa9af3\n"
         b"state=BOOT_CLAIMED\n"
     ),
+    "persistent-native-root-v2-generation227-live-v1": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=persistent-native-root-v2-generation227-live-v1\n"
+        b"candidate=persistent-native-root-v2\n"
+        b"manifest_sha256=6c89b951cc340b4503cc6f6b828f46a04cf6e7508b95dc55a9ca4649a865ea82\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "storage-preflight-v3-generation73-live-v1": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=storage-preflight-v3-generation73-live-v1\n"
