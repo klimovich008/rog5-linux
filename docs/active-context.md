@@ -183,11 +183,15 @@ OverlayFS, final storage and switch-root passed and sshd exposed a host key, but
 every key-auth attempt returned 255. Generation 227 is consumed at the same
 boundary despite volatile `root:x`; exact AArch64 QEMU controls prove both the
 locked and unlocked source-image account accept the key under `UsePAM yes`.
-The observed later `Not allowed at this time` is source-penalty amplification;
-the first refusal remains unclassified. Generation 228 is the unbooted
-diagnostic-only successor: one SSH attempt, bounded target OpenSSH/PAM/config
-evidence over NCM, and direct restart2-to-fastboot proof. Target, signed
-manifest, and wrapper are `2a2d6c49...`, `b165584d...`, and `7710a133...`.
+The observed later `Not allowed at this time` is source-penalty amplification.
+Generation 228 captured the initial failure: the correct key offer reached
+sshd, then target processing stopped at `PAM: initializing for "root"` while
+systemd was not operational. Root/key/config/nologin identities were exact;
+direct restart2 returned fastboot and `TARGET_ACCEPTED` resolved. Generation
+229 is the unbooted functional successor: volatile `UsePAM no` only for the
+strict key-only early sshd, one authentication attempt, then full runtime/UFS
+acceptance. Target, manifest, and wrapper are `cf3f6dad...`, `5ac2a406...`,
+and `056f2ca5...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

@@ -276,6 +276,8 @@ sshd -T | grep -Eq '^permitrootlogin (without-password|prohibit-password)$' ||
 	fail 'SSH root policy changed'
 sshd -T | grep -Fqx 'pubkeyauthentication yes' ||
 	fail 'SSH public-key authentication is disabled'
+sshd -T | grep -Fqx 'usepam no' ||
+	fail 'PAM remains enabled for early key-only SSH'
 [ -s /etc/ssh/ssh_host_ed25519_key ] &&
 	[ "$(stat -c %a /etc/ssh/ssh_host_ed25519_key)" = 600 ] ||
 	fail 'volatile SSH host identity is absent'

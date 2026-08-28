@@ -139,6 +139,15 @@ for contract in \
 	grep -Fq "$contract" "$init" ||
 		fail "P2 volatile root-account contract is missing: $contract"
 done
+for contract in \
+	'prepare_volatile_ssh_policy() {' \
+	"printf '%s\\n' 'UsePAM no'" \
+	'prepare_volatile_ssh_policy /newroot /mnt/root-ro'; do
+	grep -Fq "$contract" "$init" ||
+		fail "P2 volatile SSH policy contract is missing: $contract"
+done
+grep -Fq "sshd -T | grep -Fqx 'usepam no'" "$attest" ||
+	fail 'P2 attestation does not prove PAM is disabled for early key-only SSH'
 (
 	account_work=$(mktemp -d)
 	trap 'rm -rf -- "$account_work"' EXIT HUP INT TERM
@@ -159,6 +168,39 @@ done
 	prepare_volatile_root_account "$account_work/root" "$account_work/lower"
 	grep -Fxq 'root:x:20610::::::' "$account_work/root/etc/shadow"
 	grep -Fxq 'root:!$y$fixture:20610::::::' "$account_work/lower/etc/shadow"
+)
+(
+	policy_work=$(mktemp -d)
+	trap 'rm -rf -- "$policy_work"' EXIT HUP INT TERM
+	awk '
+		/^prepare_volatile_ssh_policy\(\) \{/ { copy=1 }
+		/^prepare_volatile_systemd_state\(\) \{/ { copy=0 }
+		copy { print }
+	' "$init" >"$policy_work/function.sh"
+	# shellcheck disable=SC1090
+	. "$policy_work/function.sh"
+	for root in root lower; do
+		mkdir -p "$policy_work/$root/etc/ssh/sshd_config.d"
+		printf '%s\n' \
+			'HostKey /etc/ssh/ssh_host_ed25519_key' \
+			'PasswordAuthentication no' \
+			'KbdInteractiveAuthentication no' \
+			'PermitRootLogin prohibit-password' \
+			'PubkeyAuthentication yes' \
+			'AuthorizedKeysFile /root/.ssh/authorized_keys' \
+			>"$policy_work/$root/etc/ssh/sshd_config.d/10-rog5-server.conf"
+		chmod 0644 "$policy_work/$root/etc/ssh/sshd_config.d/10-rog5-server.conf"
+	done
+	verify_exact_regular() {
+		path=$1 mode=$4 size=$5 hash=$6
+		[ "$(stat -c '%a:%s:%h' "$path")" = "$mode:$size:1" ] &&
+			[ "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$hash" ]
+	}
+	prepare_volatile_ssh_policy "$policy_work/root" "$policy_work/lower"
+	grep -Fxq 'UsePAM no' \
+		"$policy_work/root/etc/ssh/sshd_config.d/10-rog5-server.conf"
+	! grep -Fq 'UsePAM' \
+		"$policy_work/lower/etc/ssh/sshd_config.d/10-rog5-server.conf"
 )
 grep -Fq 'EXPECTED_PROBE_BOOT_ID must be current for local-write' "$builder" ||
 	fail 'P2 builder does not preserve current-boot write semantics'
