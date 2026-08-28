@@ -54,8 +54,12 @@ boot `8cd2c82e...`. Full local and exact-head CI passed, but v4 produced the
 same zero-USB 57.601-second return to stock recovery and is consumed. Freeze
 the per-loader embedded-kernel rebuild route. The next bounded composition
 reuses exact live-proven Generation-233 kernel `838425a8...` with corrected
-loader ramdisk `b29757ca...`; deterministic fresh AVB twins are `dc59b4ab...`.
-No phone storage or `boot_b` was modified.
+loader ramdisk `b29757ca...`; the fresh `dc59b4ab...` external-loader image also
+returned with zero USB after 57.572 seconds and is consumed. Freeze every
+standalone replacement `/init`. The active successor keeps canonical recovery
+for USB/watchdog/rollback and adds one local-loader mode afterward. Full local
+CI passes; recovery ramdisk, raw boot, and AVB twins are `31c4c075...`,
+`f235719b...`, and `5a8b3424...`. No phone storage or `boot_b` was modified.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and

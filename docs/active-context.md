@@ -45,8 +45,11 @@ line. Loader-v4 clean twins are built at Image `e61a2b67...`, raw boot
 v4 returned to stock recovery after 57.601 seconds with no loader USB. Freeze
 that embedded-kernel route. The current unbooted successor keeps proven
 Generation-233 kernel `838425a8...`, changes only the external corrected loader
-ramdisk `b29757ca...`, and has fresh AVB twins `dc59b4ab...`. The phone exposes
-stock-recovery unauthorized ADB and `boot_b` remains untouched.
+ramdisk `b29757ca...`, and has fresh AVB twins `dc59b4ab...`. That image also
+returned with zero USB after 57.572 seconds and is consumed. Freeze standalone
+replacement `/init` work. The active unbooted successor uses canonical recovery
+USB/watchdog/rollback plus one sealed local-loader mode; ramdisk/raw/AVB twins
+are `31c4c075...`, `f235719b...`, and `5a8b3424...`. `boot_b` remains untouched.
 
 ## Active storage cycle
 
