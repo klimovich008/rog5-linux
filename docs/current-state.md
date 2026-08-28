@@ -261,11 +261,14 @@ Exact slot-A fastboot returned and intent resolved `FALLBACK_RETURNED`.
 Generation 231 passed that marker and p24 attestation, but the marker preceded
 systemd's final active/running publication; a later snapshot again proved all
 predicates and zero failed units before exact fastboot fallback. Generation
-232 is the unbooted successor and waits at most 90 seconds for the marker,
-PID1, system state, and both required units simultaneously.
+232 passed in 255.879 seconds: native p24/root verification, OverlayFS,
+switch-root, stable NCM, first-attempt key SSH in 0.166 seconds, UFS, full
+systemd readiness with zero failed units, and direct exact slot-A fastboot.
+Intent resolved `TARGET_ACCEPTED`. A fresh repeat remains required before any
+persistent slot-B boot installation.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 231. Battery voltage remains above the accepted gate and
+Generation 232. Battery voltage remains above the accepted gate and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
