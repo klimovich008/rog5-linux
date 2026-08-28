@@ -178,12 +178,13 @@ Generation 225 passed and is consumed. It proved both repaired hashes, repaired
 ext4 with `e2fsck -p` status 1, then proved clean state, the full seven-item
 tree, relock, `TARGET_ACCEPTED`, and exact fastboot in 151.211 seconds. The next
 cycle is a fresh RAM-only native-root/systemd/key-only-SSH boot test; persistent
-slot-B installation remains separate. Generation 226 is the unbooted direct-p24
-successor. It changes only the accepted persistent-root handoff mode: exact p24
-is the read-only lower root, while the proven tmpfs OverlayFS, volatile systemd
-state, strict SSH, UFS/charging stack, watchdog and restart2 fallback remain.
-Target/manifest/wrapper hashes are `320ee43b...`, `4dc87544...`, and
-`ba13d5f6...`.
+slot-B installation remains separate. Generation 226 is consumed: p24,
+OverlayFS, final storage and switch-root passed and sshd exposed a host key, but
+the account remained locked and every key-auth attempt returned 255. Generation
+227 is the unbooted volatile-only fix: OverlayFS `/etc/shadow` becomes `root:x`
+while p24 remains locked and password/keyboard auth remain disabled.
+Target/manifest/wrapper hashes are `4e56b805...`, `6c89b951...`, and
+`084cd19b...`.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in

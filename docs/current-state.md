@@ -233,12 +233,15 @@ repair and is consumed successfully. It proved both repaired hashes, ran only
 `e2fsck -p` with status 1, then proved clean ext4, the full seven-item tree,
 complete relock, `TARGET_ACCEPTED`, and exact fastboot return in 151.211
 seconds. p24 is now eligible for a fresh RAM-only native-root boot test; no
-persistent boot artifact is authorized yet. Generation 226 is the unbooted
-successor: the existing persistent-root initramfs now has one sealed native
-mode that resolves exact p24, mounts it directly read-only, retains the proven
-tmpfs OverlayFS/systemd/key-only SSH handoff, and uses the same restart2 slot-A
-fallback. Target/manifest/wrapper hashes are `320ee43b...`, `4dc87544...`, and
-`ba13d5f6...`.
+persistent boot artifact is authorized yet. Generation 226 is consumed: exact
+p24 resolution, root verification, OverlayFS/runtime/final-storage and
+switch-root passed, and final sshd exposed a host key, but all authenticated
+SSH attempts returned 255 until exact slot-A fallback. Offline inspection
+proved p24 root remained account-locked (`root:!…`). Generation 227 is the
+unbooted successor; it changes only the tmpfs upper `/etc/shadow` to `root:x`,
+proves the immutable lower remains locked, and keeps password/keyboard auth
+disabled. Target/manifest/wrapper hashes are `4e56b805...`, `6c89b951...`, and
+`084cd19b...`.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
 Generation 225 returned automatically. Battery voltage is 8.693 V and
