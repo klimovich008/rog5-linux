@@ -5007,7 +5007,7 @@ case $profile in
 		;;
 	persistent-native-root-v5-generation230-live-v1)
 		expected_boot_image=build/persistent-native-root-v5-generation230-20260828-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 230 RAM-only postrepair native-p24 boot: read-only root verification, volatile PAM-free key-only early SSH, systemd/runtime/UFS acceptance and direct restart2 fastboot; never flash or retry after COMMIT'
+		expected_boot_basis='one exact Generation 230 RAM-only native-p24 postrepair acceptance: read-only root verification, volatile PAM-free key-only early SSH, systemd/runtime/UFS acceptance and direct restart2 fastboot; never flash or retry after COMMIT'
 		expected_boot_role='unbooted Generation 230 native-p24 postrepair acceptance; exact allocated-RAW p24 repair completed, unchanged proven target bytes under a fresh signed v5 intent, unchanged raw recovery and fresh AVB generation; never flash or retry after COMMIT'
 		expected_boot_tracked=no
 		component_layout=structured
