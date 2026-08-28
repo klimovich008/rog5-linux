@@ -270,6 +270,11 @@ in 249.912 seconds with first key SSH in 0.178 seconds, zero failed units,
 `TARGET_ACCEPTED`, and exact slot-A fastboot return. The repeated-pass baseline
 is frozen; persistent slot-B loader work is now active.
 
+Persistent slot-B loader v1 now passes offline with a local signed-bundle
+path, exact read-only p24 resolution, 180-second bootloader fallback, clean
+wrapper twins and a standalone-shutdown target. No boot_b write is authorized
+until p24 staging and repeated RAM-only loader tests pass.
+
 The phone is currently exact slot-A fastboot on the anchored USB path after
 Generation 232. Battery voltage remains above the accepted gate and
 `battery-soc-ok=yes`.
