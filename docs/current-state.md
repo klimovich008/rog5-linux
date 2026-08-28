@@ -246,13 +246,17 @@ not proof of the first refusal. Generation 228 passed its diagnostic objective
 in 184.314 seconds: exact root/key/config state, no nologin files, and one
 client key offer; target sshd then blocked at `PAM: initializing for "root"`
 until the client timed out. Direct restart2 returned exact fastboot and intent
-resolved `TARGET_ACCEPTED`. Generation 229 is the unbooted functional fix: add
-`UsePAM no` only to the volatile strict key-only early-SSH policy, make one
-authentication attempt, then run full systemd/runtime/UFS acceptance. Target,
-manifest, and wrapper are `cf3f6dad...`, `5ac2a406...`, and `056f2ca5...`.
+resolved `TARGET_ACCEPTED`. Generation 229 proved the functional SSH fix: its
+first key authentication passed in 0.169 seconds with volatile `UsePAM no`,
+and the UFS snapshot passed. Runtime then exposed a separate p24 content
+defect: `systemctl`, `stat`, and `tail` have zeroed allocated blocks from the
+prior sparse FILL transfer. Direct restart2 returned fastboot and intent
+resolved `FALLBACK_RETURNED`. The next operation is a p24-only sparse repair
+with all 590,019 allocated ext4 blocks encoded RAW and only free blocks
+DONT_CARE; no kernel successor is justified.
 
 The phone is currently exact slot-A fastboot on the anchored USB path after
-Generation 228 direct restart2. Battery voltage is 8.713 V and
+Generation 229 direct restart2. Battery voltage is 8.711 V and
 `battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
