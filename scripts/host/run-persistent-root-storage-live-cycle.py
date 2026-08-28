@@ -42,13 +42,13 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "persistent-native-root-v3-generation228-live-v1"
-BUNDLE = "persistent-native-root-v3"
+PROFILE_ID = "persistent-native-root-v4-generation229-live-v1"
+BUNDLE = "persistent-native-root-v4"
 MANIFEST_SHA256 = (
-    "b165584d1e335efad249552d9fd3de6554f411149de08aa9dcf9403b608aca1e"
+    "5ac2a406ba6e132c3b7488830eda125151e6aa532e4b7867f8b962c22c3051a8"
 )
 RECOVERY_SHA256 = (
-    "7710a1335a51296eaa1214fee854d89d1ed356ff45a7d032f807115ae0cbe612"
+    "056f2ca56706381223f363a318cdb0364e02b8950e6c60f8cd6a7e3155b633cf"
 )
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
@@ -59,10 +59,10 @@ HOST_VERIFIER_SHA256 = (
 CLAIM_RECORD = (
     b"format=rog5-temporary-boot-consumption-v1\n"
     b"recovery_profile="
-    b"persistent-native-root-v3-generation228-live-v1\n"
-    b"candidate=persistent-native-root-v3\n"
+    b"persistent-native-root-v4-generation229-live-v1\n"
+    b"candidate=persistent-native-root-v4\n"
     b"manifest_sha256="
-    b"b165584d1e335efad249552d9fd3de6554f411149de08aa9dcf9403b608aca1e\n"
+    b"5ac2a406ba6e132c3b7488830eda125151e6aa532e4b7867f8b962c22c3051a8\n"
     b"state=BOOT_CLAIMED\n"
 )
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
@@ -76,7 +76,7 @@ TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
 LIVE_ROOT = (
     REPO
-    / "build/persistent-native-root-v3-generation228-20260828-r1"
+    / "build/persistent-native-root-v4-generation229-20260828-r1"
 )
 COMPONENT_ROOT = (
     REPO
@@ -161,10 +161,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-native-root-v3",
+    admission_profile="persistent-native-root-v4",
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-native-root-v3",
-    build_profile="persistent-native-root-v3",
+    runtime_profile="persistent-native-root-v4",
+    build_profile="persistent-native-root-v4",
     diagnostic=False,
 )
 
@@ -438,6 +438,10 @@ def run_one_authenticated_ssh_diagnostic(
         status = 124
     if len(output) > SSH_CLIENT_MAX_BYTES or b"\x00" in output:
         fail("one SSH client transcript exceeded its fixed bound")
+    if status == 0 and result.stdout.splitlines().count(
+        AUTHENTICATED_SSH_READY_MARKER
+    ) != 1:
+        fail("successful SSH diagnostic lacks its exact readiness marker")
     elapsed = time.monotonic() - started
     payload = (
         "format=rog5-native-ssh-client-diagnostic-v1\n"
@@ -1137,40 +1141,50 @@ def run(
             )
             return
         target_ssh = ssh_arguments(inputs, target_known_hosts)
-        diagnostic_listener = open_ssh_diagnostic_listener()
-        try:
-            ssh_status, ssh_elapsed = run_one_authenticated_ssh_diagnostic(
-                target_ssh,
-                cycle.output("native-root-ssh-client.log"),
-            )
-            diagnostic = receive_ssh_diagnostic(
-                diagnostic_listener,
-                accepted_stage.boot_id,
-                cycle.output("native-root-ssh-target.record"),
-            )
-        finally:
-            diagnostic_listener.close()
-        if diagnostic["auth_event"] != "present" or int(diagnostic["log_bytes"]) == 0:
-            fail("target SSH diagnostic did not observe the first authentication")
+        ssh_status, ssh_elapsed = run_one_authenticated_ssh_diagnostic(
+            target_ssh,
+            cycle.output("native-root-ssh-client.log"),
+        )
+        if ssh_status != 0:
+            fail(f"first authenticated SSH attempt returned {ssh_status}")
+        if run_optional_logged(
+            [*target_ssh, UFS_LINK_SNAPSHOT_COMMAND],
+            cycle.output("ufs-link-snapshot.log"),
+            30,
+        ) != 0:
+            fail("UFS link snapshot failed")
+        runtime_log = cycle.output("persistent-root-runtime.log")
+        runtime_status = run_optional_logged(
+            [*target_ssh, RUNTIME_COMMAND], runtime_log, 180
+        )
+        if runtime_status != 0:
+            fail(f"local-root runtime acceptance returned {runtime_status}")
+        target_boot_id = parse_runtime_evidence(runtime_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
-            cycle.output("native-root-ssh-diagnostic-timing.record"),
+            cycle.output("native-root-boot-timing.record"),
             (
-                ("format", "rog5-native-root-ssh-diagnostic-timing-v1"),
+                ("format", "rog5-native-root-boot-timing-v1"),
                 ("target_release", TARGET_RELEASE),
                 ("interface", interface),
                 ("authenticated_ssh_attempts", "1"),
-                ("authenticated_ssh_status", str(ssh_status)),
-                ("authenticated_ssh_seconds", f"{ssh_elapsed:.3f}"),
-                ("target_boot_id", accepted_stage.boot_id),
-                ("disposition", "first-ssh-attempt-captured"),
+                ("authenticated_ssh_rendezvous_seconds", f"{ssh_elapsed:.3f}"),
+                ("target_boot_id", target_boot_id),
+                ("disposition", "systemd-ssh-ready"),
                 ("root", "native-ext4-overlay-tmpfs"),
                 ("storage", "read-only"),
-                ("seconds_to_diagnostic", f"{elapsed:.3f}"),
+                ("seconds_to_native_ready", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),
         )
+        reboot_status = run_optional_logged(
+            [*target_ssh, "/run/initramfs/usr/libexec/rog5-reboot-bootloader"],
+            cycle.output("native-root-reboot.log"),
+            30,
+        )
+        if reboot_status not in {0, 255}:
+            fail(f"native-root restart2 returned unexpected status {reboot_status}")
         fallback_attempted = True
         cycle.wait_fallback(None)
         cycle.wait_host_clean(final=True)
@@ -1180,7 +1194,7 @@ def run(
         cycle.resolve_intent(intent, "TARGET_ACCEPTED")
         resolved = True
         print(
-            "PASS one RAM-only native-root cycle captured the first SSH attempt "
+            "PASS one RAM-only native-root cycle reached systemd and key-only SSH "
             f"in {elapsed:.3f}s and returned to exact fastboot"
         )
     except BaseException as original:

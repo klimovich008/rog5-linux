@@ -93,13 +93,13 @@ OBSERVER_ENVIRONMENT_NAMES = tuple(
 
 PROGRAM_IDENTITIES = {
     "scripts/host/consume-exact-boot-claim.py": (
-        85620,
-        "05ced0031c4c10b48dd90f88e7f7f34530bb4893bb10747b9088c335850a9c45",
+        85992,
+        "0b242db0a747af8ce21755fdc37d1da4d90ee07eaa988b16e668cd9155122e9e",
         "0755",
     ),
     "scripts/host/run-stable-recovery-live-gate.sh": (
-        503709,
-        "c27d3c60f8795fde294875eb0de55d759e28a1069f0fd3ebf0a5300db853cf5b",
+        506624,
+        "c8ac0ce7ba81c41082e5b82a1aa65cb53d36dc92dd4f6eb14746bc2916d1ca32",
         "0755",
     ),
     "scripts/host/fallback-acm-control.py": (

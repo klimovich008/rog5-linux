@@ -242,15 +242,18 @@ boundary and all 127 SSH attempts returned 255 before slot-A recovery fallback.
 Exact AArch64 QEMU controls accept the same key with both `root:x` and the
 original `root:!…`, disproving the prior locked-root diagnosis. The later
 pre-KEX `Not allowed at this time` is an accumulated OpenSSH source penalty,
-not proof of the first refusal. Generation 228 is the unbooted diagnostic-only
-successor: one client attempt, one bounded target OpenSSH/PAM/config/namespace
-record over NCM, then direct restart2. Target/manifest/wrapper hashes are
-`2a2d6c49...`, `b165584d...`, and `7710a133...`.
+not proof of the first refusal. Generation 228 passed its diagnostic objective
+in 184.314 seconds: exact root/key/config state, no nologin files, and one
+client key offer; target sshd then blocked at `PAM: initializing for "root"`
+until the client timed out. Direct restart2 returned exact fastboot and intent
+resolved `TARGET_ACCEPTED`. Generation 229 is the unbooted functional fix: add
+`UsePAM no` only to the volatile strict key-only early-SSH policy, make one
+authentication attempt, then run full systemd/runtime/UFS acceptance. Target,
+manifest, and wrapper are `cf3f6dad...`, `5ac2a406...`, and `056f2ca5...`.
 
-The phone currently exposes slot-A unauthorized recovery on the anchored USB
-path after Generation 227 fallback. Its preboot battery gate passed at 8.709 V
-with `battery-soc-ok=yes`; manual bootloader fastboot is required before any
-Generation-228 connected preflight.
+The phone is currently exact slot-A fastboot on the anchored USB path after
+Generation 228 direct restart2. Battery voltage is 8.713 V and
+`battery-soc-ok=yes`.
 Normal slot-A Android boot is intentionally unavailable because userdata is
 now the Linux ext4 filesystem; Android therefore enters stock recovery. This
 is not a mainline crash and must not be addressed by flashing an experimental

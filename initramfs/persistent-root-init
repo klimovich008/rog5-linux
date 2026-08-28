@@ -1321,6 +1321,25 @@ prepare_volatile_root_account() {
 	[ "$root_password_after" = "$root_password" ]
 }
 
+prepare_volatile_ssh_policy() {
+	root=$1
+	lower=$2
+	policy=$root/etc/ssh/sshd_config.d/10-rog5-server.conf
+	lower_policy=$lower/etc/ssh/sshd_config.d/10-rog5-server.conf
+	original_sha256=c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
+	volatile_sha256=37372388916a09c2457c3bf612de9bfe9b5bcba0fe9e01d1e3aa5b98dc903db1
+	for path in "$policy" "$lower_policy"; do
+		verify_exact_regular "$path" 0 0 644 201 "$original_sha256" ||
+			return 1
+		[ "$(grep -c '^UsePAM ' "$path")" -eq 0 ] || return 1
+	done
+	printf '%s\n' 'UsePAM no' >>"$policy" || return 1
+	verify_exact_regular "$policy" 0 0 644 211 "$volatile_sha256" ||
+		return 1
+	[ "$(grep -c '^UsePAM no$' "$policy")" -eq 1 ] || return 1
+	verify_exact_regular "$lower_policy" 0 0 644 201 "$original_sha256"
+}
+
 prepare_volatile_systemd_state() {
 	root=$1
 	lower=$2
@@ -1507,6 +1526,7 @@ prepare_runtime() {
 			[ ! -L /usr/local/sbin/rog5-ssh-diagnostic ] || return 1
 	fi
 	prepare_volatile_root_account /newroot /mnt/root-ro || return 1
+	prepare_volatile_ssh_policy /newroot /mnt/root-ro || return 1
 	mkdir -p /run/NetworkManager/conf.d /run/udev/rules.d \
 		/run/systemd/system/sysinit.target.wants
 	cat >/run/NetworkManager/conf.d/10-rog5-p2.conf <<'EOF'

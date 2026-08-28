@@ -22,14 +22,17 @@ SPEC.loader.exec_module(MODULE)
 
 
 class PersistentRootLiveCycleTest(unittest.TestCase):
-    def test_ssh_diagnostic_successor_uses_one_attempt_and_one_bounded_record(self) -> None:
+    def test_functional_successor_uses_one_attempt_before_runtime(self) -> None:
         source = MODULE_PATH.read_text()
         self.assertEqual(MODULE.SSH_DIAGNOSTIC_PORT, 8078)
         self.assertEqual(MODULE.SSH_DIAGNOSTIC_MAX_BYTES, 16384)
         self.assertIn("run_one_authenticated_ssh_diagnostic", source)
         self.assertIn("receive_ssh_diagnostic", source)
         self.assertIn("native-root-ssh-client.log", source)
-        self.assertIn("native-root-ssh-target.record", source)
+        active = source[source.index("        target_ssh = ssh_arguments") : source.index("    except BaseException")]
+        self.assertEqual(active.count("run_one_authenticated_ssh_diagnostic("), 1)
+        self.assertNotIn("receive_ssh_diagnostic(", active)
+        self.assertIn("parse_runtime_evidence(runtime_log)", active)
         self.assertNotIn("wait_for_authenticated_ssh(", source)
         self.assertNotIn("while True:\n            now = time.monotonic()", source)
 
@@ -67,7 +70,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertEqual(MODULE.FALLBACK_TIMEOUT_SECONDS, 930)
         self.assertEqual(
             MODULE.PROFILE_ID,
-            "persistent-native-root-v3-generation228-live-v1",
+            "persistent-native-root-v4-generation229-live-v1",
         )
         self.assertEqual(MODULE.PROFILE.candidate, MODULE.BUNDLE)
         self.assertEqual(MODULE.PROFILE.bundle, MODULE.BUNDLE)
@@ -83,7 +86,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         )
         self.assertEqual(
             MODULE.BUNDLE,
-            "persistent-native-root-v3",
+            "persistent-native-root-v4",
         )
 
     def test_watchdog_lifetime_artifact_and_admission_identities_are_exact(self) -> None:
@@ -107,7 +110,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             MODULE.RECOVERY_SHA256,
             MODULE.TRUST_KEY_SHA256,
             MODULE.HOST_VERIFIER_SHA256,
-            "generation228",
+            "generation229",
         ):
             self.assertIn(exact, gate)
         self.assertIn(
@@ -132,11 +135,11 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         handoff = source.index("        cycle.wait_bundle(bundle_process, control_process)\n")
         network = source.index("interface = activate_target_network(cycle, anchor)")
         host_key = source.index("wait_for_target_host_key(cycle, anchor, target_known_hosts)")
-        diagnostic = source.index("run_one_authenticated_ssh_diagnostic(", host_key)
+        runtime = source.index("runtime_status = run_optional_logged(", host_key)
         self.assertLess(handoff, network)
         self.assertLess(network, host_key)
-        self.assertLess(host_key, diagnostic)
-        segment = source[handoff:diagnostic]
+        self.assertLess(host_key, runtime)
+        segment = source[handoff:runtime]
         self.assertNotIn("input(", segment)
         self.assertNotIn("STOCK.fastboot(", segment)
         self.assertNotIn("wait_for_stage_host_key(", segment)
@@ -150,7 +153,7 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertNotIn("transfer_arch_image", source)
         self.assertNotIn("ARCH_IMAGE_RAW", source)
         self.assertNotIn("DIRECT_STREAMER", source)
-        self.assertIn("receive_ssh_diagnostic", source)
+        self.assertIn("parse_runtime_evidence(runtime_log)", source)
 
     def test_terminal_stage_stops_the_host_key_wait(self) -> None:
         source = MODULE_PATH.read_text()
@@ -288,6 +291,29 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             ):
                 MODULE.run_one_authenticated_ssh_diagnostic(
                     ["ssh"], Path(temporary) / "client.log"
+                )
+
+    def test_one_successful_ssh_attempt_requires_the_exact_marker(self) -> None:
+        good = subprocess.CompletedProcess(
+            [], 0, f"debug line\n{MODULE.AUTHENTICATED_SSH_READY_MARKER}\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            MODULE.CYCLE, "run_capture", return_value=good
+        ), mock.patch.object(MODULE.time, "monotonic", side_effect=(0.0, 1.0)):
+            status, _ = MODULE.run_one_authenticated_ssh_diagnostic(
+                ["ssh"], Path(temporary) / "good.log"
+            )
+            self.assertEqual(status, 0)
+
+        wrong = subprocess.CompletedProcess([], 0, "debug only\n")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            MODULE.CYCLE, "run_capture", return_value=wrong
+        ), mock.patch.object(MODULE.time, "monotonic", side_effect=(0.0, 1.0)):
+            with self.assertRaisesRegex(
+                MODULE.PersistentCycleError, "lacks its exact readiness marker"
+            ):
+                MODULE.run_one_authenticated_ssh_diagnostic(
+                    ["ssh"], Path(temporary) / "wrong.log"
                 )
 
     def test_target_ssh_diagnostic_is_exact_bounded_and_boot_correlated(self) -> None:
@@ -568,11 +594,12 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
             self.assertNotIn(forbidden, source)
         self.assertIn('"prepare-commit",', source)
         self.assertIn("run_one_authenticated_ssh_diagnostic", source)
-        self.assertIn("receive_ssh_diagnostic", source)
+        self.assertIn("parse_runtime_evidence(runtime_log)", source)
         self.assertIn("ALLOW_NATIVE_ROOT_BOOT", source)
         self.assertNotIn("ALLOW_STAGE2_NATIVE_FSCK", source)
         self.assertNotIn("ALLOW_STAGE2_P24_CLONE", source)
         self.assertIn("exact_fastboot_fallback_record", source)
+        self.assertIn("native-root-reboot.log", source)
         self.assertNotIn('"/usr/bin/systemctl reboot"', source)
         self.assertNotIn("ARCH_IMAGE_SHA256", source)
 
