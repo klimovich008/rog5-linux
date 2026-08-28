@@ -49,7 +49,9 @@ transport and 57.605-second stock-recovery return. Systematic debugging proved
 the actual R3 defect: loader `set -f` disabled every UDC/storage glob, while the
 fixture ran with glob expansion enabled. The corrected fail-first test now
 reproduces that shell option and passes after the one-line removal. Loader v4
-must be rebuilt and revalidated; `boot_b` remains untouched.
+clean twins are built at Image `e61a2b67...`, raw boot `e8d739e7...`, and AVB
+boot `8cd2c82e...`. Full local CI passes; exact-head CI remains and `boot_b` is
+untouched.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
