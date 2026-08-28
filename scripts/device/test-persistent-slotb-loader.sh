@@ -31,6 +31,20 @@ for contract in \
 	grep -Fq "$contract" "$init"
 done
 ! grep -Eq 'curl|wget|169[.]254[.]77|ssh|scp|fastboot|adb' "$init"
+for contract in \
+	'format=rog5-slotb-loader-progress-v1' \
+	'ROG5 slot B loader' \
+	'*a600000*' \
+	'[ "$matches" -eq 1 ]' \
+	'set_stage S20 PASS storage_resolved' \
+	'set_stage S40 PASS selector_verified' \
+	'set_stage S60 PASS bundle_verified' \
+	'set_stage S70 PASS kexec_loaded' \
+	'set_stage S80 PASS haven_disabled' \
+	'set_stage S90 PASS execute' \
+	'set_stage terminal FAIL "$1"'; do
+	grep -Fq "$contract" "$init"
+done
 grep -Fq '"$bb" reboot -f' "$shutdown"
 ! grep -Fq 'rog5-reboot-bootloader' "$shutdown"
 

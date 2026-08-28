@@ -26,6 +26,20 @@ use Git history and dated `test-results/` records for older generations.
 
 ## Immediate checkpoint
 
+Generations 232 and 233 repeatedly passed the complete RAM-only local Arch
+root, OverlayFS, systemd, key-only SSH, UFS and NCM path with zero failed units.
+The signed standalone release bundle is staged on read-only `arch_root_a`.
+Persistent slot-B loader v1 then failed before target NCM and returned to stock
+slot-A recovery; observation-recovery pstore was empty and remains
+inconclusive. Loader v1 is consumed and must not be retried.
+
+Loader v2 is the current offline discriminator. It changes only the loader
+initramfs by adding an ACM-only stage reporter (`S00` through `S90` or one exact
+failure reason) on exactly one `a600000` UDC. Clean wrapper twins are
+byte-identical at Image `55a9da9d...`, raw boot `1d79ee93...`, and AVB boot
+`b54b0e9a...`. No v2 phone boot or `boot_b` write has occurred. The next live
+gate is one RAM-only v2 boot from true fastboot after full and exact-head CI.
+
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
 key-only SSH in about seven seconds, then the redundant full 16 GiB source

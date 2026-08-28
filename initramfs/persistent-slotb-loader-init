@@ -11,10 +11,61 @@ plan=/run/rog5-slotb.plan
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 target_mount=/mnt/arch
 watchdog_seconds=180
+status_file=/run/rog5-slotb-loader.status
+reporter_pid=
 disk=
 arch_root=
 
 log() { echo "rog5-slotb-loader: $*" >/dev/kmsg 2>/dev/null || true; }
+
+set_stage() {
+	stage=$1 status=$2 detail=$3
+	printf 'format=rog5-slotb-loader-progress-v1 stage=%s status=%s detail=%s\n' \
+		"$stage" "$status" "$detail" >"$status_file.tmp"
+	mv "$status_file.tmp" "$status_file"
+	log "stage=$stage status=$status detail=$detail"
+}
+
+report_stage() {
+	while :; do
+		if [ -c /dev/ttyGS0 ]; then
+			timeout 1 sh -c 'cat "$1" > /dev/ttyGS0' sh "$status_file" \
+				2>/dev/null || true
+		fi
+		sleep 0.25
+	done
+}
+
+configure_loader_usb() {
+	mkdir -p /sys/kernel/config
+	mount -t configfs configfs /sys/kernel/config 2>/dev/null || return 1
+	gadget=/sys/kernel/config/usb_gadget/rog5-slotb-loader
+	mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"
+	echo 0x1d6b >"$gadget/idVendor"
+	echo 0x0104 >"$gadget/idProduct"
+	echo Linux >"$gadget/strings/0x409/manufacturer"
+	echo 'ROG5 slot B loader' >"$gadget/strings/0x409/product"
+	echo 'loader progress' >"$gadget/configs/c.1/strings/0x409/configuration"
+	mkdir "$gadget/functions/acm.usb0"
+	ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+	udc=
+	matches=0
+	for candidate in /sys/class/udc/*; do
+		[ -e "$candidate" ] || continue
+		case $(basename "$candidate") in
+			*a600000*) udc=$(basename "$candidate"); matches=$((matches + 1)) ;;
+		esac
+	done
+	[ "$matches" -eq 1 ] && [ -n "$udc" ] || return 1
+	echo "$udc" >"$gadget/UDC" || return 1
+	mdev -s
+	attempt=0
+	while [ "$attempt" -lt 100 ] && [ ! -c /dev/ttyGS0 ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -c /dev/ttyGS0 ]
+}
 
 return_bootloader() {
 	trap - EXIT HUP INT TERM
@@ -26,7 +77,9 @@ return_bootloader() {
 }
 
 fail() {
+	set_stage terminal FAIL "$1"
 	log "FAIL $1"
+	sleep 1
 	return_bootloader
 }
 trap 'fail interrupted' HUP INT TERM
@@ -39,6 +92,13 @@ mount -t devpts devpts /dev/pts 2>/dev/null || true
 mount -t tmpfs -o mode=0755,nodev,nosuid tmpfs /run 2>/dev/null || true
 echo /sbin/mdev >/proc/sys/kernel/hotplug
 mdev -s
+
+set_stage S00 PASS init
+configure_loader_usb || fail usb_setup
+report_stage &
+reporter_pid=$!
+sleep 1
+set_stage S10 PASS usb_ready
 
 (
 	sleep "$watchdog_seconds"
@@ -109,12 +169,15 @@ disable_haven_watchdog() {
 }
 
 resolve_storage || fail storage_identity
+set_stage S20 PASS storage_resolved
 blockdev --setro "$disk" || fail disk_lock
 blockdev --setro "$arch_root" || fail root_lock
 [ "$(blockdev --getro "$disk")" = 1 ] || fail disk_not_read_only
 [ "$(blockdev --getro "$arch_root")" = 1 ] || fail root_not_read_only
 mount -t ext4 -o ro,noload "$arch_root" "$target_mount" || fail root_mount
+set_stage S30 PASS root_mounted
 read_selector || fail selector
+set_stage S40 PASS selector_verified
 
 source=$source_root/$bundle
 [ -d "$source" ] && [ ! -L "$source" ] || fail bundle_source
@@ -122,19 +185,25 @@ mkdir -m 0700 "$bundle_root"
 cp -a "$source" "$bundle_root/" || fail bundle_copy
 sync
 umount "$target_mount" || fail root_unmount
+set_stage S50 PASS bundle_copied
 
 /usr/libexec/rog5-bundle-verify "$bundle" "$manifest_hash" >"$plan" || fail bundle_verify
 [ "$(grep -c '^cmdline=' "$plan")" -eq 1 ] || fail plan_cmdline
 command_line=$(sed -n 's/^cmdline=//p' "$plan")
 [ -n "$command_line" ] || fail empty_cmdline
+set_stage S60 PASS bundle_verified
 
 payload=$bundle_root/$bundle
 /usr/sbin/kexec -c -l "$payload/Image" \
 	--dtb="$payload/board.dtb" \
 	--initrd="$payload/initramfs.cpio.gz" \
 	--command-line="$command_line" || fail kexec_load
+set_stage S70 PASS kexec_loaded
 disable_haven_watchdog || fail haven_watchdog
+set_stage S80 PASS haven_disabled
 log "executing signed local bundle $bundle"
 kill "$watchdog_pid" 2>/dev/null || true
+set_stage S90 PASS execute
+sleep 0.5
 /usr/sbin/kexec -e
 fail kexec_returned

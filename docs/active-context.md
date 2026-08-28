@@ -19,6 +19,20 @@ history, `test-results/`, and `docs/archive-index.md`.
 Slot A is the permanent charging and recovery route. Future Linux work uses
 RAM-only `fastboot boot` until a persistent design explicitly preserves it.
 
+## Current slot-B loader checkpoint
+
+Generations 232 and 233 repeatedly passed local Arch root, OverlayFS, systemd,
+key-only SSH, UFS and NCM with zero failed units. The signed standalone release
+bundle is staged on `arch_root_a`. Loader v1 is consumed after a RAM-only boot
+failed before target NCM and returned to stock slot-A recovery. Its retained
+pstore snapshot was empty and therefore inconclusive.
+
+Loader v2 adds only an ACM stage reporter to identify the earliest loader
+boundary. Clean twins are byte-identical: wrapper Image `55a9da9d...`, raw boot
+`1d79ee93...`, AVB boot `b54b0e9a...`. Focused, active, and full local tests
+pass; exact-head CI remains before one RAM-only v2 attempt. `boot_b` is untouched.
+The phone currently exposes stock-recovery unauthorized ADB, not fastboot.
+
 ## Active storage cycle
 
 Generation 194 is consumed and permanently non-retryable. It reached mainline
