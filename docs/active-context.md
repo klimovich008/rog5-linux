@@ -33,9 +33,11 @@ boundary. Clean twins are byte-identical: wrapper Image `55a9da9d...`, raw boot
 identity appeared and stock slot-A recovery returned 57.321 seconds later.
 Systematic comparison found that v2 omitted the required SSUSB peripheral-mode
 transition and exact UDC wait used by all working ASUS-wrapper paths. A
-fail-first correction now passes hostile UDC fixtures. Build and validate
-Loader v3 before another RAM-only attempt. `boot_b` is untouched; the phone
-currently exposes stock-recovery unauthorized ADB, not fastboot.
+fail-first correction now passes hostile UDC fixtures. Clean v3 twins are built at
+Image `5c1dd3ec...`, raw boot `fc859f89...`, and AVB boot `806933a8...`;
+full local CI passes and exact-head CI remains before another RAM-only attempt.
+`boot_b` is untouched; the phone currently exposes stock-recovery unauthorized
+ADB, not fastboot.
 
 ## Active storage cycle
 

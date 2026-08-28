@@ -42,8 +42,10 @@ stock slot-A recovery returned 57.321 seconds after fastboot detached.
 Deployed-byte and host-event evidence found a concrete R3 omission: v2 did not
 set the ASUS SSUSB controller to peripheral mode or wait for exact
 `a600000.dwc3`, unlike every working wrapper path. The fail-first correction
-now passes hostile UDC fixtures offline. `boot_b` remains untouched; Loader v3
-must be rebuilt and revalidated before another RAM-only attempt.
+now passes hostile UDC fixtures offline. Loader-v3 clean twins are built at
+Image `5c1dd3ec...`, raw boot `fc859f89...`, and AVB boot `806933a8...`.
+`boot_b` remains untouched. Full local CI passes; exact-head CI remains before
+one fresh RAM-only v3 attempt.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
