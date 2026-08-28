@@ -4,12 +4,13 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-slotb-loader-init
 shutdown=$repo/initramfs/persistent-root-shutdown-standalone
+target_init=$repo/initramfs/persistent-root-init
 loader_builder=$repo/scripts/device/build-persistent-slotb-loader-initramfs.sh
 target_builder=$repo/scripts/device/build-persistent-root-standalone-initramfs.sh
 base=$repo/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
 target_base=$repo/artifacts/persistent-native-root-v4/initramfs.cpio.gz
 
-for path in "$init" "$shutdown" "$loader_builder" "$target_builder"; do
+for path in "$init" "$shutdown" "$target_init" "$loader_builder" "$target_builder"; do
 	[ -x "$path" ]
 	sh -n "$path"
 done
@@ -149,6 +150,7 @@ if [ -f "$base" ] && [ -f "$target_base" ]; then
 	gzip -dc "$work/loader.cpio.gz" | (cd "$work/loader" && cpio -idm --quiet --no-absolute-filenames)
 	gzip -dc "$work/target.cpio.gz" | (cd "$work/target" && cpio -idm --quiet --no-absolute-filenames)
 	cmp "$work/loader/init" "$init"
+	cmp "$work/target/init" "$target_init"
 	cmp "$work/target/shutdown" "$shutdown"
 	[ -x "$work/loader/usr/libexec/rog5-reboot-bootloader" ]
 	[ "$(stat -c %s "$work/loader.cpio.gz")" -lt 8388608 ]
