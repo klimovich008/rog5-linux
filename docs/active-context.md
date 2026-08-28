@@ -51,6 +51,14 @@ replacement `/init` work. The active unbooted successor uses canonical recovery
 USB/watchdog/rollback plus one sealed local-loader mode; ramdisk/raw/AVB twins
 are `31c4c075...`, `f235719b...`, and `5a8b3424...`. `boot_b` remains untouched.
 
+The canonical path passed twice RAM-only, then fresh persistent AVB
+`2867666c...` was flashed only to `boot_b` and slot B was activated. Two
+persistent boots passed with distinct boot IDs, systemd running, key-only SSH,
+zero failed units, high-speed NCM, read-only UFS/root, charging online, and
+safe thermals. Slot A remains untouched. One initialization-time NCM
+interruption recovered without reset. The phone is running persistent slot-B
+Linux; persistent service state is next because the OverlayFS upper is tmpfs.
+
 ## Active storage cycle
 
 Generation 194 is consumed and permanently non-retryable. It reached mainline
