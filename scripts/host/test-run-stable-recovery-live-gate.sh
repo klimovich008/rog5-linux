@@ -999,6 +999,8 @@ awk -F '\t' '
 	END { exit found == 1 ? 0 : 1 }
 ' "$artifact_manifest" ||
 	{ echo 'FAIL Generation 230 artifact role differs from live gate' >&2; exit 1; }
+grep -Fq "expected_boot_basis='one exact Generation 230 RAM-only native-p24 postrepair acceptance: read-only root verification, volatile PAM-free key-only early SSH, systemd/runtime/UFS acceptance and direct restart2 fastboot; never flash or retry after COMMIT'" "$gate" ||
+	{ echo 'FAIL Generation 230 gate basis differs from policy' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \
 	'$1 == name { count++ } END { print count + 0 }' "$boot_policy") == 0 ]] ||
