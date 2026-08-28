@@ -561,8 +561,8 @@ awk -F '\t' \
 		$3 == "consumed Generation 231 readiness-wait cycle; ready marker and p24 attestation passed, then runtime raced systemd final active/running state; later snapshot proved all predicates and zero failed units; exact slot-A fastboot and FALLBACK_RETURNED passed; never retry or flash" &&
 		NF == 3 { persistent_native_root_v6++ ; next }
 	$1 == "build/persistent-native-root-v7-generation232-20260828-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 232 RAM-only native-p24 full-readiness acceptance: unchanged target bytes, bounded simultaneous ready/systemd/unit wait, runtime/UFS acceptance and direct restart2 fastboot; never flash or retry after COMMIT" &&
+		$2 == "revoked" &&
+		$3 == "consumed successful Generation 232 native-p24 cycle; repaired root, OverlayFS, switch-root, NCM, first key auth, UFS, full systemd readiness, zero failed units and exact slot-A fastboot passed in 255.879 seconds; TARGET_ACCEPTED; never retry or flash" &&
 		NF == 3 { persistent_native_root_v7++ ; next }
 	$1 == "build/persistent-root-storage-read-v4-generation25-20260812-r1/repack/stable-recovery-a.avb.img" &&
 		$2 == "revoked" &&
@@ -779,12 +779,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-	$1 == "build/persistent-native-root-v7-generation232-20260828-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact Generation 232 RAM-only native-p24 full-readiness acceptance: unchanged target bytes, bounded simultaneous ready/systemd/unit wait, runtime/UFS acceptance and direct restart2 fastboot; never flash or retry after COMMIT" && NF == 3 {
-		native_root++
-	}
-END { exit allowed == 2 + power_usb && power_usb <= 1 && native_root == 1 ? 0 : 1 }
+END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
@@ -1015,13 +1010,13 @@ awk -F '\t' '
 	{ echo 'FAIL Generation 231 artifact role differs from live gate' >&2; exit 1; }
 awk -F '\t' '
 	$1 == "build/persistent-native-root-v7-generation232-20260828-r1/repack/stable-recovery-a.avb.img" &&
-	$4 == "unbooted Generation 232 full-readiness native-p24 acceptance; unchanged target/raw recovery, fresh signed v7 intent and AVB generation; never flash or retry after COMMIT" && NF == 5 { found++ }
+	$4 == "consumed successful Generation 232; native p24, systemd, key SSH, UFS, NCM and direct exact fastboot passed in 255.879 seconds; never retry or flash" && NF == 5 { found++ }
 	END { exit found == 1 ? 0 : 1 }
 ' "$artifact_manifest" ||
 	{ echo 'FAIL Generation 232 artifact role differs from live gate' >&2; exit 1; }
-grep -Fq "expected_boot_basis='one exact Generation 232 RAM-only native-p24 full-readiness acceptance: unchanged target bytes, bounded simultaneous ready/systemd/unit wait, runtime/UFS acceptance and direct restart2 fastboot; never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_basis='consumed successful Generation 232 native-p24 cycle; repaired root, OverlayFS, switch-root, NCM, first key auth, UFS, full systemd readiness, zero failed units and exact slot-A fastboot passed in 255.879 seconds; TARGET_ACCEPTED; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 232 gate basis differs from policy' >&2; exit 1; }
-grep -Fq "expected_boot_role='unbooted Generation 232 full-readiness native-p24 acceptance; unchanged target/raw recovery, fresh signed v7 intent and AVB generation; never flash or retry after COMMIT'" "$gate" ||
+grep -Fq "expected_boot_role='consumed successful Generation 232; native p24, systemd, key SSH, UFS, NCM and direct exact fastboot passed in 255.879 seconds; never retry or flash'" "$gate" ||
 	{ echo 'FAIL Generation 232 gate role differs from artifact manifest' >&2; exit 1; }
 v20_image=build/ssh-acceptance-v20-fatal-token-boundary-fix-20260812-r1/wrapper/repack/stable-recovery-a.avb.img
 [[ $(awk -F '\t' -v name="$v20_image" \

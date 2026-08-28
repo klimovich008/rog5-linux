@@ -200,8 +200,10 @@ proved systemd running with zero failed units before exact fastboot fallback.
 Generation 231 passed the marker and full p24 attestation but raced systemd's
 final active/running state; a later snapshot proved every predicate before
 exact fastboot fallback. Generation 232 waits at most 90 seconds for marker,
-PID1, system state, and both units simultaneously. Target and raw recovery
-bytes remain unchanged.
+PID1, system state, and both units simultaneously. It passed the complete
+native-root/systemd/key-only-SSH/UFS/NCM path and direct exact fastboot return
+in 255.879 seconds with zero failed units. A fresh repeat remains required
+before persistent slot-B installation.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
