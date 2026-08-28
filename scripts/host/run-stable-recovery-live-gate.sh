@@ -5109,8 +5109,8 @@ case $profile in
 		;;
 	persistent-native-root-v8-generation233-live-v1)
 		expected_boot_image=build/persistent-native-root-v8-generation233-20260828-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact Generation 233 RAM-only repeat of the successful native-p24/systemd/key-SSH/UFS/NCM/full-readiness/direct-fastboot baseline; unchanged target and raw recovery; never flash or retry after COMMIT'
-		expected_boot_role='unbooted Generation 233 exact repeat of successful native-root baseline; unchanged target/raw recovery, fresh signed v8 intent and AVB generation; never flash or retry after COMMIT'
+		expected_boot_basis='consumed successful Generation 233 exact repeat; native p24, systemd, key SSH, UFS, NCM, zero failed units and direct exact slot-A fastboot passed in 249.912 seconds; TARGET_ACCEPTED; never retry or flash'
+		expected_boot_role='consumed successful Generation 233 repeat; native p24, systemd, key SSH, UFS, NCM and direct exact fastboot passed in 249.912 seconds; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
