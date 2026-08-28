@@ -197,8 +197,11 @@ allocated-RAW sparse repair completed in 60.847 seconds. Generation 230 proved
 repaired p24 through switch-root, NCM, first key auth and UFS, then its host
 runtime command raced the not-yet-present ready marker. A later snapshot
 proved systemd running with zero failed units before exact fastboot fallback.
-Generation 231 changes only the host command to wait at most 90 seconds for
-that existing ready marker; target and raw recovery bytes remain unchanged.
+Generation 231 passed the marker and full p24 attestation but raced systemd's
+final active/running state; a later snapshot proved every predicate before
+exact fastboot fallback. Generation 232 waits at most 90 seconds for marker,
+PID1, system state, and both units simultaneously. Target and raw recovery
+bytes remain unchanged.
 
 Normal slot-A Android boot now enters stock recovery because userdata was
 deliberately converted to the Linux ext4 filesystem. Keep the phone in
