@@ -143,6 +143,7 @@ active_tests=(
 	scripts/device/test-persistent-root-power-usb-composition.sh
 	scripts/device/test-network-root-pdr-override.sh
 	scripts/device/test-persistent-slotb-loader.sh
+	scripts/device/test-persistent-slotb-recovery-loader.sh
 	scripts/host/test-generate-power-usb-active.py
 	scripts/host/check-power-usb-active-closure.py
 	scripts/host/test-rog5-host-doctor.py
