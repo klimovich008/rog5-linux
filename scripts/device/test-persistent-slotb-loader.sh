@@ -7,10 +7,12 @@ shutdown=$repo/initramfs/persistent-root-shutdown-standalone
 target_init=$repo/initramfs/persistent-root-init
 loader_builder=$repo/scripts/device/build-persistent-slotb-loader-initramfs.sh
 target_builder=$repo/scripts/device/build-persistent-root-standalone-initramfs.sh
+state_helper=$repo/initramfs/persistent-service-state
 base=$repo/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
 target_base=$repo/artifacts/persistent-native-root-v4/initramfs.cpio.gz
 
-for path in "$init" "$shutdown" "$target_init" "$loader_builder" "$target_builder"; do
+for path in "$init" "$shutdown" "$target_init" "$loader_builder" "$target_builder" \
+	"$state_helper"; do
 	[ -x "$path" ]
 	sh -n "$path"
 done
@@ -162,6 +164,7 @@ if [ -f "$base" ] && [ -f "$target_base" ]; then
 	cmp "$work/target/init" "$work/expected-target-init"
 	! grep -Fq '@EXPECTED_' "$work/target/init"
 	cmp "$work/target/shutdown" "$shutdown"
+	cmp "$work/target/usr/local/sbin/rog5-persistent-state" "$state_helper"
 	[ -x "$work/loader/usr/libexec/rog5-reboot-bootloader" ]
 	[ "$(stat -c %s "$work/loader.cpio.gz")" -lt 8388608 ]
 fi
