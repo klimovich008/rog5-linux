@@ -54,6 +54,7 @@ done
 
 for contract in \
 	'persist_identity=$persist_root/host-ed25519-v1' \
+	'identity_record=/run/rog5-persistent-ssh-identity.record' \
 	'verify_key_pair() {' \
 	'verify_sshd_listener() {' \
 	'ssh-keygen -y -f "$private"' \
@@ -65,6 +66,10 @@ for contract in \
 	grep -Fq "$contract" "$ssh_identity" ||
 		fail "missing persistent SSH contract: $contract"
 done
+[ "$(grep -Fc 'identity_record=/run/rog5-persistent-ssh-identity.record' \
+	"$ssh_identity")" -eq 1 ]
+! grep -Fxq 'identity_record=/run/rog5-persistent-ssh-identity' "$ssh_identity"
+grep -Fq '[ "$identity_record" != "$0" ]' "$ssh_identity"
 for forbidden in fastboot adb sgdisk parted fdisk mkfs blkdiscard wipefs \
 	'/dev/sda' 'rm -rf'; do
 	! grep -Fq "$forbidden" "$ssh_identity" ||
