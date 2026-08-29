@@ -21,6 +21,8 @@ for contract in \
 	'blockdev --setrw "$userdata_disk"' \
 	'blockdev --setrw "$userdata"' \
 	'write window exposed another partition' \
+	'0:0:600:1:$image_bytes:0' \
+	'partial_mode=resume' \
 	'verify_existing_root_mount' \
 	'/.rog5/root-ro' \
 	'layout=home,root,var-lib,var-log,etc-ssh,secrets' \
@@ -39,6 +41,7 @@ done
 [ "$(grep -Fc 'truncate -s "$image_bytes"' "$script")" -eq 1 ]
 [ "$(grep -Fc 'mv -T "$mountpoint/$relative_partial"' "$script")" -eq 1 ]
 [ "$(grep -Fc 'trap cleanup EXIT HUP INT TERM' "$script")" -eq 1 ]
+! grep -Eq '^[[:space:]]*\[ .* =$' "$script"
 
 if "$script" invalid >/dev/null 2>&1; then
 	fail 'stager accepted an invalid action'

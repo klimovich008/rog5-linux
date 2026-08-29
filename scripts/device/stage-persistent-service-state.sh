@@ -229,18 +229,43 @@ END { exit count != 1 }' /proc/mounts || fail 'userdata mount identity changed'
 	fail 'userdata rog5 directory metadata changed'
 [ -d "$mountpoint/rog5/images" ] &&
 	[ ! -L "$mountpoint/rog5/images" ] || fail 'userdata image store changed'
-[ ! -e "$mountpoint/$relative_partial" ] &&
-	[ ! -L "$mountpoint/$relative_partial" ] || fail 'partial state image exists'
 [ ! -e "$mountpoint/$relative_final" ] &&
 	[ ! -L "$mountpoint/$relative_final" ] || fail 'state image already exists'
-mkdir -m 0700 "$mountpoint/rog5/state"
-set -C
-: >"$mountpoint/$relative_partial"
-set +C
+state_dir=$mountpoint/rog5/state
+if [ -e "$state_dir" ] || [ -L "$state_dir" ]; then
+	[ -d "$state_dir" ] && [ ! -L "$state_dir" ] &&
+		[ "$(stat -c '%u:%g:%a' "$state_dir")" = 0:0:700 ] ||
+		fail 'state directory metadata changed'
+	inventory=$(find "$state_dir" -mindepth 1 -maxdepth 1 -printf '%f\n')
+	case $inventory in ''|server-state-v1.ext4.partial) ;;
+		*) fail 'state directory inventory changed' ;;
+	esac
+else
+	mkdir -m 0700 "$state_dir"
+fi
+if [ -e "$mountpoint/$relative_partial" ] ||
+	[ -L "$mountpoint/$relative_partial" ]; then
+	metadata=$(stat -c '%u:%g:%a:%h:%s:%b' \
+		"$mountpoint/$relative_partial") || fail 'partial metadata unavailable'
+	[ "$metadata" = "0:0:600:1:$image_bytes:0" ] ||
+		fail 'existing partial state image is not empty'
+	if blkid -p "$mountpoint/$relative_partial" >/dev/null 2>&1; then
+		fail 'existing partial state image has a filesystem'
+	fi
+	partial_mode=resume
+	truncate -s 0 "$mountpoint/$relative_partial"
+else
+	set -C
+	: >"$mountpoint/$relative_partial"
+	set +C
+	partial_mode=new
+fi
 chmod 0600 "$mountpoint/$relative_partial"
 truncate -s "$image_bytes" "$mountpoint/$relative_partial"
-[ "$(stat -c '%u:%g:%a:%h:%s' "$mountpoint/$relative_partial")" =
-	"0:0:600:1:$image_bytes" ] || fail 'partial state image metadata changed'
+metadata=$(stat -c '%u:%g:%a:%h:%s' "$mountpoint/$relative_partial") ||
+	fail 'partial state image metadata unavailable'
+[ "$metadata" = "0:0:600:1:$image_bytes" ] ||
+	fail 'partial state image metadata changed'
 mkfs.ext4 -q -F -m 1 -L "$image_label" -U "$image_uuid" \
 	-E "hash_seed=$image_uuid,lazy_itable_init=0,lazy_journal_init=0" \
 	"$mountpoint/$relative_partial"
@@ -285,5 +310,6 @@ userdata_mounted=0
 relock_storage || fail 'storage relock failed'
 all_storage_read_only || fail 'storage did not return read-only'
 
-printf 'format=rog5-persistent-service-state-stage-v1\nuserdata=%s\nimage=%s\nimage_bytes=%s\nimage_uuid=%s\nresult=PASS\n' \
-	"$userdata" "$relative_final" "$image_bytes" "$image_uuid"
+printf 'format=rog5-persistent-service-state-stage-v1\nuserdata=%s\nimage=%s\nimage_bytes=%s\nimage_uuid=%s\npartial_mode=%s\nresult=PASS\n' \
+	"$userdata" "$relative_final" "$image_bytes" "$image_uuid" \
+	"$partial_mode"
