@@ -9,14 +9,17 @@ loader_builder=$repo/scripts/device/build-persistent-slotb-loader-initramfs.sh
 target_builder=$repo/scripts/device/build-persistent-root-standalone-initramfs.sh
 state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
+ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 base=$repo/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
 target_base=$repo/artifacts/persistent-native-root-v4/initramfs.cpio.gz
+high_speed_base=$repo/artifacts/local-image-direct-v49/initramfs.cpio.gz
 
 for path in "$init" "$shutdown" "$target_init" "$loader_builder" "$target_builder" \
 	"$state_helper" "$ssh_identity"; do
 	[ -x "$path" ]
 	sh -n "$path"
 done
+[ -x "$ufs_module_verifier" ]
 if grep -qx 'set -f' "$init"; then
 	echo 'FAIL slot-B loader disables required fixed-path glob expansion' >&2
 	exit 1
@@ -103,7 +106,7 @@ mkdir "$udc_class/a600000.usb"
 ! second=$(single_expected_udc)
 [ "$first" = a600000.dwc3 ]
 
-if [ -f "$base" ] && [ -f "$target_base" ]; then
+if [ -f "$base" ] && [ -f "$target_base" ] && [ -f "$high_speed_base" ]; then
 	awk '
 		/^read_selector\(\) \{/ { copy=1 }
 		copy { print }
@@ -149,9 +152,19 @@ if [ -f "$base" ] && [ -f "$target_base" ]; then
 
 	"$loader_builder" "$base" "$work/loader.cpio.gz" >/dev/null
 	"$target_builder" "$target_base" "$work/target.cpio.gz" >/dev/null
-	mkdir "$work/loader" "$work/target"
+	mkdir "$work/loader" "$work/target" "$work/high-speed-source" \
+		"$work/target-high-speed"
 	gzip -dc "$work/loader.cpio.gz" | (cd "$work/loader" && cpio -idm --quiet --no-absolute-filenames)
 	gzip -dc "$work/target.cpio.gz" | (cd "$work/target" && cpio -idm --quiet --no-absolute-filenames)
+	gzip -dc "$high_speed_base" |
+		(cd "$work/high-speed-source" && cpio -idm --quiet --no-absolute-filenames)
+	high_speed_modules=$work/high-speed-source/rog5-ufs-modules
+	"$ufs_module_verifier" "$high_speed_modules" \
+		7.1.4-g359318de534f local-write >/dev/null
+	"$target_builder" "$target_base" "$work/target-high-speed.cpio.gz" \
+		"$high_speed_modules" >/dev/null
+	gzip -dc "$work/target-high-speed.cpio.gz" |
+		(cd "$work/target-high-speed" && cpio -idm --quiet --no-absolute-filenames)
 	cp "$target_init" "$work/expected-target-init"
 	sed -i \
 		-e 's/@EXPECTED_KERNEL_RELEASE@/7.1.4-g359318de534f/' \
@@ -167,6 +180,17 @@ if [ -f "$base" ] && [ -f "$target_base" ]; then
 	cmp "$work/target/shutdown" "$shutdown"
 	cmp "$work/target/usr/local/sbin/rog5-persistent-state" "$state_helper"
 	cmp "$work/target/usr/local/sbin/rog5-persistent-ssh-identity" "$ssh_identity"
+	for module in phy-qcom-qmp-ufs.ko ufs-qcom.ko ufshcd-pltfrm.ko; do
+		cmp "$work/target/rog5-ufs-modules/$module" \
+			"$work/target-high-speed/rog5-ufs-modules/$module"
+	done
+	! cmp "$work/target/rog5-ufs-modules/ufshcd-core.ko" \
+		"$work/target-high-speed/rog5-ufs-modules/ufshcd-core.ko" \
+		>/dev/null 2>&1
+	cmp "$work/target-high-speed/rog5-ufs-modules/ufshcd-core.ko" \
+		"$high_speed_modules/ufshcd-core.ko"
+	strings "$work/target-high-speed/rog5-ufs-modules/ufshcd-core.ko" |
+		grep -Fqx 'ROG5 UFS bounded data-write high-speed gear switch enabled'
 	[ -x "$work/loader/usr/libexec/rog5-reboot-bootloader" ]
 	[ "$(stat -c %s "$work/loader.cpio.gz")" -lt 8388608 ]
 fi
