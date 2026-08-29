@@ -1547,6 +1547,9 @@ prepare_runtime() {
 	cp -p /usr/local/sbin/rog5-persistent-ssh-identity \
 		/run/rog5-persistent-ssh-identity || return 1
 	[ -x /run/rog5-persistent-ssh-identity ] || return 1
+	cp -p /usr/local/sbin/rog5-persistent-tailscale \
+		/run/rog5-persistent-tailscale || return 1
+	[ -x /run/rog5-persistent-tailscale ] || return 1
 	state_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
 	printf '%s\n' "$state_userdata" \
 		>/run/rog5-persistent-state-userdata-device || return 1
@@ -1626,6 +1629,29 @@ WantedBy=sysinit.target
 EOF
 	ln -s ../rog5-persistent-ssh-identity.service \
 		/run/systemd/system/sysinit.target.wants/rog5-persistent-ssh-identity.service
+	cat >/run/systemd/system/rog5-tailscaled.service <<'EOF'
+[Unit]
+Description=Run exact persistent Tailscale from p23 state
+DefaultDependencies=no
+Requires=rog5-persistent-state.service
+After=rog5-persistent-state.service
+Before=basic.target
+
+[Service]
+Type=simple
+RuntimeDirectory=rog5-tailscale
+RuntimeDirectoryMode=0700
+ExecStartPre=/run/rog5-persistent-tailscale prepare
+ExecStart=/run/rog5-tailscale/tailscaled --state=/persist/var/lib/tailscale/tailscaled.state --statedir=/persist/var/lib/tailscale --socket=/run/rog5-tailscale/tailscaled.sock
+ExecStopPost=/run/rog5-persistent-tailscale cleanup
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	ln -s ../rog5-tailscaled.service \
+		/run/systemd/system/sysinit.target.wants/rog5-tailscaled.service
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	prepare_volatile_systemd_state \
 		/newroot /mnt/root-ro /mnt/state/upper /run || return 1

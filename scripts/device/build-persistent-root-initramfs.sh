@@ -14,6 +14,7 @@ init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
 ssh_diagnostic=$repo/initramfs/persistent-root-ssh-diagnostic
 shutdown=$repo/initramfs/persistent-root-shutdown
+tailscale_runtime=$repo/initramfs/persistent-tailscale-runtime
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
@@ -21,6 +22,7 @@ expected_base=819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5
 expected_current_base=908f18f752962fae798249060aa8ee4c45673d8795571fbb8883ac4ed8d9e19e
 expected_stage_base=2f8fb42078cc9c827953cd0ad5a67042aae8a8989f60b4056319c25f3dccc280
 expected_fast_base=e6836d2173341a200b2d728d4ade97a09233de1936621073ad32ae32402f9883
+expected_v9_base=e465beb0e55e45ec9619df3cf5909e37c5040b1734dc42ad5abdaefb6671f59a
 expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba58
 expected_reboot_source=a8f7c1499928a10832d413555e3c9fbb54ea70e46c7a2988ce5430b547840d0b
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
@@ -96,7 +98,8 @@ printf '%s\n' "$expected_release" |
 	exit 1
 }
 
-for path in "$init" "$attest" "$ssh_diagnostic" "$shutdown"; do
+for path in "$init" "$attest" "$ssh_diagnostic" "$shutdown" \
+	"$tailscale_runtime"; do
 	[ -x "$path" ] || {
 		echo "FAIL missing executable P2 initramfs source: $path" >&2
 		exit 1
@@ -163,7 +166,7 @@ fi
 base_sha256=$(sha256sum "$base" | cut -d ' ' -f 1)
 case $base_sha256 in
 	"$expected_base"|"$expected_current_base"|"$expected_stage_base"|\
-	"$expected_fast_base") ;;
+	"$expected_fast_base"|"$expected_v9_base") ;;
 	*)
 		echo 'FAIL accepted persistent-root initramfs base hash changed' >&2
 		exit 1
@@ -276,6 +279,8 @@ sed -i "s/@EXPECTED_SSH_DIAGNOSTIC_MODE@/$ssh_diagnostic_mode/" "$stage/init"
 grep -Fqx "expected_ssh_diagnostic_mode=$ssh_diagnostic_mode" "$stage/init"
 ! grep -Fq '@EXPECTED_SSH_DIAGNOSTIC_MODE@' "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
+install -D -m 0755 "$tailscale_runtime" \
+	"$stage/usr/local/sbin/rog5-persistent-tailscale"
 install -d -m 0755 "$stage/usr/libexec"
 clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
 	-fno-builtin -Wall -Wextra -Werror -fno-pic -fno-pie \
