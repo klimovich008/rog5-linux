@@ -8,9 +8,9 @@ in this file.
 
 ## One current question
 
-Can the accepted v8 Arch system obtain stable routed Internet through the
-existing side-port NCM link while preserving charging, thermals, strict SSH,
-and exact storage scope?
+Does replacing only the stale persistent v8 UFS core module with the proven
+V49 high-speed module eliminate the p23 write/flush stall while preserving
+charging, NCM, strict SSH, exact storage scope, and fallback?
 
 ## Current live state
 
@@ -23,9 +23,12 @@ and exact storage scope?
 - Systemd is `running` with zero failed units.
 - Stable pinned key-only SSH passes.
 - Battery is full and safe; side-port input is online.
-- Target currently has no default route, so Internet access is expected to
-  fail until a bounded host forwarding/NAT setup is applied.
-- `/persist` has about 3.9 GiB free and `/dev/net/tun` exists.
+- NetworkManager shared mode proved routed IP, DNS, and HTTPS over NCM. The
+  separate profile remains available but normal boot restored the accepted
+  manual `/30` profile.
+- `/persist` recovered successfully after one UFS write stall. The Tailscale
+  archive is staged there but must not be started or trusted as installed until
+  the corrected module passes a bounded storage test.
 
 ## Just-completed checkpoint
 
@@ -39,17 +42,17 @@ kernel or DT change. Keep the observer available for any future first failure.
 
 ## Cheapest next action
 
-1. Record the host's current forwarding/firewall/NCM state.
-2. Apply one reversible, project-scoped route/NAT configuration.
-3. Add a target default route and DNS only for this live userspace test.
-4. Prove outbound IP, DNS, strict SSH, charging, and thermals.
-5. If those pass, download and verify the official ARM64 Tailscale package to
-   persistent project storage. Do not authenticate an external account unless
-   an existing project credential or explicit user interaction is available.
+1. Make persistent initramfs assembly reject stale low-speed UFS modules.
+2. Reuse the clean-twin V49 four-module closure; only `ufshcd-core.ko` differs.
+3. Rebuild only the target initramfs and signed target bundle.
+4. Run focused ABI/vermagic/BTF/closure tests plus the active tier.
+5. Temporarily boot once and perform one bounded p23 write/flush test with
+   adjacent NCM, charging, thermal, strict-SSH, relock, and fallback evidence.
 
-Changed layer is userspace/host networking only. No kernel, module, DTB,
-initramfs, wrapper, trust, admission, storage-layout, or phone boot change is
-needed. Use focused checks only; do not run full CI or rebuild anything.
+Changed layer is kernel module plus target initramfs composition. Reuse the
+existing Image, DTB, stable recovery, wrapper cache, power modules, and root.
+No broad kernel build, DT change, wrapper rebuild, GPT change, or flash is
+needed for the discriminating cycle.
 
 ## Stop conditions
 
