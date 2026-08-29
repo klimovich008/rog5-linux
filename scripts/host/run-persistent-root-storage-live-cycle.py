@@ -868,13 +868,31 @@ def wait_for_stage_host_key(
     )
 
 
+def exact_formatted_record(lines: list[str], format_marker: str) -> list[str]:
+    starts = [index for index, line in enumerate(lines) if line == format_marker]
+    if len(starts) != 1:
+        fail(f"evidence lacks one exact record: {format_marker}")
+    start = starts[0]
+    end = next(
+        (
+            index
+            for index in range(start + 1, len(lines))
+            if lines[index].startswith("format=")
+        ),
+        len(lines),
+    )
+    return lines[start:end]
+
+
 def parse_runtime_evidence(path: Path) -> str:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("runtime evidence is unreadable") from error
+    format_marker = "format=rog5-native-root-runtime-v1"
+    lines = exact_formatted_record(lines, format_marker)
     required = {
-        "format=rog5-native-root-runtime-v1",
+        format_marker,
         "status=PASS",
         "kernel=7.1.4-g359318de534f",
         "physical_blocks=117",
@@ -1065,8 +1083,10 @@ def parse_ufs_high_speed_probe(path: Path) -> None:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError) as error:
         raise PersistentCycleError("UFS high-speed evidence is unreadable") from error
+    format_marker = "format=rog5-persistent-ufs-high-speed-probe-v1"
+    lines = exact_formatted_record(lines, format_marker)
     required = {
-        "format=rog5-persistent-ufs-high-speed-probe-v1",
+        format_marker,
         "bytes=67108864",
         "sha256=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351",
         "ufs_error_events=0",

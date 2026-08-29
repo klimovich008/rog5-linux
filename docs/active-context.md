@@ -8,50 +8,47 @@ in this file.
 
 ## One current question
 
-Does replacing only the stale persistent v8 UFS core module with the proven
-V49 high-speed module eliminate the p23 write/flush stall while preserving
-charging, NCM, strict SSH, exact storage scope, and fallback?
+Can the already verified signed v9 bundle be installed into the existing p24
+slot-B loader store with one bounded write and then boot repeatedly without
+regressing charging, NCM, strict SSH, storage scope, or slot-A rescue?
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
-- Active slot: B (persistent Linux); slot A remains rescue.
-- Slot B Linux is running on boot
-  `f706a7c8-bf4d-450d-857d-d3b7dfc25642`.
-- Gadget: `ROG5 persistent root`, high-speed NCM, target `169.254.77.2/30`.
+- Active slot: A in exact fastboot after the Generation-234 fallback proof.
+- Slot B retains the accepted persistent v8 Linux loader and bundle.
 - Host profile `rog5-fallback-usb-ssh` autoconnects only for standalone mode
   and assigns `169.254.77.1/30`; attended recovery keeps its deferred mode.
-- Systemd is `running` with zero failed units.
-- Stable pinned key-only SSH passes.
-- Battery is full and safe; side-port input is online.
+- Generation 234 reached native p24, systemd running with zero failed units,
+  high-speed NCM, bootstrap key-only SSH, and the retained stable SSH identity.
+- Battery remained safe and `battery-soc-ok=yes` throughout the cycle.
 - NetworkManager shared mode proved routed IP, DNS, and HTTPS over NCM. The
   separate profile remains available but normal boot restored the accepted
   manual `/30` profile.
-- `/persist` recovered successfully after one UFS write stall. The Tailscale
-  archive is staged there but must not be started or trusted as installed until
-  the corrected module passes a bounded storage test.
+- `/persist` recovered successfully after the old v8 UFS stall. The Tailscale
+  archive remains staged but inactive.
 
 ## Just-completed checkpoint
 
-The R2 guard, exact V49 module replacement, deterministic target twins, signed
-bundle twins, generation-234 recovery wrapper, generic claim registration,
-v9 lifecycle tests, and full local CI pass offline. The signed v9 bundle is
-served through an exact read-only bind mount. Candidate authority remains
-`none`; no v9 phone boot or p24 modification has occurred. See
-`test-results/2026-08-29-persistent-v9-ufs-high-speed-offline.md`.
+Generation 234 is consumed. Its V49 UFS probe completed 64 MiB plus both sync
+boundaries in 402 ms with zero UFS errors and exact p23 cleanup. A separate R7
+cross-record parser collision rejected the valid combined log; the stable
+persistent SSH key was independently matched to retained evidence before the
+reviewed reboot helper returned exact slot-A fastboot. The intent resolved
+`FALLBACK_RETURNED`. No p24 write occurred.
 
 ## Cheapest next action
 
-1. Publish the exact reviewed commit and require exact-head CI.
-2. Run the connected non-consuming v9 preflight.
-3. Admit and temporarily boot once, then perform one bounded p23 write/flush
-   test with
-   adjacent NCM, charging, thermal, strict-SSH, relock, and fallback evidence.
+1. Publish the consumed-policy, record-scoped parser, and compact evidence
+   checkpoint.
+2. Prepare one exact p24 bundle-store transaction that stages the already signed
+   v9 bundle, verifies every byte and selector, syncs, and relocks p24.
+3. Boot slot B, prove the V49 module is deployed, repeat systemd/NCM/SSH/power
+   checks, then resume the staged Tailscale installation.
 
-Changed layer is kernel module plus target initramfs composition. Reuse the
-existing Image, DTB, stable recovery, wrapper cache, power modules, and root.
-No broad kernel build, DT change, wrapper rebuild, GPT change, or flash is
-needed for the discriminating cycle.
+The live kernel result is complete. Reuse the existing signed v9 bundle and
+stable slot-B loader; no kernel, DT, wrapper, GPT, or boot-partition rebuild is
+needed.
 
 ## Stop conditions
 
@@ -63,9 +60,6 @@ write, or loss of slot-A rescue. Never expose credentials or private evidence.
 
 - Worktree: `/home/deck/.local/state/rog5-haven-clean-ci-20260810`.
 - Branch: `agent/linux-recovery-host`.
-- Evidence checkpoint before this compaction:
-  `47676f2e7261f85431e940604ba882a7ef6b6dfe`.
-- V9 authority-free candidate checkpoint:
-  `97b83fed4d456f8ef3c523f516f465bc99890fec`.
-- The branch is ahead of the remote and must not be pushed until the exact new
-  HEAD and destination are authorized.
+- Last pushed checkpoint: `0403d2bf6253b58730793b21dd1ceebbc39eb6c3`.
+- Standing GitHub authorization permits normal pushes to this branch; never
+  force-push.

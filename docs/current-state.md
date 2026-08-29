@@ -90,23 +90,18 @@ evidence.
 
 ## Immediate next gate
 
-Routed Internet over side-port NCM passed with NetworkManager shared mode, but
-staging the 70 MiB Tailscale payload exposed an R2 UFS composition defect.
-Persistent v8 packages `ufshcd-core.ko` hash `98547f2e…3e38`, which permits
-writes but lacks the proven high-speed gear branch. A filesystem flush queued
-31 timed-out WRITE(10) commands and entered fatal UFS error handling. NCM stayed
-healthy; restart2 blocked in `sd_sync_cache`, emergency reset returned exact
-fastboot, and both p23 journals recovered on the next boot. Systemd, stable
-SSH identity, and zero UFS in-flight requests are restored.
+Generation 234 proved the V49 high-speed UFS core fixes the v8 write/flush
+stall. Native p24, systemd, NCM and key-only SSH passed; one 64 MiB p23
+write/sync/hash/remove/sync probe completed in 402 ms with one high-speed marker
+and zero UFS errors. Exact slot-A fastboot rescue and host cleanup passed.
 
-The next artifact changes only the target initramfs module composition: reuse
-the already live-proven V49 `ufshcd-core.ko` hash `e3a049d4…777a`, retain the
-same Image/DTB/userspace, and run one bounded p23 write plus `syncfs` test.
-Target twins, signed bundle twins, generation-234 wrapper, focused tests, and
-full local CI now pass; authority remains `none` and no v9 boot has occurred.
-Publish the exact reviewed head and require exact-head CI before connected
-preflight. Do not start Tailscale until the storage test and recovery path pass. See
-`test-results/2026-08-29-persistent-v8-ufs-write-stall.md`.
+The cycle then exposed an R7 host-only parser defect: the base runtime parser
+counted `ufs_error_events=0` again inside the appended probe record. Generation
+234 is consumed and must never be retried. Record-scoped parsing now has the
+combined live shape as a regression fixture. Next, install the already signed
+v9 bundle into the existing p24 loader store through one bounded verified write,
+prove a repeated slot-B boot, then resume Tailscale. See
+`test-results/2026-08-29-persistent-v9-ufs-high-speed-live-pass.md`.
 
 ## Required boundaries
 
@@ -122,6 +117,6 @@ preflight. Do not start Tailscale until the storage test and recovery path pass.
 ## Repository state
 
 - Branch: `agent/linux-recovery-host`.
-- Last pushed commit: `047a367da5c0a7d0bba3dac10706263ee4386296`.
-- Local observer/evidence commits are intentionally unpushed until an exact
-  destination authorization covers the new HEAD.
+- Last pushed commit: `0403d2bf6253b58730793b21dd1ceebbc39eb6c3`.
+- Standing GitHub authorization covers normal commits and pushes to the active
+  branch; never force-push.

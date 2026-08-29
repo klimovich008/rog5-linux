@@ -15,10 +15,10 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Active slot: B (persistent Linux); slot A remains rescue' \
+	'Active slot: A in exact fastboot' \
 	'1-1.2' \
 	'V49' \
-	'No broad kernel build'
+	'no kernel, DT, wrapper, GPT, or boot-partition rebuild'
 do
 	grep -Fq "$contract" "$active" || {
 		echo "FAIL active context omits current contract: $contract" >&2
@@ -32,10 +32,10 @@ for contract in \
 	'Persistent release v8 is accepted.' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
-	'e3a049d4' \
+	'402 ms' \
 	'Do not rebuild or reflash `super`' \
 	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
-	'test-results/2026-08-29-persistent-v8-ufs-write-stall.md'
+	'test-results/2026-08-29-persistent-v9-ufs-high-speed-live-pass.md'
 do
 	grep -Fq "$contract" "$current" || {
 		echo "FAIL current state omits current evidence: $contract" >&2
@@ -66,4 +66,4 @@ grep -Fq 'test-results/2026-08-29-persistent-slotb-v8-pass.md' "$current" || {
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, v8 baseline, and v9 UFS gate'
+echo 'PASS compact current status records WW33 rescue, v8 baseline, and v9 UFS live result'

@@ -305,6 +305,46 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
                 MODULE.parse_runtime_evidence(path),
                 "11111111-2222-3333-4444-555555555555",
             )
+
+    def test_combined_runtime_and_probe_records_are_scoped(self) -> None:
+        runtime = (
+            "format=rog5-native-root-runtime-v1",
+            "boot_id=11111111-2222-3333-4444-555555555555",
+            "status=PASS",
+            "kernel=7.1.4-g359318de534f",
+            "physical_blocks=117",
+            "block_backed_mounts=1",
+            "root_mount=native-root-ro-noload",
+            "root=native-ext4-overlay-tmpfs",
+            "blocked_device_queries=0",
+            "blocked_scsi_commands=0",
+            "journal_recovery_events=0",
+            "ufs_error_events=0",
+            "ssh=strict-key-only",
+            "failed_units=0",
+            "result=PASS",
+        )
+        probe = (
+            "format=rog5-persistent-ufs-high-speed-probe-v1",
+            "bytes=67108864",
+            "sha256=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351",
+            "elapsed_ms=402",
+            "high_speed_markers=1",
+            "ufs_error_events=0",
+            "storage_scope=p23-state-image-only",
+            "watchdog=softdog-240-disarmed",
+            "ufs_probe_result=PASS",
+            "result=PASS",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "combined.log"
+            path.write_text("ssh-debug-before\n" + "\n".join(runtime + probe) + "\n")
+            self.assertEqual(
+                MODULE.parse_runtime_evidence(path),
+                "11111111-2222-3333-4444-555555555555",
+            )
+            MODULE.parse_ufs_high_speed_probe(path)
+
     def test_runtime_evidence_rejects_missing_duplicate_and_wrong_root(self) -> None:
         baseline = [
             "format=rog5-native-root-runtime-v1",

@@ -133,8 +133,8 @@ awk -F '\t' \
 		$2 == "allow" &&
 		$3 == "one exact headless-core Arch SSH recovery with power-key indicator; RAM-only; externally consumed exact claim required; never flash or retry after entry" && NF == 3 { core++ ; next }
 	$1 == "build/persistent-native-root-v9-generation234-20260829-r1/repack/stable-recovery-a.avb.img" &&
-		$2 == "allow" &&
-		$3 == "one exact module-only UFS high-speed p23 write/flush discriminator; v8 Image, DTB, native p24, power/USB, recovery raw bytes, strict SSH and fallback unchanged; tmpfs softdog; one RAM-only use only; never flash or retry after entry" &&
+		$2 == "revoked" &&
+		$3 == "consumed Generation 234 R7 host-parser failure after hardware PASS; V49 high-speed p23 64 MiB write, sync, hash, remove and sync completed in 402 ms with one high-speed marker and zero UFS errors; native p24, systemd, key SSH and NCM passed; cross-record marker counting rejected valid evidence, stable persistent SSH key enabled reviewed restart2, exact slot-A fastboot and FALLBACK_RETURNED passed; never retry or flash" &&
 		NF == 3 { persistent_native_root_v9++ ; next }
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++ ; next
@@ -787,7 +787,7 @@ awk -F '\t' \
 	$1 == power_name && $2 == "allow" && $3 == power_basis && NF == 3 {
 		power_usb++
 	}
-END { exit allowed == 2 + power_usb && power_usb <= 1 ? 0 : 1 }
+END { exit allowed == 1 + power_usb && power_usb <= 1 ? 0 : 1 }
 ' "$boot_policy" ||
 	{ echo 'FAIL temporary-boot policy does not contain the exact retained admissions and optional active power/USB admission' >&2; exit 1; }
 grep -Fq "expected_boot_basis='one exact Generation 193 mainline read-only Stage-2 diagnostics cycle; current responder, p23/p24, qcom-battmgr, thermal, UFS, local Arch, strict SSH, corrected 117-node host acceptance, and exact fastboot; externally consumed exact claim required; never flash or retry after entry'" "$gate" ||
