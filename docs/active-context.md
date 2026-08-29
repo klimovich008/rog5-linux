@@ -40,6 +40,13 @@ Slot A remains the untouched WW33 charging/Android/recovery route. The active
 next phase is bounded persistent service state and secrets; the current
 OverlayFS upper and generated SSH host identity remain volatile tmpfs.
 
+Release v5 is a cleanly failed service-state integration attempt. It reached
+target USB and strict SSH, but the exact shell rejected a line break after
+`=` in the new helper before any write-window command. P23/p24 and all 117
+physical nodes remained read-only with no loop or residual mount. The
+successor changes only the target initramfs and carries a regression rejecting
+all four instances of that syntax shape.
+
 ## Active storage cycle
 
 Generation 194 is consumed and permanently non-retryable. It reached mainline

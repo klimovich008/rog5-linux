@@ -24,6 +24,8 @@ for contract in \
 	'expected_state_uuid=52037413-561a-48f4-92c4-8ad45b748a6f' \
 	'expected_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6' \
 	'state_relative=rog5/state/server-state-v1.ext4' \
+	'preflight_state() {' \
+	'format=rog5-persistent-service-state-preflight-v1' \
 	'verify_storage_read_only' \
 	'verify_only_root_mount' \
 	'verify_write_window' \
@@ -46,6 +48,7 @@ done
 [ "$(grep -Fc 'blockdev --setrw' "$helper")" -eq 2 ]
 [ "$(grep -Fc 'mount -t ext4 -o rw,nodev,nosuid,noexec,noatime' "$helper")" -eq 2 ]
 [ "$(grep -Fc 'trap cleanup_start EXIT HUP INT TERM' "$helper")" -eq 1 ]
+! grep -Eq '^[[:space:]]*\[ .* =$' "$helper"
 
 grep -Fq 'cp -p /usr/local/sbin/rog5-persistent-state' "$init"
 grep -Fq 'find_exact_userdata /sys/class/block /dev' "$init"

@@ -21,7 +21,7 @@ use Git history and dated `test-results/` records for older generations.
 | Dual-cell telemetry | Clean-twin build passed | OEM read-only cell-voltage patch remains unbooted |
 | UFS read-only enumeration | Passed | Exact physical inventory obtained in prior cycles |
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
-| Persistent Arch layout | Passed baseline | Slot-B release v4 repeatedly boots native Arch with systemd, key-only SSH, read-only p24/UFS, charging and slot-A rescue |
+| Persistent Arch layout | Passed baseline | Slot-B release v4 repeatedly boots native Arch; v5 state-mount integration failed cleanly before writes |
 | VCNL36866 | Preserved, paused | Separate dirty worktree; no current subsystem expansion |
 
 ## Immediate checkpoint
@@ -70,6 +70,12 @@ seconds, proving the former 900-second reset is fixed. V2/V3 had copied literal
 kernel-release gate before watchdog disarm; commit `1d5d380` renders and tests
 the sealed values. Slot A remains untouched. Persistent service state is next
 because the OverlayFS upper and generated host identity are still tmpfs.
+
+Persistent release v5 reached target NCM and strict SSH, then failed before
+opening the p23 write window because four helper predicates split `[` after a
+bare `=` under the exact target shell. All 117 storage nodes remained
+read-only and no loop or residual mount existed. The corrected read-only
+preflight passes on that same live target; v6 is an initramfs-only successor.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
