@@ -6,6 +6,7 @@ init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
 ssh_diagnostic=$repo/initramfs/persistent-root-ssh-diagnostic
 shutdown=$repo/initramfs/persistent-root-shutdown
+tailscale_runtime=$repo/initramfs/persistent-tailscale-runtime
 builder=$repo/scripts/device/build-persistent-root-initramfs.sh
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
@@ -30,7 +31,8 @@ for command in cpio gzip grep mktemp sha256sum; do
 	command -v "$command" >/dev/null ||
 		fail "missing P2 initramfs test command: $command"
 done
-for path in "$init" "$attest" "$shutdown" "$builder" "$power_loader"; do
+for path in "$init" "$attest" "$shutdown" "$tailscale_runtime" "$builder" \
+	"$power_loader"; do
 	[ -x "$path" ] || fail "missing executable P2 source: $path"
 done
 [ -x "$ssh_diagnostic" ] ||
@@ -413,6 +415,11 @@ grep -Fq 'WantedBy=sysinit.target' "$init"
 grep -Fq 'DefaultDependencies=no' "$init"
 grep -Fq 'Requires=rog5-early-sshd.service' "$init"
 grep -Fq 'sysinit.target.wants/rog5-p2-ready.service' "$init"
+grep -Fq 'ExecStartPre=/run/rog5-persistent-tailscale prepare' "$init"
+grep -Fq 'ExecStopPost=/run/rog5-persistent-tailscale cleanup' "$init"
+grep -Fq 'sysinit.target.wants/rog5-tailscaled.service' "$init"
+grep -Fq 'expected_v9_base=e465beb0e55e45ec9619df3cf5909e37c5040b1734dc42ad5abdaefb6671f59a' \
+	"$builder"
 for timing_marker in \
 	'cmdline:5' \
 	'kernel-release-file:20' \
@@ -710,6 +717,8 @@ sed -e "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
 	"$init" >"$work/expected-init"
 cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
+cmp "$work/root/usr/local/sbin/rog5-persistent-tailscale" \
+	"$tailscale_runtime"
 readelf -h "$work/root/usr/libexec/rog5-reboot-bootloader" |
 	grep -q 'Machine:.*AArch64'
 ! readelf -d "$work/root/usr/libexec/rog5-reboot-bootloader" |

@@ -146,6 +146,7 @@ active_tests=(
 	scripts/device/test-persistent-slotb-recovery-loader.sh
 	scripts/device/test-stage-persistent-service-state.sh
 	scripts/device/test-persistent-service-state-runtime.sh
+	scripts/device/test-persistent-tailscale-runtime.sh
 	scripts/device/test-persistent-ufs-module-profile.sh
 	scripts/device/test-observe-persistent-usb-liveness.sh
 	scripts/host/test-generate-power-usb-active.py

@@ -1,0 +1,109 @@
+#!/bin/sh
+set -eu
+
+action=${1:-}
+[ "$#" -eq 1 ] || { echo 'FAIL usage: persistent-tailscale-runtime prepare|cleanup' >&2; exit 1; }
+case $action in prepare|cleanup) ;; *) echo 'FAIL invalid Tailscale runtime action' >&2; exit 1 ;; esac
+
+dist=/persist/opt/tailscale/1.102.3/dist
+archive=/persist/opt/tailscale/1.102.3/tailscale_1.102.3_arm64.tgz
+state_dir=/persist/var/lib/tailscale
+runtime=/run/rog5-tailscale
+record=/run/rog5-tailscale-prepared.record
+interface=usb0
+service_address=10.77.0.2/30
+service_gateway=10.77.0.1
+
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
+exact_file() {
+	path=$1 mode=$2 size=$3 digest=$4
+	[ -f "$path" ] && [ ! -L "$path" ] &&
+		[ "$(stat -c '%u:%g:%a:%s:%h' "$path")" = "0:0:$mode:$size:1" ] &&
+		[ "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$digest" ]
+}
+
+cleanup() {
+	if ip -4 route show exact default |
+		grep -Fxq "default via $service_gateway dev $interface"; then
+		ip -4 route del default via "$service_gateway" dev "$interface" || true
+	fi
+	if ip -4 -o address show dev "$interface" |
+		grep -Fq " inet $service_address "; then
+		ip -4 address del "$service_address" dev "$interface" || true
+	fi
+	rm -f "$runtime/tailscale" "$runtime/tailscaled" "$record"
+}
+
+if [ "$action" = cleanup ]; then
+	cleanup
+	exit 0
+fi
+
+[ -f /run/rog5-persistent-state.runtime ] &&
+	[ ! -L /run/rog5-persistent-state.runtime ] ||
+	fail 'persistent-state runtime record is unavailable'
+[ "$(findmnt -n -o TARGET --target /persist)" = /persist ] &&
+	[ "$(findmnt -n -o FSTYPE --target /persist)" = ext4 ] ||
+	fail 'persistent state is not one ext4 mount'
+findmnt -n -o OPTIONS --target /persist |
+	grep -Eq '(^|,)rw(,|$)' || fail 'persistent state is not writable'
+findmnt -n -o OPTIONS --target /persist |
+	grep -Eq '(^|,)noexec(,|$)' || fail 'persistent state lost noexec'
+[ "$(stat -c '%u:%g:%a' "$dist")" = 0:0:700 ] ||
+	fail 'Tailscale distribution metadata changed'
+[ "$(stat -c '%u:%g:%a' "$state_dir")" = 0:0:700 ] ||
+	fail 'Tailscale state-directory metadata changed'
+exact_file "$archive" 600 35733085 \
+	a0fa1b154af8c61f862a2259f559f7396d96c0225f4a863eae2333e1546bbe25 ||
+	fail 'Tailscale archive identity changed'
+exact_file "$dist/tailscale" 500 30825755 \
+	a14b94589c2630eb68ba7f7651ede226d2976708760ef3460556a00cf1aa4bab ||
+	fail 'Tailscale client identity changed'
+exact_file "$dist/tailscaled" 500 40133368 \
+	dda710b5bed9fbf87efc0126b614ed8f0e9f4a43b2265486bc6ad7eb0570f226 ||
+	fail 'Tailscale daemon identity changed'
+if [ -e "$state_dir/tailscaled.state" ] || [ -L "$state_dir/tailscaled.state" ]; then
+	[ -f "$state_dir/tailscaled.state" ] &&
+		[ ! -L "$state_dir/tailscaled.state" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$state_dir/tailscaled.state")" = 0:0:600:1 ] ||
+		fail 'Tailscale state-file metadata changed'
+fi
+[ -c /dev/net/tun ] &&
+	[ "$(stat -c '%t:%T:%a' /dev/net/tun)" = a:c8:666 ] ||
+	fail 'TUN identity changed'
+[ "$(cat /sys/class/net/$interface/operstate)" = up ] ||
+	fail 'USB network interface is not up'
+ip -4 -o address show dev "$interface" |
+	grep -Fq ' inet 169.254.77.2/30 ' ||
+	fail 'fixed recovery-compatible address is absent'
+
+observed=$(ip -4 -o address show dev "$interface" |
+	awk '$4 ~ /^10[.]77[.]/ { print $4 }')
+case $observed in
+	'') ip -4 address add "$service_address" dev "$interface" ;;
+	"$service_address") ;;
+	*) fail 'standalone service address is ambiguous' ;;
+esac
+ip -4 route replace default via "$service_gateway" dev "$interface"
+[ "$(stat -c '%u:%g:%a' "$runtime")" = 0:0:700 ] ||
+	fail 'Tailscale runtime directory metadata changed'
+install -o 0 -g 0 -m 0500 "$dist/tailscale" "$runtime/tailscale"
+install -o 0 -g 0 -m 0500 "$dist/tailscaled" "$runtime/tailscaled"
+exact_file "$runtime/tailscale" 500 30825755 \
+	a14b94589c2630eb68ba7f7651ede226d2976708760ef3460556a00cf1aa4bab ||
+	fail 'runtime Tailscale client identity changed'
+exact_file "$runtime/tailscaled" 500 40133368 \
+	dda710b5bed9fbf87efc0126b614ed8f0e9f4a43b2265486bc6ad7eb0570f226 ||
+	fail 'runtime Tailscale daemon identity changed'
+printf '%s\n' \
+	'format=rog5-persistent-tailscale-runtime-v1' \
+	'version=1.102.3' \
+	'network=10.77.0.2/30' \
+	'state=p23-state-image' \
+	'result=PASS' >"$record"
+chown 0:0 "$record"
+chmod 0444 "$record"
