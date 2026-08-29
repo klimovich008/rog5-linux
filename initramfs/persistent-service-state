@@ -10,8 +10,8 @@ fail() {
 }
 
 action=${1:-}
-[ "$#" -eq 1 ] || fail 'usage: persistent-service-state start|stop'
-case $action in start|stop) ;; *) fail 'invalid action' ;; esac
+[ "$#" -eq 1 ] || fail 'usage: persistent-service-state preflight|start|stop'
+case $action in preflight|start|stop) ;; *) fail 'invalid action' ;; esac
 
 expected_physical_count=117
 expected_disk_sectors=494927872
@@ -75,9 +75,9 @@ resolve_exact_devices() {
 		[ -e "$userdata_sys/partition" ] &&
 		[ -e "$root_sys/partition" ] || return 1
 	[ "$(bb cat "$disk_sys/size")" = "$expected_disk_sectors" ] &&
-		[ "$(bb cat "$disk_sys/queue/logical_block_size")" =
-		"$expected_logical_block_bytes" ] || return 1
-	[ "$(bb cat "$userdata_sys/partition")" =
+		[ "$(bb cat "$disk_sys/queue/logical_block_size")" = \
+			"$expected_logical_block_bytes" ] || return 1
+	[ "$(bb cat "$userdata_sys/partition")" = \
 		"$expected_userdata_partition" ] &&
 		[ "$(bb cat "$userdata_sys/start")" = "$expected_userdata_start" ] &&
 		[ "$(bb cat "$userdata_sys/size")" = "$expected_userdata_sectors" ] ||
@@ -167,10 +167,10 @@ verify_state_tree() {
 	root=$1
 	manifest=$root/rog5-state.manifest
 	[ -f "$manifest" ] && [ ! -L "$manifest" ] &&
-		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$manifest")" =
-		"0:0:444:$expected_manifest_bytes:1" ] &&
-		[ "$(bb sha256sum "$manifest" | bb cut -d ' ' -f 1)" =
-		"$expected_manifest_sha256" ] || return 1
+		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$manifest")" = \
+			"0:0:444:$expected_manifest_bytes:1" ] &&
+		[ "$(bb sha256sum "$manifest" | bb cut -d ' ' -f 1)" = \
+			"$expected_manifest_sha256" ] || return 1
 	for contract in home:755 root:700 var:755 var/lib:755 var/log:755 \
 		var/log/journal:2755 etc:755 etc/ssh:700 secrets:700; do
 		path=${contract%:*}
@@ -179,6 +179,19 @@ verify_state_tree() {
 			[ "$(bb stat -c '%u:%g:%a' "$root/$path")" = "0:0:$mode" ] ||
 			return 1
 	done
+}
+
+preflight_state() {
+	resolve_exact_devices || return 1
+	verify_storage_read_only || return 1
+	verify_only_root_mount || return 1
+	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
+		"$expected_userdata_label" || return 1
+	for path in "$userdata_mount" "$state_mount"; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	printf 'format=rog5-persistent-service-state-preflight-v1\nuserdata=%s\nimage=%s\nresult=PASS\n' \
+		"$userdata" "$state_relative"
 }
 
 start_state() {
@@ -224,8 +237,8 @@ start_state() {
 	done
 	state_image=$userdata_mount/$state_relative
 	[ -f "$state_image" ] && [ ! -L "$state_image" ] &&
-		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$state_image")" =
-		"0:0:600:$expected_state_bytes:1" ] || return 1
+		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$state_image")" = \
+			"0:0:600:$expected_state_bytes:1" ] || return 1
 
 	loop_device=$(bb losetup -f)
 	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
@@ -280,6 +293,7 @@ stop_state() {
 }
 
 case $action in
+	preflight) preflight_state || fail 'preflight contract failed' ;;
 	start) start_state || fail 'start contract failed' ;;
 	stop) stop_state || fail 'stop contract failed' ;;
 esac
