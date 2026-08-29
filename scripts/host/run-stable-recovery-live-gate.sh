@@ -5143,8 +5143,8 @@ case $profile in
 		;;
 	persistent-native-root-v9-generation234-live-v1)
 		expected_boot_image=build/persistent-native-root-v9-generation234-20260829-r1/repack/stable-recovery-a.avb.img
-		expected_boot_basis='one exact module-only UFS high-speed p23 write/flush discriminator; v8 Image, DTB, native p24, power/USB, recovery raw bytes, strict SSH and fallback unchanged; tmpfs softdog; one RAM-only use only; never flash or retry after entry'
-		expected_boot_role='unbooted Generation 234 module-only UFS high-speed p23 probe; v8 plus exact V49 ufshcd-core and tmpfs softdog; one RAM-only use only; never flash'
+		expected_boot_basis='consumed Generation 234 R7 host-parser failure after hardware PASS; V49 high-speed p23 64 MiB write, sync, hash, remove and sync completed in 402 ms with one high-speed marker and zero UFS errors; native p24, systemd, key SSH and NCM passed; cross-record marker counting rejected valid evidence, stable persistent SSH key enabled reviewed restart2, exact slot-A fastboot and FALLBACK_RETURNED passed; never retry or flash'
+		expected_boot_role='consumed Generation 234; V49 64 MiB p23 probe passed in 402 ms with zero UFS errors, then R7 cross-record host parser failed; exact slot-A fallback; never retry or flash'
 		expected_boot_tracked=no
 		component_layout=structured
 		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
