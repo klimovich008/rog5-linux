@@ -35,7 +35,7 @@ for contract in \
 	'manifests/power-usb-active.lock.json' \
 	'92.25 GiB' \
 	'Full UCSI' \
-	'Persistent Arch layout | Passed baseline'
+	'Persistent Arch layout | Passed |'
 do
 	grep -Fq "$contract" "$current" || {
 		echo "FAIL current state omits current evidence: $contract" >&2
@@ -56,5 +56,9 @@ grep -Fq 'test-results/2026-08-29-persistent-slotb-v4-pass.md' "$active" || {
 	echo 'FAIL active context omits the persistent v4 baseline evidence' >&2
 	exit 1
 }
+grep -Fq 'test-results/2026-08-29-persistent-slotb-v6-pass.md' "$current" || {
+	echo 'FAIL current state omits the persistent v6 acceptance evidence' >&2
+	exit 1
+}
 
-echo 'PASS current status records WW33 rescue and the persistent slot-B v4 baseline'
+echo 'PASS current status records WW33 rescue and the persistent slot-B v6 baseline'
