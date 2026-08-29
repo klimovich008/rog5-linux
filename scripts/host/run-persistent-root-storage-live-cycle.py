@@ -42,14 +42,31 @@ STOCK = load_module(
     REPO / "scripts/host/wait-stock-android-fallback.py",
 )
 
-PROFILE_ID = "persistent-native-root-v8-generation233-live-v1"
-BUNDLE = "persistent-native-root-v8"
-MANIFEST_SHA256 = (
-    "7e57c523fa344808fbf551635993d1e712243cf5a93e82ddc83ac9785ca48992"
-)
-RECOVERY_SHA256 = (
-    "5c8bee56d1703e9315be0aa2ddb7bd27d5be6dafc445e07cd27edbb11f41d3b9"
-)
+TRACKS = {
+    "v8": {
+        "profile": "persistent-native-root-v8-generation233-live-v1",
+        "bundle": "persistent-native-root-v8",
+        "manifest": "7e57c523fa344808fbf551635993d1e712243cf5a93e82ddc83ac9785ca48992",
+        "recovery": "5c8bee56d1703e9315be0aa2ddb7bd27d5be6dafc445e07cd27edbb11f41d3b9",
+        "live_root": "persistent-native-root-v8-generation233-20260828-r1",
+    },
+    "v9": {
+        "profile": "persistent-native-root-v9-generation234-live-v1",
+        "bundle": "persistent-native-root-v9",
+        "manifest": "8bc47f291c97c5d52754bd800011864dd385e6993f04d7da1be31b0fc96563e3",
+        "recovery": "6826c4632a835deec8e5249a601f96c47ba973657ff61dca1067b5eecf3a1334",
+        "live_root": "persistent-native-root-v9-generation234-20260829-r1",
+    },
+}
+TRACK_ID = os.environ.get("ROG5_PERSISTENT_ROOT_TRACK", "v8")
+try:
+    TRACK = TRACKS[TRACK_ID]
+except KeyError as error:
+    raise RuntimeError("ROG5_PERSISTENT_ROOT_TRACK must be v8 or v9") from error
+PROFILE_ID = TRACK["profile"]
+BUNDLE = TRACK["bundle"]
+MANIFEST_SHA256 = TRACK["manifest"]
+RECOVERY_SHA256 = TRACK["recovery"]
 TRUST_KEY_SHA256 = (
     "cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054"
 )
@@ -57,14 +74,12 @@ HOST_VERIFIER_SHA256 = (
     "04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29"
 )
 CLAIM_RECORD = (
-    b"format=rog5-temporary-boot-consumption-v1\n"
-    b"recovery_profile="
-    b"persistent-native-root-v8-generation233-live-v1\n"
-    b"candidate=persistent-native-root-v8\n"
-    b"manifest_sha256="
-    b"7e57c523fa344808fbf551635993d1e712243cf5a93e82ddc83ac9785ca48992\n"
-    b"state=BOOT_CLAIMED\n"
-)
+    "format=rog5-temporary-boot-consumption-v1\n"
+    f"recovery_profile={PROFILE_ID}\n"
+    f"candidate={BUNDLE}\n"
+    f"manifest_sha256={MANIFEST_SHA256}\n"
+    "state=BOOT_CLAIMED\n"
+).encode("ascii")
 CYCLE.CLAIM_CONSUMER.CLAIMS[PROFILE_ID] = CLAIM_RECORD
 CLAIM_ENTRYPOINT = (
     REPO
@@ -74,16 +89,17 @@ TARGET_RELEASE = "7.1.4-g359318de534f"
 TARGET_PRODUCT = "ROG5 persistent root"
 TARGET_UDEV_MODEL = "ROG5_persistent_root"
 HOST_PROFILE = "rog5-fallback-usb-ssh"
-LIVE_ROOT = (
-    REPO
-    / "build/persistent-native-root-v8-generation233-20260828-r1"
-)
+LIVE_ROOT = REPO / "build" / TRACK["live_root"]
 COMPONENT_ROOT = (
     REPO
     / "build/storage-layout-stage2-mainline-readonly-v2-recovery-components-20260826-r1"
 )
 TRUST_KEY = COMPONENT_ROOT / "ephemeral-public.raw"
 BUNDLE_ROOT = Path("/var/lib/rog5-recovery-bundles")
+SOFTDOG_MODULE = REPO / "artifacts/softdog-g359-v1/softdog.ko"
+SOFTDOG_SHA256 = (
+    "ab0175a40b7dd6186d07b4166d5c2ea3ef3f94f9f0ddf9e08d19e431be294dc4"
+)
 TARGET_WAIT_SECONDS = 450
 FALLBACK_TIMEOUT_SECONDS = 930
 AUTHENTICATED_SSH_ATTEMPT_SECONDS = 20
@@ -161,10 +177,10 @@ PROFILE = CYCLE.CycleProfile(
     bundle=BUNDLE,
     bundle_profile="persistent-root-ro-v1",
     target_id=BUNDLE,
-    admission_profile="persistent-native-root-v8",
+    admission_profile=BUNDLE,
     recovery_profile=PROFILE_ID,
-    runtime_profile="persistent-native-root-v8",
-    build_profile="persistent-native-root-v8",
+    runtime_profile=BUNDLE,
+    build_profile=BUNDLE,
     diagnostic=False,
 )
 
@@ -197,6 +213,54 @@ printf 'failed_units=%s\n' "$failed"
 [ "$failed" -eq 0 ]
 printf '%s\n' 'result=PASS'
 """.strip()
+
+UFS_HIGH_SPEED_PROBE_COMMAND = r"""
+printf '%s\n' 'format=rog5-persistent-ufs-high-speed-probe-v1'
+softdog=/run/rog5-softdog.ko
+[ "$(stat -c '%u:%g:%a:%s:%h' "$softdog")" = 0:0:400:265672:1 ]
+[ "$(sha256sum "$softdog" | cut -d ' ' -f 1)" = ab0175a40b7dd6186d07b4166d5c2ea3ef3f94f9f0ddf9e08d19e431be294dc4 ]
+insmod "$softdog" soft_margin=240 soft_reboot_cmd=bootloader nowayout=0 soft_noboot=0 soft_panic=0
+watchdog_wait=0
+while [ ! -c /dev/watchdog0 ] && [ "$watchdog_wait" -lt 5 ]; do
+    sleep 1
+    watchdog_wait=$((watchdog_wait + 1))
+done
+[ -c /dev/watchdog0 ]
+exec 9>/dev/watchdog0
+probe=/persist/var/lib/rog5-ufs-high-speed-probe-v1
+[ ! -e "$probe" ] && [ ! -L "$probe" ]
+start=$(date +%s%N)
+dd if=/dev/zero of="$probe" bs=1048576 count=64 status=none
+sync -f "$probe"
+[ "$(stat -c '%u:%g:%a:%s:%h' "$probe")" = 0:0:644:67108864:1 ]
+probe_hash=$(sha256sum "$probe" | cut -d ' ' -f 1)
+[ "$probe_hash" = 3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351 ]
+rm -f "$probe"
+sync -f /persist/var/lib
+[ ! -e "$probe" ] && [ ! -L "$probe" ]
+end=$(date +%s%N)
+elapsed_ms=$(((end - start) / 1000000))
+high_speed_markers=$(dmesg | grep -Fc 'ROG5 UFS bounded data-write high-speed gear switch enabled' || true)
+ufs_error_events=$(dmesg | grep -Eic 'ufshcd_abort|timed-out|I/O error|OCS invalid|eh_fatal' || true)
+[ "$high_speed_markers" -ge 1 ]
+[ "$ufs_error_events" -eq 0 ]
+set -- $(cat /sys/block/sda/inflight)
+[ "$1" -eq 0 ] && [ "$2" -eq 0 ]
+printf 'V' >&9
+exec 9>&-
+rmmod softdog
+printf 'bytes=%s\n' 67108864
+printf 'sha256=%s\n' "$probe_hash"
+printf 'elapsed_ms=%s\n' "$elapsed_ms"
+printf 'high_speed_markers=%s\n' "$high_speed_markers"
+printf 'ufs_error_events=%s\n' "$ufs_error_events"
+printf '%s\n' 'storage_scope=p23-state-image-only'
+printf '%s\n' 'watchdog=softdog-240-disarmed'
+printf '%s\n' 'ufs_probe_result=PASS'
+""".strip()
+
+if TRACK_ID == "v9":
+    RUNTIME_COMMAND = f"{RUNTIME_COMMAND}\n{UFS_HIGH_SPEED_PROBE_COMMAND}"
 
 class PersistentCycleError(RuntimeError):
     """One bounded local-root lifecycle failed."""
@@ -384,6 +448,12 @@ def verify_static_artifacts(inputs: CYCLE.Inputs) -> None:
         MANIFEST_SHA256
     ):
         fail("installed persistent-root manifest identity changed")
+    if TRACK_ID == "v9":
+        require_file(SOFTDOG_MODULE, owner=os.geteuid(), modes={0o644})
+        if hashlib.sha256(SOFTDOG_MODULE.read_bytes()).hexdigest() != (
+            SOFTDOG_SHA256
+        ):
+            fail("exact softdog module identity changed")
 
 
 def ssh_arguments(inputs: CYCLE.Inputs, known_hosts: Path) -> list[str]:
@@ -963,6 +1033,68 @@ def run_optional_logged(arguments: list[str], path: Path, timeout: float) -> int
     return result.returncode
 
 
+def transfer_softdog_module(target_ssh: list[str], path: Path) -> int:
+    descriptor = CYCLE.open_exclusive(path)
+    try:
+        with SOFTDOG_MODULE.open("rb") as source:
+            result = subprocess.run(
+                [
+                    *target_ssh,
+                    "umask 077; set -C; cat > /run/rog5-softdog.ko; "
+                    "chmod 0400 /run/rog5-softdog.ko; "
+                    "test \"$(stat -c '%u:%g:%a:%s:%h' "
+                    "/run/rog5-softdog.ko)\" = 0:0:400:265672:1; "
+                    "test \"$(sha256sum /run/rog5-softdog.ko | "
+                    "cut -d ' ' -f 1)\" = " + SOFTDOG_SHA256,
+                ],
+                env=CYCLE.child_environment(),
+                stdin=source,
+                stdout=descriptor,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=30,
+            )
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    return result.returncode
+
+
+def parse_ufs_high_speed_probe(path: Path) -> None:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
+        raise PersistentCycleError("UFS high-speed evidence is unreadable") from error
+    required = {
+        "format=rog5-persistent-ufs-high-speed-probe-v1",
+        "bytes=67108864",
+        "sha256=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351",
+        "ufs_error_events=0",
+        "storage_scope=p23-state-image-only",
+        "watchdog=softdog-240-disarmed",
+        "ufs_probe_result=PASS",
+    }
+    for marker in required:
+        if lines.count(marker) != 1:
+            fail(f"UFS high-speed evidence lacks one exact marker: {marker}")
+    elapsed = [line.removeprefix("elapsed_ms=") for line in lines if line.startswith("elapsed_ms=")]
+    markers = [
+        line.removeprefix("high_speed_markers=")
+        for line in lines
+        if line.startswith("high_speed_markers=")
+    ]
+    if (
+        len(elapsed) != 1
+        or not elapsed[0].isdecimal()
+        or int(elapsed[0]) < 1
+        or int(elapsed[0]) > 180_000
+        or len(markers) != 1
+        or not markers[0].isdecimal()
+        or int(markers[0]) < 1
+    ):
+        fail("UFS high-speed timing or branch evidence is invalid")
+
+
 def preflight(
     cycle: CYCLE.LiveCycle,
     inputs: CYCLE.Inputs,
@@ -1159,6 +1291,10 @@ def run(
         )
         if ssh_status != 0:
             fail(f"first authenticated SSH attempt returned {ssh_status}")
+        if TRACK_ID == "v9" and transfer_softdog_module(
+            target_ssh, cycle.output("softdog-transfer.log")
+        ) != 0:
+            fail("exact softdog module transfer failed")
         if run_optional_logged(
             [*target_ssh, UFS_LINK_SNAPSHOT_COMMAND],
             cycle.output("ufs-link-snapshot.log"),
@@ -1167,11 +1303,15 @@ def run(
             fail("UFS link snapshot failed")
         runtime_log = cycle.output("persistent-root-runtime.log")
         runtime_status = run_optional_logged(
-            [*target_ssh, RUNTIME_COMMAND], runtime_log, 180
+            [*target_ssh, RUNTIME_COMMAND],
+            runtime_log,
+            300 if TRACK_ID == "v9" else 180,
         )
         if runtime_status != 0:
             fail(f"local-root runtime acceptance returned {runtime_status}")
         target_boot_id = parse_runtime_evidence(runtime_log)
+        if TRACK_ID == "v9":
+            parse_ufs_high_speed_probe(runtime_log)
         target_accepted = True
         elapsed = time.monotonic() - boot_started
         CYCLE.write_record(
@@ -1185,7 +1325,10 @@ def run(
                 ("target_boot_id", target_boot_id),
                 ("disposition", "systemd-ssh-ready"),
                 ("root", "native-ext4-overlay-tmpfs"),
-                ("storage", "read-only"),
+                (
+                    "storage",
+                    "p23-probe-cleaned" if TRACK_ID == "v9" else "read-only",
+                ),
                 ("seconds_to_native_ready", f"{elapsed:.3f}"),
                 ("result", "PASS"),
             ),

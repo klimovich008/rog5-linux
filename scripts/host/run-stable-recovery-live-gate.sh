@@ -248,6 +248,7 @@ if [[ $action == policy-preflight ]]; then
 		persistent-native-root-v6-generation231-live-v1 | \
 		persistent-native-root-v7-generation232-live-v1 | \
 		persistent-native-root-v8-generation233-live-v1 | \
+		persistent-native-root-v9-generation234-live-v1 | \
 		persistent-root-qmp-ufs-phy-control-v12-live-v1 | \
 		persistent-root-qmp-module-load-control-v13-live-v1 | \
 		persistent-root-qmp-regulator-stage-v14-live-v1 | \
@@ -5140,6 +5141,39 @@ case $profile in
 		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
 		requires_qualified_cpio=1
 		;;
+	persistent-native-root-v9-generation234-live-v1)
+		expected_boot_image=build/persistent-native-root-v9-generation234-20260829-r1/repack/stable-recovery-a.avb.img
+		expected_boot_basis='one exact module-only UFS high-speed p23 write/flush discriminator; v8 Image, DTB, native p24, power/USB, recovery raw bytes, strict SSH and fallback unchanged; tmpfs softdog; one RAM-only use only; never flash or retry after entry'
+		expected_boot_role='unbooted Generation 234 module-only UFS high-speed p23 probe; v8 plus exact V49 ufshcd-core and tmpfs softdog; one RAM-only use only; never flash'
+		expected_boot_tracked=no
+		component_layout=structured
+		expected_kernel=838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783
+		expected_raw=7e4c7423bfd0a99b73647f192c8ab08bdc493c038f9d6af601b1b9196ce19648
+		expected_initramfs=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+		expected_control=9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093
+		expected_fetcher=37fa1d0279b2c5c5eeee9f217e3ba5ccaf17bf1b1576cc689d6f0940a9c1ee50
+		expected_verifier=c3c5c31831335867a79c5bcd5999ae67daa6c0f94d76df4522268a493512e3bb
+		expected_config=df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f
+		expected_target_id=persistent-native-root-v9
+		expected_bundle=persistent-native-root-v9
+		expected_bundle_profile=persistent-root-ro-v1
+		expected_target_release=7.1.4-g359318de534f
+		expected_target_timeout=600
+		expected_avb_salt=8789c90cd83e83facf2c1b9cf9bd15fb139b38837a30b42f26f08645fc96073a
+		expected_avb_digest=e7451963821edf69beea8f4a23734be5eb5dd18d4a83e4477eef4dbb19799eb1
+		expected_generation_record=e31db86447ddff6a08ea5175c83d9134a42ee8f4cfe22bc22b6e4558b70c0de0
+		recovery_init=$repo/initramfs/recovery-init
+		[[ $expected_manifest == 8bc47f291c97c5d52754bd800011864dd385e6993f04d7da1be31b0fc96563e3 ]] || fail 'native root v9 manifest is not pinned'
+		[[ $expected_image == 6826c4632a835deec8e5249a601f96c47ba973657ff61dca1067b5eecf3a1334 ]] || fail 'native root v9 recovery is not pinned'
+		[[ $expected_trust == cc1bca69dadbb0ae6f221a3ac5866d0edfebabd9bf96a9e0ef2747e8283f6054 ]] || fail 'native root v9 trust is not pinned'
+		[[ $expected_host_verifier == 04f8544a26304af03a67c7588e68e2ff1a480cb500bda4fbf213db2cb650cb29 ]] || fail 'native root v9 verifier is not pinned'
+		avbtool=$repo/artifacts/android-boot-tools-v1/avbtool.py
+		unpack=$repo/artifacts/android-boot-tools-v1/unpack_bootimg.py
+		qualified_cpio=$repo/scripts/host/qualified-cpio-path/cpio
+		qualified_cpio_shim=$repo/scripts/host/qualified-tool-shims/cpio
+		initramfs_path=$repo/scripts/host/qualified-cpio-path:$PATH
+		requires_qualified_cpio=1
+		;;
 	persistent-root-qmp-ufs-phy-control-v12-live-v1)
 		expected_boot_image=build/persistent-root-qmp-ufs-phy-control-v12-generation33-20260812-r1/repack/stable-recovery-a.avb.img
 		expected_boot_basis='one exact QMP-UFS PHY return-and-NCM-survival discriminator; RAM-only; externally consumed exact claim required; never flash or retry after entry'
@@ -6696,6 +6730,7 @@ case $profile in
 	persistent-native-root-v6-generation231-live-v1 | \
 	persistent-native-root-v7-generation232-live-v1 | \
 	persistent-native-root-v8-generation233-live-v1 | \
+	persistent-native-root-v9-generation234-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \

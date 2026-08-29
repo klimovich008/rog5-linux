@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import subprocess
 from types import SimpleNamespace
@@ -22,6 +23,61 @@ SPEC.loader.exec_module(MODULE)
 
 
 class PersistentRootLiveCycleTest(unittest.TestCase):
+    def test_v9_track_is_exact_and_probe_bounded(self) -> None:
+        specification = importlib.util.spec_from_file_location(
+            "persistent_root_live_v9", MODULE_PATH
+        )
+        assert specification is not None and specification.loader is not None
+        candidate = importlib.util.module_from_spec(specification)
+        with mock.patch.dict(
+            os.environ, {"ROG5_PERSISTENT_ROOT_TRACK": "v9"}
+        ):
+            specification.loader.exec_module(candidate)
+        self.assertEqual(
+            candidate.PROFILE_ID,
+            "persistent-native-root-v9-generation234-live-v1",
+        )
+        self.assertEqual(candidate.BUNDLE, "persistent-native-root-v9")
+        self.assertEqual(
+            candidate.MANIFEST_SHA256,
+            "8bc47f291c97c5d52754bd800011864dd385e6993f04d7da1be31b0fc96563e3",
+        )
+        self.assertEqual(
+            candidate.RECOVERY_SHA256,
+            "6826c4632a835deec8e5249a601f96c47ba973657ff61dca1067b5eecf3a1334",
+        )
+        self.assertEqual(
+            candidate.SOFTDOG_SHA256,
+            "ab0175a40b7dd6186d07b4166d5c2ea3ef3f94f9f0ddf9e08d19e431be294dc4",
+        )
+        self.assertIn("soft_margin=240", candidate.RUNTIME_COMMAND)
+        self.assertIn("count=64", candidate.RUNTIME_COMMAND)
+        self.assertIn("sync -f \"$probe\"", candidate.RUNTIME_COMMAND)
+        self.assertIn("storage_scope=p23-state-image-only", candidate.RUNTIME_COMMAND)
+        self.assertIn("watchdog=softdog-240-disarmed", candidate.RUNTIME_COMMAND)
+        self.assertIn("transfer_softdog_module", MODULE_PATH.read_text())
+
+        evidence = tempfile.NamedTemporaryFile("w", delete=False)
+        self.addCleanup(Path(evidence.name).unlink, missing_ok=True)
+        evidence.write(
+            "\n".join(
+                (
+                    "format=rog5-persistent-ufs-high-speed-probe-v1",
+                    "bytes=67108864",
+                    "sha256=3b6a07d0d404fab4e23b6d34bc6696a6a312dd92821332385e5af7c01c421351",
+                    "elapsed_ms=8123",
+                    "high_speed_markers=2",
+                    "ufs_error_events=0",
+                    "storage_scope=p23-state-image-only",
+                    "watchdog=softdog-240-disarmed",
+                    "ufs_probe_result=PASS",
+                )
+            )
+            + "\n"
+        )
+        evidence.close()
+        candidate.parse_ufs_high_speed_probe(Path(evidence.name))
+
     def test_functional_successor_uses_one_attempt_before_runtime(self) -> None:
         source = MODULE_PATH.read_text()
         self.assertEqual(MODULE.SSH_DIAGNOSTIC_PORT, 8078)

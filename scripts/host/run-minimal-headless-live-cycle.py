@@ -592,6 +592,7 @@ STOCK_FALLBACK_RECOVERY_PROFILES = frozenset(
         "persistent-native-root-v6-generation231-live-v1",
         "persistent-native-root-v7-generation232-live-v1",
         "persistent-native-root-v8-generation233-live-v1",
+        "persistent-native-root-v9-generation234-live-v1",
     }
 )
 POWER_USB_RECEIPT_RECOVERY_PROFILES = frozenset(
