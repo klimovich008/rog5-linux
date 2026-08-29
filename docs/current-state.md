@@ -102,7 +102,10 @@ SSH identity, and zero UFS in-flight requests are restored.
 The next artifact changes only the target initramfs module composition: reuse
 the already live-proven V49 `ufshcd-core.ko` hash `e3a049d4…777a`, retain the
 same Image/DTB/userspace, and run one bounded p23 write plus `syncfs` test.
-Do not start Tailscale until that storage test and recovery path pass. See
+Target twins, signed bundle twins, generation-234 wrapper, focused tests, and
+full local CI now pass; authority remains `none` and no v9 boot has occurred.
+Publish the exact reviewed head and require exact-head CI before connected
+preflight. Do not start Tailscale until the storage test and recovery path pass. See
 `test-results/2026-08-29-persistent-v8-ufs-write-stall.md`.
 
 ## Required boundaries
