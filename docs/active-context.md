@@ -65,6 +65,14 @@ then failed only because the helper executable and record shared
 `/run/rog5-persistent-ssh-identity`. The corrected `.record` path and explicit
 non-alias guard pass live from tmpfs; v8 changes only the target initramfs.
 
+Release v8 is the active persistent-server baseline. Two distinct boots
+automatically accepted the previously pinned stable SSH fingerprint, reached
+systemd `running` with zero failed units, mounted exact persistent state,
+retained marker `23fd76f7…2f35`, exposed exactly `sda`/`sda23` writable and
+kept p24 read-only. The clean repeat had no state ext4 recovery event,
+positive charging and safe thermals. See
+`test-results/2026-08-29-persistent-slotb-v8-pass.md`.
+
 ## Active storage cycle
 
 Generation 194 is consumed and permanently non-retryable. It reached mainline

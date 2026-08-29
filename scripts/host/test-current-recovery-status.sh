@@ -60,5 +60,9 @@ grep -Fq 'test-results/2026-08-29-persistent-slotb-v6-pass.md' "$current" || {
 	echo 'FAIL current state omits the persistent v6 acceptance evidence' >&2
 	exit 1
 }
+grep -Fq 'test-results/2026-08-29-persistent-slotb-v8-pass.md' "$current" || {
+	echo 'FAIL current state omits the persistent v8 acceptance evidence' >&2
+	exit 1
+}
 
-echo 'PASS current status records WW33 rescue and the persistent slot-B v6 baseline'
+echo 'PASS current status records WW33 rescue and the persistent slot-B v8 baseline'

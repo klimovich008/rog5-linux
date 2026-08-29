@@ -21,7 +21,7 @@ use Git history and dated `test-results/` records for older generations.
 | Dual-cell telemetry | Clean-twin build passed | OEM read-only cell-voltage patch remains unbooted |
 | UFS read-only enumeration | Passed | Exact physical inventory obtained in prior cycles |
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
-| Persistent Arch layout | Passed | Slot-B v6 boots native Arch and mounts exact persistent p23 service state with marker retention and clean relock/reboot |
+| Persistent Arch layout | Passed | Slot-B v8 boots native Arch with persistent p23 state, stable pinned SSH identity, clean relock/reboot and slot-A rescue |
 | VCNL36866 | Preserved, paused | Separate dirty worktree; no current subsystem expansion |
 
 ## Immediate checkpoint
@@ -90,6 +90,13 @@ and strict pinned SSH passed, but its helper executable and runtime record
 shared one pathname. The key switch succeeded before record publication
 failed, leaving one failed unit. The corrected distinct `.record` path passes
 live from tmpfs; v8 is an initramfs-only successor.
+
+Persistent release v8 passed twice. It automatically restores the seeded SSH
+fingerprint without keyscan/manual helper, publishes the distinct exact
+identity record, reaches systemd `running` with zero failed units, retains the
+state marker, preserves exact two-node write scope and cleanly relocks all 117
+nodes before reboot. See
+`test-results/2026-08-29-persistent-slotb-v8-pass.md`.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
