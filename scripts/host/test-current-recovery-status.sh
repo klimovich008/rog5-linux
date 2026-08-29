@@ -15,7 +15,7 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Active slot: A in exact fastboot' \
+	'Active slot: B, running accepted persistent V9' \
 	'1-1.2' \
 	'V49' \
 	'no kernel, DT, wrapper, GPT, or boot-partition rebuild'
@@ -29,13 +29,14 @@ done
 for contract in \
 	'M5AIKN00F0353YH' \
 	'33.0210.0210.200' \
-	'Persistent release v8 is accepted.' \
+	'Persistent release v9 is accepted' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
-	'402 ms' \
+	'70.561 seconds' \
 	'Do not rebuild or reflash `super`' \
 	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
-	'test-results/2026-08-29-persistent-v9-ufs-high-speed-live-pass.md'
+	'test-results/2026-08-30-persistent-slotb-v9-pass.md' \
+	'test-results/2026-08-30-persistent-tailscale-v10-offline.md'
 do
 	grep -Fq "$contract" "$current" || {
 		echo "FAIL current state omits current evidence: $contract" >&2
@@ -52,8 +53,8 @@ grep -Fq 'Do not rebuild or reflash `super`.' "$charging" || {
 	exit 1
 }
 
-grep -Fq 'test-results/2026-08-29-persistent-slotb-v8-pass.md' "$current" || {
-	echo 'FAIL current state omits the persistent v8 acceptance evidence' >&2
+grep -Fq 'test-results/2026-08-30-persistent-slotb-v9-pass.md' "$current" || {
+	echo 'FAIL current state omits the persistent v9 acceptance evidence' >&2
 	exit 1
 }
 
@@ -66,4 +67,4 @@ grep -Fq 'test-results/2026-08-29-persistent-slotb-v8-pass.md' "$current" || {
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, v8 baseline, and v9 UFS live result'
+echo 'PASS compact current status records WW33 rescue, V9 baseline, and V10 Tailscale gate'

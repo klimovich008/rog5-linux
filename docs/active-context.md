@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-29
+Updated: 2026-08-30
 
 Read `docs/current-state.md` for the authoritative baseline. Historical
 generation detail is in Git and dated `test-results/`; do not reconstruct it
@@ -8,45 +8,39 @@ in this file.
 
 ## One current question
 
-Can the already verified signed v9 bundle be installed into the existing p24
-slot-B loader store with one bounded write and then boot repeatedly without
-regressing charging, NCM, strict SSH, storage scope, or slot-A rescue?
+Does V10 automatically restore the fixed standalone route and start authenticated
+Tailscale from p23 while preserving the accepted V9 kernel, power, storage,
+SSH, reboot and slot-A rescue behavior?
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
-- Active slot: A in exact fastboot after the Generation-234 fallback proof.
-- Slot B retains the accepted persistent v8 Linux loader and bundle.
-- Host profile `rog5-fallback-usb-ssh` autoconnects only for standalone mode
-  and assigns `169.254.77.1/30`; attended recovery keeps its deferred mode.
-- Generation 234 reached native p24, systemd running with zero failed units,
-  high-speed NCM, bootstrap key-only SSH, and the retained stable SSH identity.
-- Battery remained safe and `battery-soc-ok=yes` throughout the cycle.
-- NetworkManager shared mode proved routed IP, DNS, and HTTPS over NCM. The
-  separate profile remains available but normal boot restored the accepted
-  manual `/30` profile.
-- `/persist` recovered successfully after the old v8 UFS stall. The Tailscale
-  archive remains staged but inactive.
+- Active slot: B, running accepted persistent V9 boot
+  `6e9cd42b-4419-41e8-b279-7a3076666ea1`; slot A remains rescue.
+- V9 twice passed systemd running, zero failed units, V49 high-speed UFS,
+  zero UFS errors, NCM, stable key-only SSH, p23 state and exact write scope.
+- Battery is Full/Good and safe; side USB provides positive input.
+- Dedicated standalone shared mode is `10.77.0.1/30`; fixed recovery management
+  remains a separate `169.254.77.1/30` profile.
+- Official Tailscale 1.102.3 archive/binaries and machine state are on p23.
+  The same-boot exact helper and transient daemon pass; account login is pending.
 
 ## Just-completed checkpoint
 
-Generation 234 is consumed. Its V49 UFS probe completed 64 MiB plus both sync
-boundaries in 402 ms with zero UFS errors and exact p23 cleanup. A separate R7
-cross-record parser collision rejected the valid combined log; the stable
-persistent SSH key was independently matched to retained evidence before the
-reviewed reboot helper returned exact slot-A fastboot. The intent resolved
-`FALLBACK_RETURNED`. No p24 write occurred.
+Signed V10 bundle twins verify at manifest `307883f5…2970`; target initramfs
+twins are `db249f8c…02fb`. The V10 p24 sparse image is `915b4a32…899e`,
+unchanged geometry with 3,032,543,232 allocated bytes independently matched.
+Focused, initramfs and active tiers pass. No V10 phone write has occurred.
 
 ## Cheapest next action
 
-1. Publish the consumed-policy, record-scoped parser, and compact evidence
-   checkpoint.
-2. Prepare one exact p24 bundle-store transaction that stages the already signed
-   v9 bundle, verifies every byte and selector, syncs, and relocks p24.
-3. Boot slot B, prove the V49 module is deployed, repeat systemd/NCM/SSH/power
-   checks, then resume the staged Tailscale installation.
+1. Publish the exact V10 source checkpoint and require exact-head GitHub CI.
+2. Cleanly stop V9, select slot A, transfer only the verified V10 p24 sparse,
+   restore slot B, and prove automatic Tailscale service startup.
+3. Complete browser login, verify Tailscale IP/SSH, reboot once, and prove the
+   daemon and authenticated state return unattended.
 
-The live kernel result is complete. Reuse the existing signed v9 bundle and
+The live kernel result is complete. Reuse the existing signed V9/V10 bundle and
 stable slot-B loader; no kernel, DT, wrapper, GPT, or boot-partition rebuild is
 needed.
 
@@ -60,6 +54,7 @@ write, or loss of slot-A rescue. Never expose credentials or private evidence.
 
 - Worktree: `/home/deck/.local/state/rog5-haven-clean-ci-20260810`.
 - Branch: `agent/linux-recovery-host`.
-- Last pushed checkpoint: `0403d2bf6253b58730793b21dd1ceebbc39eb6c3`.
+- Last pushed checkpoint: `e9d4409db1a55acd7b302eccca40ca39656bbdd0`.
+- V10 source checkpoint: `39d1e12e217bf24b5de144e032f0ceddd8ad1717`.
 - Standing GitHub authorization permits normal pushes to this branch; never
   force-push.
