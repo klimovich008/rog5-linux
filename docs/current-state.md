@@ -98,6 +98,15 @@ state marker, preserves exact two-node write scope and cleanly relocks all 117
 nodes before reboot. See
 `test-results/2026-08-29-persistent-slotb-v8-pass.md`.
 
+A separate bounded liveness run completed 7,200 one-second target samples on
+one v8 boot and 670 ten-second host checks. The target reached 7,831 seconds
+uptime with the UDC continuously `configured` at high speed, DWC runtime
+active, zero RX/TX errors, and every host ping and strict pinned-SSH check
+passing. No host NETDEV watchdog or xHCI/USB-anchor error appeared. This does
+not identify the earlier isolated 47-minute NCM timeout, but it disproves a
+deterministic timeout at that boundary and leaves v8 as the accepted baseline.
+See `test-results/2026-08-29-persistent-ncm-two-hour-pass.md`.
+
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
 key-only SSH in about seven seconds, then the redundant full 16 GiB source

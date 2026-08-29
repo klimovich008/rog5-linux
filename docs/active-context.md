@@ -73,6 +73,16 @@ kept p24 read-only. The clean repeat had no state ext4 recovery event,
 positive charging and safe thermals. See
 `test-results/2026-08-29-persistent-slotb-v8-pass.md`.
 
+The bounded v8 NCM observer also passed: 7,200 one-second target samples and
+670 ten-second host checks completed on boot
+`bf9aa234-327f-4b50-acaa-40e98a94c421`. At 7,831 seconds uptime the UDC was
+still configured at high speed, DWC runtime was active, host and target
+RX/TX errors were zero, and every ping and strict pinned-SSH check had passed.
+No host NETDEV watchdog or xHCI/anchor error appeared. The earlier isolated
+47-minute timeout remains unclassified and was not reproduced; do not change
+the kernel or DT for it without new discriminating evidence. See
+`test-results/2026-08-29-persistent-ncm-two-hour-pass.md`.
+
 ## Active storage cycle
 
 Generation 194 is consumed and permanently non-retryable. It reached mainline
