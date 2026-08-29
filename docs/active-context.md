@@ -35,16 +35,16 @@ charging, NCM, strict SSH, exact storage scope, and fallback?
 
 The R2 guard, exact V49 module replacement, deterministic target twins, signed
 bundle twins, generation-234 recovery wrapper, generic claim registration,
-and v9 lifecycle tests pass offline. The signed v9 bundle is served through an
-exact read-only bind mount. Candidate authority remains `none`; no v9 phone
-boot or p24 modification has occurred.
+v9 lifecycle tests, and full local CI pass offline. The signed v9 bundle is
+served through an exact read-only bind mount. Candidate authority remains
+`none`; no v9 phone boot or p24 modification has occurred. See
+`test-results/2026-08-29-persistent-v9-ufs-high-speed-offline.md`.
 
 ## Cheapest next action
 
-1. Run one full local CI checkpoint for the trust/admission changes.
-2. Publish the exact reviewed commit and require exact-head CI.
-3. Run the connected non-consuming v9 preflight.
-4. Admit and temporarily boot once, then perform one bounded p23 write/flush
+1. Publish the exact reviewed commit and require exact-head CI.
+2. Run the connected non-consuming v9 preflight.
+3. Admit and temporarily boot once, then perform one bounded p23 write/flush
    test with
    adjacent NCM, charging, thermal, strict-SSH, relock, and fallback evidence.
 
@@ -65,5 +65,7 @@ write, or loss of slot-A rescue. Never expose credentials or private evidence.
 - Branch: `agent/linux-recovery-host`.
 - Evidence checkpoint before this compaction:
   `47676f2e7261f85431e940604ba882a7ef6b6dfe`.
+- V9 authority-free candidate checkpoint:
+  `97b83fed4d456f8ef3c523f516f465bc99890fec`.
 - The branch is ahead of the remote and must not be pushed until the exact new
   HEAD and destination are authorized.
