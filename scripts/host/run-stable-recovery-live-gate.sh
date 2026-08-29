@@ -6581,8 +6581,10 @@ case $profile in
 	*) fail "unsupported stable-recovery live profile: $profile" ;;
 esac
 
-# Historical profiles retain their pinned embedded init. The current
-# profile must instead prove the repository-owned init and exact UDC contract.
+# Historical profiles retain their pinned embedded init. Exact-UDC archives
+# built from an older reviewed head retain that complete pinned archive while
+# proving the modern mode-bound responder and exact UDC contract. Current
+# profiles instead prove the repository-owned init byte-for-byte.
 case $profile in
 	historical-2026-07-29 | \
 	corrected-headless-successor-2026-07-30 | \
@@ -6592,9 +6594,13 @@ case $profile in
 	headless-diagnostic-generation[3-9]-live-v1 | \
 	headless-diagnostic-generation1[0-2]-offline-v1 | \
 	headless-diagnostic-generation1[0-2]-live-v1 | \
-	headless-diagnostic-stage75-v2-superseded-offline-v1 | \
-	persistent-native-root-v9-generation234-live-v1)
+	headless-diagnostic-stage75-v2-superseded-offline-v1)
 		initramfs_contract=historical-pinned-v1
+		initramfs_verifier_expected=$expected_initramfs
+		recovery_init=-
+		;;
+	persistent-native-root-v9-generation234-live-v1)
+		initramfs_contract=exact-a600000-pinned-v1
 		initramfs_verifier_expected=$expected_initramfs
 		recovery_init=-
 		;;

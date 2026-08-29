@@ -15,6 +15,7 @@ from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 MODULE_PATH = REPO / "scripts/host/run-persistent-root-storage-live-cycle.py"
+LIVE_GATE_PATH = REPO / "scripts/host/run-stable-recovery-live-gate.sh"
 SPEC = importlib.util.spec_from_file_location("persistent_root_live", MODULE_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError("cannot load persistent-root live runner")
@@ -56,6 +57,21 @@ class PersistentRootLiveCycleTest(unittest.TestCase):
         self.assertIn("storage_scope=p23-state-image-only", candidate.RUNTIME_COMMAND)
         self.assertIn("watchdog=softdog-240-disarmed", candidate.RUNTIME_COMMAND)
         self.assertIn("transfer_softdog_module", MODULE_PATH.read_text())
+
+        gate = LIVE_GATE_PATH.read_text()
+        contract_table = gate[gate.index("# Historical profiles retain") :]
+        profile_start = contract_table.index(
+            "\tpersistent-native-root-v9-generation234-live-v1)"
+        )
+        profile_end = contract_table.index("\n\t\t;;", profile_start)
+        profile_contract = contract_table[profile_start:profile_end]
+        self.assertIn(
+            "initramfs_contract=exact-a600000-pinned-v1", profile_contract
+        )
+        self.assertIn(
+            "initramfs_verifier_expected=$expected_initramfs", profile_contract
+        )
+        self.assertIn("recovery_init=-", profile_contract)
 
         evidence = tempfile.NamedTemporaryFile("w", delete=False)
         self.addCleanup(Path(evidence.name).unlink, missing_ok=True)
