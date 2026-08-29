@@ -234,6 +234,26 @@ cmp "$test_tmp/stable-recovery-a.cpio.gz" \
 current_archive_sha256=$(
 	sha256sum "$test_tmp/stable-recovery-a.cpio.gz" | cut -d ' ' -f 1
 )
+"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" - \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" exact-a600000-pinned-v1 \
+	"$current_archive_sha256"
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" - \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" exact-a600000-pinned-v1 \
+	0000000000000000000000000000000000000000000000000000000000000001 \
+	>"$test_tmp/pinned-exact-wrong-hash.log" 2>&1
+then
+	fail 'wrong archive identity passed the pinned exact-UDC contract'
+fi
+grep -Fqx 'FAIL pinned recovery archive identity mismatch' \
+	"$test_tmp/pinned-exact-wrong-hash.log"
 for suffix in a b; do
 	case $suffix in
 		a) build_locale=C; build_timezone=UTC ;;

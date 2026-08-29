@@ -46,25 +46,25 @@ case $contract in
 		[ "$expected_archive_sha256" = - ] ||
 			fail 'observation-only verification does not accept an external archive identity'
 		;;
-	historical-pinned-v1)
+	exact-a600000-pinned-v1|historical-pinned-v1)
 		[ "$init" = - ] ||
-			fail 'historical verification must use its pinned embedded init'
+			fail 'pinned verification must use its embedded init'
 		for input in "$fetcher" "$verifier" "$public_key"; do
 			[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
 				fail "unsafe or missing verifier input: $(basename "$input")"
 		done
 		case $expected_archive_sha256 in
 			*[!0-9a-f]*|'')
-				fail 'historical recovery archive identity is not canonical'
+				fail 'pinned recovery archive identity is not canonical'
 				;;
 		esac
 		[ "${#expected_archive_sha256}" -eq 64 ] &&
 			[ "$expected_archive_sha256" != \
 			0000000000000000000000000000000000000000000000000000000000000000 ] ||
-			fail 'historical recovery archive identity is not canonical'
+			fail 'pinned recovery archive identity is not canonical'
 		[ "$(sha256sum "$archive" | awk '{ print $1 }')" = \
 			"$expected_archive_sha256" ] ||
-			fail 'historical recovery archive identity mismatch'
+			fail 'pinned recovery archive identity mismatch'
 		;;
 	*) fail "unsupported stable-recovery init contract: $contract" ;;
 esac
@@ -87,7 +87,7 @@ esac
 cmp "$stage/usr/libexec/rog5-recovery-control" "$control"
 [ "$(stat -c %a "$stage/init")" = 755 ]
 case $contract in
-	exact-a600000-v1|historical-pinned-v1)
+	exact-a600000-v1|exact-a600000-pinned-v1|historical-pinned-v1)
 		cmp "$stage/usr/libexec/rog5-bundle-fetch" "$fetcher"
 		cmp "$stage/usr/libexec/rog5-bundle-verify" "$verifier"
 		cmp "$stage/etc/rog5/recovery-bundle-ed25519.pub" "$public_key"
@@ -136,7 +136,7 @@ legacy_entry=$(
 
 binary_list=usr/libexec/rog5-recovery-control
 case $contract in
-	exact-a600000-v1|historical-pinned-v1)
+	exact-a600000-v1|exact-a600000-pinned-v1|historical-pinned-v1)
 		binary_list="$binary_list usr/libexec/rog5-bundle-fetch usr/libexec/rog5-bundle-verify"
 		;;
 esac
@@ -149,7 +149,7 @@ do
 	fi
 done
 case $contract in
-	exact-a600000-v1|historical-pinned-v1)
+	exact-a600000-v1|exact-a600000-pinned-v1|historical-pinned-v1)
 		[ "$(sha256sum "$stage/usr/sbin/kexec" | cut -d ' ' -f 1)" = \
 			5e5d0a78b3f0bcf3921ff060f4dce5011cbac24b5e12fedeb8ca03ea5b40d015 ]
 		;;
@@ -183,7 +183,7 @@ grep -Fq "mkdir -p \"\$bundle_root\"" "$stage/init"
 grep -Fq "chown 0:0 \"\$bundle_root\"" "$stage/init"
 grep -Fq "chmod 0700 \"\$bundle_root\"" "$stage/init"
 case $contract in
-	exact-a600000-v1|observation-only-a600000-v1)
+	exact-a600000-v1|exact-a600000-pinned-v1|observation-only-a600000-v1)
 		grep -Fxq \
 			'/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &' \
 			"$stage/init" ||
@@ -197,7 +197,7 @@ case $contract in
 			[ "$(stat -c %h "$stage/etc/rog5/recovery-mode")" = 1 ] ||
 			fail 'current recovery mode file has unsafe metadata'
 		case $contract in
-			exact-a600000-v1)
+			exact-a600000-v1|exact-a600000-pinned-v1)
 				[ "$(cat "$stage/etc/rog5/recovery-mode")" = full-v1 ] ||
 					fail 'full recovery mode identity mismatch'
 				;;
@@ -260,7 +260,7 @@ post_contract_line=$(
 		"$stage/init" | cut -d: -f1
 )
 case $contract in
-	exact-a600000-v1|observation-only-a600000-v1)
+	exact-a600000-v1|exact-a600000-pinned-v1|observation-only-a600000-v1)
 		control_line=$(grep -n \
 			'^/usr/libexec/rog5-recovery-control --mode "\$recovery_mode" &$' \
 			"$stage/init" | cut -d: -f1)
@@ -279,7 +279,7 @@ postmortem_line=$(grep -n '^if ! snapshot_postmortem; then$' \
 session_line=$(grep -n 'rog5-control/session' "$stage/init" |
 	sed -n '1s/:.*//p')
 case $contract in
-	exact-a600000-v1|observation-only-a600000-v1)
+	exact-a600000-v1|exact-a600000-pinned-v1|observation-only-a600000-v1)
 		# shellcheck disable=SC2016
 		bind_line=$(grep -n '^if ! udc=\$(bind_expected_udc); then$' \
 			"$stage/init" | cut -d: -f1)
