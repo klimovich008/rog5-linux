@@ -22,7 +22,7 @@ runtime_private=/etc/ssh/ssh_host_ed25519_key
 runtime_public=$runtime_private.pub
 runtime_private_next=$runtime_private.next
 runtime_public_next=$runtime_public.next
-identity_record=/run/rog5-persistent-ssh-identity
+identity_record=/run/rog5-persistent-ssh-identity.record
 pid_file=/run/sshd.pid
 
 [ -f "$runtime_loader" ] && [ ! -L "$runtime_loader" ] &&
@@ -121,6 +121,7 @@ load_identity() {
 
 publish_identity() {
 	record_next=$identity_record.next
+	[ "$identity_record" != "$0" ] && [ "$record_next" != "$0" ] || return 1
 	[ ! -e "$identity_record" ] && [ ! -L "$identity_record" ] &&
 		[ ! -e "$record_next" ] && [ ! -L "$record_next" ] || return 1
 	printf 'format=rog5-persistent-ssh-identity-v1\nmode=%s\nfingerprint=%s\n' \

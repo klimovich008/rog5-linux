@@ -85,6 +85,12 @@ the final clean boot had zero ext4 recovery events, zero failed units,
 net-positive charging and safe thermals. See
 `test-results/2026-08-29-persistent-slotb-v6-pass.md`.
 
+Persistent release v7 automatically loaded the seeded stable SSH fingerprint
+and strict pinned SSH passed, but its helper executable and runtime record
+shared one pathname. The key switch succeeded before record publication
+failed, leaving one failed unit. The corrected distinct `.record` path passes
+live from tmpfs; v8 is an initramfs-only successor.
+
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
 key-only SSH in about seven seconds, then the redundant full 16 GiB source

@@ -59,6 +59,12 @@ receives `169.254.77.1/30` immediately. Keep the older attended-recovery
 deferred-profile behavior as a separate mode; do not make those two lifecycle
 requirements silently share one mutable profile state.
 
+Release v7 proved automatic persistent SSH key loading: strict SSH accepted
+the previously pinned `WSn4Lik…` fingerprint without host keyscan. Its service
+then failed only because the helper executable and record shared
+`/run/rog5-persistent-ssh-identity`. The corrected `.record` path and explicit
+non-alias guard pass live from tmpfs; v8 changes only the target initramfs.
+
 ## Active storage cycle
 
 Generation 194 is consumed and permanently non-retryable. It reached mainline
