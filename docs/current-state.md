@@ -1,6 +1,6 @@
 # Current project state
 
-Updated: 2026-08-28
+Updated: 2026-08-29
 
 The project resumes from a verified stock WW33 charging/Android rescue
 baseline. Historical detail is intentionally kept out of this active document;
@@ -21,7 +21,7 @@ use Git history and dated `test-results/` records for older generations.
 | Dual-cell telemetry | Clean-twin build passed | OEM read-only cell-voltage patch remains unbooted |
 | UFS read-only enumeration | Passed | Exact physical inventory obtained in prior cycles |
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
-| Persistent Arch layout | Passed baseline | Slot-B release v4 repeatedly boots native Arch; v5 state-mount integration failed cleanly before writes |
+| Persistent Arch layout | Passed | Slot-B v6 boots native Arch and mounts exact persistent p23 service state with marker retention and clean relock/reboot |
 | VCNL36866 | Preserved, paused | Separate dirty worktree; no current subsystem expansion |
 
 ## Immediate checkpoint
@@ -76,6 +76,14 @@ opening the p23 write window because four helper predicates split `[` after a
 bare `=` under the exact target shell. All 117 storage nodes remained
 read-only and no loop or residual mount existed. The corrected read-only
 preflight passes on that same live target; v6 is an initramfs-only successor.
+
+Persistent release v6 passed. It mounts only the exact p23 state image after
+P2, exposes exactly `sda` and `sda23` writable, keeps p24 and every other
+physical node read-only, and cleanly detaches/relocks all 117 nodes on stop.
+An exact marker survived distinct forced-recovery and clean unattended boots;
+the final clean boot had zero ext4 recovery events, zero failed units,
+net-positive charging and safe thermals. See
+`test-results/2026-08-29-persistent-slotb-v6-pass.md`.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and

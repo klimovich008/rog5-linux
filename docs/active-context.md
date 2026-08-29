@@ -47,6 +47,18 @@ physical nodes remained read-only with no loop or residual mount. The
 successor changes only the target initramfs and carries a regression rejecting
 all four instances of that syntax shape.
 
+Release v6 is the active persistent-state baseline. P2, systemd, strict SSH,
+the exact p23 image mount and exact write scope pass. Marker
+`23fd76f7…2f35`, produced by boot `46041357…`, survived later distinct boots;
+the final clean boot `9ea3be90…` had no p23/loop0 recovery event, zero failed
+units, p24 read-only, +403 mA USB current and 36.8°C maximum thermal. Explicit
+service stop detaches every state mount/loop and relocks all 117 nodes.
+
+The live standalone host profile now autoconnects so each new NCM interface
+receives `169.254.77.1/30` immediately. Keep the older attended-recovery
+deferred-profile behavior as a separate mode; do not make those two lifecycle
+requirements silently share one mutable profile state.
+
 ## Active storage cycle
 
 Generation 194 is consumed and permanently non-retryable. It reached mainline
