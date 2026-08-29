@@ -90,11 +90,20 @@ evidence.
 
 ## Immediate next gate
 
-Prove routed Internet over the existing side-port NCM link without changing
-the phone kernel or boot composition. If stable, stage Tailscale as a
-userspace-only persistent service and stop before account authentication if no
-project credential is already available. Then validate remote key-only SSH,
-charging, and thermal behavior under one bounded server-style load.
+Routed Internet over side-port NCM passed with NetworkManager shared mode, but
+staging the 70 MiB Tailscale payload exposed an R2 UFS composition defect.
+Persistent v8 packages `ufshcd-core.ko` hash `98547f2e…3e38`, which permits
+writes but lacks the proven high-speed gear branch. A filesystem flush queued
+31 timed-out WRITE(10) commands and entered fatal UFS error handling. NCM stayed
+healthy; restart2 blocked in `sd_sync_cache`, emergency reset returned exact
+fastboot, and both p23 journals recovered on the next boot. Systemd, stable
+SSH identity, and zero UFS in-flight requests are restored.
+
+The next artifact changes only the target initramfs module composition: reuse
+the already live-proven V49 `ufshcd-core.ko` hash `e3a049d4…777a`, retain the
+same Image/DTB/userspace, and run one bounded p23 write plus `syncfs` test.
+Do not start Tailscale until that storage test and recovery path pass. See
+`test-results/2026-08-29-persistent-v8-ufs-write-stall.md`.
 
 ## Required boundaries
 

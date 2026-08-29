@@ -15,6 +15,7 @@ attest=$repo/initramfs/persistent-root-attest
 ssh_diagnostic=$repo/initramfs/persistent-root-ssh-diagnostic
 shutdown=$repo/initramfs/persistent-root-shutdown
 power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
+ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
 expected_base=819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5
 expected_current_base=908f18f752962fae798249060aa8ee4c45673d8795571fbb8883ac4ed8d9e19e
@@ -93,6 +94,10 @@ for path in "$init" "$attest" "$ssh_diagnostic" "$shutdown"; do
 		exit 1
 	}
 done
+[ -x "$ufs_module_verifier" ] || {
+	echo 'FAIL missing persistent UFS module profile verifier' >&2
+	exit 1
+}
 [ "$(sha256sum "$ssh_diagnostic" | cut -d ' ' -f 1)" = \
 	f70ff15b2fb7c1112b5f5cdde732a5b366c6f9c793081c527dc1b295b9095728 ] || {
 	echo 'FAIL persistent-root SSH diagnostic source changed' >&2
@@ -193,6 +198,7 @@ if [ -n "$ufs_modules" ]; then
 			exit 1
 		}
 	done
+	"$ufs_module_verifier" "$ufs_modules" "$expected_release" "$storage_mode"
 fi
 
 stage=$(mktemp -d)
