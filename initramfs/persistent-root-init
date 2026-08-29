@@ -1544,6 +1544,9 @@ prepare_runtime() {
 	cp -p /usr/local/sbin/rog5-persistent-state \
 		/run/rog5-persistent-state || return 1
 	[ -x /run/rog5-persistent-state ] || return 1
+	cp -p /usr/local/sbin/rog5-persistent-ssh-identity \
+		/run/rog5-persistent-ssh-identity || return 1
+	[ -x /run/rog5-persistent-ssh-identity ] || return 1
 	state_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
 	printf '%s\n' "$state_userdata" \
 		>/run/rog5-persistent-state-userdata-device || return 1
@@ -1605,6 +1608,24 @@ WantedBy=sysinit.target
 EOF
 	ln -s ../rog5-persistent-state.service \
 		/run/systemd/system/sysinit.target.wants/rog5-persistent-state.service
+	cat >/run/systemd/system/rog5-persistent-ssh-identity.service <<'EOF'
+[Unit]
+Description=Load exact persistent ROG5 SSH host identity
+DefaultDependencies=no
+Requires=rog5-persistent-state.service rog5-early-sshd.service
+After=rog5-persistent-state.service rog5-early-sshd.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-persistent-ssh-identity apply
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	ln -s ../rog5-persistent-ssh-identity.service \
+		/run/systemd/system/sysinit.target.wants/rog5-persistent-ssh-identity.service
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	prepare_volatile_systemd_state \
 		/newroot /mnt/root-ro /mnt/state/upper /run || return 1
