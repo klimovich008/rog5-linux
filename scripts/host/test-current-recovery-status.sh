@@ -16,12 +16,9 @@ done
 for contract in \
 	'M5AIKN00F0353YH' \
 	'Active slot: B (persistent Linux); slot A remains rescue' \
-	'33.0210.0210.200' \
-	'configs/recovery-candidates/power-usb-active.json' \
-	'a600000.dwc3' \
-	'a600000.usb' \
-	'Do not rebuild or reflash `super`' \
-	'Never reuse a consumed or ambiguous candidate.'
+	'1-1.2' \
+	'V49' \
+	'No broad kernel build'
 do
 	grep -Fq "$contract" "$active" || {
 		echo "FAIL active context omits current contract: $contract" >&2
@@ -30,12 +27,15 @@ do
 done
 
 for contract in \
-	'281d5f6bc48972a1d428db5a268a2a6078d05fbceb0008d4996ceae1f4e0f549' \
-	'48cc851a31e80492d60b3d1895e6be8605f4ef5d9d7c940c8582215fd80ac005' \
-	'manifests/power-usb-active.lock.json' \
-	'92.25 GiB' \
-	'Full UCSI' \
-	'Persistent Arch layout | Passed |'
+	'M5AIKN00F0353YH' \
+	'33.0210.0210.200' \
+	'Persistent release v8 is accepted.' \
+	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
+	'P24 (`arch_root_a`)' \
+	'e3a049d4' \
+	'Do not rebuild or reflash `super`' \
+	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
+	'test-results/2026-08-29-persistent-v8-ufs-write-stall.md'
 do
 	grep -Fq "$contract" "$current" || {
 		echo "FAIL current state omits current evidence: $contract" >&2
@@ -52,17 +52,18 @@ grep -Fq 'Do not rebuild or reflash `super`.' "$charging" || {
 	exit 1
 }
 
-grep -Fq 'test-results/2026-08-29-persistent-slotb-v4-pass.md' "$active" || {
-	echo 'FAIL active context omits the persistent v4 baseline evidence' >&2
-	exit 1
-}
-grep -Fq 'test-results/2026-08-29-persistent-slotb-v6-pass.md' "$current" || {
-	echo 'FAIL current state omits the persistent v6 acceptance evidence' >&2
-	exit 1
-}
 grep -Fq 'test-results/2026-08-29-persistent-slotb-v8-pass.md' "$current" || {
 	echo 'FAIL current state omits the persistent v8 acceptance evidence' >&2
 	exit 1
 }
 
-echo 'PASS current status records WW33 rescue and the persistent slot-B v8 baseline'
+[ "$(wc -l < "$current")" -le 150 ] || {
+	echo 'FAIL current state exceeded its compact 150-line budget' >&2
+	exit 1
+}
+[ "$(wc -l < "$active")" -le 100 ] || {
+	echo 'FAIL active context exceeded its compact 100-line budget' >&2
+	exit 1
+}
+
+echo 'PASS compact current status records WW33 rescue, v8 baseline, and v9 UFS gate'

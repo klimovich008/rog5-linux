@@ -15,8 +15,9 @@ charging, NCM, strict SSH, exact storage scope, and fallback?
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
+- Active slot: B (persistent Linux); slot A remains rescue.
 - Slot B Linux is running on boot
-  `bf9aa234-327f-4b50-acaa-40e98a94c421`.
+  `f706a7c8-bf4d-450d-857d-d3b7dfc25642`.
 - Gadget: `ROG5 persistent root`, high-speed NCM, target `169.254.77.2/30`.
 - Host profile `rog5-fallback-usb-ssh` autoconnects only for standalone mode
   and assigns `169.254.77.1/30`; attended recovery keeps its deferred mode.
@@ -32,21 +33,19 @@ charging, NCM, strict SSH, exact storage scope, and fallback?
 
 ## Just-completed checkpoint
 
-The observer-only liveness cycle passed 7,200 target samples and 670 host
-checks through 7,831 seconds target uptime. It did not reproduce the earlier
-47-minute NCM timeout. Exact evidence is in
-`test-results/2026-08-29-persistent-ncm-two-hour-pass.md`.
-
-Conclusion: accept v8 for MVP development. Do not make a speculative USB
-kernel or DT change. Keep the observer available for any future first failure.
+The R2 guard, exact V49 module replacement, deterministic target twins, signed
+bundle twins, generation-234 recovery wrapper, generic claim registration,
+and v9 lifecycle tests pass offline. The signed v9 bundle is served through an
+exact read-only bind mount. Candidate authority remains `none`; no v9 phone
+boot or p24 modification has occurred.
 
 ## Cheapest next action
 
-1. Make persistent initramfs assembly reject stale low-speed UFS modules.
-2. Reuse the clean-twin V49 four-module closure; only `ufshcd-core.ko` differs.
-3. Rebuild only the target initramfs and signed target bundle.
-4. Run focused ABI/vermagic/BTF/closure tests plus the active tier.
-5. Temporarily boot once and perform one bounded p23 write/flush test with
+1. Run one full local CI checkpoint for the trust/admission changes.
+2. Publish the exact reviewed commit and require exact-head CI.
+3. Run the connected non-consuming v9 preflight.
+4. Admit and temporarily boot once, then perform one bounded p23 write/flush
+   test with
    adjacent NCM, charging, thermal, strict-SSH, relock, and fallback evidence.
 
 Changed layer is kernel module plus target initramfs composition. Reuse the
