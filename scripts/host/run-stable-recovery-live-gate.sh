@@ -6592,9 +6592,11 @@ case $profile in
 	headless-diagnostic-generation[3-9]-live-v1 | \
 	headless-diagnostic-generation1[0-2]-offline-v1 | \
 	headless-diagnostic-generation1[0-2]-live-v1 | \
-	headless-diagnostic-stage75-v2-superseded-offline-v1)
+	headless-diagnostic-stage75-v2-superseded-offline-v1 | \
+	persistent-native-root-v9-generation234-live-v1)
 		initramfs_contract=historical-pinned-v1
 		initramfs_verifier_expected=$expected_initramfs
+		recovery_init=-
 		;;
 	headless-diagnostic-host-rendezvous-v3-haven-production-hold-v1 | \
 	headless-diagnostic-host-rendezvous-v3-live-v2 | \
@@ -6730,7 +6732,6 @@ case $profile in
 	persistent-native-root-v6-generation231-live-v1 | \
 	persistent-native-root-v7-generation232-live-v1 | \
 	persistent-native-root-v8-generation233-live-v1 | \
-	persistent-native-root-v9-generation234-live-v1 | \
 	persistent-root-local-image-any-prior-v13-generation106-live-v1 | \
 	persistent-root-local-image-any-prior-v12-generation105-live-v1 | \
 	persistent-root-local-image-probe-writer-v11-generation104-live-v1 | \
