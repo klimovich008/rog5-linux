@@ -7,6 +7,7 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 shutdown=$repo/initramfs/persistent-root-shutdown-standalone
 state_helper=$repo/initramfs/persistent-service-state
+ssh_identity=$repo/initramfs/persistent-ssh-identity
 expected_base=cf3f6dadfb7567da064b27ce341d2224328c8046e3bef870424dbe8ddf471827
 expected_release=7.1.4-g359318de534f
 storage_mode=read-only
@@ -17,7 +18,8 @@ epoch=1681862400
 
 [ -f "$base" ] && [ ! -L "$base" ] &&
 	[ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ]
-[ -x "$init" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ]
+[ -x "$init" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ] &&
+	[ -x "$ssh_identity" ]
 [ ! -e "$output" ]
 
 work=$(mktemp -d)
@@ -28,7 +30,8 @@ gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 [ -x "$root/init" ] && [ -x "$root/shutdown" ]
 
 (cd "$root" && find . -type f ! -path ./init ! -path ./shutdown \
-	! -path ./usr/local/sbin/rog5-persistent-state -print0 | sort -z |
+	! -path ./usr/local/sbin/rog5-persistent-state \
+	! -path ./usr/local/sbin/rog5-persistent-ssh-identity -print0 | sort -z |
 	xargs -0 sha256sum) >"$work/before"
 install -m 0755 "$init" "$root/init"
 for placeholder in \
@@ -48,8 +51,11 @@ sed -i \
 install -m 0755 "$shutdown" "$root/shutdown"
 install -D -m 0755 "$state_helper" \
 	"$root/usr/local/sbin/rog5-persistent-state"
+install -D -m 0755 "$ssh_identity" \
+	"$root/usr/local/sbin/rog5-persistent-ssh-identity"
 (cd "$root" && find . -type f ! -path ./init ! -path ./shutdown \
-	! -path ./usr/local/sbin/rog5-persistent-state -print0 | sort -z |
+	! -path ./usr/local/sbin/rog5-persistent-state \
+	! -path ./usr/local/sbin/rog5-persistent-ssh-identity -print0 | sort -z |
 	xargs -0 sha256sum) >"$work/after"
 cmp "$work/before" "$work/after"
 
