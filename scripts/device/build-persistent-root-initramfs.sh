@@ -25,6 +25,7 @@ expected_verifier=bc7d5c9e5a7a0ff4d46f9fc9dc1680f0d9a960bcd9b01d11fb327d407fa4ba
 expected_reboot_source=a8f7c1499928a10832d413555e3c9fbb54ea70e46c7a2988ce5430b547840d0b
 expected_release=${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}
 storage_mode=${UFS_STORAGE_MODE:-read-only}
+ufs_module_profile=${PERSISTENT_UFS_MODULE_PROFILE:-$storage_mode}
 native_root_mode=${PERSISTENT_ROOT_NATIVE_PARTITION:-0}
 ssh_diagnostic_mode=${PERSISTENT_ROOT_SSH_DIAGNOSTIC:-0}
 writer_boot_id=7c3afb64-8e84-4f4b-87f4-88d19c2646de
@@ -50,6 +51,13 @@ case $storage_mode in
 		;;
 	*)
 		echo 'FAIL UFS_STORAGE_MODE must be read-only or local-write' >&2
+		exit 1
+		;;
+esac
+case $ufs_module_profile in
+	read-only | local-write) ;;
+	*)
+		echo 'FAIL PERSISTENT_UFS_MODULE_PROFILE must be read-only or local-write' >&2
 		exit 1
 		;;
 esac
@@ -198,7 +206,8 @@ if [ -n "$ufs_modules" ]; then
 			exit 1
 		}
 	done
-	"$ufs_module_verifier" "$ufs_modules" "$expected_release" "$storage_mode"
+	"$ufs_module_verifier" "$ufs_modules" "$expected_release" \
+		"$ufs_module_profile"
 fi
 
 stage=$(mktemp -d)

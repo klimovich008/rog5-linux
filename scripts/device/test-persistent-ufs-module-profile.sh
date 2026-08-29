@@ -54,7 +54,11 @@ grep -Fq 'read-only UFS core is not the exact discovery implementation' \
 
 grep -Fq 'verify-persistent-ufs-module-profile.sh' "$builder" ||
 	fail 'persistent initramfs builder does not invoke the UFS profile verifier'
-grep -Fq '"$ufs_module_verifier" "$ufs_modules" "$expected_release" "$storage_mode"' \
-	"$builder" || fail 'persistent initramfs builder omits the exact UFS profile'
+grep -Fq 'ufs_module_profile=${PERSISTENT_UFS_MODULE_PROFILE:-$storage_mode}' \
+	"$builder" || fail 'persistent builder does not separate storage and module profiles'
+grep -Fq '"$ufs_module_profile"' "$builder" ||
+	fail 'persistent initramfs builder omits the exact UFS module profile'
+grep -Fq 'PERSISTENT_UFS_MODULE_PROFILE must be read-only or local-write' \
+	"$builder" || fail 'persistent builder does not fail closed on module profile'
 
 echo 'PASS persistent initramfs rejects cross-profile UFS module composition'
