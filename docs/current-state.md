@@ -26,7 +26,7 @@ sensors, and automation remain deferred.
 
 ## Persistent Linux baseline
 
-Persistent release v9 is accepted; v8 remains the exact p24 rollback.
+Persistent release v10 boots successfully; V9 and V8 remain exact p24 rollbacks.
 
 - The slot-B loader verifies a signed bundle from read-only `arch_root_a` and
   kexecs Linux `7.1.4-g359318de534f`.
@@ -39,10 +39,12 @@ Persistent release v9 is accepted; v8 remains the exact p24 rollback.
   every other UFS block node remain read-only.
 - Marker `23fd76f779d41f79322ff5e6b0fec69816a281e0c3f37524323c23c2b4192f35`
   survives reboot and clean state-service teardown relocks all 117 nodes.
-- V9 adds the live-proven V49 high-speed UFS core. Two persistent boots,
+- V9 adds the live-proven V49 high-speed UFS core. Two persistent V9 boots,
   clean reboot/relock, systemd, NCM, SSH, storage and power checks passed.
+- V10 adds only automatic routed Tailscale startup from p23. Its first boot
+  passes; account enrollment and one post-login reboot remain.
 - Primary evidence:
-  `test-results/2026-08-30-persistent-slotb-v9-pass.md`.
+  `test-results/2026-08-30-persistent-tailscale-v10-live.md`.
 
 ## Storage state
 
@@ -96,12 +98,11 @@ completed in 70.561 seconds; both boots selected the signed V9 bundle, emitted
 the V49 high-speed marker once, reported zero UFS errors, loaded stable SSH,
 mounted p23 state, and preserved exact write scope and power safety.
 
-Tailscale 1.102.3 is checksum-verified and staged on noexec p23. Same-boot
-testing proves the fixed helper, tmpfs executables, TUN, routed `10.77.0.2/30`,
-and daemon startup. V10 signed twins add only automatic helper/service startup;
-the p24 host image and sparse allocated-byte proof pass offline. Require
-exact-head CI before one p24-only transfer. See
-`test-results/2026-08-30-persistent-tailscale-v10-offline.md`.
+Tailscale 1.102.3 is checksum-verified on noexec p23. V10 automatically copied
+exact binaries to tmpfs, configured `10.77.0.2/30`, started TUN and the daemon,
+and preserved every V9 kernel/storage/power invariant. The one p24 transfer
+completed in 72.639 seconds and first boot passed. Browser account enrollment
+is the only remaining external gate before a post-login unattended reboot.
 
 ## Required boundaries
 
@@ -117,6 +118,6 @@ exact-head CI before one p24-only transfer. See
 ## Repository state
 
 - Branch: `agent/linux-recovery-host`.
-- Last pushed commit: `e9d4409db1a55acd7b302eccca40ca39656bbdd0`.
+- Last pushed commit: `7d1b903238d036ca2df433a2636b2f3d1754afe1`.
 - Standing GitHub authorization covers normal commits and pushes to the active
   branch; never force-push.
