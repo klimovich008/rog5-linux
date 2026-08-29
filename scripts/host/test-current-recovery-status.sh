@@ -15,7 +15,7 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Active slot: A' \
+	'Active slot: B (persistent Linux); slot A remains rescue' \
 	'33.0210.0210.200' \
 	'configs/recovery-candidates/power-usb-active.json' \
 	'a600000.dwc3' \
@@ -34,7 +34,8 @@ for contract in \
 	'48cc851a31e80492d60b3d1895e6be8605f4ef5d9d7c940c8582215fd80ac005' \
 	'manifests/power-usb-active.lock.json' \
 	'92.25 GiB' \
-	'Full UCSI'
+	'Full UCSI' \
+	'Persistent Arch layout | Passed baseline'
 do
 	grep -Fq "$contract" "$current" || {
 		echo "FAIL current state omits current evidence: $contract" >&2
@@ -51,4 +52,9 @@ grep -Fq 'Do not rebuild or reflash `super`.' "$charging" || {
 	exit 1
 }
 
-echo 'PASS current status records the verified WW33 rescue baseline and active power/USB successor'
+grep -Fq 'test-results/2026-08-29-persistent-slotb-v4-pass.md' "$active" || {
+	echo 'FAIL active context omits the persistent v4 baseline evidence' >&2
+	exit 1
+}
+
+echo 'PASS current status records WW33 rescue and the persistent slot-B v4 baseline'

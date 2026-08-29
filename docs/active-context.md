@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-28
+Updated: 2026-08-29
 
 This file contains only the current handoff. Historical cycles remain in Git
 history, `test-results/`, and `docs/archive-index.md`.
@@ -9,7 +9,7 @@ history, `test-results/`, and `docs/archive-index.md`.
 
 - Device: ASUS ROG Phone 5 ZS673KS (`lahaina`)
 - Serial: `M5AIKN00F0353YH`
-- Active slot: A
+- Active slot: B (persistent Linux); slot A remains rescue
 - Bootloader: unlocked
 - Rescue OS: official ASUS WW33 / Android 13
 - Build: `33.0210.0210.200`
@@ -21,43 +21,24 @@ RAM-only `fastboot boot` until a persistent design explicitly preserves it.
 
 ## Current slot-B loader checkpoint
 
-Generations 232 and 233 repeatedly passed local Arch root, OverlayFS, systemd,
-key-only SSH, UFS and NCM with zero failed units. The signed standalone release
-bundle is staged on `arch_root_a`. Loader v1 is consumed after a RAM-only boot
-failed before target NCM and returned to stock slot-A recovery. Its retained
-pstore snapshot was empty and therefore inconclusive.
+Persistent release v4 is the working baseline. The canonical ASUS recovery
+loader in `boot_b` verifies a local signed bundle on read-only `arch_root_a`,
+kexecs Linux 7.1.4, and reaches native Arch, systemd, high-speed NCM and
+key-only SSH. Two consecutive boots passed with distinct boot IDs, zero failed
+units, read-only UFS/p24, charging online and safe thermals.
 
-Loader v2 adds only an ACM stage reporter to identify the earliest loader
-boundary. Clean twins are byte-identical: wrapper Image `55a9da9d...`, raw boot
-`1d79ee93...`, AVB boot `b54b0e9a...`. It is consumed after no loader USB
-identity appeared and stock slot-A recovery returned 57.321 seconds later.
-Systematic comparison found that v2 omitted the required SSUSB peripheral-mode
-transition and exact UDC wait used by all working ASUS-wrapper paths. A
-fail-first correction now passes hostile UDC fixtures. Clean v3 twins are built at
-Image `5c1dd3ec...`, raw boot `fc859f89...`, and AVB boot `806933a8...`;
-full local and exact-head CI passed.
-Loader v3 is now consumed after the same invisible transport and 57.605-second
-stock-recovery return. The confirmed R3 cause is loader `set -f`, which disabled
-all required UDC/storage globs while the old fixture silently ran with globbing
-enabled. The corrected fail-first regression passes after removing that one
-line. Loader-v4 clean twins are built at Image `e61a2b67...`, raw boot
-`e8d739e7...`, and AVB boot `8cd2c82e...`; full local/exact-head CI passed, but
-v4 returned to stock recovery after 57.601 seconds with no loader USB. Freeze
-that embedded-kernel route. The current unbooted successor keeps proven
-Generation-233 kernel `838425a8...`, changes only the external corrected loader
-ramdisk `b29757ca...`, and has fresh AVB twins `dc59b4ab...`. That image also
-returned with zero USB after 57.572 seconds and is consumed. Freeze standalone
-replacement `/init` work. The active unbooted successor uses canonical recovery
-USB/watchdog/rollback plus one sealed local-loader mode; ramdisk/raw/AVB twins
-are `31c4c075...`, `f235719b...`, and `5a8b3424...`. `boot_b` remains untouched.
+Release v4 remained healthy through 934.63 seconds, crossing the former
+900-second reset boundary. Its watchdog PID file is absent, one disarm record
+is present, no disarm failure is present, and the inert orphaned `sleep 900`
+exited without rebooting. V2/V3 never reached that logic: their standalone
+packager copied literal `@EXPECTED_*@` template values and intentionally failed
+the 25-second kernel-release identity gate. Commit `1d5d380` renders and tests
+the exact deployed values. See
+`test-results/2026-08-29-persistent-slotb-v4-pass.md`.
 
-The canonical path passed twice RAM-only, then fresh persistent AVB
-`2867666c...` was flashed only to `boot_b` and slot B was activated. Two
-persistent boots passed with distinct boot IDs, systemd running, key-only SSH,
-zero failed units, high-speed NCM, read-only UFS/root, charging online, and
-safe thermals. Slot A remains untouched. One initialization-time NCM
-interruption recovered without reset. The phone is running persistent slot-B
-Linux; persistent service state is next because the OverlayFS upper is tmpfs.
+Slot A remains the untouched WW33 charging/Android/recovery route. The active
+next phase is bounded persistent service state and secrets; the current
+OverlayFS upper and generated SSH host identity remain volatile tmpfs.
 
 ## Active storage cycle
 
