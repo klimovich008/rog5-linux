@@ -6,6 +6,7 @@ output=${2:?missing output}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 shutdown=$repo/initramfs/persistent-root-shutdown-standalone
+state_helper=$repo/initramfs/persistent-service-state
 expected_base=cf3f6dadfb7567da064b27ce341d2224328c8046e3bef870424dbe8ddf471827
 expected_release=7.1.4-g359318de534f
 storage_mode=read-only
@@ -16,7 +17,7 @@ epoch=1681862400
 
 [ -f "$base" ] && [ ! -L "$base" ] &&
 	[ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ]
-[ -x "$init" ] && [ -x "$shutdown" ]
+[ -x "$init" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ]
 [ ! -e "$output" ]
 
 work=$(mktemp -d)
@@ -26,7 +27,9 @@ mkdir "$root"
 gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 [ -x "$root/init" ] && [ -x "$root/shutdown" ]
 
-(cd "$root" && find . -type f ! -path ./init ! -path ./shutdown -print0 | sort -z | xargs -0 sha256sum) >"$work/before"
+(cd "$root" && find . -type f ! -path ./init ! -path ./shutdown \
+	! -path ./usr/local/sbin/rog5-persistent-state -print0 | sort -z |
+	xargs -0 sha256sum) >"$work/before"
 install -m 0755 "$init" "$root/init"
 for placeholder in \
 	EXPECTED_KERNEL_RELEASE EXPECTED_UFS_STORAGE_MODE \
@@ -43,7 +46,11 @@ sed -i \
 	"$root/init"
 ! grep -Fq '@EXPECTED_' "$root/init"
 install -m 0755 "$shutdown" "$root/shutdown"
-(cd "$root" && find . -type f ! -path ./init ! -path ./shutdown -print0 | sort -z | xargs -0 sha256sum) >"$work/after"
+install -D -m 0755 "$state_helper" \
+	"$root/usr/local/sbin/rog5-persistent-state"
+(cd "$root" && find . -type f ! -path ./init ! -path ./shutdown \
+	! -path ./usr/local/sbin/rog5-persistent-state -print0 | sort -z |
+	xargs -0 sha256sum) >"$work/after"
 cmp "$work/before" "$work/after"
 
 find "$root" -exec touch -h -d "@$epoch" {} +

@@ -1541,6 +1541,14 @@ prepare_runtime() {
 
 	cp -p /usr/local/sbin/rog5-p2-attest /run/rog5-p2-attest ||
 		return 1
+	cp -p /usr/local/sbin/rog5-persistent-state \
+		/run/rog5-persistent-state || return 1
+	[ -x /run/rog5-persistent-state ] || return 1
+	state_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
+	printf '%s\n' "$state_userdata" \
+		>/run/rog5-persistent-state-userdata-device || return 1
+	chown 0:0 /run/rog5-persistent-state-userdata-device || return 1
+	chmod 0444 /run/rog5-persistent-state-userdata-device || return 1
 	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
 		cp -p /usr/local/sbin/rog5-ssh-diagnostic \
 			/run/rog5-ssh-diagnostic || return 1
@@ -1578,6 +1586,25 @@ WantedBy=sysinit.target
 EOF
 	ln -s ../rog5-p2-ready.service \
 		/run/systemd/system/sysinit.target.wants/rog5-p2-ready.service
+	cat >/run/systemd/system/rog5-persistent-state.service <<'EOF'
+[Unit]
+Description=Mount exact persistent ROG5 service state after the P2 gate
+DefaultDependencies=no
+Requires=rog5-p2-ready.service
+After=rog5-p2-ready.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-persistent-state start
+ExecStop=/run/rog5-persistent-state stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	ln -s ../rog5-persistent-state.service \
+		/run/systemd/system/sysinit.target.wants/rog5-persistent-state.service
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	prepare_volatile_systemd_state \
 		/newroot /mnt/root-ro /mnt/state/upper /run || return 1
