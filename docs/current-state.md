@@ -1,6 +1,6 @@
 # Current ROG Phone 5 Linux state
 
-Updated: 2026-08-29
+Updated: 2026-08-30
 
 This file contains current facts only. Historical generations and incident
 detail are retained in Git and dated `test-results/` records. The complete
@@ -26,7 +26,7 @@ sensors, and automation remain deferred.
 
 ## Persistent Linux baseline
 
-Persistent release v8 is accepted.
+Persistent release v9 is accepted; v8 remains the exact p24 rollback.
 
 - The slot-B loader verifies a signed bundle from read-only `arch_root_a` and
   kexecs Linux `7.1.4-g359318de534f`.
@@ -39,9 +39,10 @@ Persistent release v8 is accepted.
   every other UFS block node remain read-only.
 - Marker `23fd76f779d41f79322ff5e6b0fec69816a281e0c3f37524323c23c2b4192f35`
   survives reboot and clean state-service teardown relocks all 117 nodes.
-- Two accepted v8 boots, a five-minute soak, and clean reboot/relock passed.
+- V9 adds the live-proven V49 high-speed UFS core. Two persistent boots,
+  clean reboot/relock, systemd, NCM, SSH, storage and power checks passed.
 - Primary evidence:
-  `test-results/2026-08-29-persistent-slotb-v8-pass.md`.
+  `test-results/2026-08-30-persistent-slotb-v9-pass.md`.
 
 ## Storage state
 
@@ -61,8 +62,8 @@ Persistent release v8 is accepted.
 - Side-port USB provides data plus 5 V input while Linux is running.
 - Accepted tests showed net-positive charging, safe battery temperature, and
   safe thermal-zone values.
-- The latest long run ended with battery `Full`, 8.682 V, 30.1 C, side USB
-  online, and +309 mA input.
+- The latest V9 repeat boot showed battery `Full`/`Good`, 8.674 V, 30.0 C,
+  side USB online, +181 mA input, and 35.2 C maximum thermal.
 
 ## NCM liveness result
 
@@ -90,18 +91,17 @@ evidence.
 
 ## Immediate next gate
 
-Generation 234 proved the V49 high-speed UFS core fixes the v8 write/flush
-stall. Native p24, systemd, NCM and key-only SSH passed; one 64 MiB p23
-write/sync/hash/remove/sync probe completed in 402 ms with one high-speed marker
-and zero UFS errors. Exact slot-A fastboot rescue and host cleanup passed.
+V9 p24 deployment and repeated standalone boot pass. Its six sparse chunks
+completed in 70.561 seconds; both boots selected the signed V9 bundle, emitted
+the V49 high-speed marker once, reported zero UFS errors, loaded stable SSH,
+mounted p23 state, and preserved exact write scope and power safety.
 
-The cycle then exposed an R7 host-only parser defect: the base runtime parser
-counted `ufs_error_events=0` again inside the appended probe record. Generation
-234 is consumed and must never be retried. Record-scoped parsing now has the
-combined live shape as a regression fixture. Next, install the already signed
-v9 bundle into the existing p24 loader store through one bounded verified write,
-prove a repeated slot-B boot, then resume Tailscale. See
-`test-results/2026-08-29-persistent-v9-ufs-high-speed-live-pass.md`.
+Tailscale 1.102.3 is checksum-verified and staged on noexec p23. Same-boot
+testing proves the fixed helper, tmpfs executables, TUN, routed `10.77.0.2/30`,
+and daemon startup. V10 signed twins add only automatic helper/service startup;
+the p24 host image and sparse allocated-byte proof pass offline. Require
+exact-head CI before one p24-only transfer. See
+`test-results/2026-08-30-persistent-tailscale-v10-offline.md`.
 
 ## Required boundaries
 
@@ -117,6 +117,6 @@ prove a repeated slot-B boot, then resume Tailscale. See
 ## Repository state
 
 - Branch: `agent/linux-recovery-host`.
-- Last pushed commit: `0403d2bf6253b58730793b21dd1ceebbc39eb6c3`.
+- Last pushed commit: `e9d4409db1a55acd7b302eccca40ca39656bbdd0`.
 - Standing GitHub authorization covers normal commits and pushes to the active
   branch; never force-push.
