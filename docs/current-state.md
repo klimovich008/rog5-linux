@@ -21,7 +21,7 @@ use Git history and dated `test-results/` records for older generations.
 | Dual-cell telemetry | Clean-twin build passed | OEM read-only cell-voltage patch remains unbooted |
 | UFS read-only enumeration | Passed | Exact physical inventory obtained in prior cycles |
 | Local Arch image | Passed | Read-only local-image boot, systemd, key-only SSH and rollback passed |
-| Persistent Arch layout | Active next phase | Integrate proven side power with local-image Arch + key-only SSH before native repartitioning |
+| Persistent Arch layout | Passed baseline | Slot-B release v4 repeatedly boots native Arch with systemd, key-only SSH, read-only p24/UFS, charging and slot-A rescue |
 | VCNL36866 | Preserved, paused | Separate dirty worktree; no current subsystem expansion |
 
 ## Immediate checkpoint
@@ -61,14 +61,15 @@ for USB/watchdog/rollback and adds one local-loader mode afterward. Full local
 CI passes; recovery ramdisk, raw boot, and AVB twins are `31c4c075...`,
 `f235719b...`, and `5a8b3424...`. No phone storage or `boot_b` was modified.
 
-That canonical path passed twice RAM-only. Fresh persistent AVB `2867666c...`
-was then flashed only to `boot_b`, slot B was activated, and two persistent
-boots passed with distinct boot IDs. Both reached native Arch, systemd
-`running`, key-only SSH, zero failed units, high-speed NCM, read-only UFS/root,
-charging telemetry, and safe thermals. One initialization-time NCM interruption
-recovered without reset. The phone remains running persistent slot-B Linux;
-slot A is untouched. Root changes are still volatile in tmpfs OverlayFS, so
-persistent service state is the active phase.
+That canonical path passed twice RAM-only. Persistent release v4 is now the
+verified slot-B baseline: two boots reached native Arch, systemd `running`,
+key-only SSH, zero failed units, high-speed NCM, read-only UFS/p24, charging
+telemetry and safe thermals. The first stayed on one boot ID through 934.63
+seconds, proving the former 900-second reset is fixed. V2/V3 had copied literal
+`@EXPECTED_*@` values into deployed `/init` and failed the exact 25-second
+kernel-release gate before watchdog disarm; commit `1d5d380` renders and tests
+the sealed values. Slot A remains untouched. Persistent service state is next
+because the OverlayFS upper and generated host identity are still tmpfs.
 
 Stage 1 and the Generation 193 read-only Stage-2 gate passed. Generation 194
 is consumed with outcome `UNKNOWN`: mainline reached exact UFS, NCM and
