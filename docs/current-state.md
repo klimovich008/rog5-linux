@@ -1,6 +1,6 @@
 # Current ROG Phone 5 Linux state
 
-Updated: 2026-08-30
+Updated: 2026-08-31
 
 This file contains current facts only. Historical generations and incident
 detail are retained in Git and dated `test-results/` records. The complete
@@ -109,6 +109,11 @@ Investigate the exact RPMh/crash boundary before successors; see the native
 Wi-Fi RAM-handoff result. Wi-Fi is not yet functional.
 Conditional WCN6851/hw1.1 modules now pass exact-source dispatch tests,
 reproducibility and exact-Image QEMU/BTF checks; they are not deployed on the phone.
+The RPMh observer now passes passive V11 command/ack capture and cleanup.
+Its private polling threshold does not explain the earlier lost text traces.
+The installed loader snapshots pstore but does not export it before kexec;
+end-to-end crash capture remains incomplete. See
+`test-results/2026-08-31-native-wifi-rpmh-observer.md`.
 Preserve USB rescue. In parallel, authenticate the separate
 Tailscale test client and prove encrypted peer SSH; no new kernel or phone cycle
 is needed solely for that test. Keep the existing

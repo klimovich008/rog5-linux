@@ -1,6 +1,6 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-08-30
+Updated: 2026-08-31
 
 Read `docs/current-state.md` for the baseline and the latest V11 live result.
 Historical generations remain in Git; do not reconstruct them here.
@@ -18,7 +18,7 @@ Distinguish voltage/enable failure with independent evidence before successors.
   `1b24ebf0-e4a1-466c-8197-13904886f5cf`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Good, 8.636 V, 30.1°C; same V11 boot and active state services.
+- Latest battery read: Good, 8.633 V, 30.1°C; same V11 boot and active state services.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
 - Tailscale 1.102.3 starts automatically from p23 state. It is enrolled and
@@ -56,7 +56,7 @@ handoff code; retained timing and physical evidence are in
    and v5 stop delivering rail evidence at vddpmu entry after two successes.
    Paired PON adds one PS_HOLD warm reset per cycle (counts3→4→5). V11 recovers.
    Fixtures: `tests/fixtures/native-wifi/s12{,-ret}-entry-reset.json`.
-   Trace buffering still prevents proof of the exact voltage/enable call.
+   Missing trace records still prevent proof of the exact voltage/enable call.
    Do not issue a guessed voltage, HPM or ordering change as another fix.
    New lead: Qualcomm's SM8350/WCN6851 series uses S11 for VDDPMU, whereas
    our SM8450-derived mapping uses S12. Conditional hw1.1 modules now build,
@@ -69,12 +69,12 @@ handoff code; retained timing and physical evidence are in
    The fixed-bank read-only PMIC reader changes no PMIC or SDAM state. Paired
    snapshots now correlate the new warm reset to v4, but do not identify its
    software cause. No OCP/UVLO entry was added; absence is not crash-free proof.
-   The new selective kprobe helper has passed setup/marker/cleanup on V11
-   without activating PCIe; original global probe definitions were restored.
-   Observe-v3 is consumed. Its host management lease expired during an operator
-   gap before the radio probe; the ready guard prevented activation. The same
-   still-running trial resumed through one bounded reader/probe script, without
-   reboot or new claim. Keep that critical sequence contiguous in future cycles.
+   RPMh call/send/ack probes now pass passive V11 setup/read/cleanup; no radio
+   activation. Command DB maps S12 to0x40100. Text-reader buffering is not a
+   proven loss cause. The exact B loader snapshots pstore but does not export
+   it before its second kexec. Preserve that loader; resolve capture separately.
+   See `test-results/2026-08-31-native-wifi-rpmh-observer.md`.
+   Keep future reader/probe sequences contiguous and retain the ready guard.
 2. Finish the existing userspace validation client's account login and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
