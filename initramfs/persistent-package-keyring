@@ -1,0 +1,116 @@
+#!/bin/sh
+set -eu
+export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+keyring=/persist/etc/pacman.d/gnupg
+runtime=/etc/pacman.d/gnupg
+state_record=/run/rog5-persistent-state.runtime
+signer=68B3537F39A313B3E574D06777193F152BDBE6A6
+
+fail() { printf 'rog5-package-keyring: FAIL %s\n' "$*" >&2; exit 1; }
+directory_safe() {
+	[ -d "$1" ] && [ ! -L "$1" ] || return 1
+	case $(stat -c '%u:%g:%a' "$1") in 0:0:700|0:0:755) ;; *) return 1 ;; esac
+}
+
+verify_state() {
+	[ "$(id -u)" = 0 ] || return 1
+	[ -f "$state_record" ] && [ ! -L "$state_record" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%h' "$state_record")" = 0:0:400:1 ] || return 1
+	[ "$(grep -c '^format=rog5-persistent-service-state-runtime-v1$' "$state_record")" = 1 ] || return 1
+	[ "$(sed -n 's/^boot_id=//p' "$state_record")" = "$(cat /proc/sys/kernel/random/boot_id)" ] || return 1
+	loop=$(sed -n 's/^loop=//p' "$state_record")
+	case $loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	[ "$(findmnt -n -o TARGET --target /persist)" = /persist ] || return 1
+	[ "$(findmnt -n -o SOURCE --target /persist)" = "$loop" ] || return 1
+	[ "$(findmnt -n -o FSTYPE --target /persist)" = ext4 ] || return 1
+	options=$(findmnt -n -o OPTIONS --target /persist)
+	for option in rw nodev nosuid noexec; do
+		printf '%s\n' "$options" | grep -Eq "(^|,)$option(,|$)" || return 1
+	done
+	directory_safe /persist/etc || return 1
+	directory_safe /etc/pacman.d || return 1
+	for directory in /persist/etc/pacman.d "$keyring" "$runtime"; do
+		if [ -e "$directory" ] || [ -L "$directory" ]; then
+			directory_safe "$directory" || return 1
+		fi
+	done
+	for suffix in .gpg -trusted -revoked; do
+		file=/usr/share/pacman/keyrings/archlinuxarm$suffix
+		[ -f "$file" ] && [ ! -L "$file" ] || return 1
+		[ "$(stat -c '%u:%g:%a' "$file")" = 0:0:644 ] || return 1
+	done
+}
+
+package_key() { /usr/bin/pacman-key "$@"; }
+gnupg() { /usr/bin/gpg --batch --homedir "$keyring" "$@"; }
+
+keyring_complete() {
+	secret=$(gnupg --with-colons --list-secret-keys 2>/dev/null) || return 1
+	printf '%s\n' "$secret" | awk -F: '$1 == "sec" { found++ } END { exit !found }' || return 1
+	public=$(gnupg --with-colons --list-keys "$signer" 2>/dev/null) || return 1
+	printf '%s\n' "$public" | awk -F: -v signer="$signer" '
+		$1 == "pub" { count++; valid = ($2 == "f" || $2 == "u") }
+		$1 == "fpr" && $10 == signer { exact++ }
+		END { exit !(count == 1 && valid && exact == 1) }'
+}
+
+initialize_keyring() {
+	if ! keyring_complete; then
+		package_key --gpgdir "$keyring" --init || return 1
+	fi
+	# Apply the current packaged trust/revocation set even when already seeded.
+	package_key --gpgdir "$keyring" --populate archlinuxarm || return 1
+	keyring_complete
+}
+
+verify_bind() {
+	mountpoint -q "$runtime" || return 1
+	[ "$(stat -c '%d:%i' "$runtime")" = "$(stat -c '%d:%i' "$keyring")" ] || return 1
+	[ "$(findmnt -n -o MAJ:MIN --mountpoint "$runtime")" = \
+		"$(findmnt -n -o MAJ:MIN --mountpoint /persist)" ]
+}
+
+start_keyring() {
+	verify_state || return 1
+	[ ! -e /var/lib/pacman/db.lck ] || return 1
+	# This helper is run by the bounded systemd unit; do not race NTP when
+	# creating or validating persistent keys on a machine without a set RTC.
+	while [ ! -f /run/systemd/timesync/synchronized ]; do sleep 1; done
+	if mountpoint -q "$runtime"; then
+		verify_bind && keyring_complete
+		return $?
+	fi
+	install -d -m 0700 /persist/etc/pacman.d "$keyring"
+	initialize_keyring || return 1
+	[ "$(stat -c '%u:%g:%a' "$keyring")" = 0:0:700 ] || return 1
+	if [ -d "$runtime" ]; then
+		gpgconf --homedir "$runtime" --kill all || return 1
+	else
+		install -d -m 0700 "$runtime" || return 1
+	fi
+	mount --bind "$keyring" "$runtime" || return 1
+	verify_bind || return 1
+	printf 'rog5-package-keyring: PASS persistent ARM package trust ready\n'
+}
+
+stop_keyring() {
+	verify_state || return 1
+	if [ -d "$keyring" ]; then
+		gpgconf --homedir "$keyring" --kill all || return 1
+	fi
+	if mountpoint -q "$runtime"; then
+		verify_bind || return 1
+		gpgconf --homedir "$runtime" --kill all || return 1
+		umount "$runtime" || return 1
+	fi
+	printf 'rog5-package-keyring: PASS detached persistent package trust\n'
+}
+
+[ "$#" = 1 ] || fail 'usage: persistent-package-keyring preflight|start|stop'
+case $1 in
+	preflight) verify_state || fail 'state or directory identity'; echo 'PASS package-keyring preflight' ;;
+	start) start_keyring || fail 'initialization or binding' ;;
+	stop) stop_keyring || fail 'keyring cleanup' ;;
+	*) fail 'invalid action' ;;
+esac
