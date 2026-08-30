@@ -30,6 +30,8 @@ delta=$("$source_dir/scripts/diffconfig" "$baseline" "$config_check/.config")
 }
 cat "$repo/configs/kernel/rog5-mainline.fragment" \
 	"$repo/configs/kernel/rog5-tailscale-netfilter.fragment" >"$base"
+mkdir -p "$output_dir"
+cd "$output_dir"
 SOURCE_DIR="$source_dir" OUTPUT_DIR="$output_dir" BASE_FRAGMENT="$base" \
 DISCOVERY_FRAGMENT="$repo/configs/kernel/rog5-ufs-deferred-probe.fragment" \
 ROOT_FRAGMENT="$repo/configs/kernel/rog5-persistent-root.fragment" \

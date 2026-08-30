@@ -11,7 +11,7 @@ state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 base=$repo/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
-target_base=$repo/artifacts/persistent-native-root-v4/initramfs.cpio.gz
+target_base=${1:-$repo/artifacts/persistent-native-root-v4/initramfs.cpio.gz}
 high_speed_base=$repo/artifacts/local-image-direct-v49/initramfs.cpio.gz
 
 for path in "$init" "$shutdown" "$target_init" "$loader_builder" "$target_builder" \

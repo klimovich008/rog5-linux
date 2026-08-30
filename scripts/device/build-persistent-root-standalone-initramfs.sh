@@ -9,8 +9,10 @@ init=$repo/initramfs/persistent-root-init
 shutdown=$repo/initramfs/persistent-root-shutdown-standalone
 state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
+tailscale_runtime=$repo/initramfs/persistent-tailscale-runtime
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 expected_base=cf3f6dadfb7567da064b27ce341d2224328c8046e3bef870424dbe8ddf471827
+expected_v10=db249f8cf242046c88ff8587355ea0eb89005b2bdafa57de8ddad43f1fe802fb
 expected_release=7.1.4-g359318de534f
 storage_mode=read-only
 probe_boot_id=staged-seal
@@ -18,10 +20,14 @@ native_root_mode=1
 ssh_diagnostic_mode=0
 epoch=1681862400
 
-[ -f "$base" ] && [ ! -L "$base" ] &&
-	[ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ]
+[ -f "$base" ] && [ ! -L "$base" ]
+case $(sha256sum "$base" | cut -d ' ' -f 1) in
+	"$expected_base"|"$expected_v10") ;;
+	*) echo 'FAIL unreviewed standalone base' >&2; exit 1 ;;
+esac
 [ -x "$init" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ] &&
-	[ -x "$ssh_identity" ] && [ -x "$ufs_module_verifier" ]
+	[ -x "$ssh_identity" ] && [ -x "$tailscale_runtime" ] &&
+	[ -x "$ufs_module_verifier" ]
 [ ! -e "$output" ]
 if [ -n "$ufs_modules" ]; then
 	"$ufs_module_verifier" "$ufs_modules" "$expected_release" local-write
@@ -37,6 +43,7 @@ gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 (cd "$root" && find . -type f ! -path ./init ! -path ./shutdown \
 	! -path ./usr/local/sbin/rog5-persistent-state \
 	! -path ./usr/local/sbin/rog5-persistent-ssh-identity \
+	! -path ./usr/local/sbin/rog5-persistent-tailscale \
 	! -path ./rog5-ufs-modules/ufshcd-core.ko -print0 | sort -z |
 	xargs -0 sha256sum) >"$work/before"
 install -m 0755 "$init" "$root/init"
@@ -59,6 +66,8 @@ install -D -m 0755 "$state_helper" \
 	"$root/usr/local/sbin/rog5-persistent-state"
 install -D -m 0755 "$ssh_identity" \
 	"$root/usr/local/sbin/rog5-persistent-ssh-identity"
+install -D -m 0755 "$tailscale_runtime" \
+	"$root/usr/local/sbin/rog5-persistent-tailscale"
 if [ -n "$ufs_modules" ]; then
 	for module in phy-qcom-qmp-ufs.ko ufs-qcom.ko ufshcd-pltfrm.ko; do
 		cmp "$root/rog5-ufs-modules/$module" "$ufs_modules/$module"
@@ -69,6 +78,7 @@ fi
 (cd "$root" && find . -type f ! -path ./init ! -path ./shutdown \
 	! -path ./usr/local/sbin/rog5-persistent-state \
 	! -path ./usr/local/sbin/rog5-persistent-ssh-identity \
+	! -path ./usr/local/sbin/rog5-persistent-tailscale \
 	! -path ./rog5-ufs-modules/ufshcd-core.ko -print0 | sort -z |
 	xargs -0 sha256sum) >"$work/after"
 cmp "$work/before" "$work/after"

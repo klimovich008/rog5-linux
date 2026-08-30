@@ -1639,6 +1639,7 @@ Before=basic.target
 
 [Service]
 Type=simple
+Environment=TS_DEBUG_FIREWALL_MODE=nftables
 RuntimeDirectory=rog5-tailscale
 RuntimeDirectoryMode=0700
 ExecStartPre=/run/rog5-persistent-tailscale prepare
