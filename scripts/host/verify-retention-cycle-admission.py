@@ -55,6 +55,28 @@ EXPECTED_CLAIMS = {
         "headless-diagnostic-generation12-live-v1",
     )
 }
+
+# Native RAM trials are defined once in the fixed repository-owned registry.
+# Do not copy new candidate/artifact identities into this historical verifier.
+# The inspected candidate source below is still separately hash/mode validated
+# and compared against this canonical checkout; no caller-selected path is used.
+def canonical_native_ram_claims() -> dict[str, bytes]:
+    source = Path(__file__).with_name("consume-exact-boot-claim.py")
+    if source.is_symlink() or not source.is_file():
+        raise ValueError("canonical claim registry is not a regular file")
+    tree = ast.parse(source.read_bytes())
+    assignments = [node for node in tree.body if isinstance(node, ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id == "CLAIMS"
+                           for t in node.targets)]
+    if len(assignments) != 1:
+        raise ValueError("canonical claim registry is not literal")
+    registry = ast.literal_eval(assignments[0].value)
+    return {name: record for name, record in registry.items()
+            if isinstance(name, str) and isinstance(record, bytes)
+            and b"\nexecution=mainline-kexec-ram-only\n" in record}
+
+
+EXPECTED_CLAIMS.update(canonical_native_ram_claims())
 EXPECTED_CLAIMS["stock-charging-memory-fixed-v4-live-v1"] = (
     "format=rog5-temporary-boot-consumption-v1\n"
     "recovery_profile=stock-charging-memory-fixed-v4-live-v1\n"

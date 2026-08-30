@@ -98,9 +98,23 @@ def pinned_interpreters_available() -> bool:
     "requires the exact pinned deployment-host interpreters",
 )
 class RetentionCycleRuntimeClosureTest(unittest.TestCase):
+    # Historical execution identities remain frozen. Offline fixtures already
+    # replace those program bytes with this checkout's files; make that same
+    # fixture contract visible to prepare_action, not only run_action.
+    historical_process_specs = staticmethod(CONTRACT.process_specs)
+
+    def setUp(self):
+        patcher = mock.patch.object(
+            CONTRACT, "process_specs",
+            side_effect=lambda inputs: tuple(self.current_specs(inputs).values()),
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     @staticmethod
     def current_specs(inputs):
-        specs = {item.name: item for item in CONTRACT.process_specs(inputs)}
+        specs = {item.name: item for item in
+                 RetentionCycleRuntimeClosureTest.historical_process_specs(inputs)}
         for name, item in tuple(specs.items()):
             program = REPO / item.program
             metadata = program.lstat()
