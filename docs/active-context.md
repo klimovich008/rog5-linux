@@ -50,7 +50,7 @@ handoff code; retained timing and physical evidence are in
 
 ## Cheapest next action
 
-1. Pause successor issuance and use systematic debugging at the S12 boundary.
+1. Run the prepared observation-only successor after CI and connected gates.
    V5 passed full local CI (466s) and every GitHub job, then ran once. Its
    cached mode8 proves the RET vote applied, but the reset remains. Both v4
    and v5 stop delivering rail evidence at vddpmu entry after two successes.
@@ -69,8 +69,8 @@ handoff code; retained timing and physical evidence are in
    The fixed-bank read-only PMIC reader changes no PMIC or SDAM state. Paired
    snapshots now correlate the new warm reset to v4, but do not identify its
    software cause. No OCP/UVLO entry was added; absence is not crash-free proof.
-   RPMh call/send/ack probes now pass passive V11 setup/read/cleanup; no radio
-   activation. Command DB maps S12 to0x40100. Text-reader buffering is not a
+   RPMh call/send/ack probes pass passive V11 setup/read/cleanup and exact-head CI.
+   Fresh signed twins are prepared but unconsumed. S12 maps to0x40100; buffering is not a
    proven loss cause. The exact B loader snapshots pstore but does not export
    it before its second kexec. Preserve that loader; resolve capture separately.
    See `test-results/2026-08-31-native-wifi-rpmh-observer.md`.
