@@ -2,65 +2,59 @@
 
 Updated: 2026-08-30
 
-Read `docs/current-state.md` for the authoritative baseline. Historical
-generation detail is in Git and dated `test-results/`; do not reconstruct it
-in this file.
+Read `docs/current-state.md` for the baseline and the latest V11 live result.
+Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Does the narrow conntrack-mark kernel correction and restored standalone
-exitramfs provide clean Tailscale firewall health and unattended reboot?
+Can an independently authenticated Tailscale peer reach the enrolled phone by
+SSH? The kernel firewall and installed normal-reboot defects are fixed.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
-- Active slot: B, running V10 boot
-  `2ca47654-0f36-42bf-8f20-12be0d5b9e98`; slot A remains rescue.
-- V9/V10 pass systemd running, zero failed units, V49 high-speed UFS,
-  zero UFS errors, NCM, stable key-only SSH, p23 state and exact write scope.
-- Battery is Full/Good and safe; side USB provides positive input.
-- Dedicated standalone shared mode is `10.77.0.1/30`; fixed recovery management
-  remains a separate `169.254.77.1/30` profile.
-- Official Tailscale 1.102.3 archive/binaries and machine state are on p23.
-  V10 automatically prepares tmpfs binaries, 10.77 routing, TUN and the daemon;
-  enrollment is complete and persisted across a RAM-corrected normal reboot.
+- Active slot: B, running V11 boot
+  `9c752d3d-c7c0-490c-a074-ed73029358b3`; slot A remains rescue.
+- V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
+  NCM, stable key-only SSH, p23 state and exact two-node write scope.
+- Battery Full/Good, 100%, 8.659 V, 29.9°C; side USB provides positive input.
+- Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
+  management remains a separate `169.254.77.1/30` profile.
+- Tailscale 1.102.3 starts automatically from p23 state. It is enrolled and
+  online, with no health warnings; its identity survived normal systemd reboot.
+- Initial clock is stale, then automatic NTP succeeds before Tailscale connects.
+- The empty runtime package keyring causes a separate background WKD parser
+  failure. Initial systemd checks are not a long-soak zero-failure claim.
 
 ## Just-completed checkpoint
 
-V10 is enrolled and online. Its default iptables MARK backend fails; native
-nftables proves the remaining NF_CONNTRACK_MARK kernel gap. QEMU reproduces
-the same failure with the exact deployed Image. Clean A fixes that check and
-loads all 19 modules in QEMU. Independent clean B is running; the new kernel
-has not contacted the phone. Later systemd degradation is a separate keyring
-refresh parser error, recorded in the enrollment/reboot result.
-
-V10's generic builder also replaced the standalone exitramfs with diagnostic
-fastboot shutdown. The existing standalone builder is corrected. The reviewed
-RAM-only helper returned enrolled V10 in about 60 seconds, but installed V10
-still needs the release correction. See the enrollment/reboot result record.
+Clean twins match for Image, vmlinux, all 19 modules, initramfs and signatures.
+QEMU loads every module and proves the nft check fails on V10 but passes on V11.
+Full local and exact-head/merge/QEMU GitHub CI pass for source `7f7621c`.
+The p24-only update took 72.816s. The installed standalone shutdown helper
+returned Linux without fastboot intervention. See
+`test-results/2026-08-30-persistent-tailscale-v11-live.md`.
 
 ## Cheapest next action
 
-1. Finish clean connmark kernel twins and the matching QEMU capability check.
-2. Prove the deployed power/UFS module code and BTF/ABI closure before admission.
-3. Publish one corrected standalone bundle, then validate reboot and rescue.
-4. Test encrypted peer SSH with another authenticated tailnet node.
+1. Finish the existing userspace validation client's account login and test
+   peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
+   peer evidence. Log out/remove the temporary client after successful testing.
+2. Repair package-keyring initialization as a userspace/state task, not another
+   kernel rebuild. Preserve package-signature enforcement.
+3. Continue loaded network/power checks and the remaining standalone server MVP.
 
 Retain V10 and the stable slot-B loader; no DT, wrapper, GPT, or boot-partition
-change is required. Only NF_CONNTRACK_MARK and its dependent module metadata
-may change in the kernel build. Reuse the reviewed standalone shutdown code.
+change is needed. Preserve the exact rebuilt module kit and compressed V11 p24
+image. Do not repeat the completed p24 transfer.
 
-## Stop conditions
+## Boundaries and Git
 
-Stop on wrong device/topology, unsafe power or temperature, a write outside
-p23 service-state scope, loss of pinned SSH, ambiguous transport during a
-write, or loss of slot-A rescue. Never expose credentials or private evidence.
-
-## Git checkpoint
+Stop on wrong device/topology, unsafe power/temperature, writes outside the
+reviewed scope, ambiguous transport during a write or loss of slot-A rescue.
+Never expose credentials or private evidence, or retry ambiguous execution.
 
 - Worktree: `/home/deck/.local/state/rog5-haven-clean-ci-20260810`.
-- Branch: `agent/linux-recovery-host`.
-- Resolve the exact published checkpoint from Git and exact-head CI.
-- V10 source checkpoint: `39d1e12e217bf24b5de144e032f0ceddd8ad1717`.
-- Standing GitHub authorization permits normal pushes to this branch; never
-  force-push.
+- Branch: `agent/linux-recovery-host`; normal pushes authorized, never force-push.
+- V11 executable source: `7f7621ce0a11a624d703200e5a65c03127802736`.
+- Resolve publication from Git and exact-head CI, not copied last-pushed fields.
