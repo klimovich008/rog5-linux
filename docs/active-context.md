@@ -56,6 +56,11 @@ See `test-results/2026-08-30-native-wifi-ram-handoff.md`.
    has been proven. Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node
    and mem_size=0, so this attempt had no working ramoops backend.
+   The new selective kprobe helper has passed setup/marker/cleanup on V11
+   without activating PCIe; original global probe definitions were restored.
+   Trace-v2's signed bundle and different diagnostic tool set are prepared,
+   but its claim is unissued. Complete publication checks, attach its trace
+   reader before the probe, and never reuse the consumed first trial.
 2. Finish the existing userspace validation client's account login and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
