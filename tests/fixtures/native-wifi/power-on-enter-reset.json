@@ -1,0 +1,17 @@
+{
+  "format": "rog5-native-wifi-power-observation-v1",
+  "source_commit": "0ec00e75d70eddb7e732d33a1ad5ab30c6a01211",
+  "readonly_ufs_nodes": 117,
+  "observations": [
+    {"stage": "probe-enter", "time": 4533.405142, "result": 0, "pause_ms": 250},
+    {"stage": "probe-ready", "time": 4533.699394, "result": 0, "pause_ms": 250},
+    {"stage": "power-on-enter", "time": 4533.987669, "result": 0, "pause_ms": 250}
+  ],
+  "creation_return": {"time": 4533.987601, "result": 0},
+  "power_on_return_observed": false,
+  "reset_and_new_v11_boot": "verified",
+  "mhi_init_overlapped_radio_attempt": true,
+  "isolated_mhi_control": {"same_v11_boot": true, "pci_devices": 0, "init_seconds_approx": 0.01, "load_and_unload": "pass"},
+  "proven_faulting_rail_or_gpio": null,
+  "safe_to_retry_consumed_target": false
+}

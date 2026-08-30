@@ -6,7 +6,7 @@ a working radio while preserving UFS, charging and USB rescue?
 The native RAM handoff passed, but PCIe activation reset the phone before MHI
 or ath11k loaded. Wi-Fi is **not working yet**. V11 returned automatically and is
 healthy. Both `native-wifi-ram-v1` and `native-wifi-ram-trace-v2` are permanently
-consumed; never retry either.
+consumed; observe-v3 is now also consumed. Never retry any of them.
 
 ## Minimal handoff correction
 
@@ -148,6 +148,38 @@ and the final-module QEMU 250ms case pass. The Image, DTB and firmware did not
 change. The active tier passed in 80.385s; focused observer/claim/admission
 checks passed. No second full local CI was run for this module-only change.
 
-The observe-v3 signed bundle, different module archive and tools are prepared
-but unissued. Their identities are bound in the one exact-record registry.
-This remains a diagnostic experiment, not a claimed production Wi-Fi fix.
+The observe-v3 identities are bound in the one exact-record registry. Its
+diagnostic module is not a claimed production Wi-Fi fix.
+
+## Observe-v3 physical result
+
+All jobs in run `33319404144` passed for source `0ec00e7`. Observe-v3 executed
+once and reached Arch/SSH. A long operator gap expired the temporary host
+management link before radio activation; the trace-ready guard stopped the
+probe. The same running trial was resumed after restoring that link and tying
+reader readiness directly to the single probe command. No target was retried.
+
+With all 117 UFS nodes RO, the diagnostic module reported probe-enter at
+4533.405142s, probe-ready at 4533.699394s, and power-on-enter at 4533.987669s.
+The trace separately records `pci_pwrctrl_create_devices` returning 0 at
+4533.987601s. The reset therefore did not prevent client probe completion.
+Power-on-return was not observed, and no individual rail/GPIO cause is proven.
+MHI initialization overlapped the power operation. An isolated test on the
+recovered V11, with PCI empty and 117 nodes RO, loaded MHI in approximately 0.01s and
+unloaded it cleanly without a reboot. That rules out an unconditional MHI-init
+failure, not every possible concurrency interaction.
+The target had already run for about 75 minutes before radio activation, and
+the newly armed 600s probe rollback was not due. The reset followed activation,
+not a fixed short idle-watchdog deadline.
+
+V11 returned automatically as boot `22963cf0-b453-444d-89e3-3444a41d1d29`.
+Persistent state, shared networking and healthy enrolled Tailscale were restored.
+Temporary management address/firewall/listeners were removed. No partition,
+slot, permanent kernel or voltage-setting change occurred. The sanitized
+fixture is `tests/fixtures/native-wifi/power-on-enter-reset.json`.
+
+Next, compare stock power sequencing and capture individual power transitions.
+The retained ASUS implementation serializes regulator enable calls; mainline
+uses bulk enable. The WW33 base tree's S12/S2 init-mode values are from the
+vendor levels.h namespace, not mainline's mode namespace. Their composed-tree
+applicability and actual live modes remain unproven; do not guess a mode fix.
