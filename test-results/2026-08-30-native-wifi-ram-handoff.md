@@ -3,8 +3,9 @@
 Primary question: can the stock-derived WCN6855 DTB and exact V11 modules expose
 a working radio while preserving UFS, charging and USB rescue?
 
-The kernel/module/firmware checkpoint remains unchanged. No Wi-Fi execution or
-radio activation has occurred at this checkpoint. V11 is still running.
+The native RAM handoff passed, but PCIe activation reset the phone before MHI
+or ath11k loaded. Wi-Fi is **not working yet**. V11 returned automatically and is
+healthy. `native-wifi-ram-v1` is permanently consumed; never retry it.
 
 ## Minimal handoff correction
 
@@ -44,15 +45,54 @@ boot partition is changed. The new helper is staged only in `/run/initramfs`.
   The fast tier runs this regression first. New native RAM claims are read from
   the one canonical registry instead of copied into another historical list.
 
-## Live prerequisites and limitations
+## Physical result
 
-Before entry, require successful current-head CI, pinned SSH and continuous
-source boot/topology identity, signed deployed bytes and durable one-use entry.
-Stop persistent state, prove all 117 UFS nodes read-only, then execute once.
-Never retry an ambiguous handoff. After SSH returns, stop state again before
-loading Wi-Fi modules and arm a separate bounded radio-test rollback.
+Source `abf3db66627c0d8ff39d3d74a8ddd3e7f1a14cdc` passed full local CI in
+**453s**, plus every job in GitHub run `33311073552`. No kernel/wrapper rebuild
+was needed. Exact-state module builds remain the preceding 91.60s checkpoint.
 
-The target's existing initramfs rollback is userspace, not a hardware watchdog;
-it cannot resolve a kernel hard lock. Keep USB observation and the verified
-persistent V11/ASUS slot-A rescue. Hardware kexec, shared-rail tolerance, PCIe,
+One-use entry occurred at Unix 1788092901.088912; dispatch at 1788092901.089000.
+The kernel loaded once, systemd quiesced storage, and the RAM exitramfs executed
+the Wi-Fi target. Its new boot ID was `7a95dcfa-ebc5-476c-877d-9c83971eea95`.
+Root handoff passed at 1788092929.399 (**28.310s after dispatch**). Pinned SSH
+then proved the Wi-Fi target cmdline, systemd running, zero failed units and
+healthy battery telemetry. No boot partition, slot or persistent selector changed.
+
+State/Tailscale were stopped and all 117 UFS nodes proved RO before each risky
+boundary. The radio probe verified the exact module/firmware/userspace inputs
+and armed a 600s systemd rollback. Crypto and power-sequencing modules loaded.
+At target uptime 121.69s, `phy-qcom-qmp-pcie` loaded and triggered deferred PCIe
+controller probing. The last kernel line, at 121.780805s, prints the controller's
+MEM range. There is no subsequent MHI or ath11k load, PCI endpoint or PHY-ready
+record. This is not a Wi-Fi firmware/BDF failure yet.
+
+Host USB evidence shows mainline→ASUS 5.4 loader→mainline, and the new V11 boot
+ID `3b71f143-439d-44db-ac09-991624e68c79` proves a reset/reboot rather than only
+lost networking. V11 automatically restored Arch, pinned SSH, charging,
+the exact sda/sda23 writable scope and the existing healthy Tailscale identity.
+The 600s timer was not due; the reset mechanism remains unknown. No crash-free
+claim follows from the missing panic text.
+
+Pstore/archive directories are empty. The actual config has PSTORE_RAM built
+in, but this native DT has no ramoops node and runtime mem_size=0: there was no
+working ramoops backend. No lineage-safe reset-cause field was captured here.
+The temporary host alias, 8079 firewall rule and observers were removed, and
+the normal shared profile was reactivated after its external-address race.
+
+Private radio log SHA-256:
+`d8e9396ba2b249ce18c74eac787fc6632464f10594d991b5cd55c572c3f7340e`.
+Private live kmsg SHA-256:
+`85b5be9e1bc12424d27c57c2b4678d12956361f8068189e151cc276fba7713d1`.
+Sanitized evidence is retained in
+`tests/fixtures/native-wifi/pcie-reset-before-mhi.json`.
+
+## Next discriminating step
+
+Trace controller initialization, clock enabling, reset controls and PHY power
+before changing hardware settings. Exact V11 exposes KPROBE_EVENTS and the
+relevant built-in symbols; FUNCTION_TRACER is disabled. A bounded runtime trace
+can narrow the failure without rebuilding the kernel. Do not guess a rail,
+firmware or calibration fix. Preserve the consumed trial and V11/slot-A rescue.
+
+The userspace timer cannot resolve a hard kernel lock. PCIe stability, radio
 firmware/BDF selection, association and Wi-Fi SSH remain unproven.
