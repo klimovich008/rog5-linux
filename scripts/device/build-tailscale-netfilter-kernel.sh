@@ -10,6 +10,9 @@ output_dir=$2
 baseline=$3
 repo=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd -P)
 expected_baseline=6329b42fac5876d3f42557802bd530ba2c077aa73c4543f0bbc37ea65902eeb4
+expected_delta=' NF_CONNTRACK_MARK n -> y
++NET_ACT_CONNMARK n
++NET_ACT_CTINFO n'
 [ "$(sha256sum "$baseline" | cut -d ' ' -f 1)" = "$expected_baseline" ] || {
 	echo 'FAIL deployed V10 baseline config changed' >&2
 	exit 1
@@ -21,7 +24,7 @@ cp "$baseline" "$config_check/.config"
 "$source_dir/scripts/config" --file "$config_check/.config" -e NF_CONNTRACK_MARK
 make -s -C "$source_dir" O="$config_check" ARCH=arm64 LLVM=1 olddefconfig
 delta=$("$source_dir/scripts/diffconfig" "$baseline" "$config_check/.config")
-[ "$delta" = ' NF_CONNTRACK_MARK n -> y' ] || {
+[ "$delta" = "$expected_delta" ] || {
 	printf 'FAIL prebuild config delta:\n%s\n' "$delta" >&2
 	exit 1
 }
@@ -39,7 +42,7 @@ LINUX_TREE=8528fcd29e4ad19cf944f79c2ebb3438feee5e0b \
 EXPECTED_RELEASE=7.1.4-g359318de534f \
 	"$repo/scripts/device/build-mainline-persistent-root.sh"
 delta=$("$source_dir/scripts/diffconfig" "$baseline" "$output_dir/.config")
-[ "$delta" = ' NF_CONNTRACK_MARK n -> y' ] || {
+[ "$delta" = "$expected_delta" ] || {
 	printf 'FAIL unexpected kernel config delta:\n%s\n' "$delta" >&2
 	exit 1
 }
