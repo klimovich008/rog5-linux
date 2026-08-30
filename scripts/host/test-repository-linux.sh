@@ -149,6 +149,8 @@ active_tests=(
 	scripts/device/test-persistent-tailscale-runtime.sh
 	scripts/device/test-tailscale-netfilter-kernel.sh
 	scripts/device/test-standalone-module-refresh.sh
+	scripts/device/test-native-wifi-module-kit.sh
+	scripts/device/test-native-wifi-dtb.py
 	scripts/device/test-persistent-ufs-module-profile.sh
 	scripts/device/test-observe-persistent-usb-liveness.sh
 	scripts/host/test-generate-power-usb-active.py

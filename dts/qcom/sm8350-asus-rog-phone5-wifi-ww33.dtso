@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
+/* Reuse the board wiring; update the rail requests to the retained WW33
+ * 33.0210.0210.200 CNSS contract. This is an opt-in Wi-Fi composition, not
+ * a replacement for the proven no-Wi-Fi DTB.
+ */
+/include/ "sm8350-asus-rog-phone5-wifi.dtso"
+
+&vreg_s11b_0p95 {
+	regulator-min-microvolt = <1012000>;
+	/* HFSMPS510 has 8 mV steps: 1.016 V is the first selector >= 1.012 V.
+	 * This narrow translation is a bring-up setting, not hardware acceptance.
+	 */
+	regulator-max-microvolt = <1016000>;
+};
+
+&vreg_s12b_1p35 {
+	regulator-min-microvolt = <1350000>;
+	regulator-max-microvolt = <1352000>;
+};
+
+&vreg_s1c_1p86 {
+	regulator-min-microvolt = <1900000>;
+	regulator-max-microvolt = <1952000>;
+};
+
+/* pwrseq-qcom-wcn deliberately preserves WLAN_EN at probe: forcing it low
+ * can drop an inherited PCIe link before the controller can recover it.
+ */
+&wlan_en_default {
+	/delete-property/ output-low;
+};

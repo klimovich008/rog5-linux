@@ -7,8 +7,9 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Can an independently authenticated Tailscale peer reach the enrolled phone by
-SSH? The kernel firewall and installed normal-reboot defects are fixed.
+Can WCN6855 Wi-Fi work with the current charging/UFS baseline and preserved USB
+rescue, removing the Steam Deck network dependency? Peer Tailscale SSH remains
+an independent account-login gate; the firewall and normal-reboot defects are fixed.
 
 ## Current live state
 
@@ -28,25 +29,35 @@ SSH? The kernel firewall and installed normal-reboot defects are fixed.
 
 ## Just-completed checkpoint
 
-Clean twins match for Image, vmlinux, all 19 modules, initramfs and signatures.
-QEMU loads every module and proves the nft check fails on V10 but passes on V11.
-Full local and exact-head/merge/QEMU GitHub CI pass for source `7f7621c`.
-The p24-only update took 72.816s. The installed standalone shutdown helper
-returned Linux without fastboot intervention. See
-`test-results/2026-08-30-persistent-tailscale-v11-live.md`.
+V11's installed firewall and normal reboot pass; see its live result.
+The new Wi-Fi builder completes in 71.47s without rebuilding V11. All 16 new
+modules reproduce and load under QEMU. The native Wi-Fi DTB preserves unrelated
+state and uses stock-derived, selector-valid voltage intervals; these are not
+yet hardware-tested. Firmware matches the prior verified set. See
+`test-results/2026-08-30-native-wifi-offline.md`.
 
 ## Cheapest next action
 
-1. Finish the existing userspace validation client's account login and test
+1. Complete a fresh RAM-only Wi-Fi trial using the verified native module/DTB
+   checkpoint. No physical Wi-Fi attempt has occurred. Keep V11 and slot A;
+   stop p23 state before radio activation and prove all UFS nodes read-only.
+   Do not boot the old UFS-disabled Wi-Fi package or transplant old ABI/BTF
+   modules. Do not guess calibration data or weaken regulatory verification.
+2. Finish the existing userspace validation client's account login and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
-2. Repair package-keyring initialization as a userspace/state task, not another
-   kernel rebuild. Preserve package-signature enforcement.
-3. Continue loaded network/power checks and the remaining standalone server MVP.
+3. Package-keyring work is preserved at `b9ceb26`: helper/unit and focused test
+   pass, but it is not deployed or integrated into boot. Resume it when needed
+   for signed Wi-Fi userspace packages; preserve package-signature enforcement.
+4. Continue loaded Wi-Fi/power checks and the remaining standalone server MVP.
 
-Retain V10 and the stable slot-B loader; no DT, wrapper, GPT, or boot-partition
-change is needed. Preserve the exact rebuilt module kit and compressed V11 p24
-image. Do not repeat the completed p24 transfer.
+Opus's saved OAuth session expired; the attempted review did not run. This is
+not a hardware failure and is not a reason to redo the successful builds.
+
+Retain V11/V10 and the stable slot-B loader. Wi-Fi may need a DTB and module
+change, but no GPT or experimental boot-partition flash. Preserve the exact
+rebuilt module kit and compressed V11 p24 image. Do not repeat the completed
+p24 transfer.
 
 ## Boundaries and Git
 
