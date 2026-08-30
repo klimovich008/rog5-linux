@@ -100,12 +100,12 @@ The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
 Next: bring up WCN6855 Wi-Fi client support so networking no longer depends on
-the Steam Deck. The first native RAM Wi-Fi trial reached Arch/systemd/SSH, then
-reset during PCIe activation before MHI/ath11k loaded. A second, traced trial
-proved controller/PHY success before its reset. Both trials are consumed and
-V11 recovered automatically. Generic creation/binding/dummy power passes in
-QEMU; the next diagnostic adds bounded module-level observation pauses, not
-voltage changes. See the native Wi-Fi RAM-handoff result.
+the Steam Deck. Four native RAM Wi-Fi trials reached Arch/SSH and recovered V11
+automatically after radio-startup resets; all are consumed. Rails-v4 proved two
+supply enables returned 0, then lost reporting at S12/vddpmu entry. Paired PMIC
+history gained one PS_HOLD warm reset. No physical rail fault or kernel panic
+is proven. Audit stock versus mainline S12 requests next; see the native Wi-Fi
+RAM-handoff result. Wi-Fi is not yet functional.
 Preserve USB rescue. In parallel, authenticate the separate
 Tailscale test client and prove encrypted peer SSH; no new kernel or phone cycle
 is needed solely for that test. Keep the existing

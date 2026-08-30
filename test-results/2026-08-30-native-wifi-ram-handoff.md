@@ -227,3 +227,42 @@ contains three PS_HOLD warm resets with counts1,2,3, and no OCP/UVLO records in
 that window. This is consistent with software-requested reset but does not
 identify the Linux failure or prove cycle attribution. The private before-v4
 snapshot is available for a paired comparison after the next physical cycle.
+
+## Rails-v4: S12 entry and independently correlated reset
+
+All jobs in GitHub run `33330357462` passed for `e4b7dccb7679cb513d1e436e0eca9576647d9c1a`.
+The preceding run failed only the compact-document budget; the active handoff
+was reduced from 110 to 98 lines without rebuilding the Image, DTB or initramfs.
+The matching module twins and 80.233s active-tier result remain valid. Exact-head
+CI took 6m16s, merge compatibility 6m24s, and cached-kernel QEMU 1m52s.
+
+Rails-v4 executed once with all 117 UFS nodes RO. Its claim was consumed at
+1788117886.769026. Target boot `7f014b9b-bbec-408c-8f9b-b72357fe6daa`
+passed switch-root 27.225s later and pinned SSH 34.447s later. Readers and the
+single radio probe ran contiguously; no operator gap interrupted observation.
+
+The serial diagnostic captured vddio return 0 at 39.423480s and vddaon return
+0 at 39.999323s. Vddpmu/S12 entry at 40.287364s was the last delivered rail
+record. **It does not prove entry to regulator_enable or a physical rail fault:**
+the last delivered trace, 40.511640s, predates the end of the 250ms pre-call
+pause. The 1.352V and mode-zero getters are cached/unknown, not measurements.
+
+Before/after read-only PMIC snapshots advanced the 117-byte FIFO pointer from
+175 to 78, exactly five records (20 bytes). The new records contain PS_HOLD,
+WARM_RESET and warm-reset count 4 after the previous count 3. This correlates a
+new reset with this cycle, not merely USB loss. No OCP/UVLO record was added;
+that does not prove there was no electrical fault or kernel panic.
+
+V11 automatically recovered as `3acd9da0-e927-4e97-85ea-b668f4cc6215`.
+All nodes were relocked for the post-reset snapshot, then normal persistent
+state and Tailscale were restored. Final checks showed Full/Good, 100%, 8.638V,
+30.0°C, no failed systemd units and only sda/sda23 writable. Temporary host
+address/firewall rules and observers were cleaned up. No slot, partition,
+permanent bundle selector or voltage/mode setting was changed.
+
+The partial real output is a regression fixture in
+`tests/fixtures/native-wifi/s12-entry-reset.json`. It must not satisfy the
+completed-power-sequence validator or be treated as proof of the faulting call.
+All four Wi-Fi trials through rails-v4 are consumed. R8's evidence gap is
+narrower, not eliminated; Wi-Fi is still unavailable. Audit the exact stock S12
+initial mode and RPMh requests before selecting the next correction.
