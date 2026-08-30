@@ -101,9 +101,11 @@ Slot A and the stable slot-B loader were not changed.
 
 Next: bring up WCN6855 Wi-Fi client support so networking no longer depends on
 the Steam Deck. The first native RAM Wi-Fi trial reached Arch/systemd/SSH, then
-reset during PCIe activation before MHI/ath11k loaded. V11 returned automatically
-and remains healthy; the trial is consumed, not retryable. Investigate that
-controller/clock/reset boundary next. See the native Wi-Fi RAM-handoff result.
+reset during PCIe activation before MHI/ath11k loaded. A second, traced trial
+proved controller/PHY success before its reset. Both trials are consumed and
+V11 recovered automatically. Generic creation/binding/dummy power passes in
+QEMU; the next diagnostic adds bounded module-level observation pauses, not
+voltage changes. See the native Wi-Fi RAM-handoff result.
 Preserve USB rescue. In parallel, authenticate the separate
 Tailscale test client and prove encrypted peer SSH; no new kernel or phone cycle
 is needed solely for that test. Keep the existing

@@ -133,7 +133,10 @@ then
 	fail 'repository contains a private-key header or literal OpenRouter key'
 fi
 
-native_wifi_probe_tests=(scripts/device/test-native-wifi-pcie-trace.py)
+native_wifi_probe_tests=(
+	scripts/device/test-native-wifi-pcie-trace.py
+	scripts/device/test-wifi-pwrctrl-probe.py
+)
 active_tests=(
 	scripts/device/test-inspect-local-image-partial.sh
 	scripts/device/test-benchmark-local-image-write.sh

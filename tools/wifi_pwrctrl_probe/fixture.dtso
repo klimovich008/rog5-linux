@@ -1,0 +1,37 @@
+/dts-v1/;
+/plugin/;
+
+/* Only fake software devices: supplies and optional GPIOs intentionally absent.
+ * pci_pwrctrl_create_devices() must not turn on the target. Dummy regulators
+ * allow the real WCN6855 provider's matching path to be exercised in QEMU.
+ */
+&{/} {
+	wcn6855-pmu {
+		compatible = "qcom,wcn6855-pmu";
+		regulators {
+			test_aon: ldo1 {
+				regulator-name = "qemu-pmu-aon";
+			};
+		};
+	};
+	pcie-test {
+		compatible = "rog5,qemu-pcie-pwrctrl-test";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		bus-range = <0 255>;
+		ranges = <0x02000000 0 0x60000000 0 0x60000000 0 0x01000000>;
+		pcie@0 {
+			device_type = "pci";
+			reg = <0 0 0 0 0>;
+			#address-cells = <3>;
+			#size-cells = <2>;
+			ranges;
+			wifi@0 {
+				compatible = "pci17cb,1103";
+				reg = <0x10000 0 0 0 0>;
+				vddaon-supply = <&test_aon>;
+			};
+		};
+	};
+};
