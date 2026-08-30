@@ -29,6 +29,7 @@ for contract in \
 	'ExecStart=/run/rog5-tailscale/tailscaled --state=/persist/var/lib/tailscale/tailscaled.state' \
 	'ExecStopPost=/run/rog5-persistent-tailscale cleanup' \
 	'RuntimeDirectoryMode=0700' \
+	'Environment=TS_DEBUG_FIREWALL_MODE=nftables' \
 	'sysinit.target.wants/rog5-tailscaled.service'
 do
 	grep -Fq "$contract" "$init"
