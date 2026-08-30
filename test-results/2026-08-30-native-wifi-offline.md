@@ -61,6 +61,31 @@ The native kernel exposes KEXEC, but the installed root has no kexec binary;
 use verified recovery tools if that path is selected and preserve one-use
 execution. No experimental boot-partition flash or V11 selector change.
 
+## Regulatory and Wi-Fi crypto follow-up
+
+Full local CI for `e647ae7` passed in 444.63s; exact-head/merge/QEMU/publication
+run `33307402616` passed. A subsequent exact-runtime replay found dependencies
+that a module ELF dependency list does not capture:
+
+- Without the SHA-256 Crypto API module, the valid signed regulatory database
+  was rejected even though both upstream signing certificates were loaded.
+- Without the AES module, allocating `cmac(aes)` failed with ENOENT. AES, CTR,
+  CCM, GCM and the matching GF128 hash library complete the required crypto set.
+- The default Alpine alias `aes → aes_generic` names an old module. The
+  canonical runtime root list uses the kernel's `crypto-aes` alias instead.
+- Assembly debug paths are normalized with KAFLAGS as well as KCFLAGS. All
+  22 module files now match across two build paths; the V11 kernel is unchanged.
+- The completed 22-module builder passed from fresh output in 91.60s. The
+  focused tests and active tier passed (105.36s alongside that build).
+- Dependency-list publication now propagates any modprobe failure instead of
+  hiding it behind a successful sort. A regression fixture proves refusal.
+
+With the resulting module set, QEMU accepts the exact signed database, loads
+the test-only US regulatory domain, and allocates sha256, cmac(aes), ccm(aes),
+gcm(aes), and ctr(aes). A one-byte-corrupted database is rejected and leaves
+the world domain. No signature or regulatory guard was disabled. The test
+country setting was confined to QEMU, which had no physical/network devices.
+
 The bounded Opus review was attempted but failed before review because its
 OAuth session expired. No independent approval is claimed. Focused tests pass;
 the active tier passed in 78.18s before the final selector-window correction.
