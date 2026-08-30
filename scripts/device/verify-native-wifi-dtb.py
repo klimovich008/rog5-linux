@@ -59,6 +59,7 @@ def compare(base, candidate):
         (S11, 'regulator-max-microvolt', 1016000),
         (S12, 'regulator-min-microvolt', 1350000),
         (S12, 'regulator-max-microvolt', 1352000),
+        (S12, 'regulator-initial-mode', 0),
         (S1C, 'regulator-min-microvolt', 1900000),
         (S1C, 'regulator-max-microvolt', 1952000),
     ):
