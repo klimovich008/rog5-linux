@@ -71,6 +71,21 @@ def validate_rail_log(text, pause):
 
 
 class PwrctrlProbeTest(unittest.TestCase):
+    def test_live_s12_prefix_is_not_a_completed_power_sequence(self):
+        fixture = json.loads((REPO / 'tests/fixtures/native-wifi/s12-entry-reset.json').read_text())
+        text = '\n'.join(fixture['kmsg']) + '\nROG5_QEMU_PWRCTRL_END\n'
+        with self.assertRaisesRegex(ValueError, 'incomplete'):
+            validate_rail_log(text, fixture['pause_ms'])
+        self.assertEqual(sum('stage=return result=0' in line for line in fixture['kmsg']), 2)
+        self.assertFalse(fixture['s12_enable_call_entry_proven'])
+        self.assertLess(fixture['last_delivered_trace_time'], 40.287364 + .250)
+        pon = fixture['paired_pon']
+        self.assertEqual((pon['push_after'] - pon['push_before']) % pon['ring_bytes'], pon['new_bytes'])
+        self.assertEqual(pon['warm_reset_count_after'] - pon['warm_reset_count_before'], 1)
+        self.assertFalse(fixture['cached_getters_are_physical_measurements'])
+        self.assertFalse(fixture['safe_to_retry_consumed_target'])
+        self.assertIsNone(fixture['proven_faulting_rail_or_gpio'])
+
     def test_native_probe_loads_software_first_and_checks_pci_before_radio(self):
         source = (REPO / 'scripts/device/probe-native-wifi.sh').read_text()
         start = source.index('# Load software before')

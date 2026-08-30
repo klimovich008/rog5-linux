@@ -1,0 +1,30 @@
+{
+  "format": "rog5-native-wifi-rail-observation-v1",
+  "source_commit": "e4b7dccb7679cb513d1e436e0eca9576647d9c1a",
+  "readonly_ufs_nodes": 117,
+  "pause_ms": 250,
+  "kmsg": [
+    "[39.135379] ROG5_WCN_RAIL index=0 supply=vddio stage=enter result=0 cached_uv=1800000 voltage_state=present mode=0 mode_state=absent enabled=-22 enabled_state=error",
+    "[39.423480] ROG5_WCN_RAIL index=0 supply=vddio stage=return result=0 cached_uv=1800000 voltage_state=present mode=0 mode_state=absent enabled=1 enabled_state=present",
+    "[39.711316] ROG5_WCN_RAIL index=1 supply=vddaon stage=enter result=0 cached_uv=1016000 voltage_state=present mode=0 mode_state=absent enabled=1 enabled_state=present",
+    "[39.999323] ROG5_WCN_RAIL index=1 supply=vddaon stage=return result=0 cached_uv=1016000 voltage_state=present mode=0 mode_state=absent enabled=1 enabled_state=present",
+    "[40.287364] ROG5_WCN_RAIL index=2 supply=vddpmu stage=enter result=0 cached_uv=1352000 voltage_state=present mode=0 mode_state=absent enabled=-22 enabled_state=error"
+  ],
+  "last_delivered_trace_time": 40.511640,
+  "s12_enable_call_entry_proven": false,
+  "s12_enable_return_observed": false,
+  "cached_getters_are_physical_measurements": false,
+  "paired_pon": {
+    "push_before": 175,
+    "push_after": 78,
+    "ring_bytes": 117,
+    "new_bytes": 20,
+    "new_reset_trigger": "PS_HOLD",
+    "new_reset_type": "WARM_RESET",
+    "warm_reset_count_before": 3,
+    "warm_reset_count_after": 4
+  },
+  "fallback_boot": "3acd9da0-e927-4e97-85ea-b668f4cc6215",
+  "safe_to_retry_consumed_target": false,
+  "proven_faulting_rail_or_gpio": null
+}
