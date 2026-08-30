@@ -7,15 +7,15 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Does restoring the stock S12 retention-mode vote prevent the radio reset?
-Rails-v4 proved two supply enables succeed, then captured S12 entry without
-a return. The precise failing request and physical cause remain unproven.
+Which S12 RPMh request or kernel/firmware fault triggers the radio reset?
+The stock retention vote applied successfully in v5 but did not prevent reset.
+Distinguish voltage/enable failure with independent evidence before successors.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `3acd9da0-e927-4e97-85ea-b668f4cc6215`; slot A remains rescue.
+  `1b24ebf0-e4a1-466c-8197-13904886f5cf`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
 - Battery Full/Good, 100%, 8.659 V, 29.9°C; side USB provides positive input.
@@ -39,7 +39,7 @@ booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked
 Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-All four native Wi-Fi trials through rails-v4 are permanently consumed.
+All five native Wi-Fi trials through s12-ret-v5 are permanently consumed.
 Arch/systemd/SSH and automatic V11 recovery passed; PCIe activation reset the
 target. Trace-v2 proved controller/PHY success; observe-v3 proved creation
 return 0 and power-on-enter. Isolated MHI load/unload passed on V11 with PCI
@@ -50,18 +50,17 @@ handoff code; retained timing and physical evidence are in
 
 ## Cheapest next action
 
-1. Validate the prepared s12-ret-v5 correction, then run it once after CI.
-   All 60 stock compositions require RET; v5 restores this missing mode vote
-   with mainline enum 0, not vendor enum 1. Voltage remains unchanged.
-   Rails-v4 ran once after all CI passed. Vddio and
-   vddaon returned 0; vddpmu entry was last delivered. The final trace predates
-   the diagnostic pause's end, so the exact RPMh call is not proven. V11
-   recovered automatically. The paired PON FIFO gained one PS_HOLD warm reset,
-   count 3 to 4. Fixture: `tests/fixtures/native-wifi/s12-entry-reset.json`.
-   Do not retry v4 or infer a physical voltage from cached regulator getters.
-   ASUS CNSS enables supplies serially; mainline uses bulk enable. Stock S12
-   RET and mainline RET both map to PMIC mode 3. The reset cause remains a
-   hypothesis; do not substitute HPM or retune voltages.
+1. Pause successor issuance and use systematic debugging at the S12 boundary.
+   V5 passed full local CI (466s) and every GitHub job, then ran once. Its
+   cached mode8 proves the RET vote applied, but the reset remains. Both v4
+   and v5 stop delivering rail evidence at vddpmu entry after two successes.
+   Paired PON adds one PS_HOLD warm reset per cycle (counts3→4→5). V11 recovers.
+   Fixtures: `tests/fixtures/native-wifi/s12{,-ret}-entry-reset.json`.
+   Trace buffering still prevents proof of the exact voltage/enable call.
+   Do not issue a guessed voltage, HPM or ordering change as another fix.
+   New lead: Qualcomm's SM8350/WCN6851 series uses S11 for VDDPMU, whereas
+   our SM8450-derived mapping uses S12. It also adds missing hw1.1 support.
+   Validate ASUS chip/mapping evidence first; see the linked upstream result.
    The Image, DTB, initramfs and firmware remain unchanged.
    Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node
@@ -83,7 +82,7 @@ handoff code; retained timing and physical evidence are in
    for signed Wi-Fi userspace packages; preserve package-signature enforcement.
 4. Continue loaded Wi-Fi/power checks and the remaining standalone server MVP.
 
-Opus's OAuth session expired; no review ran. Retain V11/V10, the stable loader,
+The bounded Opus retry still failed with expired OAuth; no review ran. Retain V11/V10, the stable loader,
 module kit and compressed V11 image: no GPT or experimental boot-partition flash.
 Do not repeat the completed p24 transfer or successful builds.
 

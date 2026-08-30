@@ -72,19 +72,26 @@ def validate_rail_log(text, pause):
 
 class PwrctrlProbeTest(unittest.TestCase):
     def test_live_s12_prefix_is_not_a_completed_power_sequence(self):
-        fixture = json.loads((REPO / 'tests/fixtures/native-wifi/s12-entry-reset.json').read_text())
-        text = '\n'.join(fixture['kmsg']) + '\nROG5_QEMU_PWRCTRL_END\n'
-        with self.assertRaisesRegex(ValueError, 'incomplete'):
-            validate_rail_log(text, fixture['pause_ms'])
-        self.assertEqual(sum('stage=return result=0' in line for line in fixture['kmsg']), 2)
-        self.assertFalse(fixture['s12_enable_call_entry_proven'])
-        self.assertLess(fixture['last_delivered_trace_time'], 40.287364 + .250)
-        pon = fixture['paired_pon']
-        self.assertEqual((pon['push_after'] - pon['push_before']) % pon['ring_bytes'], pon['new_bytes'])
-        self.assertEqual(pon['warm_reset_count_after'] - pon['warm_reset_count_before'], 1)
-        self.assertFalse(fixture['cached_getters_are_physical_measurements'])
-        self.assertFalse(fixture['safe_to_retry_consumed_target'])
-        self.assertIsNone(fixture['proven_faulting_rail_or_gpio'])
+        for name in ('s12-entry-reset.json', 's12-ret-entry-reset.json'):
+            with self.subTest(name=name):
+                fixture = json.loads((REPO / 'tests/fixtures/native-wifi' / name).read_text())
+                text = '\n'.join(fixture['kmsg']) + '\nROG5_QEMU_PWRCTRL_END\n'
+                with self.assertRaisesRegex(ValueError, 'incomplete'):
+                    validate_rail_log(text, fixture['pause_ms'])
+                self.assertEqual(sum('stage=return result=0' in line for line in fixture['kmsg']), 2)
+                self.assertFalse(fixture['s12_enable_call_entry_proven'])
+                entry_time = float(re.match(r'\[([\d.]+)\]', fixture['kmsg'][-1])[1])
+                self.assertLess(fixture['last_delivered_trace_time'], entry_time + .250)
+                pon = fixture['paired_pon']
+                self.assertEqual((pon['push_after'] - pon['push_before']) % pon['ring_bytes'], pon['new_bytes'])
+                self.assertEqual(pon['warm_reset_count_after'] - pon['warm_reset_count_before'], 1)
+                self.assertFalse(fixture['cached_getters_are_physical_measurements'])
+                self.assertFalse(fixture['safe_to_retry_consumed_target'])
+                self.assertIsNone(fixture['proven_faulting_rail_or_gpio'])
+                if 'initial_mode_property' in fixture:
+                    self.assertEqual(fixture['initial_mode_property'], 0)
+                    self.assertIn('mode=8 mode_state=present', fixture['kmsg'][-1])
+                    self.assertFalse(fixture['mode_vote_alone_fixes_reset'])
 
     def test_native_probe_loads_software_first_and_checks_pci_before_radio(self):
         source = (REPO / 'scripts/device/probe-native-wifi.sh').read_text()
