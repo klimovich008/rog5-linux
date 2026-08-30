@@ -1,0 +1,33 @@
+#!/bin/sh
+export PATH=/bin:/sbin
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+echo ROG5_QEMU_PWRCTRL_BEGIN
+pause=0
+for argument in $(cat /proc/cmdline); do
+ case $argument in rog5.pwrctrl_pause=*) pause=${argument#*=} ;; esac
+done
+case $pause in 0|250|1001) ;; *) echo INVALID_FIXTURE_PAUSE; poweroff -f ;; esac
+for module in pwrseq-qcom-wcn pci-pwrctrl-pwrseq rog5-wifi-pwrctrl-probe; do
+ if [ "$module" = pci-pwrctrl-pwrseq ]; then
+  insmod /modules/$module.ko observation_ms="$pause"
+ else
+  insmod /modules/$module.ko
+ fi
+ status=$?
+ printf 'ROG5_QEMU_MODULE %s status=%s\n' "$module" "$status"
+ if [ "$status" != 0 ]; then poweroff -f; fi
+done
+sleep 1
+for dev in /sys/bus/platform/devices/*; do
+ case $dev in
+  *pcie*|*wifi*|*wcn*)
+   echo "DEVICE=$dev"
+   /bin/busybox readlink "$dev/driver" || true
+   cat "$dev/uevent" || true
+   ;;
+ esac
+done
+echo ROG5_QEMU_PWRCTRL_END
+poweroff -f

@@ -1498,6 +1498,15 @@ class ExactClaimConsumerTest(unittest.TestCase):
         with self.assertRaises(CLAIMS.ClaimError):
             CLAIMS.consume(profile, self.root)
 
+    def test_all_native_artifact_fields_have_exact_digests(self) -> None:
+        for profile, record in NATIVE_PROFILES.items():
+            with self.subTest(profile=profile):
+                fields = dict(line.split("=", 1) for line in record.decode().splitlines())
+                self.assertEqual(fields["recovery_profile"], profile)
+                for name, value in fields.items():
+                    if name.endswith("_sha256"):
+                        self.assertRegex(value, r"^[0-9a-f]{64}$")
+                        self.assertNotEqual(value, "0" * 64)
     def test_wrong_content_owner_mode_link_and_symlink_fail_closed(self) -> None:
         profile = next(iter(PROFILES))
         cases = ("content", "mode", "hardlink", "symlink")

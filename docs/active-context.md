@@ -7,15 +7,15 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Which PCIe controller/clock/reset/PHY step resets the phone before MHI or ath11k
-loads? Wi-Fi remains the active server-MVP requirement. The native RAM handoff,
-USB rescue and automatic V11 return now work; do not rebuild them for this fault.
+Does the reset happen during the power-control client probe or subsequent real
+endpoint power-on? Trace-v2 proves controller/PHY success, but its last delivered
+event is not a proven fault site. Wi-Fi remains the active server requirement.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `3b71f143-439d-44db-ac09-991624e68c79`; slot A remains rescue.
+  `e4fbe654-af38-4e6c-9987-97968419a68f`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
 - Battery Full/Good, 100%, 8.659 V, 29.9°C; side USB provides positive input.
@@ -39,28 +39,32 @@ booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked
 Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-The native RAM trial `native-wifi-ram-v1` is permanently consumed. Source
+Both native RAM trials v1 and trace-v2 are permanently consumed. Source
 `abf3db6` passed full local CI (453s), exact-head, merge and QEMU CI. It reached
 Arch/systemd/SSH; root handoff completed 28.310s after dispatch. Loading the PCIe
 PHY triggered deferred controller probing and a reset before MHI/ath11k. V11
 returned automatically with SSH, healthy power, correct storage scope and
 Tailscale online. Temporary host alias/firewall/listeners were cleaned up.
+Trace-v2 additionally proved controller clocks/reset and PHY power-on returning
+0. QEMU created/bound the exact WCN client and completed dummy power-on/off, so
+a generic creation/ABI bug is not reproduced. No hardware setting was changed.
 See `test-results/2026-08-30-native-wifi-ram-handoff.md`.
 
 ## Cheapest next action
 
-1. Investigate the saved PCIe-reset fixture before issuing a successor. Exact
-   V11 supports KPROBE_EVENTS and exposes the relevant built-in PCIe, clock and
-   reset symbols; function tracing is disabled. Prefer bounded runtime probes
-   over another kernel build. No reason to change Wi-Fi firmware or rail values
-   has been proven. Keep V11/slot A and lock all UFS nodes before activation.
+1. Complete the observe-v3 diagnostic checkpoint. It changes only the exact
+   pwrctrl client module, adding bounded, disabled-by-default pauses around
+   probe/power-on so final USB evidence can drain. Matching module twins and
+   QEMU 0/250/1001ms cases pass. It is not a production fix. The kernel, DTB,
+   initramfs and firmware remain unchanged. No voltage change is justified.
+   Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node
    and mem_size=0, so this attempt had no working ramoops backend.
    The new selective kprobe helper has passed setup/marker/cleanup on V11
    without activating PCIe; original global probe definitions were restored.
-   Trace-v2's signed bundle and different diagnostic tool set are prepared,
-   but its claim is unissued. Complete publication checks, attach its trace
-   reader before the probe, and never reuse the consumed first trial.
+   Observe-v3's signed bundle, exact module archive and tool set are prepared;
+   its claim is unissued. Complete publication checks, attach the trace reader
+   before the probe, and never reuse either consumed trial.
 2. Finish the existing userspace validation client's account login and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.

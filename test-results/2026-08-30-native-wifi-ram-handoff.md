@@ -5,7 +5,8 @@ a working radio while preserving UFS, charging and USB rescue?
 
 The native RAM handoff passed, but PCIe activation reset the phone before MHI
 or ath11k loaded. Wi-Fi is **not working yet**. V11 returned automatically and is
-healthy. `native-wifi-ram-v1` is permanently consumed; never retry it.
+healthy. Both `native-wifi-ram-v1` and `native-wifi-ram-trace-v2` are permanently
+consumed; never retry either.
 
 ## Minimal handoff correction
 
@@ -109,9 +110,44 @@ detector deliberately has no claimed return value. A failing deadline test
 caught the initial 600s reader ending before its 600s radio rollback plus margin;
 the reader is now 900s. Setup/cleanup semantics are unchanged.
 
-The trace-v2 bundle is signed and verified, reusing the unchanged kernel, DTB
-and target initramfs with a fresh identity and an exact, different diagnostic
-tool package. Its claim is not issued and it has not executed. Native claim
+The trace-v2 bundle reused the unchanged kernel, DTB and target initramfs with
+a fresh identity and an exact, different diagnostic tool package. Native claim
 tests now derive the native entries from their one canonical record registry;
 historical source pins remain unchanged. Focused claim/runtime/admission tests
 pass, with no new kernel or wrapper build.
+
+## Trace-v2 physical result and offline reproduction
+
+Source `8b08c15` passed all jobs in GitHub run `33313046551`. Trace-v2 executed
+once, reached Arch/SSH and relocked all 117 UFS nodes before the radio probe.
+It again reset and automatically returned to healthy V11, now boot
+`e4fbe654-af38-4e6c-9987-97968419a68f`. Normal shared networking and Tailscale
+were restored, and temporary observers/host changes were cleaned up.
+
+The trace proves `qcom_pcie_init_2_7_0` returned 0, including successful clock
+and reset calls. `phy_power_on` returned 0 at 174.526138s. The last delivered
+event is entry to `pci_pwrctrl_create_devices` at 174.526142s. It does **not**
+prove a fault inside that function: the same USB transport may have lost later
+buffered events during reset. No voltage or firmware fix follows from this.
+
+A hardware-free fixture using the exact Image and matching WCN provider/client
+modules then passed creation, driver binding and dummy power-on/off in QEMU.
+It uses no physical GPIOs or supplies and refuses non-virt machines. This does
+not reproduce ASUS electrical behavior, but it rejects an unconditional
+creation/ABI failure as the explanation. The Opus review again could not run
+because its saved OAuth session expired; no independent approval is claimed.
+
+Classify the observation gap as R8; the electrical/software reset cause remains
+unresolved. Before another phone attempt, the diagnostic-only pwrctrl patch
+adds disabled-by-default, bounded pauses at probe/power entry and return so
+USB evidence can drain. QEMU passes at 0 and 250ms, and 1001ms rejects binding
+before power-on. A regression validator checks the actual boundary delays.
+Two normalized module builds and complete module archives are byte-identical;
+only the pwrctrl `.ko` differs from the existing module set. Exact vermagic/BTF
+and the final-module QEMU 250ms case pass. The Image, DTB and firmware did not
+change. The active tier passed in 80.385s; focused observer/claim/admission
+checks passed. No second full local CI was run for this module-only change.
+
+The observe-v3 signed bundle, different module archive and tools are prepared
+but unissued. Their identities are bound in the one exact-record registry.
+This remains a diagnostic experiment, not a claimed production Wi-Fi fix.
