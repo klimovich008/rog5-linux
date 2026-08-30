@@ -1409,7 +1409,11 @@ REAL_ANCHOR_PARENT_IS_REPLACE_PROTECTED = (
 
 # New native trials use the repository-owned record, not a second hand-copied
 # artifact identity. Existing historical records above remain immutable evidence.
-PROFILES["native-wifi-ram-v1"] = CLAIMS.CLAIMS["native-wifi-ram-v1"]
+NATIVE_PROFILES = {
+    profile: record for profile, record in CLAIMS.CLAIMS.items()
+    if b"\nexecution=mainline-kexec-ram-only\n" in record
+}
+PROFILES.update(NATIVE_PROFILES)
 
 
 class ExactClaimConsumerTest(unittest.TestCase):

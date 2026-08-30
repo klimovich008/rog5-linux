@@ -96,3 +96,22 @@ firmware or calibration fix. Preserve the consumed trial and V11/slot-A rescue.
 
 The userspace timer cannot resolve a hard kernel lock. PCIe stability, radio
 firmware/BDF selection, association and Wi-Fi SSH remain unproven.
+
+## Tracer preparation
+
+`trace-native-wifi-pcie.sh` uses a private trace instance and 20 bounded
+entry/return probes. It neither loads a driver nor touches PCIe/storage. Its
+plan is checked against the captured pre-MHI failure fixture. An on-device
+setup/marker/cleanup roundtrip passed on the recovered V11 without reboot or
+PCIe activation; the original global kprobe definitions were restored exactly.
+Battery remained Good/29.9°C and the boot ID did not change. The void version
+detector deliberately has no claimed return value. A failing deadline test
+caught the initial 600s reader ending before its 600s radio rollback plus margin;
+the reader is now 900s. Setup/cleanup semantics are unchanged.
+
+The trace-v2 bundle is signed and verified, reusing the unchanged kernel, DTB
+and target initramfs with a fresh identity and an exact, different diagnostic
+tool package. Its claim is not issued and it has not executed. Native claim
+tests now derive the native entries from their one canonical record registry;
+historical source pins remain unchanged. Focused claim/runtime/admission tests
+pass, with no new kernel or wrapper build.
