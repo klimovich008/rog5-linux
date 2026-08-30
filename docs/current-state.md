@@ -9,7 +9,7 @@ pre-compaction state is available at commit `47676f2`.
 ## Objective
 
 Turn the exact ASUS ROG Phone 5 into a reliable standalone Arch Linux server
-with persistent storage, continuous safe charging, networking, key-only SSH,
+with persistent storage, continuous safe charging, independent Wi-Fi networking, key-only SSH,
 unattended reboot, and a proven rescue route. GPU, desktop, display, audio,
 sensors, and automation remain deferred.
 
@@ -99,8 +99,10 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-Next: authenticate the separate Tailscale test client and prove encrypted peer
-SSH. No new kernel or phone cycle is needed for that test. Keep the existing
+Next: bring up WCN6855 Wi-Fi client support so networking no longer depends on
+the Steam Deck. Preserve USB rescue. In parallel, authenticate the separate
+Tailscale test client and prove encrypted peer SSH; no new kernel or phone cycle
+is needed solely for that test. Keep the existing
 observer for longer loaded-network tests; prior two-hour evidence is a baseline,
 not a V11 soak result.
 

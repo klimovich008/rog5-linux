@@ -18,7 +18,7 @@ for contract in \
 	'Active slot: B, running V11 boot' \
 	'1-1.2' \
 	'V49' \
-	'no DT, wrapper, GPT, or boot-partition'
+	'no GPT or experimental boot-partition flash'
 do
 	grep -Fq "$contract" "$active" || {
 		echo "FAIL active context omits current contract: $contract" >&2

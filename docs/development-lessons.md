@@ -100,6 +100,10 @@ Observed pattern:
 - The host watchdog fixture depended on procfs `children`, but the exact ASUS
   wrapper had `CONFIG_PROC_CHILDREN` disabled.
 - Tools such as `/usr/bin/time` and command options such as `cmp -r` were assumed to exist on the build host.
+- A reduced module-build kit kept headers and scripts but omitted
+  `tools/bpf/resolve_btfids/resolve_btfids`; compilation succeeded and final BTF
+  processing failed. Validate the finalizer before compiling, and retain it
+  with the exact vmlinux/header kit.
 - ACM tooling required a canonical sysfs location while a short USB path was supplied.
 - A fixed `restart2("bootloader")` helper rebooted mainline, but the PMK8350
   SDAM and NVMEM reboot-mode drivers were modules absent from the sealed
