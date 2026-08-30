@@ -39,20 +39,14 @@ booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked
 Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-All three native Wi-Fi trials, through observe-v3, are permanently consumed. Source
-`abf3db6` passed full local CI (453s), exact-head, merge and QEMU CI. It reached
-Arch/systemd/SSH; root handoff completed 28.310s after dispatch. Loading the PCIe
-PHY triggered deferred controller probing and a reset before MHI/ath11k. V11
-returned automatically with SSH, healthy power, correct storage scope and
-Tailscale online. Temporary host alias/firewall/listeners were cleaned up.
-Trace-v2 additionally proved controller clocks/reset and PHY power-on returning
-0. QEMU created/bound the exact WCN client and completed dummy power-on/off, so
-a generic creation/ABI bug is not reproduced. No hardware setting was changed.
-Observe-v3 then captured probe-ready, creation return 0 and power-on-enter before
-reset. V11 recovered automatically. Isolated MHI load/unload passed in about
-0.01s on the same V11 boot with PCI empty and 117 nodes RO, removing an unconditional
-MHI-init failure from the leading explanations. No rail or GPIO fault is proven.
-See `test-results/2026-08-30-native-wifi-ram-handoff.md`.
+All three native Wi-Fi trials through observe-v3 are permanently consumed.
+Arch/systemd/SSH and automatic V11 recovery passed; PCIe activation reset the
+target. Trace-v2 proved controller/PHY success; observe-v3 proved creation
+return 0 and power-on-enter. Isolated MHI load/unload passed on V11 with PCI
+empty and 117 nodes RO. No rail or GPIO fault is proven. Exact-kernel QEMU
+passes client creation and dummy power. Full local CI passed in 453s for the
+handoff code; retained timing and physical evidence are in
+`test-results/2026-08-30-native-wifi-ram-handoff.md`.
 
 ## Cheapest next action
 
@@ -63,11 +57,9 @@ See `test-results/2026-08-30-native-wifi-ram-handoff.md`.
    and exact-kernel QEMU 0/250/1001 cases pass. The probe now loads software
    before PCIe and verifies the exact endpoint before binding ath11k, avoiding
    the observed MHI-init overlap. No v4 claim is issued or target executed.
-   Retained ASUS CNSS code enables its regulator list serially;
-   mainline uses bulk enable. The WW33 base DT has vendor init-mode values 1
-   on S12 and 4 on S2; vendor levels.h decodes these as RET/HPM, whereas mainline
-   uses different numeric mode constants. Overlay applicability and live mode
-   still need verification. Do not copy raw mode numbers or retune voltages.
+   ASUS CNSS enables supplies serially; mainline uses bulk enable. Vendor and
+   mainline regulator mode constants differ. Composed modes are not proven;
+   do not copy raw mode numbers or retune voltages (see the result record).
    The Image, DTB, initramfs and firmware remain unchanged.
    Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node
