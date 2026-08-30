@@ -82,13 +82,9 @@ handoff code; retained timing and physical evidence are in
    for signed Wi-Fi userspace packages; preserve package-signature enforcement.
 4. Continue loaded Wi-Fi/power checks and the remaining standalone server MVP.
 
-Opus's saved OAuth session expired; the attempted review did not run. This is
-not a hardware failure and is not a reason to redo the successful builds.
-
-Retain V11/V10 and the stable slot-B loader. Wi-Fi may need a DTB and module
-change, but no GPT or experimental boot-partition flash. Preserve the exact
-rebuilt module kit and compressed V11 p24 image. Do not repeat the completed
-p24 transfer.
+Opus's OAuth session expired; no review ran. Retain V11/V10, the stable loader,
+module kit and compressed V11 image: no GPT or experimental boot-partition flash.
+Do not repeat the completed p24 transfer or successful builds.
 
 ## Boundaries and Git
 
