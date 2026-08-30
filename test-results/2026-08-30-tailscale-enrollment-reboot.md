@@ -30,8 +30,26 @@ correction in progress, not yet accepted for a new release.
 - The installed bundle remains V10, so its persistent shutdown and firewall
   defects are not claimed fixed by the RAM-only reboot test.
 - Full local CI on `776921e`: PASS in 10m49.800s, alongside kernel compilation.
+- Exact-head `8d81ac7` GitHub run `33299000074`: head 6m32s, merge 6m21s,
+  QEMU 2m7s and candidate publication 1m6s, all PASS.
+- Clean A Image `bdceaa516cafbe276179344c8d55d78f20319e7cb3f3375498536fca37879806`
+  passes the same QEMU nft check (old Image exit 1; new Image exit 0).
+  All 19 power/USB/UFS modules load successfully with no BTF/symbol errors.
+- Rebuilt modules match the deployed allocated code/data sections and their
+  relocations. Only debug/BTF/build-ID metadata and the external UFS build's
+  `intree` marker are excluded from that equivalence comparison.
+- The existing standalone packager can refresh the exact 4+15 module inventory
+  for this rebuilt kernel. A fail-first regression covers missing/extra files,
+  symlinks and wrong release. Untouched archive files remain byte-identical.
+  The resulting A archive passes exact sealed-BusyBox syntax checks.
+- Module-refresh focused regression: PASS (0.08s). Active tier after packaging
+  correction: PASS (114.69s, concurrent with the six-job clean kernel build).
+- A later soak snapshot has one failed background unit:
+  `archlinux-keyring-wkd-sync.service`, `fpr_email[1]: unbound variable`.
+  This is not a kernel or Tailscale failure and remains unresolved. Do not claim
+  the long-running system has zero failed units based on its initial boot.
 
-Next: finish clean kernel twins, test ct marks under QEMU, verify the exact
-power/UFS module ABI and BTF closure, then admit one corrected release. Keep
+Next: finish the independent clean B build and exact twin comparisons, then
+admit one corrected release. Keep
 V10 and slot-A rescue intact. Test encrypted peer SSH only with another
 authenticated tailnet peer; self-connectivity is not that proof.
