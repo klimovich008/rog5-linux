@@ -7,15 +7,15 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Does the reset happen during the power-control client probe or subsequent real
-endpoint power-on? Trace-v2 proves controller/PHY success, but its last delivered
-event is not a proven fault site. Wi-Fi remains the active server requirement.
+Which board-specific power transition causes the reset after endpoint power-on
+is entered? Observe-v3 proves the client probe and device creation complete.
+MHI initialization alone passes on V11. Wi-Fi remains the active requirement.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `e4fbe654-af38-4e6c-9987-97968419a68f`; slot A remains rescue.
+  `22963cf0-b453-444d-89e3-3444a41d1d29`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
 - Battery Full/Good, 100%, 8.659 V, 29.9°C; side USB provides positive input.
@@ -39,7 +39,7 @@ booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked
 Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-Both native RAM trials v1 and trace-v2 are permanently consumed. Source
+All three native Wi-Fi trials, through observe-v3, are permanently consumed. Source
 `abf3db6` passed full local CI (453s), exact-head, merge and QEMU CI. It reached
 Arch/systemd/SSH; root handoff completed 28.310s after dispatch. Loading the PCIe
 PHY triggered deferred controller probing and a reset before MHI/ath11k. V11
@@ -48,23 +48,30 @@ Tailscale online. Temporary host alias/firewall/listeners were cleaned up.
 Trace-v2 additionally proved controller clocks/reset and PHY power-on returning
 0. QEMU created/bound the exact WCN client and completed dummy power-on/off, so
 a generic creation/ABI bug is not reproduced. No hardware setting was changed.
+Observe-v3 then captured probe-ready, creation return 0 and power-on-enter before
+reset. V11 recovered automatically. Isolated MHI load/unload passed in about
+0.01s on the same V11 boot with PCI empty and 117 nodes RO, removing an unconditional
+MHI-init failure from the leading explanations. No rail or GPIO fault is proven.
 See `test-results/2026-08-30-native-wifi-ram-handoff.md`.
 
 ## Cheapest next action
 
-1. Complete the observe-v3 diagnostic checkpoint. It changes only the exact
-   pwrctrl client module, adding bounded, disabled-by-default pauses around
-   probe/power-on so final USB evidence can drain. Matching module twins and
-   QEMU 0/250/1001ms cases pass. It is not a production fix. The kernel, DTB,
-   initramfs and firmware remain unchanged. No voltage change is justified.
+1. Audit the stock power-sequence contract, then choose a per-rail/GPIO
+   discriminator. Retained ASUS CNSS code enables its regulator list serially;
+   mainline uses bulk enable. The WW33 base DT has vendor init-mode values 1
+   on S12 and 4 on S2; vendor levels.h decodes these as RET/HPM, whereas mainline
+   uses different numeric mode constants. Overlay applicability and live mode
+   still need verification. Do not copy raw mode numbers or retune voltages.
+   No successor is issued. The kernel, DTB, initramfs and firmware remain unchanged.
    Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node
    and mem_size=0, so this attempt had no working ramoops backend.
    The new selective kprobe helper has passed setup/marker/cleanup on V11
    without activating PCIe; original global probe definitions were restored.
-   Observe-v3's signed bundle, exact module archive and tool set are prepared;
-   its claim is unissued. Complete publication checks, attach the trace reader
-   before the probe, and never reuse either consumed trial.
+   Observe-v3 is consumed. Its host management lease expired during an operator
+   gap before the radio probe; the ready guard prevented activation. The same
+   still-running trial resumed through one bounded reader/probe script, without
+   reboot or new claim. Keep that critical sequence contiguous in future cycles.
 2. Finish the existing userspace validation client's account login and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
