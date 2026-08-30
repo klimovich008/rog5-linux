@@ -1,0 +1,17 @@
+[Unit]
+Description=Initialize persistent Arch Linux ARM package trust
+Requires=rog5-persistent-state.service
+After=rog5-persistent-state.service systemd-timesyncd.service
+Before=archlinux-keyring-wkd-sync.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/run/rog5-persistent-keyring start
+ExecStopPost=/run/rog5-persistent-keyring stop
+TimeoutStartSec=120
+TimeoutStopSec=30
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
