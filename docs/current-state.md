@@ -107,6 +107,8 @@ history gained one PS_HOLD warm reset. No physical rail fault or kernel panic
 is proven. The stock S12 retention vote applied in v5 but did not prevent reset.
 Investigate the exact RPMh/crash boundary before successors; see the native
 Wi-Fi RAM-handoff result. Wi-Fi is not yet functional.
+Conditional WCN6851/hw1.1 modules now pass exact-source dispatch tests,
+reproducibility and exact-Image QEMU/BTF checks; they are not deployed on the phone.
 Preserve USB rescue. In parallel, authenticate the separate
 Tailscale test client and prove encrypted peer SSH; no new kernel or phone cycle
 is needed solely for that test. Keep the existing

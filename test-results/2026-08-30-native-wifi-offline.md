@@ -89,3 +89,50 @@ country setting was confined to QEMU, which had no physical/network devices.
 The bounded Opus review was attempted but failed before review because its
 OAuth session expired. No independent approval is claimed. Focused tests pass;
 the active tier passed in 78.18s before the final selector-window correction.
+
+## Conditional WCN6851/hw1.1 backport
+
+The exact source rejected hardware major1/minor0x10 with EOPNOTSUPP. The
+[reviewed upstream addition](https://patchew.org/linux/20260601-sm8350-wifi-v1-2-242917d88031@oss.qualcomm.com/)
+is now a module-only backport, retaining three vdevs. The author's follow-up
+reports a firmware crash with four, so that later value was not copied.
+Selection uses the hardware-reported revision, not a forced ASUS assumption.
+
+`build-native-ath11k-modules.sh SOURCE KERNEL_KIT BASE_WIFI_SYMVERS NEW_OUTPUT`
+copies and patches only the ath driver family. The source checkout and matching
+config/vmlinux kit were mounted read-only. A measured build took22.202s, versus
+the previous91.60s whole-Wi-Fi build. The kernel Image was not rebuilt.
+
+Seven focused tests cover the added selector, firmware directory/vdev limit,
+MSI layout, prerequisite refusal, dependency-export filtering and build flags.
+An additional exact-source C harness executes the full WCN selector: pristine
+source fails hw1.1, patched source passes518 revision/fuse cases including
+existing hw2.x/QCA subtypes and unsupported inputs. A regression prevents
+accidentally testing the earlier QCA6390 selector instead of the WCN selector.
+
+The selected AHB module shares the changed hardware enum and is rebuilt along
+with core/PCI. Its old exports must not be recycled as external dependencies.
+That regression failed before the filter correction and now passes.
+
+The first twins had identical compiled/linked objects but differing BTF type
+ordering. The dedicated builder had omitted the existing builder's `JOBS=1`
+override: Kbuild uses it for pahole separately from compile `-j`. Restoring it
+and rerunning only final link/BTF made all four outputs byte-identical; original
+parallel-BTF artifacts were preserved. No C objects or kernel were recompiled.
+The build-command regression fails without serial BTF while retaining `-j4`.
+
+The combined archive twins match:
+`38e1dafb389e7ef1b63d8469cb33f68248de0bd7f570b7a73e86ffda60827628`.
+Exactly three files differ from the rails-v4 package: ath11k, ath11k_pci and
+ath11k_ahb. Every other module, metadata file and the existing common ath module
+is byte-identical. Exact V11 Image QEMU loads all17 runtime roots plus AHB,
+exports accepted BTF for all three changed modules, and passes the existing
+crypto, regulatory and nft checks. This does not exercise real radio hardware.
+The active tier passed in81.154s; full local CI was not repeated for unchanged
+kernel/recovery/lifecycle inputs.
+
+No candidate was created, signed or executed. No phone slot, storage or power
+control was changed. V11 remains boot1b24ebf0-e4a1-466c-8197-13904886f5cf,
+Good8.636V/30.1°C, with state/Tailscale services active. The S12 reset remains
+unresolved. Hardware revision, ASUS supply mapping and correct hw1.1 firmware/
+BDF inputs still require evidence before another phone candidate is issued.
