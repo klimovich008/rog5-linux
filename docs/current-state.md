@@ -106,9 +106,14 @@ The existing standalone builder now covers this exact regression.
 
 Native nftables is selected for the successor. Missing NF_CONNTRACK_MARK is
 proven by deployed config and matching phone/QEMU check-only failures. A narrow
-clean-kernel build is in progress; no new kernel has been installed. See
+clean A kernel passes the previously failing nft check and all 19 module loads
+in QEMU; independent clean B is in progress. No new kernel is installed. See
 `test-results/2026-08-30-tailscale-enrollment-reboot.md`. Independent peer SSH
 and the corrected release's final recovery checks remain pending.
+
+The current soak has one failed background keyring-refresh unit (an unbound
+array parser error). Initial zero-failed-unit checks do not cover that later
+failure; it is recorded separately from the firewall correction.
 
 ## Required boundaries
 
@@ -124,6 +129,7 @@ and the corrected release's final recovery checks remain pending.
 ## Repository state
 
 - Branch: `agent/linux-recovery-host`.
-- Last pushed commit: `7d1b903238d036ca2df433a2636b2f3d1754afe1`.
+- Resolve the current publication with `git rev-parse HEAD` and the exact-head
+  GitHub check; do not use an embedded last-pushed SHA as release authority.
 - Standing GitHub authorization covers normal commits and pushes to the active
   branch; never force-push.

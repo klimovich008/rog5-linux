@@ -29,8 +29,10 @@ exitramfs provide clean Tailscale firewall health and unattended reboot?
 
 V10 is enrolled and online. Its default iptables MARK backend fails; native
 nftables proves the remaining NF_CONNTRACK_MARK kernel gap. QEMU reproduces
-the same failure with the exact deployed Image. A clean one-option kernel
-build is running in isolated temporary output, with no phone access.
+the same failure with the exact deployed Image. Clean A fixes that check and
+loads all 19 modules in QEMU. Independent clean B is running; the new kernel
+has not contacted the phone. Later systemd degradation is a separate keyring
+refresh parser error, recorded in the enrollment/reboot result.
 
 V10's generic builder also replaced the standalone exitramfs with diagnostic
 fastboot shutdown. The existing standalone builder is corrected. The reviewed
@@ -58,7 +60,7 @@ write, or loss of slot-A rescue. Never expose credentials or private evidence.
 
 - Worktree: `/home/deck/.local/state/rog5-haven-clean-ci-20260810`.
 - Branch: `agent/linux-recovery-host`.
-- Last pushed checkpoint: `7d1b903238d036ca2df433a2636b2f3d1754afe1`.
+- Resolve the exact published checkpoint from Git and exact-head CI.
 - V10 source checkpoint: `39d1e12e217bf24b5de144e032f0ceddd8ad1717`.
 - Standing GitHub authorization permits normal pushes to this branch; never
   force-push.
