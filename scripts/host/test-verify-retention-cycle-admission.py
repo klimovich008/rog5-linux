@@ -853,6 +853,19 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         with self.assertRaisesRegex(ADMISSION.AdmissionError, message):
             self.verify()
 
+    def test_native_ram_record_must_match_canonical_checkout(self) -> None:
+        record = ADMISSION.EXPECTED_CLAIMS["native-wifi-ram-v1"].decode()
+        field = next(line for line in record.splitlines()
+                     if line.startswith("tools_manifest_sha256="))
+        source = self.consumer.read_text()
+        self.assertIn(field, source)
+        self.consumer.write_text(source.replace(field, "tools_manifest_sha256=" + "0" * 64, 1))
+        claims = self.profile["claims"]
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("registry is not exact")
+
     def test_exact_distinct_authority_free_pair_passes(self) -> None:
         report = self.verify()
         self.assertIn("temporary_boot_allow_rows=2", report)

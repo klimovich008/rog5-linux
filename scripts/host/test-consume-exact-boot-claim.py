@@ -1407,6 +1407,11 @@ REAL_ANCHOR_PARENT_IS_REPLACE_PROTECTED = (
 )
 
 
+# New native trials use the repository-owned record, not a second hand-copied
+# artifact identity. Existing historical records above remain immutable evidence.
+PROFILES["native-wifi-ram-v1"] = CLAIMS.CLAIMS["native-wifi-ram-v1"]
+
+
 class ExactClaimConsumerTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
@@ -1468,6 +1473,26 @@ class ExactClaimConsumerTest(unittest.TestCase):
         self.assertEqual(len(assignments), 1)
         self.assertIsInstance(assignments[0].value, ast.Dict)
         self.assertNotIn("CLAIM_PROFILES", CONSUMER.read_text(encoding="utf-8"))
+
+    def test_native_ram_record_is_exact_and_permanently_consumed(self) -> None:
+        profile = "native-wifi-ram-v1"
+        payload = self.expected(profile)
+        fields = dict(line.split("=", 1) for line in payload.decode().splitlines())
+        self.assertEqual(len(fields), len(payload.splitlines()))
+        self.assertEqual(fields["recovery_profile"], profile)
+        self.assertEqual(fields["execution"], "mainline-kexec-ram-only")
+        self.assertEqual(fields["state"], "BOOT_CLAIMED")
+        for name in ("manifest_sha256", "tools_manifest_sha256"):
+            self.assertRegex(fields[name], r"^[0-9a-f]{64}$")
+            self.assertNotEqual(fields[name], "0" * 64)
+        self.write_record(profile, payload.replace(b"state=BOOT_CLAIMED", b"state=RETRY"))
+        with self.assertRaises(CLAIMS.ClaimError):
+            CLAIMS.consume(profile, self.root)
+        self.write_record(profile)
+        CLAIMS.consume(profile, self.root)
+        self.write_record(profile)
+        with self.assertRaises(CLAIMS.ClaimError):
+            CLAIMS.consume(profile, self.root)
 
     def test_wrong_content_owner_mode_link_and_symlink_fail_closed(self) -> None:
         profile = next(iter(PROFILES))

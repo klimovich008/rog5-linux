@@ -45,6 +45,18 @@ detach_persistent_state() {
 	done
 }
 
+try_native_kexec() {
+	# Only a RAM trial stages this syscall-only helper and its verified digest.
+	# An ordinary reboot, incomplete teardown or missing tool must reboot V11.
+	[ "${1:-}" = kexec ] && [ "$clean" = 1 ] || return 0
+	[ -f /rog5-kexec-exec ] && [ ! -L /rog5-kexec-exec ] &&
+		[ -x /rog5-kexec-exec ] || return 0
+	[ -f /rog5-kexec-exec.sha256 ] && [ ! -L /rog5-kexec-exec.sha256 ] || return 0
+	(cd / && "$bb" sha256sum -c rog5-kexec-exec.sha256) || return 0
+	/rog5-kexec-exec
+	# Any return is failure, including status zero. Never retry the target.
+}
+
 log 'discarding volatile root before standalone restart'
 "$bb" mount -o remount,rw / 2>/dev/null || true
 "$bb" mkdir -p /oldsys
@@ -75,6 +87,7 @@ for api in run dev sys proc; do
 	lazy_unmount "/oldsys/$api"
 done
 
+try_native_kexec "${1:-}" || true
 log 'requesting storage-quiescent normal restart'
 "$bb" reboot -f 2>/dev/null || true
 log 'normal restart returned; triggering emergency reset'

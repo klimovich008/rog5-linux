@@ -151,6 +151,9 @@ active_tests=(
 	scripts/device/test-standalone-module-refresh.sh
 	scripts/device/test-native-wifi-module-kit.sh
 	scripts/device/test-native-wifi-dtb.py
+	scripts/device/test-load-native-ram-bundle.sh
+	scripts/device/test-native-kexec-shutdown.py
+	scripts/host/test-retention-cycle-runtime-closure.py
 	scripts/device/test-persistent-ufs-module-profile.sh
 	scripts/device/test-observe-persistent-usb-liveness.sh
 	scripts/host/test-generate-power-usb-active.py
@@ -245,7 +248,6 @@ shared_tests=(
 	scripts/host/test-run-retention-cycle-live.py
 	scripts/host/test-retention-cycle-executor-contract.py
 	scripts/host/test-retention-cycle-executor-boundary.py
-	scripts/host/test-retention-cycle-runtime-closure.py
 	scripts/host/test-retention-cycle-descriptor-execution.py
 	scripts/host/test-recovery-control-reference.py
 	scripts/host/test-recovery-control-native.py

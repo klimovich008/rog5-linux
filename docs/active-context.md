@@ -38,6 +38,12 @@ state and uses stock-derived, selector-valid voltage intervals; these are not
 yet hardware-tested. Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
+Native RAM kexec tools are staged and connected preflight passes; execution is
+still unissued. The installed exitramfs needed kexec dispatch after clean
+teardown. The small helper and exact-kernel QEMU handoff pass offline. See
+`test-results/2026-08-30-native-wifi-ram-handoff.md`. Preserve the running V11;
+do not consume the trial until the corrected historical fixtures pass CI.
+
 ## Cheapest next action
 
 1. Complete a fresh RAM-only Wi-Fi trial using the verified native module/DTB
