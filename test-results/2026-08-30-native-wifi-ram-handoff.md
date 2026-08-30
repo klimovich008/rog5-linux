@@ -287,3 +287,49 @@ The signed s12-ret-v5 twins match. They are prepared, not issued or executed.
 This fixes a stock-description mismatch; it does **not** yet prove that the
 missing vote caused the reset or that Wi-Fi works. The next RAM-only cycle
 tests that one change, retaining the per-rail diagnostic and paired PON reader.
+
+## S12-ret-v5: mode applied, reset persists
+
+Source `367975cf1eb5fb74d50d7bfaa4a774c115de0710` passed full local CI in466s
+and all jobs in GitHub run `33332053780`. The exact production AArch64 verifier
+passed in an isolated QEMU-user container and non-consuming connected preflight
+passed. The claim was consumed once at1788120127.673449; target
+`88d29847-205c-4a51-bffc-953d828d4459` reached pinned SSH at1788120164.640205.
+
+With117 nodes RO, S10/vddio returned0 at38.248397s and S11/vddaon returned0
+at38.824330s. S12/vddpmu entry at39.112228s reported framework mode8, matching
+the requested retention vote. The target still reset without delivering a
+return. This falsifies the missing-mode vote as a sufficient fix. It does not
+prove which voltage/enable transaction failed; the last trace packet is earlier
+than that call. No voltage or HPM change follows from this result.
+
+Paired PON pointers78→98 add20bytes, including a PS_HOLD warm reset and count
+4→5. No added OCP/UVLO record is not proof of no crash. V11 automatically
+recovered as `1b24ebf0-e4a1-466c-8197-13904886f5cf`, with state/Tailscale active,
+Good8.637V/30°C, no failed units and onlysda/sda23 writable. Temporary host
+networking/listeners were cleaned up. SlotA, slotB and permanent selector were
+not changed. All five Wi-Fi targets are consumed; none may be retried.
+
+The real prefix is retained in `s12-ret-entry-reset.json`; the regression
+validator rejects both partial sequences and preserves the negative result
+despite the accepted mode. The fast-loop two-attempt rule now pauses successors
+for systematic root-cause investigation. A bounded high-effort, tool-free Opus
+review could not run because its saved OAuth session expired. Local source and
+independent-observation investigation continues; Wi-Fi is not working yet.
+
+## Upstream variant lead — not an ASUS hardware conclusion
+
+Qualcomm's [SM8350 Wi-Fi series](https://patchew.org/linux/20260608-sm8350-wifi-v2-0-efb68f1ff04c@oss.qualcomm.com/)
+identifies the HDK's WCN6851 as hw1.1. That support is absent from our exact
+ath11k source. Its [board patch](https://patchew.org/linux/20260608-sm8350-wifi-v2-0-efb68f1ff04c@oss.qualcomm.com/20260608-sm8350-wifi-v2-7-efb68f1ff04c@oss.qualcomm.com/)
+maps VDDPMU to S11, while our SM8450-derived mapping uses S12. This changes the
+power-sequence reference order and warrants investigation, not automatic copying
+to ASUS. PCIe has not enumerated, so this phone's hardware revision remains
+unread. The staged firmware's V1_V2 version string does not determine it.
+
+The [ath11k patch discussion](https://patchew.org/linux/20260608-sm8350-wifi-v2-0-efb68f1ff04c@oss.qualcomm.com/20260608-sm8350-wifi-v2-2-efb68f1ff04c@oss.qualcomm.com/)
+also reports a firmware crash with four vdevs and says the next revision will
+restore three. Do not apply v2 blindly. The advertised legacy PERST regression
+must separately be checked against our source; controller/PHY initialization
+already succeeds here. No variant/mapping patch or successor was issued during
+this investigation. Postmortem focused checks and the active tier pass (79.746s).
