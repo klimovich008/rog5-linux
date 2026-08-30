@@ -1,0 +1,3 @@
+# Tailscale 1.102.3 native nftables saves/restores ct marks while netfilter=on.
+# V10 proved nftables works but ct-mark expressions return EOPNOTSUPP.
+CONFIG_NF_CONNTRACK_MARK=y
