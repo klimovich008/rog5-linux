@@ -5,12 +5,19 @@ mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev
 echo ROG5_QEMU_PWRCTRL_BEGIN
 pause=0
+wcn_pause=0
 for argument in $(cat /proc/cmdline); do
- case $argument in rog5.pwrctrl_pause=*) pause=${argument#*=} ;; esac
+ case $argument in
+  rog5.pwrctrl_pause=*) pause=${argument#*=} ;;
+  rog5.wcn_pause=*) wcn_pause=${argument#*=} ;;
+ esac
 done
 case $pause in 0|250|1001) ;; *) echo INVALID_FIXTURE_PAUSE; poweroff -f ;; esac
+case $wcn_pause in 0|250|1001) ;; *) echo INVALID_FIXTURE_WCN_PAUSE; poweroff -f ;; esac
 for module in pwrseq-qcom-wcn pci-pwrctrl-pwrseq rog5-wifi-pwrctrl-probe; do
- if [ "$module" = pci-pwrctrl-pwrseq ]; then
+ if [ "$module" = pwrseq-qcom-wcn ]; then
+  insmod /modules/$module.ko serial_observation_ms="$wcn_pause"
+ elif [ "$module" = pci-pwrctrl-pwrseq ]; then
   insmod /modules/$module.ko observation_ms="$pause"
  else
   insmod /modules/$module.ko
@@ -19,7 +26,19 @@ for module in pwrseq-qcom-wcn pci-pwrctrl-pwrseq rog5-wifi-pwrctrl-probe; do
  printf 'ROG5_QEMU_MODULE %s status=%s\n' "$module" "$status"
  if [ "$status" != 0 ]; then poweroff -f; fi
 done
-sleep 1
+done_file=/sys/module/rog5_wifi_pwrctrl_probe/parameters/fixture_done
+if [ ! -r "$done_file" ]; then
+ echo ROG5_QEMU_FIXTURE_COMPOSITION_MISMATCH
+ poweroff -f
+fi
+for attempt in $(/bin/busybox seq 1 150); do
+ [ "$(cat "$done_file")" != Y ] || break
+ sleep 0.1
+done
+if [ "$(cat "$done_file")" != Y ]; then
+ echo ROG5_QEMU_ASYNC_PROBE_TIMEOUT
+ poweroff -f
+fi
 for dev in /sys/bus/platform/devices/*; do
  case $dev in
   *pcie*|*wifi*|*wcn*)
