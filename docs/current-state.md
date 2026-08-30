@@ -41,8 +41,8 @@ Persistent release v10 boots successfully; V9 and V8 remain exact p24 rollbacks.
   survives reboot and clean state-service teardown relocks all 117 nodes.
 - V9 adds the live-proven V49 high-speed UFS core. Two persistent V9 boots,
   clean reboot/relock, systemd, NCM, SSH, storage and power checks passed.
-- V10 adds only automatic routed Tailscale startup from p23. Its first boot
-  passes; account enrollment and one post-login reboot remain.
+- V10 provides automatic routed Tailscale startup. Enrollment and persisted
+  node identity passed; firewall and persistent-shutdown corrections remain.
 - Primary evidence:
   `test-results/2026-08-30-persistent-tailscale-v10-live.md`.
 
@@ -98,11 +98,17 @@ completed in 70.561 seconds; both boots selected the signed V9 bundle, emitted
 the V49 high-speed marker once, reported zero UFS errors, loaded stable SSH,
 mounted p23 state, and preserved exact write scope and power safety.
 
-Tailscale 1.102.3 is checksum-verified on noexec p23. V10 automatically copied
-exact binaries to tmpfs, configured `10.77.0.2/30`, started TUN and the daemon,
-and preserved every V9 kernel/storage/power invariant. The one p24 transfer
-completed in 72.639 seconds and first boot passed. Browser account enrollment
-is the only remaining external gate before a post-login unattended reboot.
+Tailscale enrollment is complete. One RAM-corrected normal reboot returned
+the same enrolled node and stable SSH in about 60 seconds without re-login.
+The p24 transfer completed in 72.639 seconds, but V10 packaged the diagnostic
+exitramfs; the installed normal-reboot path is not yet accepted as standalone.
+The existing standalone builder now covers this exact regression.
+
+Native nftables is selected for the successor. Missing NF_CONNTRACK_MARK is
+proven by deployed config and matching phone/QEMU check-only failures. A narrow
+clean-kernel build is in progress; no new kernel has been installed. See
+`test-results/2026-08-30-tailscale-enrollment-reboot.md`. Independent peer SSH
+and the corrected release's final recovery checks remain pending.
 
 ## Required boundaries
 
