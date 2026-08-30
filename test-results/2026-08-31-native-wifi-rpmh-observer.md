@@ -76,3 +76,19 @@ The next radio cycle must isolate the actual S12 RPMh transaction, keep all117
 UFS nodes RO and collect reset evidence. Reuse the proven Image/DT/modules,
 not a guessed voltage/HPM/order correction, and use a fresh signed composition
 and one-use claim. Conditional hw1.1 modules remain offline and separate.
+
+## Fresh observation-only RAM successor
+
+The reviewed observer source passed every job in GitHub run33341626079.
+A fresh RPMh-v6 bundle now has identical signed twins, packaged in0.690s
+without rebuilding the kernel, DTB, modules or initramfs. Only bundle identity
+and the tool archive's trace helper differ from v5. The old sealed tool tree
+was preserved; preparation initially refused its copied read-only helper, then
+resumed the verified new copy after making that one destination writable.
+
+The exact record is generated from the private build receipt into the existing
+repository-owned claim registry. Its non-consuming comparison failed before
+registration and now passes, along with all16 generic one-use tests. The exact
+production AArch64 verifier accepts the signature/composition in isolated QEMU.
+No one-use claim exists yet. Execute only after publication and connected gates
+pass; do not change voltage, HPM, supply order, permanent selector or boot slots.
