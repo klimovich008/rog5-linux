@@ -7,15 +7,15 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Can WCN6855 Wi-Fi work with the current charging/UFS baseline and preserved USB
-rescue, removing the Steam Deck network dependency? Peer Tailscale SSH remains
-an independent account-login gate; the firewall and normal-reboot defects are fixed.
+Which PCIe controller/clock/reset/PHY step resets the phone before MHI or ath11k
+loads? Wi-Fi remains the active server-MVP requirement. The native RAM handoff,
+USB rescue and automatic V11 return now work; do not rebuild them for this fault.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `9c752d3d-c7c0-490c-a074-ed73029358b3`; slot A remains rescue.
+  `3b71f143-439d-44db-ac09-991624e68c79`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
 - Battery Full/Good, 100%, 8.659 V, 29.9°C; side USB provides positive input.
@@ -34,23 +34,28 @@ The first Wi-Fi builder pass completed in 71.47s without rebuilding V11.
 The complete set now contains 22 modules, including dynamic signature/cipher
 dependencies. QEMU accepts valid regulatory data, rejects tampering and proves
 the requested Wi-Fi crypto transforms. The native Wi-Fi DTB preserves unrelated
-state and uses stock-derived, selector-valid voltage intervals; these are not
-yet hardware-tested. Firmware matches the prior verified set. See
+state and uses stock-derived, selector-valid voltage intervals. Its RAM trial
+booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked.
+Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-Native RAM kexec tools are staged and connected preflight passes; execution is
-still unissued. The installed exitramfs needed kexec dispatch after clean
-teardown. The small helper and exact-kernel QEMU handoff pass offline. See
-`test-results/2026-08-30-native-wifi-ram-handoff.md`. Preserve the running V11;
-do not consume the trial until the corrected historical fixtures pass CI.
+The native RAM trial `native-wifi-ram-v1` is permanently consumed. Source
+`abf3db6` passed full local CI (453s), exact-head, merge and QEMU CI. It reached
+Arch/systemd/SSH; root handoff completed 28.310s after dispatch. Loading the PCIe
+PHY triggered deferred controller probing and a reset before MHI/ath11k. V11
+returned automatically with SSH, healthy power, correct storage scope and
+Tailscale online. Temporary host alias/firewall/listeners were cleaned up.
+See `test-results/2026-08-30-native-wifi-ram-handoff.md`.
 
 ## Cheapest next action
 
-1. Complete a fresh RAM-only Wi-Fi trial using the verified native module/DTB
-   checkpoint. No physical Wi-Fi attempt has occurred. Keep V11 and slot A;
-   stop p23 state before radio activation and prove all UFS nodes read-only.
-   Do not boot the old UFS-disabled Wi-Fi package or transplant old ABI/BTF
-   modules. Do not guess calibration data or weaken regulatory verification.
+1. Investigate the saved PCIe-reset fixture before issuing a successor. Exact
+   V11 supports KPROBE_EVENTS and exposes the relevant built-in PCIe, clock and
+   reset symbols; function tracing is disabled. Prefer bounded runtime probes
+   over another kernel build. No reason to change Wi-Fi firmware or rail values
+   has been proven. Keep V11/slot A and lock all UFS nodes before activation.
+   Pstore was empty; ramoops is built in but the native DT has no ramoops node
+   and mem_size=0, so this attempt had no working ramoops backend.
 2. Finish the existing userspace validation client's account login and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.

@@ -1,0 +1,28 @@
+{
+  "format": "rog5-native-wifi-incident-v1",
+  "source": "sanitized physical RAM-only trial",
+  "kernel": "7.1.4-g359318de534f",
+  "source_commit": "abf3db66627c0d8ff39d3d74a8ddd3e7f1a14cdc",
+  "target_systemd_and_pinned_ssh": "passed",
+  "readonly_ufs_nodes_before_probe": 117,
+  "rollback_timer_seconds": 600,
+  "records": [
+    "WIFI_MODULE_ENTER pwrseq-qcom-wcn uptime=121.26 919.60",
+    "WIFI_MODULE_RETURN pwrseq-qcom-wcn",
+    "WIFI_MODULE_ENTER pci-pwrctrl-pwrseq uptime=121.47 920.95",
+    "WIFI_MODULE_RETURN pci-pwrctrl-pwrseq",
+    "WIFI_MODULE_ENTER phy-qcom-qmp-pcie uptime=121.69 922.53",
+    "WIFI_MODULE_RETURN phy-qcom-qmp-pcie",
+    "[121.754250] qcom-pcie 1c00000.pcie: host bridge /soc@0/pcie@1c00000 ranges:",
+    "[121.766884] qcom-pcie 1c00000.pcie: IO 0x0060200000..0x00602fffff -> 0x0000000000",
+    "[121.780805] qcom-pcie 1c00000.pcie: MEM 0x0060300000..0x0063ffffff -> 0x0060300000"
+  ],
+  "later_module_entry": null,
+  "wifi_phy_ready": false,
+  "subsequent_usb_versions": ["701", "504", "701"],
+  "fallback": "verified new V11 boot with pinned SSH and healthy power/storage",
+  "pstore": {"files": 0, "ramoops_dt_node": false, "runtime_mem_size": 0},
+  "expected_boundary": "pcie-activation-before-mhi-ath11k",
+  "reset_mechanism": "unknown",
+  "safe_to_retry_consumed_target": false
+}
