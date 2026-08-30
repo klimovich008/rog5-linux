@@ -36,3 +36,21 @@ python3 scripts/device/test-wifi-pwrctrl-probe.py --validate-log 250 LOG_FILE
 
 The delay is diagnostic-only, bounded at 1000 ms, and disabled by default.
 It changes timing and therefore cannot itself be presented as a production fix.
+
+For individual WCN supply transitions, also apply
+`patches/linux/diagnostic/pwrseq-qcom-wcn-serial-observation.patch` to a copied
+provider source. This diagnostic preserves the original supply list and all
+voltage/mode requests; positive `serial_observation_ms` serializes enables and
+adds bounded observation pauses. It defaults to the original bulk behavior.
+The getters are cached/possibly unsupported data, not physical measurements.
+
+Use `rog5.wcn_pause=0`, `250`, or `1001` with the included QEMU init. Validate
+the log with `test-wifi-pwrctrl-probe.py --validate-rails PAUSE LOG_FILE`.
+The host unit test compiles the actual added enable loop with injected
+failures at every position and verifies it releases only acquired references.
+Never deploy this fixture module/DT to the phone.
+
+The fixture parent uses asynchronous probing like the real Qualcomm controller.
+Its init waits for the explicit `fixture_done` parameter, not a guessed delay,
+and rejects a stale module without that parameter. Bulk, serial-observed and
+invalid-parameter cases must all complete under this same probe context.

@@ -56,16 +56,26 @@ See `test-results/2026-08-30-native-wifi-ram-handoff.md`.
 
 ## Cheapest next action
 
-1. Audit the stock power-sequence contract, then choose a per-rail/GPIO
-   discriminator. Retained ASUS CNSS code enables its regulator list serially;
+1. Complete the prepared rails-v4 per-supply diagnostic. It serializes the
+   existing WCN supply list and logs each enable plus clock/GPIO boundaries,
+   with no voltage/mode setters added. It is default-off, bounded and not a
+   production fix. Rollback injection tests, matching module/archive twins,
+   and exact-kernel QEMU 0/250/1001 cases pass. The probe now loads software
+   before PCIe and verifies the exact endpoint before binding ath11k, avoiding
+   the observed MHI-init overlap. No v4 claim is issued or target executed.
+   Retained ASUS CNSS code enables its regulator list serially;
    mainline uses bulk enable. The WW33 base DT has vendor init-mode values 1
    on S12 and 4 on S2; vendor levels.h decodes these as RET/HPM, whereas mainline
    uses different numeric mode constants. Overlay applicability and live mode
    still need verification. Do not copy raw mode numbers or retune voltages.
-   No successor is issued. The kernel, DTB, initramfs and firmware remain unchanged.
+   The Image, DTB, initramfs and firmware remain unchanged.
    Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node
    and mem_size=0, so this attempt had no working ramoops backend.
+   A fixed-bank read-only PMIC FIFO reader now works without reboot. Its
+   retained window contains three PS_HOLD warm resets, not OCP/UVLO records;
+   that is history, not yet exact per-cycle attribution. A before-v4 snapshot
+   is preserved for comparison. The reader changes no PMIC or SDAM state.
    The new selective kprobe helper has passed setup/marker/cleanup on V11
    without activating PCIe; original global probe definitions were restored.
    Observe-v3 is consumed. Its host management lease expired during an operator

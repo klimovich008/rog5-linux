@@ -183,3 +183,47 @@ The retained ASUS implementation serializes regulator enable calls; mainline
 uses bulk enable. The WW33 base tree's S12/S2 init-mode values are from the
 vendor levels.h namespace, not mainline's mode namespace. Their composed-tree
 applicability and actual live modes remain unproven; do not guess a mode fix.
+
+## Per-supply diagnostic preparation
+
+The WCN diagnostic patch serializes the unchanged supply list only when its
+bounded `serial_observation_ms` parameter is nonzero. It logs each enable and
+clock/WLAN-GPIO boundaries, without changing voltages or modes. Failure tests
+compile the actual added loop and inject errors at each supply position;
+only successfully acquired references are rolled back. Default bulk behavior
+is preserved. The patch is outside the production patch stack.
+
+Exact-kernel QEMU cases 0/250/1001 pass, including unsupported getter results.
+A regression caught unsigned `-EINVAL` appearing as a huge mode number; modes
+now retain signed errors and every optional getter has an explicit status.
+The normalized provider module and full module archives reproduce across
+independent builds. Only that provider differs from observe-v3's module set.
+
+The public `probe-native-wifi.sh` loads software before the PCIe PHY and defers
+ath11k PCI binding until the exact endpoint is verified. Replays cover correct,
+wrong and absent endpoints. This removes MHI module initialization from the
+power-transition interval. Rails-v4 is signed/prepared but unissued; no new
+phone boot has occurred during this preparation.
+
+The QEMU parent now uses `PROBE_PREFER_ASYNCHRONOUS`, matching the Qualcomm
+controller, and waits on a verified completion field. All three cases also
+pass in that context. A stale-fixture build was rejected; the harness now
+requires the expected completion field rather than waiting on missing data.
+
+## Independent PMIC history
+
+The existing ASUS PON driver identifies PMK8350 SDAM5 at0x7400, push pointer
+0x46 and FIFO0x4b..0xbf. A small fixed-bank reader uses the existing kernel
+NVMEM read API and exports a root-only125-byte snapshot; it has no write API
+or address parameter. The sysfs file advertises128 bytes, which clips the
+peripheral-relative FIFO, so the validated provider read callback is used
+directly without changing the provider. Its fixed path is resolved to an OF
+node identity; a regression prevents comparing local `full_name` with an
+absolute path. Wrong-machine refusal and all FIFO wrap positions are tested.
+
+The read/unload succeeded on V11 without reboot or PMIC writes, with117 UFS
+nodes locked RO. Service state/Tailscale were restored. The retained history
+contains three PS_HOLD warm resets with counts1,2,3, and no OCP/UVLO records in
+that window. This is consistent with software-requested reset but does not
+identify the Linux failure or prove cycle attribution. The private before-v4
+snapshot is available for a paired comparison after the next physical cycle.

@@ -5,6 +5,9 @@
 #include <linux/pci-pwrctrl.h>
 #include <linux/platform_device.h>
 
+static bool fixture_done;
+module_param(fixture_done, bool, 0444);
+
 static int rog5_pwrctrl_probe(struct platform_device *pdev)
 {
 	int ret;
@@ -15,8 +18,10 @@ static int rog5_pwrctrl_probe(struct platform_device *pdev)
 	dev_info(&pdev->dev, "ROG5_PWRCTRL_CREATE_ENTER\n");
 	ret = pci_pwrctrl_create_devices(&pdev->dev);
 	dev_info(&pdev->dev, "ROG5_PWRCTRL_CREATE_RETURN=%d\n", ret);
-	if (ret)
+	if (ret) {
+		WRITE_ONCE(fixture_done, true);
 		return ret;
+	}
 
 	dev_info(&pdev->dev, "ROG5_PWRCTRL_DUMMY_POWER_ON_ENTER\n");
 	ret = pci_pwrctrl_power_on_devices(&pdev->dev);
@@ -26,6 +31,7 @@ static int rog5_pwrctrl_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "ROG5_PWRCTRL_DUMMY_POWER_OFF_RETURN\n");
 	} else
 		pci_pwrctrl_destroy_devices(&pdev->dev);
+	WRITE_ONCE(fixture_done, true);
 	return ret;
 }
 
@@ -46,6 +52,7 @@ static struct platform_driver rog5_pwrctrl_driver = {
 	.driver = {
 		.name = "rog5-qemu-pwrctrl-test",
 		.of_match_table = rog5_pwrctrl_match,
+		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
 	},
 };
 module_platform_driver(rog5_pwrctrl_driver);
