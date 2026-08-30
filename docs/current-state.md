@@ -26,7 +26,7 @@ sensors, and automation remain deferred.
 
 ## Persistent Linux baseline
 
-Persistent release v10 boots successfully; V9 and V8 remain exact p24 rollbacks.
+Persistent release v11 boots successfully; V10, V9 and V8 remain p24 rollbacks.
 
 - The slot-B loader verifies a signed bundle from read-only `arch_root_a` and
   kexecs Linux `7.1.4-g359318de534f`.
@@ -41,10 +41,10 @@ Persistent release v10 boots successfully; V9 and V8 remain exact p24 rollbacks.
   survives reboot and clean state-service teardown relocks all 117 nodes.
 - V9 adds the live-proven V49 high-speed UFS core. Two persistent V9 boots,
   clean reboot/relock, systemd, NCM, SSH, storage and power checks passed.
-- V10 provides automatic routed Tailscale startup. Enrollment and persisted
-  node identity passed; firewall and persistent-shutdown corrections remain.
+- V11 adds exact conntrack-mark support and the standalone shutdown helper.
+  Enrolled Tailscale has no health warnings and survives normal systemd reboot.
 - Primary evidence:
-  `test-results/2026-08-30-persistent-tailscale-v10-live.md`.
+  `test-results/2026-08-30-persistent-tailscale-v11-live.md`.
 
 ## Storage state
 
@@ -64,8 +64,8 @@ Persistent release v10 boots successfully; V9 and V8 remain exact p24 rollbacks.
 - Side-port USB provides data plus 5 V input while Linux is running.
 - Accepted tests showed net-positive charging, safe battery temperature, and
   safe thermal-zone values.
-- The latest V9 repeat boot showed battery `Full`/`Good`, 8.674 V, 30.0 C,
-  side USB online, +181 mA input, and 35.2 C maximum thermal.
+- The latest V11 boots showed battery `Full`/`Good`, 100%, 8.659 V, 29.9 C,
+  side USB online and +272 mA input in the first V11 sample.
 
 ## NCM liveness result
 
@@ -93,27 +93,20 @@ evidence.
 
 ## Immediate next gate
 
-V9 p24 deployment and repeated standalone boot pass. Its six sparse chunks
-completed in 70.561 seconds; both boots selected the signed V9 bundle, emitted
-the V49 high-speed marker once, reported zero UFS errors, loaded stable SSH,
-mounted p23 state, and preserved exact write scope and power safety.
+V11's six p24 sparse chunks completed in 72.816 seconds. Two boots, including
+a normal unattended systemd reboot, selected the signed V11 bundle, preserved
+the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks.
+The installed conntrack-mark config and standalone shutdown helper are proven.
+Slot A and the stable slot-B loader were not changed.
 
-Tailscale enrollment is complete. One RAM-corrected normal reboot returned
-the same enrolled node and stable SSH in about 60 seconds without re-login.
-The p24 transfer completed in 72.639 seconds, but V10 packaged the diagnostic
-exitramfs; the installed normal-reboot path is not yet accepted as standalone.
-The existing standalone builder now covers this exact regression.
+Next: authenticate the separate Tailscale test client and prove encrypted peer
+SSH. No new kernel or phone cycle is needed for that test. Keep the existing
+observer for longer loaded-network tests; prior two-hour evidence is a baseline,
+not a V11 soak result.
 
-Native nftables is selected for the successor. Missing NF_CONNTRACK_MARK is
-proven by deployed config and matching phone/QEMU check-only failures. A narrow
-clean A kernel passes the previously failing nft check and all 19 module loads
-in QEMU; independent clean B is in progress. No new kernel is installed. See
-`test-results/2026-08-30-tailscale-enrollment-reboot.md`. Independent peer SSH
-and the corrected release's final recovery checks remain pending.
-
-The current soak has one failed background keyring-refresh unit (an unbound
-array parser error). Initial zero-failed-unit checks do not cover that later
-failure; it is recorded separately from the firewall correction.
+The preexisting empty runtime package keyring causes a background refresh parser
+failure. Initial zero-failed-unit checks do not cover that later failure. Fix
+package-keyring initialization separately; do not mask it or redesign the kernel.
 
 ## Required boundaries
 
