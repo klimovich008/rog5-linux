@@ -7,9 +7,9 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Why does the S12/vddpmu request boundary precede the radio reset? Rails-v4
-proved the first two supply enables succeed, then captured S12 entry without
-a return. Actual RPMh request/physical cause remains unproven.
+Does restoring the stock S12 retention-mode vote prevent the radio reset?
+Rails-v4 proved two supply enables succeed, then captured S12 entry without
+a return. The precise failing request and physical cause remain unproven.
 
 ## Current live state
 
@@ -50,16 +50,18 @@ handoff code; retained timing and physical evidence are in
 
 ## Cheapest next action
 
-1. Audit the exact stock S12 voltage/mode request versus mainline before
-   choosing a correction. Rails-v4 ran once after all CI passed. Vddio and
+1. Validate the prepared s12-ret-v5 correction, then run it once after CI.
+   All 60 stock compositions require RET; v5 restores this missing mode vote
+   with mainline enum 0, not vendor enum 1. Voltage remains unchanged.
+   Rails-v4 ran once after all CI passed. Vddio and
    vddaon returned 0; vddpmu entry was last delivered. The final trace predates
    the diagnostic pause's end, so the exact RPMh call is not proven. V11
    recovered automatically. The paired PON FIFO gained one PS_HOLD warm reset,
    count 3 to 4. Fixture: `tests/fixtures/native-wifi/s12-entry-reset.json`.
    Do not retry v4 or infer a physical voltage from cached regulator getters.
-   ASUS CNSS enables supplies serially; mainline uses bulk enable. Vendor and
-   mainline regulator mode constants differ. Composed modes are not proven;
-   do not copy raw mode numbers or retune voltages (see the result record).
+   ASUS CNSS enables supplies serially; mainline uses bulk enable. Stock S12
+   RET and mainline RET both map to PMIC mode 3. The reset cause remains a
+   hypothesis; do not substitute HPM or retune voltages.
    The Image, DTB, initramfs and firmware remain unchanged.
    Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node

@@ -17,6 +17,10 @@
 &vreg_s12b_1p35 {
 	regulator-min-microvolt = <1350000>;
 	regulator-max-microvolt = <1352000>;
+	/* WW33 S12 requests RET. Mainline RPMH_REGULATOR_MODE_RET is 0;
+	 * vendor RET is 1. Both map to PMIC5 retention mode 3, not HPM.
+	 */
+	regulator-initial-mode = <0>;
 };
 
 &vreg_s1c_1p86 {

@@ -104,8 +104,8 @@ the Steam Deck. Four native RAM Wi-Fi trials reached Arch/SSH and recovered V11
 automatically after radio-startup resets; all are consumed. Rails-v4 proved two
 supply enables returned 0, then lost reporting at S12/vddpmu entry. Paired PMIC
 history gained one PS_HOLD warm reset. No physical rail fault or kernel panic
-is proven. Audit stock versus mainline S12 requests next; see the native Wi-Fi
-RAM-handoff result. Wi-Fi is not yet functional.
+is proven. A stock-derived S12 retention-mode correction is prepared for the
+next one-use trial; see the native Wi-Fi RAM-handoff result. Wi-Fi is not yet functional.
 Preserve USB rescue. In parallel, authenticate the separate
 Tailscale test client and prove encrypted peer SSH; no new kernel or phone cycle
 is needed solely for that test. Keep the existing

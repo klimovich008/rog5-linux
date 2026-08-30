@@ -266,3 +266,24 @@ completed-power-sequence validator or be treated as proof of the faulting call.
 All four Wi-Fi trials through rails-v4 are consumed. R8's evidence gap is
 narrower, not eliminated; Wi-Fi is still unavailable. Audit the exact stock S12
 initial mode and RPMh requests before selecting the next correction.
+
+## Stock S12 mode correction, not yet hardware-proven
+
+Offline composition of all three authenticated WW33 base DTBs with all 20
+overlays confirms the same S12 contract in all 60 results: resource `smpb12`,
+type `pmic5-hfsmps`, initial voltage 1.256V, allowed 1.224–1.360V, initial mode
+vendor RET=1. The ASUS driver maps this to PMIC retention mode 3 and includes
+the declared mode in its aggregated RPMh requests. CNSS's RFA2 load request is
+zero, so a guessed extra load/HPM request is not justified.
+
+Our addition omitted `regulator-initial-mode`. The correction explicitly sets
+mainline RET=0, which maps through STANDBY to the same PMIC mode 3. It changes
+one DT property only; the existing voltage request remains unchanged. A new
+regression failed for missing mode and wrong values 1/2/3 before the verifier
+fix, then passed. All seven DT and eight probe tests pass. Both DTB builds
+match and took 332ms total. Kernel, modules, initramfs and firmware are reused.
+
+The signed s12-ret-v5 twins match. They are prepared, not issued or executed.
+This fixes a stock-description mismatch; it does **not** yet prove that the
+missing vote caused the reset or that Wi-Fi works. The next RAM-only cycle
+tests that one change, retaining the per-rail diagnostic and paired PON reader.

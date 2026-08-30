@@ -13,6 +13,17 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    "native-wifi-ram-s12-ret-v5": (
+        b"format=rog5-temporary-boot-consumption-v1\n"
+        b"recovery_profile=native-wifi-ram-s12-ret-v5\n"
+        b"candidate=persistent-native-root-wifi-s12-ret-v5\n"
+        b"manifest_sha256=a7838892008db35272914d189931217f9cff1c5e830d068d54237ab5ccee93a0\n"
+        b"tools_manifest_sha256=c79912d1428871b505eb09d437fd37c6284bfa830fa48b5c4163d5933f77d095\n"
+        b"modules_sha256=1a2d45fb6b9e8df4b72dfad249a984613e38b0c722134833c076e75f63fecee0\n"
+        b"radio_manifest_sha256=2bda1c83e1aaa0a4b9886e538a8ce070464b6f7bb941c9e983597131140de064\n"
+        b"execution=mainline-kexec-ram-only\n"
+        b"state=BOOT_CLAIMED\n"
+    ),
     "native-wifi-ram-rails-v4": (
         b"format=rog5-temporary-boot-consumption-v1\n"
         b"recovery_profile=native-wifi-ram-rails-v4\n"
