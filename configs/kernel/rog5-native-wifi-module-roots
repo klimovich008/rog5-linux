@@ -1,0 +1,17 @@
+sha256
+crypto-aes
+ctr
+ccm
+gcm
+cmac
+pwrseq-qcom-wcn
+pci-pwrctrl-pwrseq
+phy-qcom-qmp-pcie
+mhi
+qrtr-mhi
+rfkill
+libarc4
+cfg80211
+mac80211
+ath11k
+ath11k_pci

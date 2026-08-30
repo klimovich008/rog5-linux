@@ -30,8 +30,10 @@ an independent account-login gate; the firewall and normal-reboot defects are fi
 ## Just-completed checkpoint
 
 V11's installed firewall and normal reboot pass; see its live result.
-The new Wi-Fi builder completes in 71.47s without rebuilding V11. All 16 new
-modules reproduce and load under QEMU. The native Wi-Fi DTB preserves unrelated
+The first Wi-Fi builder pass completed in 71.47s without rebuilding V11.
+The complete set now contains 22 modules, including dynamic signature/cipher
+dependencies. QEMU accepts valid regulatory data, rejects tampering and proves
+the requested Wi-Fi crypto transforms. The native Wi-Fi DTB preserves unrelated
 state and uses stock-derived, selector-valid voltage intervals; these are not
 yet hardware-tested. Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
