@@ -18,7 +18,7 @@ Distinguish voltage/enable failure with independent evidence before successors.
   `1b24ebf0-e4a1-466c-8197-13904886f5cf`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Battery Full/Good, 100%, 8.659 V, 29.9°C; side USB provides positive input.
+- Latest battery read: Good, 8.636 V, 30.1°C; same V11 boot and active state services.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
 - Tailscale 1.102.3 starts automatically from p23 state. It is enrolled and
@@ -59,9 +59,10 @@ handoff code; retained timing and physical evidence are in
    Trace buffering still prevents proof of the exact voltage/enable call.
    Do not issue a guessed voltage, HPM or ordering change as another fix.
    New lead: Qualcomm's SM8350/WCN6851 series uses S11 for VDDPMU, whereas
-   our SM8450-derived mapping uses S12. It also adds missing hw1.1 support.
-   Validate ASUS chip/mapping evidence first; see the linked upstream result.
-   The Image, DTB, initramfs and firmware remain unchanged.
+   our SM8450-derived mapping uses S12. Conditional hw1.1 modules now build,
+   reproduce and load with accepted BTF in exact-Image QEMU. See the offline
+   Wi-Fi result; ASUS chip/mapping and hw1.1 firmware/BDF still need validation.
+   Image, DTB, initramfs, power wiring and firmware were not changed for this backport.
    Keep V11/slot A and lock all UFS nodes before activation.
    Pstore was empty; ramoops is built in but the native DT has no ramoops node
    and mem_size=0, so this attempt had no working ramoops backend.
