@@ -145,6 +145,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-native-wifi-activation.py
 	scripts/device/test-native-wifi-wpa-start.py
 	scripts/device/test-native-wifi-boot.py
+	scripts/device/test-native-wifi-healthy.py
 	scripts/host/test-quiesce-native-usb-data.py
 	scripts/host/test-native-wifi-discovery.py
 	scripts/host/test-controller-bindings.py
@@ -164,6 +165,7 @@ active_tests=(
 	scripts/device/test-persistent-slotb-loader.sh
 	scripts/device/test-persistent-slotb-recovery-loader.sh
 	scripts/host/test-persistent-trial-state.py
+	scripts/host/test-build-persistent-wifi-selector.py
 	scripts/device/test-stage-persistent-service-state.sh
 	scripts/device/test-persistent-service-state-runtime.sh
 	scripts/device/test-persistent-tailscale-runtime.sh
@@ -193,6 +195,7 @@ probe_tests=(
 )
 
 shared_tests=(
+	scripts/host/test-persistent-trial-state-aarch64.sh
 	scripts/host/test-reusable-recovery-claim-design.sh
 	scripts/device/test-collect-minimal-headless-runtime.sh
 	scripts/host/test-wait-stock-android-fallback.py

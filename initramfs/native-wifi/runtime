@@ -40,6 +40,15 @@ install_units() {
 		mkdir -p "$units/$target.wants" || return 1
 		ln -s "../$unit.service" "$units/$target.wants/$unit.service" || return 1
 	done
+	if [ -e "$root/trial-descriptor" ] || [ -L "$root/trial-descriptor" ]; then
+		[ -f "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/trial-descriptor")" = 0:0:444:1 ] ||
+			return 1
+		cp -p "$root/units/rog5-wifi-healthy.service" \
+			"$units/rog5-wifi-healthy.service" || return 1
+		ln -s ../rog5-wifi-healthy.service \
+			"$units/multi-user.target.wants/rog5-wifi-healthy.service" || return 1
+	fi
 	mkdir "$units/rog5-persistent-state.service.d" || return 1
 	cp -p "$root/units/before-state.conf" \
 		"$units/rog5-persistent-state.service.d/10-wifi-radio.conf" || return 1

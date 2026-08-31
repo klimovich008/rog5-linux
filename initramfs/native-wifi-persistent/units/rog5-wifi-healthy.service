@@ -1,0 +1,19 @@
+[Unit]
+Description=Commit one healthy persistent ROG5 Wi-Fi trial
+Requires=rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service
+Requires=rog5-persistent-state.service rog5-persistent-ssh-identity.service
+Requires=rog5-early-sshd.service rog5-tailscaled.service
+After=rog5-wifi-radio.service rog5-wifi-wpa.service rog5-wifi-dhcp.service
+After=rog5-persistent-state.service rog5-persistent-ssh-identity.service
+After=rog5-early-sshd.service rog5-tailscaled.service
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-native-wifi/healthy
+TimeoutStartSec=180s
+RemainAfterExit=yes
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

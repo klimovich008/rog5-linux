@@ -6,12 +6,18 @@ output=${2:?missing output}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-slotb-loader-init
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
+trial_helper=$repo/artifacts/persistent-trial-state-v1/rog5-persistent-trial-state
 expected_base=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+expected_trial_helper=ff6ede42d089a6a651db320a007947091029aca504500227e0c51bed6792f3ca
 epoch=1681862400
 
 [ -f "$base" ] && [ ! -L "$base" ] &&
 	[ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ]
 [ -x "$init" ] && [ -f "$reboot_source" ] && [ ! -L "$reboot_source" ]
+[ -f "$trial_helper" ] && [ ! -L "$trial_helper" ] &&
+	[ -x "$trial_helper" ] &&
+	[ "$(sha256sum "$trial_helper" | cut -d ' ' -f 1)" = \
+	"$expected_trial_helper" ]
 [ ! -e "$output" ]
 
 work=$(mktemp -d)
@@ -25,6 +31,8 @@ gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 
 install -m 0755 "$init" "$root/init"
 install -d -m 0755 "$root/usr/libexec"
+install -m 0755 "$trial_helper" \
+	"$root/usr/libexec/rog5-persistent-trial-state"
 clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
 	-fno-builtin -Wall -Wextra -Werror -fno-pic -fno-pie \
 	-fno-stack-protector -Wl,-e,_start -Wl,--build-id=none \

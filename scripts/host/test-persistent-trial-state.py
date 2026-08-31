@@ -56,9 +56,12 @@ class PersistentTrialState(unittest.TestCase):
     def command(self, action="decide", *, trial=TRIAL, primary=PRIMARY,
                 primary_hash=PRIMARY_HASH, fallback=FALLBACK,
                 fallback_hash=FALLBACK_HASH, check=True):
+        arguments = ([str(self.binary), action, trial, primary]
+                     if action == "healthy" else
+                     [str(self.binary), action, trial, primary, primary_hash,
+                      fallback, fallback_hash])
         return subprocess.run(
-            [str(self.binary), action, trial, primary, primary_hash,
-             fallback, fallback_hash],
+            arguments,
             text=True, capture_output=True, check=check, timeout=5,
         )
 
@@ -75,6 +78,10 @@ class PersistentTrialState(unittest.TestCase):
 
     def test_healthy_commit_is_atomic_and_idempotent(self):
         self.command()
+        self.assertNotEqual(self.command("healthy", trial="4" * 64,
+                                         check=False).returncode, 0)
+        self.assertNotEqual(self.command("healthy", primary="wrong-bundle",
+                                         check=False).returncode, 0)
         self.assertEqual(self.command("healthy").stdout, "healthy\n")
         self.assertTrue(self.record.read_text().endswith("state=healthy\n"))
         self.assertEqual(self.command().stdout, PRIMARY + "\n")

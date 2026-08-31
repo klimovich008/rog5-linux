@@ -1,0 +1,74 @@
+#!/bin/sh
+set -eu
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+root=/run/rog5-native-wifi
+selector=$root/trial-descriptor
+helper=/usr/libexec/rog5-persistent-trial-state
+record=$root/healthy
+fail() { echo "FAIL native-wifi-healthy: $*" >&2; exit 1; }
+
+[ "$(id -u)" = 0 ] || fail 'root required'
+[ -x "$helper" ] && [ -f "$selector" ] && [ ! -L "$selector" ] &&
+	[ "$(stat -c '%u:%g:%a:%h' "$selector")" = 0:0:444:1 ] ||
+	fail 'trial input identity'
+[ "$(wc -l <"$selector")" -eq 4 ] &&
+	[ "$(sed -n '1p' "$selector")" = format=rog5-persistent-wifi-health-v1 ] &&
+	[ "$(sed -n '4p' "$selector")" = mode=try-once ] || fail 'trial format'
+trial_id=$(sed -n 's/^trial_id=//p' "$selector")
+primary=$(sed -n 's/^primary_bundle=//p' "$selector")
+[ "$(sed -n '2p' "$selector")" = "trial_id=$trial_id" ] &&
+	[ "$(sed -n '3p' "$selector")" = "primary_bundle=$primary" ] ||
+	fail 'trial fields'
+candidate=$(sed -n 's/.*\<rog5.bundle=\([^ ]*\).*/\1/p' /proc/cmdline)
+[ "$candidate" = "$primary" ] || fail 'primary bundle is not running'
+
+interface=$(cat "$root/interface") || fail 'interface record'
+[ "$(readlink -f "/sys/class/net/$interface/device")" = \
+	"$(readlink -f /sys/bus/pci/devices/0000:01:00.0)" ] || fail 'interface identity'
+deadline=$(( $(cut -d. -f1 </proc/uptime) + 150 ))
+while [ "$(cut -d. -f1 </proc/uptime)" -lt "$deadline" ]; do
+	ready=1
+	for unit in rog5-wifi-radio rog5-wifi-wpa rog5-wifi-dhcp \
+		rog5-persistent-state rog5-persistent-ssh-identity \
+		rog5-early-sshd rog5-tailscaled; do
+		systemctl is-active --quiet "$unit.service" || ready=0
+	done
+	[ "$(cat "/sys/class/net/$interface/carrier" 2>/dev/null)" = 1 ] || ready=0
+	address=$(ip -4 -o address show dev "$interface" scope global 2>/dev/null || true)
+	[ "$(printf '%s\n' "$address" | grep -c ' inet ')" -eq 1 ] || ready=0
+	ip -4 route show default dev "$interface" 2>/dev/null | grep -q '^default ' || ready=0
+	[ "$(cat /sys/class/power_supply/qcom-battmgr-bat/health 2>/dev/null)" = Good ] || ready=0
+	temp=$(cat /sys/class/power_supply/qcom-battmgr-bat/temp 2>/dev/null || echo invalid)
+	case $temp in ''|*[!0-9]*) ready=0 ;; *) [ "$temp" -lt 400 ] || ready=0 ;; esac
+	[ "$(cat /sys/class/power_supply/qcom-battmgr-usb/online 2>/dev/null)" = 1 ] || ready=0
+	count=0
+	writable=0
+	for node in /sys/class/block/sd*; do
+		[ -e "$node/ro" ] || continue
+		count=$((count + 1))
+		if [ "$(cat "$node/ro")" != 1 ]; then
+			case ${node##*/} in sda|sda23) ;; *) ready=0 ;; esac
+			writable=$((writable + 1))
+		fi
+	done
+	[ "$count:$writable" = 117:2 ] || ready=0
+	[ "$(cat /sys/class/block/sda/ro 2>/dev/null)" = 0 ] || ready=0
+	[ "$(cat /sys/class/block/sda23/ro 2>/dev/null)" = 0 ] || ready=0
+	[ "$(cat /sys/class/block/sda/sda24/ro 2>/dev/null)" = 1 ] || ready=0
+	[ "$ready" -eq 0 ] || break
+	sleep 1
+done
+[ "$ready" -eq 1 ] || fail 'healthy startup deadline'
+result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
+case $result in healthy|already-healthy) ;; *) fail 'trial commit result' ;; esac
+systemctl stop rog5-wifi-boot-rollback.timer || fail 'rollback timer stop'
+! systemctl is-active --quiet rog5-wifi-boot-rollback.timer ||
+	fail 'rollback timer remains active'
+[ ! -e "$record" ] && [ ! -L "$record" ] || fail 'healthy record exists'
+umask 077
+printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
+	"$(cat /proc/sys/kernel/random/boot_id)" "$trial_id" >"$record"
+chmod 0444 "$record"
+echo "PASS native Wi-Fi persistent trial healthy interface=$interface"
