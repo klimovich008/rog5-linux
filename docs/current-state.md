@@ -100,7 +100,7 @@ The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
 Next: bring up Wi-Fi client support so networking no longer depends on the
-Steam Deck. All seven RAM Wi-Fi trials are consumed. V6 returned V11 before
+Steam Deck. All eight RAM Wi-Fi trials are consumed. V6 returned V11 before
 the radio probe; v7 proved the source handoff and captured S12's 1352mV request
 at RPMh address0x40100. Submission returned0; no ACK or enable request was
 recorded before a PS_HOLD warm reset. Lost tail is not proof of no completion.
@@ -113,12 +113,12 @@ UFS before any voltage/enable action. No shared-rail rewiring or new Image build
 See `test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
 Conditional WCN6851/hw1.1 modules now pass exact-source dispatch tests,
 reproducibility and exact-Image QEMU/BTF checks; they are not deployed on the phone.
-The RPMh observer now passes passive V11 command/ack capture and cleanup.
-V7 source ACM captured the exitrd gates and executor entry; the before-handoff
-and before-radio PON snapshots match. This does not explain v6 retrospectively.
-The installed loader snapshots pstore but does not export it before kexec;
-end-to-end crash capture remains incomplete. See
-`test-results/2026-08-31-native-wifi-rpmh-observer.md`.
+V8 stopped at the early USB-online gate before the S12 probe and returned to
+fastboot. Exact identity/battery checks allowed a normal B reboot; V11/SSH and
+state/Tailscale are restored. No Wi-Fi power request ran. A bounded readiness
+helper correction is under test; same-boot telemetry settling remains unproven.
+The installed loader cannot export its pstore snapshot before kexec; crash
+capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH
 sign-in check and encrypted peer SSH proof remain pending; no new kernel or phone cycle
 is needed solely for that test. Keep the existing

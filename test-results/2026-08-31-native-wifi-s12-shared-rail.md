@@ -96,3 +96,71 @@ Next: finish publication checks, then one signed RAM-only query/AUTO probe with
 RPMh ACK capture, read-only UFS checks, bounded rollback and PON comparison.
 Do not automatically proceed to held-enable or radio activation on missing
 evidence. No successor has yet been admitted or booted at this checkpoint.
+
+## V8 consumed: an earlier charging-readiness gate
+
+The frozen source above was committed as
+`a2673435d1777308b044c8ec8b336df6a565c5f4`. Full local CI passed in454.099s;
+all four jobs passed in GitHub33353250552. Signed twins and the exact phone
+verifier preflight passed. The one-use claim was consumed at1788146704.667329.
+
+Source ACM proved executor entry at1788146710.737040. At1788146718.985 the
+target reported `ufs-ready FAIL power-usb-usb-offline` through working NCM.
+Target boot: `615ca385-7b23-4f96-ab0a-6f99df118f74`. No SSH, S12 query,
+AUTO vote, held-enable or Wi-Fi probe followed. This is not an S12 test result.
+The controlled rollback went to fastboot, not automatically to V11.
+
+Exact serial/product/topology and active B were verified there:8641mV and
+battery-soc-ok=yes. One normal `fastboot reboot`, without any payload/flash,
+restored unchanged V11. Pinned SSH proved boot
+`e7f26eff-09a8-47ab-896c-74f353272973` at1788146855.935804. State/Tailscale
+are active, onlysda/sda23 writable, battery Good8.627V/29.9°C, USBonline1,
+5.018V input and500mA limit. Temporary management address/firewall access and
+source ACM are gone. Slot A, B loader, selector, GPT and filesystem layout are unchanged.
+The postmortem includes the explicit fastboot reboot/hard-reset transition;
+do not interpret its reset-counter reset as the radio failure's cause.
+
+New fixture: `s12-mode-v8-usb-offline.json`, parsed by the actual stage parser.
+The historical sealed charging helper exactly matches the repository version:
+it waits for sysfs nodes, then takes just one online sample. Node presence
+does not establish completed charging negotiation. The live record proves
+online0 at that instant, **not** whether it would have settled in the same boot.
+
+The minimal helper correction waits for online1 within the same shared node/
+value sampling budget:200 polls and a20s monotonic deadline, never two windows.
+It rechecks battery voltage/temperature each pass, immediately rejects invalid
+or unsafe telemetry, and still requires valid input voltage/current, sink/device
+roles, NCM route and no storage before proceeding. No charging-control write.
+Checks before/after the property reads reject readiness arriving past deadline;
+in-flight kernel/RPC reads are not preempted by this shell deadline. The driver
+has a1s request-ACK timeout; kernel stalls remain the separate rollback layer's
+responsibility. No watchdog/rollback setting was changed.
+
+Six fail-first assertions exposed the one-sample/late-readiness behavior.
+Six focused tests now pass (0.269s host,2.098s exact sealed BusyBox/QEMU),
+including later unsafe temperature, absent/invalid online, never-online,
+late-online and already-spent node budget. The extraction initially needed
+parent directories and the sealed musl loader; those host-only preparation
+errors were corrected without another phone operation. BusyBox SHA-256:
+`97d52efa149563c8d886e3670e2496d4140d3c54138017afd3a105e0397fae2e`.
+
+Classification: R3 readiness semantics/R4 sampling budget; actual reason for
+the transient or persistent online0 remains unknown. Repack only the target
+initramfs after publication checks. Keep the proven module/DTB twins, Image,
+firmware and wrapper; V8 remains permanently consumed. No successor is issued.
+The helper emits advisory first-offline and ready/deadline kernel records with
+battery readings and poll count, so a successful boot can prove whether the
+wait was actually needed rather than merely assuming a race was fixed.
+
+The final observed-helper initramfs twins reproduce in16.347s:
+`edf60a81162b7b64fc334e8450283c0c061fd4fbb6d8cc95a6a6cd1ba1aea343`.
+Only `sbin/rog5-load-persistent-power-usb` differs from the retained V11 newc
+archive; all other payloads, permissions, owners, timestamps and metadata match.
+An independent GNU cpio extraction matches the updated source. The earlier
+unobserved-helper repack is retained but not selected. The active tier passed
+in84.097s; subsequent advisory-log assertions pass in the exact BusyBox tests.
+
+Fresh signed S12-ready-v9 twins reuse the same Image/DTB/modules/tools and package
+in0.565s. Only the initramfs, bundle identity and signature differ from v8.
+Its exact-record row is generated from that build receipt; no claim exists yet.
+Complete frozen-source publication and connected gates before any execution.
