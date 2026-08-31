@@ -48,6 +48,53 @@ load_module() {
 		fail "module-$detail-unobservable" "module not observable: $name"
 }
 
+telemetry_seconds() {
+	read -r uptime unused </proc/uptime ||
+		fail telemetry-timeout 'monotonic clock unavailable'
+	printf '%s\n' "${uptime%%.*}"
+}
+
+power_observation() {
+	echo "rog5-power-readiness: $1 attempt=$attempt battery_uv=${battery_voltage:-absent} battery_temp=${battery_temp:-absent} usb_online=${usb_online:-absent}" \
+		2>/dev/null >/dev/kmsg || true
+}
+
+wait_for_usb_online() {
+	# A registered power_supply is not proof that its first online update has
+	# arrived. Share the original node-wait budget; never accept late readiness.
+	observed_offline=0
+	while [ "$attempt" -lt 200 ] &&
+		[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ]; do
+		battery_voltage=$(read_integer "$battery/voltage_now") ||
+			fail battery-voltage-unavailable 'battery voltage unavailable'
+		battery_temp=$(read_integer "$battery/temp") ||
+			fail battery-temperature-unavailable 'battery temperature unavailable'
+		[ "$battery_voltage" -ge 5500000 ] && [ "$battery_voltage" -le 9200000 ] ||
+			fail battery-voltage-unsafe 'unsafe battery voltage'
+		[ "$battery_temp" -ge 0 ] && [ "$battery_temp" -lt 600 ] ||
+			fail battery-temperature-unsafe 'unsafe battery temperature'
+		usb_online=$(read_integer "$usb/online") ||
+			fail usb-online-unavailable 'USB online state unavailable'
+		case $usb_online in
+			0|1) ;;
+			*) fail usb-online-unavailable 'invalid USB online state' ;;
+		esac
+		[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ] || break
+		if [ "$usb_online" -eq 1 ]; then
+			power_observation ready
+			return 0
+		fi
+		if [ "$observed_offline" -eq 0 ]; then
+			power_observation waiting
+			observed_offline=1
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	power_observation deadline
+	fail usb-offline 'side USB power is offline'
+}
+
 [ -d "$firmware_source" ] && [ ! -L "$firmware_source" ] ||
 	fail firmware-source 'firmware source is absent or linked'
 [ ! -e "$firmware_runtime" ] && [ ! -L "$firmware_runtime" ] ||
@@ -81,7 +128,9 @@ load_module typec_ucsi.ko typec_ucsi typec-ucsi
 load_module ucsi_glink.ko ucsi_glink ucsi-glink
 
 attempt=0
-while [ "$attempt" -lt 200 ]; do
+telemetry_deadline=$(( $(telemetry_seconds) + 20 ))
+while [ "$attempt" -lt 200 ] &&
+	[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ]; do
 	if [ -e /sys/class/power_supply/qcom-battmgr-bat ] &&
 		[ -e /sys/class/power_supply/qcom-battmgr-usb ] &&
 		[ -e /sys/class/typec/port0 ]; then
@@ -90,26 +139,17 @@ while [ "$attempt" -lt 200 ]; do
 	attempt=$((attempt + 1))
 	sleep 0.1
 done
-[ "$attempt" -lt 200 ] ||
+[ "$attempt" -lt 200 ] &&
+	[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ] ||
 	fail telemetry-timeout 'battery or UCSI telemetry did not appear'
 
 battery=/sys/class/power_supply/qcom-battmgr-bat
 usb=/sys/class/power_supply/qcom-battmgr-usb
-battery_voltage=$(read_integer "$battery/voltage_now") ||
-	fail battery-voltage-unavailable 'battery voltage unavailable'
-battery_temp=$(read_integer "$battery/temp") ||
-	fail battery-temperature-unavailable 'battery temperature unavailable'
-usb_online=$(read_integer "$usb/online") ||
-	fail usb-online-unavailable 'USB online state unavailable'
+wait_for_usb_online
 usb_voltage=$(read_integer "$usb/voltage_now") ||
 	fail usb-voltage-unavailable 'USB voltage unavailable'
 usb_current_max=$(read_integer "$usb/current_max") ||
 	fail usb-current-limit-unavailable 'USB current limit unavailable'
-[ "$battery_voltage" -ge 5500000 ] && [ "$battery_voltage" -le 9200000 ] ||
-	fail battery-voltage-unsafe 'unsafe battery voltage'
-[ "$battery_temp" -ge 0 ] && [ "$battery_temp" -lt 600 ] ||
-	fail battery-temperature-unsafe 'unsafe battery temperature'
-[ "$usb_online" -eq 1 ] || fail usb-offline 'side USB power is offline'
 [ "$usb_voltage" -ge 4000000 ] && [ "$usb_voltage" -le 6500000 ] ||
 	fail usb-voltage-invalid 'side USB voltage is invalid'
 [ "$usb_current_max" -ge 100000 ] && [ "$usb_current_max" -le 5000000 ] ||

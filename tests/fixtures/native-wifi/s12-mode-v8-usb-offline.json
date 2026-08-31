@@ -1,0 +1,27 @@
+{
+  "source_commit": "a2673435d1777308b044c8ec8b336df6a565c5f4",
+  "claim_consumed_epoch": 1788146704.667329,
+  "source_executor_entry_epoch": 1788146710.7370398,
+  "target_failure_received_epoch": 1788146718.985,
+  "target_record": "format=rog5-persistent-root-stage-v2\ntarget_release=7.1.4-g359318de534f\nboot_id=615ca385-7b23-4f96-ab0a-6f99df118f74\nsequence=3\nstage=ufs-ready\nstate=FAIL\ndetail=power-usb-usb-offline\n",
+  "target_executed": true,
+  "target_ssh_seen": false,
+  "s12_probe_started": false,
+  "radio_probe_started": false,
+  "usb_online_later_in_same_target_boot": null,
+  "automatic_v11_fallback": false,
+  "fastboot_recovery": {
+    "serial": "M5AIKN00F0353YH",
+    "product": "lahaina",
+    "usb_path": "1-1.2",
+    "slot": "b",
+    "battery_voltage_mv": 8641,
+    "battery_soc_ok": true,
+    "operation": "normal fastboot reboot only; no boot payload or flash"
+  },
+  "fallback_boot": "e7f26eff-09a8-47ab-896c-74f353272973",
+  "fallback_bundle": "persistent-native-root-v11",
+  "fallback_ssh_epoch": 1788146855.935804,
+  "fallback_power": {"voltage_uv": 8627000, "temp_decic": 299, "usb_online": 1},
+  "safe_to_retry_consumed_target": false
+}
