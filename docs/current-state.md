@@ -89,22 +89,22 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-V17 passed WPA2/CCMP association, DHCP and strict-host-key SSH over Wi-Fi.
-The host route and bound client address used WLAN; the exact phone boot ID
-passed. S12/UFS/NCM/power and firmware/PHY/scan also passed. Preserve that
-kernel/DT/module/firmware composition; all trials through V17 are consumed.
-Next: persistent Wi-Fi and host-free boot, then reconnect/load/charging tests.
-Wi-Fi is not yet installed in the active V11 baseline.
-Normal reboot restored V11`1bc4a53b-ab56-40f2-a4ec-ead762590d01`, shared SSH
-and state/Tailscale services. Battery is Full/Good,8.602V/30.1°C.
-See `test-results/2026-08-31-wifi-connectivity-pass.md`.
+V18 passed automatic radio→p23 state→WPA2/CCMP→DHCP→strict WLAN SSH startup
+without host activation commands. Complete Wi-Fi evidence arrived within71.337s
+of claim consumption. S12 read/write traces and exact storage scope passed.
+Preserve the qualified kernel/DT/module/firmware set; all trials through V18
+are consumed. Next: USB-data-absent boot and reconnect/load/charging tests before
+changing the persistent selector. Wi-Fi is not in the active V11 baseline yet.
+Normal reboot restored V11`ac39a52f-dd50-4bc9-9d20-449a67aace83`, shared SSH
+and state/Tailscale services in63.685s. Battery is Full/Good,8.599V/30.0°C.
+The private network configuration persists only in the existing p23 state image.
+See `test-results/2026-08-31-wifi-automatic-boot.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
 The WCN6851/hw1.1 backport and exact-keyed ASUS board data now pass the RAM test.
-The deployed baseline still requires USB carrier. A new sealed automatic-mode
-initramfs removes that dependency, qualifies radio before p23 state, and starts
-WPA/DHCP locally. It is not yet admitted or installed; see
-`test-results/2026-08-31-wifi-automatic-boot.md`.
+The deployed V11 baseline still requires USB carrier. The automatic-mode RAM
+archive passed, but physical boot with USB data absent remains untested.
+Its two rollback timers remain qualification-only, not permanent service policy.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH
