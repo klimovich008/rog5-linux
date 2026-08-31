@@ -9,17 +9,18 @@ Historical generations remain in Git; do not reconstruct them here.
 
 Prove association, DHCP and SSH over Wi-Fi using the V15-qualified composition.
 V15 passed firmware/PHY startup and scanned33 access points. It is consumed;
-V16 association/DHCP/SSH is admitted once, not yet executed. Preserve the working kernel and firmware.
+V16 is consumed: radio passed, but WPA startup used an unsupported logging flag.
+The foreground/systemd fix is tested; no successor is admitted. Preserve the kernel and firmware.
 See `test-results/2026-08-31-wifi-late-activation.md`.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `699959e3-9635-4f6c-9765-b12bf3ff3597`; slot A remains rescue.
+  `f352bcba-f393-4b1a-ad9f-93e7abf395a7`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Full/Good, 8.607 V, 30.0°C; state/Tailscale active.
+- Latest battery read: Full/Good, 8.604 V, 30.2°C; state/Tailscale active.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -32,8 +33,9 @@ See `test-results/2026-08-31-wifi-late-activation.md`.
 
 V15 reached SSH39.566s after entry, then firmware/PHY readiness at uptime64.48s.
 The exact-keyed board data worked and `wlp1s0` scanned33 access points.
-Normal fallback restored V11/services73.318s after requested reboot; experimental
-storage stayed117-RO. No association or Wi-Fi SSH was attempted.
+V16 repeated radio/scan success, then stopped on WPA's unsupported `-f` flag.
+Its parent PID check caught the misleading zero exit after usage output.
+No association/DHCP/SSH occurred. Normal V11 fallback and services were restored.
 
 ## Cheapest next action
 
@@ -43,10 +45,12 @@ storage stayed117-RO. No association or Wi-Fi SSH was attempted.
    The V15 hw1.1 firmware/PHY/scan path is now physically qualified. Add only
    the WPA client and bounded connection test; the private WPA2 runtime has
    signature-verified Alpine packages and passes exact AArch64 version checks.
-   Native dhcpcd exists; its lease directory is on the volatile overlay.
+   Use `start-native-wifi-wpa.sh`: foreground systemd supervision, not `-B/-f`.
+   The exact WPA/config and DHCP argv now pass on Arch in an isolated netns;
+   journal capture is proven. Native dhcpcd's lease directory is volatile overlay.
    Do not infer explicitly valid QMI fields from default-capable values.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
-   Never rerun V15 or earlier. Restore shared networking after future fallback;
+   Never rerun V16 or earlier. Restore shared networking after future fallback;
    reuse the fixed missing-interface helper and parameterized stage parser.
    Preserve archives/source; disk headroom remains low. Use
    ROG5_TEST_TMP_PARENT for project RAM scratch; never repurpose HOME.
