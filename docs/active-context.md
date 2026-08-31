@@ -9,6 +9,10 @@ Historical generations remain in Git; do not reconstruct them here.
 
 Can the first S12 enable preserve its measured 1.224 V APPS vote before Wi-Fi requests a higher voltage? Readback-v11 passed and is consumed; no new power-setting trial is admitted.
 
+The next diagnostic is implemented as a DT/module-only1224mV re-vote, not an
+assumed no-op. Twins and exact-Image QEMU pass; source publication/admission
+remain separate. See `test-results/2026-08-31-s12-revote.md`.
+
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
