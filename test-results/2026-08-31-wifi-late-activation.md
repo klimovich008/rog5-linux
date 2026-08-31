@@ -198,3 +198,22 @@ has been read or deployed yet. Separately, inspection of the exact sealed
 initramfs confirms an unconditional USB-carrier rendezvous before deferred
 UFS loading. Remove that production host dependency only in its own tested
 checkpoint; do not weaken the diagnostic or storage-write path.
+
+## V16 connectivity admission
+
+The V15-qualified kernel, DT, modules and firmware are unchanged. V16 adds
+only the signature-verified WPA client runtime and bounded association/DHCP/
+SSH orchestration. Source`1273a42ad367c1d002a97c978335487377a3a79e` passed
+GitHub run33413084234. Signed twins match; assembly took3.535s and controller,
+credential-format, extraction and failure replay passed in7.719s.
+
+The credential is scoped to the PC's active WPA2 profile, held in a private
+file, and transferred separately over strict SSH into phone RAM. Neither its
+contents nor its digest enters published artifacts. DHCP is interface-only,
+IPv4, bounded, without IPv4LL or DNS/hostname hook changes. Wi-Fi SSH requires
+a host-wlan0 route, a bound WLAN source address, the established host key and
+the exact new phone boot ID. NCM, all117-RO, power and rollback guards remain.
+
+V16 is admitted once under standing authority; V15 and earlier remain consumed.
+Only literal admission/status data changed, so isolated artifact/claim checks
+reuse the successful executable-source CI rather than repeating its full suite.
