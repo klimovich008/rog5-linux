@@ -89,18 +89,15 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-Next: Wi-Fi association, DHCP and SSH over Wi-Fi. V15 passed coherent S12
-power, UFS, PCIe, MSI/MHI and hw1.1 firmware startup. It created `wlp1s0` at
-uptime64.48s and successfully scanned33 access points. Keep that kernel/DT/
-module/firmware composition unchanged for connection tests. No network was
-joined, and Wi-Fi is not yet installed in the persistent V11 baseline.
-All trials through V16 are consumed. V16 repeated radio/scan success, but the
-WPA client rejected the optional `-f` logging flag before association. The
-corrected foreground/systemd invocation and DHCP flags are tested on the exact
-Arch environment in an isolated netns; no kernel fix is needed.
-Normal reboot restored V11`f352bcba-f393-4b1a-ad9f-93e7abf395a7`, shared SSH
-and state/Tailscale services. Battery is Full/Good,8.604V/30.2°C.
-See `test-results/2026-08-31-wifi-late-activation.md`.
+V17 passed WPA2/CCMP association, DHCP and strict-host-key SSH over Wi-Fi.
+The host route and bound client address used WLAN; the exact phone boot ID
+passed. S12/UFS/NCM/power and firmware/PHY/scan also passed. Preserve that
+kernel/DT/module/firmware composition; all trials through V17 are consumed.
+Next: persistent Wi-Fi and host-free boot, then reconnect/load/charging tests.
+Wi-Fi is not yet installed in the active V11 baseline.
+Normal reboot restored V11`1bc4a53b-ab56-40f2-a4ec-ead762590d01`, shared SSH
+and state/Tailscale services. Battery is Full/Good,8.602V/30.1°C.
+See `test-results/2026-08-31-wifi-connectivity-pass.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
 The WCN6851/hw1.1 backport and exact-keyed ASUS board data now pass the RAM test.
