@@ -1,0 +1,98 @@
+#!/bin/sh
+# RAM-only automatic-boot qualification. Timers remain armed until fallback.
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+root=/run/rog5-native-wifi
+state=/run/rog5-wifi-association
+secret=/persist/secrets/wifi/network.conf
+fail() { echo "FAIL native-wifi: $*" >&2; exit 1; }
+
+interface_identity() {
+	interface=$(cat "$root/interface") || return 1
+	case $interface in ''|*[!A-Za-z0-9_.:-]*) return 1 ;; esac
+	[ "$(readlink -f "/sys/class/net/$interface/device")" = \
+		"$(readlink -f /sys/bus/pci/devices/0000:01:00.0)" ] || return 1
+	[ "$(cat /sys/bus/pci/devices/0000:01:00.0/vendor)" = 0x17cb ] &&
+		[ "$(cat /sys/bus/pci/devices/0000:01:00.0/device)" = 0x1103 ] &&
+		[ "$(cat /sys/bus/pci/devices/0000:01:00.0/subsystem_vendor)" = 0x17cb ] &&
+		[ "$(cat /sys/bus/pci/devices/0000:01:00.0/subsystem_device)" = 0x0108 ]
+}
+
+install_units() {
+	units=/run/systemd/system
+	for suffix in service timer; do
+		cp -p "$root/units/rog5-wifi-boot-rollback.$suffix" \
+			"$units/rog5-wifi-boot-rollback.$suffix" || return 1
+	done
+	ln -s ../rog5-wifi-boot-rollback.timer \
+		"$units/sysinit.target.wants/rog5-wifi-boot-rollback.timer" || return 1
+	mkdir "$units/rog5-early-sshd.service.d" || return 1
+	cp -p "$root/units/before-ssh.conf" \
+		"$units/rog5-early-sshd.service.d/10-wifi-rollback.conf" || return 1
+	for unit in rog5-wifi-radio rog5-wifi-wpa rog5-wifi-dhcp; do
+		[ ! -e "$units/$unit.service" ] && [ ! -L "$units/$unit.service" ] || return 1
+		cp -p "$root/units/$unit.service" "$units/$unit.service" || return 1
+		case $unit in
+			rog5-wifi-dhcp) target=multi-user.target ;;
+			*) target=sysinit.target ;;
+		esac
+		mkdir -p "$units/$target.wants" || return 1
+		ln -s "../$unit.service" "$units/$target.wants/$unit.service" || return 1
+	done
+	mkdir "$units/rog5-persistent-state.service.d" || return 1
+	cp -p "$root/units/before-state.conf" \
+		"$units/rog5-persistent-state.service.d/10-wifi-radio.conf" || return 1
+	# Network ownership is explicit; do not race a second WPA/DHCP manager.
+	printf '%s\n' '[keyfile]' 'unmanaged-devices=interface-name:usb0;type:wifi' \
+		>/run/NetworkManager/conf.d/10-rog5-p2.conf
+}
+
+prepare_network() {
+	interface_identity || fail 'interface identity changed'
+	systemctl is-active --quiet rog5-persistent-state.service || fail 'state unavailable'
+	[ "$(findmnt -n -o TARGET --target /persist)" = /persist ] &&
+		[ "$(findmnt -n -o FSTYPE --target /persist)" = ext4 ] || fail 'state mount changed'
+	for dir in /persist/secrets /persist/secrets/wifi; do
+		[ -d "$dir" ] && [ ! -L "$dir" ] &&
+			[ "$(stat -c '%u:%g:%a' "$dir")" = 0:0:700 ] || fail 'private directory metadata'
+	done
+	[ -f "$secret" ] && [ ! -L "$secret" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$secret")" = 0:0:600:1 ] || fail 'private config metadata'
+	size=$(stat -c %s "$secret")
+	[ "$size" -gt 0 ] && [ "$size" -le 4096 ] || fail 'private config size'
+	[ ! -e "$state" ] && [ ! -L "$state" ] || fail 'network already prepared'
+	mkdir -m 0700 "$state"
+	cp "$secret" "$state/private-network.conf"
+	chmod 0600 "$state/private-network.conf"
+	cmp "$secret" "$state/private-network.conf" || fail 'private config copy'
+	: >"$state/dhcpcd.conf"
+	ip link set dev "$interface" up
+}
+
+run_wpa() {
+	interface_identity || fail 'interface identity changed'
+	exec /usr/bin/env "OPENSSL_CONF=$root/wpa-userspace/openssl.cnf" \
+		"$root/wpa-userspace/lib/ld-musl-aarch64.so.1" --library-path "$root/wpa-userspace/lib" \
+		"$root/wpa-userspace/sbin/wpa_supplicant" -Dnl80211 -i "$interface" -c "$state/private-network.conf"
+}
+
+run_dhcp() {
+	interface_identity || fail 'interface identity changed'
+	# Foreground lease maintenance follows carrier; never own the USB interface.
+	# systemd-resolved's native resolvconf hook supplies DNS on this Arch root.
+	exec /usr/bin/dhcpcd -4 -B -L -m 100 -C hostname \
+		-f "$state/dhcpcd.conf" -t 0 "$interface"
+}
+
+[ "$#" = 1 ] || fail 'one action required'
+[ "$(id -u)" = 0 ] || fail 'root required'
+umask 077
+case $1 in
+	install) install_units ;;
+	radio) exec "$root/radio" ;;
+	prepare) prepare_network ;;
+	wpa) run_wpa ;;
+	dhcp) run_dhcp ;;
+	*) fail 'unknown action' ;;
+esac

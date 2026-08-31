@@ -1,0 +1,16 @@
+[Unit]
+Description=Wi-Fi authentication using private p23 service-state configuration
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+Requires=rog5-wifi-radio.service rog5-persistent-state.service rog5-persistent-ssh-identity.service
+After=rog5-wifi-radio.service rog5-persistent-state.service rog5-persistent-ssh-identity.service
+Before=basic.target
+
+[Service]
+Type=exec
+ExecStartPre=/run/rog5-native-wifi/runtime prepare
+ExecStart=/run/rog5-native-wifi/runtime wpa
+TimeoutStartSec=15s
+TimeoutStopSec=5s
+Restart=no
