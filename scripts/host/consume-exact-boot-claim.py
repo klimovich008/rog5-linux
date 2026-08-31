@@ -13,6 +13,20 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'native-wifi-ram-early-cut-v21': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=native-wifi-ram-early-cut-v21\n'
+        b'candidate=persistent-native-root-wifi-early-cut-v21\n'
+        b'manifest_sha256=f42315c90cc27ed2c585846330b85041f6554501e2863b58fda2e6a27cf9e99e\n'
+        b'tools_manifest_sha256=355b948a36a3be9fdcad7706652e557000c011e347e65d16016fac5155acc123\n'
+        b'automatic_initramfs_sha256=1d4a8ff015af00da56074ea28545cb6e63b7e72c92800a5565489b647dd3e3d2\n'
+        b'plan_sha256=db55e676d9981f452218bded7820e52d8c95595f7940b1ec930234c99826bed6\n'
+        b'gate_helper_sha256=71b5cb4d71a669535820dc04cb3cd10ba4ad62263031b78f3512e484817abbc6\n'
+        b'discovery_helper_sha256=8598a29e6070af74e8ea514b8772fca23e42d4ed338c36f533e168d9d4fbff66\n'
+        b'controller_binding_checker_sha256=21cbda3b7d34915dcb0f3d9f45a500dc7ca39ccf8b75d729c64531b5016dee06\n'
+        b'execution=mainline-kexec-ram-only\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'native-wifi-ram-early-cut-v20': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=native-wifi-ram-early-cut-v20\n'

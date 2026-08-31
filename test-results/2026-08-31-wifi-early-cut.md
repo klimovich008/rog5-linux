@@ -81,3 +81,19 @@ Three public binding tests, the exact namespace regression and recovery-readines
 test pass; active tier92.264s. No kernel/DT/firmware/initramfs rebuild is needed.
 Do not issue a successor until the complete assembled controller passes these
 checks alongside its existing replay and exact-artifact gates. Never retry V20.
+
+## Narrow V21 admission
+
+Source`84c38b597e1530e885c2ad0c3f4abfd0d5814c10` passed all jobs in exact-head
+run33439112540, including merge and QEMU. Candidate
+`persistent-native-root-wifi-early-cut-v21` keeps the same verified
+Image/DT/initramfs. Signed twins match; packaging0.436s. Manifest:
+`f42315c90cc27ed2c585846330b85041f6554501e2863b58fda2e6a27cf9e99e`.
+
+The actual V21 callback, preflight snapshot and target/cleanup tail pass in one
+namespace; the preserved V20 version reproduces the failure. Complete assembled
+controller/observer/gate binding checks run before signing and in connected
+preflight. Recovery readiness is explicitly bounded90s with cleanup reserve,
+and its exact function test proves no repeated ambiguous reboot. The admission
+changes only literal data and status; V21 has not run yet. All earlier trials
+remain consumed, and both target timers and V11/ASUS A recovery remain intact.
