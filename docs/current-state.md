@@ -89,24 +89,21 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-Next: Wi-Fi hw1.1 driver and matching firmware. All trials through V14 are
-consumed; no Wi-Fi PHY exists yet. V14 passed cache-coherent1350mV APPS voting,
-direct UFS reads, WCN sequencing and a PCIe Gen3x1 link. Exact PCI identity
-passed, then ath11k rejected hardware major1/minor16 with EOPNOTSUPP before
-MSI/MHI initialization. This proves the hw1.1 backport is required; it is not
-a firmware failure or another observed power/USB reset.
-Keep the qualified kernel/DT/power modules unchanged. Matching hw1.1 modules
-pass twins/QEMU; verified vendor firmware and exact-keyed board data are
-prepared for a fresh physical qualification. The APPS readback is not a
-physical rail-voltage measurement.
-Normal reboot restored V11`22ec3b83-0967-41dd-ba0a-5bea2a93e0a2`, shared SSH,
-state and Tailscale services. Battery remained Full/Good,8.608V/30.1°C; the
-largest sampled thermal-zone value was37.8°C. Temporary observers/networking
-were removed. See `test-results/2026-08-31-wifi-late-activation.md`.
+Next: Wi-Fi association, DHCP and SSH over Wi-Fi. V15 passed coherent S12
+power, UFS, PCIe, MSI/MHI and hw1.1 firmware startup. It created `wlp1s0` at
+uptime64.48s and successfully scanned33 access points. Keep that kernel/DT/
+module/firmware composition unchanged for connection tests. No network was
+joined, and Wi-Fi is not yet installed in the persistent V11 baseline.
+All trials through V15 are consumed. Normal reboot restored V11
+`699959e3-9635-4f6c-9765-b12bf3ff3597`, shared SSH and state/Tailscale services
+in73.318s. Battery remained Full/Good,8.607V/30.0°C; maximum sampled thermal
+value was36.5°C. Temporary observation/network settings were removed.
+See `test-results/2026-08-31-wifi-late-activation.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
-The existing WCN6851/hw1.1 backport remains undeployed; its hardware selector
-is now supported by direct device evidence.
+The WCN6851/hw1.1 backport and exact-keyed ASUS board data now pass the RAM test.
+The sealed initramfs still requires USB carrier before deferred UFS loading;
+that diagnostic rendezvous must not remain a production host-free boot dependency.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH
