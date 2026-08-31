@@ -89,27 +89,30 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-V18 passed automatic radio→p23 state→WPA2/CCMP→DHCP→strict WLAN SSH startup
-without host activation commands. Complete Wi-Fi evidence arrived within71.337s
-of claim consumption. S12 read/write traces and exact storage scope passed.
-Preserve the qualified kernel/DT/module/firmware set; all trials through V18
-are consumed. Next: USB-data-absent boot and reconnect/load/charging tests before
-changing the persistent selector. Wi-Fi is not in the active V11 baseline yet.
-Normal reboot restored V11`ac39a52f-dd50-4bc9-9d20-449a67aace83`, shared SSH
-and state/Tailscale services in63.685s. Battery is Full/Good,8.599V/30.0°C.
+V19 passed automatic startup,180.089s with USB data disabled, one WPA
+reassociation and64MiB of intact WLAN SSH traffic.115 complete power/thermal
+samples passed safety checks. Preserve the qualified kernel/DT/module/firmware
+set; all trials through V19 are consumed. Next: USB-data-absent boot and
+charger-only/longer power qualification before changing the persistent selector.
+Wi-Fi is not in the active V11 baseline yet. Normal reboot restored
+V11`7750f962-9b70-4c28-b786-5b2309b03788` and state/Tailscale in63.187s.
+Battery is Full/Good,8.595V/30.2°C. The test's sampled battery current averaged
+about−22mA; sustained net-positive charging is not proven.
 The private network configuration persists only in the existing p23 state image.
-See `test-results/2026-08-31-wifi-automatic-boot.md`.
+See `test-results/2026-08-31-wifi-usb-isolation.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
 The WCN6851/hw1.1 backport and exact-keyed ASUS board data now pass the RAM test.
 The deployed V11 baseline still requires USB carrier. The automatic-mode RAM
 archive passed, but physical boot with USB data absent remains untested.
 Its two rollback timers remain qualification-only, not permanent service policy.
+An early SPMI SID5 probe warning is shared with V18, not a new Wi-Fi failure.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
-Preserve USB rescue. The separate Tailscale test client is online, but its SSH
-sign-in check and encrypted peer SSH proof remain pending; no new kernel or phone cycle
-is needed solely for that test. Keep the existing
+Preserve USB rescue. Tailscale UDP discovery identified the verified WLAN
+address while USB data was off; it can locate the next target without guessing
+DHCP. Managed Tailscale SSH still needs its account check; no gate was bypassed.
+Keep the existing
 observer for longer loaded-network tests; prior two-hour evidence is a baseline,
 not a V11 soak result.
 
