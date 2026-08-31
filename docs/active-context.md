@@ -17,6 +17,8 @@ SSH key and new boot ID. This does not satisfy or bypass managed Tailscale SSH.
 V20 is consumed and did not qualify: a host preflight list shadowed its callback.
 USB restored in0.182s; Arch/Wi-Fi and V11 recovery worked. The offline fix and
 assembled-binding regression pass; see `test-results/2026-08-31-wifi-early-cut.md`.
+V21 is narrowly admitted and unconsumed with the corrected controller and
+bounded recovery-readiness path; no target artifact rebuild was needed.
 
 ## Current live state
 
