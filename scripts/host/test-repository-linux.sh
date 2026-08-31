@@ -139,6 +139,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-rail-reader.py
 	scripts/device/test-persistent-power-readiness.py
 	scripts/device/test-s12-ufs-vote.py
+	scripts/device/test-asus-s12-oem-point.py
 	scripts/device/test-native-ath11k-hw11.py
 	scripts/device/test-native-wifi-pcie-trace.py
 	scripts/device/test-wifi-pwrctrl-probe.py

@@ -87,7 +87,6 @@ static int read_and_check(const char *phase, unsigned int expected_mv,
 
 static int request_oem_voltage(void)
 {
-	struct tcs_cmd cmd = { .addr = 0x40100, .data = S12_OEM_MV };
 	int ret;
 
 	if (!holding)
@@ -95,18 +94,21 @@ static int request_oem_voltage(void)
 	ret = read_and_check("before-oem", S12_REVOTE_UV / 1000, 6);
 	if (ret)
 		return ret;
-	/* The retained vendor API rounds requests to mV, not the 8mV selector
-	 * grid. This fixed diagnostic bypasses that selector only after the
-	 * independently retained hold. Never use the stale regulator cache to
-	 * qualify subsequent normal operation; read back and reboot instead.
+	/* The ASIC-scoped kernel point must represent the OEM request exactly.
+	 * Use the regulator API so its cache and consumer constraint agree.
 	 */
-	pr_info("ROG5_S12_OEM enter address=%#x request_mv=%u\n",
-		cmd.addr, cmd.data);
-	ret = rpmh_write(&pmic_device->dev, RPMH_ACTIVE_ONLY_STATE, &cmd, 1);
-	pr_info("ROG5_S12_OEM return result=%d cache_not_updated=1\n", ret);
+	pr_info("ROG5_S12_OEM enter request_mv=%u\n", S12_OEM_MV);
+	ret = regulator_set_voltage(s12, S12_OEM_MV * 1000, S12_OEM_MV * 1000);
+	pr_info("ROG5_S12_OEM return result=%d\n", ret);
 	if (ret)
 		return ret;
-	return read_and_check("after-oem", S12_OEM_MV, 6);
+	ret = read_and_check("after-oem", S12_OEM_MV, 6);
+	if (ret)
+		return ret;
+	if (regulator_get_voltage(s12) != S12_OEM_MV * 1000)
+		return -EIO;
+	pr_info("ROG5_S12_OEM cache_consistent=1\n");
+	return 0;
 }
 
 static int finish_init_result(int ret)
@@ -260,7 +262,12 @@ static int __init s12_vote_init(void)
 		s12 = NULL;
 		goto unlock_consumer;
 	}
-	ret = apply_active_vote();
+	ret = regulator_is_supported_voltage(s12, S12_OEM_MV * 1000,
+					    S12_OEM_MV * 1000);
+	if (ret == 1)
+		ret = apply_active_vote();
+	else if (!ret)
+		ret = -EOPNOTSUPP;
 	if (!ret)
 		report_cached_state();
 	if (!holding) {
@@ -299,4 +306,4 @@ static void __exit s12_vote_exit(void)
 module_init(s12_vote_init);
 module_exit(s12_vote_exit);
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("ROG5 protected S12 hold and exact OEM mV diagnostic");
+MODULE_DESCRIPTION("ROG5 protected S12 hold and cache-coherent OEM voltage");
