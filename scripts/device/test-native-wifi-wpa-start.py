@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -14,14 +15,18 @@ class WpaStartup(unittest.TestCase):
         function=source[source.index('start_wpa() {'):source.index('\nstart_wpa\n')]
         with tempfile.TemporaryDirectory() as tmp:
             output=Path(tmp)/'args'
+            bindir=Path(tmp)/'bin';bindir.mkdir()
+            mock=bindir/'systemd-run'
+            mock.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" >"$MOCK_ARGS"\n')
+            mock.chmod(0o755)
             shell=f'''set -eu
 root=/run/rog5-native-wifi
 state=/run/rog5-wifi-association
 interface=wlp1s0
 seconds=400
-systemd-run() {{ printf '%s\\n' "$@" >{output}; }}
 '''+function+'\nstart_wpa\n'
-            subprocess.run(['sh','-c',shell],check=True)
+            subprocess.run(['sh','-c',shell],check=True,
+                           env=dict(os.environ,PATH=str(bindir)+':'+os.environ.get('PATH','/usr/bin:/bin'),MOCK_ARGS=str(output)))
             args=output.read_text().splitlines()
         self.assertIn('--property=Type=exec',args)
         self.assertIn('--property=Restart=no',args)
