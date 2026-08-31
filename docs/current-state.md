@@ -99,21 +99,23 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-Next: bring up WCN6855 Wi-Fi client support so networking no longer depends on
-the Steam Deck. Five native RAM Wi-Fi trials reached Arch/SSH and recovered V11
-after radio-startup resets. V6 returned V11 before target enumeration; all six
-are consumed, but v6 is not another radio failure. Rails-v4 proved two
-supply enables returned 0, then lost reporting at S12/vddpmu entry. Paired PMIC
-history gained one PS_HOLD warm reset. No physical rail fault or kernel panic
-is proven. The stock S12 retention vote applied in v5 but did not prevent reset.
-Investigate the exact RPMh/crash boundary before successors; see the native
-Wi-Fi RAM-handoff result. Wi-Fi is not yet functional.
+Next: bring up Wi-Fi client support so networking no longer depends on the
+Steam Deck. All seven RAM Wi-Fi trials are consumed. V6 returned V11 before
+the radio probe; v7 proved the source handoff and captured S12's 1352mV request
+at RPMh address0x40100. Submission returned0; no ACK or enable request was
+recorded before a PS_HOLD warm reset. Lost tail is not proof of no completion.
+No physical rail fault or kernel panic is proven. Wi-Fi is not yet functional.
+Authenticated WW33 describes S12 as always-on and shared with UFS VCCQ. Its
+active UFS load selects AUTO, unlike the current RET-only Wi-Fi composition.
+A small query/mode/held-vote module and permission-only DTB now pass offline
+checks. The next experiment must establish the AUTO ACK and stable read-only
+UFS before any voltage/enable action. No shared-rail rewiring or new Image build.
+See `test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
 Conditional WCN6851/hw1.1 modules now pass exact-source dispatch tests,
 reproducibility and exact-Image QEMU/BTF checks; they are not deployed on the phone.
 The RPMh observer now passes passive V11 command/ack capture and cleanup.
-The v6 handoff's dispatch returned0 without proving target execution; source
-exitrd refusal, syscall return and early crash still need discrimination.
-Its private polling threshold does not explain the earlier lost text traces.
+V7 source ACM captured the exitrd gates and executor entry; the before-handoff
+and before-radio PON snapshots match. This does not explain v6 retrospectively.
 The installed loader snapshots pstore but does not export it before kexec;
 end-to-end crash capture remains incomplete. See
 `test-results/2026-08-31-native-wifi-rpmh-observer.md`.

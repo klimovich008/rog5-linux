@@ -21,6 +21,11 @@
 	 * vendor RET is 1. Both map to PMIC5 retention mode 3, not HPM.
 	 */
 	regulator-initial-mode = <0>;
+	/* Permit the authenticated stock RET/AUTO pair. This does not switch
+	 * modes at boot; the reviewed late consumer must request AUTO explicitly.
+	 * Mainline AUTO=2; vendor AUTO=3 would mean mainline HPM/PWM.
+	 */
+	regulator-allowed-modes = <0 2>;
 };
 
 &vreg_s1c_1p86 {

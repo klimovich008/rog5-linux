@@ -23,6 +23,7 @@ class WifiDeltaTest(unittest.TestCase):
         self.candidate = copy.deepcopy(self.base)
         self.candidate[wifi.S11].update({'regulator-min-microvolt': cell(1012000), 'regulator-max-microvolt': cell(1016000)})
         self.candidate[wifi.S12] = {'regulator-min-microvolt': cell(1350000), 'regulator-max-microvolt': cell(1352000), 'regulator-initial-mode': cell(0)}
+        self.candidate[wifi.S12]['regulator-allowed-modes'] = cell(0) + cell(2)
         self.candidate[wifi.S1C]['regulator-min-microvolt'] = cell(1900000)
         for path in (wifi.PCIE, wifi.PHY): self.candidate[path]['status'] = b'okay\0'
         self.candidate[wifi.TLMM + '/wlan-en-state'] = {}
@@ -42,6 +43,19 @@ class WifiDeltaTest(unittest.TestCase):
                     del bad[wifi.S12]['regulator-initial-mode']
                 else:
                     bad[wifi.S12]['regulator-initial-mode'] = cell(value)
+                with self.assertRaises(ValueError):
+                    wifi.compare(self.base, bad)
+
+    def test_only_stock_ret_auto_permissions_are_admitted(self):
+        # Vendor AUTO=3 is mainline HPM, not AUTO=2. Permitting it lets
+        # regulator_mode_constrain coerce NORMAL into FAST/PWM.
+        for values in (None, (0,), (2,), (0, 3), (0, 1, 2)):
+            with self.subTest(values=values):
+                bad = copy.deepcopy(self.candidate)
+                if values is None:
+                    del bad[wifi.S12]['regulator-allowed-modes']
+                else:
+                    bad[wifi.S12]['regulator-allowed-modes'] = b''.join(cell(x) for x in values)
                 with self.assertRaises(ValueError):
                     wifi.compare(self.base, bad)
 
