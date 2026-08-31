@@ -2,7 +2,7 @@
 
 V17 already passed WPA2/CCMP, DHCP and strict SSH over Wi-Fi. This follow-up
 packages the same qualified radio/kernel/DT inputs for automatic local startup.
-It is a RAM-test composition, not a persistent release or an admitted candidate.
+It is a RAM-test composition, not a persistent release. V18 admission is below.
 V11 and stock ASUS slot A remain unchanged; all trials through V17 are consumed.
 
 ## Changes
@@ -59,3 +59,17 @@ without target-side commands supplied by the host. Then test USB-data absence,
 reconnect, load/charging and fallback before any persistent selector change.
 The private Wi-Fi configuration has not yet been staged. No new claim, signing,
 phone boot, storage write, flash, slot or selector change occurred in this checkpoint.
+
+## Narrow V18 admission
+
+Executable source`20ef71024d47e705cd1654818b6e3ccfa2ac704e` passed all jobs in
+exact-head run33425976612, including merge and QEMU. The fresh signed RAM-only
+candidate`persistent-native-root-wifi-automatic-v18` has identical core twins;
+packaging took0.473s. Manifest:
+`ac1b008b67394a4c4641ec567e10474e484ff90d6382a643f498a9a41e0d88da`.
+
+The data-only exact-record addition does not change execution code or earlier
+claims. Controller replay passes; the target phase can only observe automatic
+startup and verify WLAN SSH. Stage the private configuration, recheck source
+identity/power and signed bytes, then consume once. No trial has run yet.
+Do not change the persistent selector or disarm the two target rollback timers.
