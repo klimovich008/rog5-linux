@@ -246,3 +246,7 @@ The corrected association replay passed all four cases, and the active tier
 passed in92.584s. The launcher function was exercised with its real systemd
 properties and journal path on Arch inside an empty network namespace. Full
 local kernel/lifecycle CI was not repeated for this userspace-only change.
+
+CI then caught a test-only portability defect: the mock function named
+`systemd-run` was accepted by local Bash but rejected by Ubuntu dash. A PATH
+executable mock replaces it; the launcher and device artifacts are unchanged.
