@@ -67,6 +67,9 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
 4. First integrate bounded fresh UDP endpoint discovery with strict LAN SSH
    for the early-cut boot test. A later optional capture raced V19's planned
    reboot; treat missing USB as unavailable, never as a new kernel failure.
+   The discovery parser is implemented/tested; see
+   `test-results/2026-08-31-wifi-early-cut.md`. Native root mounts at
+   userdata-mount, so use that earlier marker for cutoff timing proof.
    Keep existing timers for trials; review healthy-startup policy before a
    persistent selector update. PC input stayed capped500mA and sampled battery
    current averaged−22mA; actual charger-only/longer power proof remains.
