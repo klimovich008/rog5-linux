@@ -100,23 +100,23 @@ The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
 Next: bring up Wi-Fi client support so networking no longer depends on the
-Steam Deck. All eight RAM Wi-Fi trials are consumed. V6 returned V11 before
+Steam Deck. All nine RAM Wi-Fi trials are consumed. V6 returned V11 before
 the radio probe; v7 proved the source handoff and captured S12's 1352mV request
 at RPMh address0x40100. Submission returned0; no ACK or enable request was
 recorded before a PS_HOLD warm reset. Lost tail is not proof of no completion.
 No physical rail fault or kernel panic is proven. Wi-Fi is not yet functional.
 Authenticated WW33 describes S12 as always-on and shared with UFS VCCQ. Its
 active UFS load selects AUTO, unlike the current RET-only Wi-Fi composition.
-A small query/mode/held-vote module and permission-only DTB now pass offline
-checks. The next experiment must establish the AUTO ACK and stable read-only
-UFS before any voltage/enable action. No shared-rail rewiring or new Image build.
+The query/AUTO module and permission-only DTB pass on hardware. The next
+experiment must prove a retained S12 enable vote and stable direct UFS reads
+before radio startup. No shared-rail rewiring or new Image build is needed.
 See `test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
 Conditional WCN6851/hw1.1 modules now pass exact-source dispatch tests,
 reproducibility and exact-Image QEMU/BTF checks; they are not deployed on the phone.
-V8 stopped at the early USB-online gate before the S12 probe and returned to
-fastboot. Exact identity/battery checks allowed a normal B reboot; V11/SSH and
-state/Tailscale are restored. No Wi-Fi power request ran. A bounded readiness
-helper correction is under test; same-boot telemetry settling remains unproven.
+V8 stopped at USB-online0 before the probe; exact fastboot recovery restored V11.
+V9 passed the readiness gate and S12 AUTO-only test: ACK0x40108/data6, mode8→2,
+no voltage/enable writes, stable NCM and read-only storage checks. It returned
+normally to V11/SSH/Tailscale. Protected enable and Wi-Fi startup remain untested.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH
