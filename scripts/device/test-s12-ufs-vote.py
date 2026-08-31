@@ -23,6 +23,49 @@ def function(text, name):
     return text[start:end]
 
 class S12VoteTest(unittest.TestCase):
+    def test_oem_request_requires_hold_and_fresh_read_and_never_rounds(self):
+        body=function(SOURCE.read_text(),'request_oem_voltage')
+        code=r'''
+#include <assert.h>
+#include <stdbool.h>
+#include <errno.h>
+#include <string.h>
+#define RPMH_ACTIVE_ONLY_STATE 0
+#define S12_REVOTE_UV 1224000
+#define S12_OEM_MV 1350
+#define pr_info(...) ((void)0)
+struct tcs_cmd {unsigned addr,data;};
+struct device {int unused;};struct platform_device {struct device dev;};
+static struct platform_device object,*pmic_device=&object;
+static bool holding;
+static int before_error,write_error,after_error,reads,writes;
+static int read_and_check(const char *phase,unsigned mv,unsigned mode) {
+ assert(mode==6);reads++;
+ if(!strcmp(phase,"before-oem")){assert(mv==1224);return before_error;}
+ assert(!strcmp(phase,"after-oem") && mv==1350);return after_error;
+}
+static int rpmh_write(const struct device *d,int state,const struct tcs_cmd *cmd,unsigned count){
+ assert(d==&object.dev && state==0 && count==1 && cmd->addr==0x40100 && cmd->data==1350);
+ writes++;return write_error;
+}
+'''+body+r'''
+int main(void){
+ assert(request_oem_voltage()==-EPERM && !reads && !writes);
+ holding=true;before_error=-110;assert(request_oem_voltage()==-110 && !writes);
+ reads=0;before_error=0;write_error=-110;
+ assert(request_oem_voltage()==-110 && writes==1 && reads==1 && holding);
+ reads=writes=0;write_error=0;after_error=-ERANGE;
+ assert(request_oem_voltage()==-ERANGE && writes==1 && reads==2 && holding);
+ reads=writes=0;after_error=0;
+ assert(request_oem_voltage()==0 && writes==1 && reads==2 && holding);
+ return 0;
+}
+'''
+        with tempfile.TemporaryDirectory() as temporary:
+            c=Path(temporary)/'test.c';binary=Path(temporary)/'test';c.write_text(code)
+            subprocess.run(['cc','-Wall','-Wextra','-Werror',str(c),'-o',str(binary)],check=True)
+            subprocess.run([str(binary)],check=True,timeout=3)
+
     def test_sanitized_live_revote_sequences(self):
         spec=importlib.util.spec_from_file_location('live_s12_trace',REPO/'scripts/host/verify-s12-vote-trace.py')
         mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
@@ -45,6 +88,11 @@ class S12VoteTest(unittest.TestCase):
         with self.assertRaises(ValueError):trace.verify(initial,'held-enable')
         held=initial+pair('write',0x40100,0x4c8)+pair('write',0x40104,1)+initial
         trace.verify(held,'held-enable')
+        high=initial.replace('addr: 0x40100 data: 0x4c8','addr: 0x40100 data: 0x546')
+        oem=held+pair('write',0x40100,1350)+high
+        trace.verify(oem,'held-oem')
+        with self.assertRaises(ValueError):trace.verify(oem.replace('0x546','0x548'),'held-oem')
+        with self.assertRaises(ValueError):trace.verify(held+high,'held-oem')
         retention=initial.replace('addr: 0x40108 data: 0x6','addr: 0x40108 data: 0x3')
         trace.verify(retention,'query')
         trace.verify(retention+'x: rpmh_send_msg: apps_rsc: tcs(m): 3 [wake] cmd(n): 0 msgid: 0x10008 addr: 0x40108 data: 0x3 complete: 0\n','query')
@@ -64,7 +112,7 @@ class S12VoteTest(unittest.TestCase):
         candidate=mod.compose(base);mod.verify(base,candidate)
         self.assertEqual(set(candidate)-set(base),{mod.S12,mod.CONSUMER})
         self.assertEqual(candidate[mod.S12]['regulator-min-microvolt'],mod.cell(1224000))
-        self.assertEqual(candidate[mod.S12]['regulator-max-microvolt'],mod.cell(1224000))
+        self.assertEqual(candidate[mod.S12]['regulator-max-microvolt'],mod.cell(1360000))
         self.assertNotIn('regulator-always-on',candidate[mod.S12])
         for path,key,value in ((mod.PCIE,'status',b'okay\0'),('/ufs','status',b'disabled\0'),
             (mod.S12,'regulator-min-microvolt',mod.cell(1350000)),(mod.S12,'regulator-boot-on',b'')):
@@ -83,17 +131,22 @@ class S12VoteTest(unittest.TestCase):
 typedef uint32_t u32;
 #define BIT(n) (1U << (n))
 #define S12_REVOTE_UV 1224000
+#define S12_MAX_UV 1360000
+#define S12_OEM_MV 1350
 '''+function(text,'voltage_bounds_allowed')+'\n'+function(text,'raw_state_matches')+r'''
 int main(void) {
- assert(voltage_bounds_allowed(1224000,1224000));
+ assert(voltage_bounds_allowed(1224000,1360000));
  assert(!voltage_bounds_allowed(1350000,1352000));
- assert(!voltage_bounds_allowed(1224000,1360000));
- assert(raw_state_matches(0x4c8,0x80000001,3,3));
- assert(raw_state_matches(0x800004c8,1,0x80000006,6));
- assert(!raw_state_matches(0x548,1,3,3));
- assert(!raw_state_matches(0x4c8,0,3,3));
- assert(!raw_state_matches(0x4c8,1,3,6));
- assert(!raw_state_matches(0x400004c8,1,3,3));
+ assert(!voltage_bounds_allowed(1224000,1400000));
+ assert(raw_state_matches(0x4c8,0x80000001,3,1224,3));
+ assert(raw_state_matches(0x800004c8,1,0x80000006,1224,6));
+ assert(raw_state_matches(0x80000546,1,6,1350,6));
+ assert(!raw_state_matches(0x548,1,3,1224,3));
+ assert(!raw_state_matches(0x548,1,6,1350,6));
+ assert(!raw_state_matches(0x548,1,6,1352,6));
+ assert(!raw_state_matches(0x4c8,0,3,1224,3));
+ assert(!raw_state_matches(0x4c8,1,3,1224,6));
+ assert(!raw_state_matches(0x400004c8,1,3,1224,3));
  return 0;
 }
 '''
@@ -139,16 +192,17 @@ int main(void) {
 #define pr_info(...) ((void)0)
 #define pr_err(...) ((void)0)
 static void *s12;
-enum vote_action { QUERY, MODE, HELD_ENABLE };
+enum vote_action { QUERY, MODE, HELD_ENABLE, HELD_OEM };
 static enum vote_action selected_action;
 static bool holding;
 static int mode, mode_error, enable_error, mode_calls, enable_calls, pins, suppress;
 static int cached_voltage=S12_REVOTE_UV, before_error, after_error, reads;
 static int regulator_get_voltage(void *r) { (void)r; return cached_voltage; }
-static int read_and_check(const char *phase, unsigned int expected) {
+static int read_and_check(const char *phase, unsigned int mv, unsigned int expected) {
+ assert(mv==1224);
  reads++;
  if (!strcmp(phase,"before")) {
-  assert(expected==(selected_action==HELD_ENABLE ? 6U : 3U));return before_error;
+  assert(expected==((selected_action==HELD_ENABLE || selected_action==HELD_OEM) ? 6U : 3U));return before_error;
  }
  assert(!strcmp(phase,"after") && expected==6);return after_error;
 }
@@ -163,6 +217,8 @@ static int regulator_enable(void *r) {
  return enable_error;
 }
 static void __module_get(void *m) { assert(m == THIS_MODULE); pins++; }
+static int oem_calls;
+static int request_oem_voltage(void) { assert(holding && pins==1);oem_calls++;return after_error; }
 '''
         cases = [
             (0, 8, 0, 0, 0, 0, 0, 0, 0),
@@ -192,6 +248,9 @@ static void __module_get(void *m) { assert(m == THIS_MODULE); pins++; }
  assert(apply_active_vote()==-5 && enable_calls==1 && pins==1 && holding && reads==2);
  assert(finish_init_result(-5)==0 && holding && pins==1);
  holding=false;assert(finish_init_result(-5)==-5);
+ selected_action=HELD_OEM;mode=2;mode_calls=enable_calls=pins=reads=0;
+ assert(apply_active_vote()==-5 && enable_calls==1 && pins==1 && holding && oem_calls==1);
+ assert(finish_init_result(-5)==0 && holding);
  cached_voltage=1352000;mode_calls=enable_calls=reads=0;
  assert(apply_active_vote()==-ERANGE && !mode_calls && !enable_calls && !reads);
 '''
@@ -206,8 +265,11 @@ static void __module_get(void *m) { assert(m == THIS_MODULE); pins++; }
     def test_control_surface_and_identity_are_fixed(self):
         text = SOURCE.read_text()
         for forbidden in (r'\bregulator_disable\s*\(', r'\bregulator_set_voltage\s*\(',
-                          r'\brpmh_write\s*\(', r'\bioremap\s*\(', r'\bwritel\s*\('):
+                          r'\bioremap\s*\(', r'\bwritel\s*\('):
             self.assertNotRegex(text, forbidden)
+        self.assertEqual(len(re.findall(r'\brpmh_write\s*\(',text)),1)
+        self.assertIn('.addr = 0x40100, .data = S12_OEM_MV',text)
+        self.assertIn('#define S12_OEM_MV 1350',text)
         self.assertIn('module_param(action, charp, 0400)', text)
         self.assertIn('of_machine_is_compatible("asus,rog-phone5")', text)
         self.assertIn('supply != rail', text)
