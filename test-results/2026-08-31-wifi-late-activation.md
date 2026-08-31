@@ -168,3 +168,33 @@ checks remain separate from the successful source CI. Only literal admission
 data/status text is added, so full CI is not repeated for unchanged executable
 source. V15 is admitted once under standing authority, subject to the fresh
 connected gates. V14 and earlier candidates remain permanently consumed.
+
+## V15 live: firmware, PHY and scan pass; consumed
+
+V15 executed once from admission`86b057eda1442a3b5d63d25d3079d30fc6c26bcb`.
+Target`6309aa2a-b741-4520-87e6-9562d245b57f` reached strict SSH39.566s after
+entry. Coherent S12, direct UFS, WCN sequencing and PCIe checks passed again.
+The driver accepted hw1.1, allocated32 MSI vectors and started MHI/firmware.
+It logged chip0, family0xb, board255 and SoC0x400c0110, followed by the expected
+WLAN.HSP.1.1.c3-00205 firmware build. Board255 may be defaulted; the log alone
+does not establish its validity flag.
+
+`phy0` appeared at uptime64.48s; the interface renamed from wlan0 to `wlp1s0`.
+The exact-parent interface check passed and scanning returned status0 with33
+BSS records across2.4/5/6GHz frequencies. Raw SSIDs/BSSIDs remain private.
+This proves firmware/PHY/scan operation, not association, DHCP or Wi-Fi SSH.
+
+Normal reboot restored V11`699959e3-9635-4f6c-9765-b12bf3ff3597` and services
+in73.318s; total entry→restored156.807s. Battery was Full/Good,8.607V/30.0°C;
+maximum of30 sampled thermal zones was36.5°C. Source/pre-vote PON snapshots
+match. Experimental UFS stayed117-RO, and normal sda+sda23 write scope was
+restored. Temporary observer processes,8079 permission and management alias
+were removed. No persistent Linux deployment or slot/layout change occurred.
+
+Next is userspace-only association with the exact working composition.
+The WPA2 client runtime is prepared from seven signature-verified Alpine
+packages; AArch64 wpa_supplicant/wpa_cli2.11 checks pass. No network credential
+has been read or deployed yet. Separately, inspection of the exact sealed
+initramfs confirms an unconditional USB-carrier rendezvous before deferred
+UFS loading. Remove that production host dependency only in its own tested
+checkpoint; do not weaken the diagnostic or storage-write path.
