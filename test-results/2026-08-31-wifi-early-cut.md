@@ -28,3 +28,19 @@ V19 and earlier remain consumed. ASUS slot A, V11 and protected phone storage
 remain untouched. Managed Tailscale SSH still has its separate account check;
 using authenticated network discovery plus ordinary key-authenticated LAN SSH
 does not satisfy or bypass that check.
+
+## Narrow V20 admission
+
+Source`d186b027218ff43e19823015c4ca13d40fee0803` passed all jobs in exact-head
+run33436474231, including merge compatibility and QEMU. The fresh RAM-only
+candidate`persistent-native-root-wifi-early-cut-v20` retains the exact V19
+Image/DT/initramfs. Identical signed twins packaged in0.463s; manifest:
+`e459948131640d19d7f5e03105b00c828177c0a05cf226dcd49c4db480a767ed`.
+
+Controller replay covers the post-claim exact stage2 trigger, stale SSH identity,
+conservative cutoff timing and restore-before-reboot cleanup. Host sleep is
+inhibited during the trial. USB restoration remains independently bounded180s;
+fresh discovery stops by140s after cutoff. No target timer is disarmed. The
+literal data-only admission changes no execution code or historical claims.
+No V20 execution has occurred yet; no persistent selector change is authorized
+by this admission.

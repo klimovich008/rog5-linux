@@ -14,6 +14,8 @@ V11 rescue; see `test-results/2026-08-31-wifi-usb-isolation.md`.
 Authenticated Tailscale UDP discovery found the same SSH-verified LAN endpoint
 while USB was off. Use that for next-boot discovery, then require the project
 SSH key and new boot ID. This does not satisfy or bypass managed Tailscale SSH.
+V20 is admitted and unconsumed for the early-cut test; its target bytes are
+unchanged. See `test-results/2026-08-31-wifi-early-cut.md`.
 
 ## Current live state
 
