@@ -147,6 +147,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-native-wifi-boot.py
 	scripts/host/test-quiesce-native-usb-data.py
 	scripts/host/test-native-wifi-discovery.py
+	scripts/host/test-controller-bindings.py
 	scripts/device/test-wifi-pwrctrl-probe.py
 	scripts/device/test-pmic-pon-reader.py
 )

@@ -14,17 +14,18 @@ V11 rescue; see `test-results/2026-08-31-wifi-usb-isolation.md`.
 Authenticated Tailscale UDP discovery found the same SSH-verified LAN endpoint
 while USB was off. Use that for next-boot discovery, then require the project
 SSH key and new boot ID. This does not satisfy or bypass managed Tailscale SSH.
-V20 is admitted and unconsumed for the early-cut test; its target bytes are
-unchanged. See `test-results/2026-08-31-wifi-early-cut.md`.
+V20 is consumed and did not qualify: a host preflight list shadowed its callback.
+USB restored in0.182s; Arch/Wi-Fi and V11 recovery worked. The offline fix and
+assembled-binding regression pass; see `test-results/2026-08-31-wifi-early-cut.md`.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `7750f962-9b70-4c28-b786-5b2309b03788`; slot A remains rescue.
+  `62b2f823-8873-4344-94d3-176a22e60349`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Full/Good, 8.595 V, 30.2°C; state/Tailscale active.
+- Latest battery read: Full/Good, 8.594 V, 30.1°C; state/Tailscale active.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -35,9 +36,9 @@ unchanged. See `test-results/2026-08-31-wifi-early-cut.md`.
 
 ## Just-completed checkpoint
 
-V19 passed automatic startup and runtime isolation/reassociation/traffic.
-Radio preceded writable p23 state; only the two approved nodes were writable.
-V11 fallback/services and same-instance USB/host cleanup passed.
+V19's runtime pass remains valid. V20's host namespace collision prevented its
+early-boot qualification; exact bad source and combined-namespace regression
+are retained. V11 fallback/services and same-instance USB/host cleanup passed.
 The private Wi-Fi file now persists in p23; the default V11 kernel still lacks
 Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
 
@@ -56,7 +57,7 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
    Preserve diagnostic/write-path observation and the independent fallback.
    Do not infer explicitly valid QMI fields from default-capable values.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
-   Never rerun V19 or earlier. Restore shared networking after future fallback;
+   Never rerun V20 or earlier. Restore shared networking after future fallback;
    reuse the fixed missing-interface helper and parameterized stage parser.
    Preserve archives/source; disk headroom remains low. Use
    ROG5_TEST_TMP_PARENT for project RAM scratch; never repurpose HOME.
@@ -72,6 +73,9 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
    The discovery parser is implemented/tested; see
    `test-results/2026-08-31-wifi-early-cut.md`. Native root mounts at
    userdata-mount, so use that earlier marker for cutoff timing proof.
+   Before another trial, check the complete assembled controller with
+   `check-controller-bindings.py` and replay its actual preflight/callback
+   namespace. Use the fixed snapshot name, and bounded recovery-SSH readiness.
    Keep existing timers for trials; review healthy-startup policy before a
    persistent selector update. PC input stayed capped500mA and sampled battery
    current averaged−22mA; actual charger-only/longer power proof remains.
