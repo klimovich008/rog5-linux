@@ -1,0 +1,16 @@
+{
+  "scope": "QEMU exact Image, wrong-board refusal before power",
+  "busybox_records": [
+    "[8.077849] ROG5_S12_VOTE action=query identity-check",
+    "[8.134464] ROG5_S12_VOTE action=query identity-check",
+    "insmod: can't insert '/rog5-s12-ufs-vote.ko': No such device",
+    "S12_WRONG_BOARD_STATUS=19"
+  ],
+  "module_once_records": [
+    "[5.153346] ROG5_S12_VOTE action=held-oem identity-check",
+    "module-once finit_module errno=19 (No such device); no retry",
+    "S12_WRONG_BOARD_STATUS=1"
+  ],
+  "power_operation_reached": false,
+  "physical_radio_qualified": false
+}

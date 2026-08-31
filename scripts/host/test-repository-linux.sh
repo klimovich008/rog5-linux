@@ -142,10 +142,12 @@ native_wifi_probe_tests=(
 	scripts/device/test-asus-s12-oem-point.py
 	scripts/device/test-native-ath11k-hw11.py
 	scripts/device/test-native-wifi-pcie-trace.py
+	scripts/device/test-native-wifi-activation.py
 	scripts/device/test-wifi-pwrctrl-probe.py
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/host/test-repository-linux-runner-contract.sh
 	scripts/device/test-inspect-local-image-partial.sh
 	scripts/device/test-benchmark-local-image-write.sh
 	scripts/device/test-stage-local-image-direct.sh
@@ -297,7 +299,6 @@ shared_tests=(
 	scripts/host/test-claude-readonly-review.sh
 	scripts/host/test-github-exact-head-workflow.sh
 	scripts/host/test-current-recovery-status.sh
-	scripts/host/test-repository-linux-runner-contract.sh
 	scripts/device/test-collect-readonly-storage-inventory.py
 	scripts/device/test-persistent-root-storage-resolution.py
 	scripts/device/test-persistent-root-handoff.sh
@@ -459,12 +460,33 @@ selected_test() {
 	done
 	return 1
 }
-test_tmp_parent=${HOME:-}
+# An unset override preserves HOME; an explicitly empty override is invalid.
+test_tmp_parent=${ROG5_TEST_TMP_PARENT-${HOME:-}}
 [[ $test_tmp_parent == /* && -d $test_tmp_parent &&
 	! -L $test_tmp_parent && -w $test_tmp_parent ]] ||
 	fail 'repository test temporary parent is unavailable'
 test_tmp_root=$(mktemp -d "$test_tmp_parent/.rog5-tests.XXXXXXXX")
 chmod 0700 "$test_tmp_root"
+# Prove the actual longest host-broker fixture path before costly suites.
+# AF_UNIX has a byte limit even when the containing directory is writable.
+if ! python3 - "$test_tmp_root" <<'PY'
+from pathlib import Path
+import socket
+import sys
+import tempfile
+
+try:
+    with tempfile.TemporaryDirectory(prefix="rog5-host-socket-test-", dir=sys.argv[1]) as fixture:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as listener:
+            listener.bind(str(Path(fixture) / "broker-peer.sock"))
+except OSError:
+    raise SystemExit("test scratch cannot host the broker Unix socket; choose a shorter parent")
+PY
+then
+	rmdir -- "$test_tmp_root"
+	test_tmp_root=
+	fail 'repository test temporary parent cannot host Unix sockets'
+fi
 export TMPDIR=$test_tmp_root
 parallel_root=$(mktemp -d)
 parallel_pids=()
