@@ -71,6 +71,19 @@ def validate_rail_log(text, pause):
 
 
 class PwrctrlProbeTest(unittest.TestCase):
+    def test_auto_ack_is_not_a_successful_enable_or_radio_test(self):
+        fixture=json.loads((REPO/'tests/fixtures/native-wifi/s12-auto-enable-reset.json').read_text())
+        self.assertEqual(fixture['mode_api_return'],0)
+        self.assertEqual(fixture['held_cached_mode'],2)
+        self.assertIn('addr: 0x40108 data: 0x6',fixture['mode_ack'])
+        for key in ('held_api_return_observed','held_voltage_submission_observed',
+                    'held_enable_submission_observed','radio_probe_started',
+                    'pcie_or_gpio_activation_started','auto_mode_alone_fixes_reset',
+                    'safe_to_retry_consumed_target'):
+            self.assertFalse(fixture[key])
+        self.assertTrue(fixture['trace_tail_may_be_lost'])
+        self.assertIsNone(fixture['proven_faulting_instruction'])
+
     def test_rsc_submission_is_not_completed_voltage_or_power(self):
         fixture = json.loads((REPO / 'tests/fixtures/native-wifi/s12-voltage-submit-reset.json').read_text())
         text = '\n'.join(fixture['kmsg'] + fixture['trace']) + '\nROG5_QEMU_PWRCTRL_END\n'

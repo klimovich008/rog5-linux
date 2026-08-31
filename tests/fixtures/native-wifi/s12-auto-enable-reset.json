@@ -1,0 +1,33 @@
+{
+  "source_commit": "9523b547470c914513d34b1159693e80fe8607db",
+  "target_boot": "b8cecb86-a043-404c-bc9f-408364af7571",
+  "claim_consumed_epoch": 1788151121.577742,
+  "target_ssh_epoch": 1788151161.566439,
+  "mode_api_return": 0,
+  "mode_send": "40.234101: rpmh_send_msg: apps_rsc: tcs(m): 0 [active] cmd(n): 0 msgid: 0x10108 addr: 0x40108 data: 0x6 complete: 0",
+  "mode_ack": "40.234122: rpmh_tx_done: apps_rsc: ack: tcs-m: 0 addr: 0x40108 data: 0x6",
+  "held_enter": "[41.281484] ROG5_S12_VOTE hold-enter",
+  "held_cached_mode": 2,
+  "held_ssh_result": 255,
+  "held_api_return_observed": false,
+  "held_voltage_submission_observed": false,
+  "held_enable_submission_observed": false,
+  "trace_tail_may_be_lost": true,
+  "radio_probe_started": false,
+  "pcie_or_gpio_activation_started": false,
+  "auto_mode_alone_fixes_reset": false,
+  "paired_pon": {
+    "handoff_snapshots_identical": true,
+    "push_before": 141,
+    "push_after": 161,
+    "new_bytes": 20,
+    "new_reset_trigger": "PS_HOLD",
+    "new_reset_type": "WARM_RESET",
+    "warm_reset_count_before": 0,
+    "warm_reset_count_after": 1
+  },
+  "fallback_boot": "3d760020-1bda-45b5-aedd-b30a3747f673",
+  "fallback_ssh_epoch": 1788151237.486697,
+  "safe_to_retry_consumed_target": false,
+  "proven_faulting_instruction": null
+}
