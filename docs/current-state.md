@@ -89,28 +89,24 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-Next: Wi-Fi client support. All trials through V13 are consumed;
-Wi-Fi is not functional yet. V7 captured an S12 1352mV request before reset;
-V9 AUTO-only passed; V10 reset on first enable. No physical rail fault or
-specific panic is proven. Earlier detail remains in
-`test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
-Readback-v11 reached Arch/UFS/NCM/SSH on the new kernel and read six RPMh votes.
-S12's APPS vote was1224mV, enabled1, retention3—not a physical voltage reading.
-Its driver had previously cached1352mV for first enable. Test a state-preserving
-handoff before another voltage increase/radio activation; do not guess shared
-rail wiring. The read-only trial issued no S12 writes and returned normally
-to V11. The subsequent1224mV re-vote passed explicit voltage/enable write
-completions, post-readback, direct UFS reads and NCM. Current V11 boot is
-`bdd1dd29-1def-4864-9d86-109ec9876137`; power, exact write scope and shared SSH
-passed. V13 then proved exact1350mV write/readback after the low hold, with
-stable UFS/NCM and normal fallback. No radio was activated. The cache-coherent
-kernel point, clean kernel/module twins and new initramfs are qualified offline;
-physical cache-coherent power and radio bring-up remain. Staged activation and
-the no-retry module loader pass offline; see
-`test-results/2026-08-31-wifi-late-activation.md`.
+Next: Wi-Fi hw1.1 driver and matching firmware. All trials through V14 are
+consumed; no Wi-Fi PHY exists yet. V14 passed cache-coherent1350mV APPS voting,
+direct UFS reads, WCN sequencing and a PCIe Gen3x1 link. Exact PCI identity
+passed, then ath11k rejected hardware major1/minor16 with EOPNOTSUPP before
+MSI/MHI initialization. This proves the hw1.1 backport is required; it is not
+a firmware failure or another observed power/USB reset.
+Keep the qualified kernel/DT/power modules unchanged. Matching hw1.1 modules
+pass twins/QEMU; verified vendor firmware and exact-keyed board data are
+prepared for a fresh physical qualification. The APPS readback is not a
+physical rail-voltage measurement.
+Normal reboot restored V11`22ec3b83-0967-41dd-ba0a-5bea2a93e0a2`, shared SSH,
+state and Tailscale services. Battery remained Full/Good,8.608V/30.1°C; the
+largest sampled thermal-zone value was37.8°C. Temporary observers/networking
+were removed. See `test-results/2026-08-31-wifi-late-activation.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
-Conditional WCN6851/hw1.1 modules remain offline, not deployed.
+The existing WCN6851/hw1.1 backport remains undeployed; its hardware selector
+is now supported by direct device evidence.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH

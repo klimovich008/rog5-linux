@@ -95,3 +95,60 @@ subject to the connected identity, power, all117-RO and observation gates.
 It remains unconsumed until the existing generic consumer irreversibly enters
 the exact record. V13 and all earlier trials remain consumed. No persistent
 deployment, partition/slot write or fallback change is included.
+
+## V14 live: power/PCIe pass, hw1.1 driver rejection; consumed
+
+Executed once from data-only admission`73494da8f9f92e2165d03cafe6526f7154dd8133`.
+Target`0545d4eb-59fa-4c31-af74-17440892044f` reached strict SSH37.536s after
+claim entry. Query, AUTO and held-OEM phases each completed once; matched RPMh
+write/readback and cached1350mV checks passed at54.303s. Three direct p24 reads,
+NCM and power gates passed before radio activation; all117 UFS nodes were RO.
+
+The fixed changeset succeeded. WCN regulators, clock and WLAN GPIO sequencing
+completed, followed by PCIe Gen3x1 at uptime62.432s and the exact expected PCI
+endpoint. At63.367s ath11k printed `Unsupported WCN6855 SOC hardware version:
+1 16` and returned EOPNOTSUPP. Source inspection places that exit before MSI
+allocation, MHI registration and firmware initialization. No PHY appeared.
+The runtime failure is now a sanitized fixture exercised by the hw1.1 selector
+test. It is not evidence of bad firmware, another S12 reset or USB/UFS loss.
+
+The existing [WCN6851 addition](https://patchew.org/linux/20260601-sm8350-wifi-v1-0-242917d88031%40oss.qualcomm.com/20260601-sm8350-wifi-v1-2-242917d88031%40oss.qualcomm.com/)
+covers this observed1/0x10 revision. Use its three-vdev variant and matching
+vendor firmware; do not force hw2.0 or change the qualified kernel/DT path.
+
+Normal reboot restored V11`22ec3b83-0967-41dd-ba0a-5bea2a93e0a2` and shared
+SSH/state/Tailscale services in74.901s; total claim→restored223.396s. Source
+and pre-vote target PON snapshots match. The fallback FIFO advanced40 bytes,
+with the requested PS_HOLD/HARD_RESET sequence. Absence of a crash dump still
+does not prove no crash. Maximum sampled thermal-zone value was37.8°C across
+30 zones. Final battery was Full/Good,8.608V/30.1°C; normal sda+sda23 write
+scope was restored. Temporary8079 listener permission, management alias and
+observer processes were removed. No slot, loader, selector, partition-layout
+or experimental storage-write operation occurred. V14 must never be retried.
+
+## Matching hw1.1 successor inputs, not admitted
+
+The four ABI-coupled ath modules built in58.135s/50.906s with matching hashes,
+against the V14-qualified kernel kit. Exact-Image QEMU passed in5.877s,
+including AHB. Active tests passed in101.013s with the real hw1.1 rejection
+fixture. No kernel, DT, initramfs or wrapper rebuild was needed.
+
+The missing base dependency list was recovered from the exact archived ELF
+export/namespace/GPL tables:450 symbols, with MODVERSIONS explicitly disabled.
+It also matches the retained original modpost output. This avoided recompiling
+the base Wi-Fi kit; it did not invent symbols or modify any module bytes.
+
+Matching AMSS/M3/regdb and three BDF ELFs were extracted read-only from the
+hash-verified official WW33 vendor image. The retained ASUS observer reports
+MP/stage7. The ASUS MP filename logic selects by QMI board ID and chip GF bit,
+not PCI subsystem0108. A proper board2 container preserves all three complete
+ELF payloads and uses exact PCI/QMI aliases for the supported non-GF range and
+board IDs13/52/255. It contains no generic bus/chip alias or board.bin fallback.
+The exact kernel parser selected the correct unchanged ELF for all384 aliases
+and rejected wrong PCI, GF, unmapped board and out-of-range chip keys.
+
+This reproduces retained ASUS source rules, not proven WW33 binary equivalence.
+Both source implementations default missing board information to255; chip0 can
+also be a default. A matching key therefore does not prove both QMI fields were
+explicitly reported. These prepared firmware inputs still require a fresh
+physical qualification; no successor has been admitted or booted.
