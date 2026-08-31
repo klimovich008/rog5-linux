@@ -134,6 +134,8 @@ then
 fi
 
 native_wifi_probe_tests=(
+	scripts/device/test-rpmh-readback.py
+	scripts/device/test-rpmh-state-reader.py
 	scripts/device/test-pmic-rail-reader.py
 	scripts/device/test-persistent-power-readiness.py
 	scripts/device/test-s12-ufs-vote.py

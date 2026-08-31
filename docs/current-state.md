@@ -117,7 +117,7 @@ V8 stopped at USB-online0 before the probe; exact fastboot recovery restored V11
 V9 passed the readiness gate and S12 AUTO-only test: ACK0x40108/data6, mode8→2,
 no voltage/enable writes, stable NCM and read-only storage checks. It returned
 normally to V11. V10 repeated AUTO successfully, but reset on first enable
-before GPIO/PCIe/radio. V11/SSH/Tailscale recovered; no successor is prepared.
+before GPIO/PCIe/radio. V11 recovered; read-only RPMh builds preserve its config and high-speed UFS behavior. No successor is admitted.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH

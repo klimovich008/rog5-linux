@@ -7,8 +7,7 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Why does first S12 enable reset the target even after acknowledged AUTO?
-V10 failed before any GPIO/PCIe/radio activation; inspect voltage/state, not more modes.
+What S12 APPS votes are inherited before a voltage/enable request? The read-only transport is implemented; its first clean kernel build is running.
 
 ## Current live state
 
@@ -55,7 +54,8 @@ handoff code; retained timing and physical evidence are in
    PON added PS_HOLD warm reset0→1; V11 recovered. Preserve the new real fixture.
    Stock CNSS audit confirms exact1350000/1350000 request, no zero override.
    Mainline's1352000 selector widens that consumer contract; electrical effect unknown.
-   A small fixed-offset, read-only PMIC reader is under test; no reboot/control write.
+   Fixed-offset PMIC reads did not identify S12. Patch0035 now adds read-only RPMh
+   transport with timeout-safe references, nonblocking admission and no WAKE borrowing.
    V9's query/AUTO and buffered reads passed; V10 confirms that mode again.
    V10 did not reach its direct-read or radio gates. All temporary host/ACM
    setup is removed. V8's separate USB-settling hypothesis remains unproven.
@@ -75,8 +75,8 @@ handoff code; retained timing and physical evidence are in
    fixture `s12-voltage-submit-reset.json`; absent tail/pstore is inconclusive.
    The installed B loader cannot export its pstore snapshot before second kexec;
    native V11 has no working ramoops backend. Preserve the stable loader.
-   Conditional hw1.1 modules remain offline and separate from this power test.
-   See `test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
+   Conditional hw1.1 modules remain offline. Readback preserves the V11 config
+   and deployed high-speed UFS source. See `test-results/2026-08-31-rpmh-readback-development.md`.
 2. The userspace validation client is online; finish its SSH sign-in check and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
