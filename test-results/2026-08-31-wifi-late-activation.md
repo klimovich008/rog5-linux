@@ -250,3 +250,15 @@ local kernel/lifecycle CI was not repeated for this userspace-only change.
 CI then caught a test-only portability defect: the mock function named
 `systemd-run` was accepted by local Bash but rejected by Ubuntu dash. A PATH
 executable mock replaces it; the launcher and device artifacts are unchanged.
+
+## V17 admission
+
+Source`5d30695510348eb2066fa15f055c7070303f878f` passed all GitHub jobs in
+run33419227736. V17's signed core twins match; kernel, DT, modules, firmware
+and WPA runtime remain unchanged. Its probe package adds the actual corrected
+foreground launcher, so this is a changed execution artifact, not a relabeled
+retry. Assembly took4.501s; complete extraction/controller replay passed in8.090s.
+The one-use record binds the new package and plan. Credentials remain separate
+and private. Only literal admission/status data changes after source CI; focused
+artifact/claim checks replace another full run for unchanged executable code.
+V17 is admitted once subject to connected gates; V16 and earlier remain consumed.
