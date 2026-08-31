@@ -7,17 +7,17 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Can charging telemetry become valid within the startup budget, then permit the
-S12 AUTO-only probe? V8 stopped at USB-online=0 before that probe could run.
+Does an independently held S12 enable vote, after proven AUTO, allow safe
+radio power-up while UFS remains stable? V9 passed query/AUTO without voltage writes.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `e7f26eff-09a8-47ab-896c-74f353272973`; slot A remains rescue.
+  `76daa970-fd40-4f93-9dad-ab5b821bc6e0`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Good, 8.627 V, 29.9°C; state/Tailscale restored.
+- Latest battery read: Good, 8.625 V, 30.0°C; state/Tailscale restored.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -37,8 +37,9 @@ booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked
 Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-All eight native Wi-Fi trials through s12-mode-v8 are permanently consumed.
+All nine native Wi-Fi trials through s12-ready-v9 are permanently consumed.
 Six reached target SSH then reset during PCIe power; v6/v8 failed before the probe.
+V9 passed its query/AUTO-only probe and deliberately returned to V11.
 Trace-v2 proved controller/PHY success; observe-v3 proved creation
 return 0 and power-on-enter. Isolated MHI load/unload passed on V11 with PCI
 empty and 117 nodes RO. No rail or GPIO fault is proven. Exact-kernel QEMU
@@ -48,21 +49,22 @@ handoff code; retained timing and physical evidence are in
 
 ## Cheapest next action
 
-1. Validate the small charging-readiness helper fix, then resume the S12 probe.
-   V8 reported `ufs-ready FAIL power-usb-usb-offline`; no S12/radio action ran.
-   Exact fastboot B/8.641V/SOCyes allowed a normal reboot of unchanged V11.
-   This was not automatic fallback. Node appearance is not value readiness.
-   The helper now waits within the original20s budget, checking battery safety
-   each pass and refusing late readiness. Physical settling remains unproven.
-   Target initramfs twins are repacked; the module/DTB twins are unchanged.
-   Fresh signed S12-ready-v9 is unissued pending publication and connected gates.
+1. S12-held-v10 is signed but unissued; it reuses V9's Image/DTB/initramfs/modules.
+   Validate publication and connected gates, then run its protected-enable/radio plan.
+   V9 passed full local CI450.562s and every GitHub33354938967 job at220ba05b.
+   Query returned0 with no S12 request; enabled=-22 was correctly advisory.
+   AUTO sent0x40108/data6, received ACK and returned0; cache8→2. No voltage
+   or enable request occurred. Ten buffered1MiB reads and NCM checks passed.
+   Use direct I/O for stronger hardware-read evidence in the next gated probe.
+   USB was online at the first value sample; V8's settling hypothesis is not proven.
+   V11 recovered normally; temporary host address/firewall/ACM setup is removed.
    All60 authenticated WW33 DTB/DTBO compositions agree: S12 always-on,
    UFS VCCQ parent, active UFS load210mA selects AUTO at the200mA threshold.
    Mainline AUTO=2, vendor AUTO=3; the latter means mainline HPM. An offline
    reviewer caught the wrong permission literal before deployment; fixed/tests.
    New module twins and permission-only DTB twins match; exact-Image QEMU
-   proves module ABI/BTF load and generic-board rejection. V8 cannot be retried.
-   Query first, then one AUTO request; require ACK and stable all117-RO UFS/NCM.
+   proves module ABI/BTF load and generic-board rejection. V8/V9 cannot be retried.
+   Query/AUTO gates are proven; retain ACK capture and all117-RO UFS/NCM checks.
    Held-enable is a separate voltage-capable action, never an automatic retry.
    Do not add always-on or reparent L9 before the shared dependency is proven.
    Keep V11/slot A; source firmware, bootloader and persistent selector unchanged.

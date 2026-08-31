@@ -164,3 +164,66 @@ Fresh signed S12-ready-v9 twins reuse the same Image/DTB/modules/tools and packa
 in0.565s. Only the initramfs, bundle identity and signature differ from v8.
 Its exact-record row is generated from that build receipt; no claim exists yet.
 Complete frozen-source publication and connected gates before any execution.
+
+## V9 passed: AUTO acknowledgment and stable read-only operation
+
+Source `220ba05b351e226ae883ac3f22ad4cd5683b2f52` passed full local CI in
+450.562s and every job in GitHub33354938967. The signed native verifier and
+connected non-consuming preflight passed. Its sole claim was consumed at
+1788148580.964392. Target `996b7652-d804-4ce2-a83f-7c7ed5a33ae0` reached
+SSH at1788148619.470807; PON snapshots before/after kexec were identical.
+
+The helper reported ready at uptime3.856686, attempt8, battery8.626V/30°C and
+USBonline1. No first-offline record occurred: these polls were for node appearance.
+This successful boot does **not** prove V8 would have settled in the same boot.
+
+With117 nodes RO, query returned0 and emitted no S12 request. Its cached enable
+state was -22/error, correctly non-fatal, not evidence the physical rail was off.
+AUTO then sent0x40108/data6 at uptime34.075965. The native acknowledgment
+arrived at34.076016; the API returned0 and cached mode changed8→2. Neither
+0x40100 voltage nor0x40104 enable was sent. The cached1352mV is not a physical
+voltage measurement. No held-enable, PCIe-power or Wi-Fi activation occurred.
+
+Ten repeated1MiB buffered reads from read-only p24 and NCM checks passed;
+subsequent reads may be cached, so this is not ten independent physical UFS
+transfers. Prefer direct I/O for the next hardware-read check. Battery stayed
+Good/30°C and all117 nodes were RO at completion.
+
+A deliberate normal reboot restored V11 boot
+`76daa970-fd40-4f93-9dad-ab5b821bc6e0`, first pinned SSH1788148699.309353.
+State/Tailscale are active; onlysda/sda23 writable, Good8.625V/30°C, USBonline1
+and NCM configured. Host management address/8079 access were removed; source
+ACM disappeared on reboot. No flash, slot change, layout or selector mutation.
+PON after the deliberate reboot includes that transition and is not a separate
+crash diagnosis. V9 is permanently consumed.
+
+Next: one fresh exact-record protected-enable/radio experiment, with the held
+module retained until reboot, verified AUTO first, direct read checks, trace and
+rollback budgets covering every stage. No successor is currently prepared.
+
+## Protected-enable/radio successor prepared, not executed
+
+The private canonical cycle plan defines S12-held-v10, the source V11 boot,
+artifact inputs and timing. Signed bundle twins package in0.567s; Image, DTB,
+initramfs, modules and firmware are identical to the verified V9 composition.
+No kernel/module/wrapper build. The exact claim row is generated from that
+receipt; generating it does not create or consume execution authority.
+
+Query and AUTO gates remain first. Held-enable must return0, retain module
+reference count1 and deliver both voltage0x40100/data0x548 and enable0x40104/data1
+ACKs. The module must not be unloaded afterward. Three distinct1MiB O_DIRECT
+reads and safety checks precede optional radio startup. O_DIRECT compatibility
+was verified with one read-only aligned read on the exact V11/p24 baseline.
+
+A600s operational timer is armed before power changes and never canceled to
+extend the radio window. Radio may begin only within30s of that timer's setup;
+its unchanged17*(20+2)+30+60+90=554s bound then fits within600s, with16s margin.
+Its own later600s timer does not replace the earlier one. The initramfs900s
+watchdog is disarmed after successful switch-root and is not counted here.
+These userspace timers cover transport/controller loss, not a total kernel
+lockup; panic=10 and the proven rescue routes remain separate existing layers.
+
+Eight offline controller branches cover missing prerequisites/ACKs, held-reference
+failure, late radio admission and at-most-once activation. No local full CI is
+repeated for identity-only registry/docs changes: source equivalence to full-tested
+220ba05b is checked structurally, plus focused exact-claim and artifact checks.
