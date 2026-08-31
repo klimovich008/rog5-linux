@@ -217,3 +217,32 @@ the exact new phone boot ID. NCM, all117-RO, power and rollback guards remain.
 V16 is admitted once under standing authority; V15 and earlier remain consumed.
 Only literal admission/status data changed, so isolated artifact/claim checks
 reuse the successful executable-source CI rather than repeating its full suite.
+
+## V16 live: userspace option failure, consumed
+
+V16 again passed coherent S12, UFS, radio firmware/PHY and scanning. WPA never
+associated: the packaged Alpine build lacks optional debug-file logging,
+so `-f` printed usage. Its program exit was misleadingly zero; the parent's
+PID-file check correctly refused startup. No DHCP or Wi-Fi SSH followed.
+V11`f352bcba-f393-4b1a-ad9f-93e7abf395a7` and normal services were restored.
+This is R3, not a kernel/radio defect. V16 must never be retried.
+
+The prior version/help checks and mocked startup were insufficient: they did
+not execute the complete argv/config against the real binary. That validation
+gap consumed this phone cycle. The exact invalid command is now reproduced
+without RF in a new network namespace on the real Arch fallback. Corrected
+foreground argv parses the configuration and reaches only the expected missing
+driver/interface boundary. DHCP's exact flags are likewise accepted there.
+
+`start-native-wifi-wpa.sh` now uses bounded foreground systemd supervision and
+journal logging, with no optional WPA logging flag, background fork or PID-file
+assumption. Its exact launcher function and journal path were executed on Arch
+in an isolated network namespace. Only dummy credentials were used in these
+diagnostics. Real credentials remain private and outside artifacts/Git.
+The regression preserves the observed usage/zero-exit behavior. Keep the
+working kernel, DT, modules and firmware unchanged for the corrected successor.
+
+The corrected association replay passed all four cases, and the active tier
+passed in92.584s. The launcher function was exercised with its real systemd
+properties and journal path on Arch inside an empty network namespace. Full
+local kernel/lifecycle CI was not repeated for this userspace-only change.

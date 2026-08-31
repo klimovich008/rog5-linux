@@ -1,0 +1,13 @@
+{
+  "package": "wpa_supplicant-2.11-r4 aarch64",
+  "attempted_option": "-f",
+  "program_exit_code": 0,
+  "parent_start_check_exit_code": 1,
+  "observed_synopsis": "wpa_supplicant [-BddhKLqqstuvW] [-P<pid file>] [-g<global ctrl>]",
+  "foreground_configuration_accepted": true,
+  "isolated_foreground_result": "nl80211 generic netlink not found",
+  "supervised_journal_capture_verified": true,
+  "radio_and_scan_passed": true,
+  "association_occurred": false,
+  "candidate_consumed": true
+}

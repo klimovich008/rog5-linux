@@ -94,10 +94,12 @@ power, UFS, PCIe, MSI/MHI and hw1.1 firmware startup. It created `wlp1s0` at
 uptime64.48s and successfully scanned33 access points. Keep that kernel/DT/
 module/firmware composition unchanged for connection tests. No network was
 joined, and Wi-Fi is not yet installed in the persistent V11 baseline.
-All trials through V15 are consumed. Normal reboot restored V11
-`699959e3-9635-4f6c-9765-b12bf3ff3597`, shared SSH and state/Tailscale services
-in73.318s. Battery remained Full/Good,8.607V/30.0°C; maximum sampled thermal
-value was36.5°C. Temporary observation/network settings were removed.
+All trials through V16 are consumed. V16 repeated radio/scan success, but the
+WPA client rejected the optional `-f` logging flag before association. The
+corrected foreground/systemd invocation and DHCP flags are tested on the exact
+Arch environment in an isolated netns; no kernel fix is needed.
+Normal reboot restored V11`f352bcba-f393-4b1a-ad9f-93e7abf395a7`, shared SSH
+and state/Tailscale services. Battery is Full/Good,8.604V/30.2°C.
 See `test-results/2026-08-31-wifi-late-activation.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
