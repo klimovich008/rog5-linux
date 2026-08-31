@@ -7,23 +7,22 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Validate loaded Wi-Fi/reconnect with USB data removed, then USB-data-absent boot.
-V18 automatically initialized radio, loaded private p23 configuration, obtained
-DHCP and passed strict WLAN SSH without host activation. V18 is consumed.
-Preserve its kernel/firmware and V11 rescue; see
-`test-results/2026-08-31-wifi-automatic-boot.md`.
-V19 is narrowly admitted and unconsumed for the runtime-only isolation test;
-it proves ordinary LAN SSH before cutting USB and does not use managed Tailscale
-SSH. Booting with USB absent and Tailscale account verification remain required.
+Validate USB-data-absent boot, then charger-only and longer power behavior.
+V19 passed automatic startup,180s USB-data isolation, one reassociation and64MiB
+of strict WLAN SSH traffic. V19 is consumed. Preserve its kernel/firmware and
+V11 rescue; see `test-results/2026-08-31-wifi-usb-isolation.md`.
+Authenticated Tailscale UDP discovery found the same SSH-verified LAN endpoint
+while USB was off. Use that for next-boot discovery, then require the project
+SSH key and new boot ID. This does not satisfy or bypass managed Tailscale SSH.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `ac39a52f-dd50-4bc9-9d20-449a67aace83`; slot A remains rescue.
+  `7750f962-9b70-4c28-b786-5b2309b03788`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Full/Good, 8.599 V, 30.0°C; state/Tailscale active.
+- Latest battery read: Full/Good, 8.595 V, 30.2°C; state/Tailscale active.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -34,9 +33,9 @@ SSH. Booting with USB absent and Tailscale account verification remain required.
 
 ## Just-completed checkpoint
 
-V18 passed automatic startup and exact WLAN SSH, with matched S12 traces.
-Radio was qualified before p23 state opened; normal service used only the two
-approved writable nodes. V11 fallback/services and host cleanup passed.
+V19 passed automatic startup and runtime isolation/reassociation/traffic.
+Radio preceded writable p23 state; only the two approved nodes were writable.
+V11 fallback/services and same-instance USB/host cleanup passed.
 The private Wi-Fi file now persists in p23; the default V11 kernel still lacks
 Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
 
@@ -45,7 +44,7 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
 1. Reuse source1eea8970e87f and its qualified archived kit; do not rebuild it.
    Clean twins and cached Image match; base19/Wi-Fi37 module packages and
    initramfs twins match. V14 now qualifies the staged DT/power path physically.
-   V18 automatic startup is physically qualified. Reuse its artifacts; do not
+   V19 startup and runtime are physically qualified. Reuse its artifacts; do not
    rebuild kernel/modules. The bounded host USB-data-isolation helper is tested;
    see `test-results/2026-08-31-wifi-usb-isolation.md`. Prove the independent
    observation path before consuming the next trial. Distinguish USB data
@@ -55,7 +54,7 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
    Preserve diagnostic/write-path observation and the independent fallback.
    Do not infer explicitly valid QMI fields from default-capable values.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
-   Never rerun V18 or earlier. Restore shared networking after future fallback;
+   Never rerun V19 or earlier. Restore shared networking after future fallback;
    reuse the fixed missing-interface helper and parameterized stage parser.
    Preserve archives/source; disk headroom remains low. Use
    ROG5_TEST_TMP_PARENT for project RAM scratch; never repurpose HOME.
@@ -65,8 +64,12 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
 3. Package-keyring work is preserved at `b9ceb26`: helper/unit and focused test
    pass, but it is not deployed or integrated into boot. Resume it when needed
    for signed Wi-Fi userspace packages; preserve package-signature enforcement.
-4. Validate repeated host-free boot, Wi-Fi reconnect, loaded power/thermal
-   behavior and rescue before switching the persistent Linux bundle selector.
+4. First integrate bounded fresh UDP endpoint discovery with strict LAN SSH
+   for the early-cut boot test. A later optional capture raced V19's planned
+   reboot; treat missing USB as unavailable, never as a new kernel failure.
+   Keep existing timers for trials; review healthy-startup policy before a
+   persistent selector update. PC input stayed capped500mA and sampled battery
+   current averaged−22mA; actual charger-only/longer power proof remains.
 
 Opus retry confirmed expired OAuth; no review produced. Retain V11/V10, the stable loader, module kit and compressed V11 image: no GPT or experimental boot-partition flash.
 Do not repeat the completed p24 transfer or successful builds.

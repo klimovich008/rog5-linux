@@ -1,9 +1,8 @@
 # Wi-Fi USB-data isolation preparation
 
-V18's automatic radio/state/WPA/DHCP/WLAN-SSH cycle and V11 fallback passed.
-The next question is operation without the USB data connection, followed by
-reconnect/load/power observations. The qualified kernel/DT/modules/firmware and
-initramfs are unchanged; V18 remains consumed and must never be retried.
+V19 passed runtime USB-data isolation, reassociation, traffic and V11 fallback.
+It is consumed. USB-data-absent boot and sustained charging remain unproven.
+The qualified kernel/DT/modules/firmware and initramfs are unchanged.
 
 ## Host-only implementation
 
@@ -20,7 +19,7 @@ changed.
 Five hardware-free tests exercise bounded disable/restore, wrong identity,
 wrong number, symlinks, initially disabled state, replacement, interruption and
 duration refusal. They pass in0.008s; the active tier passes in96.848s.
-No physical USB isolation or new phone boot has run at this checkpoint.
+These checks preceded the physical V19 cycle below.
 
 Linux documents device authorization as control over configuration/interfaces,
 not a guarantee of power delivery. The reviewed implementation unconfigures the
@@ -65,4 +64,38 @@ The sampler ran against the actual Arch root without RF; its1MiB stream check
 passed. Controller replay checks verified WLAN before cutoff, no reassociation
 retry after a lost acknowledgment, full isolation duration, same-device restore
 and restore-before-reboot ordering. The admission is literal data only; target
-timers remain armed. No V19 boot has run yet; no persistent selector change.
+timers remained armed. No persistent selector change.
+
+## V19 result
+
+Admission`093a619ea8d4381f4cb81559f08458d35854e164`; target boot
+`bd9df6cf-ff2d-4935-840d-c1d7f2d6d9c9`. Automatic WLAN proof completed
+69.904s after claim consumption. USB data was disabled for180.089s, with no
+host NCM interface.115 complete safety samples include114 with target carrier0.
+One reassociation produced a new connection event; it was not retried. Two
+32MiB uncompressed SSH streams passed exact byte checks in1.412s/6.335s.
+These are short transfer observations, not a sustained throughput benchmark.
+
+USB restored to the same instance. Normal reboot restored
+V11`7750f962-9b70-4c28-b786-5b2309b03788`, shared SSH/state/Tailscale and exact
+two-node write scope in63.187s. Claim→restored was316.554s. Temporary host
+address/port permission and all observers were removed. No flash, partition,
+slot, selector or new persistent configuration change occurred.
+
+During isolation, input stayed online at about5V, capped500mA, with sampled
+mean input402mA. Battery samples averaged−22mA, ranged−310…+9mA, and the charge
+counter did not change. Pack voltage stayed8.535–8.595V; battery temperature
+peaked30.3°C and thermal-zone maximum42.8°C. Thus safe short runtime passed,
+but neither the unchanged counter nor voltage recovery proves net-positive
+charging. Charger-only and longer power testing remain necessary.
+
+No new matched panic/oops/crash/UFS-error marker appeared against V18. Both
+logs contain the same early SPMI SID5 register0x104 transaction failure/status3
+and probe warning before Wi-Fi starts; do not call the kernel warning-free.
+
+An interactive authenticated Tailscale UDP ping during USB isolation reported
+the same LAN endpoint already verified by SSH. This is network discovery,
+not managed Tailscale SSH authentication. Its exact timestamp was not retained;
+the command's USB-authorized readback was0. A later capture script arrived after
+the planned reboot began and refused the missing USB node. Integrate discovery
+before the next lifecycle deadline; do not burn another cycle for that capture.
