@@ -7,19 +7,19 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Qualify cache-coherent1350mV power and controlled Wi-Fi radio activation.
-V13 proved the raw OEM request on hardware and is consumed. The new kernel,
-staged DT, fixed activator and no-retry loader pass offline checks. V14 is
-admitted once, not yet executed. See `test-results/2026-08-31-wifi-late-activation.md`.
+Enable the observed Wi-Fi hw1.1 revision with matching vendor firmware/BDF.
+V14 proved the coherent1350mV hold, WCN sequencing and PCIe Gen3x1. The current
+ath11k module rejects hardware1/0x10 before MSI/MHI. V14 is consumed; no successor
+is admitted. See `test-results/2026-08-31-wifi-late-activation.md`.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `bdd1dd29-1def-4864-9d86-109ec9876137`; slot A remains rescue.
+  `22ec3b83-0967-41dd-ba0a-5bea2a93e0a2`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Full/Good, 8.610 V, 30.1°C; state/Tailscale active.
+- Latest battery read: Full/Good, 8.608 V, 30.1°C; state/Tailscale active.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -30,19 +30,23 @@ admitted once, not yet executed. See `test-results/2026-08-31-wifi-late-activati
 
 ## Just-completed checkpoint
 
-V13 passed low hold, exact1350mV write, raw1350 readback, three direct UFS reads
-and NCM. Normal reboot restored V11. No PCIe/radio was activated; all trials
-through V13 are consumed. See `test-results/2026-08-31-s12-oem.md`.
+V14 reached SSH37.536s after claim entry and qualified coherent S12 voting in
+54.303s. PCIe linked at target uptime62.432s. The driver rejected hw1.1 at
+63.367s; no firmware boot was reached. Normal fallback restored V11/services
+74.901s after the requested reboot. All experimental storage stayed117-RO.
 
 ## Cheapest next action
 
 1. Reuse source1eea8970e87f and its qualified archived kit; do not rebuild it.
    Clean twins and cached Image match; base19/Wi-Fi37 module packages and
-   initramfs twins match. The patched power modules, staged DT, S12 qualifier,
-   fixed activator and no-retry loader pass twins/QEMU. Use the verified release
-   argument in probe/tracer and combine power/radio deadlines before admission.
+   initramfs twins match. V14 now qualifies the staged DT/power path physically.
+   Matching hw1.1 module twins and QEMU now pass. Verified WW33 vendor firmware
+   and an exact PCI/QMI-keyed board2 container are prepared. The actual kernel
+   parser passes384 aliases, retaining the original ELF bytes and refusing
+   unsupported keys. Assemble/replay a fresh firmware cycle; never infer QMI
+   board ID from PCI0108 or treat defaulted IDs as explicitly reported fields.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
-   Execute V14 once after the connected preflight. Restore shared networking after fallback;
+   Never rerun V14. Restore shared networking after each future fallback;
    reuse the fixed missing-interface helper and parameterized stage parser.
    Preserve archives/source; disk headroom remains low. Use
    ROG5_TEST_TMP_PARENT for project RAM scratch; never repurpose HOME.

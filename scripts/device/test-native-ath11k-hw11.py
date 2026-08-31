@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the upstream hw1.1 addition without claiming ASUS chip identity."""
 from pathlib import Path
+import json
 import re
 import subprocess
 import sys
@@ -110,6 +111,12 @@ case WCN6855_DEVICE_ID:
         subprocess.run(['git', 'apply', '--numstat', str(PATCH)], check=True, stdout=subprocess.PIPE)
 
     def test_actual_added_case_accepts_only_hw1_minor_0x10(self):
+        fixture = json.loads((REPO / 'tests/fixtures/native-wifi/hw11-live-rejected.json').read_text())
+        observed = re.search(r'Unsupported WCN6855 SOC hardware version: (\d+) (\d+)', '\n'.join(fixture['records']))
+        self.assertIsNotNone(observed)
+        major, minor = map(int, observed.groups())
+        self.assertTrue(fixture['power_sequence_passed'] and fixture['pci_identity_passed'])
+        self.assertFalse(fixture['firmware_boot_reached'] or fixture['wifi_phy_ready'])
         branch = additions()['drivers/net/wireless/ath/ath11k/pci.c']
         # Test the actual added branch, not a reimplementation of its logic.
         source = '''#include <assert.h>
@@ -128,9 +135,12 @@ int main(void) {
   assert(added_branch(1, minor) == (minor == 0x10 ? 11 : -1));
  assert(added_branch(0, 0x10) == -1);
  assert(added_branch(2, 0x10) == -1); /* not handled by the NEW branch */
+ OBSERVED_REVISION_CHECK;
  return 0;
 }
 '''
+        source = source.replace('OBSERVED_REVISION_CHECK',
+                                f'assert(added_branch({major}, {minor}) == 11)')
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp); (root/'selector.c').write_text(source)
             subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Werror',
