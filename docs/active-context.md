@@ -7,17 +7,17 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Does an independently held S12 enable vote, after proven AUTO, allow safe
-radio power-up while UFS remains stable? V9 passed query/AUTO without voltage writes.
+Why does first S12 enable reset the target even after acknowledged AUTO?
+V10 failed before any GPIO/PCIe/radio activation; inspect voltage/state, not more modes.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `76daa970-fd40-4f93-9dad-ab5b821bc6e0`; slot A remains rescue.
+  `3d760020-1bda-45b5-aedd-b30a3747f673`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Good, 8.625 V, 30.0°C; state/Tailscale restored.
+- Latest battery read: Good, 8.624 V, 30.0°C; state/Tailscale restored.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -37,9 +37,9 @@ booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked
 Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-All nine native Wi-Fi trials through s12-ready-v9 are permanently consumed.
+All ten native Wi-Fi trials through s12-held-v10 are permanently consumed.
 Six reached target SSH then reset during PCIe power; v6/v8 failed before the probe.
-V9 passed its query/AUTO-only probe and deliberately returned to V11.
+V9 passed query/AUTO; V10 reset at held-enable entry before radio activation.
 Trace-v2 proved controller/PHY success; observe-v3 proved creation
 return 0 and power-on-enter. Isolated MHI load/unload passed on V11 with PCI
 empty and 117 nodes RO. No rail or GPIO fault is proven. Exact-kernel QEMU
@@ -49,15 +49,16 @@ handoff code; retained timing and physical evidence are in
 
 ## Cheapest next action
 
-1. S12-held-v10 is signed but unissued; it reuses V9's Image/DTB/initramfs/modules.
-   Validate publication and connected gates, then run its protected-enable/radio plan.
-   V9 passed full local CI450.562s and every GitHub33354938967 job at220ba05b.
-   Query returned0 with no S12 request; enabled=-22 was correctly advisory.
-   AUTO sent0x40108/data6, received ACK and returned0; cache8→2. No voltage
-   or enable request occurred. Ten buffered1MiB reads and NCM checks passed.
-   Use direct I/O for stronger hardware-read evidence in the next gated probe.
-   USB was online at the first value sample; V8's settling hypothesis is not proven.
-   V11 recovered normally; temporary host address/firewall/ACM setup is removed.
+1. No successor: V10 disproved AUTO alone as the enable-boundary fix.
+   It confirmed AUTO ACK/cache2, then lost reporting at held-enable entry.
+   No new RSC/voltage/enable frame was captured; do not infer the faulting instruction.
+   PON added PS_HOLD warm reset0→1; V11 recovered. Preserve the new real fixture.
+   Stock CNSS audit confirms exact1350000/1350000 request, no zero override.
+   Mainline's1352000 selector widens that consumer contract; electrical effect unknown.
+   A small fixed-offset, read-only PMIC reader is under test; no reboot/control write.
+   V9's query/AUTO and buffered reads passed; V10 confirms that mode again.
+   V10 did not reach its direct-read or radio gates. All temporary host/ACM
+   setup is removed. V8's separate USB-settling hypothesis remains unproven.
    All60 authenticated WW33 DTB/DTBO compositions agree: S12 always-on,
    UFS VCCQ parent, active UFS load210mA selects AUTO at the200mA threshold.
    Mainline AUTO=2, vendor AUTO=3; the latter means mainline HPM. An offline
@@ -65,7 +66,7 @@ handoff code; retained timing and physical evidence are in
    New module twins and permission-only DTB twins match; exact-Image QEMU
    proves module ABI/BTF load and generic-board rejection. V8/V9 cannot be retried.
    Query/AUTO gates are proven; retain ACK capture and all117-RO UFS/NCM checks.
-   Held-enable is a separate voltage-capable action, never an automatic retry.
+   Do not issue another voltage/HPM guess; establish the actual voltage/state contract.
    Do not add always-on or reparent L9 before the shared dependency is proven.
    Keep V11/slot A; source firmware, bootloader and persistent selector unchanged.
    V7 source gates and target SSH passed without a PMIC reset across kexec.
@@ -84,8 +85,7 @@ handoff code; retained timing and physical evidence are in
    for signed Wi-Fi userspace packages; preserve package-signature enforcement.
 4. Continue loaded Wi-Fi/power checks and the remaining standalone server MVP.
 
-Opus remains OAuth-expired; bounded built-in review covered the handoff. Retain V11/V10, the stable loader,
-module kit and compressed V11 image: no GPT or experimental boot-partition flash.
+Opus retry confirmed expired OAuth; no review produced. Retain V11/V10, the stable loader, module kit and compressed V11 image: no GPT or experimental boot-partition flash.
 Do not repeat the completed p24 transfer or successful builds.
 
 ## Boundaries and Git

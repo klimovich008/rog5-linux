@@ -215,15 +215,96 @@ ACKs. The module must not be unloaded afterward. Three distinct1MiB O_DIRECT
 reads and safety checks precede optional radio startup. O_DIRECT compatibility
 was verified with one read-only aligned read on the exact V11/p24 baseline.
 
-A600s operational timer is armed before power changes and never canceled to
-extend the radio window. Radio may begin only within30s of that timer's setup;
-its unchanged17*(20+2)+30+60+90=554s bound then fits within600s, with16s margin.
-Its own later600s timer does not replace the earlier one. The initramfs900s
-watchdog is disarmed after successful switch-root and is not counted here.
+A600s operational timer is armed immediately after identifying target SSH,
+before target setup/assertions, and is never canceled to extend radio time.
+Radio entry checks the target monotonic clock after SSH/guard delays and refuses
+entry at30s. A whole-probe timeout includes preflight, guards and collection;
+its TERM+KILL budget ends30s before the original timer. The old554s arithmetic
+was only nominal: it omitted unbounded guard/collection overhead and is not
+used as a hard execution guarantee. The later radio timer cannot replace the
+earlier one. The initramfs900s watchdog is disarmed at switch-root, not counted here.
 These userspace timers cover transport/controller loss, not a total kernel
 lockup; panic=10 and the proven rescue routes remain separate existing layers.
 
-Eight offline controller branches cover missing prerequisites/ACKs, held-reference
-failure, late radio admission and at-most-once activation. No local full CI is
+Independent review caught exception paths that skipped fallback and a stale
+host-side deadline check. The corrected controller wraps setup/probing in
+boot-checked reboot/fallback handling, including timer-arm and retained-reference
+failures. Eight power branches, three early exception paths and target-side
+delay/deadline cases pass offline. No local full CI is
 repeated for identity-only registry/docs changes: source equivalence to full-tested
 220ba05b is checked structurally, plus focused exact-claim and artifact checks.
+
+## V10 consumed: AUTO does not prevent the first-enable failure
+
+Published9523b547470c914513d34b1159693e80fe8607db passed every job in
+GitHub33356792433. Final focused source/artifact/controller checks took1.133s;
+full source CI was carried from220ba05b rather than repeated locally. Only a
+non-executable result-document correction remained outside HEAD at execution;
+the verifier refused all unpublished executable/admission data and untracked inputs.
+The reviewed controller also permits one boot-checked normal-reboot retry after
+a failed recovery request and fresh proof that the same target is still running.
+It never retries a power phase/kexec or unloads the held module.
+
+The claim was consumed at1788151121.577742. Target
+`b8cecb86-a043-404c-bc9f-408364af7571` reached SSH at1788151161.566439; all117
+nodes were RO. PON snapshots before and after handoff were identical.
+Query returned0; AUTO wrote0x40108/data6, got ACK at uptime40.234122 and
+returned0. The subsequent held-enable logged cached mode2 and entry at41.281484.
+No later regulator/RPMh trace or API return was delivered. Lost tail remains
+possible; unlike v7, a voltage submission is **not directly proved** for v10.
+No GPIO, PCIe PHY or Wi-Fi driver activation occurred.
+
+The call's SSH transport returned255 at1788151197.989967; the recovery request
+also returned255. V11 recovered as `3d760020-1bda-45b5-aedd-b30a3747f673` at
+1788151237.486697. PON gained20 bytes, PS_HOLD warm reset count0→1. No panic
+dump or exact faulting instruction is known. State/Tailscale, pinned SSH and NCM
+are restored; onlysda/sda23 writable, Good8.624V/30°C. Host management address/
+8079 and temporary ACM are removed. No flash, selector, slot or layout change.
+Fixture: `s12-auto-enable-reset.json`; AUTO alone is no longer a plausible fix.
+
+### Read-only follow-up
+
+A targeted authenticated stock audit (one composition, three bases,20 overlay
+deltas;13.23s) confirms enabled CNSS RFA2 config `<1350000 1350000 0 0 1>`.
+No zero-voltage override or converged-list substitution applies. `need_unvote=1`
+withdraws a later vote, not the initial request. Thus1352mV exceeds the stock
+consumer's1350mV software ceiling; the provider ceiling is1360mV. This proves
+a request-contract difference, not electrical overvoltage or the WW33 binary's
+actual runtime behavior. The retained AOP image is stripped; no per-rail bound
+has been established from it. Older aop_b backups differ and are not current evidence.
+
+Opus was retried in safe, tool-free mode and failed authentication in1.218s:
+expired OAuth could not refresh. No Opus review is claimed. The systematic-
+debugging workflow keeps new voltage guesses paused while tracing state/data.
+
+The exact kernel's existing regmap debugfs supports fixed-offset reads. Its
+PM8350 map has16-bit addresses,8-bit values and a contiguous0–ffff range; each
+printed register occupies9 bytes. A small static reader uses pread, never a
+skip-by-reading fallback or full dump. It checks board/kernel/PMIC/map metadata,
+then reads only identity, peripheral type/subtype, and documented HFSMPS510
+configuration offsets. Read errors remain XX, not evidence of off/absent rails.
+Programmed setpoints are not ADC measurements. No register write API, module
+load, reboot, or persistent install is involved. Host syscall fixtures and exact
+ARM64/QEMU fixtures pass; live read-only validation follows the active tier.
+
+The active tier passed in83.826s. Static AArch64 twins are2680 bytes and share
+SHA-256 `fc34f41ad0288641b12a57874fe8f55084ac3c8fa6dd9378ad59f4609f168b17`.
+The live read completed in0.632s on unchanged V11, with no reboot/module load.
+It read PMIC identity51/subtype30 and88 bounded peripheral-metadata rows.
+No recognized BUCK/HFSMPS510 control was found in the sampled1400–3f00 window;
+many registers returned XX. Therefore **no S12 voltage or enable measurement
+was obtained**. This does not prove the rail absent/off or identify why each
+read failed. Do not expand to arbitrary register/control writes.
+State/Tailscale and the two-node write scope stayed unchanged, battery8.622V/
+30.1°C; the copied RAM helper was removed after its hash was rechecked.
+
+The retained WW33 AOP image is245760 bytes, SHA-256
+`3ad5f97be3e2c4d5a2ea57d91ef9d3919d947fa4be1acac747589e94396f1f54`,
+with no ELF symbols/sections. Metadata inspection did not establish a per-rail
+limit or quantization rule. Do not infer one from literal-number searches.
+
+Qualcomm's [RPMh readback series](https://patchew.org/linux/20260801-b4-read-rpmh-v5-v6-0-9fcb54928523@oss.qualcomm.com/)
+was accepted into the regulator for-7.3 tree. It offers an APPS-vote observation
+route, not physical aggregate-voltage measurement. A future read-only backport
+must audit timeout/late-completion lifetime and avoid importing automatic
+regulator-initialization changes blindly. No backport or new candidate is built.
