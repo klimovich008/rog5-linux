@@ -48,16 +48,17 @@ def transactions(text):
     return completed,control
 
 def verify(text,action):
-    if action not in ('query','mode','held-enable'):raise ValueError('unknown action')
+    if action not in ('query','mode','held-enable','held-oem'):raise ValueError('unknown action')
     completed,control=transactions(text)
-    before=6 if action=='held-enable' else 3
-    reads=lambda mode:[('read',0x40100,1224),('read',0x40104,1),('read',0x40108,mode)]
+    before=6 if action in ('held-enable','held-oem') else 3
+    reads=lambda mode,mv=1224:[('read',0x40100,mv),('read',0x40104,1),('read',0x40108,mode)]
     expected=reads(before)
     writes=[]
     if action=='mode':writes=[(0x40108,6)]
-    if action=='held-enable':writes=[(0x40100,1224),(0x40104,1)]
+    if action in ('held-enable','held-oem'):writes=[(0x40100,1224),(0x40104,1)]
     expected += [('write',address,data) for address,data in writes]
     if action!='query':expected+=reads(6)
+    if action=='held-oem':expected+=[('write',0x40100,1350),*reads(6,1350)]
     normalized=[]
     for kind,address,data in completed:
         if kind=='read':
@@ -69,7 +70,8 @@ def verify(text,action):
     # Mirroring the declared initial mode into sleep/wake buffers is not a
     # voltage/enable operation. Keep every such write visible in the result.
     allowed_control={(0x40108,before),*writes}
-    if action=='held-enable':allowed_control.add((0x40108,6))
+    if action in ('held-enable','held-oem'):allowed_control.add((0x40108,6))
+    if action=='held-oem':allowed_control.add((0x40100,1350))
     if any(item not in allowed_control for item in control):
         raise ValueError('unexpected S12 sleep/wake programming')
     return {'action':action,'completed':completed,'control_writes':control,'result':'PASS'}

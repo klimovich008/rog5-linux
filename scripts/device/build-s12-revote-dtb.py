@@ -40,7 +40,7 @@ def compose(base):
     candidate=copy.deepcopy(base)
     candidate[PMIC]['vdd-s12-supply']=parent
     candidate[S12]={'phandle':cell(handle),'regulator-name':b'vreg_s12b_revote\0',
-        'regulator-min-microvolt':cell(1224000),'regulator-max-microvolt':cell(1224000),
+        'regulator-min-microvolt':cell(1224000),'regulator-max-microvolt':cell(1360000),
         'regulator-initial-mode':cell(0),'regulator-allowed-modes':cell(0)+cell(2)}
     # No real driver matches this compatible; only the manually loaded probe
     # acquires the supply. This cannot auto-probe the WCN/PCIe power sequence.

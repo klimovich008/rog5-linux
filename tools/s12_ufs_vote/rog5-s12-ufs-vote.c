@@ -16,12 +16,14 @@
 #include <soc/qcom/rpmh.h>
 
 #define S12_REVOTE_UV 1224000
+#define S12_OEM_MV 1350
+#define S12_MAX_UV 1360000
 #define CONSUMER_NODE "/rog5-s12-revote"
 
 static char *action = "query";
 module_param(action, charp, 0400);
-MODULE_PARM_DESC(action, "query, mode, held-enable; fixed 1224mV diagnostic");
-enum vote_action { QUERY, MODE, HELD_ENABLE };
+MODULE_PARM_DESC(action, "query, mode, held-enable, held-oem; no radio");
+enum vote_action { QUERY, MODE, HELD_ENABLE, HELD_OEM };
 static enum vote_action selected_action;
 static struct regulator *s12;
 static struct platform_device *consumer;
@@ -30,21 +32,26 @@ static bool holding;
 
 static int voltage_bounds_allowed(u32 minimum, u32 maximum)
 {
-	return minimum == S12_REVOTE_UV && maximum == S12_REVOTE_UV;
+	return minimum == S12_REVOTE_UV && maximum == S12_MAX_UV;
 }
 
 static int raw_state_matches(u32 voltage, u32 enabled, u32 mode,
+			     unsigned int expected_mv,
 			     unsigned int expected_mode)
 {
 	/* Bit31 is retained in logs, not interpreted as validity or status. */
+	if ((expected_mv != S12_REVOTE_UV / 1000 && expected_mv != S12_OEM_MV) ||
+	    (expected_mode != 3 && expected_mode != 6))
+		return 0;
 	if ((voltage & ~(BIT(31) | 0x1fffU)) ||
 	    (enabled & ~(BIT(31) | 1U)) || (mode & ~(BIT(31) | 7U)))
 		return 0;
-	return (voltage & 0x1fffU) == S12_REVOTE_UV / 1000 &&
+	return (voltage & 0x1fffU) == expected_mv &&
 		(enabled & 1U) == 1 && (mode & 7U) == expected_mode;
 }
 
-static int read_and_check(const char *phase, unsigned int expected_mode)
+static int read_and_check(const char *phase, unsigned int expected_mv,
+			  unsigned int expected_mode)
 {
 	u32 values[3];
 	unsigned int i, attempt;
@@ -70,11 +77,36 @@ static int read_and_check(const char *phase, unsigned int expected_mode)
 		pr_info("ROG5_S12_RAW phase=%s address=%#x result=0 raw=%#x\n",
 			phase, cmd.addr, cmd.data);
 	}
-	ret = raw_state_matches(values[0], values[1], values[2], expected_mode) ?
+	ret = raw_state_matches(values[0], values[1], values[2],
+				expected_mv, expected_mode) ?
 		0 : -ERANGE;
 	pr_info("ROG5_S12_CHECK phase=%s result=%d expected_mode=%u\n",
 		phase, ret, expected_mode);
 	return ret;
+}
+
+static int request_oem_voltage(void)
+{
+	struct tcs_cmd cmd = { .addr = 0x40100, .data = S12_OEM_MV };
+	int ret;
+
+	if (!holding)
+		return -EPERM;
+	ret = read_and_check("before-oem", S12_REVOTE_UV / 1000, 6);
+	if (ret)
+		return ret;
+	/* The retained vendor API rounds requests to mV, not the 8mV selector
+	 * grid. This fixed diagnostic bypasses that selector only after the
+	 * independently retained hold. Never use the stale regulator cache to
+	 * qualify subsequent normal operation; read back and reboot instead.
+	 */
+	pr_info("ROG5_S12_OEM enter address=%#x request_mv=%u\n",
+		cmd.addr, cmd.data);
+	ret = rpmh_write(&pmic_device->dev, RPMH_ACTIVE_ONLY_STATE, &cmd, 1);
+	pr_info("ROG5_S12_OEM return result=%d cache_not_updated=1\n", ret);
+	if (ret)
+		return ret;
+	return read_and_check("after-oem", S12_OEM_MV, 6);
 }
 
 static int finish_init_result(int ret)
@@ -112,15 +144,18 @@ static void report_cached_state(void)
 static int apply_active_vote(void)
 {
 	int mode = (int)regulator_get_mode(s12);
+	bool hold_action = selected_action == HELD_ENABLE ||
+			   selected_action == HELD_OEM;
 	int ret;
 
 	pr_info("ROG5_S12_VOTE before cached_mode=%d action=%s\n", mode, action);
 	if (regulator_get_voltage(s12) != S12_REVOTE_UV)
 		return -ERANGE;
-	if (mode != (selected_action == HELD_ENABLE ?
+	if (mode != (hold_action ?
 		     REGULATOR_MODE_NORMAL : REGULATOR_MODE_STANDBY))
 		return -EPERM;
-	ret = read_and_check("before", selected_action == HELD_ENABLE ? 6 : 3);
+	ret = read_and_check("before", S12_REVOTE_UV / 1000,
+			     hold_action ? 6 : 3);
 	if (ret)
 		return ret;
 	if (selected_action == QUERY)
@@ -132,7 +167,7 @@ static int apply_active_vote(void)
 			return ret;
 		if ((int)regulator_get_mode(s12) != REGULATOR_MODE_NORMAL)
 			return -EIO;
-		return read_and_check("after", 6);
+		return read_and_check("after", S12_REVOTE_UV / 1000, 6);
 	}
 
 	/* This is a distinct later action, never an automatic mode retry. */
@@ -146,7 +181,9 @@ static int apply_active_vote(void)
 	 */
 	holding = true;
 	__module_get(THIS_MODULE);
-	return read_and_check("after", 6);
+	if (selected_action == HELD_OEM)
+		return request_oem_voltage();
+	return read_and_check("after", S12_REVOTE_UV / 1000, 6);
 }
 
 static int __init s12_vote_init(void)
@@ -165,6 +202,8 @@ static int __init s12_vote_init(void)
 		selected_action = MODE;
 	else if (!strcmp(action, "held-enable"))
 		selected_action = HELD_ENABLE;
+	else if (!strcmp(action, "held-oem"))
+		selected_action = HELD_OEM;
 	else
 		return -EINVAL;
 	pr_info("ROG5_S12_VOTE action=%s identity-check\n", action);
@@ -260,4 +299,4 @@ static void __exit s12_vote_exit(void)
 module_init(s12_vote_init);
 module_exit(s12_vote_exit);
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("ROG5 read-gated 1224mV S12 re-vote and protected hold");
+MODULE_DESCRIPTION("ROG5 protected S12 hold and exact OEM mV diagnostic");

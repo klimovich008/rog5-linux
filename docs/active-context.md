@@ -11,6 +11,10 @@ Can the exact OEM1350mV request be established after the proven1224mV hold,
 without the mainline selector silently changing it to1352mV? Re-vote-v12
 passed and is consumed. No higher-voltage/radio trial is admitted yet.
 
+The fixed1350mV module/DT diagnostic is implemented and its twins/QEMU pass;
+see `test-results/2026-08-31-s12-oem.md`. It explicitly leaves the voltage
+cache stale after the raw request, so capture and reboot—no radio use.
+
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
