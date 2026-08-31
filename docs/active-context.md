@@ -7,30 +7,29 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Which S12 RPMh request or kernel/firmware fault triggers the radio reset?
-The stock retention vote applied successfully in v5 but did not prevent reset.
-Distinguish voltage/enable failure with independent evidence before successors.
+Why did the observation successor return to V11 before target enumeration?
+S12 remains unresolved, but v6 never ran its radio probe. Distinguish exitrd
+refusal/syscall return from an early crash before another Wi-Fi successor.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `1b24ebf0-e4a1-466c-8197-13904886f5cf`; slot A remains rescue.
+  `0e1f7746-de4a-4f38-8dce-39769e379ee3`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Good, 8.633 V, 30.1°C; same V11 boot and active state services.
+- Latest battery read: Full/Good, 8.632 V, 30°C; state/Tailscale restored.
+- Temporary source ACM is enabled beside NCM; host tty is anchored at `1-1.2:1.2`.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
 - Tailscale 1.102.3 starts automatically from p23 state. It is enrolled and
   online, with no health warnings; its identity survived normal systemd reboot.
-- Initial clock is stale, then automatic NTP succeeds before Tailscale connects.
 - The empty runtime package keyring causes a separate background WKD parser
   failure. Initial systemd checks are not a long-soak zero-failure claim.
 
 ## Just-completed checkpoint
 
 V11's installed firewall and normal reboot pass; see its live result.
-The first Wi-Fi builder pass completed in 71.47s without rebuilding V11.
 The complete set now contains 22 modules, including dynamic signature/cipher
 dependencies. QEMU accepts valid regulatory data, rejects tampering and proves
 the requested Wi-Fi crypto transforms. The native Wi-Fi DTB preserves unrelated
@@ -39,7 +38,7 @@ booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked
 Firmware matches the prior verified set. See
 `test-results/2026-08-30-native-wifi-offline.md`.
 
-All five native Wi-Fi trials through s12-ret-v5 are permanently consumed.
+All six native Wi-Fi trials through rpmh-v6 are permanently consumed.
 Arch/systemd/SSH and automatic V11 recovery passed; PCIe activation reset the
 target. Trace-v2 proved controller/PHY success; observe-v3 proved creation
 return 0 and power-on-enter. Isolated MHI load/unload passed on V11 with PCI
@@ -50,7 +49,7 @@ handoff code; retained timing and physical evidence are in
 
 ## Cheapest next action
 
-1. Run the prepared observation-only successor after CI and connected gates.
+1. Investigate the v6 pre-target handoff; no new candidate is prepared.
    V5 passed full local CI (466s) and every GitHub job, then ran once. Its
    cached mode8 proves the RET vote applied, but the reset remains. Both v4
    and v5 stop delivering rail evidence at vddpmu entry after two successes.
@@ -70,12 +69,13 @@ handoff code; retained timing and physical evidence are in
    snapshots now correlate the new warm reset to v4, but do not identify its
    software cause. No OCP/UVLO entry was added; absence is not crash-free proof.
    RPMh call/send/ack probes pass passive V11 setup/read/cleanup and exact-head CI.
-   Fresh signed twins are prepared but unconsumed. S12 maps to0x40100; buffering is not a
-   proven loss cause. The exact B loader snapshots pstore but does not export
+   V6 instead returned V11 before target stages/SSH or radio. S12 maps to0x40100.
+   The exact B loader snapshots pstore but does not export
    it before its second kexec. Preserve that loader; resolve capture separately.
+   Gate/teardown/errno logging now passes mocks and a nonblocking serial sender
+   passes exact exitrd chroot/BusyBox delivery. No successor is issued yet.
    See `test-results/2026-08-31-native-wifi-rpmh-observer.md`.
-   Keep future reader/probe sequences contiguous and retain the ready guard.
-2. Finish the existing userspace validation client's account login and test
+2. The userspace validation client is online; finish its SSH sign-in check and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
 3. Package-keyring work is preserved at `b9ceb26`: helper/unit and focused test
@@ -83,7 +83,7 @@ handoff code; retained timing and physical evidence are in
    for signed Wi-Fi userspace packages; preserve package-signature enforcement.
 4. Continue loaded Wi-Fi/power checks and the remaining standalone server MVP.
 
-The bounded Opus retry still failed with expired OAuth; no review ran. Retain V11/V10, the stable loader,
+Opus remains OAuth-expired; bounded built-in review covered the handoff. Retain V11/V10, the stable loader,
 module kit and compressed V11 image: no GPT or experimental boot-partition flash.
 Do not repeat the completed p24 transfer or successful builds.
 

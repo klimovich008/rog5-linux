@@ -59,6 +59,13 @@ cmdline=$(sed -n 's/^cmdline=//p' "$plan")
 exact /run/initramfs/shutdown ec3c7fd28aa099a147a6f3c693c3eb4142be92f2dfd62c94efa5d06a2eec8ec2 || fail 'source shutdown changed'
 [ ! -e /run/initramfs/rog5-kexec-exec ] || fail 'exitrd trial already staged'
 [ -x "$tools/usr/libexec/rog5-kexec-exec" ] || fail 'static executor missing'
+if [ -e "$tools/usr/libexec/rog5-exitrd-log" ]; then
+	[ -f "$tools/usr/libexec/rog5-exitrd-log" ] &&
+		[ ! -L "$tools/usr/libexec/rog5-exitrd-log" ] &&
+		[ -x "$tools/usr/libexec/rog5-exitrd-log" ] || fail 'invalid optional serial logger'
+fi
+[ ! -e /run/initramfs/rog5-exitrd-log ] && [ ! -L /run/initramfs/rog5-exitrd-log ] ||
+	fail 'exitrd logger already staged'
 sh -n "$tools/shutdown" || fail 'shutdown syntax'
 [ "$action" = execute ] || { echo 'PASS native RAM trial preflight'; exit 0; }
 
@@ -83,6 +90,11 @@ cp "$tools/shutdown" /run/initramfs/shutdown.native
 chmod 500 /run/initramfs/shutdown.native
 cmp "$tools/shutdown" /run/initramfs/shutdown.native || fail 'shutdown staging'
 cmp "$tools/usr/libexec/rog5-kexec-exec" /run/initramfs/rog5-kexec-exec || fail 'executor staging'
+if [ -x "$tools/usr/libexec/rog5-exitrd-log" ]; then
+	cp "$tools/usr/libexec/rog5-exitrd-log" /run/initramfs/rog5-exitrd-log
+	chmod 500 /run/initramfs/rog5-exitrd-log
+	cmp "$tools/usr/libexec/rog5-exitrd-log" /run/initramfs/rog5-exitrd-log || fail 'logger staging'
+fi
 (cd /run/initramfs && sha256sum rog5-kexec-exec >rog5-kexec-exec.sha256)
 mv /run/initramfs/shutdown.native /run/initramfs/shutdown
 printf 'ROG5_NATIVE_KEXEC_EXECUTE bundle=%s\n' "$bundle"

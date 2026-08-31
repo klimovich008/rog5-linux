@@ -21,9 +21,9 @@ import sys
 s=Path(sys.argv[1]).read_text()
 ordered = ['source boot changed', 'source kernel changed', 'battery temperature',
            'runtime library identity', '"$verifier" "$bundle" "$manifest"',
-           'persistent state remains mounted', 'storage inventory changed',
+           'invalid optional serial logger', 'persistent state remains mounted', 'storage inventory changed',
            'mkdir "$root/entered"', '"$kexec" -c -l', 'cmp "$tools/shutdown"',
-           'systemctl kexec --no-block']
+           'logger staging', 'systemctl kexec --no-block']
 positions=[s.index(token) for token in ordered]
 assert positions == sorted(positions)
 for forbidden in ('fastboot', 'set_active', 'mkfs', 'blockdev --setrw', 'sgdisk', 'parted'):
@@ -31,5 +31,6 @@ for forbidden in ('fastboot', 'set_active', 'mkfs', 'blockdev --setrw', 'sgdisk'
 assert '"$kexec" -e' not in s
 assert s.count('systemctl kexec --no-block') == 1
 assert 'candidate remains consumed' in s
+assert '[ ! -e /run/initramfs/rog5-exitrd-log ] && [ ! -L /run/initramfs/rog5-exitrd-log ]' in s
 PY
 echo 'PASS native RAM loader checks identity, signed payload, exact runtime and read-only storage before one execute'
