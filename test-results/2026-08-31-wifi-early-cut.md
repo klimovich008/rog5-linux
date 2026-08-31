@@ -1,9 +1,8 @@
-# Early USB-data cutoff — V20 host failure and fix
+# Early USB-data cutoff — V21 pass
 
-V19 proved Wi-Fi runtime/reassociation/traffic with USB data disabled after
-startup. The next question is whether the unchanged target completes native
-root and Wi-Fi startup when data is removed before the root mount. This is
-still not a physical charger-only cold-boot claim.
+V21 passed native-root/Wi-Fi startup with USB data removed before the root mount.
+It is consumed. V19's runtime/reassociation/traffic pass remains valid. Neither
+result is a physical charger-only power-on or sustained-charging claim.
 
 `scripts/host/native-wifi-discovery.py` validates a fresh direct Tailscale UDP
 pong against the same peer's immediately read status, then requires a direct
@@ -13,7 +12,7 @@ are refused. It does not access USB paths, change authentication or prove SSH.
 The caller must still verify the project SSH host key and expected new boot ID.
 
 Five focused tests pass in0.002s; active tier passes in91.792s. Kernel, DT,
-modules, firmware and initramfs are unchanged. No new phone boot has run.
+modules, firmware and initramfs were unchanged during this preparation.
 
 The intended cutoff is triggered only by the expected new kernel's exact
 `ufs-ready/ENTER` stage2 after irreversible claim entry. Revalidate the USB
@@ -95,5 +94,31 @@ namespace; the preserved V20 version reproduces the failure. Complete assembled
 controller/observer/gate binding checks run before signing and in connected
 preflight. Recovery readiness is explicitly bounded90s with cleanup reserve,
 and its exact function test proves no repeated ambiguous reboot. The admission
-changes only literal data and status; V21 has not run yet. All earlier trials
-remain consumed, and both target timers and V11/ASUS A recovery remain intact.
+changed only literal data and status. All earlier trials remain consumed, and
+both target timers and V11/ASUS A recovery remained intact.
+
+## V21 physical result
+
+Admission`8d1a5f0958ec06576eb5f9cf6a4a6b4e20091c4b`; target
+`1d751cda-609d-4608-99ce-a83264b18038`. The exact early stage triggered USB
+data isolation. Fresh authenticated UDP discovery located the new LAN endpoint;
+the project SSH key, new boot ID and signed bundle/kernel identity passed.
+
+The conservative cutoff interval was target uptime5.615–5.786s. Native root
+mount entry was11.432s, so even the latest bound preceded it by5.646s. USB data
+remained off84.504s through Arch/state/WPA/DHCP/WLAN SSH validation. All three
+S12 traces passed. Claim→strict LAN SSH was104.211s; complete proof106.971s.
+The corrected controller retained a callable `gate_events()` throughout.
+
+USB restored to the same instance. One normal reboot restored V11
+`cec1225b-e998-4d97-8728-c56faddbee5c`, state/Tailscale and exact two-node write
+scope in64.532s. Claim→restored was172.132s. Host address/port permission and
+all temporary observers were removed. Battery remained Full/Good; final
+readback8.593V/30.2°C. The existing early SPMI probe warning remains; no claim
+of a warning-free kernel is made. No flash, layout, slot or selector changed.
+
+Next qualify physical charger-only power/startup and longer safe charging,
+then review the permanent healthy-startup/recovery policy before deployment.
+The operator has been asked to have the original charger ready but to retain
+the PC connection until a coordinated test. V11 is still the default without
+active Wi-Fi; V21 must never be retried.

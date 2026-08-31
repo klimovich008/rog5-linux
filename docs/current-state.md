@@ -89,26 +89,25 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-V19 passed automatic startup,180.089s with USB data disabled, one WPA
-reassociation and64MiB of intact WLAN SSH traffic.115 complete power/thermal
-samples passed safety checks. Preserve the qualified kernel/DT/module/firmware
-set; all trials through V19 are consumed. Next: USB-data-absent boot and
-charger-only/longer power qualification before changing the persistent selector.
-Wi-Fi is not in the active V11 baseline yet. Normal reboot restored
-V11`62b2f823-8873-4344-94d3-176a22e60349` is currently restored with state/Tailscale.
-Battery is Full/Good,8.594V/30.1°C. V19's sampled battery current averaged
-about−22mA; sustained net-positive charging is not proven.
-V20 is consumed and failed qualification because a host preflight list shadowed
-its callback. USB restored in0.182s; the kernel continued to Arch/Wi-Fi and V11
-recovery passed. The exact controller is preserved; the offline namespace fix
-and assembled-binding guard pass. See `test-results/2026-08-31-wifi-early-cut.md`.
+V21 passed native-root/Wi-Fi startup with USB data removed before the root mount.
+The cutoff bound was5.615–5.786s of target uptime, before mount entry11.432s.
+USB stayed off84.504s through authenticated endpoint discovery and strict WLAN
+SSH proof. V19's prior180s isolation/reassociation/64MiB runtime pass remains
+valid. Preserve the qualified target artifacts; all trials through V21 are
+consumed. V20's host namespace defect is fixed and retained as a regression.
+V11`cec1225b-e998-4d97-8728-c56faddbee5c` is restored with state/Tailscale;
+normal recovery took64.532s. Battery is Full/Good,8.593V/30.2°C.
+Charger-only physical startup, longer power proof and permanent healthy-startup
+policy remain before changing the persistent selector. Wi-Fi is not yet the
+default. V19's sampled battery current averaged−22mA; net-positive charging
+has not been established. See `test-results/2026-08-31-wifi-early-cut.md`.
 The private network configuration persists only in the existing p23 state image.
 See `test-results/2026-08-31-wifi-usb-isolation.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
 The WCN6851/hw1.1 backport and exact-keyed ASUS board data now pass the RAM test.
-The deployed V11 baseline still requires USB carrier. The automatic-mode RAM
-archive passed, but physical boot with USB data absent remains untested.
+The deployed V11 baseline still requires USB carrier. Early software data
+isolation passed for the RAM target; actual charger-only power-on is untested.
 Its two rollback timers remain qualification-only, not permanent service policy.
 An early SPMI SID5 probe warning is shared with V18, not a new Wi-Fi failure.
 The installed loader cannot export its pstore snapshot before kexec; crash
