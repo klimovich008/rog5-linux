@@ -10,7 +10,8 @@ Historical generations remain in Git; do not reconstruct them here.
 Prove association, DHCP and SSH over Wi-Fi using the V15-qualified composition.
 V15 passed firmware/PHY startup and scanned33 access points. It is consumed;
 V16 is consumed: radio passed, but WPA startup used an unsupported logging flag.
-The foreground/systemd fix is tested; no successor is admitted. Preserve the kernel and firmware.
+The foreground/systemd fix is tested; V17 is admitted once, not yet executed.
+Preserve the kernel and firmware.
 See `test-results/2026-08-31-wifi-late-activation.md`.
 
 ## Current live state
