@@ -1,7 +1,7 @@
 # Controlled Wi-Fi activation checkpoint
 
 Question: can the cache-coherent1350mV hold support radio bring-up while UFS,
-NCM and power remain stable? No new phone cycle has been admitted or executed.
+NCM and power remain stable? At this source checkpoint no new phone cycle had been admitted or executed.
 Persistent V11 and ASUS slot A are unchanged. Current V11 battery is Full/Good,
 8.610V/30.1°C; persistent state and Tailscale services are active.
 
@@ -77,3 +77,21 @@ matching module set and exact firmware/regdb, collect independent USB/PON plus
 RPMh/PCIe evidence, and check all117-RO/power/transport before activation.
 PCI identity must pass before ath11k binds. No persistent radio deployment,
 partition write, or experimental flash is authorized by this offline result.
+
+## V14 data-only admission
+
+Source`cda918bdbfabf9cd3610e671604206ac58b23608` passed all jobs in GitHub
+run33397881681. Matching signed V14 RAM bundles and the exact probe package
+are prepared. The controller replays power/cache/radio failures, late-start
+refusal, source/target release parsing, partial SSH timeout output and fallback.
+The sole added claim binds the core manifest, complete probe package, runtime
+tools and timing plan. AST comparison proves that no executable repository
+code changed since the fully validated source; historical claims are unchanged.
+Focused artifact and claim tests qualify this data-only admission without a
+second full CI run. It is not new full-CI evidence for the admission commit.
+
+One temporary V14 execution is admitted under standing project authority,
+subject to the connected identity, power, all117-RO and observation gates.
+It remains unconsumed until the existing generic consumer irreversibly enters
+the exact record. V13 and all earlier trials remain consumed. No persistent
+deployment, partition/slot write or fallback change is included.
