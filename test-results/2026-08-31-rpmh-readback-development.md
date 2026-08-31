@@ -83,3 +83,47 @@ requests regulator changes. Only unqueued EAGAIN is retried (five attempts,
 20ms spacing); a timeout stops all further requests. Its snapshot reports
 unavailable data explicitly and is not a physical-voltage measurement. The
 debugfs file owns a module reference while open.
+
+## Completed clean-build checkpoint
+
+Both clean builds passed: A2371.747s, B2416.962s. Config, Image/Image.gz,
+vmlinux, symbol tables, build metadata and all19 UFS/power modules match.
+Both observer modules match after compilation against each completed kernel;
+their builds took19.396s and17.503s. No preserved source/kit was modified.
+
+- Image: `a0cae27023188dfb4f9dfc9dd9e9ed73a33dafd11f80e3917e70192867a58e25`
+- Initramfs: `58485719f2025d649c1b3211385c23fbf33e22e33bd98c87dce782e7ae2992d3`
+- Read-only observer: `ec136d9231e998505249f729e8d31b1109d5c5c392e47d2f643c55602d6d5edb`
+
+The refreshed archive changes exactly19 modules plus the single release line
+in `init`; all other634-entry archive content/metadata is preserved. The two
+refreshes took8.336s/8.093s; independent twin/archive verification21.826s.
+Exact-Image QEMU took8.025s: all19 normal modules loaded, both observers
+returned ENODEV on the non-ASUS machine, no snapshot or BTF/symbol error.
+QEMU does not prove the physical RPMh transaction or inherited vote values.
+
+Source305823e6 passed full local CI606.194s while compilation was active;
+GitHub run33365885277 passed exact-head, merge, QEMU and publication checks.
+The next publication changes only one generated exact claim and these current
+documents; no claim-consumer behavior or historical record is changed.
+The admission test refused the unknown profile before insertion, then passed;
+all16 existing claim-consumer tests pass. Physical execution remains unconsumed.
+
+The signed readback bundle uses the unchanged baseline DTB (PCIe disabled,
+no S12 node). Voltage-voting and radio-probe tools were excluded from its
+source runtime. It is not a voltage-setting or Wi-Fi activation trial.
+Runtime manifest:
+`efbe767ee49d7fd721176d4a261dec4e8a5dd5407437d91688c13dbf9ca4f426`.
+
+The full completed A output/cache is retained in a909700813-byte compressed
+archive, SHA256`fc5f1856ee6dc24ca0515215f9aa67feb7cb02520e509927e1165fe100ba6c82`;
+every archived entry was compared with the output and the durable copy was
+hash-verified. No older build data was deleted. RAM scratch remains mounted
+until all needed twin/bundle evidence has been archived. Disk headroom is low;
+do not duplicate the full B cache or start another disk-based clean build.
+
+An initial packaging call failed before signing because `gh` inferred its
+repository from the caller's directory (R6/R7). Explicit repository selection
+was verified from `/tmp`, then packaging passed in0.311s. No phone cycle was
+spent on this host-only defect. Remaining R2/R3 risks are exact deployed
+composition and physical capability, not a reason to alter voltage policy.

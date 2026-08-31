@@ -7,7 +7,7 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-What S12 APPS votes are inherited before a voltage/enable request? The read-only transport is implemented; its first clean kernel build is running.
+What S12 APPS votes are inherited before a voltage/enable request? The read-only transport, clean kernel twins and exact-Image QEMU gate pass; one readback-only RAM trial is prepared, not consumed.
 
 ## Current live state
 
@@ -75,8 +75,11 @@ handoff code; retained timing and physical evidence are in
    fixture `s12-voltage-submit-reset.json`; absent tail/pstore is inconclusive.
    The installed B loader cannot export its pstore snapshot before second kexec;
    native V11 has no working ramoops backend. Preserve the stable loader.
-   Conditional hw1.1 modules remain offline. Readback preserves the V11 config
-   and deployed high-speed UFS source. See `test-results/2026-08-31-rpmh-readback-development.md`.
+   Conditional hw1.1 modules remain offline. Readback twins match, preserving
+   V11 config/HS UFS; 19 modules load in exact-Image QEMU. The fixed readers
+   reject the wrong board. Baseline DT has PCIe disabled and no S12 node.
+   No voltage/radio tools accompany this trial. Keep its execution one-use.
+   See `test-results/2026-08-31-rpmh-readback-development.md`.
 2. The userspace validation client is online; finish its SSH sign-in check and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
