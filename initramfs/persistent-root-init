@@ -19,6 +19,7 @@ expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
 expected_ssh_diagnostic_mode=@EXPECTED_SSH_DIAGNOSTIC_MODE@
+native_wifi_boot=0
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
 expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
@@ -600,7 +601,24 @@ deferred_ufs_modules_present() {
 	[ -d /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ]
 }
 
+prepare_native_wifi_boot() {
+	# Opt in only through the signed archive, never a bootloader argument.
+	[ -e /rog5-native-wifi ] || [ -L /rog5-native-wifi ] || return 0
+	[ "$expected_native_root_mode:$expected_ufs_storage_mode:$expected_ssh_diagnostic_mode" = \
+		1:read-only:0 ] || return 1
+	[ -d /rog5-native-wifi ] && [ ! -L /rog5-native-wifi ] || return 1
+	marker=/rog5-native-wifi/automatic
+	[ -f "$marker" ] && [ ! -L "$marker" ] &&
+		[ "$(stat -c '%u:%g:%a:%s:%h' "$marker")" = 0:0:444:25:1 ] &&
+		[ "$(cat "$marker")" = rog5-native-wifi-boot-v1 ] || return 1
+	[ ! -e /run/rog5-native-wifi ] && [ ! -L /run/rog5-native-wifi ] || return 1
+	mv /rog5-native-wifi /run/rog5-native-wifi || return 1
+	native_wifi_boot=1
+}
+
 wait_for_deferred_ufs_rendezvous() {
+	# Storage-writing and diagnostic archives retain the attended rendezvous.
+	[ "${native_wifi_boot:-0}" != 1 ] || return 0
 	attempt=0
 	stable=0
 	while [ "$attempt" -lt 150 ]; do
@@ -1654,6 +1672,9 @@ EOF
 	ln -s ../rog5-tailscaled.service \
 		/run/systemd/system/sysinit.target.wants/rog5-tailscaled.service
 	ln -s /dev/null /run/systemd/system/udisks2.service
+	if [ "$native_wifi_boot" -eq 1 ]; then
+		/run/rog5-native-wifi/runtime install || return 1
+	fi
 	prepare_volatile_systemd_state \
 		/newroot /mnt/root-ro /mnt/state/upper /run || return 1
 	return 0
@@ -1833,6 +1854,9 @@ else
 		fail_stage 'restart2 bootloader helper is unavailable' reboot-mode 15
 fi
 
+if ! prepare_native_wifi_boot; then
+	fail_stage 'invalid sealed native Wi-Fi composition' cmdline 5
+fi
 if [ -x /sbin/rog5-load-persistent-power-usb ]; then
 	power_usb_failure=
 	if ! power_usb_failure=$(/sbin/rog5-load-persistent-power-usb); then

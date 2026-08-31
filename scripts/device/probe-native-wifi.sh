@@ -27,7 +27,13 @@ guard() {
  temperature=$(cat /sys/class/power_supply/qcom-battmgr-bat/temp)
  [ "$temperature" -ge 0 ] && [ "$temperature" -lt 400 ] || fail 'battery-temperature'
  [ "$(cat /sys/class/power_supply/qcom-battmgr-bat/voltage_now)" -ge 8400000 ] || fail 'battery-voltage'
- [ "$(cat /sys/class/net/usb0/carrier)" = 1 ] || fail 'NCM-carrier'
+ if [ -e "$root/automatic" ] || [ -L "$root/automatic" ]; then
+  [ -f "$root/automatic" ] && [ ! -L "$root/automatic" ] &&
+   [ "$(stat -c '%u:%g:%a:%s:%h' "$root/automatic")" = 0:0:444:25:1 ] &&
+   [ "$(cat "$root/automatic")" = rog5-native-wifi-boot-v1 ] || fail 'automatic-mode'
+ else
+  [ "$(cat /sys/class/net/usb0/carrier)" = 1 ] || fail 'NCM-carrier'
+ fi
 }
 collect() {
  for path in /sys/class/power_supply/*/uevent /sys/class/thermal/thermal_zone*/temp \
@@ -58,7 +64,10 @@ umask 077
 mkdir "$root/probe-entered" || fail 'probe-already-entered'
 # 17*(20+2)s loads +30s activation +30s PCI +60s PHY +90s cleanup
 # =584s, within 600s. The caller must budget the preceding S12 qualification.
-systemd-run --unit=rog5-wifi-probe-rollback --on-active=600s --timer-property=AccuracySec=1s /usr/bin/systemctl reboot
+systemd-run --unit=rog5-wifi-probe-rollback --on-active=600s --timer-property=AccuracySec=1s \
+ --property=DefaultDependencies=no --property=Before=shutdown.target --property=Conflicts=shutdown.target \
+ --timer-property=DefaultDependencies=no --timer-property=Before=shutdown.target --timer-property=Conflicts=shutdown.target \
+ /usr/bin/systemctl reboot
 systemctl is-active --quiet rog5-wifi-probe-rollback.timer || fail 'rollback-not-armed'
 trap collect EXIT
 printf '%s' "$root/firmware" >/sys/module/firmware_class/parameters/path

@@ -101,8 +101,10 @@ See `test-results/2026-08-31-wifi-connectivity-pass.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
 The WCN6851/hw1.1 backport and exact-keyed ASUS board data now pass the RAM test.
-The sealed initramfs still requires USB carrier before deferred UFS loading;
-that diagnostic rendezvous must not remain a production host-free boot dependency.
+The deployed baseline still requires USB carrier. A new sealed automatic-mode
+initramfs removes that dependency, qualifies radio before p23 state, and starts
+WPA/DHCP locally. It is not yet admitted or installed; see
+`test-results/2026-08-31-wifi-automatic-boot.md`.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH

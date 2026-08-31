@@ -28,6 +28,19 @@ power_role_is_sink() {
 	esac
 }
 
+require_ncm_carrier() {
+	marker=/run/rog5-native-wifi/automatic
+	if [ -e "$marker" ] || [ -L "$marker" ]; then
+		[ -f "$marker" ] && [ ! -L "$marker" ] &&
+			[ "$(stat -c '%u:%g:%a:%s:%h' "$marker")" = 0:0:444:25:1 ] &&
+			[ "$(cat "$marker")" = rog5-native-wifi-boot-v1 ] ||
+			fail wifi-mode-invalid 'invalid signed Wi-Fi boot mode'
+		return 0
+	fi
+	[ "$(cat /sys/class/net/usb0/carrier)" = 1 ] ||
+		fail ncm-carrier 'NCM carrier dropped'
+}
+
 read_integer() {
 	value=$(cat "$1" 2>/dev/null) || return 1
 	case $value in ''|'-'|*[!0-9-]*|*-*-) return 1 ;; esac
@@ -162,8 +175,7 @@ power_role=$(cat /sys/class/typec/port0/power_role 2>/dev/null) ||
 	fail typec-power-role 'side USB power role is unavailable'
 power_role_is_sink "$power_role" ||
 	fail typec-power-role 'side USB is not a power sink'
-[ "$(cat /sys/class/net/usb0/carrier)" = 1 ] ||
-	fail ncm-carrier 'NCM carrier dropped'
+require_ncm_carrier
 [ "$(ip -4 -o address show dev usb0 | awk '$4 == "169.254.77.2/30" { count++ } END { print count + 0 }')" -eq 1 ] ||
 	fail ncm-address 'NCM address changed'
 route=$(ip -4 route get 169.254.77.1 2>/dev/null) ||

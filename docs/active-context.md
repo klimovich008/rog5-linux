@@ -33,6 +33,8 @@ See `test-results/2026-08-31-wifi-connectivity-pass.md`.
 V17 used the corrected foreground WPA service, associated, acquired DHCP and
 passed exact-key/boot-ID SSH over Wi-Fi. NCM and117-RO storage stayed healthy.
 Normal V11 fallback and services were restored; Wi-Fi is not yet persistent.
+Automatic initramfs/service integration is implemented and locally composed;
+see `test-results/2026-08-31-wifi-automatic-boot.md`. No successor is admitted.
 
 ## Cheapest next action
 
@@ -41,8 +43,9 @@ Normal V11 fallback and services were restored; Wi-Fi is not yet persistent.
    initramfs twins match. V14 now qualifies the staged DT/power path physically.
    The V17 radio/WPA/DHCP/SSH path is physically qualified. Integrate the same
    verified artifacts into automatic boot; do not rebuild kernel/modules.
-   Remove only the diagnostic USB-carrier dependency from production read-only
-   UFS startup. P2 needs USB's configured address/SSH policy, not carrier.
+   Validate the sealed automatic mode that removes only the USB-carrier
+   dependency from read-only native startup. P2 still needs the configured
+   address/SSH policy. The boot rollback timer starts before P2/early SSH.
    State mounting follows P2 at `/persist`; reuse it for private Wi-Fi config.
    Preserve diagnostic/write-path observation and the independent fallback.
    Do not infer explicitly valid QMI fields from default-capable values.

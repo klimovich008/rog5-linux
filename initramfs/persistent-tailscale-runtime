@@ -26,12 +26,22 @@ exact_file() {
 		[ "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$digest" ]
 }
 
+# Only the sealed automatic composition owns the uplink and USB rescue address.
+automatic_wifi=0
+wifi_marker=/run/rog5-native-wifi/automatic
+if [ -e "$wifi_marker" ] || [ -L "$wifi_marker" ]; then
+	exact_file "$wifi_marker" 444 25 \
+		c113031220d86a3a9efbbe948a914e2480b0ced88a2b3bb5405501f4d8c72ccd ||
+		fail 'automatic Wi-Fi marker identity changed'
+	automatic_wifi=1
+fi
+
 cleanup() {
-	if ip -4 route show exact default |
+	if [ "$automatic_wifi" = 0 ] && ip -4 route show exact default |
 		grep -Fxq "default via $service_gateway dev $interface"; then
 		ip -4 route del default via "$service_gateway" dev "$interface" || true
 	fi
-	if ip -4 -o address show dev "$interface" |
+	if [ "$automatic_wifi" = 0 ] && ip -4 -o address show dev "$interface" |
 		grep -Fq " inet $service_address "; then
 		ip -4 address del "$service_address" dev "$interface" || true
 	fi
@@ -75,8 +85,10 @@ fi
 [ -c /dev/net/tun ] &&
 	[ "$(stat -c '%t:%T:%a' /dev/net/tun)" = a:c8:666 ] ||
 	fail 'TUN identity changed'
-[ "$(cat /sys/class/net/$interface/operstate)" = up ] ||
-	fail 'USB network interface is not up'
+if [ "$automatic_wifi" = 0 ]; then
+	[ "$(cat /sys/class/net/$interface/operstate)" = up ] ||
+		fail 'USB network interface is not up'
+fi
 ip -4 -o address show dev "$interface" |
 	grep -Fq ' inet 169.254.77.2/30 ' ||
 	fail 'fixed recovery-compatible address is absent'
@@ -88,7 +100,9 @@ case $observed in
 	"$service_address") ;;
 	*) fail 'standalone service address is ambiguous' ;;
 esac
-ip -4 route replace default via "$service_gateway" dev "$interface"
+if [ "$automatic_wifi" = 0 ]; then
+	ip -4 route replace default via "$service_gateway" dev "$interface"
+fi
 [ "$(stat -c '%u:%g:%a' "$runtime")" = 0:0:700 ] ||
 	fail 'Tailscale runtime directory metadata changed'
 install -o 0 -g 0 -m 0500 "$dist/tailscale" "$runtime/tailscale"
