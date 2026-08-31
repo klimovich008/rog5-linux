@@ -9,8 +9,8 @@ Historical generations remain in Git; do not reconstruct them here.
 
 Qualify cache-coherent1350mV power and controlled Wi-Fi radio activation.
 V13 proved the raw OEM request on hardware and is consumed. The new kernel,
-staged DT, fixed activator and no-retry loader pass offline checks; no successor
-is admitted. See `test-results/2026-08-31-wifi-late-activation.md`.
+staged DT, fixed activator and no-retry loader pass offline checks. V14 is
+admitted once, not yet executed. See `test-results/2026-08-31-wifi-late-activation.md`.
 
 ## Current live state
 
@@ -42,7 +42,7 @@ through V13 are consumed. See `test-results/2026-08-31-s12-oem.md`.
    fixed activator and no-retry loader pass twins/QEMU. Use the verified release
    argument in probe/tracer and combine power/radio deadlines before admission.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
-   No new-kernel boot is admitted. Restore shared networking after fallback;
+   Execute V14 once after the connected preflight. Restore shared networking after fallback;
    reuse the fixed missing-interface helper and parameterized stage parser.
    Preserve archives/source; disk headroom remains low. Use
    ROG5_TEST_TMP_PARENT for project RAM scratch; never repurpose HOME.
