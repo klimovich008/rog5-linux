@@ -9,8 +9,9 @@ Historical generations remain in Git; do not reconstruct them here.
 
 Enable the observed Wi-Fi hw1.1 revision with matching vendor firmware/BDF.
 V14 proved the coherent1350mV hold, WCN sequencing and PCIe Gen3x1. The current
-ath11k module rejects hardware1/0x10 before MSI/MHI. V14 is consumed; no successor
-is admitted. See `test-results/2026-08-31-wifi-late-activation.md`.
+ath11k module rejected hardware1/0x10 before MSI/MHI. V14 is consumed; V15's
+matching hw1.1 firmware cycle is admitted once, not yet executed.
+See `test-results/2026-08-31-wifi-late-activation.md`.
 
 ## Current live state
 

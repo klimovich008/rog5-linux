@@ -152,3 +152,19 @@ Both source implementations default missing board information to255; chip0 can
 also be a default. A matching key therefore does not prove both QMI fields were
 explicitly reported. These prepared firmware inputs still require a fresh
 physical qualification; no successor has been admitted or booted.
+
+## V15 admission
+
+Source`eb257433d1545ec632e4acd0724fdd4e46e29a98` passed all jobs in GitHub
+run33406085857. The fresh signed V15 core twins match, reusing the V14-proven
+Image/DT/initramfs. Its probe package replaces the coupled ath family and
+provides only the matched hw1.1 firmware with exact-keyed board2 data.
+
+Assembly took3.930s. The unpacked module tree is no longer duplicated in the
+transfer archive; exact two-layer extraction and both file manifests pass.
+Controller replay passed in4.288s, including the bounded optional scan path's
+sealed-shell syntax. Signature, package, timing, source-delta and one-use
+checks remain separate from the successful source CI. Only literal admission
+data/status text is added, so full CI is not repeated for unchanged executable
+source. V15 is admitted once under standing authority, subject to the fresh
+connected gates. V14 and earlier candidates remain permanently consumed.
