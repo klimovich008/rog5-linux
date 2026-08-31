@@ -69,21 +69,11 @@ Persistent release v11 boots successfully; V10, V9 and V8 remain p24 rollbacks.
 
 ## NCM liveness result
 
-Boot `bf9aa234-327f-4b50-acaa-40e98a94c421` completed 7,200 one-second target
-samples and 670 ten-second host checks.
-
-- Final target uptime: 7,831.20 seconds.
-- UDC: continuously `configured`, high speed.
-- DWC runtime: continuously active.
-- Host and target RX/TX errors: zero.
-- Ping and strict pinned SSH: every check passed.
-- Host kernel: no NETDEV watchdog, TX timeout, xHCI, or anchored-USB error in
-  the monitored interval.
-- Target log SHA-256:
-  `32f60ad2bf99e2ecad540f69601d1c444358779c1341e6731c2fd1480c2acb15`.
-- Host log SHA-256:
-  `d8d24e3b3881f459de62d96283a0b7919c1105ff19d20c0dbb49da5b89cec8d6`.
-- Evidence: `test-results/2026-08-29-persistent-ncm-two-hour-pass.md`.
+Boot `bf9aa234-327f-4b50-acaa-40e98a94c421` completed 7,200 target samples
+and 670 host checks: configured/high-speed USB, active DWC, zero RX/TX errors,
+all ping/strict-SSH checks passing, no host USB/xHCI/NETDEV failure. Final uptime
+was 7,831.20s. Exact logs/hashes are retained in
+`test-results/2026-08-29-persistent-ncm-two-hour-pass.md`.
 
 One earlier long-lived boot produced a host `cdc_ncm` NETDEV watchdog after
 about 47 minutes. The two-hour pass disproves a deterministic timeout at that

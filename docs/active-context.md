@@ -27,24 +27,12 @@ What S12 APPS votes are inherited before a voltage/enable request? The read-only
 
 ## Just-completed checkpoint
 
-V11's installed firewall and normal reboot pass; see its live result.
-The complete set now contains 22 modules, including dynamic signature/cipher
-dependencies. QEMU accepts valid regulatory data, rejects tampering and proves
-the requested Wi-Fi crypto transforms. The native Wi-Fi DTB preserves unrelated
-state and uses stock-derived, selector-valid voltage intervals. Its RAM trial
-booted Arch/UFS/USB/SSH, but PCIe activation reset the phone before Wi-Fi worked.
-Firmware matches the prior verified set. See
-`test-results/2026-08-30-native-wifi-offline.md`.
-
-All ten native Wi-Fi trials through s12-held-v10 are permanently consumed.
-Six reached target SSH then reset during PCIe power; v6/v8 failed before the probe.
-V9 passed query/AUTO; V10 reset at held-enable entry before radio activation.
-Trace-v2 proved controller/PHY success; observe-v3 proved creation
-return 0 and power-on-enter. Isolated MHI load/unload passed on V11 with PCI
-empty and 117 nodes RO. No rail or GPIO fault is proven. Exact-kernel QEMU
-passes client creation and dummy power. Full local CI passed in 453s for the
-handoff code; retained timing and physical evidence are in
-`test-results/2026-08-30-native-wifi-ram-handoff.md`.
+V11 firewall/reboot and offline Wi-Fi module/firmware/crypto checks pass;
+see `test-results/2026-08-30-native-wifi-offline.md`.
+All ten trials through s12-held-v10 are permanently consumed. V9 passed
+query/AUTO; V10 reset at first enable before radio. No exact rail/GPIO fault
+is proven. Controller/PHY, isolated MHI and QEMU client/dummy-power evidence
+remain in `test-results/2026-08-30-native-wifi-ram-handoff.md`.
 
 ## Cheapest next action
 
