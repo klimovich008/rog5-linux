@@ -104,7 +104,8 @@ completions, post-readback, direct UFS reads and NCM. Current V11 boot is
 `bdd1dd29-1def-4864-9d86-109ec9876137`; power, exact write scope and shared SSH
 passed. V13 then proved exact1350mV write/readback after the low hold, with
 stable UFS/NCM and normal fallback. No radio was activated. The cache-coherent
-kernel point is implemented; its independent clean builds are running.
+kernel point, clean kernel/module twins and new initramfs are qualified offline;
+physical cache-coherent power and radio bring-up remain.
 See `test-results/2026-08-31-s12-oem.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.

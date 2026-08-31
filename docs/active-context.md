@@ -9,7 +9,8 @@ Historical generations remain in Git; do not reconstruct them here.
 
 Complete the cache-coherent1350mV kernel/module path, then resume Wi-Fi radio
 bring-up. V13 proved the exact OEM request on hardware and is consumed.
-The new kernel is building; no successor is admitted.
+The new kernel and base module kit pass clean comparison/QEMU; no successor
+is admitted. Physical cache-coherent power and radio qualification remain.
 
 ## Current live state
 
@@ -35,16 +36,21 @@ through V13 are consumed. See `test-results/2026-08-31-s12-oem.md`.
 
 ## Cheapest next action
 
-1. Finish the already-running clean-b/clean-c kernel builds; do not restart them.
-   Source1eea8970e87f adds only the ASIC-scoped1350mV point, preserving other
-   voltage values/boards and all V11 configuration. Cached development Image
-   already passes build; clean comparison and new ABI/module qualification
-   remain. The successor S12 module now uses the regulator API and requires
-   exact point support plus readback/cache consistency. No global cache seeding.
+1. Reuse source1eea8970e87f and its qualified archived kit; do not rebuild it.
+   Clean twins and cached Image match; base19/Wi-Fi37 module packages and
+   initramfs twins match; exact-Image QEMU loads all required roots. Add the
+   existing diagnostic module patches before passing observation parameters.
+   Update active target release checks from the signed plan, not stale literals.
+   The S12 module uses the regulator API and requires point support plus
+   readback/cache consistency. Qualify that before conditional radio activation.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
-   No new-kernel boot is admitted. Restore shared host networking after fallback;
+   No new-kernel boot is admitted. OF dynamic/overlay APIs are available for
+   evaluating controlled radio-node activation. Check one-syscall module-load
+   behavior: the BusyBox wrong-board fixture retried its initializer.
+   Restore shared host networking after fallback;
    reuse the fixed missing-interface helper and two-release stage parser.
-   Preserve current build scratch and archives; disk headroom remains low.
+   Preserve archives/source; disk headroom remains low. Add an explicit test
+   temporary-parent option for RAM scratch; do not repurpose HOME.
 2. The userspace validation client is online; finish its SSH sign-in check and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
