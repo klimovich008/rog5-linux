@@ -33,8 +33,9 @@ See `test-results/2026-08-31-wifi-connectivity-pass.md`.
 V17 used the corrected foreground WPA service, associated, acquired DHCP and
 passed exact-key/boot-ID SSH over Wi-Fi. NCM and117-RO storage stayed healthy.
 Normal V11 fallback and services were restored; Wi-Fi is not yet persistent.
-Automatic initramfs/service integration is implemented and locally composed;
-see `test-results/2026-08-31-wifi-automatic-boot.md`. No successor is admitted.
+Automatic initramfs/service integration passed full local and exact-head CI.
+V18 is now narrowly admitted and unconsumed for one RAM-only automatic-startup
+cycle; see `test-results/2026-08-31-wifi-automatic-boot.md`.
 
 ## Cheapest next action
 
