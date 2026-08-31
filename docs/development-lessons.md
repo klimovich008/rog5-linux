@@ -212,6 +212,8 @@ Observed pattern:
 - Firewalld returned canonical text `no zone`, but the parser treated the embedded space as a malformed zone.
 - The target correctly reported `root=local-ext4-overlay-tmpfs`, while the host expected only `root=overlay-tmpfs`.
 - The runtime collector rejected a valid new candidate name after target SSH was already working.
+- A module-level preflight list replaced the `gate_events()` callback in an
+  assembled controller. Fragment-only tests omitted that shared namespace.
 - A storage collector attached after the target had already started raw GPT streaming, so binary payload bytes were parsed as an overlong framed line before ACK.
 - Sending host readiness immediately after ACM open raced target initialization and produced an exact target-side readiness mismatch.
 - The mismatch persisted after target-S30 ordering, while the exact sealed AArch64 BusyBox/PTY exchange passed, isolating physical gadget-ACM input behavior from shell semantics.
@@ -224,6 +226,9 @@ Prevention:
 
 - Preserve real command outputs and lifecycle transcripts as sanitized regression fixtures.
 - Replay every parser, path normalizer, and state transition against those fixtures before a new wrapper is issued.
+- Check bindings in the complete assembled controller, and execute callback
+  tests with the actual preflight bindings in the same namespace. Isolated
+  function tests alone do not prove that the assembled program can call them.
 - Test canonical, short, missing, whitespace-containing, delayed, duplicated, and stale forms.
 - Run the whole controller with fake fastboot/ADB/NCM/firewalld/NetworkManager endpoints through PREPARE, COMMIT, target SSH, and fallback.
 - For mixed framed/binary transports, require an exact operation-bound host-ready record before the target emits the first binary byte.
@@ -343,6 +348,7 @@ The optimization target is duplicated and hand-maintained process—not these gu
 - [ ] Exact recovery/fallback capability manifest satisfies every command and syscall used.
 - [ ] Timeout-lattice assertions pass.
 - [ ] Real-output parser replay and full lifecycle simulation pass.
+- [ ] Complete controller bindings and combined preflight/callback namespace pass.
 - [ ] Host disk space covers peak twin-build and deployment usage with margin.
 - [ ] Reusing an already-proven kernel was considered before starting a kernel rebuild.
 

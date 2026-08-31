@@ -95,9 +95,13 @@ samples passed safety checks. Preserve the qualified kernel/DT/module/firmware
 set; all trials through V19 are consumed. Next: USB-data-absent boot and
 charger-only/longer power qualification before changing the persistent selector.
 Wi-Fi is not in the active V11 baseline yet. Normal reboot restored
-V11`7750f962-9b70-4c28-b786-5b2309b03788` and state/Tailscale in63.187s.
-Battery is Full/Good,8.595V/30.2°C. The test's sampled battery current averaged
+V11`62b2f823-8873-4344-94d3-176a22e60349` is currently restored with state/Tailscale.
+Battery is Full/Good,8.594V/30.1°C. V19's sampled battery current averaged
 about−22mA; sustained net-positive charging is not proven.
+V20 is consumed and failed qualification because a host preflight list shadowed
+its callback. USB restored in0.182s; the kernel continued to Arch/Wi-Fi and V11
+recovery passed. The exact controller is preserved; the offline namespace fix
+and assembled-binding guard pass. See `test-results/2026-08-31-wifi-early-cut.md`.
 The private network configuration persists only in the existing p23 state image.
 See `test-results/2026-08-31-wifi-usb-isolation.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
