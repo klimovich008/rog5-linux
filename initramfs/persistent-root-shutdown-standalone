@@ -4,6 +4,10 @@ set -u
 bb=/bin/busybox
 
 log() {
+	if [ -f /rog5-exitrd-log ] && [ ! -L /rog5-exitrd-log ] &&
+		[ -x /rog5-exitrd-log ]; then
+		/rog5-exitrd-log "$*" || true
+	fi
 	printf 'rog5-standalone-exitrd: %s\n' "$*" >/dev/kmsg 2>/dev/null ||
 		printf 'rog5-standalone-exitrd: %s\n' "$*" >/dev/console 2>/dev/null ||
 		true
@@ -48,31 +52,50 @@ detach_persistent_state() {
 try_native_kexec() {
 	# Only a RAM trial stages this syscall-only helper and its verified digest.
 	# An ordinary reboot, incomplete teardown or missing tool must reboot V11.
-	[ "${1:-}" = kexec ] && [ "$clean" = 1 ] || return 0
+	[ "${1:-}" = kexec ] || { log 'native-kexec skip=action'; return 0; }
+	[ "$clean" = 1 ] || { log 'native-kexec skip=unclean'; return 0; }
 	[ -f /rog5-kexec-exec ] && [ ! -L /rog5-kexec-exec ] &&
-		[ -x /rog5-kexec-exec ] || return 0
-	[ -f /rog5-kexec-exec.sha256 ] && [ ! -L /rog5-kexec-exec.sha256 ] || return 0
-	(cd / && "$bb" sha256sum -c rog5-kexec-exec.sha256) || return 0
+		[ -x /rog5-kexec-exec ] || { log 'native-kexec skip=executor'; return 0; }
+	[ -f /rog5-kexec-exec.sha256 ] && [ ! -L /rog5-kexec-exec.sha256 ] ||
+		{ log 'native-kexec skip=digest-missing'; return 0; }
+	(cd / && "$bb" sha256sum -c rog5-kexec-exec.sha256) ||
+		{ log 'native-kexec skip=digest-mismatch'; return 0; }
+	log 'native-kexec enter'
 	/rog5-kexec-exec
+	status=$?
 	# Any return is failure, including status zero. Never retry the target.
+	log "native-kexec returned status=$status"
+	return "$status"
+}
+
+mark_unclean() {
+	clean=0
+	log "teardown failed=$*"
 }
 
 log 'discarding volatile root before standalone restart'
 "$bb" mount -o remount,rw / 2>/dev/null || true
 "$bb" mkdir -p /oldsys
+if [ -f /rog5-exitrd-log ] && [ ! -L /rog5-exitrd-log ] && [ -x /rog5-exitrd-log ]; then
+	# Keep this API-only mount available after /oldsys/dev is detached.
+	# Missing serial observation never gates storage teardown or fallback.
+	"$bb" mountpoint -q /dev ||
+		"$bb" mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+	log 'source observation ready'
+fi
 
 clean=1
-move_mount /oldroot/.rog5/root-ro /oldsys/root-ro || clean=0
-move_mount /oldroot/.rog5/userdata-ro /oldsys/userdata-ro || clean=0
-move_mount /oldroot/.rog5/state /oldsys/state || clean=0
+move_mount /oldroot/.rog5/root-ro /oldsys/root-ro || mark_unclean 'move /oldroot/.rog5/root-ro /oldsys/root-ro'
+move_mount /oldroot/.rog5/userdata-ro /oldsys/userdata-ro || mark_unclean 'move /oldroot/.rog5/userdata-ro /oldsys/userdata-ro'
+move_mount /oldroot/.rog5/state /oldsys/state || mark_unclean 'move /oldroot/.rog5/state /oldsys/state'
 for api in sys proc run dev; do
-	move_mount "/oldroot/$api" "/oldsys/$api" || clean=0
+	move_mount "/oldroot/$api" "/oldsys/$api" || mark_unclean "move /oldroot/$api /oldsys/$api"
 done
-detach_persistent_state || clean=0
-unmount_mount /oldroot || clean=0
-unmount_mount /oldsys/state || clean=0
-unmount_mount /oldsys/root-ro || clean=0
-unmount_mount /oldsys/userdata-ro || clean=0
+detach_persistent_state || mark_unclean detach
+unmount_mount /oldroot || mark_unclean 'unmount /oldroot'
+unmount_mount /oldsys/state || mark_unclean 'unmount /oldsys/state'
+unmount_mount /oldsys/root-ro || mark_unclean 'unmount /oldsys/root-ro'
+unmount_mount /oldsys/userdata-ro || mark_unclean 'unmount /oldsys/userdata-ro'
 
 if [ "$clean" -ne 1 ]; then
 	log 'clean teardown incomplete; detaching residual mounts'

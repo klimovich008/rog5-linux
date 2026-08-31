@@ -87,7 +87,8 @@ grep -Fq 'Requires=rog5-persistent-state.service rog5-early-sshd.service' "$init
 grep -Fq 'ExecStart=/run/rog5-persistent-ssh-identity apply' "$init"
 grep -Fq 'sysinit.target.wants/rog5-persistent-ssh-identity.service' "$init"
 grep -Fq 'install -D -m 0755 "$state_helper"' "$builder"
-grep -Fq 'detach_persistent_state || clean=0' "$shutdown"
+grep -Fq 'detach_persistent_state || mark_unclean detach' "$shutdown"
+grep -Fq 'clean=0' "$shutdown"
 grep -Fq 'losetup -d "$loop_device"' "$shutdown"
 grep -Fq 'loop_device=/oldsys/dev/${loop_device#/dev/}' "$shutdown"
 persist_lazy=$(grep -n 'lazy_unmount /oldroot/persist' "$shutdown" | cut -d: -f1)

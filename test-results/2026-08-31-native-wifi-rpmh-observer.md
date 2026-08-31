@@ -92,3 +92,99 @@ registration and now passes, along with all16 generic one-use tests. The exact
 production AArch64 verifier accepts the signature/composition in isolated QEMU.
 No one-use claim exists yet. Execute only after publication and connected gates
 pass; do not change voltage, HPM, supply order, permanent selector or boot slots.
+
+## RPMh-v6 consumed: fallback before the radio probe
+
+Source `dd76b962e976cd98be743987a4059afc423d6291` passed every job in
+GitHub33342087834 and full local CI in451.804s. The first local invocation
+had stopped at144.548s because the private runner inherited umask077, masking
+a deliberately unsafe0755 test directory to0700. The security guard was not
+faulty. The focused22 tests passed under022; only the private CI child's umask
+was corrected. The rejected log/receipt was retained, not overwritten.
+
+The sole claim was consumed at1788133455.352283. Loading/staging checks passed,
+then `systemctl kexec --no-block` returned0 at1788133458.051729. No stage or SSH
+from the target appeared. The first subsequent USB device was the vendor
+recovery, followed by V11. The controller rejected that new non-target boot;
+**no radio probe ran** and the claim must never be retried.
+
+The source USB removal→vendor recovery appearance interval was29.140s. It
+does not identify the cause. The private output concatenates stdout/stderr;
+the `/proc/kcore` warnings also occur in successful v5, so neither their text
+nor apparent ordering establishes a new failure. A zero dispatch result is
+not the native reboot syscall result or proof that the target executed.
+
+V11 recovered as`0e1f7746-de4a-4f38-8dce-39769e379ee3`, systemd running, no
+failed units, pinned SSH and active state/Tailscale, onlysda/sda23 writable,
+Full/Good8.632V/30°C. A fixed read-only PON snapshot, taken with117 nodes RO,
+adds one PS_HOLD warm reset: pointer98→118, count5→6. This does not distinguish
+normal fallback from panic/restart. The reader was unloaded and services
+restored. Temporary management address/8079 firewall access were removed.
+
+The real sequence is`rpmh-v6-fallback-before-probe.json`. Independent review
+finds unobserved gates: exitrd invocation, clean-teardown result, executor
+admission, syscall return, and source/early-target failure. Existing tests
+inject`clean` rather than exercising its calculation. Improve that narrow
+coverage and handoff logging; do not change WCN voltage or call this an S12
+result. Pstore remains inconclusive through the current B-loader path.
+
+Separately, the existing userspace Tailscale validation client is now online.
+Its peer SSH attempt requires an interactive Tailscale sign-in check and did
+not authenticate. No peer-SSH pass is claimed and no check was bypassed.
+
+## Handoff evidence correction, not a root-cause fix
+
+The shutdown script now reports each failed teardown operation, each execution
+gate refusal, executor entry and any returned status. Cleanup ordering and
+normal fallback are unchanged. The syscall-only executor preserves errno1–125
+as exit status;111 also represents other/invalid returns and is not an exact
+errno assertion. A returned0 still triggers fallback, never retry.
+
+Twenty fail-first cases demonstrated the missing records/status preservation.
+The expanded tests now replay all12 tracked teardown failures (zero execution)
+and all-clean teardown (one execution), explicit returns including0, metadata
+refusals, static twins and injected AArch64 syscall results under QEMU. The
+existing active-tier string assertion was updated without changing its guard.
+
+An optional fixed-device serial logger is bound by the existing tools manifest.
+It accepts only one bounded ASCII record, opens a tty with O_NONBLOCK and
+O_NOFOLLOW, never creates a file, and refuses regular/block devices. Missing
+or backpressured observation is advisory and cannot change execution eligibility.
+PTY tests cover delivery, buffer saturation, invalid text, missing devices,
+regular files and symlinks. Only trials carrying the logger add an API-only
+devtmpfs mount so output survives detachment of the old API mounts.
+
+The unchanged V11 kernel already contains ACM support. A temporary NCM+ACM
+configuration was added through the exact UDC, with rollback on setup failure.
+NCM/SSH survived re-enumeration, and the anchored serial endpoint delivered a
+complete CRLF marker in164.8ms. The exact sealed BusyBox1.37 lacks nonblocking
+dd output; no GNU behavior was assumed. The new static ARM64 logger, tested
+inside the actual exitrd with a private mount namespace and its BusyBox-mounted
+devtmpfs, delivered the exact record in214.8ms. That namespace and test binary
+were removed; no phone reboot or storage write occurred in these passive tests.
+
+Source audit then found that `u_serial::gs_close()` ignores O_NONBLOCK and
+can wait15s for its FIFO. The initial PTY test did not exercise that driver
+behavior. A fail-first close-wait fixture timed out; the corrected logger uses
+a periodic250ms signal, explicitly unblocked and without SA_RESTART, to
+interrupt that drain wait. The timer remains armed through close. This bounds
+the interruptible wait, not an uninterruptible kernel fault. No kernel patch
+was required. The earlier unbounded-close test binary was retained, not reused.
+
+The final raw+bounded ARM64 twins match. On the actual source kernel,24 calls
+without an application reader completed in2.1785s; a following exact LF record
+arrived through the sealed exitrd/ACM path in164.5ms. Seven focused tests pass,
+including ignored/blocked SIGALRM, modeled close backpressure and raw/no-echo
+TTY setup. This is normal-driver evidence, not an uninterruptible-fault bound.
+
+An earlier private host probe stalled in `tty.setraw`'s default TCSAFLUSH after
+its24 target calls had already completed in4.2308s. The host stack/wait channel
+and interrupted Python traceback identify that separate setup error. Existing
+repository collectors already use TCSANOW; the corrected probe does too,
+with CLOCAL/CREAD. It did not consume a phone candidate or indicate a kernel
+failure. Keep that non-draining setup for the next source-serial collector.
+
+Both tiny helpers reproduce in their pinned builders. No kernel Image was
+rebuilt. This proves runtime logging components, **not** successful shutdown-
+time collection, kernel handoff, or crash-surviving evidence. No successor has
+been created or consumed after v6; slot A and the installed loader are unchanged.

@@ -19,8 +19,11 @@ void _start(void)
 
 	__asm__ volatile("svc #0" : "+r"(x0)
 			 : "r"(x1), "r"(x2), "r"(x3), "r"(x8) : "memory");
-	/* A successful handoff never returns. Let exitramfs perform normal reboot. */
-	x0 = 111;
+	/* A successful handoff never returns. Preserve common errno values for
+	 * exitramfs evidence; 111 also denotes other/invalid returns. Never retry.
+	 */
+	long result = (long)x0;
+	x0 = result < 0 && result >= -125 ? (unsigned long)-result : 111;
 	x8 = NR_EXIT;
 	__asm__ volatile("svc #0" : : "r"(x0), "r"(x8) : "memory");
 	for (;;)

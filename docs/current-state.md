@@ -101,7 +101,8 @@ Slot A and the stable slot-B loader were not changed.
 
 Next: bring up WCN6855 Wi-Fi client support so networking no longer depends on
 the Steam Deck. Five native RAM Wi-Fi trials reached Arch/SSH and recovered V11
-automatically after radio-startup resets; all are consumed. Rails-v4 proved two
+after radio-startup resets. V6 returned V11 before target enumeration; all six
+are consumed, but v6 is not another radio failure. Rails-v4 proved two
 supply enables returned 0, then lost reporting at S12/vddpmu entry. Paired PMIC
 history gained one PS_HOLD warm reset. No physical rail fault or kernel panic
 is proven. The stock S12 retention vote applied in v5 but did not prevent reset.
@@ -110,12 +111,14 @@ Wi-Fi RAM-handoff result. Wi-Fi is not yet functional.
 Conditional WCN6851/hw1.1 modules now pass exact-source dispatch tests,
 reproducibility and exact-Image QEMU/BTF checks; they are not deployed on the phone.
 The RPMh observer now passes passive V11 command/ack capture and cleanup.
+The v6 handoff's dispatch returned0 without proving target execution; source
+exitrd refusal, syscall return and early crash still need discrimination.
 Its private polling threshold does not explain the earlier lost text traces.
 The installed loader snapshots pstore but does not export it before kexec;
 end-to-end crash capture remains incomplete. See
 `test-results/2026-08-31-native-wifi-rpmh-observer.md`.
-Preserve USB rescue. In parallel, authenticate the separate
-Tailscale test client and prove encrypted peer SSH; no new kernel or phone cycle
+Preserve USB rescue. The separate Tailscale test client is online, but its SSH
+sign-in check and encrypted peer SSH proof remain pending; no new kernel or phone cycle
 is needed solely for that test. Keep the existing
 observer for longer loaded-network tests; prior two-hour evidence is a baseline,
 not a V11 soak result.
