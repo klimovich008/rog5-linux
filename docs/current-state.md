@@ -89,28 +89,21 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-Next: bring up Wi-Fi client support so networking no longer depends on the
-Steam Deck. All ten RAM Wi-Fi trials are consumed. V6 returned V11 before
-the radio probe; v7 proved the source handoff and captured S12's 1352mV request
-at RPMh address0x40100. Submission returned0; no ACK or enable request was
-recorded before a PS_HOLD warm reset. Lost tail is not proof of no completion.
-No physical rail fault or kernel panic is proven. Wi-Fi is not yet functional.
-Authenticated WW33 describes S12 as always-on and shared with UFS VCCQ. Its
-active UFS load selects AUTO, unlike the current RET-only Wi-Fi composition.
-The query/AUTO module and permission-only DTB pass on hardware. The next
-investigation must resolve initial S12 voltage/enable state before another
-radio attempt. No new power-setting guess or shared-rail rewiring is admitted.
-See `test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
-Conditional WCN6851/hw1.1 modules now pass exact-source dispatch tests,
-reproducibility and exact-Image QEMU/BTF checks; they are not deployed on the phone.
-V8 stopped at USB-online0 before the probe; exact fastboot recovery restored V11.
-V9 passed the readiness gate and S12 AUTO-only test: ACK0x40108/data6, mode8→2,
-no voltage/enable writes, stable NCM and read-only storage checks. It returned
-normally to V11. V10 repeated AUTO successfully, but reset on first enable
-before GPIO/PCIe/radio. V11 recovered. Read-only RPMh kernel/module/initramfs
-twins now match; exact-Image QEMU passes. A readback-only RAM successor is
-prepared and unconsumed. It preserves V11 config/HS UFS and uses the baseline
-DT with PCIe disabled and no S12 consumer; it cannot run the radio probe.
+Next: Wi-Fi client support. All trials through readback-v11 are consumed;
+Wi-Fi is not functional yet. V7 captured an S12 1352mV request before reset;
+V9 AUTO-only passed; V10 reset on first enable. No physical rail fault or
+specific panic is proven. Earlier detail remains in
+`test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
+Readback-v11 reached Arch/UFS/NCM/SSH on the new kernel and read six RPMh votes.
+S12's APPS vote was1224mV, enabled1, retention3—not a physical voltage reading.
+Its driver had previously cached1352mV for first enable. Test a state-preserving
+handoff before another voltage increase/radio activation; do not guess shared
+rail wiring. The read-only trial issued no S12 writes and returned normally
+to V11 boot`19c698fe-513d-468b-ada3-485a5902fa5e`. Power, exact write scope,
+normal USB sharing and Tailscale online/healthy were reverified.
+The clean kernel/module/initramfs twins, baseline DT and readback evidence are
+retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
+Conditional WCN6851/hw1.1 modules remain offline, not deployed.
 The installed loader cannot export its pstore snapshot before kexec; crash
 capture remains incomplete. Missing evidence never proves no crash.
 Preserve USB rescue. The separate Tailscale test client is online, but its SSH

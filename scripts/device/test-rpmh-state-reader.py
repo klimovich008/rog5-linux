@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check the fixed-address observer and its strictly unqueued busy retry."""
 from pathlib import Path
+import importlib.util
 import re
 import subprocess
 import tempfile
@@ -10,6 +11,28 @@ REPO=Path(__file__).resolve().parents[2]
 SOURCE=REPO/'tools/rpmh_state_reader/rog5-rpmh-state-readonly.c'
 
 class StateReaderTest(unittest.TestCase):
+    def test_live_vote_decoder_preserves_nonvalue_bits_and_absence(self):
+        spec=importlib.util.spec_from_file_location('rpmh_decode',REPO/'tools/rpmh_state_reader/decode.py')
+        decoder=importlib.util.module_from_spec(spec);spec.loader.exec_module(decoder)
+        prefix=('READBACK_INSMOD_STATUS=0\nformat=rog5-rpmh-readonly-v1\n'
+                'kernel=7.1.4-fixture\nscope=APPS-votes-not-physical-measurements\n')
+        sample=prefix+('s12-voltage result=0 raw=0x4c8\ns12-enable result=0 raw=0x80000001\n'
+          's12-mode result=0 raw=0x3\nreference-l6-voltage result=0 raw=0x800004b0\n'
+          'reference-l6-enable result=0 raw=0x0\nreference-l6-mode result=0 raw=0x80000007\n')
+        fields=decoder.decode(sample)['fields']
+        self.assertEqual(fields['s12-voltage']['millivolt_vote'],1224)
+        self.assertEqual(fields['s12-enable']['enable_vote'],1)
+        self.assertEqual(fields['s12-enable']['uninterpreted_bits'],'0x80000000')
+        self.assertEqual(fields['s12-mode']['mode'],'retention')
+        self.assertEqual(fields['reference-l6-voltage']['millivolt_vote'],1200)
+        missing=decoder.decode(prefix+'s12-voltage result=-110 raw=unavailable\n')['fields']
+        self.assertEqual(missing['s12-voltage']['status'],'error')
+        self.assertNotIn('millivolt_vote',missing['s12-voltage'])
+        self.assertEqual(missing['s12-enable']['status'],'absent')
+        for invalid in (sample+'s12-mode result=0 raw=0x3\n',sample.replace('0x4c8','0x100000000'),
+                        sample.replace('s12-voltage','unknown-voltage')):
+            with self.assertRaises(ValueError):decoder.decode(invalid)
+
     def test_busy_only_retry(self):
         text=SOURCE.read_text()
         start=text.index('static int read_one(');end=text.index('\n}\n',start)+3

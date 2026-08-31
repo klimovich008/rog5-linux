@@ -107,7 +107,8 @@ GitHub run33365885277 passed exact-head, merge, QEMU and publication checks.
 The next publication changes only one generated exact claim and these current
 documents; no claim-consumer behavior or historical record is changed.
 The admission test refused the unknown profile before insertion, then passed;
-all16 existing claim-consumer tests pass. Physical execution remains unconsumed.
+all16 existing claim-consumer tests pass. This was the unconsumed build
+checkpoint; the subsequent live trial is recorded below and is consumed.
 
 The signed readback bundle uses the unchanged baseline DTB (PCIe disabled,
 no S12 node). Voltage-voting and radio-probe tools were excluded from its
@@ -118,8 +119,8 @@ Runtime manifest:
 The full completed A output/cache is retained in a909700813-byte compressed
 archive, SHA256`fc5f1856ee6dc24ca0515215f9aa67feb7cb02520e509927e1165fe100ba6c82`;
 every archived entry was compared with the output and the durable copy was
-hash-verified. No older build data was deleted. RAM scratch remains mounted
-until all needed twin/bundle evidence has been archived. Disk headroom is low;
+hash-verified. No older build data was deleted. RAM scratch was released after
+the twin/bundle evidence was archived and verified. Disk headroom is low;
 do not duplicate the full B cache or start another disk-based clean build.
 
 An initial packaging call failed before signing because `gh` inferred its
@@ -127,3 +128,60 @@ repository from the caller's directory (R6/R7). Explicit repository selection
 was verified from `/tmp`, then packaging passed in0.311s. No phone cycle was
 spent on this host-only defect. Remaining R2/R3 risks are exact deployed
 composition and physical capability, not a reason to alter voltage policy.
+
+## Live readback-v11: passed, consumed
+
+Executed once from publication370f7493 after all exact-head/merge/QEMU checks
+passed in GitHub run33369696230. Target boot
+`deedf8ee-474e-4010-8daa-97097a3ad425` reached Arch, UFS, NCM and strict SSH.
+Claim→SSH42.641s; claim→readback47.332s. Six reads returned successfully;
+S12's three packets used read message ID0x108 with matching responses and no
+S12 write packet. All117 nodes were read-only before kexec and before reads.
+
+| APPS field | Raw response | Decoded vote |
+| --- | --- | --- |
+| S12 voltage | `0x4c8` | 1224mV |
+| S12 enable | `0x80000001` | 1 |
+| S12 mode | `0x3` | retention |
+| L6 reference voltage | `0x800004b0` | 1200mV |
+| L6 reference enable | `0x0` | 0 |
+| L6 reference mode | `0x80000007` | code7 |
+
+Voltage/enable/mode masks follow the
+[upstream regulator readback change](https://patchew.org/linux/20260801-b4-read-rpmh-v5-v6-0-9fcb54928523@oss.qualcomm.com/20260801-b4-read-rpmh-v5-v6-3-9fcb54928523@oss.qualcomm.com/).
+Mode3 is PMIC5 SMPS retention in the exact source. Other bits remain explicitly
+uninterpreted. These are control votes, not aggregate physical rail measurements.
+The tested decoder retains upper bits and reports errors/missing fields without
+inventing zero values. Sanitized live values are a regression case.
+
+Source/target-before-read PON snapshots were identical. After the requested
+normal reboot, the FIFO recorded PS_HOLD/HARD_RESET and V11 returned. This is
+not a claim that missing pstore excludes a crash. The boot-time SID5 SPMI warning
+and probe EIO also exist in V10; they are not newly attributed to the reader.
+
+V11 boot`19c698fe-513d-468b-ada3-485a5902fa5e` was verified after fallback;
+reboot→state/Tailscale service restoration61.007s. Normal shared USB networking
+was then explicitly restored. Strict SSH via10.77.0.2, Tailscale Running/online
+with empty Health, Full/Good battery8.618V/30.0C, NCM-only gadget, and exactly
+sda+sda23 writable passed. No GPT, boot-slot, selector or persistent deployment
+change occurred. Temporary observers, port8079 and management alias were removed.
+
+Pre-boot host issues were fixed without consuming a phone cycle: over-budget
+current docs were compacted (R9/R10), and the old-only stage parser was adapted
+to the two exact releases (R1/R7). A simulated target setup failure exposed
+an exception path that skipped fallback observation; its fail-first test passes.
+After fallback, the private runner omitted the existing shared-profile restore
+(R6): the host retained only its management address. Restoring the existing
+profile on the identity-verified interface fixed this without another boot.
+Do not mistake this host-network cleanup omission for a Wi-Fi/kernel failure.
+Sanitized before/after state is retained in
+`tests/fixtures/native-wifi/readback-host-recovery.json`; the next runner must
+replay it and include the existing post-fallback profile-restoration step.
+
+The next power experiment must preserve the captured S12 vote during first
+enable before considering a higher-voltage/radio request. The existing driver
+caches DT-min1352mV while enabled-state is unknown and submits it on first
+enable; the live inherited vote was1224mV/enabled. This establishes a software
+state mismatch, not the electrical cause of the previous reset. Do not deploy
+radio at an unqualified voltage or import global regulator policy blindly.
+The now-qualified readback kernel can be reused for module/DT-only experiments.
