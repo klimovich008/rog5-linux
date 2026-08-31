@@ -89,7 +89,7 @@ the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks
 The installed conntrack-mark config and standalone shutdown helper are proven.
 Slot A and the stable slot-B loader were not changed.
 
-Next: Wi-Fi client support. All trials through readback-v11 are consumed;
+Next: Wi-Fi client support. All trials through re-vote-v12 are consumed;
 Wi-Fi is not functional yet. V7 captured an S12 1352mV request before reset;
 V9 AUTO-only passed; V10 reset on first enable. No physical rail fault or
 specific panic is proven. Earlier detail remains in
@@ -99,8 +99,12 @@ S12's APPS vote was1224mV, enabled1, retention3—not a physical voltage reading
 Its driver had previously cached1352mV for first enable. Test a state-preserving
 handoff before another voltage increase/radio activation; do not guess shared
 rail wiring. The read-only trial issued no S12 writes and returned normally
-to V11 boot`19c698fe-513d-468b-ada3-485a5902fa5e`. Power, exact write scope,
-normal USB sharing and Tailscale online/healthy were reverified.
+to V11. The subsequent1224mV re-vote passed explicit voltage/enable write
+completions, post-readback, direct UFS reads and NCM. Current V11 boot is
+`04128e6c-c09b-4ddc-83eb-cdaad89e87a5`; power, exact write scope, shared USB
+and Tailscale online/healthy passed. No radio was activated; the OEM1350mV
+request versus mainline1352mV rounding is the next boundary to resolve.
+See `test-results/2026-08-31-s12-revote.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
 Conditional WCN6851/hw1.1 modules remain offline, not deployed.

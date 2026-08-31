@@ -3,6 +3,7 @@
 from pathlib import Path
 import copy
 import importlib.util
+import json
 import re
 import subprocess
 import tempfile
@@ -22,6 +23,14 @@ def function(text, name):
     return text[start:end]
 
 class S12VoteTest(unittest.TestCase):
+    def test_sanitized_live_revote_sequences(self):
+        spec=importlib.util.spec_from_file_location('live_s12_trace',REPO/'scripts/host/verify-s12-vote-trace.py')
+        mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+        fixture=json.loads((REPO/'tests/fixtures/native-wifi/s12-revote-pass.json').read_text())
+        self.assertFalse(fixture['radio_activated'])
+        for action,lines in fixture['phases'].items():
+            self.assertEqual(mod.verify('\n'.join(lines)+'\n',action)['result'],'PASS')
+
     def test_read_responses_cannot_prove_write_completion(self):
         spec=importlib.util.spec_from_file_location('s12_trace',REPO/'scripts/host/verify-s12-vote-trace.py')
         trace=importlib.util.module_from_spec(spec);spec.loader.exec_module(trace)
