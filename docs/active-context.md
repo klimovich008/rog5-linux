@@ -76,6 +76,10 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
    persistent selector update. PC input stayed capped500mA and sampled battery
    current averaged−22mA; actual charger-only/longer power proof remains.
 
+V22 is admitted and unconsumed for the coordinated charger-runtime step. Its
+operator-ready marker is absent, so it cannot run unattended. See
+`test-results/2026-08-31-wifi-charger-runtime.md`.
+
 Opus retry confirmed expired OAuth; no review produced. Retain V11/V10, the stable loader, module kit and compressed V11 image: no GPT or experimental boot-partition flash.
 Do not repeat the completed p24 transfer or successful builds.
 
