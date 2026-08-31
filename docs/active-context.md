@@ -42,12 +42,13 @@ Wi-Fi. Full local/exact-head/merge/QEMU CI passed for the implementation.
 1. Reuse source1eea8970e87f and its qualified archived kit; do not rebuild it.
    Clean twins and cached Image match; base19/Wi-Fi37 module packages and
    initramfs twins match. V14 now qualifies the staged DT/power path physically.
-   The V17 radio/WPA/DHCP/SSH path is physically qualified. Integrate the same
-   verified artifacts into automatic boot; do not rebuild kernel/modules.
-   Validate the sealed automatic mode that removes only the USB-carrier
-   dependency from read-only native startup. P2 still needs the configured
-   address/SSH policy. The boot rollback timer starts before P2/early SSH.
-   State mounting follows P2 at `/persist`; reuse it for private Wi-Fi config.
+   V18 automatic startup is physically qualified. Reuse its artifacts; do not
+   rebuild kernel/modules. The bounded host USB-data-isolation helper is tested;
+   see `test-results/2026-08-31-wifi-usb-isolation.md`. Prove the independent
+   observation path before consuming the next trial. Distinguish USB data
+   isolation from actual charger-only cold boot. P2 still needs the configured
+   rescue address; boot rollback starts before P2/early SSH. State and private
+   Wi-Fi configuration already persist at `/persist` through the p23 image.
    Preserve diagnostic/write-path observation and the independent fallback.
    Do not infer explicitly valid QMI fields from default-capable values.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
