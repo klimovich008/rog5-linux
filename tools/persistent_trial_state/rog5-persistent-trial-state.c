@@ -37,6 +37,15 @@ struct trial_identity {
 	const char *fallback_hash;
 };
 
+struct parsed_trial {
+	char id[HASH_LENGTH + 1];
+	char primary[BUNDLE_CAPACITY];
+	char primary_hash[HASH_LENGTH + 1];
+	char fallback[BUNDLE_CAPACITY];
+	char fallback_hash[HASH_LENGTH + 1];
+	char state[8];
+};
+
 static __attribute__((noreturn, format(printf, 1, 2)))
 void fail(const char *format, ...)
 {
@@ -114,6 +123,64 @@ static size_t render_record(char *output, size_t capacity,
 	if (length < 1 || (size_t)length >= capacity)
 		fail("record is too large");
 	return (size_t)length;
+}
+
+static bool take_field(char **cursor, const char *name, char *output,
+		       size_t capacity)
+{
+	char *newline = strchr(*cursor, '\n');
+	size_t name_length = strlen(name);
+	size_t value_length;
+	size_t index;
+
+	if (!newline || strncmp(*cursor, name, name_length) != 0 ||
+	    (*cursor)[name_length] != '=')
+		return false;
+	value_length = (size_t)(newline - *cursor) - name_length - 1;
+	if (value_length < 1 || value_length >= capacity)
+		return false;
+	for (index = 0; index < value_length; index++) {
+		unsigned char byte =
+			(unsigned char)(*cursor)[name_length + 1 + index];
+
+		if (byte < 0x21 || byte > 0x7e)
+			return false;
+	}
+	memcpy(output, *cursor + name_length + 1, value_length);
+	output[value_length] = '\0';
+	*cursor = newline + 1;
+	return true;
+}
+
+static void parse_record(char *record, struct parsed_trial *parsed)
+{
+	static const char format[] = "format=rog5-persistent-wifi-trial-v1\n";
+	struct trial_identity identity;
+	char *cursor = record;
+
+	if (strncmp(cursor, format, sizeof(format) - 1) != 0)
+		fail("invalid trial record format");
+	cursor += sizeof(format) - 1;
+	if (!take_field(&cursor, "trial_id", parsed->id, sizeof(parsed->id)) ||
+	    !take_field(&cursor, "primary_bundle", parsed->primary,
+			 sizeof(parsed->primary)) ||
+	    !take_field(&cursor, "primary_manifest_sha256", parsed->primary_hash,
+			 sizeof(parsed->primary_hash)) ||
+	    !take_field(&cursor, "fallback_bundle", parsed->fallback,
+			 sizeof(parsed->fallback)) ||
+	    !take_field(&cursor, "fallback_manifest_sha256", parsed->fallback_hash,
+			 sizeof(parsed->fallback_hash)) ||
+	    !take_field(&cursor, "state", parsed->state, sizeof(parsed->state)) ||
+	    *cursor != '\0' ||
+	    (strcmp(parsed->state, "pending") != 0 &&
+	     strcmp(parsed->state, "healthy") != 0))
+		fail("invalid trial record fields");
+	identity.id = parsed->id;
+	identity.primary = parsed->primary;
+	identity.primary_hash = parsed->primary_hash;
+	identity.fallback = parsed->fallback;
+	identity.fallback_hash = parsed->fallback_hash;
+	validate_identity(&identity);
 }
 
 static void validate_directory(int descriptor, mode_t mode, const char *name)
@@ -298,25 +365,34 @@ static void decide(const struct trial_identity *identity)
 		fail("cannot close boot state directory: %s", strerror(errno));
 }
 
-static void mark_healthy(const struct trial_identity *identity)
+static void mark_healthy(const char *expected_id, const char *expected_primary)
 {
 	char actual[RECORD_CAPACITY];
-	char pending[RECORD_CAPACITY];
 	char healthy[RECORD_CAPACITY];
+	struct parsed_trial parsed;
+	struct trial_identity identity;
 	struct stat metadata;
 	int directory = open_state_directory(ROG5_HEALTHY_ROOT, false);
 	int descriptor;
 
-	render_record(pending, sizeof(pending), identity, "pending");
-	render_record(healthy, sizeof(healthy), identity, "healthy");
 	descriptor = read_record(directory, actual, sizeof(actual), &metadata);
 	if (descriptor < 0)
 		fail("pending trial record is absent");
-	if (strcmp(actual, healthy) == 0) {
+	parse_record(actual, &parsed);
+	if (strcmp(parsed.id, expected_id) != 0 ||
+	    strcmp(parsed.primary, expected_primary) != 0)
+		fail("running trial identity does not match pending state");
+	identity.id = parsed.id;
+	identity.primary = parsed.primary;
+	identity.primary_hash = parsed.primary_hash;
+	identity.fallback = parsed.fallback;
+	identity.fallback_hash = parsed.fallback_hash;
+	render_record(healthy, sizeof(healthy), &identity, "healthy");
+	if (strcmp(parsed.state, "healthy") == 0) {
 		print_line("already-healthy");
 		if (close(descriptor) < 0)
 			fail("cannot close healthy trial record: %s", strerror(errno));
-	} else if (strcmp(actual, pending) == 0) {
+	} else if (strcmp(parsed.state, "pending") == 0) {
 		replace_healthy(directory, descriptor, &metadata, healthy,
 				strlen(healthy));
 		descriptor = read_record(directory, actual, sizeof(actual),
@@ -338,20 +414,21 @@ int main(int argc, char **argv)
 {
 	struct trial_identity identity;
 
-	if (argc != 7)
-		fail("usage: decide|healthy TRIAL_ID PRIMARY PRIMARY_HASH "
-		     "FALLBACK FALLBACK_HASH");
-	identity.id = argv[2];
-	identity.primary = argv[3];
-	identity.primary_hash = argv[4];
-	identity.fallback = argv[5];
-	identity.fallback_hash = argv[6];
-	validate_identity(&identity);
-	if (strcmp(argv[1], "decide") == 0)
+	if (argc == 7 && strcmp(argv[1], "decide") == 0) {
+		identity.id = argv[2];
+		identity.primary = argv[3];
+		identity.primary_hash = argv[4];
+		identity.fallback = argv[5];
+		identity.fallback_hash = argv[6];
+		validate_identity(&identity);
 		decide(&identity);
-	else if (strcmp(argv[1], "healthy") == 0)
-		mark_healthy(&identity);
-	else
-		fail("unknown action");
+	} else if (argc == 4 && strcmp(argv[1], "healthy") == 0) {
+		if (!lower_hex(argv[2]) || !bundle_name(argv[3]))
+			fail("invalid running trial identity");
+		mark_healthy(argv[2], argv[3]);
+	} else {
+		fail("usage: decide TRIAL_ID PRIMARY PRIMARY_HASH FALLBACK "
+		     "FALLBACK_HASH | healthy TRIAL_ID PRIMARY");
+	}
 	return 0;
 }

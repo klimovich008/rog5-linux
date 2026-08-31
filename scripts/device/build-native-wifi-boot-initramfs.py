@@ -18,6 +18,7 @@ import time
 
 REPO = Path(__file__).resolve().parents[2]
 EPOCH = 1681862400
+TRIAL_HELPER_SHA256 = 'ff6ede42d089a6a651db320a007947091029aca504500227e0c51bed6792f3ca'
 
 
 def sha(data):
@@ -80,6 +81,24 @@ def replace(members, name, data):
     fields = fields.copy()
     fields[6] = len(data)
     members[name] = fields, data
+
+
+def parse_trial_descriptor(data):
+    text = data.decode('ascii')
+    assert '\r' not in text and text.endswith('\n')
+    lines = text.splitlines()
+    assert len(lines) == 4 and lines[0] == 'format=rog5-persistent-wifi-health-v1'
+    names = ('trial_id', 'primary_bundle', 'mode')
+    values = {}
+    for line, name in zip(lines[1:], names, strict=True):
+        prefix = name + '='
+        assert line.startswith(prefix)
+        values[name] = line[len(prefix):]
+    assert re.fullmatch(r'[0-9a-f]{64}', values['trial_id'])
+    assert re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,63}', values['primary_bundle'])
+    assert '..' not in values['primary_bundle']
+    assert values['mode'] == 'try-once'
+    return values
 
 
 def compose(base, package, record):

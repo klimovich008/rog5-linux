@@ -165,7 +165,11 @@ class SuccessorCandidatePreflightTest(unittest.TestCase):
 
     def verify(self) -> tuple[str, str, str, str]:
         def reject_device_open(path, *arguments, **keywords):
-            if os.fspath(path).startswith("/dev/"):
+            candidate = os.path.abspath(os.fspath(path))
+            in_memory_scratch = candidate == "/dev/shm" or candidate.startswith(
+                "/dev/shm/"
+            )
+            if candidate.startswith("/dev/") and not in_memory_scratch:
                 raise AssertionError("device path reached")
             return ORIGINAL_OS_OPEN(path, *arguments, **keywords)
 

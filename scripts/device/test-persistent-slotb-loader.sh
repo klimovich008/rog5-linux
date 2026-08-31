@@ -10,6 +10,7 @@ target_builder=$repo/scripts/device/build-persistent-root-standalone-initramfs.s
 state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
+trial_helper=$repo/artifacts/persistent-trial-state-v1/rog5-persistent-trial-state
 base=$repo/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
 target_base=${1:-$repo/artifacts/persistent-native-root-v4/initramfs.cpio.gz}
 high_speed_base=$repo/artifacts/local-image-direct-v49/initramfs.cpio.gz
@@ -20,6 +21,7 @@ for path in "$init" "$shutdown" "$target_init" "$loader_builder" "$target_builde
 	sh -n "$path"
 done
 [ -x "$ufs_module_verifier" ]
+[ -x "$trial_helper" ]
 if grep -qx 'set -f' "$init"; then
 	echo 'FAIL slot-B loader disables required fixed-path glob expansion' >&2
 	exit 1
@@ -27,12 +29,21 @@ fi
 
 for contract in \
 	'24:arch_root_a' \
+	'23:userdata' \
+	'18821440' \
+	'408997568' \
+	'209406754816' \
 	'427819008' \
 	'67108824' \
 	'253403070464' \
 	'34359717888' \
 	'mount -t ext4 -o ro,noload' \
 	'format=rog5-slotb-selector-v1' \
+	'format=rog5-slotb-selector-v2' \
+	'mode=try-once' \
+	'/usr/libexec/rog5-persistent-trial-state' \
+	'verify_trial_write_window' \
+	'relock_all_storage' \
 	'/usr/libexec/rog5-bundle-verify' \
 	'/usr/sbin/kexec -c -l' \
 	'disable_haven_watchdog' \
@@ -54,6 +65,7 @@ for contract in \
 	'[ "$(cat "$gadget/UDC")" = "$expected_udc" ]' \
 	'set_stage S20 PASS storage_resolved' \
 	'set_stage S40 PASS selector_verified' \
+	'set_stage S65 PASS trial_selected' \
 	'set_stage S60 PASS bundle_verified' \
 	'set_stage S70 PASS kexec_loaded' \
 	'set_stage S80 PASS haven_disabled' \
@@ -106,12 +118,79 @@ mkdir "$udc_class/a600000.usb"
 ! second=$(single_expected_udc)
 [ "$first" = a600000.dwc3 ]
 
+awk '
+	/^select_trial_bundle\(\) \{/ { copy=1 }
+	copy { print }
+	copy && /^}/ { exit }
+' "$init" >"$work/select-trial.sh"
+cat >"$work/trial-helper" <<'EOF'
+#!/bin/sh
+[ "$#" -eq 6 ]
+[ "$1" = decide ]
+case ${MOCK_DECISION:?} in
+primary) printf '%s\n' "$3" ;;
+fallback) printf '%s\n' "$5" ;;
+fail) exit 1 ;;
+*) exit 2 ;;
+esac
+EOF
+chmod 0700 "$work/trial-helper"
+run_trial_case() (
+	case_name=$1
+	# shellcheck disable=SC1090
+	. "$work/select-trial.sh"
+	disk=/dev/sda
+	userdata=/dev/sda23
+	userdata_mount=$work/userdata
+	trial_helper=$work/trial-helper
+	trial_id=1111111111111111111111111111111111111111111111111111111111111111
+	primary_bundle=persistent-native-root-wifi
+	primary_manifest_hash=2222222222222222222222222222222222222222222222222222222222222222
+	fallback_bundle=persistent-native-root-v11
+	fallback_manifest_hash=a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2
+	relock_count=0
+	relock_all_storage() {
+		relock_count=$((relock_count + 1))
+		[ "$case_name:$relock_count" != cleanup-fail:2 ]
+	}
+	verify_trial_write_window() { :; }
+	blockdev() { :; }
+	mkdir() { :; }
+	mount() { [ "$case_name" != mount-fail ]; }
+	blkid() {
+		printf '%s\n' '/dev/sda23: LABEL="rog5-linux" UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5" TYPE="ext4"'
+	}
+	sync() { :; }
+	umount() { :; }
+	rmdir() { :; }
+	case $case_name in
+		primary) MOCK_DECISION=primary; export MOCK_DECISION ;;
+		helper-fail) MOCK_DECISION=fail; export MOCK_DECISION ;;
+		mount-fail|cleanup-fail) MOCK_DECISION=primary; export MOCK_DECISION ;;
+	esac
+	if select_trial_bundle; then
+		[ "$case_name" != cleanup-fail ]
+		case $case_name in
+			primary) [ "$bundle" = "$primary_bundle" ] ;;
+			*) [ "$bundle" = "$fallback_bundle" ] ;;
+		esac
+	else
+		[ "$case_name" = cleanup-fail ]
+	fi
+)
+for trial_case in primary helper-fail mount-fail cleanup-fail; do
+	run_trial_case "$trial_case"
+done
+
 if [ -f "$base" ] && [ -f "$target_base" ] && [ -f "$high_speed_base" ]; then
-	awk '
-		/^read_selector\(\) \{/ { copy=1 }
+	: >"$work/read-selector.sh"
+	for function in valid_bundle_name valid_hash read_selector; do
+		awk -v fn="$function" '
+		$0 == fn "() {" { copy=1 }
 		copy { print }
 		copy && /^}/ { exit }
-	' "$init" >"$work/read-selector.sh"
+		' "$init" >>"$work/read-selector.sh"
+	done
 	# shellcheck disable=SC1090
 	. "$work/read-selector.sh"
 	selector=$work/selector
@@ -132,10 +211,41 @@ if [ -f "$base" ] && [ -f "$target_base" ] && [ -f "$high_speed_base" ]; then
 			>"$selector"
 		chmod 0600 "$selector"
 	}
+	write_trial_selector() {
+		printf '%s\n' \
+			'format=rog5-slotb-selector-v2' \
+			'trial_id=1111111111111111111111111111111111111111111111111111111111111111' \
+			'primary_bundle=persistent-native-root-wifi' \
+			'primary_manifest_sha256=2222222222222222222222222222222222222222222222222222222222222222' \
+			'fallback_bundle=persistent-native-root-v11' \
+			'fallback_manifest_sha256=a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2' \
+			'mode=try-once' >"$selector"
+		chmod 0600 "$selector"
+	}
 	write_selector
 	read_selector
 	[ "$bundle" = persistent-native-root-release-v1 ]
 	[ "$manifest_hash" = 2b259a6e5912549dc2210d12c5f3b4da5422817720addc85e660bf9d3edf75ec ]
+	write_trial_selector
+	read_selector
+	[ "$selector_format" = format=rog5-slotb-selector-v2 ]
+	[ "$trial_id" = 1111111111111111111111111111111111111111111111111111111111111111 ]
+	[ "$bundle" = persistent-native-root-wifi ]
+	[ "$fallback_bundle" = persistent-native-root-v11 ]
+	[ "$manifest_hash" = 2222222222222222222222222222222222222222222222222222222222222222 ]
+	for mutation in duplicate-trial reordered same-bundle bad-mode; do
+		write_trial_selector
+		case $mutation in
+			duplicate-trial) printf '%s\n' 'trial_id=3333333333333333333333333333333333333333333333333333333333333333' >>"$selector" ;;
+			reordered) sed -i '3h;4{G;d};3d' "$selector" ;;
+			same-bundle) sed -i 's/^fallback_bundle=.*/fallback_bundle=persistent-native-root-wifi/' "$selector" ;;
+			bad-mode) sed -i 's/^mode=.*/mode=always/' "$selector" ;;
+		esac
+		if read_selector; then
+			echo "FAIL hostile trial selector accepted: $mutation" >&2
+			exit 1
+		fi
+	done
 	for mutation in traversal zero duplicate writable; do
 		write_selector
 		case $mutation in
@@ -175,6 +285,7 @@ if [ -f "$base" ] && [ -f "$target_base" ] && [ -f "$high_speed_base" ]; then
 		"$work/expected-target-init"
 	! grep -Fq '@EXPECTED_' "$work/expected-target-init"
 	cmp "$work/loader/init" "$init"
+	cmp "$work/loader/usr/libexec/rog5-persistent-trial-state" "$trial_helper"
 	cmp "$work/target/init" "$work/expected-target-init"
 	! grep -Fq '@EXPECTED_' "$work/target/init"
 	cmp "$work/target/shutdown" "$shutdown"

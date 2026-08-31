@@ -1,6 +1,6 @@
 # Current ROG Phone 5 Linux state
 
-Updated: 2026-08-31
+Updated: 2026-09-01
 
 This file contains current facts only. Historical generations and incident
 detail are retained in Git and dated `test-results/` records. The complete
@@ -118,6 +118,10 @@ DHCP. Managed Tailscale SSH still needs its account check; no gate was bypassed.
 Keep the existing
 observer for longer loaded-network tests; prior two-hour evidence is a baseline,
 not a V11 soak result.
+
+Rollback-safe selector-v2 and healthy-commit support now pass offline full CI;
+they are not deployed. V11 remains selected. See
+`test-results/2026-09-01-persistent-wifi-rollback-offline.md`.
 
 The preexisting empty runtime package keyring causes a background refresh parser
 failure. Initial zero-failed-unit checks do not cover that later failure. Fix

@@ -18,6 +18,82 @@ def function(source, name):
 
 
 class AutomaticWifi(unittest.TestCase):
+    def test_persistent_trial_selector_and_healthy_commit_are_exact(self):
+        spec = importlib.util.spec_from_file_location(
+            'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        valid = (
+            'format=rog5-persistent-wifi-health-v1\n'
+            'trial_id=' + '1'*64 + '\n'
+            'primary_bundle=persistent-native-root-wifi\n'
+            'mode=try-once\n').encode()
+        parsed = module.parse_trial_descriptor(valid)
+        self.assertEqual(parsed['primary_bundle'], 'persistent-native-root-wifi')
+        for bad in (
+            valid.replace(b'mode=try-once', b'mode=always'),
+            valid.replace(b'trial_id=' + b'1'*64, b'trial_id=' + b'A'*64),
+            valid.replace(b'primary_bundle=', b'fallback_bundle=', 1),
+        ):
+            with self.assertRaises(AssertionError):
+                module.parse_trial_descriptor(bad)
+
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        self.assertIn('if [ -e "$root/trial-descriptor" ]', runtime)
+        self.assertIn('multi-user.target.wants/rog5-wifi-healthy.service', runtime)
+        unit = (R/'initramfs/native-wifi-persistent/units/rog5-wifi-healthy.service').read_text()
+        for dependency in ('rog5-wifi-dhcp.service', 'rog5-persistent-state.service',
+                           'rog5-early-sshd.service', 'rog5-tailscaled.service'):
+            self.assertIn(dependency, unit)
+        self.assertIn('TimeoutStartSec=180s', unit)
+        self.assertIn('Restart=no', unit)
+        healthy = (R/'initramfs/native-wifi-persistent/healthy').read_text()
+        commit = healthy.index('"$helper" healthy')
+        stop = healthy.index('systemctl stop rog5-wifi-boot-rollback.timer')
+        record = healthy.index('format=rog5-native-wifi-healthy-v1')
+        self.assertLess(commit, stop)
+        self.assertLess(stop, record)
+        for guard in ('primary bundle is not running', 'healthy startup deadline',
+                      '117:2', '/sys/class/block/sda/sda24/ro',
+                      'qcom-battmgr-usb/online'):
+            self.assertIn(guard, healthy)
+
+    def test_persistent_composer_changes_only_trial_members(self):
+        spec = importlib.util.spec_from_file_location(
+            'persistent_wifi', R/'scripts/device/build-native-wifi-persistent-trial-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        archive = module.ARCHIVE
+        members = {}
+        archive.add(members, 'init', b'qualified-init', 0o100755)
+        archive.add(members, 'rog5-native-wifi/automatic',
+                    b'rog5-native-wifi-boot-v1\n', 0o100444)
+        archive.add(members, 'rog5-native-wifi/runtime', b'old-runtime', 0o100755)
+        archive.add(members, 'rog5-native-wifi/boot-files.sha256',
+                    b'old-checks\n', 0o100444)
+        base = gzip.compress(archive.encode(members), mtime=0)
+        descriptor = (
+            'format=rog5-persistent-wifi-health-v1\n'
+            'trial_id=' + '1'*64 + '\n'
+            'primary_bundle=persistent-native-root-wifi\n'
+            'mode=try-once\n').encode()
+        helper = (R/'artifacts/persistent-trial-state-v1/rog5-persistent-trial-state').read_bytes()
+        packed, result = module.compose(base, module.sha(base), descriptor, helper)
+        output = archive.entries(gzip.decompress(packed))
+        self.assertEqual(output['init'], members['init'])
+        self.assertEqual(output['rog5-native-wifi/trial-descriptor'][1], descriptor)
+        self.assertEqual(output['usr/libexec/rog5-persistent-trial-state'][1], helper)
+        self.assertIn('rog5-native-wifi/healthy', output)
+        self.assertIn('rog5-native-wifi/units/rog5-wifi-healthy.service', output)
+        self.assertEqual(set(output)-set(members), {
+            'usr', 'usr/libexec', 'usr/libexec/rog5-persistent-trial-state',
+            'rog5-native-wifi/trial-descriptor', 'rog5-native-wifi/healthy',
+            'rog5-native-wifi/units',
+            'rog5-native-wifi/units/rog5-wifi-healthy.service',
+        })
+        self.assertEqual(result['added_members'], 7)
+        checks = output['rog5-native-wifi/boot-files.sha256'][1].decode()
+        self.assertIn('  healthy\n', checks)
+        self.assertIn('  trial-descriptor\n', checks)
+
     def test_watchdog_can_fire_before_basic_or_failed_p2(self):
         fixture = json.loads((R/'tests/fixtures/native-wifi/timer-default-dependencies.json').read_text())
         self.assertIn('basic.target', fixture['original_service_after'])

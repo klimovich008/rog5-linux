@@ -8,7 +8,9 @@ source_root=/mnt/arch/boot/rog5-linux/bundles
 bundle_root=/run/rog5-bundles
 plan=/run/rog5-slotb.plan
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
+trial_helper=/usr/libexec/rog5-persistent-trial-state
 target_mount=/mnt/arch
+userdata_mount=/mnt/userdata
 watchdog_seconds=180
 status_file=/run/rog5-slotb-loader.status
 reporter_pid=
@@ -17,6 +19,13 @@ udc_class=/sys/class/udc
 usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
 disk=
 arch_root=
+userdata=
+selector_format=
+trial_id=
+primary_bundle=
+primary_manifest_hash=
+fallback_bundle=
+fallback_manifest_hash=
 
 log() { echo "rog5-slotb-loader: $*" >/dev/kmsg 2>/dev/null || true; }
 
@@ -147,38 +156,194 @@ resolve_storage() {
 		[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] || continue
 		name=$(basename "$sys_disk")
 		candidate=
+		candidate_userdata=
 		for part in "$sys_disk"/"$name"*; do
 			[ -e "$part/partition" ] || continue
 			partname=$(sed -n 's/^PARTNAME=//p' "$part/uevent" | sed -n '1p')
+			if [ "$(cat "$part/partition"):$partname" = 23:userdata ] &&
+				[ "$(cat "$part/start")" = 18821440 ] &&
+				[ "$(cat "$part/size")" = 408997568 ]; then
+				candidate_userdata=/dev/$(basename "$part")
+				continue
+			fi
 			[ "$(cat "$part/partition"):$partname" = 24:arch_root_a ] || continue
 			[ "$(cat "$part/start")" = 427819008 ] || continue
 			[ "$(cat "$part/size")" = 67108824 ] || continue
 			candidate=/dev/$(basename "$part")
 		done
-		[ -n "$candidate" ] || continue
+		[ -n "$candidate" ] && [ -n "$candidate_userdata" ] || continue
 		disk=/dev/$name
 		arch_root=$candidate
+		userdata=$candidate_userdata
 		matches=$((matches + 1))
 	done
-	[ "$matches" -eq 1 ] && [ -b "$disk" ] && [ -b "$arch_root" ] || return 1
+	[ "$matches" -eq 1 ] && [ -b "$disk" ] && [ -b "$arch_root" ] &&
+		[ -b "$userdata" ] || return 1
 	[ "$(blockdev --getsize64 "$disk")" = 253403070464 ] &&
-		[ "$(blockdev --getsize64 "$arch_root")" = 34359717888 ]
+		[ "$(blockdev --getsize64 "$arch_root")" = 34359717888 ] &&
+		[ "$(blockdev --getsize64 "$userdata")" = 209406754816 ]
+}
+
+valid_bundle_name() {
+	printf '%s\n' "$1" | grep -Eq '^[a-z0-9][a-z0-9._-]{0,63}$' || return 1
+	case $1 in *..*) return 1 ;; esac
+}
+
+valid_hash() {
+	printf '%s\n' "$1" | grep -Eq '^[0-9a-f]{64}$' || return 1
+	[ "$1" != 0000000000000000000000000000000000000000000000000000000000000000 ]
 }
 
 read_selector() {
 	[ -f "$selector" ] && [ ! -L "$selector" ] || return 1
 	[ "$(stat -c '%u:%g:%a:%h' "$selector")" = 0:0:600:1 ] || return 1
-	[ "$(wc -l <"$selector")" -eq 3 ] || return 1
 	! grep -q "$(printf '\r')" "$selector" || return 1
-	[ "$(sed -n '1p' "$selector")" = format=rog5-slotb-selector-v1 ] || return 1
-	bundle=$(sed -n 's/^bundle=//p' "$selector")
-	manifest_hash=$(sed -n 's/^manifest_sha256=//p' "$selector")
-	[ "$(grep -c '^bundle=' "$selector")" -eq 1 ] || return 1
-	[ "$(grep -c '^manifest_sha256=' "$selector")" -eq 1 ] || return 1
-	printf '%s\n' "$bundle" | grep -Eq '^[a-z0-9][a-z0-9._-]{0,63}$' || return 1
-	case $bundle in *..*) return 1 ;; esac
-	printf '%s\n' "$manifest_hash" | grep -Eq '^[0-9a-f]{64}$' || return 1
-	[ "$manifest_hash" != 0000000000000000000000000000000000000000000000000000000000000000 ]
+	selector_format=$(sed -n '1p' "$selector")
+	case $selector_format in
+	format=rog5-slotb-selector-v1)
+		[ "$(wc -l <"$selector")" -eq 3 ] || return 1
+		bundle=$(sed -n 's/^bundle=//p' "$selector")
+		manifest_hash=$(sed -n 's/^manifest_sha256=//p' "$selector")
+		[ "$(sed -n '2p' "$selector")" = "bundle=$bundle" ] &&
+			[ "$(sed -n '3p' "$selector")" = \
+			"manifest_sha256=$manifest_hash" ] || return 1
+		valid_bundle_name "$bundle" && valid_hash "$manifest_hash"
+		;;
+	format=rog5-slotb-selector-v2)
+		[ "$(wc -l <"$selector")" -eq 7 ] || return 1
+		trial_id=$(sed -n 's/^trial_id=//p' "$selector")
+		primary_bundle=$(sed -n 's/^primary_bundle=//p' "$selector")
+		primary_manifest_hash=$(sed -n \
+			's/^primary_manifest_sha256=//p' "$selector")
+		fallback_bundle=$(sed -n 's/^fallback_bundle=//p' "$selector")
+		fallback_manifest_hash=$(sed -n \
+			's/^fallback_manifest_sha256=//p' "$selector")
+		[ "$(sed -n '2p' "$selector")" = "trial_id=$trial_id" ] &&
+			[ "$(sed -n '3p' "$selector")" = \
+			"primary_bundle=$primary_bundle" ] &&
+			[ "$(sed -n '4p' "$selector")" = \
+			"primary_manifest_sha256=$primary_manifest_hash" ] &&
+			[ "$(sed -n '5p' "$selector")" = \
+			"fallback_bundle=$fallback_bundle" ] &&
+			[ "$(sed -n '6p' "$selector")" = \
+			"fallback_manifest_sha256=$fallback_manifest_hash" ] &&
+			[ "$(sed -n '7p' "$selector")" = mode=try-once ] || return 1
+		valid_hash "$trial_id" && valid_bundle_name "$primary_bundle" &&
+			valid_hash "$primary_manifest_hash" &&
+			valid_bundle_name "$fallback_bundle" &&
+			valid_hash "$fallback_manifest_hash" &&
+			[ "$primary_bundle" != "$fallback_bundle" ] || return 1
+		bundle=$primary_bundle
+		manifest_hash=$primary_manifest_hash
+		;;
+	*) return 1 ;;
+	esac
+}
+
+verify_all_storage_read_only() {
+	count=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		[ -b "$device" ] && [ "$(blockdev --getro "$device")" = 1 ] &&
+			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq 117 ]
+}
+
+relock_all_storage() {
+	status=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		[ -b "$device" ] && blockdev --setro "$device" || status=1
+	done
+	verify_all_storage_read_only || status=1
+	return "$status"
+}
+
+verify_trial_write_window() {
+	count=0
+	writable=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		expected=1
+		case $device in
+		"$disk"|"$userdata") expected=0; writable=$((writable + 1)) ;;
+		esac
+		[ -b "$device" ] && [ "$(blockdev --getro "$device")" = "$expected" ] &&
+			[ "$(cat "$sys_block/ro")" = "$expected" ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq 117 ] && [ "$writable" -eq 2 ]
+}
+
+select_trial_bundle() {
+	selected=$fallback_bundle
+	trial_mounted=0
+	trial_ready=1
+	trial_cleanup=1
+	relock_all_storage || trial_ready=0
+	if [ "$trial_ready" -eq 1 ]; then
+		blockdev --setrw "$disk" || trial_ready=0
+		blockdev --setrw "$userdata" || trial_ready=0
+	fi
+	[ "$trial_ready" -eq 0 ] || verify_trial_write_window || trial_ready=0
+	if [ "$trial_ready" -eq 1 ]; then
+		mkdir -m 0700 "$userdata_mount" || trial_ready=0
+	fi
+	if [ "$trial_ready" -eq 1 ] && mount -t ext4 \
+		-o rw,nodev,nosuid,noexec,noatime "$userdata" "$userdata_mount"; then
+		trial_mounted=1
+	else
+		trial_ready=0
+	fi
+	if [ "$trial_ready" -eq 1 ]; then
+		identity=$(blkid "$userdata") || trial_ready=0
+		printf '%s\n' "$identity" |
+			grep -Fq ' UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5"' ||
+			trial_ready=0
+		printf '%s\n' "$identity" |
+			grep -Fq ' LABEL="rog5-linux"' || trial_ready=0
+		printf '%s\n' "$identity" | grep -Fq ' TYPE="ext4"' || trial_ready=0
+	fi
+	if [ "$trial_ready" -eq 1 ]; then
+		decision=$("$trial_helper" decide "$trial_id" "$primary_bundle" \
+			"$primary_manifest_hash" "$fallback_bundle" \
+			"$fallback_manifest_hash") || decision=$fallback_bundle
+		case $decision in
+		"$primary_bundle"|"$fallback_bundle") selected=$decision ;;
+		*) selected=$fallback_bundle ;;
+		esac
+	fi
+	[ "$trial_mounted" -eq 0 ] || sync || trial_cleanup=0
+	[ "$trial_mounted" -eq 0 ] || umount "$userdata_mount" || trial_cleanup=0
+	relock_all_storage || trial_cleanup=0
+	if [ -d "$userdata_mount" ]; then
+		rmdir "$userdata_mount" 2>/dev/null || trial_cleanup=0
+	fi
+	[ "$trial_cleanup" -eq 1 ] || return 1
+	case $selected in
+	"$primary_bundle") bundle=$primary_bundle; manifest_hash=$primary_manifest_hash ;;
+	"$fallback_bundle") bundle=$fallback_bundle; manifest_hash=$fallback_manifest_hash ;;
+	*) return 1 ;;
+	esac
+}
+
+copy_bundle() {
+	name=$1
+	source=$source_root/$name
+	[ -d "$source" ] && [ ! -L "$source" ] || return 1
+	cp -a "$source" "$bundle_root/"
+}
+
+verify_bundle() {
+	name=$1 hash=$2 output=$3
+	/usr/libexec/rog5-bundle-verify "$name" "$hash" >"$output" || return 1
+	[ "$(grep -c '^cmdline=' "$output")" -eq 1 ] || return 1
+	[ -n "$(sed -n 's/^cmdline=//p' "$output")" ]
 }
 
 disable_haven_watchdog() {
@@ -209,16 +374,40 @@ set_stage S30 PASS root_mounted
 read_selector || fail selector
 set_stage S40 PASS selector_verified
 
-source=$source_root/$bundle
-[ -d "$source" ] && [ ! -L "$source" ] || fail bundle_source
 mkdir -m 0700 "$bundle_root"
-cp -a "$source" "$bundle_root/" || fail bundle_copy
+case $selector_format in
+format=rog5-slotb-selector-v1)
+	copy_bundle "$bundle" || fail bundle_copy
+	;;
+format=rog5-slotb-selector-v2)
+	copy_bundle "$primary_bundle" || fail primary_bundle_copy
+	copy_bundle "$fallback_bundle" || fail fallback_bundle_copy
+	;;
+*) fail selector_format ;;
+esac
 sync
 umount "$target_mount" || fail root_unmount
 set_stage S50 PASS bundle_copied
 
-/usr/libexec/rog5-bundle-verify "$bundle" "$manifest_hash" >"$plan" || fail bundle_verify
-[ "$(grep -c '^cmdline=' "$plan")" -eq 1 ] || fail plan_cmdline
+case $selector_format in
+format=rog5-slotb-selector-v1)
+	verify_bundle "$bundle" "$manifest_hash" "$plan" || fail bundle_verify
+	;;
+format=rog5-slotb-selector-v2)
+	verify_bundle "$primary_bundle" "$primary_manifest_hash" \
+		"$plan.primary" || fail primary_bundle_verify
+	verify_bundle "$fallback_bundle" "$fallback_manifest_hash" \
+		"$plan.fallback" || fail fallback_bundle_verify
+	select_trial_bundle || fail trial_state
+	case $bundle in
+	"$primary_bundle") cp "$plan.primary" "$plan" ;;
+	"$fallback_bundle") cp "$plan.fallback" "$plan" ;;
+	*) fail trial_decision ;;
+	esac
+	set_stage S65 PASS trial_selected
+	;;
+*) fail selector_format ;;
+esac
 command_line=$(sed -n 's/^cmdline=//p' "$plan")
 [ -n "$command_line" ] || fail empty_cmdline
 set_stage S60 PASS bundle_verified
