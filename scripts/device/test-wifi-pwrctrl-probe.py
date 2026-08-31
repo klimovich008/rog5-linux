@@ -71,6 +71,21 @@ def validate_rail_log(text, pause):
 
 
 class PwrctrlProbeTest(unittest.TestCase):
+    def test_rsc_submission_is_not_completed_voltage_or_power(self):
+        fixture = json.loads((REPO / 'tests/fixtures/native-wifi/s12-voltage-submit-reset.json').read_text())
+        text = '\n'.join(fixture['kmsg'] + fixture['trace']) + '\nROG5_QEMU_PWRCTRL_END\n'
+        with self.assertRaisesRegex(ValueError, 'incomplete'):
+            validate_rail_log(text, fixture['pause_ms'])
+        self.assertTrue(fixture['voltage_submission_proven'])
+        self.assertEqual(int('548', 16), fixture['voltage_request_mv'])
+        self.assertIn('msgid: 0x10108', fixture['trace'][-2])
+        self.assertIn('result=0', fixture['trace'][-1])
+        for key in ('voltage_call_return_observed', 'ack_observed',
+                    'enable_request_observed', 'absence_proves_ack_never_happened',
+                    'safe_to_retry_consumed_target'):
+            self.assertFalse(fixture[key])
+        self.assertIsNone(fixture['proven_faulting_rail_or_gpio'])
+
     def test_live_s12_prefix_is_not_a_completed_power_sequence(self):
         for name in ('s12-entry-reset.json', 's12-ret-entry-reset.json'):
             with self.subTest(name=name):

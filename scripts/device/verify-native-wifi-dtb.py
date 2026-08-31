@@ -65,6 +65,8 @@ def compare(base, candidate):
     ):
         if candidate[path].get(key) != struct.pack('>I', value):
             raise ValueError(f'wrong WW33 rail request: {path}:{key}')
+    if candidate[S12].get('regulator-allowed-modes') != struct.pack('>II', 0, 2):
+        raise ValueError('S12 runtime mode permissions must be exactly RET and AUTO')
     for path in (PCIE, PHY):
         if candidate[path].get('status') != b'okay\0':
             raise ValueError(f'Wi-Fi path disabled: {path}')
