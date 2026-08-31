@@ -7,11 +7,14 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Validate USB-data-absent boot and loaded Wi-Fi before persistent deployment.
+Validate loaded Wi-Fi/reconnect with USB data removed, then USB-data-absent boot.
 V18 automatically initialized radio, loaded private p23 configuration, obtained
 DHCP and passed strict WLAN SSH without host activation. V18 is consumed.
 Preserve its kernel/firmware and V11 rescue; see
 `test-results/2026-08-31-wifi-automatic-boot.md`.
+V19 is narrowly admitted and unconsumed for the runtime-only isolation test;
+it proves ordinary LAN SSH before cutting USB and does not use managed Tailscale
+SSH. Booting with USB absent and Tailscale account verification remain required.
 
 ## Current live state
 

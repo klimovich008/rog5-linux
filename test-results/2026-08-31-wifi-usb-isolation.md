@@ -43,3 +43,26 @@ local-root startup. Compare the actual cutoff and target stage timings rather
 than assuming the cut occurred early enough. Preserve independent host USB
 events, bounded restoration and the existing target rollback timers. A later
 physical charger-only boot remains necessary before claiming full independence.
+
+## V19 runtime qualification admission
+
+The early-cut boot test remains pending. To continue the separate runtime
+qualification while managed Tailscale SSH awaits its account check, V19 first
+boots normally and proves its actual LAN address, SSH key and boot ID. Only
+then may the host disable USB data for180s. The cycle sends64MiB of bounded
+read-only traffic, requests one WPA reassociation, samples power/thermal/storage
+state in RAM, restores USB and reboots to V11. It does not bypass or modify
+Tailscale authentication, and it will not be reported as USB-free boot proof.
+
+Source`b29417605173bcbe60f014da87626301f3998f65` passed every job in
+exact-head run33430706319. Candidate`persistent-native-root-wifi-isolation-v19`
+reuses V18's exact Image/DT/initramfs and has identical signed core twins;
+packaging took0.459s. Manifest:
+`b62f7c1e7b7cd790c64b4e0576345289420699c60324c5f95778997b7620e224`.
+
+The exact WPA client sent one REASSOCIATE command to a fake control endpoint.
+The sampler ran against the actual Arch root without RF; its1MiB stream check
+passed. Controller replay checks verified WLAN before cutoff, no reassociation
+retry after a lost acknowledgment, full isolation duration, same-device restore
+and restore-before-reboot ordering. The admission is literal data only; target
+timers remain armed. No V19 boot has run yet; no persistent selector change.
