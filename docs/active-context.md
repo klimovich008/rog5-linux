@@ -7,22 +7,18 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Can the exact OEM1350mV request be established after the proven1224mV hold,
-without the mainline selector silently changing it to1352mV? Re-vote-v12
-passed and is consumed. No higher-voltage/radio trial is admitted yet.
-
-The fixed1350mV module/DT diagnostic is implemented and its twins/QEMU pass;
-see `test-results/2026-08-31-s12-oem.md`. It explicitly leaves the voltage
-cache stale after the raw request, so capture and reboot—no radio use.
+Complete the cache-coherent1350mV kernel/module path, then resume Wi-Fi radio
+bring-up. V13 proved the exact OEM request on hardware and is consumed.
+The new kernel is building; no successor is admitted.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `04128e6c-c09b-4ddc-83eb-cdaad89e87a5`; slot A remains rescue.
+  `bdd1dd29-1def-4864-9d86-109ec9876137`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Full/Good, 8.614 V, 30.1°C; state/Tailscale restored.
+- Latest battery read: Full/Good, 8.613 V, 30.1°C; state/Tailscale restored.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -33,25 +29,22 @@ cache stale after the raw request, so capture and reboot—no radio use.
 
 ## Just-completed checkpoint
 
-Re-vote-v12 passed query, AUTO, voltage1224/enable1 writes, post-readback and
-three direct1MiB UFS reads. NCM survived; normal reboot restored V11/Tailscale.
-Voltage raw changed0x4c8→0x800004c8; do not call this a proved electrical no-op.
-All trials through re-vote-v12 are consumed. No PCIe/radio was activated.
-See `test-results/2026-08-31-s12-revote.md`.
+V13 passed low hold, exact1350mV write, raw1350 readback, three direct UFS reads
+and NCM. Normal reboot restored V11. No PCIe/radio was activated; all trials
+through V13 are consumed. See `test-results/2026-08-31-s12-oem.md`.
 
 ## Cheapest next action
 
-1. Reuse the qualified readback kernel/kit; no ASUS wrapper rebuild. The retained
-   vendor VRM setter accepts millivolt-rounded requests, unlike the mainline
-   8mV selector grid. Stock CNSS asks for1350mV. Qualify that exact request
-   after the proven low-voltage hold before any radio operation. Do not infer
-   a physical reset cause from V12: kernel/DT also differed from V10.
-   Keep fresh raw gates, explicit write-origin ACKs, all117-RO checks and hold
-   retention. Never seed global regulator caches or reparent shared rails.
-   Restore the existing shared host profile after fallback. Reuse the fixed
-   missing-interface-tolerant helper and two-release stage parser.
-   The module kit is restored in RAM; full kernel cache and signed base are
-   archived. Keep existing work; disk headroom is low. Preserve V11 and slot A.
+1. Finish the already-running clean-b/clean-c kernel builds; do not restart them.
+   Source1eea8970e87f adds only the ASIC-scoped1350mV point, preserving other
+   voltage values/boards and all V11 configuration. Cached development Image
+   already passes build; clean comparison and new ABI/module qualification
+   remain. The successor S12 module now uses the regulator API and requires
+   exact point support plus readback/cache consistency. No global cache seeding.
+   Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
+   No new-kernel boot is admitted. Restore shared host networking after fallback;
+   reuse the fixed missing-interface helper and two-release stage parser.
+   Preserve current build scratch and archives; disk headroom remains low.
 2. The userspace validation client is online; finish its SSH sign-in check and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.

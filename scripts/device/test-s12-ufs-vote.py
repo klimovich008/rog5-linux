@@ -34,20 +34,19 @@ class S12VoteTest(unittest.TestCase):
 #define S12_REVOTE_UV 1224000
 #define S12_OEM_MV 1350
 #define pr_info(...) ((void)0)
-struct tcs_cmd {unsigned addr,data;};
-struct device {int unused;};struct platform_device {struct device dev;};
-static struct platform_device object,*pmic_device=&object;
+static void *s12;
 static bool holding;
-static int before_error,write_error,after_error,reads,writes;
+static int before_error,write_error,after_error,reads,writes,cached_uv=1224000,suppress_cache;
 static int read_and_check(const char *phase,unsigned mv,unsigned mode) {
  assert(mode==6);reads++;
  if(!strcmp(phase,"before-oem")){assert(mv==1224);return before_error;}
  assert(!strcmp(phase,"after-oem") && mv==1350);return after_error;
 }
-static int rpmh_write(const struct device *d,int state,const struct tcs_cmd *cmd,unsigned count){
- assert(d==&object.dev && state==0 && count==1 && cmd->addr==0x40100 && cmd->data==1350);
- writes++;return write_error;
+static int regulator_set_voltage(void *r,int minimum,int maximum){
+ assert(r==s12 && minimum==1350000 && maximum==1350000);
+ writes++;if(!write_error && !suppress_cache)cached_uv=minimum;return write_error;
 }
+static int regulator_get_voltage(void *r){assert(r==s12);return cached_uv;}
 '''+body+r'''
 int main(void){
  assert(request_oem_voltage()==-EPERM && !reads && !writes);
@@ -58,6 +57,8 @@ int main(void){
  assert(request_oem_voltage()==-ERANGE && writes==1 && reads==2 && holding);
  reads=writes=0;after_error=0;
  assert(request_oem_voltage()==0 && writes==1 && reads==2 && holding);
+ reads=writes=0;suppress_cache=1;cached_uv=1224000;
+ assert(request_oem_voltage()==-EIO && writes==1 && reads==2 && holding);
  return 0;
 }
 '''
@@ -69,10 +70,11 @@ int main(void){
     def test_sanitized_live_revote_sequences(self):
         spec=importlib.util.spec_from_file_location('live_s12_trace',REPO/'scripts/host/verify-s12-vote-trace.py')
         mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
-        fixture=json.loads((REPO/'tests/fixtures/native-wifi/s12-revote-pass.json').read_text())
-        self.assertFalse(fixture['radio_activated'])
-        for action,lines in fixture['phases'].items():
-            self.assertEqual(mod.verify('\n'.join(lines)+'\n',action)['result'],'PASS')
+        for name in ('s12-revote-pass.json','s12-oem-pass.json'):
+            fixture=json.loads((REPO/'tests/fixtures/native-wifi'/name).read_text())
+            self.assertFalse(fixture['radio_activated'])
+            for action,lines in fixture['phases'].items():
+                self.assertEqual(mod.verify('\n'.join(lines)+'\n',action)['result'],'PASS')
 
     def test_read_responses_cannot_prove_write_completion(self):
         spec=importlib.util.spec_from_file_location('s12_trace',REPO/'scripts/host/verify-s12-vote-trace.py')
@@ -264,11 +266,12 @@ static int request_oem_voltage(void) { assert(holding && pins==1);oem_calls++;re
 
     def test_control_surface_and_identity_are_fixed(self):
         text = SOURCE.read_text()
-        for forbidden in (r'\bregulator_disable\s*\(', r'\bregulator_set_voltage\s*\(',
+        for forbidden in (r'\bregulator_disable\s*\(', r'\brpmh_write\s*\(',
                           r'\bioremap\s*\(', r'\bwritel\s*\('):
             self.assertNotRegex(text, forbidden)
-        self.assertEqual(len(re.findall(r'\brpmh_write\s*\(',text)),1)
-        self.assertIn('.addr = 0x40100, .data = S12_OEM_MV',text)
+        self.assertEqual(len(re.findall(r'\bregulator_set_voltage\s*\(',text)),1)
+        self.assertIn('regulator_is_supported_voltage(s12, S12_OEM_MV * 1000',text)
+        self.assertIn('regulator_set_voltage(s12, S12_OEM_MV * 1000, S12_OEM_MV * 1000)',text)
         self.assertIn('#define S12_OEM_MV 1350',text)
         self.assertIn('module_param(action, charp, 0400)', text)
         self.assertIn('of_machine_is_compatible("asus,rog-phone5")', text)
