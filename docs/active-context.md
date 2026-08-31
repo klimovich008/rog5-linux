@@ -7,16 +7,16 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-What S12 APPS votes are inherited before a voltage/enable request? The read-only transport, clean kernel twins and exact-Image QEMU gate pass; one readback-only RAM trial is prepared, not consumed.
+Can the first S12 enable preserve its measured 1.224 V APPS vote before Wi-Fi requests a higher voltage? Readback-v11 passed and is consumed; no new power-setting trial is admitted.
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, anchored at host USB `1-1.2`.
 - Active slot: B, running V11 boot
-  `3d760020-1bda-45b5-aedd-b30a3747f673`; slot A remains rescue.
+  `19c698fe-513d-468b-ada3-485a5902fa5e`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Good, 8.624 V, 30.0°C; state/Tailscale restored.
+- Latest battery read: Full/Good, 8.618 V, 30.0°C; state/Tailscale restored.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -27,47 +27,28 @@ What S12 APPS votes are inherited before a voltage/enable request? The read-only
 
 ## Just-completed checkpoint
 
-V11 firewall/reboot and offline Wi-Fi module/firmware/crypto checks pass;
-see `test-results/2026-08-30-native-wifi-offline.md`.
-All ten trials through s12-held-v10 are permanently consumed. V9 passed
-query/AUTO; V10 reset at first enable before radio. No exact rail/GPIO fault
-is proven. Controller/PHY, isolated MHI and QEMU client/dummy-power evidence
-remain in `test-results/2026-08-30-native-wifi-ram-handoff.md`.
+Readback-v11 booted the new kernel, Arch, NCM/UFS/SSH and read all six votes.
+S12: 1224mV, enable1, retention3; these are APPS votes, not physical measurements.
+No S12 writes appeared in the trace. Normal reboot restored V11 and Tailscale.
+All trials through readback-v11 are permanently consumed. See
+`test-results/2026-08-31-rpmh-readback-development.md`.
 
 ## Cheapest next action
 
-1. No successor: V10 disproved AUTO alone as the enable-boundary fix.
-   It confirmed AUTO ACK/cache2, then lost reporting at held-enable entry.
-   No new RSC/voltage/enable frame was captured; do not infer the faulting instruction.
-   PON added PS_HOLD warm reset0→1; V11 recovered. Preserve the new real fixture.
-   Stock CNSS audit confirms exact1350000/1350000 request, no zero override.
-   Mainline's1352000 selector widens that consumer contract; electrical effect unknown.
-   Fixed-offset PMIC reads did not identify S12. Patch0035 now adds read-only RPMh
-   transport with timeout-safe references, nonblocking admission and no WAKE borrowing.
-   V9's query/AUTO and buffered reads passed; V10 confirms that mode again.
-   V10 did not reach its direct-read or radio gates. All temporary host/ACM
-   setup is removed. V8's separate USB-settling hypothesis remains unproven.
-   All60 authenticated WW33 DTB/DTBO compositions agree: S12 always-on,
-   UFS VCCQ parent, active UFS load210mA selects AUTO at the200mA threshold.
-   Mainline AUTO=2, vendor AUTO=3; the latter means mainline HPM. An offline
-   reviewer caught the wrong permission literal before deployment; fixed/tests.
-   New module twins and permission-only DTB twins match; exact-Image QEMU
-   proves module ABI/BTF load and generic-board rejection. V8/V9 cannot be retried.
-   Query/AUTO gates are proven; retain ACK capture and all117-RO UFS/NCM checks.
-   Do not issue another voltage/HPM guess; establish the actual voltage/state contract.
-   Do not add always-on or reparent L9 before the shared dependency is proven.
-   Keep V11/slot A; source firmware, bootloader and persistent selector unchanged.
-   V7 source gates and target SSH passed without a PMIC reset across kexec.
-   Its radio event added PS_HOLD warm reset count6→7; trace0x40100/data0x548
-   submitted but no completion was recorded. Preserve the real regression
-   fixture `s12-voltage-submit-reset.json`; absent tail/pstore is inconclusive.
-   The installed B loader cannot export its pstore snapshot before second kexec;
-   native V11 has no working ramoops backend. Preserve the stable loader.
-   Conditional hw1.1 modules remain offline. Readback twins match, preserving
-   V11 config/HS UFS; 19 modules load in exact-Image QEMU. The fixed readers
-   reject the wrong board. Baseline DT has PCIe disabled and no S12 node.
-   No voltage/radio tools accompany this trial. Keep its execution one-use.
-   See `test-results/2026-08-31-rpmh-readback-development.md`.
+1. Use the now-qualified readback kernel/module ABI for the next bounded
+   S12 handoff experiment; do not recompile the ASUS wrapper. The current
+   driver caches DT-min1352mV while enabled-state is unknown, then writes it
+   on first enable. Captured APPS state was already enabled at1224mV/RET3.
+   This mismatch is proven; its relationship to the earlier reset is not.
+   Preserve the measured vote before considering another increase. Do not
+   activate radio at an unqualified voltage or reparent shared rails.
+   Stock CNSS requests1350mV; the mainline selector rounds to1352mV. Reconcile
+   that contract separately. V9 AUTO-only passed; V10 AUTO+first-enable reset.
+   Preserve fixtures and `test-results/2026-08-31-native-wifi-s12-shared-rail.md`.
+   Future readers must accept the exact trial and V11 fallback releases;
+   restore the existing shared host profile after fallback identity proof.
+   Kernel/config/module twins and full A object cache are archived; RAM scratch
+   was released. Disk headroom remains low. Preserve V11 and slot A.
 2. The userspace validation client is online; finish its SSH sign-in check and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.
