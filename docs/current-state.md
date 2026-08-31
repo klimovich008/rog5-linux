@@ -105,8 +105,9 @@ completions, post-readback, direct UFS reads and NCM. Current V11 boot is
 passed. V13 then proved exact1350mV write/readback after the low hold, with
 stable UFS/NCM and normal fallback. No radio was activated. The cache-coherent
 kernel point, clean kernel/module twins and new initramfs are qualified offline;
-physical cache-coherent power and radio bring-up remain.
-See `test-results/2026-08-31-s12-oem.md`.
+physical cache-coherent power and radio bring-up remain. Staged activation and
+the no-retry module loader pass offline; see
+`test-results/2026-08-31-wifi-late-activation.md`.
 The clean kernel/module/initramfs twins, baseline DT and readback evidence are
 retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
 Conditional WCN6851/hw1.1 modules remain offline, not deployed.

@@ -7,6 +7,7 @@ root=/run/rog5-native-wifi
 radio_manifest=${1:?expected radio-files.sha256 digest required}
 expected_bundle=${2:?verified target bundle required}
 modules_manifest=${3:?verified module archive digest required}
+expected_release=${4:?kernel release from the verified execution plan required}
 fail() { printf 'WIFI_PROBE_ABORT %s\n' "$*"; exit 1; }
 read_optional() {
  if [ -r "$1" ]; then
@@ -42,7 +43,7 @@ collect() {
  dmesg | tail -n 700 || true
 }
 [ "$(id -u)" = 0 ] || fail 'root-required'
-[ "$(uname -r)" = 7.1.4-g359318de534f ] || fail 'kernel-identity'
+[ "$(uname -r)" = "$expected_release" ] || fail 'kernel-identity'
 grep -Fqw "rog5.bundle=$expected_bundle" /proc/cmdline || fail 'target-identity'
 [ "$(tr -d '\000' </sys/firmware/devicetree/base/model)" = 'ASUS ROG Phone 5' ] || fail 'model'
 [ "$(sha256sum "$root/module-root-complete.tar.gz" | cut -d ' ' -f1)" = "$modules_manifest" ] || fail 'module-package'
@@ -55,7 +56,8 @@ grep -Fqw "rog5.bundle=$expected_bundle" /proc/cmdline || fail 'target-identity'
 guard
 umask 077
 mkdir "$root/probe-entered" || fail 'probe-already-entered'
-# 17*(20+2)s loads +30s PCI +60s PHY +90s cleanup =554s, within 600s.
+# 17*(20+2)s loads +30s activation +30s PCI +60s PHY +90s cleanup
+# =584s, within 600s. The caller must budget the preceding S12 qualification.
 systemd-run --unit=rog5-wifi-probe-rollback --on-active=600s --timer-property=AccuracySec=1s /usr/bin/systemctl reboot
 systemctl is-active --quiet rog5-wifi-probe-rollback.timer || fail 'rollback-not-armed'
 trap collect EXIT
@@ -65,7 +67,9 @@ load_one() {
  guard
  printf 'WIFI_MODULE_ENTER %s uptime=' "$module"
  cat /proc/uptime
- if [ "$module" = pwrseq-qcom-wcn ]; then
+ if [ "$module" = ath11k_pci ]; then
+  timeout -k 2 20 "$root/module-once" "$root/module-root/lib/modules/$expected_release/kernel/drivers/net/wireless/ath/ath11k/ath11k_pci.ko" || fail "module-$module"
+ elif [ "$module" = pwrseq-qcom-wcn ]; then
   timeout -k 2 20 modprobe -d "$root/module-root" -S "$(uname -r)" "$module" serial_observation_ms=250 || fail "module-$module"
  elif [ "$module" = pci-pwrctrl-pwrseq ]; then
   timeout -k 2 20 modprobe -d "$root/module-root" -S "$(uname -r)" "$module" observation_ms=250 || fail "module-$module"
@@ -82,6 +86,11 @@ while IFS= read -r module; do
  load_one "$module"
 done <"$root/load-roots.txt"
 load_one phy-qcom-qmp-pcie
+# Only this fixed activator changes the staged PMU/PHY/PCIe statuses. Its
+# module dependency revalidates the held/cache-coherent S12 vote first.
+guard
+timeout -k 2 30 "$root/module-once" "$root/rog5-wifi-activate.ko" || fail 'radio-activation'
+[ "$(cat /sys/module/rog5_wifi_activate/parameters/result)" = 0 ] || fail 'radio-activation-result'
 pci=/sys/bus/pci/devices/0000:01:00.0
 for attempt in $(seq 1 30); do
  guard

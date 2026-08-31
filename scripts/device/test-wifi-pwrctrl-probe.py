@@ -132,7 +132,10 @@ class PwrctrlProbeTest(unittest.TestCase):
                 (root/'pci').mkdir()
                 replay = block.replace('/sys/bus/pci/devices/0000:01:00.0', str(root/'pci'))
                 replay = replay.replace('ls -A /sys/bus/pci/devices', 'true')
+                replay = replay.replace('timeout -k 2 30 "$root/module-once" "$root/rog5-wifi-activate.ko"', 'activate')
+                replay = replay.replace('cat /sys/module/rog5_wifi_activate/parameters/result', 'echo 0')
                 setup = f'root={root}\nlog={root}/calls\n'
+                setup += 'activate() { :; }\n'
                 setup += 'fail() { exit 77; }; sleep() { :; }; guard_count=0\n'
                 setup += 'guard() { guard_count=$((guard_count+1));\n'
                 if case == 'late-attributes':

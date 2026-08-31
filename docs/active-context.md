@@ -7,10 +7,10 @@ Historical generations remain in Git; do not reconstruct them here.
 
 ## One current question
 
-Complete the cache-coherent1350mV kernel/module path, then resume Wi-Fi radio
-bring-up. V13 proved the exact OEM request on hardware and is consumed.
-The new kernel and base module kit pass clean comparison/QEMU; no successor
-is admitted. Physical cache-coherent power and radio qualification remain.
+Qualify cache-coherent1350mV power and controlled Wi-Fi radio activation.
+V13 proved the raw OEM request on hardware and is consumed. The new kernel,
+staged DT, fixed activator and no-retry loader pass offline checks; no successor
+is admitted. See `test-results/2026-08-31-wifi-late-activation.md`.
 
 ## Current live state
 
@@ -19,7 +19,7 @@ is admitted. Physical cache-coherent power and radio qualification remain.
   `bdd1dd29-1def-4864-9d86-109ec9876137`; slot A remains rescue.
 - V11 passes initial systemd running, V49 high-speed UFS, zero UFS errors,
   NCM, stable key-only SSH, p23 state and exact two-node write scope.
-- Latest battery read: Full/Good, 8.613 V, 30.1°C; state/Tailscale restored.
+- Latest battery read: Full/Good, 8.610 V, 30.1°C; state/Tailscale active.
 - Temporary source ACM disappeared on reboot; V11 currently exposes NCM only.
 - Standalone shared mode is `10.77.0.1/30` → `10.77.0.2/30`. Fixed recovery
   management remains a separate `169.254.77.1/30` profile.
@@ -38,19 +38,14 @@ through V13 are consumed. See `test-results/2026-08-31-s12-oem.md`.
 
 1. Reuse source1eea8970e87f and its qualified archived kit; do not rebuild it.
    Clean twins and cached Image match; base19/Wi-Fi37 module packages and
-   initramfs twins match; exact-Image QEMU loads all required roots. Add the
-   existing diagnostic module patches before passing observation parameters.
-   Update active target release checks from the signed plan, not stale literals.
-   The S12 module uses the regulator API and requires point support plus
-   readback/cache consistency. Qualify that before conditional radio activation.
+   initramfs twins match. The patched power modules, staged DT, S12 qualifier,
+   fixed activator and no-retry loader pass twins/QEMU. Use the verified release
+   argument in probe/tracer and combine power/radio deadlines before admission.
    Keep the low hold, all117-RO/power/identity gates and matched write ACKs.
-   No new-kernel boot is admitted. OF dynamic/overlay APIs are available for
-   evaluating controlled radio-node activation. Check one-syscall module-load
-   behavior: the BusyBox wrong-board fixture retried its initializer.
-   Restore shared host networking after fallback;
-   reuse the fixed missing-interface helper and two-release stage parser.
-   Preserve archives/source; disk headroom remains low. Add an explicit test
-   temporary-parent option for RAM scratch; do not repurpose HOME.
+   No new-kernel boot is admitted. Restore shared networking after fallback;
+   reuse the fixed missing-interface helper and parameterized stage parser.
+   Preserve archives/source; disk headroom remains low. Use
+   ROG5_TEST_TMP_PARENT for project RAM scratch; never repurpose HOME.
 2. The userspace validation client is online; finish its SSH sign-in check and test
    peer-to-phone Tailscale SSH. Do not re-enroll the phone or treat self-ping as
    peer evidence. Log out/remove the temporary client after successful testing.

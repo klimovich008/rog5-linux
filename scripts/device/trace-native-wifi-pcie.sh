@@ -3,7 +3,7 @@
 set -eu
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
-action=${1:?usage: trace-native-wifi-pcie.sh plan|check|start|read|stop [BOOT_ID]}
+action=${1:?usage: trace-native-wifi-pcie.sh plan|check|start|read|stop [BOOT_ID RELEASE]}
 trace=/sys/kernel/tracing
 group=rog5_native_wifi
 instance=$trace/instances/$group
@@ -36,9 +36,10 @@ plan() {
 if [ "$action" = plan ]; then plan; exit 0; fi
 case $action in check|start|read|stop) ;; *) fail 'unknown action' ;; esac
 boot=${2:?source boot ID required}
+expected_release=${3:?kernel release from the verified execution plan required}
 [ "$(id -u)" = 0 ] || fail 'root required'
 [ "$(cat /proc/sys/kernel/random/boot_id)" = "$boot" ] || fail 'boot changed'
-[ "$(uname -r)" = 7.1.4-g359318de534f ] || fail 'kernel changed'
+[ "$(uname -r)" = "$expected_release" ] || fail 'kernel changed'
 [ "$(tr -d '\000' </sys/firmware/devicetree/base/model)" = 'ASUS ROG Phone 5' ] || fail 'model changed'
 [ "$(stat -f -c %T "$trace")" = tracefs ] || fail 'tracefs unavailable'
 [ -w "$trace/kprobe_events" ] || fail 'kprobe events unavailable'

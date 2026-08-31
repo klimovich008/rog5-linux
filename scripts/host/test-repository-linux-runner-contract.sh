@@ -5,12 +5,14 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
 runner=$repo/scripts/host/test-repository-linux.sh
 work=$(mktemp -d)
 cleanup_pid=
+explicit_parent=
 cleanup() {
 	[ -z "$cleanup_pid" ] ||
 		/bin/kill -TERM -- "-$cleanup_pid" 2>/dev/null || true
 	[ -z "$cleanup_pid" ] ||
 		/bin/kill -KILL -- "-$cleanup_pid" 2>/dev/null || true
 	rm -rf -- "$work"
+	[ -z "$explicit_parent" ] || rmdir -- "$explicit_parent"
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -22,7 +24,7 @@ for token in \
 	'isolated_tests=(' \
 	'parallel_pids=(' \
 	'parallel_status_files=(' \
-	'test_tmp_parent=${HOME:-}' \
+	'test_tmp_parent=${ROG5_TEST_TMP_PARENT-${HOME:-}}' \
 	'test_tmp_root=$(mktemp -d "$test_tmp_parent/.rog5-tests.XXXXXXXX")' \
 	'export TMPDIR=$test_tmp_root' \
 	'rm -rf -- "$test_tmp_root"' \
@@ -50,6 +52,72 @@ for token in \
 		*) grep -Fq "$token" "$runner" ;;
 	esac
 done
+
+# Exercise only the actual scratch setup, never the repository suites. Leave
+# HOME untouched and use a private, empty mktemp child even for the default.
+check_tmp_parent() {
+	expected_parent=$1
+	shift
+	RUNNER="$runner" EXPECTED_PARENT="$expected_parent" "$@" bash -c '
+		set -euo pipefail
+		fail() { echo "FAIL $*" >&2; exit 1; }
+		test_tmp_root=
+		trap '\''[[ -z $test_tmp_root ]] || rmdir -- "$test_tmp_root"'\'' EXIT
+		eval "$(sed -n '\''/^test_tmp_parent=/,/^export TMPDIR=/p'\'' "$RUNNER")"
+		[[ $test_tmp_parent == "$EXPECTED_PARENT" ]]
+		[[ $test_tmp_root == "$EXPECTED_PARENT"/.rog5-tests.* ]]
+		[[ $TMPDIR == "$test_tmp_root" && -d $TMPDIR && ! -L $TMPDIR ]]
+		[[ $(stat -c %a "$TMPDIR") == 700 ]]
+		child=$(mktemp -d)
+		[[ $child == "$TMPDIR"/* ]]
+		rmdir -- "$child"
+	'
+}
+
+check_tmp_parent "${HOME:-}" env -u ROG5_TEST_TMP_PARENT
+# Exercise a real short override independently of the outer test's nesting.
+explicit_parent=$(mktemp -d '/tmp/r5 parent.XXXXXXXX')
+check_tmp_parent "$explicit_parent" env ROG5_TEST_TMP_PARENT="$explicit_parent"
+[ -z "$(ls -A "$explicit_parent")" ]
+printf 'not a directory\n' >"$work/not-a-directory"
+ln -s "$explicit_parent" "$work/linked-parent"
+for invalid_parent in '' relative/path "$work/missing-parent" \
+	"$work/not-a-directory" "$work/linked-parent"; do
+	if check_tmp_parent "$invalid_parent" env ROG5_TEST_TMP_PARENT="$invalid_parent" \
+		>"$work/parent.stdout" 2>"$work/parent.stderr"; then
+		echo "FAIL invalid temporary parent accepted: $invalid_parent" >&2
+		exit 1
+	fi
+	grep -Fxq 'FAIL repository test temporary parent is unavailable' "$work/parent.stderr"
+done
+# Root can write despite mode bits, so this effective-access check is non-root.
+if [ "$(id -u)" -ne 0 ]; then
+	mkdir "$work/read-only-parent"
+	chmod 0500 "$work/read-only-parent"
+	if check_tmp_parent "$work/read-only-parent" env ROG5_TEST_TMP_PARENT="$work/read-only-parent" \
+		>"$work/parent.stdout" 2>"$work/parent.stderr"; then
+		echo 'FAIL non-writable temporary parent accepted' >&2
+		exit 1
+	fi
+	grep -Fxq 'FAIL repository test temporary parent is unavailable' "$work/parent.stderr"
+	chmod 0700 "$work/read-only-parent"
+fi
+sed -n '/^active_tests=(/,/^)/p' "$runner" |
+	grep -Fq 'scripts/host/test-repository-linux-runner-contract.sh'
+[ "$(grep -Fc 'scripts/host/test-repository-linux-runner-contract.sh' "$runner")" -eq 1 ]
+echo 'PASS runner scratch uses explicit parent or unchanged HOME and rejects invalid parents'
+
+# Reproduce the RAM-scratch regression without paying for the full suite.
+long_parent=$work/abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz
+mkdir "$long_parent"
+if check_tmp_parent "$long_parent" env ROG5_TEST_TMP_PARENT="$long_parent" \
+	>"$work/parent.stdout" 2>"$work/parent.stderr"; then
+	echo 'FAIL overlong Unix socket scratch path accepted' >&2
+	exit 1
+fi
+grep -Fxq 'FAIL repository test temporary parent cannot host Unix sockets' "$work/parent.stderr"
+[ -z "$(ls -A "$long_parent")" ]
+echo 'PASS overlong broker socket path refuses before repository suites'
 
 shared=$(sed -n '/^shared_tests=(/,/^)/p' "$runner" |
 	sed -n 's|^[[:space:]]*\(scripts/[^[:space:]]*\)$|\1|p')

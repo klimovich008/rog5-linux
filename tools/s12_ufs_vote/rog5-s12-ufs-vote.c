@@ -29,6 +29,9 @@ static struct regulator *s12;
 static struct platform_device *consumer;
 static struct platform_device *pmic_device;
 static bool holding;
+static bool oem_qualified;
+
+int rog5_s12_validate_hold(void);
 
 static int voltage_bounds_allowed(u32 minimum, u32 maximum)
 {
@@ -110,6 +113,21 @@ static int request_oem_voltage(void)
 	pr_info("ROG5_S12_OEM cache_consistent=1\n");
 	return 0;
 }
+
+/* Called by the fixed radio activator, never an automatic probe dependency.
+ * Keep both references while held so a fresh raw read is possible here.
+ */
+int rog5_s12_validate_hold(void)
+{
+	if (!holding || !oem_qualified || !s12 || !pmic_device)
+		return -EPERM;
+	if (regulator_get_voltage(s12) != S12_OEM_MV * 1000 ||
+	    regulator_get_mode(s12) != REGULATOR_MODE_NORMAL ||
+	    regulator_is_enabled(s12) != 1)
+		return -EIO;
+	return read_and_check("before-radio", S12_OEM_MV, 6);
+}
+EXPORT_SYMBOL_GPL(rog5_s12_validate_hold);
 
 static int finish_init_result(int ret)
 {
@@ -268,8 +286,10 @@ static int __init s12_vote_init(void)
 		ret = apply_active_vote();
 	else if (!ret)
 		ret = -EOPNOTSUPP;
-	if (!ret)
+	if (!ret) {
+		oem_qualified = selected_action == HELD_OEM;
 		report_cached_state();
+	}
 	if (!holding) {
 		regulator_put(s12);
 		s12 = NULL;
@@ -282,7 +302,7 @@ put_consumer:
 		consumer = NULL;
 	}
 put_nodes:
-	if (pmic_device) {
+	if (pmic_device && !holding) {
 		put_device(&pmic_device->dev);
 		pmic_device = NULL;
 	}
