@@ -49,7 +49,7 @@ handoff code; retained timing and physical evidence are in
 
 ## Cheapest next action
 
-1. Investigate the v6 pre-target handoff; no new candidate is prepared.
+1. A source-handoff logging successor is prepared; finish exact-head CI and run once.
    V5 passed full local CI (466s) and every GitHub job, then ran once. Its
    cached mode8 proves the RET vote applied, but the reset remains. Both v4
    and v5 stop delivering rail evidence at vddpmu entry after two successes.

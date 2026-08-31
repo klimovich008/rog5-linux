@@ -47,6 +47,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 from typing import Callable, Iterable
 
 
@@ -1133,6 +1134,32 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                     payload=mutated,
                 )
 
+    def test_diagnostic_profile_tolerates_slow_local_publication(self) -> None:
+        if self.runner:
+            self.skipTest("native filesystem-delay fixture")
+        shim = self.work / "slow-fsync.c"
+        shim.write_text("""#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <sys/stat.h>
+#include <unistd.h>
+int fsync(int fd) {
+    static int delayed;
+    int (*real_fsync)(int) = dlsym(RTLD_NEXT, "fsync");
+    struct stat st;
+    if (!delayed && fstat(fd, &st) == 0 && S_ISDIR(st.st_mode) &&
+        (st.st_mode & 0777) == 0500) {
+        delayed = 1;
+        usleep(750000);
+    }
+    return real_fsync(fd);
+}
+""")
+        library = self.work / "slow-fsync.so"
+        subprocess.run(["gcc", "-shared", "-fPIC", str(shim), "-ldl",
+                        "-o", str(library)], check=True)
+        with mock.patch.dict(os.environ, {"LD_PRELOAD": str(library)}):
+            self.test_diagnostic_profile_requires_network_root_trust_tuple()
+
     def test_diagnostic_profile_requires_network_root_trust_tuple(self) -> None:
         base = BundlePayload.manifest_fields(
             self.payload.bundle,
@@ -1165,6 +1192,8 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                 server.port,
                 bundle=diagnostic.bundle,
                 expected_hash=diagnostic.manifest_hash,
+                # This checks schema/publication, not a subsecond deadline.
+                timeout_ms=3_000,
             )
         self.assert_success(result)
         self.assert_published(root, diagnostic)
