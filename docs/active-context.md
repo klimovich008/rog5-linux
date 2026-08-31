@@ -9,7 +9,7 @@ Historical generations remain in Git; do not reconstruct them here.
 
 Prove association, DHCP and SSH over Wi-Fi using the V15-qualified composition.
 V15 passed firmware/PHY startup and scanned33 access points. It is consumed;
-no association successor is admitted. Preserve the working kernel and firmware.
+V16 association/DHCP/SSH is admitted once, not yet executed. Preserve the working kernel and firmware.
 See `test-results/2026-08-31-wifi-late-activation.md`.
 
 ## Current live state
