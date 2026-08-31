@@ -13,6 +13,19 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'native-wifi-ram-early-cut-v20': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=native-wifi-ram-early-cut-v20\n'
+        b'candidate=persistent-native-root-wifi-early-cut-v20\n'
+        b'manifest_sha256=e459948131640d19d7f5e03105b00c828177c0a05cf226dcd49c4db480a767ed\n'
+        b'tools_manifest_sha256=355b948a36a3be9fdcad7706652e557000c011e347e65d16016fac5155acc123\n'
+        b'automatic_initramfs_sha256=1d4a8ff015af00da56074ea28545cb6e63b7e72c92800a5565489b647dd3e3d2\n'
+        b'plan_sha256=7f641b6e890d56db9a0156ec58e5d68303fb4bdf5e9ef29c314488a9f4bb4991\n'
+        b'gate_helper_sha256=71b5cb4d71a669535820dc04cb3cd10ba4ad62263031b78f3512e484817abbc6\n'
+        b'discovery_helper_sha256=8598a29e6070af74e8ea514b8772fca23e42d4ed338c36f533e168d9d4fbff66\n'
+        b'execution=mainline-kexec-ram-only\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'native-wifi-ram-isolation-v19': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=native-wifi-ram-isolation-v19\n'
