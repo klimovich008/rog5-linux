@@ -8,13 +8,29 @@ builder=$repo/scripts/device/build-persistent-trial-state.sh
 source_file=$repo/tools/persistent_trial_state/rog5-persistent-trial-state.c
 artifact=$repo/artifacts/persistent-trial-state-v1/rog5-persistent-trial-state
 meta=$repo/artifacts/persistent-trial-state-v1/build-meta.txt
+qemu=$repo/artifacts/host-tools/qemu-aarch64-static
 
 fail() { echo "FAIL $*" >&2; exit 1; }
-for command in cmp file podman python3 qemu-aarch64-static sha256sum; do
+for command in cmp file python3 readelf sha256sum stat strings; do
 	command -v "$command" >/dev/null || fail "missing trial-state command: $command"
 done
 [[ -x $runner && -x $builder && -f $source_file && -x $artifact ]] ||
 	fail 'persistent trial-state build input is absent'
+(cd "$(dirname "$artifact")" && sha256sum -c SHA256SUMS)
+[[ $(stat -c '%s:%a' "$artifact") == 67520:755 ]] ||
+	fail 'persistent trial artifact metadata changed'
+grep -Fxq "source_sha256=$(sha256sum "$source_file" | awk '{print $1}')" "$meta"
+grep -Fxq "builder_sha256=$(sha256sum "$builder" | awk '{print $1}')" "$meta"
+file "$artifact" | grep -q 'ARM aarch64.*static-pie linked'
+readelf -h "$artifact" | grep -q 'Machine:.*AArch64'
+! readelf -l "$artifact" | grep -q INTERP ||
+	fail 'persistent trial artifact gained an interpreter'
+
+if [[ ! -x $qemu ]] || ! command -v podman >/dev/null; then
+	echo 'SKIP private AArch64 twin rebuild environment is unavailable'
+	echo 'PASS exact tracked AArch64 persistent trial-state artifact'
+	exit 0
+fi
 
 readarray -t image_fields < <(python3 - "$record" <<'PY'
 import json,sys
@@ -41,14 +57,8 @@ for twin in a b; do
 done
 cmp "$work/trial-a" "$work/trial-b"
 cmp "$work/trial-a" "$artifact"
-(cd "$(dirname "$artifact")" && sha256sum -c SHA256SUMS)
-[[ $(stat -c '%s:%a' "$artifact") == 67520:755 ]] ||
-	fail 'persistent trial artifact metadata changed'
-grep -Fxq "source_sha256=$(sha256sum "$source_file" | awk '{print $1}')" "$meta"
-grep -Fxq "builder_sha256=$(sha256sum "$builder" | awk '{print $1}')" "$meta"
-file "$artifact" | grep -q 'ARM aarch64.*static-pie linked'
 set +e
-qemu-aarch64-static "$artifact" >"$work/qemu.out" 2>"$work/qemu.err"
+"$qemu" "$artifact" >"$work/qemu.out" 2>"$work/qemu.err"
 status=$?
 set -e
 [[ $status -eq 1 ]] || fail 'AArch64 helper usage status changed'
