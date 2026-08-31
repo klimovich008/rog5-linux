@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Temporary, exact-board active-UFS vote. No voltage API or disable path. */
+/* Exact-board S12 re-vote diagnostic. No radio or disable path. */
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
+#include <linux/bits.h>
+#include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/err.h>
 #include <linux/errno.h>
@@ -11,15 +13,81 @@
 #include <linux/regulator/consumer.h>
 #include <linux/string.h>
 #include <soc/qcom/cmd-db.h>
+#include <soc/qcom/rpmh.h>
+
+#define S12_REVOTE_UV 1224000
+#define CONSUMER_NODE "/rog5-s12-revote"
 
 static char *action = "query";
 module_param(action, charp, 0400);
-MODULE_PARM_DESC(action, "query, mode, or held-enable (requires verified AUTO)");
+MODULE_PARM_DESC(action, "query, mode, held-enable; fixed 1224mV diagnostic");
 enum vote_action { QUERY, MODE, HELD_ENABLE };
 static enum vote_action selected_action;
 static struct regulator *s12;
 static struct platform_device *consumer;
+static struct platform_device *pmic_device;
 static bool holding;
+
+static int voltage_bounds_allowed(u32 minimum, u32 maximum)
+{
+	return minimum == S12_REVOTE_UV && maximum == S12_REVOTE_UV;
+}
+
+static int raw_state_matches(u32 voltage, u32 enabled, u32 mode,
+			     unsigned int expected_mode)
+{
+	/* Bit31 is retained in logs, not interpreted as validity or status. */
+	if ((voltage & ~(BIT(31) | 0x1fffU)) ||
+	    (enabled & ~(BIT(31) | 1U)) || (mode & ~(BIT(31) | 7U)))
+		return 0;
+	return (voltage & 0x1fffU) == S12_REVOTE_UV / 1000 &&
+		(enabled & 1U) == 1 && (mode & 7U) == expected_mode;
+}
+
+static int read_and_check(const char *phase, unsigned int expected_mode)
+{
+	u32 values[3];
+	unsigned int i, attempt;
+	int ret;
+
+	for (i = 0; i < ARRAY_SIZE(values); i++) {
+		struct tcs_cmd cmd = { .addr = 0x40100 + 4 * i };
+
+		for (attempt = 0; attempt < 5; attempt++) {
+			ret = rpmh_read(&pmic_device->dev, &cmd);
+			/* Only EAGAIN proves that no request was queued. */
+			if (ret != -EAGAIN)
+				break;
+			if (attempt < 4)
+				msleep(20);
+		}
+		if (ret) {
+			pr_err("ROG5_S12_RAW phase=%s address=%#x result=%d "
+			       "raw=unavailable\n", phase, cmd.addr, ret);
+			return ret;
+		}
+		values[i] = cmd.data;
+		pr_info("ROG5_S12_RAW phase=%s address=%#x result=0 raw=%#x\n",
+			phase, cmd.addr, cmd.data);
+	}
+	ret = raw_state_matches(values[0], values[1], values[2], expected_mode) ?
+		0 : -ERANGE;
+	pr_info("ROG5_S12_CHECK phase=%s result=%d expected_mode=%u\n",
+		phase, ret, expected_mode);
+	return ret;
+}
+
+static int finish_init_result(int ret)
+{
+	/* Module-init failure must never discard an already established hold. */
+	if (holding) {
+		if (ret)
+			pr_err("ROG5_S12_VOTE held-postcheck-failed=%d; "
+			       "hold retained until reboot\n", ret);
+		return 0;
+	}
+	return ret;
+}
 
 static int modes_allowed(unsigned int first, unsigned int second)
 {
@@ -47,6 +115,14 @@ static int apply_active_vote(void)
 	int ret;
 
 	pr_info("ROG5_S12_VOTE before cached_mode=%d action=%s\n", mode, action);
+	if (regulator_get_voltage(s12) != S12_REVOTE_UV)
+		return -ERANGE;
+	if (mode != (selected_action == HELD_ENABLE ?
+		     REGULATOR_MODE_NORMAL : REGULATOR_MODE_STANDBY))
+		return -EPERM;
+	ret = read_and_check("before", selected_action == HELD_ENABLE ? 6 : 3);
+	if (ret)
+		return ret;
 	if (selected_action == QUERY)
 		return 0;
 	if (selected_action == MODE) {
@@ -54,13 +130,12 @@ static int apply_active_vote(void)
 		pr_info("ROG5_S12_VOTE mode-return result=%d\n", ret);
 		if (ret)
 			return ret;
-		return (int)regulator_get_mode(s12) == REGULATOR_MODE_NORMAL ?
-			0 : -EIO;
+		if ((int)regulator_get_mode(s12) != REGULATOR_MODE_NORMAL)
+			return -EIO;
+		return read_and_check("after", 6);
 	}
 
 	/* This is a distinct later action, never an automatic mode retry. */
-	if (mode != REGULATOR_MODE_NORMAL)
-		return -EPERM;
 	pr_info("ROG5_S12_VOTE hold-enter\n");
 	ret = regulator_enable(s12);
 	pr_info("ROG5_S12_VOTE hold-return result=%d\n", ret);
@@ -71,14 +146,15 @@ static int apply_active_vote(void)
 	 */
 	holding = true;
 	__module_get(THIS_MODULE);
-	return 0;
+	return read_and_check("after", 6);
 }
 
 static int __init s12_vote_init(void)
 {
-	struct device_node *pmu, *rail, *supply, *parent_supply = NULL;
+	struct device_node *pmu, *rail, *supply, *pcie;
+	struct device_node *parent_supply = NULL;
 	const char *pmic;
-	u32 modes[2], minimum, maximum, initial;
+	u32 modes[2], minimum, maximum, initial, drv_id;
 	int ret = -ENODEV;
 
 	if (!action)
@@ -94,11 +170,13 @@ static int __init s12_vote_init(void)
 	pr_info("ROG5_S12_VOTE action=%s identity-check\n", action);
 	if (!of_machine_is_compatible("asus,rog-phone5"))
 		return -ENODEV;
-	pmu = of_find_node_by_path("/wcn6855-pmu");
+	pmu = of_find_node_by_path(CONSUMER_NODE);
 	rail = of_find_node_by_path("/soc@0/rsc@18200000/regulators-0/smps12");
+	pcie = of_find_node_by_path("/soc@0/pcie@1c00000");
 	supply = pmu ? of_parse_phandle(pmu, "vddpmu-supply", 0) : NULL;
-	if (!pmu || !rail || supply != rail ||
-	    !of_device_is_compatible(pmu, "qcom,wcn6855-pmu") ||
+	if (!pmu || !rail || supply != rail || !pcie ||
+	    of_device_is_available(pcie) ||
+	    !of_device_is_compatible(pmu, "rog5,s12-revote-diagnostic") ||
 	    !of_device_is_compatible(rail->parent, "qcom,pm8350-rpmh-regulators") ||
 	    of_property_read_string(rail->parent, "qcom,pmic-id", &pmic) ||
 	    strcmp(pmic, "b") || cmd_db_read_addr("smpb12") != 0x40100 ||
@@ -108,7 +186,18 @@ static int __init s12_vote_init(void)
 	    of_property_read_u32(rail, "regulator-initial-mode", &initial) || initial ||
 	    of_property_read_u32(rail, "regulator-min-microvolt", &minimum) ||
 	    of_property_read_u32(rail, "regulator-max-microvolt", &maximum) ||
-	    minimum != 1350000 || maximum != 1352000)
+	    !voltage_bounds_allowed(minimum, maximum) ||
+	    of_property_read_bool(rail, "regulator-always-on") ||
+	    of_property_read_bool(rail, "regulator-boot-on"))
+		goto put_nodes;
+	pmic_device = of_find_device_by_node(rail->parent);
+	if (!pmic_device || !pmic_device->dev.driver ||
+	    !pmic_device->dev.parent ||
+	    !of_device_is_compatible(dev_of_node(pmic_device->dev.parent),
+				     "qcom,rpmh-rsc") ||
+	    of_property_read_u32(dev_of_node(pmic_device->dev.parent),
+				 "qcom,drv-id", &drv_id) || drv_id != 2 ||
+	    !dev_get_drvdata(pmic_device->dev.parent))
 		goto put_nodes;
 	parent_supply = of_parse_phandle(rail->parent, "vdd-s12-supply", 0);
 	if (!parent_supply ||
@@ -147,11 +236,16 @@ put_consumer:
 		consumer = NULL;
 	}
 put_nodes:
+	if (pmic_device) {
+		put_device(&pmic_device->dev);
+		pmic_device = NULL;
+	}
+	of_node_put(pcie);
 	of_node_put(parent_supply);
 	of_node_put(supply);
 	of_node_put(rail);
 	of_node_put(pmu);
-	return ret;
+	return finish_init_result(ret);
 }
 
 static void __exit s12_vote_exit(void)
@@ -166,4 +260,4 @@ static void __exit s12_vote_exit(void)
 module_init(s12_vote_init);
 module_exit(s12_vote_exit);
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("ROG5 exact S12 mode-only probe and protected active vote");
+MODULE_DESCRIPTION("ROG5 read-gated 1224mV S12 re-vote and protected hold");
