@@ -163,6 +163,7 @@ active_tests=(
 	scripts/device/test-network-root-pdr-override.sh
 	scripts/device/test-persistent-slotb-loader.sh
 	scripts/device/test-persistent-slotb-recovery-loader.sh
+	scripts/host/test-persistent-trial-state.py
 	scripts/device/test-stage-persistent-service-state.sh
 	scripts/device/test-persistent-service-state-runtime.sh
 	scripts/device/test-persistent-tailscale-runtime.sh
