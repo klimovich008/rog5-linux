@@ -101,13 +101,17 @@ battery/charging status. It sleeps for 30 seconds while off and refreshes once
 per second while visible. It deliberately exposes no SSID or MAC and starts no
 desktop or GPU process.
 
-Physical pixels remain a separate kernel/DT gate. The accepted kernel already
-contains DRM/MSM/DPU/DSI, fbdev emulation, VT console, and PMK8350 power-key
-support, but the accepted DT disables MDSS, DSI, both DSI PHYs, and contains no
-panel/bridge node. The WW33 reference identifies an AMS678 ER2 1080x2448
-command-mode DSC OLED behind a Pixelworks Iris/i6 processor. Do not enable it
-with guessed commands; derive a 60 Hz-only initial path from the retained WW33
-description and add the minimum panel/bridge implementation first.
+Physical pixels remain a separate live gate. The offline display baseline now
+builds Linux `7.1.4-rog5-display60-v1` with a minimal AMS678 ER2 DSC panel
+driver, fail-closed Pixelworks Iris6 analog-bypass transaction, and one 60 Hz
+mode. Its exact DT delta enables only the required display blocks, L12/L13
+rails, panel GPIOs, and DSI0 graph. Focused driver, binding, DT, and status
+userspace tests pass; no phone candidate has been issued or booted. See
+`test-results/2026-09-01-display-60hz-offline.md`.
+
+The next hardware question is whether that exact RAM-only kernel/DT registers
+DRM/DSI/panel safely and exposes the text console while retaining V11 fallback.
+Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
 The preexisting runtime package-keyring WKD parser failure is unrelated to
 Wi-Fi, charging, or display and remains a separate userspace repair.

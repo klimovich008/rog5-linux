@@ -35,7 +35,8 @@ for contract in \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
 	'test-results/2026-09-01-native-wifi-v29.md' \
-	'Physical pixels remain a separate kernel/DT gate' \
+	'Physical pixels remain a separate live gate' \
+	'test-results/2026-09-01-display-60hz-offline.md' \
 	'Do not rebuild or reflash `super`' \
 	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
 	'test-results/2026-08-30-persistent-tailscale-v11-live.md'

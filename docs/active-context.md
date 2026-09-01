@@ -43,27 +43,28 @@ The power-key-toggled text status screen uses one compact userspace path:
 - one-second refresh only while on and a 30-second sleep while off;
 - no SSID, MAC, desktop, compositor, GPU, or block-device access.
 
-This is offline userspace readiness, not physical display acceptance.
+This remains offline readiness, not physical display acceptance.
 
-The accepted kernel already enables DRM/MSM/DPU/DSI, fbdev emulation, VT, and
-PMK8350 power-key input. The accepted DT intentionally disables MDSS, both DSI
-controllers, both DSI PHYs, and has no panel/bridge node. Retained WW33 data
-identifies the panel as Samsung AMS678 ER2, 1080x2448 command mode with DSC and
-60/90/120/144 profiles behind Pixelworks Iris/i6. Current upstream has no exact
-AMS678 or Iris/i6 bridge driver.
+The display baseline now builds as `7.1.4-rog5-display60-v1`. It contains one
+AMS678 ER2 60 Hz DSC mode and requires a proved Pixelworks Iris6 analog-bypass
+GPIO state before transmitting panel commands. The exact DT delta enables only
+DSI0, its PHY, MDSS/DPU, L12/L13, the reviewed GPIOs, and the panel graph. The
+candidate DT SHA-256 is
+`1806104ab0efa1a80cc1c55f81e236f8f9f8cde055c6cb2dad3cea303869ba96`.
+No display candidate has been issued or booted.
 
 ## Next actions
 
-1. Finish focused and active-tier validation of the status-screen userspace and
-   publish the checkpoint.
-2. Extract only the WW33 60 Hz panel mode, reset/power GPIOs, supplies, DCS
-   command sequence, DSC parameters, and Iris analog-bypass requirements.
-3. Implement the smallest panel plus bridge/bypass source and DT delta. Keep
-   90/120/144 Hz disabled until 60 Hz on/off is stable.
-4. Run offline DT graph, regulator, GPIO, command-sequence, and driver tests.
-5. Use one RAM-only phone cycle first to prove DRM/DSI/panel registration and
-   safe fallback; only a later cycle should test visible status and power-key
-   blank/unblank.
+1. Freeze the display source and run the active tier plus one full local CI.
+2. Publish the coherent source checkpoint and verify exact-head CI.
+3. Compose one signed RAM-only target from the exact kernel, matching modules,
+   DTB, and status userspace; keep screen off by default.
+4. Use one live cycle to answer whether DRM/DSI/panel initializes, exposes the
+   text console, and returns to V11 fallback. Collect adjacent charging, Wi-Fi,
+   storage-isolation, and display dmesg evidence without making optional fields
+   fatal.
+5. Test repeated power-key blank/unblank only after safe panel registration is
+   proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
 
 ## Boundaries
 

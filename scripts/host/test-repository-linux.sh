@@ -173,6 +173,8 @@ active_tests=(
 	scripts/device/test-standalone-module-refresh.sh
 	scripts/device/test-native-wifi-module-kit.sh
 	scripts/device/test-native-wifi-dtb.py
+	scripts/device/test-ams678-panel-patch.sh
+	scripts/device/test-display-60hz-candidate-dtb.sh
 	scripts/device/test-screen-toggle.sh
 	scripts/device/test-power-buttond.sh
 	scripts/device/test-status-screen.sh
