@@ -1,9 +1,7 @@
 [Unit]
 Description=Publish one bounded post-switch ROG5 display observation
 DefaultDependencies=no
-Requires=rog5-p2-ready.service
-After=rog5-p2-ready.service
-Before=shutdown.target
+Before=basic.target shutdown.target
 Conflicts=shutdown.target
 
 [Service]
@@ -12,4 +10,4 @@ ExecStart=/run/rog5-native-wifi/display-post-switch-report send
 TimeoutStartSec=90s
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=sysinit.target

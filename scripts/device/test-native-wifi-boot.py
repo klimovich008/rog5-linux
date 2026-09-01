@@ -114,8 +114,12 @@ class AutomaticWifi(unittest.TestCase):
             self.assertFalse((units/'rog5-wifi-radio.service').exists())
             self.assertFalse((units/'rog5-persistent-state.service.d').exists())
             self.assertTrue(
-                (units/'multi-user.target.wants/'
+                (units/'sysinit.target.wants/'
                  'rog5-display-post-switch.service').is_symlink()
+            )
+            self.assertFalse(
+                (units/'multi-user.target.wants/'
+                 'rog5-display-post-switch.service').exists()
             )
             self.assertEqual(
                 (nm/'10-rog5-p2.conf').read_text(),

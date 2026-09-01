@@ -134,9 +134,9 @@ install_units() {
 			return 1
 		cp -p "$root/units/rog5-display-post-switch.service" \
 			"$units/rog5-display-post-switch.service" || return 1
-		mkdir -p "$units/multi-user.target.wants" || return 1
+		mkdir -p "$units/sysinit.target.wants" || return 1
 		ln -s ../rog5-display-post-switch.service \
-			"$units/multi-user.target.wants/rog5-display-post-switch.service" ||
+			"$units/sysinit.target.wants/rog5-display-post-switch.service" ||
 			return 1
 		printf '%s\n' '[keyfile]' 'unmanaged-devices=interface-name:usb0' \
 			>/run/NetworkManager/conf.d/10-rog5-p2.conf
