@@ -183,12 +183,13 @@ class AutomaticWifi(unittest.TestCase):
         self.assertNotIn('record=$root/healthy\n', healthy)
         commit = healthy.index('"$helper" healthy')
         stop = healthy.index(
-            'systemctl --job-mode=ignore-dependencies stop '
-            'rog5-wifi-boot-rollback.timer'
+            'systemctl --job-mode=ignore-dependencies stop "$rollback_timer"'
         )
         record = healthy.index('format=rog5-native-wifi-healthy-v1')
         self.assertLess(commit, stop)
         self.assertLess(stop, record)
+        self.assertIn('rog5-wifi-probe-rollback.timer', healthy)
+        self.assertIn('rog5-wifi-boot-rollback.timer', healthy)
         for guard in ('primary bundle is not running', 'healthy startup deadline',
                       '117:2', '/sys/class/block/sda/sda24/ro',
                       'qcom-battmgr-usb/online'):

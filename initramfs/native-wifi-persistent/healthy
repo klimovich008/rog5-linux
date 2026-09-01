@@ -63,10 +63,13 @@ done
 [ "$ready" -eq 1 ] || fail 'healthy startup deadline'
 result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
 case $result in healthy|already-healthy) ;; *) fail 'trial commit result' ;; esac
-systemctl --job-mode=ignore-dependencies stop rog5-wifi-boot-rollback.timer ||
-	fail 'rollback timer stop'
-! systemctl is-active --quiet rog5-wifi-boot-rollback.timer ||
-	fail 'rollback timer remains active'
+for rollback_timer in rog5-wifi-probe-rollback.timer \
+	rog5-wifi-boot-rollback.timer; do
+	systemctl --job-mode=ignore-dependencies stop "$rollback_timer" ||
+		fail "rollback timer stop: $rollback_timer"
+	! systemctl is-active --quiet "$rollback_timer" ||
+		fail "rollback timer remains active: $rollback_timer"
+done
 [ ! -e "$record" ] && [ ! -L "$record" ] || fail 'healthy record exists'
 umask 077
 printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \

@@ -15,10 +15,11 @@ PRIMARY = 'persistent-native-root-wifi'
 
 class PersistentWifiHealthy(unittest.TestCase):
     def test_timer_disarm_ignores_required_unit_stop_propagation(self):
+        self.assertIn('rog5-wifi-probe-rollback.timer', SOURCE)
+        self.assertIn('rog5-wifi-boot-rollback.timer', SOURCE)
         self.assertIn(
-            'systemctl --job-mode=ignore-dependencies stop '
-            'rog5-wifi-boot-rollback.timer',
-            SOURCE.replace('\\\n\t', ' '),
+            'systemctl --job-mode=ignore-dependencies stop "$rollback_timer"',
+            SOURCE,
         )
 
     def fixture(self, mutation=None):
@@ -71,12 +72,24 @@ class PersistentWifiHealthy(unittest.TestCase):
             'id() { echo 0; }\n'
             'stat() { if [ "$3" = "$selector" ]; then echo 0:0:444:1; '
             'else command stat "$@"; fi; }\n'
-            'timer_active=1\n'
+            'probe_timer_active=1\n'
+            'boot_timer_active=1\n'
             'systemctl() {\n'
             ' if [ "$1:$2" = --job-mode=ignore-dependencies:stop ]; then '
-            'timer_active=0; return 0; fi\n'
+            '  case "$3" in\n'
+            '   rog5-wifi-probe-rollback.timer) probe_timer_active=0 ;;\n'
+            '   rog5-wifi-boot-rollback.timer) boot_timer_active=0 ;;\n'
+            '   *) return 2 ;;\n'
+            '  esac\n'
+            '  return 0\n'
+            ' fi\n'
             ' if [ "$1:$2" = is-active:--quiet ]; then\n'
-            '  [ "$3:$timer_active" != rog5-wifi-boot-rollback.timer:0 ]; return\n'
+            '  case "$3" in\n'
+            '   rog5-wifi-probe-rollback.timer) [ "$probe_timer_active" = 1 ] ;;\n'
+            '   rog5-wifi-boot-rollback.timer) [ "$boot_timer_active" = 1 ] ;;\n'
+            '   *) return 0 ;;\n'
+            '  esac\n'
+            '  return\n'
             ' fi\n return 2\n}\n'
             'ip() { case "$*" in\n'
             ' "-4 -o address show dev wlan0 scope global") '
