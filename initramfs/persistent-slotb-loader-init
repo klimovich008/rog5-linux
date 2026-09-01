@@ -26,6 +26,19 @@ primary_bundle=
 primary_manifest_hash=
 fallback_bundle=
 fallback_manifest_hash=
+loader_mode=standalone
+
+case $# in
+	0) ;;
+	1)
+		[ "$1" = existing-recovery ] || {
+			echo 'FAIL invalid slot-B loader mode' >&2
+			exit 1
+		}
+		loader_mode=existing-recovery
+		;;
+	*) echo 'FAIL slot-B loader accepts at most one mode' >&2; exit 1 ;;
+esac
 
 log() { echo "rog5-slotb-loader: $*" >/dev/kmsg 2>/dev/null || true; }
 
@@ -119,34 +132,48 @@ fail() {
 	set_stage terminal FAIL "$1"
 	log "FAIL $1"
 	sleep 1
+	[ "$loader_mode" = standalone ] || exit 1
 	return_bootloader
 }
 trap 'fail interrupted' HUP INT TERM
 
-mount -t proc proc /proc 2>/dev/null || true
-mount -t sysfs sysfs /sys 2>/dev/null || true
-mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
-mkdir -p /dev/pts /run "$target_mount"
-mount -t devpts devpts /dev/pts 2>/dev/null || true
-mount -t tmpfs -o mode=0755,nodev,nosuid tmpfs /run 2>/dev/null || true
-echo /sbin/mdev >/proc/sys/kernel/hotplug
-mdev -s
+if [ "$loader_mode" = standalone ]; then
+	mount -t proc proc /proc 2>/dev/null || true
+	mount -t sysfs sysfs /sys 2>/dev/null || true
+	mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+	mkdir -p /dev/pts /run "$target_mount"
+	mount -t devpts devpts /dev/pts 2>/dev/null || true
+	mount -t tmpfs -o mode=0755,nodev,nosuid tmpfs /run 2>/dev/null || true
+	echo /sbin/mdev >/proc/sys/kernel/hotplug
+	mdev -s
 
-set_stage S00 PASS init
-configure_loader_usb || fail usb_setup
-report_stage &
-reporter_pid=$!
-sleep 1
-set_stage S10 PASS usb_ready
+	set_stage S00 PASS init
+	configure_loader_usb || fail usb_setup
+	report_stage &
+	reporter_pid=$!
+	sleep 1
+	set_stage S10 PASS usb_ready
 
-(
-	sleep "$watchdog_seconds"
-	log 'loader watchdog expired'
-	"$reboot_helper" >/dev/null 2>&1 &
-	sleep 3
-	printf b >/proc/sysrq-trigger 2>/dev/null || true
-) &
-watchdog_pid=$!
+	(
+		sleep "$watchdog_seconds"
+		log 'loader watchdog expired'
+		"$reboot_helper" >/dev/null 2>&1 &
+		sleep 3
+		printf b >/proc/sysrq-trigger 2>/dev/null || true
+	) &
+	watchdog_pid=$!
+else
+	[ "$(cat /etc/rog5/recovery-mode)" = persistent-slotb-loader-v1 ] ||
+		fail recovery_mode
+	[ -c /dev/ttyGS0 ] || fail recovery_transport
+	[ "$(stat -c '%u:%g:%a:%h' "$bundle_root")" = 0:0:700:2 ] ||
+		fail bundle_root
+	mkdir -p "$target_mount"
+	set_stage S10 PASS recovery_ready
+	report_stage &
+	reporter_pid=$!
+	watchdog_pid=
+fi
 
 resolve_storage() {
 	matches=0
@@ -374,7 +401,12 @@ set_stage S30 PASS root_mounted
 read_selector || fail selector
 set_stage S40 PASS selector_verified
 
-mkdir -m 0700 "$bundle_root"
+if [ "$loader_mode" = standalone ]; then
+	mkdir -m 0700 "$bundle_root"
+else
+	[ "$(stat -c '%u:%g:%a:%h' "$bundle_root")" = 0:0:700:2 ] ||
+		fail bundle_root_changed
+fi
 case $selector_format in
 format=rog5-slotb-selector-v1)
 	copy_bundle "$bundle" || fail bundle_copy
@@ -421,7 +453,8 @@ set_stage S70 PASS kexec_loaded
 disable_haven_watchdog || fail haven_watchdog
 set_stage S80 PASS haven_disabled
 log "executing signed local bundle $bundle"
-kill "$watchdog_pid" 2>/dev/null || true
+[ "$loader_mode" = existing-recovery ] ||
+	kill "$watchdog_pid" 2>/dev/null || true
 set_stage S90 PASS execute
 sleep 0.5
 /usr/sbin/kexec -e

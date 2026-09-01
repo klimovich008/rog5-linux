@@ -7,7 +7,10 @@ executor=${3:?missing local loader executor}
 output=${4:?missing output}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
+selector_loader=$repo/initramfs/persistent-slotb-loader-init
+trial_helper=$repo/artifacts/persistent-trial-state-v1/rog5-persistent-trial-state
 expected_base=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
+expected_trial_helper=ff6ede42d089a6a651db320a007947091029aca504500227e0c51bed6792f3ca
 epoch=1681862400
 
 fail() { echo "FAIL $*" >&2; exit 1; }
@@ -16,11 +19,16 @@ for command in chmod clang cmp cpio cut dirname find grep gzip install \
 	mkdir mktemp mv readelf rm sha256sum sort stat touch; do
 	command -v "$command" >/dev/null || fail "missing local-loader build command: $command"
 done
-for input in "$base" "$init" "$executor" "$reboot_source"; do
+for input in "$base" "$init" "$executor" "$selector_loader" "$trial_helper" \
+	"$reboot_source"; do
 	[ -f "$input" ] && [ -r "$input" ] && [ ! -L "$input" ] ||
 		fail "unsafe local-loader input: $(basename "$input")"
 done
 [ -x "$init" ] && [ -x "$executor" ] || fail 'init and executor must be executable'
+[ -x "$selector_loader" ] && [ -x "$trial_helper" ] ||
+	fail 'selector loader and trial helper must be executable'
+[ "$(sha256sum "$trial_helper" | cut -d ' ' -f 1)" = \
+	"$expected_trial_helper" ] || fail 'persistent trial helper identity changed'
 [ ! -e "$output" ] && [ ! -L "$output" ] || fail 'local-loader output already exists'
 [ "$(sha256sum "$base" | cut -d ' ' -f 1)" = "$expected_base" ] ||
 	fail 'unexpected live-proven recovery archive'
@@ -53,6 +61,8 @@ chmod 0644 "$stage/etc/rog5/recovery-mode"
 printf '%s\n' persistent-slotb-loader-v1 >"$stage/etc/rog5/recovery-mode"
 chmod 0444 "$stage/etc/rog5/recovery-mode"
 install -m 0755 "$executor" "$stage/usr/libexec/rog5-persistent-slotb-local-loader"
+install -m 0755 "$selector_loader" "$stage/usr/libexec/rog5-selector-v2-loader"
+install -m 0755 "$trial_helper" "$stage/usr/libexec/rog5-persistent-trial-state"
 
 clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
 	-fno-builtin -Wall -Wextra -Werror -fno-pic -fno-pie \
@@ -64,6 +74,8 @@ readelf -h "$stage/usr/libexec/rog5-reboot-bootloader" |
 
 cmp "$stage/init" "$init"
 cmp "$stage/usr/libexec/rog5-persistent-slotb-local-loader" "$executor"
+cmp "$stage/usr/libexec/rog5-selector-v2-loader" "$selector_loader"
+cmp "$stage/usr/libexec/rog5-persistent-trial-state" "$trial_helper"
 [ "$(cat "$stage/etc/rog5/recovery-mode")" = persistent-slotb-loader-v1 ]
 [ ! -e "$stage/usr/libexec/rog5-recovery-control" ]
 [ ! -e "$stage/usr/libexec/rog5-bundle-fetch" ]
