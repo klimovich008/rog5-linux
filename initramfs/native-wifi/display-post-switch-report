@@ -10,6 +10,7 @@ proc_root=${ROG5_OBSERVER_PROC_ROOT:-/proc}
 dev_root=${ROG5_OBSERVER_DEV_ROOT:-/dev}
 run_root=${ROG5_OBSERVER_RUN_ROOT:-/run}
 target_root=${ROG5_OBSERVER_TARGET_ROOT:-}
+unit_root=${ROG5_OBSERVER_UNIT_ROOT:-$target_root/run/systemd/system}
 settle_seconds=${ROG5_OBSERVER_SETTLE_SECONDS:-20}
 busybox=${ROG5_OBSERVER_BUSYBOX:-/run/initramfs/bin/busybox}
 dmesg_command=${ROG5_OBSERVER_DMESG:-dmesg}
@@ -174,8 +175,8 @@ observe_status_screen() {
 		[ -x "$path" ] && present=$((present + 1))
 	done
 	for path in \
-		"$target_root/run/systemd/system/rog5-status-screen.service" \
-		"$target_root/run/systemd/system/rog5-power-button.service"; do
+		"$unit_root/rog5-status-screen.service" \
+		"$unit_root/rog5-power-button.service"; do
 		[ -f "$path" ] && [ ! -L "$path" ] &&
 			present=$((present + 1))
 	done
@@ -272,6 +273,7 @@ for root in "$sys_root" "$proc_root" "$dev_root" "$run_root"; do
 	valid_root "$root" || fail 'observer root is invalid'
 done
 case $target_root in '') ;; *) valid_root "$target_root" || fail 'target root is invalid' ;; esac
+valid_root "$unit_root" || fail 'unit root is invalid'
 case $settle_seconds in ''|*[!0-9]*) fail 'settle time is invalid' ;; esac
 [ "$settle_seconds" -le 60 ] || fail 'settle time exceeds policy'
 [ "$#" -eq 1 ] || fail 'usage: display-post-switch-report record | send'

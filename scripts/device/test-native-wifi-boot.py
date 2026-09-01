@@ -87,12 +87,8 @@ class AutomaticWifi(unittest.TestCase):
                 'rog5-wifi-boot-rollback.service',
                 'rog5-wifi-boot-rollback.timer',
                 'before-ssh.conf',
-                'rog5-display-post-switch.service',
             ):
                 (source_units/name).write_text(name)
-            reporter = payload/'display-post-switch-report'
-            reporter.write_text('#!/bin/sh\nexit 0\n')
-            reporter.chmod(0o755)
             marker = payload/'display-diagnostic'
             marker.write_text('rog5-display-diagnostic-v1\n')
             marker.chmod(0o444)
@@ -113,12 +109,8 @@ class AutomaticWifi(unittest.TestCase):
             )
             self.assertFalse((units/'rog5-wifi-radio.service').exists())
             self.assertFalse((units/'rog5-persistent-state.service.d').exists())
-            self.assertTrue(
-                (units/'sysinit.target.wants/'
-                 'rog5-display-post-switch.service').is_symlink()
-            )
             self.assertFalse(
-                (units/'multi-user.target.wants/'
+                (units/'sysinit.target.wants/'
                  'rog5-display-post-switch.service').exists()
             )
             self.assertEqual(
@@ -144,20 +136,18 @@ class AutomaticWifi(unittest.TestCase):
             int(timing['outer_seconds']) + int(timing['cleanup_seconds']) + 30,
         )
 
-    def test_display_observer_returns_before_persistent_state_can_start(self):
-        unit = (
-            R/'initramfs/native-wifi/units/rog5-display-post-switch.service'
-        ).read_text()
-        self.assertIn(
-            'Before=rog5-persistent-state.service basic.target shutdown.target',
-            unit,
-        )
-        self.assertLess(
-            unit.index('ExecStart=/run/rog5-native-wifi/'
-                       'display-post-switch-report send'),
-            unit.index('ExecStartPost=/usr/bin/systemctl --no-block reboot'),
-        )
-        self.assertNotIn('OnFailure=', unit)
+    def test_display_observer_runs_before_switch_root_and_persistent_state(self):
+        init = (R/'initramfs/persistent-root-init').read_text()
+        function_body = function(init, 'run_pre_switch_display_observer')
+        self.assertIn('ROG5_OBSERVER_TARGET_ROOT=/newroot', function_body)
+        self.assertIn('"$reporter" send', function_body)
+        self.assertIn('/bin/busybox reboot -f', function_body)
+        self.assertNotIn('/dev/sda', function_body)
+        final_storage = init.index('publish_or_rollback final-storage PASS')
+        observer = init.index('\nrun_pre_switch_display_observer\n', final_storage)
+        switch_root = init.index('publish_or_rollback switch-root ENTER', observer)
+        self.assertLess(final_storage, observer)
+        self.assertLess(observer, switch_root)
 
     def test_persistent_trial_selector_and_healthy_commit_are_exact(self):
         spec = importlib.util.spec_from_file_location(

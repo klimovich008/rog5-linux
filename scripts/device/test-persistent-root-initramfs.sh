@@ -588,12 +588,18 @@ grep -Fq '/oldsys/root-ro' "$shutdown"
 grep -Fq '/oldsys/state' "$shutdown"
 grep -Fq 'losetup -d "$loop_device"' "$shutdown"
 
+sanitized_init=$(mktemp)
+display_reboot=$(printf '\t/bin/busybox reboot -f || true')
+grep -Fvx "$display_reboot" "$init" >"$sanitized_init"
+[ "$(grep -Fxc "$display_reboot" "$init")" -eq 1 ] ||
+	fail 'P2 target does not expose exactly one reviewed pre-switch display reboot'
 if grep -Eq \
 	'(^|[[:space:]])(fsck|e2fsck|tune2fs|mkfs|blkdiscard|reboot|poweroff|halt)([[:space:]]|$)|mount[[:space:]].*-o[[:space:]]+rw.*(/dev/|userdata)' \
-	"$init" "$attest" "$shutdown"
+	"$sanitized_init" "$attest" "$shutdown"
 then
 	fail 'P2 target exposes an unreviewed repair, selector, or shutdown path'
 fi
+rm -f -- "$sanitized_init"
 if grep -Eq \
 	'(touch|install|mv|cp|ln|mkdir|printf|echo).*state/(good|next)|>[[:space:]]*[^[:space:]]*state/(good|next)' \
 	"$init" "$attest" "$shutdown"

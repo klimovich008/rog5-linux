@@ -118,12 +118,12 @@ alive on NCM but never replaced its early SSH host key; strict SSH withheld
 display evidence until the 900-second rollback. V1-V5 are consumed. See
 `test-results/2026-09-01-display60-v5-ssh-boundary.md`.
 
-V6 lost evidence to a host-profile race but returned to V11. V7 fixed that race
-and target `93780831-4e9a-4721-8e0f-19be97cdfcc0` reached `switch-root PASS`;
-its multi-user observer never started within 180 seconds. The target later lost
-NCM and did not return before the 1,020-second parent deadline. One exact host
-USB reset removed the stale gadget; no trusted USB mode has returned. V6/V7 are
-consumed. See `test-results/2026-09-01-display60-v7-observer-ordering.md`.
+V6 lost evidence to a host-profile race. V7 and V9 fixed host capture and both
+reached `switch-root PASS`, but neither systemd observer emitted a record. V9
+returned to fresh V11 `87070bfc-6b14-4dcc-87aa-5c7d9034d059`; V6/V7/V9 are
+consumed and V8 was never issued. The post-switch design is retired: display
+evidence now runs after final read-only verification but before `switch_root`,
+then reboots directly. See `test-results/2026-09-01-display60-v9-systemd.md`.
 
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
