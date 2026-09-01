@@ -13,6 +13,27 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'native-display60-ram-v2': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=native-display60-ram-v2\n'
+        b'candidate=persistent-native-root-display60-v2\n'
+        b'manifest_sha256=a0ae7a44d409c14afe6fc6b5e56467b8a69a32d04dce53edf55cc9fb46a727d3\n'
+        b'tools_manifest_sha256=355b948a36a3be9fdcad7706652e557000c011e347e65d16016fac5155acc123\n'
+        b'image_sha256=c2d3f90dc501451b204789820c7eaa873766ff8c573d4cf583081f5ed9b60d09\n'
+        b'dtb_sha256=1806104ab0efa1a80cc1c55f81e236f8f9f8cde055c6cb2dad3cea303869ba96\n'
+        b'initramfs_sha256=e14a2e62c24644f8ce3790a351a91d8314f5bb8d6d05854dca667ed2dd8bdab1\n'
+        b'plan_sha256=0494820e824afd3dab18dbdc68116fc1844cbfca063bcc079fd92caed85d24cc\n'
+        b'controller_sha256=478b55c5334be0c357bc136ad65803ce537c5a3af9b6498f03ff62a8d39d8948\n'
+        b'stager_sha256=a9577593971ed6d39e979a10819ac3daaf9cc13ce148210246ba19f8df6f75e8\n'
+        b'stage_collector_sha256=4566cd5df64f92c2bd48e572ffbaa18d54a98e47e02954bb85dda65b701982fe\n'
+        b'source_collector_sha256=2739712fb70c7e4c4de0d04bcce55b1218b77bcf2ef599e1d83643559636ab13\n'
+        b'management_helper_sha256=571dc2d7ffebfe11c34e2ec96e691d34e1737550c60d61d005b35eec25a4e6f2\n'
+        b'source_acm_helper_sha256=0db0604302162a7c4c4ad0e734c42ba9be339ef7fde9e30b873518f65c4e2138\n'
+        b'loader_helper_sha256=e7e6eff86261b641c855eaf5e2e33d820c7bbcc65668cef8ae51a8d27264fee2\n'
+        b'transaction_helper_sha256=c41a43f7e32954283acbd728ccadc5b221917b2ecd824f1ea7a33c9229fe93c4\n'
+        b'execution=mainline-kexec-ram-only\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'native-display60-ram-v1': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=native-display60-ram-v1\n'
