@@ -136,16 +136,29 @@ class PersistentTrialState(unittest.TestCase):
         self.assertFalse(self.record.exists())
         self.assertEqual(temporary.read_text(), "stale\n")
 
-    def test_concurrent_healthy_commit_has_one_writer(self):
+    def test_concurrent_healthy_commit_is_durable_and_at_most_once(self):
         self.command()
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             results = list(pool.map(lambda _: self.command("healthy", check=False), range(8)))
         successes = [result for result in results if result.returncode == 0]
+        failures = [result for result in results if result.returncode != 0]
         self.assertGreaterEqual(len(successes), 1)
         self.assertTrue(all(result.stdout in ("healthy\n", "already-healthy\n")
                             for result in successes))
-        self.assertEqual(sum(result.stdout == "healthy\n" for result in successes), 1)
+        self.assertLessEqual(
+            sum(result.stdout == "healthy\n" for result in successes), 1,
+        )
+        allowed = {
+            "FAIL persistent trial state: concurrent trial record operation\n",
+            "FAIL persistent trial state: trial record pathname changed\n",
+        }
+        self.assertTrue(all(not result.stdout and result.stderr in allowed
+                            for result in failures))
+        self.assertTrue(any(result.stdout == "already-healthy\n"
+                            for result in successes))
         self.assertTrue(self.record.read_text().endswith("state=healthy\n"))
+        self.assertEqual(stat.S_IMODE(self.record.stat().st_mode), 0o600)
+        self.assertEqual(self.record.stat().st_nlink, 1)
 
     def test_argument_language_is_bounded(self):
         cases = (
