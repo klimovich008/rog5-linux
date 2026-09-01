@@ -13,6 +13,21 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'native-wifi-ram-stage-v26': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=native-wifi-ram-stage-v26\n'
+        b'candidate=persistent-native-root-wifi-failure-v25\n'
+        b'manifest_sha256=596fb9288f38cb56c48d3698bd3b70e549e9fb227ece7aa645a0fafa99ca321e\n'
+        b'tools_manifest_sha256=355b948a36a3be9fdcad7706652e557000c011e347e65d16016fac5155acc123\n'
+        b'automatic_initramfs_sha256=edc4b3fa28bfbdbb45f9743c0b2fe8915b546a77e4f81e204e4ad0df9f26bdd8\n'
+        b'plan_sha256=e78f3f55c5e5579f7c121af0eb887854cd309f592190caca2e42c2d0a8dfc821\n'
+        b'controller_sha256=788b5f3122c97b8c8960d931b89245859232ce580019cb528cdc8698624c87ba\n'
+        b'stage_collector_sha256=f3fffbb206cfc3769dc86cd88f515655e754fc9aa3dddaec5844f539ca9afc94\n'
+        b'management_helper_sha256=571dc2d7ffebfe11c34e2ec96e691d34e1737550c60d61d005b35eec25a4e6f2\n'
+        b'loader_helper_sha256=bd9341e3ed294ac7eb23d5319673bc4860144b66a82c2834e7e13a90b4a4bcf8\n'
+        b'execution=mainline-kexec-ram-only\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'native-wifi-ram-failure-v25': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=native-wifi-ram-failure-v25\n'
