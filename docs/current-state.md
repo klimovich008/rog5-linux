@@ -87,13 +87,13 @@ evidence.
 
 ## Immediate next gate
 
-V29 proved the repaired source-to-target lifecycle and the current native Wi-Fi
-stack. Source exitrd emitted `native-kexec enter`; target boot
-`54a5e437-9a04-402a-b14e-01dbcb8a3b5d` reached `switch-root PASS`; systemd was
-running; `wlp1s0` had carrier and DHCP; radio, WPA, and DHCP units were active;
-and fallback boot `f70ba888-af07-492c-920d-75fef09313b5` restored V11. V29 is
-consumed and must never be retried. See
-`test-results/2026-09-01-native-wifi-v29.md`.
+V29 proved native Wi-Fi, systemd, DHCP, charging, storage isolation and fallback
+on boot `54a5e437-9a04-402a-b14e-01dbcb8a3b5d`; it is consumed. The installed
+boot_b still supports selector v1 only. Its selector-v2 successor reproduced the
+reviewed `8adfa164…` ramdisk and passed two RAM-only boots with distinct AVB
+identities, each preserving selector-v1 and returning fresh strict-SSH V11.
+No selector or partition changed. See `test-results/2026-09-01-native-wifi-v29.md`
+and `test-results/2026-09-01-selector-v2-loader-repeat-pass.md`.
 
 The optional initial screen userspace now has one compact path: the existing
 power-button toggle plus a `tty1` renderer for time, Wi-Fi interface/IP, and
