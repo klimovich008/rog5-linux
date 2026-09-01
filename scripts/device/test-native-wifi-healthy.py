@@ -14,6 +14,13 @@ PRIMARY = 'persistent-native-root-wifi'
 
 
 class PersistentWifiHealthy(unittest.TestCase):
+    def test_timer_disarm_ignores_required_unit_stop_propagation(self):
+        self.assertIn(
+            'systemctl --job-mode=ignore-dependencies stop '
+            'rog5-wifi-boot-rollback.timer',
+            SOURCE.replace('\\\n\t', ' '),
+        )
+
     def fixture(self, mutation=None):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -45,7 +52,7 @@ class PersistentWifiHealthy(unittest.TestCase):
             (node/'ro').write_text('0\n' if name in ('sda', 'sda23') else '1\n')
         (blocks/'sda/sda24').mkdir()
         (blocks/'sda/sda24/ro').write_text('1\n')
-        helper = root/'trial-helper'
+        helper = runtime/'trial-state'
         helper.write_text(
             '#!/bin/sh\n[ "$1" = healthy ] && [ "$2" = "' + TRIAL +
             '" ] && [ "$3" = "' + PRIMARY + '" ] || exit 2\n'
@@ -56,7 +63,6 @@ class PersistentWifiHealthy(unittest.TestCase):
         elif mutation == 'wrong-write-scope':
             (blocks/'sda42/ro').write_text('0\n')
         source = SOURCE.replace('/run/rog5-native-wifi', str(runtime))
-        source = source.replace('/usr/libexec/rog5-persistent-trial-state', str(helper))
         source = source.replace('/proc/', str(proc) + '/')
         source = source.replace('/sys/', str(root/'sys') + '/')
         harness = root/'harness.sh'
@@ -67,7 +73,8 @@ class PersistentWifiHealthy(unittest.TestCase):
             'else command stat "$@"; fi; }\n'
             'timer_active=1\n'
             'systemctl() {\n'
-            ' if [ "$1" = stop ]; then timer_active=0; return 0; fi\n'
+            ' if [ "$1:$2" = --job-mode=ignore-dependencies:stop ]; then '
+            'timer_active=0; return 0; fi\n'
             ' if [ "$1:$2" = is-active:--quiet ]; then\n'
             '  [ "$3:$timer_active" != rog5-wifi-boot-rollback.timer:0 ]; return\n'
             ' fi\n return 2\n}\n'
@@ -88,7 +95,10 @@ class PersistentWifiHealthy(unittest.TestCase):
                                 capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('PASS native Wi-Fi persistent trial healthy', result.stdout)
-        self.assertTrue((root/'run/rog5-native-wifi/healthy').read_text().endswith('result=PASS\n'))
+        self.assertTrue(
+            (root/'run/rog5-native-wifi/healthy.record')
+            .read_text().endswith('result=PASS\n')
+        )
 
     def test_unsafe_or_uncommittable_state_keeps_rollback_armed(self):
         for mutation in ('usb-offline', 'wrong-write-scope', 'helper-fail'):
@@ -97,7 +107,9 @@ class PersistentWifiHealthy(unittest.TestCase):
                 result = subprocess.run(['sh', str(harness)], text=True,
                                         capture_output=True, timeout=5)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertFalse((root/'run/rog5-native-wifi/healthy').exists())
+                self.assertFalse(
+                    (root/'run/rog5-native-wifi/healthy.record').exists()
+                )
 
 
 if __name__ == '__main__':

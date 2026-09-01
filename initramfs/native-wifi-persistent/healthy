@@ -5,8 +5,8 @@ PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 root=/run/rog5-native-wifi
 selector=$root/trial-descriptor
-helper=/usr/libexec/rog5-persistent-trial-state
-record=$root/healthy
+helper=$root/trial-state
+record=$root/healthy.record
 fail() { echo "FAIL native-wifi-healthy: $*" >&2; exit 1; }
 
 [ "$(id -u)" = 0 ] || fail 'root required'
@@ -63,7 +63,8 @@ done
 [ "$ready" -eq 1 ] || fail 'healthy startup deadline'
 result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
 case $result in healthy|already-healthy) ;; *) fail 'trial commit result' ;; esac
-systemctl stop rog5-wifi-boot-rollback.timer || fail 'rollback timer stop'
+systemctl --job-mode=ignore-dependencies stop rog5-wifi-boot-rollback.timer ||
+	fail 'rollback timer stop'
 ! systemctl is-active --quiet rog5-wifi-boot-rollback.timer ||
 	fail 'rollback timer remains active'
 [ ! -e "$record" ] && [ ! -L "$record" ] || fail 'healthy record exists'
