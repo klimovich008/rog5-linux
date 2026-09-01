@@ -7,38 +7,34 @@ V11 facts. Historical generations remain in Git and dated `test-results/`.
 
 ## One current question
 
-Can the qualified V29 native Wi-Fi stack become a rollback-safe persistent
-try-once bundle while preserving signed V11, p24 read-only, slot A, charging,
-key-only SSH, and the exact two-node service-state write scope?
+Can accepted persistent Wi-Fi V2 sustain multi-hour Wi-Fi/Tailscale/charging
+liveness and unattended reboot/rescue while preserving signed V11, p24
+read-only, slot A and the exact two-node service-state write scope?
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
 - Slot B contains the canonical selector-v2-capable recovery `f2a73030…`.
-- Current V11 fallback boot: `fcdab471-3c8d-45d8-beaf-cd06749bdedb`, with
-  strict SSH, NCM, Tailscale, charging, UFS and safe thermals passing.
-- Selector/p24 remain v1/V11. Old boot_b `2867666c…` and factory backup
-  `0a67358d…` remain retained as recovery artifacts.
-- Last proven Tailscale, key-only SSH, NCM, UFS, and p24 read-only checks pass.
-- Native Wi-Fi is not present in persistent V11; its units are inactive.
-- Latest battery read: Good, 8.557 V, 30.0 C.
+- Current boot: Wi-Fi V2 `8ac74ae5-f7b2-46ac-9ff3-bb6d201b4a8f`, kernel
+  `7.1.4-g1eea8970e87f`, with systemd, native Wi-Fi, NCM, Tailscale and strict
+  SSH active.
+- Selector `043d263d…` chooses signed primary manifest `f54d3807…`; signed V11
+  remains the fallback. Old boot_b `2867666c…` and factory `0a67358d…` remain.
+- P24 is read-only; exactly `sda` and `sda23` are writable. Battery is Full/Good
+  at 30.0 C and the latest maximum thermal-zone reading is 37.1 C.
 - The background Arch keyring WKD parser failure is unrelated and separately
   queued.
 
 ## Newly proven milestone
 
-V29 fixed the source-to-target lifecycle regression and proved systemd, native
-Wi-Fi, charging, storage and fallback. The standalone
-selector-v2 loader then passed twice from RAM but failed after boot_b install.
-That image is retired. Commit `cba1ecf3` instead reuses one selector-v2 source
-behind the proven canonical recovery executor wrapper. Local CI passed in
-484.483s; exact-head, merge, QEMU and publication passed in run `33557374234`.
-Canonical recovery twins `74592579…` preserve wrapper kernel `838425a8…`; AOSP
-avbtool 1.4 AVB twins are `f2a73030…`. The exact raw composition passed two
-RAM boots with distinct AVB identities and one persistent slot-B boot, always
-returning to unchanged selector-V1/V11. See
-`test-results/2026-09-01-canonical-selector-v2-live.md`.
+Wi-Fi V2 fixes the sealed trial-helper location, success-record collision,
+rollback dependency cancellation and unrendered radio timeout. Two clean boots
+committed the same healthy state, disarmed rollback, reached strict SSH over
+native Wi-Fi, and retained the exact storage and power boundaries. Focused tests
+took 1.989s, the current active tier 102.574s, twin target-only build 7.108s,
+and GitHub run `33565385673` passed all jobs. See
+`test-results/2026-09-02-persistent-wifi-v2-live.md`.
 
 ## Frozen screen checkpoint
 
@@ -51,11 +47,11 @@ suspend work during the server MVP.
 
 ## Next actions
 
-1. Reverify the signed Wi-Fi primary, V11 fallback and selector-v2 staging set.
-2. Stage the bounded try-once set on p24 and relock it read-only.
-3. Boot once to answer whether persistent native Wi-Fi reaches systemd, SSH,
-   charging and safe thermals, then prove automatic V11 fallback.
-4. Promote the primary only after repeated accepted try-once evidence.
+1. Run a bounded multi-hour Wi-Fi/Tailscale/NCM/power liveness observation.
+2. Reconfirm one unattended clean reboot and the unchanged V11 rescue path at
+   the next publication milestone; do not mutate healthy trial state merely to
+   manufacture a fallback.
+3. Define and deploy the first persistent server workload after the soak passes.
 
 ## Boundaries
 

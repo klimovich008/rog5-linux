@@ -15,10 +15,10 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Current V11 fallback boot' \
+	'Current boot: Wi-Fi V2' \
 	'1-1.2' \
-	'V29 fixed the source-to-target lifecycle regression' \
-	'p24 read-only' \
+	'Wi-Fi V2 fixes the sealed trial-helper location' \
+	'P24 is read-only' \
 	'power-key-toggled text status screen' \
 	'Do not flash, alter slot A, modify GPT'
 do
@@ -31,12 +31,12 @@ done
 for contract in \
 	'M5AIKN00F0353YH' \
 	'33.0210.0210.200' \
-	'Persistent release v11 boots successfully' \
+	'Persistent Wi-Fi V2 boots successfully' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
-	'test-results/2026-09-01-native-wifi-v29.md' \
-	'Physical pixels remain a separate live gate' \
-	'test-results/2026-09-01-display-60hz-offline.md' \
+	'test-results/2026-09-02-persistent-wifi-v2-live.md' \
+	'frozen minimal screen checkpoint' \
+	'test-results/2026-09-01-display60-v10-pre-switch-pass.md' \
 	'Do not rebuild or reflash `super`' \
 	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
 	'test-results/2026-08-30-persistent-tailscale-v11-live.md'
@@ -70,4 +70,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, V29 Wi-Fi, V11 fallback, and the minimal screen boundary'
+echo 'PASS compact current status records WW33 rescue, persistent Wi-Fi V2, V11 fallback, and the frozen screen boundary'
