@@ -4,10 +4,10 @@ set -eu
 source_file=${1:?usage: build-early-target-diag.sh SOURCE OUTPUT}
 output=${2:?missing output}
 epoch=1681862400
-expected_source_size=27394
-expected_source_sha256=06fdb95dc24e3a3f4bbfa8d63580084fee7168272dcf4b7e9771bd705e965a06
+expected_source_size=27555
+expected_source_sha256=6ed9768e1d07773ee316bda883db72c83c59cf2177b1906f6e1eded16ac472f7
 expected_output_size=67288
-expected_output_sha256=fbbeaf880ea595d9f00b0a19b582dc11911a3a8c025e6aae1ee469d6886da604
+expected_output_sha256=cb6cffe15e8369475abcc530e00747a108490618edb1d0663341b7150fdc6ef0
 
 fail() {
 	echo "FAIL $*" >&2
