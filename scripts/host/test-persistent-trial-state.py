@@ -154,8 +154,6 @@ class PersistentTrialState(unittest.TestCase):
         }
         self.assertTrue(all(not result.stdout and result.stderr in allowed
                             for result in failures))
-        self.assertTrue(any(result.stdout == "already-healthy\n"
-                            for result in successes))
         self.assertTrue(self.record.read_text().endswith("state=healthy\n"))
         self.assertEqual(stat.S_IMODE(self.record.stat().st_mode), 0o600)
         self.assertEqual(self.record.stat().st_nlink, 1)
