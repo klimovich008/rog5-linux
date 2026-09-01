@@ -22,8 +22,8 @@ audio, sensors, and automation remain deferred.
 - Bootloader: unlocked.
 - Slot A: official ASUS WW33 / Android 13 rescue and charging environment,
   build `33.0210.0210.200`.
-- Slot B: failed standalone selector-v2 loader; selector/p24 remain v1/V11 and
-  exact old-boot_b restoration is prepared.
+- Slot B: canonical selector-v2-capable recovery `f2a73030…`; selector/p24
+  remain v1/V11 until the signed Wi-Fi try-once staging transaction.
 - Slot A must remain the independently verified rescue route.
 
 ## Persistent Linux baseline
@@ -91,11 +91,10 @@ evidence.
 V29 proved native Wi-Fi and V11 fallback. A standalone selector-v2 loader passed
 twice from RAM, then its boot_b-only installation produced no USB identity;
 selector and p24 never changed. The failed image must not be reused. The fix
-preserves the proven persistent wrapper kernel and canonical recovery, sharing
-only selector/trial logic. Local CI passed in 484.483s; GitHub run `33557374234`
-is green. Unbooted AVB twins are `f2a73030…`; see
-`test-results/2026-09-01-native-wifi-v29.md` and
-`test-results/2026-09-01-canonical-selector-v2-offline.md`.
+preserves the proven wrapper kernel and canonical recovery. Local CI and GitHub
+run `33557374234` are green. Two distinct-AVB RAM boots and one persistent boot
+reached strict-SSH V11 with V1/p24 unchanged; current boot is
+`fcdab471-3c8d-45d8-beaf-cd06749bdedb`. See `test-results/2026-09-01-native-wifi-v29.md` and `test-results/2026-09-01-canonical-selector-v2-live.md`.
 
 The optional power-key-toggled text status screen renders time, Wi-Fi/IP, and
 battery on `tty1`; it refreshes only while visible, exposes no SSID/MAC, and
