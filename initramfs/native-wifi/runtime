@@ -19,8 +19,59 @@ interface_identity() {
 		[ "$(cat /sys/bus/pci/devices/0000:01:00.0/subsystem_device)" = 0x0108 ]
 }
 
+install_status_screen() {
+	units=$1
+	present=0
+	for path in screen-toggle.sh status-screen.sh power-buttond.py \
+		units/rog5-status-screen.service units/rog5-power-button.service; do
+		if [ -e "$root/$path" ] || [ -L "$root/$path" ]; then
+			present=$((present + 1))
+		fi
+	done
+	[ "$present" -eq 0 ] && return 0
+	[ "$present" -eq 5 ] || return 1
+	for path in screen-toggle.sh status-screen.sh power-buttond.py; do
+		[ -f "$root/$path" ] && [ ! -L "$root/$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/$path")" = 0:0:755:1 ] ||
+			return 1
+	done
+	for path in rog5-status-screen.service rog5-power-button.service; do
+		[ -f "$root/units/$path" ] && [ ! -L "$root/units/$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/units/$path")" = 0:0:644:1 ] ||
+			return 1
+	done
+	mkdir -p /newroot/usr/local/bin /newroot/usr/local/libexec \
+		"$units/multi-user.target.wants" || return 1
+	for path in /newroot/usr/local/bin/rog5-screen-toggle.sh \
+		/newroot/usr/local/libexec/rog5-status-screen \
+		/newroot/usr/local/libexec/rog5-power-buttond; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	cp -p "$root/screen-toggle.sh" \
+		/newroot/usr/local/bin/rog5-screen-toggle.sh || return 1
+	cp -p "$root/status-screen.sh" \
+		/newroot/usr/local/libexec/rog5-status-screen || return 1
+	cp -p "$root/power-buttond.py" \
+		/newroot/usr/local/libexec/rog5-power-buttond || return 1
+	chmod 0755 /newroot/usr/local/bin/rog5-screen-toggle.sh \
+		/newroot/usr/local/libexec/rog5-status-screen \
+		/newroot/usr/local/libexec/rog5-power-buttond || return 1
+	for display_unit in rog5-status-screen rog5-power-button; do
+		[ ! -e "$units/$display_unit.service" ] &&
+			[ ! -L "$units/$display_unit.service" ] || return 1
+		[ ! -e "$units/multi-user.target.wants/$display_unit.service" ] &&
+			[ ! -L "$units/multi-user.target.wants/$display_unit.service" ] ||
+			return 1
+		cp -p "$root/units/$display_unit.service" \
+			"$units/$display_unit.service" || return 1
+		ln -s "../$display_unit.service" \
+			"$units/multi-user.target.wants/$display_unit.service" || return 1
+	done
+}
+
 install_units() {
 	units=/run/systemd/system
+	install_status_screen "$units" || return 1
 	cp -p "$root/units/rog5-wifi-failure.service" \
 		"$units/rog5-wifi-failure.service" || return 1
 	for suffix in service timer; do

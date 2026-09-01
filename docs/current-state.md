@@ -106,10 +106,16 @@ builds Linux `7.1.4-rog5-display60-v1` with a minimal AMS678 ER2 DSC panel
 driver, fail-closed Pixelworks Iris6 analog-bypass transaction, and one 60 Hz
 mode. Its exact DT delta enables only the required display blocks, L12/L13
 rails, panel GPIOs, and DSI0 graph. Focused driver, binding, DT, and status
-userspace tests pass; no phone candidate has been issued or booted. See
-`test-results/2026-09-01-display-60hz-offline.md`.
+userspace tests pass. The first RAM-only display candidate entered that kernel,
+passed UFS/read-only storage, then failed optional status installation at the
+initramfs `runtime` stage before switch-root. The sealed BusyBox binary contains
+an `install` applet but exposes no `/bin/install` link; the injected runtime also
+targeted `/usr/local` instead of `/newroot/usr/local`. The consumed candidate
+returned to exact fastboot and a normal reboot restored fresh V11. This is R3,
+not panel evidence. See `test-results/2026-09-01-display-60hz-offline.md` and
+`test-results/2026-09-01-display60-runtime-r3.md`.
 
-The next hardware question is whether that exact RAM-only kernel/DT registers
+The next hardware question remains whether that exact RAM-only kernel/DT registers
 DRM/DSI/panel safely and exposes the text console while retaining V11 fallback.
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
