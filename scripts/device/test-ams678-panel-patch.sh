@@ -36,6 +36,7 @@ if grep -Eq 'iris-cmd-list|iris-lightup-sequence|debugfs|ioctl|90hz|120hz|144hz'
 	exit 1
 fi
 [ "$(grep -Fxc 'CONFIG_DRM_PANEL_ASUS_ROG5_AMS678=y' "$fragment")" -eq 1 ]
+grep -Fqx 'CONFIG_REGULATOR_QCOM_REFGEN=m' "$fragment"
 grep -Fqx 'CONFIG_LOCALVERSION="-rog5-display60-v1"' "$fragment"
 grep -Fqx '# CONFIG_LOCALVERSION_AUTO is not set' "$fragment"
 for symbol in DRM_MSM_KMS DRM_MSM_DPU DRM_MSM_DSI DRM_MSM_DSI_7NM_PHY \

@@ -115,17 +115,15 @@ returned to exact fastboot and a normal reboot restored fresh V11. This is R3,
 not panel evidence. See `test-results/2026-09-01-display-60hz-offline.md` and
 `test-results/2026-09-01-display60-runtime-r3.md`.
 
-The next hardware question remains whether that exact RAM-only kernel/DT registers
-DRM/DSI/panel safely and exposes the text console while retaining V11 fallback.
-Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
-
 Display60 V2 fixed the initramfs runtime boundary and reached `switch-root PASS`,
-but automatically returned to fresh V11 before target SSH. The exact Wi-Fi radio
-failure unit is the only reviewed immediate userspace reboot path; a display
-panic/reset remains possible because pstore was empty and inconclusive. V2 is
-consumed. The next candidate must be diagnostic-only: retain NCM/SSH/status,
-watchdog, power and storage gates while not installing Wi-Fi radio/WPA/DHCP.
-See `test-results/2026-09-01-display60-post-switch.md`.
+then returned before target SSH. Display60 V3 removed Wi-Fi startup and reached
+SSH, proving the post-switch reboot was not a display crash. It found no fb0 or
+backlight: DSI PHY `vdds` and DSI host `vdda` used dummy regulators, REFGEN was
+unavailable, DSI stayed deferred, and the PLL could not lock. V1-V3 are consumed.
+The next artifact adds only SM8350 reference supply wiring and the matching
+REFGEN module. See `test-results/2026-09-01-display60-supply-root-cause.md`.
+
+Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
 The preexisting runtime package-keyring WKD parser failure is unrelated to
 Wi-Fi, charging, or display and remains a separate userspace repair.

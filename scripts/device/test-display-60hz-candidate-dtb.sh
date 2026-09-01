@@ -37,4 +37,13 @@ if "$verifier" "$base" "$work/mode-mutant.dtb" >/dev/null 2>&1; then
 	exit 1
 fi
 
+cp "$work/first.dtb" "$work/supply-mutant.dtb"
+dsi=/soc@0/display-subsystem@ae00000/dsi@ae94000
+set -- $(fdtget -t x "$work/supply-mutant.dtb" "$panel" vddio-supply)
+fdtput -t x "$work/supply-mutant.dtb" "$dsi" vdda-supply "$1"
+if "$verifier" "$base" "$work/supply-mutant.dtb" >/dev/null 2>&1; then
+	echo 'FAIL display verifier accepted wrong DSI analog supply' >&2
+	exit 1
+fi
+
 echo 'PASS 60 Hz display DTB is deterministic and rejects unrelated, GPIO, and panel mutations'
