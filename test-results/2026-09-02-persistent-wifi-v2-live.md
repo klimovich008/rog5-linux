@@ -1,6 +1,6 @@
 # Persistent native Wi-Fi V2 live result
 
-Result: **PASS**.
+Result: **functional PASS; long-lived FAIL; superseded by V3**.
 
 Primary question: can the qualified native Wi-Fi stack become a repeatable,
 rollback-safe persistent primary without weakening V11 fallback or storage and
@@ -54,3 +54,8 @@ power boundaries?
 The signed V11 fallback remains unchanged and was exercised during the initial
 pre-execution trial-state failure. No slot-A, GPT, firmware, identity,
 calibration, modem or protected partition data changed.
+
+Subsequent liveness testing found a separate transient
+`rog5-wifi-probe-rollback.timer` still armed for 600 seconds. It rebooted the
+otherwise healthy V2 target at the exact boundary. V3 keeps the same kernel,
+DTB and Wi-Fi composition but the health gate now disarms both rollback timers.
