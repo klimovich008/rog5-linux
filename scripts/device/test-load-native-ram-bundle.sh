@@ -21,8 +21,8 @@ import sys
 s=Path(sys.argv[1]).read_text()
 ordered = ['source boot changed', 'source kernel changed', 'battery temperature',
            'runtime library identity', '"$verifier" "$bundle" "$manifest"',
-           'invalid optional serial logger', 'persistent state remains mounted', 'storage inventory changed',
-           'mkdir "$root/entered"', '"$kexec" -c -l', 'cmp "$tools/shutdown"',
+           'invalid optional serial logger', 'mkdir "$root/entered"',
+           '"$kexec" -c -l', 'cmp "$tools/shutdown"',
            'logger staging', 'systemctl kexec --no-block']
 positions=[s.index(token) for token in ordered]
 assert positions == sorted(positions)
@@ -31,6 +31,15 @@ for forbidden in ('fastboot', 'set_active', 'mkfs', 'blockdev --setrw', 'sgdisk'
 assert '"$kexec" -e' not in s
 assert s.count('systemctl kexec --no-block') == 1
 assert 'candidate remains consumed' in s
+assert 'persistent state remains mounted' not in s
+assert 'storage inventory changed' not in s
+assert 'exitrd owns persistent-state detach, UFS relock and final kexec' in s
 assert '[ ! -e /run/initramfs/rog5-exitrd-log ] && [ ! -L /run/initramfs/rog5-exitrd-log ]' in s
 PY
-echo 'PASS native RAM loader checks identity, signed payload, exact runtime and read-only storage before one execute'
+for contract in \
+	'detach_persistent_state || mark_unclean detach' \
+	'blockdev --setro "$device"' \
+	'try_native_kexec "${1:-}" || true'; do
+	grep -Fq "$contract" "$repo/initramfs/persistent-root-shutdown-standalone"
+done
+echo 'PASS native RAM loader delegates state detach and UFS relock to the survivable exitrd before one execute'
