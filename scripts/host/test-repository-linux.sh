@@ -33,6 +33,7 @@ if [[ $tier == quick || $tier == rootfs ]]; then
 		fail 'quick tier cgroup is not delegated writable'
 fi
 
+if [[ $tier != active && $tier != probe ]]; then
 python3 - "$repo" <<'PY'
 from pathlib import Path
 import subprocess
@@ -69,6 +70,7 @@ for raw in tracked.split(b"\0"):
 if shell_count == 0:
     raise SystemExit("git returned no tracked shell scripts")
 PY
+fi
 
 python3 - "$repo" <<'PY'
 from pathlib import Path
@@ -124,7 +126,7 @@ print(
 )
 PY
 
-if git -C "$repo" grep -nE \
+if [[ $tier != active && $tier != probe ]] && git -C "$repo" grep -nE \
 	'BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|OPENROUTER_API_KEY[[:space:]]*=[[:space:]]*['"'"'"]?[A-Za-z0-9_-]{20}' \
 	-- \
 	':!scripts/host/test-repository-linux.sh' \
@@ -153,6 +155,21 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/host/test-persistent-trial-state.py
+	scripts/host/test-build-persistent-wifi-selector.py
+	"${native_wifi_probe_tests[@]}"
+	scripts/host/test-current-recovery-status.sh
+	scripts/host/test-select-repository-test-tier.py
+)
+
+probe_tests=(
+	"${native_wifi_probe_tests[@]}"
+	scripts/device/test-observe-early-mainline-power.sh
+	scripts/device/test-network-root-init.sh
+	scripts/host/test-generate-power-usb-active.py
+)
+
+shared_tests=(
 	scripts/host/test-repository-linux-runner-contract.sh
 	scripts/device/test-inspect-local-image-partial.sh
 	scripts/device/test-benchmark-local-image-write.sh
@@ -164,8 +181,6 @@ active_tests=(
 	scripts/device/test-network-root-pdr-override.sh
 	scripts/device/test-persistent-slotb-loader.sh
 	scripts/device/test-persistent-slotb-recovery-loader.sh
-	scripts/host/test-persistent-trial-state.py
-	scripts/host/test-build-persistent-wifi-selector.py
 	scripts/device/test-stage-persistent-service-state.sh
 	scripts/device/test-persistent-service-state-runtime.sh
 	scripts/device/test-persistent-tailscale-runtime.sh
@@ -182,7 +197,6 @@ active_tests=(
 	scripts/host/test-display-post-switch-report.py
 	scripts/device/test-load-native-ram-bundle.sh
 	scripts/device/test-native-kexec-shutdown.py
-	"${native_wifi_probe_tests[@]}"
 	scripts/host/test-retention-cycle-runtime-closure.py
 	scripts/device/test-persistent-ufs-module-profile.sh
 	scripts/device/test-observe-persistent-usb-liveness.sh
@@ -191,17 +205,6 @@ active_tests=(
 	scripts/host/test-rog5-host-doctor.py
 	scripts/host/test-power-usb-deployment-receipt.py
 	scripts/host/test-power-usb-real-output-replay.py
-	scripts/host/test-select-repository-test-tier.py
-)
-
-probe_tests=(
-	"${native_wifi_probe_tests[@]}"
-	scripts/device/test-observe-early-mainline-power.sh
-	scripts/device/test-network-root-init.sh
-	scripts/host/test-generate-power-usb-active.py
-)
-
-shared_tests=(
 	scripts/host/test-persistent-trial-state-aarch64.sh
 	scripts/host/test-reusable-recovery-claim-design.sh
 	scripts/device/test-collect-minimal-headless-runtime.sh
@@ -314,7 +317,6 @@ shared_tests=(
 	scripts/host/test-arch-headless-core-rootfs-contract.sh
 	scripts/host/test-claude-readonly-review.sh
 	scripts/host/test-github-exact-head-workflow.sh
-	scripts/host/test-current-recovery-status.sh
 	scripts/device/test-collect-readonly-storage-inventory.py
 	scripts/device/test-persistent-root-storage-resolution.py
 	scripts/device/test-persistent-root-handoff.sh
@@ -462,6 +464,11 @@ run_test() {
 }
 
 isolated_tests=(
+	"${native_wifi_probe_tests[@]}"
+	scripts/host/test-persistent-trial-state.py
+	scripts/host/test-build-persistent-wifi-selector.py
+	scripts/host/test-current-recovery-status.sh
+	scripts/host/test-select-repository-test-tier.py
 	scripts/host/test-qemu-system-smoke-contract.sh
 	scripts/host/test-qemu-network-root-nfs-hostile.sh
 	scripts/host/test-kernel-builder-bootstrap-contract.sh
