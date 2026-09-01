@@ -15,12 +15,11 @@ key-only SSH, and the exact two-node service-state write scope?
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
-- Slot B currently contains failed standalone loader `f049dc19…`; the phone is
-  absent from USB and physical fastboot is required.
-- Current V11 fallback boot: unavailable; last proven
-  `04ff021c-123c-4e5a-9c5a-b04bfbe24514`.
-- Selector/p24 remain v1/V11; old boot_b `2867666c…` and factory backup
-  `0a67358d…` are retained with an exact restore plan.
+- Slot B contains the canonical selector-v2-capable recovery `f2a73030…`.
+- Current V11 fallback boot: `fcdab471-3c8d-45d8-beaf-cd06749bdedb`, with
+  strict SSH, NCM, Tailscale, charging, UFS and safe thermals passing.
+- Selector/p24 remain v1/V11. Old boot_b `2867666c…` and factory backup
+  `0a67358d…` remain retained as recovery artifacts.
 - Last proven Tailscale, key-only SSH, NCM, UFS, and p24 read-only checks pass.
 - Native Wi-Fi is not present in persistent V11; its units are inactive.
 - Latest battery read: Good, 8.557 V, 30.0 C.
@@ -36,7 +35,10 @@ That image is retired. Commit `cba1ecf3` instead reuses one selector-v2 source
 behind the proven canonical recovery executor wrapper. Local CI passed in
 484.483s; exact-head, merge, QEMU and publication passed in run `33557374234`.
 Canonical recovery twins `74592579…` preserve wrapper kernel `838425a8…`; AOSP
-avbtool 1.4 AVB twins are `f2a73030…`. They are unbooted and unflashed.
+avbtool 1.4 AVB twins are `f2a73030…`. The exact raw composition passed two
+RAM boots with distinct AVB identities and one persistent slot-B boot, always
+returning to unchanged selector-V1/V11. See
+`test-results/2026-09-01-canonical-selector-v2-live.md`.
 
 ## Frozen screen checkpoint
 
@@ -49,10 +51,11 @@ suspend work during the server MVP.
 
 ## Next actions
 
-1. Physically enter exact fastboot and restore old boot_b `2867666c…`.
-2. Reboot and prove fresh strict-SSH V11 with selector v1 unchanged.
-3. RAM-test canonical `f2a73030…`; do not reuse the standalone loader.
-4. Only after repeated canonical passes reconsider boot_b and selector staging.
+1. Reverify the signed Wi-Fi primary, V11 fallback and selector-v2 staging set.
+2. Stage the bounded try-once set on p24 and relock it read-only.
+3. Boot once to answer whether persistent native Wi-Fi reaches systemd, SSH,
+   charging and safe thermals, then prove automatic V11 fallback.
+4. Promote the primary only after repeated accepted try-once evidence.
 
 ## Boundaries
 
