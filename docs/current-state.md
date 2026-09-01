@@ -22,16 +22,17 @@ audio, sensors, and automation remain deferred.
 - Bootloader: unlocked.
 - Slot A: official ASUS WW33 / Android 13 rescue and charging environment,
   build `33.0210.0210.200`.
-- Slot B: canonical selector-v2-capable recovery `f2a73030…`; selector/p24
-  remain v1/V11 until the signed Wi-Fi try-once staging transaction.
+- Slot B: canonical selector-v2 recovery `f2a73030…`, selecting the accepted
+  signed Wi-Fi V2 primary with signed V11 retained as fallback.
 - Slot A must remain the independently verified rescue route.
 
 ## Persistent Linux baseline
 
-Persistent release v11 boots successfully; V10, V9 and V8 remain p24 rollbacks.
+Persistent Wi-Fi V2 boots successfully; V11, V10, V9 and V8 remain p24
+fallback/rollback bundles.
 
-- The slot-B loader verifies a signed bundle from read-only `arch_root_a` and
-  kexecs Linux `7.1.4-g359318de534f`.
+- The slot-B loader verifies signed bundles from read-only `arch_root_a`; the
+  active primary runs Linux `7.1.4-g1eea8970e87f`.
 - Native Arch root reaches systemd `running`, zero failed units, high-speed NCM
   at `169.254.77.2/30`, and key-only SSH.
 - Stable Ed25519 host fingerprint:
@@ -45,11 +46,13 @@ Persistent release v11 boots successfully; V10, V9 and V8 remain p24 rollbacks.
   clean reboot/relock, systemd, NCM, SSH, storage and power checks passed.
 - V11 adds exact conntrack-mark support and the standalone shutdown helper.
   Enrolled Tailscale has no health warnings and survives normal systemd reboot.
+  V11 evidence: `test-results/2026-08-30-persistent-tailscale-v11-live.md`.
 - The corrected local pre-stop transaction now quiesces service state before
   RAM kexec. V29 reached the qualified Wi-Fi target, systemd, and
   `switch-root PASS`, then returned to a fresh V11 fallback.
-- Primary evidence:
-  `test-results/2026-08-30-persistent-tailscale-v11-live.md`.
+- Persistent Wi-Fi V2 passed two clean boots, native Wi-Fi DHCP/default route,
+  strict SSH over Wi-Fi, Tailscale, health commit and timer disarm. Evidence:
+  `test-results/2026-09-02-persistent-wifi-v2-live.md`.
 
 ## Storage state
 
@@ -71,6 +74,9 @@ Persistent release v11 boots successfully; V10, V9 and V8 remain p24 rollbacks.
   safe thermal-zone values.
 - V29 reported battery `Full`/`Good`, 100%, 8.573 V, 29.9 C, side USB online,
   and a 500 mA input-current limit while native Arch and Wi-Fi were running.
+- Wi-Fi V2 repeated those safety properties while serving SSH over both NCM
+  and native Wi-Fi; its second boot reported 30.0 C battery and 37.1 C maximum
+  thermal-zone temperature.
 
 ## NCM liveness result
 
@@ -88,43 +94,17 @@ evidence.
 
 ## Immediate next gate
 
-V29 proved native Wi-Fi and V11 fallback. A standalone selector-v2 loader passed
-twice from RAM, then its boot_b-only installation produced no USB identity;
-selector and p24 never changed. The failed image must not be reused. The fix
-preserves the proven wrapper kernel and canonical recovery. Local CI and GitHub
-run `33557374234` are green. Two distinct-AVB RAM boots and one persistent boot
-reached strict-SSH V11 with V1/p24 unchanged; current boot is
-`fcdab471-3c8d-45d8-beaf-cd06749bdedb`. See `test-results/2026-09-01-native-wifi-v29.md` and `test-results/2026-09-01-canonical-selector-v2-live.md`.
+The active primary is `persistent-native-root-wifi-v2`, manifest `f54d3807…`,
+selector `043d263d…`. Boots `f7eac86d-b239-4f87-bb0d-a516c9a4f20c` and
+`8ac74ae5-f7b2-46ac-9ff3-bb6d201b4a8f` both committed the same healthy trial,
+disarmed rollback without stopping SSH, kept p24 read-only and exposed only
+`sda`/`sda23` writable. GitHub run `33565385673` is fully green.
 
-The optional power-key-toggled text status screen renders time, Wi-Fi/IP, and
-battery on `tty1`; it refreshes only while visible, exposes no SSID/MAC, and
-starts no desktop or GPU process.
-
-Physical pixels remain a separate live gate. Linux
-`7.1.4-rog5-display60-v1` has a minimal AMS678 ER2 DSC panel, fail-closed Iris6
-analog bypass, one 60 Hz mode, and an exact display-only DT delta. V1 reached
-the kernel but hit a fixed R3 BusyBox/runtime installer defect before panel
-evidence. See `test-results/2026-09-01-display-60hz-offline.md` and
-`test-results/2026-09-01-display60-runtime-r3.md`.
-
-Display60 V2 fixed the initramfs runtime boundary and reached `switch-root PASS`,
-then returned before target SSH. Display60 V3 removed Wi-Fi startup and reached
-SSH, proving the post-switch reboot was not a display crash. It found no fb0 or
-backlight: DSI PHY `vdds` and DSI host `vdda` used dummy regulators, REFGEN was
-unavailable, DSI stayed deferred, and the PLL could not lock. V4 fixed both
-supply properties; a V11 probe proved REFGEN binds, so V5 built it in. V5 stayed
-alive on NCM but never replaced its early SSH host key; strict SSH withheld
-display evidence until the 900-second rollback. V1-V5 are consumed. See
-`test-results/2026-09-01-display60-v5-ssh-boundary.md`.
-
-V10 moved evidence before `switch_root` and passed: REFGEN, DSI, DRM, fb0, one
-backlight, and the status-screen files were present on boot
-`e42ea9e1-2303-43df-b934-0bd8eccb509a`. DRM initialized after an early PLL
-lock failure and registered `msmdrmfb`; direct read-only reboot restored V11
-`ef544ace-25a3-4359-b998-6dce9d6239b6`. V10 is consumed. See
-`test-results/2026-09-01-display60-v10-pre-switch-pass.md`.
-
-Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
+Next prove multi-hour Wi-Fi/Tailscale/charging liveness and unattended rescue,
+then proceed to server service deployment. The frozen minimal screen checkpoint
+already proved REFGEN, DSI, DRM, fb0, backlight and status files in Display V10;
+do not merge it or resume broader display/GPU work until the server MVP is
+stable. See `test-results/2026-09-01-display60-v10-pre-switch-pass.md`.
 
 The preexisting runtime package-keyring WKD parser failure is unrelated to
 Wi-Fi, charging, or display and remains a separate userspace repair.
