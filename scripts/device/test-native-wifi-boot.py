@@ -87,8 +87,12 @@ class AutomaticWifi(unittest.TestCase):
                 'rog5-wifi-boot-rollback.service',
                 'rog5-wifi-boot-rollback.timer',
                 'before-ssh.conf',
+                'rog5-display-post-switch.service',
             ):
                 (source_units/name).write_text(name)
+            reporter = payload/'display-post-switch-report'
+            reporter.write_text('#!/bin/sh\nexit 0\n')
+            reporter.chmod(0o755)
             marker = payload/'display-diagnostic'
             marker.write_text('rog5-display-diagnostic-v1\n')
             marker.chmod(0o444)
@@ -98,7 +102,10 @@ class AutomaticWifi(unittest.TestCase):
             command = (
                 'set -eu\nroot=' + str(payload) + '\n'
                 'install_status_screen() { :; }\n'
-                'stat() { echo 0:0:444:1; }\n' + script + '\ninstall_units'
+                'stat() { case "${3:-}" in '
+                '*/display-post-switch-report) echo 0:0:755:1 ;; '
+                '*.service) echo 0:0:644:1 ;; '
+                '*) echo 0:0:444:1 ;; esac; }\n' + script + '\ninstall_units'
             )
             subprocess.run(['sh', '-c', command], check=True)
             self.assertTrue(
@@ -106,6 +113,10 @@ class AutomaticWifi(unittest.TestCase):
             )
             self.assertFalse((units/'rog5-wifi-radio.service').exists())
             self.assertFalse((units/'rog5-persistent-state.service.d').exists())
+            self.assertTrue(
+                (units/'multi-user.target.wants/'
+                 'rog5-display-post-switch.service').is_symlink()
+            )
             self.assertEqual(
                 (nm/'10-rog5-p2.conf').read_text(),
                 '[keyfile]\nunmanaged-devices=interface-name:usb0\n',
@@ -116,6 +127,18 @@ class AutomaticWifi(unittest.TestCase):
             marker.chmod(0o444)
             rejected = subprocess.run(['sh', '-c', command], capture_output=True)
             self.assertNotEqual(rejected.returncode, 0)
+
+    def test_display_observer_timeout_is_nested_inside_rollback(self):
+        timing = dict(
+            line.split('=', 1)
+            for line in (R/'initramfs/native-wifi/timing').read_text().splitlines()
+            if line and not line.startswith('#')
+        )
+        self.assertLessEqual(int(timing['display_report_seconds']), 90)
+        self.assertGreaterEqual(
+            int(timing['host_parent_seconds']),
+            int(timing['outer_seconds']) + int(timing['cleanup_seconds']) + 30,
+        )
 
     def test_persistent_trial_selector_and_healthy_commit_are_exact(self):
         spec = importlib.util.spec_from_file_location(
