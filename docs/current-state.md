@@ -22,7 +22,8 @@ audio, sensors, and automation remain deferred.
 - Bootloader: unlocked.
 - Slot A: official ASUS WW33 / Android 13 rescue and charging environment,
   build `33.0210.0210.200`.
-- Slot B: persistent signed Linux recovery/loader.
+- Slot B: failed standalone selector-v2 loader; selector/p24 remain v1/V11 and
+  exact old-boot_b restoration is prepared.
 - Slot A must remain the independently verified rescue route.
 
 ## Persistent Linux baseline
@@ -87,19 +88,18 @@ evidence.
 
 ## Immediate next gate
 
-V29 proved native Wi-Fi, systemd, DHCP, charging, storage isolation and fallback
-on boot `54a5e437-9a04-402a-b14e-01dbcb8a3b5d`; it is consumed. The installed
-boot_b still supports selector v1 only. Its selector-v2 successor reproduced the
-reviewed `8adfa164…` ramdisk and passed two RAM-only boots with distinct AVB
-identities, each preserving selector-v1 and returning fresh strict-SSH V11.
-No selector or partition changed. See `test-results/2026-09-01-native-wifi-v29.md`
-and `test-results/2026-09-01-selector-v2-loader-repeat-pass.md`.
+V29 proved native Wi-Fi and V11 fallback. A standalone selector-v2 loader passed
+twice from RAM, then its boot_b-only installation produced no USB identity;
+selector and p24 never changed. The failed image must not be reused. The fix
+preserves the proven persistent wrapper kernel and canonical recovery, sharing
+only selector/trial logic. Local CI passed in 484.483s; GitHub run `33557374234`
+is green. Unbooted AVB twins are `f2a73030…`; see
+`test-results/2026-09-01-native-wifi-v29.md` and
+`test-results/2026-09-01-canonical-selector-v2-offline.md`.
 
-The optional initial screen userspace now has one compact path: the existing
-power-button toggle plus a `tty1` renderer for time, Wi-Fi interface/IP, and
-battery/charging status. It sleeps for 30 seconds while off and refreshes once
-per second while visible. It deliberately exposes no SSID or MAC and starts no
-desktop or GPU process.
+The optional power-key-toggled text status screen renders time, Wi-Fi/IP, and
+battery on `tty1`; it refreshes only while visible, exposes no SSID/MAC, and
+starts no desktop or GPU process.
 
 Physical pixels remain a separate live gate. Linux
 `7.1.4-rog5-display60-v1` has a minimal AMS678 ER2 DSC panel, fail-closed Iris6
