@@ -28,6 +28,7 @@ if grep -qx 'set -f' "$init"; then
 fi
 
 for contract in \
+	'existing-recovery' \
 	'24:arch_root_a' \
 	'23:userdata' \
 	'18821440' \
@@ -52,6 +53,9 @@ for contract in \
 	'watchdog_seconds=180'; do
 	grep -Fq "$contract" "$init"
 done
+grep -Fq '[ "$loader_mode" = existing-recovery ]' "$init"
+grep -Fq '[ "$loader_mode" = standalone ]' "$init"
+grep -Fq 'configure_loader_usb || fail usb_setup' "$init"
 ! grep -Eq 'curl|wget|169[.]254[.]77|ssh|scp|fastboot|adb' "$init"
 for contract in \
 	'format=rog5-slotb-loader-progress-v1' \
