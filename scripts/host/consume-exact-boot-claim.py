@@ -13,6 +13,20 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'native-wifi-ram-failure-v25': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=native-wifi-ram-failure-v25\n'
+        b'candidate=persistent-native-root-wifi-failure-v25\n'
+        b'manifest_sha256=596fb9288f38cb56c48d3698bd3b70e549e9fb227ece7aa645a0fafa99ca321e\n'
+        b'tools_manifest_sha256=355b948a36a3be9fdcad7706652e557000c011e347e65d16016fac5155acc123\n'
+        b'automatic_initramfs_sha256=edc4b3fa28bfbdbb45f9743c0b2fe8915b546a77e4f81e204e4ad0df9f26bdd8\n'
+        b'plan_sha256=4ee0a13b0352a976a219fbc047f390c882f254d809368a28e3f9cdf70a53a367\n'
+        b'controller_sha256=d07a72f95204bef2b5bfccf95b72ff1a1600424f4b3ae5730e57c3669b2c685c\n'
+        b'failure_collector_sha256=784d91061d2f1fd289a5dd2a810f46f851f2c5439814cac62c949723f55c6f9f\n'
+        b'loader_helper_sha256=bd9341e3ed294ac7eb23d5319673bc4860144b66a82c2834e7e13a90b4a4bcf8\n'
+        b'execution=mainline-kexec-ram-only\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'native-wifi-ram-charger-exitrd-v24': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=native-wifi-ram-charger-exitrd-v24\n'
