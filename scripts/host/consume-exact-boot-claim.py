@@ -13,6 +13,28 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'native-display60-ram-v10': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=native-display60-ram-v10\n'
+        b'candidate=persistent-native-root-display60-v10\n'
+        b'manifest_sha256=d2e3ae1760f4e806bad728e48fb5d4ac16ddfca7035a2f3221f0a3831cc44d02\n'
+        b'tools_manifest_sha256=355b948a36a3be9fdcad7706652e557000c011e347e65d16016fac5155acc123\n'
+        b'image_sha256=7b4ff169230ed66c4be1395cc0212cbbb9534f686108bd91da45093071838ef6\n'
+        b'dtb_sha256=196ca9c5c17b109a03880f35627879950ac9708e2b099b5b29820f809bd819f2\n'
+        b'initramfs_sha256=571725bf72cfa295fe5620807288921583525fec6b2f9c05ea0605d8e30ab285\n'
+        b'plan_sha256=6a6fc14856aaeed4ea9591ec46f43b8f83f55cddaaf97b7a4ac5083bfb7ec214\n'
+        b'controller_sha256=9012a4c160a869d6db4f137206497d8473405d2db2b720683249f6ce458812c2\n'
+        b'stager_sha256=905c8bf2da62a0f884de43eadfd02fcbeed607eab3baadb4872ce82abe165d38\n'
+        b'stage_collector_sha256=fe0345ceb57f3bb7fdb7cf64731737fd0bffac2c22d3601996b2806df90f9180\n'
+        b'display_collector_sha256=4a19fc6a1073a2bc634307dc5f48a5df2c5d298869c7d8445209b1bf102a8eff\n'
+        b'source_collector_sha256=2739712fb70c7e4c4de0d04bcce55b1218b77bcf2ef599e1d83643559636ab13\n'
+        b'management_helper_sha256=571dc2d7ffebfe11c34e2ec96e691d34e1737550c60d61d005b35eec25a4e6f2\n'
+        b'source_acm_helper_sha256=f972a5a634056bb666aced1122077a9732dd569259d60d43b0744a5c9a58e4f3\n'
+        b'loader_helper_sha256=e7e6eff86261b641c855eaf5e2e33d820c7bbcc65668cef8ae51a8d27264fee2\n'
+        b'transaction_helper_sha256=c41a43f7e32954283acbd728ccadc5b221917b2ecd824f1ea7a33c9229fe93c4\n'
+        b'execution=mainline-kexec-ram-only\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'native-display60-ram-v9': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=native-display60-ram-v9\n'
