@@ -119,10 +119,11 @@ Display60 V2 fixed the initramfs runtime boundary and reached `switch-root PASS`
 then returned before target SSH. Display60 V3 removed Wi-Fi startup and reached
 SSH, proving the post-switch reboot was not a display crash. It found no fb0 or
 backlight: DSI PHY `vdds` and DSI host `vdda` used dummy regulators, REFGEN was
-unavailable, DSI stayed deferred, and the PLL could not lock. V1-V3 are consumed.
-V4 proved `vdda`/`vdds` wiring, but module timing left REFGEN unavailable. A
-no-reboot V11 probe proved the driver/DT creates `refgen`; V5 builds this DSI
-dependency in. See `test-results/2026-09-01-display60-refgen-timing.md`.
+unavailable, DSI stayed deferred, and the PLL could not lock. V4 fixed both
+supply properties; a V11 probe proved REFGEN binds, so V5 built it in. V5 stayed
+alive on NCM but never replaced its early SSH host key; strict SSH withheld
+display evidence until the 900-second rollback. V1-V5 are consumed. See
+`test-results/2026-09-01-display60-v5-ssh-boundary.md`.
 
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 

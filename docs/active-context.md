@@ -69,16 +69,18 @@ available to the built-in DSI probe. A matching V11 module probe bound
 `88e7000.regulator` and created `/sys/class/regulator/.../name=refgen`, proving
 the driver and base DT. REFGEN is now built in; `Module.symvers` is unchanged.
 
+Display60 V5 reached switch-root and remained alive on NCM, but only its fresh
+ephemeral SSH key appeared. Strict host-key pinning correctly refused it; the
+persistent key never arrived before automatic rollback. The runner's 870-second
+envelope also ended 30 seconds before the 900-second rollback. V5 is consumed.
+
 ## Next actions
 
-1. Wire DSI `vdda` to PM8350B L6 and PHY `vdds` to PM8350B L5, matching the
-   upstream SM8350 HDK reference.
-2. Build REFGEN in so it is available with the built-in DSI host; reuse all
-   unrelated modules and keep the display diagnostic marker.
-3. Use one successor cycle to answer whether DRM/DSI/panel initializes, exposes the
-   text console, and returns to V11 fallback. Collect adjacent charging, Wi-Fi,
-   storage-isolation, and display dmesg evidence without making optional fields
-   fatal.
+1. Stop issuing display successors until post-switch evidence no longer depends
+   on the persistent SSH identity.
+2. Add one signed, read-only NCM reporter for REFGEN/DSI/DRM/fb/backlight/status
+   and preserve strict SSH host-key pinning.
+3. Extend the parent fallback wait beyond the 900-second rollback plus cleanup.
 4. Test repeated power-key blank/unblank only after safe panel registration is
    proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
 
