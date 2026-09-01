@@ -21,6 +21,7 @@ trap cleanup EXIT HUP INT TERM
 [ "$(grep -Fc 'tier_tests=()' "$runner")" -eq 1 ]
 for token in \
 	'DURATION %s %dms' \
+	'if [[ $tier != active && $tier != probe ]]; then' \
 	'isolated_tests=(' \
 	'parallel_pids=(' \
 	'parallel_status_files=(' \
@@ -102,7 +103,9 @@ if [ "$(id -u)" -ne 0 ]; then
 	grep -Fxq 'FAIL repository test temporary parent is unavailable' "$work/parent.stderr"
 	chmod 0700 "$work/read-only-parent"
 fi
-sed -n '/^active_tests=(/,/^)/p' "$runner" |
+[ -z "$(sed -n '/^active_tests=(/,/^)/p' "$runner" |
+	grep -F 'scripts/host/test-repository-linux-runner-contract.sh' || true)" ]
+sed -n '/^shared_tests=(/,/^)/p' "$runner" |
 	grep -Fq 'scripts/host/test-repository-linux-runner-contract.sh'
 [ "$(grep -Fc 'scripts/host/test-repository-linux-runner-contract.sh' "$runner")" -eq 1 ]
 echo 'PASS runner scratch uses explicit parent or unchanged HOME and rejects invalid parents'
@@ -127,10 +130,12 @@ duplicates=$(printf '%s\n' "$shared" | sort | uniq -d)
 	echo "FAIL shared repository test is duplicated: $duplicates" >&2
 	exit 1
 }
+declared=$(sed -n '/^active_tests=(/,/^)/p; /^shared_tests=(/,/^)/p' "$runner" |
+	sed -n 's|^[[:space:]]*\(scripts/[^[:space:]]*\)$|\1|p')
 for isolated in $(sed -n '/^isolated_tests=(/,/^)/p' "$runner" |
 	sed -n 's|^[[:space:]]*\(scripts/[^[:space:]]*\)$|\1|p'); do
-	printf '%s\n' "$shared" | grep -Fxq "$isolated" || {
-		echo "FAIL isolated suite is outside the shared test list: $isolated" >&2
+	printf '%s\n' "$declared" | grep -Fxq "$isolated" || {
+		echo "FAIL isolated suite is outside the active/shared test lists: $isolated" >&2
 		exit 1
 	}
 done
