@@ -69,9 +69,16 @@ fi
 sh -n "$tools/shutdown" || fail 'shutdown syntax'
 [ "$action" = execute ] || { echo 'PASS native RAM trial preflight'; exit 0; }
 
-# The reviewed exitrd owns persistent-state detach, UFS relock and final kexec.
-# Requiring those transitions over SSH would destroy the control path before
-# this helper can stage and request the survivable shutdown transaction.
+# The local transaction helper performs this quiesce after the host dispatches
+# it and before SSH can disappear. Exitrd remains an independent fallback.
+[ ! -e /run/rog5-persistent-state.runtime ] || fail 'persistent state remains mounted'
+count=0
+for node in /sys/class/block/sd*; do
+	[ -e "$node/dev" ] || continue
+	[ "$(cat "$node/ro")" = 1 ] || fail 'storage is not read-only'
+	count=$((count + 1))
+done
+[ "$count" = 117 ] || fail 'storage inventory changed'
 umask 077
 mkdir "$root/entered" || fail 'trial already entered; do not retry'
 payload=/run/rog5-bundles/$bundle
