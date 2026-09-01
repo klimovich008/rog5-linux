@@ -178,8 +178,14 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn('TimeoutStartSec=180s', unit)
         self.assertIn('Restart=no', unit)
         healthy = (R/'initramfs/native-wifi-persistent/healthy').read_text()
+        self.assertIn('helper=$root/trial-state', healthy)
+        self.assertIn('record=$root/healthy.record', healthy)
+        self.assertNotIn('record=$root/healthy\n', healthy)
         commit = healthy.index('"$helper" healthy')
-        stop = healthy.index('systemctl stop rog5-wifi-boot-rollback.timer')
+        stop = healthy.index(
+            'systemctl --job-mode=ignore-dependencies stop '
+            'rog5-wifi-boot-rollback.timer'
+        )
         record = healthy.index('format=rog5-native-wifi-healthy-v1')
         self.assertLess(commit, stop)
         self.assertLess(stop, record)
@@ -200,6 +206,12 @@ class AutomaticWifi(unittest.TestCase):
         archive.add(members, 'rog5-native-wifi/runtime', b'old-runtime', 0o100755)
         archive.add(members, 'rog5-native-wifi/boot-files.sha256',
                     b'old-checks\n', 0o100444)
+        archive.add(
+            members,
+            'rog5-native-wifi/units/rog5-wifi-radio.service',
+            b'[Service]\nTimeoutStartSec=@OUTER_SECONDS@s\n',
+            0o100644,
+        )
         base = gzip.compress(archive.encode(members), mtime=0)
         descriptor = (
             'format=rog5-persistent-wifi-health-v1\n'
@@ -211,16 +223,19 @@ class AutomaticWifi(unittest.TestCase):
         output = archive.entries(gzip.decompress(packed))
         self.assertEqual(output['init'], members['init'])
         self.assertEqual(output['rog5-native-wifi/trial-descriptor'][1], descriptor)
-        self.assertEqual(output['usr/libexec/rog5-persistent-trial-state'][1], helper)
+        self.assertEqual(output['rog5-native-wifi/trial-state'][1], helper)
+        self.assertNotIn(
+            b'@OUTER_SECONDS@',
+            output['rog5-native-wifi/units/rog5-wifi-radio.service'][1],
+        )
         self.assertIn('rog5-native-wifi/healthy', output)
         self.assertIn('rog5-native-wifi/units/rog5-wifi-healthy.service', output)
         self.assertEqual(set(output)-set(members), {
-            'usr', 'usr/libexec', 'usr/libexec/rog5-persistent-trial-state',
+            'rog5-native-wifi/trial-state',
             'rog5-native-wifi/trial-descriptor', 'rog5-native-wifi/healthy',
-            'rog5-native-wifi/units',
             'rog5-native-wifi/units/rog5-wifi-healthy.service',
         })
-        self.assertEqual(result['added_members'], 7)
+        self.assertEqual(result['added_members'], 4)
         checks = output['rog5-native-wifi/boot-files.sha256'][1].decode()
         self.assertIn('  healthy\n', checks)
         self.assertIn('  trial-descriptor\n', checks)

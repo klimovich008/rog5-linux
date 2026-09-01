@@ -30,17 +30,31 @@ def compose(base, expected_base, descriptor, helper):
     original = ARCHIVE.entries(gzip.decompress(base))
     members = {name: (fields.copy(), data) for name, (fields, data) in original.items()}
     prefix = 'rog5-native-wifi/'
-    for required in (prefix+'automatic', prefix+'runtime', prefix+'boot-files.sha256'):
+    radio_unit = prefix+'units/rog5-wifi-radio.service'
+    for required in (prefix+'automatic', prefix+'runtime', radio_unit,
+                     prefix+'boot-files.sha256'):
         assert required in members
     assert members[prefix+'automatic'][1] == b'rog5-native-wifi-boot-v1\n'
-    for absent in (prefix+'trial-descriptor', 'usr/libexec/rog5-persistent-trial-state',
+    for absent in (prefix+'trial-descriptor', prefix+'trial-state',
                    prefix+'healthy', prefix+'units/rog5-wifi-healthy.service'):
         assert absent not in members
 
     ARCHIVE.replace(members, prefix+'runtime',
                     (REPO/'initramfs/native-wifi/runtime').read_bytes())
+    timing = dict(
+        line.split('=', 1)
+        for line in (REPO/'initramfs/native-wifi/timing').read_text().splitlines()
+        if line and not line.startswith('#')
+    )
+    radio = (REPO/'initramfs/native-wifi/units/rog5-wifi-radio.service').read_bytes()
+    assert radio.count(b'@OUTER_SECONDS@') == 1
+    ARCHIVE.replace(
+        members,
+        radio_unit,
+        radio.replace(b'@OUTER_SECONDS@', timing['outer_seconds'].encode()),
+    )
     ARCHIVE.add(members, prefix+'trial-descriptor', descriptor, stat.S_IFREG | 0o444)
-    ARCHIVE.add(members, 'usr/libexec/rog5-persistent-trial-state', helper,
+    ARCHIVE.add(members, prefix+'trial-state', helper,
                 stat.S_IFREG | 0o755)
     persistent = REPO/'initramfs/native-wifi-persistent'
     for path in sorted(persistent.rglob('*')):
@@ -56,7 +70,7 @@ def compose(base, expected_base, descriptor, helper):
         and stat.S_ISREG(fields[1]))
     ARCHIVE.replace(members, prefix+'boot-files.sha256', checks.encode())
     for name, value in original.items():
-        if name not in (prefix+'runtime', prefix+'boot-files.sha256'):
+        if name not in (prefix+'runtime', radio_unit, prefix+'boot-files.sha256'):
             assert members[name] == value
     packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
     assert ARCHIVE.entries(gzip.decompress(packed)) == members
@@ -65,7 +79,8 @@ def compose(base, expected_base, descriptor, helper):
         'sha256': sha(packed),
         'trial': trial,
         'trial_helper_sha256': sha(helper),
-        'changed_existing_members': [prefix+'boot-files.sha256', prefix+'runtime'],
+        'changed_existing_members': [prefix+'boot-files.sha256', prefix+'runtime',
+                                     radio_unit],
         'added_members': len(members)-len(original),
         'kernel_rebuilt': False,
         'authority': 'none; persistent trial composition only',
