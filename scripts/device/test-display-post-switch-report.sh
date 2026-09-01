@@ -8,11 +8,11 @@ fail() {
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 target=$repo/initramfs/native-wifi/display-post-switch-report
-unit=$repo/initramfs/native-wifi/units/rog5-display-post-switch.service
+init=$repo/initramfs/persistent-root-init
 
 [[ -x $target ]] || fail 'display post-switch reporter is absent'
-[[ -f $unit && ! -L $unit ]] || fail 'display post-switch unit is absent'
 sh -n "$target"
+sh -n "$init"
 
 for required in \
 	'format=rog5-display-post-switch-v1' \
@@ -26,6 +26,8 @@ for required in \
 	'169.254.77.1 8077'; do
 	grep -Fq "$required" "$target" || fail "reporter lacks $required"
 done
+[[ $(grep -Fc $'\t/bin/busybox reboot -f || true' "$init") -eq 1 ]] ||
+	fail 'pre-switch display path must expose exactly one direct normal reboot'
 
 for forbidden in 'mount ' 'umount ' 'blockdev ' 'mkfs' 'sgdisk' \
 	'dd of=' '>/sys/class/backlight' 'systemctl reboot'; do
@@ -33,19 +35,18 @@ for forbidden in 'mount ' 'umount ' 'blockdev ' 'mkfs' 'sgdisk' \
 		fail "reporter contains forbidden write path: $forbidden"
 done
 
-grep -Fqx 'ExecStart=/run/rog5-native-wifi/display-post-switch-report send' "$unit" ||
-	fail 'unit does not invoke the sealed reporter'
-grep -Fqx 'TimeoutStartSec=90s' "$unit" || fail 'unit timeout changed'
-grep -Fqx 'Before=rog5-persistent-state.service basic.target shutdown.target' "$unit" ||
-	fail 'observer is not ordered before persistent state and basic target'
-grep -Fqx 'WantedBy=sysinit.target' "$unit" ||
-	fail 'observer is not attached to sysinit target'
-grep -Fqx 'ExecStartPost=/usr/bin/systemctl --no-block reboot' "$unit" ||
-	fail 'successful evidence does not request an early clean return'
-! grep -Fq 'multi-user.target' "$unit" ||
-	fail 'observer still depends on multi-user target'
-! grep -Eq '^OnFailure=|poweroff' "$unit" ||
-	fail 'optional display observer has an unreviewed failure action'
+for required in \
+	'run_pre_switch_display_observer() {' \
+	'ROG5_OBSERVER_TARGET_ROOT=/newroot' \
+	'"$reporter" send' \
+	'/bin/busybox reboot -f'; do
+	grep -Fq "$required" "$init" || fail "initramfs handoff lacks $required"
+done
+observer_line=$(grep -n '^run_pre_switch_display_observer$' "$init" | cut -d: -f1)
+storage_line=$(grep -n '^publish_or_rollback final-storage PASS$' "$init" | cut -d: -f1)
+switch_line=$(grep -n '^publish_or_rollback switch-root ENTER$' "$init" | cut -d: -f1)
+[[ $storage_line -lt $observer_line && $observer_line -lt $switch_line ]] ||
+	fail 'display observer is not between final read-only proof and switch-root'
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT

@@ -616,6 +616,32 @@ prepare_native_wifi_boot() {
 	native_wifi_boot=1
 }
 
+run_pre_switch_display_observer() {
+	root=/run/rog5-native-wifi
+	marker=$root/display-diagnostic
+	reporter=$root/display-post-switch-report
+	[ -e "$marker" ] || [ -L "$marker" ] || return 0
+	[ "$native_wifi_boot" -eq 1 ] || return 1
+	[ -f "$marker" ] && [ ! -L "$marker" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$marker")" = 0:0:444:1 ] &&
+		[ "$(cat "$marker")" = rog5-display-diagnostic-v1 ] || return 1
+	[ -f "$reporter" ] && [ ! -L "$reporter" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$reporter")" = 0:0:755:1 ] ||
+		return 1
+	[ ! -e /run/rog5-display-post-switch.record ] &&
+		[ ! -L /run/rog5-display-post-switch.record ] || return 1
+	log 'pre-switch display observation begin'
+	if ROG5_OBSERVER_TARGET_ROOT=/newroot \
+		ROG5_OBSERVER_UNIT_ROOT=/run/systemd/system \
+		ROG5_OBSERVER_BUSYBOX=/bin/busybox "$reporter" send; then
+		log 'pre-switch display observation sent; rebooting before persistent state'
+	else
+		log 'pre-switch display observation failed; rebooting'
+	fi
+	/bin/busybox reboot -f || true
+	force_rollback
+}
+
 wait_for_deferred_ufs_rendezvous() {
 	# Storage-writing and diagnostic archives retain the attended rendezvous.
 	[ "${native_wifi_boot:-0}" != 1 ] || return 0
@@ -2011,6 +2037,8 @@ if ! verify_physical_storage_read_only ||
 	fail_local_stage final-storage 'final read-only storage gate failed'
 fi
 publish_or_rollback final-storage PASS
+
+run_pre_switch_display_observer
 
 handoff_newroot=/newroot
 handoff_userdata=/mnt/userdata

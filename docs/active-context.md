@@ -16,12 +16,9 @@ screen, without regressing Wi-Fi, charging, storage isolation, or fallback?
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
 - Slot B still selects persistent signed V11.
-- Current V11 fallback boot: unproven after V7; last proven
-  `e8b6eff6-4ee3-4920-b4d9-018fe5b7997a`.
-- V7 is consumed; its rollback was not proven and the phone is absent from USB
-  after one failed exact-device host reset. Physical fastboot is required.
-- Last proven V11 state had Tailscale, key-only SSH, NCM, UFS, and p24 read-only.
-- Last battery read: Good, 8.562 V, 30.0 C.
+- Current V11 fallback boot: `87070bfc-6b14-4dcc-87aa-5c7d9034d059`.
+- Tailscale, key-only SSH, NCM, UFS, and p24 read-only pass.
+- Latest battery read: Good, 8.559 V, 30.1 C.
 - The background Arch keyring WKD parser failure is unrelated and separately
   queued.
 
@@ -72,22 +69,22 @@ available to the built-in DSI probe. A matching V11 module probe bound
 `88e7000.regulator` and created `/sys/class/regulator/.../name=refgen`, proving
 the driver and base DT. REFGEN is now built in; `Module.symvers` is unchanged.
 
-V6 lost its reporter to an R6/R7 host-profile race and returned to V11. V7
-proved the corrected dual-address autoconnect profile, prestarted collector,
-kernel boot, UFS path, runtime, and `switch-root PASS`. Its observer was attached
-to `multi-user.target`, which did not arrive within 180 seconds. The 1,020-second
-fallback proof then expired; NCM stopped responding and a host USB reset removed
-the stale gadget. No kernel/panel result exists and V7 is consumed.
+V6 lost evidence to a host-profile race. V7 and V9 proved stable host capture,
+the display kernel, UFS/runtime, and `switch-root PASS`, but their systemd
+observers emitted no record. V9 eventually returned to fresh V11. V6/V7/V9 are
+consumed; V8 was obsolete and never issued. No kernel/panel result exists.
 
-The observer is now attached to `sysinit.target`, ordered before `basic.target`,
-and remains independent of persistent SSH and multi-user. Focused tests pass;
-no successor may be staged until exact fastboot and fresh V11 are restored.
+The post-switch architecture is retired. The same signed reporter now runs in
+initramfs after final read-only storage verification and before `switch_root`,
+uses `/newroot` only for status-file observation, sends over prestarted NCM, and
+forces a normal reboot before persistent state can mount. The obsolete systemd
+unit was removed. Focused tests took 12.966 seconds; active took 101.846 seconds.
 
 ## Next actions
 
-1. Physically force-reboot to exact fastboot, then restore and verify V11.
-2. Publish the sysinit observer correction and rebuild only the target archive.
-3. Use one successor to determine REFGEN/DSI/DRM/fb/backlight state over NCM.
+1. Publish and rebuild only the pre-switch target archive.
+2. Use one successor to determine REFGEN/DSI/DRM/fb/backlight state over NCM.
+3. Require direct read-only initramfs return before any further panel change.
 4. Test repeated power-key blank/unblank only after safe panel registration is
    proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
 

@@ -123,21 +123,6 @@ install_units() {
 	else
 		[ ! -e "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] ||
 			return 1
-		for path in display-post-switch-report \
-			units/rog5-display-post-switch.service; do
-			[ -f "$root/$path" ] && [ ! -L "$root/$path" ] || return 1
-		done
-		[ "$(stat -c '%u:%g:%a:%h' "$root/display-post-switch-report")" = \
-			0:0:755:1 ] || return 1
-		[ "$(stat -c '%u:%g:%a:%h' \
-			"$root/units/rog5-display-post-switch.service")" = 0:0:644:1 ] ||
-			return 1
-		cp -p "$root/units/rog5-display-post-switch.service" \
-			"$units/rog5-display-post-switch.service" || return 1
-		mkdir -p "$units/sysinit.target.wants" || return 1
-		ln -s ../rog5-display-post-switch.service \
-			"$units/sysinit.target.wants/rog5-display-post-switch.service" ||
-			return 1
 		printf '%s\n' '[keyfile]' 'unmanaged-devices=interface-name:usb0' \
 			>/run/NetworkManager/conf.d/10-rog5-p2.conf
 	fi
