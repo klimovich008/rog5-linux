@@ -13,6 +13,26 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'native-wifi-ram-stage-v29': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=native-wifi-ram-stage-v29\n'
+        b'candidate=persistent-native-root-wifi-failure-v25\n'
+        b'manifest_sha256=596fb9288f38cb56c48d3698bd3b70e549e9fb227ece7aa645a0fafa99ca321e\n'
+        b'tools_manifest_sha256=355b948a36a3be9fdcad7706652e557000c011e347e65d16016fac5155acc123\n'
+        b'automatic_initramfs_sha256=edc4b3fa28bfbdbb45f9743c0b2fe8915b546a77e4f81e204e4ad0df9f26bdd8\n'
+        b'plan_sha256=313cd6b93721b1f43db14375081c348e120dc443e97a9d2ff2e94f1faff29b3f\n'
+        b'controller_sha256=cc58802c3f369b23a7e168db0ec0c1df6d2f6c31ed6b3198975c8af2381ff2bb\n'
+        b'stager_sha256=ccb9051d947fba2e638a3cfb136b5e66727b7a5210745484fbd4b9451988d74a\n'
+        b'source_acm_setup_sha256=84ca208f16086b054bf40a1b85bc7b7576b96323190d8429d675594b0c608b51\n'
+        b'stage_collector_sha256=f3fffbb206cfc3769dc86cd88f515655e754fc9aa3dddaec5844f539ca9afc94\n'
+        b'source_collector_sha256=2739712fb70c7e4c4de0d04bcce55b1218b77bcf2ef599e1d83643559636ab13\n'
+        b'management_helper_sha256=571dc2d7ffebfe11c34e2ec96e691d34e1737550c60d61d005b35eec25a4e6f2\n'
+        b'source_acm_helper_sha256=ce2920c27224f6917b4bc26d230030560d4396e790f65a5ce0e59e4d24fc1660\n'
+        b'loader_helper_sha256=e7e6eff86261b641c855eaf5e2e33d820c7bbcc65668cef8ae51a8d27264fee2\n'
+        b'transaction_helper_sha256=c41a43f7e32954283acbd728ccadc5b221917b2ecd824f1ea7a33c9229fe93c4\n'
+        b'execution=mainline-kexec-ram-only\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'native-wifi-ram-stage-v26': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=native-wifi-ram-stage-v26\n'
