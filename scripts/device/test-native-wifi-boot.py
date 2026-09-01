@@ -18,6 +18,55 @@ def function(source, name):
 
 
 class AutomaticWifi(unittest.TestCase):
+    def test_optional_status_runtime_uses_sealed_applets_and_newroot(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_status_screen')
+        self.assertNotIn('\n\tinstall ', body)
+        for command in ('mkdir -p', 'cp -p', 'chmod 0755', 'ln -s', 'stat -c'):
+            self.assertIn(command, body)
+        self.assertIn('/newroot/usr/local/bin/rog5-screen-toggle.sh', body)
+        self.assertIn('"$units/multi-user.target.wants"', body)
+        self.assertIn('[ "$present" -eq 5 ]', body)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root/'payload'
+            units = root/'run/systemd/system'
+            newroot = root/'newroot'
+            (payload/'units').mkdir(parents=True)
+            units.mkdir(parents=True)
+            for name in ('screen-toggle.sh', 'status-screen.sh', 'power-buttond.py'):
+                path = payload/name
+                path.write_text(name)
+                path.chmod(0o755)
+            for name in ('rog5-status-screen.service', 'rog5-power-button.service'):
+                path = payload/'units'/name
+                path.write_text(name)
+                path.chmod(0o644)
+            script = body.replace('/newroot', str(newroot))
+            command = (
+                'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
+                'stat() { case "$3" in *.service) echo 0:0:644:1 ;; '
+                '*) echo 0:0:755:1 ;; esac; }\n' + script +
+                '\ninstall_status_screen "$units"'
+            )
+            subprocess.run(['sh', '-c', command], check=True)
+            self.assertEqual(
+                (newroot/'usr/local/bin/rog5-screen-toggle.sh').read_text(),
+                'screen-toggle.sh',
+            )
+            self.assertEqual(
+                (newroot/'usr/local/libexec/rog5-status-screen').read_text(),
+                'status-screen.sh',
+            )
+            self.assertTrue(
+                (units/'multi-user.target.wants/rog5-status-screen.service').is_symlink()
+            )
+
+            (payload/'power-buttond.py').unlink()
+            rejected = subprocess.run(['sh', '-c', command], capture_output=True)
+            self.assertNotEqual(rejected.returncode, 0)
+
     def test_persistent_trial_selector_and_healthy_commit_are_exact(self):
         spec = importlib.util.spec_from_file_location(
             'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')

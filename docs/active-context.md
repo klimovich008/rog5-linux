@@ -51,19 +51,22 @@ GPIO state before transmitting panel commands. The exact DT delta enables only
 DSI0, its PHY, MDSS/DPU, L12/L13, the reviewed GPIOs, and the panel graph. The
 candidate DT SHA-256 is
 `1806104ab0efa1a80cc1c55f81e236f8f9f8cde055c6cb2dad3cea303869ba96`.
-No display candidate has been issued or booted.
+Display60 V1 is consumed and must never be retried. It entered the exact target
+kernel and passed UFS/storage, then emitted `runtime FAIL` before switch-root.
+The cause is the optional status installer using an unexposed BusyBox command,
+the wrong pre-switch-root destination, and an uncreated wants directory. Exact
+fastboot and fresh V11 fallback were proven; no panel result was reached.
 
 ## Next actions
 
-1. Freeze the display source and run the active tier plus one full local CI.
-2. Publish the coherent source checkpoint and verify exact-head CI.
-3. Compose one signed RAM-only target from the exact kernel, matching modules,
-   DTB, and status userspace; keep screen off by default.
-4. Use one live cycle to answer whether DRM/DSI/panel initializes, exposes the
+1. Replace the optional status installer with sealed `mkdir`/`cp`/`chmod`/`ln`
+   commands targeting `/newroot`, and replay it with the exact AArch64 BusyBox.
+2. Rebuild only the target initramfs; reuse the exact kernel, modules, and DTB.
+3. Use one successor cycle to answer whether DRM/DSI/panel initializes, exposes the
    text console, and returns to V11 fallback. Collect adjacent charging, Wi-Fi,
    storage-isolation, and display dmesg evidence without making optional fields
    fatal.
-5. Test repeated power-key blank/unblank only after safe panel registration is
+4. Test repeated power-key blank/unblank only after safe panel registration is
    proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
 
 ## Boundaries
