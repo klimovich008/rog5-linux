@@ -40,6 +40,7 @@ for contract in \
 	'Restart=on-failure' \
 	'DevicePolicy=closed' \
 	'DeviceAllow=char-input r' \
+	'DeviceAllow=/dev/tty1 rw' \
 	'NoNewPrivileges=yes' \
 	'ProtectSystem=strict' \
 	'ProtectHome=read-only' \

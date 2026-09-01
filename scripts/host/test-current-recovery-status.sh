@@ -15,10 +15,12 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Active slot: B, running V11 boot' \
+	'Current V11 fallback boot' \
 	'1-1.2' \
-	'V49' \
-	'no GPT or experimental boot-partition flash'
+	'V29 fixed the source-to-target lifecycle regression' \
+	'p24 read-only' \
+	'power-key-toggled text status screen' \
+	'Do not flash, alter slot A, modify GPT'
 do
 	grep -Fq "$contract" "$active" || {
 		echo "FAIL active context omits current contract: $contract" >&2
@@ -32,7 +34,8 @@ for contract in \
 	'Persistent release v11 boots successfully' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
-	'72.816 seconds' \
+	'test-results/2026-09-01-native-wifi-v29.md' \
+	'Physical pixels remain a separate kernel/DT gate' \
 	'Do not rebuild or reflash `super`' \
 	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
 	'test-results/2026-08-30-persistent-tailscale-v11-live.md'
@@ -66,4 +69,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, V11 firewall/reboot pass, and peer SSH gate'
+echo 'PASS compact current status records WW33 rescue, V29 Wi-Fi, V11 fallback, and the minimal screen boundary'
