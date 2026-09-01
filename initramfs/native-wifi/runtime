@@ -71,6 +71,15 @@ install_status_screen() {
 
 install_units() {
 	units=/run/systemd/system
+	display_diagnostic=0
+	if [ -e "$root/display-diagnostic" ] || [ -L "$root/display-diagnostic" ]; then
+		[ -f "$root/display-diagnostic" ] &&
+			[ ! -L "$root/display-diagnostic" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/display-diagnostic")" = 0:0:444:1 ] &&
+			[ "$(cat "$root/display-diagnostic")" = rog5-display-diagnostic-v1 ] ||
+			return 1
+		display_diagnostic=1
+	fi
 	install_status_screen "$units" || return 1
 	cp -p "$root/units/rog5-wifi-failure.service" \
 		"$units/rog5-wifi-failure.service" || return 1
@@ -83,31 +92,40 @@ install_units() {
 	mkdir "$units/rog5-early-sshd.service.d" || return 1
 	cp -p "$root/units/before-ssh.conf" \
 		"$units/rog5-early-sshd.service.d/10-wifi-rollback.conf" || return 1
-	for unit in rog5-wifi-radio rog5-wifi-wpa rog5-wifi-dhcp; do
-		[ ! -e "$units/$unit.service" ] && [ ! -L "$units/$unit.service" ] || return 1
-		cp -p "$root/units/$unit.service" "$units/$unit.service" || return 1
-		case $unit in
-			rog5-wifi-dhcp) target=multi-user.target ;;
-			*) target=sysinit.target ;;
-		esac
-		mkdir -p "$units/$target.wants" || return 1
-		ln -s "../$unit.service" "$units/$target.wants/$unit.service" || return 1
-	done
-	if [ -e "$root/trial-descriptor" ] || [ -L "$root/trial-descriptor" ]; then
-		[ -f "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] &&
-			[ "$(stat -c '%u:%g:%a:%h' "$root/trial-descriptor")" = 0:0:444:1 ] ||
+	if [ "$display_diagnostic" -eq 0 ]; then
+		for unit in rog5-wifi-radio rog5-wifi-wpa rog5-wifi-dhcp; do
+			[ ! -e "$units/$unit.service" ] && [ ! -L "$units/$unit.service" ] ||
+				return 1
+			cp -p "$root/units/$unit.service" "$units/$unit.service" || return 1
+			case $unit in
+				rog5-wifi-dhcp) target=multi-user.target ;;
+				*) target=sysinit.target ;;
+			esac
+			mkdir -p "$units/$target.wants" || return 1
+			ln -s "../$unit.service" "$units/$target.wants/$unit.service" || return 1
+		done
+		if [ -e "$root/trial-descriptor" ] || [ -L "$root/trial-descriptor" ]; then
+			[ -f "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] &&
+				[ "$(stat -c '%u:%g:%a:%h' "$root/trial-descriptor")" = 0:0:444:1 ] ||
+				return 1
+			cp -p "$root/units/rog5-wifi-healthy.service" \
+				"$units/rog5-wifi-healthy.service" || return 1
+			ln -s ../rog5-wifi-healthy.service \
+				"$units/multi-user.target.wants/rog5-wifi-healthy.service" || return 1
+		fi
+		mkdir "$units/rog5-persistent-state.service.d" || return 1
+		cp -p "$root/units/before-state.conf" \
+			"$units/rog5-persistent-state.service.d/10-wifi-radio.conf" || return 1
+		# Network ownership is explicit; do not race a second WPA/DHCP manager.
+		printf '%s\n' '[keyfile]' \
+			'unmanaged-devices=interface-name:usb0;type:wifi' \
+			>/run/NetworkManager/conf.d/10-rog5-p2.conf
+	else
+		[ ! -e "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] ||
 			return 1
-		cp -p "$root/units/rog5-wifi-healthy.service" \
-			"$units/rog5-wifi-healthy.service" || return 1
-		ln -s ../rog5-wifi-healthy.service \
-			"$units/multi-user.target.wants/rog5-wifi-healthy.service" || return 1
+		printf '%s\n' '[keyfile]' 'unmanaged-devices=interface-name:usb0' \
+			>/run/NetworkManager/conf.d/10-rog5-p2.conf
 	fi
-	mkdir "$units/rog5-persistent-state.service.d" || return 1
-	cp -p "$root/units/before-state.conf" \
-		"$units/rog5-persistent-state.service.d/10-wifi-radio.conf" || return 1
-	# Network ownership is explicit; do not race a second WPA/DHCP manager.
-	printf '%s\n' '[keyfile]' 'unmanaged-devices=interface-name:usb0;type:wifi' \
-		>/run/NetworkManager/conf.d/10-rog5-p2.conf
 }
 
 prepare_network() {

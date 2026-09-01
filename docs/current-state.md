@@ -119,6 +119,14 @@ The next hardware question remains whether that exact RAM-only kernel/DT registe
 DRM/DSI/panel safely and exposes the text console while retaining V11 fallback.
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
+Display60 V2 fixed the initramfs runtime boundary and reached `switch-root PASS`,
+but automatically returned to fresh V11 before target SSH. The exact Wi-Fi radio
+failure unit is the only reviewed immediate userspace reboot path; a display
+panic/reset remains possible because pstore was empty and inconclusive. V2 is
+consumed. The next candidate must be diagnostic-only: retain NCM/SSH/status,
+watchdog, power and storage gates while not installing Wi-Fi radio/WPA/DHCP.
+See `test-results/2026-09-01-display60-post-switch.md`.
+
 The preexisting runtime package-keyring WKD parser failure is unrelated to
 Wi-Fi, charging, or display and remains a separate userspace repair.
 
