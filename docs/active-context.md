@@ -16,7 +16,7 @@ screen, without regressing Wi-Fi, charging, storage isolation, or fallback?
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
 - Slot B still selects persistent signed V11.
-- Current V11 fallback boot: `87070bfc-6b14-4dcc-87aa-5c7d9034d059`.
+- Current V11 fallback boot: `ef544ace-25a3-4359-b998-6dce9d6239b6`.
 - Tailscale, key-only SSH, NCM, UFS, and p24 read-only pass.
 - Latest battery read: Good, 8.559 V, 30.1 C.
 - The background Arch keyring WKD parser failure is unrelated and separately
@@ -69,24 +69,24 @@ available to the built-in DSI probe. A matching V11 module probe bound
 `88e7000.regulator` and created `/sys/class/regulator/.../name=refgen`, proving
 the driver and base DT. REFGEN is now built in; `Module.symvers` is unchanged.
 
-V6 lost evidence to a host-profile race. V7 and V9 proved stable host capture,
-the display kernel, UFS/runtime, and `switch-root PASS`, but their systemd
-observers emitted no record. V9 eventually returned to fresh V11. V6/V7/V9 are
-consumed; V8 was obsolete and never issued. No kernel/panel result exists.
+V10 is the accepted 60 Hz display baseline. Pre-switch boot
+`e42ea9e1-2303-43df-b934-0bd8eccb509a` proved REFGEN, bound DSI, DRM card/DSI
+connector, fb0, one writable backlight, and all three status executables plus
+both service files. Dmesg logged an early DSI PLL lock failure, then initialized
+MSM DRM 1.13.0 and registered `msmdrmfb`. Direct reboot before persistent state
+returned to fresh strict-SSH V11 in under the parent deadline. V10 is consumed.
 
-The post-switch architecture is retired. The same signed reporter now runs in
-initramfs after final read-only storage verification and before `switch_root`,
-uses `/newroot` only for status-file observation, sends over prestarted NCM, and
-forces a normal reboot before persistent state can mount. The obsolete systemd
-unit was removed. Focused tests took 12.966 seconds; active took 101.846 seconds.
+The kernel/DT and minimal status userspace are frozen at 60 Hz. Power-button
+toggle logic passes exact offline tests but has not yet been physically observed
+on this mainline display; do not claim live button acceptance or enable higher
+refresh/PQ/GPU/desktop work.
 
 ## Next actions
 
-1. Publish and rebuild only the pre-switch target archive.
-2. Use one successor to determine REFGEN/DSI/DRM/fb/backlight state over NCM.
-3. Require direct read-only initramfs return before any further panel change.
-4. Test repeated power-key blank/unblank only after safe panel registration is
-   proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
+1. Publish the V10 display acceptance evidence and freeze display source.
+2. Resume standalone-server MVP work; retain the headless V11 rescue baseline.
+3. Test repeated power-key blank/unblank only in a later persistent integration.
+4. Keep 90/120/144 Hz, Pixelworks PQ, GPU, and desktop disabled.
 
 ## Boundaries
 

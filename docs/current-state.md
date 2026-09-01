@@ -118,12 +118,12 @@ alive on NCM but never replaced its early SSH host key; strict SSH withheld
 display evidence until the 900-second rollback. V1-V5 are consumed. See
 `test-results/2026-09-01-display60-v5-ssh-boundary.md`.
 
-V6 lost evidence to a host-profile race. V7 and V9 fixed host capture and both
-reached `switch-root PASS`, but neither systemd observer emitted a record. V9
-returned to fresh V11 `87070bfc-6b14-4dcc-87aa-5c7d9034d059`; V6/V7/V9 are
-consumed and V8 was never issued. The post-switch design is retired: display
-evidence now runs after final read-only verification but before `switch_root`,
-then reboots directly. See `test-results/2026-09-01-display60-v9-systemd.md`.
+V10 moved evidence before `switch_root` and passed: REFGEN, DSI, DRM, fb0, one
+backlight, and the status-screen files were present on boot
+`e42ea9e1-2303-43df-b934-0bd8eccb509a`. DRM initialized after an early PLL
+lock failure and registered `msmdrmfb`; direct read-only reboot restored V11
+`ef544ace-25a3-4359-b998-6dce9d6239b6`. V10 is consumed. See
+`test-results/2026-09-01-display60-v10-pre-switch-pass.md`.
 
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
