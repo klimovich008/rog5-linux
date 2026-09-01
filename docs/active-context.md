@@ -57,10 +57,16 @@ The cause is the optional status installer using an unexposed BusyBox command,
 the wrong pre-switch-root destination, and an uncreated wants directory. Exact
 fastboot and fresh V11 fallback were proven; no panel result was reached.
 
+Display60 V2 is also consumed. It fixed the runtime boundary and emitted
+`switch-root PASS`, then returned automatically to fresh V11 before target SSH.
+No target FAIL record or pstore data identifies the post-switch cause. The
+strongest userspace hypothesis is immediate `rog5-wifi-radio.service` failure;
+a display panic/reset remains possible.
+
 ## Next actions
 
-1. Replace the optional status installer with sealed `mkdir`/`cp`/`chmod`/`ln`
-   commands targeting `/newroot`, and replay it with the exact AArch64 BusyBox.
+1. Add one signed display-diagnostic marker that retains NCM/SSH/status,
+   rollback, power and storage gates but does not install Wi-Fi radio/WPA/DHCP.
 2. Rebuild only the target initramfs; reuse the exact kernel, modules, and DTB.
 3. Use one successor cycle to answer whether DRM/DSI/panel initializes, exposes the
    text console, and returns to V11 fallback. Collect adjacent charging, Wi-Fi,

@@ -67,6 +67,56 @@ class AutomaticWifi(unittest.TestCase):
             rejected = subprocess.run(['sh', '-c', command], capture_output=True)
             self.assertNotEqual(rejected.returncode, 0)
 
+    def test_display_diagnostic_keeps_rollback_and_skips_wifi_units(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_units')
+        self.assertIn('rog5-display-diagnostic-v1', body)
+        self.assertIn('[ "$display_diagnostic" -eq 0 ]', body)
+        self.assertIn("'unmanaged-devices=interface-name:usb0'", body)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root/'payload'
+            source_units = payload/'units'
+            units = root/'run/systemd/system'
+            nm = root/'run/NetworkManager/conf.d'
+            source_units.mkdir(parents=True)
+            (units/'sysinit.target.wants').mkdir(parents=True)
+            nm.mkdir(parents=True)
+            for name in (
+                'rog5-wifi-failure.service',
+                'rog5-wifi-boot-rollback.service',
+                'rog5-wifi-boot-rollback.timer',
+                'before-ssh.conf',
+            ):
+                (source_units/name).write_text(name)
+            marker = payload/'display-diagnostic'
+            marker.write_text('rog5-display-diagnostic-v1\n')
+            marker.chmod(0o444)
+            script = body.replace('/run/systemd/system', str(units)).replace(
+                '/run/NetworkManager/conf.d', str(nm)
+            )
+            command = (
+                'set -eu\nroot=' + str(payload) + '\n'
+                'install_status_screen() { :; }\n'
+                'stat() { echo 0:0:444:1; }\n' + script + '\ninstall_units'
+            )
+            subprocess.run(['sh', '-c', command], check=True)
+            self.assertTrue(
+                (units/'sysinit.target.wants/rog5-wifi-boot-rollback.timer').is_symlink()
+            )
+            self.assertFalse((units/'rog5-wifi-radio.service').exists())
+            self.assertFalse((units/'rog5-persistent-state.service.d').exists())
+            self.assertEqual(
+                (nm/'10-rog5-p2.conf').read_text(),
+                '[keyfile]\nunmanaged-devices=interface-name:usb0\n',
+            )
+
+            marker.chmod(0o644)
+            marker.write_text('wrong\n')
+            marker.chmod(0o444)
+            rejected = subprocess.run(['sh', '-c', command], capture_output=True)
+            self.assertNotEqual(rejected.returncode, 0)
+
     def test_persistent_trial_selector_and_healthy_commit_are_exact(self):
         spec = importlib.util.spec_from_file_location(
             'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
