@@ -69,26 +69,24 @@ available to the built-in DSI probe. A matching V11 module probe bound
 `88e7000.regulator` and created `/sys/class/regulator/.../name=refgen`, proving
 the driver and base DT. REFGEN is now built in; `Module.symvers` is unchanged.
 
-Display60 V5 reached switch-root and remained alive on NCM, but only its fresh
-ephemeral SSH key appeared. Strict host-key pinning correctly refused it; the
-persistent key never arrived before automatic rollback. The runner's 870-second
-envelope also ended 30 seconds before the 900-second rollback. V5 is consumed.
+Display60 V5 stayed alive but SSH identity blocked evidence. V6 replaced that
+dependency with a signed post-switch NCM observer. Its target remained pingable
+until the exact 900-second rollback and fresh V11 fallback passed, but the host
+old profile autoactivated on USB re-enumeration, removed `169.254.77.1`, and
+outlived the target reporter retry window. V6 is consumed; this is R6/R7 host
+state/capture ordering, not a kernel or panel result.
 
-The offline architecture checkpoint is complete. The signed display-diagnostic
-archive now installs one read-only systemd observer that sends an exact record
-to `169.254.77.1:8077`. Its host collector validates candidate, release, boot
-ID, source/destination, fixed field order, bounds, hex and dmesg hash. It does
-not use SSH, toggle the panel, or touch storage. The exact V5 BusyBox accepted
-all shell and applet options. Focused tests took 1.813 seconds; the active tier
-took 101.965 seconds.
+The collector now begins before COMMIT, condition-waits through
+`EADDRNOTAVAIL`, and still binds only the exact NCM address. The next host cycle
+must make the dual-address profile the sole autoconnect owner through target
+enumeration and restore V11 host state afterward.
 
 ## Next actions
 
-1. Freeze and publish the observer checkpoint, then compose one successor from
-   the unchanged V5 kernel/DT/modules plus the new initramfs only.
-2. Start the NCM collector before COMMIT and use a 1,020-second parent envelope;
-   preserve strict SSH host-key pinning as a later acceptance layer.
-3. Use the successor only to determine REFGEN/DSI/DRM/fb/backlight state.
+1. Test delayed exact-address binding and profile re-enumeration before V7.
+2. Reuse the unchanged V6 target bytes; change only host orchestration and the
+   one-use candidate identity.
+3. Use V7 only to determine REFGEN/DSI/DRM/fb/backlight state over NCM.
 4. Test repeated power-key blank/unblank only after safe panel registration is
    proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
 

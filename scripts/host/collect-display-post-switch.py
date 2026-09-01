@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import errno
 import os
 from pathlib import Path
 import re
@@ -17,6 +18,7 @@ from typing import NoReturn
 HOST_ADDRESS = "169.254.77.1"
 TARGET_ADDRESS = "169.254.77.2"
 PORT = 8077
+BIND_POLL_SECONDS = 0.1
 MAX_RECORD_BYTES = 16384
 FIELDS = (
     "format",
@@ -180,6 +182,20 @@ def receive(listener: socket.socket) -> bytes:
     return bytes(payload)
 
 
+def bind_exact_address(listener: socket.socket, deadline: float) -> None:
+    while True:
+        try:
+            listener.bind((HOST_ADDRESS, PORT))
+            return
+        except OSError as error:
+            if error.errno != errno.EADDRNOTAVAIL:
+                raise
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                fail("exact display NCM host address remained unavailable")
+            time.sleep(min(BIND_POLL_SECONDS, remaining))
+
+
 def collect(
     expected_candidate: str,
     expected_release: str,
@@ -188,18 +204,25 @@ def collect(
 ) -> dict[str, str]:
     if timeout_seconds < 1 or timeout_seconds > 180:
         fail("collector timeout is outside policy")
+    deadline = time.monotonic() + timeout_seconds
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        listener.bind((HOST_ADDRESS, PORT))
+        print(
+            f"WAITING exact display NCM host address {HOST_ADDRESS}",
+            flush=True,
+        )
+        bind_exact_address(listener, deadline)
         listener.listen(2)
-        listener.settimeout(float(timeout_seconds))
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            fail("display collector deadline expired before listen")
+        listener.settimeout(remaining)
         print(
             f"READY display post-switch collector on {HOST_ADDRESS}:{PORT}",
             flush=True,
         )
-        started = time.monotonic()
         payload = receive(listener)
-        if time.monotonic() - started > timeout_seconds:
+        if time.monotonic() > deadline:
             fail("display record escaped its fixed deadline")
     values = parse_record(payload, expected_candidate, expected_release)
     write_record(output, payload)

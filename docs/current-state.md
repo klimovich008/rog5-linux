@@ -118,12 +118,12 @@ alive on NCM but never replaced its early SSH host key; strict SSH withheld
 display evidence until the 900-second rollback. V1-V5 are consumed. See
 `test-results/2026-09-01-display60-v5-ssh-boundary.md`.
 
-The successor path no longer depends on SSH for first display evidence. A
-signed, read-only post-switch observer now publishes bounded REFGEN, DSI, DRM,
-fb, backlight, status-screen, and filtered dmesg state over NCM. Optional
-absence is non-fatal; exact identity, framing, and endpoint checks fail closed.
-The host envelope is 1,020 seconds for the 900-second rollback plus cleanup.
-See `test-results/2026-09-01-display60-ncm-observer-offline.md`.
+V6 added signed post-switch NCM evidence but the old host profile won USB
+re-enumeration and removed `169.254.77.1` before either reporter could connect.
+The target stayed pingable through the 900-second window and returned to exact
+V11; no panel result was captured. V6 is consumed. The collector now starts
+before COMMIT and condition-waits for the exact address. See
+`test-results/2026-09-01-display60-v6-host-profile-race.md`.
 
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
