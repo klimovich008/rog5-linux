@@ -56,6 +56,7 @@ ROG5_STATUS_TESTING=1 STATUS_TTY="$work/tty" NET_CLASS="$work/net" \
 grep -Fq 'Wi-Fi:  multiple-active' "$work/tty"
 
 for marker in \
+	'ExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off' \
 	'ExecStart=/usr/local/libexec/rog5-status-screen watch' \
 	'DeviceAllow=/dev/tty1 rw' \
 	'ProtectSystem=strict' \
@@ -65,7 +66,10 @@ for marker in \
 	grep -Fqx "$marker" "$unit"
 done
 mkdir "$work/systemd"
-sed "s|^ExecStart=/usr/local/libexec/rog5-status-screen watch$|ExecStart=$target watch|" \
+printf '#!/bin/sh\nexit 0\n' >"$work/screen-toggle"
+chmod 0755 "$work/screen-toggle"
+sed -e "s|^ExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off$|ExecStartPre=$work/screen-toggle off|" \
+	-e "s|^ExecStart=/usr/local/libexec/rog5-status-screen watch$|ExecStart=$target watch|" \
 	"$unit" >"$work/systemd/rog5-status-screen.service"
 systemd-analyze verify "$work/systemd/rog5-status-screen.service"
 

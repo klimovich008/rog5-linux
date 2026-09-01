@@ -8,6 +8,7 @@ ConditionPathExists=/usr/local/libexec/rog5-status-screen
 Type=simple
 User=root
 Group=root
+ExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off
 ExecStart=/usr/local/libexec/rog5-status-screen watch
 Restart=always
 RestartSec=3s
