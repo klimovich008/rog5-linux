@@ -1,12 +1,13 @@
 [Unit]
 Description=Publish one bounded post-switch ROG5 display observation
 DefaultDependencies=no
-Before=basic.target shutdown.target
+Before=rog5-persistent-state.service basic.target shutdown.target
 Conflicts=shutdown.target
 
 [Service]
 Type=oneshot
 ExecStart=/run/rog5-native-wifi/display-post-switch-report send
+ExecStartPost=/usr/bin/systemctl --no-block reboot
 TimeoutStartSec=90s
 
 [Install]
