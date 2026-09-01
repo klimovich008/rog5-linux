@@ -1,0 +1,301 @@
+#!/bin/sh
+# Signed, read-only post-switch display observation over the existing NCM link.
+set -u
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
+sys_root=${ROG5_OBSERVER_SYS_ROOT:-/sys}
+proc_root=${ROG5_OBSERVER_PROC_ROOT:-/proc}
+dev_root=${ROG5_OBSERVER_DEV_ROOT:-/dev}
+run_root=${ROG5_OBSERVER_RUN_ROOT:-/run}
+target_root=${ROG5_OBSERVER_TARGET_ROOT:-}
+settle_seconds=${ROG5_OBSERVER_SETTLE_SECONDS:-20}
+busybox=${ROG5_OBSERVER_BUSYBOX:-/run/initramfs/bin/busybox}
+dmesg_command=${ROG5_OBSERVER_DMESG:-dmesg}
+
+fail() {
+	echo "FAIL display-post-switch: $*" >&2
+	exit 1
+}
+
+valid_root() {
+	case $1 in /*) ;; *) return 1 ;; esac
+	case /$1/ in */../*|*/./*) return 1 ;; esac
+	[ "$(printf '%s\n' "$1" | wc -l)" -eq 1 ]
+}
+
+hex() {
+	"$busybox" od -An -tx1 -v | tr -d ' \n'
+}
+
+observe_refgen() {
+	device=$sys_root/bus/platform/devices/88e7000.regulator
+	refgen_status=absent
+	refgen_value=
+	regulator_count=0
+	for name in "$sys_root"/class/regulator/*/name; do
+		[ -r "$name" ] || continue
+		value=$(cat "$name") || {
+			refgen_status=error
+			refgen_value=regulator-read
+			return
+		}
+		[ "$value" = refgen ] || continue
+		regulator_count=$((regulator_count + 1))
+	done
+	if [ -L "$device/driver" ]; then
+		driver=$(basename "$(readlink -f "$device/driver")") || {
+			refgen_status=error
+			refgen_value=driver-read
+			return
+		}
+		if [ "$driver" = qcom-refgen-regulator ] &&
+			[ "$regulator_count" -eq 1 ]; then
+			refgen_status=present
+			refgen_value=$driver
+		else
+			refgen_status=error
+			refgen_value="$driver:$regulator_count"
+		fi
+	elif [ "$regulator_count" -ne 0 ]; then
+		refgen_status=error
+		refgen_value="unbound:$regulator_count"
+	fi
+}
+
+observe_dsi() {
+	device=$sys_root/bus/platform/devices/ae94000.dsi
+	dsi_status=absent
+	dsi_value=
+	[ -e "$device" ] || return
+	if [ ! -L "$device/driver" ]; then
+		return
+	fi
+	driver=$(basename "$(readlink -f "$device/driver")") || {
+		dsi_status=error
+		dsi_value=driver-read
+		return
+	}
+	if [ "$driver" = msm_dsi ]; then
+		dsi_status=present
+		dsi_value=$driver
+	else
+		dsi_status=error
+		dsi_value=$driver
+	fi
+}
+
+observe_drm() {
+	drm_status=absent
+	drm_value=
+	card_count=0
+	connector_count=0
+	for path in "$sys_root"/class/drm/*; do
+		[ -e "$path" ] || continue
+		name=${path##*/}
+		case $name in
+			card[0-9]|card[0-9][0-9])
+				card_count=$((card_count + 1))
+				drm_value=${drm_value:+$drm_value,}$name
+				;;
+			card*-DSI-*) connector_count=$((connector_count + 1)) ;;
+		esac
+	done
+	if [ "$card_count" -eq 1 ] && [ "$connector_count" -eq 1 ]; then
+		drm_status=present
+		drm_value="$drm_value:dsi1"
+	elif [ "$card_count" -ne 0 ] || [ "$connector_count" -ne 0 ]; then
+		drm_status=error
+		drm_value="cards$card_count:dsi$connector_count"
+	fi
+}
+
+observe_fb() {
+	fb_status=absent
+	fb_value=
+	fb_count=0
+	for path in "$dev_root"/fb*; do
+		[ -c "$path" ] || continue
+		fb_count=$((fb_count + 1))
+		fb_value=${fb_value:+$fb_value,}${path##*/}
+	done
+	if [ "$fb_count" -eq 1 ] && [ -c "$dev_root/fb0" ]; then
+		fb_status=present
+	elif [ "$fb_count" -ne 0 ]; then
+		fb_status=error
+		fb_value="count$fb_count:$fb_value"
+	fi
+}
+
+observe_backlight() {
+	backlight_status=absent
+	backlight_value=
+	backlight_count=0
+	backlight=
+	for path in "$sys_root"/class/backlight/*; do
+		[ -d "$path" ] || continue
+		backlight_count=$((backlight_count + 1))
+		backlight=$path
+	done
+	[ "$backlight_count" -ne 0 ] || return
+	if [ "$backlight_count" -ne 1 ] ||
+		[ ! -r "$backlight/max_brightness" ] ||
+		[ ! -r "$backlight/brightness" ]; then
+		backlight_status=error
+		backlight_value="count$backlight_count"
+		return
+	fi
+	maximum=$(cat "$backlight/max_brightness") || {
+		backlight_status=error
+		backlight_value=max-read
+		return
+	}
+	current=$(cat "$backlight/brightness") || {
+		backlight_status=error
+		backlight_value=brightness-read
+		return
+	}
+	case "$maximum:$current" in
+		*[!0-9:]*) backlight_status=error; backlight_value=nondecimal; return ;;
+	esac
+	backlight_status=present
+	backlight_value="${backlight##*/}:$maximum:$current"
+}
+
+observe_status_screen() {
+	status_screen_status=absent
+	status_screen_value=
+	present=0
+	for path in \
+		"$target_root/usr/local/bin/rog5-screen-toggle.sh" \
+		"$target_root/usr/local/libexec/rog5-status-screen" \
+		"$target_root/usr/local/libexec/rog5-power-buttond"; do
+		[ -x "$path" ] && present=$((present + 1))
+	done
+	for path in \
+		"$target_root/run/systemd/system/rog5-status-screen.service" \
+		"$target_root/run/systemd/system/rog5-power-button.service"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			present=$((present + 1))
+	done
+	case $present in
+		0) ;;
+		5) status_screen_status=present; status_screen_value=installed ;;
+		*) status_screen_status=error; status_screen_value="partial$present" ;;
+	esac
+}
+
+emit_record() {
+	release=$(cat "$proc_root/sys/kernel/osrelease") || fail 'kernel release unavailable'
+	boot_id=$(cat "$proc_root/sys/kernel/random/boot_id") || fail 'boot ID unavailable'
+	candidate=
+	candidate_count=0
+	for argument in $(cat "$proc_root/cmdline"); do
+		case $argument in
+			rog5.bundle=*)
+				candidate=${argument#*=}
+				candidate_count=$((candidate_count + 1))
+				;;
+		esac
+	done
+	[ "$candidate_count" -eq 1 ] || fail 'candidate identity unavailable'
+
+	attempt=0
+	while [ "$attempt" -lt "$settle_seconds" ]; do
+		observe_drm
+		observe_backlight
+		[ "$drm_status:$backlight_status" != present:present ] || break
+		attempt=$((attempt + 1))
+		sleep 1
+	done
+
+	observe_refgen
+	observe_dsi
+	observe_drm
+	observe_fb
+	observe_backlight
+	observe_status_screen
+	refgen_hex=$(printf '%s' "$refgen_value" | hex) || fail 'REFGEN encoding failed'
+	dsi_hex=$(printf '%s' "$dsi_value" | hex) || fail 'DSI encoding failed'
+	drm_hex=$(printf '%s' "$drm_value" | hex) || fail 'DRM encoding failed'
+	fb_hex=$(printf '%s' "$fb_value" | hex) || fail 'fb encoding failed'
+	backlight_hex=$(printf '%s' "$backlight_value" | hex) || fail 'backlight encoding failed'
+	status_screen_hex=$(printf '%s' "$status_screen_value" | hex) ||
+		fail 'status-screen encoding failed'
+
+	dmesg_all=$run_root/rog5-display-dmesg-all.$$
+	dmesg_tail=$run_root/rog5-display-dmesg-tail.$$
+	dmesg_status=error
+	dmesg_sha256=none
+	dmesg_tail_hex=
+	if "$dmesg_command" >"$dmesg_all" 2>/dev/null; then
+		grep -Ei 'drm|dsi|ams678|iris|panel|fb0|refgen|regulator|pll' \
+			"$dmesg_all" | "$busybox" tail -c 4096 >"$dmesg_tail" || true
+		if [ -s "$dmesg_tail" ]; then
+			dmesg_status=present
+			dmesg_sha256=$("$busybox" sha256sum "$dmesg_tail" | cut -d ' ' -f 1) ||
+				fail 'dmesg hash failed'
+			dmesg_tail_hex=$(hex <"$dmesg_tail") || fail 'dmesg encoding failed'
+		else
+			dmesg_status=absent
+		fi
+	fi
+	rm -f "$dmesg_all" "$dmesg_tail"
+
+	cat <<EOF
+format=rog5-display-post-switch-v1
+candidate=$candidate
+target_release=$release
+boot_id=$boot_id
+sample_seconds=$attempt
+refgen_status=$refgen_status
+refgen_hex=$refgen_hex
+dsi_status=$dsi_status
+dsi_hex=$dsi_hex
+drm_status=$drm_status
+drm_hex=$drm_hex
+fb_status=$fb_status
+fb_hex=$fb_hex
+backlight_status=$backlight_status
+backlight_hex=$backlight_hex
+status_screen_status=$status_screen_status
+status_screen_hex=$status_screen_hex
+dmesg_status=$dmesg_status
+dmesg_sha256=$dmesg_sha256
+dmesg_tail_hex=$dmesg_tail_hex
+result=PASS
+EOF
+}
+
+for root in "$sys_root" "$proc_root" "$dev_root" "$run_root"; do
+	valid_root "$root" || fail 'observer root is invalid'
+done
+case $target_root in '') ;; *) valid_root "$target_root" || fail 'target root is invalid' ;; esac
+case $settle_seconds in ''|*[!0-9]*) fail 'settle time is invalid' ;; esac
+[ "$settle_seconds" -le 60 ] || fail 'settle time exceeds policy'
+[ "$#" -eq 1 ] || fail 'usage: display-post-switch-report record | send'
+
+case $1 in
+	record) emit_record ;;
+	send)
+		[ -x "$busybox" ] || fail 'sealed BusyBox is unavailable'
+		record=$run_root/rog5-display-post-switch.record
+		[ ! -e "$record" ] && [ ! -L "$record" ] || fail 'record already exists'
+		umask 077
+		set -C
+		emit_record >"$record" || fail 'record creation failed'
+		chmod 0600 "$record" || fail 'record mode failed'
+		attempt=0
+		while [ "$attempt" -lt 60 ]; do
+			if "$busybox" nc -n -w 2 -s 169.254.77.2 \
+				169.254.77.1 8077 <"$record"; then
+				exit 0
+			fi
+			attempt=$((attempt + 1))
+			sleep 1
+		done
+		fail 'host collector remained unavailable'
+		;;
+	*) fail 'unknown action' ;;
+esac

@@ -7,3 +7,5 @@ outer_seconds=900
 cleanup_seconds=90
 kill_seconds=2
 trace_byte_limit=4194304
+display_report_seconds=60
+host_parent_seconds=1020

@@ -178,6 +178,8 @@ active_tests=(
 	scripts/device/test-screen-toggle.sh
 	scripts/device/test-power-buttond.sh
 	scripts/device/test-status-screen.sh
+	scripts/device/test-display-post-switch-report.sh
+	scripts/host/test-display-post-switch-report.py
 	scripts/device/test-load-native-ram-bundle.sh
 	scripts/device/test-native-kexec-shutdown.py
 	"${native_wifi_probe_tests[@]}"

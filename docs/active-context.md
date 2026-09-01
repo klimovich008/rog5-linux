@@ -74,13 +74,21 @@ ephemeral SSH key appeared. Strict host-key pinning correctly refused it; the
 persistent key never arrived before automatic rollback. The runner's 870-second
 envelope also ended 30 seconds before the 900-second rollback. V5 is consumed.
 
+The offline architecture checkpoint is complete. The signed display-diagnostic
+archive now installs one read-only systemd observer that sends an exact record
+to `169.254.77.1:8077`. Its host collector validates candidate, release, boot
+ID, source/destination, fixed field order, bounds, hex and dmesg hash. It does
+not use SSH, toggle the panel, or touch storage. The exact V5 BusyBox accepted
+all shell and applet options. Focused tests took 1.813 seconds; the active tier
+took 101.965 seconds.
+
 ## Next actions
 
-1. Stop issuing display successors until post-switch evidence no longer depends
-   on the persistent SSH identity.
-2. Add one signed, read-only NCM reporter for REFGEN/DSI/DRM/fb/backlight/status
-   and preserve strict SSH host-key pinning.
-3. Extend the parent fallback wait beyond the 900-second rollback plus cleanup.
+1. Freeze and publish the observer checkpoint, then compose one successor from
+   the unchanged V5 kernel/DT/modules plus the new initramfs only.
+2. Start the NCM collector before COMMIT and use a 1,020-second parent envelope;
+   preserve strict SSH host-key pinning as a later acceptance layer.
+3. Use the successor only to determine REFGEN/DSI/DRM/fb/backlight state.
 4. Test repeated power-key blank/unblank only after safe panel registration is
    proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
 

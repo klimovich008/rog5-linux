@@ -101,18 +101,11 @@ battery/charging status. It sleeps for 30 seconds while off and refreshes once
 per second while visible. It deliberately exposes no SSID or MAC and starts no
 desktop or GPU process.
 
-Physical pixels remain a separate live gate. The offline display baseline now
-builds Linux `7.1.4-rog5-display60-v1` with a minimal AMS678 ER2 DSC panel
-driver, fail-closed Pixelworks Iris6 analog-bypass transaction, and one 60 Hz
-mode. Its exact DT delta enables only the required display blocks, L12/L13
-rails, panel GPIOs, and DSI0 graph. Focused driver, binding, DT, and status
-userspace tests pass. The first RAM-only display candidate entered that kernel,
-passed UFS/read-only storage, then failed optional status installation at the
-initramfs `runtime` stage before switch-root. The sealed BusyBox binary contains
-an `install` applet but exposes no `/bin/install` link; the injected runtime also
-targeted `/usr/local` instead of `/newroot/usr/local`. The consumed candidate
-returned to exact fastboot and a normal reboot restored fresh V11. This is R3,
-not panel evidence. See `test-results/2026-09-01-display-60hz-offline.md` and
+Physical pixels remain a separate live gate. Linux
+`7.1.4-rog5-display60-v1` has a minimal AMS678 ER2 DSC panel, fail-closed Iris6
+analog bypass, one 60 Hz mode, and an exact display-only DT delta. V1 reached
+the kernel but hit a fixed R3 BusyBox/runtime installer defect before panel
+evidence. See `test-results/2026-09-01-display-60hz-offline.md` and
 `test-results/2026-09-01-display60-runtime-r3.md`.
 
 Display60 V2 fixed the initramfs runtime boundary and reached `switch-root PASS`,
@@ -124,6 +117,13 @@ supply properties; a V11 probe proved REFGEN binds, so V5 built it in. V5 stayed
 alive on NCM but never replaced its early SSH host key; strict SSH withheld
 display evidence until the 900-second rollback. V1-V5 are consumed. See
 `test-results/2026-09-01-display60-v5-ssh-boundary.md`.
+
+The successor path no longer depends on SSH for first display evidence. A
+signed, read-only post-switch observer now publishes bounded REFGEN, DSI, DRM,
+fb, backlight, status-screen, and filtered dmesg state over NCM. Optional
+absence is non-fatal; exact identity, framing, and endpoint checks fail closed.
+The host envelope is 1,020 seconds for the 900-second rollback plus cleanup.
+See `test-results/2026-09-01-display60-ncm-observer-offline.md`.
 
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
