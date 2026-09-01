@@ -116,7 +116,7 @@ for token in \
 	'PASS real key-only OpenSSH login completed' \
 	'PASS generated diagnostic units ran under ARM64 systemd' \
 	'DiagnosticStream("headless-netroot-early-diag-v2")' \
-	'reporter_source_sha256=06fdb95dc24e3a3f4bbfa8d63580084fee7168272dcf4b7e9771bd705e965a06' \
+	'reporter_source_sha256=6ed9768e1d07773ee316bda883db72c83c59cf2177b1906f6e1eded16ac472f7' \
 	'for required in (10, 120, 130, 140)'; do
 	grep -Fq -- "$token" "$handoff_runner" ||
 		fail "QEMU diagnostic handoff contract is missing: $token"
@@ -132,7 +132,7 @@ actual_reporter_source_sha256=$(
 		cut -d ' ' -f 1
 )
 [[ $actual_reporter_source_sha256 == \
-	06fdb95dc24e3a3f4bbfa8d63580084fee7168272dcf4b7e9771bd705e965a06 ]] ||
+	6ed9768e1d07773ee316bda883db72c83c59cf2177b1906f6e1eded16ac472f7 ]] ||
 	fail 'QEMU diagnostic contract reporter source seal is stale'
 grep -Fq 'enter_new_root("/newroot", SYSTEMD)' "$handoff_source"
 grep -Fq 'strcmp(pid_one, SYSTEMD)' "$handoff_source"

@@ -844,7 +844,10 @@ static void serve_diagnostics(int argc, char **argv)
 		.events = POLLIN,
 	};
 	frame_limit = testing_frame_limit();
-	next_frame = record.boottime;
+	/* Identity must reach the stream before socket-ready evidence updates. */
+	pending_length = format_frame(&record, pending);
+	record.sequence++;
+	next_frame = record.boottime + HEARTBEAT_MS;
 
 	while (true) {
 		uint64_t now = monotonic_milliseconds();
