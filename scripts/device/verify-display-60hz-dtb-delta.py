@@ -18,6 +18,8 @@ BASE_SIZE = 107194
 SYMBOLS = "/__symbols__"
 REGULATORS = "/soc@0/rsc@18200000/regulators-1"
 BOB = f"{REGULATORS}/bob"
+L5B = "/soc@0/rsc@18200000/regulators-0/ldo5"
+L6B = "/soc@0/rsc@18200000/regulators-0/ldo6"
 L12 = f"{REGULATORS}/ldo12"
 L13 = f"{REGULATORS}/ldo13"
 TLMM = "/soc@0/pinctrl@f100000"
@@ -103,6 +105,8 @@ def compare(
     pinctrl = phandle(candidate, PINCTRL)
     l12 = phandle(candidate, L12)
     l13 = phandle(candidate, L13)
+    l5b = phandle(candidate, L5B)
+    l6b = phandle(candidate, L6B)
     tlmm = phandle(candidate, TLMM)
     bob = phandle(candidate, BOB)
 
@@ -115,9 +119,11 @@ def compare(
         (MDSS, "status"): string("okay"),
         (MDP, "status"): string("okay"),
         (DSI, "status"): string("okay"),
+        (DSI, "vdda-supply"): l6b,
         (DSI_OUT, "data-lanes"): cells(0, 1, 2, 3),
         (DSI_OUT, "remote-endpoint"): panel_in,
         (DSI_PHY, "status"): string("okay"),
+        (DSI_PHY, "vdds-supply"): l5b,
         (REGULATORS, "vdd-l3-l4-l5-l7-l13-supply"): bob,
     }
     actual_changes: dict[tuple[str, str], bytes | None] = {}

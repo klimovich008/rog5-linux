@@ -59,15 +59,17 @@ fastboot and fresh V11 fallback were proven; no panel result was reached.
 
 Display60 V2 is also consumed. It fixed the runtime boundary and emitted
 `switch-root PASS`, then returned automatically to fresh V11 before target SSH.
-No target FAIL record or pstore data identifies the post-switch cause. The
-strongest userspace hypothesis is immediate `rog5-wifi-radio.service` failure;
-a display panic/reset remains possible.
+Display60 V3 disabled Wi-Fi startup and reached target SSH, disproving a display
+panic at that boundary. Status userspace, NCM, battery, storage and fallback
+worked. Display failed earlier: DSI `vdda` and PHY `vdds` were dummy, REFGEN was
+unavailable, DSI deferred, and its PLL did not lock. V3 is consumed.
 
 ## Next actions
 
-1. Add one signed display-diagnostic marker that retains NCM/SSH/status,
-   rollback, power and storage gates but does not install Wi-Fi radio/WPA/DHCP.
-2. Rebuild only the target initramfs; reuse the exact kernel, modules, and DTB.
+1. Wire DSI `vdda` to PM8350B L6 and PHY `vdds` to PM8350B L5, matching the
+   upstream SM8350 HDK reference.
+2. Load the exact matching `qcom-refgen-regulator.ko` under the sealed display
+   marker before DSI deferred probing; keep the kernel Image unchanged.
 3. Use one successor cycle to answer whether DRM/DSI/panel initializes, exposes the
    text console, and returns to V11 fallback. Collect adjacent charging, Wi-Fi,
    storage-isolation, and display dmesg evidence without making optional fields
