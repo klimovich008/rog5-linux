@@ -9,9 +9,10 @@ pre-compaction state is available at commit `47676f2`.
 ## Objective
 
 Turn the exact ASUS ROG Phone 5 into a reliable standalone Arch Linux server
-with persistent storage, continuous safe charging, independent Wi-Fi networking, key-only SSH,
-unattended reboot, and a proven rescue route. GPU, desktop, display, audio,
-sensors, and automation remain deferred.
+with persistent storage, continuous safe charging, independent Wi-Fi, key-only
+SSH, unattended reboot, and a proven rescue route. The current optional UI
+scope is one power-key-toggled text status screen; desktop, GPU acceleration,
+audio, sensors, and automation remain deferred.
 
 ## Exact device and rescue
 
@@ -43,6 +44,9 @@ Persistent release v11 boots successfully; V10, V9 and V8 remain p24 rollbacks.
   clean reboot/relock, systemd, NCM, SSH, storage and power checks passed.
 - V11 adds exact conntrack-mark support and the standalone shutdown helper.
   Enrolled Tailscale has no health warnings and survives normal systemd reboot.
+- The corrected local pre-stop transaction now quiesces service state before
+  RAM kexec. V29 reached the qualified Wi-Fi target, systemd, and
+  `switch-root PASS`, then returned to a fresh V11 fallback.
 - Primary evidence:
   `test-results/2026-08-30-persistent-tailscale-v11-live.md`.
 
@@ -64,8 +68,8 @@ Persistent release v11 boots successfully; V10, V9 and V8 remain p24 rollbacks.
 - Side-port USB provides data plus 5 V input while Linux is running.
 - Accepted tests showed net-positive charging, safe battery temperature, and
   safe thermal-zone values.
-- The latest V11 boots showed battery `Full`/`Good`, 100%, 8.659 V, 29.9 C,
-  side USB online and +272 mA input in the first V11 sample.
+- V29 reported battery `Full`/`Good`, 100%, 8.573 V, 29.9 C, side USB online,
+  and a 500 mA input-current limit while native Arch and Wi-Fi were running.
 
 ## NCM liveness result
 
@@ -83,49 +87,30 @@ evidence.
 
 ## Immediate next gate
 
-V11's six p24 sparse chunks completed in 72.816 seconds. Two boots, including
-a normal unattended systemd reboot, selected the signed V11 bundle, preserved
-the SSH/Tailscale identities, and passed power, UFS and exact write-scope checks.
-The installed conntrack-mark config and standalone shutdown helper are proven.
-Slot A and the stable slot-B loader were not changed.
+V29 proved the repaired source-to-target lifecycle and the current native Wi-Fi
+stack. Source exitrd emitted `native-kexec enter`; target boot
+`54a5e437-9a04-402a-b14e-01dbcb8a3b5d` reached `switch-root PASS`; systemd was
+running; `wlp1s0` had carrier and DHCP; radio, WPA, and DHCP units were active;
+and fallback boot `f70ba888-af07-492c-920d-75fef09313b5` restored V11. V29 is
+consumed and must never be retried. See
+`test-results/2026-09-01-native-wifi-v29.md`.
 
-V21 passed native-root/Wi-Fi startup with USB data removed before the root mount.
-The cutoff bound was5.615–5.786s of target uptime, before mount entry11.432s.
-USB stayed off84.504s through authenticated endpoint discovery and strict WLAN
-SSH proof. V19's prior180s isolation/reassociation/64MiB runtime pass remains
-valid. Preserve the qualified target artifacts; all trials through V21 are
-consumed. V20's host namespace defect is fixed and retained as a regression.
-V11`cec1225b-e998-4d97-8728-c56faddbee5c` is restored with state/Tailscale;
-normal recovery took64.532s. Battery is Full/Good,8.593V/30.2°C.
-Charger-only physical startup, longer power proof and permanent healthy-startup
-policy remain before changing the persistent selector. Wi-Fi is not yet the
-default. V19's sampled battery current averaged−22mA; net-positive charging
-has not been established. See `test-results/2026-08-31-wifi-early-cut.md`.
-The private network configuration persists only in the existing p23 state image.
-See `test-results/2026-08-31-wifi-usb-isolation.md`.
-The clean kernel/module/initramfs twins, baseline DT and readback evidence are
-retained; see `test-results/2026-08-31-rpmh-readback-development.md`.
-The WCN6851/hw1.1 backport and exact-keyed ASUS board data now pass the RAM test.
-The deployed V11 baseline still requires USB carrier. Early software data
-isolation passed for the RAM target; actual charger-only power-on is untested.
-Its two rollback timers remain qualification-only, not permanent service policy.
-An early SPMI SID5 probe warning is shared with V18, not a new Wi-Fi failure.
-The installed loader cannot export its pstore snapshot before kexec; crash
-capture remains incomplete. Missing evidence never proves no crash.
-Preserve USB rescue. Tailscale UDP discovery identified the verified WLAN
-address while USB data was off; it can locate the next target without guessing
-DHCP. Managed Tailscale SSH still needs its account check; no gate was bypassed.
-Keep the existing
-observer for longer loaded-network tests; prior two-hour evidence is a baseline,
-not a V11 soak result.
+The optional initial screen userspace now has one compact path: the existing
+power-button toggle plus a `tty1` renderer for time, Wi-Fi interface/IP, and
+battery/charging status. It sleeps for 30 seconds while off and refreshes once
+per second while visible. It deliberately exposes no SSID or MAC and starts no
+desktop or GPU process.
 
-Rollback-safe selector-v2 and healthy-commit support now pass offline full CI;
-they are not deployed. V11 remains selected. See
-`test-results/2026-09-01-persistent-wifi-rollback-offline.md`.
+Physical pixels remain a separate kernel/DT gate. The accepted kernel already
+contains DRM/MSM/DPU/DSI, fbdev emulation, VT console, and PMK8350 power-key
+support, but the accepted DT disables MDSS, DSI, both DSI PHYs, and contains no
+panel/bridge node. The WW33 reference identifies an AMS678 ER2 1080x2448
+command-mode DSC OLED behind a Pixelworks Iris/i6 processor. Do not enable it
+with guessed commands; derive a 60 Hz-only initial path from the retained WW33
+description and add the minimum panel/bridge implementation first.
 
-The preexisting empty runtime package keyring causes a background refresh parser
-failure. Initial zero-failed-unit checks do not cover that later failure. Fix
-package-keyring initialization separately; do not mask it or redesign the kernel.
+The preexisting runtime package-keyring WKD parser failure is unrelated to
+Wi-Fi, charging, or display and remains a separate userspace repair.
 
 ## Required boundaries
 

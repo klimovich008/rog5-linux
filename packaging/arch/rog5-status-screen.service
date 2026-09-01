@@ -1,39 +1,38 @@
 [Unit]
-Description=ROG Phone 5 power-button display toggle
-After=systemd-udevd.service
-ConditionPathExists=/usr/local/bin/rog5-screen-toggle.sh
-StartLimitIntervalSec=300
-StartLimitBurst=5
+Description=ROG Phone 5 minimal local status screen
+After=systemd-udevd.service NetworkManager.service
+Before=rog5-power-button.service
+ConditionPathExists=/usr/local/libexec/rog5-status-screen
 
 [Service]
 Type=simple
 User=root
 Group=root
-ExecStart=/usr/local/libexec/rog5-power-buttond
-Restart=on-failure
+ExecStart=/usr/local/libexec/rog5-status-screen watch
+Restart=always
 RestartSec=3s
 DevicePolicy=closed
-DeviceAllow=char-input r
 DeviceAllow=/dev/tty1 rw
 NoNewPrivileges=yes
-PrivateNetwork=yes
 PrivateTmp=yes
 ProtectClock=yes
 ProtectControlGroups=yes
-ProtectHome=read-only
+ProtectHome=yes
 ProtectHostname=yes
 ProtectKernelLogs=yes
 ProtectKernelModules=yes
+ProtectKernelTunables=yes
 ProtectSystem=strict
-CapabilityBoundingSet=CAP_SETUID CAP_SETGID
+CapabilityBoundingSet=
 AmbientCapabilities=
 LockPersonality=yes
 MemoryDenyWriteExecute=yes
-RestrictAddressFamilies=AF_UNIX
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
 RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
 SystemCallArchitectures=native
+SystemCallFilter=@system-service
 UMask=0077
 
 [Install]
