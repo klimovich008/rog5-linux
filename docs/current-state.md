@@ -118,12 +118,12 @@ alive on NCM but never replaced its early SSH host key; strict SSH withheld
 display evidence until the 900-second rollback. V1-V5 are consumed. See
 `test-results/2026-09-01-display60-v5-ssh-boundary.md`.
 
-V6 added signed post-switch NCM evidence but the old host profile won USB
-re-enumeration and removed `169.254.77.1` before either reporter could connect.
-The target stayed pingable through the 900-second window and returned to exact
-V11; no panel result was captured. V6 is consumed. The collector now starts
-before COMMIT and condition-waits for the exact address. See
-`test-results/2026-09-01-display60-v6-host-profile-race.md`.
+V6 lost evidence to a host-profile race but returned to V11. V7 fixed that race
+and target `93780831-4e9a-4721-8e0f-19be97cdfcc0` reached `switch-root PASS`;
+its multi-user observer never started within 180 seconds. The target later lost
+NCM and did not return before the 1,020-second parent deadline. One exact host
+USB reset removed the stale gadget; no trusted USB mode has returned. V6/V7 are
+consumed. See `test-results/2026-09-01-display60-v7-observer-ordering.md`.
 
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 

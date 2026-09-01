@@ -16,9 +16,12 @@ screen, without regressing Wi-Fi, charging, storage isolation, or fallback?
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
 - Slot B still selects persistent signed V11.
-- Current V11 fallback boot: `f70ba888-af07-492c-920d-75fef09313b5`.
-- State, Tailscale, key-only SSH, NCM, UFS, and p24 read-only checks pass.
-- Latest battery read: Full/Good, 8.573 V, 30.0 C.
+- Current V11 fallback boot: unproven after V7; last proven
+  `e8b6eff6-4ee3-4920-b4d9-018fe5b7997a`.
+- V7 is consumed; its rollback was not proven and the phone is absent from USB
+  after one failed exact-device host reset. Physical fastboot is required.
+- Last proven V11 state had Tailscale, key-only SSH, NCM, UFS, and p24 read-only.
+- Last battery read: Good, 8.562 V, 30.0 C.
 - The background Arch keyring WKD parser failure is unrelated and separately
   queued.
 
@@ -69,24 +72,22 @@ available to the built-in DSI probe. A matching V11 module probe bound
 `88e7000.regulator` and created `/sys/class/regulator/.../name=refgen`, proving
 the driver and base DT. REFGEN is now built in; `Module.symvers` is unchanged.
 
-Display60 V5 stayed alive but SSH identity blocked evidence. V6 replaced that
-dependency with a signed post-switch NCM observer. Its target remained pingable
-until the exact 900-second rollback and fresh V11 fallback passed, but the host
-old profile autoactivated on USB re-enumeration, removed `169.254.77.1`, and
-outlived the target reporter retry window. V6 is consumed; this is R6/R7 host
-state/capture ordering, not a kernel or panel result.
+V6 lost its reporter to an R6/R7 host-profile race and returned to V11. V7
+proved the corrected dual-address autoconnect profile, prestarted collector,
+kernel boot, UFS path, runtime, and `switch-root PASS`. Its observer was attached
+to `multi-user.target`, which did not arrive within 180 seconds. The 1,020-second
+fallback proof then expired; NCM stopped responding and a host USB reset removed
+the stale gadget. No kernel/panel result exists and V7 is consumed.
 
-The collector now begins before COMMIT, condition-waits through
-`EADDRNOTAVAIL`, and still binds only the exact NCM address. The next host cycle
-must make the dual-address profile the sole autoconnect owner through target
-enumeration and restore V11 host state afterward.
+The observer is now attached to `sysinit.target`, ordered before `basic.target`,
+and remains independent of persistent SSH and multi-user. Focused tests pass;
+no successor may be staged until exact fastboot and fresh V11 are restored.
 
 ## Next actions
 
-1. Test delayed exact-address binding and profile re-enumeration before V7.
-2. Reuse the unchanged V6 target bytes; change only host orchestration and the
-   one-use candidate identity.
-3. Use V7 only to determine REFGEN/DSI/DRM/fb/backlight state over NCM.
+1. Physically force-reboot to exact fastboot, then restore and verify V11.
+2. Publish the sysinit observer correction and rebuild only the target archive.
+3. Use one successor to determine REFGEN/DSI/DRM/fb/backlight state over NCM.
 4. Test repeated power-key blank/unblank only after safe panel registration is
    proven. Keep 90/120/144 Hz and Pixelworks PQ disabled.
 
