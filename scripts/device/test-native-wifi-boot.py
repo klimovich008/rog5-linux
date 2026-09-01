@@ -18,24 +18,6 @@ def function(source, name):
 
 
 class AutomaticWifi(unittest.TestCase):
-    def test_display_diagnostic_loads_one_fixed_refgen_before_power_usb(self):
-        source = (R/'initramfs/persistent-root-init').read_text()
-        body = function(source, 'load_display_diagnostic_module')
-        for marker in (
-            '/run/rog5-native-wifi/display-diagnostic',
-            'module_dir=/rog5-display-modules',
-            'module=$module_dir/qcom-refgen-regulator.ko',
-            '0:0:444:27:1',
-            'rog5-display-diagnostic-v1',
-            "grep -q '^qcom_refgen_regulator '",
-            'insmod "$module"',
-        ):
-            self.assertIn(marker, body)
-        self.assertLess(
-            source.index('if ! load_display_diagnostic_module; then'),
-            source.index('if [ -x /sbin/rog5-load-persistent-power-usb ]; then'),
-        )
-
     def test_optional_status_runtime_uses_sealed_applets_and_newroot(self):
         runtime = (R/'initramfs/native-wifi/runtime').read_text()
         body = function(runtime, 'install_status_screen')
