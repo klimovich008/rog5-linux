@@ -144,6 +144,21 @@ class AutomaticWifi(unittest.TestCase):
             int(timing['outer_seconds']) + int(timing['cleanup_seconds']) + 30,
         )
 
+    def test_display_observer_returns_before_persistent_state_can_start(self):
+        unit = (
+            R/'initramfs/native-wifi/units/rog5-display-post-switch.service'
+        ).read_text()
+        self.assertIn(
+            'Before=rog5-persistent-state.service basic.target shutdown.target',
+            unit,
+        )
+        self.assertLess(
+            unit.index('ExecStart=/run/rog5-native-wifi/'
+                       'display-post-switch-report send'),
+            unit.index('ExecStartPost=/usr/bin/systemctl --no-block reboot'),
+        )
+        self.assertNotIn('OnFailure=', unit)
+
     def test_persistent_trial_selector_and_healthy_commit_are_exact(self):
         spec = importlib.util.spec_from_file_location(
             'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')

@@ -36,14 +36,16 @@ done
 grep -Fqx 'ExecStart=/run/rog5-native-wifi/display-post-switch-report send' "$unit" ||
 	fail 'unit does not invoke the sealed reporter'
 grep -Fqx 'TimeoutStartSec=90s' "$unit" || fail 'unit timeout changed'
-grep -Fqx 'Before=basic.target shutdown.target' "$unit" ||
-	fail 'observer is not ordered before basic target'
+grep -Fqx 'Before=rog5-persistent-state.service basic.target shutdown.target' "$unit" ||
+	fail 'observer is not ordered before persistent state and basic target'
 grep -Fqx 'WantedBy=sysinit.target' "$unit" ||
 	fail 'observer is not attached to sysinit target'
+grep -Fqx 'ExecStartPost=/usr/bin/systemctl --no-block reboot' "$unit" ||
+	fail 'successful evidence does not request an early clean return'
 ! grep -Fq 'multi-user.target' "$unit" ||
 	fail 'observer still depends on multi-user target'
-! grep -Eq '^OnFailure=|reboot|poweroff' "$unit" ||
-	fail 'optional display observer can trigger rollback'
+! grep -Eq '^OnFailure=|poweroff' "$unit" ||
+	fail 'optional display observer has an unreviewed failure action'
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
