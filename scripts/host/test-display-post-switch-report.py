@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import importlib.util
 import hashlib
+import errno
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -154,6 +156,37 @@ class DisplayCollectorTest(unittest.TestCase):
             with self.subTest(peer=peer, local=local):
                 with self.assertRaises(self.module.DisplayReportError):
                     self.module.receive(Listener(self, payload(), peer, local))
+
+    def test_bind_waits_for_exact_address_across_usb_reenumeration(self) -> None:
+        listener = mock.Mock()
+        listener.bind.side_effect = (
+            OSError(errno.EADDRNOTAVAIL, "address absent"),
+            OSError(errno.EADDRNOTAVAIL, "address absent"),
+            None,
+        )
+        with mock.patch.object(
+            self.module.time,
+            "monotonic",
+            side_effect=(0.0, 0.1, 0.2),
+        ), mock.patch.object(self.module.time, "sleep") as sleeper:
+            self.module.bind_exact_address(listener, 1.0)
+        self.assertEqual(listener.bind.call_count, 3)
+        listener.bind.assert_called_with(
+            (self.module.HOST_ADDRESS, self.module.PORT)
+        )
+        self.assertEqual(sleeper.call_count, 2)
+
+    def test_bind_refuses_unrelated_error_and_expired_deadline(self) -> None:
+        listener = mock.Mock()
+        listener.bind.side_effect = OSError(errno.EACCES, "denied")
+        with self.assertRaises(OSError):
+            self.module.bind_exact_address(listener, 1.0)
+
+        listener.bind.side_effect = OSError(errno.EADDRNOTAVAIL, "absent")
+        with mock.patch.object(
+            self.module.time, "monotonic", return_value=2.0
+        ), self.assertRaises(self.module.DisplayReportError):
+            self.module.bind_exact_address(listener, 1.0)
 
 
 if __name__ == "__main__":
