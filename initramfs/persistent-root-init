@@ -616,25 +616,6 @@ prepare_native_wifi_boot() {
 	native_wifi_boot=1
 }
 
-load_display_diagnostic_module() {
-	marker=/run/rog5-native-wifi/display-diagnostic
-	module_dir=/rog5-display-modules
-	module=$module_dir/qcom-refgen-regulator.ko
-	if [ ! -e "$marker" ] && [ ! -L "$marker" ]; then
-		[ ! -e "$module_dir" ] && [ ! -L "$module_dir" ]
-		return
-	fi
-	[ -f "$marker" ] && [ ! -L "$marker" ] &&
-		[ "$(stat -c '%u:%g:%a:%s:%h' "$marker")" = 0:0:444:27:1 ] &&
-		[ "$(cat "$marker")" = rog5-display-diagnostic-v1 ] || return 1
-	[ -d "$module_dir" ] && [ ! -L "$module_dir" ] &&
-		[ "$(find "$module_dir" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 1 ] &&
-		[ -f "$module" ] && [ ! -L "$module" ] || return 1
-	grep -q '^qcom_refgen_regulator ' /proc/modules && return 1
-	insmod "$module" || return 1
-	grep -q '^qcom_refgen_regulator ' /proc/modules
-}
-
 wait_for_deferred_ufs_rendezvous() {
 	# Storage-writing and diagnostic archives retain the attended rendezvous.
 	[ "${native_wifi_boot:-0}" != 1 ] || return 0
@@ -1875,9 +1856,6 @@ fi
 
 if ! prepare_native_wifi_boot; then
 	fail_stage 'invalid sealed native Wi-Fi composition' cmdline 5
-fi
-if ! load_display_diagnostic_module; then
-	fail_stage 'display REFGEN module load failed' ufs-module 20
 fi
 if [ -x /sbin/rog5-load-persistent-power-usb ]; then
 	power_usb_failure=

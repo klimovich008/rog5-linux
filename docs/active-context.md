@@ -64,12 +64,17 @@ panic at that boundary. Status userspace, NCM, battery, storage and fallback
 worked. Display failed earlier: DSI `vdda` and PHY `vdds` were dummy, REFGEN was
 unavailable, DSI deferred, and its PLL did not lock. V3 is consumed.
 
+Display60 V4 removed both dummy-supply warnings but module-based REFGEN was not
+available to the built-in DSI probe. A matching V11 module probe bound
+`88e7000.regulator` and created `/sys/class/regulator/.../name=refgen`, proving
+the driver and base DT. REFGEN is now built in; `Module.symvers` is unchanged.
+
 ## Next actions
 
 1. Wire DSI `vdda` to PM8350B L6 and PHY `vdds` to PM8350B L5, matching the
    upstream SM8350 HDK reference.
-2. Load the exact matching `qcom-refgen-regulator.ko` under the sealed display
-   marker before DSI deferred probing; keep the kernel Image unchanged.
+2. Build REFGEN in so it is available with the built-in DSI host; reuse all
+   unrelated modules and keep the display diagnostic marker.
 3. Use one successor cycle to answer whether DRM/DSI/panel initializes, exposes the
    text console, and returns to V11 fallback. Collect adjacent charging, Wi-Fi,
    storage-isolation, and display dmesg evidence without making optional fields

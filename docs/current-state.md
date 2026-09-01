@@ -120,8 +120,9 @@ then returned before target SSH. Display60 V3 removed Wi-Fi startup and reached
 SSH, proving the post-switch reboot was not a display crash. It found no fb0 or
 backlight: DSI PHY `vdds` and DSI host `vdda` used dummy regulators, REFGEN was
 unavailable, DSI stayed deferred, and the PLL could not lock. V1-V3 are consumed.
-The next artifact adds only SM8350 reference supply wiring and the matching
-REFGEN module. See `test-results/2026-09-01-display60-supply-root-cause.md`.
+V4 proved `vdda`/`vdds` wiring, but module timing left REFGEN unavailable. A
+no-reboot V11 probe proved the driver/DT creates `refgen`; V5 builds this DSI
+dependency in. See `test-results/2026-09-01-display60-refgen-timing.md`.
 
 Higher refresh rates, Pixelworks PQ, desktop, and GPU work remain out of scope.
 
