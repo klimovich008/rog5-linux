@@ -21,6 +21,8 @@ interface_identity() {
 
 install_units() {
 	units=/run/systemd/system
+	cp -p "$root/units/rog5-wifi-failure.service" \
+		"$units/rog5-wifi-failure.service" || return 1
 	for suffix in service timer; do
 		cp -p "$root/units/rog5-wifi-boot-rollback.$suffix" \
 			"$units/rog5-wifi-boot-rollback.$suffix" || return 1

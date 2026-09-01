@@ -1,0 +1,27 @@
+#!/bin/sh
+set -u
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+root=/run/rog5-native-wifi
+reason=unavailable
+if [ -f "$root/radio-failure" ] && [ ! -L "$root/radio-failure" ] &&
+	[ "$(stat -c '%u:%g:%a:%h' "$root/radio-failure")" = 0:0:444:1 ]; then
+	value=$(cat "$root/radio-failure" 2>/dev/null || true)
+	case $value in ''|*[!A-Za-z0-9_-]*|????????????????????????????????????????????????????????????????*) ;;
+	*) reason=$value ;;
+	esac
+fi
+boot=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unavailable)
+result=$(systemctl show -p Result --value rog5-wifi-radio.service 2>/dev/null || echo unavailable)
+status=$(systemctl show -p ExecMainStatus --value rog5-wifi-radio.service 2>/dev/null || echo unavailable)
+record=$root/failure-record
+umask 077
+printf 'ROG5_WIFI_FAILURE boot=%s result=%s status=%s reason=%s\n' \
+	"$boot" "$result" "$status" "$reason" >"$record"
+chmod 0444 "$record"
+if [ -c /dev/ttyGS0 ]; then
+	timeout -k 1 1 sh -c 'cat "$1" > /dev/ttyGS0' sh "$record" 2>/dev/null || true
+fi
+systemctl --no-block reboot >/dev/null 2>&1 || true
+exit 0

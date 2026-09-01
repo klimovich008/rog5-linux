@@ -6,7 +6,7 @@ Before=shutdown.target
 Requires=rog5-p2-ready.service
 After=rog5-p2-ready.service
 Before=rog5-persistent-state.service basic.target
-OnFailure=reboot.target
+OnFailure=rog5-wifi-failure.service
 
 [Service]
 Type=oneshot

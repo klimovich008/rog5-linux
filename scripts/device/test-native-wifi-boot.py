@@ -94,6 +94,36 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn('  healthy\n', checks)
         self.assertIn('  trial-descriptor\n', checks)
 
+    def test_failure_diagnostic_composer_changes_only_reporter_members(self):
+        spec = importlib.util.spec_from_file_location(
+            'failure_wifi', R/'scripts/device/build-native-wifi-failure-diagnostic-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        archive = module.ARCHIVE
+        members = {}
+        archive.add(members, 'init', b'qualified-init', 0o100755)
+        for name, data, mode in (
+            ('runtime', b'old-runtime', 0o100755),
+            ('radio', b'old-radio', 0o100755),
+            ('units/rog5-wifi-radio.service', b'old-unit', 0o100644),
+            ('boot-files.sha256', b'old-checks\n', 0o100444),
+        ):
+            archive.add(members, 'rog5-native-wifi/'+name, data, mode)
+        base = gzip.compress(archive.encode(members), mtime=0)
+        packed, result = module.compose(base, module.sha(base))
+        output = archive.entries(gzip.decompress(packed))
+        self.assertEqual(output['init'], members['init'])
+        self.assertEqual(set(output)-set(members), {
+            'rog5-native-wifi/failure',
+            'rog5-native-wifi/units/rog5-wifi-failure.service',
+        })
+        self.assertEqual(result['added_members'], [
+            'rog5-native-wifi/failure',
+            'rog5-native-wifi/units/rog5-wifi-failure.service',
+        ])
+        checks = output['rog5-native-wifi/boot-files.sha256'][1].decode()
+        self.assertIn('  failure\n', checks)
+        self.assertIn('  units/rog5-wifi-failure.service\n', checks)
+
     def test_watchdog_can_fire_before_basic_or_failed_p2(self):
         fixture = json.loads((R/'tests/fixtures/native-wifi/timer-default-dependencies.json').read_text())
         self.assertIn('basic.target', fixture['original_service_after'])
@@ -156,7 +186,8 @@ class AutomaticWifi(unittest.TestCase):
         units = R/'initramfs/native-wifi/units'
         radio = (units/'rog5-wifi-radio.service').read_text()
         self.assertIn('Before=rog5-persistent-state.service basic.target', radio)
-        self.assertIn('OnFailure=reboot.target', radio)
+        self.assertIn('OnFailure=rog5-wifi-failure.service', radio)
+        self.assertNotIn('OnFailure=reboot.target', radio)
         self.assertIn('Restart=no', radio)
         self.assertIn('Requires=rog5-wifi-radio.service', (units/'before-state.conf').read_text())
         runtime = (R/'initramfs/native-wifi/runtime').read_text()
@@ -175,6 +206,28 @@ class AutomaticWifi(unittest.TestCase):
         result = subprocess.run(['sh', '-c', 'set -eu\n'+timing+
             '\n[ "$outer_seconds" -gt "$((radio_seconds + cleanup_seconds))" ]\n'
             '[ "$((query_seconds + mode_seconds + hold_seconds + 3*kill_seconds))" -lt "$outer_seconds" ]'], check=True)
+
+    def test_radio_failure_is_bounded_and_reported_before_reboot(self):
+        radio = (R/'initramfs/native-wifi/radio').read_text()
+        body = function(radio, 'fail')
+        with tempfile.TemporaryDirectory() as tmp:
+            script = body.replace('root=/run/rog5-native-wifi', 'root=' + tmp)
+            result = subprocess.run(
+                ['sh', '-c', 'set -u\nroot=' + tmp + '\n' + script +
+                 '\nfail "hold not qualified"'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual((Path(tmp)/'radio-failure').read_text(),
+                             'hold_not_qualified\n')
+            self.assertEqual((Path(tmp)/'radio-failure').stat().st_mode & 0o777, 0o444)
+        unit = (R/'initramfs/native-wifi/units/rog5-wifi-failure.service').read_text()
+        self.assertIn('DefaultDependencies=no', unit)
+        self.assertIn('TimeoutStartSec=5s', unit)
+        self.assertIn('Restart=no', unit)
+        failure = (R/'initramfs/native-wifi/failure').read_text()
+        self.assertLess(failure.index('ROG5_WIFI_FAILURE'),
+                        failure.index('systemctl --no-block reboot'))
+        self.assertIn("timeout -k 1 1 sh -c", failure)
+        self.assertIn('stat -c', failure)
 
     def test_newc_preserves_existing_entries_and_rejects_unsafe_input(self):
         spec = importlib.util.spec_from_file_location('wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')

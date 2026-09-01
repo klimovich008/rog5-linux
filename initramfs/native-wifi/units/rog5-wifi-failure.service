@@ -1,0 +1,12 @@
+[Unit]
+Description=Report one bounded ROG5 Wi-Fi radio failure before fallback
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+After=rog5-wifi-radio.service
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-native-wifi/failure
+TimeoutStartSec=5s
+Restart=no

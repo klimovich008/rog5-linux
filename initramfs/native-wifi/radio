@@ -6,7 +6,19 @@ export PATH
 root=/run/rog5-native-wifi
 trace=/sys/kernel/tracing/instances/rog5_native_wifi
 . "$root/timing"
-fail() { echo "FAIL native-wifi-radio: $*" >&2; exit 1; }
+fail() {
+	reason=$(printf '%s\n' "$*" | sed 's/ /_/g')
+	case $reason in ''|*[!A-Za-z0-9_-]*|????????????????????????????????????????????????????????????????*)
+		reason=invalid ;;
+	esac
+	if [ ! -e "$root/radio-failure" ] && [ ! -L "$root/radio-failure" ]; then
+		umask 077
+		printf '%s\n' "$reason" >"$root/radio-failure"
+		chmod 0444 "$root/radio-failure"
+	fi
+	echo "FAIL native-wifi-radio: $*" >&2
+	exit 1
+}
 guard() {
 	[ ! -e /run/rog5-persistent-state.runtime ] || fail 'state already writable'
 	count=0
