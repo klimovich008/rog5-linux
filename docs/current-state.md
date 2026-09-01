@@ -22,13 +22,13 @@ audio, sensors, and automation remain deferred.
 - Bootloader: unlocked.
 - Slot A: official ASUS WW33 / Android 13 rescue and charging environment,
   build `33.0210.0210.200`.
-- Slot B: canonical selector-v2 recovery `f2a73030…`, selecting the accepted
-  signed Wi-Fi V2 primary with signed V11 retained as fallback.
+- Slot B: canonical selector-v2 recovery `f2a73030…`, selecting the signed
+  Wi-Fi V3 primary under live soak with signed V11 retained as fallback.
 - Slot A must remain the independently verified rescue route.
 
 ## Persistent Linux baseline
 
-Persistent Wi-Fi V2 boots successfully; V11, V10, V9 and V8 remain p24
+Persistent Wi-Fi V3 boots successfully; V11, V10, V9 and V8 remain p24
 fallback/rollback bundles.
 
 - The slot-B loader verifies signed bundles from read-only `arch_root_a`; the
@@ -50,8 +50,9 @@ fallback/rollback bundles.
 - The corrected local pre-stop transaction now quiesces service state before
   RAM kexec. V29 reached the qualified Wi-Fi target, systemd, and
   `switch-root PASS`, then returned to a fresh V11 fallback.
-- Persistent Wi-Fi V2 passed two clean boots, native Wi-Fi DHCP/default route,
-  strict SSH over Wi-Fi, Tailscale, health commit and timer disarm. Evidence:
+- Wi-Fi V2 passed functional boot but reset when its separate 600-second probe
+  timer survived health. Wi-Fi V3 disarms both rollback timers and passed two
+  clean boots; its multi-hour soak is in progress. See
   `test-results/2026-09-02-persistent-wifi-v2-live.md`.
 
 ## Storage state
@@ -74,8 +75,8 @@ fallback/rollback bundles.
   safe thermal-zone values.
 - V29 reported battery `Full`/`Good`, 100%, 8.573 V, 29.9 C, side USB online,
   and a 500 mA input-current limit while native Arch and Wi-Fi were running.
-- Wi-Fi V2 repeated those safety properties while serving SSH over both NCM
-  and native Wi-Fi; its second boot reported 30.0 C battery and 37.1 C maximum
+- Wi-Fi V3 repeats those safety properties while serving SSH over both NCM
+  and native Wi-Fi; its repeat boot reported 30.0 C battery and safe maximum
   thermal-zone temperature.
 
 ## NCM liveness result
@@ -94,11 +95,11 @@ evidence.
 
 ## Immediate next gate
 
-The active primary is `persistent-native-root-wifi-v2`, manifest `f54d3807…`,
-selector `043d263d…`. Boots `f7eac86d-b239-4f87-bb0d-a516c9a4f20c` and
-`8ac74ae5-f7b2-46ac-9ff3-bb6d201b4a8f` both committed the same healthy trial,
-disarmed rollback without stopping SSH, kept p24 read-only and exposed only
-`sda`/`sda23` writable. GitHub run `33565385673` is fully green.
+The active primary is `persistent-native-root-wifi-v3`, manifest `3848a474…`,
+selector `47fe38b7…`. Boots `f57790ad-90e1-4917-b89f-27e7e918a2ad` and
+`e4424825-a7b0-4d33-8a4f-fcad3f9e479b` both committed the same healthy trial,
+disarmed both rollback timers, kept p24 read-only and exposed only
+`sda`/`sda23` writable. GitHub run `33568444295` is fully green.
 
 Next prove multi-hour Wi-Fi/Tailscale/charging liveness and unattended rescue,
 then proceed to server service deployment. The frozen minimal screen checkpoint

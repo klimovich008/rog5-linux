@@ -7,7 +7,7 @@ V11 facts. Historical generations remain in Git and dated `test-results/`.
 
 ## One current question
 
-Can accepted persistent Wi-Fi V2 sustain multi-hour Wi-Fi/Tailscale/charging
+Can persistent Wi-Fi V3 sustain multi-hour Wi-Fi/Tailscale/charging
 liveness and unattended reboot/rescue while preserving signed V11, p24
 read-only, slot A and the exact two-node service-state write scope?
 
@@ -16,10 +16,10 @@ read-only, slot A and the exact two-node service-state write scope?
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
 - Slot B contains the canonical selector-v2-capable recovery `f2a73030…`.
-- Current boot: Wi-Fi V2 `8ac74ae5-f7b2-46ac-9ff3-bb6d201b4a8f`, kernel
+- Current boot: Wi-Fi V3 `e4424825-a7b0-4d33-8a4f-fcad3f9e479b`, kernel
   `7.1.4-g1eea8970e87f`, with systemd, native Wi-Fi, NCM, Tailscale and strict
   SSH active.
-- Selector `043d263d…` chooses signed primary manifest `f54d3807…`; signed V11
+- Selector `47fe38b7…` chooses signed primary manifest `3848a474…`; signed V11
   remains the fallback. Old boot_b `2867666c…` and factory `0a67358d…` remain.
 - P24 is read-only; exactly `sda` and `sda23` are writable. Battery is Full/Good
   at 30.0 C and the latest maximum thermal-zone reading is 37.1 C.
@@ -28,12 +28,11 @@ read-only, slot A and the exact two-node service-state write scope?
 
 ## Newly proven milestone
 
-Wi-Fi V2 fixes the sealed trial-helper location, success-record collision,
-rollback dependency cancellation and unrendered radio timeout. Two clean boots
-committed the same healthy state, disarmed rollback, reached strict SSH over
-native Wi-Fi, and retained the exact storage and power boundaries. Focused tests
-took 1.989s, the current active tier 102.574s, twin target-only build 7.108s,
-and GitHub run `33565385673` passed all jobs. See
+Wi-Fi V2 fixed the trial-helper, record and boot-timer defects but retained the
+probe's independent 600-second reboot timer. The first soak proved the exact
+reset. V3 disarms both timers and passed two clean boots; soak run 2 is active.
+The active tier is reduced from 103.099s to 3.191s, V3 twin target build took
+6.830s, and GitHub run `33568444295` passed. See
 `test-results/2026-09-02-persistent-wifi-v2-live.md`.
 
 ## Frozen screen checkpoint

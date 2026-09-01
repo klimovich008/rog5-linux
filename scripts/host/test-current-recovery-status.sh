@@ -15,9 +15,9 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Current boot: Wi-Fi V2' \
+	'Current boot: Wi-Fi V3' \
 	'1-1.2' \
-	'Wi-Fi V2 fixes the sealed trial-helper location' \
+	'Wi-Fi V2 fixed the trial-helper' \
 	'P24 is read-only' \
 	'power-key-toggled text status screen' \
 	'Do not flash, alter slot A, modify GPT'
@@ -31,7 +31,7 @@ done
 for contract in \
 	'M5AIKN00F0353YH' \
 	'33.0210.0210.200' \
-	'Persistent Wi-Fi V2 boots successfully' \
+	'Persistent Wi-Fi V3 boots successfully' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
 	'test-results/2026-09-02-persistent-wifi-v2-live.md' \
@@ -70,4 +70,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, persistent Wi-Fi V2, V11 fallback, and the frozen screen boundary'
+echo 'PASS compact current status records WW33 rescue, persistent Wi-Fi V3, V11 fallback, and the frozen screen boundary'
