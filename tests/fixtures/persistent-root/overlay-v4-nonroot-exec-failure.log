@@ -1,0 +1,5 @@
+root_mode=0700
+overlay_state=rw,nosuid,nodev,noexec,noatime
+uid=81 executable=/bin/true result=127
+error=libc.so.6: cannot open shared object file: Permission denied
+dbus-broker-launch=launcher_open_journal:EACCES

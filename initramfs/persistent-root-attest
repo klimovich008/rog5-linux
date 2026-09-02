@@ -251,7 +251,7 @@ case $expected_persistent_overlay_mode in
 		awk -v loop="$overlay_loop" '$1 == loop && $2 == "/.rog5/state" &&
 			$3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ &&
 			$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ &&
-			$4 ~ /(^|,)noexec(,|$)/ { found++ }
+			$4 !~ /(^|,)noexec(,|$)/ { found++ }
 			END { exit found != 1 }' /proc/mounts ||
 			fail 'persistent overlay state mount changed'
 		overlay_userdata_name=${overlay_userdata##*/}
@@ -381,7 +381,7 @@ trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
 		if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
 			printf '%s\n' 'block_backed_mounts=3'
 			printf '%s\n' 'userdata_mount=rw-noexec'
-			printf '%s\n' 'overlay_state=ext4-rw'
+			printf '%s\n' 'overlay_state=ext4-rw-exec'
 		else
 			printf '%s\n' 'block_backed_mounts=1'
 			printf '%s\n' 'overlay_state=tmpfs-rw'
