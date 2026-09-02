@@ -19,6 +19,16 @@ def function(source, name):
 
 
 class AutomaticWifi(unittest.TestCase):
+    def test_status_loader_creates_busybox_explicit_module_index_first(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_status_screen')
+        index = body.index('module_index=/lib/modules/$release/modules.dep')
+        load = body.index('ROG5_PWRKEY_RESULT=$pwrkey_result')
+        self.assertLess(index, load)
+        self.assertIn("0:0:444:0:1", body)
+        self.assertIn(': >"$module_index"', body)
+        self.assertNotIn('/dev/sd', body)
+
     def test_pwrkey_result_publication_is_exact_and_no_replace(self):
         source = (R/'initramfs/native-wifi/load-pwrkey').read_text()
         publisher = function(source, 'record_result')
@@ -63,6 +73,7 @@ class AutomaticWifi(unittest.TestCase):
             payload = root/'payload'
             units = root/'run/systemd/system'
             newroot = root/'newroot'
+            (root/'lib').mkdir()
             (payload/'units').mkdir(parents=True)
             units.mkdir(parents=True)
             (units/'rog5-p2-ready.service').write_text('p2-ready')
@@ -81,6 +92,7 @@ class AutomaticWifi(unittest.TestCase):
                 'chmod 0444 "$ROG5_PWRKEY_RESULT"\n'
             )
             loader.chmod(0o755)
+            (payload/'kernel-release').write_text('7.1.4-rog5-display60-v1\n')
             (payload/'qcom-pon.ko').write_text('module')
             (payload/'qcom-pon.ko').chmod(0o644)
             for name in ('rog5-status-screen.service', 'rog5-power-button.service'):
@@ -89,11 +101,13 @@ class AutomaticWifi(unittest.TestCase):
                 path.chmod(0o644)
             script = body.replace('/newroot', str(newroot)).replace(
                 '/run/rog5-pwrkey-result', str(result)
-            )
+            ).replace('/lib/modules', str(root/'lib/modules'))
             command = (
                 'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
                 'PWRKEY_LOAD_LOG=' + str(load_log) + '\nexport PWRKEY_LOAD_LOG\n'
+                'uname() { echo 7.1.4-rog5-display60-v1; }\n'
                 'stat() { case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                '*modules.dep) echo 0:0:444:0:1 ;; '
                 '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                 '*) echo 0:0:755:1 ;; esac; }\n' + script +
                 '\ninstall_status_screen "$units"'
@@ -101,6 +115,9 @@ class AutomaticWifi(unittest.TestCase):
             subprocess.run(['sh', '-c', command], check=True)
             self.assertEqual(load_log.read_text(), 'loaded')
             self.assertEqual(result.read_text(), 'pwrkey-pass\n')
+            module_index = root/'lib/modules/7.1.4-rog5-display60-v1/modules.dep'
+            self.assertEqual(module_index.read_bytes(), b'')
+            self.assertEqual(module_index.stat().st_mode & 0o777, 0o444)
             self.assertEqual(
                 (newroot/'usr/local/bin/rog5-screen-toggle.sh').read_text(),
                 'screen-toggle.sh',
@@ -140,6 +157,7 @@ class AutomaticWifi(unittest.TestCase):
                 'chmod 0444 "$ROG5_PWRKEY_RESULT"\n'
             )
             (payload/'load-pwrkey').chmod(0o755)
+            (payload/'kernel-release').write_text('7.1.4-rog5-display60-v1\n')
             (payload/'qcom-pon.ko').write_text('module')
             (payload/'qcom-pon.ko').chmod(0o644)
             for name, destination in persistent.items():
@@ -156,14 +174,17 @@ class AutomaticWifi(unittest.TestCase):
 
             def run(units):
                 units.mkdir(parents=True)
+                (units.parent/'lib').mkdir()
                 (units/'rog5-p2-ready.service').write_text('p2-ready')
                 result = units.parent/'pwrkey-result'
                 script = body.replace('/newroot', str(newroot)).replace(
                     '/run/rog5-pwrkey-result', str(result)
-                )
+                ).replace('/lib/modules', str(units.parent/'lib/modules'))
                 command = (
                     'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
+                    'uname() { echo 7.1.4-rog5-display60-v1; }\n'
                     'stat() { case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                    '*modules.dep) echo 0:0:444:0:1 ;; '
                     '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                     '*) echo 0:0:755:1 ;; esac; }\n' + script +
                     '\ninstall_status_screen "$units"'
