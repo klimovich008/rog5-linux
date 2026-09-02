@@ -488,6 +488,19 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn("timeout -k 1 1 sh -c", failure)
         self.assertIn('stat -c', failure)
 
+    def test_radio_failure_diagnostic_is_signed_bounded_and_does_not_reboot(self):
+        failure = (R/'initramfs/native-wifi/failure').read_text()
+        self.assertIn('failure-ncm-diagnostic', failure)
+        self.assertIn('rog5-wifi-failure-ncm-v1', failure)
+        self.assertIn('busybox=/run/initramfs/bin/busybox', failure)
+        self.assertIn('"$busybox" nc -n -w 2 169.254.77.1 8084', failure)
+        self.assertIn('[ "$attempt" -lt 2 ]', failure)
+        diagnostic = failure.index('if [ "$failure_ncm_diagnostic" -eq 1 ]; then')
+        diagnostic_exit = failure.index('\texit 0', diagnostic)
+        reboot = failure.index('systemctl --no-block reboot')
+        self.assertLess(diagnostic, diagnostic_exit)
+        self.assertLess(diagnostic_exit, reboot)
+
     def test_newc_preserves_existing_entries_and_rejects_unsafe_input(self):
         spec = importlib.util.spec_from_file_location('wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)

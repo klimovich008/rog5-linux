@@ -4,6 +4,13 @@ set -u
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 export PATH
 root=/run/rog5-native-wifi
+failure_ncm_diagnostic=0
+diagnostic_marker=$root/failure-ncm-diagnostic
+if [ -f "$diagnostic_marker" ] && [ ! -L "$diagnostic_marker" ] &&
+	[ "$(stat -c '%u:%g:%a:%h' "$diagnostic_marker")" = 0:0:444:1 ] &&
+	[ "$(cat "$diagnostic_marker" 2>/dev/null)" = rog5-wifi-failure-ncm-v1 ]; then
+	failure_ncm_diagnostic=1
+fi
 reason=unavailable
 if [ -f "$root/radio-failure" ] && [ ! -L "$root/radio-failure" ] &&
 	[ "$(stat -c '%u:%g:%a:%h' "$root/radio-failure")" = 0:0:444:1 ]; then
@@ -22,6 +29,18 @@ printf 'ROG5_WIFI_FAILURE boot=%s result=%s status=%s reason=%s\n' \
 chmod 0444 "$record"
 if [ -c /dev/ttyGS0 ]; then
 	timeout -k 1 1 sh -c 'cat "$1" > /dev/ttyGS0' sh "$record" 2>/dev/null || true
+fi
+if [ "$failure_ncm_diagnostic" -eq 1 ]; then
+	busybox=/run/initramfs/bin/busybox
+	if [ -f "$busybox" ] && [ ! -L "$busybox" ] && [ -x "$busybox" ]; then
+		attempt=0
+		while [ "$attempt" -lt 2 ]; do
+			"$busybox" nc -n -w 2 169.254.77.1 8084 <"$record" && break
+			attempt=$((attempt + 1))
+		done
+	fi
+	# Preserve the signed 900-second rollback timer for attended inspection.
+	exit 0
 fi
 systemctl --no-block reboot >/dev/null 2>&1 || true
 exit 0
