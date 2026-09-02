@@ -500,7 +500,14 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn('failure-ncm-diagnostic', failure)
         self.assertIn('rog5-wifi-failure-ncm-v1', failure)
         self.assertIn('busybox=/run/initramfs/bin/busybox', failure)
-        self.assertIn('"$busybox" nc -n -w 2 169.254.77.1 8084', failure)
+        self.assertIn(
+            'busybox_loader=/run/initramfs/lib/ld-musl-aarch64.so.1', failure
+        )
+        self.assertIn(
+            '"$busybox_loader" "$busybox" nc -n -w 2',
+            failure,
+        )
+        self.assertIn('169.254.77.1 8084 <"$record"', failure)
         self.assertIn('[ "$attempt" -lt 2 ]', failure)
         diagnostic = failure.index('if [ "$failure_ncm_diagnostic" -eq 1 ]; then')
         diagnostic_exit = failure.index('\texit 0', diagnostic)
