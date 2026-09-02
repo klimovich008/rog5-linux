@@ -4,6 +4,7 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 target=${TARGET:-$repo/scripts/device/power-buttond.py}
 unit=${UNIT:-$repo/packaging/arch/rog5-power-button.service}
+loader=$repo/initramfs/native-wifi/load-pwrkey
 
 fail() {
 	echo "FAIL $*" >&2
@@ -14,6 +15,16 @@ fail() {
 	fail 'missing executable power-button handler'
 [ -f "$unit" ] && [ ! -L "$unit" ] ||
 	fail 'missing power-button service'
+[ -f "$loader" ] && [ ! -L "$loader" ] && [ -x "$loader" ] ||
+	fail 'missing native power-key loader'
+sh -n "$loader"
+
+for contract in qcom-pon.ko qcom_pon pm8941-pwrkey qcom,pmk8350-pwrkey \
+	'modinfo -F vermagic' 'insmod "$module"' 'pmic_pwrkey'
+do
+	grep -Fq "$contract" "$loader" ||
+		fail "native power-key loader omits: $contract"
+done
 
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
@@ -37,6 +48,7 @@ done
 for contract in \
 	'ConditionPathExists=/usr/local/bin/rog5-screen-toggle.sh' \
 	'ExecStart=/usr/local/libexec/rog5-power-buttond' \
+	'ExecStartPre=/run/rog5-native-wifi/load-pwrkey' \
 	'Restart=on-failure' \
 	'DevicePolicy=closed' \
 	'DeviceAllow=char-input r' \
@@ -53,13 +65,14 @@ do
 done
 
 mkdir "$work/systemd"
-sed "s|^ExecStart=/usr/local/libexec/rog5-power-buttond$|ExecStart=$target|" \
+sed -e "s|^ExecStart=/usr/local/libexec/rog5-power-buttond$|ExecStart=$target|" \
+	-e 's|^ExecStartPre=/run/rog5-native-wifi/load-pwrkey$|ExecStartPre=/bin/true|' \
 	"$unit" >"$work/systemd/rog5-power-button.service"
 systemd-analyze verify "$work/systemd/rog5-power-button.service"
 
 if grep -Eq \
 	'shell[[:space:]]*=[[:space:]]*True|os[.]system|/dev/(block|disk)|(^|[^[:alnum:]_])(fastboot|adb|reboot|poweroff)([^[:alnum:]_]|$)' \
-	"$target" "$unit"
+	"$target" "$unit" "$loader"
 then
 	fail 'power-button path contains a shell, storage, or boot action'
 fi

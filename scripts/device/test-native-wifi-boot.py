@@ -29,7 +29,9 @@ class AutomaticWifi(unittest.TestCase):
             self.assertIn(command, body)
         self.assertIn('/newroot/usr/local/bin/rog5-screen-toggle.sh', body)
         self.assertIn('"$units/multi-user.target.wants"', body)
-        self.assertIn('[ "$present" -eq 5 ]', body)
+        self.assertIn('[ "$present" -eq 7 ]', body)
+        self.assertIn('qcom-pon.ko', body)
+        self.assertIn('load-pwrkey', body)
         self.assertIn('rog5-p2-ready.service.d/10-screen-off.conf', body)
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -40,10 +42,15 @@ class AutomaticWifi(unittest.TestCase):
             (payload/'units').mkdir(parents=True)
             units.mkdir(parents=True)
             (units/'rog5-p2-ready.service').write_text('p2-ready')
-            for name in ('screen-toggle.sh', 'status-screen.sh', 'power-buttond.py'):
+            for name in (
+                'screen-toggle.sh', 'status-screen.sh', 'power-buttond.py',
+                'load-pwrkey',
+            ):
                 path = payload/name
                 path.write_text(name)
                 path.chmod(0o755)
+            (payload/'qcom-pon.ko').write_text('module')
+            (payload/'qcom-pon.ko').chmod(0o644)
             for name in ('rog5-status-screen.service', 'rog5-power-button.service'):
                 path = payload/'units'/name
                 path.write_text(name)
@@ -51,7 +58,7 @@ class AutomaticWifi(unittest.TestCase):
             script = body.replace('/newroot', str(newroot))
             command = (
                 'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
-                'stat() { case "$3" in *.service|*.conf) echo 0:0:644:1 ;; '
+                'stat() { case "$3" in *.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                 '*) echo 0:0:755:1 ;; esac; }\n' + script +
                 '\ninstall_status_screen "$units"'
             )
@@ -90,6 +97,10 @@ class AutomaticWifi(unittest.TestCase):
                 'power-buttond.py': newroot/'usr/local/libexec/rog5-power-buttond',
             }
             source_units.mkdir(parents=True)
+            (payload/'load-pwrkey').write_text('load-pwrkey')
+            (payload/'load-pwrkey').chmod(0o755)
+            (payload/'qcom-pon.ko').write_text('module')
+            (payload/'qcom-pon.ko').chmod(0o644)
             for name, destination in persistent.items():
                 source = payload/name
                 source.write_text(name)
@@ -108,7 +119,7 @@ class AutomaticWifi(unittest.TestCase):
                 script = body.replace('/newroot', str(newroot))
                 command = (
                     'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
-                    'stat() { case "$3" in *.service|*.conf) echo 0:0:644:1 ;; '
+                    'stat() { case "$3" in *.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                     '*) echo 0:0:755:1 ;; esac; }\n' + script +
                     '\ninstall_status_screen "$units"'
                 )
