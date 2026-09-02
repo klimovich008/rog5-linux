@@ -62,6 +62,18 @@ install_status_screen() {
 		/newroot/usr/local/libexec/rog5-status-screen || return 1
 	install_status_file "$root/power-buttond.py" \
 		/newroot/usr/local/libexec/rog5-power-buttond || return 1
+	p2_unit=$units/rog5-p2-ready.service
+	p2_dropin_dir=$units/rog5-p2-ready.service.d
+	p2_dropin=$units/rog5-p2-ready.service.d/10-screen-off.conf
+	[ -f "$p2_unit" ] && [ ! -L "$p2_unit" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$p2_unit")" = 0:0:644:1 ] || return 1
+	[ ! -e "$p2_dropin_dir" ] && [ ! -L "$p2_dropin_dir" ] || return 1
+	mkdir "$p2_dropin_dir" || return 1
+	printf '%s\n' '[Service]' \
+		'ExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off' \
+		>"$p2_dropin" || return 1
+	chmod 0644 "$p2_dropin" || return 1
+	[ "$(stat -c '%u:%g:%a:%h' "$p2_dropin")" = 0:0:644:1 ] || return 1
 	for display_unit in rog5-status-screen rog5-power-button; do
 		[ ! -e "$units/$display_unit.service" ] &&
 			[ ! -L "$units/$display_unit.service" ] || return 1
