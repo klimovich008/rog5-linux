@@ -21,17 +21,20 @@ remain deferred; the optional power-key text status screen is frozen.
 - Slot A: official ASUS WW33 / Android 13 rescue and charging environment,
   build `33.0210.0210.200`.
 - Slot B: canonical signed-bundle recovery `f2a73030…`.
-- Active selector-v2: persistent-overlay V8 primary with signed V11 automatic
+- Active selector-v2: persistent-overlay V10 primary with signed V11 automatic
   fallback. Slot A and V11 must remain available.
 
 ## Persistent Linux baseline
 
-- Current live fallback: V11 boot `5fbe39c4-1024-4514-8078-26c7b85a3faa`,
-  kernel `7.1.4-g359318de534f`. Systemd, NCM, Tailscale, strict key-only SSH and
-  persistent service state are healthy; native Wi-Fi is intentionally absent.
-- Current staged primary is `persistent-native-root-wifi-overlay-v9`, manifest
-  `3f353b9bce0564c316bab9023fc1ce9020de33d9856edc6590066569f35c0c44`;
-  its first boot passed and its trial record is healthy.
+- Current live primary: V10 boot `43c91566-b125-4da9-a933-af8f3601ea2a`,
+  kernel `7.1.4-g1eea8970e87f`, bundle
+  `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…e3e8f5`.
+  Systemd, native Wi-Fi, NCM, Tailscale, strict key-only SSH and persistent
+  service state are healthy.
+- V10 first boot `2b9c86b0…` passed with one exact allowed overlay journal
+  replay; a later V10 boot passed with clean `0/0` journal evidence. Both kept
+  the exact 163-package inventory `032f6e00…47de1a` and write scope limited to
+  `sda,sda23`.
 - Slot B now contains bounded-retry recovery `340f6392…`; the prior canonical
   recovery `f2a73030…` remains an exact host restore artifact. Slot A is
   unchanged.
@@ -48,8 +51,8 @@ remain deferred; the optional power-key text status screen is frozen.
   filesystem sandbox while retaining the `alpm` user and seccomp sandbox.
   Future persistent-root builds now require `CONFIG_SECURITY_LANDLOCK=y`.
 - The repaired package overlay is intact on p23. V9 fixed systemd root mode and
-  OpenSSH 10.5 casing and passed once; repeat boot exposed canonical 255-byte
-  `systemd-update-done` markers. The V10 parser tests now pass. Evidence:
+  OpenSSH 10.5 casing; V10 accepts systemd 261's canonical 255-byte
+  `systemd-update-done` markers on hardware and across repeat execution. Evidence:
   `test-results/2026-09-02-persistent-overlay-update-reboot-debug.md`.
 
 ## Persistent root storage
@@ -78,8 +81,8 @@ remain deferred; the optional power-key text status screen is frozen.
 - Side-port USB provides data plus 5 V input while Linux runs.
 - Current battery evidence is Full/Good, approximately 8.56 V and 29.9 C,
   with USB online and safe thermal readings.
-- Accepted V8 native Wi-Fi has proven carrier, DHCP/default route and strict
-  SSH; current V11 intentionally uses NCM plus Tailscale while V9 is prepared.
+- Accepted V10 native Wi-Fi has proven carrier, DHCP/default route and strict
+  SSH while NCM and Tailscale remain available.
 - Historical long-run evidence remains in
   `test-results/2026-08-29-persistent-ncm-two-hour-pass.md`,
   `test-results/2026-08-30-persistent-tailscale-v11-live.md`, and
@@ -87,11 +90,17 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Remaining critical issue
 
-Bounded-retry recovery is persistent in `boot_b` and selects the healthy
-primary reliably. V9 first boot passed; repeat failed only because runtime
-accepted empty update markers but not systemd 261's canonical records. Next
-compose V10 from unchanged V9 kernel/DTB plus that one parser fix, sign/stage it
-with exact V11 fallback, and validate first plus repeat boots.
+V10 is accepted, but one intervening recovery cycle selected V11 even though
+the V10 selector and healthy trial record were exact. The same exact AArch64
+helper returns V10 against that record through a read-only live check, and the
+next cycle selected and accepted V10. The current S65 selection detail is too
+short-lived for the 250 ms recovery reporter, so the transient fallback remains
+unclassified. Repository source now retains S65 for 300 ms, has a fail-first
+ordering/timing regression, and passes focused, active-tier and full local CI;
+the recovery currently installed in `boot_b` does not yet contain that
+diagnostic correction. Validate it RAM-only and resolve any proven preflight
+defect before claiming unattended reboot reliability; do not issue a new kernel
+candidate for this recovery-only problem.
 
 ## Frozen screen checkpoint
 
