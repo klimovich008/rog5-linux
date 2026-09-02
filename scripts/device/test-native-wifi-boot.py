@@ -23,7 +23,9 @@ class AutomaticWifi(unittest.TestCase):
         runtime = (R/'initramfs/native-wifi/runtime').read_text()
         body = function(runtime, 'install_status_screen')
         self.assertNotIn('\n\tinstall ', body)
-        for command in ('mkdir -p', 'cp -p', 'chmod 0755', 'ln -s', 'stat -c'):
+        for command in (
+            'mkdir -p', 'cp -p', 'chmod 0755', 'ln -s', 'stat -c', 'cmp'
+        ):
             self.assertIn(command, body)
         self.assertIn('/newroot/usr/local/bin/rog5-screen-toggle.sh', body)
         self.assertIn('"$units/multi-user.target.wants"', body)
@@ -66,6 +68,54 @@ class AutomaticWifi(unittest.TestCase):
 
             (payload/'power-buttond.py').unlink()
             rejected = subprocess.run(['sh', '-c', command], capture_output=True)
+            self.assertNotEqual(rejected.returncode, 0)
+
+    def test_optional_status_runtime_accepts_only_exact_persistent_files(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_status_screen')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root/'payload'
+            source_units = payload/'units'
+            newroot = root/'newroot'
+            persistent = {
+                'screen-toggle.sh': newroot/'usr/local/bin/rog5-screen-toggle.sh',
+                'status-screen.sh': newroot/'usr/local/libexec/rog5-status-screen',
+                'power-buttond.py': newroot/'usr/local/libexec/rog5-power-buttond',
+            }
+            source_units.mkdir(parents=True)
+            for name, destination in persistent.items():
+                source = payload/name
+                source.write_text(name)
+                source.chmod(0o755)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(name)
+                destination.chmod(0o755)
+            for name in ('rog5-status-screen.service', 'rog5-power-button.service'):
+                path = source_units/name
+                path.write_text(name)
+                path.chmod(0o644)
+
+            def run(units):
+                units.mkdir(parents=True)
+                script = body.replace('/newroot', str(newroot))
+                command = (
+                    'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
+                    'stat() { case "$3" in *.service) echo 0:0:644:1 ;; '
+                    '*) echo 0:0:755:1 ;; esac; }\n' + script +
+                    '\ninstall_status_screen "$units"'
+                )
+                return subprocess.run(['sh', '-c', command], capture_output=True)
+
+            accepted = run(root/'run-one/systemd')
+            self.assertEqual(accepted.returncode, 0, accepted.stderr.decode())
+            self.assertTrue(
+                (root/'run-one/systemd/multi-user.target.wants/'
+                 'rog5-status-screen.service').is_symlink()
+            )
+
+            persistent['status-screen.sh'].write_text('changed')
+            rejected = run(root/'run-two/systemd')
             self.assertNotEqual(rejected.returncode, 0)
 
     def test_display_diagnostic_keeps_rollback_and_skips_wifi_units(self):
