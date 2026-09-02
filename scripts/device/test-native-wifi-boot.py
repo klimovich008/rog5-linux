@@ -30,6 +30,7 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn('/newroot/usr/local/bin/rog5-screen-toggle.sh', body)
         self.assertIn('"$units/multi-user.target.wants"', body)
         self.assertIn('[ "$present" -eq 5 ]', body)
+        self.assertIn('rog5-p2-ready.service.d/10-screen-off.conf', body)
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -38,6 +39,7 @@ class AutomaticWifi(unittest.TestCase):
             newroot = root/'newroot'
             (payload/'units').mkdir(parents=True)
             units.mkdir(parents=True)
+            (units/'rog5-p2-ready.service').write_text('p2-ready')
             for name in ('screen-toggle.sh', 'status-screen.sh', 'power-buttond.py'):
                 path = payload/name
                 path.write_text(name)
@@ -49,7 +51,7 @@ class AutomaticWifi(unittest.TestCase):
             script = body.replace('/newroot', str(newroot))
             command = (
                 'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
-                'stat() { case "$3" in *.service) echo 0:0:644:1 ;; '
+                'stat() { case "$3" in *.service|*.conf) echo 0:0:644:1 ;; '
                 '*) echo 0:0:755:1 ;; esac; }\n' + script +
                 '\ninstall_status_screen "$units"'
             )
@@ -64,6 +66,10 @@ class AutomaticWifi(unittest.TestCase):
             )
             self.assertTrue(
                 (units/'multi-user.target.wants/rog5-status-screen.service').is_symlink()
+            )
+            self.assertEqual(
+                (units/'rog5-p2-ready.service.d/10-screen-off.conf').read_text(),
+                '[Service]\nExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off\n',
             )
 
             (payload/'power-buttond.py').unlink()
@@ -98,10 +104,11 @@ class AutomaticWifi(unittest.TestCase):
 
             def run(units):
                 units.mkdir(parents=True)
+                (units/'rog5-p2-ready.service').write_text('p2-ready')
                 script = body.replace('/newroot', str(newroot))
                 command = (
                     'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
-                    'stat() { case "$3" in *.service) echo 0:0:644:1 ;; '
+                    'stat() { case "$3" in *.service|*.conf) echo 0:0:644:1 ;; '
                     '*) echo 0:0:755:1 ;; esac; }\n' + script +
                     '\ninstall_status_screen "$units"'
                 )
