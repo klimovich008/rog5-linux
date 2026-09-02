@@ -123,6 +123,11 @@ class PwrctrlProbeTest(unittest.TestCase):
 
     def test_native_probe_loads_software_first_and_checks_pci_before_radio(self):
         source = (REPO / 'scripts/device/probe-native-wifi.sh').read_text()
+        self.assertIn('elif [ "$module" = phy-qcom-qmp-pcie ]; then', source)
+        self.assertIn(
+            'kernel/drivers/phy/qualcomm/phy-qcom-qmp-pcie.ko', source
+        )
+        self.assertIn('timeout -k 2 20 insmod', source)
         start = source.index('# Load software before')
         block = source[start:source.index('for attempt in $(seq 1 60)', start)]
         roots = (REPO / 'configs/kernel/rog5-native-wifi-module-roots').read_text()
