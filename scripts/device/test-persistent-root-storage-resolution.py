@@ -636,7 +636,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
             )
 
     def run_volatile_state(
-        self, mutation: str = "none"
+        self, mutation: str = "none", persistent_overlay: bool = False
     ) -> tuple[subprocess.CompletedProcess[str], Path | None]:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -657,8 +657,17 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         ):
             directory.mkdir(parents=True, exist_ok=True)
         cache = root / "etc" / "ld.so.cache"
-        cache.write_bytes(b"cache\n")
+        cache.write_bytes(b"updated-cache\n" if persistent_overlay else b"cache\n")
         cache.chmod(0o644)
+        lower_cache = lower / "etc" / "ld.so.cache"
+        lower_cache.write_bytes(b"cache\n")
+        lower_cache.chmod(0o644)
+        if persistent_overlay:
+            for subtree in ("etc", "var"):
+                upper_subtree = upper / subtree
+                upper_subtree.mkdir()
+                (root / subtree / ".updated").touch()
+                (upper_subtree / ".updated").touch()
         if mutation == "wrong-cache":
             cache.write_bytes(b"wrong\n")
         elif mutation == "linked-cache":
@@ -718,6 +727,13 @@ verify_exact_regular() {
 	[ "$(stat -c '%a:%s:%h' "$path")" = "$mode:$size:1" ] || return 1
 	[ "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$hash" ]
 }
+stat() {
+	if [ "$1:$2:$3" = "-c:%u:%g:%a:%h:$fixture_root/etc/ld.so.cache" ]; then
+		printf '0:0:644:1\n'
+	else
+		command stat "$@"
+	fi
+}
 chown() { :; }
 touch() {
 	command touch "$@" || return 1
@@ -747,6 +763,7 @@ chmod() {
         script = (
             "set -u\n"
             + "expected_ssh_diagnostic_mode=0\n"
+            + f"expected_persistent_overlay_mode={int(persistent_overlay)}\n"
             + helper
             + verifier
             + '\nfixture_root="$1"\nfixture_lower="$2"\n'
@@ -771,6 +788,16 @@ chmod() {
             check=False,
         )
         return result, base
+
+    def test_persistent_systemd_state_accepts_existing_upper_markers(self) -> None:
+        result, base = self.run_volatile_state(persistent_overlay=True)
+        assert base is not None
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((base / "root/etc/ld.so.cache").read_bytes(), b"updated-cache\n")
+        for subtree in ("etc", "var"):
+            self.assertTrue((base / "root" / subtree / ".updated").is_file())
+            self.assertTrue((base / "upper" / subtree / ".updated").is_file())
+            self.assertFalse((base / "lower" / subtree / ".updated").exists())
 
     def test_volatile_systemd_state_is_exact_and_tmpfs_only(self) -> None:
         helper = self.volatile_state
