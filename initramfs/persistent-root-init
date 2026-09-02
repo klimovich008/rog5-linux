@@ -1267,6 +1267,17 @@ verify_ufs_health() {
 	journal_recovery_count=$(dmesg |
 		grep -E -i -c 'EXT4-fs.*(journal recovery|recovery complete|recovering journal)' ||
 		true)
+	journal_recovery_allowed=0
+	if [ "$expected_persistent_overlay_mode" -eq 1 ] &&
+		[ -n "$overlay_loop" ]; then
+		overlay_loop_name=${overlay_loop##*/}
+		overlay_recovery_count=$(dmesg | grep -F -c \
+			"EXT4-fs ($overlay_loop_name): recovery complete" || true)
+		if [ "$overlay_recovery_count" -le 1 ] &&
+			[ "$overlay_recovery_count" -eq "$journal_recovery_count" ]; then
+			journal_recovery_allowed=$overlay_recovery_count
+		fi
+	fi
 	ufs_error_count=$(dmesg |
 		grep -E -i -c '(ufshcd|ufshcd-qcom|scsi|sd [0-9]).*(fatal|abort|reset|I/O error|timed out)' ||
 		true)
@@ -1274,10 +1285,12 @@ verify_ufs_health() {
 	printf '%s\n' "$blocked_scsi_count" >/run/rog5-p2-blocked-scsi-count
 	printf '%s\n' "$journal_recovery_count" \
 		>/run/rog5-p2-journal-recovery-count
+	printf '%s\n' "$journal_recovery_allowed" \
+		>/run/rog5-p2-allowed-overlay-recovery-count
 	printf '%s\n' "$ufs_error_count" >/run/rog5-p2-ufs-error-count
 	[ "$blocked_query_count" -eq 0 ] &&
 		[ "$blocked_scsi_count" -eq 0 ] &&
-		[ "$journal_recovery_count" -eq 0 ] &&
+		[ "$journal_recovery_count" -eq "$journal_recovery_allowed" ] &&
 		[ "$ufs_error_count" -eq 0 ]
 }
 

@@ -332,6 +332,16 @@ blocked_scsi_count=$(dmesg |
 journal_recovery_count=$(dmesg |
 	grep -E -i -c 'EXT4-fs.*(journal recovery|recovery complete|recovering journal)' ||
 	true)
+journal_recovery_allowed=0
+if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+	overlay_loop_name=${overlay_loop##*/}
+	overlay_recovery_count=$(dmesg | grep -F -c \
+		"EXT4-fs ($overlay_loop_name): recovery complete" || true)
+	if [ "$overlay_recovery_count" -le 1 ] &&
+		[ "$overlay_recovery_count" -eq "$journal_recovery_count" ]; then
+		journal_recovery_allowed=$overlay_recovery_count
+	fi
+fi
 ufs_error_count=$(dmesg |
 	grep -E -i -c '(ufshcd|ufshcd-qcom|scsi|sd [0-9]).*(fatal|abort|reset|I/O error|timed out)' ||
 	true)
@@ -339,7 +349,7 @@ ufs_error_count=$(dmesg |
 	fail 'blocked device query appeared'
 [ "$blocked_scsi_count" -eq 0 ] ||
 	fail 'blocked SCSI opcode appeared'
-[ "$journal_recovery_count" -eq 0 ] ||
+[ "$journal_recovery_count" -eq "$journal_recovery_allowed" ] ||
 	fail 'ext4 journal recovery appeared'
 [ "$ufs_error_count" -eq 0 ] ||
 	fail 'UFS or SCSI error appeared'
@@ -405,6 +415,7 @@ trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
 	printf '%s\n' "blocked_device_queries=$blocked_query_count"
 	printf '%s\n' "blocked_scsi_commands=$blocked_scsi_count"
 	printf '%s\n' "journal_recovery_events=$journal_recovery_count"
+	printf '%s\n' "allowed_overlay_recovery_events=$journal_recovery_allowed"
 	printf '%s\n' "ufs_error_events=$ufs_error_count"
 	printf '%s\n' "backlights=$backlight_count"
 	printf '%s\n' 'ssh=strict-key-only'
