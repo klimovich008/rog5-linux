@@ -1,60 +1,58 @@
 # Active ROG Phone 5 Linux context
 
-Updated: 2026-09-01
+Updated: 2026-09-02
 
 Read `docs/current-state.md` for durable device, rescue, storage, charging, and
-V11 facts. Historical generations remain in Git and dated `test-results/`.
+accepted V8 facts. Historical generations remain in Git and dated
+`test-results/` records.
 
 ## One current question
 
-Can a bounded p23-backed persistent OverlayFS upper make package/keyring updates
-survive reboot while preserving accepted Wi-Fi V3, signed V11, read-only p24,
-slot A and exact storage-write scope?
+Can the slot-B recovery eliminate its intermittent pre-COMMIT p23 admission
+fallback while preserving the accepted persistent-overlay V8 primary and exact
+V11 fallback?
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
-- Slot B contains the canonical selector-v2-capable recovery `f2a73030…`.
-- Current boot: Wi-Fi V3 `e4424825-a7b0-4d33-8a4f-fcad3f9e479b`, kernel
-  `7.1.4-g1eea8970e87f`, with systemd, native Wi-Fi, NCM, Tailscale and strict
-  SSH active.
-- Selector `47fe38b7…` chooses signed primary manifest `3848a474…`; signed V11
-  remains the fallback. Old boot_b `2867666c…` and factory `0a67358d…` remain.
-- P24 is read-only; exactly `sda` and `sda23` are writable. Battery is Full/Good
-  at 30.0 C and the latest maximum thermal-zone reading is 37.1 C.
-- The empty volatile pacman GPG directory causes the WKD failure; no parser or
-  package mutation has been applied.
+- Slot B contains canonical recovery `f2a73030…` and selector-v2 primary
+  `persistent-native-root-wifi-overlay-v8`, manifest `3d4d2bfc…`, with signed
+  V11 as automatic fallback.
+- Current boot: V8 `ec8f1d5c-cea0-4f05-965c-8ff36d25f81c`, kernel
+  `7.1.4-g1eea8970e87f`; systemd, native Wi-Fi, NCM, Tailscale and strict SSH
+  are active with zero failed units.
+- V8 uses p24 read-only as the Arch lower and the exact 16 GiB
+  `rog5/root/root-overlay-v1.ext4` image on p23 as persistent OverlayFS state.
+  P23 remains `noexec`; the bounded loop filesystem is `exec,nodev,nosuid`.
+- Exactly `sda` and `sda23` are writable; p24 and every protected UFS node are
+  read-only. Battery is Full/Good and side-port USB power is online.
+- Pacman keyring initialization and WKD sync succeeded and survived reboot.
 
 ## Newly proven milestone
 
-Wi-Fi V2 fixed the trial-helper, record and boot-timer defects but retained the
-probe's independent 600-second reboot timer. The first soak proved the exact
-reset. V3 disarms both timers, passed two clean boots and completed 720 samples
-over 2h12m43s. Strict NCM/Wi-Fi SSH, Tailscale, power, thermals and storage all
-passed. The active tier is 3.145s, full local CI 479.665s, and GitHub run
-`33572144028` passed. See `test-results/2026-09-02-persistent-wifi-v3-soak.md`.
+V8 booted with one exact owned-overlay journal replay, reported
+`journal_recovery_events=1` and `allowed_overlay_recovery_events=1`, committed
+healthy, and disarmed both rollback timers. A later clean boot reported zero
+recovery events and the same healthy services. See
+`test-results/2026-09-02-persistent-root-overlay-v8-live.md`.
 
-## Frozen screen checkpoint
-
-The power-key-toggled text status screen shows time, Wi-Fi/IP and battery with no
-desktop or GPU process. V10 physically proved REFGEN, DSI, DRM, fb0, backlight,
-status files and direct V11 return. The 60 Hz kernel/DT/userspace is frozen.
-Power-button logic passes exact offline tests but remains physically unobserved.
-Do not start higher refresh, Pixelworks PQ, GPU, desktop, audio, sensors, or
-suspend work during the server MVP.
+The earlier V1–V6 failures are now regression fixtures: stale tmpfs-only
+attestation, duplicate writable-UFS guards, non-executable/0700 upper, retained
+empty `/persist`, and global rejection of the owned overlay's successful ext4
+journal replay.
 
 ## Next actions
 
-1. Define the smallest p23-backed persistent overlay image and shutdown order.
-2. Prove image creation, exact mount scope, update persistence and relock in
-   hardware-free tests before any phone write.
-3. Stage and boot it through the existing signed try-once path, then verify
-   pacman keyring initialization, an update, clean reboot and V11 rescue.
+1. Make recovery's pre-COMMIT p23 trial-state admission observable and reliable;
+   do not weaken post-COMMIT one-use behavior.
+2. Run a longer V8 liveness/reboot soak and a bounded package update.
+3. Deploy the first server workload only after that checkpoint.
 
 ## Boundaries
 
 Preserve exact device/topology, safe battery/temperature, signed artifacts,
-p24/read-only storage scope, V11 fallback, and permanent non-retry after COMMIT.
-Do not flash, alter slot A, modify GPT, or send guessed DSI/Iris commands. Keep
-the screen off by default and do not add KDE/GNOME/GPU work to this milestone.
+p24 read-only scope, V11 and slot-A rescue, and non-retry after ambiguous target
+execution. Do not flash, alter slot A, modify GPT, or resume GPU/display/audio
+work during this milestone. The frozen power-key status-screen checkpoint stays
+deferred until the server MVP is stable.

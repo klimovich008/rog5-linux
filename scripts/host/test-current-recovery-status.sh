@@ -15,11 +15,11 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Current boot: Wi-Fi V3' \
+	'Current boot: V8' \
 	'1-1.2' \
-	'Wi-Fi V2 fixed the trial-helper' \
-	'P24 is read-only' \
-	'power-key-toggled text status screen' \
+	'intermittent pre-COMMIT p23 admission' \
+	'p24 read-only' \
+	'frozen power-key status-screen checkpoint' \
 	'Do not flash, alter slot A, modify GPT'
 do
 	grep -Fq "$contract" "$active" || {
@@ -31,11 +31,12 @@ done
 for contract in \
 	'M5AIKN00F0353YH' \
 	'33.0210.0210.200' \
-	'Persistent Wi-Fi V3 boots successfully' \
+	'Current candidate: `persistent-native-root-wifi-overlay-v8`' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
+	'test-results/2026-09-02-persistent-root-overlay-v8-live.md' \
 	'test-results/2026-09-02-persistent-wifi-v3-soak.md' \
-	'frozen screen checkpoint' \
+	'Frozen screen checkpoint' \
 	'test-results/2026-09-01-display60-v10-pre-switch-pass.md' \
 	'Do not rebuild or reflash `super`' \
 	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
@@ -70,4 +71,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, persistent Wi-Fi V3, V11 fallback, and the frozen screen boundary'
+echo 'PASS compact current status records WW33 rescue, persistent-overlay V8, V11 fallback, and the frozen screen boundary'
