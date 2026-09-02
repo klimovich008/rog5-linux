@@ -1421,6 +1421,21 @@ verify_persistent_overlay_tree() {
 	return 0
 }
 
+verify_overlay_workdir_pre_mount() {
+	root=$1
+	inventory=$(find "$root/work" -mindepth 1 -maxdepth 1 -print) || return 1
+	case $inventory in
+		'') return 0 ;;
+		"$root/work/work")
+			[ -d "$inventory" ] && [ ! -L "$inventory" ] &&
+				[ "$(stat -c '%u:%g:%a:%h' "$inventory")" = 0:0:0:2 ] &&
+				[ -z "$(find "$inventory" -mindepth 1 -maxdepth 1 \
+					-print -quit)" ]
+			;;
+		*) return 1 ;;
+	esac
+}
+
 close_persistent_overlay_prepare() {
 	close_status=0
 	[ "$overlay_mounted" -eq 0 ] || {
@@ -1497,8 +1512,7 @@ prepare_persistent_overlay_inner() {
 	overlay_mounted=1
 	verify_exact_rw_mount "$overlay_loop" /mnt/state || return 1
 	verify_persistent_overlay_tree /mnt/state || return 1
-	[ -z "$(find /mnt/state/work -mindepth 1 -maxdepth 1 -print -quit)" ] ||
-		return 1
+	verify_overlay_workdir_pre_mount /mnt/state || return 1
 	verify_exact_overlay_write_window || return 1
 	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
 
