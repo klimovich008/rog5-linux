@@ -19,7 +19,7 @@ After that bounded proof, the next phase remains the credential-isolated automat
 - Slot B contains bounded-retry recovery `340f6392…` and selector-v2 primary
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…`, with signed
   V11 as automatic fallback. Exact old recovery `f2a73030…` remains restorable.
-- Current boot: accepted V10 `d1668631-bd7d-4cd7-90ca-f48f19590d4b` with
+- Current boot: accepted V10 `ded95724-7b0d-4959-988d-6ebb0ffde268` with
   systemd, native Wi-Fi, NCM, Tailscale, strict SSH and persistent service
   state.
 - V10 uses p24 read-only as the Arch lower and the exact 16 GiB
@@ -57,6 +57,10 @@ After that bounded proof, the next phase remains the credential-isolated automat
   `/healthz` passes over NCM and Wi-Fi; full V10 acceptance remains green. A
   RAM-only action-aware shutdown also proved powered-off auto-start under
   connected power. Repository exitrd source now preserves that poweroff action.
+- Installed slot-B unattended reboot now reaches a different V10 boot, pinned
+  SSH and systemd `running` in 101.273 seconds. The post-reboot gate passed
+  native Wi-Fi, Tailscale, healthd, strict `rog5-early-sshd`, 0/0 journal/UFS
+  errors, exact `sda,sda23` write scope and inactive rollback timers.
 - Display V14 passed persistent systemd, native Wi-Fi, Tailscale, healthd,
   DRM/fb0/backlight, text status rendering, the exact RAM-loaded `qcom-pon.ko`,
   one `pmic_pwrkey` input and an active zero-restart button service. A real-ARM
