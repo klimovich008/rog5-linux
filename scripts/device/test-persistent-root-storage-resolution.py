@@ -42,8 +42,12 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         )
         cls.rendezvous = function(cls.source, "wait_for_deferred_ufs_rendezvous")
         cls.exact_regular = function(cls.source, "verify_exact_regular")
-        cls.volatile_state = function(
-            cls.source, "prepare_volatile_systemd_state"
+        cls.volatile_state = "\n".join(
+            function(cls.source, name)
+            for name in (
+                "verify_systemd_update_marker",
+                "prepare_volatile_systemd_state",
+            )
         )
         cls.write_probe = function(
             cls.source, "write_exact_local_image_probe"
@@ -668,6 +672,35 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 upper_subtree.mkdir()
                 (root / subtree / ".updated").touch()
                 (upper_subtree / ".updated").touch()
+            if mutation in (
+                "systemd-update-markers",
+                "systemd-update-marker-bad-comment",
+                "systemd-update-marker-mismatched-time",
+            ):
+                for subtree in ("etc", "var"):
+                    timestamp = (
+                        "1788332957852528814"
+                        if mutation == "systemd-update-marker-mismatched-time"
+                        and subtree == "var"
+                        else "1788332957852528813"
+                    )
+                    first = (
+                        "# Wrong marker format"
+                        if mutation == "systemd-update-marker-bad-comment"
+                        and subtree == "etc"
+                        else "# This file was created by systemd-update-done. "
+                        "The timestamp below is the"
+                    )
+                    marker = (
+                        f"{first}\n"
+                        f"# modification time of /usr/ for which the most "
+                        f"recent updates of /{subtree}/ have\n"
+                        "# been applied. See man:systemd-update-done.service(8) "
+                        "for details.\n"
+                        f"TIMESTAMP_NSEC={timestamp}\n"
+                    )
+                    (root / subtree / ".updated").write_text(marker)
+                    (upper / subtree / ".updated").write_text(marker)
         if mutation == "wrong-cache":
             cache.write_bytes(b"wrong\n")
         elif mutation == "linked-cache":
@@ -798,6 +831,23 @@ chmod() {
             self.assertTrue((base / "root" / subtree / ".updated").is_file())
             self.assertTrue((base / "upper" / subtree / ".updated").is_file())
             self.assertFalse((base / "lower" / subtree / ".updated").exists())
+
+    def test_persistent_systemd_state_accepts_systemd_update_done_markers(self) -> None:
+        result, _ = self.run_volatile_state(
+            mutation="systemd-update-markers", persistent_overlay=True
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_persistent_systemd_state_rejects_hostile_update_done_markers(self) -> None:
+        for mutation in (
+            "systemd-update-marker-bad-comment",
+            "systemd-update-marker-mismatched-time",
+        ):
+            with self.subTest(mutation=mutation):
+                result, _ = self.run_volatile_state(
+                    mutation=mutation, persistent_overlay=True
+                )
+                self.assertNotEqual(result.returncode, 0)
 
     def test_volatile_systemd_state_is_exact_and_tmpfs_only(self) -> None:
         helper = self.volatile_state

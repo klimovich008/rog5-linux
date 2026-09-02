@@ -17,7 +17,7 @@ for contract in \
 	'M5AIKN00F0353YH' \
 	'Current boot: healthy V11' \
 	'1-1.2' \
-	'initramfs-only V9' \
+	'initramfs-only V10' \
 	'p24 read-only' \
 	'frozen power-key status-screen checkpoint' \
 	'Do not flash, alter slot A, modify GPT'
@@ -31,7 +31,7 @@ done
 for contract in \
 	'M5AIKN00F0353YH' \
 	'33.0210.0210.200' \
-	'Accepted primary remains `persistent-native-root-wifi-overlay-v8`' \
+	'Current staged primary is `persistent-native-root-wifi-overlay-v9`' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
 	'test-results/2026-09-02-persistent-root-overlay-v8-live.md' \
@@ -72,4 +72,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, repaired V8, current V11, next V9, and the frozen screen boundary'
+echo 'PASS compact current status records WW33 rescue, V9 first-pass, current V11, next V10, and the frozen screen boundary'

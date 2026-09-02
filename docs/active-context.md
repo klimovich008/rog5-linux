@@ -3,26 +3,26 @@
 Updated: 2026-09-02
 
 Read `docs/current-state.md` for durable device, rescue, storage, charging, and
-accepted V8 facts. Historical generations remain in Git and dated
+accepted V9 facts. Historical generations remain in Git and dated
 `test-results/` records.
 
 ## One current question
 
-Can initramfs-only V9 boot the repaired 163-package persistent overlay through
-P2 attestation and reach healthy systemd, native Wi-Fi and strict SSH while
-retaining exact V11 fallback?
+Can initramfs-only V10 accept canonical systemd 261 update-done markers and
+repeat-boot the 163-package persistent overlay while retaining exact V11
+fallback?
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
-- Slot B contains canonical recovery `f2a73030…` and selector-v2 primary
-  `persistent-native-root-wifi-overlay-v8`, manifest `3d4d2bfc…`, with signed
-  V11 as automatic fallback.
-- Current boot: healthy V11 `86be83ad-92fd-467c-a879-46bbb875b871` with NCM,
-  Tailscale, strict SSH and persistent service state. V8's p23 overlay is not
+- Slot B contains bounded-retry recovery `340f6392…` and selector-v2 primary
+  `persistent-native-root-wifi-overlay-v9`, manifest `3f353b9b…`, with signed
+  V11 as automatic fallback. Exact old recovery `f2a73030…` remains restorable.
+- Current boot: healthy V11 `5fbe39c4-1024-4514-8078-26c7b85a3faa` with NCM,
+  Tailscale, strict SSH and persistent service state. V9's p23 overlay is not
   mounted by V11.
-- V8 uses p24 read-only as the Arch lower and the exact 16 GiB
+- V9 uses p24 read-only as the Arch lower and the exact 16 GiB
   `rog5/root/root-overlay-v1.ext4` image on p23 as persistent OverlayFS state.
   P23 remains `noexec`; the bounded loop filesystem is `exec,nodev,nosuid`.
 - Exactly `sda` and `sda23` are writable; p24 and every protected UFS node are
@@ -36,6 +36,9 @@ retaining exact V11 fallback?
   intentional root mode `0555` and OpenSSH 10.5's mixed-case `sshd -T` names.
   The overlay is repaired; fail-first regressions and source fixes pass. See
   `test-results/2026-09-02-persistent-overlay-update-reboot-debug.md`.
+- V9 first boot passed with the 163-package overlay and healthy trial. Repeat
+  reached `runtime` and exposed systemd's canonical timestamped update markers;
+  V10 parser fixtures now pass.
 
 ## Newly proven milestone
 
@@ -52,11 +55,10 @@ journal replay.
 
 ## Next actions
 
-1. Build/sign/stage V9 with unchanged V8 kernel/DTB and the three initramfs-only
-   fixes; generate a fresh selector/trial identity with exact V11 fallback.
-2. Boot V9 once with receive-only recovery and target-stage observers; require
-   163 packages, P2 pass, systemd/Wi-Fi/SSH health and exact write scope.
-3. Deploy the first server workload after the V9 reboot checkpoint.
+1. Run full local/exact-head CI for the update-marker parser.
+2. Build/sign/stage V10 with unchanged V9 kernel/DTB, then require first and
+   repeat boots with 163 packages, P2/systemd/Wi-Fi/SSH and exact write scope.
+3. Deploy the first server workload after the V10 repeat-boot checkpoint.
 
 ## Boundaries
 
