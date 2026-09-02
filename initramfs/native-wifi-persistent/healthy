@@ -9,6 +9,16 @@ helper=$root/trial-state
 record=$root/healthy.record
 fail() { echo "FAIL native-wifi-healthy: $*" >&2; exit 1; }
 
+healthy_record_valid() {
+	[ -f "$record" ] && [ ! -L "$record" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$record")" = 0:0:444:1 ] &&
+		[ "$(wc -l <"$record")" -eq 4 ] &&
+		[ "$(sed -n '1p' "$record")" = format=rog5-native-wifi-healthy-v1 ] &&
+		[ "$(sed -n '2p' "$record")" = "boot_id=$boot_id" ] &&
+		[ "$(sed -n '3p' "$record")" = "trial_id=$trial_id" ] &&
+		[ "$(sed -n '4p' "$record")" = result=PASS ]
+}
+
 [ "$(id -u)" = 0 ] || fail 'root required'
 [ -x "$helper" ] && [ -f "$selector" ] && [ ! -L "$selector" ] &&
 	[ "$(stat -c '%u:%g:%a:%h' "$selector")" = 0:0:444:1 ] ||
@@ -63,16 +73,27 @@ done
 [ "$ready" -eq 1 ] || fail 'healthy startup deadline'
 result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
 case $result in healthy|already-healthy) ;; *) fail 'trial commit result' ;; esac
+boot_id=$(cat /proc/sys/kernel/random/boot_id)
+record_state=new
+if [ "$result" = already-healthy ] &&
+	{ [ -e "$record" ] || [ -L "$record" ]; }; then
+	healthy_record_valid || fail 'healthy record identity'
+	record_state=existing
+fi
 for rollback_timer in rog5-wifi-probe-rollback.timer \
 	rog5-wifi-boot-rollback.timer; do
-	systemctl --job-mode=ignore-dependencies stop "$rollback_timer" ||
-		fail "rollback timer stop: $rollback_timer"
+	if ! systemctl --job-mode=ignore-dependencies stop "$rollback_timer"; then
+		[ "$result:$record_state" = already-healthy:existing ] ||
+			fail "rollback timer stop: $rollback_timer"
+	fi
 	! systemctl is-active --quiet "$rollback_timer" ||
 		fail "rollback timer remains active: $rollback_timer"
 done
-[ ! -e "$record" ] && [ ! -L "$record" ] || fail 'healthy record exists'
-umask 077
-printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
-	"$(cat /proc/sys/kernel/random/boot_id)" "$trial_id" >"$record"
-chmod 0444 "$record"
+if [ "$record_state" = new ]; then
+	[ ! -e "$record" ] && [ ! -L "$record" ] || fail 'healthy record exists'
+	umask 077
+	printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
+		"$boot_id" "$trial_id" >"$record"
+	chmod 0444 "$record"
+fi
 echo "PASS native Wi-Fi persistent trial healthy interface=$interface"

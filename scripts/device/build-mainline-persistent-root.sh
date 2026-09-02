@@ -125,6 +125,10 @@ else
 		"$root_fragment"
 fi
 kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 olddefconfig
+grep -qx 'CONFIG_SECURITY_LANDLOCK=y' "$output_dir/.config" || {
+	echo 'FAIL persistent-root kernel lacks the package download sandbox' >&2
+	exit 1
+}
 kernel_make -C "$source_dir" O="$output_dir" ARCH=arm64 LLVM=1 -j "$jobs" \
 	JOBS="$btf_jobs" Image.gz
 

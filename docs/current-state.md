@@ -28,7 +28,7 @@ remain deferred; the optional power-key text status screen is frozen.
 
 - Current candidate: `persistent-native-root-wifi-overlay-v8`, manifest
   `3d4d2bfc5cfc54c44ff434503b5fbd8e6aced4f3f94c482b41d3d158cdf03133`.
-- Current boot: `ec8f1d5c-cea0-4f05-965c-8ff36d25f81c`, kernel
+- Current boot: `5cec9d09-2491-4ca7-a72e-3c276727667b`, kernel
   `7.1.4-g1eea8970e87f`.
 - Systemd is `running` with zero failed units. Native Wi-Fi, NCM, Tailscale,
   strict key-only SSH, persistent service state and D-Bus are active.
@@ -37,6 +37,13 @@ remain deferred; the optional power-key text status screen is frozen.
 - V8 health is committed and both 600/900-second rollback timers are inactive.
 - Pacman keyring initialization and WKD sync succeeded and persisted across
   reboot. The earlier empty-keyring failure is resolved without a parser hack.
+- A signed full update now passes: 163 packages, inventory SHA-256
+  `032f6e00…47de1a`, systemd 261.2, OpenSSH 10.5p1, Python 3.14.7, Git 2.55.0
+  and tmux 3.7c. See
+  `test-results/2026-09-02-persistent-overlay-v8-package-update.md`.
+- The live kernel lacks Landlock, so pacman temporarily disables only its
+  filesystem sandbox while retaining the `alpm` user and seccomp sandbox.
+  Future persistent-root builds now require `CONFIG_SECURITY_LANDLOCK=y`.
 
 ## Persistent root storage
 
@@ -79,8 +86,10 @@ remains one-use. Do not promote to direct selector-v1 until an automatic rescue
 design is retained; an experimental direct selector was archived and V11 was
 restored before V8 admission.
 
-Next make this recovery boundary observable/reliable, then run a longer V8 soak
-and bounded package update before deploying the server workload.
+The bounded pre-COMMIT recovery retry is implemented and CI-clean but still
+needs one RAM-only wrapper boot. The package update and post-update soak pass;
+next validate that wrapper and the updated userspace across a clean reboot,
+then deploy the first server workload.
 
 ## Frozen screen checkpoint
 

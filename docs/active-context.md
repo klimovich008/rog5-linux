@@ -19,7 +19,7 @@ V11 fallback?
 - Slot B contains canonical recovery `f2a73030…` and selector-v2 primary
   `persistent-native-root-wifi-overlay-v8`, manifest `3d4d2bfc…`, with signed
   V11 as automatic fallback.
-- Current boot: V8 `ec8f1d5c-cea0-4f05-965c-8ff36d25f81c`, kernel
+- Current boot: V8 `5cec9d09-2491-4ca7-a72e-3c276727667b`, kernel
   `7.1.4-g1eea8970e87f`; systemd, native Wi-Fi, NCM, Tailscale and strict SSH
   are active with zero failed units.
 - V8 uses p24 read-only as the Arch lower and the exact 16 GiB
@@ -28,6 +28,14 @@ V11 fallback?
 - Exactly `sda` and `sda23` are writable; p24 and every protected UFS node are
   read-only. Battery is Full/Good and side-port USB power is online.
 - Pacman keyring initialization and WKD sync succeeded and survived reboot.
+- The signed full package update passed with 163 packages and zero pending
+  updates. Python, Git and tmux are installed; a 60-sample post-update soak
+  passed. The exact result is
+  `test-results/2026-09-02-persistent-overlay-v8-package-update.md`.
+- The package hook exposed and now tests an `already-healthy` rerun bug. The
+  corrected health script is live in `/run` and source-fixed; it enters the
+  signed bundle only on a future target rebuild. Future kernels also require
+  Landlock so pacman can remove its filesystem-sandbox compatibility exception.
 
 ## Newly proven milestone
 
@@ -46,8 +54,9 @@ journal replay.
 
 1. Make recovery's pre-COMMIT p23 trial-state admission observable and reliable;
    do not weaken post-COMMIT one-use behavior.
-2. Run a longer V8 liveness/reboot soak and a bounded package update.
-3. Deploy the first server workload only after that checkpoint.
+2. Validate the updated userspace and persistent overlay across that clean
+   reboot.
+3. Deploy the first server workload after the reboot checkpoint.
 
 ## Boundaries
 
