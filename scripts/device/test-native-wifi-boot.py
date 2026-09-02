@@ -32,6 +32,7 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn('[ "$present" -eq 7 ]', body)
         self.assertIn('qcom-pon.ko', body)
         self.assertIn('load-pwrkey', body)
+        self.assertIn('"$root/load-pwrkey" || return 1', body)
         self.assertIn('rog5-p2-ready.service.d/10-screen-off.conf', body)
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -44,11 +45,16 @@ class AutomaticWifi(unittest.TestCase):
             (units/'rog5-p2-ready.service').write_text('p2-ready')
             for name in (
                 'screen-toggle.sh', 'status-screen.sh', 'power-buttond.py',
-                'load-pwrkey',
             ):
                 path = payload/name
                 path.write_text(name)
                 path.chmod(0o755)
+            load_log = root/'pwrkey-load.log'
+            loader = payload/'load-pwrkey'
+            loader.write_text(
+                '#!/bin/sh\nprintf loaded >"$PWRKEY_LOAD_LOG"\n'
+            )
+            loader.chmod(0o755)
             (payload/'qcom-pon.ko').write_text('module')
             (payload/'qcom-pon.ko').chmod(0o644)
             for name in ('rog5-status-screen.service', 'rog5-power-button.service'):
@@ -58,11 +64,13 @@ class AutomaticWifi(unittest.TestCase):
             script = body.replace('/newroot', str(newroot))
             command = (
                 'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
+                'PWRKEY_LOAD_LOG=' + str(load_log) + '\nexport PWRKEY_LOAD_LOG\n'
                 'stat() { case "$3" in *.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                 '*) echo 0:0:755:1 ;; esac; }\n' + script +
                 '\ninstall_status_screen "$units"'
             )
             subprocess.run(['sh', '-c', command], check=True)
+            self.assertEqual(load_log.read_text(), 'loaded')
             self.assertEqual(
                 (newroot/'usr/local/bin/rog5-screen-toggle.sh').read_text(),
                 'screen-toggle.sh',
@@ -97,7 +105,7 @@ class AutomaticWifi(unittest.TestCase):
                 'power-buttond.py': newroot/'usr/local/libexec/rog5-power-buttond',
             }
             source_units.mkdir(parents=True)
-            (payload/'load-pwrkey').write_text('load-pwrkey')
+            (payload/'load-pwrkey').write_text('#!/bin/sh\nexit 0\n')
             (payload/'load-pwrkey').chmod(0o755)
             (payload/'qcom-pon.ko').write_text('module')
             (payload/'qcom-pon.ko').chmod(0o644)
