@@ -63,6 +63,23 @@ class SelectorGeneration(unittest.TestCase):
                               self.manifest('persistent-native-root-wifi'),
                               self.manifest('not-v11'))
 
+    def test_explicit_accepted_primary_can_be_the_next_fallback(self):
+        primary_name = 'persistent-native-root-wifi-overlay-v1'
+        fallback_name = 'persistent-native-root-wifi-v3'
+        fallback = self.manifest(fallback_name)
+        fallback_hash = hashlib.sha256(fallback).hexdigest()
+        selector, record = SELECTOR.generate(
+            self.descriptor(primary_name),
+            self.manifest(primary_name),
+            fallback,
+            fallback_name,
+            fallback_hash,
+        )
+        self.assertIn(
+            f'fallback_bundle={fallback_name}\n'.encode(), selector
+        )
+        self.assertEqual(record['fallback_manifest_sha256'], fallback_hash)
+
 
 if __name__ == '__main__':
     unittest.main()

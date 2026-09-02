@@ -50,14 +50,20 @@ def manifest(data):
     return fields
 
 
-def generate(descriptor_data, primary_manifest, fallback_manifest):
+def generate(descriptor_data, primary_manifest, fallback_manifest,
+             expected_fallback_bundle=None,
+             expected_fallback_manifest_sha256=None):
+    if expected_fallback_bundle is None:
+        expected_fallback_bundle = FALLBACK_BUNDLE
+    if expected_fallback_manifest_sha256 is None:
+        expected_fallback_manifest_sha256 = FALLBACK_MANIFEST_SHA256
     trial = PARSER.parse_trial_descriptor(descriptor_data)
     primary = manifest(primary_manifest)
     fallback = manifest(fallback_manifest)
     assert primary['bundle'] == trial['primary_bundle']
-    assert fallback['bundle'] == FALLBACK_BUNDLE
+    assert fallback['bundle'] == expected_fallback_bundle
     fallback_hash = hashlib.sha256(fallback_manifest).hexdigest()
-    assert fallback_hash == FALLBACK_MANIFEST_SHA256
+    assert fallback_hash == expected_fallback_manifest_sha256
     primary_hash = hashlib.sha256(primary_manifest).hexdigest()
     selector = (
         'format=rog5-slotb-selector-v2\n'
@@ -84,13 +90,18 @@ def main():
     parser.add_argument('--trial-descriptor', type=Path, required=True)
     parser.add_argument('--primary-manifest', type=Path, required=True)
     parser.add_argument('--fallback-manifest', type=Path, required=True)
+    parser.add_argument('--expected-fallback-bundle', default=FALLBACK_BUNDLE)
+    parser.add_argument('--expected-fallback-manifest-sha256',
+                        default=FALLBACK_MANIFEST_SHA256)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     record = Path(str(args.output)+'.json')
     assert not args.output.exists() and not record.exists()
     selector, result = generate(read_regular(args.trial_descriptor),
                                 read_regular(args.primary_manifest),
-                                read_regular(args.fallback_manifest))
+                                read_regular(args.fallback_manifest),
+                                args.expected_fallback_bundle,
+                                args.expected_fallback_manifest_sha256)
     old_umask = os.umask(0o077)
     try:
         with args.output.open('xb') as stream:
