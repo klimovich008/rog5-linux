@@ -23,6 +23,7 @@ for contract in \
 	'overlay_relative=rog5/root/root-overlay-v1.ext4' \
 	'prepare_persistent_overlay() {' \
 	'verify_persistent_overlay_runtime() {' \
+	'verify_overlay_workdir_pre_mount() {' \
 	'format=rog5-persistent-root-overlay-runtime-v1' \
 	'upperdir=/mnt/state/upper,workdir=/mnt/state/work' \
 	'"$handoff_newroot/.rog5/userdata-rw"'; do
@@ -78,5 +79,37 @@ for path in "$init" "$state" "$shutdown" "$stager"; do
 	! grep -Fq 'rm -rf' "$path" || fail "broad recursive removal in $path"
 	! grep -Fq '/dev/sda23' "$path" || fail "literal target device in $path"
 done
+
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+awk '
+	/^verify_overlay_workdir_pre_mount\(\) \{/ { copy=1 }
+	copy { print }
+	copy && /^}/ { exit }
+' "$init" >"$work/function.sh"
+# shellcheck disable=SC1090
+. "$work/function.sh"
+stat() {
+	if [ "$1:$2:$3" = "-c:%u:%g:%a:%h:$work/state/work/work" ]; then
+		printf '0:0:%s:2\n' "$(command stat -c %a "$3")"
+	else
+		command stat "$@"
+	fi
+}
+find() {
+	if [ "$1" = "$work/state/work/work" ] && [ "$(command stat -c %a "$1")" = 0 ]; then
+		return 0
+	fi
+	command find "$@"
+}
+mkdir -p "$work/state/work"
+verify_overlay_workdir_pre_mount "$work/state"
+mkdir -m 000 "$work/state/work/work"
+verify_overlay_workdir_pre_mount "$work/state"
+chmod 0700 "$work/state/work/work"
+! verify_overlay_workdir_pre_mount "$work/state"
+rmdir "$work/state/work/work"
+touch "$work/state/work/hostile"
+! verify_overlay_workdir_pre_mount "$work/state"
 
 echo 'PASS persistent root overlay is exact-scope, shared-mount aware, and teardown ordered'
