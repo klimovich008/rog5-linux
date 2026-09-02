@@ -52,8 +52,8 @@ fallback/rollback bundles.
   `switch-root PASS`, then returned to a fresh V11 fallback.
 - Wi-Fi V2 passed functional boot but reset when its separate 600-second probe
   timer survived health. Wi-Fi V3 disarms both rollback timers and passed two
-  clean boots; its multi-hour soak is in progress. See
-  `test-results/2026-09-02-persistent-wifi-v2-live.md`.
+  clean boots plus a 720-sample multi-hour soak. See
+  `test-results/2026-09-02-persistent-wifi-v3-soak.md`.
 
 ## Storage state
 
@@ -95,20 +95,21 @@ evidence.
 
 ## Immediate next gate
 
-The active primary is `persistent-native-root-wifi-v3`, manifest `3848a474…`,
+The accepted primary is `persistent-native-root-wifi-v3`, manifest `3848a474…`,
 selector `47fe38b7…`. Boots `f57790ad-90e1-4917-b89f-27e7e918a2ad` and
 `e4424825-a7b0-4d33-8a4f-fcad3f9e479b` both committed the same healthy trial,
 disarmed both rollback timers, kept p24 read-only and exposed only
-`sda`/`sda23` writable. GitHub run `33568444295` is fully green.
+`sda`/`sda23` writable. The repeat completed 720 strict liveness samples over
+2h12m43s; GitHub run `33572144028` is fully green.
 
-Next prove multi-hour Wi-Fi/Tailscale/charging liveness and unattended rescue,
-then proceed to server service deployment. The frozen minimal screen checkpoint
+Next add a bounded p23-backed persistent root overlay so package/keyring updates
+survive reboot while p24 and V11 remain immutable. The frozen screen checkpoint
 already proved REFGEN, DSI, DRM, fb0, backlight and status files in Display V10;
 do not merge it or resume broader display/GPU work until the server MVP is
 stable. See `test-results/2026-09-01-display60-v10-pre-switch-pass.md`.
 
-The preexisting runtime package-keyring WKD parser failure is unrelated to
-Wi-Fi, charging, or display and remains a separate userspace repair.
+The WKD failure is caused by the empty volatile pacman GPG directory; persistent
+package state belongs in the same p23-backed overlay rather than a parser hack.
 
 ## Required boundaries
 
