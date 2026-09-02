@@ -26,7 +26,7 @@ remain deferred. The minimal text status screen is in final button validation.
 
 ## Persistent Linux baseline
 
-- Current live primary: V10 boot `ded95724-7b0d-4959-988d-6ebb0ffde268`,
+- Current live primary: V10 boot `d746db04-06f2-4f1e-af3a-015439de7746`,
   kernel `7.1.4-g1eea8970e87f`, bundle
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…e3e8f5`.
   Systemd, native Wi-Fi, NCM, Tailscale, strict key-only SSH and persistent
@@ -54,11 +54,11 @@ remain deferred. The minimal text status screen is in final button validation.
   powered-off start under connected power also returned through recovery and
   restored V10 plus healthd. See
   `test-results/2026-09-02-healthd-persistent-live.md`.
-- An ordinary unattended reboot through installed slot-B recovery returned a
-  different V10 boot to pinned SSH in 101.273 seconds, versus approximately
-  380 seconds for Generation 20. Post-boot systemd, Wi-Fi, Tailscale, healthd,
-  strict early SSH, 117-node storage scope, clean 0/0 journal evidence and
-  inactive rollback timers passed. See
+- Installed slot-B recovery returned an ordinary reboot to pinned SSH in
+  101.273 seconds and a second powered-off start in 96.697 seconds, versus
+  approximately 380 seconds for Generation 20. Both passed systemd, Wi-Fi,
+  Tailscale, healthd, strict SSH, exact storage, clean 0/0 journal/UFS and safe
+  power gates; repeated cold startup is proven. See
   `test-results/2026-09-03-unattended-reboot-v10.md`.
 - The live kernel lacks Landlock, so pacman temporarily disables only its
   filesystem sandbox while retaining the `alpm` user and seccomp sandbox.
