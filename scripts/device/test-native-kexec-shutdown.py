@@ -215,6 +215,7 @@ int close(int fd) {
         operations = (
             "move /oldroot/.rog5/root-ro /oldsys/root-ro",
             "move /oldroot/.rog5/userdata-ro /oldsys/userdata-ro",
+            "move /oldroot/.rog5/userdata-rw /oldsys/userdata-rw",
             "move /oldroot/.rog5/state /oldsys/state",
             *(f"move /oldroot/{api} /oldsys/{api}" for api in ("sys", "proc", "run", "dev")),
             "detach",
@@ -232,6 +233,7 @@ operation() {
 move_mount() { operation move "$1" "$2"; }
 unmount_mount() { operation unmount "$1"; }
 detach_persistent_state() { operation detach; }
+detach_persistent_overlay() { return 2; }
 lazy_unmount() { printf 'LAZY %s\n' "$1"; }
 mock_bb() {
     case "$*" in
