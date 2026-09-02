@@ -26,6 +26,7 @@ for contract in \
 	'expected_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6' \
 	'state_relative=rog5/state/server-state-v1.ext4' \
 	'preflight_state() {' \
+	'verify_empty_mountpoint() {' \
 	'format=rog5-persistent-service-state-preflight-v1' \
 	'verify_storage_read_only' \
 	'verify_root_storage_mounts' \
@@ -150,6 +151,8 @@ state_mount=/persist
 userdata_mount=/userdata
 mock_log=$work/stop.log
 mock_owner=
+mock_state_mounted=1
+mock_userdata_mounted=1
 resolve_exact_devices() {
 	userdata=/dev/sdz23
 	userdata_disk=/dev/sdz
@@ -157,6 +160,7 @@ resolve_exact_devices() {
 resolve_userdata_owner() { userdata_owner=$mock_owner; }
 verify_write_window() { printf 'verify-write-window\n' >>"$mock_log"; }
 relock_storage() { printf 'relock\n' >>"$mock_log"; }
+verify_empty_mountpoint() { printf 'verify-empty %s\n' "$1" >>"$mock_log"; }
 bb() {
 	applet=$1
 	shift
@@ -164,7 +168,13 @@ bb() {
 		stat) printf '0:0:400:1\n' ;;
 		grep|sed|rm) command "$applet" "$@" ;;
 		sync) printf 'sync\n' >>"$mock_log" ;;
-		umount) printf 'umount %s\n' "$1" >>"$mock_log" ;;
+		umount)
+			printf 'umount %s\n' "$1" >>"$mock_log"
+			case $1 in "$state_mount") mock_state_mounted=0 ;; "$userdata_mount") mock_userdata_mounted=0 ;; esac
+			;;
+		mountpoint)
+			case $2 in "$state_mount") [ "$mock_state_mounted" = 1 ] ;; "$userdata_mount") [ "$mock_userdata_mounted" = 1 ] ;; *) return 1 ;; esac
+			;;
 		losetup) printf 'losetup %s %s\n' "$1" "$2" >>"$mock_log" ;;
 		rmdir) : ;;
 		*) return 1 ;;
@@ -172,6 +182,8 @@ bb() {
 }
 run_stop_case() {
 	mock_owner=$1
+	mock_state_mounted=1
+	mock_userdata_mounted=1
 	printf '%s\n' \
 		'format=rog5-persistent-service-state-runtime-v1' \
 		'userdata=/dev/sdz23' \
@@ -184,6 +196,7 @@ run_stop_case overlay
 grep -Fxq 'umount /persist' "$mock_log"
 grep -Fxq 'losetup -d /dev/loop7' "$mock_log"
 grep -Fxq 'verify-write-window' "$mock_log"
+grep -Fxq 'verify-empty /persist' "$mock_log"
 ! grep -Fq 'umount /userdata' "$mock_log"
 ! grep -Fxq relock "$mock_log"
 run_stop_case state

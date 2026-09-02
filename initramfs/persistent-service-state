@@ -206,6 +206,14 @@ verify_mount() {
 	END { exit found != 1 }' /proc/mounts
 }
 
+verify_empty_mountpoint() {
+	path=$1
+	[ -d "$path" ] && [ ! -L "$path" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%h' "$path")" = 0:0:700:2 ] &&
+		! bb mountpoint -q "$path" &&
+		[ -z "$(bb find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ]
+}
+
 verify_state_tree() {
 	root=$1
 	manifest=$root/rog5-state.manifest
@@ -230,7 +238,10 @@ preflight_state() {
 	verify_root_storage_mounts || return 1
 	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
 		"$expected_userdata_label" || return 1
-	[ ! -e "$state_mount" ] && [ ! -L "$state_mount" ] || return 1
+	if [ -e "$state_mount" ] || [ -L "$state_mount" ]; then
+		[ "$userdata_owner" = overlay ] &&
+			verify_empty_mountpoint "$state_mount" || return 1
+	fi
 	if [ "$userdata_owner" = state ]; then
 		[ ! -e "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
 	else
@@ -249,7 +260,10 @@ start_state() {
 	verify_root_storage_mounts || return 1
 	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
 		"$expected_userdata_label" || return 1
-	[ ! -e "$state_mount" ] && [ ! -L "$state_mount" ] || return 1
+	if [ -e "$state_mount" ] || [ -L "$state_mount" ]; then
+		[ "$userdata_owner" = overlay ] &&
+			verify_empty_mountpoint "$state_mount" || return 1
+	fi
 	if [ "$userdata_owner" = state ]; then
 		[ ! -e "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
 	else
@@ -258,6 +272,7 @@ start_state() {
 
 	userdata_mounted=0
 	state_mounted=0
+	state_mount_created=0
 	loop_device=
 	cleanup_start() {
 		status=$?
@@ -267,7 +282,11 @@ start_state() {
 		[ "$userdata_mounted" -eq 0 ] || bb umount "$userdata_mount" || status=1
 		[ "$userdata_owner" = overlay ] || relock_storage || status=1
 		bb rm -f "$runtime_next"
-		bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
+		if [ "$userdata_owner" = state ]; then
+			bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
+		elif [ "$state_mount_created" -eq 1 ]; then
+			bb rmdir "$state_mount" 2>/dev/null || true
+		fi
 		exit "$status"
 	}
 	trap cleanup_start EXIT HUP INT TERM
@@ -298,7 +317,12 @@ start_state() {
 		return 1
 	verify_filesystem_identity "$loop_device" "$expected_state_uuid" \
 		"$expected_state_label" || return 1
-	bb mkdir -m 0700 "$state_mount"
+	if [ ! -e "$state_mount" ] && [ ! -L "$state_mount" ]; then
+		bb mkdir -m 0700 "$state_mount"
+		state_mount_created=1
+	else
+		verify_empty_mountpoint "$state_mount" || return 1
+	fi
 	bb mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
 		"$loop_device" "$state_mount"
 	state_mounted=1
@@ -336,17 +360,29 @@ stop_state() {
 	case $recorded_owner in state|overlay) ;; *) return 1 ;; esac
 	case $recorded_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
 	bb sync || status=1
-	bb umount "$state_mount" || status=1
+	if bb mountpoint -q "$state_mount"; then
+		bb umount "$state_mount" || status=1
+	else
+		verify_empty_mountpoint "$state_mount" || status=1
+	fi
 	bb losetup -d "$recorded_loop" || status=1
 	if [ "$recorded_owner" = state ]; then
-		bb umount "$userdata_mount" || status=1
+		if bb mountpoint -q "$userdata_mount"; then
+			bb umount "$userdata_mount" || status=1
+		else
+			verify_empty_mountpoint "$userdata_mount" || status=1
+		fi
 		relock_storage || status=1
 	else
 		verify_write_window || status=1
 	fi
 	[ "$status" -eq 0 ] || return 1
 	bb rm -f "$runtime_record" || return 1
-	bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
+	if [ "$recorded_owner" = state ]; then
+		bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
+	else
+		verify_empty_mountpoint "$state_mount" || return 1
+	fi
 	printf 'rog5-persistent-state: PASS unmounted and relocked\n' \
 		>/dev/kmsg 2>/dev/null || true
 }
