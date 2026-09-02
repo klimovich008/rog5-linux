@@ -118,6 +118,13 @@ load_one() {
   timeout -k 2 20 modprobe -d "$root/module-root" -S "$(uname -r)" "$module" serial_observation_ms=250 || fail "module-$module"
  elif [ "$module" = pci-pwrctrl-pwrseq ]; then
   timeout -k 2 20 modprobe -d "$root/module-root" -S "$(uname -r)" "$module" observation_ms=250 || fail "module-$module"
+ elif [ "$module" = phy-qcom-qmp-pcie ]; then
+  qmp_pcie=$root/module-root/lib/modules/$expected_release/kernel/drivers/phy/qualcomm/phy-qcom-qmp-pcie.ko
+  [ -f "$qmp_pcie" ] && [ ! -L "$qmp_pcie" ] || fail "module-$module-file"
+  [ "$(modinfo -F name "$qmp_pcie")" = phy_qcom_qmp_pcie ] || fail "module-$module-name"
+  [ -z "$(modinfo -F depends "$qmp_pcie")" ] || fail "module-$module-depends"
+  [ "$(modinfo -F vermagic "$qmp_pcie")" = "$expected_release SMP preempt mod_unload aarch64" ] || fail "module-$module-vermagic"
+  timeout -k 2 20 insmod "$qmp_pcie" || fail "module-$module"
  else
   timeout -k 2 20 modprobe -d "$root/module-root" -S "$(uname -r)" "$module" || fail "module-$module"
  fi
