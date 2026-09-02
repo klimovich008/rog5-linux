@@ -207,6 +207,7 @@ class AutomaticWifi(unittest.TestCase):
                     b'rog5-native-wifi-boot-v1\n', 0o100444)
         archive.add(members, 'rog5-native-wifi/runtime', b'old-runtime', 0o100755)
         archive.add(members, 'rog5-native-wifi/radio', b'old-radio', 0o100755)
+        archive.add(members, 'rog5-native-wifi/probe-native-wifi.sh', b'old-probe', 0o100755)
         archive.add(members, 'rog5-native-wifi/boot-files.sha256',
                     b'old-checks\n', 0o100444)
         archive.add(
@@ -258,6 +259,7 @@ class AutomaticWifi(unittest.TestCase):
         self.assertEqual(successor_result['added_members'], 0)
         self.assertEqual(successor_result['changed_existing_members'], [
             'rog5-native-wifi/boot-files.sha256',
+            'rog5-native-wifi/probe-native-wifi.sh',
             'rog5-native-wifi/radio',
             'rog5-native-wifi/trial-descriptor',
         ])
@@ -395,6 +397,20 @@ class AutomaticWifi(unittest.TestCase):
             'fail \'overlay write scope\'',
         ):
             self.assertIn(contract, script)
+        probe = (R/'scripts/device/probe-native-wifi.sh').read_text()
+        probe_fixture = (
+            R/'tests/fixtures/persistent-root/overlay-v3-probe-failure.log'
+        ).read_text()
+        self.assertIn('rog5-p2-attest: PASS', probe_fixture)
+        self.assertIn('WIFI_PROBE_ABORT writable-UFS', probe_fixture)
+        for contract in (
+            'overlay_record=/run/rog5-persistent-overlay.runtime',
+            'resolve_storage_mode() {',
+            'format=rog5-persistent-root-overlay-runtime-v1',
+            '[ "$writable" = 2 ]',
+            "fail 'overlay-write-scope'",
+        ):
+            self.assertIn(contract, probe)
         timing = (R/'initramfs/native-wifi/timing').read_text()
         result = subprocess.run(['sh', '-c', 'set -eu\n'+timing+
             '\n[ "$outer_seconds" -gt "$((radio_seconds + cleanup_seconds))" ]\n'

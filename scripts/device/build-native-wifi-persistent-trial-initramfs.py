@@ -99,9 +99,10 @@ def compose_successor(base, expected_base, descriptor, helper):
     helper_name = prefix+'trial-state'
     checks_name = prefix+'boot-files.sha256'
     radio_name = prefix+'radio'
+    probe_name = prefix+'probe-native-wifi.sh'
     for required in (prefix+'automatic', prefix+'runtime', descriptor_name,
                      helper_name, prefix+'healthy',
-                     prefix+'units/rog5-wifi-healthy.service', radio_name,
+                     prefix+'units/rog5-wifi-healthy.service', radio_name, probe_name,
                      checks_name):
         assert required in members
     previous = ARCHIVE.parse_trial_descriptor(members[descriptor_name][1])
@@ -112,13 +113,15 @@ def compose_successor(base, expected_base, descriptor, helper):
     ARCHIVE.replace(members, descriptor_name, descriptor)
     ARCHIVE.replace(members, radio_name,
                     (REPO/'initramfs/native-wifi/radio').read_bytes())
+    ARCHIVE.replace(members, probe_name,
+                    (REPO/'scripts/device/probe-native-wifi.sh').read_bytes())
     checks = ''.join(
         f'{sha(data)}  {name[len(prefix):]}\n'
         for name, (fields, data) in sorted(members.items())
         if name.startswith(prefix) and name != checks_name
         and stat.S_ISREG(fields[1]))
     ARCHIVE.replace(members, checks_name, checks.encode())
-    changed = {descriptor_name, radio_name, checks_name}
+    changed = {descriptor_name, radio_name, probe_name, checks_name}
     for name, value in original.items():
         if name not in changed:
             assert members[name] == value

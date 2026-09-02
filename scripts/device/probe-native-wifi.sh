@@ -4,6 +4,7 @@ PATH=/usr/sbin:/usr/bin:/sbin:/bin
 LC_ALL=C
 export PATH LC_ALL
 root=/run/rog5-native-wifi
+overlay_record=/run/rog5-persistent-overlay.runtime
 radio_manifest=${1:?expected radio-files.sha256 digest required}
 expected_bundle=${2:?verified target bundle required}
 modules_manifest=${3:?verified module archive digest required}
@@ -15,14 +16,49 @@ read_optional() {
   cat "$1" || printf 'OBS error %s\n' "$1"
  else printf 'OBS absent %s\n' "$1"; fi
 }
+resolve_storage_mode() {
+ overlay_disk=
+ overlay_userdata=
+ if [ ! -e "$overlay_record" ] && [ ! -L "$overlay_record" ]; then return 0; fi
+ [ -f "$overlay_record" ] && [ ! -L "$overlay_record" ] &&
+  [ "$(stat -c '%u:%g:%a:%h' "$overlay_record")" = 0:0:400:1 ] || fail 'overlay-record'
+ [ "$(grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' "$overlay_record")" = 1 ] || fail 'overlay-record-format'
+ overlay_disk=$(sed -n 's/^disk=//p' "$overlay_record")
+ overlay_userdata=$(sed -n 's/^userdata=//p' "$overlay_record")
+ overlay_image=$(sed -n 's/^image=//p' "$overlay_record")
+ case $overlay_userdata in /dev/sd[a-z]23) ;; *) fail 'overlay-userdata' ;; esac
+ [ "$overlay_disk" = "${overlay_userdata%23}" ] &&
+  [ "$overlay_image" = rog5/root/root-overlay-v1.ext4 ] &&
+  [ -b "$overlay_disk" ] && [ -b "$overlay_userdata" ] &&
+  [ -b "${overlay_disk}24" ] || fail 'overlay-relationship'
+}
 guard() {
  [ ! -e /run/rog5-persistent-state.runtime ] || fail 'persistent-state-active'
+ resolve_storage_mode
  count=0
+ writable=0
  for node in /sys/class/block/sd*; do
-  [ "$(cat "$node/ro")" = 1 ] || fail 'writable-UFS'
+  device=/dev/${node##*/}
+  expected=1
+  case $device in
+   "$overlay_disk"|"$overlay_userdata")
+    [ -n "$overlay_disk" ] || fail 'writable-UFS'
+    expected=0
+    writable=$((writable + 1))
+    ;;
+  esac
+  [ "$(cat "$node/ro")" = "$expected" ] || fail 'writable-UFS'
   count=$((count + 1))
  done
  [ "$count" = 117 ] || fail 'UFS-inventory'
+ if [ -n "$overlay_disk" ]; then
+  [ "$writable" = 2 ] && [ "$(cat "/sys/class/block/${overlay_disk##*/}/ro")" = 0 ] &&
+   [ "$(cat "/sys/class/block/${overlay_userdata##*/}/ro")" = 0 ] &&
+   [ "$(cat "/sys/class/block/${overlay_disk##*/}/${overlay_disk##*/}24/ro")" = 1 ] ||
+   fail 'overlay-write-scope'
+ else
+  [ "$writable" = 0 ] || fail 'writable-UFS'
+ fi
  [ "$(cat /sys/class/power_supply/qcom-battmgr-bat/health)" = Good ] || fail 'battery-health'
  temperature=$(cat /sys/class/power_supply/qcom-battmgr-bat/temp)
  [ "$temperature" -ge 0 ] && [ "$temperature" -lt 400 ] || fail 'battery-temperature'
