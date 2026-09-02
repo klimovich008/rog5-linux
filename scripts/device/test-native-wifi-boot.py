@@ -186,7 +186,7 @@ class AutomaticWifi(unittest.TestCase):
         stop = healthy.index(
             'systemctl --job-mode=ignore-dependencies stop "$rollback_timer"'
         )
-        record = healthy.index('format=rog5-native-wifi-healthy-v1')
+        record = healthy.index("printf 'format=rog5-native-wifi-healthy-v1")
         self.assertLess(commit, stop)
         self.assertLess(stop, record)
         self.assertIn('rog5-wifi-probe-rollback.timer', healthy)

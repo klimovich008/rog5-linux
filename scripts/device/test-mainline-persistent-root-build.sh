@@ -77,6 +77,7 @@ for symbol in \
 	CONFIG_EXT4_FS_POSIX_ACL=y \
 	CONFIG_EXT4_FS_SECURITY=y \
 	CONFIG_OVERLAY_FS=y \
+	CONFIG_SECURITY_LANDLOCK=y \
 	CONFIG_TMPFS=y \
 	CONFIG_TMPFS_XATTR=y; do
 	grep -qx "$symbol" "$fragment"
@@ -112,6 +113,7 @@ grep -Fq 'meta_hash "$output_dir/.config" /.config' "$builder"
 grep -Fq 'meta_hash "$output_dir/arch/arm64/boot/Image" /arch/arm64/boot/Image' \
 	"$builder"
 grep -Fq 'CONFIG_OVERLAY_FS=y' "$verifier"
+grep -Fq 'persistent-root kernel lacks the package download sandbox' "$builder"
 grep -Fq 'verify-mainline-discovery-build.sh' "$verifier"
 grep -Fq 'rog5-ufs-deferred-probe.fragment' "$verifier"
 grep -Fq 'CONFIG_SCSI_UFSHCD=m' "$verifier"

@@ -54,31 +54,67 @@ class PersistentWifiHealthy(unittest.TestCase):
         (blocks/'sda/sda24').mkdir()
         (blocks/'sda/sda24/ro').write_text('1\n')
         helper = runtime/'trial-state'
+        already_healthy = bool(
+            mutation and mutation.startswith('already-healthy')
+        )
         helper.write_text(
             '#!/bin/sh\n[ "$1" = healthy ] && [ "$2" = "' + TRIAL +
             '" ] && [ "$3" = "' + PRIMARY + '" ] || exit 2\n'
-            + ('exit 1\n' if mutation == 'helper-fail' else 'echo healthy\n'))
+            + ('exit 1\n' if mutation == 'helper-fail' else
+               'echo already-healthy\n' if already_healthy else
+               'echo healthy\n'))
         helper.chmod(0o700)
+        record = runtime/'healthy.record'
+        if mutation in (
+            'already-healthy-missing-timers',
+            'already-healthy-bad-record',
+        ):
+            record.write_text(
+                'format=rog5-native-wifi-healthy-v1\n'
+                'boot_id=00000000-0000-4000-8000-000000000001\n'
+                f'trial_id={TRIAL}\n'
+                + ('result=FAIL\n' if mutation == 'already-healthy-bad-record'
+                   else 'result=PASS\n')
+            )
+            record.chmod(0o444)
         if mutation == 'usb-offline':
             (usb/'online').write_text('0\n')
         elif mutation == 'wrong-write-scope':
             (blocks/'sda42/ro').write_text('0\n')
         source = SOURCE.replace('/run/rog5-native-wifi', str(runtime))
-        source = source.replace('/proc/', str(proc) + '/')
-        source = source.replace('/sys/', str(root/'sys') + '/')
+        source = source.replace('/proc/', '@@ROG5_PROC_SLASH@@')
+        source = source.replace('/sys/', '@@ROG5_SYS_SLASH@@')
+        source = source.replace('@@ROG5_PROC_SLASH@@', str(proc) + '/')
+        source = source.replace('@@ROG5_SYS_SLASH@@', str(root/'sys') + '/')
         harness = root/'harness.sh'
         harness.write_text(
             '#!/bin/sh\nset -eu\nselector=' + str(descriptor) + '\n'
+            'record_fixture=' + str(record) + '\n'
             'id() { echo 0; }\n'
-            'stat() { if [ "$3" = "$selector" ]; then echo 0:0:444:1; '
+            'stat() { if [ "$3" = "$selector" ] || '
+            '[ "$3" = "$record_fixture" ]; then echo 0:0:444:1; '
             'else command stat "$@"; fi; }\n'
-            'probe_timer_active=1\n'
-            'boot_timer_active=1\n'
+            'probe_timer_active=' +
+            ('missing\n' if mutation in (
+                'already-healthy-missing-timers',
+                'already-healthy-missing-timers-no-record',
+                'healthy-missing-timers')
+             else '1\n') +
+            'boot_timer_active=' +
+            ('missing\n' if mutation in (
+                'already-healthy-missing-timers',
+                'already-healthy-missing-timers-no-record',
+                'healthy-missing-timers')
+             else '1\n') +
             'systemctl() {\n'
             ' if [ "$1:$2" = --job-mode=ignore-dependencies:stop ]; then '
             '  case "$3" in\n'
-            '   rog5-wifi-probe-rollback.timer) probe_timer_active=0 ;;\n'
-            '   rog5-wifi-boot-rollback.timer) boot_timer_active=0 ;;\n'
+            '   rog5-wifi-probe-rollback.timer) '
+            '    [ "$probe_timer_active" != missing ] || return 5; '
+            '    probe_timer_active=0 ;;\n'
+            '   rog5-wifi-boot-rollback.timer) '
+            '    [ "$boot_timer_active" != missing ] || return 5; '
+            '    boot_timer_active=0 ;;\n'
             '   *) return 2 ;;\n'
             '  esac\n'
             '  return 0\n'
@@ -123,6 +159,53 @@ class PersistentWifiHealthy(unittest.TestCase):
                 self.assertFalse(
                     (root/'run/rog5-native-wifi/healthy.record').exists()
                 )
+
+    def test_already_healthy_rerun_accepts_absent_timers_and_exact_record(self):
+        root, harness = self.fixture('already-healthy-missing-timers')
+        result = subprocess.run(['sh', str(harness)], text=True,
+                                capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('PASS native Wi-Fi persistent trial healthy', result.stdout)
+        self.assertTrue(
+            (root/'run/rog5-native-wifi/healthy.record')
+            .read_text().endswith('result=PASS\n')
+        )
+
+    def test_already_healthy_rerun_rejects_changed_record(self):
+        _, harness = self.fixture('already-healthy-bad-record')
+        result = subprocess.run(['sh', str(harness)], text=True,
+                                capture_output=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_already_healthy_fresh_boot_creates_record_after_timer_stop(self):
+        root, harness = self.fixture('already-healthy-fresh-boot')
+        result = subprocess.run(['sh', str(harness)], text=True,
+                                capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(
+            (root/'run/rog5-native-wifi/healthy.record')
+            .read_text().endswith('result=PASS\n')
+        )
+
+    def test_already_healthy_without_record_still_requires_timers(self):
+        root, harness = self.fixture(
+            'already-healthy-missing-timers-no-record'
+        )
+        result = subprocess.run(['sh', str(harness)], text=True,
+                                capture_output=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(
+            (root/'run/rog5-native-wifi/healthy.record').exists()
+        )
+
+    def test_first_commit_still_rejects_absent_timer(self):
+        root, harness = self.fixture('healthy-missing-timers')
+        result = subprocess.run(['sh', str(harness)], text=True,
+                                capture_output=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(
+            (root/'run/rog5-native-wifi/healthy.record').exists()
+        )
 
 
 if __name__ == '__main__':
