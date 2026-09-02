@@ -125,6 +125,12 @@ awk '
 stat() {
 	if [ "$1:$2:$3" = "-c:%u:%g:%a:%h:$work/state/work/work" ]; then
 		printf '0:0:%s:2\n' "$(command stat -c %a "$3")"
+	elif [ "$1:$2" = "-c:%u:%g:%a" ]; then
+		case $3 in
+			"$work/tree/upper"|"$work/tree/work")
+				printf '0:0:%s\n' "$(command stat -c %a "$3")" ;;
+			*) command stat "$@" ;;
+		esac
 	else
 		command stat "$@"
 	fi
@@ -144,6 +150,27 @@ chmod 0700 "$work/state/work/work"
 rmdir "$work/state/work/work"
 touch "$work/state/work/hostile"
 ! verify_overlay_workdir_pre_mount "$work/state"
+
+awk '
+	/^verify_persistent_overlay_tree\(\) \{/ { copy=1 }
+	copy { print }
+	copy && /^}/ { exit }
+' "$init" >"$work/tree-function.sh"
+# shellcheck disable=SC1090
+. "$work/tree-function.sh"
+expected_overlay_manifest_bytes=129
+expected_overlay_manifest_sha256=e894abd56cccdfce9ce3292438df022aa9672a8655cac6493b94cfd19d6bad5f
+verify_exact_regular() { return 0; }
+mkdir -p "$work/tree/upper" "$work/tree/work"
+chmod 0755 "$work/tree/upper"
+chmod 0700 "$work/tree/work"
+verify_persistent_overlay_tree "$work/tree"
+chmod 0555 "$work/tree/upper"
+verify_persistent_overlay_tree "$work/tree"
+chmod 0500 "$work/tree/upper"
+! verify_persistent_overlay_tree "$work/tree"
+chmod 0777 "$work/tree/upper"
+! verify_persistent_overlay_tree "$work/tree"
 
 awk '
 	/^verify_ufs_health\(\) \{/ { copy=1 }

@@ -1438,11 +1438,13 @@ verify_persistent_overlay_tree() {
 		"$expected_overlay_manifest_bytes" \
 		"$expected_overlay_manifest_sha256" || return 1
 	for directory in upper work; do
-		case $directory in upper) expected_mode=755 ;; work) expected_mode=700 ;; esac
-		[ -d "$root/$directory" ] && [ ! -L "$root/$directory" ] &&
-			[ "$(stat -c '%u:%g:%a' "$root/$directory")" = \
-				"0:0:$expected_mode" ] ||
+		[ -d "$root/$directory" ] && [ ! -L "$root/$directory" ] ||
 			return 1
+		metadata=$(stat -c '%u:%g:%a' "$root/$directory") || return 1
+		case $directory:$metadata in
+			upper:0:0:755|upper:0:0:555|work:0:0:700) ;;
+			*) return 1 ;;
+		esac
 	done
 	return 0
 }

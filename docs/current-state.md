@@ -26,12 +26,11 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Persistent Linux baseline
 
-- Current candidate: `persistent-native-root-wifi-overlay-v8`, manifest
+- Current live fallback: V11 boot `86be83ad-92fd-467c-a879-46bbb875b871`,
+  kernel `7.1.4-g359318de534f`. Systemd, NCM, Tailscale, strict key-only SSH and
+  persistent service state are healthy; native Wi-Fi is intentionally absent.
+- Accepted primary remains `persistent-native-root-wifi-overlay-v8`, manifest
   `3d4d2bfc5cfc54c44ff434503b5fbd8e6aced4f3f94c482b41d3d158cdf03133`.
-- Current boot: `5cec9d09-2491-4ca7-a72e-3c276727667b`, kernel
-  `7.1.4-g1eea8970e87f`.
-- Systemd is `running` with zero failed units. Native Wi-Fi, NCM, Tailscale,
-  strict key-only SSH, persistent service state and D-Bus are active.
 - Stable Ed25519 host fingerprint:
   `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
 - V8 health is committed and both 600/900-second rollback timers are inactive.
@@ -44,6 +43,10 @@ remain deferred; the optional power-key text status screen is frozen.
 - The live kernel lacks Landlock, so pacman temporarily disables only its
   filesystem sandbox while retaining the `alpm` user and seccomp sandbox.
   Future persistent-root builds now require `CONFIG_SECURITY_LANDLOCK=y`.
+- V8's repaired package overlay is intact on p23, but its immutable initramfs
+  rejects OpenSSH 10.5 mixed-case `sshd -T` option names. The effective policy
+  is still key-only. Source fixes pass; V9 is not yet built. Evidence:
+  `test-results/2026-09-02-persistent-overlay-update-reboot-debug.md`.
 
 ## Persistent root storage
 
@@ -70,8 +73,8 @@ remain deferred; the optional power-key text status screen is frozen.
 - Side-port USB provides data plus 5 V input while Linux runs.
 - Current battery evidence is Full/Good, approximately 8.56 V and 29.9 C,
   with USB online and safe thermal readings.
-- Native Wi-Fi has carrier, DHCP/default route and strict SSH; Tailscale keeps
-  `100.68.169.83`.
+- Accepted V8 native Wi-Fi has proven carrier, DHCP/default route and strict
+  SSH; current V11 intentionally uses NCM plus Tailscale while V9 is prepared.
 - Historical long-run evidence remains in
   `test-results/2026-08-29-persistent-ncm-two-hour-pass.md`,
   `test-results/2026-08-30-persistent-tailscale-v11-live.md`, and
@@ -79,17 +82,11 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Remaining critical issue
 
-Recovery's selector-v2 p23 admission is intermittently unavailable before the
-trial helper runs. It safely chooses V11 and creates no target trial record; a
-bounded pre-COMMIT retry then selects the accepted primary. Post-COMMIT behavior
-remains one-use. Do not promote to direct selector-v1 until an automatic rescue
-design is retained; an experimental direct selector was archived and V11 was
-restored before V8 admission.
-
-The bounded pre-COMMIT recovery retry is implemented and CI-clean but still
-needs one RAM-only wrapper boot. The package update and post-update soak pass;
-next validate that wrapper and the updated userspace across a clean reboot,
-then deploy the first server workload.
+The bounded pre-COMMIT recovery retry RAM-booted and selected V8 before the
+target's now-proven P2 parser fallback; both wrapper identities are consumed.
+The installed old recovery still intermittently selects V11. Next compose V9
+from unchanged V8 kernel/DTB plus the upper-mode, effective-SSH and health-rerun
+initramfs fixes, sign/stage it with exact V11 fallback, and validate one boot.
 
 ## Frozen screen checkpoint
 

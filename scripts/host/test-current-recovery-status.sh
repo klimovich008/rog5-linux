@@ -15,9 +15,9 @@ done
 
 for contract in \
 	'M5AIKN00F0353YH' \
-	'Current boot: V8' \
+	'Current boot: healthy V11' \
 	'1-1.2' \
-	'intermittent pre-COMMIT p23 admission' \
+	'initramfs-only V9' \
 	'p24 read-only' \
 	'frozen power-key status-screen checkpoint' \
 	'Do not flash, alter slot A, modify GPT'
@@ -31,11 +31,12 @@ done
 for contract in \
 	'M5AIKN00F0353YH' \
 	'33.0210.0210.200' \
-	'Current candidate: `persistent-native-root-wifi-overlay-v8`' \
+	'Accepted primary remains `persistent-native-root-wifi-overlay-v8`' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
 	'test-results/2026-09-02-persistent-root-overlay-v8-live.md' \
 	'test-results/2026-09-02-persistent-wifi-v3-soak.md' \
+	'test-results/2026-09-02-persistent-overlay-update-reboot-debug.md' \
 	'Frozen screen checkpoint' \
 	'test-results/2026-09-01-display60-v10-pre-switch-pass.md' \
 	'Do not rebuild or reflash `super`' \
@@ -71,4 +72,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, persistent-overlay V8, V11 fallback, and the frozen screen boundary'
+echo 'PASS compact current status records WW33 rescue, repaired V8, current V11, next V9, and the frozen screen boundary'
