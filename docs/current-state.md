@@ -26,14 +26,15 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Persistent Linux baseline
 
-- Current live primary: V10 boot `43c91566-b125-4da9-a933-af8f3601ea2a`,
+- Current live primary: V10 boot `292e4435-cfa0-4db5-94a0-6c1015e938f2`,
   kernel `7.1.4-g1eea8970e87f`, bundle
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…e3e8f5`.
   Systemd, native Wi-Fi, NCM, Tailscale, strict key-only SSH and persistent
   service state are healthy.
 - V10 first boot `2b9c86b0…` passed with one exact allowed overlay journal
-  replay; a later V10 boot passed with clean `0/0` journal evidence. Both kept
-  the exact 163-package inventory `032f6e00…47de1a` and write scope limited to
+  replay; later V10 boots, including one through the installed `boot_b`
+  recovery, pass with clean `0/0` journal evidence. They keep the exact
+  163-package inventory `032f6e00…47de1a` and write scope limited to
   `sda,sda23`.
 - Slot B now contains bounded-retry recovery `340f6392…`; the prior canonical
   recovery `f2a73030…` remains an exact host restore artifact. Slot A is
@@ -69,6 +70,10 @@ remain deferred; the optional power-key text status screen is frozen.
 - Normal service exposes exactly `sda` and `sda23` writable across 117 UFS
   nodes. P24 and protected firmware/identity/calibration/modem partitions stay
   read-only.
+- P23 no longer uses ext4 `orphan_file`. That optional feature left
+  `orphan_present` after V10 shutdowns, which ASUS 5.4 could not replay. A
+  frozen sparse project backup, restored verification tree, pre/post metadata
+  snapshots, mandatory fsck and complete 16-file post-change manifest passed.
 - V8 accepted one exact `EXT4-fs (loopN): recovery complete` for the sealed
   overlay loop and still rejected all other recovery/error shapes. Its first
   pass recorded `journal_recovery_events=1` and
@@ -90,17 +95,11 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Remaining critical issue
 
-V10 is accepted, but one intervening recovery cycle selected V11 even though
-the V10 selector and healthy trial record were exact. The same exact AArch64
-helper returns V10 against that record through a read-only live check, and the
-next cycle selected and accepted V10. The current S65 selection detail is too
-short-lived for the 250 ms recovery reporter, so the transient fallback remains
-unclassified. Repository source now retains S65 for 300 ms, has a fail-first
-ordering/timing regression, and passes focused, active-tier and full local CI;
-the recovery currently installed in `boot_b` does not yet contain that
-diagnostic correction. Validate it RAM-only and resolve any proven preflight
-defect before claiming unattended reboot reliability; do not issue a new kernel
-candidate for this recovery-only problem.
+The recovery-selection blocker is resolved. Instrumented recovery proved the
+old failure was `mount-recovery-orphan-incompat`; after removing only p23's
+optional `orphan_file`, first-attempt, old-shutdown stress and installed
+`boot_b` repeat paths all select V10. The next server-MVP checkpoint is the
+first persistent workload plus one unattended reboot/health proof.
 
 ## Frozen screen checkpoint
 

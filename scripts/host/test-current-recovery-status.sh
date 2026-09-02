@@ -17,7 +17,7 @@ for contract in \
 	'M5AIKN00F0353YH' \
 	'Current boot: accepted V10' \
 	'1-1.2' \
-	'Why did one healthy V10 selector cycle choose V11' \
+	'first persistent headless workload' \
 	'p24 read-only' \
 	'frozen power-key status-screen checkpoint' \
 	'Do not flash, alter slot A, modify GPT'
@@ -33,6 +33,7 @@ for contract in \
 	'33.0210.0210.200' \
 	'Current live primary: V10 boot' \
 	'V10 first boot' \
+	'P23 no longer uses ext4 `orphan_file`' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
 	'test-results/2026-09-02-persistent-root-overlay-v8-live.md' \
@@ -73,4 +74,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, accepted V10, transient V11 fallback, and the frozen screen boundary'
+echo 'PASS compact current status records WW33 rescue, accepted V10 unattended recovery, and the frozen screen boundary'
