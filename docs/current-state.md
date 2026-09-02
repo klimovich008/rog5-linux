@@ -26,7 +26,7 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Persistent Linux baseline
 
-- Current live primary: V10 boot `292e4435-cfa0-4db5-94a0-6c1015e938f2`,
+- Current live primary: V10 boot `389acb49-2cc0-46da-9997-e67e548a77ee`,
   kernel `7.1.4-g1eea8970e87f`, bundle
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…e3e8f5`.
   Systemd, native Wi-Fi, NCM, Tailscale, strict key-only SSH and persistent
@@ -48,6 +48,10 @@ remain deferred; the optional power-key text status screen is frozen.
   `032f6e00…47de1a`, systemd 261.2, OpenSSH 10.5p1, Python 3.14.7, Git 2.55.0
   and tmux 3.7c. See
   `test-results/2026-09-02-persistent-overlay-v8-package-update.md`.
+- The first persistent workload, sandboxed `rog5-healthd`, is enabled and
+  survived installed-`boot_b` recovery. Its fixed `/healthz` response passes
+  over NCM and native Wi-Fi with no credentials or writable service state. See
+  `test-results/2026-09-02-healthd-persistent-live.md`.
 - The live kernel lacks Landlock, so pacman temporarily disables only its
   filesystem sandbox while retaining the `alpm` user and seccomp sandbox.
   Future persistent-root builds now require `CONFIG_SECURITY_LANDLOCK=y`.
@@ -74,6 +78,11 @@ remain deferred; the optional power-key text status screen is frozen.
   `orphan_present` after V10 shutdowns, which ASUS 5.4 could not replay. A
   frozen sparse project backup, restored verification tree, pre/post metadata
   snapshots, mandatory fsck and complete 16-file post-change manifest passed.
+- One later PMIC IRQ 118 storm caused transient UFS reads to fail and remounted
+  p23/overlay `emergency_ro`. V11 read-only recovery proved p23 clean, repaired
+  only the overlay journal, and read the failing physical block consistently in
+  20/20 direct probes. A 2,700-second guarded V10 soak reached uptime 3,002.80
+  with zero IRQ, UFS or emergency-RO events; no unproven kernel patch was made.
 - V8 accepted one exact `EXT4-fs (loopN): recovery complete` for the sealed
   overlay loop and still rejected all other recovery/error shapes. Its first
   pass recorded `journal_recovery_events=1` and
@@ -95,11 +104,10 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Remaining critical issue
 
-The recovery-selection blocker is resolved. Instrumented recovery proved the
-old failure was `mount-recovery-orphan-incompat`; after removing only p23's
-optional `orphan_file`, first-attempt, old-shutdown stress and installed
-`boot_b` repeat paths all select V10. The next server-MVP checkpoint is the
-first persistent workload plus one unattended reboot/health proof.
+The recovery-selection blocker and first persistent workload checkpoint are
+resolved. The next server phase is a credential-isolated automation runtime and
+operator-selected workload; GPU, desktop, display, audio and sensor expansion
+remain deferred.
 
 ## Frozen screen checkpoint
 

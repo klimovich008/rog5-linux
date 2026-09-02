@@ -17,7 +17,7 @@ for contract in \
 	'M5AIKN00F0353YH' \
 	'Current boot: accepted V10' \
 	'1-1.2' \
-	'first persistent headless workload' \
+	'credential-isolated automation runtime' \
 	'p24 read-only' \
 	'frozen power-key status-screen checkpoint' \
 	'Do not flash, alter slot A, modify GPT'
@@ -34,6 +34,7 @@ for contract in \
 	'Current live primary: V10 boot' \
 	'V10 first boot' \
 	'P23 no longer uses ext4 `orphan_file`' \
+	'first persistent workload, sandboxed `rog5-healthd`' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
 	'test-results/2026-09-02-persistent-root-overlay-v8-live.md' \
@@ -74,4 +75,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, accepted V10 unattended recovery, and the frozen screen boundary'
+echo 'PASS compact current status records WW33 rescue, accepted V10 recovery, persistent healthd, and the frozen screen boundary'
