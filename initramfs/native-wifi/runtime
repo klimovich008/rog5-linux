@@ -58,6 +58,10 @@ install_status_screen() {
 			[ "$(stat -c '%u:%g:%a:%h' "$root/units/$path")" = 0:0:644:1 ] ||
 			return 1
 	done
+	# Load the reviewed module in this trusted initramfs runtime.  The
+	# long-running button service deliberately has no CAP_SYS_MODULE; its
+	# ExecStartPre repeats the same helper only as an idempotent identity check.
+	"$root/load-pwrkey" || return 1
 	mkdir -p /newroot/usr/local/bin /newroot/usr/local/libexec \
 		"$units/multi-user.target.wants" || return 1
 	install_status_file "$root/screen-toggle.sh" \
