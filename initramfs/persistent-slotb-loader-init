@@ -309,49 +309,91 @@ verify_trial_write_window() {
 
 select_trial_bundle() {
 	selected=$fallback_bundle
-	trial_mounted=0
-	trial_ready=1
-	trial_cleanup=1
-	relock_all_storage || trial_ready=0
+	trial_ready=0
+	trial_attempt=0
+	trial_failure=none
+	while [ "$trial_attempt" -lt 3 ]; do
+		trial_attempt=$((trial_attempt + 1))
+		trial_mounted=0
+		trial_attempt_ready=1
+		trial_cleanup=1
+		trial_failure=relock
+		relock_all_storage || trial_attempt_ready=0
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=disk-rw
+			blockdev --setrw "$disk" || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=userdata-rw
+			blockdev --setrw "$userdata" || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=write-window
+			verify_trial_write_window || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=mkdir
+			mkdir -m 0700 "$userdata_mount" || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=mount
+			if mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+				"$userdata" "$userdata_mount"; then
+				trial_mounted=1
+			else
+				trial_attempt_ready=0
+			fi
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=identity
+			identity=$(blkid "$userdata") || trial_attempt_ready=0
+			printf '%s\n' "$identity" |
+				grep -Fq ' UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5"' ||
+				trial_attempt_ready=0
+			printf '%s\n' "$identity" |
+				grep -Fq ' LABEL="rog5-linux"' || trial_attempt_ready=0
+			printf '%s\n' "$identity" | grep -Fq ' TYPE="ext4"' ||
+				trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_ready=1
+			trial_failure=none
+			break
+		fi
+		[ "$trial_mounted" -eq 0 ] || sync || trial_cleanup=0
+		[ "$trial_mounted" -eq 0 ] ||
+			umount "$userdata_mount" || trial_cleanup=0
+		relock_all_storage || trial_cleanup=0
+		if [ -d "$userdata_mount" ]; then
+			rmdir "$userdata_mount" 2>/dev/null || trial_cleanup=0
+		fi
+		[ "$trial_cleanup" -eq 1 ] || return 1
+		log "trial preflight retry attempt=$trial_attempt reason=$trial_failure"
+		[ "$trial_attempt" -eq 3 ] || sleep 0.25
+	done
 	if [ "$trial_ready" -eq 1 ]; then
-		blockdev --setrw "$disk" || trial_ready=0
-		blockdev --setrw "$userdata" || trial_ready=0
-	fi
-	[ "$trial_ready" -eq 0 ] || verify_trial_write_window || trial_ready=0
-	if [ "$trial_ready" -eq 1 ]; then
-		mkdir -m 0700 "$userdata_mount" || trial_ready=0
-	fi
-	if [ "$trial_ready" -eq 1 ] && mount -t ext4 \
-		-o rw,nodev,nosuid,noexec,noatime "$userdata" "$userdata_mount"; then
-		trial_mounted=1
-	else
-		trial_ready=0
-	fi
-	if [ "$trial_ready" -eq 1 ]; then
-		identity=$(blkid "$userdata") || trial_ready=0
-		printf '%s\n' "$identity" |
-			grep -Fq ' UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5"' ||
-			trial_ready=0
-		printf '%s\n' "$identity" |
-			grep -Fq ' LABEL="rog5-linux"' || trial_ready=0
-		printf '%s\n' "$identity" | grep -Fq ' TYPE="ext4"' || trial_ready=0
-	fi
-	if [ "$trial_ready" -eq 1 ]; then
+		# Never retry after this exact helper may publish or observe state.
 		decision=$("$trial_helper" decide "$trial_id" "$primary_bundle" \
 			"$primary_manifest_hash" "$fallback_bundle" \
 			"$fallback_manifest_hash") || decision=$fallback_bundle
 		case $decision in
-		"$primary_bundle"|"$fallback_bundle") selected=$decision ;;
-		*) selected=$fallback_bundle ;;
+		"$primary_bundle") selected=$decision; trial_result=primary ;;
+		"$fallback_bundle") selected=$decision; trial_result=fallback-helper ;;
+		*) selected=$fallback_bundle; trial_result=fallback-invalid ;;
 		esac
+	else
+		trial_result=fallback-prep-$trial_failure
 	fi
-	[ "$trial_mounted" -eq 0 ] || sync || trial_cleanup=0
-	[ "$trial_mounted" -eq 0 ] || umount "$userdata_mount" || trial_cleanup=0
+	trial_cleanup=1
+	[ "${trial_mounted:-0}" -eq 0 ] || sync || trial_cleanup=0
+	[ "${trial_mounted:-0}" -eq 0 ] ||
+		umount "$userdata_mount" || trial_cleanup=0
 	relock_all_storage || trial_cleanup=0
 	if [ -d "$userdata_mount" ]; then
 		rmdir "$userdata_mount" 2>/dev/null || trial_cleanup=0
 	fi
 	[ "$trial_cleanup" -eq 1 ] || return 1
+	trial_selection_detail=trial-${trial_result}-a${trial_attempt}
 	case $selected in
 	"$primary_bundle") bundle=$primary_bundle; manifest_hash=$primary_manifest_hash ;;
 	"$fallback_bundle") bundle=$fallback_bundle; manifest_hash=$fallback_manifest_hash ;;
@@ -436,7 +478,7 @@ format=rog5-slotb-selector-v2)
 	"$fallback_bundle") cp "$plan.fallback" "$plan" ;;
 	*) fail trial_decision ;;
 	esac
-	set_stage S65 PASS trial_selected
+	set_stage S65 PASS "$trial_selection_detail"
 	;;
 *) fail selector_format ;;
 esac
