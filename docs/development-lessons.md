@@ -100,6 +100,10 @@ Observed pattern:
 - The host watchdog fixture depended on procfs `children`, but the exact ASUS
   wrapper had `CONFIG_PROC_CHILDREN` disabled.
 - Tools such as `/usr/bin/time` and command options such as `cmp -r` were assumed to exist on the build host.
+- BusyBox `modinfo` required `/lib/modules/$(uname -r)/modules.dep` even for an
+  explicit `.ko` pathname. QEMU user emulation passed only because it could see
+  the host's module index; the sealed phone initramfs could not. Test exact
+  applets with the target filesystem namespace, not only the target binary.
 - A reduced module-build kit kept headers and scripts but omitted
   `tools/bpf/resolve_btfids/resolve_btfids`; compilation succeeded and final BTF
   processing failed. Validate the finalizer before compiling, and retain it

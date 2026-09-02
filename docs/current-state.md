@@ -26,7 +26,7 @@ remain deferred. The minimal text status screen is in final button validation.
 
 ## Persistent Linux baseline
 
-- Current live primary: V10 boot `9a4dce86-229f-4193-a216-aedb06dbd5ff`,
+- Current live primary: V10 boot `d1668631-bd7d-4cd7-90ca-f48f19590d4b`,
   kernel `7.1.4-g1eea8970e87f`, bundle
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…e3e8f5`.
   Systemd, native Wi-Fi, NCM, Tailscale, strict key-only SSH and persistent
@@ -114,12 +114,17 @@ expansion remain deferred.
 
 ## Initial status screen checkpoint
 
-Display V9 passed persistent systemd, Wi-Fi, Tailscale, healthd, DRM, fb0,
-backlight and text rendering with software on/off control. The status installer,
-pre-P2 blanking, QMP PCIe module loading and WCN6855 hw1.1 module closure are
-fixed. V10 created one `pmic_pwrkey` input after loading the exact display-ABI
-`qcom-pon.ko`; repository source now makes that a service precondition. One
-physical press remains unobserved. See
+Display V14 passed persistent systemd, Wi-Fi, Tailscale, healthd, DRM, fb0,
+backlight, text rendering, exact `qcom-pon.ko` loading and creation of one
+`pmic_pwrkey` input. The pre-switch loader now supplies the empty, read-only
+`modules.dep` index required by BusyBox `modinfo`; this requirement was proven
+on the phone after host QEMU accidentally masked it with the host module index.
+The button service was active with zero restarts and the screen remained off at
+brightness zero. No physical press occurred before independent rollback, so a
+press remains unobserved and no successor should be issued until an operator is
+present to press the button. See
+`test-results/2026-09-03-display-power-button-v14.md`; the initial software
+path remains recorded in
 `test-results/2026-09-02-display-status-screen-development.md`.
 
 ## Required boundaries

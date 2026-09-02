@@ -19,7 +19,7 @@ After that bounded proof, the next phase remains the credential-isolated automat
 - Slot B contains bounded-retry recovery `340f6392…` and selector-v2 primary
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…`, with signed
   V11 as automatic fallback. Exact old recovery `f2a73030…` remains restorable.
-- Current boot: accepted V10 `9a4dce86-229f-4193-a216-aedb06dbd5ff` with
+- Current boot: accepted V10 `d1668631-bd7d-4cd7-90ca-f48f19590d4b` with
   systemd, native Wi-Fi, NCM, Tailscale, strict SSH and persistent service
   state.
 - V10 uses p24 read-only as the Arch lower and the exact 16 GiB
@@ -57,10 +57,12 @@ After that bounded proof, the next phase remains the credential-isolated automat
   `/healthz` passes over NCM and Wi-Fi; full V10 acceptance remains green. A
   RAM-only action-aware shutdown also proved powered-off auto-start under
   connected power. Repository exitrd source now preserves that poweroff action.
-- Display V9 passed persistent systemd, native Wi-Fi, Tailscale, healthd,
-  DRM/fb0/backlight and text status rendering. V10 plus the exact RAM-loaded
-  `qcom-pon.ko` created one `pmic_pwrkey` input; the durable loader is committed.
-  No physical press occurred before the scheduled rollback.
+- Display V14 passed persistent systemd, native Wi-Fi, Tailscale, healthd,
+  DRM/fb0/backlight, text status rendering, the exact RAM-loaded `qcom-pon.ko`,
+  one `pmic_pwrkey` input and an active zero-restart button service. A real-ARM
+  test proved BusyBox `modinfo` requires an otherwise empty `modules.dep`; the
+  exact tmpfs index fix is committed. No physical press occurred before the
+  scheduled rollback.
 
 ## Newly proven milestone
 
@@ -77,8 +79,8 @@ journal replay.
 
 ## Next actions
 
-1. Package the exact PON module in one successor and observe one physical
-   power-button press/release toggling the screen.
+1. Only when an operator is physically present, run one fresh RAM-only button
+   candidate and observe one power-button press/release toggling the screen.
 2. Define one unprivileged automation service account with secrets kept only in
    the existing p23 service-state image.
 3. Deploy the operator-selected AI/automation workload and validate resource,
