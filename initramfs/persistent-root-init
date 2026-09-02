@@ -2376,7 +2376,23 @@ fi
 publish_or_rollback overlay PASS
 publish_or_rollback runtime ENTER
 if ! prepare_runtime; then
-	fail_local_stage runtime 'volatile runtime preparation failed'
+	runtime_detail=pwrkey-unclassified
+	pwrkey_result=/run/rog5-pwrkey-result
+	if [ -f "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$pwrkey_result")" = 0:0:444:1 ]; then
+		candidate=$(cat "$pwrkey_result")
+		case $candidate in
+			pwrkey-module-metadata|pwrkey-module-name|\
+			pwrkey-module-dependencies|pwrkey-module-vermagic|\
+			pwrkey-module-load|pwrkey-module-absent|\
+			pwrkey-input-zero|pwrkey-input-multiple|\
+			pwrkey-platform-identity|pwrkey-result-publication)
+				runtime_detail=$candidate
+				;;
+		esac
+	fi
+	fail_local_stage runtime 'volatile runtime preparation failed' \
+		"$runtime_detail"
 fi
 publish_or_rollback runtime PASS
 publish_or_rollback final-storage ENTER

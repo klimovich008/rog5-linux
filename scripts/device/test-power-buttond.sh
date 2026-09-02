@@ -20,7 +20,9 @@ fail() {
 sh -n "$loader"
 
 for contract in qcom-pon.ko qcom_pon pm8941-pwrkey qcom,pmk8350-pwrkey \
-	'modinfo -F vermagic' 'insmod "$module"' 'pmic_pwrkey'
+	'modinfo -F vermagic' 'insmod "$module"' 'pmic_pwrkey' \
+	'/run/rog5-pwrkey-result' 'fail module-load' 'fail input-zero' \
+	'fail platform-identity' 'record_result pwrkey-pass'
 do
 	grep -Fq "$contract" "$loader" ||
 		fail "native power-key loader omits: $contract"

@@ -61,7 +61,12 @@ install_status_screen() {
 	# Load the reviewed module in this trusted initramfs runtime.  The
 	# long-running button service deliberately has no CAP_SYS_MODULE; its
 	# ExecStartPre repeats the same helper only as an idempotent identity check.
-	"$root/load-pwrkey" || return 1
+	pwrkey_result=/run/rog5-pwrkey-result
+	[ ! -e "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] || return 1
+	ROG5_PWRKEY_RESULT=$pwrkey_result "$root/load-pwrkey" || return 1
+	[ -f "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$pwrkey_result")" = 0:0:444:1 ] &&
+		[ "$(cat "$pwrkey_result")" = pwrkey-pass ] || return 1
 	mkdir -p /newroot/usr/local/bin /newroot/usr/local/libexec \
 		"$units/multi-user.target.wants" || return 1
 	install_status_file "$root/screen-toggle.sh" \

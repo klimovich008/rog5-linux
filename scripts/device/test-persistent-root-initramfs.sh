@@ -338,6 +338,12 @@ grep -Fq '"detail=$stage_detail"' "$init" ||
 	fail 'P2 target does not publish the bounded stage detail'
 grep -Fq 'publish_stage ufs-ready FAIL "$ufs_discovery_detail"' "$init" ||
 	fail 'P2 target does not retain the UFS discovery discriminator'
+grep -Fq 'runtime_detail=pwrkey-unclassified' "$init" ||
+	fail 'P2 target lacks a fail-closed power-key runtime discriminator'
+grep -Fq 'pwrkey-module-load' "$init" ||
+	fail 'P2 target omits the bounded power-key module-load discriminator'
+grep -Fq '"$runtime_detail"' "$init" ||
+	fail 'P2 target does not publish the bounded power-key runtime detail'
 grep -Fq 'ufs-discovery-p${count}-a${auto_count}-h${host_count}-w${wlun_count}-e${error_count}' \
 	"$init" || fail 'P2 UFS discriminator lacks exact counters'
 grep -Fq 'expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876' \

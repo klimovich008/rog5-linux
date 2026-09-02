@@ -19,6 +19,29 @@ def function(source, name):
 
 
 class AutomaticWifi(unittest.TestCase):
+    def test_pwrkey_result_publication_is_exact_and_no_replace(self):
+        source = (R/'initramfs/native-wifi/load-pwrkey').read_text()
+        publisher = function(source, 'record_result')
+        for contract in (
+            'fail module-load', 'fail input-zero',
+            'fail platform-identity', 'record_result pwrkey-pass',
+        ):
+            self.assertIn(contract, source)
+        with tempfile.TemporaryDirectory() as tmp:
+            result = Path(tmp)/'pwrkey-result'
+            publisher = publisher.replace(
+                '/run/rog5-pwrkey-result', str(result)
+            )
+            script = (
+                'set -eu\nresult_path=' + str(result) + '\n' + publisher +
+                '\nrecord_result pwrkey-module-load'
+            )
+            subprocess.run(['sh', '-c', script], check=True)
+            self.assertEqual(result.read_text(), 'pwrkey-module-load\n')
+            self.assertEqual(result.stat().st_mode & 0o777, 0o444)
+            duplicate = subprocess.run(['sh', '-c', script], capture_output=True)
+            self.assertNotEqual(duplicate.returncode, 0)
+
     def test_optional_status_runtime_uses_sealed_applets_and_newroot(self):
         runtime = (R/'initramfs/native-wifi/runtime').read_text()
         body = function(runtime, 'install_status_screen')
@@ -50,9 +73,12 @@ class AutomaticWifi(unittest.TestCase):
                 path.write_text(name)
                 path.chmod(0o755)
             load_log = root/'pwrkey-load.log'
+            result = root/'pwrkey-result'
             loader = payload/'load-pwrkey'
             loader.write_text(
                 '#!/bin/sh\nprintf loaded >"$PWRKEY_LOAD_LOG"\n'
+                'printf "pwrkey-pass\\n" >"$ROG5_PWRKEY_RESULT"\n'
+                'chmod 0444 "$ROG5_PWRKEY_RESULT"\n'
             )
             loader.chmod(0o755)
             (payload/'qcom-pon.ko').write_text('module')
@@ -61,16 +87,20 @@ class AutomaticWifi(unittest.TestCase):
                 path = payload/'units'/name
                 path.write_text(name)
                 path.chmod(0o644)
-            script = body.replace('/newroot', str(newroot))
+            script = body.replace('/newroot', str(newroot)).replace(
+                '/run/rog5-pwrkey-result', str(result)
+            )
             command = (
                 'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
                 'PWRKEY_LOAD_LOG=' + str(load_log) + '\nexport PWRKEY_LOAD_LOG\n'
-                'stat() { case "$3" in *.service|*.conf|*.ko) echo 0:0:644:1 ;; '
+                'stat() { case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                 '*) echo 0:0:755:1 ;; esac; }\n' + script +
                 '\ninstall_status_screen "$units"'
             )
             subprocess.run(['sh', '-c', command], check=True)
             self.assertEqual(load_log.read_text(), 'loaded')
+            self.assertEqual(result.read_text(), 'pwrkey-pass\n')
             self.assertEqual(
                 (newroot/'usr/local/bin/rog5-screen-toggle.sh').read_text(),
                 'screen-toggle.sh',
@@ -105,7 +135,10 @@ class AutomaticWifi(unittest.TestCase):
                 'power-buttond.py': newroot/'usr/local/libexec/rog5-power-buttond',
             }
             source_units.mkdir(parents=True)
-            (payload/'load-pwrkey').write_text('#!/bin/sh\nexit 0\n')
+            (payload/'load-pwrkey').write_text(
+                '#!/bin/sh\nprintf "pwrkey-pass\\n" >"$ROG5_PWRKEY_RESULT"\n'
+                'chmod 0444 "$ROG5_PWRKEY_RESULT"\n'
+            )
             (payload/'load-pwrkey').chmod(0o755)
             (payload/'qcom-pon.ko').write_text('module')
             (payload/'qcom-pon.ko').chmod(0o644)
@@ -124,10 +157,14 @@ class AutomaticWifi(unittest.TestCase):
             def run(units):
                 units.mkdir(parents=True)
                 (units/'rog5-p2-ready.service').write_text('p2-ready')
-                script = body.replace('/newroot', str(newroot))
+                result = units.parent/'pwrkey-result'
+                script = body.replace('/newroot', str(newroot)).replace(
+                    '/run/rog5-pwrkey-result', str(result)
+                )
                 command = (
                     'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
-                    'stat() { case "$3" in *.service|*.conf|*.ko) echo 0:0:644:1 ;; '
+                    'stat() { case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                    '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                     '*) echo 0:0:755:1 ;; esac; }\n' + script +
                     '\ninstall_status_screen "$units"'
                 )

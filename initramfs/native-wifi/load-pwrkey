@@ -5,19 +5,43 @@ root=/run/rog5-native-wifi
 module=$root/qcom-pon.ko
 release=$(cat "$root/kernel-release")
 platform=/sys/bus/platform/devices/c440000.spmi:pmic@0:pon@1300:pwrkey
-fail() { echo "FAIL native pwrkey: $*" >&2; exit 1; }
+result_path=${ROG5_PWRKEY_RESULT:-}
+
+record_result() {
+	result=$1
+	[ -n "$result_path" ] || return 0
+	[ "$result_path" = /run/rog5-pwrkey-result ] || return 1
+	[ ! -e "$result_path" ] && [ ! -L "$result_path" ] || return 1
+	temporary=$result_path.$$
+	[ ! -e "$temporary" ] && [ ! -L "$temporary" ] || return 1
+	printf '%s\n' "$result" >"$temporary" || return 1
+	chmod 0444 "$temporary" || return 1
+	mv -T "$temporary" "$result_path"
+}
+
+fail() {
+	code=$1
+	shift
+	record_result "pwrkey-$code" || true
+	echo "FAIL native pwrkey: $*" >&2
+	exit 1
+}
 
 [ -f "$module" ] && [ ! -L "$module" ] &&
 	[ "$(stat -c '%u:%g:%a:%h' "$module")" = 0:0:644:1 ] ||
-	fail 'module metadata'
-[ "$(modinfo -F name "$module")" = qcom_pon ] || fail 'module name'
-[ -z "$(modinfo -F depends "$module")" ] || fail 'module dependencies'
+	fail module-metadata 'module metadata'
+[ "$(modinfo -F name "$module")" = qcom_pon ] ||
+	fail module-name 'module name'
+[ -z "$(modinfo -F depends "$module")" ] ||
+	fail module-dependencies 'module dependencies'
 [ "$(modinfo -F vermagic "$module")" = \
-	"$release SMP preempt mod_unload aarch64" ] || fail 'module vermagic'
+	"$release SMP preempt mod_unload aarch64" ] ||
+	fail module-vermagic 'module vermagic'
 if [ ! -d /sys/module/qcom_pon ]; then
-	insmod "$module" || fail 'module load'
+	insmod "$module" || fail module-load 'module load'
 fi
-[ -d /sys/module/qcom_pon ] || fail 'module absent after load'
+[ -d /sys/module/qcom_pon ] ||
+	fail module-absent 'module absent after load'
 
 attempt=0
 while [ "$attempt" -lt 20 ]; do
@@ -31,9 +55,14 @@ while [ "$attempt" -lt 20 ]; do
 	attempt=$((attempt + 1))
 	sleep 0.1
 done
-[ "$count" -eq 1 ] || fail 'expected exactly one pmic_pwrkey input'
+case $count in
+	1) ;;
+	0) fail input-zero 'expected exactly one pmic_pwrkey input' ;;
+	*) fail input-multiple 'expected exactly one pmic_pwrkey input' ;;
+esac
 [ -L "$platform/driver" ] &&
 	[ "$(basename "$(readlink -f "$platform/driver")")" = pm8941-pwrkey ] &&
 	[ "$(tr -d '\000' <"$platform/of_node/compatible")" = qcom,pmk8350-pwrkey ] ||
-	fail 'platform identity'
+	fail platform-identity 'platform identity'
+record_result pwrkey-pass || fail result-publication 'result publication'
 echo 'PASS native PMK8350 power key ready'
