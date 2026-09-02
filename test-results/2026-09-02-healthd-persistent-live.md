@@ -57,3 +57,27 @@ zero restarts and healthy endpoint. Full acceptance also passed:
 - battery Full/Good at 30.2 C with USB online.
 
 Slot A, `boot_b`, p24, GPT and protected partitions were unchanged.
+
+## Powered-off startup
+
+The accepted target exitrd previously converted every systemd action into
+`reboot -f`, so `systemctl poweroff` could not test cold startup. A RAM-only
+variant changed only the terminal dispatch: `poweroff` used sealed BusyBox
+`poweroff -f`; reboot and kexec fallback behavior remained unchanged. The exact
+BusyBox applet and poweroff/reboot/kexec dispatch paths passed offline tests.
+
+With battery Full/Good and connected power, exact USB-path observation recorded:
+
+- V10 USB departed at `+29.581s`;
+- recovery returned at `+49.328s`, after 19.747 seconds absent;
+- recovery departed at `+60.558s`;
+- persistent-root USB returned at `+63.120s`, after 2.562 seconds absent.
+
+The observer's original derived duration reused the first return across the
+second disconnect and was rejected; its raw timestamps are authoritative and
+the fixture is corrected. Cold-start V10 boot
+`9a4dce86-229f-4193-a216-aedb06dbd5ff` restored systemd, Wi-Fi
+`192.168.1.239/24`, Tailscale `100.68.169.83/32`, key-only SSH and healthd.
+Full acceptance passed with the exact package inventory, `journal=0/0`, only
+`sda,sda23` writable, no IRQ/UFS/emergency-RO errors, and Full/Good battery at
+30.0 C. Healthd passed from the host over both NCM and Wi-Fi.

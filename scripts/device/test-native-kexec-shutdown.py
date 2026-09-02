@@ -137,6 +137,42 @@ int close(int fd) {
         self.assertEqual(len(re.findall(
             r'^\s*(?:if\s+)?/rog5-kexec-exec(?:\s|;|$)', SOURCE, re.MULTILINE)), 1)
 
+    def test_poweroff_action_does_not_fall_through_to_reboot(self):
+        body = SOURCE.split('try_native_kexec "${1:-}" || true\n', 1)[1]
+        body = body.split('printf b >/proc/sysrq-trigger', 1)[0]
+        with tempfile.TemporaryDirectory() as temp:
+            driver = Path(temp) / "dispatch.sh"
+            driver.write_text(
+                "#!/bin/sh\nset -eu\n"
+                "bb=mock_bb\n"
+                "try_native_kexec() { :; }\n"
+                "log() { printf 'LOG %s\\n' \"$*\"; }\n"
+                "mock_bb() { printf 'APPLET %s\\n' \"$*\"; }\n"
+                + body
+            )
+            driver.chmod(0o700)
+            cases = {
+                "poweroff": "APPLET poweroff -f",
+                "reboot": "APPLET reboot -f",
+                "kexec": "APPLET reboot -f",
+            }
+            for action, expected in cases.items():
+                with self.subTest(action=action):
+                    result = subprocess.run(
+                        ["sh", str(driver), action],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                        timeout=5,
+                    )
+                    self.assertIn(expected, result.stdout)
+                    wrong = (
+                        "APPLET reboot -f"
+                        if action == "poweroff"
+                        else "APPLET poweroff -f"
+                    )
+                    self.assertNotIn(wrong, result.stdout)
+
     def test_loop_detach_accepts_only_exact_mapping_or_proven_gone(self):
         function = SOURCE.split("detach_exact_loop() {", 1)[1].split("\n}\n", 1)[0]
         function = "detach_exact_loop() {" + function + "\n}\n"
@@ -264,7 +300,7 @@ int close(int fd) {
         definitions, separator, body = SOURCE.partition(start)
         self.assertTrue(separator)
         body, separator, _ = body.partition(
-            "\nlog 'normal restart returned; triggering emergency reset'\n")
+            "\nprintf b >/proc/sysrq-trigger 2>/dev/null || true\n")
         self.assertTrue(separator)
         # The mocked normal reboot exits the shell. Exclude emergency reset and
         # sleep entirely so a harness mistake cannot touch sysrq or wait forever.
