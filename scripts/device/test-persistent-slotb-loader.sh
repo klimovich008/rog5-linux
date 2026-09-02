@@ -70,6 +70,8 @@ for contract in \
 	'set_stage S20 PASS storage_resolved' \
 	'set_stage S40 PASS selector_verified' \
 	'set_stage S65 PASS "$trial_selection_detail"' \
+	'selection_report_delay=0.30' \
+	'sleep "$selection_report_delay"' \
 	'while [ "$trial_attempt" -lt 3 ]; do' \
 	'# Never retry after this exact helper may publish or observe state.' \
 	'set_stage S60 PASS bundle_verified' \
@@ -79,6 +81,13 @@ for contract in \
 	'set_stage terminal FAIL "$1"'; do
 	grep -Fq "$contract" "$init"
 done
+s65_line=$(grep -n 'set_stage S65 PASS "$trial_selection_detail"' "$init" | cut -d: -f1)
+selection_delay_line=$(grep -n 'sleep "$selection_report_delay"' "$init" | cut -d: -f1)
+s60_line=$(grep -n 'set_stage S60 PASS bundle_verified' "$init" | cut -d: -f1)
+[ "$s65_line" -lt "$selection_delay_line" ]
+[ "$selection_delay_line" -lt "$s60_line" ]
+selection_report_delay=$(sed -n 's/^selection_report_delay=//p' "$init")
+awk -v delay="$selection_report_delay" 'BEGIN { exit !(delay > 0.25 && delay <= 0.50) }'
 mode_line=$(grep -n 'echo peripheral >"$usb_mode"' "$init" | cut -d: -f1)
 configfs_line=$(grep -n 'mount -t configfs configfs /sys/kernel/config' "$init" | cut -d: -f1)
 bind_line=$(grep -n 'printf.*>"$gadget/UDC"' "$init" | cut -d: -f1)

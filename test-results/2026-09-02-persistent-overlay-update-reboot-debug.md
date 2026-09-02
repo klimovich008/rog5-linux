@@ -1,6 +1,6 @@
 # Persistent-overlay package-update reboot debugging
 
-Result: **V9 first boot passed; repeat marker cause proven; V10 source fix passes**.
+Result: **V10 first and clean repeat execution pass; one transient recovery fallback remains**.
 
 The package-updated V8 overlay remained cryptographically and structurally
 intact, but its first fresh boots returned to recovery/fastboot before SSH.
@@ -74,6 +74,33 @@ timestamps. V10 remains initramfs-only.
 Focused initramfs/overlay tests and the active tier pass. Claude Opus review
 was attempted after two non-discriminating boots but its OAuth session was
 expired; systematic debugging continued from retained evidence. Current live
-boot is V11 `5fbe39c4-1024-4514-8078-26c7b85a3faa`; the healthy V9 trial and
-package-updated overlay remain on p23. Next build/sign/stage V10 with unchanged
-kernel/DTB and the canonical update-marker parser.
+boot is V10 `43c91566-b125-4da9-a933-af8f3601ea2a`; the healthy V10 trial and
+package-updated overlay remain on p23.
+
+V10 reused the exact V9 kernel and DTB and changed only the target initramfs.
+Its first boot `2b9c86b0-4817-4891-b3f8-a5e151daf47d` passed all acceptance
+gates with one exact allowed overlay journal replay. One subsequent recovery
+cycle selected signed V11 despite exact V10 selector and healthy trial bytes.
+The exact deployed AArch64 helper returns V10 against that same record through
+a read-only bind and leaves its SHA unchanged. The following recovery cycle
+selected V10; boot `43c91566-b125-4da9-a933-af8f3601ea2a` passed with clean
+`0/0` journal evidence, the exact 163-package inventory, systemd, native Wi-Fi,
+Tailscale, key-only SSH, p24 read-only, only `sda,sda23` writable, Full/Good
+battery at 30.0 C and no precise fatal or UFS errors.
+
+The recovery publishes exact trial-selection detail at S65 but immediately
+overwrites it with S60, while its ACM reporter samples every 250 ms. Both live
+logs therefore missed the only record that distinguishes primary, helper
+fallback and preflight fallback. Failure class: R3/R8 observability at an
+existing fallback boundary. Before claiming unattended reboot reliability,
+make S65 observable without weakening healthy/pending semantics or retrying an
+ambiguous helper execution, then require consecutive V10 boots.
+
+A fail-first recovery regression now requires S65 to remain active longer than
+the 250 ms reporter interval and before S60 replaces it. The source correction
+adds one bounded 300 ms delay after publishing the already-existing exact
+selection classification; trial semantics, retry policy, watchdogs, bundle
+verification and kexec are unchanged. Focused loader/recovery tests and the
+3.73-second active tier pass. One full local CI run also passed in about 5.9
+minutes. The installed `boot_b` recovery remains unchanged until the correction
+passes a separate RAM-only validation.

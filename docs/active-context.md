@@ -8,21 +8,21 @@ accepted V9 facts. Historical generations remain in Git and dated
 
 ## One current question
 
-Can initramfs-only V10 accept canonical systemd 261 update-done markers and
-repeat-boot the 163-package persistent overlay while retaining exact V11
-fallback?
+Why did one healthy V10 selector cycle choose V11, and can the existing
+recovery expose and eliminate that transient decision failure before the first
+unattended server workload?
 
 ## Current live state
 
 - Exact phone: `M5AIKN00F0353YH`, `lahaina`, side-port host path `1-1.2`.
 - Slot A remains the ASUS WW33 rescue/charging route.
 - Slot B contains bounded-retry recovery `340f6392…` and selector-v2 primary
-  `persistent-native-root-wifi-overlay-v9`, manifest `3f353b9b…`, with signed
+  `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…`, with signed
   V11 as automatic fallback. Exact old recovery `f2a73030…` remains restorable.
-- Current boot: healthy V11 `5fbe39c4-1024-4514-8078-26c7b85a3faa` with NCM,
-  Tailscale, strict SSH and persistent service state. V9's p23 overlay is not
-  mounted by V11.
-- V9 uses p24 read-only as the Arch lower and the exact 16 GiB
+- Current boot: accepted V10 `43c91566-b125-4da9-a933-af8f3601ea2a` with
+  systemd, native Wi-Fi, NCM, Tailscale, strict SSH and persistent service
+  state.
+- V10 uses p24 read-only as the Arch lower and the exact 16 GiB
   `rog5/root/root-overlay-v1.ext4` image on p23 as persistent OverlayFS state.
   P23 remains `noexec`; the bounded loop filesystem is `exec,nodev,nosuid`.
 - Exactly `sda` and `sda23` are writable; p24 and every protected UFS node are
@@ -36,9 +36,17 @@ fallback?
   intentional root mode `0555` and OpenSSH 10.5's mixed-case `sshd -T` names.
   The overlay is repaired; fail-first regressions and source fixes pass. See
   `test-results/2026-09-02-persistent-overlay-update-reboot-debug.md`.
-- V9 first boot passed with the 163-package overlay and healthy trial. Repeat
-  reached `runtime` and exposed systemd's canonical timestamped update markers;
-  V10 parser fixtures now pass.
+- V10 first boot passed with the 163-package overlay, one exact allowed journal
+  replay and a healthy trial. A later clean V10 boot passed `runtime`,
+  `switch-root`, systemd, Wi-Fi, Tailscale, strict SSH, storage and power with
+  `0/0` journal evidence.
+- One intervening recovery cycle selected healthy V11. Selector bytes, trial
+  bytes and the exact AArch64 decision helper independently select V10, and the
+  following cycle selected V10. S65 decision detail is currently not observable
+  in the installed recovery because it is overwritten before the 250 ms
+  reporter can emit it. Source now retains S65 for 300 ms; focused recovery and
+  active-tier tests plus one full local CI pass, but those bytes are not
+  installed.
 
 ## Newly proven milestone
 
@@ -55,10 +63,11 @@ journal replay.
 
 ## Next actions
 
-1. Run full local/exact-head CI for the update-marker parser.
-2. Build/sign/stage V10 with unchanged V9 kernel/DTB, then require first and
-   repeat boots with 163 packages, P2/systemd/Wi-Fi/SSH and exact write scope.
-3. Deploy the first server workload after the V10 repeat-boot checkpoint.
+1. Build the CI-approved S65 observability correction from cached wrapper
+   inputs and validate it RAM-only before any persistent update.
+2. Reproduce or clear the transient V11 selection with exact S65 evidence.
+3. Require consecutive V10 boots before claiming unattended reboot reliability.
+4. Deploy the first persistent server workload after that recovery checkpoint.
 
 ## Boundaries
 

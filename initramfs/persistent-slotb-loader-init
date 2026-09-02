@@ -12,6 +12,7 @@ trial_helper=/usr/libexec/rog5-persistent-trial-state
 target_mount=/mnt/arch
 userdata_mount=/mnt/userdata
 watchdog_seconds=180
+selection_report_delay=0.30
 status_file=/run/rog5-slotb-loader.status
 reporter_pid=
 expected_udc=a600000.dwc3
@@ -479,6 +480,7 @@ format=rog5-slotb-selector-v2)
 	*) fail trial_decision ;;
 	esac
 	set_stage S65 PASS "$trial_selection_detail"
+	sleep "$selection_report_delay"
 	;;
 *) fail selector_format ;;
 esac
