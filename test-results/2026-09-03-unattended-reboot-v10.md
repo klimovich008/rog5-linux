@@ -33,3 +33,23 @@ boot services?
 No flash, GPT, slot, partition, protected-data or host/NFS boot operation was
 performed. This was an ordinary installed reboot using the existing exitrd and
 slot-B recovery path.
+
+## Second powered-off start
+
+The current V10 boot temporarily received the already-reviewed action-aware
+exitrd helper in RAM. `systemctl poweroff` therefore used sealed BusyBox
+`poweroff -f` instead of mapping the request to reboot. Connected power then
+started the installed slot-B recovery and selected V10 autonomously.
+
+- Source boot: `ded95724-7b0d-4959-988d-6ebb0ffde268`.
+- Destination boot: `d746db04-06f2-4f1e-af3a-015439de7746`.
+- Poweroff request to new boot ID plus systemd `running`: **96.697 seconds**.
+- USB disappearance was observed.
+- Full post-start acceptance passed: Wi-Fi `192.168.1.229/24`, Tailscale,
+  healthd, strict early SSH, exactly `sda,sda23` writable, 117 block nodes,
+  `journal_recovery_events=0`, `ufs_error_events=0`, Full/Good battery near
+  8.52 V and 30.1 C.
+
+This is the second accepted powered-off start; the first is retained in
+`2026-09-02-healthd-persistent-live.md`. No persistent boot or storage bytes
+were changed by this test.
