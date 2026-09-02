@@ -3,14 +3,13 @@
 Updated: 2026-09-02
 
 Read `docs/current-state.md` for durable device, rescue, storage, charging, and
-accepted V9 facts. Historical generations remain in Git and dated
+accepted V10 facts. Historical generations remain in Git and dated
 `test-results/` records.
 
 ## One current question
 
-Why did one healthy V10 selector cycle choose V11, and can the existing
-recovery expose and eliminate that transient decision failure before the first
-unattended server workload?
+Can the first persistent headless workload run over native Wi-Fi/Tailscale and
+survive one unattended reboot while the accepted V10 platform remains healthy?
 
 ## Current live state
 
@@ -19,7 +18,7 @@ unattended server workload?
 - Slot B contains bounded-retry recovery `340f6392…` and selector-v2 primary
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…`, with signed
   V11 as automatic fallback. Exact old recovery `f2a73030…` remains restorable.
-- Current boot: accepted V10 `43c91566-b125-4da9-a933-af8f3601ea2a` with
+- Current boot: accepted V10 `292e4435-cfa0-4db5-94a0-6c1015e938f2` with
   systemd, native Wi-Fi, NCM, Tailscale, strict SSH and persistent service
   state.
 - V10 uses p24 read-only as the Arch lower and the exact 16 GiB
@@ -40,13 +39,13 @@ unattended server workload?
   replay and a healthy trial. A later clean V10 boot passed `runtime`,
   `switch-root`, systemd, Wi-Fi, Tailscale, strict SSH, storage and power with
   `0/0` journal evidence.
-- One intervening recovery cycle selected healthy V11. Selector bytes, trial
-  bytes and the exact AArch64 decision helper independently select V10, and the
-  following cycle selected V10. S65 decision detail is currently not observable
-  in the installed recovery because it is overwritten before the 250 ms
-  reporter can emit it. Source now retains S65 for 300 ms; focused recovery and
-  active-tier tests plus one full local CI pass, but those bytes are not
-  installed.
+- Instrumented recovery classified the intermittent fallback as
+  `mount-recovery-orphan-incompat`: p23's modern ext4 `orphan_file` left
+  `orphan_present`, which ASUS 5.4 cannot replay. The backed-up, fsck-clean p23
+  now omits only that feature. Recovery selected V10 after the change, after an
+  old-shutdown stress cycle, and through the installed `boot_b` path.
+- Repository source also accepts only an exact attached loop or a proven-gone
+  stale loop node during exitrd teardown; wrong or ambiguous backing fails.
 
 ## Newly proven milestone
 
@@ -63,11 +62,10 @@ journal replay.
 
 ## Next actions
 
-1. Build the CI-approved S65 observability correction from cached wrapper
-   inputs and validate it RAM-only before any persistent update.
-2. Reproduce or clear the transient V11 selection with exact S65 evidence.
-3. Require consecutive V10 boots before claiming unattended reboot reliability.
-4. Deploy the first persistent server workload after that recovery checkpoint.
+1. Freeze and publish the exact loop-detach regression plus resolved state.
+2. Deploy one minimal persistent server workload without external credentials.
+3. Reboot through installed `boot_b` and prove workload, systemd, Wi-Fi,
+   Tailscale, SSH, storage and power health together.
 
 ## Boundaries
 

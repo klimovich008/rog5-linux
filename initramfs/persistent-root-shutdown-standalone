@@ -26,6 +26,32 @@ unmount_mount() {
 	"$bb" umount "$1" || return 1
 }
 
+detach_exact_loop() {
+	loop_device=$1
+	shift
+	case $loop_device in /oldsys/dev/loop[0-9]*) ;; *) return 1 ;; esac
+	[ "$#" -ge 1 ] && [ -b "$loop_device" ] || return 1
+	loop_name=${loop_device##*/}
+	loop_state=/oldsys/sys/class/block/$loop_name/loop
+	backing_path=$loop_state/backing_file
+	if [ ! -e "$backing_path" ] && [ ! -L "$backing_path" ]; then
+		[ ! -e "$loop_state" ] && [ ! -L "$loop_state" ] || return 1
+		! "$bb" losetup "$loop_device" >/dev/null 2>&1
+		return
+	fi
+	[ -f "$backing_path" ] && [ ! -L "$backing_path" ] || return 1
+	backing=$($bb cat "$backing_path") || return 1
+	backing_matches=0
+	for expected_backing in "$@"; do
+		[ "$backing" != "$expected_backing" ] || backing_matches=1
+	done
+	[ "$backing_matches" -eq 1 ] || return 1
+	"$bb" losetup -d "$loop_device" || return 1
+	[ ! -e "$backing_path" ] && [ ! -L "$backing_path" ] &&
+		[ ! -e "$loop_state" ] && [ ! -L "$loop_state" ] || return 1
+	! "$bb" losetup "$loop_device" >/dev/null 2>&1
+}
+
 lazy_unmount() {
 	"$bb" mountpoint -q "$1" || return 0
 	"$bb" umount -l "$1" 2>/dev/null || true
@@ -36,12 +62,15 @@ detach_persistent_state() {
 	[ -f "$record" ] && [ ! -L "$record" ] || return 0
 	loop_device=$($bb sed -n 's/^loop=//p' "$record") || return 1
 	userdata_owner=$($bb sed -n 's/^userdata_owner=//p' "$record") || return 1
+	state_image=$($bb sed -n 's/^image=//p' "$record") || return 1
 	case $userdata_owner in state|overlay) ;; *) return 1 ;; esac
 	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	[ "$state_image" = rog5/state/server-state-v1.ext4 ] || return 1
 	loop_device=/oldsys/dev/${loop_device#/dev/}
 	unmount_mount /oldroot/persist || return 1
-	[ -b "$loop_device" ] || return 1
-	"$bb" losetup -d "$loop_device" || return 1
+	detach_exact_loop "$loop_device" \
+		"/.rog5/userdata-rw/$state_image" \
+		".rog5/userdata-rw/$state_image" || return 1
 	[ "$userdata_owner" = overlay ] && return 0
 	unmount_mount /oldsys/userdata-rw || return 1
 	relock_storage
@@ -72,8 +101,9 @@ detach_persistent_overlay() {
 		[ "$image" = rog5/root/root-overlay-v1.ext4 ] || return 1
 	loop_device=/oldsys/dev/${loop_device#/dev/}
 	unmount_mount /oldsys/state || return 1
-	[ -b "$loop_device" ] || return 1
-	"$bb" losetup -d "$loop_device" || return 1
+	detach_exact_loop "$loop_device" \
+		"/mnt/userdata/$image" "mnt/userdata/$image" \
+		"/.rog5/userdata-rw/$image" ".rog5/userdata-rw/$image" || return 1
 	unmount_mount /oldsys/userdata-rw || return 1
 	relock_storage
 }

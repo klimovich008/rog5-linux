@@ -137,6 +137,63 @@ int close(int fd) {
         self.assertEqual(len(re.findall(
             r'^\s*(?:if\s+)?/rog5-kexec-exec(?:\s|;|$)', SOURCE, re.MULTILINE)), 1)
 
+    def test_loop_detach_accepts_only_exact_mapping_or_proven_gone(self):
+        function = SOURCE.split("detach_exact_loop() {", 1)[1].split("\n}\n", 1)[0]
+        function = "detach_exact_loop() {" + function + "\n}\n"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            device = root / "dev" / "loop7"
+            loop_root = root / "sys" / "class" / "block" / "loop7" / "loop"
+            device.parent.mkdir()
+            device.touch()
+            function = function.replace("/oldsys/sys/class/block", str(root / "sys/class/block"))
+            function = function.replace("/oldsys/dev/loop[0-9]*",
+                                        str(root / "dev/loop[0-9]*"))
+            function = function.replace('[ -b "$loop_device" ]', '[ -e "$loop_device" ]')
+            driver = root / "driver.sh"
+            driver.write_text(
+                "set -eu\n"
+                "bb=mock_bb\n"
+                "case_name=$1\n"
+                "loop_root=$2\n"
+                "mock_bb() {\n"
+                "  case $1 in\n"
+                "  cat) command cat \"$2\" ;;\n"
+                "  losetup)\n"
+                "    if [ \"${2:-}\" = -d ]; then\n"
+                "      [ \"$case_name\" != detach-fail ] || return 1\n"
+                "      [ \"$case_name\" = lingering ] || rm -rf \"$loop_root\"\n"
+                "      return 0\n"
+                "    fi\n"
+                "    [ \"$case_name\" = ambiguous ]\n"
+                "    ;;\n"
+                "  *) return 2 ;;\n"
+                "  esac\n"
+                "}\n" + function +
+                f"detach_exact_loop {shlex.quote(str(device))} /expected/image expected/image\n"
+            )
+            driver.chmod(0o700)
+            cases = {
+                "exact": ("/expected/image\n", True),
+                "exact-relative": ("expected/image\n", True),
+                "gone": (None, True),
+                "wrong": ("/wrong/image\n", False),
+                "ambiguous": (None, False),
+                "detach-fail": ("/expected/image\n", False),
+                "lingering": ("/expected/image\n", False),
+            }
+            for case, (backing, expected) in cases.items():
+                with self.subTest(case=case):
+                    shutil.rmtree(loop_root, ignore_errors=True)
+                    if backing is not None:
+                        loop_root.mkdir(parents=True)
+                        (loop_root / "backing_file").write_text(backing)
+                    result = subprocess.run(
+                        ["sh", str(driver), case, str(loop_root)],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    self.assertEqual(result.returncode == 0, expected)
+
     def test_dispatch(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

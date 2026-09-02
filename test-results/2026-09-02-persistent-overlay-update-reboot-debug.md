@@ -1,6 +1,6 @@
 # Persistent-overlay package-update reboot debugging
 
-Result: **V10 first and clean repeat execution pass; one transient recovery fallback remains**.
+Result: **V10 repeat and installed-recovery execution pass; transient fallback resolved**.
 
 The package-updated V8 overlay remained cryptographically and structurally
 intact, but its first fresh boots returned to recovery/fastboot before SSH.
@@ -104,3 +104,26 @@ verification and kexec are unchanged. Focused loader/recovery tests and the
 3.73-second active tier pass. One full local CI run also passed in about 5.9
 minutes. The installed `boot_b` recovery remains unchanged until the correction
 passes a separate RAM-only validation.
+
+The RAM-only S65 observer then proved the transient fallback was not a selector
+or helper defect. Failed cycles reported
+`trial-fallback-prep-mount-recovery-orphan-incompat-a3`: p23 had ext4
+`needs_recovery + orphan_present`, and the ASUS 5.4 wrapper lacks modern
+`orphan_file` recovery support. V11 mainline recovered the same filesystem.
+
+P23 was quiesced and backed up before modification. The retained sparse archive
+is 812,180,590 bytes with SHA-256 `018d895f…6a644`; extraction and every project
+file hash passed. Pre/post 16 MiB metadata snapshots and fsck/superblock logs
+were retained. One bounded transaction removed only `orphan_file`, ran the
+mandatory `e2fsck -fy`, relocked all 117 UFS nodes, and proved p23 clean with
+unchanged UUID/label. The first manifest run correctly exposed a changed
+Tailscale state image from intervening V11 boots; read-only fsck passed and a
+current-state manifest then verified all 16 files.
+
+Afterward, instrumented ASUS recovery selected `trial-primary-a1` immediately.
+The same result passed after deliberately using the old exitrd shutdown shape,
+and the unchanged installed `boot_b` recovery booted V10
+`292e4435-cfa0-4db5-94a0-6c1015e938f2`. Final acceptance passed systemd,
+native Wi-Fi, Tailscale, strict SSH, the exact 163-package inventory, p24
+read-only, only `sda,sda23` writable, Full/Good battery and `0/0` journal
+evidence. The recovery-selection blocker is resolved.
