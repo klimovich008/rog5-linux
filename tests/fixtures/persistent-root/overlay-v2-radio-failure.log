@@ -1,0 +1,6 @@
+[19.981477] stage sequence=25 stage=switch-root state=PASS
+[20.028029] rog5-p2-attest: PROGRESS mounts-pass
+[20.224209] rog5-p2-attest: PROGRESS physical-readonly-pass
+[20.504026] rog5-p2-attest: PASS bounded-write persistent Arch root ready
+[20.849196] Starting Qualify the local signed Wi-Fi radio before writable service state
+[20.899066] FAIL native-wifi-radio: writable UFS
