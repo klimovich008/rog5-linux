@@ -206,6 +206,7 @@ class AutomaticWifi(unittest.TestCase):
         archive.add(members, 'rog5-native-wifi/automatic',
                     b'rog5-native-wifi-boot-v1\n', 0o100444)
         archive.add(members, 'rog5-native-wifi/runtime', b'old-runtime', 0o100755)
+        archive.add(members, 'rog5-native-wifi/radio', b'old-radio', 0o100755)
         archive.add(members, 'rog5-native-wifi/boot-files.sha256',
                     b'old-checks\n', 0o100444)
         archive.add(
@@ -257,6 +258,7 @@ class AutomaticWifi(unittest.TestCase):
         self.assertEqual(successor_result['added_members'], 0)
         self.assertEqual(successor_result['changed_existing_members'], [
             'rog5-native-wifi/boot-files.sha256',
+            'rog5-native-wifi/radio',
             'rog5-native-wifi/trial-descriptor',
         ])
         for name, value in output.items():
@@ -379,6 +381,20 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn('timeout -k "$kill_seconds" "$limit" "$root/module-once"', script)
         self.assertNotIn('insmod', script)
         self.assertIn('$((outer_seconds - radio_seconds - cleanup_seconds))', script)
+        fixture = (
+            R/'tests/fixtures/persistent-root/overlay-v2-radio-failure.log'
+        ).read_text()
+        self.assertIn('rog5-p2-attest: PASS', fixture)
+        self.assertIn('FAIL native-wifi-radio: writable UFS', fixture)
+        for contract in (
+            'overlay_record=/run/rog5-persistent-overlay.runtime',
+            'resolve_storage_mode() {',
+            'format=rog5-persistent-root-overlay-runtime-v1',
+            'rog5/root/root-overlay-v1.ext4',
+            '[ "$writable" = 2 ]',
+            'fail \'overlay write scope\'',
+        ):
+            self.assertIn(contract, script)
         timing = (R/'initramfs/native-wifi/timing').read_text()
         result = subprocess.run(['sh', '-c', 'set -eu\n'+timing+
             '\n[ "$outer_seconds" -gt "$((radio_seconds + cleanup_seconds))" ]\n'
