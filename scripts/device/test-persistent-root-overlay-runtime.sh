@@ -37,7 +37,10 @@ for contract in \
 done
 for contract in \
 	'final_storage_detail=overlay-runtime' \
-	'ufs-q${blocked_query_count}-s${blocked_scsi_count}-j${journal_recovery_count}-e${ufs_error_count}'; do
+	'ufs-q${blocked_query_count}-s${blocked_scsi_count}-j${journal_recovery_count}-e${ufs_error_count}' \
+	'EXT4-fs ($overlay_loop_name): recovery complete' \
+	'[ "$overlay_recovery_count" -le 1 ]' \
+	'[ "$journal_recovery_count" -eq "$journal_recovery_allowed" ]'; do
 	grep -Fq "$contract" "$init" || fail "missing final-storage classification: $contract"
 done
 
@@ -141,5 +144,34 @@ chmod 0700 "$work/state/work/work"
 rmdir "$work/state/work/work"
 touch "$work/state/work/hostile"
 ! verify_overlay_workdir_pre_mount "$work/state"
+
+awk '
+	/^verify_ufs_health\(\) \{/ { copy=1 }
+	copy { print }
+	copy && /^}/ { exit }
+' "$init" | sed "s#/run/rog5-p2-#$work/health-#g" >"$work/health.sh"
+# shellcheck disable=SC1090
+. "$work/health.sh"
+dmesg() { printf '%s' "$mock_dmesg"; }
+expected_persistent_overlay_mode=1
+overlay_loop=/dev/loop7
+mock_dmesg=
+verify_ufs_health
+mock_dmesg='EXT4-fs (loop7): recovery complete
+'
+verify_ufs_health
+expected_persistent_overlay_mode=0
+! verify_ufs_health
+expected_persistent_overlay_mode=1
+mock_dmesg='EXT4-fs (sda23): recovery complete
+'
+! verify_ufs_health
+mock_dmesg='EXT4-fs (loop7): recovery complete
+EXT4-fs (loop7): recovery complete
+'
+! verify_ufs_health
+mock_dmesg='ufshcd-qcom fatal error
+'
+! verify_ufs_health
 
 echo 'PASS persistent root overlay is exact-scope, shared-mount aware, and teardown ordered'
