@@ -24,8 +24,13 @@ expected_probe_bytes=132
 expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
+expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@
 expected_native_bytes=34359717888
 expected_native_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
+expected_overlay_bytes=17179869184
+expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+expected_overlay_label=ROG5_ROOT_RW_V1
+overlay_record=/run/rog5-persistent-overlay.runtime
 lower=/.rog5/root-ro
 image=/.rog5/userdata-ro/rog5/images/arch-local-a.ext4
 userdata_record=/run/rog5-p2-userdata-device
@@ -195,10 +200,69 @@ awk -v loop="$root_loop" '$1 == loop && $2 == "/.rog5/root-ro" &&
 	$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ { found++ }
 	END { exit found != 1 }' /proc/mounts ||
 	fail 'local-image lower is not the exact read-only ext4 loop mount'
-awk '$1 == "tmpfs" && $2 == "/.rog5/state" && $3 == "tmpfs" &&
-	$4 ~ /(^|,)rw(,|$)/ { found++ }
-	END { exit found != 1 }' /proc/mounts ||
-	fail 'overlay state is not writable tmpfs'
+case $expected_persistent_overlay_mode in
+	0)
+		awk '$1 == "tmpfs" && $2 == "/.rog5/state" && $3 == "tmpfs" &&
+			$4 ~ /(^|,)rw(,|$)/ { found++ }
+			END { exit found != 1 }' /proc/mounts ||
+			fail 'overlay state is not writable tmpfs'
+		expected_block_mounts=$((2 - expected_native_root_mode))
+		;;
+	1)
+		[ "$expected_native_root_mode:$expected_ufs_storage_mode" = 1:read-only ] ||
+			fail 'persistent overlay composition changed'
+		[ -f "$overlay_record" ] && [ ! -L "$overlay_record" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$overlay_record")" = 0:0:400:1 ] ||
+			fail 'persistent overlay runtime record is absent'
+		[ "$(grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' \
+			"$overlay_record")" -eq 1 ] || fail 'persistent overlay record changed'
+		overlay_disk=$(sed -n 's/^disk=//p' "$overlay_record")
+		overlay_userdata=$(sed -n 's/^userdata=//p' "$overlay_record")
+		overlay_loop=$(sed -n 's/^loop=//p' "$overlay_record")
+		overlay_image=$(sed -n 's/^image=//p' "$overlay_record")
+		case $overlay_userdata in /dev/sd[a-z]23) ;; *) fail 'overlay userdata is unsafe' ;; esac
+		case $overlay_loop in /dev/loop[0-9]*) ;; *) fail 'overlay loop is unsafe' ;; esac
+		[ "$overlay_disk" = "${overlay_userdata%23}" ] &&
+			[ "$userdata" = "${overlay_disk}24" ] &&
+			[ "$overlay_image" = rog5/root/root-overlay-v1.ext4 ] ||
+			fail 'persistent overlay device relationship changed'
+		[ -b "$overlay_userdata" ] && [ -b "$overlay_loop" ] ||
+			fail 'persistent overlay block node disappeared'
+		[ "$(runtime_blockdev --getro "$overlay_userdata")" = 0 ] &&
+			[ "$(runtime_blockdev --getro "$overlay_disk")" = 0 ] &&
+			[ "$(runtime_blockdev --getsize64 "$overlay_loop")" = \
+				"$expected_overlay_bytes" ] || fail 'persistent overlay write scope changed'
+		overlay_file=/.rog5/userdata-rw/$overlay_image
+		[ -f "$overlay_file" ] && [ ! -L "$overlay_file" ] &&
+			[ "$(stat -c '%u:%g:%a:%s:%h' "$overlay_file")" = \
+				"0:0:600:$expected_overlay_bytes:1" ] ||
+			fail 'persistent overlay image metadata changed'
+		overlay_blkid=$(blkid "$overlay_loop") || fail 'persistent overlay identity absent'
+		printf '%s\n' "$overlay_blkid" | grep -Fq " UUID=\"$expected_overlay_uuid\"" &&
+			printf '%s\n' "$overlay_blkid" | grep -Fq " LABEL=\"$expected_overlay_label\"" &&
+			printf '%s\n' "$overlay_blkid" | grep -Fq ' TYPE="ext4"' ||
+			fail 'persistent overlay filesystem identity changed'
+		awk -v device="$overlay_userdata" '$1 == device &&
+			$2 == "/.rog5/userdata-rw" && $3 == "ext4" &&
+			$4 ~ /(^|,)rw(,|$)/ && $4 ~ /(^|,)nodev(,|$)/ &&
+			$4 ~ /(^|,)nosuid(,|$)/ && $4 ~ /(^|,)noexec(,|$)/ { found++ }
+			END { exit found != 1 }' /proc/mounts ||
+			fail 'persistent userdata mount changed'
+		awk -v loop="$overlay_loop" '$1 == loop && $2 == "/.rog5/state" &&
+			$3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ &&
+			$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ &&
+			$4 ~ /(^|,)noexec(,|$)/ { found++ }
+			END { exit found != 1 }' /proc/mounts ||
+			fail 'persistent overlay state mount changed'
+		overlay_userdata_name=${overlay_userdata##*/}
+		overlay_loop_name=${overlay_loop##*/}
+		IFS= read -r expected_overlay_userdata \
+			<"/sys/class/block/$overlay_userdata_name/dev"
+		IFS= read -r expected_overlay_loop <"/sys/class/block/$overlay_loop_name/dev"
+		expected_block_mounts=3
+		;;
+	*) fail 'persistent overlay mode changed' ;;
+esac
 
 block_mounts=0
 IFS= read -r expected_device <"/sys/class/block/$userdata_name/dev"
@@ -215,9 +279,19 @@ while read -r _ _ device _ mountpoint _ rest; do
 		[ "$mountpoint" = /.rog5/root-ro ]; then
 		continue
 	fi
+	if [ "$expected_persistent_overlay_mode" -eq 1 ] &&
+		[ "$device" = "$expected_overlay_userdata" ] &&
+		[ "$mountpoint" = /.rog5/userdata-rw ]; then
+		continue
+	fi
+	if [ "$expected_persistent_overlay_mode" -eq 1 ] &&
+		[ "$device" = "$expected_overlay_loop" ] &&
+		[ "$mountpoint" = /.rog5/state ]; then
+		continue
+	fi
 	fail "unexpected block-backed mount: $mountpoint"
 done </proc/self/mountinfo
-[ "$block_mounts" -eq "$((2 - expected_native_root_mode))" ] ||
+[ "$block_mounts" -eq "$expected_block_mounts" ] ||
 	fail 'physical block-backed mount count changed'
 progress mounts-pass
 
@@ -234,9 +308,15 @@ for sys_disk in /sys/class/block/*; do
 		[ -b "$device" ] || fail "missing block node: $device"
 		IFS= read -r readonly <"$sys_block/ro" ||
 			fail "unreadable sysfs block state: $device"
-		[ "$readonly" = 1 ] ||
+		expected_readonly=1
+		if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+			case $device in
+				"$overlay_disk"|"$overlay_userdata") expected_readonly=0 ;;
+			esac
+		fi
+		[ "$readonly" = "$expected_readonly" ] ||
 			fail "writable sysfs block state: $device"
-		[ "$(runtime_blockdev --getro "$device")" = 1 ] ||
+		[ "$(runtime_blockdev --getro "$device")" = "$expected_readonly" ] ||
 			fail "writable block ioctl state: $device"
 		physical_count=$((physical_count + 1))
 	done
@@ -298,7 +378,14 @@ trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
 	printf '%s\n' "kernel=$(uname -r)"
 	printf '%s\n' "physical_blocks=$physical_count"
 	if [ "$expected_native_root_mode" -eq 1 ]; then
-		printf '%s\n' 'block_backed_mounts=1'
+		if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+			printf '%s\n' 'block_backed_mounts=3'
+			printf '%s\n' 'userdata_mount=rw-noexec'
+			printf '%s\n' 'overlay_state=ext4-rw'
+		else
+			printf '%s\n' 'block_backed_mounts=1'
+			printf '%s\n' 'overlay_state=tmpfs-rw'
+		fi
 		printf '%s\n' 'root_mount=native-root-ro-noload'
 	else
 		printf '%s\n' 'block_backed_mounts=2'
@@ -307,7 +394,11 @@ trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
 	fi
 	printf '%s\n' 'local_image_write_probe=PASS'
 	if [ "$expected_native_root_mode" -eq 1 ]; then
-		printf '%s\n' 'root=native-ext4-overlay-tmpfs'
+		if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+			printf '%s\n' 'root=native-ext4-overlay-persistent'
+		else
+			printf '%s\n' 'root=native-ext4-overlay-tmpfs'
+		fi
 	else
 		printf '%s\n' 'root=local-ext4-overlay-tmpfs'
 	fi

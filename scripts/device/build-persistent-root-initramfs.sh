@@ -391,12 +391,20 @@ fi
 	echo 'FAIL persistent-root attestation has no unique native-root placeholder' >&2
 	exit 1
 }
+[ "$(grep -Fc '@EXPECTED_PERSISTENT_OVERLAY_MODE@' "$attest_stage")" -eq 1 ] || {
+	echo 'FAIL persistent-root attestation has no unique persistent-overlay placeholder' >&2
+	exit 1
+}
 sed -i "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" "$attest_stage"
 sed -i "s/@EXPECTED_PROBE_BOOT_ID@/$probe_boot_id/" "$attest_stage"
 sed -i "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" "$attest_stage"
+sed -i "s/@EXPECTED_PERSISTENT_OVERLAY_MODE@/$persistent_overlay_mode/" \
+	"$attest_stage"
 grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$attest_stage"
 grep -Fqx "expected_probe_boot_id=$probe_boot_id" "$attest_stage"
 grep -Fqx "expected_native_root_mode=$native_root_mode" "$attest_stage"
+grep -Fqx "expected_persistent_overlay_mode=$persistent_overlay_mode" \
+	"$attest_stage"
 ! grep -Fq '@EXPECTED_' "$attest_stage"
 install -m 0755 "$verifier" \
 	"$stage/usr/local/sbin/persistent-root-verify"

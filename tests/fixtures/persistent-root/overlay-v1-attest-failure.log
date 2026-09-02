@@ -1,0 +1,7 @@
+[20.228665] stage sequence=18 stage=overlay state=ENTER
+[20.228772] EXT4-fs (loop0): mounted filesystem f4834541-6e7a-4214-80d5-818fcc5cc252 r/w
+[20.228814] stage sequence=19 stage=overlay state=PASS
+[20.228889] stage sequence=21 stage=runtime state=PASS
+[20.228964] stage sequence=23 stage=final-storage state=PASS
+[20.230085] stage sequence=25 stage=switch-root state=PASS
+[20.652017] rog5-p2-attest: FAIL overlay state is not writable tmpfs

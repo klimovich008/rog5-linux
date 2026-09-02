@@ -8,6 +8,7 @@ power_modules=${4:-}
 [ "$#" -le 4 ]
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
+attest=$repo/initramfs/persistent-root-attest
 shutdown=$repo/initramfs/persistent-root-shutdown-standalone
 state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
@@ -64,6 +65,7 @@ refresh_module_set() {
 
 unchanged_files() {
 	set -- ! -path ./init ! -path ./shutdown \
+		! -path ./usr/local/sbin/rog5-p2-attest \
 		! -path ./usr/local/sbin/rog5-persistent-state \
 		! -path ./usr/local/sbin/rog5-persistent-ssh-identity \
 		! -path ./usr/local/sbin/rog5-persistent-tailscale \
@@ -87,7 +89,7 @@ case $base_sha256 in
 		}
 		;;
 esac
-[ -x "$init" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ] &&
+[ -x "$init" ] && [ -x "$attest" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ] &&
 	[ -x "$ssh_identity" ] && [ -x "$tailscale_runtime" ] &&
 	[ -x "$ufs_module_verifier" ]
 [ ! -e "$output" ]
@@ -123,6 +125,19 @@ sed -i \
 	-e "s/@EXPECTED_PERSISTENT_OVERLAY_MODE@/$persistent_overlay_mode/" \
 	"$root/init"
 ! grep -Fq '@EXPECTED_' "$root/init"
+install -D -m 0755 "$attest" "$root/usr/local/sbin/rog5-p2-attest"
+for placeholder in EXPECTED_UFS_STORAGE_MODE EXPECTED_PROBE_BOOT_ID \
+	EXPECTED_NATIVE_ROOT_MODE EXPECTED_PERSISTENT_OVERLAY_MODE; do
+	[ "$(grep -Fc "@$placeholder@" \
+		"$root/usr/local/sbin/rog5-p2-attest")" -eq 1 ]
+done
+sed -i \
+	-e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
+	-e "s/@EXPECTED_PROBE_BOOT_ID@/$probe_boot_id/" \
+	-e "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" \
+	-e "s/@EXPECTED_PERSISTENT_OVERLAY_MODE@/$persistent_overlay_mode/" \
+	"$root/usr/local/sbin/rog5-p2-attest"
+! grep -Fq '@EXPECTED_' "$root/usr/local/sbin/rog5-p2-attest"
 install -m 0755 "$shutdown" "$root/shutdown"
 install -D -m 0755 "$state_helper" \
 	"$root/usr/local/sbin/rog5-persistent-state"
