@@ -178,8 +178,17 @@ for api in run dev sys proc; do
 done
 
 try_native_kexec "${1:-}" || true
-log 'requesting storage-quiescent normal restart'
-"$bb" reboot -f 2>/dev/null || true
-log 'normal restart returned; triggering emergency reset'
+case ${1:-reboot} in
+poweroff)
+	log 'requesting storage-quiescent power off'
+	"$bb" poweroff -f 2>/dev/null || true
+	log 'power off returned; triggering emergency reset'
+	;;
+*)
+	log 'requesting storage-quiescent normal restart'
+	"$bb" reboot -f 2>/dev/null || true
+	log 'normal restart returned; triggering emergency reset'
+	;;
+esac
 printf b >/proc/sysrq-trigger 2>/dev/null || true
 while :; do "$bb" sleep 3600; done

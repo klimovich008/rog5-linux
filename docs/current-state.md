@@ -26,7 +26,7 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Persistent Linux baseline
 
-- Current live primary: V10 boot `389acb49-2cc0-46da-9997-e67e548a77ee`,
+- Current live primary: V10 boot `9a4dce86-229f-4193-a216-aedb06dbd5ff`,
   kernel `7.1.4-g1eea8970e87f`, bundle
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…e3e8f5`.
   Systemd, native Wi-Fi, NCM, Tailscale, strict key-only SSH and persistent
@@ -50,7 +50,9 @@ remain deferred; the optional power-key text status screen is frozen.
   `test-results/2026-09-02-persistent-overlay-v8-package-update.md`.
 - The first persistent workload, sandboxed `rog5-healthd`, is enabled and
   survived installed-`boot_b` recovery. Its fixed `/healthz` response passes
-  over NCM and native Wi-Fi with no credentials or writable service state. See
+  over NCM and native Wi-Fi with no credentials or writable service state. A
+  powered-off start under connected power also returned through recovery and
+  restored V10 plus healthd. See
   `test-results/2026-09-02-healthd-persistent-live.md`.
 - The live kernel lacks Landlock, so pacman temporarily disables only its
   filesystem sandbox while retaining the `alpm` user and seccomp sandbox.

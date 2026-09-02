@@ -35,6 +35,7 @@ for contract in \
 	'V10 first boot' \
 	'P23 no longer uses ext4 `orphan_file`' \
 	'first persistent workload, sandboxed `rog5-healthd`' \
+	'powered-off start under connected power' \
 	'SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ' \
 	'P24 (`arch_root_a`)' \
 	'test-results/2026-09-02-persistent-root-overlay-v8-live.md' \

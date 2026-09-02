@@ -18,7 +18,7 @@ without exposing secrets or weakening recovery, storage, power or SSH health?
 - Slot B contains bounded-retry recovery `340f6392…` and selector-v2 primary
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…`, with signed
   V11 as automatic fallback. Exact old recovery `f2a73030…` remains restorable.
-- Current boot: accepted V10 `389acb49-2cc0-46da-9997-e67e548a77ee` with
+- Current boot: accepted V10 `9a4dce86-229f-4193-a216-aedb06dbd5ff` with
   systemd, native Wi-Fi, NCM, Tailscale, strict SSH and persistent service
   state.
 - V10 uses p24 read-only as the Arch lower and the exact 16 GiB
@@ -53,7 +53,9 @@ without exposing secrets or weakening recovery, storage, power or SSH health?
   not reproducible, so kernel/DT source remains unchanged.
 - `rog5-healthd` is the first persistent workload. It is credential-free,
   dynamic-user sandboxed, enabled at boot, and survived installed recovery.
-  `/healthz` passes over NCM and Wi-Fi; full V10 acceptance remains green.
+  `/healthz` passes over NCM and Wi-Fi; full V10 acceptance remains green. A
+  RAM-only action-aware shutdown also proved powered-off auto-start under
+  connected power. Repository exitrd source now preserves that poweroff action.
 
 ## Newly proven milestone
 
@@ -70,7 +72,7 @@ journal replay.
 
 ## Next actions
 
-1. Publish the healthd live result and compact current state.
+1. Publish the powered-off startup result and action-aware exitrd correction.
 2. Define one unprivileged automation service account with secrets kept only in
    the existing p23 service-state image.
 3. Deploy the operator-selected AI/automation workload and validate resource,
