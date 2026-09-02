@@ -47,6 +47,22 @@ runtime_blockdev() {
 	"$runtime_loader" "$runtime_busybox" blockdev "$@"
 }
 
+sshd_effective_option() {
+	option=$1
+	awk -v option="$option" '
+	tolower($1) == option {
+		count++
+		if (NF != 2)
+			invalid=1
+		value=tolower($2)
+	}
+	END {
+		if (invalid || count != 1)
+			exit 1
+		print value
+	}' "$sshd_effective"
+}
+
 progress start
 
 [ -f "$userdata_record" ] && [ ! -L "$userdata_record" ] &&
@@ -360,13 +376,38 @@ ip -o -4 address show dev usb0 |
 	fail 'USB management address is absent'
 systemctl is-active --quiet rog5-early-sshd.service ||
 	fail 'strict SSH service is not active'
-sshd -T | grep -Fqx 'passwordauthentication no' ||
+[ ! -e /run/rog5-sshd-effective ] &&
+	[ ! -L /run/rog5-sshd-effective ] &&
+	[ ! -e /run/rog5-sshd-effective.next ] &&
+	[ ! -L /run/rog5-sshd-effective.next ] ||
+	fail 'effective SSH evidence already exists'
+sshd_effective=/run/rog5-sshd-effective
+sshd_effective_next=$sshd_effective.next
+umask 077
+sshd -T >"$sshd_effective_next" ||
+	fail 'effective SSH policy is unavailable'
+sshd_effective_size=$(stat -c %s "$sshd_effective_next") ||
+	fail 'effective SSH evidence size is unavailable'
+[ "$sshd_effective_size" -gt 0 ] && [ "$sshd_effective_size" -le 65536 ] ||
+	fail 'effective SSH evidence is outside its bound'
+chown 0:0 "$sshd_effective_next" && chmod 0400 "$sshd_effective_next" &&
+	mv "$sshd_effective_next" "$sshd_effective" ||
+	fail 'effective SSH evidence publication failed'
+[ "$(stat -c '%u:%g:%a:%h' "$sshd_effective")" = 0:0:400:1 ] ||
+	fail 'effective SSH evidence identity changed'
+[ "$(sshd_effective_option passwordauthentication)" = no ] ||
 	fail 'SSH password authentication is enabled'
-sshd -T | grep -Eq '^permitrootlogin (without-password|prohibit-password)$' ||
+permit_root_login=$(sshd_effective_option permitrootlogin) ||
+	fail 'SSH root policy is unavailable'
+case $permit_root_login in without-password|prohibit-password) ;; *)
 	fail 'SSH root policy changed'
-sshd -T | grep -Fqx 'pubkeyauthentication yes' ||
+	;;
+esac
+[ "$(sshd_effective_option pubkeyauthentication)" = yes ] ||
 	fail 'SSH public-key authentication is disabled'
-sshd -T | grep -Fqx 'usepam no' ||
+[ "$(sshd_effective_option kbdinteractiveauthentication)" = no ] ||
+	fail 'SSH keyboard-interactive authentication is enabled'
+[ "$(sshd_effective_option usepam)" = no ] ||
 	fail 'PAM remains enabled for early key-only SSH'
 [ -s /etc/ssh/ssh_host_ed25519_key ] &&
 	[ "$(stat -c %a /etc/ssh/ssh_host_ed25519_key)" = 600 ] ||

@@ -4,6 +4,7 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 attest=$repo/initramfs/persistent-root-attest
+sshd_105_fixture=$repo/tests/fixtures/persistent-root/openssh-10.5-sshd-t-auth.txt
 ssh_diagnostic=$repo/initramfs/persistent-root-ssh-diagnostic
 shutdown=$repo/initramfs/persistent-root-shutdown
 tailscale_runtime=$repo/initramfs/persistent-tailscale-runtime
@@ -37,6 +38,8 @@ for path in "$init" "$attest" "$shutdown" "$tailscale_runtime" "$builder" \
 done
 [ -x "$ssh_diagnostic" ] ||
 	fail 'missing executable native-root SSH diagnostic source'
+[ -f "$sshd_105_fixture" ] && [ ! -L "$sshd_105_fixture" ] ||
+	fail 'missing OpenSSH 10.5 effective-policy fixture'
 [ -f "$reboot_source" ] && [ ! -L "$reboot_source" ] ||
 	fail 'missing persistent-root restart2 helper source'
 for reboot_contract in \
@@ -154,8 +157,34 @@ for contract in \
 	grep -Fq "$contract" "$init" ||
 		fail "P2 volatile SSH policy contract is missing: $contract"
 done
-grep -Fq "sshd -T | grep -Fqx 'usepam no'" "$attest" ||
-	fail 'P2 attestation does not prove PAM is disabled for early key-only SSH'
+grep -Fq 'sshd_effective_option() {' "$attest" ||
+	fail 'P2 attestation lacks a case-stable effective SSH parser'
+grep -Fq 'sshd -T >"$sshd_effective_next"' "$attest" ||
+	fail 'P2 attestation does not retain bounded effective SSH evidence'
+(
+	sshd_work=$(mktemp -d)
+	trap 'rm -rf -- "$sshd_work"' EXIT HUP INT TERM
+	awk '
+		/^sshd_effective_option\(\) \{/ { copy=1 }
+		copy { print }
+		copy && /^}/ { exit }
+	' "$attest" >"$sshd_work/function.sh"
+	# shellcheck disable=SC1090
+	. "$sshd_work/function.sh"
+	sshd_effective=$sshd_105_fixture
+	[ "$(sshd_effective_option usepam)" = no ]
+	[ "$(sshd_effective_option permitrootlogin)" = prohibit-password ]
+	[ "$(sshd_effective_option pubkeyauthentication)" = yes ]
+	[ "$(sshd_effective_option passwordauthentication)" = no ]
+	[ "$(sshd_effective_option kbdinteractiveauthentication)" = no ]
+	tr '[:upper:]' '[:lower:]' <"$sshd_105_fixture" >"$sshd_work/lowercase"
+	sshd_effective=$sshd_work/lowercase
+	[ "$(sshd_effective_option passwordauthentication)" = no ]
+	cp "$sshd_105_fixture" "$sshd_work/duplicate"
+	printf '%s\n' 'PasswordAuthentication no' >>"$sshd_work/duplicate"
+	sshd_effective=$sshd_work/duplicate
+	! sshd_effective_option passwordauthentication >/dev/null
+)
 (
 	account_work=$(mktemp -d)
 	trap 'rm -rf -- "$account_work"' EXIT HUP INT TERM
