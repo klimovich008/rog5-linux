@@ -61,6 +61,24 @@ install_status_screen() {
 	# Load the reviewed module in this trusted initramfs runtime.  The
 	# long-running button service deliberately has no CAP_SYS_MODULE; its
 	# ExecStartPre repeats the same helper only as an idempotent identity check.
+	release=$(cat "$root/kernel-release") || return 1
+	case $release in ''|*[!A-Za-z0-9._+-]*) return 1 ;; esac
+	[ "$(uname -r)" = "$release" ] || return 1
+	module_base=/lib/modules
+	module_root=$module_base/$release
+	module_index=/lib/modules/$release/modules.dep
+	for directory in "$module_base" "$module_root"; do
+		if [ -e "$directory" ] || [ -L "$directory" ]; then
+			[ -d "$directory" ] && [ ! -L "$directory" ] || return 1
+		else
+			mkdir -m 0755 "$directory" || return 1
+		fi
+	done
+	[ ! -e "$module_index" ] && [ ! -L "$module_index" ] || return 1
+	: >"$module_index" || return 1
+	chmod 0444 "$module_index" || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$module_index")" = 0:0:444:0:1 ] ||
+		return 1
 	pwrkey_result=/run/rog5-pwrkey-result
 	[ ! -e "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] || return 1
 	ROG5_PWRKEY_RESULT=$pwrkey_result "$root/load-pwrkey" || return 1
