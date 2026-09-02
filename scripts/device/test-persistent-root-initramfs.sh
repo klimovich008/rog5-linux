@@ -96,6 +96,8 @@ grep -Fqx 'expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@' "$init" ||
 	fail 'P2 target lacks the sealed native-root mode placeholder'
 grep -Fqx 'expected_ssh_diagnostic_mode=@EXPECTED_SSH_DIAGNOSTIC_MODE@' "$init" ||
 	fail 'P2 target lacks the sealed SSH diagnostic-mode placeholder'
+grep -Fqx 'expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@' "$init" ||
+	fail 'P2 target lacks the sealed persistent-overlay placeholder'
 grep -Fqx 'expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@' "$attest" ||
 	fail 'P2 attestation lacks the sealed UFS storage-mode placeholder'
 grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$attest" ||
@@ -112,6 +114,8 @@ grep -Fq 'PERSISTENT_ROOT_NATIVE_PARTITION must be 0 or 1' "$builder" ||
 	fail 'P2 builder does not fail closed on native-root mode'
 grep -Fq 'PERSISTENT_ROOT_SSH_DIAGNOSTIC must be 0 or 1' "$builder" ||
 	fail 'P2 builder does not fail closed on SSH diagnostic mode'
+grep -Fq 'PERSISTENT_ROOT_OVERLAY must be 0 or 1' "$builder" ||
+	fail 'P2 builder does not fail closed on persistent-overlay mode'
 for contract in \
 	'format=rog5-native-ssh-diagnostic-v1' \
 	'while [ "$attempt" -lt 1800 ]; do' \
@@ -170,6 +174,9 @@ grep -Fq "sshd -T | grep -Fqx 'usepam no'" "$attest" ||
 	prepare_volatile_root_account "$account_work/root" "$account_work/lower"
 	grep -Fxq 'root:x:20610::::::' "$account_work/root/etc/shadow"
 	grep -Fxq 'root:!$y$fixture:20610::::::' "$account_work/lower/etc/shadow"
+	expected_persistent_overlay_mode=1
+	prepare_volatile_root_account "$account_work/root" "$account_work/lower"
+	grep -Fxq 'root:x:20610::::::' "$account_work/root/etc/shadow"
 )
 (
 	policy_work=$(mktemp -d)
@@ -203,6 +210,10 @@ grep -Fq "sshd -T | grep -Fqx 'usepam no'" "$attest" ||
 		"$policy_work/root/etc/ssh/sshd_config.d/10-rog5-server.conf"
 	! grep -Fq 'UsePAM' \
 		"$policy_work/lower/etc/ssh/sshd_config.d/10-rog5-server.conf"
+	expected_persistent_overlay_mode=1
+	prepare_volatile_ssh_policy "$policy_work/root" "$policy_work/lower"
+	[ "$(grep -c '^UsePAM no$' \
+		"$policy_work/root/etc/ssh/sshd_config.d/10-rog5-server.conf")" -eq 1 ]
 )
 grep -Fq 'EXPECTED_PROBE_BOOT_ID must be current for local-write' "$builder" ||
 	fail 'P2 builder does not preserve current-boot write semantics'
@@ -374,7 +385,7 @@ grep -Fq 'losetup -r "$root_loop" "$root_image"' "$init"
 grep -Fq 'mount -t ext4 -o ro,noload,nodev,nosuid,noatime' "$init"
 grep -Fq 'blockdev --setrw "$userdata"' "$init"
 grep -Fq 'blockdev --setrw "$userdata_disk"' "$init"
-[ "$(grep -Fc 'blockdev --setrw' "$init")" -eq 2 ]
+[ "$(grep -Fc 'blockdev --setrw' "$init")" -eq 4 ]
 grep -Fq 'blockdev --setro "$userdata_disk"' "$init"
 grep -Fq 'blockdev --setro "$userdata"' "$init"
 grep -Fq 'format=rog5-local-image-write-probe-v1' "$init" "$attest"
@@ -720,6 +731,7 @@ sed -e "s/@EXPECTED_KERNEL_RELEASE@/${EXPECTED_RELEASE:-7.1.4-gcdf38b1ddebb}/" \
 	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
 	-e 's/@EXPECTED_NATIVE_ROOT_MODE@/0/' \
 	-e 's/@EXPECTED_SSH_DIAGNOSTIC_MODE@/0/' \
+	-e 's/@EXPECTED_PERSISTENT_OVERLAY_MODE@/0/' \
 	"$init" >"$work/expected-init"
 cmp "$work/root/init" "$work/expected-init"
 cmp "$work/root/shutdown" "$shutdown"
@@ -769,6 +781,7 @@ grep -Fqx "expected_ufs_storage_mode=$storage_mode" "$work/root/init"
 grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" "$work/root/init"
 grep -Fxq 'expected_native_root_mode=0' "$work/root/init"
 grep -Fxq 'expected_ssh_diagnostic_mode=0' "$work/root/init"
+grep -Fxq 'expected_persistent_overlay_mode=0' "$work/root/init"
 grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
 grep -Fxq 'expected_native_root_mode=0' \
@@ -789,6 +802,7 @@ gzip -dc "$work/native-ssh-diagnostic.cpio.gz" |
 	(cd "$work/diagnostic-root" && cpio -idm --quiet --no-absolute-filenames)
 grep -Fxq 'expected_native_root_mode=1' "$work/diagnostic-root/init"
 grep -Fxq 'expected_ssh_diagnostic_mode=1' "$work/diagnostic-root/init"
+grep -Fxq 'expected_persistent_overlay_mode=0' "$work/diagnostic-root/init"
 cmp "$work/diagnostic-root/usr/local/sbin/rog5-ssh-diagnostic" \
 	"$ssh_diagnostic"
 grep -Fq 'ExecStart=/usr/bin/sshd -D -e -o LogLevel=DEBUG3' \
@@ -858,6 +872,7 @@ awk '
 ' "$init" >"$handoff_functions"
 grep -Fq 'handoff_persistent_root() {' "$handoff_functions"
 expected_native_root_mode=0
+expected_persistent_overlay_mode=0
 # shellcheck disable=SC1090
 . "$handoff_functions"
 handoff_tree=$work/handoff

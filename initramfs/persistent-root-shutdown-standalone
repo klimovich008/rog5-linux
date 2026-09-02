@@ -35,18 +35,47 @@ detach_persistent_state() {
 	record=/oldsys/run/rog5-persistent-state.runtime
 	[ -f "$record" ] && [ ! -L "$record" ] || return 0
 	loop_device=$($bb sed -n 's/^loop=//p' "$record") || return 1
+	userdata_owner=$($bb sed -n 's/^userdata_owner=//p' "$record") || return 1
+	case $userdata_owner in state|overlay) ;; *) return 1 ;; esac
 	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
 	loop_device=/oldsys/dev/${loop_device#/dev/}
 	unmount_mount /oldroot/persist || return 1
 	[ -b "$loop_device" ] || return 1
 	"$bb" losetup -d "$loop_device" || return 1
-	unmount_mount /oldroot/.rog5/userdata-rw || return 1
+	[ "$userdata_owner" = overlay ] && return 0
+	unmount_mount /oldsys/userdata-rw || return 1
+	relock_storage
+}
+
+relock_storage() {
 	for sys_block in /oldsys/sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
 		device=/oldsys/dev/$("$bb" basename "$sys_block")
 		[ -b "$device" ] || return 1
 		"$bb" blockdev --setro "$device" || return 1
 	done
+}
+
+detach_persistent_overlay() {
+	record=/oldsys/run/rog5-persistent-overlay.runtime
+	[ -e "$record" ] || [ -L "$record" ] || return 2
+	[ -f "$record" ] && [ ! -L "$record" ] || return 1
+	[ "$("$bb" grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' \
+		"$record")" = 1 ] || return 1
+	loop_device=$("$bb" sed -n 's/^loop=//p' "$record") || return 1
+	userdata=$("$bb" sed -n 's/^userdata=//p' "$record") || return 1
+	disk=$("$bb" sed -n 's/^disk=//p' "$record") || return 1
+	image=$("$bb" sed -n 's/^image=//p' "$record") || return 1
+	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	[ "$disk" = "${userdata%23}" ] &&
+		[ "$image" = rog5/root/root-overlay-v1.ext4 ] || return 1
+	loop_device=/oldsys/dev/${loop_device#/dev/}
+	unmount_mount /oldsys/state || return 1
+	[ -b "$loop_device" ] || return 1
+	"$bb" losetup -d "$loop_device" || return 1
+	unmount_mount /oldsys/userdata-rw || return 1
+	relock_storage
 }
 
 try_native_kexec() {
@@ -87,13 +116,20 @@ fi
 clean=1
 move_mount /oldroot/.rog5/root-ro /oldsys/root-ro || mark_unclean 'move /oldroot/.rog5/root-ro /oldsys/root-ro'
 move_mount /oldroot/.rog5/userdata-ro /oldsys/userdata-ro || mark_unclean 'move /oldroot/.rog5/userdata-ro /oldsys/userdata-ro'
+move_mount /oldroot/.rog5/userdata-rw /oldsys/userdata-rw || mark_unclean 'move /oldroot/.rog5/userdata-rw /oldsys/userdata-rw'
 move_mount /oldroot/.rog5/state /oldsys/state || mark_unclean 'move /oldroot/.rog5/state /oldsys/state'
 for api in sys proc run dev; do
 	move_mount "/oldroot/$api" "/oldsys/$api" || mark_unclean "move /oldroot/$api /oldsys/$api"
 done
 detach_persistent_state || mark_unclean detach
 unmount_mount /oldroot || mark_unclean 'unmount /oldroot'
-unmount_mount /oldsys/state || mark_unclean 'unmount /oldsys/state'
+overlay_status=0
+detach_persistent_overlay || overlay_status=$?
+case $overlay_status in
+	0) ;;
+	2) unmount_mount /oldsys/state || mark_unclean 'unmount /oldsys/state' ;;
+	*) mark_unclean 'detach persistent overlay' ;;
+esac
 unmount_mount /oldsys/root-ro || mark_unclean 'unmount /oldsys/root-ro'
 unmount_mount /oldsys/userdata-ro || mark_unclean 'unmount /oldsys/userdata-ro'
 
@@ -101,6 +137,7 @@ if [ "$clean" -ne 1 ]; then
 	log 'clean teardown incomplete; detaching residual mounts'
 	lazy_unmount /oldroot/persist
 	lazy_unmount /oldroot/.rog5/userdata-rw
+	lazy_unmount /oldsys/userdata-rw
 	lazy_unmount /oldroot
 	lazy_unmount /oldsys/state
 	lazy_unmount /oldsys/root-ro

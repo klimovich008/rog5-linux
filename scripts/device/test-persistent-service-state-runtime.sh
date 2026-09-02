@@ -28,7 +28,7 @@ for contract in \
 	'preflight_state() {' \
 	'format=rog5-persistent-service-state-preflight-v1' \
 	'verify_storage_read_only' \
-	'verify_only_root_mount' \
+	'verify_root_storage_mounts' \
 	'verify_write_window' \
 	'bb blockdev --setrw "$userdata"' \
 	'bb blockdev --setrw "$userdata_disk"' \
@@ -137,5 +137,59 @@ printf '%s\n' \
 printf x >>"$manifest"
 [ "$(sha256sum "$manifest" | cut -d ' ' -f 1)" != \
 	2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6 ]
+
+awk '
+	/^stop_state\(\) \{/ { copy=1 }
+	/^case \$action in/ { copy=0 }
+	copy { print }
+' "$helper" >"$work/stop-state.sh"
+# shellcheck disable=SC1090
+. "$work/stop-state.sh"
+runtime_record=$work/state.runtime
+state_mount=/persist
+userdata_mount=/userdata
+mock_log=$work/stop.log
+mock_owner=
+resolve_exact_devices() {
+	userdata=/dev/sdz23
+	userdata_disk=/dev/sdz
+}
+resolve_userdata_owner() { userdata_owner=$mock_owner; }
+verify_write_window() { printf 'verify-write-window\n' >>"$mock_log"; }
+relock_storage() { printf 'relock\n' >>"$mock_log"; }
+bb() {
+	applet=$1
+	shift
+	case $applet in
+		stat) printf '0:0:400:1\n' ;;
+		grep|sed|rm) command "$applet" "$@" ;;
+		sync) printf 'sync\n' >>"$mock_log" ;;
+		umount) printf 'umount %s\n' "$1" >>"$mock_log" ;;
+		losetup) printf 'losetup %s %s\n' "$1" "$2" >>"$mock_log" ;;
+		rmdir) : ;;
+		*) return 1 ;;
+	esac
+}
+run_stop_case() {
+	mock_owner=$1
+	printf '%s\n' \
+		'format=rog5-persistent-service-state-runtime-v1' \
+		'userdata=/dev/sdz23' \
+		'loop=/dev/loop7' \
+		"userdata_owner=$mock_owner" >"$runtime_record"
+	: >"$mock_log"
+	stop_state 2>/dev/null
+}
+run_stop_case overlay
+grep -Fxq 'umount /persist' "$mock_log"
+grep -Fxq 'losetup -d /dev/loop7' "$mock_log"
+grep -Fxq 'verify-write-window' "$mock_log"
+! grep -Fq 'umount /userdata' "$mock_log"
+! grep -Fxq relock "$mock_log"
+run_stop_case state
+grep -Fxq 'umount /persist' "$mock_log"
+grep -Fxq 'losetup -d /dev/loop7' "$mock_log"
+grep -Fxq 'umount /userdata' "$mock_log"
+grep -Fxq relock "$mock_log"
 
 echo 'PASS persistent state mounts only exact p23/image after P2 and relocks on stop'

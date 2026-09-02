@@ -30,6 +30,7 @@ storage_mode=${UFS_STORAGE_MODE:-read-only}
 ufs_module_profile=${PERSISTENT_UFS_MODULE_PROFILE:-$storage_mode}
 native_root_mode=${PERSISTENT_ROOT_NATIVE_PARTITION:-0}
 ssh_diagnostic_mode=${PERSISTENT_ROOT_SSH_DIAGNOSTIC:-0}
+persistent_overlay_mode=${PERSISTENT_ROOT_OVERLAY:-0}
 writer_boot_id=7c3afb64-8e84-4f4b-87f4-88d19c2646de
 probe_boot_id=${EXPECTED_PROBE_BOOT_ID:-$writer_boot_id}
 epoch=1681862400
@@ -71,6 +72,15 @@ case $ssh_diagnostic_mode in 0|1) ;; *)
 	echo 'FAIL PERSISTENT_ROOT_SSH_DIAGNOSTIC must be 0 or 1' >&2
 	exit 1
 esac
+case $persistent_overlay_mode in 0|1) ;; *)
+	echo 'FAIL PERSISTENT_ROOT_OVERLAY must be 0 or 1' >&2
+	exit 1
+esac
+if [ "$persistent_overlay_mode" -eq 1 ] &&
+	[ "$native_root_mode:$storage_mode:$ssh_diagnostic_mode" != 1:read-only:0 ]; then
+	echo 'FAIL persistent overlay requires native read-only root without SSH diagnostic mode' >&2
+	exit 1
+fi
 
 case $require_deferred_ufs_modules in
 	0) ;;
@@ -278,6 +288,15 @@ grep -Fqx "expected_native_root_mode=$native_root_mode" "$stage/init"
 sed -i "s/@EXPECTED_SSH_DIAGNOSTIC_MODE@/$ssh_diagnostic_mode/" "$stage/init"
 grep -Fqx "expected_ssh_diagnostic_mode=$ssh_diagnostic_mode" "$stage/init"
 ! grep -Fq '@EXPECTED_SSH_DIAGNOSTIC_MODE@' "$stage/init"
+[ "$(grep -Fc '@EXPECTED_PERSISTENT_OVERLAY_MODE@' "$stage/init")" -eq 1 ] || {
+	echo 'FAIL persistent-root init has no unique persistent-overlay placeholder' >&2
+	exit 1
+}
+sed -i "s/@EXPECTED_PERSISTENT_OVERLAY_MODE@/$persistent_overlay_mode/" \
+	"$stage/init"
+grep -Fqx "expected_persistent_overlay_mode=$persistent_overlay_mode" \
+	"$stage/init"
+! grep -Fq '@EXPECTED_PERSISTENT_OVERLAY_MODE@' "$stage/init"
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$tailscale_runtime" \
 	"$stage/usr/local/sbin/rog5-persistent-tailscale"

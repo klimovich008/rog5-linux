@@ -15,12 +15,23 @@ tailscale_runtime=$repo/initramfs/persistent-tailscale-runtime
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 expected_base=cf3f6dadfb7567da064b27ce341d2224328c8046e3bef870424dbe8ddf471827
 expected_v10=db249f8cf242046c88ff8587355ea0eb89005b2bdafa57de8ddad43f1fe802fb
-expected_release=7.1.4-g359318de534f
+expected_external_base=${EXPECTED_STANDALONE_BASE_SHA256:-}
+expected_release=${EXPECTED_RELEASE:-7.1.4-g359318de534f}
 storage_mode=read-only
 probe_boot_id=staged-seal
 native_root_mode=1
 ssh_diagnostic_mode=0
+persistent_overlay_mode=${PERSISTENT_ROOT_OVERLAY:-0}
 epoch=1681862400
+
+case $persistent_overlay_mode in 0|1) ;; *)
+	echo 'FAIL PERSISTENT_ROOT_OVERLAY must be 0 or 1' >&2
+	exit 1
+esac
+printf '%s\n' "$expected_release" | grep -Eq '^7[.]1[.]4-g[0-9a-f]{12}$' || {
+	echo 'FAIL invalid expected standalone kernel release' >&2
+	exit 1
+}
 
 # Full module refresh is for an exact rebuilt kernel/BTF closure. The caller
 # must independently prove code equivalence and load the closure with its Image.
@@ -65,9 +76,16 @@ unchanged_files() {
 }
 
 [ -f "$base" ] && [ ! -L "$base" ]
-case $(sha256sum "$base" | cut -d ' ' -f 1) in
+base_sha256=$(sha256sum "$base" | cut -d ' ' -f 1)
+case $base_sha256 in
 	"$expected_base"|"$expected_v10") ;;
-	*) echo 'FAIL unreviewed standalone base' >&2; exit 1 ;;
+	*)
+		printf '%s\n' "$expected_external_base" | grep -Eq '^[0-9a-f]{64}$' &&
+			[ "$base_sha256" = "$expected_external_base" ] || {
+			echo 'FAIL unreviewed standalone base' >&2
+			exit 1
+		}
+		;;
 esac
 [ -x "$init" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ] &&
 	[ -x "$ssh_identity" ] && [ -x "$tailscale_runtime" ] &&
@@ -93,7 +111,7 @@ install -m 0755 "$init" "$root/init"
 for placeholder in \
 	EXPECTED_KERNEL_RELEASE EXPECTED_UFS_STORAGE_MODE \
 	EXPECTED_PROBE_BOOT_ID EXPECTED_NATIVE_ROOT_MODE \
-	EXPECTED_SSH_DIAGNOSTIC_MODE; do
+	EXPECTED_SSH_DIAGNOSTIC_MODE EXPECTED_PERSISTENT_OVERLAY_MODE; do
 	[ "$(grep -Fc "@$placeholder@" "$root/init")" -eq 1 ]
 done
 sed -i \
@@ -102,6 +120,7 @@ sed -i \
 	-e "s/@EXPECTED_PROBE_BOOT_ID@/$probe_boot_id/" \
 	-e "s/@EXPECTED_NATIVE_ROOT_MODE@/$native_root_mode/" \
 	-e "s/@EXPECTED_SSH_DIAGNOSTIC_MODE@/$ssh_diagnostic_mode/" \
+	-e "s/@EXPECTED_PERSISTENT_OVERLAY_MODE@/$persistent_overlay_mode/" \
 	"$root/init"
 ! grep -Fq '@EXPECTED_' "$root/init"
 install -m 0755 "$shutdown" "$root/shutdown"

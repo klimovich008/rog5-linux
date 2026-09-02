@@ -286,6 +286,7 @@ if [ -f "$base" ] && [ -f "$target_base" ] && [ -f "$high_speed_base" ]; then
 		-e 's/@EXPECTED_PROBE_BOOT_ID@/staged-seal/' \
 		-e 's/@EXPECTED_NATIVE_ROOT_MODE@/1/' \
 		-e 's/@EXPECTED_SSH_DIAGNOSTIC_MODE@/0/' \
+		-e 's/@EXPECTED_PERSISTENT_OVERLAY_MODE@/0/' \
 		"$work/expected-target-init"
 	! grep -Fq '@EXPECTED_' "$work/expected-target-init"
 	cmp "$work/loader/init" "$init"

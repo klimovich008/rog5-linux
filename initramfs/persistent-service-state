@@ -33,6 +33,7 @@ expected_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb23355
 device_record=/run/rog5-persistent-state-userdata-device
 runtime_record=/run/rog5-persistent-state.runtime
 runtime_next=$runtime_record.next
+overlay_record=/run/rog5-persistent-overlay.runtime
 userdata_mount=/.rog5/userdata-rw
 state_mount=/persist
 state_relative=rog5/state/server-state-v1.ext4
@@ -134,16 +135,58 @@ relock_storage() {
 	return "$status"
 }
 
-verify_only_root_mount() {
+resolve_userdata_owner() {
+	userdata_owner=state
+	overlay_loop=
+	if [ -e "$overlay_record" ] || [ -L "$overlay_record" ]; then
+		[ -f "$overlay_record" ] && [ ! -L "$overlay_record" ] &&
+			[ "$(bb stat -c '%u:%g:%a:%h' "$overlay_record")" = 0:0:400:1 ] ||
+			return 1
+		[ "$(bb grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' \
+			"$overlay_record")" -eq 1 ] || return 1
+		[ "$(bb sed -n 's/^disk=//p' "$overlay_record")" = "$userdata_disk" ] &&
+			[ "$(bb sed -n 's/^userdata=//p' "$overlay_record")" = "$userdata" ] &&
+			[ "$(bb sed -n 's/^image=//p' "$overlay_record")" = \
+				rog5/root/root-overlay-v1.ext4 ] &&
+			[ "$(bb sed -n 's/^mount=//p' "$overlay_record")" = /mnt/state ] &&
+			[ "$(bb sed -n 's/^userdata_mount=//p' "$overlay_record")" = \
+				/mnt/userdata ] || return 1
+		overlay_loop=$(bb sed -n 's/^loop=//p' "$overlay_record") || return 1
+		case $overlay_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+		[ -b "$overlay_loop" ] || return 1
+		verify_write_window || return 1
+		verify_mount "$userdata" "$userdata_mount" || return 1
+		userdata_owner=overlay
+	else
+		verify_storage_read_only || return 1
+	fi
+}
+
+verify_root_storage_mounts() {
 	expected=$(bb cat "/sys/class/block/$root_name/dev") || return 1
+	expected_userdata=
+	expected_overlay=
+	if [ "$userdata_owner" = overlay ]; then
+		expected_userdata=$(bb cat "/sys/class/block/$userdata_name/dev") ||
+			return 1
+		overlay_name=${overlay_loop##*/}
+		expected_overlay=$(bb cat "/sys/class/block/$overlay_name/dev") ||
+			return 1
+	fi
 	count=0
 	while read -r _ _ device _ mountpoint _ rest; do
 		[ -e "/sys/dev/block/$device" ] || continue
 		count=$((count + 1))
-		[ "$device" = "$expected" ] &&
-			[ "$mountpoint" = /.rog5/root-ro ] || return 1
+		case $device:$mountpoint in
+			"$expected:/.rog5/root-ro") ;;
+			"$expected_userdata:$userdata_mount")
+				[ "$userdata_owner" = overlay ] || return 1 ;;
+			"$expected_overlay:/.rog5/state")
+				[ "$userdata_owner" = overlay ] || return 1 ;;
+			*) return 1 ;;
+		esac
 	done </proc/self/mountinfo
-	[ "$count" -eq 1 ]
+	case $userdata_owner:$count in state:1|overlay:3) ;; *) return 1 ;; esac
 }
 
 verify_filesystem_identity() {
@@ -183,15 +226,18 @@ verify_state_tree() {
 
 preflight_state() {
 	resolve_exact_devices || return 1
-	verify_storage_read_only || return 1
-	verify_only_root_mount || return 1
+	resolve_userdata_owner || return 1
+	verify_root_storage_mounts || return 1
 	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
 		"$expected_userdata_label" || return 1
-	for path in "$userdata_mount" "$state_mount"; do
-		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
-	done
-	printf 'format=rog5-persistent-service-state-preflight-v1\nuserdata=%s\nimage=%s\nresult=PASS\n' \
-		"$userdata" "$state_relative"
+	[ ! -e "$state_mount" ] && [ ! -L "$state_mount" ] || return 1
+	if [ "$userdata_owner" = state ]; then
+		[ ! -e "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	else
+		[ -d "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	fi
+	printf 'format=rog5-persistent-service-state-preflight-v1\nuserdata=%s\nimage=%s\nuserdata_owner=%s\nresult=PASS\n' \
+		"$userdata" "$state_relative" "$userdata_owner"
 }
 
 start_state() {
@@ -199,13 +245,16 @@ start_state() {
 		[ ! -e "$runtime_next" ] && [ ! -L "$runtime_next" ] ||
 		return 1
 	resolve_exact_devices || return 1
-	verify_storage_read_only || return 1
-	verify_only_root_mount || return 1
+	resolve_userdata_owner || return 1
+	verify_root_storage_mounts || return 1
 	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
 		"$expected_userdata_label" || return 1
-	for path in "$userdata_mount" "$state_mount"; do
-		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
-	done
+	[ ! -e "$state_mount" ] && [ ! -L "$state_mount" ] || return 1
+	if [ "$userdata_owner" = state ]; then
+		[ ! -e "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	else
+		[ -d "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	fi
 
 	userdata_mounted=0
 	state_mounted=0
@@ -216,20 +265,22 @@ start_state() {
 		[ "$state_mounted" -eq 0 ] || bb umount "$state_mount" || status=1
 		[ -z "$loop_device" ] || bb losetup -d "$loop_device" || status=1
 		[ "$userdata_mounted" -eq 0 ] || bb umount "$userdata_mount" || status=1
-		relock_storage || status=1
+		[ "$userdata_owner" = overlay ] || relock_storage || status=1
 		bb rm -f "$runtime_next"
 		bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
 		exit "$status"
 	}
 	trap cleanup_start EXIT HUP INT TERM
 
-	bb blockdev --setrw "$userdata"
-	bb blockdev --setrw "$userdata_disk"
-	verify_write_window || return 1
-	bb mkdir -m 0700 "$userdata_mount"
-	bb mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
-		"$userdata" "$userdata_mount"
-	userdata_mounted=1
+	if [ "$userdata_owner" = state ]; then
+		bb blockdev --setrw "$userdata"
+		bb blockdev --setrw "$userdata_disk"
+		verify_write_window || return 1
+		bb mkdir -m 0700 "$userdata_mount"
+		bb mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+			"$userdata" "$userdata_mount"
+		userdata_mounted=1
+	fi
 	verify_mount "$userdata" "$userdata_mount" || return 1
 	for path in "$userdata_mount/rog5" "$userdata_mount/rog5/state"; do
 		[ -d "$path" ] && [ ! -L "$path" ] &&
@@ -257,9 +308,9 @@ start_state() {
 	[ "$(bb blockdev --getro "$root_device")" = 1 ] || return 1
 
 	boot_id=$(bb cat /proc/sys/kernel/random/boot_id) || return 1
-	printf 'format=rog5-persistent-service-state-runtime-v1\nboot_id=%s\ndisk=%s\nuserdata=%s\nloop=%s\nimage=%s\nmount=%s\n' \
+	printf 'format=rog5-persistent-service-state-runtime-v1\nboot_id=%s\ndisk=%s\nuserdata=%s\nloop=%s\nimage=%s\nmount=%s\nuserdata_owner=%s\n' \
 		"$boot_id" "$userdata_disk" "$userdata" "$loop_device" \
-		"$state_relative" "$state_mount" >"$runtime_next"
+		"$state_relative" "$state_mount" "$userdata_owner" >"$runtime_next"
 	bb chown 0:0 "$runtime_next"
 	bb chmod 0400 "$runtime_next"
 	bb mv "$runtime_next" "$runtime_record"
@@ -271,6 +322,7 @@ start_state() {
 stop_state() {
 	status=0
 	resolve_exact_devices || return 1
+	resolve_userdata_owner || return 1
 	[ -f "$runtime_record" ] && [ ! -L "$runtime_record" ] &&
 		[ "$(bb stat -c '%u:%g:%a:%h' "$runtime_record")" = 0:0:400:1 ] ||
 		return 1
@@ -278,13 +330,20 @@ stop_state() {
 		"$runtime_record")" -eq 1 ] || return 1
 	recorded_userdata=$(bb sed -n 's/^userdata=//p' "$runtime_record")
 	recorded_loop=$(bb sed -n 's/^loop=//p' "$runtime_record")
+	recorded_owner=$(bb sed -n 's/^userdata_owner=//p' "$runtime_record")
 	[ "$recorded_userdata" = "$userdata" ] || return 1
+	[ "$recorded_owner" = "$userdata_owner" ] || return 1
+	case $recorded_owner in state|overlay) ;; *) return 1 ;; esac
 	case $recorded_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
 	bb sync || status=1
 	bb umount "$state_mount" || status=1
 	bb losetup -d "$recorded_loop" || status=1
-	bb umount "$userdata_mount" || status=1
-	relock_storage || status=1
+	if [ "$recorded_owner" = state ]; then
+		bb umount "$userdata_mount" || status=1
+		relock_storage || status=1
+	else
+		verify_write_window || status=1
+	fi
 	[ "$status" -eq 0 ] || return 1
 	bb rm -f "$runtime_record" || return 1
 	bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
