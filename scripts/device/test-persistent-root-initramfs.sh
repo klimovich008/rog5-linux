@@ -104,6 +104,8 @@ grep -Fqx 'expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@' "$attest" ||
 	fail 'P2 attestation lacks the sealed write-probe producer placeholder'
 grep -Fqx 'expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@' "$attest" ||
 	fail 'P2 attestation lacks the sealed native-root mode placeholder'
+grep -Fqx 'expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@' "$attest" ||
+	fail 'P2 attestation lacks the sealed persistent-overlay placeholder'
 grep -Fq '[ "$expected_ufs_storage_mode" = local-write ]' "$init" ||
 	fail 'P2 target lacks the local-write UFS policy branch'
 grep -Fq "'ROG5 UFS discovery: forced read-only before registration'" "$init" ||
@@ -746,6 +748,7 @@ readelf -h "$work/root/usr/libexec/rog5-reboot-bootloader" |
 sed -e "s/@EXPECTED_UFS_STORAGE_MODE@/$storage_mode/" \
 	-e "s/@EXPECTED_PROBE_BOOT_ID@/$sealed_probe_boot_id/" \
 	-e 's/@EXPECTED_NATIVE_ROOT_MODE@/0/' \
+	-e 's/@EXPECTED_PERSISTENT_OVERLAY_MODE@/0/' \
 	"$attest" >"$work/expected-attest"
 cmp "$work/root/usr/local/sbin/rog5-p2-attest" "$work/expected-attest"
 cmp "$work/root/usr/local/sbin/persistent-root-verify" "$verifier"
@@ -786,10 +789,14 @@ grep -Fqx "expected_probe_boot_id=$sealed_probe_boot_id" \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
 grep -Fxq 'expected_native_root_mode=0' \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
+grep -Fxq 'expected_persistent_overlay_mode=0' \
+	"$work/root/usr/local/sbin/rog5-p2-attest"
 ! grep -Fq '@EXPECTED_PROBE_BOOT_ID@' "$work/root/init" \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
 ! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' "$work/root/init"
 ! grep -Fq '@EXPECTED_NATIVE_ROOT_MODE@' \
+	"$work/root/usr/local/sbin/rog5-p2-attest"
+! grep -Fq '@EXPECTED_PERSISTENT_OVERLAY_MODE@' \
 	"$work/root/usr/local/sbin/rog5-p2-attest"
 
 PERSISTENT_ROOT_NATIVE_PARTITION=1 \

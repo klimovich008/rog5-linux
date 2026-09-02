@@ -3,16 +3,31 @@ set -eu
 
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
+attest=$repo/initramfs/persistent-root-attest
 state=$repo/initramfs/persistent-service-state
 shutdown=$repo/initramfs/persistent-root-shutdown-standalone
 builder=$repo/scripts/device/build-persistent-root-standalone-initramfs.sh
 stager=$repo/scripts/device/stage-persistent-root-overlay.sh
+failure_fixture=$repo/tests/fixtures/persistent-root/overlay-v1-attest-failure.log
 
 fail() { echo "FAIL $*" >&2; exit 1; }
 
-for path in "$init" "$state" "$shutdown" "$builder" "$stager"; do
+for path in "$init" "$attest" "$state" "$shutdown" "$builder" "$stager"; do
 	[ -x "$path" ] || fail "missing executable: $path"
 	sh -n "$path"
+done
+
+grep -Fq 'stage sequence=25 stage=switch-root state=PASS' "$failure_fixture"
+grep -Fq 'rog5-p2-attest: FAIL overlay state is not writable tmpfs' \
+	"$failure_fixture"
+for contract in \
+	'expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@' \
+	'overlay_record=/run/rog5-persistent-overlay.runtime' \
+	'format=rog5-persistent-root-overlay-runtime-v1' \
+	'expected_block_mounts=3' \
+	'overlay_state=ext4-rw' \
+	'root=native-ext4-overlay-persistent'; do
+	grep -Fq "$contract" "$attest" || fail "missing attestation contract: $contract"
 done
 
 for contract in \
