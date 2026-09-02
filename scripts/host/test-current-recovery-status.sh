@@ -19,7 +19,7 @@ for contract in \
 	'1-1.2' \
 	'credential-isolated automation runtime' \
 	'p24 read-only' \
-	'frozen power-key status-screen checkpoint' \
+	'physical PMK8350 power-button press' \
 	'Do not flash, alter slot A, modify GPT'
 do
 	grep -Fq "$contract" "$active" || {
@@ -41,8 +41,8 @@ for contract in \
 	'test-results/2026-09-02-persistent-root-overlay-v8-live.md' \
 	'test-results/2026-09-02-persistent-wifi-v3-soak.md' \
 	'test-results/2026-09-02-persistent-overlay-update-reboot-debug.md' \
-	'Frozen screen checkpoint' \
-	'test-results/2026-09-01-display60-v10-pre-switch-pass.md' \
+	'Initial status screen checkpoint' \
+	'test-results/2026-09-02-display-status-screen-development.md' \
 	'Do not rebuild or reflash `super`' \
 	'test-results/2026-08-29-persistent-ncm-two-hour-pass.md' \
 	'test-results/2026-08-30-persistent-tailscale-v11-live.md'
@@ -76,4 +76,4 @@ grep -Fq 'test-results/2026-08-30-persistent-tailscale-v11-live.md' "$current" |
 	exit 1
 }
 
-echo 'PASS compact current status records WW33 rescue, accepted V10 recovery, persistent healthd, and the frozen screen boundary'
+echo 'PASS compact current status records WW33 rescue, accepted V10 recovery, persistent healthd, and the initial screen boundary'

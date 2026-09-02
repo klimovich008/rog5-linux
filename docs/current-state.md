@@ -10,7 +10,7 @@ retained in Git and dated `test-results/` records.
 Turn the exact ASUS ROG Phone 5 into a reliable standalone Arch Linux server
 with persistent storage, continuous safe charging, independent Wi-Fi, key-only
 SSH, unattended reboot, and a proven rescue route. Desktop/GPU/audio/sensors
-remain deferred; the optional power-key text status screen is frozen.
+remain deferred. The minimal text status screen is in final button validation.
 
 ## Exact device and rescue
 
@@ -108,15 +108,19 @@ remain deferred; the optional power-key text status screen is frozen.
 
 The recovery-selection blocker and first persistent workload checkpoint are
 resolved. The next server phase is a credential-isolated automation runtime and
-operator-selected workload; GPU, desktop, display, audio and sensor expansion
-remain deferred.
+operator-selected workload. The minimal status screen software path passes;
+only one physical power-button toggle remains. GPU, desktop, audio and sensor
+expansion remain deferred.
 
-## Frozen screen checkpoint
+## Initial status screen checkpoint
 
-Display V10 proved REFGEN, DSI, DRM, fb0, backlight and status files. The
-power-key-toggled text screen remains frozen; do not resume display/GPU work
-until the server MVP is stable. See
-`test-results/2026-09-01-display60-v10-pre-switch-pass.md`.
+Display V9 passed persistent systemd, Wi-Fi, Tailscale, healthd, DRM, fb0,
+backlight and text rendering with software on/off control. The status installer,
+pre-P2 blanking, QMP PCIe module loading and WCN6855 hw1.1 module closure are
+fixed. V10 created one `pmic_pwrkey` input after loading the exact display-ABI
+`qcom-pon.ko`; repository source now makes that a service precondition. One
+physical press remains unobserved. See
+`test-results/2026-09-02-display-status-screen-development.md`.
 
 ## Required boundaries
 

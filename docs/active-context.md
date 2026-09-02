@@ -8,8 +8,9 @@ accepted V10 facts. Historical generations remain in Git and dated
 
 ## One current question
 
-Can the accepted server baseline add a credential-isolated automation runtime
-without exposing secrets or weakening recovery, storage, power or SSH health?
+Can one physical PMK8350 power-button press toggle the proven minimal status
+screen without affecting server, recovery, storage, power or SSH health?
+After that bounded proof, the next phase remains the credential-isolated automation runtime.
 
 ## Current live state
 
@@ -56,6 +57,10 @@ without exposing secrets or weakening recovery, storage, power or SSH health?
   `/healthz` passes over NCM and Wi-Fi; full V10 acceptance remains green. A
   RAM-only action-aware shutdown also proved powered-off auto-start under
   connected power. Repository exitrd source now preserves that poweroff action.
+- Display V9 passed persistent systemd, native Wi-Fi, Tailscale, healthd,
+  DRM/fb0/backlight and text status rendering. V10 plus the exact RAM-loaded
+  `qcom-pon.ko` created one `pmic_pwrkey` input; the durable loader is committed.
+  No physical press occurred before the scheduled rollback.
 
 ## Newly proven milestone
 
@@ -72,7 +77,8 @@ journal replay.
 
 ## Next actions
 
-1. Publish the powered-off startup result and action-aware exitrd correction.
+1. Package the exact PON module in one successor and observe one physical
+   power-button press/release toggling the screen.
 2. Define one unprivileged automation service account with secrets kept only in
    the existing p23 service-state image.
 3. Deploy the operator-selected AI/automation workload and validate resource,
@@ -82,6 +88,5 @@ journal replay.
 
 Preserve exact device/topology, safe battery/temperature, signed artifacts,
 p24 read-only scope, V11 and slot-A rescue, and non-retry after ambiguous target
-execution. Do not flash, alter slot A, modify GPT, or resume GPU/display/audio
-work during this milestone. The frozen power-key status-screen checkpoint stays
-deferred until the server MVP is stable.
+execution. Do not flash, alter slot A, modify GPT, or resume GPU/desktop/audio
+work during this milestone.
