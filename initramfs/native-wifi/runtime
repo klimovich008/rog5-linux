@@ -36,19 +36,23 @@ install_status_screen() {
 			cmp "$source" "$destination"
 	}
 	present=0
-	for path in screen-toggle.sh status-screen.sh power-buttond.py \
+	for path in screen-toggle.sh status-screen.sh power-buttond.py load-pwrkey \
+		qcom-pon.ko \
 		units/rog5-status-screen.service units/rog5-power-button.service; do
 		if [ -e "$root/$path" ] || [ -L "$root/$path" ]; then
 			present=$((present + 1))
 		fi
 	done
 	[ "$present" -eq 0 ] && return 0
-	[ "$present" -eq 5 ] || return 1
-	for path in screen-toggle.sh status-screen.sh power-buttond.py; do
+	[ "$present" -eq 7 ] || return 1
+	for path in screen-toggle.sh status-screen.sh power-buttond.py load-pwrkey; do
 		[ -f "$root/$path" ] && [ ! -L "$root/$path" ] &&
 			[ "$(stat -c '%u:%g:%a:%h' "$root/$path")" = 0:0:755:1 ] ||
 			return 1
 	done
+	[ -f "$root/qcom-pon.ko" ] && [ ! -L "$root/qcom-pon.ko" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$root/qcom-pon.ko")" = 0:0:644:1 ] ||
+		return 1
 	for path in rog5-status-screen.service rog5-power-button.service; do
 		[ -f "$root/units/$path" ] && [ ! -L "$root/units/$path" ] &&
 			[ "$(stat -c '%u:%g:%a:%h' "$root/units/$path")" = 0:0:644:1 ] ||

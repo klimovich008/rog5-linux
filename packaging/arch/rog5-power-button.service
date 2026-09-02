@@ -9,6 +9,7 @@ StartLimitBurst=5
 Type=simple
 User=root
 Group=root
+ExecStartPre=/run/rog5-native-wifi/load-pwrkey
 ExecStart=/usr/local/libexec/rog5-power-buttond
 Restart=on-failure
 RestartSec=3s
