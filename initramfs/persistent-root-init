@@ -2316,14 +2316,25 @@ fi
 publish_or_rollback runtime PASS
 publish_or_rollback final-storage ENTER
 final_storage_valid=0
+final_storage_detail=mounts
 if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
-	verify_persistent_overlay_runtime && final_storage_valid=1
+	if verify_persistent_overlay_runtime; then
+		final_storage_valid=1
+	else
+		final_storage_detail=overlay-runtime
+	fi
 else
 	verify_physical_storage_read_only &&
 		verify_userdata_and_image_mounts && final_storage_valid=1
 fi
-if [ "$final_storage_valid" -ne 1 ] || ! verify_ufs_health; then
-	fail_local_stage final-storage 'final read-only storage gate failed'
+if [ "$final_storage_valid" -ne 1 ]; then
+	fail_local_stage final-storage 'final storage mount gate failed' \
+		"$final_storage_detail"
+fi
+if ! verify_ufs_health; then
+	final_storage_detail=ufs-q${blocked_query_count}-s${blocked_scsi_count}-j${journal_recovery_count}-e${ufs_error_count}
+	fail_local_stage final-storage 'final UFS or ext4 health gate failed' \
+		"$final_storage_detail"
 fi
 publish_or_rollback final-storage PASS
 
