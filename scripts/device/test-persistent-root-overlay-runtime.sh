@@ -10,6 +10,7 @@ builder=$repo/scripts/device/build-persistent-root-standalone-initramfs.sh
 stager=$repo/scripts/device/stage-persistent-root-overlay.sh
 failure_fixture=$repo/tests/fixtures/persistent-root/overlay-v1-attest-failure.log
 exec_failure_fixture=$repo/tests/fixtures/persistent-root/overlay-v4-nonroot-exec-failure.log
+final_failure_fixture=$repo/tests/fixtures/persistent-root/overlay-v6-final-storage-failure.log
 
 fail() { echo "FAIL $*" >&2; exit 1; }
 
@@ -24,6 +25,7 @@ grep -Fq 'rog5-p2-attest: FAIL overlay state is not writable tmpfs' \
 grep -Fq 'overlay_state=rw,nosuid,nodev,noexec,noatime' \
 	"$exec_failure_fixture"
 grep -Fq 'uid=81 executable=/bin/true result=127' "$exec_failure_fixture"
+grep -Fq 'stage=final-storage state=FAIL detail=none' "$final_failure_fixture"
 for contract in \
 	'expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@' \
 	'overlay_record=/run/rog5-persistent-overlay.runtime' \
@@ -32,6 +34,11 @@ for contract in \
 	'overlay_state=ext4-rw-exec' \
 	'root=native-ext4-overlay-persistent'; do
 	grep -Fq "$contract" "$attest" || fail "missing attestation contract: $contract"
+done
+for contract in \
+	'final_storage_detail=overlay-runtime' \
+	'ufs-q${blocked_query_count}-s${blocked_scsi_count}-j${journal_recovery_count}-e${ufs_error_count}'; do
+	grep -Fq "$contract" "$init" || fail "missing final-storage classification: $contract"
 done
 
 for contract in \
