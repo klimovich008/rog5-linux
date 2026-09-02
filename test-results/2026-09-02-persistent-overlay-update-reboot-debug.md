@@ -1,6 +1,6 @@
 # Persistent-overlay package-update reboot debugging
 
-Result: **root causes proven; source fixes pass; V9 not yet built**.
+Result: **V9 first boot passed; repeat marker cause proven; V10 source fix passes**.
 
 The package-updated V8 overlay remained cryptographically and structurally
 intact, but its first fresh boots returned to recovery/fastboot before SSH.
@@ -57,9 +57,23 @@ the retry recovery can reach the accepted primary, while the old installed
 recovery still intermittently chooses V11. Both RAM wrapper identities are
 consumed and will not be reused.
 
+V9 changed only five initramfs members while reusing the exact V8 kernel and
+DTB. Its first boot passed P2, systemd, native Wi-Fi, Tailscale, strict SSH,
+the 163-package inventory, healthy-trial commit, rollback disarm, storage scope
+and power gates. Bounded-retry recovery was subsequently installed to
+`boot_b`; slot A and the old `f2a73030…` restore artifact remain available.
+
+The first persistent repeat selected V9 and passed UFS plus OverlayFS, then
+failed `runtime`. Read-only inspection proved systemd 261 had replaced the
+empty `/etc/.updated` and `/var/.updated` sentinels with canonical four-line
+`systemd-update-done` records sharing one `TIMESTAMP_NSEC`. All other runtime
+inputs remained exact. New fail-first tests accept coherent empty or canonical
+timestamped pairs and reject changed comments, malformed values and mismatched
+timestamps. V10 remains initramfs-only.
+
 Focused initramfs/overlay tests and the active tier pass. Claude Opus review
 was attempted after two non-discriminating boots but its OAuth session was
 expired; systematic debugging continued from retained evidence. Current live
-boot is V11 `86be83ad-92fd-467c-a879-46bbb875b871`; the repaired, package-updated
-V8 overlay remains on p23. Next build/sign/stage a V9 target with unchanged
-kernel/DTB and these initramfs-only fixes.
+boot is V11 `5fbe39c4-1024-4514-8078-26c7b85a3faa`; the healthy V9 trial and
+package-updated overlay remain on p23. Next build/sign/stage V10 with unchanged
+kernel/DTB and the canonical update-marker parser.

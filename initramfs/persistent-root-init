@@ -1667,6 +1667,42 @@ prepare_volatile_ssh_policy() {
 	verify_exact_regular "$lower_policy" 0 0 644 201 "$original_sha256"
 }
 
+verify_systemd_update_marker() {
+	root=$1
+	upper=$2
+	subtree=$3
+	merged=$root/$subtree/.updated
+	physical=$upper/$subtree/.updated
+	for path in "$merged" "$physical"; do
+		[ -f "$path" ] && [ ! -L "$path" ] || return 1
+		size=$(stat -c %s "$path") || return 1
+		[ "$size" -le 512 ] || return 1
+		hash=$(sha256sum "$path" | cut -d ' ' -f 1) || return 1
+		verify_exact_regular "$path" 0 0 644 "$size" "$hash" || return 1
+	done
+	cmp "$merged" "$physical" || return 1
+	if [ ! -s "$merged" ]; then
+		printf '%s\n' empty
+		return 0
+	fi
+	[ "$(wc -l <"$merged")" -eq 4 ] || return 1
+	[ "$(sed -n '1p' "$merged")" = \
+		'# This file was created by systemd-update-done. The timestamp below is the' ] ||
+		return 1
+	[ "$(sed -n '2p' "$merged")" = \
+		"# modification time of /usr/ for which the most recent updates of /$subtree/ have" ] ||
+		return 1
+	[ "$(sed -n '3p' "$merged")" = \
+		'# been applied. See man:systemd-update-done.service(8) for details.' ] ||
+		return 1
+	[ "$(grep -c '^TIMESTAMP_NSEC=' "$merged")" -eq 1 ] || return 1
+	timestamp=$(sed -n 's/^TIMESTAMP_NSEC=//p' "$merged") || return 1
+	printf '%s\n' "$timestamp" |
+		grep -Eq '^(0|[1-9][0-9]{0,19})$' || return 1
+	[ "$(sed -n '4p' "$merged")" = "TIMESTAMP_NSEC=$timestamp" ] || return 1
+	printf '%s\n' "$timestamp"
+}
+
 prepare_volatile_systemd_state() {
 	root=$1
 	lower=$2
@@ -1695,6 +1731,8 @@ prepare_volatile_systemd_state() {
 		[ "$cache_size" -gt 0 ] && [ "$cache_size" -le 1048576 ] || return 1
 	fi
 
+	marker_kind=
+	marker_timestamp=
 	for subtree in etc var; do
 		lower_marker=$lower/$subtree/.updated
 		merged_marker=$root/$subtree/.updated
@@ -1708,10 +1746,22 @@ prepare_volatile_systemd_state() {
 		else
 			[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
 		fi
-		verify_exact_regular "$merged_marker" 0 0 644 0 \
-			"$empty_sha256" || return 1
-		verify_exact_regular "$upper_marker" 0 0 644 0 \
-			"$empty_sha256" || return 1
+		marker_value=$(verify_systemd_update_marker \
+			"$root" "$upper" "$subtree") || return 1
+		case $marker_value in
+		empty)
+			[ -z "$marker_kind" ] && marker_kind=empty
+			[ "$marker_kind" = empty ] || return 1
+			;;
+		*)
+			if [ -z "$marker_kind" ]; then
+				marker_kind=systemd-update-done
+				marker_timestamp=$marker_value
+			fi
+			[ "$marker_kind" = systemd-update-done ] &&
+				[ "$marker_timestamp" = "$marker_value" ] || return 1
+			;;
+		esac
 		if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
 			marker_time=$(stat -c '%Y:%y' "$merged_marker") || return 1
 			[ "$marker_time" = "$(stat -c '%Y:%y' "$root/usr")" ] ||

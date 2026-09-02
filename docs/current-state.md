@@ -26,11 +26,15 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Persistent Linux baseline
 
-- Current live fallback: V11 boot `86be83ad-92fd-467c-a879-46bbb875b871`,
+- Current live fallback: V11 boot `5fbe39c4-1024-4514-8078-26c7b85a3faa`,
   kernel `7.1.4-g359318de534f`. Systemd, NCM, Tailscale, strict key-only SSH and
   persistent service state are healthy; native Wi-Fi is intentionally absent.
-- Accepted primary remains `persistent-native-root-wifi-overlay-v8`, manifest
-  `3d4d2bfc5cfc54c44ff434503b5fbd8e6aced4f3f94c482b41d3d158cdf03133`.
+- Current staged primary is `persistent-native-root-wifi-overlay-v9`, manifest
+  `3f353b9bce0564c316bab9023fc1ce9020de33d9856edc6590066569f35c0c44`;
+  its first boot passed and its trial record is healthy.
+- Slot B now contains bounded-retry recovery `340f6392…`; the prior canonical
+  recovery `f2a73030…` remains an exact host restore artifact. Slot A is
+  unchanged.
 - Stable Ed25519 host fingerprint:
   `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
 - V8 health is committed and both 600/900-second rollback timers are inactive.
@@ -43,9 +47,9 @@ remain deferred; the optional power-key text status screen is frozen.
 - The live kernel lacks Landlock, so pacman temporarily disables only its
   filesystem sandbox while retaining the `alpm` user and seccomp sandbox.
   Future persistent-root builds now require `CONFIG_SECURITY_LANDLOCK=y`.
-- V8's repaired package overlay is intact on p23, but its immutable initramfs
-  rejects OpenSSH 10.5 mixed-case `sshd -T` option names. The effective policy
-  is still key-only. Source fixes pass; V9 is not yet built. Evidence:
+- The repaired package overlay is intact on p23. V9 fixed systemd root mode and
+  OpenSSH 10.5 casing and passed once; repeat boot exposed canonical 255-byte
+  `systemd-update-done` markers. The V10 parser tests now pass. Evidence:
   `test-results/2026-09-02-persistent-overlay-update-reboot-debug.md`.
 
 ## Persistent root storage
@@ -57,7 +61,8 @@ remain deferred; the optional power-key text status screen is frozen.
   - `rog5/root/root-overlay-v1.ext4`, exact size 16 GiB, UUID
     `f4834541-6e7a-4214-80d5-818fcc5cc252`, label `ROG5_ROOT_RW_V1`.
 - The p23 parent mount remains `noexec`; the bounded overlay loop is
-  `exec,nodev,nosuid`, with root/upper mode `0755` and work mode `0700`.
+  `exec,nodev,nosuid`. Systemd hardens the upper root to `0555` after updates;
+  policy also accepts staged `0755`. Work remains `0700`.
 - Normal service exposes exactly `sda` and `sda23` writable across 117 UFS
   nodes. P24 and protected firmware/identity/calibration/modem partitions stay
   read-only.
@@ -82,11 +87,11 @@ remain deferred; the optional power-key text status screen is frozen.
 
 ## Remaining critical issue
 
-The bounded pre-COMMIT recovery retry RAM-booted and selected V8 before the
-target's now-proven P2 parser fallback; both wrapper identities are consumed.
-The installed old recovery still intermittently selects V11. Next compose V9
-from unchanged V8 kernel/DTB plus the upper-mode, effective-SSH and health-rerun
-initramfs fixes, sign/stage it with exact V11 fallback, and validate one boot.
+Bounded-retry recovery is persistent in `boot_b` and selects the healthy
+primary reliably. V9 first boot passed; repeat failed only because runtime
+accepted empty update markers but not systemd 261's canonical records. Next
+compose V10 from unchanged V9 kernel/DTB plus that one parser fix, sign/stage it
+with exact V11 fallback, and validate first plus repeat boots.
 
 ## Frozen screen checkpoint
 
