@@ -8,8 +8,8 @@ accepted V10 facts. Historical generations remain in Git and dated
 
 ## One current question
 
-Can the first persistent headless workload run over native Wi-Fi/Tailscale and
-survive one unattended reboot while the accepted V10 platform remains healthy?
+Can the accepted server baseline add a credential-isolated automation runtime
+without exposing secrets or weakening recovery, storage, power or SSH health?
 
 ## Current live state
 
@@ -18,7 +18,7 @@ survive one unattended reboot while the accepted V10 platform remains healthy?
 - Slot B contains bounded-retry recovery `340f6392…` and selector-v2 primary
   `persistent-native-root-wifi-overlay-v10`, manifest `6c271cfa…`, with signed
   V11 as automatic fallback. Exact old recovery `f2a73030…` remains restorable.
-- Current boot: accepted V10 `292e4435-cfa0-4db5-94a0-6c1015e938f2` with
+- Current boot: accepted V10 `389acb49-2cc0-46da-9997-e67e548a77ee` with
   systemd, native Wi-Fi, NCM, Tailscale, strict SSH and persistent service
   state.
 - V10 uses p24 read-only as the Arch lower and the exact 16 GiB
@@ -46,6 +46,14 @@ survive one unattended reboot while the accepted V10 platform remains healthy?
   old-shutdown stress cycle, and through the installed `boot_b` path.
 - Repository source also accepts only an exact attached loop or a proven-gone
   stale loop node during exitrd teardown; wrong or ambiguous backing fails.
+- A transient PMIC IRQ 118 storm forced p23 and the overlay `emergency_ro`.
+  Fresh V11 recovery found p23 clean, repaired only the overlay journal and
+  proved the failing physical block in 20/20 direct reads. A guarded
+  2,700-second V10 soak then passed with zero IRQ/UFS/RO trigger; the event was
+  not reproducible, so kernel/DT source remains unchanged.
+- `rog5-healthd` is the first persistent workload. It is credential-free,
+  dynamic-user sandboxed, enabled at boot, and survived installed recovery.
+  `/healthz` passes over NCM and Wi-Fi; full V10 acceptance remains green.
 
 ## Newly proven milestone
 
@@ -62,10 +70,11 @@ journal replay.
 
 ## Next actions
 
-1. Freeze and publish the exact loop-detach regression plus resolved state.
-2. Deploy one minimal persistent server workload without external credentials.
-3. Reboot through installed `boot_b` and prove workload, systemd, Wi-Fi,
-   Tailscale, SSH, storage and power health together.
+1. Publish the healthd live result and compact current state.
+2. Define one unprivileged automation service account with secrets kept only in
+   the existing p23 service-state image.
+3. Deploy the operator-selected AI/automation workload and validate resource,
+   thermal, network and reboot behavior before enabling unattended actions.
 
 ## Boundaries
 
