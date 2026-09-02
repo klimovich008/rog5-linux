@@ -87,6 +87,52 @@ def compose(base, expected_base, descriptor, helper):
     }
 
 
+def compose_successor(base, expected_base, descriptor, helper):
+    """Replace only consumed trial identity in an already qualified archive."""
+    assert sha(base) == expected_base
+    trial = ARCHIVE.parse_trial_descriptor(descriptor)
+    assert sha(helper) == ARCHIVE.TRIAL_HELPER_SHA256
+    original = ARCHIVE.entries(gzip.decompress(base))
+    members = {name: (fields.copy(), data) for name, (fields, data) in original.items()}
+    prefix = 'rog5-native-wifi/'
+    descriptor_name = prefix+'trial-descriptor'
+    helper_name = prefix+'trial-state'
+    checks_name = prefix+'boot-files.sha256'
+    for required in (prefix+'automatic', prefix+'runtime', descriptor_name,
+                     helper_name, prefix+'healthy',
+                     prefix+'units/rog5-wifi-healthy.service', checks_name):
+        assert required in members
+    previous = ARCHIVE.parse_trial_descriptor(members[descriptor_name][1])
+    assert previous['trial_id'] != trial['trial_id']
+    assert previous['primary_bundle'] != trial['primary_bundle']
+    assert members[helper_name][1] == helper
+
+    ARCHIVE.replace(members, descriptor_name, descriptor)
+    checks = ''.join(
+        f'{sha(data)}  {name[len(prefix):]}\n'
+        for name, (fields, data) in sorted(members.items())
+        if name.startswith(prefix) and name != checks_name
+        and stat.S_ISREG(fields[1]))
+    ARCHIVE.replace(members, checks_name, checks.encode())
+    changed = {descriptor_name, checks_name}
+    for name, value in original.items():
+        if name not in changed:
+            assert members[name] == value
+    packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
+    assert ARCHIVE.entries(gzip.decompress(packed)) == members
+    return packed, {
+        'base_sha256': expected_base,
+        'sha256': sha(packed),
+        'previous_trial': previous,
+        'trial': trial,
+        'trial_helper_sha256': sha(helper),
+        'changed_existing_members': sorted(changed),
+        'added_members': 0,
+        'kernel_rebuilt': False,
+        'authority': 'none; persistent successor composition only',
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base', type=Path, required=True)
@@ -94,14 +140,16 @@ def main():
     parser.add_argument('--trial-descriptor', type=Path, required=True)
     parser.add_argument('--trial-helper', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--successor', action='store_true')
     args = parser.parse_args()
     assert len(args.expected_base_sha256) == 64
     record = Path(str(args.output)+'.json')
     assert not args.output.exists() and not record.exists()
     started = time.monotonic()
-    packed, result = compose(args.base.read_bytes(), args.expected_base_sha256,
-                             args.trial_descriptor.read_bytes(),
-                             args.trial_helper.read_bytes())
+    composer = compose_successor if args.successor else compose
+    packed, result = composer(args.base.read_bytes(), args.expected_base_sha256,
+                              args.trial_descriptor.read_bytes(),
+                              args.trial_helper.read_bytes())
     result['seconds'] = time.monotonic()-started
     with args.output.open('xb') as stream:
         stream.write(packed)

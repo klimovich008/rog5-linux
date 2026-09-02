@@ -2,6 +2,7 @@
 """Production-only USB independence; no real device, mount or network operations."""
 import os
 import importlib.util
+import hashlib
 import json
 import gzip
 from pathlib import Path
@@ -240,6 +241,35 @@ class AutomaticWifi(unittest.TestCase):
         checks = output['rog5-native-wifi/boot-files.sha256'][1].decode()
         self.assertIn('  healthy\n', checks)
         self.assertIn('  trial-descriptor\n', checks)
+
+        successor_descriptor = (
+            'format=rog5-persistent-wifi-health-v1\n'
+            'trial_id=' + '2'*64 + '\n'
+            'primary_bundle=persistent-native-root-wifi-overlay-v1\n'
+            'mode=try-once\n').encode()
+        successor, successor_result = module.compose_successor(
+            packed, module.sha(packed), successor_descriptor, helper)
+        successor_members = archive.entries(gzip.decompress(successor))
+        self.assertEqual(
+            successor_members['rog5-native-wifi/trial-descriptor'][1],
+            successor_descriptor,
+        )
+        self.assertEqual(successor_result['added_members'], 0)
+        self.assertEqual(successor_result['changed_existing_members'], [
+            'rog5-native-wifi/boot-files.sha256',
+            'rog5-native-wifi/trial-descriptor',
+        ])
+        for name, value in output.items():
+            if name not in successor_result['changed_existing_members']:
+                self.assertEqual(successor_members[name], value)
+        successor_checks = successor_members[
+            'rog5-native-wifi/boot-files.sha256'
+        ][1].decode()
+        self.assertIn(
+            hashlib.sha256(successor_descriptor).hexdigest()
+            + '  trial-descriptor\n',
+            successor_checks,
+        )
 
     def test_failure_diagnostic_composer_changes_only_reporter_members(self):
         spec = importlib.util.spec_from_file_location(
