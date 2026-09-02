@@ -115,7 +115,8 @@ def compose(base, package, record):
     new_init = (REPO/'initramfs/persistent-root-init').read_text()
     for key, value in {'KERNEL_RELEASE': release, 'NATIVE_ROOT_MODE': '1',
                        'UFS_STORAGE_MODE': 'read-only', 'SSH_DIAGNOSTIC_MODE': '0',
-                       'PROBE_BOOT_ID': 'staged-seal'}.items():
+                       'PROBE_BOOT_ID': 'staged-seal',
+                       'PERSISTENT_OVERLAY_MODE': '0'}.items():
         token = '@EXPECTED_' + key + '@'
         assert new_init.count(token) == 1
         new_init = new_init.replace(token, value)

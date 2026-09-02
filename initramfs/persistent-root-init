@@ -19,6 +19,7 @@ expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
 expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
 expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
 expected_ssh_diagnostic_mode=@EXPECTED_SSH_DIAGNOSTIC_MODE@
+expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@
 native_wifi_boot=0
 expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
 expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
@@ -27,10 +28,22 @@ expected_image_bytes=17179869184
 expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
 expected_image_label=ROG5_ARCH_A
 expected_probe_bytes=132
+expected_overlay_bytes=17179869184
+expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+expected_overlay_label=ROG5_ROOT_RW_V1
+expected_overlay_manifest_bytes=129
+expected_overlay_manifest_sha256=e894abd56cccdfce9ce3292438df022aa9672a8655cac6493b94cfd19d6bad5f
+overlay_relative=rog5/root/root-overlay-v1.ext4
 userdata=
 userdata_disk=
 root_image=
 root_loop=
+overlay_userdata=
+overlay_userdata_disk=
+overlay_loop=
+overlay_userdata_mounted=0
+overlay_loop_attached=0
+overlay_mounted=0
 image_write_failure_stage=image-write
 release_file=/proc/sys/kernel/osrelease
 expected_udc=a600000.usb
@@ -1354,10 +1367,205 @@ verify_persistent_root() {
 	return 0
 }
 
+verify_exact_overlay_write_window() {
+	count=0
+	writable=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		expected=1
+		case $device in
+			"$overlay_userdata_disk"|"$overlay_userdata")
+				expected=0
+				writable=$((writable + 1))
+				;;
+		esac
+		[ -b "$device" ] && [ "$(blockdev --getro "$device")" = "$expected" ] &&
+			[ "$(cat "$sys_block/ro")" = "$expected" ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq "$expected_physical_count" ] && [ "$writable" -eq 2 ]
+}
+
+verify_exact_rw_mount() {
+	device=$1
+	target=$2
+	awk -v device="$device" -v target="$target" '
+	$1 == device && $2 == target && $3 == "ext4" &&
+	$4 ~ /(^|,)rw(,|$)/ && $4 ~ /(^|,)nodev(,|$)/ &&
+	$4 ~ /(^|,)nosuid(,|$)/ && $4 ~ /(^|,)noexec(,|$)/ &&
+	$4 ~ /(^|,)noatime(,|$)/ { found++ }
+	END { exit found != 1 }' /proc/mounts
+}
+
+verify_overlay_filesystem_identity() {
+	device=$1
+	record=$(blkid "$device") || return 1
+	printf '%s\n' "$record" |
+		grep -Fq " UUID=\"$expected_overlay_uuid\"" &&
+		printf '%s\n' "$record" |
+		grep -Fq " LABEL=\"$expected_overlay_label\"" &&
+		printf '%s\n' "$record" | grep -Fq ' TYPE="ext4"'
+}
+
+verify_persistent_overlay_tree() {
+	root=$1
+	verify_exact_regular "$root/rog5-root-overlay.manifest" 0 0 444 \
+		"$expected_overlay_manifest_bytes" \
+		"$expected_overlay_manifest_sha256" || return 1
+	for directory in upper work; do
+		[ -d "$root/$directory" ] && [ ! -L "$root/$directory" ] &&
+			[ "$(stat -c '%u:%g:%a' "$root/$directory")" = 0:0:700 ] ||
+			return 1
+	done
+	return 0
+}
+
+close_persistent_overlay_prepare() {
+	close_status=0
+	[ "$overlay_mounted" -eq 0 ] || {
+		umount /mnt/state || close_status=1
+		overlay_mounted=0
+	}
+	[ "$overlay_loop_attached" -eq 0 ] || {
+		losetup -d "$overlay_loop" || close_status=1
+		overlay_loop_attached=0
+	}
+	[ "$overlay_userdata_mounted" -eq 0 ] || {
+		umount /mnt/userdata || close_status=1
+		overlay_userdata_mounted=0
+	}
+	[ -z "$overlay_userdata_disk" ] ||
+		blockdev --setro "$overlay_userdata_disk" || close_status=1
+	[ -z "$overlay_userdata" ] ||
+		blockdev --setro "$overlay_userdata" || close_status=1
+	verify_physical_storage_read_only || close_status=1
+	rm -f /run/rog5-persistent-overlay.runtime \
+		/run/rog5-persistent-overlay.runtime.next \
+		/run/rog5-persistent-state-userdata-device
+	return "$close_status"
+}
+
+prepare_persistent_overlay_inner() {
+	[ "$expected_native_root_mode:$expected_ufs_storage_mode:$expected_ssh_diagnostic_mode" = \
+		1:read-only:0 ] || return 1
+	overlay_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
+	case $overlay_userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	overlay_userdata_disk=${overlay_userdata%23}
+	[ "${userdata}" = "${overlay_userdata_disk}24" ] || return 1
+	userdata_record=$(blkid "$overlay_userdata") || return 1
+	printf '%s\n' "$userdata_record" |
+		grep -Fq ' UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5"' &&
+		printf '%s\n' "$userdata_record" |
+		grep -Fq ' LABEL="rog5-linux"' &&
+		printf '%s\n' "$userdata_record" | grep -Fq ' TYPE="ext4"' || return 1
+
+	blockdev --setrw "$overlay_userdata" || return 1
+	blockdev --setrw "$overlay_userdata_disk" || return 1
+	verify_exact_overlay_write_window || return 1
+	mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$overlay_userdata" /mnt/userdata || return 1
+	overlay_userdata_mounted=1
+	verify_exact_rw_mount "$overlay_userdata" /mnt/userdata || return 1
+	for directory in /mnt/userdata/rog5 /mnt/userdata/rog5/root; do
+		[ -d "$directory" ] && [ ! -L "$directory" ] &&
+			[ "$(stat -c '%u:%g:%a' "$directory")" = 0:0:700 ] ||
+			return 1
+	done
+	overlay_image=/mnt/userdata/$overlay_relative
+	[ -f "$overlay_image" ] && [ ! -L "$overlay_image" ] &&
+		[ "$(stat -c '%u:%g:%a:%s:%h' "$overlay_image")" = \
+			"0:0:600:$expected_overlay_bytes:1" ] || return 1
+
+	overlay_loop=$(losetup -f) || return 1
+	case $overlay_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	losetup "$overlay_loop" "$overlay_image" || return 1
+	overlay_loop_attached=1
+	[ "$(blockdev --getsize64 "$overlay_loop")" = "$expected_overlay_bytes" ] ||
+		return 1
+	verify_overlay_filesystem_identity "$overlay_loop" || return 1
+	overlay_loop_name=${overlay_loop##*/}
+	backing_file=$(cat "/sys/class/block/$overlay_loop_name/loop/backing_file") ||
+		return 1
+	case $backing_file in
+		/mnt/userdata/rog5/root/root-overlay-v1.ext4|\
+		mnt/userdata/rog5/root/root-overlay-v1.ext4) ;;
+		*) return 1 ;;
+	esac
+	mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$overlay_loop" /mnt/state || return 1
+	overlay_mounted=1
+	verify_exact_rw_mount "$overlay_loop" /mnt/state || return 1
+	verify_persistent_overlay_tree /mnt/state || return 1
+	[ -z "$(find /mnt/state/work -mindepth 1 -maxdepth 1 -print -quit)" ] ||
+		return 1
+	verify_exact_overlay_write_window || return 1
+	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
+
+	printf '%s\n' \
+		'format=rog5-persistent-root-overlay-runtime-v1' \
+		"boot_id=$target_boot_id" \
+		"disk=$overlay_userdata_disk" \
+		"userdata=$overlay_userdata" \
+		"loop=$overlay_loop" \
+		"image=$overlay_relative" \
+		'mount=/mnt/state' \
+		'userdata_mount=/mnt/userdata' \
+		>/run/rog5-persistent-overlay.runtime.next || return 1
+	chown 0:0 /run/rog5-persistent-overlay.runtime.next || return 1
+	chmod 0400 /run/rog5-persistent-overlay.runtime.next || return 1
+	mv /run/rog5-persistent-overlay.runtime.next \
+		/run/rog5-persistent-overlay.runtime || return 1
+	printf '%s\n' "$overlay_userdata" \
+		>/run/rog5-persistent-state-userdata-device || return 1
+	chown 0:0 /run/rog5-persistent-state-userdata-device || return 1
+	chmod 0444 /run/rog5-persistent-state-userdata-device || return 1
+}
+
+prepare_persistent_overlay() {
+	[ "$expected_persistent_overlay_mode" -eq 1 ] || return 0
+	if prepare_persistent_overlay_inner; then
+		return 0
+	fi
+	close_persistent_overlay_prepare || true
+	return 1
+}
+
+verify_persistent_overlay_runtime() {
+	[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+	verify_exact_overlay_write_window || return 1
+	verify_exact_rw_mount "$overlay_userdata" /mnt/userdata || return 1
+	verify_exact_rw_mount "$overlay_loop" /mnt/state || return 1
+	verify_persistent_overlay_tree /mnt/state || return 1
+	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
+	root_name=${userdata##*/}
+	userdata_name=${overlay_userdata##*/}
+	loop_name=${overlay_loop##*/}
+	expected_root=$(cat "/sys/class/block/$root_name/dev") || return 1
+	expected_userdata=$(cat "/sys/class/block/$userdata_name/dev") || return 1
+	expected_loop=$(cat "/sys/class/block/$loop_name/dev") || return 1
+	count=0
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+		case $device:$mountpoint in
+			"$expected_root:/mnt/root-ro"|\
+			"$expected_userdata:/mnt/userdata"|\
+			"$expected_loop:/mnt/state") ;;
+			*) return 1 ;;
+		esac
+	done </proc/self/mountinfo
+	[ "$count" -eq 3 ]
+}
+
 mount_overlay_root() {
-	mount -t tmpfs -o nodev,nosuid,mode=0755,size=2048m \
-		tmpfs /mnt/state || return 1
-	mkdir -p /mnt/state/upper /mnt/state/work
+	if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
+		mount -t tmpfs -o nodev,nosuid,mode=0755,size=2048m \
+			tmpfs /mnt/state || return 1
+		mkdir -p /mnt/state/upper /mnt/state/work
+	else
+		verify_persistent_overlay_runtime || return 1
+	fi
 	mount -t overlay overlay \
 		-o lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work \
 		/newroot || return 1
@@ -1382,7 +1590,13 @@ prepare_volatile_root_account() {
 	root_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
 		return 1
 	case $root_password in !*) ;; *) return 1 ;; esac
-	sed -i 's/^root:[^:]*/root:x/' "$shadow" || return 1
+	merged_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$shadow") ||
+		return 1
+	case $merged_password in
+		"$root_password") sed -i 's/^root:[^:]*/root:x/' "$shadow" || return 1 ;;
+		x) [ "$expected_persistent_overlay_mode" -eq 1 ] || return 1 ;;
+		*) return 1 ;;
+	esac
 	grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
 	root_password_after=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
 		return 1
@@ -1396,12 +1610,15 @@ prepare_volatile_ssh_policy() {
 	lower_policy=$lower/etc/ssh/sshd_config.d/10-rog5-server.conf
 	original_sha256=c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
 	volatile_sha256=37372388916a09c2457c3bf612de9bfe9b5bcba0fe9e01d1e3aa5b98dc903db1
-	for path in "$policy" "$lower_policy"; do
-		verify_exact_regular "$path" 0 0 644 201 "$original_sha256" ||
-			return 1
-		[ "$(grep -c '^UsePAM ' "$path")" -eq 0 ] || return 1
-	done
-	printf '%s\n' 'UsePAM no' >>"$policy" || return 1
+	verify_exact_regular "$lower_policy" 0 0 644 201 "$original_sha256" ||
+		return 1
+	[ "$(grep -c '^UsePAM ' "$lower_policy")" -eq 0 ] || return 1
+	if verify_exact_regular "$policy" 0 0 644 201 "$original_sha256"; then
+		[ "$(grep -c '^UsePAM ' "$policy")" -eq 0 ] || return 1
+		printf '%s\n' 'UsePAM no' >>"$policy" || return 1
+	else
+		[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+	fi
 	verify_exact_regular "$policy" 0 0 644 211 "$volatile_sha256" ||
 		return 1
 	[ "$(grep -c '^UsePAM no$' "$policy")" -eq 1 ] || return 1
@@ -1423,28 +1640,43 @@ prepare_volatile_systemd_state() {
 		"$runtime/systemd/system"; do
 		[ -d "$directory" ] && [ ! -L "$directory" ] || return 1
 	done
-	verify_exact_regular "$root/etc/ld.so.cache" 0 0 644 \
+	verify_exact_regular "$lower/etc/ld.so.cache" 0 0 644 \
 		"$expected_cache_size" "$expected_cache_sha256" || return 1
+	if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
+		verify_exact_regular "$root/etc/ld.so.cache" 0 0 644 \
+			"$expected_cache_size" "$expected_cache_sha256" || return 1
+	else
+		[ -f "$root/etc/ld.so.cache" ] && [ ! -L "$root/etc/ld.so.cache" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/etc/ld.so.cache")" = \
+				0:0:644:1 ] || return 1
+		cache_size=$(stat -c %s "$root/etc/ld.so.cache") || return 1
+		[ "$cache_size" -gt 0 ] && [ "$cache_size" -le 1048576 ] || return 1
+	fi
 
 	for subtree in etc var; do
 		lower_marker=$lower/$subtree/.updated
 		merged_marker=$root/$subtree/.updated
 		upper_marker=$upper/$subtree/.updated
 		[ ! -e "$lower_marker" ] && [ ! -L "$lower_marker" ] || return 1
-		[ ! -e "$merged_marker" ] && [ ! -L "$merged_marker" ] || return 1
-		[ ! -e "$upper_marker" ] && [ ! -L "$upper_marker" ] || return 1
-		touch -r "$root/usr" "$merged_marker" || return 1
-		chown 0:0 "$merged_marker" || return 1
-		chmod 0644 "$merged_marker" || return 1
+		if [ ! -e "$merged_marker" ] && [ ! -L "$merged_marker" ]; then
+			[ ! -e "$upper_marker" ] && [ ! -L "$upper_marker" ] || return 1
+			touch -r "$root/usr" "$merged_marker" || return 1
+			chown 0:0 "$merged_marker" || return 1
+			chmod 0644 "$merged_marker" || return 1
+		else
+			[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+		fi
 		verify_exact_regular "$merged_marker" 0 0 644 0 \
 			"$empty_sha256" || return 1
 		verify_exact_regular "$upper_marker" 0 0 644 0 \
 			"$empty_sha256" || return 1
-		marker_time=$(stat -c '%Y:%y' "$merged_marker") || return 1
-		[ "$marker_time" = "$(stat -c '%Y:%y' "$root/usr")" ] ||
-			return 1
-		[ "$marker_time" = "$(stat -c '%Y:%y' "$upper_marker")" ] ||
-			return 1
+		if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
+			marker_time=$(stat -c '%Y:%y' "$merged_marker") || return 1
+			[ "$marker_time" = "$(stat -c '%Y:%y' "$root/usr")" ] ||
+				return 1
+			[ "$marker_time" = "$(stat -c '%Y:%y' "$upper_marker")" ] ||
+				return 1
+		fi
 		[ ! -e "$lower_marker" ] && [ ! -L "$lower_marker" ] || return 1
 	done
 
@@ -1594,11 +1826,20 @@ prepare_runtime() {
 	cp -p /usr/local/sbin/rog5-persistent-tailscale \
 		/run/rog5-persistent-tailscale || return 1
 	[ -x /run/rog5-persistent-tailscale ] || return 1
-	state_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
-	printf '%s\n' "$state_userdata" \
-		>/run/rog5-persistent-state-userdata-device || return 1
-	chown 0:0 /run/rog5-persistent-state-userdata-device || return 1
-	chmod 0444 /run/rog5-persistent-state-userdata-device || return 1
+	if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+		[ -f /run/rog5-persistent-state-userdata-device ] &&
+			[ ! -L /run/rog5-persistent-state-userdata-device ] &&
+			[ "$(stat -c '%u:%g:%a:%h' \
+				/run/rog5-persistent-state-userdata-device)" = 0:0:444:1 ] &&
+			[ "$(cat /run/rog5-persistent-state-userdata-device)" = \
+				"$overlay_userdata" ] || return 1
+	else
+		state_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
+		printf '%s\n' "$state_userdata" \
+			>/run/rog5-persistent-state-userdata-device || return 1
+		chown 0:0 /run/rog5-persistent-state-userdata-device || return 1
+		chmod 0444 /run/rog5-persistent-state-userdata-device || return 1
+	fi
 	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
 		cp -p /usr/local/sbin/rog5-ssh-diagnostic \
 			/run/rog5-ssh-diagnostic || return 1
@@ -1732,7 +1973,7 @@ rollback_handoff_mounts() {
 		move_handoff_mount "$handoff_newroot/.rog5/root-ro" \
 			"$handoff_root" || rollback_status=1
 	[ "$handoff_moved_userdata" -eq 0 ] ||
-		move_handoff_mount "$handoff_newroot/.rog5/userdata-ro" \
+		move_handoff_mount "$handoff_userdata_target" \
 			"$handoff_userdata" || rollback_status=1
 	return "$rollback_status"
 }
@@ -1745,17 +1986,24 @@ handoff_persistent_root() {
 	handoff_moved_sys=0
 	handoff_moved_proc=0
 	handoff_moved_run=0
+	handoff_userdata_target=
 
 	mkdir -p "$handoff_newroot/.rog5/userdata-ro" \
+		"$handoff_newroot/.rog5/userdata-rw" \
 		"$handoff_newroot/.rog5/root-ro" \
 		"$handoff_newroot/.rog5/state" "$handoff_newroot/dev" \
 		"$handoff_newroot/proc" "$handoff_newroot/sys" \
 		"$handoff_newroot/run" || return 1
 	touch "$handoff_run/rog5-p2-root-mounted" || return 1
 
-	if [ "$expected_native_root_mode" -eq 0 ]; then
+	if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+		handoff_userdata_target="$handoff_newroot/.rog5/userdata-rw"
+	elif [ "$expected_native_root_mode" -eq 0 ]; then
+		handoff_userdata_target="$handoff_newroot/.rog5/userdata-ro"
+	fi
+	if [ -n "$handoff_userdata_target" ]; then
 		if ! move_handoff_mount "$handoff_userdata" \
-			"$handoff_newroot/.rog5/userdata-ro"; then
+			"$handoff_userdata_target"; then
 			return 1
 		fi
 		handoff_moved_userdata=1
@@ -1862,6 +2110,15 @@ esac
 printf '%s\n' "$target_boot_id" |
 	grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
 	fail_stage 'target boot identity is invalid' kernel-release-file 20
+case $expected_persistent_overlay_mode in
+	0) ;;
+	1)
+		[ "$expected_native_root_mode:$expected_ufs_storage_mode:$expected_ssh_diagnostic_mode" = \
+			1:read-only:0 ] ||
+			fail_stage 'persistent overlay composition is invalid' cmdline 5
+		;;
+	*) fail_stage 'persistent overlay mode is invalid' cmdline 5 ;;
+esac
 publish_or_rollback kernel-verified PASS
 start_stage_reporter
 publish_or_rollback ufs-ready ENTER
@@ -2021,8 +2278,8 @@ if ! verify_ufs_health; then
 fi
 publish_or_rollback ufs-health PASS
 publish_or_rollback overlay ENTER
-if ! mount_overlay_root; then
-	fail_local_stage overlay 'tmpfs OverlayFS root failed'
+if ! prepare_persistent_overlay || ! mount_overlay_root; then
+	fail_local_stage overlay 'persistent-root OverlayFS preparation failed'
 fi
 publish_or_rollback overlay PASS
 publish_or_rollback runtime ENTER
@@ -2031,9 +2288,14 @@ if ! prepare_runtime; then
 fi
 publish_or_rollback runtime PASS
 publish_or_rollback final-storage ENTER
-if ! verify_physical_storage_read_only ||
-	! verify_userdata_and_image_mounts ||
-	! verify_ufs_health; then
+final_storage_valid=0
+if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+	verify_persistent_overlay_runtime && final_storage_valid=1
+else
+	verify_physical_storage_read_only &&
+		verify_userdata_and_image_mounts && final_storage_valid=1
+fi
+if [ "$final_storage_valid" -ne 1 ] || ! verify_ufs_health; then
 	fail_local_stage final-storage 'final read-only storage gate failed'
 fi
 publish_or_rollback final-storage PASS
