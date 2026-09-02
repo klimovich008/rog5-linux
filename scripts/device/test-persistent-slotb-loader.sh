@@ -69,7 +69,9 @@ for contract in \
 	'[ "$(cat "$gadget/UDC")" = "$expected_udc" ]' \
 	'set_stage S20 PASS storage_resolved' \
 	'set_stage S40 PASS selector_verified' \
-	'set_stage S65 PASS trial_selected' \
+	'set_stage S65 PASS "$trial_selection_detail"' \
+	'while [ "$trial_attempt" -lt 3 ]; do' \
+	'# Never retry after this exact helper may publish or observe state.' \
 	'set_stage S60 PASS bundle_verified' \
 	'set_stage S70 PASS kexec_loaded' \
 	'set_stage S80 PASS haven_disabled' \
@@ -131,6 +133,7 @@ cat >"$work/trial-helper" <<'EOF'
 #!/bin/sh
 [ "$#" -eq 6 ]
 [ "$1" = decide ]
+printf 'helper\n' >>"${MOCK_HELPER_LOG:?}"
 case ${MOCK_DECISION:?} in
 primary) printf '%s\n' "$3" ;;
 fallback) printf '%s\n' "$5" ;;
@@ -153,6 +156,11 @@ run_trial_case() (
 	fallback_bundle=persistent-native-root-v11
 	fallback_manifest_hash=a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2
 	relock_count=0
+	mount_count=0
+	helper_log=$work/helper-$case_name.log
+	: >"$helper_log"
+	MOCK_HELPER_LOG=$helper_log
+	export MOCK_HELPER_LOG
 	relock_all_storage() {
 		relock_count=$((relock_count + 1))
 		[ "$case_name:$relock_count" != cleanup-fail:2 ]
@@ -160,29 +168,59 @@ run_trial_case() (
 	verify_trial_write_window() { :; }
 	blockdev() { :; }
 	mkdir() { :; }
-	mount() { [ "$case_name" != mount-fail ]; }
+	mount() {
+		mount_count=$((mount_count + 1))
+		case $case_name in
+			mount-fail) return 1 ;;
+			mount-retry) [ "$mount_count" -ge 3 ] ;;
+			*) return 0 ;;
+		esac
+	}
 	blkid() {
 		printf '%s\n' '/dev/sda23: LABEL="rog5-linux" UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5" TYPE="ext4"'
 	}
 	sync() { :; }
 	umount() { :; }
 	rmdir() { :; }
+	log() { :; }
+	sleep() { [ "$1" = 0.25 ]; }
 	case $case_name in
 		primary) MOCK_DECISION=primary; export MOCK_DECISION ;;
 		helper-fail) MOCK_DECISION=fail; export MOCK_DECISION ;;
-		mount-fail|cleanup-fail) MOCK_DECISION=primary; export MOCK_DECISION ;;
+		mount-fail|mount-retry|cleanup-fail) MOCK_DECISION=primary; export MOCK_DECISION ;;
 	esac
 	if select_trial_bundle; then
 		[ "$case_name" != cleanup-fail ]
 		case $case_name in
-			primary) [ "$bundle" = "$primary_bundle" ] ;;
+			primary)
+				[ "$bundle" = "$primary_bundle" ]
+				[ "$trial_selection_detail" = trial-primary-a1 ]
+				[ "$(wc -l <"$helper_log")" -eq 1 ]
+				;;
+			mount-retry)
+				[ "$bundle" = "$primary_bundle" ]
+				[ "$trial_selection_detail" = trial-primary-a3 ]
+				[ "$mount_count" -eq 3 ]
+				[ "$(wc -l <"$helper_log")" -eq 1 ]
+				;;
+			helper-fail)
+				[ "$bundle" = "$fallback_bundle" ]
+				[ "$trial_selection_detail" = trial-fallback-helper-a1 ]
+				[ "$(wc -l <"$helper_log")" -eq 1 ]
+				;;
+			mount-fail)
+				[ "$bundle" = "$fallback_bundle" ]
+				[ "$trial_selection_detail" = trial-fallback-prep-mount-a3 ]
+				[ "$mount_count" -eq 3 ]
+				[ ! -s "$helper_log" ]
+				;;
 			*) [ "$bundle" = "$fallback_bundle" ] ;;
 		esac
 	else
 		[ "$case_name" = cleanup-fail ]
 	fi
 )
-for trial_case in primary helper-fail mount-fail cleanup-fail; do
+for trial_case in primary helper-fail mount-fail mount-retry cleanup-fail; do
 	run_trial_case "$trial_case"
 done
 
