@@ -158,6 +158,7 @@ active_tests=(
 	scripts/host/test-persistent-trial-state.py
 	scripts/host/test-build-persistent-wifi-selector.py
 	"${native_wifi_probe_tests[@]}"
+	scripts/device/test-rog5-healthd.py
 	scripts/host/test-current-recovery-status.sh
 	scripts/host/test-select-repository-test-tier.py
 )
