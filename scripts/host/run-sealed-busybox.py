@@ -99,6 +99,9 @@ def run(archive, release, applet, *, qemu, empty_module_index=False):
             "--uid", "0", "--gid", "0",
             "--ro-bind", str(root), "/", "--ro-bind", str(qemu.resolve()), "/rog5-qemu",
             "--clearenv", "--setenv", "PATH", "/bin:/sbin:/usr/bin:/usr/sbin",
+            # Shell exec children can re-enter QEMU through binfmt_misc;
+            # unlike the parent's -r argument, this survives that boundary.
+            "--setenv", "QEMU_UNAME", release,
             "--setenv", "LC_ALL", "C", "--chdir", "/",
             "/rog5-qemu", "-r", release, "/bin/busybox", *applet,
         ], capture_output=True, timeout=30)
