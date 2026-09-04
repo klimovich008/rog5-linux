@@ -82,6 +82,18 @@ class HostDoctorTest(unittest.TestCase):
         self.assertNotIn('Path("/usr/bin/adb")', payload)
         self.assertNotIn('Path("/usr/bin/fastboot")', payload)
 
+    def test_receipt_verification_rechecks_current_headroom_and_build_processes(self) -> None:
+        expected = clean_receipt()
+        for key, value in (
+            ("disk", {"available_bytes": 1, "available_inodes": 2_000_000}),
+            ("disk", {"available_bytes": 100_000_000_000, "available_inodes": 1}),
+            ("build_processes", ["123:build-mainline"]),
+        ):
+            current = clean_receipt()
+            current[key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(DOCTOR.DoctorError):
+                DOCTOR.validate(expected, current=current)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
