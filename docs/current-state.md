@@ -5,8 +5,10 @@ Facts below are accepted evidence, not a claim of freshly measured live health.
 
 ## Objective and checkpoint
 
-The standalone Arch server migration passed. Current work is a bounded
-repository/development-loop consolidation; the physical button trial is paused.
+The standalone Arch server migration passed. The repository/development-loop
+consolidation is implemented and locally verified; publication checks remain
+visible on the PR. See [results](../test-results/2026-09-04-development-consolidation.md).
+The physical button trial is paused.
 V15 preparation stopped before signing, claim consumption or execution.
 There is no authorized storage mutation in this checkpoint.
 
@@ -74,5 +76,6 @@ exact operation and explicit approval. Never publish private material.
 Read [development workflow](development.md) for commands and validation tiers.
 Read only relevant R1–R10 entries in [lessons](development-lessons.md) during
 routine edits; use its complete pre-build/live checklists before a successor.
-Finish consolidation before resuming the operator-attended screen test.
+Confirm the existing server's transport/health with read-only diagnostics
+before resuming the operator-attended screen test.
 The [roadmap](../ROADMAP.md) holds later work.
