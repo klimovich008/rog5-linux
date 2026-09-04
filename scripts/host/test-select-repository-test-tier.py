@@ -22,6 +22,31 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TierSelectorTest(unittest.TestCase):
+    def test_every_probe_change_runs_its_own_regression_suite(self) -> None:
+        runner = SOURCE.with_name("test-repository-linux.sh").read_text()
+        # Evaluate only the actual array declarations, never runner setup/tests.
+        declarations = []
+        for name in ("native_wifi_probe_tests", "probe_tests"):
+            match = re.search(r"^" + name + r"=\(\n.*?^\)", runner, re.M | re.S)
+            self.assertIsNotNone(match, name)
+            declarations.append(match.group())
+        result = subprocess.run(
+            ["bash", "-c", "set -eu\n" + "\n".join(declarations)
+             + '\nprintf "%s\\n" "${probe_tests[@]}"'],
+            check=True, capture_output=True, text=True,
+        )
+        selected = set(result.stdout.splitlines())
+        for changed in MODULE.PROBE_ONLY:
+            if changed == MODULE.PROBE_QEMU:
+                required = "scripts/device/test-build-early-target-diag.sh"
+            else:
+                path = Path(changed)
+                required = str(path if path.name.startswith("test-")
+                               else path.with_name("test-" + path.name))
+            with self.subTest(changed=changed):
+                self.assertIn(required, selected)
+        self.assertIn("scripts/host/test-select-repository-test-tier.py", selected)
+
     def test_probe_only_changes_use_fast_tier(self) -> None:
         self.assertEqual(
             MODULE.classify(

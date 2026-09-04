@@ -4,11 +4,14 @@ from __future__ import annotations
 import http.client
 from pathlib import Path
 import re
+import runpy
 import selectors
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 
 
@@ -19,6 +22,57 @@ HEALTH_BODY = b'{"service":"rog5-healthd","status":"ok","version":1}\n'
 
 
 class HealthdTest(unittest.TestCase):
+    def assert_other_client_progresses(self, first_request: bytes) -> None:
+        """Exercise the production handler with a deliberately idle client."""
+        source = runpy.run_path(str(TARGET))
+        accepted = threading.Event()
+
+        class ObservedServer(source["HealthServer"]):
+            def get_request(self):
+                request = super().get_request()
+                accepted.set()
+                return request
+
+        server = ObservedServer(("127.0.0.1", 0), source["HealthHandler"])
+        worker = threading.Thread(
+            target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True
+        )
+        worker.start()
+        first = socket.create_connection(server.server_address, timeout=2)
+        second = http.client.HTTPConnection(*server.server_address, timeout=2)
+        try:
+            self.assertTrue(accepted.wait(2), "first connection was not accepted")
+            if first_request:
+                first.sendall(first_request)
+            if first_request.endswith(b"\r\n\r\n"):
+                response = http.client.HTTPResponse(first)
+                response.begin()
+                self.assertEqual(response.read(), HEALTH_BODY)
+                response.close()
+                # A completed health check must not monopolize the listener.
+                self.assertEqual(first.recv(1), b"")
+            second.request("GET", "/healthz")
+            response = second.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.read(), HEALTH_BODY)
+        finally:
+            first.close()
+            second.close()
+            server.shutdown()
+            server.server_close()
+            worker.join(timeout=2)
+
+    def test_keep_alive_client_cannot_block_other_health_checks(self) -> None:
+        self.assert_other_client_progresses(
+            b"GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n"
+        )
+
+    def test_idle_connection_times_out(self) -> None:
+        self.assert_other_client_progresses(b"")
+
+    def test_incomplete_headers_time_out(self) -> None:
+        self.assert_other_client_progresses(b"GET /healthz HTTP/1.1\r\nHost:")
+
     def test_exact_health_and_not_found_responses(self) -> None:
         process = subprocess.Popen(
             [sys.executable, str(TARGET), "--bind", "127.0.0.1", "--port", "0"],

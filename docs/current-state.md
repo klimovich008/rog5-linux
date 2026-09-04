@@ -75,8 +75,15 @@ There is no authorized storage mutation in this checkpoint.
 - Offline review reproduced accepted-primary non-demotion and crash-recovery
   validation defects. It also found software UFS clock-gating still enabled
   despite the keep-active containment. None proves today's first failure.
-  The current source fix accepts independently valid systemd update markers;
-  it is not deployed. Kernel, selector, workdir and journal behavior are unchanged.
+  Source-only fixes now accept independent systemd update markers and re-arm
+  accepted primary boots before selection. Helper v2 passes offline tests;
+  the installed v1 helper is unchanged. Neither fix is deployed. UFS, workdir
+  and journal behavior remain unchanged and under investigation.
+- The follow-up source checkpoint guards late rollback timer activation with
+  exact current-boot acceptance, bounds idle health connections, and repairs
+  probe-tier coverage. The runtime and rollback unit are refreshed together
+  in fresh persistent compositions; identity-only successors still preserve
+  their qualified runtime. These corrections are offline-tested, not deployed.
 
 ## Working authority and next action
 
@@ -96,4 +103,6 @@ Read only relevant R1–R10 entries in [lessons](development-lessons.md) during
 routine edits; use its complete pre-build/live checklists before a successor.
 Complete the focused boot/recovery corrections before another live successor;
 then restore exact transport/health evidence before the attended screen test.
+Remaining review items include primary-copy failure bypassing signed fallback,
+the initramfs-to-systemd watchdog gap, WPA restartability and display isolation.
 The [roadmap](../ROADMAP.md) holds later work.

@@ -6,8 +6,8 @@ record=$repo/configs/recovery-control/aarch64-build-v1.json
 runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 builder=$repo/scripts/device/build-persistent-trial-state.sh
 source_file=$repo/tools/persistent_trial_state/rog5-persistent-trial-state.c
-artifact=$repo/artifacts/persistent-trial-state-v1/rog5-persistent-trial-state
-meta=$repo/artifacts/persistent-trial-state-v1/build-meta.txt
+artifact=$repo/$(cat "$repo/configs/persistent-trial-helper.path")
+meta=$(dirname "$artifact")/build-meta.txt
 qemu=$repo/artifacts/host-tools/qemu-aarch64-static
 
 fail() { echo "FAIL $*" >&2; exit 1; }
@@ -17,14 +17,25 @@ done
 [[ -x $runner && -x $builder && -f $source_file && -x $artifact ]] ||
 	fail 'persistent trial-state build input is absent'
 (cd "$(dirname "$artifact")" && sha256sum -c SHA256SUMS)
-[[ $(stat -c '%s:%a' "$artifact") == 67520:755 ]] ||
+[[ $(stat -c '%s:%a' "$artifact") == "$(sed -n 's/^output_size=//p' "$meta"):755" ]] ||
 	fail 'persistent trial artifact metadata changed'
+grep -Fxq "output_sha256=$(sha256sum "$artifact" | awk '{print $1}')" "$meta"
+# Accepted v1 remains an immutable historical artifact, not current source.
+(cd "$repo/artifacts/persistent-trial-state-v1" && sha256sum -c SHA256SUMS)
 grep -Fxq "source_sha256=$(sha256sum "$source_file" | awk '{print $1}')" "$meta"
 grep -Fxq "builder_sha256=$(sha256sum "$builder" | awk '{print $1}')" "$meta"
 file "$artifact" | grep -q 'ARM aarch64.*static-pie linked'
 readelf -h "$artifact" | grep -q 'Machine:.*AArch64'
 ! readelf -l "$artifact" | grep -q INTERP ||
 	fail 'persistent trial artifact gained an interpreter'
+
+# Behavioral replay requires no compiler container. Qualified local CI must
+# exercise the actual v2 selector with the retained v1 target acknowledgment.
+if [[ -x $qemu ]] && command -v bwrap >/dev/null; then
+	ROG5_TRIAL_TEST_ARM64=1 python3 "$repo/scripts/host/test-persistent-trial-state.py"
+else
+	echo 'SKIP isolated AArch64 behavior replay: QEMU/bubblewrap unavailable'
+fi
 
 if [[ ! -x $qemu ]] || ! command -v podman >/dev/null; then
 	echo 'SKIP private AArch64 twin rebuild environment is unavailable'

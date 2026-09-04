@@ -168,13 +168,19 @@ active_tests=(
 
 probe_tests=(
 	"${native_wifi_probe_tests[@]}"
+	scripts/host/test-select-repository-test-tier.py
 	scripts/device/test-observe-early-mainline-power.sh
+	scripts/device/test-probe-network-root-battery-telemetry.sh
+	scripts/device/test-build-early-target-diag.sh
+	scripts/host/test-early-target-diagnostics.py
+	scripts/host/test-collect-early-target-diagnostics.py
 	scripts/device/test-network-root-init.sh
 	scripts/host/test-generate-power-usb-active.py
 )
 
 shared_tests=(
 	scripts/host/test-repository-linux-runner-contract.sh
+	scripts/device/test-probe-network-root-battery-telemetry.sh
 	scripts/device/test-inspect-local-image-partial.sh
 	scripts/device/test-benchmark-local-image-write.sh
 	scripts/device/test-stage-local-image-direct.sh
@@ -470,6 +476,8 @@ run_test() {
 
 isolated_tests=(
 	"${native_wifi_probe_tests[@]}"
+	# Private temporary files and loopback port 0; no shared service/listener.
+	scripts/device/test-rog5-healthd.py
 	scripts/host/test-persistent-trial-state.py
 	scripts/host/test-build-persistent-wifi-selector.py
 	scripts/host/test-select-repository-test-tier.py

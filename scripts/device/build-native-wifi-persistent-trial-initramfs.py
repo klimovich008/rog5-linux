@@ -31,7 +31,8 @@ def compose(base, expected_base, descriptor, helper):
     members = {name: (fields.copy(), data) for name, (fields, data) in original.items()}
     prefix = 'rog5-native-wifi/'
     radio_unit = prefix+'units/rog5-wifi-radio.service'
-    for required in (prefix+'automatic', prefix+'runtime', radio_unit,
+    rollback_unit = prefix+'units/rog5-wifi-boot-rollback.service'
+    for required in (prefix+'automatic', prefix+'runtime', radio_unit, rollback_unit,
                      prefix+'boot-files.sha256'):
         assert required in members
     assert members[prefix+'automatic'][1] == b'rog5-native-wifi-boot-v1\n'
@@ -41,6 +42,10 @@ def compose(base, expected_base, descriptor, helper):
 
     ARCHIVE.replace(members, prefix+'runtime',
                     (REPO/'initramfs/native-wifi/runtime').read_bytes())
+    # The rollback action and its service are one composition change. Keeping
+    # the base's unconditional service would bypass current-boot acceptance.
+    ARCHIVE.replace(members, rollback_unit,
+                    (REPO/'initramfs/native-wifi/units/rog5-wifi-boot-rollback.service').read_bytes())
     timing = dict(
         line.split('=', 1)
         for line in (REPO/'initramfs/native-wifi/timing').read_text().splitlines()
@@ -70,7 +75,8 @@ def compose(base, expected_base, descriptor, helper):
         and stat.S_ISREG(fields[1]))
     ARCHIVE.replace(members, prefix+'boot-files.sha256', checks.encode())
     for name, value in original.items():
-        if name not in (prefix+'runtime', radio_unit, prefix+'boot-files.sha256'):
+        if name not in (prefix+'runtime', radio_unit, rollback_unit,
+                        prefix+'boot-files.sha256'):
             assert members[name] == value
     packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
     assert ARCHIVE.entries(gzip.decompress(packed)) == members
@@ -80,7 +86,7 @@ def compose(base, expected_base, descriptor, helper):
         'trial': trial,
         'trial_helper_sha256': sha(helper),
         'changed_existing_members': [prefix+'boot-files.sha256', prefix+'runtime',
-                                     radio_unit],
+                                     radio_unit, rollback_unit],
         'added_members': len(members)-len(original),
         'kernel_rebuilt': False,
         'authority': 'none; persistent trial composition only',

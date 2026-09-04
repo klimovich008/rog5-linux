@@ -2,8 +2,10 @@
 """Hostile offline tests for the bounded persistent Wi-Fi trial record."""
 
 import concurrent.futures
+import hashlib
 import os
 from pathlib import Path
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -21,6 +23,36 @@ FALLBACK_HASH = "a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe
 
 
 class PersistentTrialState(unittest.TestCase):
+    def test_active_compositions_share_one_verified_helper(self):
+        pointer = REPO / "configs/persistent-trial-helper.path"
+        relative = pointer.read_text().strip()
+        self.assertRegex(
+            relative,
+            r"\Aartifacts/persistent-trial-state-v[1-9][0-9]*/rog5-persistent-trial-state\Z",
+        )
+        artifact = REPO / relative
+        metadata = dict(line.split("=", 1) for line in
+                        (artifact.parent / "build-meta.txt").read_text().splitlines())
+        self.assertFalse(artifact.is_symlink())
+        self.assertEqual(metadata["source_sha256"], hashlib.sha256(SOURCE.read_bytes()).hexdigest())
+        self.assertEqual(metadata["builder_sha256"], hashlib.sha256(BUILDER.read_bytes()).hexdigest())
+        self.assertEqual(metadata["output_size"], str(artifact.stat().st_size))
+        self.assertEqual(metadata["output_sha256"], hashlib.sha256(artifact.read_bytes()).hexdigest())
+        self.assertEqual(
+            (artifact.parent / "SHA256SUMS").read_text(),
+            metadata["output_sha256"] + "  rog5-persistent-trial-state\n",
+        )
+        for consumer in (
+            "scripts/device/build-persistent-slotb-loader-initramfs.sh",
+            "scripts/device/build-persistent-slotb-recovery-initramfs.sh",
+            "scripts/device/build-native-wifi-boot-initramfs.py",
+        ):
+            source = (REPO / consumer).read_text()
+            self.assertIn("configs/persistent-trial-helper.path", source)
+            self.assertNotRegex(source, r"persistent-trial-state-v[0-9]+/")
+        replay = (REPO / "scripts/host/test-persistent-trial-state-aarch64.sh").read_text()
+        self.assertIn('ROG5_TRIAL_TEST_ARM64=1 python3 "$repo/scripts/host/test-persistent-trial-state.py"', replay)
+
     def test_production_builder_is_fixed_and_hardened(self):
         source = BUILDER.read_text()
         for contract in (
@@ -41,6 +73,15 @@ class PersistentTrialState(unittest.TestCase):
         self.rog5 = self.root / "rog5"
         self.root.mkdir(mode=0o755)
         self.rog5.mkdir(mode=0o700)
+        # Explicit offline replay of the release binary at its fixed paths.
+        # Only this disposable state tree is writable; no host devices/network.
+        self.arm64 = os.environ.get("ROG5_TRIAL_TEST_ARM64") == "1"
+        if self.arm64:
+            self.binary = REPO / (REPO / "configs/persistent-trial-helper.path").read_text().strip()
+            self.qemu = REPO / "artifacts/host-tools/qemu-aarch64-static"
+            self.assertTrue(shutil.which("bwrap"), "ARM replay requires bubblewrap")
+            self.assertTrue(self.qemu.is_file(), "ARM replay requires qualified QEMU")
+            return
         self.binary = Path(self.temporary.name) / "trial-state"
         root_literal = str(self.root).replace('"', '\\"')
         subprocess.run(
@@ -55,14 +96,26 @@ class PersistentTrialState(unittest.TestCase):
 
     def command(self, action="decide", *, trial=TRIAL, primary=PRIMARY,
                 primary_hash=PRIMARY_HASH, fallback=FALLBACK,
-                fallback_hash=FALLBACK_HASH, check=True):
+                fallback_hash=FALLBACK_HASH, check=True, stdout=subprocess.PIPE):
         arguments = ([str(self.binary), action, trial, primary]
                      if action == "healthy" else
                      [str(self.binary), action, trial, primary, primary_hash,
                       fallback, fallback_hash])
+        if self.arm64:
+            arguments = [
+                "bwrap", "--unshare-all", "--die-with-parent", "--new-session",
+                "--uid", "0", "--gid", "0", "--tmpfs", "/",
+                "--bind", str(self.root), "/mnt/userdata",
+                "--bind", str(self.root), "/.rog5/userdata-rw",
+                "--ro-bind", str(self.binary), "/trial-state",
+                "--ro-bind", str(self.qemu), "/qemu",
+                "--dev", "/dev", "--clearenv", "--chdir", "/",
+                "/qemu", "/trial-state", *arguments[1:],
+            ]
         return subprocess.run(
             arguments,
-            text=True, capture_output=True, check=check, timeout=5,
+            text=True, stdout=stdout, stderr=subprocess.PIPE,
+            check=check, timeout=5,
         )
 
     @property
@@ -84,8 +137,85 @@ class PersistentTrialState(unittest.TestCase):
                                          check=False).returncode, 0)
         self.assertEqual(self.command("healthy").stdout, "healthy\n")
         self.assertTrue(self.record.read_text().endswith("state=healthy\n"))
-        self.assertEqual(self.command().stdout, PRIMARY + "\n")
         self.assertEqual(self.command("healthy").stdout, "already-healthy\n")
+
+    def test_each_accepted_primary_boot_needs_a_fresh_health_ack(self):
+        self.command()
+        self.command("healthy")
+        for _ in range(3):
+            self.assertEqual(self.command().stdout, PRIMARY + "\n")
+            self.assertTrue(self.record.read_text().endswith("state=pending\n"))
+            self.assertEqual(self.command("healthy").stdout, "healthy\n")
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        for _ in range(4):
+            self.assertEqual(self.command().stdout, FALLBACK + "\n")
+
+    def test_retained_v1_target_can_acknowledge_v2_recovery(self):
+        if not self.arm64:
+            self.skipTest("requires explicit retained ARM binary replay")
+        current = self.binary
+        legacy = REPO / "artifacts/persistent-trial-state-v1/rog5-persistent-trial-state"
+        for _ in range(2):
+            self.assertEqual(self.command().stdout, PRIMARY + "\n")
+            self.assertTrue(self.record.read_text().endswith("state=pending\n"))
+            self.binary = legacy
+            try:
+                self.assertEqual(self.command("healthy").stdout, "healthy\n")
+            finally:
+                self.binary = current
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+
+    def test_concurrent_rearm_selects_primary_at_most_once(self):
+        self.command()
+        self.command("healthy")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(lambda _: self.command(check=False), range(8)))
+        primary_count = sum(result.stdout == PRIMARY + "\n" for result in results)
+        # The publisher must reacquire the replaced inode for revalidation.
+        # A concurrent fallback reader may hold it, safely refusing even the
+        # publisher. At-most-once does not promise one successful publication.
+        self.assertLessEqual(primary_count, 1)
+        allowed_refusals = {
+            "FAIL persistent trial state: concurrent trial record operation\n",
+            "FAIL persistent trial state: trial record pathname changed\n",
+        }
+        for result in results:
+            if result.returncode == 0:
+                self.assertIn(result.stdout, (PRIMARY + "\n", FALLBACK + "\n"))
+            else:
+                self.assertEqual(result.stdout, "")
+                self.assertIn(result.stderr, allowed_refusals)
+        if primary_count == 0:
+            self.assertTrue(any(
+                result.stderr == "FAIL persistent trial state: concurrent trial record operation\n"
+                for result in results
+            ))
+        self.assertTrue(self.record.read_text().endswith("state=pending\n"))
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+
+    def test_ambiguous_rearm_reply_never_selects_primary_again(self):
+        self.command()
+        self.command("healthy")
+        with open("/dev/full", "w") as full:
+            result = self.command(stdout=full, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot write result", result.stderr)
+        self.assertTrue(self.record.read_text().endswith("state=pending\n"))
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+
+    def test_rearm_temporary_collision_refuses_without_primary_output(self):
+        self.command()
+        self.command("healthy")
+        previous = self.record.read_bytes()
+        temporary = self.record.with_name(".wifi-trial-state.next")
+        temporary.write_text("preserve ambiguous state\n")
+        temporary.chmod(0o600)
+        result = self.command(check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(self.record.read_bytes(), previous)
+        self.assertEqual(temporary.read_text(), "preserve ambiguous state\n")
 
     def test_identity_change_and_malformed_state_fail_closed(self):
         self.command()

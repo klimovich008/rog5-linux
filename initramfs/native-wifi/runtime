@@ -214,6 +214,43 @@ run_dhcp() {
 		-f "$state/dhcpcd.conf" -t 0 "$interface"
 }
 
+rollback_healthy() {
+	# SSH Requires can re-arm an elapsed OnBootSec timer after healthy stopped
+	# it. Only exact acceptance for this boot/trial may suppress that reboot.
+	selector=$root/trial-descriptor
+	record=$root/healthy.record
+	for path in "$selector" "$record"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:444:1 ] &&
+			[ "$(stat -c %s "$path")" -le 256 ] || return 1
+	done
+	trial_id=$(sed -n 's/^trial_id=//p' "$selector") || return 1
+	primary=$(sed -n 's/^primary_bundle=//p' "$selector") || return 1
+	[ "${#trial_id}" -eq 64 ] || return 1
+	case $trial_id in *[!0-9a-f]*) return 1 ;; esac
+	[ "${#primary}" -le 64 ] || return 1
+	case $primary in ''|[!a-z0-9]*|*[!a-z0-9._-]*|*..*) return 1 ;; esac
+	printf 'format=rog5-persistent-wifi-health-v1\ntrial_id=%s\nprimary_bundle=%s\nmode=try-once\n' \
+		"$trial_id" "$primary" | cmp -s - "$selector" || return 1
+	boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	[ "${#boot_id}" -eq 36 ] && printf '%s\n' "$boot_id" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		return 1
+	cmdline=$(cat /proc/cmdline) || return 1
+	# Reject missing/duplicate bundle tokens, including a matching last token.
+	set -f
+	count=0
+	for argument in $cmdline; do
+		case $argument in rog5.bundle=*)
+			[ "$argument" = "rog5.bundle=$primary" ] || return 1
+			count=$((count + 1)) ;;
+		esac
+	done
+	[ "$count" -eq 1 ] || return 1
+	printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
+		"$boot_id" "$trial_id" | cmp -s - "$record"
+}
+
 [ "$#" = 1 ] || fail 'one action required'
 [ "$(id -u)" = 0 ] || fail 'root required'
 umask 077
@@ -223,5 +260,8 @@ case $1 in
 	prepare) prepare_network ;;
 	wpa) run_wpa ;;
 	dhcp) run_dhcp ;;
+	# Invalid or absent acceptance is ordinary rollback, never a failed gate
+	# that accidentally prevents the service from requesting its reboot.
+	rollback) rollback_healthy || systemctl --no-block reboot ;;
 	*) fail 'unknown action' ;;
 esac

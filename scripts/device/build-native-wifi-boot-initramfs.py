@@ -18,7 +18,8 @@ import time
 
 REPO = Path(__file__).resolve().parents[2]
 EPOCH = 1681862400
-TRIAL_HELPER_SHA256 = 'ff6ede42d089a6a651db320a007947091029aca504500227e0c51bed6792f3ca'
+TRIAL_HELPER = REPO / (REPO/'configs/persistent-trial-helper.path').read_text().strip()
+TRIAL_HELPER_SHA256 = (TRIAL_HELPER.parent/'SHA256SUMS').read_text().split(' ', 1)[0]
 
 
 def sha(data):

@@ -6,5 +6,5 @@ Before=shutdown.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/systemctl --no-block reboot
+ExecStart=/run/rog5-native-wifi/runtime rollback
 TimeoutStartSec=10s
