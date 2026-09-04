@@ -77,3 +77,126 @@ No phone contact, signing, candidate issuance, flashing, slot selection or
 phone-storage writes occurred during the review/correction. The installed
 server, stock slot A and signed fallback are unchanged. Do not interpret the
 offline fix as recovery of SSH or resolution of the initial blackout.
+
+## Accepted-primary re-arm correction (source checkpoint after `338c598c`)
+
+Question: does an accepted primary that later fails before a fresh health
+acknowledgment select the signed fallback on the next loader invocation?
+Layer: persistent trial-state helper/recovery composition; R8. Experimental
+claims, target COMMIT and signed fallback bytes are not changed.
+
+Previously every `decide` seeing `healthy` returned primary without changing
+state. New code uses the existing temporary-file/fsync/rename/inode-check
+replacement to persist `pending`, re-reads it, then returns primary. A later
+decision without a fresh health acknowledgment returns fallback. A lost reply
+also leaves pending. A temporary collision prevents primary publication; it
+does not prohibit safely selecting fallback from an already-pending record.
+No source change is needed in the target health service.
+
+Four new host regressions failed before the fix: repeated accepted boots,
+concurrent decisions, failure writing the result to `/dev/full`, and an
+existing ambiguous temporary. All passed after the fix. Immediate repeated
+health acknowledgment remains idempotent. The suite also verifies one canonical
+helper selection and source/builder/output digest agreement.
+
+The accepted `artifacts/persistent-trial-state-v1` directory is unchanged.
+New artifact v2 has SHA-256
+`c1aab57b43d32d14714af96f3ee1feb936c363c8a86b4ac0b312ea5d08f69d0d`
+and size 67520 bytes. Two pinned Alpine GCC 15.2.0 ARM builds matched exactly
+(5.107 s and 4.876 s); independent twin rebuild verification passed in 9.765 s.
+Only the helper and recovery initramfs composition changed, not the ASUS kernel.
+
+`configs/persistent-trial-helper.path` is the single active artifact selection.
+Builders/tests resolve its checksum record instead of repeating version/hash
+literals. Identity-only successor composition still refuses a helper swap;
+this change does not silently modify any archived or signed target bundle.
+
+Focused tests passed: host helper 13 tests in 2.689 s before adding the
+ARM-only mixed-version case; health service 8 tests in 2.059 s; Wi-Fi
+composition 19 tests in 1.329 s; slot-B loader 8.936 s; recovery composer
+2.181 s, including matching twin archives and exact embedded helper bytes.
+Final exact ARM replay: all 14 tests passed in 0.920 s, including concurrency,
+lost reply and v2 recovery/v1 target-health interoperability. Reproduce with:
+
+```sh
+ROG5_TRIAL_TEST_ARM64=1 python3 scripts/host/test-persistent-trial-state.py
+```
+
+This maps only disposable fixture state at the helper's two fixed paths inside
+bubblewrap; the release binary is executed by qualified static QEMU. No phone,
+network or host block devices are exposed. Native CI runs the same behavioral
+fixtures against freshly compiled source; ARM replay is explicit on capable
+hosts. An independent read-only review found no blocking issue in the proposed
+transition; its scope clarification about temporary collisions is incorporated.
+
+Frozen-tree full CI and publication results belong to this checkpoint's PR
+comment/checks. No phone contact, boot, signing, candidate issuance, flashing
+or phone-storage writes occurred. Deployment still requires a separately
+verified RAM-only recovery composition and the existing live gates. This
+prevents one source of repeated primary selection; it does not prove either
+the current phone failure cause or a successful fallback boot on hardware.
+
+## Service reliability and test-selection follow-up
+
+Starting HEAD: `338c598c18acff9e27840b643d1e3b7daafc1744`; preserved the
+unpublished helper-v2 checkpoint above. Question: can accepted service activity
+reactivate rollback or stall health monitoring? Layers: target userspace,
+initramfs composition and shared test selection. Failure classes R2/R8/R9.
+
+- SSH retains a Requires edge to the boot rollback timer. A later start can
+  re-arm an elapsed OnBootSec deadline. The rollback service now calls a runtime
+  action that suppresses reboot only for the exact root-owned, single-link,
+  mode-0444 healthy record matching this boot, descriptor and sole cmdline
+  bundle token. Missing, partial, oversized, malformed or stale evidence still
+  requests ordinary reboot. This is not ongoing health monitoring, nor a
+  replacement for pre-systemd watchdog coverage. No deadline was enlarged.
+- Fresh persistent composition replaces both runtime and rollback service and
+  regenerates member checksums. The previous composer retained the old
+  unconditional service. Identity-only successor composition intentionally
+  remains unchanged; it is not a way to deploy this correction to old bundles.
+- Healthd now closes completed HTTP connections and applies a one-second idle
+  socket timeout. This is not a total-request deadline or general resistance
+  to deliberately trickled requests. JSON, credentials-free surface and the
+  service sandbox remain unchanged.
+- Probe selection now includes the previously omitted battery/host diagnostic
+  and reporter-builder suites. A closure regression covers every probe-allowed
+  path. The existing ARM helper behavior replay is called by normal full CI
+  when private QEMU/bubblewrap are available, independently of twin-build tools;
+  unavailable environments report an explicit skip. No CI environment is
+  falsely claimed to execute the production ARM binary.
+
+Before fixes: three real socket regressions failed in 6.124 s; late healthy
+rollback failed in 0.225 s; stale-unit composition failed in 0.087 s; probe
+coverage failed in 0.115 s; ARM replay registration failed in 0.277 s.
+After fixes: healthd 7 tests/2.438 s; Wi-Fi health 12 tests/3.634 s; composition
+19 tests/1.343 s; tier selection 28 tests/0.724 s; exact ARM helper 14
+tests/0.911 s. Active tier passed in 6.574 s (previous checkpoint 5.433 s).
+Healthd's private temporary files and ephemeral loopback ports permit its
+explicit isolated parallel registration; shared-state tests stay sequential.
+
+Exact sealed-shell replay used the retained V10 archive identified above,
+its BusyBox/applets and libraries, isolated /dev and disposable fixture paths:
+12 tests passed in 30.147 s, 30.925 s including extraction. The shell-runner
+hook is `ROG5_WIFI_TEST_SHELL`; filesystem contents are not borrowed from the
+host. Two initial harness setups failed before shell execution because their
+mount destinations were in the read-only root; private /tmp mountpoints fixed
+the harness without changing target code. Timer events and ownership are
+fixture-modeled, not proof of real systemd transactions or live deployment.
+
+Full frozen-tree local CI and exact-head remote results are recorded at the
+publication checkpoint. No kernel/wrapper rebuild, phone contact, signing,
+candidate consumption or storage write occurred. The fallback-copy ordering,
+watchdog handover, WPA restart and display-isolation findings remain open.
+
+The first integration run stopped after 109.466 s at a newly exercised ARM
+test assumption: concurrent decisions were required to return exactly one
+primary. Direct replay reproduced zero primary outputs with only explicit
+lock refusals and signed-fallback outputs; state remained pending and the next
+decision returned fallback. Source inspection confirms that a fallback reader
+can lock the newly replaced inode before the publisher's required revalidation.
+This is safe refusal, not a lost at-most-once guarantee. The test now requires
+at most one primary, only recognized concurrency refusals, a lock refusal when
+zero primaries occur, durable pending state, and subsequent fallback. Serial
+re-arm tests still require exactly one primary. No helper source/artifact or
+locking behavior changed. Focused ARM/host suites passed in 0.884/2.837 s;
+full CI is rerun only after this changed regression and a new source freeze.

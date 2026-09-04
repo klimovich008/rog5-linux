@@ -300,7 +300,7 @@ static void create_pending(int directory, const char *record, size_t length)
 		fail("cannot sync pending trial publication: %s", strerror(errno));
 }
 
-static void replace_healthy(int directory, int current,
+static void replace_record(int directory, int current,
 			    const struct stat *expected,
 			    const char *record, size_t length)
 {
@@ -311,18 +311,18 @@ static void replace_healthy(int directory, int current,
 			    O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW |
 			    O_CLOEXEC, 0600);
 	if (descriptor < 0)
-		fail("cannot create healthy temporary: %s", strerror(errno));
+		fail("cannot create trial temporary: %s", strerror(errno));
 	write_all(descriptor, record, length);
 	if (fsync(descriptor) < 0 || close(descriptor) < 0)
-		fail("cannot sync healthy temporary: %s", strerror(errno));
+		fail("cannot sync trial temporary: %s", strerror(errno));
 	if (fstatat(directory, RECORD_NAME, &path_metadata,
 		    AT_SYMLINK_NOFOLLOW) < 0 ||
 	    path_metadata.st_dev != expected->st_dev ||
 	    path_metadata.st_ino != expected->st_ino)
-		fail("trial record changed before healthy publication");
+		fail("trial record changed before replacement");
 	if (renameat(directory, TEMPORARY_NAME, directory, RECORD_NAME) < 0 ||
 	    fsync(directory) < 0)
-		fail("cannot publish healthy trial: %s", strerror(errno));
+		fail("cannot publish trial replacement: %s", strerror(errno));
 	if (close(current) < 0)
 		fail("cannot close replaced trial record: %s", strerror(errno));
 }
@@ -355,6 +355,16 @@ static void decide(const struct trial_identity *identity)
 	} else if (strcmp(actual, pending) == 0) {
 		print_line(identity->fallback);
 	} else if (strcmp(actual, healthy) == 0) {
+		/* Accepted persistent boots also need a fresh health acknowledgment.
+		 * Publish pending durably before exposing a primary decision; a lost
+		 * reply or subsequent failed boot must select the signed fallback.
+		 */
+		replace_record(directory, descriptor, &metadata, pending,
+			       strlen(pending));
+		descriptor = read_record(directory, actual, sizeof(actual),
+					 &metadata);
+		if (descriptor < 0 || strcmp(actual, pending) != 0)
+			fail("rearmed trial publication did not revalidate");
 		print_line(identity->primary);
 	} else {
 		fail("trial record identity or state changed");
@@ -393,7 +403,7 @@ static void mark_healthy(const char *expected_id, const char *expected_primary)
 		if (close(descriptor) < 0)
 			fail("cannot close healthy trial record: %s", strerror(errno));
 	} else if (strcmp(parsed.state, "pending") == 0) {
-		replace_healthy(directory, descriptor, &metadata, healthy,
+		replace_record(directory, descriptor, &metadata, healthy,
 				strlen(healthy));
 		descriptor = read_record(directory, actual, sizeof(actual),
 					 &metadata);

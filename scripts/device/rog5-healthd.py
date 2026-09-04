@@ -16,6 +16,9 @@ class HealthHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "rog5-healthd/1"
     sys_version = ""
+    # StreamRequestHandler applies this to accepted sockets, including header
+    # reads. This is an idle I/O limit, not a total request-duration deadline.
+    timeout = 1.0
 
     def do_GET(self) -> None:  # noqa: N802 - HTTP method name
         if self.path != "/healthz":
@@ -24,10 +27,13 @@ class HealthHandler(http.server.BaseHTTPRequestHandler):
         self._reply(200, HEALTH_BODY, "application/json")
 
     def _reply(self, status: int, body: bytes, content_type: str) -> None:
+        # This tiny synchronous endpoint has no reason to retain connections.
+        self.close_connection = True
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(body)
 

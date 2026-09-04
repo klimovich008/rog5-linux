@@ -340,6 +340,9 @@ class AutomaticWifi(unittest.TestCase):
         archive.add(members, 'rog5-native-wifi/automatic',
                     b'rog5-native-wifi-boot-v1\n', 0o100444)
         archive.add(members, 'rog5-native-wifi/runtime', b'old-runtime', 0o100755)
+        archive.add(members, 'rog5-native-wifi/units/rog5-wifi-boot-rollback.service',
+                    b'[Service]\nExecStart=/usr/bin/systemctl --no-block reboot\n',
+                    0o100644)
         archive.add(members, 'rog5-native-wifi/radio', b'old-radio', 0o100755)
         archive.add(members, 'rog5-native-wifi/probe-native-wifi.sh', b'old-probe', 0o100755)
         archive.add(members, 'rog5-native-wifi/boot-files.sha256',
@@ -356,12 +359,16 @@ class AutomaticWifi(unittest.TestCase):
             'trial_id=' + '1'*64 + '\n'
             'primary_bundle=persistent-native-root-wifi\n'
             'mode=try-once\n').encode()
-        helper = (R/'artifacts/persistent-trial-state-v1/rog5-persistent-trial-state').read_bytes()
+        helper = archive.TRIAL_HELPER.read_bytes()
         packed, result = module.compose(base, module.sha(base), descriptor, helper)
         output = archive.entries(gzip.decompress(packed))
         self.assertEqual(output['init'], members['init'])
         self.assertEqual(output['rog5-native-wifi/trial-descriptor'][1], descriptor)
         self.assertEqual(output['rog5-native-wifi/trial-state'][1], helper)
+        self.assertEqual(
+            output['rog5-native-wifi/units/rog5-wifi-boot-rollback.service'][1],
+            (R/'initramfs/native-wifi/units/rog5-wifi-boot-rollback.service').read_bytes(),
+        )
         self.assertNotIn(
             b'@OUTER_SECONDS@',
             output['rog5-native-wifi/units/rog5-wifi-radio.service'][1],
@@ -457,6 +464,13 @@ class AutomaticWifi(unittest.TestCase):
         rollback = (units/'rog5-wifi-boot-rollback.timer').read_text()
         self.assertNotIn('After=rog5-p2', rollback)
         self.assertIn('OnBootSec=@OUTER_SECONDS@s', rollback)
+        service = (units/'rog5-wifi-boot-rollback.service').read_text()
+        self.assertIn('ExecStart=/run/rog5-native-wifi/runtime rollback', service)
+        # Acceptance gates must not become dependencies of pre-acceptance reboot.
+        self.assertNotIn('Requires=', service)
+        self.assertNotIn('After=', service)
+        self.assertNotIn('Condition', service)
+        self.assertIn('TimeoutStartSec=10s', service)
         probe = (R/'scripts/device/probe-native-wifi.sh').read_text()
         self.assertIn('--property=DefaultDependencies=no', probe)
         self.assertIn('--timer-property=DefaultDependencies=no', probe)

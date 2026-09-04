@@ -6,9 +6,9 @@ output=${2:?missing output}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-slotb-loader-init
 reboot_source=$repo/tools/reboot_bootloader/rog5-reboot-bootloader.c
-trial_helper=$repo/artifacts/persistent-trial-state-v1/rog5-persistent-trial-state
+trial_helper=$repo/$(cat "$repo/configs/persistent-trial-helper.path")
 expected_base=d2f46588b46b615eae907ef98e2108fbcc06efc330ffa40136f6e89bdc39ddbc
-expected_trial_helper=ff6ede42d089a6a651db320a007947091029aca504500227e0c51bed6792f3ca
+expected_trial_helper=$(cut -d ' ' -f 1 "$(dirname "$trial_helper")/SHA256SUMS")
 epoch=1681862400
 
 [ -f "$base" ] && [ ! -L "$base" ] &&

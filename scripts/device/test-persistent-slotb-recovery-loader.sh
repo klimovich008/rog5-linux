@@ -5,7 +5,7 @@ repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/recovery-init
 executor=$repo/initramfs/persistent-slotb-local-loader
 selector_loader=$repo/initramfs/persistent-slotb-loader-init
-trial_helper=$repo/artifacts/persistent-trial-state-v1/rog5-persistent-trial-state
+trial_helper=$repo/$(cat "$repo/configs/persistent-trial-helper.path")
 builder=$repo/scripts/device/build-persistent-slotb-recovery-initramfs.sh
 base=$repo/build/persistent-native-root-v8-generation233-20260828-r1/wrapper-a/rog5-kexec-stage-initramfs.cpio.gz
 
