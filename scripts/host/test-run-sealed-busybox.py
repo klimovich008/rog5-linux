@@ -21,6 +21,18 @@ def entry(mode, body=b""):
 class Extraction(unittest.TestCase):
     @unittest.skipUnless(shutil.which("bwrap") and shutil.which("qemu-aarch64-static"),
                          "requires optional isolated ARM userspace tools")
+    def test_shell_children_keep_target_release(self):
+        release = "7.1.4-sealed-child-test"
+        result, _ = M.run(
+            M.REPO / "artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz",
+            release, ["sh", "-ec", "uname -r; /bin/busybox uname -r"],
+            qemu=Path(shutil.which("qemu-aarch64-static")),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, ((release + "\n") * 2).encode())
+
+    @unittest.skipUnless(shutil.which("bwrap") and shutil.which("qemu-aarch64-static"),
+                         "requires optional isolated ARM userspace tools")
     def test_actual_archive_ownership_is_root_inside_namespace(self):
         result, _ = M.run(
             M.REPO / "artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz",

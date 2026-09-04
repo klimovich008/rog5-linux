@@ -5,10 +5,12 @@ Facts below are accepted evidence, not a claim of freshly measured live health.
 
 ## Objective and checkpoint
 
-The standalone Arch server migration passed. The repository/development-loop
-consolidation is implemented and locally verified; publication checks remain
-visible on the PR. See [results](../test-results/2026-09-04-development-consolidation.md).
-The physical button trial is paused.
+The standalone Arch server migration passed. Repository/development-loop
+consolidation passed local and published exact-head/merge CI at `a2e3efb4`.
+The active goal is continued standalone-server reliability and validation of
+the next display build; first restore fresh transport/health evidence.
+See [latest checks](../test-results/2026-09-04-server-resume-transport.md).
+The physical button trial is waiting for a usable connection.
 V15 preparation stopped before signing, claim consumption or execution.
 There is no authorized storage mutation in this checkpoint.
 
@@ -58,7 +60,12 @@ There is no authorized storage mutation in this checkpoint.
   Display V11–V14 are consumed; never retry them. Headless V10 is the baseline.
 - On September 4 the anchored USB descriptor still identified persistent Linux,
   but pinned SSH at `10.77.0.2` returned “No route to host”. Fresh server health
-  is therefore unverified; consolidation did not reboot or change the phone.
+  remains unverified. Host logs show repeated NCM transmit-queue watchdog
+  timeouts, unchanged RX counters and rising TX errors. Reactivating only the
+  existing phone network profile did not recover SSH; the last Wi-Fi address
+  was also unreachable. This does not establish a target crash or its cause.
+  A fresh reconnect then failed USB enumeration (`-110`/`-71`); the gadget is
+  now absent. Await operator screen state before selecting a recovery action.
 
 ## Working authority and next action
 
