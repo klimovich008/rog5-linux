@@ -83,6 +83,9 @@ documents = [
     repo / "ROADMAP.md",
     *sorted((repo / "docs").glob("*.md")),
 ]
+for entry in ("docs/current-state.md", "docs/active-context.md", "docs/development.md"):
+    if not (repo / entry).is_file():
+        raise SystemExit(f"missing context entry point: {entry}")
 link = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 broken = []
 for document in documents:
@@ -159,8 +162,8 @@ active_tests=(
 	scripts/host/test-build-persistent-wifi-selector.py
 	"${native_wifi_probe_tests[@]}"
 	scripts/device/test-rog5-healthd.py
-	scripts/host/test-current-recovery-status.sh
 	scripts/host/test-select-repository-test-tier.py
+	scripts/host/test-run-sealed-busybox.py
 )
 
 probe_tests=(
@@ -469,7 +472,6 @@ isolated_tests=(
 	"${native_wifi_probe_tests[@]}"
 	scripts/host/test-persistent-trial-state.py
 	scripts/host/test-build-persistent-wifi-selector.py
-	scripts/host/test-current-recovery-status.sh
 	scripts/host/test-select-repository-test-tier.py
 	scripts/host/test-qemu-system-smoke-contract.sh
 	scripts/host/test-qemu-network-root-nfs-hostile.sh
