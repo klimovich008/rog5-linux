@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Discoverable entry points; existing builders/verifiers remain authoritative.
+set -euo pipefail
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+action=${1:-help}
+[[ $# == 0 ]] || shift
+case $action in
+  test) exec "$repo/scripts/host/test-repository-linux.sh" "${@:-active}" ;;
+  select) exec python3 "$repo/scripts/host/select-repository-test-tier.py" "$@" ;;
+  package) exec python3 "$repo/scripts/host/prepare-recovery-runtime-bundle.py" "$@" ;;
+  check-target) exec python3 "$repo/scripts/host/run-sealed-busybox.py" "$@" ;;
+  build-initramfs) exec python3 "$repo/scripts/device/build-native-wifi-boot-initramfs.py" "$@" ;;
+  help|--help|-h)
+    printf '%s\n' 'rog5-dev test [active|probe|ci|nightly]' \
+      'rog5-dev select [--event push|pull_request] BASE HEAD' \
+      'rog5-dev build-initramfs --help' \
+      'rog5-dev package --config RECIPE --private-key KEY --bundle-root OUTPUT' \
+      'rog5-dev check-target --release RELEASE ARCHIVE -- APPLET [ARGS...]' \
+      'Trial/release: see docs/development.md; this tool grants no boot authority.' ;;
+  *) printf 'unknown action: %s\n' "$action" >&2; exit 2 ;;
+esac
