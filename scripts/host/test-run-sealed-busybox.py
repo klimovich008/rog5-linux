@@ -3,6 +3,7 @@
 import importlib.util
 from pathlib import Path
 import stat
+import shutil
 import tempfile
 import unittest
 
@@ -18,6 +19,17 @@ def entry(mode, body=b""):
 
 
 class Extraction(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("bwrap") and shutil.which("qemu-aarch64-static"),
+                         "requires optional isolated ARM userspace tools")
+    def test_actual_archive_ownership_is_root_inside_namespace(self):
+        result, _ = M.run(
+            M.REPO / "artifacts/network-root-v3/rog5-network-root-initramfs.cpio.gz",
+            "7.1.4-test", ["stat", "-c", "%u:%g:%a", "/bin/busybox"],
+            qemu=Path(shutil.which("qemu-aarch64-static")),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, b"0:0:755\n")
+
     def test_exact_regular_payload_and_symlink_preserved(self):
         with tempfile.TemporaryDirectory() as scratch:
             root = Path(scratch)
