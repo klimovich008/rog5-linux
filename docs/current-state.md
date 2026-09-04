@@ -9,7 +9,8 @@ The standalone Arch server migration passed. Repository/development-loop
 consolidation passed local and published exact-head/merge CI at `a2e3efb4`.
 The active goal is continued standalone-server reliability and validation of
 the next display build; first restore fresh transport/health evidence.
-See [latest checks](../test-results/2026-09-04-server-resume-transport.md).
+See [transport checks](../test-results/2026-09-04-server-resume-transport.md) and
+[boot-code review/fix](../test-results/2026-09-04-native-boot-review.md).
 The physical button trial is waiting for a usable connection.
 V15 preparation stopped before signing, claim consumption or execution.
 There is no authorized storage mutation in this checkpoint.
@@ -20,7 +21,8 @@ There is no authorized storage mutation in this checkpoint.
   `M5AIKN00F0353YH`, anchored side USB path `1-1.2`.
 - Slot A: matched official ASUS WW33 `33.0210.0210.200`, rescue/charging.
   Charging restoration is complete; see [repair runbook](asus-charging-recovery.md).
-- Installed slot B: bounded-retry recovery `340f6392…`. The superseded
+- Installed slot B: recovery `340f6392…` with bounded pre-COMMIT preparation
+  retries (not a proven bound on subsequent target boot failures). The superseded
   `f2a73030…` image is retained as a host restore artifact, not installed state.
 - Selector v2: `persistent-native-root-wifi-overlay-v10` primary
   (manifest `6c271cfa…e3e8f5`), signed `persistent-native-root-v11` fallback.
@@ -64,8 +66,17 @@ There is no authorized storage mutation in this checkpoint.
   timeouts, unchanged RX counters and rising TX errors. Reactivating only the
   existing phone network profile did not recover SSH; the last Wi-Fi address
   was also unreachable. This does not establish a target crash or its cause.
-  A fresh reconnect then failed USB enumeration (`-110`/`-71`); the gadget is
-  now absent. Await operator screen state before selecting a recovery action.
+  A fresh reconnect then failed USB enumeration (`-110`/`-71`). After exact
+  fastboot identity/slot-B and safe voltage (7671 mV, SOC gate yes) were verified,
+  one ordinary reboot at 22:52:42 local produced alternating recovery/target
+  descriptors. Target windows lasted about 22 seconds, without SSH or stages.
+  Descriptor identity cannot distinguish primary V10 from signed fallback V11.
+  Live recovery attempts are paused for the requested code-first investigation.
+- Offline review reproduced accepted-primary non-demotion and crash-recovery
+  validation defects. It also found software UFS clock-gating still enabled
+  despite the keep-active containment. None proves today's first failure.
+  The current source fix accepts independently valid systemd update markers;
+  it is not deployed. Kernel, selector, workdir and journal behavior are unchanged.
 
 ## Working authority and next action
 
@@ -83,6 +94,6 @@ exact operation and explicit approval. Never publish private material.
 Read [development workflow](development.md) for commands and validation tiers.
 Read only relevant R1–R10 entries in [lessons](development-lessons.md) during
 routine edits; use its complete pre-build/live checklists before a successor.
-Confirm the existing server's transport/health with read-only diagnostics
-before resuming the operator-attended screen test.
+Complete the focused boot/recovery corrections before another live successor;
+then restore exact transport/health evidence before the attended screen test.
 The [roadmap](../ROADMAP.md) holds later work.

@@ -676,14 +676,26 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                 "systemd-update-markers",
                 "systemd-update-marker-bad-comment",
                 "systemd-update-marker-mismatched-time",
+                "systemd-update-marker-etc-only",
+                "systemd-update-marker-var-only",
+                "systemd-update-marker-bad-timestamp",
+                "systemd-update-marker-upper-mismatch",
+                "systemd-update-marker-symlink",
+                "systemd-update-marker-mode",
             ):
                 for subtree in ("etc", "var"):
+                    if mutation.endswith("-only") and not mutation.endswith(
+                        f"-{subtree}-only"
+                    ):
+                        continue
                     timestamp = (
                         "1788332957852528814"
                         if mutation == "systemd-update-marker-mismatched-time"
                         and subtree == "var"
                         else "1788332957852528813"
                     )
+                    if mutation == "systemd-update-marker-bad-timestamp":
+                        timestamp = "not-a-timestamp"
                     first = (
                         "# Wrong marker format"
                         if mutation == "systemd-update-marker-bad-comment"
@@ -701,6 +713,14 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
                     )
                     (root / subtree / ".updated").write_text(marker)
                     (upper / subtree / ".updated").write_text(marker)
+                if mutation == "systemd-update-marker-upper-mismatch":
+                    (upper / "etc/.updated").write_text("")
+                elif mutation == "systemd-update-marker-symlink":
+                    marker_path = root / "etc/.updated"
+                    marker_path.unlink()
+                    marker_path.symlink_to(upper / "etc/.updated")
+                elif mutation == "systemd-update-marker-mode":
+                    (upper / "etc/.updated").chmod(0o666)
         if mutation == "wrong-cache":
             cache.write_bytes(b"wrong\n")
         elif mutation == "linked-cache":
@@ -841,13 +861,49 @@ chmod() {
     def test_persistent_systemd_state_rejects_hostile_update_done_markers(self) -> None:
         for mutation in (
             "systemd-update-marker-bad-comment",
-            "systemd-update-marker-mismatched-time",
+            "systemd-update-marker-bad-timestamp",
+            "systemd-update-marker-upper-mismatch",
+            "systemd-update-marker-symlink",
+            "systemd-update-marker-mode",
         ):
             with self.subTest(mutation=mutation):
                 result, _ = self.run_volatile_state(
                     mutation=mutation, persistent_overlay=True
                 )
                 self.assertNotEqual(result.returncode, 0)
+
+    def test_interrupted_systemd_update_preserves_independent_markers(self) -> None:
+        # systemd 260.2 saves /etc/.updated then /var/.updated separately.
+        # A reset between these writes is not evidence of damaged storage.
+        for mutation in (
+            "systemd-update-marker-mismatched-time",
+            "systemd-update-marker-etc-only",
+            "systemd-update-marker-var-only",
+        ):
+            with self.subTest(mutation=mutation):
+                result, base = self.run_volatile_state(
+                    mutation=mutation, persistent_overlay=True
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                assert base is not None
+                for subtree in ("etc", "var"):
+                    merged = (base / "root" / subtree / ".updated").read_bytes()
+                    physical = (base / "upper" / subtree / ".updated").read_bytes()
+                    self.assertEqual(merged, physical)
+                    if mutation.endswith("-only") and not mutation.endswith(
+                        f"-{subtree}-only"
+                    ):
+                        self.assertEqual(merged, b"")
+                    else:
+                        timestamp = (
+                            b"1788332957852528814"
+                            if mutation.endswith("mismatched-time") and subtree == "var"
+                            else b"1788332957852528813"
+                        )
+                        self.assertTrue(
+                            merged.endswith(b"TIMESTAMP_NSEC=" + timestamp + b"\n")
+                        )
+                    self.assertFalse((base / "lower" / subtree / ".updated").exists())
 
     def test_volatile_systemd_state_is_exact_and_tmpfs_only(self) -> None:
         helper = self.volatile_state
