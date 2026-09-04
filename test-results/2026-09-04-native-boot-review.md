@@ -263,3 +263,139 @@ this checkpoint, with changing device numbers. No fresh target health evidence
 was obtained. No phone reboot, candidate signing/issuance, flash, slot operation
 or phone-storage access occurred. Source stays separate from installed state.
 Full frozen-tree integration results are attached to the publication checkpoint.
+
+## Passive early-boot capture after publication
+
+Checkpoint `87eea4ae96cf11c335a0676743f86daba5de4ad2` passed full local CI
+in 476.297 s on tree `88be98d1c718dd5440aaae2b2e28e1feab99e1ab` and was
+pushed. No production source changed during that run. The following evidence
+arrived afterward; these are documentation-only updates, not another boot fix.
+
+The retained target sends early stage records to `169.254.77.1:8079`, whereas
+the active host shared profile had only `10.77.0.1/30`. No listener existed.
+Its `nm-shared` firewall zone allowed DHCP/DNS/SSH then rejected other traffic,
+so a listening socket alone was insufficient. A temporary receive-only
+collector bound to the anchored interface finally captured 12 bounded records
+after temporarily assigning both addresses in manual mode and allowing only
+TCP from `169.254.77.2` to `169.254.77.1:8079` for 60 seconds. The rich rule
+was explicitly removed and verified absent; the interface disappeared and its
+saved profile remained `shared`, `10.77.0.1/30`, automatic zone. No boot command,
+phone storage request, candidate execution or slot change was sent.
+
+Host-only capture setup first failed on three assumptions: shared mode uses
+the first configured address; nmcli joins multiple values with ` | `; and an
+empty field may be a newline-only result during asynchronous activation. The
+bounded independent review identified the formatter issue; local read-only
+route output confirmed it. The exact parser passed empty, newline-only, single
+and joined-address fixtures before the successful capture. These observations
+must become reusable capture fixtures before any new candidate is built.
+Reference: [NetworkManager 1.52.1 source](https://raw.githubusercontent.com/NetworkManager/NetworkManager/1.52.1/src/core/devices/nm-device.c).
+
+For boot ID `344113fb-8e7b-45de-8cbd-0ab63400a452`, release
+`7.1.4-g1eea8970e87f`, host timestamps (Unix seconds) are:
+
+| Evidence | Host timestamp |
+|---|---:|
+| Target USB device 49, persistent-root descriptor | 1788561837.273404 |
+| First received stage, ufs-ready ENTER, sequence 2 | 1788561838.813728 |
+| Overlay ENTER, sequence 18 | 1788561845.852025 |
+| Switch-root ENTER, sequence 24 | 1788561847.863578 |
+| Switch-root PASS, sequence 25 | 1788561849.849527 |
+| USB device 49 disconnect | 1788561857.510400 |
+
+The observed disconnect is 7.661 s after the final PASS record. Stage records
+are unauthenticated diagnostic input, not admission proof; they identify neither
+primary V10 nor fallback V11. PASS is emitted before watchdog disarm/exec, so
+it proves neither systemd startup nor a completed switch_root. It does show
+the reporting target progressed beyond earlier storage/overlay validation.
+No terminal FAIL was captured. Kernel panic, explicit rollback and transport
+loss remain distinguishable hypotheses, not conclusions. Pinned SSH remained
+unavailable; the later attempt outlasted the short network window and is not
+evidence of a specific target SSH failure.
+
+Raw capture SHA-256:
+`3d9e5c49462c3b0f050334f63fea39f43763a5272414928ed893fc68e23c436b`.
+The records, private receive-only collector, QEMU logs and full local CI log
+are retained outside Git. Next hardware question is what happens between the
+pre-exec PASS record and usable systemd/SSH. Do not redesign UFS or charging
+to explain this newly narrowed boundary without evidence.
+
+## Production watchdog handover correction (September 5)
+
+Starting HEAD: `87eea4ae96cf11c335a0676743f86daba5de4ad2`; preserved the
+unpublished passive-capture documentation above. Question: does the actual boot
+watchdog retain a usable reset path until the successor's core startup checks
+pass? Layer: initramfs/runtime rollback, R3/R8. No kernel/DT/wrapper change.
+
+Removed pre-exec watchdog disarming. The existing sleeper pins `/run` as cwd
+and retains kmsg/SysRq descriptors. At the unchanged deadline it validates the
+existing atomic P2-ready record: root-owned regular non-symlink single-link
+mode-0444 file, positive size bounded at 4096 bytes, unique PASS status and
+unique current-boot `attested_boot_id`. The distinct field avoids collision
+with historical collectors' independently sampled `boot_id`. Validation uses
+the retained musl loader/BusyBox, not deleted old-root interpreter paths.
+
+Absent/invalid acknowledgment tries the retained syscall-only reboot helper,
+then the old absolute helper if still available, then the already-open SysRq
+FD. Optional logging follows reset requests. No new timer, service, claim,
+persistent record or PID-kill protocol was introduced. Native SSH's existing
+rollback-timer dependency and panic handling remain separate layers. P2-ready
+proves its existing boot checks, not ongoing service health or remote access.
+
+Five focused test methods cover 16 ACK cases plus handoff ordering, attestation
+publication and reset setup/fallback. Initial ordering/publication regressions
+failed before the fix. Independent review exposed parent `exec` redirection
+failure bypassing rollback and retained-helper failure skipping the old helper;
+both received failing regressions before correction. Final host suite: 0.144 s.
+The legacy initramfs composition suite passed (earlier iteration 7.719 s),
+overlay suite 0.250 s, active tier 6.435 s. Source-sensitive disarm tests were
+replaced, not silently left asserting the old unsafe ordering.
+
+Final full-system replay uses production watchdog functions, the exact V10
+BusyBox/interpreter/static helper and accepted Image identified above. Guest
+root is RAM-only; the ACK producer is an explicit fixture, not real phone P2
+attestation. Seven cases passed: valid systemd ACK 16.654 s; missing ACK
+10.588 s; stale ACK 10.840 s; unexecutable helper/SysRq 10.589 s; hanging init
+10.490 s; failed init/panic 5.076 s; FD-open failure/rollback 2.370 s. Reset
+oracles distinguish `RESTART2("bootloader")` from SysRq and observer shutdown.
+The exact BusyBox PID-1 FD-open failure returns to rollback rather than exiting.
+
+Watchdog function digest:
+`f1ca971f27ac924185dc2d9293471581c01f4d7642ad41df08ffb749ebe98b94`.
+Raw QEMU results and logs remain private. Full frozen-tree CI and publication
+results are recorded at the resulting commit/PR checkpoint. Nothing is deployed:
+no signing, candidate issuance/consumption, boot, flash or phone-storage access.
+Fresh exact fastboot telemetry was slot B, 7704 mV, SOC gate yes. This does not
+establish charging current, temperature, server health or the initial failure.
+
+The first frozen full CI stopped after 361.262 s on the storage-resolution
+suite's stale literal `arm_watchdog` call. The production call intentionally
+became `arm_watchdog || force_rollback`; its FD-open regression already proves
+why checking the return is required. The old assertion failed independently
+in 0.001 s. Only its expected call is corrected; all USB/identity/UFS ordering
+assertions remain. Corrected focused storage-resolution suite: 24 passed in
+1.789 s; watchdog suite: 5 passed in 0.139 s. These ran before refreezing for
+full CI; the previously passing seven-case production QEMU run is unchanged.
+
+## Retained radio power-gate finding (September 5)
+
+Independent reinspection verified the V10 archive hash above and its sealed
+radio, failure handler and unit. The radio requires `voltage_now >= 8400000`
+before module activation. Unit failure invokes a handler that requests
+`systemctl --no-block reboot`. Its only diagnostic transport is `/dev/ttyGS0`,
+but the same archive creates only the NCM gadget. This can conceal an explicit
+userspace reboot behind loss of USB reporting.
+
+An isolated replay of the exact retained BusyBox power predicates with fixture
+health Good and temperature 302 rejects 7704000 and 8399999 microvolts and
+accepts 8400000 and 8500000 (0.186 s). This tests the power subsection only;
+it is not a complete lifecycle or measurement of on-phone sysfs. The last
+fastboot voltage, 7704 mV, is nonsimultaneous evidence. Accepted September 3
+boots recorded about 8.52 V. These facts strengthen the hypothesis but do not
+prove that the captured switch-root boot ran V10 or failed this predicate.
+
+Keep the 8.4 V radio guard until an independently justified power policy exists.
+The next hardware experiment must capture the actual failure or establish
+the existing qualified headless charging/recovery route, not repeat display
+or radio activation at an unmet gate. No kernel, power-control, artifact,
+claim or phone state was changed by this audit.

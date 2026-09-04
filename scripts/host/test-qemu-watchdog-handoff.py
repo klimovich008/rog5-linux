@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Offline switch_root experiment; no phone, credentials, networking or disks.
 
-This tests watchdog process/path survival, not hardware reset effectiveness.
-Only BusyBox and its interpreter are copied from the supplied target archive.
+This executes the source watchdog through real systemd/switch_root, not physical
+phone reset effectiveness. BusyBox, its interpreter and the exact static reboot
+helper are copied from the supplied target archive.
 The guest's new root is tmpfs; systemd comes from the public test closure.
 """
 import argparse
@@ -16,6 +17,12 @@ import subprocess
 import time
 
 REPO = Path(__file__).resolve().parents[2]
+
+
+def watchdog_functions():
+    source = (REPO / "initramfs/persistent-root-init").read_text()
+    start = source.index("watchdog_bb() {\n")
+    return source[start:source.index("physical_topology_count() {\n", start)]
 
 
 def main():
@@ -40,16 +47,20 @@ def main():
         "podman", "image", "inspect", "--format", "{{.Id}}",
         "localhost/rog5-qemu-gate:ubuntu-24.04"], text=True).strip()
     results = []
-    for mode in ("systemd", "hang-init", "failed-init"):
+    watchdog_source = watchdog_functions()
+    modes = ("systemd-ack", "systemd-no-ack", "systemd-stale-ack",
+             "helper-unexecutable", "hang-init", "failed-init", "fd-open-failure")
+    for mode in modes:
         members = {}
 
         def add(name, data=b"", mode=stat.S_IFREG | 0o644):
             archive["add"](members, name, data, mode)
 
-        for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1"):
+        for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1",
+                     "usr/libexec/rog5-reboot-bootloader"):
             fields, data = target[name]
             if not stat.S_ISREG(fields[1]):
-                raise ValueError("expected regular sealed BusyBox/interpreter")
+                raise ValueError("expected regular sealed runtime member")
             add(name, data, fields[1])
         for name, (fields, data) in sorted(base.items(), key=lambda item: item[0].count("/")):
             add("systemd-root/" + name, data, fields[1])
@@ -78,14 +89,29 @@ TTYPath=/dev/console
         add("systemd-root/observe", b"""set -eu
 BB=/usr/bin/busybox
 echo HANDOFF_NEW_INIT
-pid=$($BB cat /run/watchdog.pid)
+pid=$($BB cat /run/rog5-p2-watchdog.pid)
 $BB readlink /proc/$pid/cwd || true
 $BB cat /proc/$pid/cgroup || true
 $BB ls -l /proc/$pid/fd/9 || true
+$BB test ! -e /proc/$pid/root/bin/busybox
+echo HANDOFF_OLD_PATH_GONE
+case MODE in
+systemd-ack|systemd-stale-ack)
+    boot=$($BB cat /proc/sys/kernel/random/boot_id)
+    [ MODE != systemd-stale-ack ] || boot=00000000-0000-0000-0000-000000000000
+    printf 'status=PASS\nattested_boot_id=%s\n' "$boot" >/run/rog5-p2-ready.next
+    $BB chmod 0444 /run/rog5-p2-ready.next
+    $BB mv /run/rog5-p2-ready.next /run/rog5-p2-ready
+    ;;
+esac
 $BB sleep 11
+# A valid acknowledgement must end the watchdog, not merely postpone reset.
+if $BB test -e /proc/$pid/stat; then
+    $BB awk '$3 == "Z" { ok=1 } END { exit !ok }' /proc/$pid/stat
+fi
 echo HANDOFF_OBSERVATION_END
 $BB poweroff -f
-""")
+""".replace(b"MODE", mode.encode()))
         init = r"""#!/bin/busybox sh
 set -eu
 export PATH=/bin
@@ -100,28 +126,33 @@ mount -t tmpfs tmpfs /newroot
 cp -a /systemd-root/. /newroot/
 mkdir -p /newroot/dev /newroot/proc /newroot/sys /newroot/run /newroot/tmp
 chmod 1777 /newroot/tmp
-printf '#!/usr/bin/busybox sh\necho HANDOFF_RELATIVE_HELPER\n' >/run/helper
-chmod 755 /run/helper
-(
-    exec 9>/dev/console
-    cd /run
-    sleep 8
-    printf 'HANDOFF_WATCHDOG_EXPIRED\n' >&9
-    if [ -x /bin/busybox ]; then
-        printf 'HANDOFF_OLD_PATH_PRESENT\n' >&9
-    else
-        printf 'HANDOFF_OLD_PATH_GONE\n' >&9
-    fi
-    # The old process root is not changed by PID 1's switch_root. A relative
-    # path remains visible through cwd, but its shebang may no longer resolve.
-    if [ -x helper ]; then printf 'HANDOFF_RELATIVE_PATH_PRESENT\n' >&9; fi
-) &
-printf '%s\n' "$!" >/run/watchdog.pid
+""" + watchdog_source + r"""
+log() { echo "$*"; }
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
+watchdog_kmsg=/dev/console
+watchdog_sysrq=/proc/sysrq-trigger
+watchdog_pid_file=/run/rog5-p2-watchdog.pid
+recovery_timeout=8
+"""
+        if mode == "fd-open-failure":
+            init += "watchdog_kmsg=/missing/kmsg\n"
+        init += r"""
+arm_watchdog || { echo HANDOFF_ARM_FAILED_ROLLBACK; "$reboot_helper"; exit 1; }
+mkdir -p /run/initramfs/bin /run/initramfs/lib /run/initramfs/usr/libexec
+cp /bin/busybox /run/initramfs/bin/
+cp /lib/ld-musl-aarch64.so.1 /run/initramfs/lib/
+cp "$reboot_helper" "/run/initramfs$reboot_helper"
+"""
+        if mode == "helper-unexecutable":
+            # Existing executable with an unavailable interpreter: the exact
+            # production fallback must reach its retained SysRq FD on ENOENT.
+            init += "printf '#!/missing-loader\\n' >/run/initramfs/usr/libexec/rog5-reboot-bootloader\n"
+        init += r"""
 sleep 0.3
 for name in dev proc sys run; do mount --move /$name /newroot/$name; done
 echo HANDOFF_SWITCH_ROOT
 """
-        if mode == "systemd":
+        if mode.startswith("systemd-") or mode == "helper-unexecutable":
             init += "exec switch_root /newroot /usr/lib/systemd/systemd\n"
         elif mode == "hang-init":
             add("systemd-root/hang", b"#!/usr/bin/busybox sh\n/usr/bin/busybox sleep 11\n/usr/bin/busybox poweroff -f\n", stat.S_IFREG | 0o755)
@@ -143,20 +174,31 @@ echo HANDOFF_SWITCH_ROOT
         with (output / (mode + ".log")).open("xb") as log:
             result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=50)
         log = (output / (mode + ".log")).read_text(errors="replace")
-        required = ["HANDOFF_SWITCH_ROOT"]
-        if mode == "failed-init":
+        required = [] if mode == "fd-open-failure" else ["HANDOFF_SWITCH_ROOT"]
+        if mode == "fd-open-failure":
+            required += ["HANDOFF_ARM_FAILED_ROLLBACK", "reboot: Restarting system with command 'bootloader'"]
+        elif mode == "failed-init":
             required += ["can't execute '/missing-init'", "Kernel panic"]
+        elif mode == "systemd-ack":
+            required += ["HANDOFF_NEW_INIT", "HANDOFF_OLD_PATH_GONE",
+                         "watchdog acknowledged by current-boot P2 readiness",
+                         "HANDOFF_OBSERVATION_END"]
+        elif mode == "helper-unexecutable":
+            required += ["HANDOFF_NEW_INIT", "HANDOFF_OLD_PATH_GONE", "sysrq: Resetting"]
         else:
-            required += ["HANDOFF_WATCHDOG_EXPIRED", "HANDOFF_OLD_PATH_GONE", "HANDOFF_RELATIVE_PATH_PRESENT"]
-            if mode == "systemd":
-                required += ["HANDOFF_NEW_INIT", "HANDOFF_OBSERVATION_END"]
+            required += ["reboot: Restarting system with command 'bootloader'"]
+            if mode.startswith("systemd-"):
+                required += ["HANDOFF_NEW_INIT", "HANDOFF_OLD_PATH_GONE"]
         passed = result.returncode == 0 and all(marker in log for marker in required)
-        if mode == "failed-init" and "HANDOFF_WATCHDOG_EXPIRED" in log:
+        if mode != "systemd-ack" and "HANDOFF_OBSERVATION_END" in log:
+            passed = False
+        if mode == "failed-init" and "command 'bootloader'" in log:
             passed = False
         results.append(dict(mode=mode, passed=passed, exit_code=result.returncode,
                             seconds=time.monotonic()-started))
         print(json.dumps(results[-1]), flush=True)
-    record = dict(scope="QEMU process/path survival only; no hardware watchdog/phone proof",
+    record = dict(scope="QEMU production watchdog handoff; ACK producer fixture, no phone/storage proof",
+                  watchdog_source_sha256=hashlib.sha256(watchdog_source.encode()).hexdigest(),
                   kernel_sha256=hashlib.sha256(kernel.read_bytes()).hexdigest(),
                   target_archive_sha256=hashlib.sha256(target_blob).hexdigest(),
                   container=image, cases=results)

@@ -89,10 +89,28 @@ There is no authorized storage mutation in this checkpoint.
   relock failures remain fatal. No trial write window is opened for a broken
   primary. This is source-only, not installed recovery behavior.
 - Exact target BusyBox plus the accepted kernel passed a diskless ARM64 QEMU
-  handover experiment: the watchdog sleeper/open FD survive systemd startup;
-  old absolute paths disappear and moved `/run` remains accessible through cwd.
-  Failed init execution instead panics before the sleeper can respond. The
-  watchdog handover fix remains unimplemented; this is not physical reset proof.
+  handover test using the corrected production watchdog. It now survives root
+  deletion and requires current-boot P2 readiness at its unchanged deadline.
+  Missing/stale acknowledgment resets via the retained static helper; helper
+  failure reaches SysRq. Failed init remains a separate panic path. Seven QEMU
+  cases pass; this source-only correction is not deployed or physical reset proof.
+- September 5 passive early-stage capture reached sequence 25 `switch-root
+  PASS` before USB disconnected 7.66 s later. This narrows the observed failure
+  to handover or later startup, not the earlier storage/overlay gates. The
+  record precedes exec and does not prove systemd started. Primary versus
+  fallback remains unidentified. Early stages require the distinct
+  `169.254.77.1:8079` host endpoint; the normal shared `10.77.0.1` profile alone
+  neither supplied that address nor allowed that port. Temporary host capture
+  changes were cleaned up; raw records remain private. No boot was issued.
+- Latest exact fastboot read: slot B, 7704 mV, `battery-soc-ok=yes`; serial,
+  product and anchored path matched. This is not a current/temperature or
+  sustained-charging measurement. No reboot or phone-storage access followed.
+- The retained V10 archive requires at least 8.4 V before radio activation;
+  its radio failure service explicitly requests reboot. Its failure reporter
+  uses ACM, but V10 configures NCM only. This is a strong post-handoff reboot
+  hypothesis, not proof of the live voltage or failure reason. Do not lower
+  the radio gate; prioritize bounded failure capture and qualified headless
+  charging/recovery before another display/radio trial.
 
 ## Working authority and next action
 
@@ -110,8 +128,15 @@ exact operation and explicit approval. Never publish private material.
 Read [development workflow](development.md) for commands and validation tiers.
 Read only relevant R1–R10 entries in [lessons](development-lessons.md) during
 routine edits; use its complete pre-build/live checklists before a successor.
-Complete the focused boot/recovery corrections before another live successor;
-then restore exact transport/health evidence before the attended screen test.
-Remaining review items include the initramfs-to-systemd watchdog gap,
-crash-recovery validation, WPA restartability and display isolation.
+Source fallback checkpoint `87eea4ae` passed full local CI in 476.297 s and
+was pushed; physical deployment is unchanged. Prioritize the now-observed
+switch-root boundary before changing unrelated subsystems. Obtain stable exact
+fastboot for a reviewed RAM-only diagnostic when required, and fresh transport/
+health evidence before the attended screen test.
+The watchdog correction still needs an exact paired init/attestation deployment
+after publication gates. Its first full CI stopped at a stale source-string
+ordering test after 361.262 s; that assertion now recognizes the checked
+watchdog call without changing ordering requirements. Crash-recovery validation,
+WPA restartability and
+display isolation remain open; no kernel change explains the current loss yet.
 The [roadmap](../ROADMAP.md) holds later work.

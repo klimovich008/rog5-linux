@@ -243,7 +243,7 @@ class PersistentRootStorageResolutionTest(unittest.TestCase):
         )
 
     def test_usb_observability_precedes_target_identity_and_ufs(self) -> None:
-        watchdog = self.source.index("\narm_watchdog\n")
+        watchdog = self.source.index("\narm_watchdog || force_rollback\n")
         usb = self.source.index("\nif ! configure_usb; then\n")
         command_line = self.source.index(
             '\nif [ "$persistent_count" -ne 1 ] || '
