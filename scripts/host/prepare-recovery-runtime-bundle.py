@@ -8,6 +8,7 @@ import ctypes
 from dataclasses import dataclass
 import fcntl
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
@@ -618,28 +619,48 @@ def parse_arguments(arguments: list[str]) -> Configuration:
         description=__doc__,
         allow_abbrev=False,
     )
-    parser.add_argument("--bundle", required=True)
-    parser.add_argument("--profile", required=True)
-    parser.add_argument("--image", required=True, type=Path)
-    parser.add_argument("--dtb", required=True, type=Path)
-    parser.add_argument("--initramfs", required=True, type=Path)
-    parser.add_argument("--target-id", required=True)
-    parser.add_argument("--target-release", required=True)
-    parser.add_argument("--rollback-timeout", required=True)
-    parser.add_argument("--target-timeout", required=True)
-    parser.add_argument(
-        "--a660-command-manifest-sha256",
-        required=True,
-    )
-    parser.add_argument("--root-generation", required=True)
-    parser.add_argument("--root-tree-sha256", required=True)
-    parser.add_argument("--root-seal-sha256", required=True)
-    parser.add_argument("--root-tree-entries", required=True)
-    parser.add_argument("--root-subtree", required=True)
-    parser.add_argument("--private-key", required=True, type=Path)
-    parser.add_argument("--bundle-root", required=True, type=Path)
-    values = parser.parse_args(arguments)
-    return Configuration(**vars(values))
+    parser.add_argument("--config", type=Path,
+                        help="JSON recipe; artifact paths relative to this file; no admission")
+    external = {"private_key", "bundle_root"}
+    paths = external | {"image", "dtb", "initramfs"}
+    fields = set(Configuration.__dataclass_fields__)
+    for name in Configuration.__dataclass_fields__:
+        parser.add_argument("--" + name.replace("_", "-"),
+                            required=name in external,
+                            type=Path if name in paths else str)
+    values = vars(parser.parse_args(arguments))
+    recipe = values.pop("config")
+    if recipe is None:
+        missing = [name for name, value in values.items() if value is None]
+        if missing:
+            parser.error("missing options: " + ", ".join(missing))
+    else:
+        if any(values[name] is not None for name in fields - external):
+            parser.error("--config cannot be combined with recipe field overrides")
+
+        def unique(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError("duplicate recipe field")
+                result[key] = value
+            return result
+
+        try:
+            with recipe.open("rb") as stream:
+                payload = stream.read(65537)
+            if len(payload) > 65536:
+                raise ValueError("recipe too large")
+            record = json.loads(payload, object_pairs_hook=unique)
+            if (not isinstance(record, dict) or set(record) != fields - external
+                    or any(not isinstance(value, str) or not value for value in record.values())):
+                raise ValueError("recipe must contain exactly the non-credential Configuration fields as strings")
+            for name in paths - external:
+                record[name] = recipe.absolute().parent / record[name]
+            values.update(record)
+        except (OSError, ValueError) as error:
+            parser.error(f"invalid recipe: {error}")
+    return Configuration(**values)
 
 
 def main(arguments: list[str] | None = None) -> int:

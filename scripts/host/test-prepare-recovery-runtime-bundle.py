@@ -474,6 +474,52 @@ class BundlePackagerTest(unittest.TestCase):
         path.chmod(0o600)
         return path
 
+    def test_json_configuration_matches_cli_and_computes_artifact_hashes(self) -> None:
+        import json
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            # Exercise parsing without opening keys or artifacts. Output/key are
+            # deliberately separate from the reusable, authority-free recipe.
+            fields = {
+                name: "fixture" for name in PACKAGER.Configuration.__dataclass_fields__
+                if name not in {"private_key", "bundle_root"}
+            }
+            fields.update(image="Image", dtb="board.dtb", initramfs="initramfs.cpio.gz")
+            recipe = root / "recipe.json"
+            recipe.write_text(json.dumps(fields))
+            parsed = PACKAGER.parse_arguments([
+                "--config", str(recipe), "--private-key", str(root / "key"),
+                "--bundle-root", str(root / "out"),
+            ])
+            expected = dict(fields)
+            for name in ("image", "dtb", "initramfs"):
+                expected[name] = root / fields[name]
+            expected.update(private_key=root / "key", bundle_root=root / "out")
+            self.assertEqual(parsed, PACKAGER.Configuration(**expected))
+            cli = PACKAGER.parse_arguments(self.arguments(parsed))
+            self.assertEqual(cli, parsed)
+
+    def test_json_configuration_refuses_overrides_duplicates_and_unknowns(self) -> None:
+        import json
+        with tempfile.TemporaryDirectory() as temporary:
+            recipe = Path(temporary) / "recipe.json"
+            fields = {name: "fixture" for name in PACKAGER.Configuration.__dataclass_fields__
+                      if name not in {"private_key", "bundle_root"}}
+            args = ["--config", str(recipe), "--private-key", "/absent/key",
+                    "--bundle-root", "/absent/out"]
+            for payload in (
+                json.dumps({**fields, "authority": "allow"}),
+                json.dumps({**fields, "private_key": "/secret"}),
+                json.dumps({**fields, "target_timeout": 600}),
+                '{"bundle":"first","bundle":"second"}', '[]', '{}',
+            ):
+                recipe.write_text(payload)
+                with self.subTest(payload=payload), self.assertRaises(SystemExit):
+                    PACKAGER.parse_arguments(args)
+            recipe.write_text(json.dumps(fields))
+            with self.assertRaises(SystemExit):
+                PACKAGER.parse_arguments(args + ["--bundle", "override"])
+
     def test_each_fixed_profile_passes_native_and_host_verifiers(self) -> None:
         profile_tokens = {
             "diagnostic-initramfs-v1": (
