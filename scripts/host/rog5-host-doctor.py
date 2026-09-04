@@ -243,6 +243,11 @@ def snapshot(mode: str, deployment_receipt: Path | None) -> dict[str, object]:
 
 
 def validate(value: dict[str, object], *, current: dict[str, object] | None = None) -> None:
+    # Disk headroom and active processes are live gates, not immutable identity
+    # fields. A valid captured receipt must not hide subsequent ENOSPC or a
+    # concurrent builder merely because those fields are excluded from equality.
+    if current is not None:
+        validate(current)
     disk = value.get("disk")
     network = value.get("network")
     if (
