@@ -455,8 +455,9 @@ format=rog5-slotb-selector-v1)
 	copy_bundle "$bundle" || fail bundle_copy
 	;;
 format=rog5-slotb-selector-v2)
-	copy_bundle "$primary_bundle" || fail primary_bundle_copy
 	copy_bundle "$fallback_bundle" || fail fallback_bundle_copy
+	primary_failure=none
+	copy_bundle "$primary_bundle" || primary_failure=copy
 	;;
 *) fail selector_format ;;
 esac
@@ -469,11 +470,23 @@ format=rog5-slotb-selector-v1)
 	verify_bundle "$bundle" "$manifest_hash" "$plan" || fail bundle_verify
 	;;
 format=rog5-slotb-selector-v2)
-	verify_bundle "$primary_bundle" "$primary_manifest_hash" \
-		"$plan.primary" || fail primary_bundle_verify
 	verify_bundle "$fallback_bundle" "$fallback_manifest_hash" \
 		"$plan.fallback" || fail fallback_bundle_verify
-	select_trial_bundle || fail trial_state
+	if [ "$primary_failure" = none ]; then
+		verify_bundle "$primary_bundle" "$primary_manifest_hash" \
+			"$plan.primary" || primary_failure=verify
+	fi
+	if [ "$primary_failure" = none ]; then
+		select_trial_bundle || fail trial_state
+	else
+		# A broken primary is not a reason to bypass a verified fallback.
+		# No trial write window is needed for bytes we will never execute;
+		# retain the exact all-storage read-only gate normally run by selection.
+		relock_all_storage || fail trial_state
+		bundle=$fallback_bundle
+		manifest_hash=$fallback_manifest_hash
+		trial_selection_detail=trial-fallback-primary-$primary_failure
+	fi
 	case $bundle in
 	"$primary_bundle") cp "$plan.primary" "$plan" ;;
 	"$fallback_bundle") cp "$plan.fallback" "$plan" ;;

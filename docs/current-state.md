@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated: 2026-09-04. This is the single current-state entry point.
+Updated: 2026-09-05. This is the single current-state entry point.
 Facts below are accepted evidence, not a claim of freshly measured live health.
 
 ## Objective and checkpoint
@@ -84,6 +84,15 @@ There is no authorized storage mutation in this checkpoint.
   probe-tier coverage. The runtime and rollback unit are refreshed together
   in fresh persistent compositions; identity-only successors still preserve
   their qualified runtime. These corrections are offline-tested, not deployed.
+- The pending loader correction now selects the verified signed fallback when
+  primary copy/verification fails; fallback verification, unmount and storage
+  relock failures remain fatal. No trial write window is opened for a broken
+  primary. This is source-only, not installed recovery behavior.
+- Exact target BusyBox plus the accepted kernel passed a diskless ARM64 QEMU
+  handover experiment: the watchdog sleeper/open FD survive systemd startup;
+  old absolute paths disappear and moved `/run` remains accessible through cwd.
+  Failed init execution instead panics before the sleeper can respond. The
+  watchdog handover fix remains unimplemented; this is not physical reset proof.
 
 ## Working authority and next action
 
@@ -103,6 +112,6 @@ Read only relevant R1–R10 entries in [lessons](development-lessons.md) during
 routine edits; use its complete pre-build/live checklists before a successor.
 Complete the focused boot/recovery corrections before another live successor;
 then restore exact transport/health evidence before the attended screen test.
-Remaining review items include primary-copy failure bypassing signed fallback,
-the initramfs-to-systemd watchdog gap, WPA restartability and display isolation.
+Remaining review items include the initramfs-to-systemd watchdog gap,
+crash-recovery validation, WPA restartability and display isolation.
 The [roadmap](../ROADMAP.md) holds later work.

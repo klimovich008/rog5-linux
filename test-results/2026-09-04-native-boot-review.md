@@ -200,3 +200,66 @@ zero primaries occur, durable pending state, and subsequent fallback. Serial
 re-arm tests still require exactly one primary. No helper source/artifact or
 locking behavior changed. Focused ARM/host suites passed in 0.884/2.837 s;
 full CI is rerun only after this changed regression and a new source freeze.
+
+## Signed fallback independence and actual switch_root evidence (September 5)
+
+Starting HEAD: `545f2118bc3dd96768b73824bad6fb6273ce4380`; preserved the
+pending loader/test changes. Previous checkpoint full local CI passed in
+478.163 s; published exact-head, merge, candidate-publication and QEMU checks
+passed in [run 33923905287](https://github.com/klimovich008/rog5-linux/actions/runs/33923905287).
+Question: can recovery retain an intact signed fallback when only primary
+bytes are damaged, and what survives the actual initramfs handover? Layer:
+recovery/initramfs; R8. No new hardware cycle is justified by these tests alone.
+
+The loader previously copied and verified primary before reaching fallback
+selection. It now copies/verifies fallback first and classifies a primary-only
+copy or verification failure. That path selects the exact verified fallback
+without opening the trial-state write window. It still requires successful
+root unmount and the existing all-storage read-only relock. Invalid fallback,
+unmount/relock failure, selector identity and crypto checks remain fatal.
+Both-valid behavior still calls the existing trial helper exactly once.
+
+The added replay executes the real copy/unmount/verify/select flow with real
+temporary copy fixtures and a clearly simulated crypto boundary. Primary
+missing/symlink/corruption/partial-copy cases now reach fallback; fallback
+damage, cleanup failure and invalid selection do not publish a plan. Initial
+primary-damage regressions failed before the fix (0.119 s). Four focused tests
+passed in 0.179 s on September 5. The existing full loader-focused suite passed
+in 9.116 s; exact sealed recovery BusyBox replay passed in 1.334 s including
+extraction. No phone filesystem was exposed. Handoff and overlay suites passed
+in 0.064 s and 0.288 s, but their mocks do not prove real switch_root recovery.
+
+`scripts/host/test-qemu-watchdog-handoff.py` reuses the accepted Image and only
+BusyBox/interpreter bytes from the V10 archive identified above. A verified
+public systemd 260.2 closure supplies PID 1. All guest filesystems are RAM-only;
+there is no disk, phone passthrough, network or credential. An existing local
+QEMU container is resolved to its content identity without pulling. The output
+receipt records kernel/archive/container identity and each bounded case.
+
+Results: systemd startup 17.049 s; hanging successor init 14.594 s; failed init
+execution/panic 5.827 s. All three passed. The first two show the sleeper waking
+after rootfs deletion, its console FD still valid, `/bin/busybox` absent from
+its old root, and a helper pathname reachable relative to pinned `/run` cwd.
+Systemd places the surviving process in `/init.scope`. This is a deliberately
+retained watchdog mechanism experiment, not execution of the current disarming
+production handoff or proof of an acknowledgment protocol.
+
+Failed successor exec causes a kernel panic before the sleeper deadline. The
+fixture uses `panic=2` and QEMU `-no-reboot`; this must not be described as a
+userspace watchdog recovery. Likewise a visible relative helper is not proof
+its interpreter remains executable; production should use the already retained
+syscall-only helper, and test that exact execution path. Next fix must keep
+watchdog ownership until the successor rollback timer is demonstrably armed,
+preserve an executable reset path, and retain panic handling as a separate layer.
+
+The continuing read-only review also reproduced malformed descriptor acceptance
+under Python `-O` (composer assertions disappear) and healthd starvation by a
+client sending bytes every 0.2 s (second client timeout 2.002 s). Neither is
+fixed here. Current Wi-Fi composition tests passed 19 cases in 1.457 s, without
+covering restartability or optional-display failure isolation.
+
+Anchored host sysfs still reported the persistent-Linux USB descriptor during
+this checkpoint, with changing device numbers. No fresh target health evidence
+was obtained. No phone reboot, candidate signing/issuance, flash, slot operation
+or phone-storage access occurred. Source stays separate from installed state.
+Full frozen-tree integration results are attached to the publication checkpoint.

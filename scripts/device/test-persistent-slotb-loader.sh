@@ -232,6 +232,7 @@ run_trial_case() (
 for trial_case in primary helper-fail mount-fail mount-retry cleanup-fail; do
 	run_trial_case "$trial_case"
 done
+python3 "$repo/scripts/device/test-slotb-fallback-order.py"
 
 if [ -f "$base" ] && [ -f "$target_base" ] && [ -f "$high_speed_base" ]; then
 	: >"$work/read-selector.sh"
