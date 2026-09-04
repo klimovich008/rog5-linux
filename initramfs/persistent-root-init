@@ -1731,8 +1731,6 @@ prepare_volatile_systemd_state() {
 		[ "$cache_size" -gt 0 ] && [ "$cache_size" -le 1048576 ] || return 1
 	fi
 
-	marker_kind=
-	marker_timestamp=
 	for subtree in etc var; do
 		lower_marker=$lower/$subtree/.updated
 		merged_marker=$root/$subtree/.updated
@@ -1746,22 +1744,11 @@ prepare_volatile_systemd_state() {
 		else
 			[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
 		fi
-		marker_value=$(verify_systemd_update_marker \
-			"$root" "$upper" "$subtree") || return 1
-		case $marker_value in
-		empty)
-			[ -z "$marker_kind" ] && marker_kind=empty
-			[ "$marker_kind" = empty ] || return 1
-			;;
-		*)
-			if [ -z "$marker_kind" ]; then
-				marker_kind=systemd-update-done
-				marker_timestamp=$marker_value
-			fi
-			[ "$marker_kind" = systemd-update-done ] &&
-				[ "$marker_timestamp" = "$marker_value" ] || return 1
-			;;
-		esac
+		# systemd updates /etc and /var independently, not as one transaction.
+		# Preserve valid per-tree markers after an interrupted update; their
+		# contents need not agree across trees. Each merged/upper pair must.
+		(verify_systemd_update_marker \
+			"$root" "$upper" "$subtree" >/dev/null) || return 1
 		if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
 			marker_time=$(stat -c '%Y:%y' "$merged_marker") || return 1
 			[ "$marker_time" = "$(stat -c '%Y:%y' "$root/usr")" ] ||
