@@ -4,6 +4,8 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 init=$repo/initramfs/persistent-root-init
 
+python3 -B "$repo/scripts/device/test-persistent-root-watchdog.py"
+
 fail() {
 	echo "FAIL $*" >&2
 	exit 1

@@ -216,41 +216,62 @@ usb:15|reboot-mode:15|ufs-rendezvous:15|ufs-module:20) ;;
 	force_rollback
 }
 
-arm_watchdog() {
-	(
-		exec 8>"$watchdog_kmsg"
-		exec 9>"$watchdog_sysrq"
-		sleep "$recovery_timeout"
-		echo 'rog5-persistent-root: watchdog expired; requesting bootloader restart' >&8
-		if [ -x "$reboot_helper" ]; then
-			"$reboot_helper" || true
-		fi
-		echo 'rog5-persistent-root: bootloader restart returned; using emergency reset' >&8
-		printf b >&9
-		while :; do sleep 3600; done
-	) &
-	watchdog_pid=$!
-	printf '%s\n' "$watchdog_pid" >"$watchdog_pid_file"
-	log "emergency-reset watchdog armed for $recovery_timeout seconds"
+watchdog_bb() {
+	# cwd pins the original /run mount across switch_root. Its retained musl
+	# loader must be invoked explicitly: the old /lib interpreter is deleted.
+	./initramfs/lib/ld-musl-aarch64.so.1 ./initramfs/bin/busybox "$@"
 }
 
-disarm_watchdog() {
-	disarm_log=${1:-}
-	case $watchdog_pid in ''|*[!0-9]*) return 1 ;; esac
-	[ -f "$watchdog_pid_file" ] && [ ! -L "$watchdog_pid_file" ] || return 1
-	[ "$(cat "$watchdog_pid_file")" = "$watchdog_pid" ] || return 1
-	kill "$watchdog_pid" 2>/dev/null || return 1
-	wait "$watchdog_pid" 2>/dev/null || true
-	! kill -0 "$watchdog_pid" 2>/dev/null || return 1
-	rm -f "$watchdog_pid_file" || return 1
-	watchdog_pid=
-	if [ -n "$disarm_log" ]; then
-		printf '%s\n' \
-			'rog5-persistent-root: emergency-reset watchdog disarmed after successful handoff' \
-			>"$disarm_log" || return 1
-	else
-		log 'emergency-reset watchdog disarmed after successful handoff'
+watchdog_acknowledged() {
+	ack=./rog5-p2-ready
+	[ -f "$ack" ] && [ ! -L "$ack" ] || return 1
+	ack_metadata=$(watchdog_bb stat -c '%u:%g:%a:%h' "$ack") || return 1
+	[ "$ack_metadata" = 0:0:444:1 ] || return 1
+	ack_size=$(watchdog_bb stat -c %s "$ack") || return 1
+	[ "$ack_size" -gt 0 ] && [ "$ack_size" -le 4096 ] || return 1
+	ack_status_count=$(watchdog_bb grep -c '^status=' "$ack") || return 1
+	ack_boot_count=$(watchdog_bb grep -c '^attested_boot_id=' "$ack") || return 1
+	[ "$ack_status_count" = 1 ] &&
+		watchdog_bb grep -Fxq 'status=PASS' "$ack" &&
+		[ "$ack_boot_count" = 1 ] &&
+		watchdog_bb grep -Fxq "attested_boot_id=$watchdog_boot_id" "$ack"
+}
+
+watchdog_expired() {
+	if watchdog_acknowledged; then
+		printf '%s\n' 'rog5-persistent-root: watchdog acknowledged by current-boot P2 readiness' >&8
+		return 0
 	fi
+	# Do not depend on deleted absolute paths, an interpreter in the old root,
+	# systemd, or a diagnostic write completing before the reset request.
+	if [ -x "./initramfs$reboot_helper" ]; then
+		"./initramfs$reboot_helper" || true
+	fi
+	if [ -x "$reboot_helper" ]; then
+		"$reboot_helper" || true
+	fi
+	printf b >&9
+	printf '%s\n' 'rog5-persistent-root: watchdog reset requests returned' >&8
+	return 1
+}
+
+arm_watchdog() {
+	watchdog_boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	printf '%s\n' "$watchdog_boot_id" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		return 1
+	# A compound-command redirection failure returns to the caller. An exec
+	# special-builtin redirection error can instead terminate PID 1 outright.
+	{
+		(
+			cd /run || { printf b >&9; exit 1; }
+			sleep "$recovery_timeout"
+			watchdog_expired
+		) &
+		watchdog_pid=$!
+	} 8>"$watchdog_kmsg" 9>"$watchdog_sysrq" || return 1
+	printf '%s\n' "$watchdog_pid" >"$watchdog_pid_file" || return 1
+	log "emergency-reset watchdog armed for $recovery_timeout seconds"
 }
 
 physical_topology_count() {
@@ -2151,7 +2172,7 @@ if [ "$recovery_timeout" -lt 300 ] || [ "$recovery_timeout" -gt 900 ]; then
 	recovery_timeout=600
 fi
 
-arm_watchdog
+arm_watchdog || force_rollback
 if ! configure_usb; then
 	fail_stage 'USB recovery transport failed' usb 15
 fi
@@ -2431,12 +2452,9 @@ if ! publish_stage switch-root PASS; then
 fi
 report_current_stage_once || true
 
-watchdog_pid_file=$handoff_newroot/run/rog5-p2-watchdog.pid
-if ! disarm_watchdog "$handoff_newroot/dev/kmsg"; then
-	rollback_handoff_mounts || true
-	stage_record=/run/rog5-persistent-root-stage.record
-	fail_local_stage switch-root 'successful handoff watchdog disarm failed'
-fi
+# PASS above proves mount movement, not successful successor init execution.
+# Keep the boot watchdog until the actual current-boot P2 attestation exists.
+# The separate systemd/Wi-Fi rollback timer and panic reset remain unchanged.
 
 trap switch_root_failure EXIT
 exec switch_root /newroot /sbin/init

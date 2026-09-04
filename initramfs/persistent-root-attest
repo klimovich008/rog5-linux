@@ -426,6 +426,7 @@ temporary=/run/.rog5-p2-ready.$$
 trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
 {
 	printf '%s\n' 'status=PASS'
+	printf '%s\n' "attested_boot_id=$current_boot_id"
 	printf '%s\n' "kernel=$(uname -r)"
 	printf '%s\n' "physical_blocks=$physical_count"
 	if [ "$expected_native_root_mode" -eq 1 ]; then
