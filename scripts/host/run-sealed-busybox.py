@@ -96,6 +96,7 @@ def run(archive, release, applet, *, qemu, empty_module_index=False):
         (root / "rog5-qemu").touch()
         result = subprocess.run([
             bwrap, "--unshare-all", "--die-with-parent", "--new-session",
+            "--uid", "0", "--gid", "0",
             "--ro-bind", str(root), "/", "--ro-bind", str(qemu.resolve()), "/rog5-qemu",
             "--clearenv", "--setenv", "PATH", "/bin:/sbin:/usr/bin:/usr/sbin",
             "--setenv", "LC_ALL", "C", "--chdir", "/",

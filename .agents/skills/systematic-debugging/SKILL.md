@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+description: Investigate repeated or cross-component ROG5 failures when explicitly invoked; use focused tests directly for already proven parser or compatibility fixes.
 ---
 
 # Systematic Debugging
@@ -184,7 +184,7 @@ You MUST complete each phase before proceeding to the next.
    - Automated test if possible
    - One-off test script if no framework
    - MUST have before fixing
-   - Use the `superpowers:test-driven-development` skill for writing proper failing tests
+   - Use the smallest repository regression that reproduces the failure
 
 2. **Implement Single Fix**
    - Address the root cause identified
@@ -196,7 +196,7 @@ You MUST complete each phase before proceeding to the next.
    - Test passes now?
    - No other tests broken?
    - Issue actually resolved?
-   - Use the `superpowers:verification-before-completion` skill before claiming success
+   - Use the repository's appropriate test tier and report its actual result
 
 4. **If Fix Doesn't Work**
    - STOP
@@ -217,7 +217,8 @@ You MUST complete each phase before proceeding to the next.
    - Are we "sticking with it through sheer inertia"?
    - Should we refactor architecture vs. continue fixing symptoms?
 
-   **Discuss with your human partner before attempting more fixes**
+   Use a bounded independent review before another attempt. Ask the operator
+   only for missing information or a decision outside existing authorization.
 
    This is NOT a failed hypothesis - this is a wrong architecture.
 
