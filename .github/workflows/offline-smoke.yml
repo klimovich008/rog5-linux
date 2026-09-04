@@ -42,19 +42,12 @@ jobs:
         id: select-tier
         shell: bash
         run: |
-          if [[ '${{ github.event_name }}' == schedule ]]; then
-            tier=nightly
-            qemu=yes
-          elif [[ '${{ github.event_name }}' == pull_request ]]; then
-            selection=$(scripts/host/select-repository-test-tier.py \
-              '${{ github.event.pull_request.base.sha }}' \
-              '${{ github.event.pull_request.head.sha }}')
-            tier=$(sed -n 's/^tier=//p' <<<"$selection")
-            qemu=$(sed -n 's/^qemu=//p' <<<"$selection")
-          else
-            tier=ci
-            qemu=yes
-          fi
+          selection=$(scripts/host/select-repository-test-tier.py \
+            --event '${{ github.event_name }}' \
+            '${{ github.event.pull_request.base.sha || github.event.before }}' \
+            '${{ github.event.pull_request.head.sha || github.sha }}')
+          tier=$(sed -n 's/^tier=//p' <<<"$selection")
+          qemu=$(sed -n 's/^qemu=//p' <<<"$selection")
           case $tier in active|probe|ci|nightly) ;; *) exit 1 ;; esac
           case $qemu in yes|no) ;; *) exit 1 ;; esac
           printf 'test_tier=%s\nqemu=%s\n' "$tier" "$qemu" | tee -a "$GITHUB_OUTPUT"
@@ -72,8 +65,10 @@ jobs:
             openssl \
             pkg-config
       - name: Bootstrap pinned Android boot tools
+        if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/fetch-android-boot-tools.sh
       - name: Build canonical boot-v3 template
+        if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/build-canonical-boot-v3-template.sh
       - name: Run hardware-free recovery core
         run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
@@ -82,6 +77,8 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      qemu: ${{ steps.select-tier.outputs.qemu }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -94,6 +91,18 @@ jobs:
           actual=$(git rev-parse HEAD)
           printf 'expected_merge=%s\nactual_merge=%s\n' "$expected" "$actual"
           test "$actual" = "$expected"
+      - name: Select merge-compatibility test tier
+        id: select-tier
+        run: |
+          selection=$(scripts/host/select-repository-test-tier.py \
+            --event merge \
+            '${{ github.event.pull_request.base.sha }}' \
+            HEAD)
+          tier=$(sed -n 's/^tier=//p' <<<"$selection")
+          qemu=$(sed -n 's/^qemu=//p' <<<"$selection")
+          case $tier in active|probe|ci) ;; *) exit 1 ;; esac
+          case $qemu in yes|no) ;; *) exit 1 ;; esac
+          printf 'test_tier=%s\nqemu=%s\n' "$tier" "$qemu" | tee -a "$GITHUB_OUTPUT"
       - name: Install native test dependencies
         run: |
           sudo apt-get update
@@ -108,18 +117,11 @@ jobs:
             openssl \
             pkg-config
       - name: Bootstrap pinned Android boot tools
+        if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/fetch-android-boot-tools.sh
       - name: Build canonical boot-v3 template
+        if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/build-canonical-boot-v3-template.sh
-      - name: Select merge-compatibility test tier
-        id: select-tier
-        run: |
-          selection=$(scripts/host/select-repository-test-tier.py \
-            '${{ github.event.pull_request.base.sha }}' \
-            '${{ github.event.pull_request.head.sha }}')
-          tier=$(sed -n 's/^tier=//p' <<<"$selection")
-          case $tier in active|probe|ci) ;; *) exit 1 ;; esac
-          echo "test_tier=$tier" >> "$GITHUB_OUTPUT"
       - name: Run merge-compatibility recovery core
         run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
 
@@ -160,8 +162,13 @@ jobs:
           retention-days: 14
 
   qemu-system:
-    needs: head-exact
-    if: needs.head-exact.outputs.qemu == 'yes'
+    needs: [head-exact, merge-compat]
+    # Explicit status handling allows main/manual/scheduled runs when the
+    # PR-only merge job is skipped, but never runs after failed validation.
+    if: >-
+      !cancelled() && needs.head-exact.result == 'success' &&
+      (needs.merge-compat.result == 'success' || needs.merge-compat.result == 'skipped') &&
+      (needs.head-exact.outputs.qemu == 'yes' || needs.merge-compat.outputs.qemu == 'yes')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
