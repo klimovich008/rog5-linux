@@ -8,7 +8,10 @@ Intended repository location: `docs/development-lessons.md`
 
 The project has made real low-level progress, but several expensive live-device cycles were lost to repeatable integration and process defects rather than new kernel or hardware limitations. This file records those patterns and converts them into lightweight rules.
 
-Use this document before creating a candidate, before starting an expensive build, and before every phone cycle. Update it only when a failure reveals a reusable lesson. It is not a chronological diary and must not become another large status document.
+Use the relevant R1–R10 sections for routine work; read the complete pre-build
+and pre-live checklists before creating a successor or executing a phone cycle.
+Update only when a failure reveals a reusable lesson. Current state and task
+authorization take precedence over historical operating assumptions here.
 
 ## Executive finding
 
@@ -298,7 +301,9 @@ Run gates in this order:
 6. Candidate composition verification.
 7. Expensive kernel/wrapper build only when inputs require it.
 8. Full local CI once on a frozen tree.
-9. Remote exact-head CI.
+9. Remote exact-head CI at publication/release checkpoints. Authority-free
+   local packaging and offline validation do not require a fresh remote run;
+   follow [development](development.md) for the separate trial/release gates.
 10. Connected non-consuming preflight.
 11. One live cycle.
 
@@ -333,7 +338,8 @@ These controls have prevented actual damage and should not be removed for speed:
 
 - Exact serial, product, and USB-topology verification.
 - Full boot-chain and storage-LUN identity checks before writes.
-- Explicit authorization immediately before destructive storage changes.
+- Explicit authorization for the exact destructive storage operation; do not
+  re-request an already authorized operation whose scope and gates are unchanged.
 - One-use candidate/claim accounting when an outcome can be ambiguous.
 - Read-only-first inspection and verified backups before repartitioning.
 - A fallback whose exact bytes and boot path were proven before the experiment.
@@ -365,9 +371,12 @@ The optimization target is duplicated and hand-maintained process—not these gu
 - [ ] Connected preflight is non-consuming and passes on the exact physical USB path.
 - [ ] Battery voltage, temperature, and admission state are safe for the planned duration.
 - [ ] Independent observation outlives the longest controller/rollback deadline.
-- [ ] Candidate and wrapper have never been used.
+- [ ] The target execution claim is unconsumed. Reuse stable recovery only
+  where the existing reviewed lifecycle permits it; never retry COMMIT or an
+  ambiguous target outcome. Artifact reuse alone grants no execution authority.
 - [ ] Failure classification and rollback behavior are known for every stage.
-- [ ] No phone-side write occurs unless that write is the explicit purpose of this cycle.
+- [ ] Phone writes remain within the admitted scope (including normal accepted
+  server state on p23); no experimental storage write is implicit in a trial.
 
 ## Incident entry template
 

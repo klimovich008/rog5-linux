@@ -1,106 +1,55 @@
 ---
 name: rog5-fast-loop
-description: Change or diagnose this repository's ASUS ROG Phone 5 kernel, modules, DTB, initramfs, recovery, live candidates, charging, UFS, storage, or boot chain. Do not use for simple status or progress questions.
+description: Change or diagnose this ROG5 project's kernel, modules, DTB, initramfs, recovery, live candidates, charging, UFS, storage or boot chain. Excludes simple status questions.
 ---
 
-# ROG5 Fast Loop
+# ROG5 fast loop
 
-Optimize each iteration for one useful hardware or software answer while keeping
-the standalone Arch Linux server objective intact.
+Start with `docs/current-state.md`, Git status and HEAD. Then read the latest
+relevant result and applicable R1–R10 sections of `docs/development-lessons.md`.
+Active context is a pointer, not another required history load. Read the full
+pre-build/live checklists before issuing a successor.
 
-## Start
+State one question and classify the changed layer. Use the smallest artifact:
 
-Read only:
+| Layer | Artifact and checks |
+|---|---|
+| Observer/userspace | Script only; focused behavior plus active tier |
+| Shell/BusyBox or initramfs | Target archive only; exact applets/filesystem and composition |
+| Module | Exact .ko plus ABI-dependent modules; vermagic/BTF/closure and active tier |
+| DT | DTB only; composition and active tier |
+| Built-in kernel/ABI | Locked incremental cached build; focused then full CI |
+| Stable recovery/wrapper | Rebuild only for changed kernel/recovery/repack inputs; full CI |
+| Shared lifecycle/trust/storage | Focused regression then one full CI at integration |
 
-- `docs/current-state.md`
-- `docs/active-context.md`
-- `docs/development-lessons.md`
-- the latest test result relevant to the changed track
-- `git status` and the current `HEAD`
+Documentation, policy, host-only and target-bundle changes must not invalidate
+the ASUS wrapper kernel cache. Freeze source before expensive builds/CI and
+never edit an active build's inputs. Preserve already verified work.
 
-State one primary question for the iteration. Do not expand into unrelated
-subsystems.
+Use `scripts/host/rog5-dev` and `docs/development.md`. Run target commands
+against the exact sealed BusyBox and filesystem, not host GNU utilities.
+Relevant prior failures include find -printf, modprobe --first-time, od duplicate
+compression, quoting, stat modes, short/full USB paths and missing modules.dep.
+The isolated applet runner cannot prove hardware or systemd sandbox behavior.
 
-## Classify the changed layer
+Optional observations report present/absent/unsupported/error. Abort for wrong
+device/slot/topology, unsafe battery/temperature, storage-scope violation,
+signature/integrity failure, transport ambiguity or loss of fallback.
 
-Choose one highest affected layer:
+Keep exact identity/boot-chain, power/thermal, signatures, storage/backup,
+independent watchdog/fallback and permanent non-retry after COMMIT or ambiguous
+execution. Existing task authorization remains valid; destructive storage
+review stays separate. Packaging never grants boot authority.
 
-- observer or userspace only
-- shell or sealed BusyBox runtime
-- kernel module
-- initramfs
-- DTB
-- built-in kernel or ABI
-- stable recovery or wrapper
-- trust or admission
-- destructive storage
+Historical QMP-UFS/GPU matrices are nightly unless changed. Do not repeat full
+local CI on unchanged source, or full remote CI for admission-only data when
+isolated artifact/trust checks suffice. Publication/release gates remain.
 
-Use the cheapest valid artifact:
+One live boot answers one question while collecting adjacent evidence; do not
+consume a candidate to discover an optional field. After two non-discriminating
+failures at one boundary, stop successors, invoke explicit systematic debugging
+or a bounded independent review, verify findings, and reconsider the approach.
 
-- Observer/userspace: copy only the script.
-- BusyBox target: rebuild only the target initramfs.
-- Module: rebuild only the exact `.ko` and ABI-dependent modules.
-- DT: rebuild only the DTB.
-- Initramfs: rebuild only the target archive.
-- Built-in or ABI change: use the exact-state incremental cached kernel build.
-- Wrapper: rebuild only when wrapper kernel, recovery initramfs, or repack inputs
-  changed.
-- Documentation, policy, host tooling, and target-bundle changes must not
-  invalidate the ASUS wrapper cache.
-
-Freeze source before an expensive build or CI run. Never edit inputs used by an
-active build.
-
-## Prove target compatibility first
-
-Before live hardware, execute every target command against the exact sealed
-BusyBox/applets and target filesystem. Prove option and output compatibility;
-never infer GNU behavior. Include the established failure shapes when relevant:
-`find -printf`, `modprobe --first-time`, `od` duplicate compression, quoting,
-`stat` modes, and short versus canonical USB paths.
-
-Observation fields are non-fatal and must report `present`, `absent`,
-`unsupported`, or `error`. Abort only for wrong device, slot, or topology;
-unsafe battery or temperature; storage-scope violation; signature or integrity
-failure; transport ambiguity; or loss of fallback.
-
-## Select one test tier
-
-- Observer, probe, or target-only: focused test plus active tier.
-- Module-only: active tier plus exact ABI, vermagic, BTF, and closure checks.
-- DT or initramfs composition: focused composition checks plus active tier.
-- Kernel, recovery, shared lifecycle, trust, or storage code: one full CI run.
-- Historical QMP-UFS and GPU matrices: nightly unless directly changed.
-
-Do not rerun full local CI on unchanged code. Do not run a second full GitHub
-suite for admission-only generated data when isolated artifact and trust checks
-prove it.
-
-## Live iteration
-
-One live boot answers one primary question and collects all adjacent evidence.
-Do not consume a successor for an optional missing observation. Measure:
-
-- edit-to-focused-test time
-- build/cache result
-- CI tier and duration
-- boot-to-evidence time
-- whether the cycle found a target defect or infrastructure defect
-
-After two non-discriminating failures at the same boundary, stop issuing
-successors. Use systematic debugging or a bounded Opus review, independently
-verify its result, and reconsider the architecture.
-
-## Invariants
-
-Preserve:
-
-- exact device, product, topology, slot, and boot-chain checks
-- battery and temperature gates
-- signed artifact verification
-- exact storage-write scope
-- independent watchdog and fallback
-- permanent non-retry after COMMIT or ambiguous target execution
-
-Keep current documentation compact: update current state and one incident or
-result record only. Do not append full lifecycle transcripts to active docs.
+Record edit-to-test, build/cache, CI and boot-to-evidence timings, plus whether
+the failure was infrastructure or kernel. Update current state and one dated
+result only. Recommend global skill changes separately; never edit them here.

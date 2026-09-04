@@ -5,6 +5,16 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 # Systematic Debugging
 
+## ROG5 invocation scope
+
+This project-local copy is explicit-only (see `agents/openai.yaml`). Use after
+two failures at the same boundary, a cross-component failure, or an unproven
+root cause. A demonstrated parser/identity/BusyBox correction uses focused
+regression tests directly. References below to other Superpowers skills do not
+require installing or invoking them here; use the repository's tests and
+`rog5-fast-loop` verification policy. Existing task authorization remains valid.
+The upstream techniques below are reference material, not a broader project goal.
+
 ## Overview
 
 **Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
