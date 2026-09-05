@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the real standalone archive builder on disposable nonbootable input."""
 import gzip
+import configparser
 import importlib.util
 import os
 from pathlib import Path
@@ -50,6 +51,24 @@ class RescueComposition(unittest.TestCase):
             # Behavior/deadline tests render this generator. Here prove the
             # assembled archive carries that exact line, not an older copy.
             self.assertTrue(observer_exec in built['init'][1], 'assembled observer invocation is stale')
+            def unit(name):
+                marker=f"cat >/run/systemd/system/{name}.service <<'EOF'\n"
+                text=built['init'][1].decode()
+                self.assertEqual(text.count(marker),1)
+                parsed=configparser.ConfigParser(interpolation=None)
+                parsed.read_string(text.split(marker,1)[1].split('\nEOF',1)[0])
+                return parsed['Unit']
+            p2=unit('rog5-p2-ready')
+            identity=unit('rog5-persistent-ssh-identity')
+            for dependent in (p2,identity):
+                self.assertIn('rog5-early-sshd.service',dependent['Wants'].split())
+                self.assertIn('rog5-early-sshd.service',dependent['After'].split())
+                self.assertNotIn('rog5-early-sshd.service',dependent.get('Requires','').split())
+            self.assertEqual(unit('rog5-persistent-state')['Requires'],'rog5-p2-ready.service')
+            self.assertEqual(identity['Requires'],'rog5-persistent-state.service')
+            self.assertEqual(unit('rog5-tailscaled')['Requires'],'rog5-persistent-state.service')
+            self.assertTrue(b"systemctl is-active --quiet rog5-early-sshd.service ||" in
+                            built['usr/local/sbin/rog5-p2-attest'][1], 'initial SSH gate removed')
 
 
 if __name__ == '__main__':

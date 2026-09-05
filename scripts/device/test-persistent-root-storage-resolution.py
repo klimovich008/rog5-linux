@@ -948,7 +948,7 @@ chmod() {
         self.assertIn("prepare_volatile_systemd_state", runtime)
         self.assertIn("/newroot /mnt/root-ro /mnt/state/upper /run", runtime)
         self.assertIn("DefaultDependencies=no", runtime)
-        self.assertIn("Requires=rog5-early-sshd.service", runtime)
+        self.assertIn("Wants=rog5-early-sshd.service", runtime)
         self.assertIn("WantedBy=sysinit.target", runtime)
         self.assertIn("sysinit.target.wants/rog5-p2-ready.service", runtime)
 

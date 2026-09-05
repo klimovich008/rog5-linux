@@ -10,10 +10,11 @@ See the
 Registry closure and the corrected RAM-only v4 rescue have restored pinned SSH
 and persistent service state. Keep Arch: the proven recovery blocker was project
 handover ownership, not the distribution. Capture and host cleanup are complete.
-The next acceptance-driven correction is the reproduced SSH restart dependency
-cascade: P2/state/Tailscale stop and the normal USB address disappears. Pinned
-SSH remains available at the diagnostic address with an exact temporary host
-route; the phone did not reboot. Do not retry the consumed rescue.
+The SSH restart dependency cascade is now corrected in source and passes real
+systemd regression tests, but is not yet deployed. Normal USB SSH was restored
+with an address-only change; state/Tailscale remain stopped behind the failed
+boot-only P2 gate. The phone did not reboot. Publish and validate a fresh coherent
+rescue with the corrected service graph; do not retry consumed v4 or bypass P2.
 The original installed-boot failure remains unproven; RAM rescue success is not
 installed-release qualification. See current state for deployed versus pending fixes.
 

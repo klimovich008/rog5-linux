@@ -11,6 +11,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 from pathlib import Path
 import shlex
 import shutil
@@ -33,6 +34,57 @@ def load(name,path):
 FIXTURE=load('healthy_fixture','scripts/device/test-native-wifi-healthy.py')
 SEALED=load('sealed_shell','scripts/host/run-sealed-busybox.py')
 ACCEPTANCE=load('acceptance','scripts/host/release-acceptance.py')
+
+
+def core_units(work, prefix, ssh):
+    """Production dependency edges; disposable executables, no real storage.
+
+    P2 deliberately accepts only its first successful invocation, matching the
+    boot-only contract. A denied initial gate must prevent all state startup.
+    The real sshd/timer from the existing harness is shared with this graph.
+    """
+    source=(REPO/'initramfs/persistent-root-init').read_text()
+    names=('rog5-p2-ready','rog5-persistent-state','rog5-persistent-ssh-identity','rog5-tailscaled')
+    mapping={name+'.service':prefix+'-'+name+'.service' for name in names}
+    mapping['rog5-early-sshd.service']=ssh
+    fixture=work/'core-fixture'
+    fixture.write_text('''#!/bin/sh
+set -eu
+cd -- "$(dirname -- "$0")"
+case $1 in
+  p2)
+    if [ -e reject-p2 ] || [ -e p2-accepted ]; then exit 1; fi
+    printf 'accepted\\n' >p2-accepted ;;
+  state-start) printf 'start\\n' >>state-events ;;
+  state-stop) printf 'stop\\n' >>state-events ;;
+  identity) : ;;
+  tailscale) exec sleep 60 ;;
+  tailscale-stop) printf 'address-removed\\n' >>network-events ;;
+  *) exit 1 ;;
+esac
+''')
+    fixture.chmod(0o700)
+    actions={names[0]:('p2',None),names[1]:('state-start','state-stop'),
+             names[2]:('identity',None),names[3]:('tailscale','tailscale-stop')}
+    definitions={}
+    for name in names:
+        marker=f"cat >/run/systemd/system/{name}.service <<'EOF'\n"
+        if source.count(marker)!=1: raise ValueError('ambiguous production unit '+name)
+        unit=source.split(marker,1)[1].split('\nEOF',1)[0]
+        lines=[]
+        for line in unit.splitlines():
+            if line.startswith('Exec') or line=='Before=basic.target': continue
+            if line.startswith('RuntimeDirectory='): line='RuntimeDirectory='+prefix+'-tailscale'
+            line=re.sub(r'rog5-[a-z0-9-]+\.service',lambda m:mapping.get(m[0],m[0]),line)
+            lines.append(line)
+            if line=='[Service]':
+                start,stop=actions[name]
+                lines.append('ExecStart='+shlex.join([str(fixture),start]))
+                if stop: lines.append('ExecStop='+shlex.join([str(fixture),stop]))
+                lines.append('TimeoutStartSec=5s')
+                lines.append('TimeoutStopSec=3s')
+        definitions[mapping[name+'.service']]='\n'.join(lines)+'\n'
+    return definitions,mapping
 
 
 def main():
@@ -133,6 +185,9 @@ def main():
                 ssh:'[Unit]\nDefaultDependencies=no\nRequires='+timer+'\nAfter='+timer+
                     '\n[Service]\nType=exec\nExecStart='+shlex.join([shutil.which('sshd'),'-D','-e','-f',str(config)])+
                     '\nRuntimeMaxSec=60s\nTimeoutStopSec=3s\n'}
+            core,mapping=core_units(work,prefix,ssh)
+            definitions.update(core)
+            owned.extend(core)
             runtime_units=Path('/run/user')/str(os.getuid())/'systemd/user'
             for name,text in definitions.items():
                 path=work/name;path.write_text(text)
@@ -166,6 +221,17 @@ def main():
                     raise RuntimeError('fixture missed pre-expiry health disarm')
                 command(['systemctl','--user','--job-mode=ignore-dependencies','stop',timer])
                 command(['systemctl','--user','is-active','--quiet',ssh])
+                if not stale:
+                    # Initial hard refusal must remain a storage gate even
+                    # after SSH becomes an ordering-only dependency.
+                    refusal=work/'reject-p2'; refusal.touch()
+                    command(['systemctl','--user','start',mapping['rog5-persistent-state.service']],check=False)
+                    if (work/'state-events').exists(): raise RuntimeError('failed P2 opened state')
+                    refusal.unlink()
+                    command(['systemctl','--user','reset-failed',*core],check=False)
+                    command(['systemctl','--user','start',mapping['rog5-persistent-ssh-identity.service'],
+                             mapping['rog5-tailscaled.service']])
+                    for name in core: command(['systemctl','--user','is-active','--quiet',name])
                 if stale:
                     ack=root/'run/rog5-native-wifi/healthy.record'
                     ack.chmod(0o644)
@@ -180,6 +246,9 @@ def main():
                 wait_for(lambda:count()>before,'reactivated elapsed timer callback')
                 current=command(['systemctl','--user','show','-p','MainPID','--value',ssh])
                 if previous==current or current=='0': raise RuntimeError('SSH process did not actually restart')
+                for name in core: command(['systemctl','--user','is-active','--quiet',name])
+                if (work/'state-events').read_text()!='start\n' or (work/'network-events').exists():
+                    raise RuntimeError('SSH restart tore down qualified state/network')
                 requested=(root/'reboots').exists()
                 if requested!=stale: raise RuntimeError('incorrect reboot outcome after SSH restart')
                 events.append(dict(test='stale' if stale else 'healthy',old_pid=previous,new_pid=current,

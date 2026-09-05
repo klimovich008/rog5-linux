@@ -168,8 +168,25 @@ USB SSH disappeared, but exact pinned diagnostic SSH at 169.254.77.2 proved the
 same boot alive at uptime 1946 s with the restarted SSH PID. No kernel crash or
 phone reboot is inferred. A temporary, identity-checked host route was removed
 after diagnosis. State/Tailscale are currently inactive; do not report full
-server health. Next: reproduce and fix this actual systemd dependency cascade
-before any successor. Stock slot A and signed fallback are unchanged.
+server health. Stock slot A and signed fallback are unchanged.
+
+The source dependency correction now passes real user-systemd/sshd restart
+tests: P2 and identity want SSH for startup, but no longer require its continuous
+lifetime. State still requires successful P2, and identity/Tailscale still
+require state. No attestation, write gate or watchdog was relaxed. The rejected
+P2 rerun explicitly reported prior ext4 journal recovery; the original approved
+state mount had produced those records. It is not a newly observed UFS failure.
+Normal USB SSH was restored at uptime 2916 s by adding only 10.77.0.2/30;
+all 117 UFS nodes were verified RO first. At uptime 3019 s battery was 98%,
+Good, 30.2°C, +141 mA. State/Tailscale remain inactive; their failed gate was
+not bypassed. The dependency fix is **not yet deployed**.
+
+Fresh unsigned archive assembly took 3.935 s, changing only init and observer
+relative to v4; 19 modules, both kernels and the Arch lower are reused.
+Exact sealed tests, real-systemd restart integration, retained-root composition
+and full local CI pass (488.955 s). Next is publication and a coherent fresh
+rescue validation of the corrected service graph, not a kernel rewrite or a
+retry of consumed v4. No successor has been signed or admitted here.
 
 Separately, the optional startup observer hit systemd's 900 s hard ceiling.
 The source fix exits after a complete startup round and leaves 30 s before the

@@ -83,7 +83,10 @@ grep -Fq 'After=rog5-p2-ready.service' "$init"
 grep -Fq 'ExecStart=/run/rog5-persistent-state start' "$init"
 grep -Fq 'ExecStop=/run/rog5-persistent-state stop' "$init"
 grep -Fq 'sysinit.target.wants/rog5-persistent-state.service' "$init"
-grep -Fq 'Requires=rog5-persistent-state.service rog5-early-sshd.service' "$init"
+# Exact per-unit startup/lifetime edges are checked in the assembled archive
+# test and exercised by check-ssh-rollback's real user-systemd transaction.
+grep -Fq 'Requires=rog5-persistent-state.service' "$init"
+grep -Fq 'Wants=rog5-early-sshd.service' "$init"
 grep -Fq 'ExecStart=/run/rog5-persistent-ssh-identity apply' "$init"
 grep -Fq 'sysinit.target.wants/rog5-persistent-ssh-identity.service' "$init"
 grep -Fq 'install -D -m 0755 "$state_helper"' "$builder"
