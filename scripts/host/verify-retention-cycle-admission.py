@@ -56,7 +56,7 @@ EXPECTED_CLAIMS = {
     )
 }
 
-# Native RAM trials are defined once in the fixed repository-owned registry.
+# Native and fallback-only RAM trials are defined once in the fixed registry.
 # Do not copy new candidate/artifact identities into this historical verifier.
 # The inspected candidate source below is still separately hash/mode validated
 # and compared against this canonical checkout; no caller-selected path is used.
@@ -73,7 +73,9 @@ def canonical_native_ram_claims() -> dict[str, bytes]:
     registry = ast.literal_eval(assignments[0].value)
     return {name: record for name, record in registry.items()
             if isinstance(name, str) and isinstance(record, bytes)
-            and b"\nexecution=mainline-kexec-ram-only\n" in record}
+            and any(marker in record for marker in (
+                b"\nexecution=mainline-kexec-ram-only\n",
+                b"\nexecution=fastboot-boot-fallback-only\n"))}
 
 
 EXPECTED_CLAIMS.update(canonical_native_ram_claims())
