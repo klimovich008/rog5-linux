@@ -41,6 +41,13 @@ AArch64 relocatable headers, consistent vermagic and dependency order within
 a ten-second metadata budget. This is not BTF/symbol-resolution or hardware
 load proof; those remain separate from metadata agreement.
 
+C01 now runs nine QEMU cases, including P2 success without persistent identity
+and stale identity. Its 500 s offline allowance covers nine 50 s subprocess
+bounds plus 50 s setup/collection margin; the executable harness test verifies
+that lattice. Phone deadlines are unchanged. A latched identity record proves
+local initial setup, not authenticated host-side SSH; C02 separately covers
+actual service restart behavior.
+
 Supporting C02 check: `rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE
 --output PRIVATE_NEW_DIRECTORY`. Requires a user systemd manager, sshd,
 ssh-keygen/keyscan, bwrap and qemu-aarch64-static. Within 120 s it runs real

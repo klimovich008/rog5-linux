@@ -94,6 +94,7 @@ def main():
         "localhost/rog5-qemu-gate:ubuntu-24.04"], text=True).strip()
     results = []
     modes = ("systemd-ack", "systemd-no-ack", "systemd-stale-ack",
+             "systemd-p2-only", "systemd-stale-identity",
              "helper-unexecutable", "hang-init", "failed-init", "fd-open-failure")
     for mode in modes:
         members = {}
@@ -141,7 +142,7 @@ $BB ls -l /proc/$pid/fd/9 || true
 $BB test ! -e /proc/$pid/root/bin/busybox
 echo HANDOFF_OLD_PATH_GONE
 case MODE in
-systemd-ack|systemd-stale-ack)
+systemd-ack|systemd-stale-ack|systemd-p2-only|systemd-stale-identity)
     boot=$($BB cat /proc/sys/kernel/random/boot_id)
     [ MODE != systemd-stale-ack ] || boot=00000000-0000-0000-0000-000000000000
     printf 'status=PASS\nattested_boot_id=%s\n' "$boot" >/run/rog5-p2-ready.next
@@ -149,6 +150,18 @@ systemd-ack|systemd-stale-ack)
     $BB mv /run/rog5-p2-ready.next /run/rog5-p2-ready
     ;;
 esac
+case MODE in
+systemd-ack|systemd-stale-ack|systemd-stale-identity)
+    boot=$($BB cat /proc/sys/kernel/random/boot_id)
+    [ MODE != systemd-stale-identity ] || boot=00000000-0000-0000-0000-000000000000
+    printf 'format=rog5-persistent-ssh-identity-v1\nmode=load\nfingerprint=SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nidentity_boot_id=%s\n' "$boot" >/run/rog5-persistent-ssh-identity.record.next
+    $BB chmod 0444 /run/rog5-persistent-ssh-identity.record.next
+    $BB mv /run/rog5-persistent-ssh-identity.record.next /run/rog5-persistent-ssh-identity.record
+    ;;
+esac
+# No SSH listener runs in this handoff fixture: once initial identity readiness
+# is latched, later listener absence is not a reason for boot rollback. Actual
+# service restart behavior is the separate C02 integration contract.
 $BB sleep 11
 # A valid acknowledgement must end the watchdog, not merely postpone reset.
 if $BB test -e /proc/$pid/stat; then
@@ -226,7 +239,7 @@ echo HANDOFF_SWITCH_ROOT
             required += ["can't execute '/missing-init'", "Kernel panic"]
         elif mode == "systemd-ack":
             required += ["HANDOFF_NEW_INIT", "HANDOFF_OLD_PATH_GONE",
-                         "watchdog acknowledged by current-boot P2 readiness",
+                         "watchdog acknowledged by current-boot P2 and SSH identity readiness",
                          "HANDOFF_OBSERVATION_END"]
         elif mode == "helper-unexecutable":
             required += ["HANDOFF_NEW_INIT", "HANDOFF_OLD_PATH_GONE", "sysrq: Resetting"]

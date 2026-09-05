@@ -71,6 +71,8 @@ class CompositionTest(unittest.TestCase):
                 M.REPO/'initramfs/persistent-root-attest', {k: values[k] for k in (
                     'UFS_STORAGE_MODE', 'PROBE_BOOT_ID', 'NATIVE_ROOT_MODE', 'PERSISTENT_OVERLAY_MODE')})),
             'sbin/rog5-load-persistent-power-usb': item((M.REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes()),
+            'usr/local/sbin/rog5-persistent-state': item((M.REPO/'initramfs/persistent-service-state').read_bytes()),
+            'usr/local/sbin/rog5-persistent-ssh-identity': item((M.REPO/'initramfs/persistent-ssh-identity').read_bytes()),
         }
 
     def test_paired_archive_and_stale_producer_consumer(self):
@@ -80,6 +82,12 @@ class CompositionTest(unittest.TestCase):
             changed = copy.deepcopy(members)
             changed[name] = (changed[name][0], changed[name][1] + b'\n# stale\n')
             with self.subTest(member=name), self.assertRaises(ValueError):
+                M.archive_parameters(changed)
+        for name in ('usr/local/sbin/rog5-persistent-state',
+                     'usr/local/sbin/rog5-persistent-ssh-identity'):
+            changed = copy.deepcopy(members)
+            del changed[name]
+            with self.subTest(missing=name), self.assertRaises(ValueError):
                 M.archive_parameters(changed)
 
     def test_unresolved_parameter_optional_radio_and_wrong_profile(self):
