@@ -59,7 +59,6 @@ for contract in \
 	'verify_key_pair() {' \
 	'verify_sshd_listener() {' \
 	'ssh-keygen -y -f "$private"' \
-	'bb awk '\''{ print $1 " " $2 }'\'' ' \
 	'PPid:[[:space:]]*' \
 	'kill -HUP "$sshd_pid"' \
 	'format=rog5-persistent-ssh-identity-v1' \
@@ -111,11 +110,8 @@ bb() {
 	applet=$1
 	shift
 	if [ "$applet:$1" = stat:-c ]; then
-		path=$3
-		case $path in
-			*.pub) printf '0:0:644:92:1\n' ;;
-			*) printf '0:0:600:399:1\n' ;;
-		esac
+		# Only fixture ownership is mapped; preserve real size/mode/link count.
+		command stat "$@" | sed "s/^$(id -u):$(id -g):/0:0:/"
 		return 0
 	fi
 	command "$applet" "$@"

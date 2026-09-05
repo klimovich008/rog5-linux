@@ -217,3 +217,67 @@ No claim was issued/consumed, phone boot performed, slot changed or phone
 storage accessed. Peak build disk usage was not instrumented; no peak figure
 is claimed. No build data was deleted. Live recovery remains the next milestone,
 not postponed until all later server criteria are implemented.
+
+## First coherent rescue trial and acceptance-driven continuation
+
+`eef710f713184755bc67a30904f4cfd6b7fe2dd1` passed full local CI **485.693 s**
+and GitHub **33942832456**, all four jobs. The wrapper's actual header retains
+`rog5.recovery_timeout=300`; its verified target plan carries 900 seconds.
+Final input rehash (including the retained 32 GiB inspection filesystem) passed
+in 31.637 s. The retained bundle/wrapper/inspection outputs occupy 665 MiB,
+not a measured peak build footprint. No kernel rebuild or artifact replacement.
+
+The actual privileged/unprivileged receiver handoff rehearsal passed in
+**3.161 s**. A later private preflight failed before any claim/boot because
+the restricted PATH omitted the installed GitHub CLI. It now uses the exact
+installed executable; restricted-PATH replay passed. This was an R4 host-only
+failure, not a reason to build another target. Failed evidence is preserved.
+
+One subsequent RAM-only boot consumed `headless-acceptance-rescue-v1` permanently.
+Fresh preflight: exact serial/product/topology, slot B, 7700 mV, SOC yes; both
+slots not marked unbootable. No flash, slot change, GPT or destructive write.
+The target's accepted bounded service-state behavior remains its storage scope.
+
+| Required observation | Result / evidence | Next action |
+|---|---|---|
+| H01 preboot readiness | PASS: live nonce/process/source/artifact check before claim; ACM/NCM started in advance; full 1380.783 s capture and owned cleanup passed | Retain exact record, no retry |
+| Recovery verification/kexec | ACM reported bundle verified, kexec loaded and execute; exact fastboot accepted in 12.817 s | Preserve consumed record |
+| Target handover | `switch-root PASS`, sequence 25, boot `7c433fca-508e-4c5a-865d-3cc8808a6473`, about 47.7 s from host adapter start | This precedes exec; not systemd acceptance |
+| H02 pinned SSH | **FAIL at 300 s**: listener offered a different host key; expected pin unchanged | Diagnose P2/state/identity startup, do not bypass host authentication |
+| H03 charging/thermal | BLOCKED: no authenticated telemetry | Restore qualified access first |
+| R01 physical recovery | NOT RUN: no controlled failed-test boot was performed | Do not substitute this unexpected failure or QEMU |
+
+The target remained enumerated beyond its 900-second timeout. This is consistent
+with a P2 readiness acknowledgment but does not prove it; watchdog failure is
+also not excluded without target evidence. There is no pstore/crash conclusion.
+No candidate retry or second boot was requested. The full 1380.783-second
+capture completed independently of offline edits; owned route, firewall,
+profile and address cleanup passed. The phone remained in target gadget mode.
+Physical fastboot re-entry is requested because pinned SSH cannot request a
+clean reboot. Raw logs and credentials stay private.
+
+**R2 SSH format defect:** real Ed25519 files reproduced three valid-key refusals
+(0.139 s). Their comments change encoded lengths; the historical test invented
+399/92-byte stat output. Validation now preserves exact owners, modes, no links,
+bounded input sizes, Ed25519 type and cryptographic public/private agreement.
+It does not change the pinned identity or admit mismatched keys. Three focused
+tests pass (0.253 s); the old state/helper suite passes with real metadata.
+Exact sealed BusyBox and retained Arch ARM ssh-keygen reproduced the old defect
+and passed the correction in **2.145 s** (399/92 versus 419/107 bytes). These are
+disposable test keys, not device credentials. The retained hostname `alarm`
+means this defect is not established as the current phone failure's root cause.
+
+**F03 slow-client defect:** the real service timed out another healthy client
+while a sender kept its header incomplete (2.118 s). An absolute timeout alone
+still failed concurrent idle/trickle clients (1.123 s). A four-client bounded
+threaded server plus an absolute one-second request deadline now lets a healthy
+client finish within the predeclared one-second bound. Eight tests pass in
+**0.539 s**. F03 now runs these actual behavior tests from the acceptance
+manifest. The fixed service and SSH helper are source-only, not this trial's
+deployed bytes. No mixed-release qualification is claimed.
+
+Follow-up active tier passed in **11.087 s**; acceptance bookkeeping passed
+all 12 tests (0.318 s). The final slow-client case waits for an actual timed
+0.2-second trickle byte before requesting health, preserving the declared
+one-second healthy-client response limit. Full CI/publication belongs to this
+separate frozen source checkpoint, not the already consumed rescue's identity.

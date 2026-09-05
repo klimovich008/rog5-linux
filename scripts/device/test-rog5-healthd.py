@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 
 
@@ -22,6 +23,36 @@ HEALTH_BODY = b'{"service":"rog5-healthd","status":"ok","version":1}\n'
 
 
 class HealthdTest(unittest.TestCase):
+    def test_slow_sender_cannot_starve_another_health_client(self) -> None:
+        source = runpy.run_path(str(TARGET))
+        server = source['HealthServer'](('127.0.0.1', 0), source['HealthHandler'])
+        worker = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': .01}, daemon=True)
+        worker.start()
+        idle = socket.create_connection(server.server_address, timeout=2)
+        slow = socket.create_connection(server.server_address, timeout=2)
+        slow.sendall(b'GET /healthz HTTP/1.1\r\nHost: ')
+        stop = threading.Event()
+        sent = threading.Event()
+        def trickle():
+            while not stop.wait(.2):
+                try: slow.sendall(b'x'); sent.set()
+                except OSError: return
+        sender = threading.Thread(target=trickle, daemon=True); sender.start()
+        client = http.client.HTTPConnection(*server.server_address, timeout=1)
+        try:
+            self.assertTrue(sent.wait(1), 'slow client did not send a timed byte')
+            time.sleep(.1)  # First socket is actively inside a header read.
+            started = time.monotonic()
+            client.request('GET', '/healthz')
+            response = client.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.read(), HEALTH_BODY)
+            self.assertLess(time.monotonic()-started, 1)
+        finally:
+            stop.set(); sender.join(timeout=2)
+            idle.close(); slow.close(); client.close()
+            server.shutdown(); server.server_close(); worker.join(timeout=2)
+
     def assert_other_client_progresses(self, first_request: bytes) -> None:
         """Exercise the production handler with a deliberately idle client."""
         source = runpy.run_path(str(TARGET))
