@@ -61,7 +61,7 @@ This host-systemd component is not exact target/deployed-unit qualification:
 | B01 | Every canonical family reaches admission, including fallback-only | Existing registry/consumer regressions; no duplicated candidate IDs |
 | C01–C02 | Real BusyBox root handover, hangs/panic, current readiness; no late SSH rollback | Reuse QEMU handover, but consume assembled watchdog; add actual systemd restart transaction |
 | D01–D02 | Verified fallback, next-boot primary demotion, interrupted updates | Existing selector and state-helper behavior tests |
-| E01–E02 | Safe radio refusal and optional display absence preserve headless mode | Add regressions; never lower the 8.4 V radio gate or hide partial activation |
+| E01–E02 | Safe radio refusal and optional display absence preserve headless mode | E02 executes runtime/attestor with sealed BusyBox and fake hardware; E01 still pending, never lower the 8.4 V gate |
 | F01–F03 | Filesystem recovery, repeatable WPA/DHCP, concurrent health requests | Disposable-image and restart tests; slow-client regression |
 | G01–G02 | Coverage and revision selection; honest result accounting | Existing selector/Git DAG tests plus acceptance-runner regressions |
 | H01–H03 | Capture ready before boot, exact headless rescue/SSH, sustained safe charging | First live milestone; coherent rescue composition and supervised capture first |

@@ -260,9 +260,9 @@
       "mandatory": true,
       "environment": "Unprivileged host; additional isolated prerequisites as listed",
       "prerequisites": [
-        "exact runtime/attestation fixture"
+        "python3", "bwrap", "qemu-aarch64-static", "exact release receipt"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/device/test-optional-display-runtime.py", "--sealed-archive", "{initramfs}"]],
       "deadline_seconds": 90,
       "pass_condition": "Missing optional devices do not block core readiness or trigger rollback; invalid artifacts and unsafe power still fail.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -272,7 +272,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Remove demonstrated optional display dependencies only after regression."
+      "blocker": "Requires an exact archive receipt. Production runtime/attestor execute with its BusyBox and fake hardware; A01 separately binds the deployed composition. No display functionality or physical behavior is inferred."
     },
     {
       "id": "F01",

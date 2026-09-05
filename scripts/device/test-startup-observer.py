@@ -21,6 +21,30 @@ SEALED_ARCHIVE = None
 
 
 class StartupObservationTest(unittest.TestCase):
+    def test_unavailable_journal_uses_bounded_read_only_kernel_buffer(self):
+        source=(REPO/'initramfs/persistent-startup-observer').read_text()
+        function=source[source.index('query_failure() {'):source.index('\nobserve_unit() {')]
+        # Replay the observed journal error; only a fixed helper prefix may
+        # leave the kernel-buffer fallback. No real journal/kernel is accessed.
+        script='''bb() {
+case "$*" in
+  'timeout -s KILL 2 /usr/bin/journalctl '*) return 1 ;;
+  'timeout -s KILL 2 /run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox dmesg -r -s 65536')
+    printf '%s\\n' '<6>[ 2.00] unrelated private material' \\
+      '<3>[ 50.123] rog5-persistent-state: FAIL start contract failed' \\
+      '<3>[ 51.00] rog5-p2-attest: FAIL other-unit' ;;
+  *) command "$@" ;;
+esac
+}
+'''+function+'\nquery_failure rog5-persistent-state\n'
+        output=self.execute(script).decode()
+        self.assertEqual(output,'source=kernel-buffer\nrog5-persistent-state: FAIL start contract failed\n')
+        status='LoadState=loaded\nActiveState=failed\nSubState=failed\nResult=exit-code\nExecMainStatus=1'
+        record=M.parse_startup_observation(self.produce(status,output),RELEASE)
+        self.assertEqual(record['journal'],'error')
+        self.assertEqual(bytes.fromhex(record['failure_hex']),
+                         b'rog5-persistent-state: FAIL start contract failed\n')
+
     def produce(self, status, journal='', code=0, journal_code=0):
         source = (REPO/'initramfs/persistent-startup-observer').read_text()
         functions = source[source.index('observe_unit() {'):source.index('\n# Entrypoint')]
@@ -30,6 +54,9 @@ query_failure() { printf '%s\\n' "$FIXTURE_JOURNAL"; return "$FIXTURE_JOURNAL_CO
 '''+functions+f'\nrelease={RELEASE}\nboot={BOOT}\nsequence=1\nobserve_unit state\n'
         script = ('FIXTURE_STATUS='+shlex.quote(status)+'\nFIXTURE_CODE='+str(code)+
                   '\nFIXTURE_JOURNAL='+shlex.quote(journal)+'\nFIXTURE_JOURNAL_CODE='+str(journal_code)+'\n')+script
+        return self.execute(script)
+
+    def execute(self, script):
         if SEALED_ARCHIVE:
             spec=importlib.util.spec_from_file_location('sealed',REPO/'scripts/host/run-sealed-busybox.py')
             sealed=importlib.util.module_from_spec(spec);spec.loader.exec_module(sealed)

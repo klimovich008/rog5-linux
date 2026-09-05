@@ -201,4 +201,221 @@ grep -Fxq 'losetup -d /dev/loop7' "$mock_log"
 grep -Fxq 'umount /userdata' "$mock_log"
 grep -Fxq relock "$mock_log"
 
+# Exercise the real stop/EXIT-cleanup callers together with the real relock
+# implementation. Only hardware I/O and the sysfs inventory are fixtures.
+python3 -B - "$helper" "$repo" <<'PY'
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+source = Path(sys.argv[1]).read_text()
+
+
+def function(name, indent=""):
+    start = source.index(indent + name + "() {\n")
+    end = source.index("\n" + indent + "}\n", start)
+    return source[start:end + len(indent) + 3]
+
+
+nodes = " ".join(["/fixture/sdz"] + [f"/fixture/sdz{i}" for i in range(1, 117)])
+functions = "\n".join(
+    function(name).replace("/sys/class/block/sd*", nodes)
+    for name in ("verify_storage_read_only", "relock_storage", "stop_state")
+).replace("/dev/kmsg", "/dev/null")
+functions += "\n" + function("cleanup_start", "\t")
+fixture = r'''
+set -eu
+expected_physical_count=117
+runtime_record=/fixture/state.runtime
+runtime_next=/fixture/state.runtime.next
+state_mount=/persist
+userdata_mount=/userdata
+userdata_owner=state
+state_mounted=1
+userdata_mounted=1
+state_mount_created=1
+loop_device=/dev/loop7
+resolve_exact_devices() { userdata=/dev/sdz23; userdata_disk=/dev/sdz; }
+resolve_userdata_owner() { userdata_owner=state; }
+[() {
+    if command [ "$1" = '!' ]; then
+        shift
+        if [ "$@"; then return 1; else return 0; fi
+    fi
+    case "$1" in
+        -e|-b|-f) case "$2" in /fixture/*|/dev/sdz*) return 0 ;; *) return 1 ;; esac ;;
+        -L) return 1 ;;
+        *) command [ "$@" ;;
+    esac
+}
+bb() {
+    case "$1" in
+        basename) printf '%s\n' "${2##*/}" ;;
+        cat) printf '1\n' ;;
+        stat) printf '0:0:400:1\n' ;;
+        grep) printf '1\n' ;;
+        sed) case "$3" in
+            's/^userdata=//p') printf '/dev/sdz23\n' ;;
+            's/^loop=//p') printf '/dev/loop7\n' ;;
+            's/^userdata_owner=//p') printf 'state\n' ;;
+            *) return 98 ;;
+        esac ;;
+        blockdev)
+            printf 'blockdev %s %s\n' "$2" "$3" >&2
+            case "$2" in
+                --setro) [ "$injected_failure:$3" != relock:/dev/sdz23 ] ;;
+                --getro) if [ "$injected_failure:$3" = readonly:/dev/sdz23 ]; then printf '0\n'; else printf '1\n'; fi ;;
+                *) return 98 ;;
+            esac ;;
+        umount) printf 'umount %s\n' "$2" >&2; [ "$injected_failure:$2" != umount:/persist ] ;;
+        losetup) printf 'losetup %s %s\n' "$2" "$3" >&2; [ "$injected_failure" != detach ] ;;
+        mountpoint) return 0 ;;
+        sync|rmdir) return 0 ;;
+        rm) printf 'rm %s %s\n' "$2" "$3" >&2 ;;
+        *) printf 'UNEXPECTED_IO %s\n' "$1" >&2; return 98 ;;
+    esac
+}
+'''
+cases = [
+    ("stop", "none", 0, 0),
+    ("stop", "umount", 0, 1),
+    ("stop", "detach", 0, 1),
+    ("stop", "relock", 0, 1),
+    ("stop", "readonly", 0, 1),
+    ("cleanup", "none", 0, 0),
+    ("cleanup", "none", 1, 1),
+    ("cleanup", "none", 7, 7),
+    ("cleanup", "umount", 0, 1),
+    ("cleanup", "detach", 0, 1),
+    ("cleanup", "relock", 0, 1),
+]
+lifecycle_functions = "\n".join(
+    function(name).replace("/sys/class/block/sd*", nodes)
+    for name in ("verify_storage_read_only", "verify_write_window",
+                 "verify_mount", "resolve_userdata_owner", "relock_storage", "stop_state")
+).replace("/dev/kmsg", "/dev/null")
+lifecycle_fixture = fixture.replace("bb() {", "base_bb() {").replace(
+    "/fixture/*|/dev/sdz*)", "/fixture/*|/dev/sdz*|/dev/loop7)") + r'''
+overlay_record=/absent-overlay
+locked=0
+fixture_ro() {
+    if [ "$locked" = 1 ] || [ "$window" = ro ]; then printf '1\n'; return; fi
+    case "$window:$1" in
+        *:/dev/sdz|rw:/dev/sdz23|extra:/dev/sdz23|extra:/dev/sdz24) printf '0\n' ;;
+        *) printf '1\n' ;;
+    esac
+}
+bb() {
+    case "$1:${2-}" in
+        blockdev:--getro) fixture_ro "$3" ;;
+        blockdev:--setro) base_bb "$@"; locked=1 ;;
+        cat:*)
+            fixture_node=${2%/ro}
+            fixture_ro "/dev/${fixture_node##*/}"
+            ;;
+        sed:*) case "$3" in
+            's/^userdata=//p') printf '%s\n' "$recorded_device" ;;
+            's/^disk=//p') printf '/dev/sdz\n' ;;
+            's/^image=//p') printf 'rog5/root/root-overlay-v1.ext4\n' ;;
+            's/^mount=//p') printf '/mnt/state\n' ;;
+            's/^userdata_mount=//p') printf '/mnt/userdata\n' ;;
+            *) base_bb "$@" ;;
+        esac ;;
+        awk:*) printf 'verify-mount\n' >&2 ;;
+        *) base_bb "$@" ;;
+    esac
+}
+'''
+# Real owner resolution and both real storage guards must agree with lifecycle.
+lifecycle_cases = [
+    ("default-ro", "ro", "resolve_userdata_owner", 0, False),
+    ("default-rw", "rw", "resolve_userdata_owner", 1, False),
+    ("preflight-ro", "ro", "resolve_userdata_owner preflight", 0, False),
+    ("preflight-rw", "rw", "resolve_userdata_owner preflight", 1, False),
+    ("stop-rw", "rw", "stop_state", 0, True),
+    ("stop-ro", "ro", "stop_state", 1, False),
+    ("stop-extra-writer", "extra", "stop_state", 1, False),
+    ("stop-missing-writer", "one", "stop_state", 1, False),
+    ("stop-count", "rw", "expected_physical_count=118; stop_state", 1, False),
+    ("stop-wrong-record", "rw", "recorded_device=/dev/sdz22; stop_state", 1, False),
+    ("unknown-mode", "ro", "resolve_userdata_owner invalid", 1, False),
+    ("extra-mode", "ro", "resolve_userdata_owner startup extra", 1, False),
+    ("empty-mode", "ro", "resolve_userdata_owner ''", 1, False),
+    ("overlay-start", "rw", "overlay_record=/fixture/overlay; resolve_userdata_owner", 0, False),
+    ("overlay-stop", "rw", "overlay_record=/fixture/overlay; resolve_userdata_owner stop", 0, False),
+]
+runners = [("host-sh", ["sh"], ())]
+fds = []
+archive = os.environ.get("ROG5_STATE_TEST_ARM64_ARCHIVE")
+try:
+    if archive:
+        # Anonymous RAM files avoid mounts, extraction directories and device I/O.
+        for member in ("lib/ld-musl-aarch64.so.1", "bin/busybox"):
+            data = subprocess.run(
+                ["bsdtar", "-xOf", archive, "./" + member],
+                check=True, capture_output=True, timeout=10,
+            ).stdout
+            fd = os.memfd_create("rog5-state-relock-test", 0)
+            fds.append(fd)
+            with os.fdopen(os.dup(fd), "wb") as stream:
+                stream.write(data)
+            os.lseek(fd, 0, os.SEEK_SET)
+        qemu = str(Path(sys.argv[2]) / "artifacts/host-tools/qemu-aarch64-static")
+        runners.append(("sealed-arm-ash", [
+            qemu, f"/proc/self/fd/{fds[0]}", "--argv0", "busybox",
+            f"/proc/self/fd/{fds[1]}", "ash",
+        ], tuple(fds)))
+    failures = []
+    for label, runner, inherited in runners:
+        started = time.monotonic()
+        for action, failure, initial, expected in cases:
+            call = "if stop_state; then exit 0; else exit $?; fi"
+            if action == "cleanup":
+                call = "trap cleanup_start EXIT HUP INT TERM\nexit " + str(initial)
+            result = subprocess.run(
+                runner + ["-c", fixture + "\n" + functions +
+                          f"\ninjected_failure={failure}\n" + call],
+                capture_output=True, text=True, timeout=10, pass_fds=inherited,
+            )
+            checks = (
+                result.returncode == expected,
+                "UNEXPECTED_IO" not in result.stderr,
+                result.stderr.count("blockdev --setro ") == 117,
+                failure == "readonly" or result.stderr.count("blockdev --getro ") == 117,
+                action != "stop" or expected == 0 or
+                "rm -f /fixture/state.runtime\n" not in result.stderr,
+            )
+            if not all(checks):
+                failures.append(f"{label} {action}/{failure}/exit{initial}: "
+                                f"expected {expected}, got {result.returncode}; checks={checks}")
+        print(f"{label}: {len(cases)} relock caller cases in {time.monotonic() - started:.3f}s", flush=True)
+        started = time.monotonic()
+        for name, window, call, expected, cleanup in lifecycle_cases:
+            result = subprocess.run(
+                runner + ["-c", lifecycle_fixture + "\n" + lifecycle_functions +
+                          f"\ninjected_failure=none\nwindow={window}\nrecorded_device=/dev/sdz23\n"
+                          "resolve_exact_devices\n" +
+                          "if { " + call + "; }; then exit 0; else exit $?; fi"],
+                capture_output=True, text=True, timeout=10, pass_fds=inherited,
+            )
+            mutations = ("umount ", "losetup ", "blockdev --setro ", "rm -f ")
+            cleanup_ok = (
+                all(token in result.stderr for token in
+                    ("umount /persist\n", "losetup -d /dev/loop7\n",
+                     "umount /userdata\n", "rm -f /fixture/state.runtime\n")) and
+                result.stderr.count("blockdev --setro ") == 117
+            ) if cleanup else not any(token in result.stderr for token in mutations)
+            if result.returncode != expected or not cleanup_ok or "UNEXPECTED_IO" in result.stderr:
+                failures.append(f"{label} lifecycle/{name}: expected {expected}, "
+                                f"got {result.returncode}; cleanup_ok={cleanup_ok}")
+        print(f"{label}: {len(lifecycle_cases)} lifecycle cases in {time.monotonic() - started:.3f}s", flush=True)
+    if failures:
+        raise SystemExit("\n".join(failures))
+finally:
+    for fd in fds:
+        os.close(fd)
+PY
+
 echo 'PASS persistent state mounts only exact p23/image after P2 and relocks on stop'

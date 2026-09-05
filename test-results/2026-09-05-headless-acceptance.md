@@ -468,3 +468,101 @@ Registry-focused checks passed in **3.719 s**. The frozen full local suite
 passed in **480.918 s**, once, ending with `PASS repository Linux ci tier`.
 No kernel/source edits occurred during that run. Exact-head/merge CI for the
 new registry publication remains separate; parent CI is not substituted.
+
+## V2 physical result and acceptance-driven corrections
+
+Exact published source `3e41768e8e087f3d96ac429e615c77e30863d8cd` passed all four
+GitHub 33949091531 jobs. Connected preflight checked exact serial/product/path,
+slot B, both bootable slots, the expected bootloader, 8.386 V and SOC=yes before
+claim consumption. Capture/addressing/firewall preceded one RAM-only boot.
+Transfer/boot acceptance took **12.728 s**; v2 is permanently consumed.
+
+Boot `910d80ee-51ec-4629-a6bc-debd52803606` reached sequence 25, root handover.
+The passive observer then reported P2 active/exited success, persistent-state
+failed/exit 1, identity inactive and early SSH running. This is diagnostic,
+not authenticated proof. The pinned host key was never accepted or changed.
+H02 **FAIL**, 300-second bound, final accounting **301.696 s**; H03 **BLOCKED**.
+All journal queries returned error, so the failing state predicate remains
+unknown. Kernel, DTB and module bytes were unchanged; no kernel cause is proven.
+
+At 12:45:37 local, host kernel logs show the parent hub `1-1` and sibling
+`1-1.1` disconnecting with the phone (`1-1.2`). A concurrent `nmcli -g` failure
+escaped the receiver loop as RuntimeError. Capture ended prematurely after
+**322.454 s**, so rollback observation is incomplete, not a watchdog PASS.
+Route, firewall, profile and address cleanup each passed. No flash, GPT or
+protected storage operation occurred. Admitted normal p23 service-state effects
+remain possible; unauthenticated output does not prove their exact extent.
+
+The sanitized real-observation fixture is
+`tests/fixtures/persistent-root/rescue-state-host-loss.json`. Private execution,
+ACM, NCM, SSH, receiver and cleanup logs remain intact with computed hashes.
+The receiver regression reproduced the same RuntimeError before the fix.
+Known discovery/network failures now keep the original bounded capture alive,
+retain last stage/startup evidence, permanently invalidate readiness, and
+recheck identity. A mismatch still stops; an unverified target cannot send
+accepted evidence. No retry/claim/boot action was added. Sixteen tests passed
+in **0.088 s**. R7 host exception and R8 premature observation loss apply.
+
+The observer regression reproduced lost helper text when journal access fails.
+A bounded, read-only 64 KiB kernel-ring fallback now filters only the fixed
+helper prefix; journal failure remains explicit and unrelated text is excluded.
+The exact sealed BusyBox supports the requested dmesg flags. Tests execute the
+updated shell/filter with that BusyBox in isolation; kernel/journal endpoints
+are fixtures, not new live evidence. This addresses R3/R2 observability, not
+the unproven state-start cause. No successor was built to test these changes.
+
+**E02 optional isolation:** a valid optional payload with no power-key input,
+backlight or tty previously failed core installation or its display precommand.
+Four cases failed against the old runtime (0.831 s). The updated installer
+validates artifacts before tolerating exact input absence, enables only available
+optional units, and makes the display-off precommand nonfatal. P2 still rejects
+a physical backlight left on; module/ABI/integrity/identity and ambiguous input
+failures remain fatal. No radio or health acceptance rule was changed.
+New executable tests passed normally (1.300 s) and with sealed v2 BusyBox
+(13.667 s); existing Wi-Fi tests passed (28 tests, 5.504 s). Hardware and service
+endpoints are fixtures. E02 is registered in the active/broader tier and the
+acceptance contract; exact release composition and physical proof stay separate.
+
+**Storage cleanup status (R8):** `relock_storage()` reset the callers' global
+`status`, masking earlier unmount/detach failures and even the startup cleanup's
+incoming exit status. A scoped result variable fixes that defect without changing
+any storage operation or identity/read-only guard. The regression executes the
+actual stop and EXIT-cleanup functions with 117 mocked physical nodes, including
+failed relock/read-only checks. Six cases failed per runtime before the fix;
+all 22 host-shell/exact-v2-BusyBox cases pass afterward (**17.85 → 17.87 s**
+for the focused suite). This does not identify the live startup predicate.
+An existing `/persist` is also rejected in volatile-overlay mode, but no retained
+live evidence proves that directory existed; that guard is not weakened.
+
+All corrections above are source-only. No kernel/DTB/modules were changed,
+no new successor was built, and consumed images remain immutable. The final
+sealed observer regression passed five tests in **5.561 s**. Current source is
+frozen for the active/acceptance checks and one full local CI checkpoint.
+
+That frozen checkpoint passed active in **10.737 s**, quick acceptance in
+**16.704 s**, offline acceptance in **18.964 s** (seven PASS, seven BLOCKED,
+eleven NOT RUN), and full local CI in **477.740 s**. It was not published as
+a recovery-ready release: a targeted caller check then reproduced another
+shutdown defect, not a new live startup diagnosis.
+
+Non-overlay `stop_state()` called the startup owner resolver, which required
+all physical storage RO despite successful startup's exact disk+p23 RW window.
+It refused before inspecting runtime identity or attempting cleanup. The resolver
+now has explicit lifecycle modes: startup/preflight retain all-RO admission;
+stop requires the unchanged exact two-node write window. Overlay behavior and
+runtime-record guards are unchanged; invalid lifecycle modes reject.
+The real resolver, validators and stop path failed before this correction on
+both host shell and archived ARM BusyBox. All **52 cases** now pass, including
+wrong writers/count/runtime identity and cleanup failures (**32.86 s** focused).
+This test no longer mocks away the resolver that hid the entry contradiction.
+
+The combined source is frozen again for final CI because storage code changed;
+the preceding full pass is not substituted. No unchanged-code full rerun or
+kernel rebuild is involved. Startup's exact failed predicate, complete watchdog
+recovery and authenticated charging remain open before successor admission.
+
+Final combined full local CI passed in **479.193 s**, ending with
+`PASS repository Linux ci tier`. Frozen tracked diff SHA-256 was
+`94ba32cab5cffeb47607234d7cadfefcaf141eb9a2b917201516e37d5911f6e3`;
+source did not change during execution. Only result documentation is added
+afterward. Publication/exact-head CI and live qualification remain separate.
