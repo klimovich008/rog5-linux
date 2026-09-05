@@ -124,18 +124,22 @@ verify_write_window() {
 }
 
 relock_storage() {
-	status=0
+	# The stop and startup-cleanup callers retain their failure in global status.
+	relock_storage_status=0
 	for sys_block in /sys/class/block/sd*; do
 		[ -e "$sys_block/dev" ] || continue
 		device=/dev/$(bb basename "$sys_block")
-		[ -b "$device" ] || { status=1; continue; }
-		bb blockdev --setro "$device" || status=1
+		[ -b "$device" ] || { relock_storage_status=1; continue; }
+		bb blockdev --setro "$device" || relock_storage_status=1
 	done
-	verify_storage_read_only || status=1
-	return "$status"
+	verify_storage_read_only || relock_storage_status=1
+	return "$relock_storage_status"
 }
 
 resolve_userdata_owner() {
+	[ "$#" -le 1 ] || return 1
+	userdata_owner_lifecycle=${1-startup}
+	case $userdata_owner_lifecycle in startup|preflight|stop) ;; *) return 1 ;; esac
 	userdata_owner=state
 	overlay_loop=
 	if [ -e "$overlay_record" ] || [ -L "$overlay_record" ]; then
@@ -158,7 +162,10 @@ resolve_userdata_owner() {
 		verify_mount "$userdata" "$userdata_mount" || return 1
 		userdata_owner=overlay
 	else
-		verify_storage_read_only || return 1
+		case $userdata_owner_lifecycle in
+			stop) verify_write_window || return 1 ;;
+			startup|preflight) verify_storage_read_only || return 1 ;;
+		esac
 	fi
 }
 
@@ -346,7 +353,7 @@ start_state() {
 stop_state() {
 	status=0
 	resolve_exact_devices || return 1
-	resolve_userdata_owner || return 1
+	resolve_userdata_owner stop || return 1
 	[ -f "$runtime_record" ] && [ ! -L "$runtime_record" ] &&
 		[ "$(bb stat -c '%u:%g:%a:%h' "$runtime_record")" = 0:0:400:1 ] ||
 		return 1

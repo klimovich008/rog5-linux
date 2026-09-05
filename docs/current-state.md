@@ -150,7 +150,7 @@ result exists. The target remained enumerated past the watchdog interval; this
 does not distinguish readiness-based disarm from watchdog failure. Full capture
 and owned host-network cleanup completed. Never retry this candidate.
 
-**Prepared, not executed:** `headless-acceptance-rescue-v2` contains the verified
+**Consumed:** `headless-acceptance-rescue-v2` contains the verified
 startup observer and SSH-identity size correction. Its one question is which
 post-handover P2/state/identity service prevents pinned SSH acceptance. The
 observer is optional, sends bounded service/failure evidence through the existing
@@ -172,13 +172,31 @@ metadata. BTF/symbol/hardware-load proof and final complete A01 remain separate.
 The retained root is a verified sparse-derived inspection input, not a new
 restoration image. No root/kernel/module rewrite was needed for this packaging.
 
-Full local CI passed in 480.918 s on the frozen registry checkpoint.
-Next: complete exact-head publication checks, then
-verify fresh fastboot identity/slot/power, establish capture, and admit at most
-one v2 RAM-only execution. The last host descriptor still identifies persistent
-Linux, not fastboot; pinned SSH is unavailable. Physical fastboot re-entry is
-required. Do not interpret cached descriptors or old voltage as current health.
-No live claim is created or consumed and no storage/flash operation is planned.
+Full local CI passed in 480.918 s on the frozen registry checkpoint; all four
+GitHub jobs passed at `3e41768e` (33949091531). Fresh connected gates verified
+slot B and 8.386 V immediately before the single RAM-only execution. The boot
+transfer/acceptance took 12.728 s. No image was flashed.
+
+The prestarted capture observed boot `910d80ee-51ec-4629-a6bc-debd52803606`,
+root handover, then P2 success and persistent-state **exit 1**. Persistent SSH
+identity never started; early SSH offered an unpinned ephemeral identity.
+H02 failed its 300-second deadline (final accounting 301.696 s); H03 is BLOCKED.
+Journal queries returned error, so the exact failed state predicate is unknown.
+Do not bypass the host-key pin or claim this identifies a kernel defect.
+
+At 12:45:37 local the host hub `1-1` and sibling `1-1.1` disconnected along with
+the phone. A NetworkManager exception then prematurely ended capture after
+322.454 s, before the rollback observation budget. All four owned host-network
+cleanup steps passed. This proves neither a phone reset nor watchdog behavior.
+The phone is absent from the anchored USB path; no further execution is issued.
+Never retry v1 or v2. Source now preserves capture across host-query failures,
+recovers fixed helper error text without a journal, isolates optional display
+dependencies, preserves cleanup failure status and validates shutdown's exact
+write window separately from startup's all-RO gate. All 52 focused shutdown
+cases pass on host and sealed ARM BusyBox; combined full local CI passed in
+479.193 s. These fixes are not deployed. Next: publish that tested checkpoint,
+recover exact transport, and identify the failed service-state predicate before
+another successor. Stock A, signed V11 and all existing backups are preserved.
 
 Preserve the old unused fallback-only rescue as evidence, but do not execute it:
 its unchanged signed V11 watchdog predates the corrected handover predicate.

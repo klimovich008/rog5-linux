@@ -6,6 +6,7 @@ import socket
 import json
 import time
 import unittest
+from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('receiver', Path(__file__).with_name('headless-stage-receiver.py'))
 M = importlib.util.module_from_spec(SPEC)
@@ -19,6 +20,37 @@ def frame(sequence=1, boot=BOOT):
 
 
 class ReceiverTest(unittest.TestCase):
+    def test_live_disconnect_during_nmcli_preserves_capture_and_last_stage(self):
+        fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/rescue-state-host-loss.json').read_text())
+        events=[]
+        with M.Receiver(fixture['target_release'],events.append,host='127.0.0.1',port=0,peer='127.0.0.1') as receiver:
+            receiver.transport('target',None)
+            receiver.record(frame(25,fixture['boot_id']),'127.0.0.1')
+            with patch.object(M,'usb_mode',side_effect=[('target',None),('absent',None)]):
+                def vanished(): raise RuntimeError(fixture['receiver_error'])
+                self.assertTrue(M.update_transport(receiver,'fixture-serial',vanished))
+            self.assertEqual(receiver.mode,'absent')
+            self.assertTrue(receiver.failed)  # Interrupted evidence never becomes green.
+            self.assertEqual(receiver.last.boot_id,fixture['boot_id'])
+            self.assertEqual(events[-1]['last_stage']['sequence'],25)
+            self.assertEqual(events[-2]['event'],'transport-check-failed')
+            # The same listener remains alive; no claim, boot or lifetime reset.
+            receiver.poll(0)
+            with patch.object(M,'usb_mode',return_value=('target',None)):
+                self.assertTrue(M.update_transport(receiver,'fixture-serial',lambda:True))
+            receiver.record(frame(25,fixture['boot_id']),'127.0.0.1')
+            self.assertTrue(receiver.failed)
+
+    def test_network_failure_cannot_admit_target_or_hide_identity_mismatch(self):
+        for next_mode in ('target','mismatch'):
+            with self.subTest(mode=next_mode), M.Receiver('fixture',lambda event:None,host='127.0.0.1',port=0) as receiver:
+                with patch.object(M,'usb_mode',side_effect=[('target',None),(next_mode,None)]):
+                    def broken(): raise RuntimeError('host operation failed: nmcli -g')
+                    proceed=M.update_transport(receiver,'fixture-serial',broken)
+                self.assertEqual(proceed,next_mode!='mismatch')
+                self.assertEqual(receiver.mode,'enumerating' if next_mode=='target' else 'mismatch')
+                self.assertTrue(receiver.failed)
+
     def test_live_probe_requires_an_answer_from_the_running_loop(self):
         with M.Receiver('7.1.4-g359318de534f',lambda x:None,host='127.0.0.1',port=0) as receiver:
             receiver.probe=b'PROBE fixture-nonce\n'

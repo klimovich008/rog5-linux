@@ -151,6 +151,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-native-wifi-wpa-start.py
 	scripts/device/test-native-wifi-network-restart.py
 	scripts/device/test-native-wifi-boot.py
+	scripts/device/test-optional-display-runtime.py
 	scripts/device/test-native-wifi-healthy.py
 	scripts/host/test-quiesce-native-usb-data.py
 	scripts/host/test-native-wifi-discovery.py

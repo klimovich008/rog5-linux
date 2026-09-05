@@ -21,6 +21,15 @@ def function(source, name):
     return source[start:source.index('\n}', start) + 2]
 
 
+def status_hardware_fixture(body, root):
+    panel = root/'backlight'
+    panel.mkdir()
+    (panel/'brightness').write_text('0\n')
+    (panel/'max_brightness').write_text('1023\n')
+    return body.replace('/sys/class/backlight/panel0-backlight', str(panel)).replace(
+        '/dev/tty1', '/dev/null')  # character-device availability only; never written
+
+
 def composer_fixture():
     spec = importlib.util.spec_from_file_location(
         'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
@@ -306,7 +315,7 @@ class AutomaticWifi(unittest.TestCase):
         self.assertIn('[ "$present" -eq 7 ]', body)
         self.assertIn('qcom-pon.ko', body)
         self.assertIn('load-pwrkey', body)
-        self.assertIn('"$root/load-pwrkey" || return 1', body)
+        self.assertIn('"$root/load-pwrkey" || pwrkey_status=$?', body)
         self.assertIn('rog5-p2-ready.service.d/10-screen-off.conf', body)
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -340,14 +349,15 @@ class AutomaticWifi(unittest.TestCase):
                 path = payload/'units'/name
                 path.write_text(name)
                 path.chmod(0o644)
-            script = body.replace('/newroot', str(newroot)).replace(
+            script = status_hardware_fixture(body, root).replace('/newroot', str(newroot)).replace(
                 '/run/rog5-pwrkey-result', str(result)
             ).replace('/lib/modules', str(root/'lib/modules'))
             command = (
                 'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
                 'PWRKEY_LOAD_LOG=' + str(load_log) + '\nexport PWRKEY_LOAD_LOG\n'
                 'uname() { echo 7.1.4-rog5-display60-v1; }\n'
-                'stat() { case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                'stat() { if [ "$2" = %s ]; then command stat "$@"; return; fi; '
+                'case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
                 '*modules.dep) echo 0:0:444:0:1 ;; '
                 '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                 '*) echo 0:0:755:1 ;; esac; }\n' + script +
@@ -372,7 +382,7 @@ class AutomaticWifi(unittest.TestCase):
             )
             self.assertEqual(
                 (units/'rog5-p2-ready.service.d/10-screen-off.conf').read_text(),
-                '[Service]\nExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off\n',
+                '[Service]\nExecStartPre=-/usr/local/bin/rog5-screen-toggle.sh off\n',
             )
 
             (payload/'power-buttond.py').unlink()
@@ -418,13 +428,14 @@ class AutomaticWifi(unittest.TestCase):
                 (units.parent/'lib').mkdir()
                 (units/'rog5-p2-ready.service').write_text('p2-ready')
                 result = units.parent/'pwrkey-result'
-                script = body.replace('/newroot', str(newroot)).replace(
+                script = status_hardware_fixture(body, units.parent).replace('/newroot', str(newroot)).replace(
                     '/run/rog5-pwrkey-result', str(result)
                 ).replace('/lib/modules', str(units.parent/'lib/modules'))
                 command = (
                     'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
                     'uname() { echo 7.1.4-rog5-display60-v1; }\n'
-                    'stat() { case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                    'stat() { if [ "$2" = %s ]; then command stat "$@"; return; fi; '
+                    'case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
                     '*modules.dep) echo 0:0:444:0:1 ;; '
                     '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
                     '*) echo 0:0:755:1 ;; esac; }\n' + script +

@@ -57,7 +57,20 @@ install_status_screen() {
 		[ -f "$root/units/$path" ] && [ ! -L "$root/units/$path" ] &&
 			[ "$(stat -c '%u:%g:%a:%h' "$root/units/$path")" = 0:0:644:1 ] ||
 			return 1
+		[ ! -e "$units/$path" ] && [ ! -L "$units/$path" ] || return 1
+		[ ! -e "$units/multi-user.target.wants/$path" ] &&
+			[ ! -L "$units/multi-user.target.wants/$path" ] || return 1
 	done
+	# Validate persistent copies even when the optional hardware is unavailable.
+	# Absence must not hide a mismatched or aliased installed executable.
+	mkdir -p /newroot/usr/local/bin /newroot/usr/local/libexec \
+		"$units/multi-user.target.wants" || return 1
+	install_status_file "$root/screen-toggle.sh" \
+		/newroot/usr/local/bin/rog5-screen-toggle.sh || return 1
+	install_status_file "$root/status-screen.sh" \
+		/newroot/usr/local/libexec/rog5-status-screen || return 1
+	install_status_file "$root/power-buttond.py" \
+		/newroot/usr/local/libexec/rog5-power-buttond || return 1
 	# Load the reviewed module in this trusted initramfs runtime.  The
 	# long-running button service deliberately has no CAP_SYS_MODULE; its
 	# ExecStartPre repeats the same helper only as an idempotent identity check.
@@ -81,18 +94,22 @@ install_status_screen() {
 		return 1
 	pwrkey_result=/run/rog5-pwrkey-result
 	[ ! -e "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] || return 1
-	ROG5_PWRKEY_RESULT=$pwrkey_result "$root/load-pwrkey" || return 1
+	pwrkey_status=0
+	ROG5_PWRKEY_RESULT=$pwrkey_result "$root/load-pwrkey" || pwrkey_status=$?
 	[ -f "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] &&
 		[ "$(stat -c '%u:%g:%a:%h' "$pwrkey_result")" = 0:0:444:1 ] &&
-		[ "$(cat "$pwrkey_result")" = pwrkey-pass ] || return 1
-	mkdir -p /newroot/usr/local/bin /newroot/usr/local/libexec \
-		"$units/multi-user.target.wants" || return 1
-	install_status_file "$root/screen-toggle.sh" \
-		/newroot/usr/local/bin/rog5-screen-toggle.sh || return 1
-	install_status_file "$root/status-screen.sh" \
-		/newroot/usr/local/libexec/rog5-status-screen || return 1
-	install_status_file "$root/power-buttond.py" \
-		/newroot/usr/local/libexec/rog5-power-buttond || return 1
+		[ "$(stat -c %s "$pwrkey_result")" -le 64 ] || return 1
+	pwrkey_outcome=$(cat "$pwrkey_result") || return 1
+	printf '%s\n' "$pwrkey_outcome" | cmp -s - "$pwrkey_result" || return 1
+	pwrkey_available=0
+	case $pwrkey_status:$pwrkey_outcome in
+		0:pwrkey-pass) pwrkey_available=1 ;;
+		1:pwrkey-input-zero) echo 'OBS absent power-button input' ;;
+		# A module-load failure can be an invalid artifact, not missing hardware.
+		# Metadata, ABI, platform identity, ambiguity, unexpected exits and
+		# malformed results remain fatal. This is not a generic fail-open.
+		*) return 1 ;;
+	esac
 	p2_unit=$units/rog5-p2-ready.service
 	p2_dropin_dir=$units/rog5-p2-ready.service.d
 	p2_dropin=$units/rog5-p2-ready.service.d/10-screen-off.conf
@@ -100,17 +117,28 @@ install_status_screen() {
 		[ "$(stat -c '%u:%g:%a:%h' "$p2_unit")" = 0:0:644:1 ] || return 1
 	[ ! -e "$p2_dropin_dir" ] && [ ! -L "$p2_dropin_dir" ] || return 1
 	mkdir "$p2_dropin_dir" || return 1
+	# Best-effort display operation only. The P2 attestor still independently
+	# rejects any physical backlight left on; its other safety gates are intact.
 	printf '%s\n' '[Service]' \
-		'ExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off' \
+		'ExecStartPre=-/usr/local/bin/rog5-screen-toggle.sh off' \
 		>"$p2_dropin" || return 1
 	chmod 0644 "$p2_dropin" || return 1
 	[ "$(stat -c '%u:%g:%a:%h' "$p2_dropin")" = 0:0:644:1 ] || return 1
+	# Enable only the exact supported display endpoint, never an arbitrary
+	# backlight discovered by a wildcard. No polling delays core installation.
+	if [ ! -w /sys/class/backlight/panel0-backlight/brightness ] ||
+		[ ! -r /sys/class/backlight/panel0-backlight/max_brightness ]; then
+		echo 'OBS absent status-screen backlight'
+		return 0
+	fi
+	if [ ! -c /dev/tty1 ] || [ -L /dev/tty1 ]; then
+		echo 'OBS absent status-screen tty'
+		return 0
+	fi
 	for display_unit in rog5-status-screen rog5-power-button; do
-		[ ! -e "$units/$display_unit.service" ] &&
-			[ ! -L "$units/$display_unit.service" ] || return 1
-		[ ! -e "$units/multi-user.target.wants/$display_unit.service" ] &&
-			[ ! -L "$units/multi-user.target.wants/$display_unit.service" ] ||
-			return 1
+		if [ "$display_unit" = rog5-power-button ] && [ "$pwrkey_available" -eq 0 ]; then
+			continue
+		fi
 		cp -p "$root/units/$display_unit.service" \
 			"$units/$display_unit.service" || return 1
 		ln -s "../$display_unit.service" \

@@ -15,8 +15,18 @@ query_status() {
 query_failure() {
 	# Helpers write /dev/kmsg: those entries have kernel transport, not the
 	# service's _SYSTEMD_UNIT. A unit-only journal query loses their failures.
-	bb timeout -s KILL 2 /usr/bin/journalctl -b -k --grep="^$1: FAIL " -n 1 \
-		--no-pager --output=cat 2>/dev/null
+	if entries=$(bb timeout -s KILL 2 /usr/bin/journalctl -b -k --grep="^$1: FAIL " -n 1 \
+		--no-pager --output=cat 2>/dev/null); then
+		printf '%s\n' "$entries"
+		return 0
+	fi
+	# A journal failure must not hide the already emitted helper error. Read
+	# at most 64 KiB from the ring without clearing it or changing log level.
+	entries=$(bb timeout -s KILL 2 /run/initramfs/lib/ld-musl-aarch64.so.1 \
+		/run/initramfs/bin/busybox dmesg -r -s 65536 2>/dev/null) || return 1
+	printf '%s\n' 'source=kernel-buffer'
+	printf '%s\n' "$entries" | bb sed -n \
+		"s/^<[0-9][0-9]*>//; s/^\[[ 0-9.]*\] *//; /^$1: FAIL /p"
 }
 
 observe_unit() {
@@ -58,9 +68,14 @@ EOF
 	journal=error failure_hex=
 	if failure=$(query_failure "$prefix"); then
 		journal=absent
+		# Keep the journal error explicit even when the independent ring read
+		# supplies failure text; this is not a successful journal observation.
+		case $failure in source=kernel-buffer*) journal=error ;; esac
 		failure_hex=$(printf '%s\n' "$failure" | bb grep -E "^$prefix: FAIL " |
 			bb tail -n 1 | bb head -c 80 | bb od -An -tx1 -v | bb tr -d ' \n')
-		[ -z "$failure_hex" ] || journal=present
+		if [ -n "$failure_hex" ] && [ "$journal" != error ]; then
+			journal=present
+		fi
 	fi
 	[ -n "$failure_hex" ] || failure_hex=none
 	printf '%s\n' 'format=rog5-startup-observation-v1' \

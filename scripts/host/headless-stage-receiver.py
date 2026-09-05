@@ -47,6 +47,32 @@ def stage_dict(stage):
     return {k: getattr(stage, k) for k in ('boot_id', 'sequence', 'stage', 'state', 'detail')}
 
 
+def update_transport(receiver, serial, ensure_route):
+    """One discovery step; the caller owns the original bounded lifetime."""
+    try:
+        mode, interface = usb_mode(serial)
+        if mode == 'target' and not ensure_route():
+            mode, interface = 'enumerating', None
+        receiver.transport(mode, interface)
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        # USB can vanish between sysfs discovery and the bounded NM/ip call.
+        # Keep the original capture deadline and last evidence, not admission:
+        # any failed check permanently invalidates this capture's readiness.
+        receiver.failed = True
+        receiver.emit(dict(event='transport-check-failed', reason=str(error)[:160],
+                           last_stage=stage_dict(receiver.last),
+                           last_startup=receiver.startup))
+        try:
+            mode, interface = usb_mode(serial)
+        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+            mode, interface = 'enumerating', None
+        if mode == 'target':
+            # Identity alone cannot substitute for the failed network check.
+            mode, interface = 'enumerating', None
+        receiver.transport(mode, interface)
+    return receiver.mode != 'mismatch'
+
+
 def parse_startup_observation(payload, release):
     fields = ('format','target_release','boot_id','sequence','unit','observation',
               'active','sub','result','exit','journal','failure_hex')
@@ -347,15 +373,8 @@ def main():
             (args.output/'receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
             emit(dict(event='listener-started', address=ADDRESS, port=PORT, authority='none'))
             while not stopping and time.monotonic() < deadline:
-                try:
-                    mode, interface = usb_mode(record['serial'])
-                    if mode == 'target' and not ensure_route():
-                        mode, interface = 'enumerating', None
-                    receiver.transport(mode, interface)
-                    if receiver.mode == 'mismatch':
-                        stopping = True
-                except (OSError, ValueError):
-                    receiver.transport('enumerating', None)
+                if not update_transport(receiver, record['serial'], ensure_route):
+                    stopping = True
                 receiver.poll()
             result = dict(status='FAIL' if receiver.failed or log_full else 'NOT RUN',
                           reason='capture is evidence, not authenticated device qualification',
