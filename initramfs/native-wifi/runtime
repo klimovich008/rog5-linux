@@ -262,6 +262,86 @@ run_dhcp() {
 		-f "$state/dhcpcd.conf" -t 0 "$interface"
 }
 
+radio_refused() {
+	# Distinct from Wi-Fi healthy: a current-boot pre-activation refusal can
+	# only defer radio services. It never commits a persistent trial.
+	refusal=$root/radio-refused
+	[ -f "$refusal" ] && [ ! -L "$refusal" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$refusal")" = 0:0:444:1 ] &&
+		[ "$(stat -c %s "$refusal")" -le 256 ] || return 1
+	[ -d "$root/radio-entered" ] && [ ! -L "$root/radio-entered" ] &&
+		[ "$(stat -c '%u:%g:%a' "$root/radio-entered")" = 0:0:700 ] || return 1
+	for unexpected in radio-activation-entered radio-failure interface; do
+		[ ! -e "$root/$unexpected" ] && [ ! -L "$root/$unexpected" ] || return 1
+	done
+	refusal_boot=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	printf '%s\n' "$refusal_boot" | grep -Eq \
+		'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || return 1
+	refusal_bundle=
+	refusal_count=0
+	set -f
+	for argument in $(cat /proc/cmdline); do
+		case $argument in rog5.bundle=*)
+			refusal_bundle=${argument#rog5.bundle=}
+			refusal_count=$((refusal_count + 1)) ;;
+		esac
+	done
+	set +f
+	[ "$refusal_count" = 1 ] && [ "${#refusal_bundle}" -le 64 ] || return 1
+	case $refusal_bundle in ''|*[!a-z0-9-]*) return 1 ;; esac
+	printf 'format=rog5-radio-refusal-v1\nboot_id=%s\nbundle=%s\nreason=below-radio-voltage\n' \
+		"$refusal_boot" "$refusal_bundle" | cmp -s - "$refusal" || return 1
+}
+
+radio_enabled() {
+	if [ -e "$root/radio-refused" ] || [ -L "$root/radio-refused" ]; then
+		# systemd ExecCondition 1 skips, 255 fails. Never skip on a malformed
+		# or partial-activation result just because an interface is missing.
+		radio_refused || return 255
+		return 1
+	fi
+	return 0
+}
+
+refused_core_ready() {
+	radio_refused || return 1
+	# Require the same boot-qualified P2 + SSH-identity latch as the root
+	# watchdog. Continued listener lifetime is intentionally not a condition.
+	core_ack=/run/rog5-p2-ready
+	identity_ack=/run/rog5-persistent-ssh-identity.record
+	for path in "$core_ack" "$identity_ack"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:444:1 ] || return 1
+	done
+	[ "$(stat -c %s "$core_ack")" -le 4096 ] &&
+		[ "$(stat -c %s "$identity_ack")" -le 256 ] || return 1
+	[ "$(grep -c '^status=' "$core_ack")" = 1 ] &&
+		grep -Fxq status=PASS "$core_ack" &&
+		[ "$(grep -c '^attested_boot_id=' "$core_ack")" = 1 ] &&
+		grep -Fxq "attested_boot_id=$refusal_boot" "$core_ack" || return 1
+	awk -F= -v boot="$refusal_boot" '
+	NF != 2 { exit 1 }
+	NR == 1 && $0 != "format=rog5-persistent-ssh-identity-v1" { exit 1 }
+	NR == 2 && $0 != "mode=seed" && $0 != "mode=load" { exit 1 }
+	NR == 3 && ($1 != "fingerprint" || length($2) != 50 ||
+		$2 !~ /^SHA256:[A-Za-z0-9+\/]+$/) { exit 1 }
+	NR == 4 && $0 != "identity_boot_id=" boot { exit 1 }
+	END { if (NR != 4) exit 1 }' "$identity_ack" || return 1
+	[ "$(cat /sys/class/power_supply/qcom-battmgr-bat/health)" = Good ] || return 1
+	temp=$(cat /sys/class/power_supply/qcom-battmgr-bat/temp) || return 1
+	voltage=$(cat /sys/class/power_supply/qcom-battmgr-bat/voltage_now) || return 1
+	[ "$temp" -ge 0 ] && [ "$temp" -lt 400 ] &&
+		[ "$voltage" -ge 7500000 ] && [ "$voltage" -le 8800000 ] &&
+		[ "$(cat /sys/class/power_supply/qcom-battmgr-usb/online)" = 1 ] || return 1
+	for zone in /sys/class/thermal/thermal_zone*/temp; do
+		[ -r "$zone" ] || continue
+		value=$(cat "$zone") || { echo "OBS error $zone"; continue; }
+		case $value in ''|*[!0-9]*) echo "OBS unsupported $zone"; continue ;; esac
+		[ "$value" -lt 60000 ] || return 1
+	done
+	return 0
+}
+
 rollback_healthy() {
 	# SSH Requires can re-arm an elapsed OnBootSec timer after healthy stopped
 	# it. Only exact acceptance for this boot/trial may suppress that reboot.
@@ -305,11 +385,12 @@ umask 077
 case $1 in
 	install) install_units ;;
 	radio) exec "$root/radio" ;;
+	radio-enabled) radio_enabled ;;
 	prepare) prepare_network ;;
 	wpa) run_wpa ;;
 	dhcp) run_dhcp ;;
 	# Invalid or absent acceptance is ordinary rollback, never a failed gate
 	# that accidentally prevents the service from requesting its reboot.
-	rollback) rollback_healthy || systemctl --no-block reboot ;;
+	rollback) rollback_healthy || refused_core_ready || systemctl --no-block reboot ;;
 	*) fail 'unknown action' ;;
 esac

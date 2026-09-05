@@ -58,6 +58,7 @@ def compose(base, expected_base):
     for name, value in original.items():
         if name not in set(replacements) | {prefix+'boot-files.sha256'}:
             assert members[name] == value
+    ARCHIVE.verify_radio_composition(members)
     packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
     assert ARCHIVE.entries(gzip.decompress(packed)) == members
     return packed, {

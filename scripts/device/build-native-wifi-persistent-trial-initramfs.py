@@ -87,6 +87,7 @@ def compose(base, expected_base, descriptor, helper):
         if name not in (prefix+'runtime', radio_unit, rollback_unit,
                         prefix+'boot-files.sha256'):
             require(members[name] == value, 'unexpected member change: '+name)
+    ARCHIVE.verify_radio_composition(members)
     packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
     require(ARCHIVE.entries(gzip.decompress(packed)) == members, 'archive round-trip mismatch')
     return packed, {
@@ -140,6 +141,7 @@ def compose_successor(base, expected_base, descriptor, helper):
     for name, value in original.items():
         if name not in changed:
             require(members[name] == value, 'unexpected member change: '+name)
+    ARCHIVE.verify_radio_composition(members)
     packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
     require(ARCHIVE.entries(gzip.decompress(packed)) == members, 'archive round-trip mismatch')
     return packed, {

@@ -180,6 +180,9 @@ def run_one(test, output, release=None, capture=None):
                 row.update(status='FAIL', next_action='test deadline exceeded; owned process group stopped')
                 break
             row['exit_code'] = code
+            if code == 77:
+                row.update(status='BLOCKED', next_action='runner prerequisite unavailable; see private log')
+                break
             if code:
                 row.update(status='FAIL', next_action=f'fix failing test; exit {code}; see private log')
                 break

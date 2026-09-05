@@ -239,19 +239,26 @@
       "mandatory": true,
       "environment": "Unprivileged host; additional isolated prerequisites as listed",
       "prerequisites": [
-        "exact target runtime fixture"
+        "python3",
+        "bwrap",
+        "qemu-aarch64-static with ARM binfmt",
+        "available user systemd manager",
+        "exact target archive receipt"
       ],
-      "commands": [],
-      "deadline_seconds": 120,
+      "commands": [
+        ["python3", "scripts/device/test-native-wifi-radio-refusal.py", "--sealed-archive", "{initramfs}"],
+        ["python3", "scripts/host/test-systemd-radio-refusal.py", "--output", "{test_output}"]
+      ],
+      "deadline_seconds": 180,
       "pass_condition": "Pre-activation refusal below unchanged 8.4V radio gate keeps qualified headless services; partial activation and unsafe power remain distinct failures.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
-      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "mutations": "Disposable fixtures, isolated BusyBox root and uniquely named runtime user-systemd units; no phone, kernel operation or persistent host configuration.",
       "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
       "required_evidence": [
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Implement regression and optional-radio isolation before claiming this behavior."
+      "blocker": "Supply exact archive receipt, isolated ARM BusyBox execution and user systemd; source fixtures do not prove hardware charging or final release composition."
     },
     {
       "id": "E02",

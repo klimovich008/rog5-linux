@@ -9,6 +9,7 @@ Before=basic.target
 
 [Service]
 Type=exec
+ExecCondition=/run/rog5-native-wifi/runtime radio-enabled
 ExecStartPre=/run/rog5-native-wifi/runtime prepare
 ExecStart=/run/rog5-native-wifi/runtime wpa
 TimeoutStartSec=15s
