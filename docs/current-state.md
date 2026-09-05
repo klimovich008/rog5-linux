@@ -102,7 +102,7 @@ There is no authorized storage mutation in this checkpoint.
   `169.254.77.1:8079` host endpoint; the normal shared `10.77.0.1` profile alone
   neither supplied that address nor allowed that port. Temporary host capture
   changes were cleaned up; raw records remain private. No boot was issued.
-- Latest exact fastboot read: slot B, 7704 mV, `battery-soc-ok=yes`; serial,
+- Latest exact fastboot read: slot B, 7701 mV, `battery-soc-ok=yes`; serial,
   product and anchored path matched. This is not a current/temperature or
   sustained-charging measurement. No reboot or phone-storage access followed.
 - The retained V10 archive requires at least 8.4 V before radio activation;
@@ -147,6 +147,14 @@ its frozen tree passed full CI in 470.865 s. Fresh twin rescue archives/images
 were verified offline, but remain unissued and unbooted. The following source
 checkpoint pairs current init with current parameterized attestation in the
 Wi-Fi composer and renders the diagnostic radio timeout. Focused composition
-and active checks pass; publication validation is pending. No phone or kernel
-change follows from these offline results.
+and active checks pass. Checkpoint `8cb0f65f` passed full local CI in 491.913 s
+and exact-head, merge, candidate-publication and QEMU checks in run 33933475707.
+The next data-only registration binds `headless-selector-rescue-v1` to the
+verified private twins and current selector. All 17 generic claim tests pass;
+consumer statements and every historical record are unchanged. No actual
+claim has been created/consumed. The pinned V11 SSH host identity and matching
+deployment key are located; a retained capture copy covers 300 s recovery +
+900 s target rollback + 120 s margin. It is not running. No phone or kernel
+change follows from these offline results. Complete connected preflight and
+capture setup before one RAM-only execution; do not rebuild the verified twins.
 The [roadmap](../ROADMAP.md) holds later work.
