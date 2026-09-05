@@ -177,6 +177,19 @@ install_units() {
 	fi
 }
 
+verify_prepared_network() {
+	[ -d "$state" ] && [ ! -L "$state" ] &&
+		[ "$(stat -c '%u:%g:%a' "$state")" = 0:0:700 ] || return 1
+	for file in private-network.conf dhcpcd.conf; do
+		[ -f "$state/$file" ] && [ ! -L "$state/$file" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$state/$file")" = 0:0:600:1 ] || return 1
+	done
+	[ "$(stat -c %s "$state/private-network.conf")" = "$size" ] &&
+		[ "$(stat -c %s "$state/dhcpcd.conf")" = 0 ] &&
+		[ "$(find "$state" -mindepth 1 -maxdepth 1 -print | wc -l)" -eq 2 ] &&
+		cmp -s "$secret" "$state/private-network.conf"
+}
+
 prepare_network() {
 	interface_identity || fail 'interface identity changed'
 	systemctl is-active --quiet rog5-persistent-state.service || fail 'state unavailable'
@@ -190,12 +203,19 @@ prepare_network() {
 		[ "$(stat -c '%u:%g:%a:%h' "$secret")" = 0:0:600:1 ] || fail 'private config metadata'
 	size=$(stat -c %s "$secret")
 	[ "$size" -gt 0 ] && [ "$size" -le 4096 ] || fail 'private config size'
-	[ ! -e "$state" ] && [ ! -L "$state" ] || fail 'network already prepared'
-	mkdir -m 0700 "$state"
-	cp "$secret" "$state/private-network.conf"
-	chmod 0600 "$state/private-network.conf"
-	cmp "$secret" "$state/private-network.conf" || fail 'private config copy'
-	: >"$state/dhcpcd.conf"
+	if [ -e "$state" ] || [ -L "$state" ]; then
+		# ExecStartPre runs again on a WPA restart. Reuse only exact unchanged
+		# private state; never overwrite a live configuration or repair an
+		# ambiguous partial setup implicitly.
+		verify_prepared_network || fail 'prepared network state changed'
+	else
+		mkdir -m 0700 "$state"
+		cp "$secret" "$state/private-network.conf"
+		chmod 0600 "$state/private-network.conf"
+		: >"$state/dhcpcd.conf"
+		chmod 0600 "$state/dhcpcd.conf"
+		verify_prepared_network || fail 'private config copy'
+	fi
 	ip link set dev "$interface" up
 }
 

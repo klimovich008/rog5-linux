@@ -315,7 +315,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Add restart regression and idempotent state preparation."
+      "blocker": "Idempotent preparation passes real-file fixtures; an actual systemd WPA/DHCP restart transaction with address/SSH recovery is still required."
     },
     {
       "id": "F03",
