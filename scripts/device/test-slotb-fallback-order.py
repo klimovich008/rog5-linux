@@ -12,7 +12,7 @@ import unittest
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = (REPO / 'initramfs/persistent-slotb-loader-init').read_text()
 MAIN = SOURCE[SOURCE.index('\nresolve_storage || fail storage_identity'):]
-FLOW = MAIN[MAIN.index('case $selector_format in'):MAIN.index('command_line=')]
+FLOW = MAIN[MAIN.index('case $selector_format in'):MAIN.index('fi # storage-selector path;')]
 SELECTOR_FLOW = MAIN[MAIN.index('read_selector ||'):MAIN.index('\nif [ "$loader_mode"')]
 COPY = re.search(r'^copy_bundle\(\) \{\n.*?^}', SOURCE, re.M | re.S).group()
 SHELL = shlex.split(os.environ.get('ROG5_LOADER_TEST_SHELL', 'sh'))

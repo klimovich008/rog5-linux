@@ -62,6 +62,33 @@ if [ -f "$base" ]; then
 	[ -x "$work/root/usr/sbin/kexec" ]
 	[ ! -e "$work/root/usr/libexec/rog5-recovery-control" ]
 	[ ! -e "$work/root/usr/libexec/rog5-bundle-fetch" ]
+
+	# Packaging-only fixture: not a signed/admissible candidate. Runtime crypto
+	# remains covered by the exact bundle verifier suite, never mocked as PASS.
+	mkdir "$work/ram-fixture"
+	for file in Image board.dtb initramfs.cpio.gz manifest; do
+		printf 'unsigned fixture %s\n' "$file" >"$work/ram-fixture/$file"
+	done
+	printf '%064d' 0 >"$work/ram-fixture/manifest.sig"
+	"$builder" "$base" "$init" embedded-ram "$work/ram-a.cpio.gz" "$work/ram-fixture"
+	"$builder" "$base" "$init" embedded-ram "$work/ram-b.cpio.gz" "$work/ram-fixture"
+	cmp "$work/ram-a.cpio.gz" "$work/ram-b.cpio.gz"
+	mkdir "$work/ram-root"
+	gzip -dc "$work/ram-a.cpio.gz" |
+		(cd "$work/ram-root" && cpio -idm --quiet --no-absolute-filenames)
+	hash=$(sha256sum "$work/ram-fixture/manifest" | cut -d ' ' -f 1)
+	printf '#!/bin/sh\nset -eu\nexec /usr/libexec/rog5-selector-v2-loader existing-recovery-ram ram-fixture %s\n' "$hash" >"$work/expected-executor"
+	cmp "$work/expected-executor" "$work/ram-root/usr/libexec/rog5-persistent-slotb-local-loader"
+	[ ! -e "$work/ram-root/run/rog5-bundles/ram-fixture" ]
+	for file in Image board.dtb initramfs.cpio.gz manifest manifest.sig; do
+		cmp "$work/ram-fixture/$file" "$work/ram-root/usr/share/rog5/ram-bundles/ram-fixture/$file"
+		[ "$(stat -c '%a:%h' "$work/ram-root/usr/share/rog5/ram-bundles/ram-fixture/$file")" = 600:1 ]
+	done
+	printf extra >"$work/ram-fixture/extra"
+	if "$builder" "$base" "$init" embedded-ram "$work/bad.cpio.gz" "$work/ram-fixture"; then
+		echo 'FAIL accepted extra embedded payload' >&2; exit 1
+	fi
+	[ ! -e "$work/bad.cpio.gz" ]
 fi
 
 echo 'PASS canonical recovery owns USB/watchdog setup and executes one local signed read-only p24 bundle loader'

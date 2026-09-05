@@ -159,6 +159,8 @@ native_wifi_probe_tests=(
 )
 active_tests=(
 	scripts/host/test-release-acceptance.py
+	scripts/host/test-rescue-root-composition.py
+	scripts/device/test-slotb-ram-bundle.py
 	scripts/device/test-standalone-rescue-composition.py
 	scripts/host/test-qemu-watchdog-artifact.py
 	scripts/device/test-persistent-root-watchdog.py
