@@ -80,14 +80,27 @@ already exists. Explicit checks now preserve those guards in both interpreters;
 valid archive bytes/receipts are unchanged. This host-only fix needs no kernel
 build or phone cycle. Focused normal/optimized tests pass with unchanged valid bytes.
 Full local CI now passes in 490.925 s; the quick acceptance matrix passes
-A02/B01/G01/G02, with all other rows NOT RUN in that quick run. Publication
-and exact-head remote checks remain separate. Test logs are private; the full
+A02/B01/G01/G02, with all other rows NOT RUN in that quick run. Published
+`c1c1d6315fff7946cbfa902e2add4fe2421f49e5`; all four remote jobs passed
+run 33988345153. Test logs are private; the full
 suite expects the usual 022 fixture umask, not the 077 log-creation umask.
 
-Next: publish this coherent correction, then implement optional-radio isolation
-(E01) without lowering the 8.4 V activation threshold or accepting partial
-activation. Keep core recovery available; safe refusal must not fabricate Wi-Fi
-healthy acceptance. Finish final archive/root composition and the remaining
+E01 source checkpoint: safe pre-activation radio refusal now skips WPA/DHCP/trial
+commit while allowing qualified P2/state/SSH startup. The 8.4 V activation gate
+is unchanged. Exact current-boot refusal plus core identity is required to
+suppress radio rollback; unsafe power/thermal state and partial activation remain
+fatal. Mixed old/new archive consumers are rejected, including under Python -O.
+Host systemd ordering and sealed ARM BusyBox component tests pass; these source
+changes are not yet deployed or final-release qualification. Active tier passes
+in 15.869 s. Frozen full CI passes in 485.345 s; final sealed replay in 64.087 s.
+Publication/remote validation remain separate from these local results.
+
+Latest pinned read-only check: same V5 boot at uptime 4091 s, five core services
+active, 100% Full/Good, 30.0°C, 8.632 V and 0 µA. Optional keyring refresh still
+failed; no reset/masking, new boot, artifact build or phone storage change.
+
+Next: finish this coherent E01 publication, then repair the demonstrated empty
+keyring/update composition before another candidate. Finish final archive/root composition and the remaining
 service, journal, Wi-Fi, reboot, soak and isolated physical rollback tests.
 Do not treat V5's component passes as an installed release PASS.
 

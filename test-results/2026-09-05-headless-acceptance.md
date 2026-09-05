@@ -1035,3 +1035,73 @@ reproduces the exact line-64 empty-list error in a disposable unshared namespace
 in 0.014 s. GPG/pacman-conf endpoints are fixtures, with no network, real keys
 or refresh operation. The genuine public script and replay remain in private
 incident evidence; the running failure is neither cleared nor masked.
+
+## E01 safe radio refusal checkpoint
+
+Continued the dirty worktree at `c1c1d6315fff7946cbfa902e2add4fe2421f49e5`.
+Primary question: can pre-activation radio refusal preserve a qualified headless
+server without reducing radio power safety or accepting partial activation?
+Layer: userspace/initramfs composition, not kernel/DT/recovery. No new build,
+signature, admission, boot or phone-storage operation was performed.
+
+The old fatal radio voltage check prevented core state startup through systemd
+Requires. The preserved implementation adds a distinct one-use, current-boot
+refusal record and exit 77 only after integrity/storage/power checks and proof
+of the armed rollback timer. Radio activation still requires at least 8.4 V;
+the conservative core-only interval is 7.5–8.8 V with USB online. WPA, DHCP and
+Wi-Fi trial commit skip only a valid refusal. Core P2 + identity acknowledgment
+may suppress the radio deadline, without creating Wi-Fi healthy evidence or
+committing a trial. Malformed records, partial activation and unsafe power fail.
+
+Initial producer regressions failed four cases (2.210 s). Focused source
+tests now pass four methods (7.056 s), and optimized composer tests pass 34
+methods (7.120 s). Mixed old/new radio runtime/unit composition is rejected in
+base, initial/successor persistent and failure-diagnostic composers; four
+normal/optimized initial/successor subcases failed before that closure check.
+Historical archives remain preserved, but cannot be silently repackaged with
+incompatible new consumers.
+
+Real user-systemd testing executes shipped preflight/condition scripts with
+fake hardware and core executables. Safe refusal permits core state and SSH;
+unsafe temperature and activation-entered failure prevent state startup. It
+does not simulate successful hardware activation. All three cases pass in
+3.679 s. The first harness incorrectly assumed skipped units retained
+Result=exec-condition (FAIL 1.596 s); systemd may unload inactive units. It now
+records actual condition exit 1 and independently proves optional ExecStart
+was not called, instead of treating inactivity alone as success. Owned units
+are stopped and removed; no system services or persistent units are changed.
+
+Sealed BusyBox replay uses the retained V5 archive's ARM applets inside a
+network/device-isolated root, with fake sysfs/proc and shipped source scripts.
+Initial four methods passed in 59.000 s. This is applet compatibility evidence,
+not a claim that the old V5 archive contains the new scripts. Added thermal-rise
+regression then failed in 4.602 s: the new refusal rollback path rechecked battery
+temperature but not other zones. It now rejects a supported zone at 60°C or
+higher; absent/unsupported optional telemetry remains observational.
+
+E01 is registered in the existing acceptance manifest with exact archive input
+and user-systemd prerequisites; the fast source suite joins the single shared
+probe list. Missing prerequisite exit 77 now maps to BLOCKED, never PASS
+(fail-first regression 0.153 s; complete dispatcher 13 tests PASS 0.368 s).
+Active tier PASS 15.869 s. Bounded independent read-only review found no
+actionable issue. Frozen full CI and final sealed replay results follow.
+
+Read-only device observation at uptime 4091 s confirms unchanged V5 boot,
+five core services active, 100% Full/Good, 30.0°C, 8.632 V, 0 µA; the optional
+keyring refresh failure remains visible. This is not a new charging or release
+qualification. The next implementation after this checkpoint is intended
+package-keyring/update composition, not another kernel rebuild.
+
+Frozen full local CI PASS **485.345 s**, versus prior 490.925 s; this small
+variation is not a claimed performance improvement. Source digest before/after
+the run remained
+`acd3a23b3fa22ee84a56ab5a96e3dfa2feda2644fd03ca430b943c00d885a1e1`.
+Final sealed ARM replay including thermal rise PASS **64.087 s**. Only result
+documentation changes follow the frozen run. Remote exact-head/merge checks are
+separate; no candidate was built or granted execution authority.
+
+Subsequent read-only keyring diagnosis found active synchronized timesyncd and
+the packaged ARM trust files at root-owned 0644, but no persistent GPG directory
+and no deployed bootstrap helper. GPGDir remains in the volatile root overlay.
+This supports wiring bootstrap before refresh; it does not authorize importing
+unverified keys, disabling package signature checks or hiding refresh failures.

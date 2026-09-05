@@ -183,6 +183,18 @@ class PersistentComposerValidation(unittest.TestCase):
                 self.base = gzip.compress(self.module.ARCHIVE.encode(members), mtime=0)
                 self.check_rejected()
 
+    def test_rejects_mixed_radio_consumers_before_output(self):
+        for successor in (False, True):
+            with self.subTest(successor=successor):
+                self.setUp()
+                if successor:
+                    self.prepare_successor()
+                members = self.module.ARCHIVE.entries(gzip.decompress(self.base))
+                name = 'rog5-native-wifi/units/rog5-wifi-wpa.service'
+                self.module.ARCHIVE.replace(members, name, b'[Service]\nExecStart=/old-wpa\n')
+                self.base = gzip.compress(self.module.ARCHIVE.encode(members), mtime=0)
+                self.check_rejected()
+
 
 class ComposerValidation(unittest.TestCase):
     def setUp(self):
@@ -718,7 +730,11 @@ class AutomaticWifi(unittest.TestCase):
         archive.add(members, 'rog5-native-wifi/units/rog5-wifi-boot-rollback.service',
                     b'[Service]\nExecStart=/usr/bin/systemctl --no-block reboot\n',
                     0o100644)
-        archive.add(members, 'rog5-native-wifi/radio', b'old-radio', 0o100755)
+        archive.add(members, 'rog5-native-wifi/radio',
+                    (R/'initramfs/native-wifi/radio').read_bytes(), 0o100755)
+        for name in ('rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service'):
+            archive.add(members, 'rog5-native-wifi/units/'+name,
+                        (R/'initramfs/native-wifi/units'/name).read_bytes(), 0o100644)
         archive.add(members, 'rog5-native-wifi/probe-native-wifi.sh', b'old-probe', 0o100755)
         archive.add(members, 'rog5-native-wifi/boot-files.sha256',
                     b'old-checks\n', 0o100444)
@@ -798,6 +814,10 @@ class AutomaticWifi(unittest.TestCase):
         archive = module.ARCHIVE
         members = {}
         archive.add(members, 'init', b'qualified-init', 0o100755)
+        for name in ('rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service',
+                     'rog5-wifi-boot-rollback.service'):
+            archive.add(members, 'rog5-native-wifi/units/'+name,
+                        (R/'initramfs/native-wifi/units'/name).read_bytes(), 0o100644)
         for name, data, mode in (
             ('runtime', b'old-runtime', 0o100755),
             ('radio', b'old-radio', 0o100755),

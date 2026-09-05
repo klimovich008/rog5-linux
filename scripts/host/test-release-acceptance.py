@@ -69,6 +69,7 @@ class AcceptanceTest(unittest.TestCase):
             test['deadline_seconds'] = 0.1
             for command, expected in (([sys.executable, '-c', 'import time; time.sleep(10)'], 'FAIL'),
                                       ([sys.executable, '-c', 'raise SystemExit(3)'], 'FAIL'),
+                                      ([sys.executable, '-c', 'raise SystemExit(77)'], 'BLOCKED'),
                                       (['rog5-no-such-command'], 'BLOCKED')):
                 test['commands'] = [command]
                 result = M.run_one(test, Path(tmp))

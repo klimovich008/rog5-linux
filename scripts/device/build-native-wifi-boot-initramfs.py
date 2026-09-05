@@ -129,6 +129,33 @@ def render_boot_template(path, values):
     return text.encode()
 
 
+def verify_radio_composition(members):
+    """Refusal producer, service consumers and rollback are one target ABI.
+
+    Identity-only successors may retain a current coherent archive, but cannot
+    refresh the radio while silently keeping older consumers. Recompose the
+    small target archive when this ABI changes; no kernel build is needed.
+    """
+    prefix = 'rog5-native-wifi/'
+    outer = re.findall(rb'^outer_seconds=([0-9]+)$',
+                       (REPO/'initramfs/native-wifi/timing').read_bytes(), re.M)
+    if len(outer) != 1 or int(outer[0]) <= 0:
+        raise ValueError('invalid radio timeout')
+    sources = {name: REPO/'initramfs/native-wifi'/name for name in (
+        'radio', 'runtime', 'units/rog5-wifi-radio.service',
+        'units/rog5-wifi-wpa.service', 'units/rog5-wifi-dhcp.service',
+        'units/rog5-wifi-boot-rollback.service')}
+    healthy = 'units/rog5-wifi-healthy.service'
+    if prefix+'trial-descriptor' in members:
+        sources[healthy] = REPO/'initramfs/native-wifi-persistent'/healthy
+    for name, source in sources.items():
+        entry = members.get(prefix+name)
+        if entry is None or not stat.S_ISREG(entry[0][1]) or entry[0][4] != 1:
+            raise ValueError('radio composition member: '+name)
+        if entry[1] != source.read_bytes().replace(b'@OUTER_SECONDS@', outer[0]):
+            raise ValueError('incompatible radio composition; recompose target archive: '+name)
+
+
 def compose(base, package, record):
     if sha(base) != record['files']['initramfs.cpio.gz']:
         raise ValueError('base identity')
@@ -203,6 +230,7 @@ def compose(base, package, record):
         if name not in changed:
             if members[name] != value:
                 raise ValueError('unrelated base member changed')
+    verify_radio_composition(members)
     packed = gzip.compress(encode(members), compresslevel=1, mtime=0)
     if entries(gzip.decompress(packed)) != members:
         raise ValueError('newc round trip')

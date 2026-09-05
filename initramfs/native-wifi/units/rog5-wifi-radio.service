@@ -11,6 +11,7 @@ OnFailure=rog5-wifi-failure.service
 [Service]
 Type=oneshot
 ExecStart=/run/rog5-native-wifi/runtime radio
+SuccessExitStatus=77
 TimeoutStartSec=@OUTER_SECONDS@s
 TimeoutStopSec=5s
 RemainAfterExit=yes

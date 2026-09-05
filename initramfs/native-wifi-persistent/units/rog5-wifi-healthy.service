@@ -10,6 +10,7 @@ Before=shutdown.target
 
 [Service]
 Type=oneshot
+ExecCondition=/run/rog5-native-wifi/runtime radio-enabled
 ExecStart=/run/rog5-native-wifi/healthy
 TimeoutStartSec=180s
 RemainAfterExit=yes

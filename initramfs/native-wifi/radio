@@ -74,7 +74,15 @@ guard() {
 	[ "$(cat /sys/class/power_supply/qcom-battmgr-bat/health)" = Good ] || fail 'battery health'
 	temp=$(cat /sys/class/power_supply/qcom-battmgr-bat/temp)
 	[ "$temp" -ge 0 ] && [ "$temp" -lt 400 ] || fail 'battery temperature'
-	[ "$(cat /sys/class/power_supply/qcom-battmgr-bat/voltage_now)" -ge 8400000 ] || fail 'battery voltage'
+	voltage=$(cat /sys/class/power_supply/qcom-battmgr-bat/voltage_now)
+	# The core-only interval is deliberately narrower than the power loader's
+	# absolute safety bounds. It never permits a radio power operation below
+	# the existing 8.4 V radio threshold.
+	[ "$voltage" -ge 7500000 ] && [ "$voltage" -le 8800000 ] || fail 'unsafe battery voltage'
+	[ "$(cat /sys/class/power_supply/qcom-battmgr-usb/online)" = 1 ] || fail 'USB input offline'
+	if [ "${1:-radio}" != preactivation ]; then
+		[ "$voltage" -ge 8400000 ] || fail 'battery voltage'
+	fi
 	for zone in /sys/class/thermal/thermal_zone*/temp; do
 		[ -r "$zone" ] || continue
 		value=$(cat "$zone") || { echo "OBS error $zone"; continue; }
@@ -88,16 +96,42 @@ guard() {
 release=$(cat "$root/kernel-release")
 [ "$(uname -r)" = "$release" ] || fail 'kernel release'
 boot=$(cat /proc/sys/kernel/random/boot_id)
-candidate=$(sed -n 's/.*\<rog5.bundle=\([^ ]*\).*/\1/p' /proc/cmdline)
+candidate=
+candidate_count=0
+set -f
+for argument in $(cat /proc/cmdline); do
+	case $argument in rog5.bundle=*)
+		candidate_count=$((candidate_count + 1))
+		candidate=${argument#rog5.bundle=} ;;
+	esac
+done
+set +f
+[ "$candidate_count" = 1 ] || fail 'duplicate or absent bundle identity'
 case $candidate in ''|*[!a-z0-9-]*) fail 'bundle identity' ;; esac
+[ "${#candidate}" -le 64 ] || fail 'bundle identity length'
+printf '%s\n' "$boot" | grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || fail 'boot identity'
 umask 077
 mkdir "$root/radio-entered" || fail 'radio already entered; never retry'
-guard
+guard preactivation
 (cd "$root" && sha256sum -c boot-files.sha256) || fail 'boot payload integrity'
 mkdir "$root/module-root"
 tar --no-same-owner -C "$root/module-root" -xzf "$root/module-root-complete.tar.gz"
 (cd "$root/module-root" && sha256sum -c ../module-files.sha256) || fail 'module integrity'
 systemctl is-active --quiet rog5-wifi-boot-rollback.timer || fail 'rollback not armed'
+[ ! -e "$root/radio-refused" ] && [ ! -L "$root/radio-refused" ] &&
+	[ ! -e "$root/radio-activation-entered" ] && [ ! -L "$root/radio-activation-entered" ] &&
+	[ ! -d /sys/module/rog5_s12_ufs_vote ] || fail 'radio state already exists'
+# Only this branch is optional. All integrity/storage/thermal checks above
+# still fail closed, even when voltage would otherwise defer the radio.
+guard preactivation
+if [ "$voltage" -lt 8400000 ]; then
+	(set -C; printf 'format=rog5-radio-refusal-v1\nboot_id=%s\nbundle=%s\nreason=below-radio-voltage\n' \
+		"$boot" "$candidate" >"$root/radio-refused") || fail 'refusal publication'
+	chmod 0444 "$root/radio-refused" || fail 'refusal mode'
+	echo 'OBS deferred Wi-Fi: below radio voltage; no power operation entered'
+	exit 77
+fi
+mkdir "$root/radio-activation-entered" || fail 'radio already activated'
 # OnBootSec is absolute: preserve early-boot and cleanup time in this budget.
 started=0
 "$root/trace-native-wifi-pcie.sh" start "$boot" "$release"

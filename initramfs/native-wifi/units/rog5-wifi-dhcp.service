@@ -5,6 +5,7 @@ After=rog5-wifi-wpa.service systemd-resolved.service
 
 [Service]
 Type=exec
+ExecCondition=/run/rog5-native-wifi/runtime radio-enabled
 ExecStart=/run/rog5-native-wifi/runtime dhcp
 TimeoutStopSec=5s
 Restart=no
