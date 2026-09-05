@@ -438,3 +438,32 @@ exact admission remain required; no consumed image, phone boot, signing,
 flash, slot change or phone-storage access is authorized by these tests alone.
 Full frozen-tree results and subsequent composition belong to the publication
 checkpoint, not a claim that the phone is already recovered.
+
+## Paired boot composition correction (September 5)
+
+Preserved rescue checkpoint `c005ddff435fab3164a6815be653f3926ba415d4`:
+its tree `52e70ffde1cc48f7dde6e06c5e220f5a5d38da45` passed full CI in
+470.865 s. Fresh private rescue twins remain unissued and unbooted.
+
+Question: can a fresh composition retain an old P2 producer while installing
+the new watchdog consumer? Layer: target initramfs composition, R2/R4.
+The complete synthetic base/radio composition reproduced that mismatch before
+the fix (0.123 s command time). Init and attestation now render from one shared
+set of boot-mode values. Both are replaced together, while unrelated archive
+members remain exact. Template cardinality and unknown parameters fail closed.
+Tests verify the refreshed producer, matching ACK field, shell syntax, preserved
+firmware/module entries and byte-identical twin archive outputs.
+
+The failure-diagnostic composer also copied the radio service's unresolved
+`@OUTER_SECONDS@` placeholder. Its final-archive regression failed in 0.101 s
+before correction; it now renders the canonical timeout without changing it.
+
+Focused results: 21 composition/runtime tests, 1.273 s (1.356 s command);
+five watchdog tests, 0.185 s; overlay runtime, 0.243 s; active tier, 7.459 s.
+The accepted V10 archive's exact ARM BusyBox parsed both rendered scripts in
+an isolated filesystem: init 0.812 s, attestation 0.685 s. These are syntax and
+offline composition checks, not execution of on-phone attestation. The prior
+production watchdog QEMU evidence remains separate. Bounded independent review
+found no blocking issue. No kernel/recovery rebuild, signing, admission, phone
+operation or storage mutation occurred for this correction. Other audit findings
+remain deferred. Full frozen-tree results belong to the publication checkpoint.

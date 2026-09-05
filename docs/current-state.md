@@ -134,12 +134,19 @@ switch-root boundary before changing unrelated subsystems. Obtain stable exact
 fastboot for a reviewed RAM-only diagnostic when required, and fresh transport/
 health evidence before the attended screen test.
 Watchdog source checkpoint `5c406e19` passed full local CI in 473.624 s;
-its exact-head and merge checks passed, with QEMU publication still pending
-at this update. It still needs an exact paired init/attestation deployment.
+its exact-head, merge and QEMU publication checks passed. It still needs an
+exact paired init/attestation deployment.
 The next recovery preparation adds an exact-selector fallback-only option to
 the shared loader: no primary copy/execute or p23 trial writes. The historical
 rescue image expects obsolete V6 selector bytes and must not be reused.
 Fresh composition, publication, admission and live power/identity gates remain
 required. Crash-recovery validation, WPA restartability and display isolation
 remain open; no kernel change explains the current loss yet.
+Rescue checkpoint `c005ddff` preserves the exact-selector fallback-only change;
+its frozen tree passed full CI in 470.865 s. Fresh twin rescue archives/images
+were verified offline, but remain unissued and unbooted. The following source
+checkpoint pairs current init with current parameterized attestation in the
+Wi-Fi composer and renders the diagnostic radio timeout. Focused composition
+and active checks pass; publication validation is pending. No phone or kernel
+change follows from these offline results.
 The [roadmap](../ROADMAP.md) holds later work.
