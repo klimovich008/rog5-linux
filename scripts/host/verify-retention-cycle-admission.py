@@ -56,7 +56,7 @@ EXPECTED_CLAIMS = {
     )
 }
 
-# Native, fallback-only and embedded RAM trials share the fixed registry.
+# Native, fallback-only, embedded RAM and selector trials share the fixed registry.
 # Do not copy new candidate/artifact identities into this historical verifier.
 # The inspected candidate source below is still separately hash/mode validated
 # and compared against this canonical checkout; no caller-selected path is used.
@@ -76,7 +76,8 @@ def canonical_native_ram_claims() -> dict[str, bytes]:
             and any(marker in record for marker in (
                 b"\nexecution=mainline-kexec-ram-only\n",
                 b"\nexecution=fastboot-boot-fallback-only\n",
-                b"\nexecution=fastboot-boot-ram-bundle\n"))}
+                b"\nexecution=fastboot-boot-ram-bundle\n",
+                b"\nexecution=fastboot-boot-selector-trial\n"))}
 
 
 EXPECTED_CLAIMS.update(canonical_native_ram_claims())

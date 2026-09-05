@@ -1534,3 +1534,64 @@ Frozen full local CI PASS **491.554 s**, versus prior 485.604 s. Private complet
 log: server-composition evidence directory, `selector-full-ci-r1.log`.
 Only these current/result documents were updated after the frozen test run;
 no implementation changed afterward. New exact-head/merge publication pending.
+
+### Fresh normal-selector server package (2026-09-06)
+
+Starting HEAD `ad9398d179b8dae5725d2ae405f243fdda8be065`, clean. That
+checkpoint's exact-head/merge jobs now PASS in run 33998025054; other jobs were
+still running when checked. The current package is `headless-server-selector-v1`,
+unissued and unconsumed, with no phone contact during packaging.
+
+R1 host closure gap: the receiver/admission import recognized fallback-only and
+embedded-RAM execution but omitted the normal selector trial. Receiver tests
+failed in 0.007 s and fixed-registry import failed in 0.025 s before support was
+added. New `fastboot-boot-selector-trial` classification retains manifest hash,
+exact pre-boot USB, capture lifetime and fixed repository lookup gates. Unknown
+execution kinds remain rejected. No kernel or target-loader source changed.
+Receiver 17 PASS 0.098 s; focused admission 3 PASS 0.137 s. The canonical record
+binds the selector, trial, primary/fallback manifests, recovery bytes and bounded
+P23 trial-write scope. One-use consumer tests include changed hashes/IDs and
+permanent refusal after consumption; 19 PASS 0.153 s. The old test family filter
+initially omitted the new row; it now derives selector-family records from the
+same registry instead of copying candidate identities.
+
+Existing builders produced identical signed target/recovery twins in **18.509 s**
+without compiling either kernel. Target archive:
+`16efb362d6c55f6275924fd3a0374384f4b7b61baae22a10037140daf39de70f`.
+Recovery archive:
+`4ba0fccdc3752a64a1cf72de68a8d426eb3ef04ceaf871b50b8ea3b4d7e0c3a9`.
+100663296-byte AVB wrapper:
+`dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
+Only `trial-descriptor` and `boot-files.sha256` content differ from the tested
+6934f732 server archive. All hardware payloads and runtime/health/watchdog code
+remain unchanged. Prior trial identity was not promoted or reused.
+
+Exact final repack inspection and its sealed native verifier PASS **6.771 s**
+for both new primary and preserved V11 fallback. Recovery cmdline contains one
+300-second deadline; signed target plans retain 600-second target / 900-second
+rollback values. Sealed recovery uses the normal selector/trial executor and
+current canonical ARM helper, with no embedded-bundle bypass. Core module
+metadata/load-order checks pass; radio load and hardware remain separately
+qualified, not silently counted as new PASS. This does not execute target init
+or replace the earlier retained-root/QEMU evidence.
+
+Private build/verification records are in the selector-server-v1 evidence
+directory. Build source was the starting HEAD plus worktree digest
+`3494faef9ac08176f608b42ca1488e9a46f71d4962633c4a148f814f65923ebf`;
+it stayed frozen throughout packaging/checking. A private pre-build receipt-key
+typo (`head` versus `revision`) failed before key use or outputs, was corrected,
+and is not a target failure. No staging, claim file, boot or flash was performed.
+Next: frozen full CI/publication, bounded reviewed staging and captured RAM trial.
+
+Frozen full local CI PASS **500.609 s**, versus preceding 491.554 s. No
+implementation changed during the run or afterward; only current/result text
+was finalized. Read-only registry/artifact comparison passes, and the new
+candidate's claim, entered record and global consumed marker are all absent.
+The previous ad9398d1 checkpoint now has all four GitHub jobs PASS.
+
+Same-boot continuity at uptime 15638.21 s: exact USB topology and pinned SSH,
+six named core services active, Full/Good 100%, 29.9°C, 8.626 V, 0 µA. Installed
+V10 selector and healthy-state hashes remain unchanged. No new physical test,
+phone write or fallback mutation occurred. The private old rescue supervisor
+still pins g359 and embedded-RAM semantics: adapt and check it for the new
+selector/g1ee trial before use, rather than invoking it unchanged.
