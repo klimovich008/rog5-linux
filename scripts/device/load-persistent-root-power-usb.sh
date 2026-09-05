@@ -78,6 +78,10 @@ wait_for_usb_online() {
 	observed_offline=0
 	while [ "$attempt" -lt 200 ] &&
 		[ "$(telemetry_seconds)" -lt "$telemetry_deadline" ]; do
+		battery_health=$(cat "$battery/health" 2>/dev/null) ||
+			fail battery-health-unavailable 'battery health unavailable'
+		[ "$battery_health" = Good ] ||
+			fail battery-health-unsafe 'battery health is not Good'
 		battery_voltage=$(read_integer "$battery/voltage_now") ||
 			fail battery-voltage-unavailable 'battery voltage unavailable'
 		battery_temp=$(read_integer "$battery/temp") ||

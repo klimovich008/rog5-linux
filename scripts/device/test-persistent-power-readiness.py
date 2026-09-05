@@ -54,11 +54,15 @@ cat() {
  */battery/voltage_now) if [ "$case" = unsafe-voltage ]; then echo 9300000; else echo 8627000; fi ;;
  */battery/temp)
   if [ "$case" = unsafe-temp ] || { [ "$case" = unsafe-later ] && [ "$step" -gt 0 ]; }; then echo 600; else echo 299; fi ;;
+ */battery/health)
+  case $case in bad-health) echo Overheat ;; missing-health) return 1 ;;
+   health-lost) if [ "$step" -gt 0 ]; then echo Unknown; else echo Good; fi ;;
+   *) echo Good ;; esac ;;
  */usb/online)
   case $case in
    missing) return 1 ;;
    invalid) echo 2 ;;
-   never|unsafe-later) echo 0 ;;
+   never|unsafe-later|health-lost) echo 0 ;;
    delayed) if [ "$step" -lt 2 ]; then echo 0; else echo 1; fi ;;
    late) if [ "$step" -lt "$telemetry_deadline" ]; then echo 0; else echo 1; fi ;;
    *) echo 1 ;;
@@ -109,5 +113,14 @@ cat() {
         p=self.run_gate('unsafe-later')
         self.assertNotEqual(p.returncode,0)
         self.assertIn('FAIL battery-temperature-unsafe step=1',p.stdout)
+
+    def test_health_must_be_good_before_ufs_and_throughout_wait(self):
+        for case, detail, step in [('bad-health', 'battery-health-unsafe', 0),
+                                  ('missing-health', 'battery-health-unavailable', 0),
+                                  ('health-lost', 'battery-health-unsafe', 1)]:
+            with self.subTest(case=case):
+                result = self.run_gate(case)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(f'FAIL {detail} step={step}', result.stdout)
 
 if __name__=='__main__': unittest.main()

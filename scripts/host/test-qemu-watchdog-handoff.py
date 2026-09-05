@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Offline switch_root experiment; no phone, credentials, networking or disks.
 
-This executes the source watchdog through real systemd/switch_root, not physical
-phone reset effectiveness. BusyBox, its interpreter and the exact static reboot
-helper are copied from the supplied target archive.
+This executes the exact supplied archive's init watchdog functions through real
+systemd/switch_root, not the complete deployed init or physical phone reset
+effectiveness. BusyBox, its interpreter and the exact static reboot helper are
+copied from that same archive. Missing/legacy watchdogs are refused; there is no
+repository-source fallback.
 The guest's new root is tmpfs; systemd comes from the public test closure.
 """
 import argparse
@@ -11,18 +13,57 @@ import gzip
 import hashlib
 import json
 from pathlib import Path
+import re
 import runpy
 import stat
 import subprocess
 import time
+import zlib
 
 REPO = Path(__file__).resolve().parents[2]
 
 
-def watchdog_functions():
-    source = (REPO / "initramfs/persistent-root-init").read_text()
-    start = source.index("watchdog_bb() {\n")
-    return source[start:source.index("physical_topology_count() {\n", start)]
+def watchdog_functions(target):
+    """Extract exact archive bytes, validating the harness ABI without executing init.
+
+    These structural checks are not composition or behavioral acceptance: the
+    real guest cases still have to pass, and deployed call sites/ACK producers
+    need separate composition checks.
+    """
+    if "init" not in target:
+        raise ValueError("target archive: missing init; no repository-source fallback")
+    fields, data = target["init"]
+    if not stat.S_ISREG(fields[1]) or fields[4] != 1 or not fields[1] & 0o111:
+        raise ValueError("target archive init must be a single-link executable regular file")
+    try:
+        source = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError("target archive init: invalid UTF-8") from exc
+    if "\0" in source or "\r" in source:
+        raise ValueError("target archive init: malformed shell text")
+    if re.search(r"\bdisarm_watchdog\b", source):
+        raise ValueError("target archive init: legacy disarm-style watchdog unsupported; "
+                         "no repository-source fallback")
+    names = ("watchdog_bb", "watchdog_acknowledged", "watchdog_expired",
+             "arm_watchdog", "physical_topology_count")
+    positions = []
+    for name in names:
+        marker = name + "() {\n"
+        definitions = re.findall(r"(?m)^\s*" + name + r"\s*\(\s*\)\s*\{", source)
+        if len(definitions) != 1 or source.count("\n" + marker) != 1:
+            raise ValueError(f"target archive init: missing, duplicate or malformed {name}; "
+                             "requires current-boot ACK watchdog, no repository-source fallback")
+        positions.append(source.index("\n" + marker) + 1)
+    if positions != sorted(positions):
+        raise ValueError("target archive init: malformed watchdog function order")
+    block = source[positions[0]:positions[-1]]
+    for label, text in (("init", source), ("watchdog block", block)):
+        # Syntax only; do not run any command from the supplied archive on host.
+        checked = subprocess.run(["/bin/sh", "-n"], input=text, text=True,
+                                 capture_output=True, timeout=5)
+        if checked.returncode:
+            raise ValueError(f"target archive {label}: malformed shell syntax")
+    return block
 
 
 def main():
@@ -33,21 +74,25 @@ def main():
     args = parser.parse_args()
     if not __debug__:
         raise SystemExit("archive parser requires assertions enabled")
+    archive = runpy.run_path(str(REPO / "scripts/device/build-native-wifi-boot-initramfs.py"))
+    try:
+        target_blob = args.target_archive.read_bytes()
+        target = archive["entries"](gzip.decompress(target_blob))
+        watchdog_source = watchdog_functions(target)
+    except (OSError, EOFError, ValueError, AssertionError, zlib.error) as exc:
+        parser.error(f"target archive refused: {exc}")
+    # Refuse incompatible archives before creating evidence or invoking QEMU.
+    kernel = args.kernel.resolve(strict=True)
     args.output.mkdir(mode=0o700)  # Never replace an earlier experiment.
     output = args.output.resolve()
-    kernel = args.kernel.resolve(strict=True)
     runtime = REPO / "artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz"
     subprocess.run([str(REPO / "scripts/host/verify-qemu-systemd-runtime.sh"),
                     str(runtime)], check=True)
-    archive = runpy.run_path(str(REPO / "scripts/device/build-native-wifi-boot-initramfs.py"))
-    target_blob = args.target_archive.read_bytes()
-    target = archive["entries"](gzip.decompress(target_blob))
     base = archive["entries"](gzip.decompress(runtime.read_bytes()))
     image = subprocess.check_output([
         "podman", "image", "inspect", "--format", "{{.Id}}",
         "localhost/rog5-qemu-gate:ubuntu-24.04"], text=True).strip()
     results = []
-    watchdog_source = watchdog_functions()
     modes = ("systemd-ack", "systemd-no-ack", "systemd-stale-ack",
              "helper-unexecutable", "hang-init", "failed-init", "fd-open-failure")
     for mode in modes:
@@ -197,7 +242,10 @@ echo HANDOFF_SWITCH_ROOT
         results.append(dict(mode=mode, passed=passed, exit_code=result.returncode,
                             seconds=time.monotonic()-started))
         print(json.dumps(results[-1]), flush=True)
-    record = dict(scope="QEMU production watchdog handoff; ACK producer fixture, no phone/storage proof",
+    record = dict(scope="QEMU exact archive watchdog functions; harness init/ACK producer fixtures, "
+                        "not full deployed composition or phone/storage proof",
+                  watchdog_source_origin="target-archive:init",
+                  target_init_sha256=hashlib.sha256(target["init"][1]).hexdigest(),
                   watchdog_source_sha256=hashlib.sha256(watchdog_source.encode()).hexdigest(),
                   kernel_sha256=hashlib.sha256(kernel.read_bytes()).hexdigest(),
                   target_archive_sha256=hashlib.sha256(target_blob).hexdigest(),
