@@ -1,0 +1,98 @@
+#!/bin/sh
+# Passive, volatile post-handover evidence. Never changes acceptance or rollback.
+set -eu
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin LC_ALL=C
+
+bb() {
+	/run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox "$@"
+}
+
+query_status() {
+	bb timeout -s KILL 2 /usr/bin/systemctl show "$1" --no-pager \
+		-p LoadState -p ActiveState -p SubState -p Result -p ExecMainStatus
+}
+
+query_failure() {
+	# Helpers write /dev/kmsg: those entries have kernel transport, not the
+	# service's _SYSTEMD_UNIT. A unit-only journal query loses their failures.
+	bb timeout -s KILL 2 /usr/bin/journalctl -b -k --grep="^$1: FAIL " -n 1 \
+		--no-pager --output=cat 2>/dev/null
+}
+
+observe_unit() {
+	unit=$1
+	case $unit in
+		p2) service=rog5-p2-ready.service prefix=rog5-p2-attest ;;
+		state) service=rog5-persistent-state.service prefix=rog5-persistent-state ;;
+		identity) service=rog5-persistent-ssh-identity.service prefix=rog5-persistent-ssh ;;
+		sshd) service=rog5-early-sshd.service prefix=rog5-no-sshd-key-log ;;
+		*) return 1 ;;
+	esac
+	observation=error active=unknown sub=unknown result=unknown exit_status=unknown
+	if status=$(query_status "$service" 2>/dev/null); then
+		if printf '%s\n' "$status" | bb grep -Fxq 'LoadState=not-found'; then
+			observation=absent
+		else
+			# Reject missing/duplicate/unknown fields; never source command output.
+			values=$(printf '%s\n' "$status" | bb awk -F= '
+			$1 ~ /^(LoadState|ActiveState|SubState|Result|ExecMainStatus)$/ {
+				if (NF != 2 || seen[$1]++) bad=1; value[$1]=$2; next }
+			{ bad=1 }
+			END {
+				if (bad || value["LoadState"] != "loaded" ||
+				 value["ActiveState"] !~ /^[a-z][a-z-]*$/ ||
+				 value["SubState"] !~ /^[a-z][a-z-]*$/ ||
+				 value["Result"] !~ /^[a-z][a-z-]*$/ ||
+				 value["ExecMainStatus"] !~ /^[0-9]+$/) exit 1;
+				printf "%s %s %s %s\n", value["ActiveState"],value["SubState"],value["Result"],value["ExecMainStatus"]
+			}') || values=
+			if [ -n "$values" ] && [ "${#values}" -le 100 ]; then
+				IFS=' ' read -r active sub result exit_status <<EOF
+$values
+EOF
+				observation=present
+			fi
+		fi
+	fi
+	# Export only our helpers' explicit failure prefix, not arbitrary SSH logs.
+	journal=error failure_hex=
+	if failure=$(query_failure "$prefix"); then
+		journal=absent
+		failure_hex=$(printf '%s\n' "$failure" | bb grep -E "^$prefix: FAIL " |
+			bb tail -n 1 | bb head -c 80 | bb od -An -tx1 -v | bb tr -d ' \n')
+		[ -z "$failure_hex" ] || journal=present
+	fi
+	[ -n "$failure_hex" ] || failure_hex=none
+	printf '%s\n' 'format=rog5-startup-observation-v1' \
+		"target_release=$release" "boot_id=$boot" "sequence=$sequence" \
+		"unit=$unit" "observation=$observation" "active=$active" "sub=$sub" \
+		"result=$result" "exit=$exit_status" "journal=$journal" "failure_hex=$failure_hex"
+}
+
+# Entrypoint: systemd's RuntimeMaxSec is an independent ceiling on this loop.
+[ "$#" -eq 1 ] || exit 1
+case $1 in ''|*[!0-9]*) exit 1 ;; esac
+[ "$1" -ge 1 ] && [ "$1" -le 3600 ] || exit 1
+budget=$1
+release=$(bb cat /proc/sys/kernel/osrelease)
+boot=$(bb cat /proc/sys/kernel/random/boot_id)
+printf '%s\n' "$release" | bb grep -Eq '^[0-9a-zA-Z.+_-]{1,80}$' || exit 1
+printf '%s\n' "$boot" | bb grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || exit 1
+IFS=' ' read -r started _ </proc/uptime
+deadline=$((${started%%.*} + budget))
+sequence=0
+while [ "$sequence" -lt 999 ]; do
+	for unit in p2 state identity sshd; do
+		[ "$sequence" -lt 999 ] || exit 0
+		IFS=' ' read -r now _ </proc/uptime
+		[ "${now%%.*}" -lt "$deadline" ] || exit 0
+		sequence=$((sequence + 1))
+		payload=$(observe_unit "$unit") || continue
+		[ "${#payload}" -lt 512 ] || continue
+		printf '%s\n' "$payload" | bb timeout -s KILL 2 \
+			/run/initramfs/lib/ld-musl-aarch64.so.1 \
+			/run/initramfs/bin/busybox nc -n -w 1 -s 169.254.77.2 \
+			169.254.77.1 8079 >/dev/null 2>&1 || true
+	done
+	bb sleep 2
+done

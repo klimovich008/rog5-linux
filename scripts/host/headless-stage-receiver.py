@@ -47,6 +47,32 @@ def stage_dict(stage):
     return {k: getattr(stage, k) for k in ('boot_id', 'sequence', 'stage', 'state', 'detail')}
 
 
+def parse_startup_observation(payload, release):
+    fields = ('format','target_release','boot_id','sequence','unit','observation',
+              'active','sub','result','exit','journal','failure_hex')
+    if len(payload) > 512 or not payload.endswith(b'\n') or b'\r' in payload or b'\0' in payload:
+        raise ValueError('startup observation framing/bound')
+    try:
+        lines = payload.decode('ascii').splitlines()
+    except UnicodeDecodeError as error:
+        raise ValueError('startup observation encoding') from error
+    if len(lines) != len(fields) or any(not line.startswith(key+'=') for line,key in zip(lines,fields)):
+        raise ValueError('startup observation fields')
+    record = {key:line.split('=',1)[1] for key,line in zip(fields,lines)}
+    if (record['format'] != 'rog5-startup-observation-v1' or record['target_release'] != release
+            or not STAGES.BOOT_ID.fullmatch(record['boot_id'])
+            or not re.fullmatch(r'[1-9][0-9]{0,2}',record['sequence'])
+            or record['unit'] not in {'p2','state','identity','sshd'}
+            or record['observation'] not in {'present','absent','error'}
+            or record['journal'] not in {'present','absent','error'}
+            or any(not re.fullmatch(r'[a-z][a-z-]{0,31}',record[k]) for k in ('active','sub','result'))
+            or not re.fullmatch(r'unknown|[0-9]{1,3}',record['exit'])
+            or not re.fullmatch(r'none|(?:[0-9a-f]{2}){1,80}',record['failure_hex'])):
+        raise ValueError('startup observation content')
+    record['sequence'] = int(record['sequence'])
+    return record
+
+
 class Receiver:
     def __init__(self, release, emit, *, host=ADDRESS, port=PORT, peer=PEER, client_seconds=2):
         self.release, self.emit, self.peer = release, emit, peer
@@ -57,6 +83,7 @@ class Receiver:
         self.listener.setblocking(False)
         self.clients = {}
         self.last = None
+        self.startup = None
         self.failed = False
         self.mode, self.interface = 'absent', None
         self.probe = None
@@ -84,20 +111,32 @@ class Receiver:
         if mode == 'mismatch':
             self.failed = True
         self.emit(dict(event='transport', mode=mode, interface=interface,
-                       last_stage=stage_dict(self.last)))
+                       last_stage=stage_dict(self.last), last_startup=self.startup))
 
     def record(self, payload, peer):
         if peer != self.peer or self.mode != 'target':
             self.emit(dict(event='rejected-peer-or-transport', peer=peer, mode=self.mode))
             return
         try:
+            if payload.startswith(b'format=rog5-startup-observation-v1\n'):
+                current = parse_startup_observation(payload, self.release)
+                boot = self.last.boot_id if self.last else (self.startup or {}).get('boot_id')
+                if boot and current['boot_id'] != boot:
+                    raise ValueError('startup observation changed boot')
+                if self.startup and current['sequence'] <= self.startup['sequence']:
+                    raise ValueError('startup observation sequence regressed/repeated')
+                self.startup = current
+                self.emit(dict(event='startup-observation', observation=current, authenticated=False))
+                return
             current = STAGES.parse_stage_record(payload, expected_release=self.release)
+            if self.startup and current.boot_id != self.startup['boot_id']:
+                raise ValueError('stage changed observed startup boot')
             if self.last:
                 STAGES.require_stage_successor(self.last, current)
             self.last = current
             self.failed |= current.state == 'FAIL'
             self.emit(dict(event='stage', stage=stage_dict(current), authenticated=False))
-        except STAGES.PersistentCycleError as error:
+        except (STAGES.PersistentCycleError, ValueError) as error:
             self.failed = True
             self.emit(dict(event='invalid-stage', reason=str(error), raw_hex=payload.hex()))
 
@@ -320,7 +359,8 @@ def main():
                 receiver.poll()
             result = dict(status='FAIL' if receiver.failed or log_full else 'NOT RUN',
                           reason='capture is evidence, not authenticated device qualification',
-                          last_stage=stage_dict(receiver.last), duration_seconds=time.monotonic()-started)
+                          last_stage=stage_dict(receiver.last), last_startup=receiver.startup,
+                          duration_seconds=time.monotonic()-started)
             (args.output/'result.json').write_text(json.dumps(result, indent=2)+'\n')
             emit(dict(event='capture-ended', **result))
             return 1 if receiver.failed or log_full else 0
