@@ -33,7 +33,7 @@ SEALED = load('rescue_sealed', 'scripts/host/run-sealed-busybox.py')
 ACCEPTANCE = load('rescue_acceptance', 'scripts/host/release-acceptance.py')
 FUNCTIONS = ('verify_exact_regular', 'prepare_volatile_root_account',
              'prepare_volatile_ssh_policy', 'verify_systemd_update_marker',
-             'prepare_volatile_systemd_state', 'prepare_runtime')
+             'prepare_volatile_systemd_state', 'prepare_package_keyring', 'prepare_runtime')
 MARKERS = ('PREPARE', 'SYSTEMD_EXEC', 'VOLATILE_HOST_KEY', 'SSH_POLICY', 'UNIT_VERIFY')
 
 
@@ -68,6 +68,8 @@ def archive_parameters(members):
     for name, source in (
         ('usr/local/sbin/rog5-persistent-state', 'initramfs/persistent-service-state'),
         ('usr/local/sbin/rog5-persistent-ssh-identity', 'initramfs/persistent-ssh-identity'),
+        ('usr/local/sbin/rog5-persistent-keyring', 'initramfs/persistent-package-keyring'),
+        ('usr/local/share/rog5/rog5-package-keyring.service', 'configs/systemd/rog5-package-keyring.service'),
     ):
         member = members.get(name)
         if member is None or member[1] != (REPO/source).read_bytes():

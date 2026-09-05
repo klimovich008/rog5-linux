@@ -73,6 +73,8 @@ class CompositionTest(unittest.TestCase):
             'sbin/rog5-load-persistent-power-usb': item((M.REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes()),
             'usr/local/sbin/rog5-persistent-state': item((M.REPO/'initramfs/persistent-service-state').read_bytes()),
             'usr/local/sbin/rog5-persistent-ssh-identity': item((M.REPO/'initramfs/persistent-ssh-identity').read_bytes()),
+            'usr/local/sbin/rog5-persistent-keyring': item((M.REPO/'initramfs/persistent-package-keyring').read_bytes()),
+            'usr/local/share/rog5/rog5-package-keyring.service': item((M.REPO/'configs/systemd/rog5-package-keyring.service').read_bytes()),
         }
 
     def test_paired_archive_and_stale_producer_consumer(self):
@@ -84,7 +86,9 @@ class CompositionTest(unittest.TestCase):
             with self.subTest(member=name), self.assertRaises(ValueError):
                 M.archive_parameters(changed)
         for name in ('usr/local/sbin/rog5-persistent-state',
-                     'usr/local/sbin/rog5-persistent-ssh-identity'):
+                     'usr/local/sbin/rog5-persistent-ssh-identity',
+                     'usr/local/sbin/rog5-persistent-keyring',
+                     'usr/local/share/rog5/rog5-package-keyring.service'):
             changed = copy.deepcopy(members)
             del changed[name]
             with self.subTest(missing=name), self.assertRaises(ValueError):

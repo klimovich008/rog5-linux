@@ -1915,6 +1915,32 @@ EOF
 	return 0
 }
 
+prepare_package_keyring() {
+	# Stage in /run only; initialization runs after qualified service state.
+	keyring_helper=/usr/local/sbin/rog5-persistent-keyring
+	keyring_unit=/usr/local/share/rog5/rog5-package-keyring.service
+	[ -f "$keyring_helper" ] && [ ! -L "$keyring_helper" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$keyring_helper")" = 0:0:755:1 ] || return 1
+	[ -f "$keyring_unit" ] && [ ! -L "$keyring_unit" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$keyring_unit")" = 0:0:644:1 ] || return 1
+	for path in /run/rog5-persistent-keyring \
+		/run/systemd/system/rog5-package-keyring.service \
+		/run/systemd/system/archlinux-keyring-wkd-sync.service.d \
+		/run/systemd/system/multi-user.target.wants/rog5-package-keyring.service; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	mkdir -p /run/systemd/system/multi-user.target.wants || return 1
+	mkdir /run/systemd/system/archlinux-keyring-wkd-sync.service.d || return 1
+	cp -p "$keyring_helper" /run/rog5-persistent-keyring || return 1
+	cp -p "$keyring_unit" /run/systemd/system/rog5-package-keyring.service || return 1
+	printf '%s\n' '[Unit]' 'Requires=rog5-package-keyring.service' \
+		'After=rog5-package-keyring.service' \
+		>/run/systemd/system/archlinux-keyring-wkd-sync.service.d/10-package-trust.conf || return 1
+	chmod 0644 /run/systemd/system/archlinux-keyring-wkd-sync.service.d/10-package-trust.conf || return 1
+	ln -s ../rog5-package-keyring.service \
+		/run/systemd/system/multi-user.target.wants/rog5-package-keyring.service
+}
+
 prepare_runtime() {
 	exitrd=/run/initramfs
 	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
@@ -2089,6 +2115,7 @@ WantedBy=sysinit.target
 EOF
 	ln -s ../rog5-tailscaled.service \
 		/run/systemd/system/sysinit.target.wants/rog5-tailscaled.service
+	prepare_package_keyring || return 1
 	ln -s /dev/null /run/systemd/system/udisks2.service
 	if [ "$native_wifi_boot" -eq 1 ]; then
 		/run/rog5-native-wifi/runtime install || return 1
