@@ -84,10 +84,16 @@
         [
           "python3",
           "scripts/device/test-native-wifi-boot.py"
+        ],
+        [
+          "python3",
+          "scripts/host/test-build-persistent-wifi-selector.py",
+          "SelectorGeneration.test_cli_invalid_inputs_fail_before_output_in_normal_and_optimized_python",
+          "SelectorGeneration.test_cli_valid_output_and_authority_unchanged_under_optimization"
         ]
       ],
       "deadline_seconds": 30,
-      "pass_condition": "Real composer rejects malformed records/archive and wrong base/package/member hashes in normal and optimized interpreters; accepted output unchanged.",
+      "pass_condition": "Real composer and selector generator reject malformed metadata and wrong artifact/fallback hashes in normal and optimized interpreters; accepted output unchanged and invalid selector inputs rejected before new output.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
       "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
       "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
@@ -218,7 +224,10 @@
         ],
         [
           "python3",
-          "scripts/host/test-build-persistent-wifi-selector.py"
+          "scripts/host/test-build-persistent-wifi-selector.py",
+          "SelectorGeneration.test_hashes_are_derived_after_manifest_creation",
+          "SelectorGeneration.test_cross_bundle_and_wrong_fallback_fail",
+          "SelectorGeneration.test_explicit_accepted_primary_can_be_the_next_fallback"
         ]
       ],
       "deadline_seconds": 40,

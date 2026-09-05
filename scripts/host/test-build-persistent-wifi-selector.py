@@ -2,7 +2,11 @@
 
 import importlib.util
 import hashlib
+import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -14,6 +18,63 @@ SELECTOR = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(SELECT
 
 
 class SelectorGeneration(unittest.TestCase):
+    def run_cli(self, root, optimized=False, mutation=''):
+        descriptor = self.descriptor()
+        primary = self.manifest('persistent-native-root-wifi')
+        fallback = self.manifest('persistent-native-root-v11')
+        fallback_hash = hashlib.sha256(fallback).hexdigest()
+        if mutation == 'fallback-hash': fallback_hash = '0'*64
+        if mutation == 'cross-bundle': descriptor = self.descriptor('other')
+        if mutation == 'header': primary = primary.replace(b'rog5-recovery-bundle-v2', b'wrong-bundle-v2')
+        if mutation == 'profile': primary = primary.replace(b'profile=persistent-root-ro-v1', b'profile=wrong')
+        if mutation == 'duplicate': primary += b'bundle=persistent-native-root-wifi\n'
+        if mutation == 'missing': primary = primary.replace(b'kernel_size=1\n', b'')
+        if mutation == 'crlf': primary = primary.replace(b'\n', b'\r\n')
+        if mutation == 'timeout': primary = primary.replace(b'rollback_timeout=900', b'rollback_timeout=1')
+        if mutation == 'target': primary = primary.replace(b'target_id=persistent-native-root-wifi', b'target_id=other')
+        if mutation == 'hash-shape': primary = primary.replace(b'kernel_sha256='+b'1'*64, b'kernel_sha256=invalid')
+        if mutation == 'size-shape': primary = primary.replace(b'kernel_size=1', b'kernel_size=-1')
+        if mutation == 'oversize': primary = primary.replace(b'root_generation=none', b'root_generation='+b'x'*4096)
+        for name, data in (('descriptor', descriptor), ('primary', primary), ('fallback', fallback)):
+            (root/name).write_bytes(data)
+        if mutation == 'symlink':
+            (root/'primary').rename(root/'source')
+            (root/'primary').symlink_to(root/'source')
+        if mutation == 'hardlink': os.link(root/'primary', root/'alias')
+        if mutation == 'existing-record': (root/'selector.json').write_bytes(b'preserved')
+        command = [sys.executable, *(['-O'] if optimized else []), '-B', str(SOURCE),
+                   '--trial-descriptor', str(root/'descriptor'), '--primary-manifest', str(root/'primary'),
+                   '--fallback-manifest', str(root/'fallback'), '--expected-fallback-manifest-sha256',
+                   fallback_hash, '--output', str(root/'selector')]
+        return subprocess.run(command, capture_output=True, timeout=5)
+
+    def test_cli_invalid_inputs_fail_before_output_in_normal_and_optimized_python(self):
+        for mutation in ('fallback-hash', 'cross-bundle', 'header', 'profile', 'duplicate',
+                         'missing', 'crlf', 'timeout', 'target', 'hash-shape', 'size-shape',
+                         'oversize', 'symlink', 'hardlink', 'existing-record'):
+            for optimized in (False, True):
+                with self.subTest(mutation=mutation, optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    result = self.run_cli(root, optimized, mutation)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertFalse(os.path.lexists(root/'selector'))
+                    if mutation == 'existing-record':
+                        self.assertEqual((root/'selector.json').read_bytes(), b'preserved')
+                    else:
+                        self.assertFalse(os.path.lexists(root/'selector.json'))
+
+    def test_cli_valid_output_and_authority_unchanged_under_optimization(self):
+        outputs = []
+        for optimized in (False, True):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_cli(root, optimized)
+                self.assertEqual(result.returncode, 0, result.stderr.decode())
+                record = json.loads((root/'selector.json').read_text())
+                self.assertTrue(record['authority'].startswith('none;'))
+                outputs.append(((root/'selector').read_bytes(), record))
+        self.assertEqual(outputs[0], outputs[1])
+
     def manifest(self, bundle):
         return (
             'format=rog5-recovery-bundle-v2\n'
@@ -54,11 +115,11 @@ class SelectorGeneration(unittest.TestCase):
         original = SELECTOR.FALLBACK_MANIFEST_SHA256
         SELECTOR.FALLBACK_MANIFEST_SHA256 = hashlib.sha256(fallback).hexdigest()
         self.addCleanup(setattr, SELECTOR, 'FALLBACK_MANIFEST_SHA256', original)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             SELECTOR.generate(self.descriptor('other'),
                               self.manifest('persistent-native-root-wifi'),
                               fallback)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             SELECTOR.generate(self.descriptor(),
                               self.manifest('persistent-native-root-wifi'),
                               self.manifest('not-v11'))

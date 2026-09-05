@@ -55,8 +55,8 @@ A 600.615 s observation has 61 Full/Good 100%, 30°C samples, 8.632–8.635 V,
 0 µA, unchanged charge counter and USB online. H03 remains BLOCKED until
 full-battery regulation/noise criteria are declared before another run.
 
-Latest read-only continuity: same V5 boot at uptime 12372 s, core services active,
-100% Full/Good, 29.9°C, 8.628 V, 0 µA, USB online. Only
+Latest read-only continuity: same V5 boot at uptime 14053 s, core services active,
+100% Full/Good, 29.9°C, 8.627 V, 0 µA, USB online. Only
 `archlinux-keyring-wkd-sync.service` is failed: its bootstrap wiring fix is not
 deployed. Do not mask this failure or call it a kernel defect. No formal
 combined soak, ordinary-reboot sequence or physical rollback qualification yet.
@@ -95,17 +95,25 @@ lower, using sealed BusyBox, real systemd/sshd and core/radio unit validation.
 All writes were disposable; input hashes/source stayed unchanged; cleanup passed.
 The default rescue checker still rejects radio-bearing archives. Radio module
 load/closure is explicitly NOT RUN in this runtime-only result, not a release PASS.
-Active tier 18.178 s; full local CI 485.604 s PASS; exact-head/merge CI pending.
+Published as `d6def104ecd57e410e5f330ed621ba302a39953f`: active tier 18.178 s;
+full local CI 485.604 s PASS. All four GitHub jobs, including exact-head,
+merge and QEMU, passed run 33996636085.
 Prior QEMU results bind
 the preceding archive, not an automatically green final release.
 
 ## Next action
 
-1. Finish remote CI for this tested userspace/composition checkpoint. Complete remaining
-   radio module and final wrapper/timing/transport composition qualification.
-2. Continue final archive/root and recovery qualification without rebuilding the
-   unchanged hardware set or retrying any consumed execution.
-   Do not rerun old passed suites on unchanged implementation.
+1. Finish the selector-validation checkpoint: normal/optimized Python now reject
+   malformed manifests, changed fallback hashes and unsafe input/output files.
+   Acceptance A02/D02 include the new behavior tests without duplicating them.
+   Frozen full local CI PASS 491.554 s; publication/exact-head CI next.
+2. Use the normal selector-backed recovery path for persistent trial qualification.
+   The embedded-RAM rescue path deliberately bypasses trial preparation; it cannot
+   acknowledge a fresh persistent trial. Read-only inspection found the installed
+   V10 selector and matching old healthy record unchanged. Preserve/archive that
+   state through the reviewed staging transaction, not a fabricated health ACK.
+   Complete final wrapper/timing/transport qualification using the unchanged
+   hardware set; do not retry consumed execution or repeat passed unchanged suites.
 3. Use fresh reviewed execution identity for physical server qualification:
    Wi-Fi/USB transfer and restart, durable scratch, three ordinary boots,
    powered-off start, 60-minute combined soak and isolated failed-boot recovery.
