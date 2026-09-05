@@ -216,7 +216,10 @@ source = Path(sys.argv[1]).read_text()
 def function(name, indent=""):
     start = source.index(indent + name + "() {\n")
     end = source.index("\n" + indent + "}\n", start)
-    return source[start:end + len(indent) + 3]
+    # Dash rejects a function named '[' (Bash/ash accept it). Redirect only
+    # bracket command tokens in extracted code to the fixture predicate;
+    # preserve case globs such as /dev/loop[0-9]* and the production source.
+    return source[start:end + len(indent) + 3].replace("[ ", "fixture_test ")
 
 
 nodes = " ".join(["/fixture/sdz"] + [f"/fixture/sdz{i}" for i in range(1, 117)])
@@ -239,10 +242,10 @@ state_mount_created=1
 loop_device=/dev/loop7
 resolve_exact_devices() { userdata=/dev/sdz23; userdata_disk=/dev/sdz; }
 resolve_userdata_owner() { userdata_owner=state; }
-[() {
+fixture_test() {
     if command [ "$1" = '!' ]; then
         shift
-        if [ "$@"; then return 1; else return 0; fi
+        if fixture_test "$@"; then return 1; else return 0; fi
     fi
     case "$1" in
         -e|-b|-f) case "$2" in /fixture/*|/dev/sdz*) return 0 ;; *) return 1 ;; esac ;;
@@ -369,6 +372,13 @@ try:
         ], tuple(fds)))
     failures = []
     for label, runner, inherited in runners:
+        for setup, body in ((fixture, functions), (lifecycle_fixture, lifecycle_functions)):
+            syntax = subprocess.run(
+                runner + ["-n", "-c", setup + "\n" + body],
+                capture_output=True, text=True, timeout=10, pass_fds=inherited,
+            )
+            if syntax.returncode:
+                raise SystemExit(f"{label} fixture syntax failed: {syntax.stderr[-2000:]}")
         started = time.monotonic()
         for action, failure, initial, expected in cases:
             call = "if stop_state; then exit 0; else exit $?; fi"
@@ -389,7 +399,8 @@ try:
             )
             if not all(checks):
                 failures.append(f"{label} {action}/{failure}/exit{initial}: "
-                                f"expected {expected}, got {result.returncode}; checks={checks}")
+                                f"expected {expected}, got {result.returncode}; checks={checks}; "
+                                f"stderr={result.stderr[-2000:]!r}")
         print(f"{label}: {len(cases)} relock caller cases in {time.monotonic() - started:.3f}s", flush=True)
         started = time.monotonic()
         for name, window, call, expected, cleanup in lifecycle_cases:
@@ -409,7 +420,8 @@ try:
             ) if cleanup else not any(token in result.stderr for token in mutations)
             if result.returncode != expected or not cleanup_ok or "UNEXPECTED_IO" in result.stderr:
                 failures.append(f"{label} lifecycle/{name}: expected {expected}, "
-                                f"got {result.returncode}; cleanup_ok={cleanup_ok}")
+                                f"got {result.returncode}; cleanup_ok={cleanup_ok}; "
+                                f"stderr={result.stderr[-2000:]!r}")
         print(f"{label}: {len(lifecycle_cases)} lifecycle cases in {time.monotonic() - started:.3f}s", flush=True)
     if failures:
         raise SystemExit("\n".join(failures))

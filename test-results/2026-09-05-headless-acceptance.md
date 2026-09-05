@@ -566,3 +566,26 @@ Final combined full local CI passed in **479.193 s**, ending with
 `94ba32cab5cffeb47607234d7cadfefcaf141eb9a2b917201516e37d5911f6e3`;
 source did not change during execution. Only result documentation is added
 afterward. Publication/exact-head CI and live qualification remain separate.
+
+## Publication portability correction and fastboot recovery
+
+Published `5ee350c5ce9d36da3d08ef0aa7696b91021e3125` failed both head-exact and
+merge-compat in GitHub run 33963548732; publication and QEMU were skipped.
+Ubuntu Dash rejects the fixture's function named `[` with `Bad function name`.
+The host Bash and sealed BusyBox runs had accepted that test-only syntax.
+All 26 host cases reproduced the CI failure in the existing read-only Ubuntu
+container, with networking disabled. This is R3/R7, not a phone/kernel defect.
+
+The fixture now redirects bracket command tokens in extracted functions to a
+portable named predicate; production source and case globs are unchanged.
+Each runtime syntax-checks its complete fixture before running cases, and failed
+cases now include bounded stderr. All 26 Dash cases pass (1.324 + 0.929 s),
+as do the 52 host/sealed-ARM cases (3.062 + 2.074 + 14.324 + 13.490 s).
+Active tier passes in **12.266 s**. No unchanged-production full local rerun;
+the corrected exact-head/merge run remains required before candidate admission.
+
+After the operator reconnect/recovery, read-only checks identify exact serial,
+product `lahaina` and canonical side topology, active B, **8523 mV**, SOC=yes.
+No boot, flash, claim, slot change or storage access occurred. The black screen
+and earlier hub loss do not establish a target crash. Authenticated SSH,
+temperature and sustained charging remain unverified.
