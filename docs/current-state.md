@@ -158,7 +158,9 @@ geometry, all-storage RO, signature, Haven and single-execute checks.
 The corrected target is now signed and exact sealed ARM verification passes.
 The RAM wrapper twins are byte-identical (`dd96e3aa…`), built without a kernel
 recompile. Its canonical registry row is `headless-acceptance-rescue-v1`;
-packaging/registry inclusion grants no execution. It is not consumed or deployed.
+packaging/registry inclusion grants no execution. It was subsequently consumed
+for one RAM-only trial: UFS/root handover passed, but the expected pinned SSH
+identity did not appear within 300 seconds. **Never retry this candidate.**
 
 Recovery correction `0afbc63e` passed full local CI (478.334 s) and GitHub
 33940190642 exact-head/merge/publication/QEMU. The current host capture and
@@ -169,7 +171,22 @@ last stage through disconnect. A real 2.699 s host rehearsal cleaned up all
 owned changes; a disposable veth test proved the ARP/direct-route receive path.
 These are host tests, not a phone or final-release H01 PASS.
 
-Next: freeze/publish capture and registry closure, bind the exact wrapper and
-live receiver receipt, then perform one admitted charging/SSH recovery attempt.
-No retry after ambiguous execution. Remaining acceptance fixes follow restored
-access, with display optional. No kernel defect is yet established.
+Capture/closure checkpoint `eef710f7` passed full local CI (485.693 s) and
+GitHub 33942832456 (exact-head, merge, publication, QEMU). Its RAM-only trial
+reached `switch-root PASS` and an SSH listener. The listener continued offering
+a different key; strict verification was never bypassed. No authenticated
+health/charging result exists. The target remained enumerated beyond the
+900-second target watchdog interval: this does not distinguish readiness-based
+disarm from watchdog failure. The full 1380.783-second capture completed and
+owned route/firewall/profile/address cleanup passed. The phone remained in the
+target gadget mode, without pinned SSH. Physical fastboot re-entry is requested;
+do not issue another execution against this consumed record.
+
+Independent offline regressions now expose valid Ed25519 key comments rejected
+by fixed 399/92-byte metadata checks, and slow health clients starving other
+requests. Source fixes pass focused tests; the key fix also passes exact sealed
+BusyBox plus retained Arch ARM ssh-keygen. Neither is deployed. The retained
+Arch hostname is `alarm`, so key-length rejection is **not proven** to explain
+the live mismatch. Do not issue a blind key-only successor: obtain the exact
+post-handover P2/state/identity failure through the next scoped diagnostic path.
+Display remains optional; no kernel defect is established.

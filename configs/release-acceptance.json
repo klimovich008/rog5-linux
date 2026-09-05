@@ -327,7 +327,7 @@
         "python3",
         "loopback port 0"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/device/test-rog5-healthd.py"]],
       "deadline_seconds": 30,
       "pass_condition": "Healthy client responds within 1s while idle and 0.2s-per-byte trickle clients remain; resource limits terminate slow clients.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -337,7 +337,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Existing idle-only test does not cover demonstrated slow-client starvation."
+      "blocker": ""
     },
     {
       "id": "G01",

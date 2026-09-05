@@ -37,15 +37,23 @@ bb() {
 verify_key_pair() {
 	private=$1
 	public=$2
+	# OpenSSH comments (including the boot hostname) change encoded lengths,
+	# not key identity. Keep bounded inputs and exact ownership/mode/link gates.
+	private_size=$(bb stat -c %s "$private" 2>/dev/null) || return 1
+	public_size=$(bb stat -c %s "$public" 2>/dev/null) || return 1
+	[ "$private_size" -ge 256 ] && [ "$private_size" -le 4096 ] &&
+		[ "$public_size" -ge 80 ] && [ "$public_size" -le 1024 ] || return 1
 	[ -f "$private" ] && [ ! -L "$private" ] &&
 		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$private")" = \
-			0:0:600:399:1 ] || return 1
+			"0:0:600:$private_size:1" ] || return 1
 	[ -f "$public" ] && [ ! -L "$public" ] &&
 		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$public")" = \
-			0:0:644:92:1 ] || return 1
+			"0:0:644:$public_size:1" ] || return 1
 	derived=$(/usr/bin/ssh-keygen -y -f "$private" |
 		bb awk '{ print $1 " " $2 }') || return 1
-	published=$(bb awk '{ print $1 " " $2 }' "$public") || return 1
+	case $derived in 'ssh-ed25519 '*) ;; *) return 1 ;; esac
+	published=$(bb awk 'NR != 1 || NF < 2 || $1 != "ssh-ed25519" { exit 1 }
+		{ print $1 " " $2 }' "$public") || return 1
 	[ "$derived" = "$published" ] || return 1
 	fingerprint=$(/usr/bin/ssh-keygen -E sha256 -lf "$public" |
 		bb awk '{ print $2 }') || return 1
