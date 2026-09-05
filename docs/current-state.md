@@ -194,9 +194,16 @@ recovers fixed helper error text without a journal, isolates optional display
 dependencies, preserves cleanup failure status and validates shutdown's exact
 write window separately from startup's all-RO gate. All 52 focused shutdown
 cases pass on host and sealed ARM BusyBox; combined full local CI passed in
-479.193 s. These fixes are not deployed. Next: publish that tested checkpoint,
-recover exact transport, and identify the failed service-state predicate before
-another successor. Stock A, signed V11 and all existing backups are preserved.
+479.193 s. These fixes are not deployed. Published `5ee350c5` failed both GitHub
+head/merge jobs (33963548732): Dash rejected the shutdown test fixture's `[()`
+function before executing its cases. The fixture-only correction passes all
+26 cases in the existing Ubuntu container and all 52 host/sealed-BusyBox cases;
+active passes in 12.266 s. No production helper or guard changed in this fix.
+The reconnected phone is now exact fastboot at `1-1.2`, product `lahaina`,
+slot B, 8.523 V and SOC=yes. These are fresh fastboot readings, not temperature
+or sustained charging proof. No reboot or claim consumption followed.
+Next: publish the CI correction and identify the failed service-state predicate
+before another successor. Stock A, signed V11 and all backups are preserved.
 
 Preserve the old unused fallback-only rescue as evidence, but do not execute it:
 its unchanged signed V11 watchdog predates the corrected handover predicate.
