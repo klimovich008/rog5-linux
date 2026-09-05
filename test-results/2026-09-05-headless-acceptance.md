@@ -345,3 +345,25 @@ clean published release. No kernel/archive rebuild was needed for this host
 fix. Both host-only loop mounts were read-only/norecovery, in private namespaces,
 and removed afterward. No phone contact, storage mutation, signing, candidate
 issuance or boot. Final wrapper/deployed timing/module-load A01 checks remain.
+
+Host-only checker fix `df871166458599e61d02b6732147b70077fade64` passed all
+GitHub **33946155200** jobs. No unchanged full local suite was rerun for it.
+
+**F02 restart preparation defect:** the real `prepare_network` function refused
+every second invocation with `network already prepared`, preventing WPA's
+ExecStartPre from succeeding on restart. A real-file regression failed first
+(0.283 s). Repeated preparation now validates existing directory/file ownership,
+modes, regular-file/link status, exact inventory, DHCP config emptiness and
+unchanged private-config bytes. It never replaces changed secrets or repairs
+ambiguous partial state. The same qualified interface is brought up again;
+radio/module activation is not part of this function.
+
+Three real-file test cases (with hostile subcases) pass in **0.501 s**; 28
+existing Wi-Fi boot tests pass in **4.938 s**. Exact sealed BusyBox replay passes
+in **14.375 s**, using private writable fixture directories and fake hardware,
+mount and service endpoints. The active tier passes in **11.090 s**. No key or
+network credential is used beyond disposable fixture text. These results do
+not prove a real systemd restart transaction, DHCP recovery or live SSH, so F02
+remains BLOCKED and the acceptance criterion is unchanged. No kernel/archive
+rebuild or physical attempt; the prepared headless archive has no Wi-Fi payload
+and is unaffected by this userspace source change.

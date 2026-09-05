@@ -219,3 +219,12 @@ Two fail-first regressions pass; exact ARM/root replay passes (31.786 s), using
 unchanged archive bytes. This does not verify deployed timeout binding or
 complete A01. Read-only host loop mounts were cleaned up. No successor is signed
 or issued, and no further phone boot has occurred.
+
+Host composition fix `df871166` passed all GitHub 33946155200 jobs. The next
+acceptance-driven source fix addresses WPA restart preparation: repeated
+ExecStartPre previously failed on its existing directory. Exact unchanged
+runtime credentials can now be reused, with real owner/mode/link/content checks;
+changed secrets and partial state are refused without overwrite. Only the same
+interface link-up is reasserted, not hardware activation. Real-file and sealed
+BusyBox regressions pass. Full F02 remains BLOCKED on the actual systemd
+WPA/DHCP/address/SSH restart transaction; this source fix is not deployed.
