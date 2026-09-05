@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import time
 
@@ -23,10 +24,17 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def require(condition, message):
+    # These validate release inputs, not programmer-only assertions: -O must
+    # enforce the same contract as normal Python.
+    if not condition:
+        raise ValueError(message)
+
+
 def compose(base, expected_base, descriptor, helper):
-    assert sha(base) == expected_base
+    require(sha(base) == expected_base, 'base hash mismatch')
     trial = ARCHIVE.parse_trial_descriptor(descriptor)
-    assert sha(helper) == ARCHIVE.TRIAL_HELPER_SHA256
+    require(sha(helper) == ARCHIVE.TRIAL_HELPER_SHA256, 'trial helper hash mismatch')
     original = ARCHIVE.entries(gzip.decompress(base))
     members = {name: (fields.copy(), data) for name, (fields, data) in original.items()}
     prefix = 'rog5-native-wifi/'
@@ -34,11 +42,12 @@ def compose(base, expected_base, descriptor, helper):
     rollback_unit = prefix+'units/rog5-wifi-boot-rollback.service'
     for required in (prefix+'automatic', prefix+'runtime', radio_unit, rollback_unit,
                      prefix+'boot-files.sha256'):
-        assert required in members
-    assert members[prefix+'automatic'][1] == b'rog5-native-wifi-boot-v1\n'
+        require(required in members, 'missing member: '+required)
+    require(members[prefix+'automatic'][1] == b'rog5-native-wifi-boot-v1\n',
+            'incompatible automatic marker')
     for absent in (prefix+'trial-descriptor', prefix+'trial-state',
                    prefix+'healthy', prefix+'units/rog5-wifi-healthy.service'):
-        assert absent not in members
+        require(absent not in members, 'initial trial member already exists: '+absent)
 
     ARCHIVE.replace(members, prefix+'runtime',
                     (REPO/'initramfs/native-wifi/runtime').read_bytes())
@@ -52,7 +61,7 @@ def compose(base, expected_base, descriptor, helper):
         if line and not line.startswith('#')
     )
     radio = (REPO/'initramfs/native-wifi/units/rog5-wifi-radio.service').read_bytes()
-    assert radio.count(b'@OUTER_SECONDS@') == 1
+    require(radio.count(b'@OUTER_SECONDS@') == 1, 'radio timeout template mismatch')
     ARCHIVE.replace(
         members,
         radio_unit,
@@ -64,7 +73,7 @@ def compose(base, expected_base, descriptor, helper):
     persistent = REPO/'initramfs/native-wifi-persistent'
     for path in sorted(persistent.rglob('*')):
         if path.is_file():
-            assert not path.is_symlink()
+            require(not path.is_symlink(), 'symlink source: '+str(path))
             ARCHIVE.add(members, prefix+str(path.relative_to(persistent)),
                         path.read_bytes(),
                         stat.S_IFREG | (0o755 if os.access(path, os.X_OK) else 0o644))
@@ -77,9 +86,9 @@ def compose(base, expected_base, descriptor, helper):
     for name, value in original.items():
         if name not in (prefix+'runtime', radio_unit, rollback_unit,
                         prefix+'boot-files.sha256'):
-            assert members[name] == value
+            require(members[name] == value, 'unexpected member change: '+name)
     packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
-    assert ARCHIVE.entries(gzip.decompress(packed)) == members
+    require(ARCHIVE.entries(gzip.decompress(packed)) == members, 'archive round-trip mismatch')
     return packed, {
         'base_sha256': expected_base,
         'sha256': sha(packed),
@@ -95,9 +104,9 @@ def compose(base, expected_base, descriptor, helper):
 
 def compose_successor(base, expected_base, descriptor, helper):
     """Replace only consumed trial identity in an already qualified archive."""
-    assert sha(base) == expected_base
+    require(sha(base) == expected_base, 'base hash mismatch')
     trial = ARCHIVE.parse_trial_descriptor(descriptor)
-    assert sha(helper) == ARCHIVE.TRIAL_HELPER_SHA256
+    require(sha(helper) == ARCHIVE.TRIAL_HELPER_SHA256, 'trial helper hash mismatch')
     original = ARCHIVE.entries(gzip.decompress(base))
     members = {name: (fields.copy(), data) for name, (fields, data) in original.items()}
     prefix = 'rog5-native-wifi/'
@@ -110,11 +119,11 @@ def compose_successor(base, expected_base, descriptor, helper):
                      helper_name, prefix+'healthy',
                      prefix+'units/rog5-wifi-healthy.service', radio_name, probe_name,
                      checks_name):
-        assert required in members
+        require(required in members, 'missing member: '+required)
     previous = ARCHIVE.parse_trial_descriptor(members[descriptor_name][1])
-    assert previous['trial_id'] != trial['trial_id']
-    assert previous['primary_bundle'] != trial['primary_bundle']
-    assert members[helper_name][1] == helper
+    require(previous['trial_id'] != trial['trial_id'], 'successor reuses trial identity')
+    require(previous['primary_bundle'] != trial['primary_bundle'], 'successor reuses bundle identity')
+    require(members[helper_name][1] == helper, 'retained trial helper mismatch')
 
     ARCHIVE.replace(members, descriptor_name, descriptor)
     ARCHIVE.replace(members, radio_name,
@@ -130,9 +139,9 @@ def compose_successor(base, expected_base, descriptor, helper):
     changed = {descriptor_name, radio_name, probe_name, checks_name}
     for name, value in original.items():
         if name not in changed:
-            assert members[name] == value
+            require(members[name] == value, 'unexpected member change: '+name)
     packed = gzip.compress(ARCHIVE.encode(members), compresslevel=1, mtime=0)
-    assert ARCHIVE.entries(gzip.decompress(packed)) == members
+    require(ARCHIVE.entries(gzip.decompress(packed)) == members, 'archive round-trip mismatch')
     return packed, {
         'base_sha256': expected_base,
         'sha256': sha(packed),
@@ -155,9 +164,10 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--successor', action='store_true')
     args = parser.parse_args()
-    assert len(args.expected_base_sha256) == 64
+    require(re.fullmatch(r'[0-9a-f]{64}', args.expected_base_sha256), 'invalid base SHA-256')
     record = Path(str(args.output)+'.json')
-    assert not args.output.exists() and not record.exists()
+    require(not os.path.lexists(args.output) and not os.path.lexists(record),
+            'output already exists')
     started = time.monotonic()
     composer = compose_successor if args.successor else compose
     packed, result = composer(args.base.read_bytes(), args.expected_base_sha256,
