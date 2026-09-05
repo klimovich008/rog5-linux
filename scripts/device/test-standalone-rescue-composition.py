@@ -35,6 +35,9 @@ class RescueComposition(unittest.TestCase):
                              (REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes())
             self.assertIn(b'battery_health', built['sbin/rog5-load-persistent-power-usb'][1])
             self.assertIn(b'attested_boot_id=$watchdog_boot_id', built['init'][1])
+            self.assertIn(b'identity_boot_id=', built['init'][1])
+            self.assertEqual(built['usr/local/sbin/rog5-persistent-ssh-identity'][1],
+                             (REPO/'initramfs/persistent-ssh-identity').read_bytes())
             self.assertIn(b'attested_boot_id=$current_boot_id', built['usr/local/sbin/rog5-p2-attest'][1])
             for name in ('init', 'usr/local/sbin/rog5-p2-attest'):
                 self.assertNotIn(b'@EXPECTED_', built[name][1])

@@ -234,12 +234,28 @@ watchdog_acknowledged() {
 	[ "$ack_status_count" = 1 ] &&
 		watchdog_bb grep -Fxq 'status=PASS' "$ack" &&
 		[ "$ack_boot_count" = 1 ] &&
-		watchdog_bb grep -Fxq "attested_boot_id=$watchdog_boot_id" "$ack"
+		watchdog_bb grep -Fxq "attested_boot_id=$watchdog_boot_id" "$ack" || return 1
+	# P2 precedes persistent-state/SSH identity setup. Require its successful
+	# current-boot publication too; later SSH downtime must not undo this latch.
+	identity_ack=./rog5-persistent-ssh-identity.record
+	[ -f "$identity_ack" ] && [ ! -L "$identity_ack" ] || return 1
+	identity_metadata=$(watchdog_bb stat -c '%u:%g:%a:%h' "$identity_ack") || return 1
+	[ "$identity_metadata" = 0:0:444:1 ] || return 1
+	identity_size=$(watchdog_bb stat -c %s "$identity_ack") || return 1
+	[ "$identity_size" -gt 0 ] && [ "$identity_size" -le 256 ] || return 1
+	watchdog_bb awk -F= -v boot="$watchdog_boot_id" '
+	NF != 2 { exit 1 }
+	NR == 1 && $0 != "format=rog5-persistent-ssh-identity-v1" { exit 1 }
+	NR == 2 && $0 != "mode=seed" && $0 != "mode=load" { exit 1 }
+	NR == 3 && ($1 != "fingerprint" || length($2) != 50 ||
+		$2 !~ /^SHA256:[A-Za-z0-9+\/]+$/) { exit 1 }
+	NR == 4 && $0 != "identity_boot_id=" boot { exit 1 }
+	END { if (NR != 4) exit 1 }' "$identity_ack"
 }
 
 watchdog_expired() {
 	if watchdog_acknowledged; then
-		printf '%s\n' 'rog5-persistent-root: watchdog acknowledged by current-boot P2 readiness' >&8
+		printf '%s\n' 'rog5-persistent-root: watchdog acknowledged by current-boot P2 and SSH identity readiness' >&8
 		return 0
 	fi
 	# Do not depend on deleted absolute paths, an interpreter in the old root,

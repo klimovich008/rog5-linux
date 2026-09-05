@@ -143,16 +143,18 @@ class WatchdogArtifactTest(unittest.TestCase):
             source.parent.mkdir()
             source.write_bytes(SOURCE)
             seen = []
+            process_deadlines = []
 
             def simulated_run(command, **kwargs):
                 if command == ["/bin/sh", "-n"]:
                     return RUN(command, **kwargs)
                 if command[0] == "podman":
+                    process_deadlines.append(kwargs['timeout'])
                     mode = Path(kwargs["stdout"].name).stem
                     seen.append(mode)
                     log = "HANDOFF_SWITCH_ROOT\nHANDOFF_NEW_INIT\nHANDOFF_OLD_PATH_GONE\n"
                     if mode == "systemd-ack":
-                        log += ("watchdog acknowledged by current-boot P2 readiness\n"
+                        log += ("watchdog acknowledged by current-boot P2 and SSH identity readiness\n"
                                 "HANDOFF_OBSERVATION_END\n")
                     elif mode == "failed-init":
                         log += "can't execute '/missing-init'\nKernel panic\n"
@@ -172,7 +174,12 @@ class WatchdogArtifactTest(unittest.TestCase):
                     mock.patch.object(M.subprocess, "check_output", return_value="offline-image"), \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(M.main(), 0)
-            self.assertEqual(len(seen), 7)
+            self.assertEqual(set(seen), {'systemd-ack', 'systemd-no-ack',
+                'systemd-stale-ack', 'systemd-p2-only', 'systemd-stale-identity',
+                'helper-unexecutable', 'hang-init', 'failed-init', 'fd-open-failure'})
+            contract = json.loads((REPO/'configs/release-acceptance.json').read_text())
+            row = next(row for row in contract['tests'] if row['id'] == 'C01')
+            self.assertGreaterEqual(row['deadline_seconds'], sum(process_deadlines) + 50)
             block = M.watchdog_functions(target).encode()
             for mode in seen:
                 guest = ARCHIVE["entries"](gzip.decompress((output / (mode + ".cpio.gz")).read_bytes()))

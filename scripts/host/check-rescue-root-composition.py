@@ -63,6 +63,15 @@ def archive_parameters(members):
     power = members['sbin/rog5-load-persistent-power-usb'][1]
     if power != (REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes():
         raise ValueError('stale power safety helper')
+    # Pair the strengthened watchdog with its actual startup/identity producer;
+    # a fresh init plus a legacy producer would pass P2 but inevitably roll back.
+    for name, source in (
+        ('usr/local/sbin/rog5-persistent-state', 'initramfs/persistent-service-state'),
+        ('usr/local/sbin/rog5-persistent-ssh-identity', 'initramfs/persistent-ssh-identity'),
+    ):
+        member = members.get(name)
+        if member is None or member[1] != (REPO/source).read_bytes():
+            raise ValueError('unpaired startup helper: '+name)
     observer = members.get('usr/local/sbin/rog5-startup-observer')
     if observer is not None and observer[1] != (REPO/'initramfs/persistent-startup-observer').read_bytes():
         raise ValueError('stale startup observer')

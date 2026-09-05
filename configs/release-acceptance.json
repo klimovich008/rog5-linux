@@ -139,8 +139,8 @@
         "podman"
       ],
       "commands": [["python3", "scripts/host/test-qemu-watchdog-handoff.py", "--kernel", "{kernel}", "--target-archive", "{initramfs}", "--output", "{test_output}"]],
-      "deadline_seconds": 400,
-      "pass_condition": "Successful startup accepts only current boot readiness; absent/stale readiness and post-exec hang reset; failed-init/panic tested separately.",
+      "deadline_seconds": 500,
+      "pass_condition": "Successful startup requires current-boot P2 and persistent SSH identity readiness; P2 alone, absent/stale readiness and post-exec hang reset; latched identity does not require continued listener availability; failed-init/panic tested separately.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
       "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
       "cleanup": "Use existing isolated test cleanup; preserve failure logs.",

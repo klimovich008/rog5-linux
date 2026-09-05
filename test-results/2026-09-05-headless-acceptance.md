@@ -640,3 +640,51 @@ models that narrower condition. It must not be presented as recovery from
 failed persistent-state startup after P2. Close this readiness gap before
 another rescue while preserving current-boot identity and healthy late-restart
 behavior. This does not establish what caused the physical USB disappearance.
+
+## P2/identity watchdog readiness correction
+
+Focused independent read-only review confirmed the narrow fix; main review
+verified the actual producer ordering and consumer. The v2 observed combination
+(P2 pass, state failure, identity inactive) reproduced premature acknowledgment:
+twelve missing/stale/malformed/unsafe identity cases incorrectly passed before
+the fix (0.212 s). The old producer also accepted an invalid boot fixture and
+published no boot binding (fail-first 0.007 s).
+
+The existing identity record now appends a validated `identity_boot_id` after
+successful local key/reload/listener setup, preserving atomic no-overwrite
+publication. The watchdog requires P2 **and** an exact four-line, bounded,
+root-owned 0444 single-link identity record for its captured boot. It rejects
+legacy producers, metadata errors with plausible output, unknown/duplicate
+fields and stale identity. The record remains a latch: no systemctl/PID/listener
+liveness check can reboot a previously accepted boot solely for an SSH restart.
+This is local startup evidence, not host-authenticated SSH or full server health.
+The reset helper, SysRq path, panic behavior and phone deadlines are unchanged.
+
+Eight focused watchdog/publication tests pass (0.471 s), including preflight and
+failed-apply nonpublication, once-only publication and valid identity not
+rescuing invalid P2. Active passes in 12.641 s before composition follow-up.
+Read-only review found no actionable issue in the producer/consumer/test diff.
+
+The unsigned archive built in 3.183 s without recompiling a kernel; SHA-256
+`399e2b9099401961b9e0bbe51bbb5447d148a1b75a89310d397962e41460aded`.
+Its exact watchdog functions and BusyBox passed all **nine real QEMU handover
+cases in 133.550 s**: current P2+identity; missing P2; stale P2; P2 alone; stale
+identity; unexecutable helper reaching SysRq; post-exec hang; failed init/panic;
+and failed watchdog FD setup. The successful fixture has no running SSH listener.
+ACK producers remain fixtures; this does not replace C02 real service restart
+or physical recovery qualification. The nine subprocess bounds plus setup need
+500 s offline: a fail-first lattice test reproduced 400 < 9×50+50, and C01 now
+uses 500 s. No hardware deadline was extended and no pass condition relaxed.
+
+Composition follow-up reproduced four missing/stale helper cases being accepted
+despite a fresh watchdog. The exact archive/source checker now requires both
+startup and identity helper bytes; eight tests pass in normal/optimized Python
+(0.058/0.057 s). The real archive builder test binds the new producer too.
+No candidate was signed, admitted or executed. All fixes remain source-only.
+
+The complete frozen correction passed full local CI in **502.802 s** (previous
+diagnostic checkpoint 480.168 s). Source remained fixed at dirty-tree digest
+`550fd21deadf82cc870e5d93c4d1a773097a881e09f52ec7eed8bade3fa78ee4`
+over `35f15179f60b4810671896d7537b47af7aecc9ad`. Only result documentation is
+added afterward. No unchanged-source QEMU or full local run was repeated.
+The exact-head publication result and a new connected preflight remain required.

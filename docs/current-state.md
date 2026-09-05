@@ -212,11 +212,18 @@ Full local CI passed in 480.168 s on the frozen diagnostic source. An unsigned
 archive built in 3.116 s changes only the state helper and observer from v2;
 all 19 modules and other entries are unchanged. Sealed archive checks pass.
 No candidate, signing, claim or phone operation followed.
-The existing watchdog predicate accepts P2 alone; it does not require later
-persistent-state/identity success. This is a demonstrated readiness gap, not
-proof of the earlier USB loss. Next: close and test that gap before admitting
-a rescue whose one question is the live failed startup gate. Preserve healthy
-late-SSH restart behavior. Stock A, signed V11 and all backups are preserved.
+The P2-only watchdog readiness gap is corrected in source: acceptance now also
+requires the root-owned, bounded, current-boot persistent identity record,
+published after local initial key/reload/listener checks. It does not inspect
+later listener liveness or replace host-side pinned SSH acceptance. Old or
+missing producers reject offline through the composition check.
+Nine exact-archive QEMU handover cases pass in 133.550 s, including P2-only and
+stale identity rollback. The unchanged Image/DTB/modules are reused. Phone
+deadlines and installed artifacts remain unchanged; this is not physical reset
+proof. Diagnostic checkpoint `35f15179` has all four GitHub jobs passing
+(33965350434). The watchdog correction's frozen full local CI passed in
+502.802 s; publication/exact-head checks remain separate before successor
+admission. Stock A, signed V11 and backups remain.
 Debian migration is permitted if it offers a demonstrated benefit, but is not
 selected as the rescue fix: current evidence implicates the project helper,
 not an Arch-specific package failure. Preserve the retained Arch baseline.

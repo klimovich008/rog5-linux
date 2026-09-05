@@ -132,8 +132,12 @@ publish_identity() {
 	[ "$identity_record" != "$0" ] && [ "$record_next" != "$0" ] || return 1
 	[ ! -e "$identity_record" ] && [ ! -L "$identity_record" ] &&
 		[ ! -e "$record_next" ] && [ ! -L "$record_next" ] || return 1
-	printf 'format=rog5-persistent-ssh-identity-v1\nmode=%s\nfingerprint=%s\n' \
-		"$identity_mode" "$fingerprint" >"$record_next" || return 1
+	identity_boot_id=$(bb cat /proc/sys/kernel/random/boot_id) || return 1
+	printf '%s\n' "$identity_boot_id" |
+		bb grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		return 1
+	printf 'format=rog5-persistent-ssh-identity-v1\nmode=%s\nfingerprint=%s\nidentity_boot_id=%s\n' \
+		"$identity_mode" "$fingerprint" "$identity_boot_id" >"$record_next" || return 1
 	bb chown 0:0 "$record_next" || return 1
 	bb chmod 0444 "$record_next" || return 1
 	bb mv "$record_next" "$identity_record" || return 1
