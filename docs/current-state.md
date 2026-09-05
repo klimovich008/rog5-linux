@@ -133,10 +133,13 @@ was pushed; physical deployment is unchanged. Prioritize the now-observed
 switch-root boundary before changing unrelated subsystems. Obtain stable exact
 fastboot for a reviewed RAM-only diagnostic when required, and fresh transport/
 health evidence before the attended screen test.
-The watchdog correction still needs an exact paired init/attestation deployment
-after publication gates. Its first full CI stopped at a stale source-string
-ordering test after 361.262 s; that assertion now recognizes the checked
-watchdog call without changing ordering requirements. Crash-recovery validation,
-WPA restartability and
-display isolation remain open; no kernel change explains the current loss yet.
+Watchdog source checkpoint `5c406e19` passed full local CI in 473.624 s;
+its exact-head and merge checks passed, with QEMU publication still pending
+at this update. It still needs an exact paired init/attestation deployment.
+The next recovery preparation adds an exact-selector fallback-only option to
+the shared loader: no primary copy/execute or p23 trial writes. The historical
+rescue image expects obsolete V6 selector bytes and must not be reused.
+Fresh composition, publication, admission and live power/identity gates remain
+required. Crash-recovery validation, WPA restartability and display isolation
+remain open; no kernel change explains the current loss yet.
 The [roadmap](../ROADMAP.md) holds later work.
