@@ -130,65 +130,36 @@ to this consolidation. Destructive storage requires a separately reviewed
 exact operation and explicit approval. Never publish private material.
 
 Read [development workflow](development.md) for commands and validation tiers.
-Read only relevant R1–R10 entries in [lessons](development-lessons.md) during
-routine edits; use its complete pre-build/live checklists before a successor.
-Source fallback checkpoint `87eea4ae` passed full local CI in 476.297 s and
-was pushed; physical deployment is unchanged. Prioritize the now-observed
-switch-root boundary before changing unrelated subsystems. Obtain stable exact
-fastboot for a reviewed RAM-only diagnostic when required, and fresh transport/
-health evidence before the attended screen test.
-Watchdog source checkpoint `5c406e19` passed full local CI in 473.624 s;
-its exact-head, merge and QEMU publication checks passed. It still needs an
-exact paired init/attestation deployment.
-The next recovery preparation adds an exact-selector fallback-only option to
-the shared loader: no primary copy/execute or p23 trial writes. The historical
-rescue image expects obsolete V6 selector bytes and must not be reused.
-Fresh composition, publication, admission and live power/identity gates remain
-required. Crash-recovery validation, WPA restartability and display isolation
-remain open; no kernel change explains the current loss yet.
-Rescue checkpoint `c005ddff` preserves the exact-selector fallback-only change;
-its frozen tree passed full CI in 470.865 s. Fresh twin rescue archives/images
-were verified offline, but remain unissued and unbooted. The following source
-checkpoint pairs current init with current parameterized attestation in the
-Wi-Fi composer and renders the diagnostic radio timeout. Focused composition
-and active checks pass. Checkpoint `8cb0f65f` passed full local CI in 491.913 s
-and exact-head, merge, candidate-publication and QEMU checks in run 33933475707.
-The next data-only registration binds `headless-selector-rescue-v1` to the
-verified private twins and current selector. All 17 generic claim tests pass;
-consumer statements and every historical record are unchanged. No actual
-claim has been created/consumed. The pinned V11 SSH host identity and matching
-deployment key are located. Exact-head run 33934354059 failed because the
-historical admission verifier omitted the canonical fallback-only claim family.
-The focused correction imports that family from the same fixed registry;
-30 admission and 17 consumer tests pass, including two fail-first regressions.
-Connected preflight refused before consumption; slot B, 7702 mV and SOC yes
-were observed. No boot or host networking change occurred.
+Use relevant R1–R10 [lessons](development-lessons.md) during routine edits and
+the complete pre-build/live checklists before a successor. Historical checkpoint
+details remain in Git and the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md);
+the [roadmap](../ROADMAP.md) holds later work.
 
-Do not execute the prepared rescue yet: exact V11 archive review found no early
-battery-health predicate and its old init disarms the watchdog before
-switch_root. The source watchdog correction is not in that signed fallback.
-The 1320-second collector is only an observation lifetime, not proof of
-continuous target rollback; it also stops on the first disconnect and lacks
-an admission check for remaining lifetime. It has not been started.
-Registry fix `bf5f2e31` passed frozen full local CI in 470.670 s and was pushed;
-run 33935980881 passed exact-head, merge, publication and QEMU. This does not
-admit the newly composed archive.
-Next: define the complete executable acceptance contract, then compose a coherent headless
-rescue with paired watchdog/attestation and early power gates using the retained
-kernel. Preserve the existing signed V11 and stock slot-A rescue unchanged.
-Any new composition needs fresh exact validation/admission; no consumed retry
-or experimental flash. Do not rebuild the already verified rescue twins.
-The [roadmap](../ROADMAP.md) holds later work.
+Registry correction `bf5f2e31` passed full local CI (470.670 s) and exact-head,
+merge, publication and QEMU (33935980881). Acceptance checkpoint `21b2375c`
+also passed GitHub run 33937660322. Its local full run failed on two controller
+response timeouts; focused replay and all 95 controller tests passed afterward.
+The failed full run is not relabeled green.
 
-The [acceptance checkpoint](../test-results/2026-09-05-headless-acceptance.md)
-records the executable contract, optimized-Python rejection fix, early Good-health
-gate and paired standalone composer. An unsigned offline rescue archive reuses
-the retained kernel and all 19 modules; exact-archive watchdog QEMU cases pass.
-It is not a signed/admitted candidate or a qualified release. Finish retained-root
-composition and supervised capture before one fresh charging/SSH rescue attempt.
-The new full local run stopped on two controller response timeouts; focused
-replay and the complete 95-test controller suite pass, but the failed full run
-is not green. The acceptance matrix is six PASS/eight BLOCKED/eleven NOT RUN.
-Fresh exact fastboot read remains slot B, 7699 mV and SOC yes. A verified sparse
-host reconstruction is available for read-only root inspection; it is not
-byte-identical to the pre-sparse original image. See the checkpoint for scope.
+The executable acceptance contract exists. The current matrix is six PASS,
+eight BLOCKED, eleven NOT RUN—not a qualified release. The corrected unsigned
+headless archive reuses the retained kernel and all 19 modules. Exact-archive
+watchdog QEMU cases pass. Real sealed runtime preparation against the retained
+read-only Arch image now passes systemd, key-only SSH policy and unit checks.
+The reconstructed image is a verified sparse-derived inspection input, not
+byte-identical to the pre-sparse original or a new restoration authorization.
+
+**Do not execute the old prepared fallback-only rescue:** it selects unchanged
+signed V11, whose watchdog disarms before handover and lacks the early health
+predicate. Preserve its unused twins and claim. A narrow RAM-embedded signed
+bundle branch is now implemented in the shared loader and passes focused
+normal/sealed-BusyBox tests. It avoids selector/mount/trial writes and retains
+geometry, all-storage RO, signature, Haven and single-execute checks.
+No corrected target is signed, admitted or deployed yet.
+
+Next: publish the frozen recovery correction after full CI; verify a coherent
+fresh signed RAM bundle/wrapper; establish receiver, addressing and logging
+before one admitted charging/SSH recovery attempt. The old collector starts
+late, stops at first disconnect and does not prove watchdog coverage; do not
+use its lifetime as rollback evidence. Remaining acceptance fixes follow
+restored access, with display optional. No kernel defect is yet established.

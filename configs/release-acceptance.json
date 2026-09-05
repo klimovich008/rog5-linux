@@ -47,7 +47,7 @@
       "outcome": "Assembled release and retained root are coherent",
       "tier": "offline",
       "mandatory": true,
-      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "environment": "Host with a private read-only no-recovery ext4 loop mount; disposable tmpfs upper and isolated ARM emulation; no phone or real block nodes in the fixture",
       "prerequisites": [
         "exact release receipt",
         "assembled archive",
@@ -63,7 +63,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Exact archive/root composition checker is not yet wired; source tests cannot satisfy this row."
+      "blocker": "Archive/root runtime component passes via rog5-dev check-rescue-root; final signed-wrapper, module closure, timing/transport composition and combined runner remain required."
     },
     {
       "id": "A02",

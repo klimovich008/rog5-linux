@@ -29,6 +29,14 @@ identities, times, durations and log hashes are retained. Qualification also
 requires clean frozen source and every mandatory row passing for these inputs.
 Private paths, credentials, dumps and raw logs remain outside Git.
 
+Supporting A01 component check: `rog5-dev check-rescue-root --inputs RECEIPT
+--root PRIVATE_RO_LOOP_MOUNT --output PRIVATE_NEW_DIRECTORY`. It runs the exact
+archive's preparation functions, Arch systemd/sshd and generated-unit validation
+with a disposable tmpfs upper. The caller provides/cleans a dedicated host-only
+`ro,noload,nodev,nosuid` ext4 loop mount. This checker permits a four-artifact
+receipt before wrapper packaging; full release still requires all five roles.
+It does **not** qualify the final wrapper, module loading, hardware or A01 alone.
+
 ## Required outcomes
 
 | IDs | Outcome | Current coverage / next step |

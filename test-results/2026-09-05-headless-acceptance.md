@@ -115,3 +115,48 @@ occurred. The raw/sparse host copies each occupy 2.9 GiB and are retained read-o
 Host disk now has approximately 40 GiB free; no build data deleted. Kernel/
 wrapper build and peak build usage are not applicable here. Source checkpoint
 publication and fresh exact-head CI must retain the explicit local-CI caveat.
+
+## Retained-root and RAM-delivery continuation
+
+Continued from `21b2375c783254c3fac8ecee7fe7d4c4493b3ddd`. Its GitHub
+run 33937660322 passed exact-head, merge, publication and QEMU; the earlier local
+failure above remains failed. No phone contact or target candidate execution
+occurred during this continuation's composition work.
+
+The reconstructed host ext4 image was mounted **read-only, norecovery**, in a
+private mount namespace, with backing-file and block read-only verification.
+Mounts were removed automatically and absence verified. Root bytes and original
+backups were unchanged. A debugfs extraction could not preserve all owners and
+the host filesystem rejects OverlayFS lowers because of casefold capability;
+neither is a target defect. Use the actual ext4 loop lower and tmpfs upper.
+
+`rog5-dev check-rescue-root` exercises exact sealed `prepare_runtime` functions,
+Arch systemd 260.2, volatile test host-key generation, effective key-only SSH
+policy and all four generated units. PASS, **32.892 s** including final input
+hash revalidation (initial receipt hashing/mount setup is additional). The
+earlier runtime-only probe took 3.052 s. The deployed SSH host key was neither
+read nor replaced. Five gate tests pass normally (0.030 s) and optimized
+(0.028 s); 11 acceptance tests pass (0.256 s). A four-role component receipt
+cannot qualify the five-role final release. A01 remains incomplete.
+
+**R2/R8 delivery gap:** the prepared fallback-only recovery can load only the
+old signed V11, not the corrected archive. A narrow `existing-recovery-ram`
+branch now copies one fixed embedded bundle into private RAM and rejoins the
+existing signed verification/kexec/Haven tail. It preserves storage geometry
+checks and all-117-node read-only relocking; it never mounts P24, reads a
+selector, opens trial state or modifies an installed bundle. No new kernel,
+claim architecture or recovery controller. The builder derives the sealed
+executor's manifest hash from staged bytes; packaging grants no admission.
+
+Three RAM-path tests failed first (11 subcases); after implementation they pass
+in 0.277 s, and all seven existing fallback tests pass in 0.494 s. Real sealed
+recovery BusyBox replay of the same parser, file checks and shared-tail fixtures
+passes in **3.008 s**. Hardware/crypto endpoints are explicit fixtures here;
+actual signature verification remains a separate mandatory check. Unsigned
+packaging fixtures produce identical twins for both existing and RAM modes;
+extra embedded files fail before output publication. These are not candidates.
+
+Next: freeze/full CI for this recovery change, then verify a fresh signed RAM
+bundle/wrapper and establish pre-boot capture before the one-use rescue. The
+old wrapper/claim remains unused; no source-only fix is described as deployed.
+Current host free space is approximately 38 GiB; no build data was deleted.

@@ -83,13 +83,14 @@ def source_identity(repo=REPO):
     return {'revision': revision, 'worktree_digest': digest.hexdigest(), 'clean': not status}
 
 
-def verify_release(path):
+def verify_release(path, *, required_roles=None):
     record = json.loads(path.read_text())
     if record.get('format') != 'rog5-release-inputs-v1' or not re.fullmatch(r'[0-9a-f]{40}', record.get('source_revision', '')):
         raise ValueError('release input format/revision')
     if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,127}', record.get('candidate_id', '')):
         raise ValueError('release candidate identity')
-    if set(record.get('artifacts', {})) != ARTIFACT_ROLES:
+    required_roles = ARTIFACT_ROLES if required_roles is None else required_roles
+    if not required_roles or not required_roles <= set(record.get('artifacts', {})) <= ARTIFACT_ROLES:
         raise ValueError('release must bind kernel, DTB, archive, retained root image and boot bundle')
     identities = {}
     for role, artifact in record['artifacts'].items():

@@ -6,6 +6,7 @@ action=${1:-help}
 [[ $# == 0 ]] || shift
 case $action in
   accept) exec python3 "$repo/scripts/host/release-acceptance.py" "$@" ;;
+  check-rescue-root) exec python3 "$repo/scripts/host/check-rescue-root-composition.py" "$@" ;;
   test) exec "$repo/scripts/host/test-repository-linux.sh" "${@:-active}" ;;
   select) exec python3 "$repo/scripts/host/select-repository-test-tier.py" "$@" ;;
   package) exec python3 "$repo/scripts/host/prepare-recovery-runtime-bundle.py" "$@" ;;
@@ -14,6 +15,7 @@ case $action in
   help|--help|-h)
     printf '%s\n' 'rog5-dev test [active|probe|ci|nightly]' \
       'rog5-dev accept quick|offline|device-smoke|release --output PRIVATE_NEW_DIRECTORY [--release RECEIPT]' \
+      'rog5-dev check-rescue-root --inputs RECEIPT --root PRIVATE_RO_LOOP_MOUNT --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev select [--event push|pull_request] BASE HEAD' \
       'rog5-dev build-initramfs --help' \
       'rog5-dev package --config RECIPE --private-key KEY --bundle-root OUTPUT' \
