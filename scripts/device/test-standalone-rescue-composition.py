@@ -45,7 +45,11 @@ class RescueComposition(unittest.TestCase):
             self.assertEqual(built['usr/local/sbin/rog5-startup-observer'][1],
                              (REPO/'initramfs/persistent-startup-observer').read_bytes())
             self.assertIn(b'RuntimeMaxSec=$recovery_timeout', built['init'][1])
-            self.assertIn(b'ExecStart=/run/rog5-startup-observer $recovery_timeout', built['init'][1])
+            observer_exec, = [line for line in (REPO/'initramfs/persistent-root-init').read_bytes().splitlines()
+                              if line.startswith(b'ExecStart=/run/rog5-startup-observer ')]
+            # Behavior/deadline tests render this generator. Here prove the
+            # assembled archive carries that exact line, not an older copy.
+            self.assertTrue(observer_exec in built['init'][1], 'assembled observer invocation is stale')
 
 
 if __name__ == '__main__':

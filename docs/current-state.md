@@ -137,14 +137,45 @@ the [roadmap](../ROADMAP.md) holds later work.
 
 ## Active recovery checkpoint
 
-**Next, unconsumed:** `headless-acceptance-rescue-v4` packages the narrow
+**Consumed, pinned SSH restored:** `headless-acceptance-rescue-v4` packages the narrow
 handover/state-path correction from `0b4e8216` (all four source CI jobs passed,
 33969178949). Signed bundle/RAM-wrapper twins
 match (12.122 s); the final sealed signature/composition verifier passed (3.769 s).
 Both kernels, DTB, modules and retained Arch root are unchanged. The canonical
-claim record binds exact artifacts; adding it does not consume a claim.
-Publication and connected admission remain required before one RAM-only boot.
-Question: does corrected handover restore persistent-state and pinned SSH?
+claim record binds exact artifacts. Publication `385ed8c9` passed all four CI
+jobs (33969700863), then connected admission and one RAM-only boot passed.
+Pinned SSH with the expected host identity arrived in **57.196 s**; fastboot
+transfer/acceptance took 12.788 s. Never retry this consumed candidate.
+Boot `0a81d0a7-7d96-44d0-93a2-0758ef803a33` confirms the corrected handover:
+persistent state and SSH identity started, with no failed units. The immutable
+Arch lower remains RO; only sda/sda23 are writable among 117 checked UFS nodes.
+Keep Arch: this proven R2/R3 defect was project handover/path ownership, not a
+distribution failure. Neither kernel nor retained Arch root was changed.
+At uptime 686 s, pinned SSH still works, battery is 94%, Good, 30.3°C, 8.580 V,
+with +129 mA reported current. Charge counter rose from 4784000 to 4838000 µAh
+across authenticated observations. This supports net charging but is not the
+predeclared H03 qualification. Wi-Fi remains intentionally inactive.
+Capture completed in 1380.790 s with no capture error and all four owned host
+cleanup steps PASS. The receiver labels capture NOT RUN for qualification,
+deliberately; authenticated SSH evidence is separate. This boot survived the
+900 s watchdog deadline. Charging reached 96% at uptime 1517 s; H03 remains
+BLOCKED pending its predeclared measurement contract, not a charging failure.
+
+**Latest live failure: S03 SSH restart.** At uptime 1668 s, one authorized SSH
+service restart stopped P2 → persistent state → Tailscale through `Requires=`.
+Tailscale cleanup removed 10.77.0.2, and re-running one-shot P2 failed. Normal
+USB SSH disappeared, but exact pinned diagnostic SSH at 169.254.77.2 proved the
+same boot alive at uptime 1946 s with the restarted SSH PID. No kernel crash or
+phone reboot is inferred. A temporary, identity-checked host route was removed
+after diagnosis. State/Tailscale are currently inactive; do not report full
+server health. Next: reproduce and fix this actual systemd dependency cascade
+before any successor. Stock slot A and signed fallback are unchanged.
+
+Separately, the optional startup observer hit systemd's 900 s hard ceiling.
+The source fix exits after a complete startup round and leaves 30 s before the
+unchanged hard ceiling for incomplete startup. Focused/sealed tests and full CI
+pass (484.020 s). This observer correction is not deployed in running v4.
+No new candidate, flash, GPT change or kernel build was performed.
 
 **Consumed:** `headless-acceptance-rescue-v3` packages the startup-phase
 diagnostics and current-boot P2/SSH-identity watchdog correction from `e6966506`.
@@ -161,12 +192,13 @@ SOC=yes). This supports expected rollback; reset-cause registers were not read.
 Capture lasted 1380.532 s and all four host cleanup steps passed. Its result
 remains FAIL due to a bounded NetworkManager query error during USB removal;
 the corrected receiver preserved the later fastboot evidence instead of exiting.
-Source handover unnecessarily creates userdata-rw even for native RO rescue;
+The old source handover created userdata-rw even for native RO rescue;
 the state helper correctly requires it absent. A joined regression reproduces
-the conflict. The pending narrow fix creates only the actual handover destination,
+the conflict. The narrow fix creates only the actual handover destination,
 preserving strict state-path ownership. Full local CI passed in 499.971 s;
 the new unsigned archive changes only init, with 19 modules unchanged. The fix
-is not deployed. Display/radio remain outside this rescue; v3's capture is over.
+is deployed in the successful v4 rescue above, not installed slot B.
+Display/radio remain outside this rescue; v3's capture is over.
 
 Registry closure is corrected; all four GitHub jobs passed for `17d7fbb6`
 (run 33948165386). See the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md)

@@ -2046,7 +2046,9 @@ Before=basic.target
 
 [Service]
 Type=simple
-ExecStart=/run/rog5-startup-observer $recovery_timeout
+# Leave room for bounded status/journal/send calls and graceful exit. The hard
+# ceiling remains unchanged and independent of the optional observer loop.
+ExecStart=/run/rog5-startup-observer $((recovery_timeout - 30))
 RuntimeMaxSec=$recovery_timeout
 TimeoutStopSec=2
 KillMode=control-group
