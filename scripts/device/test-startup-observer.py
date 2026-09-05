@@ -21,6 +21,43 @@ SEALED_ARCHIVE = None
 
 
 class StartupObservationTest(unittest.TestCase):
+    def test_state_start_failure_reports_rejected_gate_over_observer(self):
+        source = (REPO/'initramfs/persistent-service-state').read_text()
+        start = source[source.index('start_state() {'):source.index('\nstop_state() {')]
+        dispatch = source[source.index('case $action in\n'):]
+        # Keep the production failure exit; redirect its log to test stdout,
+        # never the host kernel buffer.
+        fail = source[source.index('fail() {'):source.index('\naction=')].replace(
+            '>/dev/kmsg 2>/dev/null', '')
+        for rejected, phase in (
+            ('resolve_exact_devices', 'devices'),
+            ('resolve_userdata_owner', 'owner'),
+            ('verify_root_storage_mounts', 'root-mounts'),
+            ('verify_filesystem_identity', 'userdata-fs'),
+        ):
+            with self.subTest(rejected=rejected):
+                # All four failures precede any write window. Endpoint mocks
+                # must never reach mount/blockdev/loop I/O or cleanup setup.
+                script = '''set -eu
+action=start
+runtime_record=/absent-state-record
+runtime_next=/absent-state-next
+userdata=/dev/fixture23
+expected_userdata_uuid=fixture
+expected_userdata_label=fixture
+bb() { printf 'UNEXPECTED_IO\\n' >&2; exit 98; }
+'''
+                for name in ('resolve_exact_devices', 'resolve_userdata_owner',
+                             'verify_root_storage_mounts', 'verify_filesystem_identity'):
+                    script += name + '() { return ' + ('1' if name == rejected else '0') + '; }\n'
+                failure = self.execute(script + fail + start + '\n' + dispatch,
+                                       expected_code=1).decode().strip()
+                self.assertEqual(failure, f'rog5-persistent-state: FAIL start/{phase} contract failed')
+                status = 'LoadState=loaded\nActiveState=failed\nSubState=failed\nResult=exit-code\nExecMainStatus=1'
+                record = M.parse_startup_observation(self.produce(status, failure), RELEASE)
+                self.assertEqual(bytes.fromhex(record['failure_hex']).decode().strip(), failure)
+                self.assertLessEqual(len(failure), 80)
+
     def test_unavailable_journal_uses_bounded_read_only_kernel_buffer(self):
         source=(REPO/'initramfs/persistent-startup-observer').read_text()
         function=source[source.index('query_failure() {'):source.index('\nobserve_unit() {')]
@@ -56,7 +93,7 @@ query_failure() { printf '%s\\n' "$FIXTURE_JOURNAL"; return "$FIXTURE_JOURNAL_CO
                   '\nFIXTURE_JOURNAL='+shlex.quote(journal)+'\nFIXTURE_JOURNAL_CODE='+str(journal_code)+'\n')+script
         return self.execute(script)
 
-    def execute(self, script):
+    def execute(self, script, expected_code=0):
         if SEALED_ARCHIVE:
             spec=importlib.util.spec_from_file_location('sealed',REPO/'scripts/host/run-sealed-busybox.py')
             sealed=importlib.util.module_from_spec(spec);spec.loader.exec_module(sealed)
@@ -75,7 +112,7 @@ query_failure() { printf '%s\\n' "$FIXTURE_JOURNAL"; return "$FIXTURE_JOURNAL_CO
             print('sealed_archive_sha256='+hashlib.sha256(blob).hexdigest())
         else:
             result = subprocess.run(['sh', '-c', script], capture_output=True, timeout=3)
-        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.returncode, expected_code, result.stderr)
         return result.stdout
 
     def test_real_systemctl_fields_and_missing_optional_observation(self):

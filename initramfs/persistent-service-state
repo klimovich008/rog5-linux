@@ -259,18 +259,27 @@ preflight_state() {
 }
 
 start_state() {
+	# Fixed, non-secret labels identify the earliest rejected startup gate.
+	# They do not alter admission, write scope, cleanup or the observer protocol.
+	state_start_phase=runtime-record
 	[ ! -e "$runtime_record" ] && [ ! -L "$runtime_record" ] &&
 		[ ! -e "$runtime_next" ] && [ ! -L "$runtime_next" ] ||
 		return 1
+	state_start_phase=devices
 	resolve_exact_devices || return 1
+	state_start_phase=owner
 	resolve_userdata_owner || return 1
+	state_start_phase=root-mounts
 	verify_root_storage_mounts || return 1
+	state_start_phase=userdata-fs
 	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
 		"$expected_userdata_label" || return 1
+	state_start_phase=state-path
 	if [ -e "$state_mount" ] || [ -L "$state_mount" ]; then
 		[ "$userdata_owner" = overlay ] &&
 			verify_empty_mountpoint "$state_mount" || return 1
 	fi
+	state_start_phase=userdata-path
 	if [ "$userdata_owner" = state ]; then
 		[ ! -e "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
 	else
@@ -298,6 +307,7 @@ start_state() {
 	}
 	trap cleanup_start EXIT HUP INT TERM
 
+	state_start_phase=userdata-mount
 	if [ "$userdata_owner" = state ]; then
 		bb blockdev --setrw "$userdata"
 		bb blockdev --setrw "$userdata_disk"
@@ -308,6 +318,7 @@ start_state() {
 		userdata_mounted=1
 	fi
 	verify_mount "$userdata" "$userdata_mount" || return 1
+	state_start_phase=image-path
 	for path in "$userdata_mount/rog5" "$userdata_mount/rog5/state"; do
 		[ -d "$path" ] && [ ! -L "$path" ] &&
 			[ "$(bb stat -c '%u:%g:%a' "$path")" = 0:0:700 ] || return 1
@@ -317,13 +328,16 @@ start_state() {
 		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$state_image")" = \
 			"0:0:600:$expected_state_bytes:1" ] || return 1
 
+	state_start_phase=image-loop
 	loop_device=$(bb losetup -f)
 	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
 	bb losetup "$loop_device" "$state_image"
 	[ "$(bb blockdev --getsize64 "$loop_device")" = "$expected_state_bytes" ] ||
 		return 1
+	state_start_phase=image-fs
 	verify_filesystem_identity "$loop_device" "$expected_state_uuid" \
 		"$expected_state_label" || return 1
+	state_start_phase=state-mount
 	if [ ! -e "$state_mount" ] && [ ! -L "$state_mount" ]; then
 		bb mkdir -m 0700 "$state_mount"
 		state_mount_created=1
@@ -334,10 +348,13 @@ start_state() {
 		"$loop_device" "$state_mount"
 	state_mounted=1
 	verify_mount "$loop_device" "$state_mount" || return 1
+	state_start_phase=state-tree
 	verify_state_tree "$state_mount" || return 1
+	state_start_phase=write-window
 	verify_write_window || return 1
 	[ "$(bb blockdev --getro "$root_device")" = 1 ] || return 1
 
+	state_start_phase=runtime-publish
 	boot_id=$(bb cat /proc/sys/kernel/random/boot_id) || return 1
 	printf 'format=rog5-persistent-service-state-runtime-v1\nboot_id=%s\ndisk=%s\nuserdata=%s\nloop=%s\nimage=%s\nmount=%s\nuserdata_owner=%s\n' \
 		"$boot_id" "$userdata_disk" "$userdata" "$loop_device" \
@@ -396,6 +413,6 @@ stop_state() {
 
 case $action in
 	preflight) preflight_state || fail 'preflight contract failed' ;;
-	start) start_state || fail 'start contract failed' ;;
+	start) start_state || fail "start/$state_start_phase contract failed" ;;
 	stop) stop_state || fail 'stop contract failed' ;;
 esac
