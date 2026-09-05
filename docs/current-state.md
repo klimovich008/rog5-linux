@@ -141,8 +141,9 @@ also passed GitHub run 33937660322. Its local full run failed on two controller
 response timeouts; focused replay and all 95 controller tests passed afterward.
 The failed full run is not relabeled green.
 
-The executable acceptance contract exists. The current matrix is six PASS,
-eight BLOCKED, eleven NOT RUN—not a qualified release. The corrected unsigned
+The executable acceptance contract exists. The latest source-only matrix at
+`0daad254` is seven PASS, seven BLOCKED, eleven NOT RUN—not a qualified release.
+It does not import the earlier rescue's physical results. The corrected unsigned
 headless archive reuses the retained kernel and all 19 modules. Exact-archive
 watchdog QEMU cases pass. Real sealed runtime preparation against the retained
 read-only Arch image now passes systemd, key-only SSH policy and unit checks.
@@ -190,3 +191,20 @@ Arch hostname is `alarm`, so key-length rejection is **not proven** to explain
 the live mismatch. Do not issue a blind key-only successor: obtain the exact
 post-handover P2/state/identity failure through the next scoped diagnostic path.
 Display remains optional; no kernel defect is established.
+
+Follow-up source checkpoint `0daad254` passed the active tier (11.087 s),
+offline acceptance dispatch (19.122 s, correctly BLOCKED overall), and one full
+local CI (479.828 s). GitHub 33944557168 exact-head, merge, publication and QEMU
+all passed. Do not rerun unchanged full local CI.
+
+The next source-only diagnostic now observes P2, service-state, SSH identity
+and early SSH through the existing prestarted NCM receiver after handover.
+It reports service properties and bounded helper failure text, not key contents.
+Journal absence/error is explicit and never proof of no failure. Kernel-transport
+journal queries are required because the helpers log through `/dev/kmsg`.
+Its lifetime uses the unchanged target rollback budget; no core service depends
+on it, and it neither changes acceptance nor forces reboot. Focused producer,
+receiver and archive-composition tests pass; exact sealed ARM replay also passes.
+This diagnostic is not deployed or issued. Physical fastboot re-entry remains
+necessary because pinned SSH is unavailable. Complete its frozen checks and
+exact assembled runtime verification before preparing a successor.

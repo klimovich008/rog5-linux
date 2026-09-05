@@ -281,3 +281,42 @@ all 12 tests (0.318 s). The final slow-client case waits for an actual timed
 0.2-second trickle byte before requesting health, preserving the declared
 one-second healthy-client response limit. Full CI/publication belongs to this
 separate frozen source checkpoint, not the already consumed rescue's identity.
+
+`0daad2546a1adf171196b458c281b4b40c125e97` passed full local CI in
+**479.828 s**, once on the frozen clean tree. The offline acceptance dispatcher
+took **19.122 s**: seven PASS, seven BLOCKED, eleven NOT RUN; result BLOCKED,
+qualified false. No historical artifact receipt was relabeled as this source.
+GitHub 33944557168 exact-head, merge, publication and QEMU all passed.
+The latest F03 replay took 0.816 s under
+concurrent CI load, within its unchanged deadline.
+
+The concrete next observability gap is post-handover: P2/state/identity helpers
+write failures to target kmsg, while the early NCM stage record ends at handover.
+The old SSH diagnostic waits for an authentication event and forcibly reboots;
+it must not be enabled unchanged as a passive startup observer. A scoped
+source-only observer now reports these service outcomes over the existing
+prestarted channel, without exposing key material, accepting an unpinned key,
+delaying rollback or changing storage operations. No successor has been built,
+signed, issued or executed. Physical fastboot re-entry was requested after the
+full capture/cleanup; no authenticated software reboot is available.
+
+Observer regressions first failed on the absent implementation (eight errors).
+Four producer/receiver cases now pass normally and under Python optimization,
+including missing/failed services, unavailable journals, framing bounds, wrong
+release/boot, and unrelated-log exclusion. The early stage stream remains
+separate: unauthenticated observations never become stage or SSH PASS. The
+receiver preserves the latest startup observation on disconnect and completion.
+The standalone builder includes exact observer bytes and runtime-unit lifetime;
+no kernel/module change. The active tier passed in 10.116 s before the final
+kernel-journal filtering refinement. Initial sealed ARM replay passed in 4.005 s;
+its isolated fixture needed private `/dev/null`, not altered production syntax.
+Actual sealed BusyBox timeout/kill behavior passed in 1.515 s, and retained Arch
+ARM journalctl exposes the required current-boot/kernel/grep options. The helper
+limits each query/send to two seconds and the full observation to the existing
+target budget, independently bounded by systemd RuntimeMaxSec. These component
+results are not live deployment or full A01 qualification.
+
+Final focused checkpoint: active tier PASS **10.613 s**; sealed ARM producer
+replay PASS **6.016 s** under concurrent host tests. Full local and exact-head
+GitHub checks are required for this new receiver/initramfs checkpoint before
+any successor admission. The consumed physical rescue is unchanged.

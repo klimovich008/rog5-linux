@@ -2014,6 +2014,36 @@ WantedBy=sysinit.target
 EOF
 	ln -s ../rog5-persistent-ssh-identity.service \
 		/run/systemd/system/sysinit.target.wants/rog5-persistent-ssh-identity.service
+	# Optional diagnostic payload, never a dependency of readiness, SSH or
+	# storage. Its whole lifetime is bounded by the existing target budget.
+	if [ -e /usr/local/sbin/rog5-startup-observer ] ||
+		[ -L /usr/local/sbin/rog5-startup-observer ]; then
+		[ -f /usr/local/sbin/rog5-startup-observer ] &&
+			[ ! -L /usr/local/sbin/rog5-startup-observer ] &&
+			[ -x /usr/local/sbin/rog5-startup-observer ] || return 1
+		cp -p /usr/local/sbin/rog5-startup-observer /run/rog5-startup-observer || return 1
+		cat >/run/systemd/system/rog5-startup-observer.service <<EOF
+[Unit]
+Description=Bounded passive ROG5 startup evidence
+DefaultDependencies=no
+Before=basic.target
+
+[Service]
+Type=simple
+ExecStart=/run/rog5-startup-observer $recovery_timeout
+RuntimeMaxSec=$recovery_timeout
+TimeoutStopSec=2
+KillMode=control-group
+Restart=no
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=sysinit.target
+EOF
+		ln -s ../rog5-startup-observer.service \
+			/run/systemd/system/sysinit.target.wants/rog5-startup-observer.service || return 1
+	fi
 	cat >/run/systemd/system/rog5-tailscaled.service <<'EOF'
 [Unit]
 Description=Run exact persistent Tailscale from p23 state

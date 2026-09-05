@@ -39,6 +39,10 @@ class RescueComposition(unittest.TestCase):
             for name in ('init', 'usr/local/sbin/rog5-p2-attest'):
                 self.assertNotIn(b'@EXPECTED_', built[name][1])
             self.assertEqual(built['opt/preserved-firmware'][1], b'unchanged-fixture')
+            self.assertEqual(built['usr/local/sbin/rog5-startup-observer'][1],
+                             (REPO/'initramfs/persistent-startup-observer').read_bytes())
+            self.assertIn(b'RuntimeMaxSec=$recovery_timeout', built['init'][1])
+            self.assertIn(b'ExecStart=/run/rog5-startup-observer $recovery_timeout', built['init'][1])
 
 
 if __name__ == '__main__':

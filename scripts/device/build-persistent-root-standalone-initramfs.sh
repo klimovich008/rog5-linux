@@ -70,6 +70,7 @@ unchanged_files() {
 		! -path ./usr/local/sbin/rog5-p2-attest \
 		! -path ./usr/local/sbin/rog5-persistent-state \
 		! -path ./usr/local/sbin/rog5-persistent-ssh-identity \
+		! -path ./usr/local/sbin/rog5-startup-observer \
 		! -path ./usr/local/sbin/rog5-persistent-tailscale \
 		! -path ./rog5-ufs-modules/ufshcd-core.ko
 	if [ -n "$power_modules" ]; then
@@ -152,6 +153,8 @@ install -D -m 0755 "$state_helper" \
 	"$root/usr/local/sbin/rog5-persistent-state"
 install -D -m 0755 "$ssh_identity" \
 	"$root/usr/local/sbin/rog5-persistent-ssh-identity"
+install -D -m 0755 "$repo/initramfs/persistent-startup-observer" \
+	"$root/usr/local/sbin/rog5-startup-observer"
 install -D -m 0755 "$tailscale_runtime" \
 	"$root/usr/local/sbin/rog5-persistent-tailscale"
 if [ -n "$power_modules" ]; then
