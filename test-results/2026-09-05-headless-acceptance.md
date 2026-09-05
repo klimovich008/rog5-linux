@@ -867,3 +867,52 @@ failure, not proof of UFS/USB/kernel instability. Charging remains active.
 Next correction must reproduce that actual systemd transaction and preserve
 the initial P2 storage gate while preventing routine SSH restart from tearing
 down state/networking. C02/S03 and the final release remain incomplete.
+
+## Corrected core service lifetimes; normal USB access restored
+
+Starting source `8f10bacc79c575a4a97fa75712bef9bc62c59d57` passed all four GitHub
+jobs (33972012512). Extended the existing `check-ssh-rollback` integration with
+the actual generated P2/state/identity/Tailscale dependency graph and its real
+loopback sshd. Executables for storage/P2/Tailscale are disposable fixtures;
+there is no physical storage or radio activation. A denied initial P2 blocks
+state. Its first successful pass is deliberately boot-only, matching the
+observed non-repeatable contract. This is not full target-systemd qualification.
+
+Before the fix the test fails after the real SSH restart: P2 is no longer active
+(6.656 s), reproducing the live cascade. After replacing only the SSH lifetime
+edges with Wants plus existing After ordering, it passes in **11.226 s**.
+State still Requires P2; identity and Tailscale still Require state. The actual
+P2 attestor and SSH identity helper still verify the initial listener. No P2
+record is removed, fabricated or accepted under relaxed rules. Healthy/stale
+watchdog cases retain their distinct no-reset/reset outcomes.
+
+Normal phone SSH was recovered without a boot: exact topology, pinned key,
+boot ID, power gates and all 117 block nodes RO were verified, then only the
+missing 10.77.0.2/30 address was restored at uptime 2916 s. Temporary host
+diagnostic route/address cleanup passed. Pinned normal-address SSH passed at
+uptime 3019 s: 98%, Good, 30.2°C, +141 mA, 5032000 µAh. P2's retained failure
+is `ext4 journal recovery appeared`, caused by evaluating the boot-only gate
+after the previously authorized state mount. State and Tailscale remain
+inactive; the current boot was not forced past that failure. No storage write,
+service retry, replacement identity or flash was used to restore the address.
+
+Frozen source/test diff over `8f10bacc`:
+`b167b8a7365775aa678c1acb342a561a6fce41ed3ed00b473d3a72e9340b972e`.
+Unsigned initramfs assembly **3.935 s**, 23834617 bytes, SHA-256
+`6d948432e07f3170515ceaac72934df829274451ddfa3a2b65b94e6797a67fa7`.
+Complete archive comparison changes only init and startup observer relative
+to v4. All 19 modules, other members/metadata, both kernels and root are reused.
+Archive/source parameters and module metadata/order pass. Real-systemd restart
+test on this archive's BusyBox passes (**11.202 s**); eight sealed observation
+tests pass (**19.609 s**); retained-Arch runtime/command/unit preparation passes
+(**33.115 s**) with private RO loop mount cleanup. The latter uses fixture
+timing and activates no services; exact signed plan and target execution remain
+separate. No full A01, C02 or S03 release PASS is inferred from these components.
+
+Full CI first stopped after 97.473 s at an obsolete Requires-string assertion.
+Focused updated state lifecycle tests pass (5.322 s), storage-resolution tests
+pass (24 cases, 1.803 s), and root-initramfs tests pass. Final full local CI
+**PASS 488.955 s** on the frozen tree. No new signing, admission, phone reboot,
+kernel build or destructive operation occurred. The next physical question is
+whether this corrected graph preserves state/network access across SSH restart
+on a fresh coherent boot, after exact-head publication and connected admission.

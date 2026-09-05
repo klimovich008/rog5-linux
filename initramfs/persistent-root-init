@@ -1979,7 +1979,9 @@ EOF
 [Unit]
 Description=Verify the read-only persistent-root P2 gate
 DefaultDependencies=no
-Requires=rog5-early-sshd.service
+# Pull SSH into the initial transaction without coupling this one-shot gate
+# to later daemon restarts. The attestor still rejects a missing SSH listener.
+Wants=rog5-early-sshd.service
 After=rog5-early-sshd.service
 Before=basic.target
 
@@ -2016,7 +2018,8 @@ EOF
 [Unit]
 Description=Load exact persistent ROG5 SSH host identity
 DefaultDependencies=no
-Requires=rog5-persistent-state.service rog5-early-sshd.service
+Requires=rog5-persistent-state.service
+Wants=rog5-early-sshd.service
 After=rog5-persistent-state.service rog5-early-sshd.service
 Before=basic.target
 
