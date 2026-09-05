@@ -2134,9 +2134,7 @@ handoff_persistent_root() {
 	handoff_moved_run=0
 	handoff_userdata_target=
 
-	mkdir -p "$handoff_newroot/.rog5/userdata-ro" \
-		"$handoff_newroot/.rog5/userdata-rw" \
-		"$handoff_newroot/.rog5/root-ro" \
+	mkdir -p "$handoff_newroot/.rog5/root-ro" \
 		"$handoff_newroot/.rog5/state" "$handoff_newroot/dev" \
 		"$handoff_newroot/proc" "$handoff_newroot/sys" \
 		"$handoff_newroot/run" || return 1
@@ -2148,6 +2146,9 @@ handoff_persistent_root() {
 		handoff_userdata_target="$handoff_newroot/.rog5/userdata-ro"
 	fi
 	if [ -n "$handoff_userdata_target" ]; then
+		# Native RO-root rescue leaves userdata-rw absent for the state
+		# service to create and own; only moved mounts need a destination.
+		mkdir -p "$handoff_userdata_target" || return 1
 		if ! move_handoff_mount "$handoff_userdata" \
 			"$handoff_userdata_target"; then
 			return 1
