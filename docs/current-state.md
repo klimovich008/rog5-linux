@@ -234,3 +234,10 @@ now runs a real host systemd/sshd restart with sealed BusyBox rollback: healthy
 acceptance prevents reboot, stale acceptance requests it (10.875 s). C02 stays
 BLOCKED on exact target systemd/deployed-unit binding; see the acceptance
 incident for fixture limitations. No kernel rebuild or phone attempt followed.
+
+Checkpoint `a7f088c5` passed all GitHub 33947683439 jobs. The rescue composition
+checker now validates sealed power/UFS dependency order and records per-module
+identities. All 19 retained modules pass (final replay 0.507 s).
+This closes a metadata-check gap, not BTF/symbol/hardware-load or final-wrapper
+qualification. No timeout, module or kernel bytes changed. Physical fastboot
+re-entry and exact successor composition remain the next recovery gates.
