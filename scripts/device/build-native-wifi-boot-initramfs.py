@@ -184,6 +184,21 @@ def compose(base, package, record):
     for name, data in changed.items():
         replace(members, name, data)
 
+    # Pair the refreshed init with its package-trust bootstrap inputs. These
+    # are public source, not generated GPG keys or a target-side initialization.
+    for name, source, mode in (
+        ('usr/local/sbin/rog5-persistent-keyring', 'initramfs/persistent-package-keyring', 0o755),
+        ('usr/local/share/rog5/rog5-package-keyring.service', 'configs/systemd/rog5-package-keyring.service', 0o644),
+    ):
+        data = (REPO/source).read_bytes()
+        if name in members:
+            if members[name][0][1] != stat.S_IFREG | mode:
+                raise ValueError('incompatible package-trust member: '+name)
+            replace(members, name, data)
+            changed[name] = data
+        else:
+            add(members, name, data, stat.S_IFREG | mode)
+
     prefix = 'rog5-native-wifi/'
     with tarfile.open(fileobj=io.BytesIO(package), mode='r:gz') as archive:
         seen = set()

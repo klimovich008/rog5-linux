@@ -1105,3 +1105,76 @@ the packaged ARM trust files at root-owned 0644, but no persistent GPG directory
 and no deployed bootstrap helper. GPGDir remains in the volatile root overlay.
 This supports wiring bootstrap before refresh; it does not authorize importing
 unverified keys, disabling package signature checks or hiding refresh failures.
+
+## Package-keyring startup composition
+
+Starting published E01 HEAD `2fe2a299fd3c6dc731bfbe988b60920ddbb81f4f`;
+all four remote jobs passed run 33990202242. Primary question: does the actual
+bootstrap/refresh composition initialize package trust without blocking core
+access on failure? Layer: userspace/initramfs; kernel, DTB and modules reused.
+
+Refreshed init now stages the existing package-keyring helper and service into
+/run, and WKD refresh Requires/After successful bootstrap. The normal and Wi-Fi
+builders include both inputs; the paired archive checker rejects missing or
+stale copies. This fixes the observed unwired helper, not the upstream script
+by masking it. Package signature policy and GPG initialization logic are unchanged.
+
+Fail-first packaging: three missing-input/init-call subcases (0.012 s). Paired
+archive checking: four missing/stale member failures (0.070 s). After correction,
+packaging/staging two methods PASS 0.043 s; checker eight methods PASS 0.077 s;
+optimized composer36 methods PASS 7.220 s. The staging fixtures exercise actual
+copy/metadata/collision handling without GPG, service startup or phone contact.
+
+A new bounded user-systemd component test, exposed as
+`rog5-dev check-package-keyring --output PRIVATE_NEW_DIRECTORY`, extracts the
+actual WKD dependency and uses the production bootstrap unit with disposable
+GPG/storage/core endpoints. Success, failure and a one-second fixture timeout
+all pass in **2.550 s**. Refresh never runs before successful bootstrap;
+refresh restart does not repeat initialization, and core invocation/PID/state
+identity remains unchanged. All owned units/links are cleaned up. The production
+120-second startup timeout is preserved. Dispatcher discovery failed before the
+entry existed (0.006 s); all 14 dispatcher tests pass afterward (0.478 s).
+
+An unsigned offline archive fixture built in **1.470 s**, retaining the exact
+kernel/DTB/modules and changing init plus package-trust inputs only. It carries
+no signing/admission/boot authority. Sealed BusyBox staging against the exact
+retained read-only/norecovery Arch image passed executable/unit compatibility
+and module metadata closure in **33.329 s**. This is composition evidence,
+not a full module BTF/symbol or physical-release qualification.
+
+Actual retained ARM pacman-key/GPG tests in a disposable tmpfs home passed
+bootstrap, signer trust and master-key reuse in **11.775 s**. The installed WKD
+script exits successfully by skipping local/ARM keys; network was isolated, so
+online refresh was not tested. The first GPG fixture did not execute: a new user
+namespace could not traverse the private host path. It was corrected to retain
+the setup identity while isolating mount/PID/network/IPC/UTS/cgroup state and
+dropping payload capabilities. The passed sealed-root check was not repeated.
+The GPG fixture's tmpfs home had 0755 mode and emitted a permission warning;
+this test exercises initialization functions, not directory preparation. The
+production start helper creates its private home with 0700. No generated key
+material survives namespace exit; the retained image was verified and read-only.
+
+Pinned same-boot on-phone **read-only preflight PASS** validates the real
+service-state mount, directories and packaged trust inputs. No initialization,
+mount change, refresh restart, key write, signing or phone boot occurred.
+The old visible service failure remains. Active tier PASS **15.022 s**; existing
+initramfs and persistent-state lifecycle focused suites pass. Full frozen CI
+and publication are separate and follow this checkpoint.
+
+Frozen full local CI completed with `PASS repository Linux ci tier`. Its process
+handle and PIDs are now absent; the retained terminal log proves completion.
+Source digest still exactly matches
+`6b2c780a3ee853af08ed9c70afa03f78fe116366666bee5317ee4be9b8625efd`
+at parent `2fe2a299fd3c6dc731bfbe988b60920ddbb81f4f`. Only these result documents
+were edited afterward. The log's birth-to-final-write interval is **486.251 s**;
+this is an approximate filesystem-timestamp duration, not recovered monotonic
+shell timing. Prior E01 full CI was 485.345 s; no speedup is claimed. Do not
+repeat this passed suite on unchanged implementation.
+
+Read-only pinned SSH continuity at uptime 6893 s confirmed the same V5 boot,
+active core services, battery 100% Full/Good at 30°C, 8.630 V and 0 µA, USB online.
+The sole failed unit remains the undeployed keyring-refresh defect. The first
+ad-hoc read assumed `/sys/class/power_supply/battery`; that optional path was
+absent. Inventory instead found `qcom-battmgr-bat`, without changing the phone.
+This did not affect a candidate or production observer and is not a hardware
+failure. No new boot, signing, storage mutation or combined-soak PASS is implied.

@@ -201,6 +201,54 @@ class ComposerValidation(unittest.TestCase):
         (self.module, self.members, self.base,
          self.package, self.record) = composer_fixture()
 
+    def test_composition_includes_package_trust_bootstrap(self):
+        packed, _ = self.module.compose(self.base, self.package, self.record)
+        members = self.module.entries(gzip.decompress(packed))
+        for name, source, mode in (
+            ('usr/local/sbin/rog5-persistent-keyring', 'initramfs/persistent-package-keyring', 0o100755),
+            ('usr/local/share/rog5/rog5-package-keyring.service', 'configs/systemd/rog5-package-keyring.service', 0o100644),
+        ):
+            with self.subTest(member=name):
+                self.assertTrue(name in members, 'missing archive member: '+name)
+                self.assertEqual(members[name][0][1], mode)
+                self.assertEqual(members[name][1], (R/source).read_bytes())
+        self.assertTrue(b'prepare_package_keyring || return 1' in members['init'][1],
+                        'init does not stage package trust service')
+
+    def test_package_trust_staging_and_refusals(self):
+        body=function((R/'initramfs/persistent-root-init').read_text(), 'prepare_package_keyring')
+        for mutation in ('valid','missing','mode','symlink','collision'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)
+                helper=root/'archive/sbin/rog5-persistent-keyring'
+                unit=root/'archive/share/rog5/rog5-package-keyring.service'
+                units=root/'run/systemd/system'
+                units.mkdir(parents=True)
+                for path,source,mode in (
+                    (helper,'initramfs/persistent-package-keyring',0o755),
+                    (unit,'configs/systemd/rog5-package-keyring.service',0o644),
+                ):
+                    path.parent.mkdir(parents=True,exist_ok=True)
+                    path.write_bytes((R/source).read_bytes());path.chmod(mode)
+                if mutation=='missing': helper.unlink()
+                elif mutation=='mode': helper.chmod(0o777)
+                elif mutation=='symlink':
+                    helper.rename(helper.with_suffix('.old'));helper.symlink_to(helper.with_suffix('.old'))
+                elif mutation=='collision': (units/'rog5-package-keyring.service').touch()
+                script=body.replace('/usr/local/',str(root/'archive')+'/').replace('/run/',str(root/'run')+'/')
+                prelude='stat() { command stat "$@" | sed "s/^'+str(os.getuid())+':'+str(os.getgid())+':/0:0:/"; }\n'
+                result=subprocess.run(['sh','-c',prelude+script+'\nprepare_package_keyring'],
+                                      capture_output=True,text=True,timeout=5)
+                self.assertEqual(result.returncode==0,mutation=='valid',result.stderr)
+                if mutation!='valid':
+                    self.assertFalse((root/'run/rog5-persistent-keyring').exists())
+                    continue
+                self.assertEqual((root/'run/rog5-persistent-keyring').read_bytes(),helper.read_bytes())
+                self.assertEqual((units/'rog5-package-keyring.service').read_bytes(),unit.read_bytes())
+                self.assertEqual((units/'archlinux-keyring-wkd-sync.service.d/10-package-trust.conf').read_text(),
+                    '[Unit]\nRequires=rog5-package-keyring.service\nAfter=rog5-package-keyring.service\n')
+                self.assertTrue((units/'multi-user.target.wants/rog5-package-keyring.service').is_symlink())
+
     def run_composer(self, root, optimized):
         (root/'base.gz').write_bytes(self.base)
         (root/'radio.tar.gz').write_bytes(self.package)

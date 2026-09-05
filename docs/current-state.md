@@ -93,14 +93,30 @@ fatal. Mixed old/new archive consumers are rejected, including under Python -O.
 Host systemd ordering and sealed ARM BusyBox component tests pass; these source
 changes are not yet deployed or final-release qualification. Active tier passes
 in 15.869 s. Frozen full CI passes in 485.345 s; final sealed replay in 64.087 s.
-Publication/remote validation remain separate from these local results.
+Published `2fe2a299fd3c6dc731bfbe988b60920ddbb81f4f`; all four remote jobs
+passed run 33990202242.
 
 Latest pinned read-only check: same V5 boot at uptime 4091 s, five core services
 active, 100% Full/Good, 30.0°C, 8.632 V and 0 µA. Optional keyring refresh still
 failed; no reset/masking, new boot, artifact build or phone storage change.
 
-Next: finish this coherent E01 publication, then repair the demonstrated empty
-keyring/update composition before another candidate. Finish final archive/root composition and the remaining
+Keyring correction is locally validated and undeployed: refreshed init
+stages the existing bootstrap helper/unit and orders WKD refresh after successful
+bootstrap. Packaging, paired-archive, sealed runtime (33.329 s), real user-systemd
+ordering/failure (2.550 s), and isolated actual ARM key initialization/reuse
+(11.775 s) pass. WKD now skips ARM-only keys without the empty-list error; online
+refresh is not qualified. On-phone read-only helper preflight passed. Active
+tier passes in 15.022 s; full frozen CI passes (approximately 486 s from retained
+log timestamps; terminal elapsed-time output unavailable). Publication remains. No package
+trust policy or key-generation logic changed; the running failure is untouched.
+
+Latest read-only continuity check: the same V5 boot at uptime 6893 s still has
+working pinned SSH and active core services. Battery is 100% Full/Good, 30°C,
+8.630 V, 0 µA; USB input is online. Only the known keyring-refresh unit is failed.
+This is continuity evidence, not a combined storage/network soak qualification.
+
+Next: publish keyring validation and compose the coherent successor.
+Finish final archive/root composition and the remaining
 service, journal, Wi-Fi, reboot, soak and isolated physical rollback tests.
 Do not treat V5's component passes as an installed release PASS.
 

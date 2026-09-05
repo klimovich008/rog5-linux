@@ -300,6 +300,10 @@ grep -Fqx "expected_persistent_overlay_mode=$persistent_overlay_mode" \
 install -m 0755 "$shutdown" "$stage/shutdown"
 install -D -m 0755 "$tailscale_runtime" \
 	"$stage/usr/local/sbin/rog5-persistent-tailscale"
+install -D -m 0755 "$repo/initramfs/persistent-package-keyring" \
+	"$stage/usr/local/sbin/rog5-persistent-keyring"
+install -D -m 0644 "$repo/configs/systemd/rog5-package-keyring.service" \
+	"$stage/usr/local/share/rog5/rog5-package-keyring.service"
 install -d -m 0755 "$stage/usr/libexec"
 clang --target=aarch64-linux-gnu -fuse-ld=lld -nostdlib -static \
 	-fno-builtin -Wall -Wextra -Werror -fno-pic -fno-pie \

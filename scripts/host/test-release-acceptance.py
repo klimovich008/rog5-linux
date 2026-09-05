@@ -16,6 +16,13 @@ SPEC.loader.exec_module(M)
 
 
 class AcceptanceTest(unittest.TestCase):
+    def test_keyring_ordering_component_is_discoverable_without_starting_units(self):
+        result = subprocess.run([str(M.REPO/'scripts/host/rog5-dev'),
+                                 'check-package-keyring', '--help'],
+                                capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--output', result.stdout)
+
     def test_ssh_rollback_component_is_discoverable_without_running_units(self):
         result = subprocess.run([str(M.REPO/'scripts/host/rog5-dev'),
                                  'check-ssh-rollback', '--help'],
