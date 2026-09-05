@@ -936,3 +936,102 @@ V4 remains consumed; V5 remains unconsumed pending publication and connected
 admission. The physical question is whether SSH restart preserves P2, state,
 identity and normal USB on the corrected graph. Offline tests cannot qualify
 the actual target systemd transaction, charging window or final server release.
+
+## V5 physical restart, watchdog and completed capture
+
+Publication `3f4f2e5f4898a061a24eea8df22b6851e2e494da` passed all four GitHub
+jobs (33985592033). Connected admission and the sole RAM boot passed; V5 is
+permanently consumed. Fastboot took **12.820 s**, pinned SSH **59.298 s**.
+Boot `c2149c4a-6ce4-47c6-9c3b-e3ca55ea43fb`, unchanged kernel
+`7.1.4-g359318de534f`. No flash, slot change or new storage operation.
+
+The actual target SSH restart passed in **2.547 s**: PID 4560 → 25053;
+P2/state/identity/Tailscale invocation IDs and readiness hashes stayed unchanged,
+as did boot identity and 10.77.0.2. Deployed P2/state/identity unit hashes match
+the final signed archive. The optional observer exited successfully. At uptime
+902.576 s, the watchdog acknowledged current-boot P2 and SSH identity readiness;
+pinned SSH subsequently confirmed the same boot. These answer the V5 question,
+but are component evidence, not complete C02/S03 or release qualification.
+
+The **600.615 s** read-only power/core collection completed 61 samples at 10 s
+cadence: 100% Full/Good, 30.0°C, 8.632–8.635 V, battery current 0 µA and charge
+counter 5116000 µAh throughout. USB stayed online, with 500 mA input limit,
+4.985–5.035 V and 250–500 mA reported input current. Do not sum duplicate UCSI
+supply readings. H03 remains BLOCKED pending predeclared qualified full-regulation
+and noise interpretation; the data is not retroactively accepted as H03 or
+net-positive battery charging. No charging control was written.
+
+Capture completed in **1380.711 s**, with no capture error; owned route, firewall,
+profile and address cleanup all PASS. Passive-capture qualification is NOT RUN
+by design. After cleanup, authenticated normal USB SSH confirmed the same boot
+at uptime 1594 s, five core services active, 100% Full/Good and 30.0°C. Wi-Fi
+remains intentionally inactive; remote Tailscale access is unqualified.
+
+New R2/R3 optional-service finding: the rescue's empty volatile pacman keyring
+causes `archlinux-keyring-wkd-sync` line 64 `fpr_email[1]: unbound variable`;
+three failed refreshes led to start-limit-hit. This does not invalidate pinned
+SSH or prove a kernel fault, but the failure remains visible. The existing
+persistent-keyring helper is not wired into this composition; its intended
+rescue/update lifecycle needs a regression before another candidate.
+
+## A02 persistent composer optimization bypass
+
+Starting HEAD `3f4f2e5f4898a061a24eea8df22b6851e2e494da`, originally clean.
+The existing A02 test command now exercises the actual persistent composer CLI,
+not just its base composer. Five new regression methods fail in **1.965 s**
+with 13 failing subcases before the fix: -O accepted wrong base/helper hashes,
+an incompatible marker, reused successor trial/bundle identity and a changed
+retained helper. A preexisting receipt could leave a new archive before refusal;
+a dangling receipt symlink reproduced that even without optimization.
+
+Replaced removable assertions with explicit ValueError checks and rejected
+existing output/receipt paths, including dangling links, before composition.
+Exclusive output creation remains. Valid initial/successor bytes and receipts
+(apart from measured duration) match in normal and optimized Python. No valid
+payload transformation, signature policy, execution claim or source pin changed.
+This is host artifact-validation code, not a kernel or live-phone defect.
+
+Five focused methods PASS **2.027 s**; the complete Wi-Fi boot test PASS
+**33 tests, 6.821 s**. These already run through A02 and the broader repository
+tier; no new framework or separate test list. Full frozen validation follows.
+Current-state reduced from 326 lines to a compact current snapshot; active
+context is a pointer. Historical evidence remains here and in Git, with no
+build/private evidence deletion. No successor is needed for this offline fix.
+
+Normal/optimized complete composer tests pass (33 tests, **6.821/7.138 s**).
+Independent bounded read-only patch review found no concrete issue. Active tier
+passes; its aggregate wall time was not captured, so no timing is invented.
+The current quick acceptance matrix reports A02/B01/G01/G02 PASS
+(7.129/3.837/7.660/0.465 s); 21 other rows NOT RUN, release qualified=false.
+This matrix does not import incompatible live or historical passes.
+
+Full CI exposed a fixture-mode issue under the private-log 077 umask:
+the fake P2 unit was created 0600 while deployed composition requires 0644.
+A new umask regression fails before explicit fixture chmod (0.062 s); all
+six optional-display tests pass afterward under 077 (**1.332 s**). No production
+permission check changed. The first CI stopped in 26.049 s. A second stopped
+in 25.741 s on a legacy trial-state fixture's 0755-directory assumption;
+that existing test fails under 077 and passes under the usual 022 (0.198/0.190 s).
+The final invocation creates its log privately, then restores the normal 022
+test environment. That fixture limitation is retained, not represented as fixed.
+An earlier missing /usr/bin/time invocation ran no tests; Bash timing was used.
+
+Final **full local CI PASS 490.925 s** (prior source 488.955 s). Frozen diff hash
+over starting `3f4f2e5f4898a061a24eea8df22b6851e2e494da`:
+`528c3e9b18efd8ed59cc59658cc46d2b848e25b3092ae3ad2ad099e10cebf5a9`.
+Only result documentation follows that passing run. No full suite was repeated
+after a successful unchanged-source result. No kernel/wrapper build occurred.
+
+While CI ran, one additional RAM-only USB component check transferred 256 MiB
+each way over pinned SSH under a predeclared 180 s/direction limit. Upload
+**7.429 s**, download **6.659 s**; exact lengths and SHA-256 matched. Before,
+between and after: same V5 boot, five core services active, Full/Good, 30.0°C;
+RX/TX errors stayed zero, RX drops zero, TX drops retained the prior value one.
+No scratch file or storage write was used. This is not Wi-Fi/full S02 evidence.
+
+Captured deployed WKD script SHA-256
+`964fdb8aa2e6a0e4405ebe2ef6f979a0a4142ed8f9ba2d605c20a1a296c16216`
+reproduces the exact line-64 empty-list error in a disposable unshared namespace
+in 0.014 s. GPG/pacman-conf endpoints are fixtures, with no network, real keys
+or refresh operation. The genuine public script and replay remain in private
+incident evidence; the running failure is neither cleared nor masked.

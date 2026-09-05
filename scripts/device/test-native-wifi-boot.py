@@ -61,6 +61,129 @@ def composer_fixture():
     return module, members, base, package, record
 
 
+class PersistentComposerValidation(unittest.TestCase):
+    """Exercise the shipped CLI: optimization must never remove trust checks."""
+
+    def setUp(self):
+        archive, _, base, package, record = composer_fixture()
+        self.base, _ = archive.compose(base, package, record)
+        spec = importlib.util.spec_from_file_location(
+            'persistent_composer', R/'scripts/device/build-native-wifi-persistent-trial-initramfs.py')
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+        self.helper = archive.TRIAL_HELPER.read_bytes()
+        self.descriptor = (
+            'format=rog5-persistent-wifi-health-v1\ntrial_id=' + '1'*64 +
+            '\nprimary_bundle=fixture-primary\nmode=try-once\n').encode()
+        self.successor = False
+
+    def prepare_successor(self):
+        self.base, _ = self.module.compose(
+            self.base, self.module.sha(self.base), self.descriptor, self.helper)
+        self.descriptor = self.descriptor.replace(b'1'*64, b'2'*64).replace(
+            b'fixture-primary', b'fixture-successor')
+        self.successor = True
+
+    def run_composer(self, root, optimized, expected_hash=None):
+        for name, data in (('base.gz', self.base), ('descriptor', self.descriptor),
+                           ('helper', self.helper)):
+            (root/name).write_bytes(data)
+        return subprocess.run(
+            [sys.executable, '-E', '-B', *(['-O'] if optimized else []),
+             str(Path(self.module.__file__)), '--base', str(root/'base.gz'),
+             '--expected-base-sha256', expected_hash or self.module.sha(self.base),
+             '--trial-descriptor', str(root/'descriptor'),
+             '--trial-helper', str(root/'helper'), '--output', str(root/'output.gz'),
+             *(['--successor'] if self.successor else [])],
+            capture_output=True, timeout=15)
+
+    def check_rejected(self, expected_hash=None):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized, expected_hash)
+                self.assertNotEqual(result.returncode, 0, 'invalid input accepted')
+                self.assertFalse(os.path.lexists(root/'output.gz'))
+                self.assertFalse(os.path.lexists(root/'output.gz.json'))
+
+    def test_valid_initial_and_successor_bytes_unchanged_under_optimization(self):
+        for successor in (False, True):
+            if successor:
+                self.prepare_successor()
+            compose = self.module.compose_successor if successor else self.module.compose
+            expected, receipt = compose(
+                self.base, self.module.sha(self.base), self.descriptor, self.helper)
+            for optimized in (False, True):
+                with self.subTest(successor=successor, optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    result = self.run_composer(root, optimized)
+                    self.assertEqual(result.returncode, 0, result.stderr.decode())
+                    self.assertEqual((root/'output.gz').read_bytes(), expected)
+                    actual = json.loads((root/'output.gz.json').read_text())
+                    self.assertGreaterEqual(actual.pop('seconds'), 0)
+                    self.assertEqual(actual, receipt)
+
+    def test_rejects_wrong_base_and_helper_hashes(self):
+        for successor in (False, True):
+            if successor:
+                self.prepare_successor()
+            with self.subTest(successor=successor):
+                self.check_rejected('0'*64)
+                self.check_rejected('z'*64)
+                helper = self.helper
+                self.helper = b'unreviewed helper'
+                self.check_rejected()
+                self.helper = helper
+
+    def test_preserves_existing_output_receipt_and_dangling_symlinks(self):
+        for existing in ('output.gz', 'output.gz.json'):
+            for symlink in (False, True):
+                for optimized in (False, True):
+                    with self.subTest(existing=existing, symlink=symlink, optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                        root = Path(tmp)
+                        if symlink:
+                            (root/existing).symlink_to('absent-target')
+                        else:
+                            (root/existing).write_bytes(b'preserve-existing')
+                        result = self.run_composer(root, optimized)
+                        self.assertNotEqual(result.returncode, 0)
+                        other = 'output.gz.json' if existing == 'output.gz' else 'output.gz'
+                        self.assertFalse(os.path.lexists(root/other))
+                        if symlink:
+                            self.assertEqual(os.readlink(root/existing), 'absent-target')
+                            self.assertFalse((root/'absent-target').exists())
+                        else:
+                            self.assertEqual((root/existing).read_bytes(), b'preserve-existing')
+
+    def test_successor_rejects_reused_identity_and_changed_retained_helper(self):
+        self.prepare_successor()
+        descriptor = self.descriptor
+        for case in ('trial', 'bundle', 'retained-helper'):
+            with self.subTest(case=case):
+                if case == 'trial':
+                    self.descriptor = descriptor.replace(b'2'*64, b'1'*64)
+                elif case == 'bundle':
+                    self.descriptor = descriptor.replace(b'fixture-successor', b'fixture-primary')
+                else:
+                    members = self.module.ARCHIVE.entries(gzip.decompress(self.base))
+                    self.module.ARCHIVE.replace(members, 'rog5-native-wifi/trial-state', b'wrong helper')
+                    self.base = gzip.compress(self.module.ARCHIVE.encode(members), mtime=0)
+                self.check_rejected()
+                self.descriptor = descriptor
+
+    def test_rejects_missing_members_and_invalid_automatic_marker(self):
+        original = self.base
+        for case in ('missing-runtime', 'invalid-marker'):
+            with self.subTest(case=case):
+                members = self.module.ARCHIVE.entries(gzip.decompress(original))
+                if case == 'missing-runtime':
+                    del members['rog5-native-wifi/runtime']
+                else:
+                    self.module.ARCHIVE.replace(members, 'rog5-native-wifi/automatic', b'incompatible\n')
+                self.base = gzip.compress(self.module.ARCHIVE.encode(members), mtime=0)
+                self.check_rejected()
+
+
 class ComposerValidation(unittest.TestCase):
     def setUp(self):
         (self.module, self.members, self.base,

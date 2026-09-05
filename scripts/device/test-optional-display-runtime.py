@@ -48,6 +48,7 @@ class OptionalDisplay(unittest.TestCase):
                      self.root/'run/NetworkManager/conf.d', self.root/'lib', self.panel):
             path.mkdir(parents=True)
         (self.units/'rog5-p2-ready.service').write_text('[Service]\nExecStart=/run/rog5-p2-attest\n')
+        (self.units/'rog5-p2-ready.service').chmod(0o644)
         for source in (R/'initramfs/native-wifi/units').iterdir():
             if source.is_file():
                 (self.payload/'units'/source.name).write_bytes(source.read_bytes())
@@ -127,6 +128,14 @@ class OptionalDisplay(unittest.TestCase):
         self.assertIn('OBS absent power-button', result.stdout)
         self.assertFalse(self.enabled('power-button'))
         self.assertTrue(self.enabled('status-screen'))
+
+    def test_fixture_uses_deployed_modes_under_private_log_umask(self):
+        previous = os.umask(0o077)
+        try:
+            self.setUp()
+            self.assert_core(self.install())
+        finally:
+            os.umask(previous)
 
     def test_absent_optional_payload_preserves_core_without_loading(self):
         for name in ('load-pwrkey', 'qcom-pon.ko', 'screen-toggle.sh',
