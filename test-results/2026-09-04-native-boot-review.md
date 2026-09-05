@@ -399,3 +399,42 @@ The next hardware experiment must capture the actual failure or establish
 the existing qualified headless charging/recovery route, not repeat display
 or radio activation at an unmet gate. No kernel, power-control, artifact,
 claim or phone state was changed by this audit.
+
+## Exact-selector headless rescue preparation
+
+Starting HEAD: `5c406e19e5e4df47928dee246183900c50bfea6b`; its frozen
+tree passed full local CI in 473.624 s. Primary question: can the already
+qualified signed headless fallback restore power/SSH observation without
+entering V10's 8.4 V radio gate? Layer: recovery initramfs, R2/R5/R8.
+
+The retained rescue wrapper requires an obsolete V6 selector; it would reject
+the current V10/V11 selector. The shared loader now accepts one explicit
+`existing-recovery-fallback SELECTOR_SHA256` invocation from a sealed executor.
+It validates the ordinary V2 selector and its exact-byte SHA, then selects
+only that selector's signed fallback through the existing single-bundle path.
+The selector file is never changed. Primary bytes are not copied or executed,
+and p23 trial state is not opened. Unmount and all-117-node read-only relock
+remain mandatory before bundle verification and kexec; parent recovery and
+Haven handling are unchanged. The default installed executor is unchanged.
+
+Fail-first rescue and argument regressions failed before implementation;
+a multiline-hash regression also failed before the exact-length correction.
+Seven focused tests pass (0.521 s host, 6.082 s exact sealed recovery BusyBox).
+They cover actual selector read/apply/copy/verify integration, changed bytes,
+wrong format/mode, invalid arguments, missing/corrupt fallback, unmount/relock
+failure, no primary copy and no trial write, plus the existing normal behavior.
+UID/GID and crypto remain explicit fixture boundaries; real file metadata,
+hashing and applet behavior are exercised. Mutating away the actual production
+apply call makes the fixture choose primary, which the new assertions reject.
+
+Independent review found no runtime bypass and identified that integration
+test gap before it was corrected. The first isolated replay inherited a host
+PATH lacking `/bin`, causing `cp: not found`; setting the production PATH
+fixed the harness. A proposed applet-dispatch workaround did not fix it and
+was removed. No production applet change or host binfmt change was needed.
+
+Retain the existing ASUS kernel and signed V11 bytes. Fresh archive/repack and
+exact admission remain required; no consumed image, phone boot, signing,
+flash, slot change or phone-storage access is authorized by these tests alone.
+Full frozen-tree results and subsequent composition belong to the publication
+checkpoint, not a claim that the phone is already recovered.

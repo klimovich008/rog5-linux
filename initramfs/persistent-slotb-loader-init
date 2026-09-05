@@ -28,6 +28,7 @@ primary_manifest_hash=
 fallback_bundle=
 fallback_manifest_hash=
 loader_mode=standalone
+fallback_selector_hash=
 
 case $# in
 	0) ;;
@@ -38,7 +39,16 @@ case $# in
 		}
 		loader_mode=existing-recovery
 		;;
-	*) echo 'FAIL slot-B loader accepts at most one mode' >&2; exit 1 ;;
+	2)
+		[ "$1" = existing-recovery-fallback ] && [ "${#2}" -eq 64 ] &&
+			printf '%s\n' "$2" | grep -Eq '^[0-9a-f]{64}$' || {
+			echo 'FAIL invalid exact-selector fallback request' >&2
+			exit 1
+		}
+		loader_mode=existing-recovery
+		fallback_selector_hash=$2
+		;;
+	*) echo 'FAIL invalid slot-B loader arguments' >&2; exit 1 ;;
 esac
 
 log() { echo "rog5-slotb-loader: $*" >/dev/kmsg 2>/dev/null || true; }
@@ -268,6 +278,19 @@ read_selector() {
 	esac
 }
 
+apply_fallback_request() {
+	[ -n "$fallback_selector_hash" ] || return 0
+	# The sealed executor binds this rescue to one reviewed selector, not an
+	# arbitrary bundle/path. Only its already signed fallback may be selected.
+	[ "$selector_format" = format=rog5-slotb-selector-v2 ] &&
+		[ "$(sha256sum "$selector" | cut -d ' ' -f 1)" = \
+			"$fallback_selector_hash" ] || return 1
+	bundle=$fallback_bundle
+	manifest_hash=$fallback_manifest_hash
+	# Reuse the read-only single-bundle path; never open the trial write window.
+	selector_format=format=rog5-slotb-selector-v1
+}
+
 verify_all_storage_read_only() {
 	count=0
 	for sys_block in /sys/class/block/sd*; do
@@ -442,6 +465,7 @@ blockdev --setro "$arch_root" || fail root_lock
 mount -t ext4 -o ro,noload "$arch_root" "$target_mount" || fail root_mount
 set_stage S30 PASS root_mounted
 read_selector || fail selector
+apply_fallback_request || fail rescue_selector
 set_stage S40 PASS selector_verified
 
 if [ "$loader_mode" = standalone ]; then
@@ -463,6 +487,8 @@ format=rog5-slotb-selector-v2)
 esac
 sync
 umount "$target_mount" || fail root_unmount
+[ -z "$fallback_selector_hash" ] ||
+	relock_all_storage || fail rescue_relock
 set_stage S50 PASS bundle_copied
 
 case $selector_format in
