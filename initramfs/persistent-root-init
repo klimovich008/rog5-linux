@@ -1493,9 +1493,24 @@ verify_overlay_workdir_pre_mount() {
 		'') return 0 ;;
 		"$root/work/work")
 			[ -d "$inventory" ] && [ ! -L "$inventory" ] &&
-				[ "$(stat -c '%u:%g:%a:%h' "$inventory")" = 0:0:0:2 ] &&
-				[ -z "$(find "$inventory" -mindepth 1 -maxdepth 1 \
-					-print -quit)" ]
+				[ "$(stat -c '%u:%g:%a:%h' "$inventory")" = 0:0:0:2 ] ||
+				return 1
+			# OverlayFS caches a shared 0:0 whiteout under a #%x name.
+			# A reset may retain it, including links from upper. Let the
+			# kernel unlink its scratch name on mount; never delete it here.
+			for overlay_entry in "$inventory"/* "$inventory"/.[!.]* \
+				"$inventory"/..?*; do
+				[ -e "$overlay_entry" ] || [ -L "$overlay_entry" ] || continue
+				overlay_name=${overlay_entry##*/}
+				overlay_hex=${overlay_name#\#}
+				[ "$overlay_hex" != "$overlay_name" ] || return 1
+				case $overlay_hex in ''|*[!0-9a-f]*|0?*) return 1 ;; esac
+				[ "${#overlay_hex}" -le 8 ] || return 1
+				[ -c "$overlay_entry" ] && [ ! -L "$overlay_entry" ] &&
+					[ "$(stat -c '%u:%g:%a:%t:%T' "$overlay_entry")" = \
+						0:0:0:0:0 ] || return 1
+			done
+			return 0
 			;;
 		*) return 1 ;;
 	esac

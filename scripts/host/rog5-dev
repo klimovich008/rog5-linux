@@ -11,6 +11,7 @@ case $action in
   check-ssh-rollback) exec python3 "$repo/scripts/host/test-systemd-ssh-rollback.py" "$@" ;;
   check-package-keyring) exec python3 "$repo/scripts/host/test-systemd-package-keyring.py" "$@" ;;
   check-wifi-restart) exec python3 "$repo/scripts/host/test-systemd-wifi-restart.py" "$@" ;;
+  check-overlay-recovery) exec python3 "$repo/scripts/host/test-qemu-overlay-recovery.py" "$@" ;;
   test) exec "$repo/scripts/host/test-repository-linux.sh" "${@:-active}" ;;
   select) exec python3 "$repo/scripts/host/select-repository-test-tier.py" "$@" ;;
   package) exec python3 "$repo/scripts/host/prepare-recovery-runtime-bundle.py" "$@" ;;
@@ -24,6 +25,7 @@ case $action in
       'rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-package-keyring --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-wifi-restart --output PRIVATE_NEW_DIRECTORY' \
+      'rog5-dev check-overlay-recovery --kernel EXACT_IMAGE --target-archive EXACT_ARCHIVE --root-image RETAINED_EXT4 --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev select [--event push|pull_request] BASE HEAD' \
       'rog5-dev build-initramfs --help' \
       'rog5-dev package --config RECIPE --private-key KEY --bundle-root OUTPUT' \

@@ -286,22 +286,23 @@
       "outcome": "Supported interrupted update and journal/overlay recovery work",
       "tier": "offline",
       "mandatory": true,
-      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "environment": "Unprivileged host; networkless rootless Podman/QEMU using the exact release kernel and archive predicates; no phone or host block devices",
       "prerequisites": [
-        "disposable filesystem images",
-        "isolated mount/QEMU environment"
+        "python3", "podman", "debugfs", "mkfs.ext4", "dumpe2fs", "e2fsck",
+        "exact kernel/archive/root filesystem receipt",
+        "installed rog5-qemu-gate container"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/test-qemu-overlay-recovery.py", "--kernel", "{kernel}", "--target-archive", "{initramfs}", "--root-image", "{rootfs}", "--output", "{test_output}"]],
       "deadline_seconds": 240,
       "pass_condition": "Legitimate interrupted-update and journal/OverlayFS recovery succeed; genuine corruption rejected with protected nodes untouched.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
       "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
-      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "cleanup": "Bounded QEMU guests exit and Podman removes their containers. Retain private test-owned images/logs; no loop mount or phone connection is created.",
       "required_evidence": [
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Existing synthetic storage fixtures do not prove disposable-image recovery."
+      "blocker": "Supply coherent exact release inputs and installed offline prerequisites; component fixtures are not a full systemd/UFS or physical crash qualification."
     },
     {
       "id": "F02",

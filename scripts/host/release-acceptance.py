@@ -125,6 +125,8 @@ def run_one(test, output, release=None, capture=None):
         bindings = {'{kernel}': release['artifact_paths']['kernel'],
                     '{initramfs}': release['artifact_paths']['initramfs'],
                     '{test_output}': str(output/test['id'])}
+        if 'rootfs' in release['artifact_paths']:
+            bindings['{rootfs}'] = release['artifact_paths']['rootfs']
         if any(token.startswith('{capture_') for command in commands for token in command):
             if capture is None:
                 row['next_action'] = 'supply the currently running exact receiver with --capture'
