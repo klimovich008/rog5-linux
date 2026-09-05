@@ -1,0 +1,35 @@
+{
+  "format": "rog5-recovery-candidate-v1",
+  "candidate": "persistent-native-root-v9",
+  "status": "offline",
+  "authority": "none",
+  "bundle": "persistent-native-root-v9",
+  "profile": "persistent-root-ro-v1",
+  "target_id": "persistent-native-root-v9",
+  "target_release": "7.1.4-g359318de534f",
+  "rollback_timeout": "900",
+  "target_timeout": "600",
+  "a660_command_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_generation": "none",
+  "root_tree_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_seal_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_tree_entries": "0",
+  "root_subtree": "none",
+  "artifacts": {
+    "Image": {
+      "path": "artifacts/persistent-native-root-v9/Image",
+      "size": 38191616,
+      "sha256": "a7e0cd84238d9e0c399a6c93d3c7a5996571dc3536b10c7323cbe1455dbad01e"
+    },
+    "board.dtb": {
+      "path": "artifacts/persistent-native-root-v9/board.dtb",
+      "size": 103098,
+      "sha256": "4f6518b3fddd1695c9059f1faeedf0458dabdba5c779ee72bededff9c56c76b8"
+    },
+    "initramfs.cpio.gz": {
+      "path": "artifacts/persistent-native-root-v9/initramfs.cpio.gz",
+      "size": 23823281,
+      "sha256": "e465beb0e55e45ec9619df3cf5909e37c5040b1734dc42ad5abdaefb6671f59a"
+    }
+  }
+}

@@ -1,0 +1,2539 @@
+#!/bin/sh
+set -u
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+mount -t proc proc /proc 2>/dev/null || true
+mount -t sysfs sysfs /sys 2>/dev/null || true
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
+mkdir -p /dev/pts /run /sys/kernel/config /var/log
+mount -t devpts devpts /dev/pts 2>/dev/null || true
+mount -t tmpfs tmpfs /run 2>/dev/null || true
+echo /sbin/mdev >/proc/sys/kernel/hotplug
+hostname rog5-persistent-root
+mdev -s
+
+expected_physical_count=117
+expected_kernel_release=@EXPECTED_KERNEL_RELEASE@
+expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
+expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
+expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
+expected_ssh_diagnostic_mode=@EXPECTED_SSH_DIAGNOSTIC_MODE@
+expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@
+native_wifi_boot=0
+expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
+expected_tree_sha256=4701c23b93624bf894bb76331c165b650c9a2aecb99273a4e6d37c20ac3ef167
+expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
+expected_image_bytes=17179869184
+expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
+expected_image_label=ROG5_ARCH_A
+expected_probe_bytes=132
+expected_overlay_bytes=17179869184
+expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+expected_overlay_label=ROG5_ROOT_RW_V1
+expected_overlay_manifest_bytes=129
+expected_overlay_manifest_sha256=e894abd56cccdfce9ce3292438df022aa9672a8655cac6493b94cfd19d6bad5f
+overlay_relative=rog5/root/root-overlay-v1.ext4
+userdata=
+userdata_disk=
+root_image=
+root_loop=
+overlay_userdata=
+overlay_userdata_disk=
+overlay_loop=
+overlay_userdata_mounted=0
+overlay_loop_attached=0
+overlay_mounted=0
+image_write_failure_stage=image-write
+release_file=/proc/sys/kernel/osrelease
+expected_udc=a600000.usb
+udc_class_dir=/sys/class/udc
+udc_poll_attempts=200
+stage_sequence=0
+stage_record=/run/rog5-persistent-root-stage.record
+stage_reporter_pid=
+target_boot_id=
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
+reboot_mode_driver=/sys/bus/platform/drivers/nvmem-reboot-mode
+reboot_mode_modules=/rog5-reboot-mode-modules
+watchdog_pid=
+watchdog_pid_file=/run/rog5-p2-watchdog.pid
+watchdog_kmsg=/dev/kmsg
+watchdog_sysrq=/proc/sysrq-trigger
+
+log() {
+	for kmsg in /dev/kmsg /newroot/dev/kmsg; do
+		[ -c "$kmsg" ] || continue
+		echo "rog5-persistent-root: $*" >"$kmsg" 2>/dev/null || true
+		break
+	done
+	return 0
+}
+
+publish_stage() {
+	stage_name=$1
+	stage_state=$2
+	stage_detail=${3:-none}
+	case $stage_name in
+		kernel-verified|ufs-ready|storage-locked|userdata-resolved|\
+userdata-mount|image-resolved|image-mount|root-verify|ufs-health|\
+image-write|image-write-window|userdata-unmount|write-window-precheck|\
+userdata-partition-rw|userdata-disk-rw|\
+write-window-selected-disk-blockdev|write-window-selected-disk-sysfs|\
+write-window-selected-part-blockdev|write-window-selected-part-sysfs|\
+write-window-other-disk-blockdev|write-window-other-disk-sysfs|\
+write-window-other-part-blockdev|write-window-other-part-sysfs|\
+write-window-count|userdata-rw|image-loop-rw|\
+image-fs-rw|image-probe|storage-relock|\
+overlay|runtime|final-storage|switch-root) ;;
+		*) return 1 ;;
+	esac
+	case $stage_state in ENTER|PASS|FAIL) ;; *) return 1 ;; esac
+	case $stage_detail in
+		''|-*|*-|*[!a-z0-9-]*) return 1 ;;
+	esac
+	[ "${#stage_detail}" -le 128 ] || return 1
+	stage_sequence=$((stage_sequence + 1))
+	[ -n "$target_boot_id" ] || return 1
+	stage_next=$stage_record.next
+	printf '%s\n' \
+		'format=rog5-persistent-root-stage-v2' \
+		"target_release=$running_kernel_release" \
+		"boot_id=$target_boot_id" \
+		"sequence=$stage_sequence" \
+		"stage=$stage_name" \
+		"state=$stage_state" \
+		"detail=$stage_detail" >"$stage_next" || return 1
+	chmod 0444 "$stage_next" || return 1
+	mv -f "$stage_next" "$stage_record" || return 1
+	log "stage sequence=$stage_sequence stage=$stage_name state=$stage_state detail=$stage_detail"
+}
+
+send_stage_record() {
+	nc -n -w 1 -s 169.254.77.2 \
+		169.254.77.1 8079 >/dev/null 2>&1
+}
+
+report_current_stage_once() {
+	[ -s "$stage_record" ] || return 1
+	send_stage_record <"$stage_record"
+}
+
+start_stage_reporter() {
+	(
+		while :; do
+			if [ -s "$stage_record" ]; then
+				send_stage_record <"$stage_record" || true
+			fi
+			sleep 1
+		done
+	) &
+	stage_reporter_pid=$!
+	printf '%s\n' "$stage_reporter_pid" >/run/rog5-stage-reporter.pid
+}
+
+valid_power_usb_failure() {
+	candidate=$1
+	[ "${#candidate}" -le 128 ] || return 1
+	[ "$(printf '%s\n' "$candidate" | wc -l)" -eq 1 ] || return 1
+	printf '%s\n' "$candidate" |
+		grep -Eq '^power-usb-[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
+}
+
+publish_or_rollback() {
+	publish_stage "$1" "$2" || {
+		log 'volatile stage publication failed'
+		force_rollback
+	}
+}
+
+fail_local_stage() {
+	stage_detail=${3:-none}
+	publish_stage "$1" FAIL "$stage_detail" || true
+	log "$2"
+	# Give the receive-only heartbeat one bounded chance to export the
+	# terminal stage before the storage-quiescent reset.
+	sleep 2
+	force_rollback
+}
+
+force_rollback() {
+	log 'requesting storage-quiescent bootloader restart'
+	if [ -x "$reboot_helper" ]; then
+		"$reboot_helper" || true
+	fi
+	log 'bootloader restart returned; forcing emergency reset'
+	while :; do
+		printf b >/proc/sysrq-trigger 2>/dev/null || true
+		sleep 5
+	done
+}
+
+wait_for_reboot_mode() {
+	attempt=0
+	while [ "$attempt" -lt 100 ]; do
+		if [ -L "$reboot_mode_driver/reboot-mode" ] &&
+			[ "$(basename "$(readlink -f \
+				"$reboot_mode_driver/reboot-mode")")" = reboot-mode ] &&
+			[ "$(tr '\000' '\n' \
+				</sys/devices/platform/reboot-mode/of_node/compatible)" = \
+				nvmem-reboot-mode ]; then
+			return 0
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	return 1
+}
+
+load_reboot_mode_modules() {
+	[ -d "$reboot_mode_modules" ] || return 0
+	[ "$(find "$reboot_mode_modules" -mindepth 1 -maxdepth 1 -type f | wc -l)" -eq 2 ] ||
+		return 1
+	for module in nvmem_qcom-spmi-sdam.ko nvmem-reboot-mode.ko; do
+		path=$reboot_mode_modules/$module
+		[ -f "$path" ] && [ ! -L "$path" ] || return 1
+		insmod "$path" || return 1
+	done
+}
+
+fail_stage() {
+	reason=$1
+	stage=$2
+	delay=$3
+	case "$stage:$delay" in
+		cmdline:5|kernel-release-file:20|kernel-release-identity:25|\
+ufs-discovery:35|ufs-power:50|storage-lock:65|userdata:80|inventory:95|\
+usb:15|reboot-mode:15|ufs-rendezvous:15|ufs-module:20) ;;
+		*)
+			log 'invalid failure timing marker'
+			force_rollback
+			;;
+	esac
+	log "$reason"
+	log "failure timing marker stage=$stage delay=${delay}s"
+	sleep "$delay"
+	force_rollback
+}
+
+watchdog_bb() {
+	# cwd pins the original /run mount across switch_root. Its retained musl
+	# loader must be invoked explicitly: the old /lib interpreter is deleted.
+	./initramfs/lib/ld-musl-aarch64.so.1 ./initramfs/bin/busybox "$@"
+}
+
+watchdog_acknowledged() {
+	ack=./rog5-p2-ready
+	[ -f "$ack" ] && [ ! -L "$ack" ] || return 1
+	ack_metadata=$(watchdog_bb stat -c '%u:%g:%a:%h' "$ack") || return 1
+	[ "$ack_metadata" = 0:0:444:1 ] || return 1
+	ack_size=$(watchdog_bb stat -c %s "$ack") || return 1
+	[ "$ack_size" -gt 0 ] && [ "$ack_size" -le 4096 ] || return 1
+	ack_status_count=$(watchdog_bb grep -c '^status=' "$ack") || return 1
+	ack_boot_count=$(watchdog_bb grep -c '^attested_boot_id=' "$ack") || return 1
+	[ "$ack_status_count" = 1 ] &&
+		watchdog_bb grep -Fxq 'status=PASS' "$ack" &&
+		[ "$ack_boot_count" = 1 ] &&
+		watchdog_bb grep -Fxq "attested_boot_id=$watchdog_boot_id" "$ack" || return 1
+	# P2 precedes persistent-state/SSH identity setup. Require its successful
+	# current-boot publication too; later SSH downtime must not undo this latch.
+	identity_ack=./rog5-persistent-ssh-identity.record
+	[ -f "$identity_ack" ] && [ ! -L "$identity_ack" ] || return 1
+	identity_metadata=$(watchdog_bb stat -c '%u:%g:%a:%h' "$identity_ack") || return 1
+	[ "$identity_metadata" = 0:0:444:1 ] || return 1
+	identity_size=$(watchdog_bb stat -c %s "$identity_ack") || return 1
+	[ "$identity_size" -gt 0 ] && [ "$identity_size" -le 256 ] || return 1
+	watchdog_bb awk -F= -v boot="$watchdog_boot_id" '
+	NF != 2 { exit 1 }
+	NR == 1 && $0 != "format=rog5-persistent-ssh-identity-v1" { exit 1 }
+	NR == 2 && $0 != "mode=seed" && $0 != "mode=load" { exit 1 }
+	NR == 3 && ($1 != "fingerprint" || length($2) != 50 ||
+		$2 !~ /^SHA256:[A-Za-z0-9+\/]+$/) { exit 1 }
+	NR == 4 && $0 != "identity_boot_id=" boot { exit 1 }
+	END { if (NR != 4) exit 1 }' "$identity_ack"
+}
+
+watchdog_expired() {
+	if watchdog_acknowledged; then
+		printf '%s\n' 'rog5-persistent-root: watchdog acknowledged by current-boot P2 and SSH identity readiness' >&8
+		return 0
+	fi
+	# Do not depend on deleted absolute paths, an interpreter in the old root,
+	# systemd, or a diagnostic write completing before the reset request.
+	if [ -x "./initramfs$reboot_helper" ]; then
+		"./initramfs$reboot_helper" || true
+	fi
+	if [ -x "$reboot_helper" ]; then
+		"$reboot_helper" || true
+	fi
+	printf b >&9
+	printf '%s\n' 'rog5-persistent-root: watchdog reset requests returned' >&8
+	return 1
+}
+
+arm_watchdog() {
+	watchdog_boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	printf '%s\n' "$watchdog_boot_id" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		return 1
+	# A compound-command redirection failure returns to the caller. An exec
+	# special-builtin redirection error can instead terminate PID 1 outright.
+	{
+		(
+			cd /run || { printf b >&9; exit 1; }
+			sleep "$recovery_timeout"
+			watchdog_expired
+		) &
+		watchdog_pid=$!
+	} 8>"$watchdog_kmsg" 9>"$watchdog_sysrq" || return 1
+	printf '%s\n' "$watchdog_pid" >"$watchdog_pid_file" || return 1
+	log "emergency-reset watchdog armed for $recovery_timeout seconds"
+}
+
+physical_topology_count() {
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			count=$((count + 1))
+		done
+	done
+	printf '%s\n' "$count"
+}
+
+wait_for_ufs_discovery() {
+	attempt=0
+	stable=0
+	previous=-1
+	while [ "$attempt" -lt 450 ]; do
+		mdev -s || return 1
+		count=$(physical_topology_count)
+		if [ "$count" = "$expected_physical_count" ] &&
+			[ "$count" = "$previous" ]; then
+			stable=$((stable + 1))
+		else
+			stable=0
+		fi
+		[ "$stable" -ge 20 ] && return 0
+		previous=$count
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	log "UFS topology did not stabilize at $expected_physical_count nodes"
+	return 1
+}
+
+verify_ufs_power_containment() {
+	auto_marker='ROG5 UFS discovery: auto-hibern8 disabled; link remains active'
+	host_marker='ROG5 UFS discovery: host runtime PM forbidden; active reference retained'
+	wlun_marker='ROG5 UFS discovery: WLUN runtime PM forbidden'
+	if [ "$expected_ufs_storage_mode" = local-write ]; then
+		attempt=0
+		auto_count=0
+		host_count=0
+		wlun_count=0
+		optional_count=0
+		while [ "$attempt" -lt 100 ]; do
+			auto_count=$(dmesg | grep -F -c "$auto_marker" || true)
+			host_count=$(dmesg | grep -F -c "$host_marker" || true)
+			wlun_count=$(dmesg | grep -F -c "$wlun_marker" || true)
+			optional_count=$(dmesg | grep -F -c \
+				'ROG5 UFS discovery: optional device writes and high-speed gear switch disabled' || true)
+			if [ "$auto_count" -gt 0 ] && [ "$host_count" -gt 0 ] &&
+				[ "$wlun_count" -gt 0 ] && [ "$optional_count" -gt 0 ]; then
+				break
+			fi
+			attempt=$((attempt + 1))
+			sleep 0.1
+		done
+		[ "$auto_count" -gt 0 ] && [ "$host_count" -gt 0 ] &&
+			[ "$wlun_count" -gt 0 ] && [ "$optional_count" -gt 0 ] ||
+			return 1
+		[ "$(dmesg | grep -F -c \
+			'ROG5 UFS discovery: forced read-only before registration' || true)" \
+			-eq 0 ] || return 1
+		blocked_query_count=$(dmesg |
+			grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+		blocked_scsi_count=$(dmesg |
+			grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+		[ "$blocked_query_count" -eq 0 ] &&
+			[ "$blocked_scsi_count" -eq 0 ]
+		return
+	fi
+	attempt=0
+	auto_count=0
+	host_count=0
+	wlun_count=0
+	while [ "$attempt" -lt 100 ]; do
+		auto_count=$(dmesg | grep -F -c "$auto_marker" || true)
+		host_count=$(dmesg | grep -F -c "$host_marker" || true)
+		wlun_count=$(dmesg | grep -F -c "$wlun_marker" || true)
+		if [ "$auto_count" -gt 0 ] &&
+			[ "$host_count" -gt 0 ] &&
+			[ "$wlun_count" -gt 0 ]; then
+			break
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	[ "$auto_count" -gt 0 ] &&
+		[ "$host_count" -gt 0 ] &&
+		[ "$wlun_count" -gt 0 ] || return 1
+
+	blocked_query_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+	blocked_scsi_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+	[ "$blocked_query_count" -eq 0 ] &&
+		[ "$blocked_scsi_count" -eq 0 ] || return 1
+	return 0
+}
+
+has_block_backed_mount() {
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		log "unexpected block-backed mount at $mountpoint"
+		return 0
+	done </proc/self/mountinfo
+	return 1
+}
+
+lock_physical_storage() {
+	has_block_backed_mount && return 1
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || return 1
+			blockdev --setro "$device" || return 1
+			[ "$(blockdev --getro "$device")" = 1 ] || return 1
+			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
+			count=$((count + 1))
+		done
+	done
+	[ "$count" -eq "$expected_physical_count" ] || return 1
+	printf '%s\n' "$count" >/run/rog5-physical-block-count
+	return 0
+}
+
+verify_physical_storage_read_only() {
+	count=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || return 1
+			[ "$(blockdev --getro "$device")" = 1 ] || return 1
+			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
+			count=$((count + 1))
+		done
+	done
+	[ "$count" -eq "$expected_physical_count" ]
+}
+
+find_exact_userdata() {
+	[ "$#" -eq 2 ] || return 1
+	sys_block_root=$1
+	dev_root=$2
+	userdata_count=0
+	exact_count=0
+	found=
+	for sys_disk in "$sys_block_root"/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk") || return 1
+		case $disk in sd[a-z]) ;; *) continue ;; esac
+		for sys_block in "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/partition" ] || continue
+			partition_name=$(sed -n 's/^PARTNAME=//p' \
+				"$sys_block/uevent" | sed -n '1p')
+			[ "$partition_name" = userdata ] || continue
+			userdata_count=$((userdata_count + 1))
+			name=$(basename "$sys_block") || return 1
+			[ "$name" = "${disk}23" ] || continue
+			[ "$(cat "$sys_disk/size")" = 494927872 ] || continue
+			[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] ||
+				continue
+			[ "$(cat "$sys_block/partition")" = 23 ] || continue
+			[ "$(cat "$sys_block/start")" = 18821440 ] || continue
+			[ "$(cat "$sys_block/size")" = 408997568 ] || continue
+			[ "$(sed -n 's/^DEVNAME=//p' "$sys_block/uevent")" = \
+				"$name" ] || continue
+			[ "$(cat "$sys_block/ro")" = 1 ] || continue
+			exact_count=$((exact_count + 1))
+			found=$name
+		done
+	done
+	[ "$userdata_count" -eq 1 ] && [ "$exact_count" -eq 1 ] || return 1
+	printf '%s/%s\n' "$dev_root" "$found"
+}
+
+find_exact_arch_root() {
+	[ "$#" -eq 2 ] || return 1
+	sys_block_root=$1
+	dev_root=$2
+	name_count=0
+	exact_count=0
+	found=
+	for sys_disk in "$sys_block_root"/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk") || return 1
+		case $disk in sd[a-z]) ;; *) continue ;; esac
+		for sys_block in "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/partition" ] || continue
+			partition_name=$(sed -n 's/^PARTNAME=//p' \
+				"$sys_block/uevent" | sed -n '1p')
+			[ "$partition_name" = arch_root_a ] || continue
+			name_count=$((name_count + 1))
+			name=$(basename "$sys_block") || return 1
+			[ "$name" = "${disk}24" ] || continue
+			[ "$(cat "$sys_disk/size")" = 494927872 ] || continue
+			[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] || continue
+			[ "$(cat "$sys_block/partition")" = 24 ] || continue
+			[ "$(cat "$sys_block/start")" = 427819008 ] || continue
+			[ "$(cat "$sys_block/size")" = 67108824 ] || continue
+			[ "$(sed -n 's/^DEVNAME=//p' "$sys_block/uevent")" = "$name" ] || continue
+			[ "$(cat "$sys_block/ro")" = 1 ] || continue
+			exact_count=$((exact_count + 1))
+			found=$name
+		done
+	done
+	[ "$name_count" -eq 1 ] && [ "$exact_count" -eq 1 ] || return 1
+	printf '%s/%s\n' "$dev_root" "$found"
+}
+
+write_ufs_inventory() {
+	inventory=/run/rog5-p2-ufs-inventory.tsv
+	printf 'name\tkind\tpartition_number\tpartition_name\tmajor_minor\tread_only\tstart_sectors\tsize_sectors\tlogical_block_bytes\n' \
+		>"$inventory"
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		logical_block_bytes=$(cat "$sys_disk/queue/logical_block_size")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			if [ "$sys_block" = "$sys_disk" ]; then
+				kind=disk
+				partition_number=0
+				partition_name=-
+				start=0
+			else
+				[ -e "$sys_block/partition" ] || continue
+				kind=partition
+				partition_number=$(cat "$sys_block/partition")
+				partition_name=$(sed -n 's/^PARTNAME=//p' \
+					"$sys_block/uevent" | sed -n '1p')
+				[ -n "$partition_name" ] || partition_name=-
+				start=$(cat "$sys_block/start")
+			fi
+			printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+				"$(basename "$sys_block")" "$kind" \
+				"$partition_number" "$partition_name" \
+				"$(cat "$sys_block/dev")" \
+				"$(cat "$sys_block/ro")" "$start" \
+				"$(cat "$sys_block/size")" \
+				"$logical_block_bytes" >>"$inventory"
+		done
+	done
+	[ "$(wc -l <"$inventory")" -eq $((expected_physical_count + 1)) ]
+}
+
+udc_candidate_count() {
+	count=0
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+	done
+	printf '%s\n' "$count"
+}
+
+validate_expected_udc_once() {
+	count=0
+	selected=
+	for candidate in "$udc_class_dir"/*; do
+		[ -e "$candidate" ] || continue
+		count=$((count + 1))
+		selected=$(basename "$candidate") || return 1
+	done
+	[ "$count" -eq 1 ] && [ "$selected" = "$expected_udc" ] || return 1
+	printf '%s\n' "$selected"
+}
+
+validate_expected_udc() {
+	validate_expected_udc_once
+}
+
+expected_udc_is_bound() {
+	bound_udc=$(cat "$gadget/UDC" 2>/dev/null) || return 1
+	[ "$bound_udc" = "$expected_udc" ] &&
+		[ "$(validate_expected_udc)" = "$expected_udc" ]
+}
+
+select_expected_udc() {
+	attempt=0
+	while [ "$attempt" -lt "$udc_poll_attempts" ]; do
+		candidate_count=$(udc_candidate_count) || return 1
+		case $candidate_count in
+			0)
+				sleep 0.1
+				attempt=$((attempt + 1))
+				continue
+				;;
+			1) ;;
+			*) return 1 ;;
+		esac
+		first=$(validate_expected_udc) || return 1
+		sleep 0.1
+		second=$(validate_expected_udc) || return 1
+		[ "$first" = "$second" ] || return 1
+		printf '%s\n' "$first"
+		return 0
+	done
+	return 1
+}
+
+configure_usb() {
+	usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+	[ ! -e "$usb_mode" ] || echo peripheral >"$usb_mode" || return 1
+	mount -t configfs configfs /sys/kernel/config || return 1
+
+	gadget=/sys/kernel/config/usb_gadget/rog5-persistent-root
+	mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"
+	echo 0x1d6b >"$gadget/idVendor"
+	echo 0x0104 >"$gadget/idProduct"
+	echo 0xef >"$gadget/bDeviceClass"
+	echo 0x02 >"$gadget/bDeviceSubClass"
+	echo 0x01 >"$gadget/bDeviceProtocol"
+	echo Linux >"$gadget/strings/0x409/manufacturer"
+	echo 'ROG5 persistent root' >"$gadget/strings/0x409/product"
+	echo 'Read-only Arch root over NCM' \
+		>"$gadget/configs/c.1/strings/0x409/configuration"
+	mkdir -p "$gadget/functions/ncm.usb0"
+	ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
+	mdev -s || return 1
+
+	udc=$(select_expected_udc) || return 1
+	[ "$(validate_expected_udc)" = "$udc" ] || return 1
+	echo "$udc" >"$gadget/UDC" || return 1
+	expected_udc_is_bound || return 1
+
+	attempt=0
+	while [ "$attempt" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -e /sys/class/net/usb0 ] || return 1
+	ip link set usb0 up || return 1
+	ip address add 169.254.77.2/30 dev usb0 || return 1
+	expected_udc_is_bound || return 1
+	return 0
+}
+
+deferred_ufs_modules_present() {
+	[ -d /rog5-ufs-modules ] && [ ! -L /rog5-ufs-modules ]
+}
+
+prepare_native_wifi_boot() {
+	# Opt in only through the signed archive, never a bootloader argument.
+	[ -e /rog5-native-wifi ] || [ -L /rog5-native-wifi ] || return 0
+	[ "$expected_native_root_mode:$expected_ufs_storage_mode:$expected_ssh_diagnostic_mode" = \
+		1:read-only:0 ] || return 1
+	[ -d /rog5-native-wifi ] && [ ! -L /rog5-native-wifi ] || return 1
+	marker=/rog5-native-wifi/automatic
+	[ -f "$marker" ] && [ ! -L "$marker" ] &&
+		[ "$(stat -c '%u:%g:%a:%s:%h' "$marker")" = 0:0:444:25:1 ] &&
+		[ "$(cat "$marker")" = rog5-native-wifi-boot-v1 ] || return 1
+	[ ! -e /run/rog5-native-wifi ] && [ ! -L /run/rog5-native-wifi ] || return 1
+	mv /rog5-native-wifi /run/rog5-native-wifi || return 1
+	native_wifi_boot=1
+}
+
+run_pre_switch_display_observer() {
+	root=/run/rog5-native-wifi
+	marker=$root/display-diagnostic
+	reporter=$root/display-post-switch-report
+	[ -e "$marker" ] || [ -L "$marker" ] || return 0
+	[ "$native_wifi_boot" -eq 1 ] || return 1
+	[ -f "$marker" ] && [ ! -L "$marker" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$marker")" = 0:0:444:1 ] &&
+		[ "$(cat "$marker")" = rog5-display-diagnostic-v1 ] || return 1
+	[ -f "$reporter" ] && [ ! -L "$reporter" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$reporter")" = 0:0:755:1 ] ||
+		return 1
+	[ ! -e /run/rog5-display-post-switch.record ] &&
+		[ ! -L /run/rog5-display-post-switch.record ] || return 1
+	log 'pre-switch display observation begin'
+	if ROG5_OBSERVER_TARGET_ROOT=/newroot \
+		ROG5_OBSERVER_UNIT_ROOT=/run/systemd/system \
+		ROG5_OBSERVER_BUSYBOX=/bin/busybox "$reporter" send; then
+		log 'pre-switch display observation sent; rebooting before persistent state'
+	else
+		log 'pre-switch display observation failed; rebooting'
+	fi
+	/bin/busybox reboot -f || true
+	force_rollback
+}
+
+wait_for_deferred_ufs_rendezvous() {
+	# Storage-writing and diagnostic archives retain the attended rendezvous.
+	[ "${native_wifi_boot:-0}" != 1 ] || return 0
+	attempt=0
+	stable=0
+	while [ "$attempt" -lt 150 ]; do
+		if [ "$(cat /sys/class/net/usb0/carrier 2>/dev/null)" = 1 ]; then
+			stable=$((stable + 1))
+		else
+			stable=0
+		fi
+		if [ "$stable" -ge 10 ]; then
+			# Leave the host enough time to record the stable target identity
+			# before the deliberately observed Qualcomm probe begins.
+			sleep 3
+			return 0
+		fi
+		attempt=$((attempt + 1))
+		sleep 0.1
+	done
+	return 1
+}
+
+load_deferred_ufs_modules() {
+	module_dir=/rog5-ufs-modules
+	phy=$module_dir/phy-qcom-qmp-ufs.ko
+	core=$module_dir/ufshcd-core.ko
+	platform=$module_dir/ufshcd-pltfrm.ko
+	qcom=$module_dir/ufs-qcom.ko
+	[ -f "$phy" ] && [ ! -L "$phy" ] &&
+		[ -f "$core" ] && [ ! -L "$core" ] &&
+		[ -f "$platform" ] && [ ! -L "$platform" ] &&
+		[ -f "$qcom" ] && [ ! -L "$qcom" ] || return 1
+	[ "$(find "$module_dir" -mindepth 1 -maxdepth 1 -print |
+		wc -l)" -eq 4 ] || return 1
+	if grep -Eq '^(phy_qcom_qmp_ufs|ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' \
+		/proc/modules; then
+		return 1
+	fi
+	log 'deferred Qualcomm UFS PHY probe begin'
+	insmod /rog5-ufs-modules/phy-qcom-qmp-ufs.ko || return 1
+	log 'deferred Qualcomm UFS PHY probe returned'
+	grep -q '^phy_qcom_qmp_ufs ' /proc/modules || return 1
+	grep -Eq '^(ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' /proc/modules &&
+		return 1
+
+	insmod /rog5-ufs-modules/ufshcd-core.ko || return 1
+	grep -q '^phy_qcom_qmp_ufs ' /proc/modules || return 1
+	grep -q '^ufshcd_core ' /proc/modules || return 1
+	grep -Eq '^(ufshcd_pltfrm|ufs_qcom) ' /proc/modules && return 1
+
+	insmod /rog5-ufs-modules/ufshcd-pltfrm.ko || return 1
+	grep -q '^phy_qcom_qmp_ufs ' /proc/modules || return 1
+	grep -q '^ufshcd_core ' /proc/modules || return 1
+	grep -q '^ufshcd_pltfrm ' /proc/modules || return 1
+	grep -q '^ufs_qcom ' /proc/modules && return 1
+
+	log 'deferred Qualcomm UFS host probe begin'
+	insmod /rog5-ufs-modules/ufs-qcom.ko || return 1
+	for loaded in phy_qcom_qmp_ufs ufshcd_core ufshcd_pltfrm ufs_qcom; do
+		grep -q "^$loaded " /proc/modules || return 1
+	done
+	[ "$(grep -Ec '^(phy_qcom_qmp_ufs|ufshcd_core|ufshcd_pltfrm|ufs_qcom) ' \
+		/proc/modules)" -eq 4 ] || return 1
+	log 'deferred Qualcomm UFS host probe returned'
+	return 0
+}
+
+verify_only_userdata_mount() {
+	count=0
+	userdata_name=${userdata##*/}
+	expected_device=$(cat "/sys/class/block/$userdata_name/dev") || return 1
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+		[ "$device" = "$expected_device" ] &&
+			[ "$mountpoint" = /mnt/userdata ] || return 1
+	done </proc/self/mountinfo
+	[ "$count" -eq 1 ]
+}
+
+verify_userdata_and_image_mounts() {
+	count=0
+	userdata_name=${userdata##*/}
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		expected_root=$(cat "/sys/class/block/$userdata_name/dev") || return 1
+		while read -r _ _ device _ mountpoint _ rest; do
+			[ -e "/sys/dev/block/$device" ] || continue
+			count=$((count + 1))
+			[ "$device" = "$expected_root" ] &&
+				[ "$mountpoint" = /mnt/root-ro ] || return 1
+		done </proc/self/mountinfo
+		[ "$count" -eq 1 ]
+		return
+	fi
+	loop_name=${root_loop##*/}
+	expected_userdata=$(cat "/sys/class/block/$userdata_name/dev") || return 1
+	expected_loop=$(cat "/sys/class/block/$loop_name/dev") || return 1
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+		if [ "$device" = "$expected_userdata" ] &&
+			[ "$mountpoint" = /mnt/userdata ]; then
+			continue
+		fi
+		if [ "$device" = "$expected_loop" ] &&
+			[ "$mountpoint" = /mnt/root-ro ]; then
+			continue
+		fi
+		return 1
+	done </proc/self/mountinfo
+	[ "$count" -eq 2 ]
+}
+
+ext4_feature_flag() {
+	features=$1
+	feature=$2
+	for current_feature in $features; do
+		[ "$current_feature" = "$feature" ] && return 0
+	done
+	return 1
+}
+
+blkid_filesystem_type() {
+	for blkid_field in $1; do
+		case $blkid_field in
+			'TYPE="ext4"') printf 'ext4\n'; return 0 ;;
+			'TYPE="f2fs"') printf 'f2fs\n'; return 0 ;;
+		esac
+	done
+	printf 'unknown\n'
+}
+
+filesystem_magic_type() {
+	magic=$1
+	[ "${#magic}" -eq 128 ] &&
+		printf '%s\n' "$magic" | grep -Eq '^[0-9a-f]{128}$' || {
+		printf 'unknown\n'
+		return 0
+	}
+	[ "$(printf '%s\n' "$magic" | cut -c 1-8)" = 1020f5f2 ] && {
+		printf 'f2fs\n'
+		return 0
+	}
+	[ "$(printf '%s\n' "$magic" | cut -c 113-116)" = 53ef ] && {
+		printf 'ext4\n'
+		return 0
+	}
+	printf 'unknown\n'
+}
+
+classify_userdata_filesystem() {
+	userdata_filesystem_detail=tunknown-bunknown-cx-ex-vx-qx-px-rx-ox
+	blkid_record=$(blkid "$userdata" 2>&1) || {
+		blkid_record=
+	}
+	blkid_type=$(blkid_filesystem_type "$blkid_record")
+	magic_record=$(dd if="$userdata" bs=1 skip=1024 count=64 2>/dev/null |
+		od -An -v -tx1 | tr -d ' \n') || {
+		userdata_filesystem_detail=tmagic-b${blkid_type}-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	magic_type=$(filesystem_magic_type "$magic_record")
+	case $magic_type in
+		f2fs)
+			userdata_filesystem_detail=tf2fs-b${blkid_type}-cx-ex-vx-qx-px-rx-ox
+			return 0
+			;;
+		ext4) ;;
+		*)
+			userdata_filesystem_detail=tunknown-b${blkid_type}-cx-ex-vx-qx-px-rx-ox
+			return 0
+			;;
+	esac
+	dumpe2fs_record=$(dumpe2fs -h "$userdata" 2>&1) || {
+		userdata_filesystem_detail=te-b${blkid_type}-dump-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	[ "${#dumpe2fs_record}" -le 32768 ] || {
+		userdata_filesystem_detail=te-b${blkid_type}-large-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	features=$(printf '%s\n' "$dumpe2fs_record" |
+		sed -n 's/^Filesystem features:[[:space:]]*//p' | sed -n '1p')
+	[ -n "$features" ] || {
+		userdata_filesystem_detail=te-b${blkid_type}-features-cx-ex-vx-qx-px-rx-ox
+		return 0
+	}
+	casefold=0; encrypt=0; verity=0; quota=0
+	project=0; recovery=0; orphan=0
+	ext4_feature_flag "$features" casefold && casefold=1
+	ext4_feature_flag "$features" encrypt && encrypt=1
+	ext4_feature_flag "$features" verity && verity=1
+	ext4_feature_flag "$features" quota && quota=1
+	ext4_feature_flag "$features" project && project=1
+	ext4_feature_flag "$features" needs_recovery && recovery=1
+	ext4_feature_flag "$features" orphan_file && orphan=1
+	userdata_filesystem_detail=te-b${blkid_type}-c${casefold}-e${encrypt}-v${verity}-q${quota}-p${project}-r${recovery}-o${orphan}
+	return 0
+}
+
+mount_persistent_root() {
+	mount_persistent_root_failure=mkdir
+	mkdir -p /mnt/userdata /mnt/root-ro /mnt/probe-root /mnt/state /newroot ||
+		return 1
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		mount_persistent_root_failure=native-mount
+		mount -t ext4 -o ro,noload,nodev,nosuid,noatime \
+			"$userdata" /mnt/root-ro || return 1
+		mount_persistent_root_failure=native-mount-table
+		awk -v root="$userdata" '$1 == root && $2 == "/mnt/root-ro" &&
+			$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ &&
+			$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ {
+				found++
+			}
+			END { exit found != 1 }' /proc/mounts || return 1
+		verify_userdata_and_image_mounts || return 1
+		verify_physical_storage_read_only || return 1
+		mount_persistent_root_failure=none
+		return 0
+	fi
+	mount_persistent_root_failure=filesystem-probe
+	classify_userdata_filesystem || return 1
+	mount_persistent_root_failure=mount-call
+	mount_status=0
+	mount_output=$(mount -t ext4 -o ro,noload "$userdata" /mnt/userdata 2>&1) ||
+		mount_status=$?
+	if [ "$mount_status" -ne 0 ]; then
+		case $(dmesg | tail -n 80) in
+			*'casefold feature cannot be mounted without CONFIG_UNICODE'*)
+				mount_kernel_detail=casefold ;;
+			*'unsupported optional features'*) mount_kernel_detail=incompat ;;
+			*"Can't find ext4 filesystem"*) mount_kernel_detail=not-ext4 ;;
+			*'required journal recovery suppressed'*) mount_kernel_detail=recovery ;;
+			*'EXT4-fs '*'mount failed'*) mount_kernel_detail=ext4-failed ;;
+			*)
+				case $mount_output in
+					*'Invalid argument'*) mount_kernel_detail=einval ;;
+					*'wrong fs type'*) mount_kernel_detail=wrong-fs ;;
+					*) mount_kernel_detail=other ;;
+				esac
+				;;
+		esac
+		mount_persistent_root_failure=mount-call-s${mount_status}-${userdata_filesystem_detail}-${mount_kernel_detail}
+		return 1
+	fi
+	mount_persistent_root_failure=mountpoint
+	mountpoint -q /mnt/userdata || return 1
+	mount_persistent_root_failure=mount-table
+	awk -v userdata="$userdata" '$1 == userdata && $2 == "/mnt/userdata" &&
+		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ { found++ }
+		END { exit found != 1 }' /proc/mounts || return 1
+	mount_persistent_root_failure=mount-inventory
+	verify_only_userdata_mount || return 1
+	mount_persistent_root_failure=storage-read-only
+	verify_physical_storage_read_only || return 1
+
+	mount_persistent_root_failure=rog5-directory
+	for path in /mnt/userdata/rog5 /mnt/userdata/rog5/images; do
+		[ -d "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	mount_persistent_root_failure=selector-absence
+	[ ! -e /mnt/userdata/rog5/state/good ] || return 1
+	[ ! -e /mnt/userdata/rog5/state/next ] || return 1
+	mount_persistent_root_failure=none
+	return 0
+}
+
+publish_sparse_block_probe() {
+	for probe_block in 1 32 1086 8224 8225 9278 14680096 14688288 14688289; do
+		probe_hash=$(dd if="$userdata" bs=4096 skip="$probe_block" count=1 \
+			2>/dev/null | sha256sum | cut -d ' ' -f 1) || return 1
+		printf '%s\n' "$probe_hash" | grep -Eq '^[0-9a-f]{64}$' || return 1
+		publish_stage userdata-mount ENTER \
+			"raw-b${probe_block}-${probe_hash}" || return 1
+		report_current_stage_once || true
+		sleep 1
+	done
+}
+
+resolve_local_root_image() {
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		root_image=$userdata
+		return 0
+	fi
+	root_image=/mnt/userdata/rog5/images/arch-local-a.ext4
+	[ -f "$root_image" ] && [ ! -L "$root_image" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$root_image")" = \
+		"0:0:600:$expected_image_bytes:1" ] || return 1
+	return 0
+}
+
+verify_exact_userdata_write_window() {
+	count=0
+	writable=0
+	for sys_disk in /sys/class/block/*; do
+		[ -e "$sys_disk/device" ] || continue
+		[ ! -e "$sys_disk/partition" ] || continue
+		disk=$(basename "$sys_disk")
+		for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+			[ -e "$sys_block/dev" ] || continue
+			[ "$sys_block" = "$sys_disk" ] ||
+				[ -e "$sys_block/partition" ] || continue
+			device=/dev/$(basename "$sys_block")
+			[ -b "$device" ] || return 1
+			expected_ro=1
+			case $device in
+				"$userdata_disk")
+					expected_ro=0
+					writable=$((writable + 1))
+					blockdev_stage=write-window-selected-disk-blockdev
+					sysfs_stage=write-window-selected-disk-sysfs
+					;;
+				"$userdata")
+					expected_ro=0
+					writable=$((writable + 1))
+					blockdev_stage=write-window-selected-part-blockdev
+					sysfs_stage=write-window-selected-part-sysfs
+					;;
+				/dev/sd[a-z])
+					blockdev_stage=write-window-other-disk-blockdev
+					sysfs_stage=write-window-other-disk-sysfs
+					;;
+				/dev/sd[a-z][0-9]*)
+					blockdev_stage=write-window-other-part-blockdev
+					sysfs_stage=write-window-other-part-sysfs
+					;;
+				*) return 1 ;;
+			esac
+			image_write_failure_stage=$blockdev_stage
+			[ "$(blockdev --getro "$device")" = "$expected_ro" ] ||
+				return 1
+			image_write_failure_stage=$sysfs_stage
+			[ "$(cat "$sys_block/ro")" = "$expected_ro" ] || return 1
+			count=$((count + 1))
+		done
+	done
+	image_write_failure_stage=write-window-count
+	[ "$count" -eq "$expected_physical_count" ] && [ "$writable" -eq 2 ]
+}
+
+open_exact_userdata_write_window() {
+	image_write_failure_stage=write-window-precheck
+	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	userdata_disk=${userdata%23}
+	disk_name=${userdata_disk##*/}
+	userdata_name=${userdata##*/}
+	[ -b "$userdata_disk" ] && [ -b "$userdata" ] || return 1
+	[ -e "/sys/class/block/$disk_name/device" ] &&
+		[ ! -e "/sys/class/block/$disk_name/partition" ] &&
+		[ -e "/sys/class/block/$userdata_name/partition" ] || return 1
+	[ "$(cat "/sys/class/block/$userdata_name/partition")" = 23 ] ||
+		return 1
+	[ "$(sed -n 's/^PARTNAME=//p' \
+		"/sys/class/block/$userdata_name/uevent" | sed -n '1p')" = userdata ] ||
+		return 1
+	verify_physical_storage_read_only || return 1
+	# Keep the parent disk read-only until the exact partition flag is ready.
+	image_write_failure_stage=userdata-partition-rw
+	blockdev --setrw "$userdata" || return 1
+	image_write_failure_stage=userdata-disk-rw
+	blockdev --setrw "$userdata_disk" || {
+		blockdev --setro "$userdata" || true
+		return 1
+	}
+	verify_exact_userdata_write_window
+}
+
+close_exact_userdata_write_window() {
+	close_status=0
+	case $userdata_disk in /dev/sd[a-z]) ;; *) return 1 ;; esac
+	case $userdata in "$userdata_disk"23) ;; *) return 1 ;; esac
+	# Closing the parent first immediately blocks raw-disk and partition writes.
+	blockdev --setro "$userdata_disk" || close_status=1
+	blockdev --setro "$userdata" || close_status=1
+	verify_physical_storage_read_only || close_status=1
+	[ "$close_status" -eq 0 ]
+}
+
+verify_exact_local_image_probe() {
+	probe_root=$1
+	case $probe_root in
+		/mnt/probe-root|/mnt/root-ro|/.rog5/root-ro) ;;
+		*) return 1 ;;
+	esac
+	probe_dir=$probe_root/var/lib/rog5
+	probe_path=$probe_dir/local-image-write-probe-v1
+	case "$expected_ufs_storage_mode:$expected_probe_boot_id" in
+		read-only:staged-seal)
+			[ ! -e "$probe_path" ] && [ ! -L "$probe_path" ]
+			return
+			;;
+	esac
+	case $expected_ufs_storage_mode in
+		local-write)
+			[ "$expected_probe_boot_id" = current ] || return 1
+			probe_boot_id=$target_boot_id
+			;;
+	read-only)
+		if [ "$expected_probe_boot_id" = any-prior ]; then
+			probe_boot_id=any-prior
+		else
+			printf '%s\n' "$expected_probe_boot_id" |
+				grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+					return 1
+			[ "$expected_probe_boot_id" != "$target_boot_id" ] || return 1
+			probe_boot_id=$expected_probe_boot_id
+		fi
+			;;
+		*) return 1 ;;
+	esac
+	for path in "$probe_root/var" "$probe_root/var/lib" "$probe_dir"; do
+		[ -d "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	[ -f "$probe_path" ] && [ ! -L "$probe_path" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$probe_path")" = \
+		"0:0:444:$expected_probe_bytes:1" ] || return 1
+	[ "$(wc -l <"$probe_path")" -eq 3 ] || return 1
+	if [ "$probe_boot_id" = any-prior ]; then
+		probe_boot_id=$(sed -n 's/^boot_id=//p' "$probe_path") || return 1
+		[ "$(grep -c '^boot_id=' "$probe_path")" -eq 1 ] || return 1
+		printf '%s\n' "$probe_boot_id" |
+			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+			return 1
+		[ "$probe_boot_id" != "$target_boot_id" ] || return 1
+	fi
+	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" ||
+		return 1
+	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" || return 1
+	grep -Fxq "boot_id=$probe_boot_id" "$probe_path" || return 1
+}
+
+write_exact_local_image_probe() {
+	probe_root=/mnt/probe-root
+	probe_dir=$probe_root/var/lib/rog5
+	probe_path=$probe_dir/local-image-write-probe-v1
+	probe_next=$probe_path.next
+	for path in "$probe_root/var" "$probe_root/var/lib"; do
+		[ -d "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	[ ! -e "$probe_dir" ] && [ ! -L "$probe_dir" ] || return 1
+	mkdir -m 0700 "$probe_dir" || return 1
+	if ! (umask 077 && printf '%s\n' \
+		'format=rog5-local-image-write-probe-v1' \
+		"image_uuid=$expected_image_uuid" \
+		"boot_id=$target_boot_id" >"$probe_next" &&
+		chmod 0444 "$probe_next" &&
+		mv "$probe_next" "$probe_path"); then
+		rm -f "$probe_next" "$probe_path" || true
+		rmdir "$probe_dir" || true
+		return 1
+	fi
+	verify_exact_local_image_probe "$probe_root"
+}
+
+run_local_image_write_probe() {
+	probe_status=0
+	probe_loop=
+	probe_loop_attached=0
+	probe_mounted=0
+	userdata_mounted=0
+	image_write_failure_stage=userdata-unmount
+	[ -d /mnt/probe-root ] && [ ! -L /mnt/probe-root ] || {
+		image_write_failure_stage=image-fs-rw
+		return 1
+	}
+
+	umount /mnt/userdata || return 1
+	open_exact_userdata_write_window || {
+		close_exact_userdata_write_window || true
+		return 1
+	}
+	image_write_failure_stage=userdata-rw
+	if mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$userdata" /mnt/userdata; then
+		userdata_mounted=1
+	else
+		probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		mountpoint -q /mnt/userdata || probe_status=1
+		verify_only_userdata_mount || probe_status=1
+		verify_exact_userdata_write_window || probe_status=1
+		resolve_local_root_image || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=image-loop-rw
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		probe_loop=$(losetup -f) || probe_status=1
+		case $probe_loop in /dev/loop[0-9]*) ;; *) probe_status=1 ;; esac
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		probe_loop_name=${probe_loop##*/}
+		[ -b "$probe_loop" ] &&
+			[ -d "/sys/class/block/$probe_loop_name" ] || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		if losetup "$probe_loop" "$root_image"; then
+			probe_loop_attached=1
+		else
+			probe_status=1
+		fi
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		[ "$(blockdev --getro "$probe_loop")" = 0 ] || probe_status=1
+		[ "$(blockdev --getsize64 "$probe_loop")" = \
+			"$expected_image_bytes" ] || probe_status=1
+		probe_backing=$(cat \
+			"/sys/class/block/$probe_loop_name/loop/backing_file") ||
+			probe_status=1
+		case $probe_backing in
+			/mnt/userdata/rog5/images/arch-local-a.ext4|\
+			mnt/userdata/rog5/images/arch-local-a.ext4) ;;
+			*) probe_status=1 ;;
+		esac
+		probe_blkid=$(blkid "$probe_loop") || probe_status=1
+		printf '%s\n' "$probe_blkid" |
+			grep -Fq " UUID=\"$expected_image_uuid\"" || probe_status=1
+		printf '%s\n' "$probe_blkid" |
+			grep -Fq " LABEL=\"$expected_image_label\"" || probe_status=1
+		printf '%s\n' "$probe_blkid" |
+			grep -Fq ' TYPE="ext4"' || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=image-fs-rw
+	fi
+	if [ "$probe_status" -eq 0 ] &&
+		mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$probe_loop" /mnt/probe-root; then
+		probe_mounted=1
+	else
+		probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=image-probe
+		write_exact_local_image_probe || probe_status=1
+	fi
+	if [ "$probe_status" -eq 0 ]; then
+		image_write_failure_stage=storage-relock
+	fi
+	sync || probe_status=1
+
+	if [ "$probe_mounted" -eq 1 ]; then
+		umount /mnt/probe-root || probe_status=1
+	fi
+	if [ "$probe_loop_attached" -eq 1 ]; then
+		losetup -d "$probe_loop" || probe_status=1
+	fi
+	if [ "$userdata_mounted" -eq 1 ]; then
+		umount /mnt/userdata || probe_status=1
+	fi
+	close_exact_userdata_write_window || probe_status=1
+	[ "$probe_status" -eq 0 ] || return 1
+
+	# Resume the established immutable runtime only after every UFS node is RO.
+	mount_persistent_root || return 1
+	resolve_local_root_image || return 1
+	image_write_failure_stage=image-write
+	return 0
+}
+
+mount_local_root_image() {
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		verify_userdata_and_image_mounts
+		return
+	fi
+	root_loop=$(losetup -f) || return 1
+	case $root_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	loop_name=${root_loop##*/}
+	[ -b "$root_loop" ] && [ -d "/sys/class/block/$loop_name" ] || return 1
+	losetup -r "$root_loop" "$root_image" || return 1
+	[ "$(blockdev --getro "$root_loop")" = 1 ] || return 1
+	[ "$(blockdev --getsize64 "$root_loop")" = "$expected_image_bytes" ] ||
+		return 1
+	[ "$(cat "/sys/class/block/$loop_name/ro")" = 1 ] || return 1
+	backing_file=$(cat "/sys/class/block/$loop_name/loop/backing_file") ||
+		return 1
+	case $backing_file in
+		/mnt/userdata/rog5/images/arch-local-a.ext4|\
+		mnt/userdata/rog5/images/arch-local-a.ext4) ;;
+		*) return 1 ;;
+	esac
+	blkid_record=$(blkid "$root_loop") || return 1
+	printf '%s\n' "$blkid_record" |
+		grep -Fq " UUID=\"$expected_image_uuid\"" || return 1
+	printf '%s\n' "$blkid_record" |
+		grep -Fq " LABEL=\"$expected_image_label\"" || return 1
+	printf '%s\n' "$blkid_record" |
+		grep -Fq ' TYPE="ext4"' || return 1
+	mount -t ext4 -o ro,noload,nodev,nosuid,noatime \
+		"$root_loop" /mnt/root-ro || return 1
+	awk -v loop="$root_loop" '$1 == loop && $2 == "/mnt/root-ro" &&
+		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ &&
+		$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ {
+			found++
+		}
+		END { exit found != 1 }' /proc/mounts || return 1
+	verify_userdata_and_image_mounts || return 1
+	printf '%s\n' "$root_loop" >/run/rog5-p2-root-loop-device || return 1
+	chmod 0444 /run/rog5-p2-root-loop-device || return 1
+	return 0
+}
+
+verify_ufs_health() {
+	blocked_query_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+	blocked_scsi_count=$(dmesg |
+		grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+	journal_recovery_count=$(dmesg |
+		grep -E -i -c 'EXT4-fs.*(journal recovery|recovery complete|recovering journal)' ||
+		true)
+	journal_recovery_allowed=0
+	if [ "$expected_persistent_overlay_mode" -eq 1 ] &&
+		[ -n "$overlay_loop" ]; then
+		overlay_loop_name=${overlay_loop##*/}
+		overlay_recovery_count=$(dmesg | grep -F -c \
+			"EXT4-fs ($overlay_loop_name): recovery complete" || true)
+		if [ "$overlay_recovery_count" -le 1 ] &&
+			[ "$overlay_recovery_count" -eq "$journal_recovery_count" ]; then
+			journal_recovery_allowed=$overlay_recovery_count
+		fi
+	fi
+	ufs_error_count=$(dmesg |
+		grep -E -i -c '(ufshcd|ufshcd-qcom|scsi|sd [0-9]).*(fatal|abort|reset|I/O error|timed out)' ||
+		true)
+	printf '%s\n' "$blocked_query_count" >/run/rog5-p2-blocked-query-count
+	printf '%s\n' "$blocked_scsi_count" >/run/rog5-p2-blocked-scsi-count
+	printf '%s\n' "$journal_recovery_count" \
+		>/run/rog5-p2-journal-recovery-count
+	printf '%s\n' "$journal_recovery_allowed" \
+		>/run/rog5-p2-allowed-overlay-recovery-count
+	printf '%s\n' "$ufs_error_count" >/run/rog5-p2-ufs-error-count
+	[ "$blocked_query_count" -eq 0 ] &&
+		[ "$blocked_scsi_count" -eq 0 ] &&
+		[ "$journal_recovery_count" -eq "$journal_recovery_allowed" ] &&
+		[ "$ufs_error_count" -eq 0 ]
+}
+
+verify_exact_regular() {
+	path=$1
+	owner=$2
+	group=$3
+	mode=$4
+	size=$5
+	hash=$6
+	[ -f "$path" ] && [ ! -L "$path" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$path")" = \
+		"$owner:$group:$mode:$size:1" ] || return 1
+	[ "$(sha256sum "$path" | cut -d ' ' -f 1)" = "$hash" ]
+}
+
+verify_persistent_root() {
+	root=/mnt/root-ro
+	seal=$root/.rog5-persistent-seal
+	verify_exact_regular "$seal" 0 0 444 430 "$expected_seal_sha256" ||
+		return 1
+	[ "$(wc -l <"$seal")" -eq 13 ] || return 1
+	grep -Fxq 'seal_format=rog5-persistent-root-v1' "$seal" || return 1
+	grep -Fxq 'generation=arch-a' "$seal" || return 1
+	grep -Fxq 'promotion_state=UNBOOTED' "$seal" || return 1
+	grep -Fxq 'source_archive_size=536746495' "$seal" || return 1
+	grep -Fxq 'source_archive_sha256=4d120a4b3a10be098cea47ba8536969bbaa931b47b31cc37fc3474fea045b324' \
+		"$seal" || return 1
+	grep -Fxq 'tree_entries=37736' "$seal" || return 1
+	grep -Fxq "tree_sha256=$expected_tree_sha256" "$seal" || return 1
+	verify_exact_regular "$root/.rog5-source-seal" 0 0 444 430 \
+		"$expected_source_seal_sha256" || return 1
+	verify_exact_local_image_probe "$root" || return 1
+
+	[ -L "$root/sbin/init" ] &&
+		[ "$(readlink "$root/sbin/init")" = ../lib/systemd/systemd ] ||
+		return 1
+	verify_exact_regular "$root/usr/lib/systemd/systemd" 0 0 755 198968 \
+		dad2b1339d6b9178f83ef96791e5c020604e16ec7921e6eaf89d3b38eec478d0 ||
+		return 1
+	verify_exact_regular "$root/usr/bin/sshd" 0 0 755 527008 \
+		6a88a601266f5775291e394106e97fa0c1c38ac10a1715c56156cda7e8812932 ||
+		return 1
+	verify_exact_regular "$root/usr/bin/ssh-keygen" 0 0 755 526688 \
+		e238ce08e1a4fa0d9d8fe5022e47bf9a841de23370b043c457e13f45e9d90d4e ||
+		return 1
+	verify_exact_regular \
+		"$root/usr/lib/systemd/system/sshdgenkeys.service" 0 0 644 445 \
+		e4dbff8e04a363a557c19d150e7e3a4317126a0371375771ae800bddf26860a7 ||
+		return 1
+
+	authorized=$root/root/.ssh/authorized_keys
+	verify_exact_regular "$authorized" 0 0 600 81 \
+		04f39d5949c813450e201b7e579256b1afcd5c7fcea077d36ae445aa53519b61 ||
+		return 1
+	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' \
+		"$authorized" || return 1
+	awk 'NF { count++ } END { exit count != 1 }' "$authorized" ||
+		return 1
+	verify_exact_regular \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" 0 0 644 201 \
+		c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693 ||
+		return 1
+	grep -Fqx 'PasswordAuthentication no' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	grep -Fqx 'PermitRootLogin prohibit-password' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	grep -Fqx 'PubkeyAuthentication yes' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	grep -Fqx 'HostKey /etc/ssh/ssh_host_ed25519_key' \
+		"$root/etc/ssh/sshd_config.d/10-rog5-server.conf" || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ecdsa_key" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ecdsa_key" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ecdsa_key.pub" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ecdsa_key.pub" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ed25519_key" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ed25519_key" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_ed25519_key.pub" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_ed25519_key.pub" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_rsa_key" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_rsa_key" ] || return 1
+	[ ! -e "$root/etc/ssh/ssh_host_rsa_key.pub" ] &&
+		[ ! -L "$root/etc/ssh/ssh_host_rsa_key.pub" ] || return 1
+	printf '%s\n' \
+		'PASS sealed local image matches exact boot-critical identities' \
+		>/run/rog5-p2-root-verification.txt || return 1
+	return 0
+}
+
+verify_exact_overlay_write_window() {
+	count=0
+	writable=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		expected=1
+		case $device in
+			"$overlay_userdata_disk"|"$overlay_userdata")
+				expected=0
+				writable=$((writable + 1))
+				;;
+		esac
+		[ -b "$device" ] && [ "$(blockdev --getro "$device")" = "$expected" ] &&
+			[ "$(cat "$sys_block/ro")" = "$expected" ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq "$expected_physical_count" ] && [ "$writable" -eq 2 ]
+}
+
+verify_exact_rw_mount() {
+	device=$1
+	target=$2
+	awk -v device="$device" -v target="$target" '
+	$1 == device && $2 == target && $3 == "ext4" &&
+	$4 ~ /(^|,)rw(,|$)/ && $4 ~ /(^|,)nodev(,|$)/ &&
+	$4 ~ /(^|,)nosuid(,|$)/ && $4 ~ /(^|,)noexec(,|$)/ &&
+	$4 ~ /(^|,)noatime(,|$)/ { found++ }
+	END { exit found != 1 }' /proc/mounts
+}
+
+verify_exact_rw_exec_mount() {
+	device=$1
+	target=$2
+	awk -v device="$device" -v target="$target" '
+	$1 == device && $2 == target && $3 == "ext4" &&
+	$4 ~ /(^|,)rw(,|$)/ && $4 ~ /(^|,)nodev(,|$)/ &&
+	$4 ~ /(^|,)nosuid(,|$)/ && $4 !~ /(^|,)noexec(,|$)/ &&
+	$4 ~ /(^|,)noatime(,|$)/ { found++ }
+	END { exit found != 1 }' /proc/mounts
+}
+
+verify_overlay_filesystem_identity() {
+	device=$1
+	record=$(blkid "$device") || return 1
+	printf '%s\n' "$record" |
+		grep -Fq " UUID=\"$expected_overlay_uuid\"" &&
+		printf '%s\n' "$record" |
+		grep -Fq " LABEL=\"$expected_overlay_label\"" &&
+		printf '%s\n' "$record" | grep -Fq ' TYPE="ext4"'
+}
+
+verify_persistent_overlay_tree() {
+	root=$1
+	verify_exact_regular "$root/rog5-root-overlay.manifest" 0 0 444 \
+		"$expected_overlay_manifest_bytes" \
+		"$expected_overlay_manifest_sha256" || return 1
+	for directory in upper work; do
+		[ -d "$root/$directory" ] && [ ! -L "$root/$directory" ] ||
+			return 1
+		metadata=$(stat -c '%u:%g:%a' "$root/$directory") || return 1
+		case $directory:$metadata in
+			upper:0:0:755|upper:0:0:555|work:0:0:700) ;;
+			*) return 1 ;;
+		esac
+	done
+	return 0
+}
+
+verify_overlay_workdir_pre_mount() {
+	root=$1
+	inventory=$(find "$root/work" -mindepth 1 -maxdepth 1 -print) || return 1
+	case $inventory in
+		'') return 0 ;;
+		"$root/work/work")
+			[ -d "$inventory" ] && [ ! -L "$inventory" ] &&
+				[ "$(stat -c '%u:%g:%a:%h' "$inventory")" = 0:0:0:2 ] &&
+				[ -z "$(find "$inventory" -mindepth 1 -maxdepth 1 \
+					-print -quit)" ]
+			;;
+		*) return 1 ;;
+	esac
+}
+
+close_persistent_overlay_prepare() {
+	close_status=0
+	[ "$overlay_mounted" -eq 0 ] || {
+		umount /mnt/state || close_status=1
+		overlay_mounted=0
+	}
+	[ "$overlay_loop_attached" -eq 0 ] || {
+		losetup -d "$overlay_loop" || close_status=1
+		overlay_loop_attached=0
+	}
+	[ "$overlay_userdata_mounted" -eq 0 ] || {
+		umount /mnt/userdata || close_status=1
+		overlay_userdata_mounted=0
+	}
+	[ -z "$overlay_userdata_disk" ] ||
+		blockdev --setro "$overlay_userdata_disk" || close_status=1
+	[ -z "$overlay_userdata" ] ||
+		blockdev --setro "$overlay_userdata" || close_status=1
+	verify_physical_storage_read_only || close_status=1
+	rm -f /run/rog5-persistent-overlay.runtime \
+		/run/rog5-persistent-overlay.runtime.next \
+		/run/rog5-persistent-state-userdata-device
+	return "$close_status"
+}
+
+prepare_persistent_overlay_inner() {
+	[ "$expected_native_root_mode:$expected_ufs_storage_mode:$expected_ssh_diagnostic_mode" = \
+		1:read-only:0 ] || return 1
+	overlay_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
+	case $overlay_userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	overlay_userdata_disk=${overlay_userdata%23}
+	[ "${userdata}" = "${overlay_userdata_disk}24" ] || return 1
+	userdata_record=$(blkid "$overlay_userdata") || return 1
+	printf '%s\n' "$userdata_record" |
+		grep -Fq ' UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5"' &&
+		printf '%s\n' "$userdata_record" |
+		grep -Fq ' LABEL="rog5-linux"' &&
+		printf '%s\n' "$userdata_record" | grep -Fq ' TYPE="ext4"' || return 1
+
+	blockdev --setrw "$overlay_userdata" || return 1
+	blockdev --setrw "$overlay_userdata_disk" || return 1
+	verify_exact_overlay_write_window || return 1
+	mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$overlay_userdata" /mnt/userdata || return 1
+	overlay_userdata_mounted=1
+	verify_exact_rw_mount "$overlay_userdata" /mnt/userdata || return 1
+	for directory in /mnt/userdata/rog5 /mnt/userdata/rog5/root; do
+		[ -d "$directory" ] && [ ! -L "$directory" ] &&
+			[ "$(stat -c '%u:%g:%a' "$directory")" = 0:0:700 ] ||
+			return 1
+	done
+	overlay_image=/mnt/userdata/$overlay_relative
+	[ -f "$overlay_image" ] && [ ! -L "$overlay_image" ] &&
+		[ "$(stat -c '%u:%g:%a:%s:%h' "$overlay_image")" = \
+			"0:0:600:$expected_overlay_bytes:1" ] || return 1
+
+	overlay_loop=$(losetup -f) || return 1
+	case $overlay_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	losetup "$overlay_loop" "$overlay_image" || return 1
+	overlay_loop_attached=1
+	[ "$(blockdev --getsize64 "$overlay_loop")" = "$expected_overlay_bytes" ] ||
+		return 1
+	verify_overlay_filesystem_identity "$overlay_loop" || return 1
+	overlay_loop_name=${overlay_loop##*/}
+	backing_file=$(cat "/sys/class/block/$overlay_loop_name/loop/backing_file") ||
+		return 1
+	case $backing_file in
+		/mnt/userdata/rog5/root/root-overlay-v1.ext4|\
+		mnt/userdata/rog5/root/root-overlay-v1.ext4) ;;
+		*) return 1 ;;
+	esac
+	mount -t ext4 -o rw,nodev,nosuid,noatime \
+		"$overlay_loop" /mnt/state || return 1
+	overlay_mounted=1
+	verify_exact_rw_exec_mount "$overlay_loop" /mnt/state || return 1
+	verify_persistent_overlay_tree /mnt/state || return 1
+	verify_overlay_workdir_pre_mount /mnt/state || return 1
+	verify_exact_overlay_write_window || return 1
+	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
+
+	printf '%s\n' \
+		'format=rog5-persistent-root-overlay-runtime-v1' \
+		"boot_id=$target_boot_id" \
+		"disk=$overlay_userdata_disk" \
+		"userdata=$overlay_userdata" \
+		"loop=$overlay_loop" \
+		"image=$overlay_relative" \
+		'mount=/mnt/state' \
+		'userdata_mount=/mnt/userdata' \
+		>/run/rog5-persistent-overlay.runtime.next || return 1
+	chown 0:0 /run/rog5-persistent-overlay.runtime.next || return 1
+	chmod 0400 /run/rog5-persistent-overlay.runtime.next || return 1
+	mv /run/rog5-persistent-overlay.runtime.next \
+		/run/rog5-persistent-overlay.runtime || return 1
+	printf '%s\n' "$overlay_userdata" \
+		>/run/rog5-persistent-state-userdata-device || return 1
+	chown 0:0 /run/rog5-persistent-state-userdata-device || return 1
+	chmod 0444 /run/rog5-persistent-state-userdata-device || return 1
+}
+
+prepare_persistent_overlay() {
+	[ "$expected_persistent_overlay_mode" -eq 1 ] || return 0
+	if prepare_persistent_overlay_inner; then
+		return 0
+	fi
+	close_persistent_overlay_prepare || true
+	return 1
+}
+
+verify_persistent_overlay_runtime() {
+	[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+	verify_exact_overlay_write_window || return 1
+	verify_exact_rw_mount "$overlay_userdata" /mnt/userdata || return 1
+	verify_exact_rw_exec_mount "$overlay_loop" /mnt/state || return 1
+	verify_persistent_overlay_tree /mnt/state || return 1
+	[ "$(blockdev --getro "$userdata")" = 1 ] || return 1
+	root_name=${userdata##*/}
+	userdata_name=${overlay_userdata##*/}
+	loop_name=${overlay_loop##*/}
+	expected_root=$(cat "/sys/class/block/$root_name/dev") || return 1
+	expected_userdata=$(cat "/sys/class/block/$userdata_name/dev") || return 1
+	expected_loop=$(cat "/sys/class/block/$loop_name/dev") || return 1
+	count=0
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+		case $device:$mountpoint in
+			"$expected_root:/mnt/root-ro"|\
+			"$expected_userdata:/mnt/userdata"|\
+			"$expected_loop:/mnt/state") ;;
+			*) return 1 ;;
+		esac
+	done </proc/self/mountinfo
+	[ "$count" -eq 3 ]
+}
+
+mount_overlay_root() {
+	if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
+		mount -t tmpfs -o nodev,nosuid,mode=0755,size=2048m \
+			tmpfs /mnt/state || return 1
+		mkdir -p /mnt/state/upper /mnt/state/work
+	else
+		verify_persistent_overlay_runtime || return 1
+	fi
+	mount -t overlay overlay \
+		-o lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work \
+		/newroot || return 1
+	awk '$1 == "overlay" && $2 == "/newroot" && $3 == "overlay" &&
+		$4 ~ /(^|,)rw(,|$)/ { found++ }
+		END { exit found != 1 }' /proc/mounts || return 1
+	[ -x /newroot/sbin/init ] || return 1
+	return 0
+}
+
+prepare_volatile_root_account() {
+	root=$1
+	lower=$2
+	shadow=$root/etc/shadow
+	lower_shadow=$lower/etc/shadow
+	for path in "$shadow" "$lower_shadow"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:600:1 ] ||
+			return 1
+		[ "$(grep -c '^root:' "$path")" -eq 1 ] || return 1
+	done
+	root_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
+		return 1
+	case $root_password in !*) ;; *) return 1 ;; esac
+	merged_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$shadow") ||
+		return 1
+	case $merged_password in
+		"$root_password") sed -i 's/^root:[^:]*/root:x/' "$shadow" || return 1 ;;
+		x) [ "$expected_persistent_overlay_mode" -eq 1 ] || return 1 ;;
+		*) return 1 ;;
+	esac
+	grep -Eq '^root:x:[0-9]+:{6}$' "$shadow" || return 1
+	root_password_after=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower_shadow") ||
+		return 1
+	[ "$root_password_after" = "$root_password" ]
+}
+
+prepare_volatile_ssh_policy() {
+	root=$1
+	lower=$2
+	policy=$root/etc/ssh/sshd_config.d/10-rog5-server.conf
+	lower_policy=$lower/etc/ssh/sshd_config.d/10-rog5-server.conf
+	original_sha256=c6b01ef801333ee11bb8805a250df2c4f02f38f0015df1449dadb66490e43693
+	volatile_sha256=37372388916a09c2457c3bf612de9bfe9b5bcba0fe9e01d1e3aa5b98dc903db1
+	verify_exact_regular "$lower_policy" 0 0 644 201 "$original_sha256" ||
+		return 1
+	[ "$(grep -c '^UsePAM ' "$lower_policy")" -eq 0 ] || return 1
+	if verify_exact_regular "$policy" 0 0 644 201 "$original_sha256"; then
+		[ "$(grep -c '^UsePAM ' "$policy")" -eq 0 ] || return 1
+		printf '%s\n' 'UsePAM no' >>"$policy" || return 1
+	else
+		[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+	fi
+	verify_exact_regular "$policy" 0 0 644 211 "$volatile_sha256" ||
+		return 1
+	[ "$(grep -c '^UsePAM no$' "$policy")" -eq 1 ] || return 1
+	verify_exact_regular "$lower_policy" 0 0 644 201 "$original_sha256"
+}
+
+verify_systemd_update_marker() {
+	root=$1
+	upper=$2
+	subtree=$3
+	merged=$root/$subtree/.updated
+	physical=$upper/$subtree/.updated
+	for path in "$merged" "$physical"; do
+		[ -f "$path" ] && [ ! -L "$path" ] || return 1
+		size=$(stat -c %s "$path") || return 1
+		[ "$size" -le 512 ] || return 1
+		hash=$(sha256sum "$path" | cut -d ' ' -f 1) || return 1
+		verify_exact_regular "$path" 0 0 644 "$size" "$hash" || return 1
+	done
+	cmp "$merged" "$physical" || return 1
+	if [ ! -s "$merged" ]; then
+		printf '%s\n' empty
+		return 0
+	fi
+	[ "$(wc -l <"$merged")" -eq 4 ] || return 1
+	[ "$(sed -n '1p' "$merged")" = \
+		'# This file was created by systemd-update-done. The timestamp below is the' ] ||
+		return 1
+	[ "$(sed -n '2p' "$merged")" = \
+		"# modification time of /usr/ for which the most recent updates of /$subtree/ have" ] ||
+		return 1
+	[ "$(sed -n '3p' "$merged")" = \
+		'# been applied. See man:systemd-update-done.service(8) for details.' ] ||
+		return 1
+	[ "$(grep -c '^TIMESTAMP_NSEC=' "$merged")" -eq 1 ] || return 1
+	timestamp=$(sed -n 's/^TIMESTAMP_NSEC=//p' "$merged") || return 1
+	printf '%s\n' "$timestamp" |
+		grep -Eq '^(0|[1-9][0-9]{0,19})$' || return 1
+	[ "$(sed -n '4p' "$merged")" = "TIMESTAMP_NSEC=$timestamp" ] || return 1
+	printf '%s\n' "$timestamp"
+}
+
+prepare_volatile_systemd_state() {
+	root=$1
+	lower=$2
+	upper=$3
+	runtime=$4
+	expected_cache_size=20207
+	expected_cache_sha256=ae57b0740e33f19b3f748bdf8e159a65ecfb828f1339f093d91ec9ef4b8e89ed
+	empty_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+	for directory in \
+		"$root/etc" "$root/var" "$root/usr" \
+		"$lower/etc" "$lower/var" "$upper" \
+		"$runtime/systemd/system"; do
+		[ -d "$directory" ] && [ ! -L "$directory" ] || return 1
+	done
+	verify_exact_regular "$lower/etc/ld.so.cache" 0 0 644 \
+		"$expected_cache_size" "$expected_cache_sha256" || return 1
+	if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
+		verify_exact_regular "$root/etc/ld.so.cache" 0 0 644 \
+			"$expected_cache_size" "$expected_cache_sha256" || return 1
+	else
+		[ -f "$root/etc/ld.so.cache" ] && [ ! -L "$root/etc/ld.so.cache" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/etc/ld.so.cache")" = \
+				0:0:644:1 ] || return 1
+		cache_size=$(stat -c %s "$root/etc/ld.so.cache") || return 1
+		[ "$cache_size" -gt 0 ] && [ "$cache_size" -le 1048576 ] || return 1
+	fi
+
+	for subtree in etc var; do
+		lower_marker=$lower/$subtree/.updated
+		merged_marker=$root/$subtree/.updated
+		upper_marker=$upper/$subtree/.updated
+		[ ! -e "$lower_marker" ] && [ ! -L "$lower_marker" ] || return 1
+		if [ ! -e "$merged_marker" ] && [ ! -L "$merged_marker" ]; then
+			[ ! -e "$upper_marker" ] && [ ! -L "$upper_marker" ] || return 1
+			touch -r "$root/usr" "$merged_marker" || return 1
+			chown 0:0 "$merged_marker" || return 1
+			chmod 0644 "$merged_marker" || return 1
+		else
+			[ "$expected_persistent_overlay_mode" -eq 1 ] || return 1
+		fi
+		# systemd updates /etc and /var independently, not as one transaction.
+		# Preserve valid per-tree markers after an interrupted update; their
+		# contents need not agree across trees. Each merged/upper pair must.
+		(verify_systemd_update_marker \
+			"$root" "$upper" "$subtree" >/dev/null) || return 1
+		if [ "$expected_persistent_overlay_mode" -eq 0 ]; then
+			marker_time=$(stat -c '%Y:%y' "$merged_marker") || return 1
+			[ "$marker_time" = "$(stat -c '%Y:%y' "$root/usr")" ] ||
+				return 1
+			[ "$marker_time" = "$(stat -c '%Y:%y' "$upper_marker")" ] ||
+				return 1
+		fi
+		[ ! -e "$lower_marker" ] && [ ! -L "$lower_marker" ] || return 1
+	done
+
+	vconsole_mask=$runtime/systemd/system/systemd-vconsole-setup.service
+	[ ! -e "$vconsole_mask" ] && [ ! -L "$vconsole_mask" ] || return 1
+	ln -s /dev/null "$vconsole_mask" || return 1
+	[ -L "$vconsole_mask" ] &&
+		[ "$(readlink "$vconsole_mask")" = /dev/null ] || return 1
+
+	sshdgenkeys_mask=$runtime/systemd/system/sshdgenkeys.service
+	stock_sshd_mask=$runtime/systemd/system/sshd.service
+	ed25519_unit=$runtime/systemd/system/rog5-sshd-ed25519-key.service
+	early_sshd_unit=$runtime/systemd/system/rog5-early-sshd.service
+	early_sshd_wants=$runtime/systemd/system/sysinit.target.wants/rog5-early-sshd.service
+	ssh_diagnostic_unit=$runtime/systemd/system/rog5-ssh-diagnostic.service
+	ssh_diagnostic_wants=$runtime/systemd/system/sysinit.target.wants/rog5-ssh-diagnostic.service
+	for path in "$sshdgenkeys_mask" "$stock_sshd_mask" "$ed25519_unit" \
+		"$early_sshd_unit" "$early_sshd_wants" "$ssh_diagnostic_unit" \
+		"$ssh_diagnostic_wants"; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	ln -s /dev/null "$sshdgenkeys_mask" || return 1
+	[ -L "$sshdgenkeys_mask" ] &&
+		[ "$(readlink "$sshdgenkeys_mask")" = /dev/null ] || return 1
+	ln -s /dev/null "$stock_sshd_mask" || return 1
+	[ -L "$stock_sshd_mask" ] &&
+		[ "$(readlink "$stock_sshd_mask")" = /dev/null ] || return 1
+	cat >"$ed25519_unit" <<'EOF'
+[Unit]
+Description=Generate one volatile Ed25519 SSH host key
+DefaultDependencies=no
+Before=rog5-early-sshd.service
+ConditionPathExists=!/etc/ssh/ssh_host_ed25519_key
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
+EOF
+	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
+		cat >"$early_sshd_unit" <<'EOF'
+[Unit]
+Description=Start strict SSH with one bounded diagnostic transcript
+DefaultDependencies=no
+Requires=rog5-sshd-ed25519-key.service
+After=rog5-sshd-ed25519-key.service
+Before=basic.target
+
+[Service]
+ExecStart=/usr/bin/sshd -D -e -o LogLevel=DEBUG3
+StandardError=append:/run/rog5-sshd-debug.log
+KillMode=process
+Restart=on-failure
+RestartSec=2s
+RuntimeDirectory=sshd
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=sysinit.target
+EOF
+		cat >"$ssh_diagnostic_unit" <<'EOF'
+[Unit]
+Description=Capture one native-root SSH authentication result
+DefaultDependencies=no
+Requires=rog5-early-sshd.service
+After=rog5-early-sshd.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-ssh-diagnostic
+EOF
+		ln -s ../rog5-ssh-diagnostic.service "$ssh_diagnostic_wants" || return 1
+		[ -L "$ssh_diagnostic_wants" ] &&
+			[ "$(readlink "$ssh_diagnostic_wants")" = \
+			../rog5-ssh-diagnostic.service ] || return 1
+	else
+		cat >"$early_sshd_unit" <<'EOF'
+[Unit]
+Description=Start strict SSH before the general Arch boot transaction
+DefaultDependencies=no
+Requires=rog5-sshd-ed25519-key.service
+After=rog5-sshd-ed25519-key.service
+Before=basic.target
+
+[Service]
+ExecStart=/usr/bin/sshd -D
+KillMode=process
+Restart=on-failure
+RestartSec=2s
+RuntimeDirectory=sshd
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	fi
+	ln -s ../rog5-early-sshd.service "$early_sshd_wants" || return 1
+	[ -L "$early_sshd_wants" ] &&
+		[ "$(readlink "$early_sshd_wants")" = \
+		../rog5-early-sshd.service ] || return 1
+	chown 0:0 "$ed25519_unit" "$early_sshd_unit" || return 1
+	chmod 0644 "$ed25519_unit" "$early_sshd_unit" || return 1
+	verify_exact_regular "$ed25519_unit" 0 0 644 274 \
+		99390fa5afe975b46a4f62f7f532c3062acfa69e85970d5a7aeb28a7ccfadd09 ||
+		return 1
+	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
+		chown 0:0 "$ssh_diagnostic_unit" || return 1
+		chmod 0644 "$ssh_diagnostic_unit" || return 1
+		grep -Fqx 'ExecStart=/usr/bin/sshd -D -e -o LogLevel=DEBUG3' \
+			"$early_sshd_unit" || return 1
+		grep -Fqx 'StandardError=append:/run/rog5-sshd-debug.log' \
+			"$early_sshd_unit" || return 1
+		grep -Fqx 'ExecStart=/run/rog5-ssh-diagnostic' \
+			"$ssh_diagnostic_unit" || return 1
+	else
+		verify_exact_regular "$early_sshd_unit" 0 0 644 366 \
+			a9b6c3b487755dcb9e0726773b5f6376cadfa192244d8f7c24d9fd3837661359 ||
+			return 1
+	fi
+	return 0
+}
+
+prepare_package_keyring() {
+	# Stage in /run only; initialization runs after qualified service state.
+	keyring_helper=/usr/local/sbin/rog5-persistent-keyring
+	keyring_unit=/usr/local/share/rog5/rog5-package-keyring.service
+	[ -f "$keyring_helper" ] && [ ! -L "$keyring_helper" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$keyring_helper")" = 0:0:755:1 ] || return 1
+	[ -f "$keyring_unit" ] && [ ! -L "$keyring_unit" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$keyring_unit")" = 0:0:644:1 ] || return 1
+	for path in /run/rog5-persistent-keyring \
+		/run/systemd/system/rog5-package-keyring.service \
+		/run/systemd/system/archlinux-keyring-wkd-sync.service.d \
+		/run/systemd/system/multi-user.target.wants/rog5-package-keyring.service; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	mkdir -p /run/systemd/system/multi-user.target.wants || return 1
+	mkdir /run/systemd/system/archlinux-keyring-wkd-sync.service.d || return 1
+	cp -p "$keyring_helper" /run/rog5-persistent-keyring || return 1
+	cp -p "$keyring_unit" /run/systemd/system/rog5-package-keyring.service || return 1
+	printf '%s\n' '[Unit]' 'Requires=rog5-package-keyring.service' \
+		'After=rog5-package-keyring.service' \
+		>/run/systemd/system/archlinux-keyring-wkd-sync.service.d/10-package-trust.conf || return 1
+	chmod 0644 /run/systemd/system/archlinux-keyring-wkd-sync.service.d/10-package-trust.conf || return 1
+	ln -s ../rog5-package-keyring.service \
+		/run/systemd/system/multi-user.target.wants/rog5-package-keyring.service
+}
+
+prepare_runtime() {
+	exitrd=/run/initramfs
+	mkdir -p "$exitrd/bin" "$exitrd/lib" "$exitrd/dev" "$exitrd/proc" \
+		"$exitrd/sys" "$exitrd/run" "$exitrd/usr/libexec" "$exitrd/oldroot" \
+		"$exitrd/oldsys" || return 1
+	cp -p /bin/busybox "$exitrd/bin/busybox" || return 1
+	cp -p /lib/ld-musl-aarch64.so.1 \
+		"$exitrd/lib/ld-musl-aarch64.so.1" || return 1
+	ln -s ld-musl-aarch64.so.1 \
+		"$exitrd/lib/libc.musl-aarch64.so.1" || return 1
+	ln -s busybox "$exitrd/bin/sh" || return 1
+	cp -p "$reboot_helper" "$exitrd$reboot_helper" || return 1
+	[ -x "$exitrd$reboot_helper" ] || return 1
+	cp -p /shutdown "$exitrd/shutdown" || return 1
+	chroot "$exitrd" /bin/sh -n /shutdown || return 1
+
+	cp -p /usr/local/sbin/rog5-p2-attest /run/rog5-p2-attest ||
+		return 1
+	cp -p /usr/local/sbin/rog5-persistent-state \
+		/run/rog5-persistent-state || return 1
+	[ -x /run/rog5-persistent-state ] || return 1
+	cp -p /usr/local/sbin/rog5-persistent-ssh-identity \
+		/run/rog5-persistent-ssh-identity || return 1
+	[ -x /run/rog5-persistent-ssh-identity ] || return 1
+	cp -p /usr/local/sbin/rog5-persistent-tailscale \
+		/run/rog5-persistent-tailscale || return 1
+	[ -x /run/rog5-persistent-tailscale ] || return 1
+	if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+		[ -f /run/rog5-persistent-state-userdata-device ] &&
+			[ ! -L /run/rog5-persistent-state-userdata-device ] &&
+			[ "$(stat -c '%u:%g:%a:%h' \
+				/run/rog5-persistent-state-userdata-device)" = 0:0:444:1 ] &&
+			[ "$(cat /run/rog5-persistent-state-userdata-device)" = \
+				"$overlay_userdata" ] || return 1
+	else
+		state_userdata=$(find_exact_userdata /sys/class/block /dev) || return 1
+		printf '%s\n' "$state_userdata" \
+			>/run/rog5-persistent-state-userdata-device || return 1
+		chown 0:0 /run/rog5-persistent-state-userdata-device || return 1
+		chmod 0444 /run/rog5-persistent-state-userdata-device || return 1
+	fi
+	if [ "$expected_ssh_diagnostic_mode" -eq 1 ]; then
+		cp -p /usr/local/sbin/rog5-ssh-diagnostic \
+			/run/rog5-ssh-diagnostic || return 1
+		[ -x /run/rog5-ssh-diagnostic ] || return 1
+	else
+		[ ! -e /usr/local/sbin/rog5-ssh-diagnostic ] &&
+			[ ! -L /usr/local/sbin/rog5-ssh-diagnostic ] || return 1
+	fi
+	prepare_volatile_root_account /newroot /mnt/root-ro || return 1
+	prepare_volatile_ssh_policy /newroot /mnt/root-ro || return 1
+	mkdir -p /run/NetworkManager/conf.d /run/udev/rules.d \
+		/run/systemd/system/sysinit.target.wants
+	cat >/run/NetworkManager/conf.d/10-rog5-p2.conf <<'EOF'
+[keyfile]
+unmanaged-devices=interface-name:usb0
+EOF
+	cat >/run/udev/rules.d/10-rog5-p2-storage.rules <<'EOF'
+SUBSYSTEM=="block", KERNEL=="sd*", ENV{UDISKS_IGNORE}="1"
+EOF
+	cat >/run/systemd/system/rog5-p2-ready.service <<'EOF'
+[Unit]
+Description=Verify the read-only persistent-root P2 gate
+DefaultDependencies=no
+# Pull SSH into the initial transaction without coupling this one-shot gate
+# to later daemon restarts. The attestor still rejects a missing SSH listener.
+Wants=rog5-early-sshd.service
+After=rog5-early-sshd.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-p2-attest
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	ln -s ../rog5-p2-ready.service \
+		/run/systemd/system/sysinit.target.wants/rog5-p2-ready.service
+	cat >/run/systemd/system/rog5-persistent-state.service <<'EOF'
+[Unit]
+Description=Mount exact persistent ROG5 service state after the P2 gate
+DefaultDependencies=no
+Requires=rog5-p2-ready.service
+After=rog5-p2-ready.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-persistent-state start
+ExecStop=/run/rog5-persistent-state stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	ln -s ../rog5-persistent-state.service \
+		/run/systemd/system/sysinit.target.wants/rog5-persistent-state.service
+	cat >/run/systemd/system/rog5-persistent-ssh-identity.service <<'EOF'
+[Unit]
+Description=Load exact persistent ROG5 SSH host identity
+DefaultDependencies=no
+Requires=rog5-persistent-state.service
+Wants=rog5-early-sshd.service
+After=rog5-persistent-state.service rog5-early-sshd.service
+Before=basic.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-persistent-ssh-identity apply
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	ln -s ../rog5-persistent-ssh-identity.service \
+		/run/systemd/system/sysinit.target.wants/rog5-persistent-ssh-identity.service
+	# Optional diagnostic payload, never a dependency of readiness, SSH or
+	# storage. Its whole lifetime is bounded by the existing target budget.
+	if [ -e /usr/local/sbin/rog5-startup-observer ] ||
+		[ -L /usr/local/sbin/rog5-startup-observer ]; then
+		[ -f /usr/local/sbin/rog5-startup-observer ] &&
+			[ ! -L /usr/local/sbin/rog5-startup-observer ] &&
+			[ -x /usr/local/sbin/rog5-startup-observer ] || return 1
+		cp -p /usr/local/sbin/rog5-startup-observer /run/rog5-startup-observer || return 1
+		cat >/run/systemd/system/rog5-startup-observer.service <<EOF
+[Unit]
+Description=Bounded passive ROG5 startup evidence
+DefaultDependencies=no
+Before=basic.target
+
+[Service]
+Type=simple
+# Leave room for bounded status/journal/send calls and graceful exit. The hard
+# ceiling remains unchanged and independent of the optional observer loop.
+ExecStart=/run/rog5-startup-observer $((recovery_timeout - 30))
+RuntimeMaxSec=$recovery_timeout
+TimeoutStopSec=2
+KillMode=control-group
+Restart=no
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=sysinit.target
+EOF
+		ln -s ../rog5-startup-observer.service \
+			/run/systemd/system/sysinit.target.wants/rog5-startup-observer.service || return 1
+	fi
+	cat >/run/systemd/system/rog5-tailscaled.service <<'EOF'
+[Unit]
+Description=Run exact persistent Tailscale from p23 state
+DefaultDependencies=no
+Requires=rog5-persistent-state.service
+After=rog5-persistent-state.service
+Before=basic.target
+
+[Service]
+Type=simple
+Environment=TS_DEBUG_FIREWALL_MODE=nftables
+RuntimeDirectory=rog5-tailscale
+RuntimeDirectoryMode=0700
+ExecStartPre=/run/rog5-persistent-tailscale prepare
+ExecStart=/run/rog5-tailscale/tailscaled --state=/persist/var/lib/tailscale/tailscaled.state --statedir=/persist/var/lib/tailscale --socket=/run/rog5-tailscale/tailscaled.sock
+ExecStopPost=/run/rog5-persistent-tailscale cleanup
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=sysinit.target
+EOF
+	ln -s ../rog5-tailscaled.service \
+		/run/systemd/system/sysinit.target.wants/rog5-tailscaled.service
+	prepare_package_keyring || return 1
+	ln -s /dev/null /run/systemd/system/udisks2.service
+	if [ "$native_wifi_boot" -eq 1 ]; then
+		/run/rog5-native-wifi/runtime install || return 1
+	fi
+	prepare_volatile_systemd_state \
+		/newroot /mnt/root-ro /mnt/state/upper /run || return 1
+	return 0
+}
+
+move_handoff_mount() {
+	mount --move "$1" "$2"
+}
+
+rollback_handoff_mounts() {
+	rollback_status=0
+
+	[ "$handoff_moved_run" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/run" "$handoff_run" ||
+		rollback_status=1
+	[ "$handoff_moved_proc" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/proc" "$handoff_proc" ||
+		rollback_status=1
+	[ "$handoff_moved_sys" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/sys" "$handoff_sys" ||
+		rollback_status=1
+	[ "$handoff_moved_dev" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/dev" "$handoff_dev" ||
+		rollback_status=1
+	[ "$handoff_moved_state" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/.rog5/state" \
+			"$handoff_state" || rollback_status=1
+	[ "$handoff_moved_root" -eq 0 ] ||
+		move_handoff_mount "$handoff_newroot/.rog5/root-ro" \
+			"$handoff_root" || rollback_status=1
+	[ "$handoff_moved_userdata" -eq 0 ] ||
+		move_handoff_mount "$handoff_userdata_target" \
+			"$handoff_userdata" || rollback_status=1
+	return "$rollback_status"
+}
+
+handoff_persistent_root() {
+	handoff_moved_userdata=0
+	handoff_moved_root=0
+	handoff_moved_state=0
+	handoff_moved_dev=0
+	handoff_moved_sys=0
+	handoff_moved_proc=0
+	handoff_moved_run=0
+	handoff_userdata_target=
+
+	mkdir -p "$handoff_newroot/.rog5/root-ro" \
+		"$handoff_newroot/.rog5/state" "$handoff_newroot/dev" \
+		"$handoff_newroot/proc" "$handoff_newroot/sys" \
+		"$handoff_newroot/run" || return 1
+	touch "$handoff_run/rog5-p2-root-mounted" || return 1
+
+	if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+		handoff_userdata_target="$handoff_newroot/.rog5/userdata-rw"
+	elif [ "$expected_native_root_mode" -eq 0 ]; then
+		handoff_userdata_target="$handoff_newroot/.rog5/userdata-ro"
+	fi
+	if [ -n "$handoff_userdata_target" ]; then
+		# Native RO-root rescue leaves userdata-rw absent for the state
+		# service to create and own; only moved mounts need a destination.
+		mkdir -p "$handoff_userdata_target" || return 1
+		if ! move_handoff_mount "$handoff_userdata" \
+			"$handoff_userdata_target"; then
+			return 1
+		fi
+		handoff_moved_userdata=1
+	fi
+	if ! move_handoff_mount "$handoff_root" \
+		"$handoff_newroot/.rog5/root-ro"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_root=1
+	if ! move_handoff_mount "$handoff_state" \
+		"$handoff_newroot/.rog5/state"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_state=1
+	if ! move_handoff_mount "$handoff_dev" "$handoff_newroot/dev"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_dev=1
+	if ! move_handoff_mount "$handoff_sys" "$handoff_newroot/sys"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_sys=1
+	if ! move_handoff_mount "$handoff_proc" "$handoff_newroot/proc"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_proc=1
+	if ! move_handoff_mount "$handoff_run" "$handoff_newroot/run"; then
+		rollback_handoff_mounts || true
+		return 1
+	fi
+	handoff_moved_run=1
+	return 0
+}
+
+switch_root_failure() {
+	trap - EXIT
+	rollback_handoff_mounts || true
+	stage_record=/run/rog5-persistent-root-stage.record
+	publish_stage switch-root FAIL || true
+	log 'switch_root returned after a complete persistent-root handoff'
+	sleep 2
+	force_rollback
+}
+
+recovery_timeout=600
+persistent_count=0
+persistent_invalid=0
+discovery_count=0
+discovery_invalid=0
+for argument in $(cat /proc/cmdline); do
+	case $argument in
+		rog5.persistent_ro=1) persistent_count=$((persistent_count + 1)) ;;
+		rog5.persistent_ro=*) persistent_invalid=1 ;;
+		rog5.ufs_discovery=1) discovery_count=$((discovery_count + 1)) ;;
+		rog5.ufs_discovery=*) discovery_invalid=1 ;;
+		rog5.recovery_timeout=*) recovery_timeout=${argument#*=} ;;
+	esac
+done
+case $recovery_timeout in *[!0-9]*|'') recovery_timeout=600 ;; esac
+if [ "$recovery_timeout" -lt 300 ] || [ "$recovery_timeout" -gt 900 ]; then
+	recovery_timeout=600
+fi
+
+arm_watchdog || force_rollback
+if ! configure_usb; then
+	fail_stage 'USB recovery transport failed' usb 15
+fi
+
+if [ "$persistent_count" -ne 1 ] || [ "$persistent_invalid" -ne 0 ] ||
+	[ "$discovery_count" -ne 1 ] || [ "$discovery_invalid" -ne 0 ]; then
+	fail_stage 'invalid persistent-root command line' cmdline 5
+fi
+
+running_kernel_release=
+if ! IFS= read -r running_kernel_release <"$release_file"; then
+	fail_stage 'running kernel release is unavailable' \
+		kernel-release-file 20
+fi
+if [ "$running_kernel_release" != "$expected_kernel_release" ]; then
+	fail_stage 'running kernel release changed' kernel-release-identity 25
+fi
+target_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
+	fail_stage 'target boot identity is unavailable' kernel-release-file 20
+case "$expected_ufs_storage_mode:$expected_probe_boot_id" in
+	local-write:current) ;;
+	read-only:any-prior) ;;
+	read-only:staged-seal) ;;
+	read-only:*)
+		printf '%s\n' "$expected_probe_boot_id" |
+			grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+			fail_stage 'target write-probe producer identity is invalid' \
+				kernel-release-file 20
+		[ "$expected_probe_boot_id" != "$target_boot_id" ] ||
+			fail_stage 'target write-probe producer is not from an earlier boot' \
+				kernel-release-file 20
+		;;
+	*) fail_stage 'target UFS storage mode is invalid' kernel-release-file 20 ;;
+esac
+printf '%s\n' "$target_boot_id" |
+	grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+	fail_stage 'target boot identity is invalid' kernel-release-file 20
+case $expected_persistent_overlay_mode in
+	0) ;;
+	1)
+		[ "$expected_native_root_mode:$expected_ufs_storage_mode:$expected_ssh_diagnostic_mode" = \
+			1:read-only:0 ] ||
+			fail_stage 'persistent overlay composition is invalid' cmdline 5
+		;;
+	*) fail_stage 'persistent overlay mode is invalid' cmdline 5 ;;
+esac
+publish_or_rollback kernel-verified PASS
+start_stage_reporter
+publish_or_rollback ufs-ready ENTER
+
+if [ "$expected_native_root_mode" -eq 0 ]; then
+	if ! load_reboot_mode_modules; then
+		publish_stage ufs-ready FAIL reboot-mode-module-load || true
+		fail_stage 'Qualcomm reboot-mode modules failed' reboot-mode 15
+	fi
+	if ! wait_for_reboot_mode; then
+		publish_stage ufs-ready FAIL reboot-mode-unavailable || true
+		fail_stage 'Qualcomm reboot-mode path is unavailable' reboot-mode 15
+	fi
+else
+	[ -x "$reboot_helper" ] ||
+		fail_stage 'restart2 bootloader helper is unavailable' reboot-mode 15
+fi
+
+if ! prepare_native_wifi_boot; then
+	fail_stage 'invalid sealed native Wi-Fi composition' cmdline 5
+fi
+if [ -x /sbin/rog5-load-persistent-power-usb ]; then
+	power_usb_failure=
+	if ! power_usb_failure=$(/sbin/rog5-load-persistent-power-usb); then
+		if ! valid_power_usb_failure "$power_usb_failure"; then
+			power_usb_failure=power-usb-invalid-failure-record
+		fi
+		publish_stage ufs-ready FAIL "$power_usb_failure" || true
+		log 'side-port power/USB initialization failed'
+		sleep 2
+		force_rollback
+	fi
+fi
+if deferred_ufs_modules_present; then
+	log 'waiting for deferred UFS probe rendezvous'
+	if ! wait_for_deferred_ufs_rendezvous; then
+		fail_stage 'deferred UFS probe rendezvous failed' ufs-rendezvous 15
+	fi
+	load_deferred_ufs_modules
+	module_status=$?
+	case $module_status in
+		0) ;;
+		*)
+			publish_stage ufs-ready FAIL \
+				"ufs-module-status-$module_status" || true
+			fail_stage 'deferred UFS module load returned an error' ufs-module 20
+			;;
+	esac
+fi
+log 'waiting for stable UFS discovery'
+if ! wait_for_ufs_discovery; then
+	count=$(physical_topology_count)
+	auto_count=$(dmesg | grep -F -c \
+		'ROG5 UFS discovery: auto-hibern8 disabled; link remains active' || true)
+	host_count=$(dmesg | grep -F -c \
+		'ROG5 UFS discovery: host runtime PM forbidden; active reference retained' || true)
+	wlun_count=$(dmesg | grep -F -c \
+		'ROG5 UFS discovery: WLUN runtime PM forbidden' || true)
+	error_count=$(dmesg | grep -Ei -c \
+		'ufshcd.*(error|failed|failure|timeout|timed out)|ufs.*(link startup failed|probe failed|reset and restore failed|fatal)' || true)
+	ufs_discovery_detail=ufs-discovery-p${count}-a${auto_count}-h${host_count}-w${wlun_count}-e${error_count}
+	publish_stage ufs-ready FAIL "$ufs_discovery_detail" || true
+	fail_stage 'UFS discovery failed' ufs-discovery 35
+fi
+if ! verify_ufs_power_containment; then
+	publish_stage ufs-ready FAIL ufs-power-containment || true
+	fail_stage 'UFS power containment failed before storage lock' \
+		ufs-power 50
+fi
+publish_or_rollback ufs-ready PASS
+publish_or_rollback storage-locked ENTER
+if ! lock_physical_storage; then
+	publish_stage storage-locked FAIL || true
+	fail_stage 'physical storage lock failed' storage-lock 65
+fi
+publish_or_rollback storage-locked PASS
+publish_or_rollback userdata-resolved ENTER
+if [ "$expected_native_root_mode" -eq 1 ]; then
+	userdata=$(find_exact_arch_root /sys/class/block /dev)
+else
+	userdata=$(find_exact_userdata /sys/class/block /dev)
+fi ||
+	{
+		publish_stage userdata-resolved FAIL || true
+		fail_stage 'exact userdata identity failed' userdata 80
+	}
+[ -b "$userdata" ] || {
+	publish_stage userdata-resolved FAIL || true
+	fail_stage 'exact userdata node is absent' userdata 80
+}
+printf '%s\n' "$userdata" >/run/rog5-p2-userdata-device ||
+	{
+		publish_stage userdata-resolved FAIL || true
+		fail_stage 'userdata identity publication failed' userdata 80
+	}
+chmod 0444 /run/rog5-p2-userdata-device ||
+	{
+		publish_stage userdata-resolved FAIL || true
+		fail_stage 'userdata identity mode failed' userdata 80
+	}
+if ! write_ufs_inventory; then
+	publish_stage userdata-resolved FAIL || true
+	fail_stage 'UFS inventory failed' inventory 95
+fi
+if ! verify_physical_storage_read_only ||
+	! verify_ufs_power_containment; then
+	fail_local_stage userdata-resolved \
+		'storage containment failed after USB rescan'
+fi
+publish_or_rollback userdata-resolved PASS
+publish_or_rollback userdata-mount ENTER
+if ! mount_persistent_root; then
+	if [ "$mount_persistent_root_failure" = rog5-directory ]; then
+		publish_sparse_block_probe || true
+	fi
+	fail_local_stage userdata-mount 'read-only noload userdata mount failed' \
+		"userdata-$mount_persistent_root_failure"
+fi
+publish_or_rollback userdata-mount PASS
+publish_or_rollback image-resolved ENTER
+if ! resolve_local_root_image; then
+	fail_local_stage image-resolved 'exact local root image identity failed'
+fi
+publish_or_rollback image-resolved PASS
+if [ "$expected_ufs_storage_mode" = local-write ]; then
+	publish_or_rollback image-write ENTER
+	if ! run_local_image_write_probe; then
+		case $image_write_failure_stage in
+			image-write-window|userdata-unmount|write-window-precheck|\
+			userdata-partition-rw|userdata-disk-rw|\
+			write-window-selected-disk-blockdev|write-window-selected-disk-sysfs|\
+			write-window-selected-part-blockdev|write-window-selected-part-sysfs|\
+			write-window-other-disk-blockdev|write-window-other-disk-sysfs|\
+			write-window-other-part-blockdev|write-window-other-part-sysfs|\
+			write-window-count|userdata-rw|image-loop-rw|\
+			image-fs-rw|image-probe|storage-relock) ;;
+			*) image_write_failure_stage=image-write ;;
+		esac
+		fail_local_stage "$image_write_failure_stage" \
+			'bounded local-image write probe failed'
+	fi
+	publish_or_rollback image-write PASS
+fi
+publish_or_rollback image-mount ENTER
+if ! mount_local_root_image; then
+	fail_local_stage image-mount 'read-only noload local root image mount failed'
+fi
+publish_or_rollback image-mount PASS
+publish_or_rollback root-verify ENTER
+if ! verify_persistent_root; then
+	fail_local_stage root-verify 'anchored persistent-root verification failed'
+fi
+publish_or_rollback root-verify PASS
+publish_or_rollback ufs-health ENTER
+if ! verify_ufs_health; then
+	fail_local_stage ufs-health 'UFS or ext4 read-only health gate failed'
+fi
+publish_or_rollback ufs-health PASS
+publish_or_rollback overlay ENTER
+if ! prepare_persistent_overlay || ! mount_overlay_root; then
+	fail_local_stage overlay 'persistent-root OverlayFS preparation failed'
+fi
+publish_or_rollback overlay PASS
+publish_or_rollback runtime ENTER
+if ! prepare_runtime; then
+	runtime_detail=pwrkey-unclassified
+	pwrkey_result=/run/rog5-pwrkey-result
+	if [ -f "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$pwrkey_result")" = 0:0:444:1 ]; then
+		candidate=$(cat "$pwrkey_result")
+		case $candidate in
+			pwrkey-module-metadata|pwrkey-module-name|\
+			pwrkey-module-dependencies|pwrkey-module-vermagic|\
+			pwrkey-module-load|pwrkey-module-absent|\
+			pwrkey-input-zero|pwrkey-input-multiple|\
+			pwrkey-platform-identity|pwrkey-result-publication)
+				runtime_detail=$candidate
+				;;
+		esac
+	fi
+	fail_local_stage runtime 'volatile runtime preparation failed' \
+		"$runtime_detail"
+fi
+publish_or_rollback runtime PASS
+publish_or_rollback final-storage ENTER
+final_storage_valid=0
+final_storage_detail=mounts
+if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+	if verify_persistent_overlay_runtime; then
+		final_storage_valid=1
+	else
+		final_storage_detail=overlay-runtime
+	fi
+else
+	verify_physical_storage_read_only &&
+		verify_userdata_and_image_mounts && final_storage_valid=1
+fi
+if [ "$final_storage_valid" -ne 1 ]; then
+	fail_local_stage final-storage 'final storage mount gate failed' \
+		"$final_storage_detail"
+fi
+if ! verify_ufs_health; then
+	final_storage_detail=ufs-q${blocked_query_count}-s${blocked_scsi_count}-j${journal_recovery_count}-e${ufs_error_count}
+	fail_local_stage final-storage 'final UFS or ext4 health gate failed' \
+		"$final_storage_detail"
+fi
+publish_or_rollback final-storage PASS
+
+run_pre_switch_display_observer
+
+handoff_newroot=/newroot
+handoff_userdata=/mnt/userdata
+handoff_root=/mnt/root-ro
+handoff_state=/mnt/state
+handoff_dev=/dev
+handoff_proc=/proc
+handoff_sys=/sys
+handoff_run=/run
+publish_or_rollback switch-root ENTER
+# The reporter and its record live on /run.  Give the final volatile record
+# one bounded heartbeat interval before moving /run into the new root.
+sleep 2
+if ! handoff_persistent_root; then
+	fail_local_stage switch-root 'persistent-root mount handoff failed'
+fi
+stage_record=$handoff_newroot/run/rog5-persistent-root-stage.record
+if ! publish_stage switch-root PASS; then
+	rollback_handoff_mounts || true
+	stage_record=/run/rog5-persistent-root-stage.record
+	fail_local_stage switch-root 'post-handoff stage publication failed'
+fi
+report_current_stage_once || true
+
+# PASS above proves mount movement, not successful successor init execution.
+# Keep the boot watchdog until the actual current-boot P2 attestation exists.
+# The separate systemd/Wi-Fi rollback timer and panic reset remain unchanged.
+
+trap switch_root_failure EXIT
+exec switch_root /newroot /sbin/init

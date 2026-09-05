@@ -1,0 +1,5 @@
+boot_id=6f9f1158-65c7-4d40-8b04-b8ce29ca657d
+sequence=19 stage=overlay state=PASS
+sequence=21 stage=runtime state=PASS
+sequence=23 stage=final-storage state=FAIL detail=none
+result=fastboot

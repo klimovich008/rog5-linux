@@ -1,0 +1,16 @@
+format=rog5-persistent-root-power-usb-candidate-v1
+profile=persistent-root-power-usb-v9-generation102-live-v1
+candidate=persistent-root-power-usb-v9
+bundle=persistent-root-power-usb-v9
+bundle_manifest_sha256=bc44d8b4275192617730e3a5b39e76acdd3a6fe61d032903e3bc34f19f2ef363
+image_path=build/persistent-root-power-usb-v9-generation102-20260823-r1/repack/stable-recovery-a.avb.img
+image_size=100663296
+image_sha256=c64958f92cdac1cbf2979c8808f87df67d545ff7876b4e1c3bec3112b59451c4
+raw_sha256=4f9ac4e7afd4b5bf46a8a79188a0376406fcca294a8cc1648e4f0a44fc82d9f8
+avb_generation=102
+target_release=7.1.4-gae717d919f87
+target_initramfs_sha256=4326c052b568a04143befc43c84b177487ccb5b13a1762b22ed178fb1f32ba97
+userdata_sparse_sha256=ddb26042f561ac7e73acb7c77a2325fbb9c4ddf76aa3f7e80ca3daabe9b4fa51
+local_image_sha256=533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153
+authority=none
+phone_flash=forbidden

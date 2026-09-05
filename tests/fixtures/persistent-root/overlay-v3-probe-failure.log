@@ -1,0 +1,5 @@
+[20.504026] rog5-p2-attest: PASS bounded-write persistent Arch root ready
+[25.703099] PASS native PCIe trace armed; hardware unchanged
+[27.279475] ROG5_S12_VOTE ready held=1
+[27.901220] WIFI_PROBE_ABORT writable-UFS
+[114.406385] rog5-wifi-radio.service: Failed with result 'exit-code'

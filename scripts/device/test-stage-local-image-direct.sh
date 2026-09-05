@@ -1,0 +1,179 @@
+#!/bin/sh
+set -eu
+
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd -P)
+target=$repo/scripts/device/stage-local-image-direct.sh
+streamer=$repo/scripts/host/stream-local-image-direct.py
+generator=$repo/scripts/host/generate-local-image-direct-extents.py
+map=$repo/configs/storage/local-image-direct-extents.tsv
+builder=$repo/scripts/device/build-local-image-stage-initramfs.sh
+fake=$repo/scripts/host/test-fixtures/local-image-direct-fake-target.py
+candidate=$repo/configs/recovery-candidates/local-image-direct-v46.json
+successor=$repo/configs/recovery-candidates/local-image-direct-v47.json
+megabyte=$repo/configs/recovery-candidates/local-image-direct-v48.json
+high_speed=$repo/configs/recovery-candidates/local-image-direct-v49.json
+high_speed_manifest=$repo/manifests/local-image-direct-v49-generation158.manifest
+high_speed_claim=$repo/scripts/host/consume-local-image-direct-v49-claim.py
+manifest=$repo/manifests/local-image-direct-v46-generation155.manifest
+claim=$repo/scripts/host/consume-local-image-direct-v46-claim.py
+successor_manifest=$repo/manifests/local-image-direct-v47-generation156.manifest
+successor_claim=$repo/scripts/host/consume-local-image-direct-v47-claim.py
+megabyte_manifest=$repo/manifests/local-image-direct-v48-generation157.manifest
+megabyte_claim=$repo/scripts/host/consume-local-image-direct-v48-claim.py
+source=/home/deck/.local/state/rog5-local-image-v28-20260823-r1/arch-local-a.ext4
+busybox_base=$repo/artifacts/local-image-write-benchmark-v45/initramfs.cpio.gz
+[ -f "$busybox_base" ] ||
+	busybox_base=$repo/artifacts/local-image-partial-inspect-v44/initramfs.cpio.gz
+
+for path in "$target" "$streamer" "$generator" "$map" "$builder" "$fake" \
+	"$candidate" "$manifest" "$claim"; do
+	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
+done
+[ -f "$successor" ] && [ ! -L "$successor" ]
+for path in "$successor_manifest" "$successor_claim" "$megabyte" \
+	"$megabyte_manifest" "$megabyte_claim"; do
+	[ -f "$path" ] && [ ! -L "$path" ]
+done
+for path in "$high_speed" "$high_speed_manifest" "$high_speed_claim"; do
+	[ -f "$path" ] && [ ! -L "$path" ]
+done
+sh -n "$target" "$builder"
+python3 -m py_compile "$streamer" "$generator"
+python3 -m py_compile "$fake"
+python3 -m py_compile "$claim"
+python3 -m py_compile "$successor_claim"
+python3 -m py_compile "$megabyte_claim"
+python3 -m py_compile "$high_speed_claim"
+[ "$(sha256sum "$map" | cut -d ' ' -f 1)" = \
+	e21b9453662d5f24536144e322ed0ef6bde7038efb44fdf1afcb80ee823ccd94 ]
+for contract in \
+	'extent_count=37' \
+	'data_bytes=1850654720' \
+	'image_sha256=533973be0e0ca76c5db8645fdef9aeb64d20b8c9c98b70124a2561700f119153'; do
+	grep -Fxq "$contract" "$map"
+done
+[ "$(awk -F '\t' 'NR > 8 { count++; bytes += $3 * 4096 } END { print count, bytes }' "$map")" = \
+	"37 1850654720" ]
+work=$(mktemp -d)
+trap 'find "$work" -depth -delete' EXIT HUP INT TERM
+if [ -f "$source" ]; then
+	"$generator" "$source" --check "$map"
+	"$streamer" "$source" -- python3 "$fake" "$work/state" "$map" >/dev/null
+else
+	echo 'SKIP direct extent regeneration: retained reviewed image is absent' >&2
+fi
+for contract in \
+	'ibs=1048576 obs=1048576' \
+	'iflag=count_bytes,fullblock' \
+	'oflag=seek_bytes,direct conv=notrunc status=noxfer' \
+	'timeout -k 5 180 sync -f "$partial"' \
+	'timeout -k 5 180 e2fsck -fn "$partial"' \
+	'mv -T "$partial" "$final"' \
+	'relock || fail relock' \
+	'printf b >/proc/sysrq-trigger'; do
+	grep -Fq "$contract" "$target"
+done
+! grep -Fq 'find "$residual" -mindepth 1 -maxdepth 1 -printf' "$target"
+grep -Fq 'case $inventory in' "$target"
+grep -Fq "'') ;;" "$target"
+grep -Fq 'DIRECT_EXTENT_MAP' "$builder"
+grep -Fq 'rog5-local-image-direct-extents.tsv' "$builder"
+python3 - "$candidate" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "local-image-direct-v46"
+assert record["status"] == "consumed"
+assert record["authority"] == "none"
+assert record["target_release"] == "7.1.4-g359318de534f"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23806105
+assert artifact["sha256"] == \
+    "732a107f835d882560b84e60d00caf9f3c6e10890d7e4456e7acf354d764cfc1"
+PY
+python3 - "$successor" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "local-image-direct-v47"
+assert record["status"] == "consumed"
+assert record["authority"] == "none"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23806146
+assert artifact["sha256"] == \
+    "d89983cd80e86dfc5f332e84482eae977ede5d1ff7880db49b6eabd4b06dc71f"
+PY
+python3 - "$megabyte" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "local-image-direct-v48"
+assert record["status"] == "consumed"
+assert record["authority"] == "none"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23806263
+assert artifact["sha256"] == \
+    "27ea9cda1dfc8b032c78eae06e76d1424ceadcc786c17a3418e125950d6256c9"
+PY
+python3 - "$high_speed" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+record = json.loads(Path(sys.argv[1]).read_text(encoding="ascii"))
+assert record["candidate"] == "local-image-direct-v49"
+assert record["status"] == "consumed"
+assert record["authority"] == "none"
+artifact = record["artifacts"]["initramfs.cpio.gz"]
+assert artifact["size"] == 23806155
+assert artifact["sha256"] == \
+    "411a25ed127a370f56fb5daf2d60f2e0c6280ba8a90d26e1f26c7bf450e631ca"
+PY
+grep -Fxq 'avb_generation=158' "$high_speed_manifest"
+grep -Fxq 'phone_flash=forbidden' "$high_speed_manifest"
+grep -Fq 'local-image-direct-v49-generation158-live-v1' "$high_speed_claim"
+grep -Fxq 'avb_generation=155' "$manifest"
+grep -Fxq 'phone_flash=forbidden' "$manifest"
+grep -Fq 'local-image-direct-v46-generation155-live-v1' "$claim"
+grep -Fxq 'avb_generation=156' "$successor_manifest"
+grep -Fxq 'phone_flash=forbidden' "$successor_manifest"
+grep -Fq 'local-image-direct-v47-generation156-live-v1' "$successor_claim"
+grep -Fxq 'avb_generation=157' "$megabyte_manifest"
+grep -Fxq 'phone_flash=forbidden' "$megabyte_manifest"
+grep -Fq 'local-image-direct-v48-generation157-live-v1' "$megabyte_claim"
+python3 - "$streamer" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+start = source.index("def run(")
+failure = source.index('fail(f"target command failed:', start)
+preserve = source.rindex("sys.stdout.buffer.write(output)", start, failure)
+assert preserve < failure
+assert 'b"Timeout, server 169.254.77.2 not responding.\\r\\n"' in source
+PY
+
+root=$work/root
+mkdir "$root"
+gzip -dc "$busybox_base" |
+	(cd "$root" && cpio -idm --quiet --no-absolute-filenames)
+qemu=$(command -v qemu-aarch64-static || command -v qemu-aarch64 || true)
+if [ -n "$qemu" ]; then
+	truncate -s 8192 "$root/output"
+	dd if=/dev/zero bs=4096 count=3 status=none |
+		"$qemu" -L "$root" "$root/bin/busybox" dd of="$root/output" \
+		ibs=1048576 obs=1048576 count=12288 seek=4096 \
+		iflag=count_bytes,fullblock oflag=seek_bytes,direct conv=notrunc \
+		status=noxfer 2>"$root/stats"
+	[ "$(cat "$root/stats")" = "$(printf '0+1 records in\n0+1 records out')" ]
+else
+	echo 'SKIP sealed BusyBox direct-write dialect: qemu-user is unavailable' >&2
+fi
+
+echo 'PASS sparse Arch staging uses one canonical map and exact direct BusyBox writes'

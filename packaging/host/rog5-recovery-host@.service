@@ -1,0 +1,17 @@
+[Unit]
+Description=ROG Phone 5 bounded recovery host-control request
+Requires=rog5-recovery-host.socket
+After=rog5-recovery-host.socket firewalld.service NetworkManager.service
+
+[Service]
+Type=exec
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/libexec/rog5-recovery-host/rog5-recovery-host-broker.py
+StandardInput=socket
+StandardOutput=socket
+StandardError=socket
+KillMode=mixed
+TimeoutStartSec=infinity
+RuntimeMaxSec=1000

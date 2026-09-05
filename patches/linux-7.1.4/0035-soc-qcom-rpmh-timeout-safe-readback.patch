@@ -1,0 +1,596 @@
+From: ROG5 Linux Project <rog5-linux@localhost>
+Subject: [PATCH] soc: qcom: add timeout-safe, nonblocking RPMh read requests
+
+Provide observation of inherited APPS resource votes without registering new
+regulators, changing voltage/mode policy, or touching wake/sleep vote caches.
+The read message encoding follows the Qualcomm rpmh_read proposal:
+https://lore.kernel.org/all/20260801-b4-read-rpmh-v5-v6-1-9fcb54928523@oss.qualcomm.com/
+
+Unlike the upstream on-stack read request, retain independent caller and IRQ
+references. Timeout leaves the request alive until a late completion; no
+caller-owned output pointer survives the call. Read slot admission is a single
+attempt, returning EAGAIN if busy. Existing writer waiting/caching is unchanged.
+
+Use the existing ten-second response wait. Existing finite MMIO synchronization
+polls precede it; this is not a guarantee against a wedged processor or bus.
+This adds only the read transport; regulator initial-state behavior is unchanged.
+
+diff --git a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
+index b7f1d2a5736748b8772c090fd24462fa91f321c6..a32a377b8099d893b1ab91b45ddb8d1242b65039 100644
+--- a/drivers/soc/qcom/Makefile
++++ b/drivers/soc/qcom/Makefile
+@@ -22,6 +22,7 @@ obj-$(CONFIG_QCOM_RPM_MASTER_STATS)	+= rpm_master_stats.o
+ obj-$(CONFIG_QCOM_RPMH)		+= qcom_rpmh.o
+ qcom_rpmh-y			+= rpmh-rsc.o
+ qcom_rpmh-y			+= rpmh.o
++qcom_rpmh-y			+= rpmh-read.o
+ obj-$(CONFIG_QCOM_SMD_RPM)	+= rpm-proc.o smd-rpm.o
+ obj-$(CONFIG_QCOM_SMEM) +=	smem.o
+ obj-$(CONFIG_QCOM_SMEM_STATE) += smem_state.o
+diff --git a/drivers/soc/qcom/rpmh-internal.h b/drivers/soc/qcom/rpmh-internal.h
+index e3cf1beff8038827e45334efddceb69a3bf2cf32..9aa85cc586fcfc79469bca4ee52fb0d06a3b4a26 100644
+--- a/drivers/soc/qcom/rpmh-internal.h
++++ b/drivers/soc/qcom/rpmh-internal.h
+@@ -143,6 +143,7 @@ void rpmh_rsc_invalidate(struct rsc_drv *drv);
+ void rpmh_rsc_write_next_wakeup(struct rsc_drv *drv);
+ 
+ void rpmh_tx_done(const struct tcs_request *msg);
++void rpmh_read_tx_done(const struct tcs_request *msg);
+ int rpmh_flush(struct rpmh_ctrlr *ctrlr);
+ 
+ #endif /* __RPM_INTERNAL_H__ */
+diff --git a/drivers/soc/qcom/rpmh.c b/drivers/soc/qcom/rpmh.c
+index ca37da3dc2b148c76e50e25885bd85a0cb47c9b6..eecca2d46ed141b76953135885c24d9a8f08e936 100644
+--- a/drivers/soc/qcom/rpmh.c
++++ b/drivers/soc/qcom/rpmh.c
+@@ -79,12 +79,17 @@ static struct rpmh_ctrlr *get_rpmh_ctrlr(const struct device *dev)
+ void rpmh_tx_done(const struct tcs_request *msg)
+ {
+ 	struct rpmh_request *rpm_msg = container_of(msg, struct rpmh_request,
+ 						    msg);
+ 	struct completion *compl = rpm_msg->completion;
+ 	bool free = rpm_msg->needs_free;
+ 
++	if (msg->is_read) {
++		rpmh_read_tx_done(msg);
++		return;
++	}
++
+ 	if (!compl)
+ 		goto exit;
+ 
+ 	/* Signal the blocking thread we are done */
+ 	complete(compl);
+@@ -196,26 +201,27 @@ static int __rpmh_write(const struct device *dev, enum rpmh_state state,
+ static int __fill_rpmh_msg(struct rpmh_request *req, enum rpmh_state state,
+ 		const struct tcs_cmd *cmd, u32 n)
+ {
+ 	if (!cmd || !n || n > MAX_RPMH_PAYLOAD)
+ 		return -EINVAL;
+ 
+ 	memcpy(req->cmd, cmd, n * sizeof(*cmd));
+ 
+ 	req->msg.state = state;
+ 	req->msg.cmds = req->cmd;
+ 	req->msg.num_cmds = n;
++	req->msg.is_read = false;
+ 
+ 	return 0;
+ }
+ 
+ /**
+  * rpmh_write_async: Write a set of RPMH commands
+  *
+  * @dev: The device making the request
+  * @state: Active/sleep set
+  * @cmd: The payload data
+  * @n: The number of elements in payload
+  *
+  * Write a set of RPMH commands, the order of commands is maintained
+  * and will be sent as a single shot.
+  */
+diff --git a/drivers/soc/qcom/rpmh-rsc.c b/drivers/soc/qcom/rpmh-rsc.c
+index c6f7d5c9c493d9e06c048930b8a14a38660df4b1..f0a31f3be761b77b944ceb0bf94df96fd69560fd 100644
+--- a/drivers/soc/qcom/rpmh-rsc.c
++++ b/drivers/soc/qcom/rpmh-rsc.c
+@@ -335,48 +335,55 @@ static struct tcs_group *get_tcs_for_msg(struct rsc_drv *drv,
+ /**
+  * get_req_from_tcs() - Get a stashed request that was xfering on the given TCS.
+  * @drv:    The RSC controller.
+  * @tcs_id: The global ID of this TCS.
+  *
+  * For ACTIVE_ONLY transfers we want to call back into the client when the
+  * transfer finishes. To do this we need the "request" that the client
+  * originally provided us. This function grabs the request that we stashed
+  * when we started the transfer.
+  *
+  * This only makes sense for ACTIVE_ONLY transfers since those are the only
+  * ones we track sending (the only ones we enable interrupts for and the only
+  * ones we call back to the client for).
+  *
+  * Return: The stashed request.
+  */
+ static const struct tcs_request *get_req_from_tcs(struct rsc_drv *drv,
+ 						  int tcs_id)
+ {
+ 	struct tcs_group *tcs;
+ 	int i;
+ 
+ 	for (i = 0; i < TCS_TYPE_NR; i++) {
+ 		tcs = &drv->tcs[i];
+-		if (tcs->mask & BIT(tcs_id))
+-			return tcs->req[tcs_id - tcs->offset];
++		if (tcs->mask & BIT(tcs_id)) {
++			const struct tcs_request *req;
++
++			req = tcs->req[tcs_id - tcs->offset];
++			/* A late read completion may release the final reference. */
++			if (req && req->is_read)
++				tcs->req[tcs_id - tcs->offset] = NULL;
++			return req;
++		}
+ 	}
+ 
+ 	return NULL;
+ }
+ 
+ /**
+  * __tcs_set_trigger() - Start xfer on a TCS or unset trigger on a borrowed TCS
+  * @drv:     The controller.
+  * @tcs_id:  The global ID of this TCS.
+  * @trigger: If true then untrigger/retrigger. If false then just untrigger.
+  *
+  * In the normal case we only ever call with "trigger=true" to start a
+  * transfer. That will un-trigger/disable the TCS from the last transfer
+  * then trigger/enable for this transfer.
+  *
+  * If we borrowed a wake TCS for an active-only transfer we'll also call
+  * this function with "trigger=false" to just do the un-trigger/disable
+  * before using the TCS for wake purposes again.
+  *
+  * Note that the AP is only in charge of triggering active-only transfers.
+  * The AP never triggers sleep/wake values using this function.
+  */
+@@ -430,30 +437,33 @@ static void enable_tcs_irq(struct rsc_drv *drv, int tcs_id, bool enable)
+ /**
+  * tcs_tx_done() - TX Done interrupt handler.
+  * @irq: The IRQ number (ignored).
+  * @p:   Pointer to "struct rsc_drv".
+  *
+  * Called for ACTIVE_ONLY transfers (those are the only ones we enable the
+  * IRQ for) when a transfer is done.
+  *
+  * Return: IRQ_HANDLED
+  */
+ static irqreturn_t tcs_tx_done(int irq, void *p)
+ {
+ 	struct rsc_drv *drv = p;
+ 	int i;
+ 	unsigned long irq_status;
+ 	const struct tcs_request *req;
+ 
+ 	irq_status = readl_relaxed(drv->tcs_base + drv->regs[RSC_DRV_IRQ_STATUS]);
+ 
+ 	for_each_set_bit(i, &irq_status, BITS_PER_TYPE(u32)) {
+ 		req = get_req_from_tcs(drv, i);
+ 		if (WARN_ON(!req))
+ 			goto skip;
+ 
++		if (req->is_read)
++			req->cmds[0].data = read_tcs_reg(drv,
++					drv->regs[RSC_DRV_CMD_RESP_DATA], i);
+ 		trace_rpmh_tx_done(drv, i, req);
+ 
+ 		/* Clear AMC trigger & enable modes and
+ 		 * disable interrupt for this TCS
+ 		 */
+ 		__tcs_set_trigger(drv, i, false);
+@@ -482,62 +492,65 @@ skip:
+ /**
+  * __tcs_buffer_write() - Write to TCS hardware from a request; don't trigger.
+  * @drv:    The controller.
+  * @tcs_id: The global ID of this TCS.
+  * @cmd_id: The index within the TCS to start writing.
+  * @msg:    The message we want to send, which will contain several addr/data
+  *          pairs to program (but few enough that they all fit in one TCS).
+  *
+  * This is used for all types of transfers (active, sleep, and wake).
+  */
+ static void __tcs_buffer_write(struct rsc_drv *drv, int tcs_id, int cmd_id,
+ 			       const struct tcs_request *msg)
+ {
+ 	u32 msgid;
+-	u32 cmd_msgid = CMD_MSGID_LEN | CMD_MSGID_WRITE;
++	u32 cmd_msgid = CMD_MSGID_LEN;
+ 	u32 cmd_enable = 0;
+ 	struct tcs_cmd *cmd;
+ 	int i, j;
+ 
+ 	/* Convert all commands to RR when the request has wait_for_compl set */
+ 	cmd_msgid |= msg->wait_for_compl ? CMD_MSGID_RESP_REQ : 0;
++	if (!msg->is_read)
++		cmd_msgid |= CMD_MSGID_WRITE;
+ 
+ 	for (i = 0, j = cmd_id; i < msg->num_cmds; i++, j++) {
+ 		cmd = &msg->cmds[i];
+ 		cmd_enable |= BIT(j);
+ 		msgid = cmd_msgid;
+ 		/*
+ 		 * Additionally, if the cmd->wait is set, make the command
+ 		 * response reqd even if the overall request was fire-n-forget.
+ 		 */
+ 		msgid |= cmd->wait ? CMD_MSGID_RESP_REQ : 0;
+ 
+ 		write_tcs_cmd(drv, drv->regs[RSC_DRV_CMD_MSGID], tcs_id, j, msgid);
+ 		write_tcs_cmd(drv, drv->regs[RSC_DRV_CMD_ADDR], tcs_id, j, cmd->addr);
+-		write_tcs_cmd(drv, drv->regs[RSC_DRV_CMD_DATA], tcs_id, j, cmd->data);
++		if (!msg->is_read)
++			write_tcs_cmd(drv, drv->regs[RSC_DRV_CMD_DATA], tcs_id, j, cmd->data);
+ 		trace_rpmh_send_msg(drv, tcs_id, msg->state, j, msgid, cmd);
+ 	}
+ 
+ 	cmd_enable |= read_tcs_reg(drv, drv->regs[RSC_DRV_CMD_ENABLE], tcs_id);
+ 	write_tcs_reg(drv, drv->regs[RSC_DRV_CMD_ENABLE], tcs_id, cmd_enable);
+ }
+ 
+ /**
+  * check_for_req_inflight() - Look to see if conflicting cmds are in flight.
+  * @drv: The controller.
+  * @tcs: A pointer to the tcs_group used for ACTIVE_ONLY transfers.
+  * @msg: The message we want to send, which will contain several addr/data
+  *       pairs to program (but few enough that they all fit in one TCS).
+  *
+  * This will walk through the TCSes in the group and check if any of them
+  * appear to be sending to addresses referenced in the message. If it finds
+  * one it'll return -EBUSY.
+  *
+  * Only for use for active-only transfers.
+  *
+  * Must be called with the drv->lock held since that protects tcs_in_use.
+  *
+  * Return: 0 if nothing in flight or -EBUSY if we should try again later.
+  *         The caller must re-enable interrupts between tries since that's
+  *         the only way tcs_in_use will ever be updated and the only way
+  *         RSC_DRV_CMD_ENABLE will ever be cleared.
+  */
+@@ -620,82 +633,100 @@ static int claim_tcs_for_req(struct rsc_drv *drv, struct tcs_group *tcs,
+ /**
+  * rpmh_rsc_send_data() - Write / trigger active-only message.
+  * @drv: The controller.
+  * @msg: The data to be sent.
+  *
+  * NOTES:
+  * - This is only used for "ACTIVE_ONLY" since the limitations of this
+  *   function don't make sense for sleep/wake cases.
+  * - To do the transfer, we will grab a whole TCS for ourselves--we don't
+  *   try to share. If there are none available we'll wait indefinitely
+  *   for a free one.
+  * - This function will not wait for the commands to be finished, only for
+  *   data to be programmed into the RPMh. See rpmh_tx_done() which will
+  *   be called when the transfer is fully complete.
+  * - This function must be called with interrupts enabled. If the hardware
+  *   is busy doing someone else's transfer we need that transfer to fully
+  *   finish so that we can have the hardware, and to fully finish it needs
+  *   the interrupt handler to run. If the interrupts is set to run on the
+  *   active CPU this can never happen if interrupts are disabled.
+  *
+  * Return: 0 on success, -EINVAL on error.
+  */
+ int rpmh_rsc_send_data(struct rsc_drv *drv, const struct tcs_request *msg)
+ {
+ 	struct tcs_group *tcs;
+ 	int tcs_id;
+ 
+ 	might_sleep();
+ 
++	if (msg->is_read && (msg->state != RPMH_ACTIVE_ONLY_STATE ||
++			    msg->num_cmds != 1 || !msg->wait_for_compl))
++		return -EINVAL;
++	/* Reads do not dirty the vote cache, so they must not displace WAKE
++	 * commands that rpmh_flush() would otherwise have no reason to restore.
++	 */
++	if (msg->is_read && !drv->tcs[ACTIVE_TCS].num_tcs)
++		return -EOPNOTSUPP;
++
+ 	tcs = get_tcs_for_msg(drv, msg);
+ 	if (IS_ERR(tcs))
+ 		return PTR_ERR(tcs);
+ 
+ 	spin_lock_irq(&drv->lock);
+ 
+-	/* Wait forever for a free tcs. It better be there eventually! */
+-	wait_event_lock_irq(drv->tcs_wait,
+-			    (tcs_id = claim_tcs_for_req(drv, tcs, msg)) >= 0,
+-			    drv->lock);
++	if (msg->is_read) {
++		/* Diagnostic reads must not inherit the unbounded writer wait. */
++		tcs_id = claim_tcs_for_req(drv, tcs, msg);
++		if (tcs_id < 0) {
++			spin_unlock_irq(&drv->lock);
++			return tcs_id == -EBUSY ? -EAGAIN : tcs_id;
++		}
++	} else {
++		/* Preserve the existing writer slot-wait behavior. */
++		wait_event_lock_irq(drv->tcs_wait,
++				    (tcs_id = claim_tcs_for_req(drv, tcs, msg)) >= 0,
++				    drv->lock);
++	}
+ 
+ 	tcs->req[tcs_id - tcs->offset] = msg;
+ 	set_bit(tcs_id, drv->tcs_in_use);
+ 	if (msg->state == RPMH_ACTIVE_ONLY_STATE && tcs->type != ACTIVE_TCS) {
+ 		/*
+ 		 * Clear previously programmed WAKE commands in selected
+ 		 * repurposed TCS to avoid triggering them. tcs->slots will be
+ 		 * cleaned from rpmh_flush() by invoking rpmh_rsc_invalidate()
+ 		 */
+ 		write_tcs_reg_sync(drv, drv->regs[RSC_DRV_CMD_ENABLE], tcs_id, 0);
+ 		enable_tcs_irq(drv, tcs_id, true);
+ 	}
+ 	spin_unlock_irq(&drv->lock);
+ 
+ 	/*
+ 	 * These two can be done after the lock is released because:
+ 	 * - We marked "tcs_in_use" under lock.
+ 	 * - Once "tcs_in_use" has been marked nobody else could be writing
+ 	 *   to these registers until the interrupt goes off.
+ 	 * - The interrupt can't go off until we trigger w/ the last line
+ 	 *   of __tcs_set_trigger() below.
+ 	 */
+ 	__tcs_buffer_write(drv, tcs_id, 0, msg);
+ 	__tcs_set_trigger(drv, tcs_id, true);
+ 
+ 	return 0;
+ }
+ 
+ /**
+  * find_slots() - Find a place to write the given message.
+  * @tcs:    The tcs group to search.
+  * @msg:    The message we want to find room for.
+  * @tcs_id: If we return 0 from the function, we return the global ID of the
+  *          TCS to write to here.
+  * @cmd_id: If we return 0 from the function, we return the index of
+  *          the command array of the returned TCS where the client should
+  *          start writing the message.
+  *
+  * Only for use on sleep/wake TCSes since those are the only ones we maintain
+  * tcs->slots for.
+  *
+  * Return: -ENOMEM if there was no room, else 0.
+  */
+@@ -726,46 +757,49 @@ static int find_slots(struct tcs_group *tcs, const struct tcs_request *msg,
+ /**
+  * rpmh_rsc_write_ctrl_data() - Write request to controller but don't trigger.
+  * @drv: The controller.
+  * @msg: The data to be written to the controller.
+  *
+  * This should only be called for sleep/wake state, never active-only
+  * state.
+  *
+  * The caller must ensure that no other RPMH actions are happening and the
+  * controller is idle when this function is called since it runs lockless.
+  *
+  * Return: 0 if no error; else -error.
+  */
+ int rpmh_rsc_write_ctrl_data(struct rsc_drv *drv, const struct tcs_request *msg)
+ {
+ 	struct tcs_group *tcs;
+ 	int tcs_id = 0, cmd_id = 0;
+ 	int ret;
+ 
++	if (msg->is_read)
++		return -EINVAL;
++
+ 	tcs = get_tcs_for_msg(drv, msg);
+ 	if (IS_ERR(tcs))
+ 		return PTR_ERR(tcs);
+ 
+ 	/* find the TCS id and the command in the TCS to write to */
+ 	ret = find_slots(tcs, msg, &tcs_id, &cmd_id);
+ 	if (!ret)
+ 		__tcs_buffer_write(drv, tcs_id, cmd_id, msg);
+ 
+ 	return ret;
+ }
+ 
+ /**
+  * rpmh_rsc_ctrlr_is_busy() - Check if any of the AMCs are busy.
+  * @drv: The controller
+  *
+  * Checks if any of the AMCs are busy in handling ACTIVE sets.
+  * This is called from the last cpu powering down before flushing
+  * SLEEP and WAKE sets. If AMCs are busy, controller can not enter
+  * power collapse, so deny from the last cpu's pm notification.
+  *
+  * Context: Must be called with the drv->lock held.
+  *
+  * Return:
+  * * False		- AMCs are idle
+  * * True		- AMCs are busy
+  */
+diff --git a/drivers/soc/qcom/rpmh-read.c b/drivers/soc/qcom/rpmh-read.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..d6b2009156423f3a5de41053b754daa1b428c977
+--- /dev/null
++++ b/drivers/soc/qcom/rpmh-read.c
+@@ -0,0 +1,101 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* Readback transport based on the Qualcomm rpmh_read() proposal by
++ * Maulik Shah and Kamal Wadhwa; independently owned timeout lifetime.
++ */
++#include <linux/completion.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/jiffies.h>
++#include <linux/module.h>
++#include <linux/refcount.h>
++#include <linux/slab.h>
++
++#include <soc/qcom/rpmh.h>
++
++#include "rpmh-internal.h"
++
++#define RPMH_READ_TIMEOUT_MS 10000
++
++struct rpmh_read_request {
++	struct rpmh_request request;
++	struct completion done;
++	refcount_t refs;
++};
++
++static void rpmh_read_put(struct rpmh_read_request *read)
++{
++	if (refcount_dec_and_test(&read->refs))
++		kfree(read);
++}
++
++void rpmh_read_tx_done(const struct tcs_request *msg)
++{
++	struct rpmh_request *request;
++	struct rpmh_read_request *read;
++
++	request = container_of(msg, struct rpmh_request, msg);
++	read = container_of(request, struct rpmh_read_request, request);
++	/* The IRQ has copied the response before publishing completion. */
++	complete(&read->done);
++	rpmh_read_put(read);
++}
++
++/**
++ * rpmh_read() - Read one APPS resource vote, without changing vote caches.
++ * @dev: device whose parent is an initialized RPMh RSC controller
++ * @cmd: resource address; data is changed only after a successful response
++ *
++ * This is not a measurement of the aggregate physical regulator state.
++ * A busy/conflicting TCS returns -EAGAIN without queuing anything. After a
++ * queued request times out, the IRQ retains its small allocation until it
++ * completes (or the machine resets). Never reuse/free an in-flight request.
++ * No caller-owned data, completion or module callback is retained by the IRQ.
++ *
++ * Context: may sleep. Must not be called from atomic context.
++ * Return: 0 on success; negative errno on failure, with cmd->data unchanged.
++ */
++int rpmh_read(const struct device *dev, struct tcs_cmd *cmd)
++{
++	struct rpmh_read_request *read;
++	struct rsc_drv *drv;
++	unsigned long completed;
++	int ret;
++
++	if (!dev || !dev->parent || !cmd)
++		return -EINVAL;
++	drv = dev_get_drvdata(dev->parent);
++	if (!drv)
++		return -ENODEV;
++	read = kzalloc(sizeof(*read), GFP_KERNEL);
++	if (!read)
++		return -ENOMEM;
++
++	init_completion(&read->done);
++	refcount_set(&read->refs, 2); /* Caller plus the reserved IRQ reference. */
++	read->request.msg.state = RPMH_ACTIVE_ONLY_STATE;
++	read->request.msg.wait_for_compl = true;
++	read->request.msg.num_cmds = 1;
++	read->request.msg.cmds = read->request.cmd;
++	read->request.msg.is_read = true;
++	read->request.cmd[0].addr = cmd->addr;
++
++	/* Bypass __rpmh_write(): a read must never create or modify wake votes. */
++	ret = rpmh_rsc_send_data(drv, &read->request.msg);
++	if (ret) {
++		/* No request was published, so no IRQ can own this reference. */
++		rpmh_read_put(read);
++		goto put_caller;
++	}
++	completed = wait_for_completion_timeout(&read->done,
++					msecs_to_jiffies(RPMH_READ_TIMEOUT_MS));
++	if (!completed) {
++		ret = -ETIMEDOUT;
++	} else {
++		cmd->data = read->request.cmd[0].data;
++		ret = 0;
++	}
++put_caller:
++	rpmh_read_put(read);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(rpmh_read);
+diff --git a/include/soc/qcom/rpmh.h b/include/soc/qcom/rpmh.h
+index bdbee1a97d3685d8a6153d586ddf650bd3bd3dde..14ecbf242b6bd67c8167c176ed0970f42432f4f4 100644
+--- a/include/soc/qcom/rpmh.h
++++ b/include/soc/qcom/rpmh.h
+@@ -11,6 +11,8 @@
+ 
+ 
+ #if IS_ENABLED(CONFIG_QCOM_RPMH)
++int rpmh_read(const struct device *dev, struct tcs_cmd *cmd);
++
+ int rpmh_write(const struct device *dev, enum rpmh_state state,
+ 	       const struct tcs_cmd *cmd, u32 n);
+ 
+@@ -24,6 +26,9 @@ void rpmh_invalidate(const struct device *dev);
+ 
+ #else
+ 
++static inline int rpmh_read(const struct device *dev, struct tcs_cmd *cmd)
++{ return -ENODEV; }
++
+ static inline int rpmh_write(const struct device *dev, enum rpmh_state state,
+ 			     const struct tcs_cmd *cmd, u32 n)
+ { return -ENODEV; }
+diff --git a/include/soc/qcom/tcs.h b/include/soc/qcom/tcs.h
+index cff67ce25488e2d3603a7707af2ca77f8266a713..89a4a67564f34d1665a55b685ac75e747ce6cea6 100644
+--- a/include/soc/qcom/tcs.h
++++ b/include/soc/qcom/tcs.h
+@@ -31,49 +31,51 @@ enum rpmh_state {
+ /**
+  * struct tcs_cmd: an individual request to RPMH.
+  *
+  * @addr: the address of the resource slv_id:18:16 | offset:0:15
+  * @data: the resource state request
+  * @wait: ensure that this command is complete before returning.
+  *        Setting "wait" here only makes sense during rpmh_write_batch() for
+  *        active-only transfers, this is because:
+  *        rpmh_write() - Always waits.
+  *                       (DEFINE_RPMH_MSG_ONSTACK will set .wait_for_compl)
+  *        rpmh_write_async() - Never waits.
+  *                       (There's no request completion callback)
+  */
+ struct tcs_cmd {
+ 	u32 addr;
+ 	u32 data;
+ 	u32 wait;
+ };
+ 
+ /**
+  * struct tcs_request: A set of tcs_cmds sent together in a TCS
+  *
+  * @state:          state for the request.
+  * @wait_for_compl: wait until we get a response from the h/w accelerator
+  *                  (same as setting cmd->wait for all commands in the request)
+  * @num_cmds:       the number of @cmds in this request
++ * @is_read:        one active-only read request, never a vote update
+  * @cmds:           an array of tcs_cmds
+  */
+ struct tcs_request {
+ 	enum rpmh_state state;
+ 	u32 wait_for_compl;
+ 	u32 num_cmds;
++	bool is_read;
+ 	struct tcs_cmd *cmds;
+ };
+ 
+ #define BCM_TCS_CMD_COMMIT_MASK		BIT(30)
+ #define BCM_TCS_CMD_VALID_MASK		BIT(29)
+ #define BCM_TCS_CMD_VOTE_MASK		GENMASK(13, 0)
+ #define BCM_TCS_CMD_VOTE_Y_MASK		GENMASK(13, 0)
+ #define BCM_TCS_CMD_VOTE_X_MASK		GENMASK(27, 14)
+ 
+ /* Construct a Bus Clock Manager (BCM) specific TCS command */
+ #define BCM_TCS_CMD(commit, valid, vote_x, vote_y)		\
+ 	(u32_encode_bits(commit, BCM_TCS_CMD_COMMIT_MASK) |	\
+ 	u32_encode_bits(valid, BCM_TCS_CMD_VALID_MASK) |	\
+ 	u32_encode_bits(vote_x, BCM_TCS_CMD_VOTE_X_MASK) |	\
+ 	u32_encode_bits(vote_y, BCM_TCS_CMD_VOTE_Y_MASK))
+ 
+ #endif /* __SOC_QCOM_TCS_H__ */

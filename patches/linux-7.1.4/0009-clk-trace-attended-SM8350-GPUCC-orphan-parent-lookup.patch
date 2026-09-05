@@ -1,0 +1,113 @@
+From f7c0a9d067db77f05a40a5bc242c1e14ac297ac5 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Sat, 25 Jul 2026 06:00:00 +0000
+Subject: [PATCH] clk: trace attended orphan parent lookup
+
+Bracket the clock callback and generic parent-cache lookup only while the
+bounded exact SM8350 GPUCC orphan diagnostic is active.
+
+Record parent shape and read-only provider runtime state without changing
+clock or runtime-PM behavior.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/clk/clk.c | 64 +++++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 59 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/clk/clk.c b/drivers/clk/clk.c
+index 61968bc72..22bf5fccd 100644
+--- a/drivers/clk/clk.c
++++ b/drivers/clk/clk.c
+@@ -2826,14 +2826,66 @@ struct clk *clk_get_parent(struct clk *clk)
+ }
+ EXPORT_SYMBOL_GPL(clk_get_parent);
+ 
+-static struct clk_core *__clk_init_parent(struct clk_core *core)
++static void clk_rog5_orphan_trace(const struct clk_core *trigger,
++				  const struct clk_core *clock,
++				  const char *phase, int state);
++
++static int clk_rog5_orphan_runtime_state(const struct clk_core *core)
+ {
++	int state = 0;
++
++	if (!core->dev)
++		return state;
++
++	state |= 1;
++	if (core->rpm_enabled)
++		state |= 2;
++	if (pm_runtime_status_suspended(core->dev))
++		state |= 4;
++	if (pm_runtime_active(core->dev))
++		state |= 8;
++
++	return state;
++}
++
++static struct clk_core *
++__clk_init_parent(struct clk_core *core,
++		  const struct clk_core *rog5_trigger, bool rog5_trace)
++{
++	struct clk_core *parent;
+ 	u8 index = 0;
+ 
+-	if (core->num_parents > 1 && core->ops->get_parent)
++	if (rog5_trace) {
++		clk_rog5_orphan_trace(rog5_trigger, core,
++				      "orphan-parent-shape",
++				      (core->num_parents << 1) |
++				      !!core->ops->get_parent);
++		clk_rog5_orphan_trace(rog5_trigger, core,
++				      "orphan-runtime-state",
++				      clk_rog5_orphan_runtime_state(core));
++	}
++
++	if (core->num_parents > 1 && core->ops->get_parent) {
++		if (rog5_trace)
++			clk_rog5_orphan_trace(rog5_trigger, core,
++					      "orphan-get-parent-begin", 0);
+ 		index = core->ops->get_parent(core->hw);
++		if (rog5_trace)
++			clk_rog5_orphan_trace(rog5_trigger, core,
++					      "orphan-get-parent-complete",
++					      index);
++	}
++
++	if (rog5_trace)
++		clk_rog5_orphan_trace(rog5_trigger, core,
++				      "orphan-parent-cache-begin", index);
++	parent = clk_core_get_parent_by_index(core, index);
++	if (rog5_trace)
++		clk_rog5_orphan_trace(rog5_trigger, core,
++				      "orphan-parent-cache-complete",
++				      parent ? 1 : 0);
+ 
+-	return clk_core_get_parent_by_index(core, index);
++	return parent;
+ }
+ 
+ static void clk_core_reparent(struct clk_core *core,
+@@ -3893,7 +3945,8 @@ clk_core_reparent_orphans_nolock(const struct clk_core *rog5_trigger)
+ 					      "orphan-parent-lookup-begin",
+ 					      0);
+ 		}
+-		parent = __clk_init_parent(orphan);
++		parent = __clk_init_parent(orphan, rog5_trigger,
++					   rog5_trace_this);
+ 		if (rog5_trace_this)
+ 			clk_rog5_orphan_trace(rog5_trigger, orphan,
+ 					      "orphan-parent-lookup-complete",
+@@ -4098,7 +4151,8 @@ static int __clk_core_init(struct clk_core *core)
+ 
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"parent-init-begin", 0);
+-	parent = core->parent = __clk_init_parent(core);
++	core->parent = __clk_init_parent(core, NULL, false);
++	parent = core->parent;
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"parent-init-complete", parent ? 1 : 0);
+ 
+-- 
+2.55.0
+

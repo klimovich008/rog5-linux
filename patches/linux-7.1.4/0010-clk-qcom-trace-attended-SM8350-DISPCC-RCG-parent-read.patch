@@ -1,0 +1,81 @@
+From 6e40861cc51c067f9989c4513003e8fbd046c22f Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Sat, 25 Jul 2026 08:00:00 +0000
+Subject: [PATCH] clk: trace attended DISPCC RCG parent read
+
+Bracket the existing parent-selection regmap read only for the exact
+SM8350 display pixel clock while the default-off diagnostic is active.
+
+Reduce the inherited orphan trace to the two entries already localized
+by v13. Add no clock, register, runtime-PM, or hardware-control operation.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/clk/clk.c           |  2 +-
+ drivers/clk/qcom/clk-rcg2.c | 23 +++++++++++++++++++++++
+ 2 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/clk/clk.c b/drivers/clk/clk.c
+index 22bf5fccd..f3067f06f 100644
+--- a/drivers/clk/clk.c
++++ b/drivers/clk/clk.c
+@@ -58,7 +58,7 @@ static void clk_rog5_register_trace(struct device *dev,
+ 	msleep(100);
+ }
+ 
+-#define ROG5_CCF_ORPHAN_TRACE_LIMIT 4
++#define ROG5_CCF_ORPHAN_TRACE_LIMIT 2
+ 
+ static struct task_struct *prepare_owner;
+ static struct task_struct *enable_owner;
+diff --git a/drivers/clk/qcom/clk-rcg2.c b/drivers/clk/qcom/clk-rcg2.c
+index 6064a0e17..2cc9f02b5 100644
+--- a/drivers/clk/qcom/clk-rcg2.c
++++ b/drivers/clk/qcom/clk-rcg2.c
+@@ -16,6 +16,7 @@
+ #include <linux/math64.h>
+ #include <linux/gcd.h>
+ #include <linux/minmax.h>
++#include <linux/moduleparam.h>
+ #include <linux/slab.h>
+ 
+ #include <asm/div64.h>
+@@ -59,6 +60,26 @@
+ #define SE_PERF_M_DFSR(level)	(0x5c + 0x4 * (level))
+ #define SE_PERF_N_DFSR(level)	(0x9c + 0x4 * (level))
+ 
++static bool rog5_rcg2_parent_trace;
++core_param(rog5_rcg2_parent_trace, rog5_rcg2_parent_trace, bool, 0400);
++
++static bool clk_rcg2_rog5_parent_trace_enabled(struct clk_hw *hw)
++{
++	return rog5_rcg2_parent_trace &&
++	       !strcmp(clk_hw_get_name(hw), "disp_cc_mdss_pclk0_clk_src");
++}
++
++static void
++clk_rcg2_rog5_parent_trace(struct clk_hw *hw, const char *phase, int ret)
++{
++	if (!clk_rcg2_rog5_parent_trace_enabled(hw))
++		return;
++
++	pr_notice("ROG5 RCG2 diagnostic: phase=%s clock=%s ret=%d\n",
++		  phase, clk_hw_get_name(hw), ret);
++	msleep(100);
++}
++
+ enum freq_policy {
+ 	FLOOR,
+ 	CEIL,
+@@ -101,7 +122,9 @@ static u8 clk_rcg2_get_parent(struct clk_hw *hw)
+ 	u32 cfg;
+ 	int ret;
+ 
++	clk_rcg2_rog5_parent_trace(hw, "parent-read-begin", 0);
+ 	ret = regmap_read(rcg->clkr.regmap, RCG_CFG_OFFSET(rcg), &cfg);
++	clk_rcg2_rog5_parent_trace(hw, "parent-read-complete", ret);
+ 	if (ret) {
+ 		pr_debug("%s: Unable to read CFG register for %s\n",
+ 			 __func__, clk_hw_get_name(hw));
+-- 
+2.55.0

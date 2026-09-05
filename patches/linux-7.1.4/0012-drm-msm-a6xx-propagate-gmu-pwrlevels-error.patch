@@ -1,0 +1,29 @@
+From: ROG5 Linux maintainers <rog5-linux@invalid>
+Date: Sun, 26 Jul 2026 00:00:00 +0000
+Subject: [PATCH] drm/msm/a6xx: propagate GMU power-level probe errors
+
+The GMU power-level setup can fail while adding the OPP table or constructing
+RPMh votes.  Do not continue into ACD, HFI, and RSCC/PDC initialization with
+incomplete power data.
+
+Signed-off-by: ROG5 Linux maintainers <rog5-linux@invalid>
+---
+ drivers/gpu/drm/msm/adreno/a6xx_gmu.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -2401,7 +2401,9 @@ int a6xx_gmu_init(struct a6xx_gpu *a6xx_gpu, struct device_node *node)
+ 	gmu->gxpd = dev_pm_domain_attach_by_name(gmu->dev, "gx");
+ 
+ 	/* Get the power levels for the GMU and GPU */
+-	a6xx_gmu_pwrlevels_probe(gmu);
++	ret = a6xx_gmu_pwrlevels_probe(gmu);
++	if (ret)
++		goto detach_gxpd;
+ 
+ 	ret = a6xx_gmu_acd_probe(gmu);
+ 	if (ret)
+-- 
+2.50.1

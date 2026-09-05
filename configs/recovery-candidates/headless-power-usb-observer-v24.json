@@ -1,0 +1,35 @@
+{
+  "format": "rog5-recovery-candidate-v1",
+  "candidate": "headless-power-usb-observer-v24",
+  "status": "offline",
+  "authority": "none",
+  "bundle": "headless-power-usb-observer-v24",
+  "profile": "diagnostic-initramfs-v1",
+  "target_id": "headless-power-usb-observer-v24",
+  "target_release": "7.1.4-g7a5cef0db479",
+  "rollback_timeout": "300",
+  "target_timeout": "180",
+  "a660_command_manifest_sha256": "99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2",
+  "root_generation": "arch-a",
+  "root_tree_sha256": "f4affd6d83f3af48259c7d7f650e91461465b59e045519310ac81bb5d71a0087",
+  "root_seal_sha256": "42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a",
+  "root_tree_entries": "37735",
+  "root_subtree": "/",
+  "artifacts": {
+    "Image": {
+      "path": "artifacts/network-root-power-usb-observer-v1/Image",
+      "size": 40049152,
+      "sha256": "6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef"
+    },
+    "board.dtb": {
+      "path": "artifacts/network-root-power-usb-observer-v1/board.dtb",
+      "size": 103106,
+      "sha256": "e42604f9bb91762d827b8f6eeff0b801f992f264fca47af3d40b213a4cff932e"
+    },
+    "initramfs.cpio.gz": {
+      "path": "artifacts/network-root-power-usb-early-observer-v4/initramfs.cpio.gz",
+      "size": 22402111,
+      "sha256": "64c0e4be67f39817c7d86c31ee4d07fd0c9e7a076a971fd3fb8b1b9934c1b2d3"
+    }
+  }
+}

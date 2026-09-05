@@ -1,0 +1,12 @@
+artifact	size	sha256	role	tracked
+accepted-network-root-v8-dtb	103102	0fb6d415597630508779263693803af40f35496adee17e82995b0189b2aa9c78	immutable base for the opt-in Wi-Fi overlay	no
+wifi-overlay-source	4193	b3fe695cdd166aa13b588fffa738b2f9e9dd1ba4ce2586d7fe26eb8cf633d3de	WCN6855 PMU, PCIe0, QMP PHY, GPIO, and regulator board description	yes
+wifi-kernel-fragment	399	49fe026d976c17db10fcf1b042b8ba54823ebce4b1f9762183bdacd479ee7b14	QMP PCIe, power sequencing, MHI, and ath11k requirements	yes
+merged-wifi-candidate-dtb	107038	15acdcd6fad910f105047ef53de08b47cafadbbf94827e123931408d92310d89	deterministic schema-validated candidate; offline only	no
+processed-dtschema	26724885	070dd0ee64be8c6e9747b30e1a6ea8b4c32c8e00e66a285e65e01b88badef18d	dtschema 2026.6 schemas processed from pinned Linux source	no
+schema-metadata	663	64f57229227ed049492bcf00530cc765281aca5498232ceb63f71f3571254b0b	schema tool, source, base, overlay, candidate, and schema identities	no
+wifi-kernel-config	239666	79ea41dd4c4e2080923ad0cf855b6d847b09736d82a857546640f0cf26fa5380	final Linux 7.1.4 Wi-Fi configuration	no
+wifi-kernel-image	40049152	a4edaee34dca66534cf886fd0daa6068273d4fd722b63960d517ef17699af43e	uncompressed Linux 7.1.4 kernel; not a boot image	no
+wifi-kernel-image-gz	14751791	53fc7f458ba203089355ad913f599dcf1505bb211e17206d17ab8e279cfce858	compressed Linux 7.1.4 kernel; not a boot image	no
+wifi-modules-archive	300648393	e7a2eed91e20742012cc0a1fb893545fc61870ec94ca0ca4add3ee6c41e5300d	deterministic matching modules and dependency metadata	no
+wifi-build-metadata	728	7cd6e03913b9ded82870e4b7f65825db38368374a06adb7b2f3fa090769ef9f9	compiler, source, fragment, config, Image, and module identities	no

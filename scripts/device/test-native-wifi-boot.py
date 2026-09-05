@@ -1,0 +1,1126 @@
+#!/usr/bin/env python3
+"""Production-only USB independence; no real device, mount or network operations."""
+import os
+import importlib.util
+import hashlib
+import json
+import gzip
+import io
+import tarfile
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+R = Path(__file__).resolve().parents[2]
+
+
+def function(source, name):
+    start = source.index(name + '() {')
+    return source[start:source.index('\n}', start) + 2]
+
+
+def status_hardware_fixture(body, root):
+    panel = root/'backlight'
+    panel.mkdir()
+    (panel/'brightness').write_text('0\n')
+    (panel/'max_brightness').write_text('1023\n')
+    return body.replace('/sys/class/backlight/panel0-backlight', str(panel)).replace(
+        '/dev/tty1', '/dev/null')  # character-device availability only; never written
+
+
+def composer_fixture():
+    spec = importlib.util.spec_from_file_location(
+        'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    members = {}
+    release = '7.1.4-gfixture'
+    module.add(members, 'init', (
+        f'expected_kernel_release={release}\nexpected_native_root_mode=1\n'
+        'expected_ufs_storage_mode=read-only\nexpected_ssh_diagnostic_mode=0\n'
+    ).encode(), 0o100755)
+    for name in ('sbin/rog5-load-persistent-power-usb',
+                 'usr/local/sbin/rog5-persistent-tailscale',
+                 'usr/local/sbin/rog5-p2-attest'):
+        module.add(members, name, b'#!/bin/sh\necho old-helper\n', 0o100755)
+    module.add(members, 'lib/firmware/preserved.bin', b'qualified-firmware', 0o100644)
+    module.add(members, 'lib/modules/preserved.ko', b'qualified-module', 0o100644)
+    base = gzip.compress(module.encode(members), mtime=0)
+    package_stream = io.BytesIO()
+    probe = b'old-probe'
+    with tarfile.open(fileobj=package_stream, mode='w:gz') as tar:
+        entry = tarfile.TarInfo('probe-native-wifi.sh')
+        entry.size = len(probe); entry.mode = 0o755
+        tar.addfile(entry, io.BytesIO(probe))
+    package = package_stream.getvalue()
+    record = {'files': {'initramfs.cpio.gz': module.sha(base)},
+              'probe_package_sha256': module.sha(package),
+              'probe_files': {'probe-native-wifi.sh': module.sha(probe)},
+              'kernel_release': release}
+    return module, members, base, package, record
+
+
+class PersistentComposerValidation(unittest.TestCase):
+    """Exercise the shipped CLI: optimization must never remove trust checks."""
+
+    def setUp(self):
+        archive, _, base, package, record = composer_fixture()
+        self.base, _ = archive.compose(base, package, record)
+        spec = importlib.util.spec_from_file_location(
+            'persistent_composer', R/'scripts/device/build-native-wifi-persistent-trial-initramfs.py')
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+        self.helper = archive.TRIAL_HELPER.read_bytes()
+        self.descriptor = (
+            'format=rog5-persistent-wifi-health-v1\ntrial_id=' + '1'*64 +
+            '\nprimary_bundle=fixture-primary\nmode=try-once\n').encode()
+        self.successor = False
+
+    def prepare_successor(self):
+        self.base, _ = self.module.compose(
+            self.base, self.module.sha(self.base), self.descriptor, self.helper)
+        self.descriptor = self.descriptor.replace(b'1'*64, b'2'*64).replace(
+            b'fixture-primary', b'fixture-successor')
+        self.successor = True
+
+    def run_composer(self, root, optimized, expected_hash=None):
+        for name, data in (('base.gz', self.base), ('descriptor', self.descriptor),
+                           ('helper', self.helper)):
+            (root/name).write_bytes(data)
+        return subprocess.run(
+            [sys.executable, '-E', '-B', *(['-O'] if optimized else []),
+             str(Path(self.module.__file__)), '--base', str(root/'base.gz'),
+             '--expected-base-sha256', expected_hash or self.module.sha(self.base),
+             '--trial-descriptor', str(root/'descriptor'),
+             '--trial-helper', str(root/'helper'), '--output', str(root/'output.gz'),
+             *(['--successor'] if self.successor else [])],
+            capture_output=True, timeout=15)
+
+    def check_rejected(self, expected_hash=None):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized, expected_hash)
+                self.assertNotEqual(result.returncode, 0, 'invalid input accepted')
+                self.assertFalse(os.path.lexists(root/'output.gz'))
+                self.assertFalse(os.path.lexists(root/'output.gz.json'))
+
+    def test_valid_initial_and_successor_bytes_unchanged_under_optimization(self):
+        for successor in (False, True):
+            if successor:
+                self.prepare_successor()
+            compose = self.module.compose_successor if successor else self.module.compose
+            expected, receipt = compose(
+                self.base, self.module.sha(self.base), self.descriptor, self.helper)
+            for optimized in (False, True):
+                with self.subTest(successor=successor, optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    result = self.run_composer(root, optimized)
+                    self.assertEqual(result.returncode, 0, result.stderr.decode())
+                    self.assertEqual((root/'output.gz').read_bytes(), expected)
+                    actual = json.loads((root/'output.gz.json').read_text())
+                    self.assertGreaterEqual(actual.pop('seconds'), 0)
+                    self.assertEqual(actual, receipt)
+
+    def test_rejects_wrong_base_and_helper_hashes(self):
+        for successor in (False, True):
+            if successor:
+                self.prepare_successor()
+            with self.subTest(successor=successor):
+                self.check_rejected('0'*64)
+                self.check_rejected('z'*64)
+                helper = self.helper
+                self.helper = b'unreviewed helper'
+                self.check_rejected()
+                self.helper = helper
+
+    def test_preserves_existing_output_receipt_and_dangling_symlinks(self):
+        for existing in ('output.gz', 'output.gz.json'):
+            for symlink in (False, True):
+                for optimized in (False, True):
+                    with self.subTest(existing=existing, symlink=symlink, optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                        root = Path(tmp)
+                        if symlink:
+                            (root/existing).symlink_to('absent-target')
+                        else:
+                            (root/existing).write_bytes(b'preserve-existing')
+                        result = self.run_composer(root, optimized)
+                        self.assertNotEqual(result.returncode, 0)
+                        other = 'output.gz.json' if existing == 'output.gz' else 'output.gz'
+                        self.assertFalse(os.path.lexists(root/other))
+                        if symlink:
+                            self.assertEqual(os.readlink(root/existing), 'absent-target')
+                            self.assertFalse((root/'absent-target').exists())
+                        else:
+                            self.assertEqual((root/existing).read_bytes(), b'preserve-existing')
+
+    def test_successor_rejects_reused_identity_and_changed_retained_helper(self):
+        self.prepare_successor()
+        descriptor = self.descriptor
+        for case in ('trial', 'bundle', 'retained-helper'):
+            with self.subTest(case=case):
+                if case == 'trial':
+                    self.descriptor = descriptor.replace(b'2'*64, b'1'*64)
+                elif case == 'bundle':
+                    self.descriptor = descriptor.replace(b'fixture-successor', b'fixture-primary')
+                else:
+                    members = self.module.ARCHIVE.entries(gzip.decompress(self.base))
+                    self.module.ARCHIVE.replace(members, 'rog5-native-wifi/trial-state', b'wrong helper')
+                    self.base = gzip.compress(self.module.ARCHIVE.encode(members), mtime=0)
+                self.check_rejected()
+                self.descriptor = descriptor
+
+    def test_rejects_missing_members_and_invalid_automatic_marker(self):
+        original = self.base
+        for case in ('missing-runtime', 'invalid-marker'):
+            with self.subTest(case=case):
+                members = self.module.ARCHIVE.entries(gzip.decompress(original))
+                if case == 'missing-runtime':
+                    del members['rog5-native-wifi/runtime']
+                else:
+                    self.module.ARCHIVE.replace(members, 'rog5-native-wifi/automatic', b'incompatible\n')
+                self.base = gzip.compress(self.module.ARCHIVE.encode(members), mtime=0)
+                self.check_rejected()
+
+    def test_rejects_mixed_radio_consumers_before_output(self):
+        for successor in (False, True):
+            with self.subTest(successor=successor):
+                self.setUp()
+                if successor:
+                    self.prepare_successor()
+                members = self.module.ARCHIVE.entries(gzip.decompress(self.base))
+                name = 'rog5-native-wifi/units/rog5-wifi-wpa.service'
+                self.module.ARCHIVE.replace(members, name, b'[Service]\nExecStart=/old-wpa\n')
+                self.base = gzip.compress(self.module.ARCHIVE.encode(members), mtime=0)
+                self.check_rejected()
+
+
+class ComposerValidation(unittest.TestCase):
+    def setUp(self):
+        (self.module, self.members, self.base,
+         self.package, self.record) = composer_fixture()
+
+    def test_composition_includes_package_trust_bootstrap(self):
+        packed, _ = self.module.compose(self.base, self.package, self.record)
+        members = self.module.entries(gzip.decompress(packed))
+        for name, source, mode in (
+            ('usr/local/sbin/rog5-persistent-keyring', 'initramfs/persistent-package-keyring', 0o100755),
+            ('usr/local/share/rog5/rog5-package-keyring.service', 'configs/systemd/rog5-package-keyring.service', 0o100644),
+        ):
+            with self.subTest(member=name):
+                self.assertTrue(name in members, 'missing archive member: '+name)
+                self.assertEqual(members[name][0][1], mode)
+                self.assertEqual(members[name][1], (R/source).read_bytes())
+        self.assertTrue(b'prepare_package_keyring || return 1' in members['init'][1],
+                        'init does not stage package trust service')
+
+    def test_package_trust_staging_and_refusals(self):
+        body=function((R/'initramfs/persistent-root-init').read_text(), 'prepare_package_keyring')
+        for mutation in ('valid','missing','mode','symlink','collision'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)
+                helper=root/'archive/sbin/rog5-persistent-keyring'
+                unit=root/'archive/share/rog5/rog5-package-keyring.service'
+                units=root/'run/systemd/system'
+                units.mkdir(parents=True)
+                for path,source,mode in (
+                    (helper,'initramfs/persistent-package-keyring',0o755),
+                    (unit,'configs/systemd/rog5-package-keyring.service',0o644),
+                ):
+                    path.parent.mkdir(parents=True,exist_ok=True)
+                    path.write_bytes((R/source).read_bytes());path.chmod(mode)
+                if mutation=='missing': helper.unlink()
+                elif mutation=='mode': helper.chmod(0o777)
+                elif mutation=='symlink':
+                    helper.rename(helper.with_suffix('.old'));helper.symlink_to(helper.with_suffix('.old'))
+                elif mutation=='collision': (units/'rog5-package-keyring.service').touch()
+                script=body.replace('/usr/local/',str(root/'archive')+'/').replace('/run/',str(root/'run')+'/')
+                prelude='stat() { command stat "$@" | sed "s/^'+str(os.getuid())+':'+str(os.getgid())+':/0:0:/"; }\n'
+                result=subprocess.run(['sh','-c',prelude+script+'\nprepare_package_keyring'],
+                                      capture_output=True,text=True,timeout=5)
+                self.assertEqual(result.returncode==0,mutation=='valid',result.stderr)
+                if mutation!='valid':
+                    self.assertFalse((root/'run/rog5-persistent-keyring').exists())
+                    continue
+                self.assertEqual((root/'run/rog5-persistent-keyring').read_bytes(),helper.read_bytes())
+                self.assertEqual((units/'rog5-package-keyring.service').read_bytes(),unit.read_bytes())
+                self.assertEqual((units/'archlinux-keyring-wkd-sync.service.d/10-package-trust.conf').read_text(),
+                    '[Unit]\nRequires=rog5-package-keyring.service\nAfter=rog5-package-keyring.service\n')
+                self.assertTrue((units/'multi-user.target.wants/rog5-package-keyring.service').is_symlink())
+
+    def run_composer(self, root, optimized):
+        (root/'base.gz').write_bytes(self.base)
+        (root/'radio.tar.gz').write_bytes(self.package)
+        (root/'record.json').write_text(json.dumps(self.record))
+        return subprocess.run(
+            [sys.executable, '-E', '-B', *(['-O'] if optimized else []),
+             str(R/'scripts/device/build-native-wifi-boot-initramfs.py'),
+             '--base', str(root/'base.gz'), '--radio-package', str(root/'radio.tar.gz'),
+             '--record', str(root/'record.json'), '--output', str(root/'output.gz')],
+            capture_output=True, timeout=15)
+
+    def check_rejected(self):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized)
+                self.assertNotEqual(result.returncode, 0, 'composer accepted invalid input')
+                self.assertFalse((root/'output.gz').exists())
+                self.assertFalse((root/'output.gz.json').exists())
+
+    def test_cli_valid_output_is_identical_under_optimization(self):
+        expected, expected_record = self.module.compose(self.base, self.package, self.record)
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized)
+                self.assertEqual(result.returncode, 0, result.stderr.decode())
+                self.assertEqual((root/'output.gz').read_bytes(), expected)
+                receipt = json.loads((root/'output.gz.json').read_text())
+                self.assertGreaterEqual(receipt.pop('seconds'), 0)
+                self.assertEqual(receipt, expected_record)
+
+    def test_cli_rejects_wrong_base_package_and_member_hashes(self):
+        for field in ('base', 'package', 'member'):
+            with self.subTest(field=field):
+                record = json.loads(json.dumps(self.record))
+                if field == 'base':
+                    self.record['files']['initramfs.cpio.gz'] = '0'*64
+                elif field == 'package':
+                    self.record['probe_package_sha256'] = '0'*64
+                else:
+                    self.record['probe_files']['probe-native-wifi.sh'] = '0'*64
+                self.check_rejected()
+                self.record = record
+
+    def test_cli_preserves_existing_output_and_receipt(self):
+        for existing in ('output.gz', 'output.gz.json'):
+            for optimized in (False, True):
+                with self.subTest(existing=existing, optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    (root/existing).write_bytes(b'keep-existing')
+                    result = self.run_composer(root, optimized)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(b'output already exists', result.stderr)
+                    self.assertEqual((root/existing).read_bytes(), b'keep-existing')
+                    other = 'output.gz.json' if existing == 'output.gz' else 'output.gz'
+                    self.assertFalse((root/other).exists())
+
+    def test_cli_rejects_malformed_newc_metadata(self):
+        raw = gzip.decompress(self.base)
+        first_end = (116 + len(self.members['init'][1]) + 3) & ~3
+        malformed = {
+            'magic': b'070702' + raw[6:],
+            'name-terminator': raw[:114] + b'x' + raw[115:],
+            'absolute-path': raw.replace(b'lib\0', b'/ib\0', 1),
+            'parent-traversal': raw.replace(b'lib\0', b'../\0', 1),
+            'duplicate-member': raw[:first_end] + raw,
+            'checksum': raw[:102] + b'00000001' + raw[110:],
+            'trailing-data': raw + b'not-padding',
+            'truncated': raw[:100],
+        }
+        for label, data in malformed.items():
+            with self.subTest(metadata=label):
+                # Repin the outer hash so rejection must come from archive validation.
+                self.base = gzip.compress(data, mtime=0)
+                self.record['files']['initramfs.cpio.gz'] = self.module.sha(self.base)
+                self.check_rejected()
+
+    def test_cli_rejects_unsafe_replacement_and_unqualified_base(self):
+        original = self.members['init']
+        for label in ('symlink', 'hardlink', 'boot-policy', 'kernel-release'):
+            with self.subTest(metadata=label):
+                fields, data = original[0].copy(), original[1]
+                if label == 'symlink':
+                    fields[1] = 0o120777
+                elif label == 'hardlink':
+                    fields[4] = 2
+                elif label == 'boot-policy':
+                    data = data.replace(b'expected_native_root_mode=1', b'expected_native_root_mode=0')
+                else:
+                    self.record['kernel_release'] = '7.1.4-gfixture/invalid'
+                    data = data.replace(b'7.1.4-gfixture', b'7.1.4-gfixture/invalid')
+                self.members['init'] = fields, data
+                self.base = gzip.compress(self.module.encode(self.members), mtime=0)
+                self.record['files']['initramfs.cpio.gz'] = self.module.sha(self.base)
+                self.check_rejected()
+
+    def test_cli_rejects_malformed_radio_metadata(self):
+        original = self.record['probe_files'].copy()
+        for label in ('absolute-path', 'parent-traversal', 'duplicate', 'symlink',
+                      'unlisted', 'missing'):
+            with self.subTest(metadata=label):
+                self.record['probe_files'] = original.copy()
+                stream = io.BytesIO()
+                with tarfile.open(fileobj=stream, mode='w:gz') as tar:
+                    entry = tarfile.TarInfo('probe-native-wifi.sh')
+                    entry.size, entry.mode = len(b'old-probe'), 0o755
+                    tar.addfile(entry, io.BytesIO(b'old-probe'))
+                    extra = tarfile.TarInfo({
+                        'absolute-path': '/extra', 'parent-traversal': '../extra',
+                        'duplicate': 'probe-native-wifi.sh',
+                    }.get(label, 'extra'))
+                    if label == 'missing':
+                        self.record['probe_files']['missing'] = self.module.sha(b'')
+                    else:
+                        if label == 'symlink':
+                            extra.type, extra.linkname = tarfile.SYMTYPE, 'probe-native-wifi.sh'
+                        if label not in ('unlisted', 'duplicate'):
+                            self.record['probe_files'][extra.name] = self.module.sha(b'')
+                        tar.addfile(extra, io.BytesIO(b''))
+                self.package = stream.getvalue()
+                self.record['probe_package_sha256'] = self.module.sha(self.package)
+                self.check_rejected()
+
+    def test_trial_metadata_rejected_under_normal_and_optimized_python(self):
+        valid = (b'format=rog5-persistent-wifi-health-v1\ntrial_id=' + b'1'*64 +
+                 b'\nprimary_bundle=persistent-native-root-wifi\nmode=try-once\n')
+        # The trial parser is a public function of the actual composer, not a CLI option.
+        harness = (
+            'import importlib.util, json, sys\n'
+            'spec = importlib.util.spec_from_file_location("composer", sys.argv[1])\n'
+            'module = importlib.util.module_from_spec(spec)\n'
+            'spec.loader.exec_module(module)\n'
+            'print(json.dumps(module.parse_trial_descriptor(sys.stdin.buffer.read())))\n'
+        )
+        cases = {
+            'valid': valid,
+            'missing-newline': valid[:-1],
+            'crlf': valid.replace(b'\n', b'\r\n'),
+            'format': valid.replace(b'health-v1', b'health-v2'),
+            'field-name': valid.replace(b'trial_id=', b'wrong_id='),
+            'trial-id': valid.replace(b'1'*64, b'A'*64),
+            'short-id': valid.replace(b'1'*64, b'1'*63),
+            'bundle-path': valid.replace(b'persistent-native-root-wifi', b'../escape'),
+            'bundle-dotdot': valid.replace(b'persistent-native-root-wifi', b'base..other'),
+            'mode': valid.replace(b'try-once', b'always'),
+            'extra-field': valid + b'extra=value\n',
+            'missing-field': valid.split(b'mode=')[0],
+        }
+        for label, descriptor in cases.items():
+            for optimized in (False, True):
+                with self.subTest(metadata=label, optimized=optimized):
+                    result = subprocess.run(
+                        [sys.executable, '-E', '-B', *(['-O'] if optimized else []), '-c', harness,
+                         str(R/'scripts/device/build-native-wifi-boot-initramfs.py')],
+                        input=descriptor, capture_output=True, timeout=15)
+                    if label == 'valid':
+                        self.assertEqual(result.returncode, 0, result.stderr.decode())
+                        self.assertEqual(json.loads(result.stdout), self.module.parse_trial_descriptor(valid))
+                    else:
+                        self.assertNotEqual(result.returncode, 0, 'composer accepted invalid trial metadata')
+                        self.assertEqual(result.stdout, b'')
+
+
+class AutomaticWifi(unittest.TestCase):
+    def test_boot_composer_refreshes_watchdog_and_ack_producer_together(self):
+        module, members, base, package, record = composer_fixture()
+        packed, result = module.compose(base, package, record)
+        output = module.entries(gzip.decompress(packed))
+        attest_name = 'usr/local/sbin/rog5-p2-attest'
+        expected = (R/'initramfs/persistent-root-attest').read_text()
+        for key, value in {'UFS_STORAGE_MODE': 'read-only',
+                           'PROBE_BOOT_ID': 'staged-seal', 'NATIVE_ROOT_MODE': '1',
+                           'PERSISTENT_OVERLAY_MODE': '0'}.items():
+            expected = expected.replace('@EXPECTED_' + key + '@', value)
+        self.assertEqual(output[attest_name][1], expected.encode())
+        self.assertIn(attest_name, result['changed_existing_members'])
+        self.assertIn(b'attested_boot_id=$current_boot_id', output[attest_name][1])
+        self.assertIn(b'attested_boot_id=$watchdog_boot_id', output['init'][1])
+        for name in ('init', attest_name):
+            self.assertNotIn(b'@EXPECTED_', output[name][1])
+            subprocess.run(['sh', '-n'], input=output[name][1], check=True)
+        for name, value in members.items():
+            if name not in result['changed_existing_members']:
+                self.assertEqual(output[name], value)
+        self.assertEqual(packed, module.compose(base, package, record)[0])
+
+    def test_boot_template_rejects_missing_duplicate_and_unknown_parameters(self):
+        spec = importlib.util.spec_from_file_location(
+            'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'boot-template'
+            for text in ('no parameter', '@EXPECTED_MODE@ @EXPECTED_MODE@',
+                         '@EXPECTED_MODE@ @EXPECTED_UNKNOWN@'):
+                with self.subTest(text=text):
+                    path.write_text(text)
+                    with self.assertRaises(ValueError):
+                        module.render_boot_template(path, {'MODE': '1'})
+            path.write_text('mode=@EXPECTED_MODE@\n')
+            self.assertEqual(module.render_boot_template(path, {'MODE': '1'}),
+                             b'mode=1\n')
+
+    def test_status_loader_creates_busybox_explicit_module_index_first(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_status_screen')
+        index = body.index('module_index=/lib/modules/$release/modules.dep')
+        load = body.index('ROG5_PWRKEY_RESULT=$pwrkey_result')
+        self.assertLess(index, load)
+        self.assertIn("0:0:444:0:1", body)
+        self.assertIn(': >"$module_index"', body)
+        self.assertNotIn('/dev/sd', body)
+
+    def test_pwrkey_result_publication_is_exact_and_no_replace(self):
+        source = (R/'initramfs/native-wifi/load-pwrkey').read_text()
+        publisher = function(source, 'record_result')
+        for contract in (
+            'fail module-load', 'fail input-zero',
+            'fail platform-identity', 'record_result pwrkey-pass',
+        ):
+            self.assertIn(contract, source)
+        with tempfile.TemporaryDirectory() as tmp:
+            result = Path(tmp)/'pwrkey-result'
+            publisher = publisher.replace(
+                '/run/rog5-pwrkey-result', str(result)
+            )
+            script = (
+                'set -eu\nresult_path=' + str(result) + '\n' + publisher +
+                '\nrecord_result pwrkey-module-load'
+            )
+            subprocess.run(['sh', '-c', script], check=True)
+            self.assertEqual(result.read_text(), 'pwrkey-module-load\n')
+            self.assertEqual(result.stat().st_mode & 0o777, 0o444)
+            duplicate = subprocess.run(['sh', '-c', script], capture_output=True)
+            self.assertNotEqual(duplicate.returncode, 0)
+
+    def test_optional_status_runtime_uses_sealed_applets_and_newroot(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_status_screen')
+        self.assertNotIn('\n\tinstall ', body)
+        for command in (
+            'mkdir -p', 'cp -p', 'chmod 0755', 'ln -s', 'stat -c', 'cmp'
+        ):
+            self.assertIn(command, body)
+        self.assertIn('/newroot/usr/local/bin/rog5-screen-toggle.sh', body)
+        self.assertIn('"$units/multi-user.target.wants"', body)
+        self.assertIn('[ "$present" -eq 7 ]', body)
+        self.assertIn('qcom-pon.ko', body)
+        self.assertIn('load-pwrkey', body)
+        self.assertIn('"$root/load-pwrkey" || pwrkey_status=$?', body)
+        self.assertIn('rog5-p2-ready.service.d/10-screen-off.conf', body)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root/'payload'
+            units = root/'run/systemd/system'
+            newroot = root/'newroot'
+            (root/'lib').mkdir()
+            (payload/'units').mkdir(parents=True)
+            units.mkdir(parents=True)
+            (units/'rog5-p2-ready.service').write_text('p2-ready')
+            for name in (
+                'screen-toggle.sh', 'status-screen.sh', 'power-buttond.py',
+            ):
+                path = payload/name
+                path.write_text(name)
+                path.chmod(0o755)
+            load_log = root/'pwrkey-load.log'
+            result = root/'pwrkey-result'
+            loader = payload/'load-pwrkey'
+            loader.write_text(
+                '#!/bin/sh\nprintf loaded >"$PWRKEY_LOAD_LOG"\n'
+                'printf "pwrkey-pass\\n" >"$ROG5_PWRKEY_RESULT"\n'
+                'chmod 0444 "$ROG5_PWRKEY_RESULT"\n'
+            )
+            loader.chmod(0o755)
+            (payload/'kernel-release').write_text('7.1.4-rog5-display60-v1\n')
+            (payload/'qcom-pon.ko').write_text('module')
+            (payload/'qcom-pon.ko').chmod(0o644)
+            for name in ('rog5-status-screen.service', 'rog5-power-button.service'):
+                path = payload/'units'/name
+                path.write_text(name)
+                path.chmod(0o644)
+            script = status_hardware_fixture(body, root).replace('/newroot', str(newroot)).replace(
+                '/run/rog5-pwrkey-result', str(result)
+            ).replace('/lib/modules', str(root/'lib/modules'))
+            command = (
+                'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
+                'PWRKEY_LOAD_LOG=' + str(load_log) + '\nexport PWRKEY_LOAD_LOG\n'
+                'uname() { echo 7.1.4-rog5-display60-v1; }\n'
+                'stat() { if [ "$2" = %s ]; then command stat "$@"; return; fi; '
+                'case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                '*modules.dep) echo 0:0:444:0:1 ;; '
+                '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
+                '*) echo 0:0:755:1 ;; esac; }\n' + script +
+                '\ninstall_status_screen "$units"'
+            )
+            subprocess.run(['sh', '-c', command], check=True)
+            self.assertEqual(load_log.read_text(), 'loaded')
+            self.assertEqual(result.read_text(), 'pwrkey-pass\n')
+            module_index = root/'lib/modules/7.1.4-rog5-display60-v1/modules.dep'
+            self.assertEqual(module_index.read_bytes(), b'')
+            self.assertEqual(module_index.stat().st_mode & 0o777, 0o444)
+            self.assertEqual(
+                (newroot/'usr/local/bin/rog5-screen-toggle.sh').read_text(),
+                'screen-toggle.sh',
+            )
+            self.assertEqual(
+                (newroot/'usr/local/libexec/rog5-status-screen').read_text(),
+                'status-screen.sh',
+            )
+            self.assertTrue(
+                (units/'multi-user.target.wants/rog5-status-screen.service').is_symlink()
+            )
+            self.assertEqual(
+                (units/'rog5-p2-ready.service.d/10-screen-off.conf').read_text(),
+                '[Service]\nExecStartPre=-/usr/local/bin/rog5-screen-toggle.sh off\n',
+            )
+
+            (payload/'power-buttond.py').unlink()
+            rejected = subprocess.run(['sh', '-c', command], capture_output=True)
+            self.assertNotEqual(rejected.returncode, 0)
+
+    def test_optional_status_runtime_accepts_only_exact_persistent_files(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_status_screen')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root/'payload'
+            source_units = payload/'units'
+            newroot = root/'newroot'
+            persistent = {
+                'screen-toggle.sh': newroot/'usr/local/bin/rog5-screen-toggle.sh',
+                'status-screen.sh': newroot/'usr/local/libexec/rog5-status-screen',
+                'power-buttond.py': newroot/'usr/local/libexec/rog5-power-buttond',
+            }
+            source_units.mkdir(parents=True)
+            (payload/'load-pwrkey').write_text(
+                '#!/bin/sh\nprintf "pwrkey-pass\\n" >"$ROG5_PWRKEY_RESULT"\n'
+                'chmod 0444 "$ROG5_PWRKEY_RESULT"\n'
+            )
+            (payload/'load-pwrkey').chmod(0o755)
+            (payload/'kernel-release').write_text('7.1.4-rog5-display60-v1\n')
+            (payload/'qcom-pon.ko').write_text('module')
+            (payload/'qcom-pon.ko').chmod(0o644)
+            for name, destination in persistent.items():
+                source = payload/name
+                source.write_text(name)
+                source.chmod(0o755)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(name)
+                destination.chmod(0o755)
+            for name in ('rog5-status-screen.service', 'rog5-power-button.service'):
+                path = source_units/name
+                path.write_text(name)
+                path.chmod(0o644)
+
+            def run(units):
+                units.mkdir(parents=True)
+                (units.parent/'lib').mkdir()
+                (units/'rog5-p2-ready.service').write_text('p2-ready')
+                result = units.parent/'pwrkey-result'
+                script = status_hardware_fixture(body, units.parent).replace('/newroot', str(newroot)).replace(
+                    '/run/rog5-pwrkey-result', str(result)
+                ).replace('/lib/modules', str(units.parent/'lib/modules'))
+                command = (
+                    'set -eu\nroot=' + str(payload) + '\nunits=' + str(units) + '\n'
+                    'uname() { echo 7.1.4-rog5-display60-v1; }\n'
+                    'stat() { if [ "$2" = %s ]; then command stat "$@"; return; fi; '
+                    'case "$3" in *pwrkey-result) echo 0:0:444:1 ;; '
+                    '*modules.dep) echo 0:0:444:0:1 ;; '
+                    '*.service|*.conf|*.ko) echo 0:0:644:1 ;; '
+                    '*) echo 0:0:755:1 ;; esac; }\n' + script +
+                    '\ninstall_status_screen "$units"'
+                )
+                return subprocess.run(['sh', '-c', command], capture_output=True)
+
+            accepted = run(root/'run-one/systemd')
+            self.assertEqual(accepted.returncode, 0, accepted.stderr.decode())
+            self.assertTrue(
+                (root/'run-one/systemd/multi-user.target.wants/'
+                 'rog5-status-screen.service').is_symlink()
+            )
+
+            persistent['status-screen.sh'].write_text('changed')
+            rejected = run(root/'run-two/systemd')
+            self.assertNotEqual(rejected.returncode, 0)
+
+    def test_display_diagnostic_keeps_rollback_and_skips_wifi_units(self):
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        body = function(runtime, 'install_units')
+        self.assertIn('rog5-display-diagnostic-v1', body)
+        self.assertIn('[ "$display_diagnostic" -eq 0 ]', body)
+        self.assertIn("'unmanaged-devices=interface-name:usb0'", body)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root/'payload'
+            source_units = payload/'units'
+            units = root/'run/systemd/system'
+            nm = root/'run/NetworkManager/conf.d'
+            source_units.mkdir(parents=True)
+            (units/'sysinit.target.wants').mkdir(parents=True)
+            nm.mkdir(parents=True)
+            for name in (
+                'rog5-wifi-failure.service',
+                'rog5-wifi-boot-rollback.service',
+                'rog5-wifi-boot-rollback.timer',
+                'before-ssh.conf',
+            ):
+                (source_units/name).write_text(name)
+            marker = payload/'display-diagnostic'
+            marker.write_text('rog5-display-diagnostic-v1\n')
+            marker.chmod(0o444)
+            script = body.replace('/run/systemd/system', str(units)).replace(
+                '/run/NetworkManager/conf.d', str(nm)
+            )
+            command = (
+                'set -eu\nroot=' + str(payload) + '\n'
+                'install_status_screen() { :; }\n'
+                'stat() { case "${3:-}" in '
+                '*/display-post-switch-report) echo 0:0:755:1 ;; '
+                '*.service) echo 0:0:644:1 ;; '
+                '*) echo 0:0:444:1 ;; esac; }\n' + script + '\ninstall_units'
+            )
+            subprocess.run(['sh', '-c', command], check=True)
+            self.assertTrue(
+                (units/'sysinit.target.wants/rog5-wifi-boot-rollback.timer').is_symlink()
+            )
+            self.assertFalse((units/'rog5-wifi-radio.service').exists())
+            self.assertFalse((units/'rog5-persistent-state.service.d').exists())
+            self.assertFalse(
+                (units/'sysinit.target.wants/'
+                 'rog5-display-post-switch.service').exists()
+            )
+            self.assertEqual(
+                (nm/'10-rog5-p2.conf').read_text(),
+                '[keyfile]\nunmanaged-devices=interface-name:usb0\n',
+            )
+
+            marker.chmod(0o644)
+            marker.write_text('wrong\n')
+            marker.chmod(0o444)
+            rejected = subprocess.run(['sh', '-c', command], capture_output=True)
+            self.assertNotEqual(rejected.returncode, 0)
+
+    def test_display_observer_timeout_is_nested_inside_rollback(self):
+        timing = dict(
+            line.split('=', 1)
+            for line in (R/'initramfs/native-wifi/timing').read_text().splitlines()
+            if line and not line.startswith('#')
+        )
+        self.assertLessEqual(int(timing['display_report_seconds']), 90)
+        self.assertGreaterEqual(
+            int(timing['host_parent_seconds']),
+            int(timing['outer_seconds']) + int(timing['cleanup_seconds']) + 30,
+        )
+
+    def test_display_observer_runs_before_switch_root_and_persistent_state(self):
+        init = (R/'initramfs/persistent-root-init').read_text()
+        function_body = function(init, 'run_pre_switch_display_observer')
+        self.assertIn('ROG5_OBSERVER_TARGET_ROOT=/newroot', function_body)
+        self.assertIn('"$reporter" send', function_body)
+        self.assertIn('/bin/busybox reboot -f', function_body)
+        self.assertNotIn('/dev/sda', function_body)
+        final_storage = init.index('publish_or_rollback final-storage PASS')
+        observer = init.index('\nrun_pre_switch_display_observer\n', final_storage)
+        switch_root = init.index('publish_or_rollback switch-root ENTER', observer)
+        self.assertLess(final_storage, observer)
+        self.assertLess(observer, switch_root)
+
+    def test_persistent_trial_selector_and_healthy_commit_are_exact(self):
+        spec = importlib.util.spec_from_file_location(
+            'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        valid = (
+            'format=rog5-persistent-wifi-health-v1\n'
+            'trial_id=' + '1'*64 + '\n'
+            'primary_bundle=persistent-native-root-wifi\n'
+            'mode=try-once\n').encode()
+        parsed = module.parse_trial_descriptor(valid)
+        self.assertEqual(parsed['primary_bundle'], 'persistent-native-root-wifi')
+        for bad in (
+            valid.replace(b'mode=try-once', b'mode=always'),
+            valid.replace(b'trial_id=' + b'1'*64, b'trial_id=' + b'A'*64),
+            valid.replace(b'primary_bundle=', b'fallback_bundle=', 1),
+        ):
+            with self.assertRaises(ValueError):
+                module.parse_trial_descriptor(bad)
+
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        self.assertIn('if [ -e "$root/trial-descriptor" ]', runtime)
+        self.assertIn('multi-user.target.wants/rog5-wifi-healthy.service', runtime)
+        unit = (R/'initramfs/native-wifi-persistent/units/rog5-wifi-healthy.service').read_text()
+        for dependency in ('rog5-wifi-dhcp.service', 'rog5-persistent-state.service',
+                           'rog5-early-sshd.service', 'rog5-tailscaled.service'):
+            self.assertIn(dependency, unit)
+        self.assertIn('TimeoutStartSec=180s', unit)
+        self.assertIn('Restart=no', unit)
+        healthy = (R/'initramfs/native-wifi-persistent/healthy').read_text()
+        self.assertIn('helper=$root/trial-state', healthy)
+        self.assertIn('record=$root/healthy.record', healthy)
+        self.assertNotIn('record=$root/healthy\n', healthy)
+        commit = healthy.index('"$helper" healthy')
+        stop = healthy.index(
+            'systemctl --job-mode=ignore-dependencies stop "$rollback_timer"'
+        )
+        record = healthy.index("printf 'format=rog5-native-wifi-healthy-v1")
+        self.assertLess(commit, stop)
+        self.assertLess(stop, record)
+        self.assertIn('rog5-wifi-probe-rollback.timer', healthy)
+        self.assertIn('rog5-wifi-boot-rollback.timer', healthy)
+        for guard in ('primary bundle is not running', 'healthy startup deadline',
+                      '117:2', '/sys/class/block/sda/sda24/ro',
+                      'qcom-battmgr-usb/online'):
+            self.assertIn(guard, healthy)
+
+    def test_persistent_composer_changes_only_trial_members(self):
+        spec = importlib.util.spec_from_file_location(
+            'persistent_wifi', R/'scripts/device/build-native-wifi-persistent-trial-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        archive = module.ARCHIVE
+        members = {}
+        archive.add(members, 'init', b'qualified-init', 0o100755)
+        archive.add(members, 'rog5-native-wifi/automatic',
+                    b'rog5-native-wifi-boot-v1\n', 0o100444)
+        archive.add(members, 'rog5-native-wifi/runtime', b'old-runtime', 0o100755)
+        archive.add(members, 'rog5-native-wifi/units/rog5-wifi-boot-rollback.service',
+                    b'[Service]\nExecStart=/usr/bin/systemctl --no-block reboot\n',
+                    0o100644)
+        archive.add(members, 'rog5-native-wifi/radio',
+                    (R/'initramfs/native-wifi/radio').read_bytes(), 0o100755)
+        for name in ('rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service'):
+            archive.add(members, 'rog5-native-wifi/units/'+name,
+                        (R/'initramfs/native-wifi/units'/name).read_bytes(), 0o100644)
+        archive.add(members, 'rog5-native-wifi/probe-native-wifi.sh', b'old-probe', 0o100755)
+        archive.add(members, 'rog5-native-wifi/boot-files.sha256',
+                    b'old-checks\n', 0o100444)
+        archive.add(
+            members,
+            'rog5-native-wifi/units/rog5-wifi-radio.service',
+            b'[Service]\nTimeoutStartSec=@OUTER_SECONDS@s\n',
+            0o100644,
+        )
+        base = gzip.compress(archive.encode(members), mtime=0)
+        descriptor = (
+            'format=rog5-persistent-wifi-health-v1\n'
+            'trial_id=' + '1'*64 + '\n'
+            'primary_bundle=persistent-native-root-wifi\n'
+            'mode=try-once\n').encode()
+        helper = archive.TRIAL_HELPER.read_bytes()
+        packed, result = module.compose(base, module.sha(base), descriptor, helper)
+        output = archive.entries(gzip.decompress(packed))
+        self.assertEqual(output['init'], members['init'])
+        self.assertEqual(output['rog5-native-wifi/trial-descriptor'][1], descriptor)
+        self.assertEqual(output['rog5-native-wifi/trial-state'][1], helper)
+        self.assertEqual(
+            output['rog5-native-wifi/units/rog5-wifi-boot-rollback.service'][1],
+            (R/'initramfs/native-wifi/units/rog5-wifi-boot-rollback.service').read_bytes(),
+        )
+        self.assertNotIn(
+            b'@OUTER_SECONDS@',
+            output['rog5-native-wifi/units/rog5-wifi-radio.service'][1],
+        )
+        self.assertIn('rog5-native-wifi/healthy', output)
+        self.assertIn('rog5-native-wifi/units/rog5-wifi-healthy.service', output)
+        self.assertEqual(set(output)-set(members), {
+            'rog5-native-wifi/trial-state',
+            'rog5-native-wifi/trial-descriptor', 'rog5-native-wifi/healthy',
+            'rog5-native-wifi/units/rog5-wifi-healthy.service',
+        })
+        self.assertEqual(result['added_members'], 4)
+        checks = output['rog5-native-wifi/boot-files.sha256'][1].decode()
+        self.assertIn('  healthy\n', checks)
+        self.assertIn('  trial-descriptor\n', checks)
+
+        successor_descriptor = (
+            'format=rog5-persistent-wifi-health-v1\n'
+            'trial_id=' + '2'*64 + '\n'
+            'primary_bundle=persistent-native-root-wifi-overlay-v1\n'
+            'mode=try-once\n').encode()
+        successor, successor_result = module.compose_successor(
+            packed, module.sha(packed), successor_descriptor, helper)
+        successor_members = archive.entries(gzip.decompress(successor))
+        self.assertEqual(
+            successor_members['rog5-native-wifi/trial-descriptor'][1],
+            successor_descriptor,
+        )
+        self.assertEqual(successor_result['added_members'], 0)
+        self.assertEqual(successor_result['changed_existing_members'], [
+            'rog5-native-wifi/boot-files.sha256',
+            'rog5-native-wifi/probe-native-wifi.sh',
+            'rog5-native-wifi/radio',
+            'rog5-native-wifi/trial-descriptor',
+        ])
+        for name, value in output.items():
+            if name not in successor_result['changed_existing_members']:
+                self.assertEqual(successor_members[name], value)
+        successor_checks = successor_members[
+            'rog5-native-wifi/boot-files.sha256'
+        ][1].decode()
+        self.assertIn(
+            hashlib.sha256(successor_descriptor).hexdigest()
+            + '  trial-descriptor\n',
+            successor_checks,
+        )
+
+    def test_failure_diagnostic_composer_changes_only_reporter_members(self):
+        spec = importlib.util.spec_from_file_location(
+            'failure_wifi', R/'scripts/device/build-native-wifi-failure-diagnostic-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        archive = module.ARCHIVE
+        members = {}
+        archive.add(members, 'init', b'qualified-init', 0o100755)
+        for name in ('rog5-wifi-wpa.service', 'rog5-wifi-dhcp.service',
+                     'rog5-wifi-boot-rollback.service'):
+            archive.add(members, 'rog5-native-wifi/units/'+name,
+                        (R/'initramfs/native-wifi/units'/name).read_bytes(), 0o100644)
+        for name, data, mode in (
+            ('runtime', b'old-runtime', 0o100755),
+            ('radio', b'old-radio', 0o100755),
+            ('units/rog5-wifi-radio.service', b'old-unit', 0o100644),
+            ('boot-files.sha256', b'old-checks\n', 0o100444),
+        ):
+            archive.add(members, 'rog5-native-wifi/'+name, data, mode)
+        base = gzip.compress(archive.encode(members), mtime=0)
+        packed, result = module.compose(base, module.sha(base))
+        output = archive.entries(gzip.decompress(packed))
+        timing = dict(line.split('=', 1) for line in
+                      (R/'initramfs/native-wifi/timing').read_text().splitlines()
+                      if line and not line.startswith('#'))
+        unit = output['rog5-native-wifi/units/rog5-wifi-radio.service'][1]
+        self.assertNotIn(b'@OUTER_SECONDS@', unit)
+        self.assertIn(f"TimeoutStartSec={timing['outer_seconds']}s\n".encode(), unit)
+        self.assertEqual(output['init'], members['init'])
+        self.assertEqual(set(output)-set(members), {
+            'rog5-native-wifi/failure',
+            'rog5-native-wifi/units/rog5-wifi-failure.service',
+        })
+        self.assertEqual(result['added_members'], [
+            'rog5-native-wifi/failure',
+            'rog5-native-wifi/units/rog5-wifi-failure.service',
+        ])
+        checks = output['rog5-native-wifi/boot-files.sha256'][1].decode()
+        self.assertIn('  failure\n', checks)
+        self.assertIn('  units/rog5-wifi-failure.service\n', checks)
+
+    def test_watchdog_can_fire_before_basic_or_failed_p2(self):
+        fixture = json.loads((R/'tests/fixtures/native-wifi/timer-default-dependencies.json').read_text())
+        self.assertIn('basic.target', fixture['original_service_after'])
+        self.assertNotIn('basic.target', fixture['fixed_service_after'])
+        self.assertEqual(fixture['fixed_timer_after'], [])
+        units = R/'initramfs/native-wifi/units'
+        for name in ('rog5-wifi-boot-rollback.service', 'rog5-wifi-boot-rollback.timer',
+                     'rog5-wifi-radio.service', 'rog5-wifi-wpa.service'):
+            source = (units/name).read_text()
+            self.assertIn('DefaultDependencies=no', source)
+            self.assertIn('Conflicts=shutdown.target', source)
+            self.assertIn('Before=shutdown.target', source)
+        early = (units/'before-ssh.conf').read_text()
+        self.assertIn('Requires=rog5-wifi-boot-rollback.timer', early)
+        self.assertIn('After=rog5-wifi-boot-rollback.timer', early)
+        rollback = (units/'rog5-wifi-boot-rollback.timer').read_text()
+        self.assertNotIn('After=rog5-p2', rollback)
+        self.assertIn('OnBootSec=@OUTER_SECONDS@s', rollback)
+        service = (units/'rog5-wifi-boot-rollback.service').read_text()
+        self.assertIn('ExecStart=/run/rog5-native-wifi/runtime rollback', service)
+        # Acceptance gates must not become dependencies of pre-acceptance reboot.
+        self.assertNotIn('Requires=', service)
+        self.assertNotIn('After=', service)
+        self.assertNotIn('Condition', service)
+        self.assertIn('TimeoutStartSec=10s', service)
+        probe = (R/'scripts/device/probe-native-wifi.sh').read_text()
+        self.assertIn('--property=DefaultDependencies=no', probe)
+        self.assertIn('--timer-property=DefaultDependencies=no', probe)
+
+    def test_power_loader_never_turns_carrier_into_a_charging_requirement(self):
+        source = (R/'scripts/device/load-persistent-root-power-usb.sh').read_text()
+        body = function(source, 'require_ncm_carrier')
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = Path(tmp)/'automatic'
+            script = body.replace('/run/rog5-native-wifi/automatic', str(marker))
+            for content, expected in [(None, 1), ('bad\n', 1), ('rog5-native-wifi-boot-v1\n', 0)]:
+                if content is not None:
+                    marker.write_text(content)
+                result = subprocess.run(['sh', '-c', 'set -eu\n'
+                    + 'stat() { echo 0:0:444:25:1; }; fail() { exit 1; };\n'
+                    + script + '\nrequire_ncm_carrier'], capture_output=True)
+                self.assertEqual(result.returncode, expected)
+        # Missing carrier is bypassed, never power/route/role/storage checks.
+        for check in ('wait_for_usb_online\n', 'power_role_is_sink "$power_role"',
+                      "fail ncm-route 'NCM route changed'", "fail storage-before-ufs"):
+            self.assertIn(check, source)
+
+    def test_foreground_network_commands_do_not_reintroduce_fatal_optional_flags(self):
+        source = (R/'initramfs/native-wifi/runtime').read_text()
+        for function_name, expected in [('run_wpa', '-Dnl80211 -i wlp1s0 -c'),
+                                        ('run_dhcp', '-4 -B -L -m 100')]:
+            body = function(source, function_name).replace('\n\texec ', '\n\tprintf \'%s\\n\' ')
+            result = subprocess.run(['sh', '-c', 'set -eu\nroot=/payload; state=/private; '
+                + 'interface_identity() { interface=wlp1s0; }; fail() { exit 1; };\n'
+                + body + '\n' + function_name], capture_output=True, text=True, check=True)
+            command = result.stdout.splitlines()
+            self.assertIn(expected, ' '.join(command))
+            if function_name == 'run_wpa':
+                for forbidden in ('-f', '-B', '-P', '-K'):
+                    self.assertNotIn(forbidden, command)
+                self.assertNotIn('password', result.stdout)
+            else:
+                self.assertEqual(command[-1], 'wlp1s0')
+                self.assertNotIn('-1', command)  # must maintain/reacquire lease
+
+    def test_radio_precedes_writable_state_and_cannot_restart(self):
+        units = R/'initramfs/native-wifi/units'
+        radio = (units/'rog5-wifi-radio.service').read_text()
+        self.assertIn('Before=rog5-persistent-state.service basic.target', radio)
+        self.assertIn('OnFailure=rog5-wifi-failure.service', radio)
+        self.assertNotIn('OnFailure=reboot.target', radio)
+        self.assertIn('Restart=no', radio)
+        self.assertIn('Requires=rog5-wifi-radio.service', (units/'before-state.conf').read_text())
+        runtime = (R/'initramfs/native-wifi/runtime').read_text()
+        self.assertIn('rog5-wifi-dhcp) target=multi-user.target', runtime)
+        self.assertNotIn('Before=basic.target', (units/'rog5-wifi-dhcp.service').read_text())
+        self.assertIn('systemd-resolved.service', (units/'rog5-wifi-dhcp.service').read_text())
+        script = (R/'initramfs/native-wifi/radio').read_text()
+        self.assertLess(script.index('rollback.timer'), script.index('for action in query mode held-oem'))
+        self.assertIn('mkdir "$root/radio-entered"', script)
+        self.assertIn('no', radio)
+        self.assertIn('guard\n', script)
+        self.assertIn('timeout -k "$kill_seconds" "$limit" "$root/module-once"', script)
+        self.assertNotIn('insmod', script)
+        self.assertIn('$((outer_seconds - radio_seconds - cleanup_seconds))', script)
+        fixture = (
+            R/'tests/fixtures/persistent-root/overlay-v2-radio-failure.log'
+        ).read_text()
+        self.assertIn('rog5-p2-attest: PASS', fixture)
+        self.assertIn('FAIL native-wifi-radio: writable UFS', fixture)
+        for contract in (
+            'overlay_record=/run/rog5-persistent-overlay.runtime',
+            'resolve_storage_mode() {',
+            'format=rog5-persistent-root-overlay-runtime-v1',
+            'rog5/root/root-overlay-v1.ext4',
+            '[ "$writable" = 2 ]',
+            'fail \'overlay write scope\'',
+        ):
+            self.assertIn(contract, script)
+        probe = (R/'scripts/device/probe-native-wifi.sh').read_text()
+        probe_fixture = (
+            R/'tests/fixtures/persistent-root/overlay-v3-probe-failure.log'
+        ).read_text()
+        self.assertIn('rog5-p2-attest: PASS', probe_fixture)
+        self.assertIn('WIFI_PROBE_ABORT writable-UFS', probe_fixture)
+        for contract in (
+            'overlay_record=/run/rog5-persistent-overlay.runtime',
+            'resolve_storage_mode() {',
+            'format=rog5-persistent-root-overlay-runtime-v1',
+            '[ "$writable" = 2 ]',
+            "fail 'overlay-write-scope'",
+        ):
+            self.assertIn(contract, probe)
+        timing = (R/'initramfs/native-wifi/timing').read_text()
+        result = subprocess.run(['sh', '-c', 'set -eu\n'+timing+
+            '\n[ "$outer_seconds" -gt "$((radio_seconds + cleanup_seconds))" ]\n'
+            '[ "$((query_seconds + mode_seconds + hold_seconds + 3*kill_seconds))" -lt "$outer_seconds" ]'], check=True)
+
+    def test_radio_failure_is_bounded_and_reported_before_reboot(self):
+        radio = (R/'initramfs/native-wifi/radio').read_text()
+        body = function(radio, 'fail')
+        with tempfile.TemporaryDirectory() as tmp:
+            script = body.replace('root=/run/rog5-native-wifi', 'root=' + tmp)
+            result = subprocess.run(
+                ['sh', '-c', 'set -u\nroot=' + tmp + '\n' + script +
+                 '\nfail "hold not qualified"'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual((Path(tmp)/'radio-failure').read_text(),
+                             'hold_not_qualified\n')
+            self.assertEqual((Path(tmp)/'radio-failure').stat().st_mode & 0o777, 0o444)
+        unit = (R/'initramfs/native-wifi/units/rog5-wifi-failure.service').read_text()
+        self.assertIn('DefaultDependencies=no', unit)
+        self.assertIn('TimeoutStartSec=5s', unit)
+        self.assertIn('Restart=no', unit)
+        failure = (R/'initramfs/native-wifi/failure').read_text()
+        self.assertLess(failure.index('ROG5_WIFI_FAILURE'),
+                        failure.index('systemctl --no-block reboot'))
+        self.assertIn("timeout -k 1 1 sh -c", failure)
+        self.assertIn('stat -c', failure)
+
+    def test_radio_failure_diagnostic_is_signed_bounded_and_does_not_reboot(self):
+        failure = (R/'initramfs/native-wifi/failure').read_text()
+        self.assertIn('failure-ncm-diagnostic', failure)
+        self.assertIn('rog5-wifi-failure-ncm-v1', failure)
+        self.assertIn('busybox=/run/initramfs/bin/busybox', failure)
+        self.assertIn(
+            'busybox_loader=/run/initramfs/lib/ld-musl-aarch64.so.1', failure
+        )
+        self.assertIn(
+            '"$busybox_loader" "$busybox" nc -n -w 2',
+            failure,
+        )
+        self.assertIn('169.254.77.1 8084 <"$record"', failure)
+        self.assertIn('[ "$attempt" -lt 2 ]', failure)
+        diagnostic = failure.index('if [ "$failure_ncm_diagnostic" -eq 1 ]; then')
+        diagnostic_exit = failure.index('\texit 0', diagnostic)
+        reboot = failure.index('systemctl --no-block reboot')
+        self.assertLess(diagnostic, diagnostic_exit)
+        self.assertLess(diagnostic_exit, reboot)
+
+    def test_newc_preserves_existing_entries_and_rejects_unsafe_input(self):
+        spec = importlib.util.spec_from_file_location('wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        members = {}
+        module.add(members, 'lib/module.ko', b'ELF-unchanged', 0o100644)
+        module.add(members, 'init', b'#!/bin/sh\n', 0o100755)
+        module.add(members, 'bin/sh', b'busybox', 0o120777)
+        old_module = members['lib/module.ko']
+        module.replace(members, 'init', b'#!/bin/sh\necho test\n')
+        module.add(members, 'new/regular', b'local-data', 0o100444)
+        self.assertEqual(module.entries(module.encode(members)), members)
+        self.assertEqual(list(module.entries(module.encode(members))), sorted(members))
+        self.assertEqual(members['lib/module.ko'], old_module)
+        for name in ('init', '../escape', '/absolute', 'bin/sh/child'):
+            with self.assertRaises(ValueError):
+                module.add(members, name, b'bad', 0o100644)
+        with self.assertRaises(ValueError):
+            module.compose(b'bad', b'bad', {'files': {'initramfs.cpio.gz': '0'*64}})
+        # Execute the real release verifier's newc parser, not just our encoder.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); harness = root/'parser.c'; verifier = root/'parser'
+            harness.write_text('#define main full_verifier_main\n#include "'+str(R/'tools/recovery_control/rog5-bundle-verify.c')+'"\n'
+                '#undef main\nint main(int argc, char **argv) { if (argc != 2) return 2; '
+                'int fd = open(argv[1], O_RDONLY | O_NOFOLLOW); if (fd < 0) return 2; '
+                'verify_initramfs_gzip(fd, false, false, false); close(fd); return 0; }\n')
+            subprocess.run(['gcc','-O2','-Wall','-Wextra','-Werror',str(harness),'-lcrypto','-lz','-o',str(verifier)], check=True)
+            raw = module.encode(members)
+            good = root/'good.gz'; good.write_bytes(gzip.compress(raw, mtime=0))
+            subprocess.run([str(verifier),str(good)],check=True)
+            bad = root/'bad.gz'; bad.write_bytes(gzip.compress(raw.replace(b'bin\0', b'zzz\0', 1), mtime=0))
+            rejected = subprocess.run([str(verifier),str(bad)],capture_output=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn(b'not unique and sorted', rejected.stderr)
+
+    def test_rendezvous_never_waits_for_usb_in_sealed_native_mode(self):
+        source = (R / 'initramfs/persistent-root-init').read_text()
+        body = function(source, 'wait_for_deferred_ufs_rendezvous')
+        for native, expected in [('1', 0), ('0', 1)]:
+            result = subprocess.run(['sh', '-c', 'set -eu\nnative_wifi_boot=' + native + '\n'
+                + 'cat() { echo 0; }; sleep() { :; };\n' + body
+                + '\nwait_for_deferred_ufs_rendezvous'], capture_output=True)
+            self.assertEqual(result.returncode, expected)
+
+    def test_only_sealed_readonly_native_mode_can_enable_usb_independence(self):
+        source = (R / 'initramfs/persistent-root-init').read_text()
+        body = function(source, 'prepare_native_wifi_boot')
+        for native, storage, diag, content, expected in [
+            ('1', 'read-only', '0', 'rog5-native-wifi-boot-v1\n', 0),
+            ('0', 'read-only', '0', 'rog5-native-wifi-boot-v1\n', 1),
+            ('1', 'local-write', '0', 'rog5-native-wifi-boot-v1\n', 1),
+            ('1', 'read-only', '1', 'rog5-native-wifi-boot-v1\n', 1),
+            ('1', 'read-only', '0', 'bad\n', 1),
+        ]:
+            with self.subTest(native=native, storage=storage, diag=diag, content=content):
+                with tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp); payload = root/'payload'; payload.mkdir()
+                    (payload/'automatic').write_text(content); (payload/'automatic').chmod(0o444)
+                    script = body.replace('/rog5-native-wifi', str(payload)).replace(
+                        '/run' + str(payload), str(root/'run'))
+                    result = subprocess.run(['sh', '-c', 'set -eu\n'
+                        + f'expected_native_root_mode={native}\nexpected_ufs_storage_mode={storage}\n'
+                        + f'expected_ssh_diagnostic_mode={diag}\nnative_wifi_boot=0\n'
+                        + 'stat() { echo 0:0:444:25:1; };\n' + script
+                        + '\nprepare_native_wifi_boot'], capture_output=True)
+                    self.assertEqual(result.returncode, expected, result.stderr)
+
+
+if __name__ == '__main__':
+    unittest.main()

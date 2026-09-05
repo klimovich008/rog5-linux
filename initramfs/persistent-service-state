@@ -1,0 +1,418 @@
+#!/bin/sh
+set -eu
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+fail() {
+	printf 'rog5-persistent-state: FAIL %s\n' "$*" >/dev/kmsg 2>/dev/null ||
+		printf 'rog5-persistent-state: FAIL %s\n' "$*" >&2
+	exit 1
+}
+
+action=${1:-}
+[ "$#" -eq 1 ] || fail 'usage: persistent-service-state preflight|start|stop'
+case $action in preflight|start|stop) ;; *) fail 'invalid action' ;; esac
+
+expected_physical_count=117
+expected_disk_sectors=494927872
+expected_logical_block_bytes=4096
+expected_userdata_partition=23
+expected_userdata_start=18821440
+expected_userdata_sectors=408997568
+expected_userdata_partuuid=8d82ef11-4d42-60e9-24e8-4d6ebf20491b
+expected_userdata_uuid=0892bacf-3e02-41b0-84a4-5f05c2df7ce5
+expected_userdata_label=rog5-linux
+expected_root_partition=24
+expected_root_start=427819008
+expected_root_sectors=67108824
+expected_state_bytes=4294967296
+expected_state_uuid=52037413-561a-48f4-92c4-8ad45b748a6f
+expected_state_label=ROG5_STATE_V1
+expected_manifest_bytes=160
+expected_manifest_sha256=2c93224d74394876d1617f193f7ec7c3c1cac4575c95da1dfb233557d0819ea6
+device_record=/run/rog5-persistent-state-userdata-device
+runtime_record=/run/rog5-persistent-state.runtime
+runtime_next=$runtime_record.next
+overlay_record=/run/rog5-persistent-overlay.runtime
+userdata_mount=/.rog5/userdata-rw
+state_mount=/persist
+state_relative=rog5/state/server-state-v1.ext4
+
+runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1
+runtime_busybox=/run/initramfs/bin/busybox
+[ -f "$runtime_loader" ] && [ ! -L "$runtime_loader" ] &&
+	[ -x "$runtime_loader" ] && [ -f "$runtime_busybox" ] &&
+	[ ! -L "$runtime_busybox" ] && [ -x "$runtime_busybox" ] ||
+	fail 'sealed runtime toolchain is unavailable'
+
+bb() {
+	"$runtime_loader" "$runtime_busybox" "$@"
+}
+
+read_single_line() {
+	path=$1
+	[ -f "$path" ] && [ ! -L "$path" ] || return 1
+	[ "$(bb wc -l <"$path")" -eq 1 ] || return 1
+	IFS= read -r line <"$path" || return 1
+	[ -n "$line" ] || return 1
+	printf '%s\n' "$line"
+}
+
+resolve_exact_devices() {
+	userdata=$(read_single_line "$device_record") || return 1
+	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	userdata_name=${userdata##*/}
+	userdata_disk=${userdata%23}
+	disk_name=${userdata_disk##*/}
+	root_device=${userdata_disk}24
+	root_name=${root_device##*/}
+	userdata_sys=/sys/class/block/$userdata_name
+	disk_sys=/sys/class/block/$disk_name
+	root_sys=/sys/class/block/$root_name
+
+	[ -b "$userdata" ] && [ -b "$userdata_disk" ] &&
+		[ -b "$root_device" ] || return 1
+	[ -e "$disk_sys/device" ] && [ ! -e "$disk_sys/partition" ] &&
+		[ -e "$userdata_sys/partition" ] &&
+		[ -e "$root_sys/partition" ] || return 1
+	[ "$(bb cat "$disk_sys/size")" = "$expected_disk_sectors" ] &&
+		[ "$(bb cat "$disk_sys/queue/logical_block_size")" = \
+			"$expected_logical_block_bytes" ] || return 1
+	[ "$(bb cat "$userdata_sys/partition")" = \
+		"$expected_userdata_partition" ] &&
+		[ "$(bb cat "$userdata_sys/start")" = "$expected_userdata_start" ] &&
+		[ "$(bb cat "$userdata_sys/size")" = "$expected_userdata_sectors" ] ||
+		return 1
+	[ "$(bb sed -n 's/^PARTNAME=//p' "$userdata_sys/uevent" |
+		bb sed -n '1p')" = userdata ] &&
+		[ "$(bb sed -n 's/^PARTUUID=//p' "$userdata_sys/uevent" |
+		bb sed -n '1p')" = "$expected_userdata_partuuid" ] || return 1
+	[ "$(bb cat "$root_sys/partition")" = "$expected_root_partition" ] &&
+		[ "$(bb cat "$root_sys/start")" = "$expected_root_start" ] &&
+		[ "$(bb cat "$root_sys/size")" = "$expected_root_sectors" ] &&
+		[ "$(bb sed -n 's/^PARTNAME=//p' "$root_sys/uevent" |
+		bb sed -n '1p')" = arch_root_a ] || return 1
+}
+
+verify_storage_read_only() {
+	count=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(bb basename "$sys_block")
+		[ -b "$device" ] && [ "$(bb blockdev --getro "$device")" = 1 ] &&
+			[ "$(bb cat "$sys_block/ro")" = 1 ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq "$expected_physical_count" ]
+}
+
+verify_write_window() {
+	count=0
+	writable=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(bb basename "$sys_block")
+		expected=1
+		case $device in
+			"$userdata_disk"|"$userdata") expected=0; writable=$((writable + 1)) ;;
+		esac
+		[ -b "$device" ] && [ "$(bb blockdev --getro "$device")" = "$expected" ] &&
+			[ "$(bb cat "$sys_block/ro")" = "$expected" ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq "$expected_physical_count" ] && [ "$writable" -eq 2 ]
+}
+
+relock_storage() {
+	# The stop and startup-cleanup callers retain their failure in global status.
+	relock_storage_status=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(bb basename "$sys_block")
+		[ -b "$device" ] || { relock_storage_status=1; continue; }
+		bb blockdev --setro "$device" || relock_storage_status=1
+	done
+	verify_storage_read_only || relock_storage_status=1
+	return "$relock_storage_status"
+}
+
+resolve_userdata_owner() {
+	[ "$#" -le 1 ] || return 1
+	userdata_owner_lifecycle=${1-startup}
+	case $userdata_owner_lifecycle in startup|preflight|stop) ;; *) return 1 ;; esac
+	userdata_owner=state
+	overlay_loop=
+	if [ -e "$overlay_record" ] || [ -L "$overlay_record" ]; then
+		[ -f "$overlay_record" ] && [ ! -L "$overlay_record" ] &&
+			[ "$(bb stat -c '%u:%g:%a:%h' "$overlay_record")" = 0:0:400:1 ] ||
+			return 1
+		[ "$(bb grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' \
+			"$overlay_record")" -eq 1 ] || return 1
+		[ "$(bb sed -n 's/^disk=//p' "$overlay_record")" = "$userdata_disk" ] &&
+			[ "$(bb sed -n 's/^userdata=//p' "$overlay_record")" = "$userdata" ] &&
+			[ "$(bb sed -n 's/^image=//p' "$overlay_record")" = \
+				rog5/root/root-overlay-v1.ext4 ] &&
+			[ "$(bb sed -n 's/^mount=//p' "$overlay_record")" = /mnt/state ] &&
+			[ "$(bb sed -n 's/^userdata_mount=//p' "$overlay_record")" = \
+				/mnt/userdata ] || return 1
+		overlay_loop=$(bb sed -n 's/^loop=//p' "$overlay_record") || return 1
+		case $overlay_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+		[ -b "$overlay_loop" ] || return 1
+		verify_write_window || return 1
+		verify_mount "$userdata" "$userdata_mount" || return 1
+		userdata_owner=overlay
+	else
+		case $userdata_owner_lifecycle in
+			stop) verify_write_window || return 1 ;;
+			startup|preflight) verify_storage_read_only || return 1 ;;
+		esac
+	fi
+}
+
+verify_root_storage_mounts() {
+	expected=$(bb cat "/sys/class/block/$root_name/dev") || return 1
+	expected_userdata=
+	expected_overlay=
+	if [ "$userdata_owner" = overlay ]; then
+		expected_userdata=$(bb cat "/sys/class/block/$userdata_name/dev") ||
+			return 1
+		overlay_name=${overlay_loop##*/}
+		expected_overlay=$(bb cat "/sys/class/block/$overlay_name/dev") ||
+			return 1
+	fi
+	count=0
+	while read -r _ _ device _ mountpoint _ rest; do
+		[ -e "/sys/dev/block/$device" ] || continue
+		count=$((count + 1))
+		case $device:$mountpoint in
+			"$expected:/.rog5/root-ro") ;;
+			"$expected_userdata:$userdata_mount")
+				[ "$userdata_owner" = overlay ] || return 1 ;;
+			"$expected_overlay:/.rog5/state")
+				[ "$userdata_owner" = overlay ] || return 1 ;;
+			*) return 1 ;;
+		esac
+	done </proc/self/mountinfo
+	case $userdata_owner:$count in state:1|overlay:3) ;; *) return 1 ;; esac
+}
+
+verify_filesystem_identity() {
+	device=$1 expected_uuid=$2 expected_label=$3
+	record=$(bb blkid "$device") || return 1
+	printf '%s\n' "$record" | bb grep -Fq " UUID=\"$expected_uuid\"" &&
+		printf '%s\n' "$record" | bb grep -Fq " LABEL=\"$expected_label\"" &&
+		printf '%s\n' "$record" | bb grep -Fq ' TYPE="ext4"'
+}
+
+verify_mount() {
+	device=$1 target=$2
+	bb awk -v device="$device" -v target="$target" '
+	$1 == device && $2 == target && $3 == "ext4" &&
+	$4 ~ /(^|,)rw(,|$)/ && $4 ~ /(^|,)nodev(,|$)/ &&
+	$4 ~ /(^|,)nosuid(,|$)/ && $4 ~ /(^|,)noexec(,|$)/ { found++ }
+	END { exit found != 1 }' /proc/mounts
+}
+
+verify_empty_mountpoint() {
+	path=$1
+	[ -d "$path" ] && [ ! -L "$path" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%h' "$path")" = 0:0:700:2 ] &&
+		! bb mountpoint -q "$path" &&
+		[ -z "$(bb find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ]
+}
+
+verify_state_tree() {
+	root=$1
+	manifest=$root/rog5-state.manifest
+	[ -f "$manifest" ] && [ ! -L "$manifest" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$manifest")" = \
+			"0:0:444:$expected_manifest_bytes:1" ] &&
+		[ "$(bb sha256sum "$manifest" | bb cut -d ' ' -f 1)" = \
+			"$expected_manifest_sha256" ] || return 1
+	for contract in home:755 root:700 var:755 var/lib:755 var/log:755 \
+		var/log/journal:2755 etc:755 etc/ssh:700 secrets:700; do
+		path=${contract%:*}
+		mode=${contract##*:}
+		[ -d "$root/$path" ] && [ ! -L "$root/$path" ] &&
+			[ "$(bb stat -c '%u:%g:%a' "$root/$path")" = "0:0:$mode" ] ||
+			return 1
+	done
+}
+
+preflight_state() {
+	resolve_exact_devices || return 1
+	resolve_userdata_owner || return 1
+	verify_root_storage_mounts || return 1
+	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
+		"$expected_userdata_label" || return 1
+	if [ -e "$state_mount" ] || [ -L "$state_mount" ]; then
+		[ "$userdata_owner" = overlay ] &&
+			verify_empty_mountpoint "$state_mount" || return 1
+	fi
+	if [ "$userdata_owner" = state ]; then
+		[ ! -e "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	else
+		[ -d "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	fi
+	printf 'format=rog5-persistent-service-state-preflight-v1\nuserdata=%s\nimage=%s\nuserdata_owner=%s\nresult=PASS\n' \
+		"$userdata" "$state_relative" "$userdata_owner"
+}
+
+start_state() {
+	# Fixed, non-secret labels identify the earliest rejected startup gate.
+	# They do not alter admission, write scope, cleanup or the observer protocol.
+	state_start_phase=runtime-record
+	[ ! -e "$runtime_record" ] && [ ! -L "$runtime_record" ] &&
+		[ ! -e "$runtime_next" ] && [ ! -L "$runtime_next" ] ||
+		return 1
+	state_start_phase=devices
+	resolve_exact_devices || return 1
+	state_start_phase=owner
+	resolve_userdata_owner || return 1
+	state_start_phase=root-mounts
+	verify_root_storage_mounts || return 1
+	state_start_phase=userdata-fs
+	verify_filesystem_identity "$userdata" "$expected_userdata_uuid" \
+		"$expected_userdata_label" || return 1
+	state_start_phase=state-path
+	if [ -e "$state_mount" ] || [ -L "$state_mount" ]; then
+		[ "$userdata_owner" = overlay ] &&
+			verify_empty_mountpoint "$state_mount" || return 1
+	fi
+	state_start_phase=userdata-path
+	if [ "$userdata_owner" = state ]; then
+		[ ! -e "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	else
+		[ -d "$userdata_mount" ] && [ ! -L "$userdata_mount" ] || return 1
+	fi
+
+	userdata_mounted=0
+	state_mounted=0
+	state_mount_created=0
+	loop_device=
+	cleanup_start() {
+		status=$?
+		trap - EXIT HUP INT TERM
+		[ "$state_mounted" -eq 0 ] || bb umount "$state_mount" || status=1
+		[ -z "$loop_device" ] || bb losetup -d "$loop_device" || status=1
+		[ "$userdata_mounted" -eq 0 ] || bb umount "$userdata_mount" || status=1
+		[ "$userdata_owner" = overlay ] || relock_storage || status=1
+		bb rm -f "$runtime_next"
+		if [ "$userdata_owner" = state ]; then
+			bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
+		elif [ "$state_mount_created" -eq 1 ]; then
+			bb rmdir "$state_mount" 2>/dev/null || true
+		fi
+		exit "$status"
+	}
+	trap cleanup_start EXIT HUP INT TERM
+
+	state_start_phase=userdata-mount
+	if [ "$userdata_owner" = state ]; then
+		bb blockdev --setrw "$userdata"
+		bb blockdev --setrw "$userdata_disk"
+		verify_write_window || return 1
+		bb mkdir -m 0700 "$userdata_mount"
+		bb mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+			"$userdata" "$userdata_mount"
+		userdata_mounted=1
+	fi
+	verify_mount "$userdata" "$userdata_mount" || return 1
+	state_start_phase=image-path
+	for path in "$userdata_mount/rog5" "$userdata_mount/rog5/state"; do
+		[ -d "$path" ] && [ ! -L "$path" ] &&
+			[ "$(bb stat -c '%u:%g:%a' "$path")" = 0:0:700 ] || return 1
+	done
+	state_image=$userdata_mount/$state_relative
+	[ -f "$state_image" ] && [ ! -L "$state_image" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$state_image")" = \
+			"0:0:600:$expected_state_bytes:1" ] || return 1
+
+	state_start_phase=image-loop
+	loop_device=$(bb losetup -f)
+	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	bb losetup "$loop_device" "$state_image"
+	[ "$(bb blockdev --getsize64 "$loop_device")" = "$expected_state_bytes" ] ||
+		return 1
+	state_start_phase=image-fs
+	verify_filesystem_identity "$loop_device" "$expected_state_uuid" \
+		"$expected_state_label" || return 1
+	state_start_phase=state-mount
+	if [ ! -e "$state_mount" ] && [ ! -L "$state_mount" ]; then
+		bb mkdir -m 0700 "$state_mount"
+		state_mount_created=1
+	else
+		verify_empty_mountpoint "$state_mount" || return 1
+	fi
+	bb mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+		"$loop_device" "$state_mount"
+	state_mounted=1
+	verify_mount "$loop_device" "$state_mount" || return 1
+	state_start_phase=state-tree
+	verify_state_tree "$state_mount" || return 1
+	state_start_phase=write-window
+	verify_write_window || return 1
+	[ "$(bb blockdev --getro "$root_device")" = 1 ] || return 1
+
+	state_start_phase=runtime-publish
+	boot_id=$(bb cat /proc/sys/kernel/random/boot_id) || return 1
+	printf 'format=rog5-persistent-service-state-runtime-v1\nboot_id=%s\ndisk=%s\nuserdata=%s\nloop=%s\nimage=%s\nmount=%s\nuserdata_owner=%s\n' \
+		"$boot_id" "$userdata_disk" "$userdata" "$loop_device" \
+		"$state_relative" "$state_mount" "$userdata_owner" >"$runtime_next"
+	bb chown 0:0 "$runtime_next"
+	bb chmod 0400 "$runtime_next"
+	bb mv "$runtime_next" "$runtime_record"
+	trap - EXIT HUP INT TERM
+	printf 'rog5-persistent-state: PASS mounted %s on %s\n' \
+		"$state_relative" "$state_mount" >/dev/kmsg 2>/dev/null || true
+}
+
+stop_state() {
+	status=0
+	resolve_exact_devices || return 1
+	resolve_userdata_owner stop || return 1
+	[ -f "$runtime_record" ] && [ ! -L "$runtime_record" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%h' "$runtime_record")" = 0:0:400:1 ] ||
+		return 1
+	[ "$(bb grep -c '^format=rog5-persistent-service-state-runtime-v1$' \
+		"$runtime_record")" -eq 1 ] || return 1
+	recorded_userdata=$(bb sed -n 's/^userdata=//p' "$runtime_record")
+	recorded_loop=$(bb sed -n 's/^loop=//p' "$runtime_record")
+	recorded_owner=$(bb sed -n 's/^userdata_owner=//p' "$runtime_record")
+	[ "$recorded_userdata" = "$userdata" ] || return 1
+	[ "$recorded_owner" = "$userdata_owner" ] || return 1
+	case $recorded_owner in state|overlay) ;; *) return 1 ;; esac
+	case $recorded_loop in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	bb sync || status=1
+	if bb mountpoint -q "$state_mount"; then
+		bb umount "$state_mount" || status=1
+	else
+		verify_empty_mountpoint "$state_mount" || status=1
+	fi
+	bb losetup -d "$recorded_loop" || status=1
+	if [ "$recorded_owner" = state ]; then
+		if bb mountpoint -q "$userdata_mount"; then
+			bb umount "$userdata_mount" || status=1
+		else
+			verify_empty_mountpoint "$userdata_mount" || status=1
+		fi
+		relock_storage || status=1
+	else
+		verify_write_window || status=1
+	fi
+	[ "$status" -eq 0 ] || return 1
+	bb rm -f "$runtime_record" || return 1
+	if [ "$recorded_owner" = state ]; then
+		bb rmdir "$state_mount" "$userdata_mount" 2>/dev/null || true
+	else
+		verify_empty_mountpoint "$state_mount" || return 1
+	fi
+	printf 'rog5-persistent-state: PASS unmounted and relocked\n' \
+		>/dev/kmsg 2>/dev/null || true
+}
+
+case $action in
+	preflight) preflight_state || fail 'preflight contract failed' ;;
+	start) start_state || fail "start/$state_start_phase contract failed" ;;
+	stop) stop_state || fail 'stop contract failed' ;;
+esac

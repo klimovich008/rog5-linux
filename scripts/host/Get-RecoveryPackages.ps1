@@ -27,6 +27,11 @@ $packages = @(
         Name = 'zstd-libs-1.5.7-r2.apk'
         Url = 'https://dl-cdn.alpinelinux.org/alpine/v3.24/main/aarch64/zstd-libs-1.5.7-r2.apk'
         Hash = '2bb5136c89f5b0bbe1554c8915a3b520d5aa63ae2a51d4d821eb81698db5a818'
+    },
+    @{
+        Name = 'libarchive-tools-3.8.7-r0.apk'
+        Url = 'https://dl-cdn.alpinelinux.org/alpine/v3.24/main/aarch64/libarchive-tools-3.8.7-r0.apk'
+        Hash = '033049f6d53ff0d267341087adfe142d3e4abe8d3fcec6853e2ed7c95ce2d41e'
     }
 )
 

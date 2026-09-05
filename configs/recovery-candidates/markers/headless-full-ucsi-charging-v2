@@ -1,0 +1,4 @@
+format=rog5-target-attempt-marker-v1
+candidate=headless-full-ucsi-charging-v2
+predecessor=headless-full-ucsi-charging-v1
+purpose=fast-handoff-full-pmic-glink-ucsi-charging-discriminator

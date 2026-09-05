@@ -1,0 +1,41 @@
+[Unit]
+Description=ROG Phone 5 power-button display toggle
+After=systemd-udevd.service
+ConditionPathExists=/usr/local/bin/rog5-screen-toggle.sh
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStartPre=/run/rog5-native-wifi/load-pwrkey
+ExecStart=/usr/local/libexec/rog5-power-buttond
+Restart=on-failure
+RestartSec=3s
+DevicePolicy=closed
+DeviceAllow=char-input r
+DeviceAllow=/dev/tty1 rw
+NoNewPrivileges=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=read-only
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectSystem=strict
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v3
+predecessor=headless-power-usb-observer-v2
+purpose=recovery-nm-zone-and-stock-anchor-path-corrected-side-port-observer

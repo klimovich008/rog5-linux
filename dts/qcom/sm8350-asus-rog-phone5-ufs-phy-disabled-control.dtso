@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+};
+
+/* Generation 34: load the driver module without a matching live device. */
+&ufs_mem_phy {
+	status = "disabled";
+};

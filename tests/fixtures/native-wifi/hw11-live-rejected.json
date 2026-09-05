@@ -1,0 +1,19 @@
+{
+  "candidate_consumed": true,
+  "power_sequence_passed": true,
+  "pci_identity_passed": true,
+  "normal_fallback_verified": true,
+  "firmware_boot_reached": false,
+  "wifi_phy_ready": false,
+  "records": [
+    "[45.060122] ROG5_S12_OEM cache_consistent=1",
+    "[61.815788] pci-pwrctrl-pwrseq 1c00000.pcie:pcie@0:wifi@0: ROG5_PWRCTRL_OBSERVE stage=power-on-return result=0 pause_ms=250",
+    "[62.431839] qcom-pcie 1c00000.pcie: PCIe Gen.3 x1 link up",
+    "WIFI_PCI_IDENTITY_PASS",
+    "[63.366984] ath11k_pci 0000:01:00.0: Unsupported WCN6855 SOC hardware version: 1 16",
+    "[63.380550] ath11k_pci 0000:01:00.0: probe with driver ath11k_pci failed with error -95",
+    "WIFI_PROBE_ABORT phy-not-ready-after-60s"
+  ],
+  "cause": "hardware revision rejected before MSI/MHI/core initialization",
+  "not_evidence_of": ["firmware mismatch", "power reset", "USB loss", "UFS failure"]
+}

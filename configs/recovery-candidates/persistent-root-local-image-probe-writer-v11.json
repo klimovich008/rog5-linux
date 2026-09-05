@@ -1,0 +1,35 @@
+{
+  "format": "rog5-recovery-candidate-v1",
+  "candidate": "persistent-root-local-image-probe-writer-v11",
+  "status": "consumed",
+  "authority": "none",
+  "bundle": "persistent-root-local-image-probe-writer-v11",
+  "profile": "persistent-root-ro-v1",
+  "target_id": "persistent-root-local-image-probe-writer-v11",
+  "target_release": "7.1.4-g359318de534f",
+  "rollback_timeout": "900",
+  "target_timeout": "600",
+  "a660_command_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_generation": "none",
+  "root_tree_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_seal_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "root_tree_entries": "0",
+  "root_subtree": "none",
+  "artifacts": {
+    "Image": {
+      "path": "artifacts/persistent-root-local-image-probe-writer-v11/Image",
+      "size": 38189568,
+      "sha256": "7c89d9a0a7ace2b0057b6cf2b535e134da596d3f3c3c3774c5b64014e32bf234"
+    },
+    "board.dtb": {
+      "path": "artifacts/persistent-root-local-image-probe-writer-v11/board.dtb",
+      "size": 103542,
+      "sha256": "40fb477a02844c54624ffdb1b98e2cacecc679f432086b83364f0ce1523319d2"
+    },
+    "initramfs.cpio.gz": {
+      "path": "artifacts/persistent-root-local-image-probe-writer-v11/initramfs.cpio.gz",
+      "size": 7506469,
+      "sha256": "9bfd90cf7c03b76d104d3804d2cef91696009c8e028aa951ffef5b9e100a397f"
+    }
+  }
+}

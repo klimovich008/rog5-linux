@@ -1,0 +1,1027 @@
+#!/bin/bash
+# Root-owned, runtime-only network controller for one recovery bundle fetch.
+set -euo pipefail
+umask 077
+
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
+action=serve
+if [[ ${1:-} == serve-deferred ]]; then
+	action=serve-deferred
+	shift
+elif [[ ${1:-} == restore-fallback ]]; then
+	action=restore-fallback
+	shift
+elif [[ ${1:-} == serve-progress-deferred ]]; then
+	action=serve-progress-deferred
+	shift
+fi
+bundle=
+manifest_hash=
+progress_output_directory=
+expected_location=
+restore_timeout=
+server_sha256=23207e5d4529693d0b6903f6ff461424d058dd9ec5702b1690243575af7dd777
+progress_collector_sha256=8b15aaac28d54ac0acf93411dc2dbb77d9a9b7b5dfc8e2cc591609f7a23ed20a
+progress_package_init_sha256=22364e5f8e8e18744fc9e1aabb069acf2e7020251f40c64202f4d30227b38175
+progress_reference_sha256=8db5851794980bf9ecf0370346e05c7051bb7e51958844f855723ef8137e85b3
+progress_module_sha256=5c5ee9480fa49448e204f30f97679dc8108c60687627a0f94ca3c812322ee5a8
+HARD_SERVER_TIMEOUT_SECONDS=205
+PROGRESS_HARD_SERVER_TIMEOUT_SECONDS=250
+PROGRESS_CAPTURE_TIMEOUT_SECONDS=245
+PROGRESS_LISTENER_READY_ATTEMPTS=20
+PROGRESS_POST_TRANSFER_GRACE_SECONDS=2
+OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS=5
+if [[ $action == restore-fallback ]]; then
+	[[ $# == 2 ]] ||
+		fail 'usage: rog5-recovery-bundle-controller restore-fallback USB_LOCATION TIMEOUT'
+	expected_location=$1
+	restore_timeout=$2
+	[[ $expected_location =~ ^[A-Za-z0-9._:/+-]{1,512}$ &&
+		$expected_location != /* && $expected_location != */ &&
+		$expected_location != *//* ]] ||
+		fail 'invalid USB physical location'
+	IFS=/ read -r -a location_parts <<<"$expected_location"
+	for location_part in "${location_parts[@]}"; do
+		[[ -n $location_part && $location_part != .. ]] ||
+			fail 'invalid USB physical location'
+	done
+	[[ $restore_timeout =~ ^[1-9][0-9]*$ &&
+		$restore_timeout -le 900 ]] ||
+		fail 'invalid fallback-profile timeout'
+elif [[ $action == serve-progress-deferred ]]; then
+	[[ $# == 3 ]] ||
+		fail 'usage: rog5-recovery-bundle-controller serve-progress-deferred BUNDLE MANIFEST_SHA256 OUTPUT_DIRECTORY'
+	bundle=$1
+	manifest_hash=$2
+	progress_output_directory=$3
+	[[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
+		$bundle != *..* && $bundle != none ]] ||
+		fail 'invalid bundle identity'
+	[[ $manifest_hash =~ ^[0-9a-f]{64}$ &&
+		$manifest_hash != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+		fail 'invalid manifest SHA-256'
+	[[ $progress_output_directory =~ ^/[A-Za-z0-9._/+-]{1,399}$ &&
+		$progress_output_directory != */ &&
+		$progress_output_directory != *//* ]] ||
+		fail 'invalid progress output directory'
+	IFS=/ read -r -a progress_output_parts <<<"$progress_output_directory"
+	for progress_output_part in "${progress_output_parts[@]}"; do
+		[[ -z $progress_output_part || $progress_output_part != .. ]] ||
+			fail 'invalid progress output directory'
+	done
+else
+	[[ $# == 2 ]] ||
+		fail 'usage: rog5-recovery-bundle-controller [serve-deferred] BUNDLE MANIFEST_SHA256'
+	bundle=$1
+	manifest_hash=$2
+	[[ $bundle =~ ^[a-z0-9][a-z0-9._-]{0,63}$ &&
+		$bundle != *..* && $bundle != none ]] ||
+		fail 'invalid bundle identity'
+	[[ $manifest_hash =~ ^[0-9a-f]{64}$ &&
+		$manifest_hash != 0000000000000000000000000000000000000000000000000000000000000000 ]] ||
+		fail 'invalid manifest SHA-256'
+fi
+
+offline_test=${ROG5_CONTROLLER_OFFLINE_TEST:-0}
+if [[ $offline_test == 1 ]]; then
+	((EUID != 0)) || fail 'offline controller test refuses root'
+	PATH=${ROG5_TEST_PATH:?missing ROG5_TEST_PATH}
+	sys_class_net=${ROG5_TEST_SYS_CLASS_NET:?missing ROG5_TEST_SYS_CLASS_NET}
+	sys_devices=${ROG5_TEST_SYS_DEVICES:?missing ROG5_TEST_SYS_DEVICES}
+	sys_bus_usb=${ROG5_TEST_SYS_BUS_USB:?missing ROG5_TEST_SYS_BUS_USB}
+	server_path=${ROG5_TEST_SERVER_PATH:?missing ROG5_TEST_SERVER_PATH}
+	progress_collector_path=${ROG5_TEST_PROGRESS_COLLECTOR_PATH:-$server_path}
+	bundle_root=${ROG5_TEST_BUNDLE_ROOT:?missing ROG5_TEST_BUNDLE_ROOT}
+	lock_path=${ROG5_TEST_LOCK_PATH:?missing ROG5_TEST_LOCK_PATH}
+	progress_eof_marker=${ROG5_TEST_PROGRESS_EOF_MARKER:-$lock_path.progress-eof}
+	hard_server_timeout=${ROG5_TEST_HARD_SERVER_TIMEOUT:-$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS}
+	progress_post_transfer_grace=${ROG5_TEST_PROGRESS_POST_TRANSFER_GRACE:-1}
+	test_watchdog_pid_file=${ROG5_TEST_WATCHDOG_PID_FILE:-}
+	test_die_after_watchdog=${ROG5_TEST_DIE_AFTER_WATCHDOG:-0}
+	[[ $hard_server_timeout =~ ^[1-9][0-9]*$ &&
+		$hard_server_timeout -le "$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS" ]] ||
+		fail 'invalid offline hard-server timeout'
+	[[ $progress_post_transfer_grace =~ ^[1-9][0-9]*$ &&
+		$progress_post_transfer_grace -le \
+		"$PROGRESS_POST_TRANSFER_GRACE_SECONDS" ]] ||
+		fail 'invalid offline progress post-transfer grace'
+	[[ $test_die_after_watchdog == 0 ||
+		$test_die_after_watchdog == 1 ]] ||
+		fail 'invalid offline watchdog-death mode'
+	caller_uid=$(id -u)
+	privileged_uid=$caller_uid
+	privileged_gid=$(id -g)
+	controller_path=$0
+else
+	[[ $offline_test == 0 ]] || fail 'invalid controller mode'
+	((EUID == 0)) ||
+		fail 'controller must be entered through the fixed PolicyKit launcher'
+	PATH=/usr/sbin:/usr/bin:/sbin:/bin
+	sys_class_net=/sys/class/net
+	sys_devices=/sys/devices
+	sys_bus_usb=/sys/bus/usb/devices
+	server_path=/usr/libexec/rog5-recovery-host/host_bundle_server.py
+	progress_collector_path=/usr/libexec/rog5-recovery-host/rog5-recovery-progress-collector.py
+	progress_python_root=/usr/libexec/rog5-recovery-host/python
+	progress_package_root=$progress_python_root/tools/recovery_control
+	progress_eof_marker=/run/rog5-recovery-progress.bundle-eof
+	bundle_root=/var/lib/rog5-recovery-bundles
+	lock_path=/run/rog5-recovery-bundle-controller.lock
+	if [[ $action == serve-progress-deferred ]]; then
+		hard_server_timeout=$PROGRESS_HARD_SERVER_TIMEOUT_SECONDS
+		progress_post_transfer_grace=$PROGRESS_POST_TRANSFER_GRACE_SECONDS
+	else
+		hard_server_timeout=$HARD_SERVER_TIMEOUT_SECONDS
+		progress_post_transfer_grace=0
+	fi
+	test_watchdog_pid_file=
+	test_die_after_watchdog=0
+	controller_path=/usr/libexec/rog5-recovery-bundle-controller
+	[[ ${PKEXEC_UID:-} =~ ^[1-9][0-9]*$ ]] ||
+		fail 'missing non-root PolicyKit caller identity'
+	caller_uid=$PKEXEC_UID
+	privileged_uid=0
+	privileged_gid=0
+	[[ $(realpath -e -- "$0") == "$controller_path" ]] ||
+		fail 'controller is not running from its fixed installed path'
+	[[ ! -L $controller_path &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$controller_path") == '0:0:555:regular file' ]] ||
+		fail 'unsafe installed controller metadata'
+	[[ ! -L /usr/libexec/rog5-recovery-host &&
+		$(stat -Lc '%u:%g:%a:%F' -- /usr/libexec/rog5-recovery-host) == '0:0:755:directory' ]] ||
+		fail 'unsafe installed recovery-host directory'
+fi
+export PATH
+
+for command in awk firewall-cmd flock getent grep id ip kill nmcli ping \
+	python3 realpath rm setpriv sha256sum sleep sort ss stat systemctl timeout \
+	udevadm; do
+	command -v "$command" >/dev/null ||
+		fail "missing host command: $command"
+done
+if [[ $offline_test == 0 ]]; then
+	[[ $(sha256sum "$server_path" | awk '{ print $1 }') == "$server_sha256" ]] ||
+		fail 'installed bundle server does not match controller pin'
+fi
+
+caller_record=$(getent passwd "$caller_uid") ||
+	fail 'PolicyKit caller has no passwd record'
+caller_gid=$(awk -F: -v uid="$caller_uid" '
+	NF == 7 && $3 == uid { count++; gid=$4 }
+	END { if (count == 1) print gid }
+' <<<"$caller_record")
+[[ $caller_gid =~ ^[0-9]+$ ]] ||
+	fail 'invalid or ambiguous PolicyKit caller record'
+
+[[ -f $server_path && ! -L $server_path &&
+	$(stat -Lc '%u:%g:%a:%F' -- "$server_path") == "$privileged_uid:$privileged_gid:555:regular file" ]] ||
+	fail 'unsafe installed bundle-server metadata'
+if [[ $action == serve-progress-deferred ]]; then
+	[[ -f $progress_collector_path && ! -L $progress_collector_path &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$progress_collector_path") == \
+		"$privileged_uid:$privileged_gid:555:regular file" ]] ||
+		fail 'unsafe installed progress-collector metadata'
+	if [[ $offline_test == 0 ]]; then
+		for progress_directory in "$progress_python_root" \
+			"$progress_python_root/tools" "$progress_package_root"; do
+			[[ -d $progress_directory && ! -L $progress_directory &&
+				$(stat -Lc '%u:%g:%a:%F' -- "$progress_directory") == \
+				'0:0:755:directory' ]] ||
+				fail 'unsafe installed progress-module directory'
+		done
+		progress_package_init=$progress_package_root/__init__.py
+		progress_reference=$progress_package_root/reference.py
+		progress_module=$progress_package_root/host_progress_collector.py
+		for progress_file in "$progress_package_init" \
+			"$progress_reference" "$progress_module"; do
+			[[ -f $progress_file && ! -L $progress_file &&
+				$(stat -Lc '%u:%g:%a:%F' -- "$progress_file") == \
+				'0:0:444:regular file' ]] ||
+				fail 'unsafe installed progress-module metadata'
+		done
+		[[ $(sha256sum "$progress_collector_path" | awk '{ print $1 }') == \
+			"$progress_collector_sha256" &&
+			$(sha256sum "$progress_package_init" | awk '{ print $1 }') == \
+			"$progress_package_init_sha256" &&
+			$(sha256sum "$progress_reference" | awk '{ print $1 }') == \
+			"$progress_reference_sha256" &&
+			$(sha256sum "$progress_module" | awk '{ print $1 }') == \
+			"$progress_module_sha256" ]] ||
+			fail 'installed progress collector module set does not match controller pins'
+	fi
+	[[ -d $progress_output_directory &&
+		! -L $progress_output_directory &&
+		$(stat -Lc '%u:%g:%a:%F' -- "$progress_output_directory") == \
+		"$caller_uid:$caller_gid:700:directory" ]] ||
+		fail 'unsafe progress output-directory metadata'
+	[[ ! -e $progress_output_directory/recovery-progress.capture &&
+		! -L $progress_output_directory/recovery-progress.capture &&
+		! -e $progress_output_directory/recovery-progress.stop &&
+		! -L $progress_output_directory/recovery-progress.stop ]] ||
+		fail 'progress output path already exists'
+	[[ ! -e $progress_eof_marker && ! -L $progress_eof_marker ]] ||
+		fail 'stale progress bundle-EOF marker exists'
+fi
+[[ -d $bundle_root && ! -L $bundle_root &&
+	$(stat -Lc '%u:%g:%a:%F' -- "$bundle_root") == "$caller_uid:$caller_gid:700:directory" ]] ||
+	fail 'unsafe fixed host bundle-root metadata'
+
+exec 9>"$lock_path"
+flock -n 9 || fail 'another recovery bundle controller is active'
+
+host_ip=169.254.77.1
+phone_ip=169.254.77.2
+host_cidr=$host_ip/30
+fallback_profile=rog5-fallback-usb-ssh
+host_port=8080
+progress_port=8081
+bundle_ipv4_filter="sport = :$host_port and ( src = 0.0.0.0/32 or src = $host_ip/32 )"
+bundle_ipv6_filter="sport = :$host_port and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:$host_ip/128 )"
+firewall_zone=drop
+state_lifetime=180s
+address_lifetime=180
+if [[ $action == serve-progress-deferred ]]; then
+	state_lifetime=360s
+	address_lifetime=360
+fi
+allow_rule="rule family=\"ipv4\" priority=\"-300\" source address=\"$phone_ip/32\" destination address=\"$host_ip/32\" port port=\"$host_port\" protocol=\"tcp\" accept"
+drop_rule="rule family=\"ipv4\" priority=\"-300\" destination address=\"$host_ip/32\" port port=\"$host_port\" protocol=\"tcp\" drop"
+progress_ipv4_filter="sport = :$progress_port and ( src = 0.0.0.0/32 or src = $host_ip/32 )"
+progress_ipv6_filter="sport = :$progress_port and ( src = ::/128 or src = ::ffff:0.0.0.0/128 or src = ::ffff:$host_ip/128 )"
+progress_allow_rule="rule family=\"ipv4\" priority=\"-300\" source address=\"$phone_ip/32\" destination address=\"$host_ip/32\" port port=\"$progress_port\" protocol=\"tcp\" accept"
+progress_drop_rule="rule family=\"ipv4\" priority=\"-300\" destination address=\"$host_ip/32\" port port=\"$progress_port\" protocol=\"tcp\" drop"
+
+monotonic_deciseconds() {
+	local uptime_value whole fraction
+	read -r uptime_value _ </proc/uptime ||
+		fail 'cannot read the host monotonic clock'
+	[[ $uptime_value =~ ^[0-9]+\.[0-9][0-9]$ ]] ||
+		fail 'host monotonic clock is malformed'
+	whole=${uptime_value%.*}
+	fraction=${uptime_value#*.}
+	monotonic_ticks=$((10#$whole * 10 + 10#${fraction:0:1}))
+}
+
+bounded_host_command() {
+	local command=$1 duration=10s remaining_ticks
+	shift
+	if [[ $action == restore-fallback && -n ${restore_deadline:-} ]]; then
+		monotonic_deciseconds
+		remaining_ticks=$((restore_deadline - monotonic_ticks))
+		(( remaining_ticks > 0 )) ||
+			fail 'fallback-profile restoration deadline expired'
+		if (( remaining_ticks > 100 )); then
+			remaining_ticks=100
+		fi
+		duration="$((remaining_ticks / 10)).$((remaining_ticks % 10))s"
+	fi
+	timeout "$duration" "$command" "$@"
+}
+
+bounded_nmcli() {
+	bounded_host_command nmcli "$@"
+}
+
+bounded_ip() {
+	bounded_host_command ip "$@"
+}
+
+bounded_udevadm() {
+	bounded_host_command udevadm "$@"
+}
+
+rollback_nmcli() {
+	timeout 10s nmcli "$@"
+}
+
+validate_observed_location() {
+	local value=$1 part
+	[[ $value =~ ^[A-Za-z0-9._:/+-]{1,512}$ &&
+		$value != /* && $value != */ && $value != *//* ]] ||
+		return 1
+	IFS=/ read -r -a observed_parts <<<"$value"
+	for part in "${observed_parts[@]}"; do
+		[[ -n $part && $part != .. ]] || return 1
+	done
+}
+
+observe_usb_ancestor() {
+	local source=$1 resolved candidate vendor product_id product
+	resolved=$(realpath -e -- "$source" 2>/dev/null) || return 1
+	[[ $resolved == "$sys_devices"/* ]] || return 1
+	candidate=$resolved
+	while [[ $candidate == "$sys_devices"/* ]]; do
+		if [[ -f $candidate/idVendor && -f $candidate/idProduct &&
+			-f $candidate/product ]]; then
+			vendor=$(<"$candidate/idVendor") || return 1
+			product_id=$(<"$candidate/idProduct") || return 1
+			product=$(<"$candidate/product") || return 1
+			observed_location=${candidate#"$sys_devices"/}
+			validate_observed_location "$observed_location" || return 1
+			observed_vendor=$vendor
+			observed_product_id=$product_id
+			observed_product=$product
+			return 0
+		fi
+		candidate=${candidate%/*}
+	done
+	return 1
+}
+
+raw_fallback_locations() {
+	local entry
+	for entry in "$sys_bus_usb"/*; do
+		[[ -e $entry ]] || continue
+		if observe_usb_ancestor "$entry" &&
+			[[ $observed_vendor == 1d6b &&
+			$observed_product_id == 0104 &&
+			$observed_product == 'ROG Phone 5 Linux Server' ]]; then
+			printf '%s\n' "$observed_location"
+		fi
+	done | sort -u
+}
+
+inspect_fallback_identity() {
+	local path interface properties driver
+	mapfile -t raw_locations < <(raw_fallback_locations)
+	(( ${#raw_locations[@]} <= 1 )) ||
+		fail 'expected exactly one exact Alpine USB product, found duplicates'
+	if (( ${#raw_locations[@]} == 0 )); then
+		return 1
+	fi
+	[[ ${raw_locations[0]} == "$expected_location" ]] ||
+		fail 'exact Alpine fallback returned on a different physical USB port'
+	declare -a fallback_interfaces=()
+	for path in "$sys_class_net"/*; do
+		[[ -e $path ]] || continue
+		interface=${path##*/}
+		[[ $interface =~ ^[A-Za-z0-9_.:-]{1,15}$ ]] || continue
+		properties=$(bounded_udevadm info \
+			--query=property --path="$path" \
+			2>/dev/null || true)
+		[[ $(grep -Fxc 'ID_VENDOR_ID=1d6b' <<<"$properties") == 1 ]] ||
+			continue
+		[[ $(grep -Fxc 'ID_MODEL_ID=0104' <<<"$properties") == 1 ]] ||
+			continue
+		[[ $(grep -Fxc 'ID_MODEL=ROG_Phone_5_Linux_Server' \
+			<<<"$properties") == 1 ]] || continue
+		[[ $(grep -Fxc 'ID_NET_DRIVER=cdc_ncm' \
+			<<<"$properties") == 1 ]] || continue
+		[[ $(grep -Fxc 'ID_USB_DRIVER=cdc_ncm' \
+			<<<"$properties") == 1 ]] || continue
+		[[ $(grep -Fxc 'ID_USB_INTERFACE_NUM=00' \
+			<<<"$properties") == 1 ]] || continue
+		driver=$(realpath -e -- "$path/device/driver" 2>/dev/null) ||
+			continue
+		[[ ${driver##*/} == cdc_ncm ]] || continue
+		observe_usb_ancestor "$path" || continue
+		[[ $observed_vendor == 1d6b &&
+			$observed_product_id == 0104 &&
+			$observed_product == 'ROG Phone 5 Linux Server' ]] || continue
+		fallback_interfaces+=("$interface:$observed_location")
+	done
+	(( ${#fallback_interfaces[@]} <= 1 )) ||
+		fail 'expected exactly one exact Alpine NCM interface, found duplicates'
+	if (( ${#fallback_interfaces[@]} == 0 )); then
+		return 1
+	fi
+	[[ ${fallback_interfaces[0]} == *:"$expected_location" ]] ||
+		fail 'Alpine NCM interface escaped the exact USB product'
+	observed_interface=${fallback_interfaces[0]%%:*}
+	return 0
+}
+
+read_managed_state() {
+	managed_state=$(bounded_nmcli -g GENERAL.NM-MANAGED device show "$1" \
+		2>/dev/null || true)
+	if [[ $managed_state != yes && $managed_state != no ]]; then
+		managed_state=$(bounded_nmcli -g GENERAL.MANAGED device show "$1" \
+			2>/dev/null || true)
+	fi
+	[[ $managed_state == yes || $managed_state == no ]] ||
+		fail 'cannot inspect NetworkManager ownership of Alpine fallback'
+}
+
+read_profile() {
+	local profile_output
+	profile_output=$(bounded_nmcli -g \
+		'connection.id,connection.type,connection.interface-name,connection.autoconnect,connection.autoconnect-priority,ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns,ipv4.never-default,ipv6.method' \
+		connection show uuid "$1") ||
+		fail 'cannot inspect fallback NetworkManager profile'
+	mapfile -t restore_profile_values <<<"$profile_output"
+	[[ ${#restore_profile_values[@]} == 11 &&
+		${restore_profile_values[0]} == "$fallback_profile" &&
+		${restore_profile_values[1]} == 802-3-ethernet &&
+		${restore_profile_values[2]} == "$2" &&
+		( ${restore_profile_values[3]} == yes ||
+			${restore_profile_values[3]} == no ) &&
+		${restore_profile_values[4]} == 100 &&
+		${restore_profile_values[5]} == manual &&
+		${restore_profile_values[6]} == "$host_cidr" &&
+		-z ${restore_profile_values[7]} &&
+		-z ${restore_profile_values[8]} &&
+		${restore_profile_values[9]} == yes &&
+		${restore_profile_values[10]} == disabled ]] ||
+		fail 'fallback NetworkManager profile is not exact and no-gateway'
+	profile_autoconnect=${restore_profile_values[3]}
+}
+
+read_profile_runtime() {
+	active_uuid=$(bounded_nmcli -g GENERAL.CON-UUID device show "$1" \
+		2>/dev/null || true)
+	addresses=$(bounded_ip -4 -o address show dev "$1" |
+		awk '{ print $4 }') ||
+		fail 'cannot inspect fallback IPv4 state'
+}
+
+if [[ $action == restore-fallback ]]; then
+	stable_interface=
+	stable_count=0
+	monotonic_deciseconds
+	restore_deadline=$((monotonic_ticks + restore_timeout * 10))
+	while (( monotonic_ticks < restore_deadline )); do
+		if inspect_fallback_identity; then
+			if [[ $observed_interface == "$stable_interface" ]]; then
+				((stable_count += 1))
+			else
+				stable_interface=$observed_interface
+				stable_count=1
+			fi
+			if (( stable_count >= 5 )); then
+				break
+			fi
+		else
+			stable_interface=
+			stable_count=0
+		fi
+		sleep 0.1
+		monotonic_deciseconds
+	done
+	(( stable_count >= 5 )) ||
+		fail 'exact Alpine fallback NCM did not become stable'
+	interface=$stable_interface
+	profile_uuid_output=$(bounded_nmcli -g connection.uuid connection show \
+		"$fallback_profile") ||
+		fail 'fallback NetworkManager profile is unavailable'
+	mapfile -t profile_uuids <<<"$profile_uuid_output"
+	(( ${#profile_uuids[@]} == 1 )) ||
+		fail 'fallback NetworkManager profile identity is ambiguous'
+	original_connection_uuid=${profile_uuids[0]}
+	[[ $original_connection_uuid =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
+		fail 'fallback NetworkManager profile UUID is invalid'
+	read_profile "$original_connection_uuid" "$interface"
+	read_managed_state "$interface"
+	read_profile_runtime "$interface"
+	if [[ $profile_autoconnect == yes && $managed_state == yes &&
+		$active_uuid == "$original_connection_uuid" &&
+		$addresses == "$host_cidr" ]]; then
+		inspect_fallback_identity &&
+			[[ $observed_interface == "$interface" ]] ||
+			fail 'fallback USB identity changed during idempotent restore'
+		echo 'PASS exact Alpine fallback profile was already restored'
+		exit 0
+	fi
+	[[ $profile_autoconnect == no && -z $active_uuid &&
+		-z $addresses ]] ||
+		fail 'fallback NetworkManager profile is not in deferred state'
+	rollback_restore() {
+		local rollback_status=$?
+		trap - EXIT HUP INT TERM
+		set +e
+		rollback_nmcli connection down uuid "$original_connection_uuid" \
+			>/dev/null 2>&1
+		rollback_nmcli connection modify uuid "$original_connection_uuid" \
+			connection.autoconnect no >/dev/null 2>&1
+		# This is deliberately fail-closed, not a restoration of the
+		# transient managed state of a newly enumerated device.  No failed
+		# activation may leave NetworkManager able to attach this profile.
+		if [[ -e $sys_class_net/$interface ]]; then
+			rollback_nmcli device set "$interface" managed no >/dev/null 2>&1
+		fi
+		echo 'INFO fallback profile activation rolled back to deferred state' >&2
+		exit "$rollback_status"
+	}
+	trap rollback_restore EXIT
+	trap 'exit 130' HUP INT TERM
+	if [[ $managed_state != yes ]]; then
+		bounded_nmcli device set "$interface" managed yes >/dev/null
+	fi
+	inspect_fallback_identity &&
+		[[ $observed_interface == "$interface" ]] ||
+		fail 'fallback USB identity changed before profile activation'
+	bounded_nmcli connection up uuid "$original_connection_uuid" \
+		ifname "$interface" >/dev/null
+	inspect_fallback_identity &&
+		[[ $observed_interface == "$interface" ]] ||
+		fail 'fallback USB identity changed during profile activation'
+	read_profile_runtime "$interface"
+	[[ $active_uuid == "$original_connection_uuid" &&
+		$addresses == "$host_cidr" ]] ||
+		fail 'fallback profile activation did not create its exact /30'
+	bounded_nmcli connection modify uuid "$original_connection_uuid" \
+		connection.autoconnect yes >/dev/null
+	read_profile "$original_connection_uuid" "$interface"
+	[[ $profile_autoconnect == yes ]] ||
+		fail 'fallback profile autoconnect was not restored'
+	inspect_fallback_identity &&
+		[[ $observed_interface == "$interface" ]] ||
+		fail 'fallback USB identity changed after profile activation'
+	trap - EXIT HUP INT TERM
+	echo "PASS exact Alpine fallback profile restored on $interface"
+	exit 0
+fi
+
+systemctl is-active --quiet firewalld.service ||
+	fail 'firewalld must be active'
+existing_ipv4_listeners=$(ss -H -lnt4 "$bundle_ipv4_filter") ||
+	fail 'cannot inspect host listeners'
+existing_ipv6_listeners=$(ss -H -lnt6 "$bundle_ipv6_filter") ||
+	fail 'cannot inspect host listeners'
+[[ -z $existing_ipv4_listeners && -z $existing_ipv6_listeners ]] ||
+	fail 'TCP port 8080 already has a listener'
+if [[ $action == serve-progress-deferred ]]; then
+	existing_progress_ipv4=$(ss -H -lnt4 "$progress_ipv4_filter") ||
+		fail 'cannot inspect host progress listeners'
+	existing_progress_ipv6=$(ss -H -lnt6 "$progress_ipv6_filter") ||
+		fail 'cannot inspect host progress listeners'
+	[[ -z $existing_progress_ipv4 && -z $existing_progress_ipv6 ]] ||
+		fail 'TCP port 8081 already has a listener'
+fi
+[[ $(firewall-cmd --zone="$firewall_zone" --list-all |
+	awk '$1 == "target:" { print $2 }') == DROP ]] ||
+	fail 'drop firewall zone is not drop-by-default'
+for query in --list-interfaces --list-sources --list-services --list-ports \
+	--list-protocols --list-source-ports --list-forward-ports \
+	--list-icmp-blocks --list-rich-rules; do
+	[[ -z $(firewall-cmd --zone="$firewall_zone" "$query") ]] ||
+		fail 'drop firewall zone is already in use'
+done
+if firewall-cmd --zone="$firewall_zone" --query-masquerade >/dev/null; then
+	fail 'drop firewall zone has masquerading enabled'
+fi
+forward_was_enabled=0
+if firewall-cmd --zone="$firewall_zone" --query-forward >/dev/null; then
+	forward_was_enabled=1
+fi
+
+mapfile -t all_zones < <(
+	firewall-cmd --get-zones | awk '{ for (i=1; i<=NF; i++) print $i }'
+)
+(( ${#all_zones[@]} > 1 )) || fail 'cannot enumerate firewall zones'
+declare -a protected_zones=()
+for zone in "${all_zones[@]}"; do
+	[[ $zone =~ ^[A-Za-z0-9_-]+$ ]] ||
+		fail 'unsafe firewall zone name'
+	if [[ $zone != "$firewall_zone" ]]; then
+		protected_zones+=("$zone")
+	fi
+done
+(( ${#protected_zones[@]} > 0 )) ||
+	fail 'no firewall zones available for host-side isolation'
+
+if firewall-cmd --zone="$firewall_zone" \
+	--query-rich-rule="$allow_rule" >/dev/null; then
+	fail 'recovery allow rule already exists'
+fi
+if [[ $action == serve-progress-deferred ]] &&
+	firewall-cmd --zone="$firewall_zone" \
+		--query-rich-rule="$progress_allow_rule" >/dev/null; then
+	fail 'recovery progress allow rule already exists'
+fi
+for zone in "${protected_zones[@]}"; do
+	if firewall-cmd --zone="$zone" \
+		--query-rich-rule="$drop_rule" >/dev/null; then
+		fail "recovery drop rule already exists in $zone"
+	fi
+	if [[ $action == serve-progress-deferred ]] &&
+		firewall-cmd --zone="$zone" \
+			--query-rich-rule="$progress_drop_rule" >/dev/null; then
+		fail "recovery progress drop rule already exists in $zone"
+	fi
+done
+
+declare -a interfaces=()
+for path in "$sys_class_net"/*; do
+	[[ -e $path ]] || continue
+	interface=${path##*/}
+	[[ $interface =~ ^[A-Za-z0-9_.:-]{1,15}$ ]] || continue
+	properties=$(udevadm info --query=property --path="$path" 2>/dev/null ||
+		true)
+	grep -qx 'ID_VENDOR_ID=1d6b' <<<"$properties" || continue
+	grep -qx 'ID_MODEL_ID=0104' <<<"$properties" || continue
+	grep -qx 'ID_MODEL=ROG5_recovery' <<<"$properties" || continue
+	grep -qx 'ID_NET_DRIVER=cdc_ncm' <<<"$properties" || continue
+	interfaces+=("$interface")
+done
+(( ${#interfaces[@]} == 1 )) ||
+	fail "expected exactly one ROG5 recovery NCM interface, found ${#interfaces[@]}"
+interface=${interfaces[0]}
+
+original_zone=$(firewall-cmd --get-zone-of-interface="$interface" 2>/dev/null ||
+	true)
+if [[ -n $original_zone ]]; then
+	[[ $original_zone =~ ^[A-Za-z0-9_-]+$ &&
+		" ${all_zones[*]} " == *" $original_zone "* ]] ||
+		fail 'target interface has an unknown firewall zone'
+fi
+managed=$(bounded_nmcli -g GENERAL.NM-MANAGED device show "$interface" \
+	2>/dev/null || true)
+if [[ $managed != yes && $managed != no ]]; then
+	managed=$(bounded_nmcli -g GENERAL.MANAGED device show "$interface" \
+		2>/dev/null || true)
+fi
+[[ $managed == yes ]] ||
+	fail 'recovery interface is not owned by NetworkManager'
+
+host_bindings=$(ip -4 -o address show |
+	awk -v ip="$host_ip" '{
+		split($4, part, "/")
+		if (part[1] == ip) print $2 ":" $4
+	}') || fail 'cannot inspect host IPv4 ownership'
+[[ $host_bindings == "$interface:$host_cidr" ]] ||
+	fail 'fixed recovery host address is not owned by the exact interface'
+initial_interface_addresses=$(ip -4 -o address show dev "$interface" |
+	awk '{ print $4 }') || fail 'cannot inspect initial target IPv4 state'
+[[ $initial_interface_addresses == "$host_cidr" ]] ||
+	fail 'recovery interface lacks the exact shared /30 address'
+original_connection_uuid=$(
+	bounded_nmcli -g GENERAL.CON-UUID device show "$interface" \
+		2>/dev/null || true
+)
+[[ $original_connection_uuid =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] ||
+	fail 'fallback NetworkManager connection identity is invalid'
+read_profile "$original_connection_uuid" "$interface"
+[[ $profile_autoconnect == no ]] ||
+	fail 'fallback NetworkManager profile is not explicitly deferred'
+
+server_pid=
+progress_collector_pid=
+progress_grace_pid=
+server_watchdog_pid=
+address_added=0
+allow_added=0
+progress_allow_added=0
+interface_moved=0
+managed_changed=0
+connection_deactivated=0
+autoconnect_disabled=0
+defer_restore=0
+forward_disabled=0
+declare -a drop_added_zones=()
+
+cleanup() {
+	local zone
+	set +e
+	if [[ -n $server_watchdog_pid ]]; then
+		kill -TERM "$server_watchdog_pid" >/dev/null 2>&1
+		wait "$server_watchdog_pid" >/dev/null 2>&1
+	fi
+	if [[ -n $progress_grace_pid ]]; then
+		kill -TERM "$progress_grace_pid" >/dev/null 2>&1
+		wait "$progress_grace_pid" >/dev/null 2>&1
+	fi
+	if [[ -n $server_pid ]]; then
+		kill -TERM "$server_pid" >/dev/null 2>&1
+		sleep 0.1
+		kill -KILL "$server_pid" >/dev/null 2>&1
+	fi
+	if [[ -n $progress_collector_pid ]]; then
+		kill -TERM "$progress_collector_pid" >/dev/null 2>&1
+		sleep 0.1
+		kill -KILL "$progress_collector_pid" >/dev/null 2>&1
+		wait "$progress_collector_pid" >/dev/null 2>&1
+	fi
+	if [[ $action == serve-progress-deferred ]]; then
+		rm -f -- "$progress_eof_marker"
+	fi
+	if [[ $address_added == 1 && -e $sys_class_net/$interface ]]; then
+		ip address del "$host_cidr" dev "$interface" >/dev/null 2>&1
+	fi
+	if [[ $allow_added == 1 ]]; then
+		firewall-cmd --zone="$firewall_zone" \
+			--remove-rich-rule="$allow_rule" >/dev/null 2>&1
+	fi
+	if [[ $progress_allow_added == 1 ]]; then
+		firewall-cmd --zone="$firewall_zone" \
+			--remove-rich-rule="$progress_allow_rule" >/dev/null 2>&1
+	fi
+	if [[ $interface_moved == 1 ]]; then
+		if [[ -n $original_zone && -e $sys_class_net/$interface ]]; then
+			firewall-cmd --zone="$original_zone" \
+				--change-interface="$interface" >/dev/null 2>&1
+		else
+			firewall-cmd --zone="$firewall_zone" \
+				--remove-interface="$interface" >/dev/null 2>&1
+		fi
+	fi
+	for zone in "${drop_added_zones[@]}"; do
+		firewall-cmd --zone="$zone" \
+			--remove-rich-rule="$drop_rule" >/dev/null 2>&1
+		if [[ $action == serve-progress-deferred ]]; then
+			firewall-cmd --zone="$zone" \
+				--remove-rich-rule="$progress_drop_rule" >/dev/null 2>&1
+		fi
+	done
+	if [[ $forward_disabled == 1 ]]; then
+		firewall-cmd --zone="$firewall_zone" \
+			--add-forward >/dev/null 2>&1
+	fi
+	if [[ $defer_restore == 0 ]]; then
+		if [[ $managed_changed == 1 && -e $sys_class_net/$interface ]]; then
+			bounded_nmcli device set "$interface" managed yes >/dev/null 2>&1
+		fi
+		if [[ $connection_deactivated == 1 &&
+			-e $sys_class_net/$interface ]]; then
+			bounded_nmcli connection up uuid "$original_connection_uuid" \
+				ifname "$interface" >/dev/null 2>&1
+		fi
+		if [[ $autoconnect_disabled == 1 ]]; then
+			bounded_nmcli connection modify uuid "$original_connection_uuid" \
+				connection.autoconnect yes >/dev/null 2>&1
+		fi
+	else
+		echo 'INFO fallback NetworkManager profile restoration deferred'
+	fi
+	echo 'INFO recovery bundle host network state removed'
+}
+trap cleanup EXIT
+trap 'exit 130' HUP INT TERM
+
+if [[ $forward_was_enabled == 1 ]]; then
+	forward_disabled=1
+	firewall-cmd --zone="$firewall_zone" --remove-forward >/dev/null
+fi
+
+for zone in "${protected_zones[@]}"; do
+	drop_added_zones+=("$zone")
+	firewall-cmd --zone="$zone" \
+		--add-rich-rule="$drop_rule" --timeout="$state_lifetime" >/dev/null
+	if [[ $action == serve-progress-deferred ]]; then
+		firewall-cmd --zone="$zone" \
+			--add-rich-rule="$progress_drop_rule" \
+			--timeout="$state_lifetime" >/dev/null
+	fi
+done
+
+if [[ ( $action == serve-deferred || $action == serve-progress-deferred ) &&
+	$profile_autoconnect == yes ]]; then
+	autoconnect_disabled=1
+	bounded_nmcli connection modify uuid "$original_connection_uuid" \
+		connection.autoconnect no >/dev/null
+fi
+connection_deactivated=1
+bounded_nmcli connection down uuid "$original_connection_uuid" >/dev/null
+if [[ $managed == yes ]]; then
+	managed_changed=1
+	bounded_nmcli device set "$interface" managed no >/dev/null
+fi
+ip link set "$interface" up
+
+interface_addresses=$(ip -4 -o address show dev "$interface" |
+	awk '{ print $4 }') || fail 'cannot inspect target IPv4 state'
+if [[ -n $interface_addresses &&
+	$interface_addresses != "$host_cidr" ]]; then
+	fail 'target interface has unexpected IPv4 state'
+fi
+if [[ $original_zone != "$firewall_zone" ]]; then
+	interface_moved=1
+	firewall-cmd --zone="$firewall_zone" \
+		--change-interface="$interface" >/dev/null
+fi
+allow_added=1
+firewall-cmd --zone="$firewall_zone" \
+	--add-rich-rule="$allow_rule" --timeout="$state_lifetime" >/dev/null
+if [[ $action == serve-progress-deferred ]]; then
+	progress_allow_added=1
+	firewall-cmd --zone="$firewall_zone" \
+		--add-rich-rule="$progress_allow_rule" \
+		--timeout="$state_lifetime" >/dev/null
+fi
+if [[ -z $interface_addresses ]]; then
+	address_added=1
+	ip address add "$host_cidr" dev "$interface" \
+		valid_lft "$address_lifetime" preferred_lft "$address_lifetime"
+fi
+
+if [[ $action == serve-progress-deferred ]]; then
+	setpriv --pdeathsig TERM -- \
+		/usr/bin/python3 -I -S -B "$progress_collector_path" \
+		"$interface" "$bundle" "$manifest_hash" \
+		"$progress_output_directory" "$caller_uid" "$caller_gid" \
+		"$PROGRESS_CAPTURE_TIMEOUT_SECONDS" "$progress_eof_marker" "$$" &
+	progress_collector_pid=$!
+fi
+
+setpriv --reuid "$caller_uid" --regid "$caller_gid" --clear-groups \
+	--bounding-set=-all --inh-caps=-all --ambient-caps=-all \
+	--no-new-privs --pdeathsig TERM --reset-env -- \
+	/usr/bin/python3 -I -S -B "$server_path" "$bundle" "$manifest_hash" &
+server_pid=$!
+
+listener_ready=0
+for _attempt in {1..300}; do
+	if ! kill -0 "$server_pid" 2>/dev/null; then
+		break
+	fi
+	listeners=$(ss -H -lntp4 "$bundle_ipv4_filter") ||
+		fail 'cannot verify recovery listener'
+	conflicting_ipv6=$(ss -H -lntp6 "$bundle_ipv6_filter") ||
+		fail 'cannot verify recovery listener'
+	if [[ -n $listeners || -n $conflicting_ipv6 ]]; then
+		mapfile -t listener_lines <<<"$listeners"
+		[[ -z $conflicting_ipv6 &&
+			${#listener_lines[@]} == 1 &&
+			${listener_lines[0]} == *"$host_ip:$host_port"* &&
+			${listener_lines[0]} =~ pid=$server_pid([,\)]) ]] ||
+			fail 'recovery server listener is not uniquely confined'
+		listener_ready=1
+		break
+	fi
+	sleep 0.1
+done
+((listener_ready == 1)) ||
+	fail 'recovery bundle server did not create its fixed listener'
+if [[ $action == serve-progress-deferred ]]; then
+	progress_listener_ready=0
+	for ((_attempt = 1;
+		_attempt <= PROGRESS_LISTENER_READY_ATTEMPTS;
+		_attempt += 1)); do
+		progress_listeners=$(ss -H -lntp4 "$progress_ipv4_filter") ||
+			fail 'cannot verify recovery progress listener'
+		progress_conflicting_ipv6=$(ss -H -lntp6 \
+			"$progress_ipv6_filter") ||
+			fail 'cannot verify recovery progress listener'
+		if [[ -n $progress_listeners || -n $progress_conflicting_ipv6 ]]; then
+			mapfile -t progress_listener_lines <<<"$progress_listeners"
+			progress_state=
+			progress_recvq=
+			progress_sendq=
+			progress_local=
+			progress_peer=
+			progress_process=
+			progress_extra=
+			progress_owner_pattern=
+			if (( ${#progress_listener_lines[@]} == 1 )); then
+				read -r progress_state progress_recvq progress_sendq \
+					progress_local progress_peer progress_process \
+					progress_extra <<<"${progress_listener_lines[0]}"
+				progress_owner_pattern='^users:\(\("python3",pid='
+				progress_owner_pattern+="$progress_collector_pid"
+				progress_owner_pattern+=',fd=[0-9]+\)\)$'
+			fi
+			[[ -z $progress_conflicting_ipv6 &&
+				${#progress_listener_lines[@]} == 1 &&
+				$progress_state == LISTEN &&
+				$progress_recvq =~ ^[0-9]+$ &&
+				$progress_sendq =~ ^[0-9]+$ &&
+				$progress_local == \
+				"$host_ip%$interface:$progress_port" &&
+				$progress_peer == '0.0.0.0:*' &&
+				-z $progress_extra &&
+				$progress_process =~ $progress_owner_pattern ]] &&
+				kill -0 "$progress_collector_pid" 2>/dev/null ||
+				fail 'recovery progress listener is not uniquely confined'
+			progress_listener_ready=1
+			break
+		fi
+		kill -0 "$progress_collector_pid" 2>/dev/null || break
+		sleep 0.1
+	done
+	if ((progress_listener_ready == 0)); then
+		if kill -0 "$progress_collector_pid" 2>/dev/null; then
+			kill -TERM "$progress_collector_pid" >/dev/null 2>&1 || true
+			sleep 0.1
+			kill -KILL "$progress_collector_pid" >/dev/null 2>&1 || true
+		fi
+		set +e
+		wait "$progress_collector_pid"
+		progress_status=$?
+		set -e
+		progress_collector_pid=
+		progress_listeners=$(ss -H -lntp4 "$progress_ipv4_filter") ||
+			fail 'cannot verify recovery progress listener'
+		progress_conflicting_ipv6=$(ss -H -lntp6 \
+			"$progress_ipv6_filter") ||
+			fail 'cannot verify recovery progress listener'
+		[[ -z $progress_listeners && -z $progress_conflicting_ipv6 ]] ||
+			fail 'recovery progress listener conflict survived collector exit'
+		echo "INFO recovery progress listener unavailable (collector status $progress_status); authority=NONE"
+	fi
+fi
+
+peer_ready=0
+for _attempt in {1..5}; do
+	if ! kill -0 "$server_pid" 2>/dev/null; then
+		fail 'recovery bundle server exited before the peer probe completed'
+	fi
+	if timeout 2s ping -4 -n -c 1 -W 1 -I "$interface" "$phone_ip" \
+		>/dev/null 2>&1; then
+		peer_ready=1
+		break
+	fi
+	sleep 0.1
+done
+((peer_ready == 1)) ||
+	fail 'recovery NCM peer did not answer the bounded exact-link probe'
+
+controller_pid=$$
+if [[ $offline_test == 1 ]]; then
+	/usr/bin/python3 -I -S -B -c \
+		'import os, signal, sys, time; expected=int(sys.argv[2]); os.getppid()==expected or sys.exit(0); time.sleep(int(sys.argv[1])); os.getppid()==expected or sys.exit(0); os.kill(expected, signal.SIGTERM)' \
+		"$hard_server_timeout" "$controller_pid" &
+else
+	setpriv --pdeathsig KILL -- \
+		/usr/bin/python3 -I -S -B -c \
+		'import os, signal, sys, time; expected=int(sys.argv[2]); os.getppid()==expected or sys.exit(0); time.sleep(int(sys.argv[1])); os.getppid()==expected or sys.exit(0); os.kill(expected, signal.SIGTERM)' \
+		"$hard_server_timeout" "$controller_pid" &
+fi
+server_watchdog_pid=$!
+if [[ -n $test_watchdog_pid_file ]]; then
+	printf '%s\n' "$server_watchdog_pid" >"$test_watchdog_pid_file"
+fi
+if [[ $test_die_after_watchdog == 1 ]]; then
+	kill -KILL "$controller_pid"
+fi
+
+echo "PASS recovery bundle server ready on $host_ip:$host_port via $interface"
+echo "PASS exact recovery NCM peer reachable at $phone_ip via $interface"
+if [[ $action == serve-progress-deferred && $progress_listener_ready == 1 ]]; then
+	echo "PASS recovery progress listener ready on $host_ip:$progress_port via $interface"
+fi
+echo "INFO serving bundle=$bundle manifest_sha256=$manifest_hash exactly once"
+set +e
+wait "$server_pid"
+server_status=$?
+set -e
+server_pid=
+((server_status == 0)) ||
+	fail "recovery bundle server failed with status $server_status"
+if [[ $action == serve-progress-deferred ]]; then
+	if [[ -n $progress_collector_pid ]]; then
+		progress_marker_ready=1
+		if ! /usr/bin/python3 -I -S -B -c \
+			'import os,sys; descriptor=os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600); os.close(descriptor)' \
+			"$progress_eof_marker"; then
+			echo 'WARN recovery progress bundle-EOF marker is unavailable; authority=NONE' >&2
+			progress_marker_ready=0
+			kill -TERM "$progress_collector_pid" >/dev/null 2>&1 || true
+			sleep 0.1
+			kill -KILL "$progress_collector_pid" >/dev/null 2>&1 || true
+		fi
+		if ((progress_marker_ready == 1)) &&
+			kill -0 "$progress_collector_pid" 2>/dev/null; then
+			sleep "$progress_post_transfer_grace" &
+			progress_grace_pid=$!
+			progress_first_pid=
+			set +e
+			wait -n -p progress_first_pid \
+				"$progress_collector_pid" "$progress_grace_pid"
+			progress_first_status=$?
+			set -e
+			if [[ $progress_first_pid == "$progress_grace_pid" ]]; then
+				echo 'WARN recovery progress collector exceeded post-transfer grace; authority=NONE' >&2
+				kill -TERM "$progress_collector_pid" >/dev/null 2>&1 || true
+				sleep 0.1
+				kill -KILL "$progress_collector_pid" >/dev/null 2>&1 || true
+				set +e
+				wait "$progress_collector_pid"
+				progress_status=$?
+				set -e
+			else
+				progress_status=$progress_first_status
+				kill -TERM "$progress_grace_pid" >/dev/null 2>&1 || true
+			fi
+			wait "$progress_grace_pid" >/dev/null 2>&1 || true
+			progress_grace_pid=
+		else
+			set +e
+			wait "$progress_collector_pid"
+			progress_status=$?
+			set -e
+		fi
+		progress_collector_pid=
+		if ((progress_status != 0)); then
+			echo "WARN recovery progress collector failed with status $progress_status; authority=NONE" >&2
+		elif [[ -f $progress_output_directory/recovery-progress.capture &&
+			! -L $progress_output_directory/recovery-progress.capture &&
+			$(stat -Lc '%u:%g:%a:%F' -- \
+				"$progress_output_directory/recovery-progress.capture") == \
+			"$caller_uid:$caller_gid:600:regular file" ]]; then
+			echo 'PASS bounded recovery progress capture completed'
+		else
+			echo 'WARN recovery progress capture is unavailable or unsafe; authority=NONE' >&2
+		fi
+	fi
+	echo 'PASS bounded recovery progress collection concluded authority=NONE'
+fi
+kill -TERM "$server_watchdog_pid" >/dev/null 2>&1 || true
+wait "$server_watchdog_pid" >/dev/null 2>&1 || true
+server_watchdog_pid=
+if [[ $action == serve-deferred || $action == serve-progress-deferred ]]; then
+	defer_restore=1
+fi
+echo 'PASS one recovery bundle transfer completed'

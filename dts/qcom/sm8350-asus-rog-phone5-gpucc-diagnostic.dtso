@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+};
+
+/*
+ * Register only the SM8350 GPU clock controller.  The GPU, GMU, and
+ * Adreno SMMU remain disabled in the base recovery tree so no consumer can
+ * power a GPU domain or request a clock during this diagnostic tier.
+ */
+&gpucc {
+	status = "okay";
+};

@@ -1,0 +1,194 @@
+#!/bin/sh
+set -u
+
+bb=/bin/busybox
+
+log() {
+	if [ -f /rog5-exitrd-log ] && [ ! -L /rog5-exitrd-log ] &&
+		[ -x /rog5-exitrd-log ]; then
+		/rog5-exitrd-log "$*" || true
+	fi
+	printf 'rog5-standalone-exitrd: %s\n' "$*" >/dev/kmsg 2>/dev/null ||
+		printf 'rog5-standalone-exitrd: %s\n' "$*" >/dev/console 2>/dev/null ||
+		true
+}
+
+move_mount() {
+	source=$1 target=$2
+	[ -d "$source" ] || return 0
+	"$bb" mountpoint -q "$source" || return 0
+	"$bb" mkdir -p "$target" || return 1
+	"$bb" mount --move "$source" "$target" || return 1
+}
+
+unmount_mount() {
+	"$bb" mountpoint -q "$1" || return 0
+	"$bb" umount "$1" || return 1
+}
+
+detach_exact_loop() {
+	loop_device=$1
+	shift
+	case $loop_device in /oldsys/dev/loop[0-9]*) ;; *) return 1 ;; esac
+	[ "$#" -ge 1 ] && [ -b "$loop_device" ] || return 1
+	loop_name=${loop_device##*/}
+	loop_state=/oldsys/sys/class/block/$loop_name/loop
+	backing_path=$loop_state/backing_file
+	if [ ! -e "$backing_path" ] && [ ! -L "$backing_path" ]; then
+		[ ! -e "$loop_state" ] && [ ! -L "$loop_state" ] || return 1
+		! "$bb" losetup "$loop_device" >/dev/null 2>&1
+		return
+	fi
+	[ -f "$backing_path" ] && [ ! -L "$backing_path" ] || return 1
+	backing=$($bb cat "$backing_path") || return 1
+	backing_matches=0
+	for expected_backing in "$@"; do
+		[ "$backing" != "$expected_backing" ] || backing_matches=1
+	done
+	[ "$backing_matches" -eq 1 ] || return 1
+	"$bb" losetup -d "$loop_device" || return 1
+	[ ! -e "$backing_path" ] && [ ! -L "$backing_path" ] &&
+		[ ! -e "$loop_state" ] && [ ! -L "$loop_state" ] || return 1
+	! "$bb" losetup "$loop_device" >/dev/null 2>&1
+}
+
+lazy_unmount() {
+	"$bb" mountpoint -q "$1" || return 0
+	"$bb" umount -l "$1" 2>/dev/null || true
+}
+
+detach_persistent_state() {
+	record=/oldsys/run/rog5-persistent-state.runtime
+	[ -f "$record" ] && [ ! -L "$record" ] || return 0
+	loop_device=$($bb sed -n 's/^loop=//p' "$record") || return 1
+	userdata_owner=$($bb sed -n 's/^userdata_owner=//p' "$record") || return 1
+	state_image=$($bb sed -n 's/^image=//p' "$record") || return 1
+	case $userdata_owner in state|overlay) ;; *) return 1 ;; esac
+	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	[ "$state_image" = rog5/state/server-state-v1.ext4 ] || return 1
+	loop_device=/oldsys/dev/${loop_device#/dev/}
+	unmount_mount /oldroot/persist || return 1
+	detach_exact_loop "$loop_device" \
+		"/.rog5/userdata-rw/$state_image" \
+		".rog5/userdata-rw/$state_image" || return 1
+	[ "$userdata_owner" = overlay ] && return 0
+	unmount_mount /oldsys/userdata-rw || return 1
+	relock_storage
+}
+
+relock_storage() {
+	for sys_block in /oldsys/sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/oldsys/dev/$("$bb" basename "$sys_block")
+		[ -b "$device" ] || return 1
+		"$bb" blockdev --setro "$device" || return 1
+	done
+}
+
+detach_persistent_overlay() {
+	record=/oldsys/run/rog5-persistent-overlay.runtime
+	[ -e "$record" ] || [ -L "$record" ] || return 2
+	[ -f "$record" ] && [ ! -L "$record" ] || return 1
+	[ "$("$bb" grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' \
+		"$record")" = 1 ] || return 1
+	loop_device=$("$bb" sed -n 's/^loop=//p' "$record") || return 1
+	userdata=$("$bb" sed -n 's/^userdata=//p' "$record") || return 1
+	disk=$("$bb" sed -n 's/^disk=//p' "$record") || return 1
+	image=$("$bb" sed -n 's/^image=//p' "$record") || return 1
+	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	[ "$disk" = "${userdata%23}" ] &&
+		[ "$image" = rog5/root/root-overlay-v1.ext4 ] || return 1
+	loop_device=/oldsys/dev/${loop_device#/dev/}
+	unmount_mount /oldsys/state || return 1
+	detach_exact_loop "$loop_device" \
+		"/mnt/userdata/$image" "mnt/userdata/$image" \
+		"/.rog5/userdata-rw/$image" ".rog5/userdata-rw/$image" || return 1
+	unmount_mount /oldsys/userdata-rw || return 1
+	relock_storage
+}
+
+try_native_kexec() {
+	# Only a RAM trial stages this syscall-only helper and its verified digest.
+	# An ordinary reboot, incomplete teardown or missing tool must reboot V11.
+	[ "${1:-}" = kexec ] || { log 'native-kexec skip=action'; return 0; }
+	[ "$clean" = 1 ] || { log 'native-kexec skip=unclean'; return 0; }
+	[ -f /rog5-kexec-exec ] && [ ! -L /rog5-kexec-exec ] &&
+		[ -x /rog5-kexec-exec ] || { log 'native-kexec skip=executor'; return 0; }
+	[ -f /rog5-kexec-exec.sha256 ] && [ ! -L /rog5-kexec-exec.sha256 ] ||
+		{ log 'native-kexec skip=digest-missing'; return 0; }
+	(cd / && "$bb" sha256sum -c rog5-kexec-exec.sha256) ||
+		{ log 'native-kexec skip=digest-mismatch'; return 0; }
+	log 'native-kexec enter'
+	/rog5-kexec-exec
+	status=$?
+	# Any return is failure, including status zero. Never retry the target.
+	log "native-kexec returned status=$status"
+	return "$status"
+}
+
+mark_unclean() {
+	clean=0
+	log "teardown failed=$*"
+}
+
+log 'discarding volatile root before standalone restart'
+"$bb" mount -o remount,rw / 2>/dev/null || true
+"$bb" mkdir -p /oldsys
+if [ -f /rog5-exitrd-log ] && [ ! -L /rog5-exitrd-log ] && [ -x /rog5-exitrd-log ]; then
+	# Keep this API-only mount available after /oldsys/dev is detached.
+	# Missing serial observation never gates storage teardown or fallback.
+	"$bb" mountpoint -q /dev ||
+		"$bb" mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+	log 'source observation ready'
+fi
+
+clean=1
+move_mount /oldroot/.rog5/root-ro /oldsys/root-ro || mark_unclean 'move /oldroot/.rog5/root-ro /oldsys/root-ro'
+move_mount /oldroot/.rog5/userdata-ro /oldsys/userdata-ro || mark_unclean 'move /oldroot/.rog5/userdata-ro /oldsys/userdata-ro'
+move_mount /oldroot/.rog5/userdata-rw /oldsys/userdata-rw || mark_unclean 'move /oldroot/.rog5/userdata-rw /oldsys/userdata-rw'
+move_mount /oldroot/.rog5/state /oldsys/state || mark_unclean 'move /oldroot/.rog5/state /oldsys/state'
+for api in sys proc run dev; do
+	move_mount "/oldroot/$api" "/oldsys/$api" || mark_unclean "move /oldroot/$api /oldsys/$api"
+done
+detach_persistent_state || mark_unclean detach
+unmount_mount /oldroot || mark_unclean 'unmount /oldroot'
+overlay_status=0
+detach_persistent_overlay || overlay_status=$?
+case $overlay_status in
+	0) ;;
+	2) unmount_mount /oldsys/state || mark_unclean 'unmount /oldsys/state' ;;
+	*) mark_unclean 'detach persistent overlay' ;;
+esac
+unmount_mount /oldsys/root-ro || mark_unclean 'unmount /oldsys/root-ro'
+unmount_mount /oldsys/userdata-ro || mark_unclean 'unmount /oldsys/userdata-ro'
+
+if [ "$clean" -ne 1 ]; then
+	log 'clean teardown incomplete; detaching residual mounts'
+	lazy_unmount /oldroot/persist
+	lazy_unmount /oldroot/.rog5/userdata-rw
+	lazy_unmount /oldsys/userdata-rw
+	lazy_unmount /oldroot
+	lazy_unmount /oldsys/state
+	lazy_unmount /oldsys/root-ro
+	lazy_unmount /oldsys/userdata-ro
+fi
+for api in run dev sys proc; do
+	lazy_unmount "/oldsys/$api"
+done
+
+try_native_kexec "${1:-}" || true
+case ${1:-reboot} in
+poweroff)
+	log 'requesting storage-quiescent power off'
+	"$bb" poweroff -f 2>/dev/null || true
+	log 'power off returned; triggering emergency reset'
+	;;
+*)
+	log 'requesting storage-quiescent normal restart'
+	"$bb" reboot -f 2>/dev/null || true
+	log 'normal restart returned; triggering emergency reset'
+	;;
+esac
+printf b >/proc/sysrq-trigger 2>/dev/null || true
+while :; do "$bb" sleep 3600; done

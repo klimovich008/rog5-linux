@@ -1,0 +1,50 @@
+# First native-distribution boot: NFSv4 lower layer over USB NCM with a tmpfs
+# OverlayFS upper layer. This fragment is layered on rog5-mainline.fragment.
+CONFIG_NFS_FS=y
+# CONFIG_NFS_V2 is not set
+# CONFIG_NFS_V3 is not set
+CONFIG_NFS_V4=y
+# CONFIG_NFS_V4_0 is not set
+CONFIG_NFS_V4_2=y
+CONFIG_ROOT_NFS=y
+CONFIG_NFS_DISABLE_UDP_SUPPORT=y
+# CONFIG_NFS_SWAP is not set
+# CONFIG_NFS_FSCACHE is not set
+
+CONFIG_OVERLAY_FS=y
+CONFIG_TMPFS=y
+CONFIG_TMPFS_XATTR=y
+
+# The first network-root DTB already disables UFS. Compile the storage path out
+# as a second independent guard so normal userspace cannot expose phone storage.
+# CONFIG_SCSI is not set
+# CONFIG_SCSI_UFSHCD is not set
+# CONFIG_SCSI_UFSHCD_PLATFORM is not set
+# CONFIG_SCSI_UFS_QCOM is not set
+# CONFIG_BLK_DEV_SD is not set
+# CONFIG_CHR_DEV_SG is not set
+# CONFIG_BLK_DEV_BSG is not set
+# CONFIG_SCSI_UFS_BSG is not set
+# CONFIG_RPMB is not set
+# CONFIG_SCSI_UFS_CRYPTO is not set
+# CONFIG_SCSI_UFS_HWMON is not set
+# CONFIG_PHY_QCOM_QMP_UFS is not set
+# CONFIG_PHY_QCOM_QMP_COMBO is not set
+# CONFIG_PHY_QCOM_QMP_PCIE is not set
+# CONFIG_PHY_QCOM_QMP_PCIE_8996 is not set
+# CONFIG_PHY_QCOM_QMP_USB is not set
+# CONFIG_PHY_QCOM_QMP_USB_LEGACY is not set
+
+# USB ACM is the pre-switch diagnostic console; NCM carries NFS and SSH.
+CONFIG_USB=y
+CONFIG_USB_DWC3=y
+CONFIG_USB_DWC3_QCOM=y
+CONFIG_USB_GADGET=y
+CONFIG_USB_CONFIGFS=y
+CONFIG_USB_CONFIGFS_ACM=y
+CONFIG_USB_CONFIGFS_NCM=y
+CONFIG_PHY_QCOM_USB_SNPS_FEMTO_V2=y
+
+# Let initramfs attest the dedicated built-in client and storage exclusions.
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y
