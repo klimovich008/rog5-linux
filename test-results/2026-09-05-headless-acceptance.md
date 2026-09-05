@@ -320,3 +320,28 @@ Final focused checkpoint: active tier PASS **10.613 s**; sealed ARM producer
 replay PASS **6.016 s** under concurrent host tests. Full local and exact-head
 GitHub checks are required for this new receiver/initramfs checkpoint before
 any successor admission. The consumed physical rescue is unchanged.
+
+Observer commit `42c729d89035c6668e85b19320f725a30926621e` passed full local CI
+**479.663 s**, and GitHub **33945569616** exact-head/merge/publication/QEMU.
+Seven exact-archive watchdog handover cases passed against unsigned archive
+`ce1b0b11…dce1a` (23,831,684 bytes). Only init and SSH-identity helper changed;
+the observer was added, nothing removed, all 19 modules byte-identical.
+
+**Host composition fixture omission:** real sealed preparation against the
+retained read-only Arch loop image failed in **0.877 s** with
+`recovery_timeout: parameter not set`. This is the checker's synthetic driver,
+not a missing variable on the actual target boot path. Two regressions failed
+before the correction: missing lifetime input and stale observer acceptance.
+The checker now supplies a labeled one-second unit-generation fixture (never
+activated; not a deployed deadline), verifies current observer bytes when
+present, and includes its unit in real ARM systemd-analyze validation. Seven
+focused checks pass normally/optimized (0.034/0.036 s); active tier **11.462 s**.
+
+Exact archive/root replay then passed in **31.786 s** with the same archive,
+kernel, DTB and root image. Preparation, ARM systemd, volatile key generation,
+key-only SSH policy and generated units passed. This result binds the changed
+checker via the dirty-tree digest at the old HEAD; it is not relabeled as a
+clean published release. No kernel/archive rebuild was needed for this host
+fix. Both host-only loop mounts were read-only/norecovery, in private namespaces,
+and removed afterward. No phone contact, storage mutation, signing, candidate
+issuance or boot. Final wrapper/deployed timing/module-load A01 checks remain.

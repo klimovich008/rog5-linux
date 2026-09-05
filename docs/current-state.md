@@ -208,3 +208,14 @@ receiver and archive-composition tests pass; exact sealed ARM replay also passes
 This diagnostic is not deployed or issued. Physical fastboot re-entry remains
 necessary because pinned SSH is unavailable. Complete its frozen checks and
 exact assembled runtime verification before preparing a successor.
+
+Observer checkpoint `42c729d8` passed full local CI (479.663 s) and all GitHub
+33945569616 jobs. All seven watchdog/handover cases passed against its unsigned
+archive; all 19 modules are unchanged. Exact archive/retained-Arch preparation
+then exposed a host checker omission: its synthetic environment lacked the
+observer lifetime variable. The checker now supplies an explicitly labeled
+unit-generation fixture, checks observer bytes and verifies its generated unit.
+Two fail-first regressions pass; exact ARM/root replay passes (31.786 s), using
+unchanged archive bytes. This does not verify deployed timeout binding or
+complete A01. Read-only host loop mounts were cleaned up. No successor is signed
+or issued, and no further phone boot has occurred.

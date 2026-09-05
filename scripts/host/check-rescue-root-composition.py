@@ -62,6 +62,9 @@ def archive_parameters(members):
     power = members['sbin/rog5-load-persistent-power-usb'][1]
     if power != (REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes():
         raise ValueError('stale power safety helper')
+    observer = members.get('usr/local/sbin/rog5-startup-observer')
+    if observer is not None and observer[1] != (REPO/'initramfs/persistent-startup-observer').read_bytes():
+        raise ValueError('stale startup observer')
     for name, (fields, data) in members.items():
         if name.startswith('rog5-native-wifi/'):
             raise ValueError('headless rescue must not activate optional radio/display payload')
@@ -84,6 +87,9 @@ export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 expected_persistent_overlay_mode=0
 expected_ssh_diagnostic_mode=0
 native_wifi_boot=0
+# Unit-generation fixture, not deployed timing. No service is activated here;
+# exact manifest/wrapper timeout binding remains a separate release check.
+recovery_timeout=1
 reboot_helper=/usr/libexec/rog5-reboot-bootloader
 # Explicit hardware lookup fixture; no actual block node is passed to helpers.
 find_exact_userdata() { printf '/dev/rog5-offline-fixture\n'; }
@@ -103,7 +109,11 @@ done
 case $(awk '$1 == "permitrootlogin" { print $2 }' /run/ssh-effective) in
     prohibit-password|without-password) ;; *) exit 1 ;; esac
 echo COMPOSITION_SSH_POLICY_PASS
-chroot /newroot /usr/bin/systemd-analyze verify --man=no --generators=no /run/systemd/system/rog5-p2-ready.service /run/systemd/system/rog5-early-sshd.service /run/systemd/system/rog5-persistent-state.service /run/systemd/system/rog5-persistent-ssh-identity.service
+set -- /run/systemd/system/rog5-p2-ready.service /run/systemd/system/rog5-early-sshd.service /run/systemd/system/rog5-persistent-state.service /run/systemd/system/rog5-persistent-ssh-identity.service
+if [ -e /run/systemd/system/rog5-startup-observer.service ]; then
+    set -- "$@" /run/systemd/system/rog5-startup-observer.service
+fi
+chroot /newroot /usr/bin/systemd-analyze verify --man=no --generators=no "$@"
 echo COMPOSITION_UNIT_VERIFY_PASS
 '''
 
@@ -194,7 +204,8 @@ def main():
         record = dict(status='PASS' if passed else 'FAIL', source=source, inputs=inputs,
                       scope='archive/root runtime preparation and executable/unit compatibility only',
                       limitations=['hardware lookup fixture', 'no physical boot or storage recovery proof',
-                                   'no final wrapper/admission or module-load proof'],
+                                   'no final wrapper/admission or module-load proof',
+                                   'unit lifetime is a fixture, not deployed timeout verification'],
                       mount=mount, exit_code=code, duration_seconds=round(time.monotonic()-started, 3),
                       checker_sha256=ACCEPTANCE.sha_file(Path(__file__)),
                       qemu_sha256=ACCEPTANCE.sha_file(Path('/usr/bin/qemu-aarch64-static')))
