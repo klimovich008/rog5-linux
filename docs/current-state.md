@@ -55,8 +55,8 @@ A 600.615 s observation has 61 Full/Good 100%, 30°C samples, 8.632–8.635 V,
 0 µA, unchanged charge counter and USB online. H03 remains BLOCKED until
 full-battery regulation/noise criteria are declared before another run.
 
-Latest read-only continuity: same V5 boot at uptime 14053 s, core services active,
-100% Full/Good, 29.9°C, 8.627 V, 0 µA, USB online. Only
+Latest read-only continuity: same V5 boot at uptime 15638 s, six core services active,
+100% Full/Good, 29.9°C, 8.626 V, 0 µA; selector/trial hashes unchanged. Only
 `archlinux-keyring-wkd-sync.service` is failed: its bootstrap wiring fix is not
 deployed. Do not mask this failure or call it a kernel defect. No formal
 combined soak, ordinary-reboot sequence or physical rollback qualification yet.
@@ -103,17 +103,21 @@ the preceding archive, not an automatically green final release.
 
 ## Next action
 
-1. Finish the selector-validation checkpoint: normal/optimized Python now reject
-   malformed manifests, changed fallback hashes and unsafe input/output files.
-   Acceptance A02/D02 include the new behavior tests without duplicating them.
-   Frozen full local CI PASS 491.554 s; publication/exact-head CI next.
-2. Use the normal selector-backed recovery path for persistent trial qualification.
-   The embedded-RAM rescue path deliberately bypasses trial preparation; it cannot
-   acknowledge a fresh persistent trial. Read-only inspection found the installed
-   V10 selector and matching old healthy record unchanged. Preserve/archive that
-   state through the reviewed staging transaction, not a fabricated health ACK.
-   Complete final wrapper/timing/transport qualification using the unchanged
-   hardware set; do not retry consumed execution or repeat passed unchanged suites.
+1. Selector validation is published as `ad9398d179b8dae5725d2ae405f243fdda8be065`;
+   full local CI PASS 491.554 s. All four GitHub jobs PASS run 33998025054.
+2. New **unissued/unconsumed** package `headless-server-selector-v1` uses the
+   normal selector-backed RAM recovery, not the embedded-RAM trial bypass.
+   Signed bundle/recovery twins match (18.509 s); both primary/fallback sealed
+   signature checks and exact wrapper/target timeout checks PASS (6.771 s).
+   Target archive `16efb362d6c55f6275924fd3a0374384f4b7b61baae22a10037140daf39de70f`;
+   wrapper `dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
+   Kernels/modules unchanged; only trial descriptor/checksum content changed from
+   the tested server archive. No device staging, claim creation or boot occurred.
+   The canonical record and selector-trial host support pass frozen full local
+   CI in 500.609 s; exact-head/merge publication is next. Adapt the reviewed bounded staging/boot
+   transaction, preserve the old V10 selector/healthy record and signed V11
+   fallback, establish capture, and consume only after every live gate passes.
+   Do not use the installed old recovery as if it contained the updated helper.
 3. Use fresh reviewed execution identity for physical server qualification:
    Wi-Fi/USB transfer and restart, durable scratch, three ordinary boots,
    powered-off start, 60-minute combined soak and isolated failed-boot recovery.

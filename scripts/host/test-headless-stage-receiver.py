@@ -4,6 +4,8 @@ import importlib.util
 from pathlib import Path
 import socket
 import json
+import hashlib
+import tempfile
 import time
 import unittest
 from unittest.mock import patch
@@ -20,6 +22,33 @@ def frame(sequence=1, boot=BOOT):
 
 
 class ReceiverTest(unittest.TestCase):
+    def test_selector_trial_keeps_exact_manifest_and_fastboot_gates(self):
+        # Same supervised fastboot transport, but the target comes from the
+        # verified on-device selector, not an embedded RAM bundle.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = root/'manifest'
+            raw = b'target_release=7.1.4-fixture\nrollback_timeout=900\n'
+            manifest.write_bytes(raw)
+            for execution, digest, error in (
+                ('fastboot-boot-selector-trial', hashlib.sha256(raw).hexdigest(),
+                 'receiver must start at exact fastboot'),
+                ('fastboot-boot-selector-trial', '0'*64, 'manifest differs'),
+                ('fastboot-boot-unreviewed', hashlib.sha256(raw).hexdigest(),
+                 'not a supported headless'),
+            ):
+                record = (f'execution={execution}\nmanifest_sha256={digest}\n'
+                          'serial=fixture-device\n').encode()
+                with self.subTest(execution=execution, digest=digest), \
+                     patch.object(M.sys, 'argv', ['receiver', '--profile', 'fixture',
+                         '--manifest', str(manifest), '--output', str(root/'capture')]), \
+                     patch.object(M.os, 'geteuid', return_value=0), \
+                     patch.object(M.CLAIMS, 'expected_record', return_value=record), \
+                     patch.object(M, 'usb_mode', return_value=('mismatch', None)), \
+                     self.assertRaisesRegex(ValueError, error):
+                    M.main()
+                self.assertFalse((root/'capture').exists())
+
     def test_live_disconnect_during_nmcli_preserves_capture_and_last_stage(self):
         fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/rescue-state-host-loss.json').read_text())
         events=[]

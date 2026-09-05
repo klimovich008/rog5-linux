@@ -301,7 +301,8 @@ def main():
     if args.manifest is None or os.geteuid() != 0:
         raise ValueError('receiver needs an exact manifest and scoped host-network privileges')
     record = dict(line.split('=', 1) for line in CLAIMS.expected_record(args.profile).decode().splitlines())
-    if record.get('execution') not in {'fastboot-boot-fallback-only', 'fastboot-boot-ram-bundle'}:
+    if record.get('execution') not in {'fastboot-boot-fallback-only', 'fastboot-boot-ram-bundle',
+                                       'fastboot-boot-selector-trial'}:
         raise ValueError('not a supported headless rescue record')
     raw = args.manifest.read_bytes()
     if hashlib.sha256(raw).hexdigest() != record['manifest_sha256']:

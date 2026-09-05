@@ -1417,10 +1417,37 @@ PROFILES.update(NATIVE_PROFILES)
 PROFILES.update({profile: record for profile, record in CLAIMS.CLAIMS.items()
                  if any(marker in record for marker in (
                      b"\nexecution=fastboot-boot-fallback-only\n",
-                     b"\nexecution=fastboot-boot-ram-bundle\n"))})
+                     b"\nexecution=fastboot-boot-ram-bundle\n",
+                     b"\nexecution=fastboot-boot-selector-trial\n"))})
 
 
 class ExactClaimConsumerTest(unittest.TestCase):
+    def test_selector_trials_bind_state_scope_and_remain_one_use(self):
+        records = {name: record for name, record in PROFILES.items()
+                   if b'\nexecution=fastboot-boot-selector-trial\n' in record}
+        self.assertTrue(records)
+        for profile, payload in records.items():
+            fields = dict(line.split('=', 1) for line in payload.decode().splitlines())
+            self.assertEqual(len(fields), len(payload.splitlines()))
+            self.assertEqual(fields['recovery_profile'], profile)
+            self.assertEqual(fields['attempt_limit'], '1')
+            self.assertEqual(fields['expected_slot'], 'b')
+            self.assertEqual(fields['flash'], 'forbidden')
+            self.assertEqual(fields['recovery_storage'], 'bounded-p23-trial-record-only')
+            for field in ('boot_image_sha256', 'selector_sha256', 'trial_id',
+                          'manifest_sha256', 'fallback_manifest_sha256', 'recovery_initramfs_sha256'):
+                self.assertRegex(fields[field], r'^[0-9a-f]{64}$')
+                self.assertNotEqual(fields[field], '0'*64)
+                self.write_record(profile, payload.replace(fields[field].encode(), b'0'*64))
+                with self.assertRaises(CLAIMS.ClaimError):
+                    CLAIMS.consume(profile, self.root)
+            self.write_record(profile)
+            CLAIMS.consume(profile, self.root)
+            CLAIMS.verify_entered(profile, self.root)
+            self.write_record(profile)
+            with self.assertRaises(CLAIMS.ClaimError):
+                CLAIMS.consume(profile, self.root)
+
     def test_embedded_rescue_records_bind_bytes_and_cannot_be_retried(self):
         records = {name: record for name, record in PROFILES.items()
                    if b'\nexecution=fastboot-boot-ram-bundle\n' in record}
