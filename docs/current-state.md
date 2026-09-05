@@ -134,9 +134,29 @@ guard, immutable-lower hash and read-only fsck all pass. Earlier host-fixture
 failures are retained. This is not target-kernel or journal-replay qualification;
 owned mounts/loops are detached and production storage guards are unchanged.
 
-Next: publish the CI fixture correction, qualify disposable-image recovery and
-compose the coherent server successor. Do not assume the old Wi-Fi modules
-(kernel `7.1.4-g1eea8970e87f`) match the current rescue kernel.
+CI fixture correction published as `059afe4f3bad7ed435040edf66d057c2c17c7927`;
+all four jobs passed run 33992627778. No publication remains for that checkpoint.
+
+Exact retained kernel QEMU now reproduces and fixes the interrupted OverlayFS
+whiteout rejection: before FAIL in 40.255 s; after PASS in 44.040 s, including
+actual ext4 journal replay and nine unrelated-entry refusals. The source guard
+admits only the kernel's root-owned mode-000 `#%x` character-0:0 scratch entries,
+including legitimate hardlinks. Kernel cleanup remains responsible for removal.
+The unsigned fixture changed init only in 1.441 s; no kernel build or phone boot.
+F01 is now connected to the exact kernel/archive/root receipt; final integrated
+QEMU passes in 76.421 s including before/after input hashing, var-only interruption,
+post-unmount validation and read-only fsck. Active tier passes in 15.528 s and
+frozen full local CI in 485.305 s. Exact-head/merge publication CI remains pending.
+This is not installed-release qualification. Same-boot read-only SSH at uptime
+9209 s confirms active core services, Full/Good 100%, 30°C and online USB power.
+
+Next: finish this recovery checkpoint and compose the coherent server successor.
+Do not assume the old Wi-Fi modules
+(kernel `7.1.4-g1eea8970e87f`) match the current rescue kernel. Its retained
+soak-qualified kernel/DTB/V3 archive hashes match the historical build record;
+22 direct modules and 37 nested radio/dependency modules all report that same
+release. Preserve this coherent set for successor composition rather than mixing
+it with g359 modules. This is retained-artifact inventory, not new load proof.
 Finish final archive/root composition and the remaining
 service, journal, Wi-Fi, reboot, soak and isolated physical rollback tests.
 Do not treat V5's component passes as an installed release PASS.

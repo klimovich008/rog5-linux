@@ -1263,3 +1263,84 @@ body); active tier **15.041 s**. The earlier full local keyring CI remains valid
 for its unchanged implementation; it was not rerun for the new fixture-only
 deadline and service-graph tests. Exact-head/merge CI on publication remains
 required and must not be replaced by the earlier partially passing run.
+
+## Exact-kernel interrupted OverlayFS recovery
+
+Starting HEAD `059afe4f3bad7ed435040edf66d057c2c17c7927`; all four GitHub jobs
+passed run 33992627778. Primary question: does the accepted kernel recover a
+legitimate interrupted update while the initramfs preserves scoped validation?
+Layer: initramfs/storage predicate, R3 exact-runtime mismatch. No phone contact,
+candidate issuance, signing, kernel rebuild or live-storage mutation is needed.
+
+Audited retained clean source `359318de534f196c1281de7195fbf5868c6f7333`,
+OverlayFS tree `4e95f67c41c99df570a1bf355c7af3bd10b9dd38`: `ovl_tempname`
+uses `#%x`; `ovl_whiteout` caches and hardlinks character-0:0 whiteouts;
+`ovl_workdir_create` invokes cleanup on an existing nonpersistent workdir.
+The exact V11 kernel SHA-256 is
+`bdceaa516cafbe276179344c8d55d78f20319e7cb3f3375498536fca37879806`.
+Its actual QEMU behavior, not merely source similarity or host Linux, proves
+the tested recovery below.
+
+Fail-first **40.255 s**: the guest deletes a lower file through OverlayFS,
+syncs the filesystem and performs a VM-only SysRq reset. `dumpe2fs` confirms
+`needs_recovery`; next boot records ext4 `recovery complete`. The real retained
+`work/work/#3` is mode 000, character 0:0, with **two links**. Source guard
+rejects it; the kernel successfully cleans it. An additional missing runtime
+sysinit target directory was a harness omission, independently corrected.
+The manually created mode-600 host fixture was not used to broaden admission.
+
+Production change permits only root-owned mode-000 character-0:0 entries with
+canonical 1–8 digit lowercase-hex names. All existing outer-directory checks
+remain. No shell deletion is introduced; the kernel removes its scratch link.
+Symlink, dangling link, regular file, subdirectory, hidden entry, noncanonical
+name, wrong device, wrong mode and wrong owner are rejected without deletion.
+Exact storage UUID/geometry/write windows, signatures and fallback are unchanged.
+
+Unsigned fixture SHA-256
+`f863ae87ff7b22b858690be58309344e0514bd6d1261dc5a5229ee50fe65e710`
+was generated in **1.441 s**, changing only init. After-fix QEMU **PASS 44.040 s**:
+prepare 2.780 s, recover 8.064 s, corrupt-superblock refusal 2.409 s. Kernel
+whiteout cleanup, legitimate etc-only/independent markers and malformed-marker
+refusal pass. Inputs include exact retained Arch cache, not a synthetic copy;
+the rest of the root is a disposable fixture, not a full Arch/systemd boot.
+No input image is mounted writable or copied wholesale.
+
+The integrated runner additionally verifies var-only interruption, clean
+post-unmount guard, read-only fsck, final input/source identities and reports
+missing prerequisites as BLOCKED. It is exposed through `rog5-dev` and F01.
+Two integration regressions failed before adding the command and `{rootfs}`
+binding (0.007 s); all 17 acceptance tests pass afterward in **0.534 s**.
+Final integrated execution and frozen full CI are still pending; no coherent
+release qualification is claimed from earlier unsigned component results.
+
+Final integrated QEMU **PASS 76.421 s**, including a second hash of all exact
+inputs. Prepare 2.704 s, recover 10.962 s, corrupt refusal 2.217 s; var-only
+interruption, post-unmount guard and read-only e2fsck pass. No source/input
+changed while this test ran. Extra missing-runtime and F01 binding tests bring
+the focused acceptance suite to 19 PASS in 0.534 s. The earlier two integration
+failures did not consume a phone cycle. Frozen full CI/publication follow.
+
+Read-only continuity at uptime 9209 s: same consumed V5 boot and authenticated
+SSH identity, core services active, Full/Good 100%, 30°C, 8.630 V, 0 µA, USB
+online. The sole failed service is the known undeployed keyring-refresh fix.
+Wi-Fi remains inactive. This does not substitute for the release soak or H03.
+
+Frozen source index tree `e2b456eaadee747ee1623a44f81154f2e993e023` passed
+the active tier in **15.528 s** and full local CI in **485.305 s**. No unstaged
+source changes existed at completion; only result documents changed afterward.
+Compared with the prior approximately 486 s full run, no material CI speedup
+is claimed. Historical optional retained-artifact skips are not device or
+release qualification. No kernel build was performed; exact-head/merge remote
+CI follows normal publication of this checkpoint.
+
+Read-only next-composition inventory confirms the Wi-Fi-soak record's retained
+Image `2649a272eb2a6814db6302630a585fcab3d4422802e774ec55a55cc489f629e1`,
+DTB `8b1250cefd69870662edb9131190f005f492b4c93c192ee7e2b89b9a121f22da`,
+and V3 archive `987d28c31b90516b88437321bc7b795e721f55c58cdc0b4b9770a00e64b4956c`.
+All 22 direct and 37 nested radio/dependency modules have one matching vermagic,
+`7.1.4-g1eea8970e87f`. The nested package includes ath11k/PCI/AHB, mac80211,
+cfg80211 and WCN power sequencing. This is not compatibility with current rescue
+g359, symbol/BTF verification or permission to retry the consumed V3 target.
+Use the retained coherent set with refreshed userspace and fresh reviewed
+execution identity for future tests; no kernel recompilation is justified by
+this inventory alone.

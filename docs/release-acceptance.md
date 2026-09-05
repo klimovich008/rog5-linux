@@ -60,6 +60,19 @@ The result records source, archive hash, commands, PID changes and timings.
 This host-systemd component is not exact target/deployed-unit qualification:
 **C02 remains BLOCKED**, and no component PASS is imported into release results.
 
+F01 uses `rog5-dev check-overlay-recovery --kernel EXACT_IMAGE --target-archive
+EXACT_ARCHIVE --root-image RETAINED_EXT4 --output PRIVATE_NEW_DIRECTORY`.
+It runs three networkless QEMU guests with the supplied release kernel, sealed
+BusyBox and archive functions. A real OverlayFS deletion followed by a VM-only
+reset leaves a journal-pending disposable 64 MiB ext4 disk. Recovery must replay
+the journal, admit only the kernel's cached whiteout, reject unrelated entries,
+preserve independent interrupted-update markers and pass read-only fsck.
+A separate corrupted copy must fail mounting. The protected virtual disk and
+all input hashes remain unchanged. The 240 s row allowance covers three 45 s
+guest bounds plus hashing/setup/cleanup. No physical crash is injected; this
+does not prove UFS hardware, whole-systemd startup or R01. No prerequisite or
+older component result is silently treated as a final-release PASS.
+
 ## Required outcomes
 
 | IDs | Outcome | Current coverage / next step |

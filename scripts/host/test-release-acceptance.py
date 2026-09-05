@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Offline acceptance bookkeeping regressions; no device or shared state."""
 import copy
+import contextlib
 import importlib.util
+import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SOURCE = Path(__file__).with_name('release-acceptance.py')
 SPEC = importlib.util.spec_from_file_location('acceptance', SOURCE)
@@ -16,6 +20,55 @@ SPEC.loader.exec_module(M)
 
 
 class AcceptanceTest(unittest.TestCase):
+    def test_overlay_recovery_is_discoverable_without_starting_qemu(self):
+        result = subprocess.run([str(M.REPO/'scripts/host/rog5-dev'),
+                                 'check-overlay-recovery', '--help'],
+                                capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for option in ('--kernel', '--target-archive', '--root-image', '--output'):
+            self.assertIn(option, result.stdout)
+
+    def test_retained_root_binding_reaches_runner_without_source_substitution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            test = copy.deepcopy(self.contract['tests'][1])
+            test['commands'] = [[sys.executable, '-c',
+                                'import sys; print(sys.argv[1])', '{rootfs}']]
+            release = dict(artifact_paths=dict(kernel='/kernel', initramfs='/archive',
+                                              rootfs='/exact-retained-root'))
+            row = M.run_one(test, Path(tmp), release)
+            self.assertEqual(row['status'], 'PASS', row)
+            self.assertEqual((Path(tmp)/'A02.log').read_text().strip(), '/exact-retained-root')
+
+    def test_overlay_missing_runtime_is_blocked_without_launching_commands(self):
+        spec = importlib.util.spec_from_file_location(
+            'overlay_test', SOURCE.with_name('test-qemu-overlay-recovery.py'))
+        overlay = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(overlay)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifact = root/'input'
+            artifact.write_bytes(b'not executed')
+            argv = ['overlay', '--kernel', str(artifact), '--target-archive', str(artifact),
+                    '--root-image', str(artifact), '--output', str(root/'result')]
+            previous_umask = os.umask(0o022)
+            try:
+                with mock.patch.object(sys, 'argv', argv), \
+                        mock.patch.object(overlay.shutil, 'which', return_value=None), \
+                        mock.patch.object(overlay.subprocess, 'run') as run, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(overlay.main(), 77)
+                    run.assert_not_called()
+            finally:
+                os.umask(previous_umask)
+            self.assertEqual(json.loads((root/'result/result.json').read_text())['status'], 'BLOCKED')
+
+    def test_f01_executes_exact_receipt_and_preserves_deadline(self):
+        test = next(row for row in self.contract['tests'] if row['id'] == 'F01')
+        self.assertEqual(test['commands'], [['python3', 'scripts/host/test-qemu-overlay-recovery.py',
+            '--kernel', '{kernel}', '--target-archive', '{initramfs}',
+            '--root-image', '{rootfs}', '--output', '{test_output}']])
+        self.assertEqual(test['deadline_seconds'], 240)
+
     def test_wifi_restart_component_is_discoverable_without_starting_units(self):
         result = subprocess.run([str(M.REPO/'scripts/host/rog5-dev'),
                                  'check-wifi-restart', '--help'],
