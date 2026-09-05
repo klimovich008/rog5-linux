@@ -137,6 +137,15 @@ the [roadmap](../ROADMAP.md) holds later work.
 
 ## Active recovery checkpoint
 
+**Next, unconsumed:** `headless-acceptance-rescue-v3` packages the startup-phase
+diagnostics and current-boot P2/SSH-identity watchdog correction from `e6966506`.
+All four source GitHub jobs passed (33966699057). Signed bundle and RAM-wrapper
+twins match; packaging took 12.936 s with unchanged kernels, DTB and modules.
+The final wrapper's sealed verifier passed in 3.771 s. Its canonical claim row
+binds the exact artifacts; no claim has been entered and no phone boot occurred.
+Connected admission remains separate. The one question is which persistent-state
+startup phase prevents pinned SSH. Display/radio remain outside this rescue.
+
 Registry closure is corrected; all four GitHub jobs passed for `17d7fbb6`
 (run 33948165386). See the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md)
 for historical fixes and exact test timings. Current acceptance is incomplete:

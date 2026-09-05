@@ -688,3 +688,31 @@ diagnostic checkpoint 480.168 s). Source remained fixed at dirty-tree digest
 over `35f15179f60b4810671896d7537b47af7aecc9ad`. Only result documentation is
 added afterward. No unchanged-source QEMU or full local run was repeated.
 The exact-head publication result and a new connected preflight remain required.
+
+## Fresh identity-gated rescue packaging
+
+All four GitHub jobs passed at source `e6966506e987a9b7681ef118bd6f001726c4855c`
+(33966699057): head-exact, merge-compat, QEMU and candidate publication.
+Fresh `headless-acceptance-rescue-v3` packages that source's verified archive.
+Its one question remains the persistent-state startup phase behind missing
+pinned SSH; R2/R3 diagnostics and R8 identity-gated rollback are now paired.
+No distribution or kernel change is inferred from the retained failure.
+
+Signed target bundles and RAM-wrapper twins match. Packaging took **12.936 s**
+(v2: 28.690 s), with no kernel compilation. Final assembled wrapper verification
+took **3.771 s** (v2: 3.767 s): exact recovery/loader and target bytes, Ed25519
+signature, artifact hashes, module metadata and 600/900-second target/rollback
+plan. The unlocked RAM wrapper retains the reviewed AVB NONE outer format;
+it is the embedded target manifest that is signed. Output footprint is about
+664 MiB. Full source CI is explicitly reused from the unchanged correction
+(502.802 s), not represented as a new registry-only full run.
+
+The canonical claim record is generated from the verified artifacts and binds
+the source commit. Consumer tests pass (18 cases, 0.145 s), receiver tests pass
+(16 cases, 0.091 s), and admission/registry closure passes (31 cases, 3.407 s
+wall clock). No duplicated executable family branch was added. Adding the
+expected BOOT_CLAIMED record is not an actual claim transition or boot authority.
+No claim/anchor, phone execution, flash or storage operation occurred during
+packaging. Publication and connected admission of this exact registry checkpoint
+remain separate; v1/v2 remain permanently consumed.
+The registry/documentation checkpoint's active tier passed in **11.134 s**.

@@ -13,6 +13,26 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'headless-acceptance-rescue-v3': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=headless-acceptance-rescue-v3\n'
+        b'candidate=headless-acceptance-rescue-v3\n'
+        b'target_bundle=headless-acceptance-rescue-v3\n'
+        b'manifest_sha256=d73b01e9be0ab25525255a58243b6eea501153e248e78ef2d9075d117c7365d7\n'
+        b'boot_image_sha256=43ec5e4ed8a7731a569538e51243d4378450b8789578a40201070f071cf4c06f\n'
+        b'recovery_initramfs_sha256=fc6e375e963b49b132bbdf16afaeb2e5fb92a0f26eca9f6f9f55aa7b1bfb4a06\n'
+        b'verification_source_commit=e6966506e987a9b7681ef118bd6f001726c4855c\n'
+        b'serial=M5AIKN00F0353YH\n'
+        b'product=lahaina\n'
+        b'usb_path=1-1.2\n'
+        b'expected_slot=b\n'
+        b'recovery_storage=read-only\n'
+        b'target_storage=accepted-v11-service-state-only\n'
+        b'flash=forbidden\n'
+        b'execution=fastboot-boot-ram-bundle\n'
+        b'attempt_limit=1\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'headless-acceptance-rescue-v2': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=headless-acceptance-rescue-v2\n'
