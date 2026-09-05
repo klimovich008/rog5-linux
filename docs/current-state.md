@@ -115,7 +115,28 @@ working pinned SSH and active core services. Battery is 100% Full/Good, 30°C,
 8.630 V, 0 µA; USB input is online. Only the known keyring-refresh unit is failed.
 This is continuity evidence, not a combined storage/network soak qualification.
 
-Next: publish keyring validation and compose the coherent successor.
+Keyring checkpoint published as `3dc02580aa276cbd223ca511bed49655eb143bae`;
+CI run 33991878159 passed exact-head and publication, but merge compatibility
+failed in the unrelated fetch-concurrency fixture (700 ms success deadline).
+A 750 ms fsync injection reproduces exact exit 54; only that fixture's successful
+fetch now has a 3 s budget. Production deadlines and timeout tests are unchanged.
+Focused fetch suite passes all 35 tests in 9.570 s; active tier passes in
+15.041 s. No candidate was issued.
+An actual user-systemd WPA/DHCP restart component passes in 1.380 s: restarting
+WPA restarts DHCP, hardware activation stays at one, and core identities remain
+unchanged. No production dependency fix is needed. F02 still requires real
+target address/SSH recovery, not fixture daemon success.
+
+The disposable host OverlayFS test confirms the pre-mount guard rejects the
+retained stale-whiteout shape while Linux cleans it on mount. After matching
+the phone's observed index/redirect/metacopy-disabled settings, post-unmount
+guard, immutable-lower hash and read-only fsck all pass. Earlier host-fixture
+failures are retained. This is not target-kernel or journal-replay qualification;
+owned mounts/loops are detached and production storage guards are unchanged.
+
+Next: publish the CI fixture correction, qualify disposable-image recovery and
+compose the coherent server successor. Do not assume the old Wi-Fi modules
+(kernel `7.1.4-g1eea8970e87f`) match the current rescue kernel.
 Finish final archive/root composition and the remaining
 service, journal, Wi-Fi, reboot, soak and isolated physical rollback tests.
 Do not treat V5's component passes as an installed release PASS.

@@ -1134,9 +1134,8 @@ class NativeRecoveryFetchTest(unittest.TestCase):
                     payload=mutated,
                 )
 
-    def test_diagnostic_profile_tolerates_slow_local_publication(self) -> None:
-        if self.runner:
-            self.skipTest("native filesystem-delay fixture")
+    def slow_local_publication(self):
+        """Inject one bounded directory fsync stall in the native fixture."""
         shim = self.work / "slow-fsync.c"
         shim.write_text("""#define _GNU_SOURCE
 #include <dlfcn.h>
@@ -1157,8 +1156,19 @@ int fsync(int fd) {
         library = self.work / "slow-fsync.so"
         subprocess.run(["gcc", "-shared", "-fPIC", str(shim), "-ldl",
                         "-o", str(library)], check=True)
-        with mock.patch.dict(os.environ, {"LD_PRELOAD": str(library)}):
+        return mock.patch.dict(os.environ, {"LD_PRELOAD": str(library)})
+
+    def test_diagnostic_profile_tolerates_slow_local_publication(self) -> None:
+        if self.runner:
+            self.skipTest("native filesystem-delay fixture")
+        with self.slow_local_publication():
             self.test_diagnostic_profile_requires_network_root_trust_tuple()
+
+    def test_concurrent_helper_tolerates_slow_local_publication(self) -> None:
+        if self.runner:
+            self.skipTest("native filesystem-delay fixture")
+        with self.slow_local_publication():
+            self.test_concurrent_helper_is_excluded_without_second_fetch()
 
     def test_diagnostic_profile_requires_network_root_trust_tuple(self) -> None:
         base = BundlePayload.manifest_fields(
@@ -1801,7 +1811,10 @@ int fsync(int fd) {
             connection.shutdown(socket.SHUT_WR)
 
         with RawFetchServer(hold_first) as first_server:
-            first = self.start_helper(root, first_server.port)
+            # This success path waits for a competing process and fsyncs the
+            # publication. Test lock exclusion, not a subsecond CI disk SLA.
+            # Dedicated timeout cases and the rejected contender stay short.
+            first = self.start_helper(root, first_server.port, timeout_ms=3_000)
             self.assertTrue(first_blocked.wait(timeout=3))
             with RawFetchServer(None) as second_server:
                 second = self.invoke(

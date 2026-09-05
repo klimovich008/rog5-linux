@@ -1178,3 +1178,88 @@ ad-hoc read assumed `/sys/class/power_supply/battery`; that optional path was
 absent. Inventory instead found `qcom-battmgr-bat`, without changing the phone.
 This did not affect a candidate or production observer and is not a hardware
 failure. No new boot, signing, storage mutation or combined-soak PASS is implied.
+
+Keyring publication: `3dc02580aa276cbd223ca511bed49655eb143bae`, normal push to
+the existing branch. Exact-head/merge run 33991878159 is separate from local CI.
+
+## WPA/DHCP restart hypothesis (disproved offline)
+
+The missing explicit `PartOf` edge raised the possibility that restarting WPA
+would leave DHCP stopped. `rog5-dev check-wifi-restart` exercises the actual
+shipped dependency edges under user systemd, with uniquely named units and
+fixture radio/WPA/DHCP/core executables. **PASS 1.380 s**: WPA restart gives both
+daemons new invocation IDs; DHCP restart leaves WPA unchanged. Radio executes
+exactly once, core invocation/PID identities stay unchanged, and state teardown
+does not occur. All owned unit links were removed and unload verified.
+The production graph was not changed: the hypothesis did not reproduce.
+
+This test replaces hardware/network daemons and skips their already-qualified
+preparation/activation conditions. It does not prove a real lease, association,
+SSH reconnection, target systemd version or complete F02 PASS. The new command
+exists to preserve the discriminating evidence and prevent speculative graph
+changes, not to replace device validation.
+
+Independent bounded read-only F01 mapping found directory/mocked journal tests,
+not an actual replay/remount qualification. The existing historical stale `#b`
+OverlayFS work entry remains a relevant retained failure fixture. Next storage
+test must use disposable ext4 images and real OverlayFS; no phone crash or
+live-storage corruption is needed or authorized by that offline check.
+
+The WPA restart command-discovery tests pass (15 tests, 0.458 s); active tier
+passes in 15.143 s. No production WPA/DHCP unit changed.
+
+## Merge-CI fixture deadline regression
+
+Run 33991878159: head-exact PASS (6m19s), candidate-publication PASS (1m4s),
+merge-compat FAIL (6m1s), QEMU skipped. The failure is in
+`test_concurrent_helper_is_excluded_without_second_fetch`: exit 54,
+`cannot normalize staged bundle`. No release/candidate admission follows a
+partially passing run.
+
+The fixture paused its first helper while exercising a concurrent rejected
+helper, but left the successful fetch on the general 700 ms test budget.
+Reusing the existing bounded fsync-delay shim reproduced exactly exit 54 with
+a single 750 ms publication delay (fail-first 1.476 s). The successful first
+fetch now receives 3000 ms, while the contender remains at 250 ms and dedicated
+timeout tests remain unchanged. No production C, timing contract, signature,
+lock, cleanup or one-use behavior changed. Focused slow-publication/concurrency/
+timeout tests: three PASS in 2.628 s. This supports a fixture-budget diagnosis;
+the original hosted runner did not record the precise slow syscall duration.
+
+## Disposable OverlayFS workdir evidence (partial, not F01 PASS)
+
+No phone was contacted by this experiment. A new 64 MiB ext4 image, private
+mount namespace and immutable lower recreate the historical `work/work/#b`
+character-device whiteout. The current production pre-mount function rejects
+it; host Linux `6.16.12-valve24.5-1-neptune-616-gb2f7cfe85e45` successfully
+mounts the overlay and removes that entry. This is evidence against treating
+every stale work entry as corruption, not authority to relax arbitrary paths.
+
+The first fixture could not mount: the host's case-insensitive-capable lower
+filesystem was unsupported. The revised fixture uses read-only tmpfs lower;
+mount and whiteout cleanup succeed, but the later source guard rejects the
+host-created `work/index` directory. Both runs are retained with nonzero exit
+status. Read-only debugfs confirms empty `work/work` mode 0000/link count 2
+and the separate index directory; loop detachment is verified. Do not claim
+target behavior, real journal replay, full readback/fsck completion or F01 PASS.
+The next experiment must bind the target's actual OverlayFS feature defaults
+and exact release shell instead of silently accepting host-kernel differences.
+
+Read-only pinned SSH at uptime 7755 s confirmed the same V5 boot, target
+OverlayFS parameters `index=N`, `redirect_dir=N`, `metacopy=N`, and systemd
+260.2-2-arch. Battery remains Full, 30°C, 8.630 V, USB online. A third disposable
+experiment explicitly matched those feature settings: stale whiteout rejected
+by the source guard, successful host-kernel mount/cleanup, post-unmount guard
+PASS, unchanged lower/source hashes, and read-only e2fsck PASS after loop
+detachment. Final disposable image SHA-256:
+`51883484efce07ba94579cee494308b0b76bb9909cf73829e1e8a86a09ea393e`.
+Exit 0, with all owned mounts/loops detached and all three fixtures retained.
+This is a narrowly successful host reproduction; it still does not prove real
+journal replay or behavior of the phone's 7.1.4 kernel. The next source fix must
+review that kernel's cleanup semantics and reject unrelated/aliased work entries.
+
+Final test-only checkpoint: fetch suite 35 PASS, **9.570 s** total (9.444 s test
+body); active tier **15.041 s**. The earlier full local keyring CI remains valid
+for its unchanged implementation; it was not rerun for the new fixture-only
+deadline and service-graph tests. Exact-head/merge CI on publication remains
+required and must not be replaced by the earlier partially passing run.

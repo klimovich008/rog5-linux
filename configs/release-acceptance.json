@@ -322,7 +322,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Idempotent preparation passes real-file fixtures; an actual systemd WPA/DHCP restart transaction with address/SSH recovery is still required."
+      "blocker": "Idempotent preparation passes real-file fixtures; rog5-dev check-wifi-restart proves host systemd restart propagation and one radio activation with daemon fixtures. Actual target WPA/DHCP address/SSH recovery remains required."
     },
     {
       "id": "F03",
