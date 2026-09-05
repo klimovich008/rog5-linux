@@ -770,3 +770,25 @@ target USB removal: readiness remained invalidated and the result is FAIL, but
 the receiver stayed alive to capture fastboot. All four owned cleanup steps
 (route, firewall, profile, address) passed. No transport exception was waived.
 No authenticated charging result exists; the voltage rise alone is not H03.
+
+## V4 corrected handover packaging
+
+Fresh `headless-acceptance-rescue-v4` packages the unchanged verified archive
+from `0b4e821635fcb303495b003679cd7cc497de8223`. R2/R3 question: does corrected
+handover restore persistent state and pinned SSH? Packaging took **12.122 s**
+(v3: 12.936 s); signed bundle and RAM-wrapper twins match. No kernel compilation.
+Final sealed verification passed in **3.769 s**: wrapper embedding, signed
+manifest/artifact hashes, exact target/recovery plan and module metadata.
+The outer RAM image retains the reviewed AVB NONE format, not a signed AVB chain.
+Private output footprint is about 664 MiB. No retained artifact was deleted.
+
+Full local source CI is reused explicitly (499.971 s). Retained-root preparation
+and unit evidence is reused only for its unchanged function/helper/root inputs;
+new joined handover/state tests cover the changed boundary. This is not full A01
+or physical qualification. Claim/receiver/admission tests pass (18/16/31 cases,
+3.929 s combined). Registry data is generated from the verified artifacts.
+No claim entry, boot, flash or phone-storage action occurred during packaging.
+Exact-head publication and connected admission remain separate.
+The registry/documentation active tier passed in **11.394 s**.
+All four source CI jobs passed at `0b4e8216` (33969178949); these are not
+substituted for the registry checkpoint's connected publication gate.

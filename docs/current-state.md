@@ -137,6 +137,15 @@ the [roadmap](../ROADMAP.md) holds later work.
 
 ## Active recovery checkpoint
 
+**Next, unconsumed:** `headless-acceptance-rescue-v4` packages the narrow
+handover/state-path correction from `0b4e8216` (all four source CI jobs passed,
+33969178949). Signed bundle/RAM-wrapper twins
+match (12.122 s); the final sealed signature/composition verifier passed (3.769 s).
+Both kernels, DTB, modules and retained Arch root are unchanged. The canonical
+claim record binds exact artifacts; adding it does not consume a claim.
+Publication and connected admission remain required before one RAM-only boot.
+Question: does corrected handover restore persistent-state and pinned SSH?
+
 **Consumed:** `headless-acceptance-rescue-v3` packages the startup-phase
 diagnostics and current-boot P2/SSH-identity watchdog correction from `e6966506`.
 All four source GitHub jobs passed (33966699057). Signed bundle and RAM-wrapper
@@ -157,8 +166,7 @@ the state helper correctly requires it absent. A joined regression reproduces
 the conflict. The pending narrow fix creates only the actual handover destination,
 preserving strict state-path ownership. Full local CI passed in 499.971 s;
 the new unsigned archive changes only init, with 19 modules unchanged. The fix
-is not deployed. Display/radio remain
-outside this rescue; no new candidate is being built during this live cycle.
+is not deployed. Display/radio remain outside this rescue; v3's capture is over.
 
 Registry closure is corrected; all four GitHub jobs passed for `17d7fbb6`
 (run 33948165386). See the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md)
