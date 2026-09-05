@@ -135,109 +135,53 @@ the complete pre-build/live checklists before a successor. Historical checkpoint
 details remain in Git and the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md);
 the [roadmap](../ROADMAP.md) holds later work.
 
-Registry correction `bf5f2e31` passed full local CI (470.670 s) and exact-head,
-merge, publication and QEMU (33935980881). Acceptance checkpoint `21b2375c`
-also passed GitHub run 33937660322. Its local full run failed on two controller
-response timeouts; focused replay and all 95 controller tests passed afterward.
-The failed full run is not relabeled green.
+## Active recovery checkpoint
 
-The executable acceptance contract exists. The latest source-only matrix at
-`0daad254` is seven PASS, seven BLOCKED, eleven NOT RUN—not a qualified release.
-It does not import the earlier rescue's physical results. The corrected unsigned
-headless archive reuses the retained kernel and all 19 modules. Exact-archive
-watchdog QEMU cases pass. Real sealed runtime preparation against the retained
-read-only Arch image now passes systemd, key-only SSH policy and unit checks.
-The reconstructed image is a verified sparse-derived inspection input, not
-byte-identical to the pre-sparse original or a new restoration authorization.
+Registry closure is corrected; all four GitHub jobs passed for `17d7fbb6`
+(run 33948165386). See the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md)
+for historical fixes and exact test timings. Current acceptance is incomplete:
+the latest standalone offline matrix has seven PASS, seven BLOCKED and eleven
+NOT RUN. No physical results are merged into that source-only matrix.
 
-**Do not execute the old prepared fallback-only rescue:** it selects unchanged
-signed V11, whose watchdog disarms before handover and lacks the early health
-predicate. Preserve its unused twins and claim. A narrow RAM-embedded signed
-bundle branch is now implemented in the shared loader and passes focused
-normal/sealed-BusyBox tests. It avoids selector/mount/trial writes and retains
-geometry, all-storage RO, signature, Haven and single-execute checks.
-The corrected target is now signed and exact sealed ARM verification passes.
-The RAM wrapper twins are byte-identical (`dd96e3aa…`), built without a kernel
-recompile. Its canonical registry row is `headless-acceptance-rescue-v1`;
-packaging/registry inclusion grants no execution. It was subsequently consumed
-for one RAM-only trial: UFS/root handover passed, but the expected pinned SSH
-identity did not appear within 300 seconds. **Never retry this candidate.**
+**Consumed:** `headless-acceptance-rescue-v1` reached root handover and an SSH
+listener, but it offered the wrong host key and failed the 300-second pinned
+SSH gate. Strict verification was never bypassed. No authenticated charging
+result exists. The target remained enumerated past the watchdog interval; this
+does not distinguish readiness-based disarm from watchdog failure. Full capture
+and owned host-network cleanup completed. Never retry this candidate.
 
-Recovery correction `0afbc63e` passed full local CI (478.334 s) and GitHub
-33940190642 exact-head/merge/publication/QEMU. The current host capture and
-RAM-family closure changes require their own frozen checkpoint checks.
-`rog5-dev capture-rescue` now establishes the diagnostic address, firewall and
-listener before boot, verifies a live readiness response, and preserves the
-last stage through disconnect. A real 2.699 s host rehearsal cleaned up all
-owned changes; a disposable veth test proved the ARP/direct-route receive path.
-These are host tests, not a phone or final-release H01 PASS.
+**Prepared, not executed:** `headless-acceptance-rescue-v2` contains the verified
+startup observer and SSH-identity size correction. Its one question is which
+post-handover P2/state/identity service prevents pinned SSH acceptance. The
+observer is optional, sends bounded service/failure evidence through the existing
+prestarted NCM receiver, and changes neither watchdog nor acceptance behavior.
+Its output is unauthenticated diagnostics, never an SSH or health PASS.
 
-Capture/closure checkpoint `eef710f7` passed full local CI (485.693 s) and
-GitHub 33942832456 (exact-head, merge, publication, QEMU). Its RAM-only trial
-reached `switch-root PASS` and an SSH listener. The listener continued offering
-a different key; strict verification was never bypassed. No authenticated
-health/charging result exists. The target remained enumerated beyond the
-900-second target watchdog interval: this does not distinguish readiness-based
-disarm from watchdog failure. The full 1380.783-second capture completed and
-owned route/firewall/profile/address cleanup passed. The phone remained in the
-target gadget mode, without pinned SSH. Physical fastboot re-entry is requested;
-do not issue another execution against this consumed record.
+Signed target and RAM-wrapper twins match; packaging took 28.690 s without
+recompiling either kernel. The final wrapper's sealed ARM verifier passed in
+3.767 s, including embedded bytes, signature, artifact hashes and target plan:
+600-second target, 900-second rollback. The canonical registry binds wrapper
+`b0cb5a31…`, recovery archive `13ba0b6f…`, and manifest `a49507e8…`.
+Full hashes live in the single repository-owned claim record. Registry inclusion
+does not consume a claim or replace connected admission.
 
-Independent offline regressions now expose valid Ed25519 key comments rejected
-by fixed 399/92-byte metadata checks, and slow health clients starving other
-requests. Source fixes pass focused tests; the key fix also passes exact sealed
-BusyBox plus retained Arch ARM ssh-keygen. Neither is deployed. The retained
-Arch hostname is `alarm`, so key-length rejection is **not proven** to explain
-the live mismatch. Do not issue a blind key-only successor: obtain the exact
-post-handover P2/state/identity failure through the next scoped diagnostic path.
-Display remains optional; no kernel defect is established.
+Evidence explicitly reused because relevant bytes are unchanged: the unsigned
+target archive's seven QEMU watchdog/handover cases; exact retained-Arch runtime
+preparation/unit checks (31.786 s); all 19 module identities and load-order
+metadata. BTF/symbol/hardware-load proof and final complete A01 remain separate.
+The retained root is a verified sparse-derived inspection input, not a new
+restoration image. No root/kernel/module rewrite was needed for this packaging.
 
-Follow-up source checkpoint `0daad254` passed the active tier (11.087 s),
-offline acceptance dispatch (19.122 s, correctly BLOCKED overall), and one full
-local CI (479.828 s). GitHub 33944557168 exact-head, merge, publication and QEMU
-all passed. Do not rerun unchanged full local CI.
+Full local CI passed in 480.918 s on the frozen registry checkpoint.
+Next: complete exact-head publication checks, then
+verify fresh fastboot identity/slot/power, establish capture, and admit at most
+one v2 RAM-only execution. The last host descriptor still identifies persistent
+Linux, not fastboot; pinned SSH is unavailable. Physical fastboot re-entry is
+required. Do not interpret cached descriptors or old voltage as current health.
+No live claim is created or consumed and no storage/flash operation is planned.
 
-The next source-only diagnostic now observes P2, service-state, SSH identity
-and early SSH through the existing prestarted NCM receiver after handover.
-It reports service properties and bounded helper failure text, not key contents.
-Journal absence/error is explicit and never proof of no failure. Kernel-transport
-journal queries are required because the helpers log through `/dev/kmsg`.
-Its lifetime uses the unchanged target rollback budget; no core service depends
-on it, and it neither changes acceptance nor forces reboot. Focused producer,
-receiver and archive-composition tests pass; exact sealed ARM replay also passes.
-This diagnostic is not deployed or issued. Physical fastboot re-entry remains
-necessary because pinned SSH is unavailable. Complete its frozen checks and
-exact assembled runtime verification before preparing a successor.
-
-Observer checkpoint `42c729d8` passed full local CI (479.663 s) and all GitHub
-33945569616 jobs. All seven watchdog/handover cases passed against its unsigned
-archive; all 19 modules are unchanged. Exact archive/retained-Arch preparation
-then exposed a host checker omission: its synthetic environment lacked the
-observer lifetime variable. The checker now supplies an explicitly labeled
-unit-generation fixture, checks observer bytes and verifies its generated unit.
-Two fail-first regressions pass; exact ARM/root replay passes (31.786 s), using
-unchanged archive bytes. This does not verify deployed timeout binding or
-complete A01. Read-only host loop mounts were cleaned up. No successor is signed
-or issued, and no further phone boot has occurred.
-
-Host composition fix `df871166` passed all GitHub 33946155200 jobs. The next
-acceptance-driven source fix addresses WPA restart preparation: repeated
-ExecStartPre previously failed on its existing directory. Exact unchanged
-runtime credentials can now be reused, with real owner/mode/link/content checks;
-changed secrets and partial state are refused without overwrite. Only the same
-interface link-up is reasserted, not hardware activation. Real-file and sealed
-BusyBox regressions pass. Full F02 remains BLOCKED on the actual systemd
-WPA/DHCP/address/SSH restart transaction; this source fix is not deployed.
-
-Checkpoint `a8558244` passed all GitHub 33946711767 jobs. The late-SSH component
-now runs a real host systemd/sshd restart with sealed BusyBox rollback: healthy
-acceptance prevents reboot, stale acceptance requests it (10.875 s). C02 stays
-BLOCKED on exact target systemd/deployed-unit binding; see the acceptance
-incident for fixture limitations. No kernel rebuild or phone attempt followed.
-
-Checkpoint `a7f088c5` passed all GitHub 33947683439 jobs. The rescue composition
-checker now validates sealed power/UFS dependency order and records per-module
-identities. All 19 retained modules pass (final replay 0.507 s).
-This closes a metadata-check gap, not BTF/symbol/hardware-load or final-wrapper
-qualification. No timeout, module or kernel bytes changed. Physical fastboot
-re-entry and exact successor composition remain the next recovery gates.
+Preserve the old unused fallback-only rescue as evidence, but do not execute it:
+its unchanged signed V11 watchdog predates the corrected handover predicate.
+The installed stock-A rescue and signed V11 fallback remain untouched. Wi-Fi
+restart preparation and healthy late-SSH timer guards are source-tested, not
+deployed; C02/F02 await exact target restart qualification. Display stays optional.

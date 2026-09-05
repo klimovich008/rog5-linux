@@ -431,3 +431,40 @@ after that refinement. GitHub **33947683439** completed all four jobs for
 `a7f088c5`; this is the previous checkpoint, not CI for the new module check.
 Frozen active tier passed in **10.320 s**; no kernel/archive rebuild or full
 local CI repeat for this supporting host-only composition check.
+
+**Prepared v2 recovery checkpoint:** all GitHub 33948165386 jobs passed for
+`17d7fbb663c696a9e8047f126cb3d25f4df65230`. The next signed bundle and RAM-only
+wrapper are now packaged as `headless-acceptance-rescue-v2`, not yet executed.
+The primary question is which post-handover P2/state/identity service prevents
+pinned SSH acceptance. The existing optional startup observer supplies the
+missing failure channel; no kernel, DTB, module, radio threshold or storage
+scope changes are included.
+
+One private build specification generated the successor recipe. The reviewed
+signing/repack workflow produced byte-identical target and wrapper twins in
+**28.690 s**, including focused checks. Both retained kernels were reused;
+there was no kernel compilation. Retained packaging/inspection occupies about
+664 MiB; 37 GiB host space remained. This is retained usage, not a measured
+peak. Private material and proprietary artifact bytes stay outside Git.
+
+The final wrapper was unpacked independently. Embedded recovery/kernel/target
+bytes and the exact generated RAM executor match. Its actual sealed ARM
+verifier authenticated the signature, hashes and target plan in **3.767 s**:
+600-second target budget, 900-second rollback, one exact v2 bundle token.
+All 19 sealed module metadata/dependency checks also pass. Wrapper
+`b0cb5a31…`, recovery `13ba0b6f…`, manifest `a49507e8…` are now bound in one
+canonical registry row generated from that verified record; no live claim
+file was created or consumed. Existing all-family tests exercise the new row.
+
+Explicit reuse: target archive `ce1b0b11…dce1a`, accepted kernel/DTB and retained
+Arch bytes are unchanged, so their prior exact-archive watchdog and root
+preparation results remain supporting evidence. No passes from a different
+release are imported into the acceptance matrix. Full A01, live rescue/charging
+and final server qualification remain incomplete. The v1 consumed record and
+all old evidence are preserved. Source is frozen for one full local candidate
+checkpoint, followed by exact-head publication; no phone boot is part of it.
+
+Registry-focused checks passed in **3.719 s**. The frozen full local suite
+passed in **480.918 s**, once, ending with `PASS repository Linux ci tier`.
+No kernel/source edits occurred during that run. Exact-head/merge CI for the
+new registry publication remains separate; parent CI is not substituted.
