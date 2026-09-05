@@ -36,7 +36,10 @@ install_status_screen() {
 			cmp "$source" "$destination"
 	}
 	present=0
-	for path in screen-toggle.sh status-screen.sh power-buttond.py load-pwrkey \
+	# The common userspace bundle carries load-pwrkey even in headless mode.
+	# That dormant helper is not display opt-in; a real display set still
+	# requires it (and its exact metadata) below before any activation.
+	for path in screen-toggle.sh status-screen.sh power-buttond.py \
 		qcom-pon.ko \
 		units/rog5-status-screen.service units/rog5-power-button.service; do
 		if [ -e "$root/$path" ] || [ -L "$root/$path" ]; then
@@ -44,7 +47,7 @@ install_status_screen() {
 		fi
 	done
 	[ "$present" -eq 0 ] && return 0
-	[ "$present" -eq 7 ] || return 1
+	[ "$present" -eq 6 ] || return 1
 	for path in screen-toggle.sh status-screen.sh power-buttond.py load-pwrkey; do
 		[ -f "$root/$path" ] && [ ! -L "$root/$path" ] &&
 			[ "$(stat -c '%u:%g:%a:%h' "$root/$path")" = 0:0:755:1 ] ||

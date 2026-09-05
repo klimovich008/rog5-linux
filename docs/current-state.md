@@ -1,185 +1,127 @@
 # ROG5 current state
 
-Updated: 2026-09-05. Single authoritative handoff; measurements are dated
-evidence, not a claim of continuous monitoring.
+Updated: 2026-09-06. This is the authoritative handoff, not continuous monitoring.
 
-## Objective
+## Objective and boundaries
 
-Qualify one reliable standalone headless Arch Linux server release. The
+Qualify one reliable standalone headless Arch Linux server using the
 [acceptance contract](release-acceptance.md) and
-[test manifest](../configs/release-acceptance.json) define completion.
-Run `scripts/host/rog5-dev accept` for the results matrix. Missing, skipped or
-incompatible-release evidence cannot pass. Display is optional; V15 preparation
-stopped without signing or execution. Keep the existing goal and Arch root:
-the reproduced recovery failures were project composition/service defects.
+[test manifest](../configs/release-acceptance.json).
+Run `scripts/host/rog5-dev accept` for the matrix. Display is optional.
+Do not combine incompatible releases or count missing/skipped evidence as PASS.
+Keep Arch: the reproduced failures were project composition/service defects.
 
-## Running recovery and installed baseline
+Exact phone: ROG Phone 5 ZS673KS, `lahaina`, `M5AIKN00F0353YH`,
+anchored side USB `1-1.2`. Preserve stock slot A, official WW33
+`33.0210.0210.200`, as the verified charging/rescue route.
+[Charging restoration](asus-charging-recovery.md) is complete.
 
-- Exact phone: ROG Phone 5 ZS673KS, product `lahaina`, serial
-  `M5AIKN00F0353YH`, anchored side USB `1-1.2`.
-- Stock slot A: official WW33 `33.0210.0210.200`, verified charging/rescue.
-  [Charging restoration](asus-charging-recovery.md) is complete.
-- Installed slot B remains recovery `340f6392…`, selector-v2 primary
-  `persistent-native-root-wifi-overlay-v10`, signed
-  `persistent-native-root-v11` fallback. This is not the running RAM rescue.
-  Installed repeated-failure demotion/verification corrections are pending.
-- Running **consumed** RAM rescue: `headless-acceptance-rescue-v5`,
-  kernel `7.1.4-g359318de534f`,
+Preserve exact device/slot/topology/boot-chain, signatures, power/thermal gates,
+bounded storage/backup scope, independent rollback and permanent non-retry after
+COMMIT or ambiguity. No experimental flash or protected-data/GPT change.
+Destructive storage requires separately reviewed exact scope and explicit approval.
+Private credentials, raw evidence and artifacts stay outside Git; do not delete them.
+
+## Running rescue versus installed system
+
+- Running **consumed** RAM rescue: `headless-acceptance-rescue-v5`;
+  kernel `7.1.4-g359318de534f`;
   boot `c2149c4a-6ce4-47c6-9c3b-e3ca55ea43fb`. Never execute v1–v5 again.
-  Registry/publication `3f4f2e5f4898a061a24eea8df22b6851e2e494da`;
-  packaged source `adfe80d7b1d9dd301b12f46cb302b52508679633`.
-- Exact hashes belong to canonical claim records and private deployment receipts;
-  abbreviated hashes here are navigation only. Both kernels, DTB, 19 modules
-  and retained Arch root were reused; no experimental flash occurred.
-- P24 `arch_root_a`: immutable native RO lower/bundle store, `norecovery`.
-  RAM rescue uses a tmpfs root upper. P23's existing service-state image is
-  mounted on /persist. Only sda/sda23 were writable among 117 checked UFS nodes.
-  Installed primary additionally uses the bounded 16 GiB persistent root overlay.
-  Normal state writes/journal replay are not a zero-storage-write boot.
-- Normal pinned USB SSH: `10.77.0.2`, host alias `169.254.77.2`,
+- Installed slot B remains recovery `340f6392…`, selector-v2 primary
+  `persistent-native-root-wifi-overlay-v10` and signed
+  `persistent-native-root-v11` fallback. Installed demotion/verification
+  corrections are still pending; this is not the running RAM rescue.
+- P24 `arch_root_a` is the immutable native RO/norecovery lower and bundle store.
+  RAM rescue uses a tmpfs upper. Existing P23 service-state image is /persist.
+  Only sda/sda23 were writable among 117 checked nodes. Installed primary also
+  uses the bounded 16 GiB root-overlay image. Accepted state/journal writes are
+  not a zero-storage-write boot.
+- Pinned SSH: `10.77.0.2`, host alias `169.254.77.2`,
   fingerprint `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
-  Credentials/raw evidence remain private. Wi-Fi is intentionally inactive.
-  Tailscale service is active; this host lacks a mesh client/route, so remote
-  Tailscale reachability is not qualified.
+  Wi-Fi intentionally inactive. Tailscale service active; this host lacks a mesh
+  route/client, so remote Tailscale reachability is not yet qualified.
 
 ## Latest physical evidence
 
-V5 passed connected admission and its sole RAM boot: fastboot 12.820 s,
-pinned SSH 59.298 s. Actual SSH restart passed in 2.547 s with unchanged boot,
-P2/state/identity/Tailscale invocation IDs, readiness hashes and normal USB
-address. Deployed core unit hashes match the final signed archive.
+V5 sole RAM boot: fastboot 12.820 s, authenticated SSH 59.298 s.
+Late SSH restart passed in 2.547 s with unchanged boot/core identities.
+Watchdog acknowledged current-boot P2+identity at uptime 902.576 s.
+Capture completed in 1380.711 s, all four owned cleanup steps passed.
+Passive transport evidence is not authenticated acceptance.
 
-The bounded startup observer exited successfully. The deployed watchdog logged
-current-boot P2+identity acknowledgment at uptime 902.576 s. Capture completed
-in 1380.711 s; all four owned host cleanup steps passed. Passive capture remains
-NOT RUN for qualification, not an authenticated PASS. After cleanup, pinned
-SSH at uptime 1594 s confirmed all five core services active in the same boot.
-RAM-only USB transfers of 256 MiB each way passed in 7.429/6.659 s with matching
-hashes, unchanged boot and no new interface errors/drops. This is USB component
-evidence, not Wi-Fi or complete S02 qualification.
+256 MiB RAM-only USB transfers passed both ways in 7.429/6.659 s with matching
+hashes and no new interface errors/drops. This is not combined USB/Wi-Fi S02 PASS.
+A 600.615 s observation has 61 Full/Good 100%, 30°C samples, 8.632–8.635 V,
+0 µA, unchanged charge counter and USB online. H03 remains BLOCKED until
+full-battery regulation/noise criteria are declared before another run.
 
-A 600.615 s collection contains 61 samples: 100% Full/Good, 30.0°C,
-8.632–8.635 V, 0 µA battery current, unchanged 5116000 µAh counter;
-USB online with 500 mA input limit. This is full-battery/core-continuity data,
-not net-positive charging or formal H03 PASS. H03 remains BLOCKED pending a
-predeclared qualified regulation/current-noise interpretation.
+Latest read-only continuity: same V5 boot at uptime 12372 s, core services active,
+100% Full/Good, 29.9°C, 8.628 V, 0 µA, USB online. Only
+`archlinux-keyring-wkd-sync.service` is failed: its bootstrap wiring fix is not
+deployed. Do not mask this failure or call it a kernel defect. No formal
+combined soak, ordinary-reboot sequence or physical rollback qualification yet.
 
-New optional failure: `archlinux-keyring-wkd-sync.service` reached start-limit
-after its shell script indexed an empty key list. Rescue has an uninitialized
-volatile package keyring; the repository's persistent-keyring helper exists but
-is not wired into this composition. Do not hide the failure or infer a kernel
-defect. Diagnose/test the intended rescue versus installed update policy before
-another candidate.
+## Published fixes and current checkpoint
 
-## Source correction and next work
+Previous fully published checkpoint `0150d853fcb4930ac6057f6016ebc0af0c8d7b99`:
+all four GitHub jobs passed run 33994287705. Full local CI 485.305 s.
+This includes strict Python/-O composer validation, safe pre-activation radio
+refusal (8.4 V gate unchanged), keyring startup wiring, late-SSH rollback guards,
+and exact-kernel interrupted OverlayFS recovery. Detailed regressions and
+historical failed runs are in the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md).
+These source fixes are not deployed-release qualification.
 
-A02 regression reproduces persistent trial composer trust checks disappearing
-under Python -O: wrong base/helper hashes and reused trial identities accepted.
-It also reproduces a stray archive when a receipt (including dangling symlink)
-already exists. Explicit checks now preserve those guards in both interpreters;
-valid archive bytes/receipts are unchanged. This host-only fix needs no kernel
-build or phone cycle. Focused normal/optimized tests pass with unchanged valid bytes.
-Full local CI now passes in 490.925 s; the quick acceptance matrix passes
-A02/B01/G01/G02, with all other rows NOT RUN in that quick run. Published
-`c1c1d6315fff7946cbfa902e2add4fe2421f49e5`; all four remote jobs passed
-run 33988345153. Test logs are private; the full
-suite expects the usual 022 fixture umask, not the 077 log-creation umask.
+This checkpoint fixes the standalone builder's missing keyring inputs
+and adds explicit `--successor --refresh-userspace` to the existing persistent
+Wi-Fi composer. It refreshes repository scripts/units and the canonical trial
+helper together; normal identity-only behavior still refuses helper mismatch.
+Source/firmware/module/identity/integrity guards remain; packaging grants no authority.
 
-E01 source checkpoint: safe pre-activation radio refusal now skips WPA/DHCP/trial
-commit while allowing qualified P2/state/SSH startup. The 8.4 V activation gate
-is unchanged. Exact current-boot refusal plus core identity is required to
-suppress radio rollback; unsafe power/thermal state and partial activation remain
-fatal. Mixed old/new archive consumers are rejected, including under Python -O.
-Host systemd ordering and sealed ARM BusyBox component tests pass; these source
-changes are not yet deployed or final-release qualification. Active tier passes
-in 15.869 s. Frozen full CI passes in 485.345 s; final sealed replay in 64.087 s.
-Published `2fe2a299fd3c6dc731bfbe988b60920ddbb81f4f`; all four remote jobs
-passed run 33990202242.
+Unsigned **offline-only** server twins built identically in 18.519 s.
+Archive SHA-256:
+`e57bf7d447dac8489a5aaf99952928aa8cef627b03da7a9b7464913cacadfc91`.
+They retain persistent-overlay mode and 33 hardware payload members unchanged.
+No signed candidate or claim was issued, and no phone was contacted this iteration.
+With the retained Wi-Fi kernel, all nine watchdog/root-handover cases pass;
+disposable OverlayFS journal/interruption/corruption tests pass in 85.349 s.
+Actual Arch runtime preparation then exposed another R2 defect: the common
+dormant `load-pwrkey` helper was mistaken for incomplete display opt-in. Fixed
+the runtime presence check; full display still requires all components and
+exact metadata. Corrected unsigned twins took 8.095 s, changing only runtime
+and its checksum list:
+`6934f7323a1aec6711045b11a7ff7e7d370636e357aa01fb64da545d16552fda`.
+Explicit server-runtime composition passes in 33.808 s against the retained Arch
+lower, using sealed BusyBox, real systemd/sshd and core/radio unit validation.
+All writes were disposable; input hashes/source stayed unchanged; cleanup passed.
+The default rescue checker still rejects radio-bearing archives. Radio module
+load/closure is explicitly NOT RUN in this runtime-only result, not a release PASS.
+Active tier 18.178 s; full local CI 485.604 s PASS; exact-head/merge CI pending.
+Prior QEMU results bind
+the preceding archive, not an automatically green final release.
 
-Latest pinned read-only check: same V5 boot at uptime 4091 s, five core services
-active, 100% Full/Good, 30.0°C, 8.632 V and 0 µA. Optional keyring refresh still
-failed; no reset/masking, new boot, artifact build or phone storage change.
+## Next action
 
-Keyring correction is locally validated and undeployed: refreshed init
-stages the existing bootstrap helper/unit and orders WKD refresh after successful
-bootstrap. Packaging, paired-archive, sealed runtime (33.329 s), real user-systemd
-ordering/failure (2.550 s), and isolated actual ARM key initialization/reuse
-(11.775 s) pass. WKD now skips ARM-only keys without the empty-list error; online
-refresh is not qualified. On-phone read-only helper preflight passed. Active
-tier passes in 15.022 s; full frozen CI passes (approximately 486 s from retained
-log timestamps; terminal elapsed-time output unavailable). Publication remains. No package
-trust policy or key-generation logic changed; the running failure is untouched.
+1. Finish remote CI for this tested userspace/composition checkpoint. Complete remaining
+   radio module and final wrapper/timing/transport composition qualification.
+2. Continue final archive/root and recovery qualification without rebuilding the
+   unchanged hardware set or retrying any consumed execution.
+   Do not rerun old passed suites on unchanged implementation.
+3. Use fresh reviewed execution identity for physical server qualification:
+   Wi-Fi/USB transfer and restart, durable scratch, three ordinary boots,
+   powered-off start, 60-minute combined soak and isolated failed-boot recovery.
 
-Latest read-only continuity check: the same V5 boot at uptime 6893 s still has
-working pinned SSH and active core services. Battery is 100% Full/Good, 30°C,
-8.630 V, 0 µA; USB input is online. Only the known keyring-refresh unit is failed.
-This is continuity evidence, not a combined storage/network soak qualification.
+Retained Wi-Fi-soak kernel `7.1.4-g1eea8970e87f`, DTB and V3 archive hashes
+match the historical record. Its 22 direct and 37 nested radio/dependency modules
+have matching release metadata. Keep that set together; never mix g359 modules
+into it. Metadata agreement is not new BTF/symbol/load proof. Reuse accepted
+kernel bytes for userspace fixes, not consumed execution authority.
 
-Keyring checkpoint published as `3dc02580aa276cbd223ca511bed49655eb143bae`;
-CI run 33991878159 passed exact-head and publication, but merge compatibility
-failed in the unrelated fetch-concurrency fixture (700 ms success deadline).
-A 750 ms fsync injection reproduces exact exit 54; only that fixture's successful
-fetch now has a 3 s budget. Production deadlines and timeout tests are unchanged.
-Focused fetch suite passes all 35 tests in 9.570 s; active tier passes in
-15.041 s. No candidate was issued.
-An actual user-systemd WPA/DHCP restart component passes in 1.380 s: restarting
-WPA restarts DHCP, hardware activation stays at one, and core identities remain
-unchanged. No production dependency fix is needed. F02 still requires real
-target address/SSH recovery, not fixture daemon success.
-
-The disposable host OverlayFS test confirms the pre-mount guard rejects the
-retained stale-whiteout shape while Linux cleans it on mount. After matching
-the phone's observed index/redirect/metacopy-disabled settings, post-unmount
-guard, immutable-lower hash and read-only fsck all pass. Earlier host-fixture
-failures are retained. This is not target-kernel or journal-replay qualification;
-owned mounts/loops are detached and production storage guards are unchanged.
-
-CI fixture correction published as `059afe4f3bad7ed435040edf66d057c2c17c7927`;
-all four jobs passed run 33992627778. No publication remains for that checkpoint.
-
-Exact retained kernel QEMU now reproduces and fixes the interrupted OverlayFS
-whiteout rejection: before FAIL in 40.255 s; after PASS in 44.040 s, including
-actual ext4 journal replay and nine unrelated-entry refusals. The source guard
-admits only the kernel's root-owned mode-000 `#%x` character-0:0 scratch entries,
-including legitimate hardlinks. Kernel cleanup remains responsible for removal.
-The unsigned fixture changed init only in 1.441 s; no kernel build or phone boot.
-F01 is now connected to the exact kernel/archive/root receipt; final integrated
-QEMU passes in 76.421 s including before/after input hashing, var-only interruption,
-post-unmount validation and read-only fsck. Active tier passes in 15.528 s and
-frozen full local CI in 485.305 s. Exact-head/merge publication CI remains pending.
-This is not installed-release qualification. Same-boot read-only SSH at uptime
-9209 s confirms active core services, Full/Good 100%, 30°C and online USB power.
-
-Next: finish this recovery checkpoint and compose the coherent server successor.
-Do not assume the old Wi-Fi modules
-(kernel `7.1.4-g1eea8970e87f`) match the current rescue kernel. Its retained
-soak-qualified kernel/DTB/V3 archive hashes match the historical build record;
-22 direct modules and 37 nested radio/dependency modules all report that same
-release. Preserve this coherent set for successor composition rather than mixing
-it with g359 modules. This is retained-artifact inventory, not new load proof.
-Finish final archive/root composition and the remaining
-service, journal, Wi-Fi, reboot, soak and isolated physical rollback tests.
-Do not treat V5's component passes as an installed release PASS.
-
-## Retained evidence and boundaries
-
-[Acceptance incident](../test-results/2026-09-05-headless-acceptance.md) holds
-historical rescue failures and exact tests/timings. Other accepted baselines:
+The original installed-boot failure and prior PMIC IRQ/UFS emergency-RO incident
+remain unproven. Empty pstore is inconclusive. Earlier accepted
 [boot/start](../test-results/2026-09-03-unattended-reboot-v10.md),
 [overlay](../test-results/2026-09-02-persistent-root-overlay-v8-live.md),
-[updates](../test-results/2026-09-02-persistent-overlay-v8-package-update.md),
-[healthd](../test-results/2026-09-02-healthd-persistent-live.md),
-[Wi-Fi](../test-results/2026-09-02-persistent-wifi-v3-soak.md),
-[NCM](../test-results/2026-08-29-persistent-ncm-two-hour-pass.md),
-[Tailscale](../test-results/2026-08-30-persistent-tailscale-v11-live.md).
-Earlier evidence is not silently combined with a different release. The original
-installed-boot failure and prior PMIC IRQ/UFS emergency-RO incident remain
-unproven; successful RAM rescue does not close those questions.
-
-Use [development](development.md), relevant [lessons](development-lessons.md)
-and existing scoped authorization. Preserve exact device/slot/topology/boot chain,
-power/thermal gates, signatures, backup/storage scope, stock A, signed fallback,
-independent rollback and permanent non-retry after COMMIT or ambiguous execution.
-No experimental flash, GPT change or protected-data write. Destructive storage
-requires a separately reviewed exact operation and explicit approval.
-Keep private artifacts/evidence/credentials out of Git; do not delete them.
+[Wi-Fi soak](../test-results/2026-09-02-persistent-wifi-v3-soak.md),
+[NCM](../test-results/2026-08-29-persistent-ncm-two-hour-pass.md) and
+[Tailscale](../test-results/2026-08-30-persistent-tailscale-v11-live.md) evidence
+is not silently reused for another release. Use [development](development.md)
+and applicable [lessons](development-lessons.md); keep one device coordinator.
