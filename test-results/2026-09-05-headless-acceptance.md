@@ -367,3 +367,34 @@ not prove a real systemd restart transaction, DHCP recovery or live SSH, so F02
 remains BLOCKED and the acceptance criterion is unchanged. No kernel/archive
 rebuild or physical attempt; the prepared headless archive has no Wi-Fi payload
 and is unaffected by this userspace source change.
+
+**C02 real transaction component:** source checkpoint `a8558244` passed all
+GitHub 33946711767 jobs. A new isolated test uses the real host user systemd
+manager and loopback-only sshd with a disposable host key (all logins disabled).
+The source timer and SSH Requires/After relationship drive the production
+rollback function under sealed ARM BusyBox. Identity, healthy ACK and reboot
+are fixtures; no host system bus or block device is exposed in that sandbox.
+
+Two fixture runs failed (10.902/11.507 s): transient units disappeared after
+stop, then the fixture incorrectly expected an already-fired OnBootSec instant
+to fire again. User journal evidence confirmed timer reactivation without a
+second callback. The corrected test matches the production health sequence:
+stop the timer before first expiry, wait past the deadline, then restart SSH.
+The valid current-boot ACK prevents reboot; a stale ACK records rollback. Both
+SSH PID replacement and unchanged disposable host identity are checked.
+This passed in **10.875 s**. Runtime-only unit links, daemons and fixtures were
+cleaned up. These were host fixture failures, not newly proven phone defects.
+
+The sealed archive is unchanged (`ce1b0b11…dce1a`); host systemd is 257.7,
+whereas retained Arch is 260.2. The timer/runtime are current repository source,
+not extracted Wi-Fi payloads from the headless archive. Therefore this is a
+supporting component, **not a full C02 PASS**, not authenticated phone access
+and not S03. Its `rog5-dev check-ssh-rollback` entry has a fail-first dispatch
+regression. No kernel, candidate, claim, signing or physical execution changed.
+
+Frozen entry-point replay passed in **10.997 s**, alongside active tier
+**10.613 s**. Acceptance bookkeeping passed all 13 tests normally and optimized.
+No full local CI repeat was needed for this host-only test/entry/documentation
+checkpoint; the prior full local result remains separately identified, not
+attributed to these edits. The current physical descriptor remains persistent
+Linux, not fastboot; no authenticated recovery or charging PASS is inferred.

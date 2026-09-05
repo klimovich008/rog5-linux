@@ -16,6 +16,14 @@ SPEC.loader.exec_module(M)
 
 
 class AcceptanceTest(unittest.TestCase):
+    def test_ssh_rollback_component_is_discoverable_without_running_units(self):
+        result = subprocess.run([str(M.REPO/'scripts/host/rog5-dev'),
+                                 'check-ssh-rollback', '--help'],
+                                capture_output=True, text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--target-archive', result.stdout)
+        self.assertIn('--output', result.stdout)
+
     def setUp(self):
         self.contract = M.load_contract()
 
