@@ -76,6 +76,7 @@ class PersistentComposerValidation(unittest.TestCase):
             'format=rog5-persistent-wifi-health-v1\ntrial_id=' + '1'*64 +
             '\nprimary_bundle=fixture-primary\nmode=try-once\n').encode()
         self.successor = False
+        self.refresh_userspace = False
 
     def prepare_successor(self):
         self.base, _ = self.module.compose(
@@ -94,8 +95,51 @@ class PersistentComposerValidation(unittest.TestCase):
              '--expected-base-sha256', expected_hash or self.module.sha(self.base),
              '--trial-descriptor', str(root/'descriptor'),
              '--trial-helper', str(root/'helper'), '--output', str(root/'output.gz'),
-             *(['--successor'] if self.successor else [])],
+             *(['--successor'] if self.successor else []),
+             *(['--refresh-userspace'] if self.refresh_userspace else [])],
             capture_output=True, timeout=15)
+
+    def test_explicit_userspace_refresh_pairs_stale_units_without_changing_hardware(self):
+        self.prepare_successor()
+        archive = self.module.ARCHIVE
+        members = archive.entries(gzip.decompress(self.base))
+        stale = 'rog5-native-wifi/units/rog5-wifi-wpa.service'
+        archive.replace(members, stale, b'[Service]\nExecStart=/not-used\n')
+        archive.replace(members, 'rog5-native-wifi/trial-state', b'old helper in authenticated base')
+        self.base = gzip.compress(archive.encode(members), mtime=0)
+        self.refresh_userspace = True
+        outputs = []
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized)
+                self.assertEqual(result.returncode, 0, result.stderr.decode())
+                packed = (root/'output.gz').read_bytes()
+                built = archive.entries(gzip.decompress(packed))
+                archive.verify_radio_composition(built)
+                self.assertEqual(built[stale][1], (R/'initramfs/native-wifi/units/rog5-wifi-wpa.service').read_bytes())
+                for name in ('lib/firmware/preserved.bin', 'lib/modules/preserved.ko', 'init'):
+                    self.assertEqual(built[name], members[name])
+                self.assertEqual(built['rog5-native-wifi/trial-state'][1], self.helper)
+                self.assertNotEqual(built['rog5-native-wifi/trial-descriptor'][1],
+                                    members['rog5-native-wifi/trial-descriptor'][1])
+                receipt = json.loads((root/'output.gz.json').read_text())
+                self.assertFalse(receipt['kernel_rebuilt'])
+                self.assertTrue(receipt['authority'].startswith('none;'))
+                outputs.append(packed)
+        self.assertEqual(len(outputs), 2)
+        self.assertEqual(outputs[0], outputs[1])
+
+    def test_userspace_refresh_still_refuses_identity_reuse_and_wrong_artifacts(self):
+        self.prepare_successor()
+        self.refresh_userspace = True
+        valid_descriptor, valid_helper = self.descriptor, self.helper
+        self.descriptor = self.descriptor.replace(b'2'*64, b'1'*64)
+        self.check_rejected()
+        self.descriptor = valid_descriptor
+        self.check_rejected(expected_hash='0'*64)
+        self.helper = valid_helper+b'wrong'
+        self.check_rejected()
 
     def check_rejected(self, expected_hash=None):
         for optimized in (False, True):
@@ -414,6 +458,27 @@ class ComposerValidation(unittest.TestCase):
 
 
 class AutomaticWifi(unittest.TestCase):
+    def test_headless_install_allows_dormant_pwrkey_helper_but_not_partial_display(self):
+        body = function((R/'initramfs/native-wifi/runtime').read_text(), 'install_status_screen')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = root/'payload'; payload.mkdir()
+            units = root/'units'; units.mkdir()
+            invoked = root/'unexpected-activation'
+            command = f'root={payload}\n{body}\ninstall_status_screen {units}\n'
+            for case in ('absent', 'dormant-helper', 'partial-display'):
+                if case == 'dormant-helper':
+                    (payload/'load-pwrkey').write_text(f'#!/bin/sh\ntouch {invoked}\nexit 98\n')
+                    (payload/'load-pwrkey').chmod(0o755)
+                if case == 'partial-display':
+                    (payload/'status-screen.sh').write_text('partial display')
+                result = subprocess.run(['sh', '-eu', '-c', command], capture_output=True)
+                with self.subTest(case=case):
+                    self.assertEqual(result.returncode, 1 if case == 'partial-display' else 0,
+                                     result.stderr.decode())
+                    self.assertFalse(invoked.exists())
+                    self.assertEqual(list(units.iterdir()), [])
+
     def test_boot_composer_refreshes_watchdog_and_ack_producer_together(self):
         module, members, base, package, record = composer_fixture()
         packed, result = module.compose(base, package, record)
@@ -495,7 +560,7 @@ class AutomaticWifi(unittest.TestCase):
             self.assertIn(command, body)
         self.assertIn('/newroot/usr/local/bin/rog5-screen-toggle.sh', body)
         self.assertIn('"$units/multi-user.target.wants"', body)
-        self.assertIn('[ "$present" -eq 7 ]', body)
+        self.assertIn('[ "$present" -eq 6 ]', body)
         self.assertIn('qcom-pon.ko', body)
         self.assertIn('load-pwrkey', body)
         self.assertIn('"$root/load-pwrkey" || pwrkey_status=$?', body)

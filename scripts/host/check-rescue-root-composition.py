@@ -37,7 +37,9 @@ FUNCTIONS = ('verify_exact_regular', 'prepare_volatile_root_account',
 MARKERS = ('PREPARE', 'SYSTEMD_EXEC', 'VOLATILE_HOST_KEY', 'SSH_POLICY', 'UNIT_VERIFY')
 
 
-def archive_parameters(members):
+def archive_parameters(members, *, profile='rescue'):
+    if profile not in ('rescue', 'server-runtime'):
+        raise ValueError('unknown composition profile')
     source = members['init'][1].decode()
     keys = ('KERNEL_RELEASE', 'UFS_STORAGE_MODE', 'PROBE_BOOT_ID', 'NATIVE_ROOT_MODE',
             'SSH_DIAGNOSTIC_MODE', 'PERSISTENT_OVERLAY_MODE')
@@ -50,9 +52,10 @@ def archive_parameters(members):
     if not re.fullmatch(r'7\.1\.4-g[0-9a-f]{12}', values['KERNEL_RELEASE']):
         raise ValueError('unsupported rescue kernel release')
     expected = dict(UFS_STORAGE_MODE='read-only', PROBE_BOOT_ID='staged-seal',
-                    NATIVE_ROOT_MODE='1', SSH_DIAGNOSTIC_MODE='0', PERSISTENT_OVERLAY_MODE='0')
+                    NATIVE_ROOT_MODE='1', SSH_DIAGNOSTIC_MODE='0',
+                    PERSISTENT_OVERLAY_MODE='1' if profile == 'server-runtime' else '0')
     if any(values[k] != v for k, v in expected.items()):
-        raise ValueError('requires headless native-root volatile-overlay composition')
+        raise ValueError('requires exact native-root composition for '+profile)
     for name, template, parameters in (
         ('init', 'initramfs/persistent-root-init', values),
         ('usr/local/sbin/rog5-p2-attest', 'initramfs/persistent-root-attest',
@@ -78,14 +81,38 @@ def archive_parameters(members):
     if observer is not None and observer[1] != (REPO/'initramfs/persistent-startup-observer').read_bytes():
         raise ValueError('stale startup observer')
     for name, (fields, data) in members.items():
-        if name.startswith('rog5-native-wifi/'):
+        if profile == 'rescue' and name.startswith('rog5-native-wifi/'):
             raise ValueError('headless rescue must not activate optional radio/display payload')
         if stat.S_ISREG(fields[1]) and (b'@EXPECTED_' in data or b'@OUTER_SECONDS@' in data):
             raise ValueError('unresolved archive parameter: '+name)
+    if profile == 'server-runtime':
+        marker = members.get('rog5-native-wifi/automatic')
+        if (marker is None or marker[0][1:5] != [stat.S_IFREG | 0o444, 0, 0, 1]
+                or marker[1] != b'rog5-native-wifi-boot-v1\n'):
+            raise ValueError('invalid server radio marker')
+        SEALED.ARCHIVE.verify_radio_composition(members)
+        outer = re.findall(rb'^outer_seconds=([0-9]+)$',
+                           (REPO/'initramfs/native-wifi/timing').read_bytes(), re.M)
+        if len(outer) != 1:
+            raise ValueError('invalid server timing')
+        for directory in ('native-wifi', 'native-wifi-persistent'):
+            base = REPO/'initramfs'/directory
+            for path in base.rglob('*'):
+                if not path.is_file():
+                    continue
+                name = 'rog5-native-wifi/'+str(path.relative_to(base))
+                mode = 0o755 if path.stat().st_mode & 0o111 else 0o644
+                member = members.get(name)
+                if (path.is_symlink() or member is None
+                        or member[0][1:5] != [stat.S_IFREG | mode, 0, 0, 1]
+                        or member[1] != path.read_bytes().replace(b'@OUTER_SECONDS@', outer[0])):
+                    raise ValueError('unpaired server userspace: '+name)
     return values
 
 
-def driver(source):
+def driver(source, *, profile='rescue'):
+    if profile not in ('rescue', 'server-runtime'):
+        raise ValueError('unknown composition profile')
     blocks = []
     for name in FUNCTIONS:
         marker = name+'() {\n'
@@ -93,7 +120,7 @@ def driver(source):
             raise ValueError('missing/duplicate sealed function: '+name)
         start = source.index(marker)
         blocks.append(source[start:source.index('\n}\n', start)+3])
-    return '''#!/bin/sh
+    script = '''#!/bin/sh
 set -eu
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 expected_persistent_overlay_mode=0
@@ -128,6 +155,45 @@ fi
 chroot /newroot /usr/bin/systemd-analyze verify --man=no --generators=no "$@"
 echo COMPOSITION_UNIT_VERIFY_PASS
 '''
+    if profile == 'server-runtime':
+        script = script.replace('expected_persistent_overlay_mode=0', 'expected_persistent_overlay_mode=1')
+        script = script.replace('native_wifi_boot=0', 'native_wifi_boot=1')
+        script = script.replace('\nprepare_runtime\n', '''
+# Installation fixture: archive root is read-only here. The real init moves
+# this directory; copy exact members into owned tmpfs without activating radio.
+cp -a /rog5-native-wifi /run/
+# Prior storage-stage input fixture, not storage enumeration or write proof.
+# No block node exists at this name inside the isolated environment.
+overlay_userdata=/dev/rog5-offline-fixture
+printf '%s\\n' "$overlay_userdata" >/run/rog5-persistent-state-userdata-device
+chmod 0444 /run/rog5-persistent-state-userdata-device
+echo COMPOSITION_PRIOR_STAGE_FIXTURE_READY
+prepare_runtime
+''')
+        script = script.replace('chroot /newroot /usr/bin/systemd-analyze verify', '''
+set -- "$@" /run/systemd/system/rog5-wifi-radio.service /run/systemd/system/rog5-wifi-wpa.service /run/systemd/system/rog5-wifi-dhcp.service /run/systemd/system/rog5-wifi-healthy.service /run/systemd/system/rog5-wifi-boot-rollback.timer /run/systemd/system/rog5-wifi-failure.service
+chroot /newroot /usr/bin/systemd-analyze verify''')
+    return script
+
+
+def core_module_members(members, profile):
+    """Keep the power/UFS closure strict; radio activation is a separate test.
+
+    The server-runtime profile proves service preparation only. It must never
+    turn untested nested/probe radio modules into a full module-closure PASS.
+    """
+    if profile == 'rescue':
+        return members, []
+    if profile != 'server-runtime':
+        raise ValueError('unknown composition profile')
+    auxiliary = {'rog5-native-wifi/'+name for name in (
+        'rog5-pmic-pon-readonly.ko', 'rog5-s12-ufs-vote.ko', 'rog5-wifi-activate.ko',
+        'module-root-complete.tar.gz')}
+    if not auxiliary <= members.keys():
+        raise ValueError('missing retained radio module payload')
+    pending = [dict(path=name, sha256=hashlib.sha256(members[name][1]).hexdigest(),
+                    status='NOT RUN', scope='radio module load/closure') for name in sorted(auxiliary)]
+    return {name: member for name, member in members.items() if name not in auxiliary}, pending
 
 
 def module_closure(members, release):
@@ -213,6 +279,7 @@ def main():
     parser.add_argument('--inputs', type=Path, required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--profile', choices=('rescue', 'server-runtime'), default='rescue')
     args = parser.parse_args()
     if os.geteuid() != 0:
         print('BLOCKED: requires the reviewed private read-only loop-mount environment')
@@ -232,8 +299,9 @@ def main():
     if len(payload) > 512 * 1024 * 1024:
         raise ValueError('expanded archive exceeds 512 MiB')
     members = SEALED.ARCHIVE.entries(payload)
-    values = archive_parameters(members)
-    modules = module_closure(members, values['KERNEL_RELEASE'])
+    values = archive_parameters(members, profile=args.profile)
+    core_members, radio_pending = core_module_members(members, args.profile)
+    modules = module_closure(core_members, values['KERNEL_RELEASE'])
     if ('Linux version '+values['KERNEL_RELEASE']+' ').encode() not in Path(inputs['artifact_paths']['kernel']).read_bytes():
         raise ValueError('kernel banner/archive release mismatch')
     args.output.mkdir(mode=0o700)  # New, private, never replace prior evidence.
@@ -245,7 +313,7 @@ def main():
         for name in ('mnt/root-ro', 'mnt/state/upper', 'newroot', 'run', 'tmp', 'dev', 'proc'):
             (target/name).mkdir(parents=True, exist_ok=True)
         (target/'rog5-qemu').touch()
-        (target/'composition-test.sh').write_text(driver(members['init'][1].decode()))
+        (target/'composition-test.sh').write_text(driver(members['init'][1].decode(), profile=args.profile))
         upper, work, runtime = (Path(volatile)/name for name in ('upper', 'work', 'run'))
         for path in (upper, work, runtime):
             path.mkdir(mode=0o755)
@@ -260,7 +328,9 @@ def main():
                    '--ro-bind', '/usr/bin/qemu-aarch64-static', '/rog5-qemu', '--clearenv',
                    '--setenv', 'PATH', '/bin:/sbin:/usr/bin:/usr/sbin',
                    '--setenv', 'QEMU_UNAME', values['KERNEL_RELEASE'],
-                   '/rog5-qemu', '/bin/busybox', 'sh', '/composition-test.sh']
+                   # Private fixture trace pinpoints the exact failed predicate;
+                   # never publish the raw log (it can contain rootfs metadata).
+                   '/rog5-qemu', '/bin/busybox', 'sh', '-x', '/composition-test.sh']
         try:
             result = subprocess.run(command, capture_output=True, timeout=60)
             log, code = result.stdout+result.stderr, result.returncode
@@ -272,13 +342,14 @@ def main():
         passed = passed and inputs == ACCEPTANCE.verify_release(
             args.inputs, required_roles={'kernel', 'dtb', 'initramfs', 'rootfs'})
         passed = passed and mount == verify_mount(root, Path(inputs['artifact_paths']['rootfs']))
-        record = dict(status='PASS' if passed else 'FAIL', source=source, inputs=inputs,
+        record = dict(status='PASS' if passed else 'FAIL', source=source, inputs=inputs, profile=args.profile,
                       scope='archive/root runtime preparation and executable/unit compatibility only',
                       limitations=['hardware lookup fixture', 'no physical boot or storage recovery proof',
                                    'no final wrapper/admission or module-load proof',
                                    'unit lifetime is a fixture, not deployed timeout verification'],
                       mount=mount, exit_code=code, duration_seconds=round(time.monotonic()-started, 3),
                       module_metadata_in_load_order=modules,
+                      radio_module_tests=radio_pending,
                       checker_sha256=ACCEPTANCE.sha_file(Path(__file__)),
                       qemu_sha256=ACCEPTANCE.sha_file(Path('/usr/bin/qemu-aarch64-static')))
         (args.output/'result.json').write_text(json.dumps(record, indent=2)+'\n')

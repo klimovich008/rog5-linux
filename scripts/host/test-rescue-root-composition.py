@@ -60,10 +60,10 @@ class CompositionTest(unittest.TestCase):
                     ValueError,'metadata deadline exceeded'):
                 M.module_closure(members,release)
 
-    def members(self):
+    def members(self, overlay='0'):
         values = dict(KERNEL_RELEASE='7.1.4-g359318de534f', UFS_STORAGE_MODE='read-only',
                       PROBE_BOOT_ID='staged-seal', NATIVE_ROOT_MODE='1',
-                      SSH_DIAGNOSTIC_MODE='0', PERSISTENT_OVERLAY_MODE='0')
+                      SSH_DIAGNOSTIC_MODE='0', PERSISTENT_OVERLAY_MODE=overlay)
         item = lambda data: ([0, stat.S_IFREG | 0o755], data)
         return {
             'init': item(M.SEALED.ARCHIVE.render_boot_template(M.REPO/'initramfs/persistent-root-init', values)),
@@ -76,6 +76,77 @@ class CompositionTest(unittest.TestCase):
             'usr/local/sbin/rog5-persistent-keyring': item((M.REPO/'initramfs/persistent-package-keyring').read_bytes()),
             'usr/local/share/rog5/rog5-package-keyring.service': item((M.REPO/'configs/systemd/rog5-package-keyring.service').read_bytes()),
         }
+
+    def server_members(self):
+        members = self.members('1')
+        prefix = 'rog5-native-wifi/'
+        for directory in ('native-wifi', 'native-wifi-persistent'):
+            for path in (M.REPO/'initramfs'/directory).rglob('*'):
+                if path.is_file():
+                    data = path.read_bytes().replace(b'@OUTER_SECONDS@', b'900')
+                    mode = 0o755 if path.stat().st_mode & 0o111 else 0o644
+                    members[prefix+str(path.relative_to(M.REPO/'initramfs'/directory))] = (
+                        [0, stat.S_IFREG | mode, 0, 0, 1], data)
+        members[prefix+'automatic'] = ([0, stat.S_IFREG | 0o444, 0, 0, 1],
+                                       b'rog5-native-wifi-boot-v1\n')
+        return members
+
+    def test_server_runtime_requires_explicit_profile_and_current_radio_userspace(self):
+        members = self.server_members()
+        with self.assertRaises(ValueError):
+            M.archive_parameters(members)
+        self.assertEqual(M.archive_parameters(members, profile='server-runtime')['PERSISTENT_OVERLAY_MODE'], '1')
+        for name in ('runtime', 'timing', 'units/before-state.conf', 'automatic'):
+            altered = copy.deepcopy(members)
+            fields, data = altered['rog5-native-wifi/'+name]
+            altered['rog5-native-wifi/'+name] = fields, data+b'\n'
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                M.archive_parameters(altered, profile='server-runtime')
+        with self.assertRaises(ValueError):
+            M.archive_parameters(self.members(), profile='server-runtime')
+        with self.assertRaises(ValueError):
+            M.archive_parameters(members, profile='typo')
+
+    def test_server_driver_installs_but_never_activates_radio(self):
+        sealed = ''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS)
+        script = M.driver(sealed, profile='server-runtime')
+        self.assertIn('expected_persistent_overlay_mode=1', script)
+        self.assertIn('native_wifi_boot=1', script)
+        self.assertLess(script.index('cp -a /rog5-native-wifi /run/'), script.index('\nprepare_runtime\n'))
+        self.assertIn('/run/systemd/system/rog5-wifi-radio.service', script)
+        self.assertIn('/run/systemd/system/rog5-wifi-healthy.service', script)
+        self.assertNotIn('systemctl start', script)
+        self.assertNotIn('runtime radio', script)
+
+    def test_server_module_component_does_not_silently_qualify_radio_or_extra_modules(self):
+        item = ([0, stat.S_IFREG | 0o644, 0, 0, 1], b'fixture')
+        names = ('rog5-pmic-pon-readonly.ko', 'rog5-s12-ufs-vote.ko',
+                 'rog5-wifi-activate.ko', 'module-root-complete.tar.gz')
+        members = {'rog5-native-wifi/'+name: item for name in names}
+        members['unexpected.ko'] = item
+        core, pending = M.core_module_members(members, 'server-runtime')
+        self.assertIn('unexpected.ko', core)  # Existing inventory guard must refuse it.
+        self.assertEqual(len(pending), 4)
+        self.assertTrue(all(row['status'] == 'NOT RUN' for row in pending))
+        self.assertEqual(M.core_module_members(members, 'rescue'), (members, []))
+        del members['rog5-native-wifi/'+names[0]]
+        with self.assertRaises(ValueError):
+            M.core_module_members(members, 'server-runtime')
+
+    def test_server_driver_provides_prior_overlay_stage_input(self):
+        sealed = ''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS if name != 'prepare_runtime')
+        sealed += '''prepare_runtime() {
+test -f /run/rog5-persistent-state-userdata-device
+test "$(cat /run/rog5-persistent-state-userdata-device)" = "$overlay_userdata"
+test "$(stat -c %a /run/rog5-persistent-state-userdata-device)" = 444
+}
+'''
+        script = M.driver(sealed, profile='server-runtime').split('echo COMPOSITION_PREPARE_PASS')[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            script = script.replace('/run/rog5-persistent-state-userdata-device', tmp+'/userdata')
+            script = script.replace('cp -a /rog5-native-wifi /run/', ': # no radio in this fixture')
+            result = subprocess.run(['sh','-c',script],capture_output=True,text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_paired_archive_and_stale_producer_consumer(self):
         members = self.members()

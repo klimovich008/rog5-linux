@@ -1344,3 +1344,138 @@ g359, symbol/BTF verification or permission to retry the consumed V3 target.
 Use the retained coherent set with refreshed userspace and fresh reviewed
 execution identity for future tests; no kernel recompilation is justified by
 this inventory alone.
+
+## 2026-09-06: coherent Wi-Fi/server archive preparation
+
+Starting HEAD `0150d853fcb4930ac6057f6016ebc0af0c8d7b99`; all four GitHub jobs
+passed run 33994287705. Primary question: can the retained Wi-Fi hardware set
+be reused with current initramfs/services for the headless server? Layer:
+userspace/archive composition, not kernel or phone storage.
+
+R2 fail-first: the real standalone builder refreshed init, which requires
+`prepare_package_keyring`, but omitted its helper/unit when refreshing an old
+base. Both absent and stale input cases fail (0.207 s). The builder now installs
+the two exact repository inputs and excludes only those named updates from its
+unchanged-file comparison. It generates no keys. Final standalone composition
+tests pass (two methods, 0.268 s). A suspected `./` archive-name mismatch did
+**not** reproduce; the real cpio output already uses the consumer's namespace.
+No namespace rewrite was introduced.
+
+Existing identity-only successor composition deliberately rejects old radio
+consumers and an old trial helper. Added explicit `--successor --refresh-userspace`
+to recompose repository radio scripts/units and the canonical helper together.
+Default identity-only output/behavior stays unchanged. Kernel/init refresh is
+still the existing standalone builder's responsibility; neither tool grants
+execution authority. The authenticated base hash binds the old helper; the
+new helper argument must match the canonical repository hash. Retained-helper
+mode/owner/link metadata is checked before replacing it. Firmware/module bytes
+and unrelated archive members remain unchanged.
+
+The new CLI case first failed as an unsupported option under both normal and
+optimized Python (0.123 s; an additional test reporting IndexError was corrected).
+Final persistent-composer group: eight PASS in 2.732 s, including identity reuse,
+wrong base/helper refusal, unchanged hardware and normal/-O identical output.
+The full Wi-Fi test file passed 38 tests in 7.770 s before the last helper-refresh
+extension; the final eight-method group covers that extension. Active tier
+passed before that final extension; no final full-CI result is claimed yet.
+
+The helper change reuses the already-reviewed artifact from `545f2118`:
+`ff6ede42d089a6a651db320a007947091029aca504500227e0c51bed6792f3ca`
+→ `c1aab57b43d32d14714af96f3ee1feb936c363c8a86b4ac0b312ea5d08f69d0d`.
+The persisted record format is unchanged. Its `decide` path durably rearms a
+healthy primary to pending before selecting it, so a later failed boot can
+select fallback; the healthy-record transition remains compatible. Installed
+recovery still needs its separately verified update. No helper was executed on
+the phone and no persistent state was changed by this packaging step.
+
+Repository builders produced unsigned offline-only server twins in **18.519 s**:
+`e57bf7d447dac8489a5aaf99952928aa8cef627b03da7a9b7464913cacadfc91`.
+The intermediate standalone archive is
+`0ee5ed3ba0151e7d734b941ee3989104c0e85245b682feac69ab327059709921`.
+They retain persistent-overlay mode=1 and 33 identified hardware payload members
+unchanged, with no optional display marker. The fixture identity is not in the
+admission registry; no candidate, signature or one-use claim was issued.
+
+Exact matching Wi-Fi kernel
+`2649a272eb2a6814db6302630a585fcab3d4422802e774ec55a55cc489f629e1`
+and that final archive passed all nine existing QEMU watchdog/root-handover
+cases: valid/absent/stale acknowledgment, P2-only, stale identity, unusable
+helper, post-exec hang, failed-init panic and FD-open failure. This reuses real
+archive watchdog functions with fixture ACK/init paths, not full phone startup.
+The existing disposable OverlayFS suite also passed in **85.349 s** including
+exact input rehashing: prepare 2.546 s, recovery 10.727 s, corruption refusal
+2.222 s. The two QEMU suites ran concurrently; no new kernel was compiled.
+
+Current-state was compacted from about 1469 to 780 words; historical evidence,
+accepted builds and all private artifacts remain preserved. Current builder
+changes remain a dirty, locally tested checkpoint. Next: exercise the server
+archive against retained Arch userspace, then freeze/publish and admit only a
+fresh reviewed physical cycle. The existing rescue-only checker explicitly
+rejects radio-bearing persistent-overlay archives; its earlier PASS must not
+be relabeled as server composition proof. Full release acceptance remains open.
+
+### Actual Arch runtime check and dormant-display-helper regression
+
+Extended the existing checker with explicit `--profile server-runtime`, preserving
+the default rescue-only refusal. It requires current paired init/startup/radio
+userspace and persistent-overlay mode. It runs exact archive functions and radio
+unit installation in an isolated retained-Arch root with disposable upper/run.
+Core power/UFS metadata/load-order checks stay strict; the three probe modules
+and nested radio package are hash-recorded as **NOT RUN** for radio load/closure.
+Unknown extra modules still fail the core inventory check. This is a component
+test, not A01 release qualification or radio activation.
+
+The first run failed because the fixture omitted the prior overlay stage's
+userdata-path record; its focused regression failed in 0.003 s. Supplied the
+explicit nonexistent-device fixture with exact expected mode. No block node or
+real storage-stage claim is fabricated. A subsequent private sealed-shell trace
+located the remaining failure in `runtime install`, after package-keyring setup.
+
+R2 production defect: both initial composition and userspace refresh include
+the common `load-pwrkey` script. `install_status_screen` counted that dormant
+helper as one of seven display opt-in members, then rejected the headless archive
+as incomplete before root handover. A behavior regression failed in 0.010 s with
+only that helper present. Exclude the helper from opt-in detection; the six
+actual display payload members still opt in together, and helper metadata is
+still required before activation. Absent/dormant-helper cases now pass without
+activation or unit writes; partial display still fails. No kernel change.
+
+Focused runtime group: 22 PASS in 1.277 s. Checker: 12 PASS in 0.109 s; earlier
+normal/optimized checks both pass. Full composer file before the runtime fix:
+38 PASS in 8.717 s. Active tier after the fix: **18.178 s PASS**.
+
+Reused the verified intermediate standalone archive; refreshed only target
+userspace into new, identical offline twins in **8.095 s**. Only `runtime` and
+`boot-files.sha256` differ from the earlier fixture. Corrected archive:
+`6934f7323a1aec6711045b11a7ff7e7d370636e357aa01fb64da545d16552fda`.
+Kernel, DTB, all modules/firmware, init, watchdog and trial helper are unchanged.
+All prior archives and failed-run logs remain retained. No execution authority.
+
+Actual corrected-archive/retained-Arch runtime check: **PASS 33.808 s**, including
+sealed BusyBox preparation, systemd 260.2-2-arch execution, volatile Ed25519 key
+generation, real sshd key-only effective policy and core/radio unit verification.
+Input hashes and source were reverified; private read-only no-recovery loop and
+disposable upper cleanup passed. Prior-stage input and radio directory-copy are
+explicit fixtures; no physical storage, radio, root handover or final timeout
+qualification is claimed. No phone was contacted during this composition work.
+Source remained at `0150d853fcb4930ac6057f6016ebc0af0c8d7b99`, dirty digest
+`1edc26352a012746e374c0e84894a3d709eb303efbc1a88ddccc932b9b912627`.
+Next: one frozen full CI/publication checkpoint and remaining final-release tests.
+
+Frozen checkpoint full local CI **PASS 485.604 s**, versus prior 485.305 s;
+no meaningful speed change is claimed. Only current/result documents changed
+afterward. No kernel rebuild or new device execution was performed.
+
+Read-only comparison with the hash-verified earlier Wi-Fi-soak archive found all
+33 hardware members identical in content, type/mode, owner and link count.
+Only CPIO inode numbers differ. All 51 nested module-package files match the
+retained build record for the exact g1ee Image. This supports reusing hardware
+bytes; it is not a new module-load test or transfer of the old soak PASS into
+this release.
+
+Independent read-only phone continuity while CI ran: exact anchored USB route
+and pinned SSH identity, same consumed V5 boot at uptime 12371.55 s, Full/Good
+100%, 29.9°C, 8.628 V, 0 µA, USB/UCSI online, all six checked core services
+active. Existing keyring-WKD failure remains (fix not deployed); Wi-Fi inactive.
+Root remains overlay and /persist the bounded ext4 loop. No new full block-node
+inventory, temperature soak or remote Tailscale qualification is claimed.

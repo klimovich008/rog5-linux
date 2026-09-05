@@ -16,6 +16,37 @@ SPEC.loader.exec_module(M)
 
 
 class RescueComposition(unittest.TestCase):
+    def test_refresh_includes_current_keyring_inputs_from_absent_or_stale_base(self):
+        package_inputs = (
+            ('usr/local/sbin/rog5-persistent-keyring', 'initramfs/persistent-package-keyring', 0o100755),
+            ('usr/local/share/rog5/rog5-package-keyring.service', 'configs/systemd/rog5-package-keyring.service', 0o100644),
+        )
+        for stale in (False, True):
+            with self.subTest(stale=stale), tempfile.TemporaryDirectory() as tmp:
+                members = {}
+                for name in ('init', 'shutdown', 'sbin/rog5-load-persistent-power-usb',
+                             'usr/local/sbin/rog5-p2-attest'):
+                    M.add(members, name, b'#!/bin/sh\necho historical\n', 0o100755)
+                if stale:
+                    for name, source, mode in package_inputs:
+                        M.add(members, name, b'stale packaged input', mode)
+                M.add(members, 'opt/preserved-firmware', b'unchanged-fixture', 0o100644)
+                base = gzip.compress(M.encode(members), mtime=0)
+                root = Path(tmp)
+                (root/'base.gz').write_bytes(base)
+                subprocess.run(['sh', str(REPO/'scripts/device/build-persistent-root-standalone-initramfs.sh'),
+                                str(root/'base.gz'), str(root/'output.gz')],
+                               check=True, capture_output=True, timeout=30,
+                               env=dict(os.environ, EXPECTED_STANDALONE_BASE_SHA256=M.sha(base)))
+                built = {name.removeprefix('./'): value for name, value in
+                         M.entries(gzip.decompress((root/'output.gz').read_bytes())).items()}
+                self.assertIn(b'prepare_package_keyring || return 1', built['init'][1])
+                for name, source, mode in package_inputs:
+                    self.assertTrue(name in built, 'missing paired archive input: '+name)
+                    self.assertEqual(built[name][1], (REPO/source).read_bytes())
+                    self.assertEqual(built[name][0][1:5], [mode, 0, 0, 1])
+                self.assertEqual(built['opt/preserved-firmware'][1], b'unchanged-fixture')
+
     def test_final_archive_refreshes_power_watchdog_and_attestation_together(self):
         members = {}
         for name in ('init', 'shutdown', 'sbin/rog5-load-persistent-power-usb',
@@ -31,6 +62,7 @@ class RescueComposition(unittest.TestCase):
                             str(source), str(output)], check=True, capture_output=True,
                            env=dict(os.environ, EXPECTED_STANDALONE_BASE_SHA256=M.sha(base)), timeout=30)
             built = M.entries(gzip.decompress(output.read_bytes()))
+            self.assertTrue('init' in built, 'standalone output must use the Python consumer namespace')
             built = {name.removeprefix('./'): value for name, value in built.items()}
             self.assertEqual(built['sbin/rog5-load-persistent-power-usb'][1],
                              (REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes())
