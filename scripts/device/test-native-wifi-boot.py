@@ -5,6 +5,8 @@ import importlib.util
 import hashlib
 import json
 import gzip
+import io
+import tarfile
 from pathlib import Path
 import subprocess
 import tempfile
@@ -19,6 +21,70 @@ def function(source, name):
 
 
 class AutomaticWifi(unittest.TestCase):
+    def test_boot_composer_refreshes_watchdog_and_ack_producer_together(self):
+        spec = importlib.util.spec_from_file_location(
+            'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        members = {}
+        release = '7.1.4-gfixture'
+        module.add(members, 'init', (
+            f'expected_kernel_release={release}\nexpected_native_root_mode=1\n'
+            'expected_ufs_storage_mode=read-only\nexpected_ssh_diagnostic_mode=0\n'
+        ).encode(), 0o100755)
+        for name in ('sbin/rog5-load-persistent-power-usb',
+                     'usr/local/sbin/rog5-persistent-tailscale',
+                     'usr/local/sbin/rog5-p2-attest'):
+            module.add(members, name, b'#!/bin/sh\necho old-helper\n', 0o100755)
+        module.add(members, 'lib/firmware/preserved.bin', b'qualified-firmware', 0o100644)
+        module.add(members, 'lib/modules/preserved.ko', b'qualified-module', 0o100644)
+        base = gzip.compress(module.encode(members), mtime=0)
+        package_stream = io.BytesIO()
+        probe = b'old-probe'
+        with tarfile.open(fileobj=package_stream, mode='w:gz') as tar:
+            entry = tarfile.TarInfo('probe-native-wifi.sh')
+            entry.size = len(probe); entry.mode = 0o755
+            tar.addfile(entry, io.BytesIO(probe))
+        package = package_stream.getvalue()
+        record = {'files': {'initramfs.cpio.gz': module.sha(base)},
+                  'probe_package_sha256': module.sha(package),
+                  'probe_files': {'probe-native-wifi.sh': module.sha(probe)},
+                  'kernel_release': release}
+        packed, result = module.compose(base, package, record)
+        output = module.entries(gzip.decompress(packed))
+        attest_name = 'usr/local/sbin/rog5-p2-attest'
+        expected = (R/'initramfs/persistent-root-attest').read_text()
+        for key, value in {'UFS_STORAGE_MODE': 'read-only',
+                           'PROBE_BOOT_ID': 'staged-seal', 'NATIVE_ROOT_MODE': '1',
+                           'PERSISTENT_OVERLAY_MODE': '0'}.items():
+            expected = expected.replace('@EXPECTED_' + key + '@', value)
+        self.assertEqual(output[attest_name][1], expected.encode())
+        self.assertIn(attest_name, result['changed_existing_members'])
+        self.assertIn(b'attested_boot_id=$current_boot_id', output[attest_name][1])
+        self.assertIn(b'attested_boot_id=$watchdog_boot_id', output['init'][1])
+        for name in ('init', attest_name):
+            self.assertNotIn(b'@EXPECTED_', output[name][1])
+            subprocess.run(['sh', '-n'], input=output[name][1], check=True)
+        for name, value in members.items():
+            if name not in result['changed_existing_members']:
+                self.assertEqual(output[name], value)
+        self.assertEqual(packed, module.compose(base, package, record)[0])
+
+    def test_boot_template_rejects_missing_duplicate_and_unknown_parameters(self):
+        spec = importlib.util.spec_from_file_location(
+            'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'boot-template'
+            for text in ('no parameter', '@EXPECTED_MODE@ @EXPECTED_MODE@',
+                         '@EXPECTED_MODE@ @EXPECTED_UNKNOWN@'):
+                with self.subTest(text=text):
+                    path.write_text(text)
+                    with self.assertRaises(ValueError):
+                        module.render_boot_template(path, {'MODE': '1'})
+            path.write_text('mode=@EXPECTED_MODE@\n')
+            self.assertEqual(module.render_boot_template(path, {'MODE': '1'}),
+                             b'mode=1\n')
+
     def test_status_loader_creates_busybox_explicit_module_index_first(self):
         runtime = (R/'initramfs/native-wifi/runtime').read_text()
         body = function(runtime, 'install_status_screen')
@@ -433,6 +499,12 @@ class AutomaticWifi(unittest.TestCase):
         base = gzip.compress(archive.encode(members), mtime=0)
         packed, result = module.compose(base, module.sha(base))
         output = archive.entries(gzip.decompress(packed))
+        timing = dict(line.split('=', 1) for line in
+                      (R/'initramfs/native-wifi/timing').read_text().splitlines()
+                      if line and not line.startswith('#'))
+        unit = output['rog5-native-wifi/units/rog5-wifi-radio.service'][1]
+        self.assertNotIn(b'@OUTER_SECONDS@', unit)
+        self.assertIn(f"TimeoutStartSec={timing['outer_seconds']}s\n".encode(), unit)
         self.assertEqual(output['init'], members['init'])
         self.assertEqual(set(output)-set(members), {
             'rog5-native-wifi/failure',

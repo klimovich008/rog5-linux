@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 import time
 
@@ -33,8 +34,13 @@ def compose(base, expected_base):
         prefix+'units/rog5-wifi-radio.service':
             REPO/'initramfs/native-wifi/units/rog5-wifi-radio.service',
     }
+    outer = re.findall(rb'^outer_seconds=([0-9]+)$',
+                       (REPO/'initramfs/native-wifi/timing').read_bytes(), re.M)
+    if len(outer) != 1 or int(outer[0]) <= 0:
+        raise ValueError('missing or invalid canonical outer timeout')
     for name, path in replacements.items():
-        ARCHIVE.replace(members, name, path.read_bytes())
+        data = path.read_bytes().replace(b'@OUTER_SECONDS@', outer[0])
+        ARCHIVE.replace(members, name, data)
     additions = {
         prefix+'failure': REPO/'initramfs/native-wifi/failure',
         prefix+'units/rog5-wifi-failure.service':

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compose a RAM-test archive from the qualified base/radio record; no admission.
 
-Preserve every existing archive member except the three named boot helpers.
+Preserve every existing archive member except the named boot helpers.
 No firmware, kernel, modules or credential is downloaded or built here.
 """
 import argparse
@@ -102,6 +102,18 @@ def parse_trial_descriptor(data):
     return values
 
 
+def render_boot_template(path, values):
+    text = path.read_text()
+    for key, value in values.items():
+        token = '@EXPECTED_' + key + '@'
+        if text.count(token) != 1:
+            raise ValueError(f'{path.name}: missing or duplicate {token}')
+        text = text.replace(token, value)
+    if '@EXPECTED_' in text:
+        raise ValueError(f'{path.name}: unresolved boot parameter')
+    return text.encode()
+
+
 def compose(base, package, record):
     assert sha(base) == record['files']['initramfs.cpio.gz'], 'base identity'
     assert sha(package) == record['probe_package_sha256'], 'radio package identity'
@@ -113,16 +125,14 @@ def compose(base, package, record):
     for line in (f'expected_kernel_release={release}\n', 'expected_native_root_mode=1\n',
                  'expected_ufs_storage_mode=read-only\n', 'expected_ssh_diagnostic_mode=0\n'):
         assert init.count(line.encode()) == 1, 'not the qualified read-only native base'
-    new_init = (REPO/'initramfs/persistent-root-init').read_text()
-    for key, value in {'KERNEL_RELEASE': release, 'NATIVE_ROOT_MODE': '1',
-                       'UFS_STORAGE_MODE': 'read-only', 'SSH_DIAGNOSTIC_MODE': '0',
-                       'PROBE_BOOT_ID': 'staged-seal',
-                       'PERSISTENT_OVERLAY_MODE': '0'}.items():
-        token = '@EXPECTED_' + key + '@'
-        assert new_init.count(token) == 1
-        new_init = new_init.replace(token, value)
-    assert '@EXPECTED_' not in new_init
-    changed = {'init': new_init.encode(),
+    boot_state = {'NATIVE_ROOT_MODE': '1', 'UFS_STORAGE_MODE': 'read-only',
+                  'PROBE_BOOT_ID': 'staged-seal', 'PERSISTENT_OVERLAY_MODE': '0'}
+    # The watchdog consumer and its P2 acknowledgment producer are one boot
+    # interface. Never refresh init while retaining a historical producer.
+    changed = {'init': render_boot_template(REPO/'initramfs/persistent-root-init',
+                   dict(boot_state, KERNEL_RELEASE=release, SSH_DIAGNOSTIC_MODE='0')),
+               'usr/local/sbin/rog5-p2-attest': render_boot_template(
+                   REPO/'initramfs/persistent-root-attest', boot_state),
                'sbin/rog5-load-persistent-power-usb': (REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes(),
                'usr/local/sbin/rog5-persistent-tailscale': (REPO/'initramfs/persistent-tailscale-runtime').read_bytes()}
     for name, data in changed.items():
