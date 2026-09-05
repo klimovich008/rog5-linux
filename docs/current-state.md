@@ -188,7 +188,8 @@ At 12:45:37 local the host hub `1-1` and sibling `1-1.1` disconnected along with
 the phone. A NetworkManager exception then prematurely ended capture after
 322.454 s, before the rollback observation budget. All four owned host-network
 cleanup steps passed. This proves neither a phone reset nor watchdog behavior.
-The phone is absent from the anchored USB path; no further execution is issued.
+The phone was absent immediately afterward; the fresh fastboot status below
+supersedes that observation. No further execution is issued.
 Never retry v1 or v2. Source now preserves capture across host-query failures,
 recovers fixed helper error text without a journal, isolates optional display
 dependencies, preserves cleanup failure status and validates shutdown's exact
@@ -202,8 +203,23 @@ active passes in 12.266 s. No production helper or guard changed in this fix.
 The reconnected phone is now exact fastboot at `1-1.2`, product `lahaina`,
 slot B, 8.523 V and SOC=yes. These are fresh fastboot readings, not temperature
 or sustained charging proof. No reboot or claim consumption followed.
-Next: publish the CI correction and identify the failed service-state predicate
-before another successor. Stock A, signed V11 and all backups are preserved.
+The CI fixture correction is published as `04d4d012`; all four jobs in run
+33964552884 passed.
+Source-only startup diagnostics now label the rejected service-state gate,
+without changing its checks or write scope. Focused regressions reproduce the
+old generic failure and verify the named failure through the bounded observer.
+Full local CI passed in 480.168 s on the frozen diagnostic source. An unsigned
+archive built in 3.116 s changes only the state helper and observer from v2;
+all 19 modules and other entries are unchanged. Sealed archive checks pass.
+No candidate, signing, claim or phone operation followed.
+The existing watchdog predicate accepts P2 alone; it does not require later
+persistent-state/identity success. This is a demonstrated readiness gap, not
+proof of the earlier USB loss. Next: close and test that gap before admitting
+a rescue whose one question is the live failed startup gate. Preserve healthy
+late-SSH restart behavior. Stock A, signed V11 and all backups are preserved.
+Debian migration is permitted if it offers a demonstrated benefit, but is not
+selected as the rescue fix: current evidence implicates the project helper,
+not an Arch-specific package failure. Preserve the retained Arch baseline.
 
 Preserve the old unused fallback-only rescue as evidence, but do not execute it:
 its unchanged signed V11 watchdog predates the corrected handover predicate.

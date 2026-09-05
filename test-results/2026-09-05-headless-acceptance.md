@@ -589,3 +589,54 @@ product `lahaina` and canonical side topology, active B, **8523 mV**, SOC=yes.
 No boot, flash, claim, slot change or storage access occurred. The black screen
 and earlier hub loss do not establish a target crash. Authenticated SSH,
 temperature and sustained charging remain unverified.
+
+## Startup failure discrimination
+
+Primary question: which service-state startup gate prevents persistent SSH
+identity activation? Layer: target shell/observation (R3/R2), not the kernel.
+Four injected pre-write rejections all produced the same generic message before
+this correction (0.014 s), losing the distinction between device, owner,
+root-mount and filesystem checks. Fixed, non-secret phase labels now accompany
+startup failure without changing predicates, write operations or cleanup.
+The existing bounded observer protocol carries these labels unchanged.
+Tests execute the actual startup dispatcher and failure exit, mock the four
+read-only endpoints, and reject unexpected I/O. They do not claim a live cause.
+Other startup phases label existing path, loop, mount, tree and publication
+groups; no new framework, kernel build or candidate is involved.
+
+The user permits Debian if it is easier. Debian 13 supports ARM64, but this
+project currently binds Arch-specific root metadata and `/usr/bin/sshd` units.
+The retained failure is in the project's distribution-independent storage
+helper; switching the root would require new composition/boot qualification
+without removing that helper or the custom hardware-support work. Keep Arch
+for recovery; a Debian migration is not justified as a fix for this evidence.
+Reference: https://www.debian.org/releases/trixie/arm64/
+
+Validation: six observer tests pass in 0.192 s; the sealed BusyBox run passes
+in 8.691 s. The production failure function retains exit 1; only its test log
+destination is redirected, so named observations cannot manufacture success.
+Active passes in 10.977 s. Full local CI passes in **480.168 s** on frozen
+diff SHA-256 `7a0c89da589b2faf234a3df29e7e6c839d81e297e353c09aa593eedaeedf4ddd`
+over `04d4d0122ac6f9846ce3e4febcbfd05770e71260`. Source stayed unchanged through
+CI and archive assembly. Publication result documentation is added afterward.
+All four GitHub jobs for parent `04d4d012` passed (33964552884); these are not
+substituted for the diagnostic checkpoint's eventual exact-head checks.
+
+An **unsigned, non-admitted** target archive built in 3.116 s: 23832280 bytes,
+SHA-256 `e2192af94efe1dcc8e00e9041b29305bc4b82ed9352ea19d49d1d49da5ce2ffe`.
+Full entry comparison against retained v2 finds exactly two changed files,
+`usr/local/sbin/rog5-persistent-state` and `usr/local/sbin/rog5-startup-observer`,
+both equal to source. No additions/removals; all 19 modules are identical.
+The isolated archive shell syntax check passed in 0.441 s; six observer tests
+using its actual BusyBox/filesystem passed in 8.877 s with mocked endpoints.
+No kernel rebuild, signing, candidate issuance, phone contact or boot occurred
+during this diagnostic checkpoint. The source archive's consumed status grants
+no right to execute it again; this derived archive also has no boot authority.
+
+Read-only watchdog inspection and the existing executable acknowledgment test
+confirm that P2 alone is currently sufficient, with no persistent-state/SSH
+identity record present. The earlier QEMU `systemd-ack` fixture deliberately
+models that narrower condition. It must not be presented as recovery from
+failed persistent-state startup after P2. Close this readiness gap before
+another rescue while preserving current-boot identity and healthy late-restart
+behavior. This does not establish what caused the physical USB disappearance.
