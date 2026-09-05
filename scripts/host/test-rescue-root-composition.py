@@ -5,6 +5,7 @@ import importlib.util
 import json
 from pathlib import Path
 import stat
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -59,6 +60,22 @@ class CompositionTest(unittest.TestCase):
         for broken in ('', sealed + sealed):
             with self.assertRaises(ValueError):
                 M.driver(broken)
+
+    def test_driver_supplies_observer_lifetime_without_claiming_deployed_timing(self):
+        sealed = ''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS if name != 'prepare_runtime')
+        sealed += 'prepare_runtime() {\n test "$recovery_timeout" -gt 0\n}\n'
+        script = M.driver(sealed).split('echo COMPOSITION_PREPARE_PASS')[0]
+        result = subprocess.run(['sh','-c',script],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('fixture, not deployed timing',script)
+
+    def test_driver_verifies_present_observer_and_rejects_stale_observer_bytes(self):
+        members=self.members()
+        fields=[0, stat.S_IFREG | 0o755]
+        members['usr/local/sbin/rog5-startup-observer']=(fields,b'#!/bin/sh\nexit 0\n')
+        with self.assertRaises(ValueError): M.archive_parameters(members)
+        self.assertIn('/run/systemd/system/rog5-startup-observer.service',
+                      M.driver(members['init'][1].decode()))
 
     def test_mount_requires_exact_ro_loop_backing_and_no_recovery(self):
         entry = dict(target='/private/root', source='/dev/loop7', fstype='ext4',
