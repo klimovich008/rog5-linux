@@ -137,14 +137,28 @@ the [roadmap](../ROADMAP.md) holds later work.
 
 ## Active recovery checkpoint
 
-**Next, unconsumed:** `headless-acceptance-rescue-v3` packages the startup-phase
+**Consumed:** `headless-acceptance-rescue-v3` packages the startup-phase
 diagnostics and current-boot P2/SSH-identity watchdog correction from `e6966506`.
 All four source GitHub jobs passed (33966699057). Signed bundle and RAM-wrapper
 twins match; packaging took 12.936 s with unchanged kernels, DTB and modules.
 The final wrapper's sealed verifier passed in 3.771 s. Its canonical claim row
-binds the exact artifacts; no claim has been entered and no phone boot occurred.
-Connected admission remains separate. The one question is which persistent-state
-startup phase prevents pinned SSH. Display/radio remain outside this rescue.
+binds the exact artifacts. Publication `0d4b30bc` passed all four GitHub jobs
+(33967429714) and connected admission, then one RAM boot was accepted in 12.879 s.
+Boot `f6118c33-f715-438a-a3f2-9bf934abdad0` reached root handover/P2 but reported
+`start/userdata-path contract failed`; pinned SSH failed at 301.633 s accounting.
+Never retry v3. Target USB disappeared about 900 s after enumeration and exact
+fastboot returned five seconds later without intervention (slot B, 8544 mV,
+SOC=yes). This supports expected rollback; reset-cause registers were not read.
+Capture lasted 1380.532 s and all four host cleanup steps passed. Its result
+remains FAIL due to a bounded NetworkManager query error during USB removal;
+the corrected receiver preserved the later fastboot evidence instead of exiting.
+Source handover unnecessarily creates userdata-rw even for native RO rescue;
+the state helper correctly requires it absent. A joined regression reproduces
+the conflict. The pending narrow fix creates only the actual handover destination,
+preserving strict state-path ownership. Full local CI passed in 499.971 s;
+the new unsigned archive changes only init, with 19 modules unchanged. The fix
+is not deployed. Display/radio remain
+outside this rescue; no new candidate is being built during this live cycle.
 
 Registry closure is corrected; all four GitHub jobs passed for `17d7fbb6`
 (run 33948165386). See the [acceptance incident](../test-results/2026-09-05-headless-acceptance.md)

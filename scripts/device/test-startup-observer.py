@@ -21,6 +21,87 @@ SEALED_ARCHIVE = None
 
 
 class StartupObservationTest(unittest.TestCase):
+    def test_handoff_paths_agree_with_state_start_ownership(self):
+        init = (REPO/'initramfs/persistent-root-init').read_text()
+        handoff = init[init.index('move_handoff_mount() {'):init.index('\nswitch_root_failure() {')]
+        source = (REPO/'initramfs/persistent-service-state').read_text()
+        preflight = source[source.index('preflight_state() {'):source.index('\nstart_state() {')]
+        start = source[source.index('start_state() {'):source.index('\n\tuserdata_mounted=0')]
+        # Exercise the exact pre-write predicates, not storage operations.
+        start += '\n\treturn 0\n}\n'
+        for native, overlay, existing in (
+            (1, 0, 'absent'), (1, 1, 'absent'), (0, 0, 'absent'),
+            (1, 0, 'directory'), (1, 0, 'file'), (1, 0, 'symlink'),
+        ):
+            with self.subTest(native=native, overlay=overlay, existing=existing):
+                script = '''set -eu
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT
+handoff_newroot=$work/newroot
+handoff_userdata=$work/userdata
+handoff_root=$work/root-ro
+handoff_state=$work/state
+handoff_dev=$work/dev
+handoff_sys=$work/sys
+handoff_proc=$work/proc
+handoff_run=$work/run
+mkdir -p "$handoff_run" "$handoff_newroot/.rog5"
+userdata_mount=$handoff_newroot/.rog5/userdata-rw
+state_mount=$handoff_newroot/persist
+runtime_record=$work/runtime
+runtime_next=$work/runtime.next
+userdata=/dev/fixture23
+expected_userdata_uuid=fixture
+expected_userdata_label=fixture
+state_relative=fixture.ext4
+resolve_exact_devices() { :; }
+resolve_userdata_owner() { :; }
+verify_root_storage_mounts() { :; }
+verify_filesystem_identity() { :; }
+bb() { printf 'UNEXPECTED_IO\\n' >&2; exit 98; }
+'''+handoff+preflight+start+f'''
+expected_native_root_mode={native}
+expected_persistent_overlay_mode={overlay}
+existing={existing}
+userdata_owner={'overlay' if overlay else 'state'}
+case $existing in
+  directory) mkdir "$userdata_mount" ;;
+  file) touch "$userdata_mount" ;;
+  symlink) ln -s "$work/absent" "$userdata_mount" ;;
+esac
+moves=0
+move_handoff_mount() {{
+  [ -d "$2" ] || return 1
+  moves=$((moves + 1))
+}}
+if ! handoff_persistent_root; then
+  [ "$existing" != absent ]
+  [ -e "$userdata_mount" ] || [ -L "$userdata_mount" ]
+  printf 'HANDOFF_STATE_BOUNDARY_PASS\\n'
+  exit 0
+fi
+[ "$moves" -eq {7 if overlay or not native else 6} ]
+'''
+                if not native:
+                    script += '[ -d "$handoff_newroot/.rog5/userdata-ro" ]\n'
+                elif existing == 'absent':
+                    script += '''preflight_state
+if ! start_state; then
+  printf 'unexpected start/%s failure after handover\\n' "$state_start_phase" >&2
+  exit 1
+fi
+'''
+                else:
+                    # Refuse even an empty preexisting directory: the fix must
+                    # not relax path ownership or delete unexpected state.
+                    script += '''if preflight_state; then exit 97; fi
+if start_state; then exit 97; fi
+[ "$state_start_phase" = userdata-path ]
+[ -e "$userdata_mount" ] || [ -L "$userdata_mount" ]
+'''
+                script += "printf 'HANDOFF_STATE_BOUNDARY_PASS\\n'\n"
+                self.assertIn(b'HANDOFF_STATE_BOUNDARY_PASS', self.execute(script))
+
     def test_state_start_failure_reports_rejected_gate_over_observer(self):
         source = (REPO/'initramfs/persistent-service-state').read_text()
         start = source[source.index('start_state() {'):source.index('\nstop_state() {')]
@@ -68,19 +149,19 @@ case "$*" in
   'timeout -s KILL 2 /usr/bin/journalctl '*) return 1 ;;
   'timeout -s KILL 2 /run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox dmesg -r -s 65536')
     printf '%s\\n' '<6>[ 2.00] unrelated private material' \\
-      '<3>[ 50.123] rog5-persistent-state: FAIL start contract failed' \\
+      '<3>[ 50.123] rog5-persistent-state: FAIL start/userdata-path contract failed' \\
       '<3>[ 51.00] rog5-p2-attest: FAIL other-unit' ;;
   *) command "$@" ;;
 esac
 }
 '''+function+'\nquery_failure rog5-persistent-state\n'
         output=self.execute(script).decode()
-        self.assertEqual(output,'source=kernel-buffer\nrog5-persistent-state: FAIL start contract failed\n')
+        self.assertEqual(output,'source=kernel-buffer\nrog5-persistent-state: FAIL start/userdata-path contract failed\n')
         status='LoadState=loaded\nActiveState=failed\nSubState=failed\nResult=exit-code\nExecMainStatus=1'
         record=M.parse_startup_observation(self.produce(status,output),RELEASE)
         self.assertEqual(record['journal'],'error')
         self.assertEqual(bytes.fromhex(record['failure_hex']),
-                         b'rog5-persistent-state: FAIL start contract failed\n')
+                         b'rog5-persistent-state: FAIL start/userdata-path contract failed\n')
 
     def produce(self, status, journal='', code=0, journal_code=0):
         source = (REPO/'initramfs/persistent-startup-observer').read_text()
@@ -105,7 +186,7 @@ query_failure() { printf '%s\\n' "$FIXTURE_JOURNAL"; return "$FIXTURE_JOURNAL_CO
                 # Post-handover has /dev/null. Supply private pseudo-devices,
                 # never host block devices, for exact redirection semantics.
                 result=subprocess.run(['bwrap','--unshare-all','--die-with-parent','--new-session',
-                    '--uid','0','--gid','0','--ro-bind',str(root),'/', '--dev','/dev',
+                    '--uid','0','--gid','0','--ro-bind',str(root),'/', '--dev','/dev', '--tmpfs','/tmp',
                     '--ro-bind','/usr/bin/qemu-aarch64-static','/rog5-qemu','--clearenv',
                     '--setenv','PATH','/bin:/sbin:/usr/bin:/usr/sbin','--setenv','LC_ALL','C',
                     '/rog5-qemu','/bin/busybox','sh','-c',script],capture_output=True,timeout=10)

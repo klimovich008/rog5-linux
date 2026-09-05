@@ -716,3 +716,57 @@ No claim/anchor, phone execution, flash or storage operation occurred during
 packaging. Publication and connected admission of this exact registry checkpoint
 remain separate; v1/v2 remain permanently consumed.
 The registry/documentation checkpoint's active tier passed in **11.134 s**.
+
+## V3 live startup-path finding and narrow handover correction
+
+Publication `0d4b30bc36624e126b0464c584145f6c5873eacb` passed all four GitHub
+jobs (33967429714). Fresh connected admission verified exact identity/topology,
+slot B, 8509 mV/SOC=yes, both slots bootable and the reviewed bootloader version.
+The final archive/retained-Arch runtime check passed in 32.652 s; its private
+read-only mount was cleaned up. This is composition evidence, not full A01.
+
+V3 was consumed exactly once. Fastboot transfer/acceptance took **12.879 s**;
+supervisor execution return took 15.602 s. No flash or GPT operation occurred.
+Boot `f6118c33-f715-438a-a3f2-9bf934abdad0` reached switch-root PASS (sequence 25)
+and reported P2 success, state exit 1 at `start/userdata-path`, and inactive SSH
+identity. The host rejected the unpinned early key. H02 failed its 300 s deadline
+(301.633 s accounting); H03 is BLOCKED. Diagnostics are unauthenticated and do
+not constitute SSH acceptance. The receiver remains active through rollback.
+
+R2/R3 composition defect: `handoff_persistent_root` creates userdata-rw in every
+mode, while state-owned startup/preflight require it absent before opening the
+write window. The retained Arch lower has no such directory. A regression joins
+the actual handoff and pre-write state predicates, with mocked device/mount I/O:
+the native non-overlay case fails before the fix (0.169 s). Only the handover
+destination is now created when needed. Legacy image-root and persistent-overlay
+paths remain available; empty preexisting directories, files and symlinks are
+not removed or accepted as state-owned startup paths. Storage guards are unchanged.
+
+Seven observation/boundary tests pass (0.374 s) and pass under the sealed ARM
+BusyBox/filesystem (12.427 s); handover/rollback tests pass (0.658 s). The captured
+failure text is also replayed through the existing kernel-buffer/parser test.
+The fixture does not perform real mount moves or start/write the service image.
+The patch changes target init only, not either kernel or the running v3 bytes.
+Full CI and a fresh composition remain required before any successor.
+
+Final source validation: active **12.501 s**, full local CI **499.971 s**.
+The frozen diff SHA-256 stayed
+`4c6b7594b4d94fcc778ce74a4f33c1249f6cbde28a1505a5e056b148b814065f`
+over `0d4b30bc` throughout CI and archive assembly; only result docs follow.
+Unsigned archive assembly took **3.147 s**, size 23833960, SHA-256
+`1b4db7d1cce046ee9d11413152b66817081187b0970a3c888d7a1cf10ff8cea2`.
+Complete entry comparison finds only `init` changed, with all 19 modules and
+other payloads/owner/mode/link metadata unchanged. Source/composition pairing
+passes; seven boundary/observer tests on its sealed BusyBox pass in **12.404 s**.
+No successor was signed, admitted or booted.
+
+The v3 phone disconnected at 15:21:59 +0200, about 900 s after target enumeration,
+and exact fastboot returned at 15:22:04 without any intervening host reboot
+command. Fresh serial/product/topology checks passed, slot B, 8544 mV/SOC=yes.
+This strongly supports the deployed identity-gated rollback but does not provide
+an independent PMIC/reset-cause reading or qualify the full persistent fallback.
+Capture ran **1380.532 s**. The known bounded `nmcli -g` failure occurred during
+target USB removal: readiness remained invalidated and the result is FAIL, but
+the receiver stayed alive to capture fastboot. All four owned cleanup steps
+(route, firewall, profile, address) passed. No transport exception was waived.
+No authenticated charging result exists; the voltage rise alone is not H03.
