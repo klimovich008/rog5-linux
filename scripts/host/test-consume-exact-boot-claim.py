@@ -1415,10 +1415,34 @@ NATIVE_PROFILES = {
 }
 PROFILES.update(NATIVE_PROFILES)
 PROFILES.update({profile: record for profile, record in CLAIMS.CLAIMS.items()
-                 if b"\nexecution=fastboot-boot-fallback-only\n" in record})
+                 if any(marker in record for marker in (
+                     b"\nexecution=fastboot-boot-fallback-only\n",
+                     b"\nexecution=fastboot-boot-ram-bundle\n"))})
 
 
 class ExactClaimConsumerTest(unittest.TestCase):
+    def test_embedded_rescue_records_bind_bytes_and_cannot_be_retried(self):
+        records = {name: record for name, record in PROFILES.items()
+                   if b'\nexecution=fastboot-boot-ram-bundle\n' in record}
+        self.assertTrue(records)
+        for profile, payload in records.items():
+            fields = dict(line.split('=', 1) for line in payload.decode().splitlines())
+            self.assertEqual(fields['attempt_limit'], '1')
+            self.assertEqual(fields['expected_slot'], 'b')
+            self.assertEqual(fields['recovery_storage'], 'read-only')
+            self.assertEqual(fields['flash'], 'forbidden')
+            for field in ('boot_image_sha256', 'manifest_sha256', 'recovery_initramfs_sha256'):
+                self.assertRegex(fields[field], r'^[0-9a-f]{64}$')
+                self.write_record(profile, payload.replace(fields[field].encode(), b'0' * 64))
+                with self.assertRaises(CLAIMS.ClaimError):
+                    CLAIMS.consume(profile, self.root)
+            self.write_record(profile)
+            CLAIMS.consume(profile, self.root)
+            CLAIMS.verify_entered(profile, self.root)
+            self.write_record(profile)
+            with self.assertRaises(CLAIMS.ClaimError):
+                CLAIMS.consume(profile, self.root)
+
     def test_exact_selector_rescue_is_bound_and_permanently_one_use(self):
         profile = 'headless-selector-rescue-v1'
         payload = CLAIMS.expected_record(profile)

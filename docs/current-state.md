@@ -155,11 +155,21 @@ predicate. Preserve its unused twins and claim. A narrow RAM-embedded signed
 bundle branch is now implemented in the shared loader and passes focused
 normal/sealed-BusyBox tests. It avoids selector/mount/trial writes and retains
 geometry, all-storage RO, signature, Haven and single-execute checks.
-No corrected target is signed, admitted or deployed yet.
+The corrected target is now signed and exact sealed ARM verification passes.
+The RAM wrapper twins are byte-identical (`dd96e3aa…`), built without a kernel
+recompile. Its canonical registry row is `headless-acceptance-rescue-v1`;
+packaging/registry inclusion grants no execution. It is not consumed or deployed.
 
-Next: publish the frozen recovery correction after full CI; verify a coherent
-fresh signed RAM bundle/wrapper; establish receiver, addressing and logging
-before one admitted charging/SSH recovery attempt. The old collector starts
-late, stops at first disconnect and does not prove watchdog coverage; do not
-use its lifetime as rollback evidence. Remaining acceptance fixes follow
-restored access, with display optional. No kernel defect is yet established.
+Recovery correction `0afbc63e` passed full local CI (478.334 s) and GitHub
+33940190642 exact-head/merge/publication/QEMU. The current host capture and
+RAM-family closure changes require their own frozen checkpoint checks.
+`rog5-dev capture-rescue` now establishes the diagnostic address, firewall and
+listener before boot, verifies a live readiness response, and preserves the
+last stage through disconnect. A real 2.699 s host rehearsal cleaned up all
+owned changes; a disposable veth test proved the ARP/direct-route receive path.
+These are host tests, not a phone or final-release H01 PASS.
+
+Next: freeze/publish capture and registry closure, bind the exact wrapper and
+live receiver receipt, then perform one admitted charging/SSH recovery attempt.
+No retry after ambiguous execution. Remaining acceptance fixes follow restored
+access, with display optional. No kernel defect is yet established.

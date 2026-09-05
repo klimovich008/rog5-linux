@@ -91,6 +91,26 @@ the exact deployed target watchdog + recovery + cleanup lattice. The ceiling
 does not prove any watchdog survives handover. Independent reset/ramoops
 evidence is captured when available; empty pstore remains inconclusive.
 
+For this rescue, the capture lattice is **300 s recovery preparation + 900 s
+target rollback + 120 s cleanup = 1320 s**, plus **60 s preflight**, giving a
+**1380 s** receiver/firewall lifetime. The manifest owns these values. The live
+readiness check refuses execution when less than 1320 s remains. This is a
+capture budget, not a longer SSH acceptance deadline or watchdog guarantee.
+
+Run `rog5-dev capture-rescue --profile CLAIM_PROFILE --manifest EXACT_MANIFEST
+--output PRIVATE_NEW_DIRECTORY` with scoped host-network privileges while the
+exact phone is in fastboot. It does not boot or consume a claim. Its `--check`
+mode verifies source, canonical artifacts, process/host identity and an actual
+TCP readiness response. Pass the same directory with `rog5-dev accept
+device-smoke --capture PRIVATE_DIRECTORY --release RECEIPT --output NEW_OUTPUT`.
+H01 refuses another candidate/image or stale receiver. Diagnostic stage frames
+are unauthenticated transport evidence; pinned SSH remains a separate test.
+The shared profile retains its single normal address. A temporary loopback
+diagnostic address and exact USB direct route serve the early reporter; the
+receiver binds to the verified NCM interface on enumeration. All owned host
+changes are restored; external changes are preserved and cleanup failure is
+reported. No NFS service is needed for this local-root rescue.
+
 ## Current order and restrictions
 
 Registry checkpoint → final rescue composition → receiver/address/log readiness
