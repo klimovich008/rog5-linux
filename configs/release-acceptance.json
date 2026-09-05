@@ -1,0 +1,684 @@
+{
+  "format": "rog5-release-acceptance-v1",
+  "objective": "Restore and qualify one coherent standalone headless Arch Linux server; display is optional.",
+  "statuses": [
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "NOT RUN"
+  ],
+  "tiers": {
+    "quick": [
+      "quick"
+    ],
+    "offline": [
+      "quick",
+      "offline"
+    ],
+    "device-smoke": [
+      "device-smoke"
+    ],
+    "release": [
+      "quick",
+      "offline",
+      "device-smoke",
+      "release"
+    ]
+  },
+  "defaults": {
+    "environment": "Unprivileged development host; device rows use only the existing admitted lifecycle under one coordinator.",
+    "mutations": "Offline: only test-owned temporary files/processes/loopback sockets. No phone contact, credentials, host service changes or persistent storage writes.",
+    "cleanup": "Existing test temporary-directory/process cleanup; never remove shared artifacts or private evidence.",
+    "evidence": [
+      "source revision and worktree digest",
+      "manifest and runner SHA-256",
+      "test script versions",
+      "actual release artifact hashes when supplied",
+      "start/end UTC and monotonic duration",
+      "exit status and private log hash",
+      "device rows: candidate, boot ID, power/connection conditions and last completed stage"
+    ],
+    "deadline_rule": "Per-row total wall time; expiry FAIL; missing prerequisite BLOCKED; not selected NOT RUN. No test may silently skip required behavior.",
+    "release_rule": "All mandatory rows PASS for one frozen source/artifact/test identity. No result imports or merging across runs yet; earlier evidence is not reused automatically."
+  },
+  "tests": [
+    {
+      "id": "A01",
+      "outcome": "Assembled release and retained root are coherent",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "exact release receipt",
+        "assembled archive",
+        "retained root filesystem"
+      ],
+      "commands": [],
+      "deadline_seconds": 120,
+      "pass_condition": "Verify init/attestation/watchdog ABI, units, module closure, timing and diagnostic endpoint; reject placeholders and mismatched bytes.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Exact archive/root composition checker is not yet wired; source tests cannot satisfy this row."
+    },
+    {
+      "id": "A02",
+      "outcome": "Malformed metadata and hashes fail under Python and Python -O",
+      "tier": "quick",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "python3"
+      ],
+      "commands": [
+        [
+          "python3",
+          "scripts/device/test-native-wifi-boot.py"
+        ]
+      ],
+      "deadline_seconds": 30,
+      "pass_condition": "Real composer rejects malformed records/archive and wrong base/package/member hashes in normal and optimized interpreters; accepted output unchanged.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": ""
+    },
+    {
+      "id": "B01",
+      "outcome": "Canonical admission reaches all supported RAM candidate families",
+      "tier": "quick",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "python3"
+      ],
+      "commands": [
+        [
+          "python3",
+          "scripts/host/test-verify-retention-cycle-admission.py"
+        ],
+        [
+          "python3",
+          "scripts/host/test-consume-exact-boot-claim.py"
+        ]
+      ],
+      "deadline_seconds": 30,
+      "pass_condition": "All canonical records including fallback-only reach consumers; altered records, alias/mutation and consumed claims rejected.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": ""
+    },
+    {
+      "id": "C01",
+      "outcome": "Real target BusyBox survives actual root handover with bounded rollback",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "exact kernel/archive",
+        "QEMU system runtime",
+        "podman"
+      ],
+      "commands": [["python3", "scripts/host/test-qemu-watchdog-handoff.py", "--kernel", "{kernel}", "--target-archive", "{initramfs}", "--output", "{test_output}"]],
+      "deadline_seconds": 400,
+      "pass_condition": "Successful startup accepts only current boot readiness; absent/stale readiness and post-exec hang reset; failed-init/panic tested separately.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Requires exact release receipt. Archive watchdog functions now drive QEMU; harness init/ACK remain fixtures, and whole composition is separately mandatory A01."
+    },
+    {
+      "id": "C02",
+      "outcome": "Late SSH restart after healthy acceptance does not reboot",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "systemd/QEMU fixture with exact release units"
+      ],
+      "commands": [],
+      "deadline_seconds": 120,
+      "pass_condition": "Actual late SSH restart does not reactivate rollback after current-boot healthy ACK; stale acceptance cannot suppress rollback.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Existing test-native-wifi-healthy.py is source/fixture coverage, not the required systemd transaction."
+    },
+    {
+      "id": "D01",
+      "outcome": "Verified fallback handles missing/corrupt primary and rejects invalid fallback",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "python3",
+        "sh"
+      ],
+      "commands": [
+        [
+          "python3",
+          "scripts/device/test-slotb-fallback-order.py"
+        ]
+      ],
+      "deadline_seconds": 40,
+      "pass_condition": "Missing/corrupt primary selects only verified fallback; failed fallback verification/unmount/relock never execute.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": ""
+    },
+    {
+      "id": "D02",
+      "outcome": "Accepted primary is rearmed and interrupted state stays safe",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "python3",
+        "bwrap",
+        "artifacts/host-tools/qemu-aarch64-static"
+      ],
+      "commands": [
+        [
+          "env",
+          "ROG5_TRIAL_TEST_ARM64=1",
+          "python3",
+          "scripts/host/test-persistent-trial-state.py"
+        ],
+        [
+          "python3",
+          "scripts/host/test-build-persistent-wifi-selector.py"
+        ]
+      ],
+      "deadline_seconds": 40,
+      "pass_condition": "Previously healthy primary failing next boot cannot loop forever; interrupted state, concurrent updates and invalid records rejected.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": ""
+    },
+    {
+      "id": "E01",
+      "outcome": "Safe radio refusal preserves charging/USB without reboot",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "exact target runtime fixture"
+      ],
+      "commands": [],
+      "deadline_seconds": 120,
+      "pass_condition": "Pre-activation refusal below unchanged 8.4V radio gate keeps qualified headless services; partial activation and unsafe power remain distinct failures.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Implement regression and optional-radio isolation before claiming this behavior."
+    },
+    {
+      "id": "E02",
+      "outcome": "Unavailable display/input never blocks headless acceptance",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "exact runtime/attestation fixture"
+      ],
+      "commands": [],
+      "deadline_seconds": 90,
+      "pass_condition": "Missing optional devices do not block core readiness or trigger rollback; invalid artifacts and unsafe power still fail.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Remove demonstrated optional display dependencies only after regression."
+    },
+    {
+      "id": "F01",
+      "outcome": "Supported interrupted update and journal/overlay recovery work",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "disposable filesystem images",
+        "isolated mount/QEMU environment"
+      ],
+      "commands": [],
+      "deadline_seconds": 240,
+      "pass_condition": "Legitimate interrupted-update and journal/OverlayFS recovery succeed; genuine corruption rejected with protected nodes untouched.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Existing synthetic storage fixtures do not prove disposable-image recovery."
+    },
+    {
+      "id": "F02",
+      "outcome": "WPA/DHCP restart without repeated hardware activation",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "exact units/runtime fixture"
+      ],
+      "commands": [],
+      "deadline_seconds": 120,
+      "pass_condition": "Restart WPA and DHCP after successful activation; preserve one hardware activation and recover address/SSH.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Add restart regression and idempotent state preparation."
+    },
+    {
+      "id": "F03",
+      "outcome": "Health service handles idle and slowly sending clients concurrently",
+      "tier": "offline",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "python3",
+        "loopback port 0"
+      ],
+      "commands": [],
+      "deadline_seconds": 30,
+      "pass_condition": "Healthy client responds within 1s while idle and 0.2s-per-byte trickle clients remain; resource limits terminate slow clients.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": "Existing idle-only test does not cover demonstrated slow-client starvation."
+    },
+    {
+      "id": "G01",
+      "outcome": "Broader CI retains narrow tests and tests exact source revision",
+      "tier": "quick",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "python3",
+        "bash",
+        "git"
+      ],
+      "commands": [
+        [
+          "python3",
+          "scripts/host/test-select-repository-test-tier.py"
+        ],
+        [
+          "bash",
+          "scripts/host/test-repository-linux-runner-contract.sh"
+        ],
+        [
+          "bash",
+          "scripts/host/test-github-exact-head-workflow.sh"
+        ]
+      ],
+      "deadline_seconds": 40,
+      "pass_condition": "Changed-path tests and actual Git DAG verify selection and exact head; broad tier is a superset of relevant narrow tests.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": ""
+    },
+    {
+      "id": "G02",
+      "outcome": "Acceptance cannot turn missing evidence or mixed releases green",
+      "tier": "quick",
+      "mandatory": true,
+      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "prerequisites": [
+        "python3",
+        "git"
+      ],
+      "commands": [
+        [
+          "python3",
+          "scripts/host/test-release-acceptance.py"
+        ]
+      ],
+      "deadline_seconds": 30,
+      "pass_condition": "Test statuses, tier inclusion, deadline, revision drift and hash validation; no skipped mandatory PASS or cross-release evidence merge.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
+      "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status"
+      ],
+      "blocker": ""
+    },
+    {
+      "id": "H01",
+      "outcome": "Receiver and logging are ready before admitted execution",
+      "tier": "device-smoke",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "exact device/product/slot/topology",
+        "verified release/admission",
+        "owned host receiver"
+      ],
+      "commands": [],
+      "deadline_seconds": 30,
+      "pass_condition": "Before claim consumption prove bind/address/firewall/receiver lifetime and immutable receipt; capture candidate/boot/stage and last stage on loss.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only separately admitted temporary host addressing/firewall/listener state with restoration.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Connect existing admission adapter to supervised receiver; no new boot authority."
+    },
+    {
+      "id": "H02",
+      "outcome": "Coherent headless rescue boots with authenticated SSH",
+      "tier": "device-smoke",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "H01 PASS",
+        "unconsumed exact candidate",
+        "pinned SSH identity",
+        "safe power gates"
+      ],
+      "commands": [],
+      "deadline_seconds": 300,
+      "pass_condition": "One admitted execution reaches pinned key-only SSH on exact boot and artifact; Wi-Fi deliberately inactive; watchdog matches archive.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Coherent new rescue composition and capture must pass first; prepared historical rescue is not eligible."
+    },
+    {
+      "id": "H03",
+      "outcome": "Charging remains appropriate over a measured observation window",
+      "tier": "device-smoke",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "H02 PASS",
+        "battery health/temperature/current/input telemetry"
+      ],
+      "commands": [],
+      "deadline_seconds": 660,
+      "pass_condition": "Observe 600s at 10s cadence: healthy and safe temperature, stable transport; below limit sustained positive battery charge trend/current; at validated limit regulation/full state permitted, not fabricated charging.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Predeclare configured limit, current polarity, noise tolerance and sampling criteria from exact release telemetry before execution."
+    },
+    {
+      "id": "S01",
+      "outcome": "Arch boots locally with no host boot services",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "coherent persistent release",
+        "host boot services absent"
+      ],
+      "commands": [],
+      "deadline_seconds": 300,
+      "pass_condition": "Native local root and expected overlays/units proven, no NFS/host boot dependency; pinned SSH and current boot identity.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Recovery access must be restored before native qualification."
+    },
+    {
+      "id": "S02",
+      "outcome": "USB and qualified Wi-Fi pass bidirectional transfers",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "S01 PASS",
+        "qualified Wi-Fi above unchanged activation gate",
+        "isolated transfer endpoints"
+      ],
+      "commands": [],
+      "deadline_seconds": 720,
+      "pass_condition": "Each interface transfers 256MiB both ways with exact hashes and <=180s per direction; ensure route binds intended interface.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Implement bounded transfer runner; prior separate release evidence is context only."
+    },
+    {
+      "id": "S03",
+      "outcome": "SSH/network/health service restarts recover",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "S01 PASS",
+        "host supervisor",
+        "verified independent rescue"
+      ],
+      "commands": [],
+      "deadline_seconds": 300,
+      "pass_condition": "Restart each service once; reconnect with same host/boot identity and healthy state; no reboot or second radio activation.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Implement bounded restart runner."
+    },
+    {
+      "id": "S04",
+      "outcome": "Bounded scratch write/fsync/readback survives reboot",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "S01 PASS",
+        "explicit authorized writable directory/size receipt"
+      ],
+      "commands": [],
+      "deadline_seconds": 660,
+      "pass_condition": "One <=64MiB owned scratch file, fsync file+directory, readback SHA; after ordinary reboot same bytes; cleanup only exact owned file.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only exact authorized bounded scratch file and normal accepted service state; no GPT/firmware/fallback changes.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "No storage operation until exact authorized scratch scope is bound."
+    },
+    {
+      "id": "S05",
+      "outcome": "Three consecutive ordinary boots succeed",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "S01 PASS",
+        "ordinary reboot authority",
+        "host supervisor"
+      ],
+      "commands": [],
+      "deadline_seconds": 1080,
+      "pass_condition": "Three consecutive distinct boot IDs, each <=300s to coherent systemd/pinned SSH/charging/storage, no failed intermediary boot.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Must be one coherent final release, not passes collected across builds."
+    },
+    {
+      "id": "S06",
+      "outcome": "One powered-off start succeeds",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "S05 PASS",
+        "physical power-off/start conditions"
+      ],
+      "commands": [],
+      "deadline_seconds": 420,
+      "pass_condition": "After confirmed off interval, one start <=300s reaches exact release and pinned SSH; cable/power conditions recorded.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Physical start may require operator action; never substitute ordinary reboot."
+    },
+    {
+      "id": "S07",
+      "outcome": "Sixty-minute combined storage/network soak is clean",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "S02/S04 PASS",
+        "safe sustained power",
+        "authorized scratch scope"
+      ],
+      "commands": [],
+      "deadline_seconds": 3900,
+      "pass_condition": "3600s combined bounded storage and network activity; no reset/oops/new UFS errors/emergency RO or unsafe power; full log continuity.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only exact authorized bounded scratch file and normal accepted service state; no GPT/firmware/fallback changes.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Implement supervised soak with predeclared counters and independent host timing."
+    },
+    {
+      "id": "R01",
+      "outcome": "Controlled failed isolated boot proves physical recovery",
+      "tier": "release",
+      "mandatory": true,
+      "environment": "Host-supervised exact phone and admitted coherent release",
+      "prerequisites": [
+        "verified rescue",
+        "isolated signed failure candidate",
+        "reviewed rollback/authority",
+        "receiver"
+      ],
+      "commands": [],
+      "deadline_seconds": 1320,
+      "pass_condition": "One isolated failed test boot returns authenticated expected rescue within deployed watchdog+recovery budget; no installed corruption or power interruption.",
+      "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
+      "mutations": "Only existing admitted boot/reboot or service operation and accepted normal service state; no experimental flash or destructive storage.",
+      "cleanup": "Preserve private evidence, stop only owned receiver/test processes, restore owned host changes. Remove only exact owned scratch file when applicable; never retry ambiguous execution.",
+      "required_evidence": [
+        "full command/runner log",
+        "duration and exit status",
+        "exact candidate/artifact and boot identity",
+        "power, interface and connection state",
+        "last completed stage"
+      ],
+      "blocker": "Separate physical recovery experiment required; QEMU is not physical evidence."
+    }
+  ]
+}

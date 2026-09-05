@@ -7,11 +7,15 @@ Facts below are accepted evidence, not a claim of freshly measured live health.
 
 The standalone Arch server migration passed. Repository/development-loop
 consolidation passed local and published exact-head/merge CI at `a2e3efb4`.
-The active goal is continued standalone-server reliability and validation of
-the next display build; first restore fresh transport/health evidence.
+The existing active goal now ends at test-defined qualification of one reliable
+standalone headless server release. Display is optional, not a completion gate.
+The [release acceptance contract](release-acceptance.md) and
+[machine-readable tests](../configs/release-acceptance.json) define mandatory
+offline, rescue, server and physical-recovery outcomes. Run `rog5-dev accept`
+to produce one current results matrix; missing or mixed-build evidence cannot pass.
 See [transport checks](../test-results/2026-09-04-server-resume-transport.md) and
 [boot-code review/fix](../test-results/2026-09-04-native-boot-review.md).
-The physical button trial is waiting for a usable connection.
+The physical button trial is deferred outside headless qualification.
 V15 preparation stopped before signing, claim consumption or execution.
 There is no authorized storage mutation in this checkpoint.
 
@@ -166,9 +170,25 @@ switch_root. The source watchdog correction is not in that signed fallback.
 The 1320-second collector is only an observation lifetime, not proof of
 continuous target rollback; it also stops on the first disconnect and lacks
 an admission check for remaining lifetime. It has not been started.
-Next: finish the registry CI checkpoint, then compose a coherent headless
+Registry fix `bf5f2e31` passed frozen full local CI in 470.670 s and was pushed;
+run 33935980881 passed exact-head, merge, publication and QEMU. This does not
+admit the newly composed archive.
+Next: define the complete executable acceptance contract, then compose a coherent headless
 rescue with paired watchdog/attestation and early power gates using the retained
 kernel. Preserve the existing signed V11 and stock slot-A rescue unchanged.
 Any new composition needs fresh exact validation/admission; no consumed retry
 or experimental flash. Do not rebuild the already verified rescue twins.
 The [roadmap](../ROADMAP.md) holds later work.
+
+The [acceptance checkpoint](../test-results/2026-09-05-headless-acceptance.md)
+records the executable contract, optimized-Python rejection fix, early Good-health
+gate and paired standalone composer. An unsigned offline rescue archive reuses
+the retained kernel and all 19 modules; exact-archive watchdog QEMU cases pass.
+It is not a signed/admitted candidate or a qualified release. Finish retained-root
+composition and supervised capture before one fresh charging/SSH rescue attempt.
+The new full local run stopped on two controller response timeouts; focused
+replay and the complete 95-test controller suite pass, but the failed full run
+is not green. The acceptance matrix is six PASS/eight BLOCKED/eleven NOT RUN.
+Fresh exact fastboot read remains slot B, 7699 mV and SOC yes. A verified sparse
+host reconstruction is available for read-only root inspection; it is not
+byte-identical to the pre-sparse original image. See the checkpoint for scope.

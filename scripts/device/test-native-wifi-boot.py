@@ -9,6 +9,7 @@ import io
 import tarfile
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -20,35 +21,209 @@ def function(source, name):
     return source[start:source.index('\n}', start) + 2]
 
 
+def composer_fixture():
+    spec = importlib.util.spec_from_file_location(
+        'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    members = {}
+    release = '7.1.4-gfixture'
+    module.add(members, 'init', (
+        f'expected_kernel_release={release}\nexpected_native_root_mode=1\n'
+        'expected_ufs_storage_mode=read-only\nexpected_ssh_diagnostic_mode=0\n'
+    ).encode(), 0o100755)
+    for name in ('sbin/rog5-load-persistent-power-usb',
+                 'usr/local/sbin/rog5-persistent-tailscale',
+                 'usr/local/sbin/rog5-p2-attest'):
+        module.add(members, name, b'#!/bin/sh\necho old-helper\n', 0o100755)
+    module.add(members, 'lib/firmware/preserved.bin', b'qualified-firmware', 0o100644)
+    module.add(members, 'lib/modules/preserved.ko', b'qualified-module', 0o100644)
+    base = gzip.compress(module.encode(members), mtime=0)
+    package_stream = io.BytesIO()
+    probe = b'old-probe'
+    with tarfile.open(fileobj=package_stream, mode='w:gz') as tar:
+        entry = tarfile.TarInfo('probe-native-wifi.sh')
+        entry.size = len(probe); entry.mode = 0o755
+        tar.addfile(entry, io.BytesIO(probe))
+    package = package_stream.getvalue()
+    record = {'files': {'initramfs.cpio.gz': module.sha(base)},
+              'probe_package_sha256': module.sha(package),
+              'probe_files': {'probe-native-wifi.sh': module.sha(probe)},
+              'kernel_release': release}
+    return module, members, base, package, record
+
+
+class ComposerValidation(unittest.TestCase):
+    def setUp(self):
+        (self.module, self.members, self.base,
+         self.package, self.record) = composer_fixture()
+
+    def run_composer(self, root, optimized):
+        (root/'base.gz').write_bytes(self.base)
+        (root/'radio.tar.gz').write_bytes(self.package)
+        (root/'record.json').write_text(json.dumps(self.record))
+        return subprocess.run(
+            [sys.executable, '-E', '-B', *(['-O'] if optimized else []),
+             str(R/'scripts/device/build-native-wifi-boot-initramfs.py'),
+             '--base', str(root/'base.gz'), '--radio-package', str(root/'radio.tar.gz'),
+             '--record', str(root/'record.json'), '--output', str(root/'output.gz')],
+            capture_output=True, timeout=15)
+
+    def check_rejected(self):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized)
+                self.assertNotEqual(result.returncode, 0, 'composer accepted invalid input')
+                self.assertFalse((root/'output.gz').exists())
+                self.assertFalse((root/'output.gz.json').exists())
+
+    def test_cli_valid_output_is_identical_under_optimization(self):
+        expected, expected_record = self.module.compose(self.base, self.package, self.record)
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized)
+                self.assertEqual(result.returncode, 0, result.stderr.decode())
+                self.assertEqual((root/'output.gz').read_bytes(), expected)
+                receipt = json.loads((root/'output.gz.json').read_text())
+                self.assertGreaterEqual(receipt.pop('seconds'), 0)
+                self.assertEqual(receipt, expected_record)
+
+    def test_cli_rejects_wrong_base_package_and_member_hashes(self):
+        for field in ('base', 'package', 'member'):
+            with self.subTest(field=field):
+                record = json.loads(json.dumps(self.record))
+                if field == 'base':
+                    self.record['files']['initramfs.cpio.gz'] = '0'*64
+                elif field == 'package':
+                    self.record['probe_package_sha256'] = '0'*64
+                else:
+                    self.record['probe_files']['probe-native-wifi.sh'] = '0'*64
+                self.check_rejected()
+                self.record = record
+
+    def test_cli_preserves_existing_output_and_receipt(self):
+        for existing in ('output.gz', 'output.gz.json'):
+            for optimized in (False, True):
+                with self.subTest(existing=existing, optimized=optimized), tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    (root/existing).write_bytes(b'keep-existing')
+                    result = self.run_composer(root, optimized)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(b'output already exists', result.stderr)
+                    self.assertEqual((root/existing).read_bytes(), b'keep-existing')
+                    other = 'output.gz.json' if existing == 'output.gz' else 'output.gz'
+                    self.assertFalse((root/other).exists())
+
+    def test_cli_rejects_malformed_newc_metadata(self):
+        raw = gzip.decompress(self.base)
+        first_end = (116 + len(self.members['init'][1]) + 3) & ~3
+        malformed = {
+            'magic': b'070702' + raw[6:],
+            'name-terminator': raw[:114] + b'x' + raw[115:],
+            'absolute-path': raw.replace(b'lib\0', b'/ib\0', 1),
+            'parent-traversal': raw.replace(b'lib\0', b'../\0', 1),
+            'duplicate-member': raw[:first_end] + raw,
+            'checksum': raw[:102] + b'00000001' + raw[110:],
+            'trailing-data': raw + b'not-padding',
+            'truncated': raw[:100],
+        }
+        for label, data in malformed.items():
+            with self.subTest(metadata=label):
+                # Repin the outer hash so rejection must come from archive validation.
+                self.base = gzip.compress(data, mtime=0)
+                self.record['files']['initramfs.cpio.gz'] = self.module.sha(self.base)
+                self.check_rejected()
+
+    def test_cli_rejects_unsafe_replacement_and_unqualified_base(self):
+        original = self.members['init']
+        for label in ('symlink', 'hardlink', 'boot-policy', 'kernel-release'):
+            with self.subTest(metadata=label):
+                fields, data = original[0].copy(), original[1]
+                if label == 'symlink':
+                    fields[1] = 0o120777
+                elif label == 'hardlink':
+                    fields[4] = 2
+                elif label == 'boot-policy':
+                    data = data.replace(b'expected_native_root_mode=1', b'expected_native_root_mode=0')
+                else:
+                    self.record['kernel_release'] = '7.1.4-gfixture/invalid'
+                    data = data.replace(b'7.1.4-gfixture', b'7.1.4-gfixture/invalid')
+                self.members['init'] = fields, data
+                self.base = gzip.compress(self.module.encode(self.members), mtime=0)
+                self.record['files']['initramfs.cpio.gz'] = self.module.sha(self.base)
+                self.check_rejected()
+
+    def test_cli_rejects_malformed_radio_metadata(self):
+        original = self.record['probe_files'].copy()
+        for label in ('absolute-path', 'parent-traversal', 'duplicate', 'symlink',
+                      'unlisted', 'missing'):
+            with self.subTest(metadata=label):
+                self.record['probe_files'] = original.copy()
+                stream = io.BytesIO()
+                with tarfile.open(fileobj=stream, mode='w:gz') as tar:
+                    entry = tarfile.TarInfo('probe-native-wifi.sh')
+                    entry.size, entry.mode = len(b'old-probe'), 0o755
+                    tar.addfile(entry, io.BytesIO(b'old-probe'))
+                    extra = tarfile.TarInfo({
+                        'absolute-path': '/extra', 'parent-traversal': '../extra',
+                        'duplicate': 'probe-native-wifi.sh',
+                    }.get(label, 'extra'))
+                    if label == 'missing':
+                        self.record['probe_files']['missing'] = self.module.sha(b'')
+                    else:
+                        if label == 'symlink':
+                            extra.type, extra.linkname = tarfile.SYMTYPE, 'probe-native-wifi.sh'
+                        if label not in ('unlisted', 'duplicate'):
+                            self.record['probe_files'][extra.name] = self.module.sha(b'')
+                        tar.addfile(extra, io.BytesIO(b''))
+                self.package = stream.getvalue()
+                self.record['probe_package_sha256'] = self.module.sha(self.package)
+                self.check_rejected()
+
+    def test_trial_metadata_rejected_under_normal_and_optimized_python(self):
+        valid = (b'format=rog5-persistent-wifi-health-v1\ntrial_id=' + b'1'*64 +
+                 b'\nprimary_bundle=persistent-native-root-wifi\nmode=try-once\n')
+        # The trial parser is a public function of the actual composer, not a CLI option.
+        harness = (
+            'import importlib.util, json, sys\n'
+            'spec = importlib.util.spec_from_file_location("composer", sys.argv[1])\n'
+            'module = importlib.util.module_from_spec(spec)\n'
+            'spec.loader.exec_module(module)\n'
+            'print(json.dumps(module.parse_trial_descriptor(sys.stdin.buffer.read())))\n'
+        )
+        cases = {
+            'valid': valid,
+            'missing-newline': valid[:-1],
+            'crlf': valid.replace(b'\n', b'\r\n'),
+            'format': valid.replace(b'health-v1', b'health-v2'),
+            'field-name': valid.replace(b'trial_id=', b'wrong_id='),
+            'trial-id': valid.replace(b'1'*64, b'A'*64),
+            'short-id': valid.replace(b'1'*64, b'1'*63),
+            'bundle-path': valid.replace(b'persistent-native-root-wifi', b'../escape'),
+            'bundle-dotdot': valid.replace(b'persistent-native-root-wifi', b'base..other'),
+            'mode': valid.replace(b'try-once', b'always'),
+            'extra-field': valid + b'extra=value\n',
+            'missing-field': valid.split(b'mode=')[0],
+        }
+        for label, descriptor in cases.items():
+            for optimized in (False, True):
+                with self.subTest(metadata=label, optimized=optimized):
+                    result = subprocess.run(
+                        [sys.executable, '-E', '-B', *(['-O'] if optimized else []), '-c', harness,
+                         str(R/'scripts/device/build-native-wifi-boot-initramfs.py')],
+                        input=descriptor, capture_output=True, timeout=15)
+                    if label == 'valid':
+                        self.assertEqual(result.returncode, 0, result.stderr.decode())
+                        self.assertEqual(json.loads(result.stdout), self.module.parse_trial_descriptor(valid))
+                    else:
+                        self.assertNotEqual(result.returncode, 0, 'composer accepted invalid trial metadata')
+                        self.assertEqual(result.stdout, b'')
+
+
 class AutomaticWifi(unittest.TestCase):
     def test_boot_composer_refreshes_watchdog_and_ack_producer_together(self):
-        spec = importlib.util.spec_from_file_location(
-            'wifi_archive', R/'scripts/device/build-native-wifi-boot-initramfs.py')
-        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-        members = {}
-        release = '7.1.4-gfixture'
-        module.add(members, 'init', (
-            f'expected_kernel_release={release}\nexpected_native_root_mode=1\n'
-            'expected_ufs_storage_mode=read-only\nexpected_ssh_diagnostic_mode=0\n'
-        ).encode(), 0o100755)
-        for name in ('sbin/rog5-load-persistent-power-usb',
-                     'usr/local/sbin/rog5-persistent-tailscale',
-                     'usr/local/sbin/rog5-p2-attest'):
-            module.add(members, name, b'#!/bin/sh\necho old-helper\n', 0o100755)
-        module.add(members, 'lib/firmware/preserved.bin', b'qualified-firmware', 0o100644)
-        module.add(members, 'lib/modules/preserved.ko', b'qualified-module', 0o100644)
-        base = gzip.compress(module.encode(members), mtime=0)
-        package_stream = io.BytesIO()
-        probe = b'old-probe'
-        with tarfile.open(fileobj=package_stream, mode='w:gz') as tar:
-            entry = tarfile.TarInfo('probe-native-wifi.sh')
-            entry.size = len(probe); entry.mode = 0o755
-            tar.addfile(entry, io.BytesIO(probe))
-        package = package_stream.getvalue()
-        record = {'files': {'initramfs.cpio.gz': module.sha(base)},
-                  'probe_package_sha256': module.sha(package),
-                  'probe_files': {'probe-native-wifi.sh': module.sha(probe)},
-                  'kernel_release': release}
+        module, members, base, package, record = composer_fixture()
         packed, result = module.compose(base, package, record)
         output = module.entries(gzip.decompress(packed))
         attest_name = 'usr/local/sbin/rog5-p2-attest'
@@ -366,7 +541,7 @@ class AutomaticWifi(unittest.TestCase):
             valid.replace(b'trial_id=' + b'1'*64, b'trial_id=' + b'A'*64),
             valid.replace(b'primary_bundle=', b'fallback_bundle=', 1),
         ):
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(ValueError):
                 module.parse_trial_descriptor(bad)
 
         runtime = (R/'initramfs/native-wifi/runtime').read_text()
@@ -692,9 +867,9 @@ class AutomaticWifi(unittest.TestCase):
         self.assertEqual(list(module.entries(module.encode(members))), sorted(members))
         self.assertEqual(members['lib/module.ko'], old_module)
         for name in ('init', '../escape', '/absolute', 'bin/sh/child'):
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(ValueError):
                 module.add(members, name, b'bad', 0o100644)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             module.compose(b'bad', b'bad', {'files': {'initramfs.cpio.gz': '0'*64}})
         # Execute the real release verifier's newc parser, not just our encoder.
         with tempfile.TemporaryDirectory() as tmp:

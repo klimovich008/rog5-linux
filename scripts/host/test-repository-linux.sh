@@ -158,6 +158,10 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/host/test-release-acceptance.py
+	scripts/device/test-standalone-rescue-composition.py
+	scripts/host/test-qemu-watchdog-artifact.py
+	scripts/device/test-persistent-root-watchdog.py
 	scripts/host/test-persistent-trial-state.py
 	scripts/host/test-build-persistent-wifi-selector.py
 	"${native_wifi_probe_tests[@]}"

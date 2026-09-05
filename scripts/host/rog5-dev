@@ -5,6 +5,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 action=${1:-help}
 [[ $# == 0 ]] || shift
 case $action in
+  accept) exec python3 "$repo/scripts/host/release-acceptance.py" "$@" ;;
   test) exec "$repo/scripts/host/test-repository-linux.sh" "${@:-active}" ;;
   select) exec python3 "$repo/scripts/host/select-repository-test-tier.py" "$@" ;;
   package) exec python3 "$repo/scripts/host/prepare-recovery-runtime-bundle.py" "$@" ;;
@@ -12,6 +13,7 @@ case $action in
   build-initramfs) exec python3 "$repo/scripts/device/build-native-wifi-boot-initramfs.py" "$@" ;;
   help|--help|-h)
     printf '%s\n' 'rog5-dev test [active|probe|ci|nightly]' \
+      'rog5-dev accept quick|offline|device-smoke|release --output PRIVATE_NEW_DIRECTORY [--release RECEIPT]' \
       'rog5-dev select [--event push|pull_request] BASE HEAD' \
       'rog5-dev build-initramfs --help' \
       'rog5-dev package --config RECIPE --private-key KEY --bundle-root OUTPUT' \

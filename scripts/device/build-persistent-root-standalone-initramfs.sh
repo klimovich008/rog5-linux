@@ -13,6 +13,7 @@ shutdown=$repo/initramfs/persistent-root-shutdown-standalone
 state_helper=$repo/initramfs/persistent-service-state
 ssh_identity=$repo/initramfs/persistent-ssh-identity
 tailscale_runtime=$repo/initramfs/persistent-tailscale-runtime
+power_loader=$repo/scripts/device/load-persistent-root-power-usb.sh
 ufs_module_verifier=$repo/scripts/device/verify-persistent-ufs-module-profile.sh
 expected_base=cf3f6dadfb7567da064b27ce341d2224328c8046e3bef870424dbe8ddf471827
 expected_v10=db249f8cf242046c88ff8587355ea0eb89005b2bdafa57de8ddad43f1fe802fb
@@ -65,6 +66,7 @@ refresh_module_set() {
 
 unchanged_files() {
 	set -- ! -path ./init ! -path ./shutdown \
+		! -path ./sbin/rog5-load-persistent-power-usb \
 		! -path ./usr/local/sbin/rog5-p2-attest \
 		! -path ./usr/local/sbin/rog5-persistent-state \
 		! -path ./usr/local/sbin/rog5-persistent-ssh-identity \
@@ -91,7 +93,7 @@ case $base_sha256 in
 esac
 [ -x "$init" ] && [ -x "$attest" ] && [ -x "$shutdown" ] && [ -x "$state_helper" ] &&
 	[ -x "$ssh_identity" ] && [ -x "$tailscale_runtime" ] &&
-	[ -x "$ufs_module_verifier" ]
+	[ -x "$ufs_module_verifier" ] && [ -x "$power_loader" ]
 [ ! -e "$output" ]
 [ -z "$power_modules" ] || [ -n "$ufs_modules" ] || {
 	echo 'FAIL full module refresh needs matching UFS and power sets' >&2
@@ -110,6 +112,13 @@ gzip -dc "$base" | (cd "$root" && cpio -idm --quiet --no-absolute-filenames)
 
 (cd "$root" && unchanged_files) >"$work/before"
 install -m 0755 "$init" "$root/init"
+# Existing qualified power firmware/modules are retained; pair the current
+# early safety gate with the refreshed init/attestation instead of old script.
+if [ -e "$root/sbin/rog5-load-persistent-power-usb" ]; then
+	[ -f "$root/sbin/rog5-load-persistent-power-usb" ] &&
+		[ ! -L "$root/sbin/rog5-load-persistent-power-usb" ]
+	install -m 0755 "$power_loader" "$root/sbin/rog5-load-persistent-power-usb"
+fi
 for placeholder in \
 	EXPECTED_KERNEL_RELEASE EXPECTED_UFS_STORAGE_MODE \
 	EXPECTED_PROBE_BOOT_ID EXPECTED_NATIVE_ROOT_MODE \
