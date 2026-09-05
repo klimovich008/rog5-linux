@@ -8,6 +8,7 @@ case $action in
   capture-rescue) exec python3 "$repo/scripts/host/headless-stage-receiver.py" "$@" ;;
   accept) exec python3 "$repo/scripts/host/release-acceptance.py" "$@" ;;
   check-rescue-root) exec python3 "$repo/scripts/host/check-rescue-root-composition.py" "$@" ;;
+  check-ssh-rollback) exec python3 "$repo/scripts/host/test-systemd-ssh-rollback.py" "$@" ;;
   test) exec "$repo/scripts/host/test-repository-linux.sh" "${@:-active}" ;;
   select) exec python3 "$repo/scripts/host/select-repository-test-tier.py" "$@" ;;
   package) exec python3 "$repo/scripts/host/prepare-recovery-runtime-bundle.py" "$@" ;;
@@ -18,6 +19,7 @@ case $action in
       'rog5-dev capture-rescue --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev accept quick|offline|device-smoke|release --output PRIVATE_NEW_DIRECTORY [--release RECEIPT]' \
       'rog5-dev check-rescue-root --inputs RECEIPT --root PRIVATE_RO_LOOP_MOUNT --output PRIVATE_NEW_DIRECTORY' \
+      'rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev select [--event push|pull_request] BASE HEAD' \
       'rog5-dev build-initramfs --help' \
       'rog5-dev package --config RECIPE --private-key KEY --bundle-root OUTPUT' \

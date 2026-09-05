@@ -169,7 +169,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Existing test-native-wifi-healthy.py is source/fixture coverage, not the required systemd transaction."
+      "blocker": "rog5-dev check-ssh-rollback proves the real host systemd/sshd transaction with sealed BusyBox and fixture acceptance; exact target systemd and deployed unit/runtime binding remain required."
     },
     {
       "id": "D01",

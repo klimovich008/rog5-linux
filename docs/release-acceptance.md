@@ -37,6 +37,18 @@ with a disposable tmpfs upper. The caller provides/cleans a dedicated host-only
 receipt before wrapper packaging; full release still requires all five roles.
 It does **not** qualify the final wrapper, module loading, hardware or A01 alone.
 
+Supporting C02 check: `rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE
+--output PRIVATE_NEW_DIRECTORY`. Requires a user systemd manager, sshd,
+ssh-keygen/keyscan, bwrap and qemu-aarch64-static. Within 120 s it runs real
+loopback-only SSH restarts and the production timer/dependency relationship;
+rollback uses sealed BusyBox with fixture identity/acceptance and a reboot
+recorder. A healthy ACK must prevent reboot after the original deadline; a
+stale ACK must not. Only uniquely named runtime user units and private fixtures
+are created, then stopped/removed; no login, phone or host reboot occurs.
+The result records source, archive hash, commands, PID changes and timings.
+This host-systemd component is not exact target/deployed-unit qualification:
+**C02 remains BLOCKED**, and no component PASS is imported into release results.
+
 ## Required outcomes
 
 | IDs | Outcome | Current coverage / next step |

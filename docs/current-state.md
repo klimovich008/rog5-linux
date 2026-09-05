@@ -228,3 +228,9 @@ changed secrets and partial state are refused without overwrite. Only the same
 interface link-up is reasserted, not hardware activation. Real-file and sealed
 BusyBox regressions pass. Full F02 remains BLOCKED on the actual systemd
 WPA/DHCP/address/SSH restart transaction; this source fix is not deployed.
+
+Checkpoint `a8558244` passed all GitHub 33946711767 jobs. The late-SSH component
+now runs a real host systemd/sshd restart with sealed BusyBox rollback: healthy
+acceptance prevents reboot, stale acceptance requests it (10.875 s). C02 stays
+BLOCKED on exact target systemd/deployed-unit binding; see the acceptance
+incident for fixture limitations. No kernel rebuild or phone attempt followed.
