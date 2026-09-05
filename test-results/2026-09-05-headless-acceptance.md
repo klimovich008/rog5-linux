@@ -916,3 +916,23 @@ pass (24 cases, 1.803 s), and root-initramfs tests pass. Final full local CI
 kernel build or destructive operation occurred. The next physical question is
 whether this corrected graph preserves state/network access across SSH restart
 on a fresh coherent boot, after exact-head publication and connected admission.
+
+## V5 packaging and canonical registration
+
+Source `adfe80d7b1d9dd301b12f46cb302b52508679633` passed all four GitHub jobs
+(33973668522). V5 packages the corrected core dependency graph and bounded
+observer with unchanged kernels/DTB/modules/Arch lower. Twin packaging passed
+in **12.404 s** and sealed signature/composition verification in **6.111 s**.
+Wrapper SHA-256: `d77d64f96791dda2e210165770855fe6ce59e05be912a1cf22e58f28d601f0b0`.
+Manifest SHA-256: `11fbc8cfd0b8fc65ef72f3392afbee9a9390f5dab9685acaf35aebe0fa2fccd6`.
+The registry row derives artifact identities from the retained verifier result;
+it creates no claim or boot authority. Focused claim (18), receiver (16) and
+admission (31) tests pass in **4.295 s**. Reuse the source checkpoint's full
+local CI (488.955 s); this child changes registry data and documentation only.
+
+Fresh exact fastboot checks identify the expected serial/product/full topology,
+slot B, 8647 mV and SOC=yes. No current temperature or charging trend is inferred.
+V4 remains consumed; V5 remains unconsumed pending publication and connected
+admission. The physical question is whether SSH restart preserves P2, state,
+identity and normal USB on the corrected graph. Offline tests cannot qualify
+the actual target systemd transaction, charging window or final server release.

@@ -186,13 +186,24 @@ relative to v4; 19 modules, both kernels and the Arch lower are reused.
 Exact sealed tests, real-systemd restart integration, retained-root composition
 and full local CI pass (488.955 s). Next is publication and a coherent fresh
 rescue validation of the corrected service graph, not a kernel rewrite or a
-retry of consumed v4. No successor has been signed or admitted here.
+retry of consumed v4.
+
+**Prepared, unconsumed v5:** source `adfe80d7` passed all four GitHub jobs
+(33973668522). Packaging reused both kernels and produced identical signed
+bundle/RAM-wrapper twins in 12.404 s; sealed verification passed in 6.111 s.
+The canonical registry binds those exact artifacts. Registration-focused tests
+pass (65 cases, 4.295 s); publication and connected admission remain separate.
+The next live question is preservation of state and normal USB access across
+SSH restart. Fresh fastboot identity/topology match: slot B, 8647 mV, SOC=yes.
+This supersedes the last v4 runtime snapshot; no current temperature or charging
+trend is inferred from fastboot. No v5 claim or execution has occurred.
 
 Separately, the optional startup observer hit systemd's 900 s hard ceiling.
 The source fix exits after a complete startup round and leaves 30 s before the
 unchanged hard ceiling for incomplete startup. Focused/sealed tests and full CI
 pass (484.020 s). This observer correction is not deployed in running v4.
-No new candidate, flash, GPT change or kernel build was performed.
+The observer fix is included in prepared v5. No flash, GPT change or kernel
+build was performed.
 
 **Consumed:** `headless-acceptance-rescue-v3` packages the startup-phase
 diagnostics and current-boot P2/SSH-identity watchdog correction from `e6966506`.
