@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import stat
 
 
@@ -18,35 +19,52 @@ FALLBACK_BUNDLE = 'persistent-native-root-v11'
 FALLBACK_MANIFEST_SHA256 = 'a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2'
 
 
+def require(condition, message):
+    # Release-input validation must remain enabled under python -O.
+    if not condition:
+        raise ValueError(message)
+
+
 def read_regular(path):
-    metadata = path.lstat()
-    assert stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1
-    data = path.read_bytes()
-    assert 1 <= len(data) <= 4096
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    with os.fdopen(descriptor, 'rb') as stream:
+        metadata = os.fstat(stream.fileno())
+        require(stat.S_ISREG(metadata.st_mode) and metadata.st_nlink == 1,
+                'input must be a regular file with exactly one link')
+        require(1 <= metadata.st_size <= 4096, 'input size outside bound')
+        data = stream.read(4097)
+    require(1 <= len(data) <= 4096, 'input size outside bound')
     return data
 
 
 def manifest(data):
     text = data.decode('ascii')
-    assert '\r' not in text and text.endswith('\n')
+    require(1 <= len(data) <= 4096 and '\r' not in text and text.endswith('\n'),
+            'manifest size or line framing')
     rows = text.splitlines()
-    assert rows[0] == 'format=rog5-recovery-bundle-v2'
+    require(rows[0] == 'format=rog5-recovery-bundle-v2', 'manifest format')
     fields = {}
     for row in rows:
-        assert row.count('=') == 1
+        require(row.count('=') == 1, 'manifest field framing')
         name, value = row.split('=', 1)
-        assert name not in fields and name and value
+        require(name not in fields and name and value, 'duplicate or empty manifest field')
         fields[name] = value
-    assert set(fields) == {
+    require(set(fields) == {
         'format', 'bundle', 'profile', 'kernel_size', 'kernel_sha256',
         'dtb_size', 'dtb_sha256', 'initramfs_size', 'initramfs_sha256',
         'target_id', 'target_release', 'rollback_timeout', 'target_timeout',
         'a660_command_manifest_sha256', 'root_generation', 'root_tree_sha256',
         'root_seal_sha256', 'root_tree_entries', 'root_subtree',
-    }
-    assert fields['profile'] == 'persistent-root-ro-v1'
-    assert fields['bundle'] == fields['target_id']
-    assert fields['rollback_timeout'] == '900' and fields['target_timeout'] == '600'
+    }, 'manifest field inventory')
+    require(fields['profile'] == 'persistent-root-ro-v1', 'manifest profile')
+    require(fields['bundle'] == fields['target_id'], 'manifest target identity')
+    require(fields['rollback_timeout'] == '900' and fields['target_timeout'] == '600',
+            'manifest timing')
+    for key, value in fields.items():
+        if key.endswith('_sha256'):
+            require(re.fullmatch(r'[0-9a-f]{64}', value), 'invalid manifest hash: '+key)
+        if key in ('kernel_size', 'dtb_size', 'initramfs_size'):
+            require(re.fullmatch(r'[1-9][0-9]*', value), 'invalid artifact size: '+key)
     return fields
 
 
@@ -60,10 +78,10 @@ def generate(descriptor_data, primary_manifest, fallback_manifest,
     trial = PARSER.parse_trial_descriptor(descriptor_data)
     primary = manifest(primary_manifest)
     fallback = manifest(fallback_manifest)
-    assert primary['bundle'] == trial['primary_bundle']
-    assert fallback['bundle'] == expected_fallback_bundle
+    require(primary['bundle'] == trial['primary_bundle'], 'primary/trial mismatch')
+    require(fallback['bundle'] == expected_fallback_bundle, 'fallback bundle mismatch')
     fallback_hash = hashlib.sha256(fallback_manifest).hexdigest()
-    assert fallback_hash == expected_fallback_manifest_sha256
+    require(fallback_hash == expected_fallback_manifest_sha256, 'fallback hash mismatch')
     primary_hash = hashlib.sha256(primary_manifest).hexdigest()
     selector = (
         'format=rog5-slotb-selector-v2\n'
@@ -96,7 +114,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     record = Path(str(args.output)+'.json')
-    assert not args.output.exists() and not record.exists()
+    require(not os.path.lexists(args.output) and not os.path.lexists(record),
+            'output or record already exists')
     selector, result = generate(read_regular(args.trial_descriptor),
                                 read_regular(args.primary_manifest),
                                 read_regular(args.fallback_manifest),

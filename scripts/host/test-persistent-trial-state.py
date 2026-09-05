@@ -129,6 +129,24 @@ class PersistentTrialState(unittest.TestCase):
         self.assertTrue(self.record.read_text().endswith("state=pending\n"))
         self.assertEqual(self.command().stdout, FALLBACK + "\n")
 
+    def test_health_without_selector_preparation_is_refused(self):
+        (self.rog5 / "boot").mkdir(mode=0o700)
+        result = self.command("healthy", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("pending trial record is absent", result.stderr)
+        self.assertFalse(self.record.exists())
+
+    def test_old_healthy_record_cannot_acknowledge_a_new_ram_trial(self):
+        self.command()
+        self.command("healthy")
+        old = self.record.read_bytes()
+        result = self.command("healthy", trial="3" * 64, check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("running trial identity does not match pending state", result.stderr)
+        self.assertEqual(self.record.read_bytes(), old)
+
     def test_healthy_commit_is_atomic_and_idempotent(self):
         self.command()
         self.assertNotEqual(self.command("healthy", trial="4" * 64,

@@ -1479,3 +1479,58 @@ and pinned SSH identity, same consumed V5 boot at uptime 12371.55 s, Full/Good
 active. Existing keyring-WKD failure remains (fix not deployed); Wi-Fi inactive.
 Root remains overlay and /persist the bounded ext4 loop. No new full block-node
 inventory, temperature soak or remote Tailscale qualification is claimed.
+
+### Selector validation and persistent-trial preparation checkpoint (2026-09-06)
+
+Starting HEAD `d6def104ecd57e410e5f330ed621ba302a39953f`; all four jobs in
+GitHub run 33996636085 now PASS. Primary question: can the refreshed persistent
+server enter the correct trial before its health ACK? Layer: selector/trust and
+userspace composition; no kernel rebuild or phone execution.
+
+R2 validation defect: selector generation used Python assertions for manifest,
+identity, fallback and output checks. CLI regressions produced 17 failing
+subcases in 1.471 s before the fix. Several malformed inputs succeeded under
+`python -O`; malformed hash/size also succeeded normally. An existing JSON
+sidecar under optimization left a newly created selector before failure.
+Use unconditional validation, descriptor-based no-follow bounded regular-file
+reads, hash/size syntax checks and refusal of either existing output (including
+dangling links). This is not a new signature verifier or an atomic two-file
+publication guarantee; live admission still verifies signed artifacts.
+Thirty hostile normal/optimized cases and unchanged valid output are covered.
+Five selector methods PASS in 1.690 s; acceptance-manifest tests 19 PASS in
+0.536 s. A02/D02 split the selector cases to avoid repeating them.
+
+The embedded-RAM loader intentionally bypasses `read_selector` and
+`select_trial_bundle`. Exact canonical ARM trial-helper tests prove a missing
+pending record cannot be acknowledged, nor can an old healthy identity
+acknowledge a new trial. These two cases plus rearm-before-each-boot PASS in
+0.249 s using the existing isolated QEMU harness. No helper source changed.
+Do not strip persistent trial metadata to make a RAM rescue look like a
+persistent-server qualification.
+
+Read-only anchored-USB/pinned-SSH inspection found the installed V10 selector
+SHA `65ede599ca13b2c3ea651af2212bb80156d38919419792e3fd78d263c6216fd4`
+and its matching healthy trial record SHA
+`36f6141b8e6f2285aed6ceac2cb2ba6c058de5820efcd1f7cf5b83cc09ea88a9`.
+Both installed bundle manifests still match that selector. Use the existing
+normal selector-backed recovery and reviewed staged bundle/selector update
+with preserved old state for the next persistent trial; do not reuse the
+consumed V5 adapter or synthesize a pending record in the health service.
+
+Latest same-boot read at uptime 14052.99 s: Full/Good 100%, 29.9°C, 8.627 V,
+0 µA, charge counter 5116000, USB/UCSI online. Actual named rescue units remain
+active; an initial query of generic sshd/networkd/tailscaled names returned
+inactive because this rescue uses project-specific units. Follow-up unit
+inventory confirmed the expected services and only the known keyring-WKD
+failure. P24 remains RO/norecovery; P23 and the bounded /persist loop remain RW.
+This is continuity evidence, not H03 or soak qualification. No staging, signing,
+candidate issuance, boot, mount change or phone write command was performed.
+
+Final focused checks: selector 5 PASS **1.837 s**; all 16 exact canonical ARM
+trial-helper cases PASS **0.888 s**; acceptance runner 19 PASS **0.524 s**.
+The generator also reproduced the retained installed V10 selector and JSON
+record exactly from its real descriptor and both retained signed manifests.
+Frozen full local CI PASS **491.554 s**, versus prior 485.604 s. Private complete
+log: server-composition evidence directory, `selector-full-ci-r1.log`.
+Only these current/result documents were updated after the frozen test run;
+no implementation changed afterward. New exact-head/merge publication pending.
