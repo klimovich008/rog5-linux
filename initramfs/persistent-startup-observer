@@ -97,17 +97,24 @@ IFS=' ' read -r started _ </proc/uptime
 deadline=$((${started%%.*} + budget))
 sequence=0
 while [ "$sequence" -lt 999 ]; do
+	round_complete=1
 	for unit in p2 state identity sshd; do
 		[ "$sequence" -lt 999 ] || exit 0
 		IFS=' ' read -r now _ </proc/uptime
 		[ "${now%%.*}" -lt "$deadline" ] || exit 0
 		sequence=$((sequence + 1))
-		payload=$(observe_unit "$unit") || continue
-		[ "${#payload}" -lt 512 ] || continue
+		payload=$(observe_unit "$unit") || { round_complete=0; continue; }
+		[ "${#payload}" -lt 512 ] || { round_complete=0; continue; }
+		for field in observation=present active=active result=success; do
+			printf '%s\n' "$payload" | bb grep -Fxq "$field" || round_complete=0
+		done
 		printf '%s\n' "$payload" | bb timeout -s KILL 2 \
 			/run/initramfs/lib/ld-musl-aarch64.so.1 \
 			/run/initramfs/bin/busybox nc -n -w 1 -s 169.254.77.2 \
 			169.254.77.1 8079 >/dev/null 2>&1 || true
 	done
+	# This only ends passive startup diagnostics. It does not publish readiness,
+	# authenticate SSH, disarm a watchdog, or change any acceptance record.
+	[ "$round_complete" -eq 0 ] || exit 0
 	bb sleep 2
 done

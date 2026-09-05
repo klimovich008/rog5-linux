@@ -21,6 +21,67 @@ SEALED_ARCHIVE = None
 
 
 class StartupObservationTest(unittest.TestCase):
+    def test_observer_completes_or_exits_before_independent_ceiling(self):
+        source = (REPO/'initramfs/persistent-startup-observer').read_text()
+        init = (REPO/'initramfs/persistent-root-init').read_text()
+        start = init.index('cat >/run/systemd/system/rog5-startup-observer.service <<EOF')
+        template = init[start:init.index('\nEOF', start) + 4]
+        template = template.replace('cat >/run/systemd/system/rog5-startup-observer.service', 'cat')
+        # Render the actual deployed unit generator, not a second timeout list.
+        for recovery_budget in (300, 900):
+            unit = self.execute(f'recovery_timeout={recovery_budget}\n' + template).decode()
+            fields = dict(line.split('=', 1) for line in unit.splitlines() if '=' in line)
+            budget = int(shlex.split(fields['ExecStart'])[-1])
+            ceiling = int(fields['RuntimeMaxSec'])
+            self.assertEqual(ceiling, recovery_budget)
+            for outcome in ('healthy', 'inactive', 'error', 'partial'):
+                with self.subTest(budget=recovery_budget, outcome=outcome):
+                    # Virtual monotonic clock: bounded status/journal/send cost
+                    # 8s per unit; after the first round jump to just before
+                    # the deadline. This exercises the last in-flight call
+                    # without replaying hundreds of identical emulated forks.
+                    script = '''set -eu
+work=$(mktemp -d)
+trap 'rm -rf -- "$work"' EXIT
+clock=$work/uptime
+printf '0.00 0.00\\n' >"$clock"
+advance() {
+  read -r ticks ignored <"$clock"
+  printf '%s.00 0.00\\n' "$(( ${ticks%%.*} + $1 ))" >"$clock"
+}
+bb() {
+  case "$1:$2" in
+    cat:/proc/sys/kernel/osrelease) printf '%s\\n' ''' + shlex.quote(RELEASE) + ''' ;;
+    cat:/proc/sys/kernel/random/boot_id) printf '%s\\n' ''' + shlex.quote(BOOT) + ''' ;;
+    sleep:2) printf '%s.00 0.00\\n' "$((budget - 1))" >"$clock" ;;
+    timeout:*) : ;;
+    *) command "$@" ;;
+  esac
+}
+observe_unit() {
+  advance 8
+  printf '%s\\n' "$1" >>"$work/observed"
+  case ''' + outcome + ''':$1 in
+    healthy:*|partial:p2|partial:state|partial:sshd)
+      printf 'observation=present\\nactive=active\\nresult=success\\n' ;;
+    inactive:*) printf 'observation=present\\nactive=inactive\\nresult=success\\n' ;;
+    error:*|partial:identity) printf 'observation=error\\nactive=unknown\\nresult=unknown\\n' ;;
+  esac
+}
+(''' + source[source.index('# Entrypoint'):].replace('/proc/uptime', '"$clock"') + ''')
+read -r elapsed ignored <"$clock"
+printf 'elapsed=%s\\nobserved=%s\\n' "${elapsed%%.*}" "$(wc -l <"$work/observed")"
+'''
+                    script = 'set -- ' + str(budget) + '\n' + script
+                    result = dict(line.split('=', 1) for line in self.execute(script).decode().splitlines())
+                    self.assertLess(int(result['elapsed']), ceiling,
+                                    'optional observer races its systemd hard ceiling')
+                    if outcome == 'healthy':
+                        self.assertEqual(int(result['observed']), 4,
+                                         'startup observer must finish after complete startup')
+                    else:
+                        self.assertGreater(int(result['observed']), 4)
+
     def test_handoff_paths_agree_with_state_start_ownership(self):
         init = (REPO/'initramfs/persistent-root-init').read_text()
         handoff = init[init.index('move_handoff_mount() {'):init.index('\nswitch_root_failure() {')]

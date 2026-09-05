@@ -792,3 +792,78 @@ Exact-head publication and connected admission remain separate.
 The registry/documentation active tier passed in **11.394 s**.
 All four source CI jobs passed at `0b4e8216` (33969178949); these are not
 substituted for the registry checkpoint's connected publication gate.
+
+## V4 live handover and pinned SSH recovery
+
+Publication `385ed8c9d7c3176bb3f10cc27e5b9987ab02011b` passed all four GitHub
+jobs (33969700863). Connected admission passed and v4 was consumed exactly once.
+Fastboot transfer/acceptance: **12.788 s**; supervisor execution return:
+**15.453 s**; pinned SSH acceptance: **57.196 s**. No flash or GPT change.
+Boot identity: `0a81d0a7-7d96-44d0-93a2-0758ef803a33`, kernel
+`7.1.4-g359318de534f`. Expected host-key verification was never bypassed.
+
+The handover question is answered: persistent state and identity startup pass.
+The identity record binds this boot ID and the expected fingerprint; no failed
+systemd units were reported. P24 is RO/norecovery. The existing bounded P23
+service-state image is mounted on /persist; exactly sda and sda23 are writable
+across 117 checked UFS nodes. Startup reports supported journal recovery for
+sda23 and loop0; this is not an assertion of zero storage writes. Wi-Fi is
+intentionally inactive. Tailscale acquired an address, but remote reachability
+has not been qualified. Full raw snapshots remain private.
+
+Authenticated snapshots: battery 93%/30.1°C/+39 mA/4784000 µAh initially;
+93%/30.4°C/+125 mA/4796000 µAh at uptime 161 s; and
+94%/30.3°C/+129 mA/4838000 µAh at uptime 686 s. Health is Good and USB input
+reports online, about 4.98 V with a 500 mA limit. These corroborate net charging
+but lack H03's predeclared limit/noise interpretation and complete 10 s cadence;
+H03 remains BLOCKED, not retroactively passed. Duplicate UCSI supply telemetry
+must not be summed with the battmgr input. Final capture/cleanup and subsequent
+service-test observations are recorded below.
+
+Keep the existing Arch image. V4 changes target init only; successful recovery
+with the same root/kernel directly supports a project composition defect,
+not a demonstrated need for a Debian migration. No distro rebuild is started.
+
+## Completed capture, observer timeout and SSH restart failure
+
+The same v4 boot remained reachable after the 900 s deadline (uptime 971 s).
+Capture completed in **1380.790 s**, exit 0, without capture failure. Its
+qualification status is intentionally NOT RUN: passive evidence cannot prove
+authenticated acceptance. Route, firewall, profile and address cleanup all
+PASS. Normal USB pinned SSH subsequently passed at uptime 1517 s. Battery
+96%, Good, 30.2°C, +128 mA, 4908000 µAh. Tailscale reported Running/Online with
+no health warnings, but this host lacks a Tailscale client/route; an attempted
+overlay-address SSH check timed out. Remote mesh SSH is not qualified.
+
+New R4 observation defect: the installed observer runs with argument 900 and
+RuntimeMaxSec=900. The exact target unit/journal shows start 22.007275 s, end
+922.010684 s, Result=timeout, SIGTERM. Core services continued. A virtual-clock
+test of the actual unit generator and loop reproduces the deadline collision
+before the fix. The observer now ends after all four startup services report
+present/active/success; otherwise its loop budget leaves a 30 s margin under
+the unchanged hard ceiling. This ends diagnostics only, never acceptance or
+rollback. Partial/error observations cannot complete the startup round.
+
+Eight focused tests PASS (**0.724 s**), exact sealed BusyBox tests PASS
+(**19.902 s**), assembled-archive composition PASS (**0.086 s**). The first
+full CI stopped after 39.618 s on an obsolete composition assertion pinning
+the old argument; it now checks the assembled invocation against the actual
+generator, with behavior tested separately. The initial long virtual-clock
+fixture timed out under emulation; jumping directly to the final in-flight
+operation preserves deadline coverage without hundreds of repeated forks.
+Final full local CI PASS **484.020 s**. Frozen production/test diff SHA-256
+over `385ed8c9`: `df29d5ca87db602572a169b2f3c0611a9f1c7b068c101ed2728c135aabfbddcf`.
+No running target byte was changed; no successor was built or issued.
+
+**S03 FAIL, not a crash:** one SSH service restart at uptime 1668 s lost normal
+10.77.0.2 access. No repeat was sent. Host USB remained enumerated; ARP failed
+for that address. With a scoped temporary host diagnostic route, pinned SSH to
+169.254.77.2 succeeded at uptime 1946 s with the same boot ID and new SSH PID
+(4976 → 567480). Live systemd logs prove Requires propagation stopped P2,
+persistent state, identity and Tailscale; its cleanup removed the normal USB
+address. The restarted one-shot P2 exited 1, preventing state/Tailscale restart.
+The diagnostic route/address were cleaned up. This is a concrete service-graph
+failure, not proof of UFS/USB/kernel instability. Charging remains active.
+Next correction must reproduce that actual systemd transaction and preserve
+the initial P2 storage gate while preventing routine SSH restart from tearing
+down state/networking. C02/S03 and the final release remain incomplete.
