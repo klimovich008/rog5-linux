@@ -467,3 +467,26 @@ production watchdog QEMU evidence remains separate. Bounded independent review
 found no blocking issue. No kernel/recovery rebuild, signing, admission, phone
 operation or storage mutation occurred for this correction. Other audit findings
 remain deferred. Full frozen-tree results belong to the publication checkpoint.
+
+## Exact rescue registration and host preparation
+
+Composition checkpoint `8cb0f65f4b5e1f9a8a70326f4502e68ac8f54983` passed
+full local CI in 491.913 s on tree `c438eb7d99c7950af8ca8fc1edaae41922ae510f`.
+GitHub run 33933475707 completed successfully, including head-exact, merge,
+publication and QEMU. The next edit adds one literal rescue claim record, not
+a new consumer: AST comparison proves all executable statements and historical
+records unchanged. The new lookup regression failed before registration;
+all 17 consumer tests passed in 0.135 s (0.261 s command). Mutated artifact
+fields and consumption retries are rejected. The four recorded hashes were
+independently compared against the actual retained boot/archive/selector/manifest.
+
+The retained Arch image's public authorization fingerprint matches the located
+deployment key; V11's pinned host fingerprint matches its accepted live record.
+No private key was printed or copied. A copy of the proven receive-only stage
+collector differs only in its 1320-second observation/firewall lifetime,
+covering recovery 300 + target 900 + cleanup 120. It has not been started.
+The retired NFS-specific host-doctor profile is not the standalone server gate;
+the actual saved shared profile and unoccupied diagnostic listener ports were
+checked directly. Sudo credential validation succeeded, but its per-terminal
+cache does not carry into later execution cells. No host network change,
+actual claim creation/consumption, phone boot, flash or storage write occurred.
