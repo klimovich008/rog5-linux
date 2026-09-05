@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import copy
 import gzip
 import hashlib
@@ -860,6 +861,39 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         source = self.consumer.read_text()
         self.assertIn(field, source)
         self.consumer.write_text(source.replace(field, "tools_manifest_sha256=" + "0" * 64, 1))
+        claims = self.profile["claims"]
+        claims["consumer_size"] = self.consumer.stat().st_size
+        claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("registry is not exact")
+
+    def test_canonical_ram_families_have_exact_registry_closure(self) -> None:
+        tree = ast.parse(CONSUMER.read_bytes())
+        assignment = next(node for node in tree.body
+                          if isinstance(node, ast.Assign) and any(
+                              isinstance(target, ast.Name) and target.id == "CLAIMS"
+                              for target in node.targets))
+        canonical = ast.literal_eval(assignment.value)
+        self.assertEqual(set(ADMISSION.EXPECTED_CLAIMS), set(canonical))
+        for name, record in canonical.items():
+            self.assertEqual(ADMISSION.EXPECTED_CLAIMS[name], record, name)
+        families = (b"\nexecution=mainline-kexec-ram-only\n",
+                    b"\nexecution=fastboot-boot-fallback-only\n")
+        expected = {name: record for name, record in canonical.items()
+                    if any(marker in record for marker in families)}
+        self.assertTrue(all(any(marker in record for record in expected.values())
+                            for marker in families))
+        self.assertEqual(ADMISSION.canonical_native_ram_claims(), expected)
+
+    def test_fallback_only_ram_record_must_match_canonical_checkout(self) -> None:
+        records = [record for record in ADMISSION.canonical_native_ram_claims().values()
+                   if b"\nexecution=fastboot-boot-fallback-only\n" in record]
+        self.assertTrue(records, "fallback-only family omitted from canonical closure")
+        field = next(line for line in records[0].decode().splitlines()
+                     if line.startswith("boot_image_sha256="))
+        source = self.consumer.read_text()
+        self.assertIn(field, source)
+        self.consumer.write_text(source.replace(field, "boot_image_sha256=" + "0" * 64, 1))
         claims = self.profile["claims"]
         claims["consumer_size"] = self.consumer.stat().st_size
         claims["consumer_sha256"] = digest(self.consumer.read_bytes())

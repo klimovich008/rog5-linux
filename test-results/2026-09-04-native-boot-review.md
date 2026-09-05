@@ -490,3 +490,43 @@ the actual saved shared profile and unoccupied diagnostic listener ports were
 checked directly. Sudo credential validation succeeded, but its per-terminal
 cache does not carry into later execution cells. No host network change,
 actual claim creation/consumption, phone boot, flash or storage write occurred.
+
+## Canonical rescue claim closure and live-preflight refusal
+
+Starting HEAD: `979e25eb77cb163f212020086490648389afb823` (clean).
+Question: does the historical admission verifier include the new RAM-only
+fallback family already registered in the canonical consumer? Layer:
+host admission, R1/R9. Exact-head run 33934354059 failed in head and merge
+with `generic claim consumer registry is not exact`; both stopped in the
+retention-admission suite. The canonical importer selected only
+`execution=mainline-kexec-ram-only`, omitting
+`execution=fastboot-boot-fallback-only`.
+
+The correction extends only that existing fixed-repository lookup to the
+second exact execution marker. No candidate names or hashes are copied;
+whole-registry equality, candidate file hash/mode verification, alias/mutation
+refusal and the generic consumer remain unchanged. Two new closure/mutated
+fallback-record tests failed before correction (0.181 s command time).
+All 30 admission tests passed afterward (3.447 s), and all 17 consumer tests
+passed (0.250 s). The mutated fixture is rejected even when its containing
+file's size/hash are repinned. Full frozen-tree results belong to the next
+publication checkpoint; no passing remote result is implied here.
+
+Connected non-consuming preflight verified serial/product/USB anchor, slot B,
+7702 mV and SOC yes, but refused the failed CI before claim creation. No phone
+boot, claim entry, signing, storage access or host network change occurred.
+
+Bounded independent review verified the prepared rescue hashes, exact-selector
+executor, signed fallback identity and read-only recovery loading. It also
+identified a mistaken prior assumption: exact V11 checks temperature and pack
+voltage before UFS, but not battery health, and disarms its older watchdog before
+switch_root. Do not represent the signed archive as containing the newer source
+watchdog correction. The collector's 1320-second lifetime does not guarantee
+rollback continuity, and it exits on the first disconnect. Its adapter needs
+fresh process identity and remaining-budget checks before any claim entry.
+
+These findings stop this physical attempt before consumption, not the server
+goal. Next work is the smallest coherent headless composition with corrected
+early gates and watchdog/attestation, reusing the qualified kernel and preserving
+accepted fallback/rescue bytes. Existing prepared twins remain unconsumed;
+they are not to be rebuilt or silently treated as a qualified new target.

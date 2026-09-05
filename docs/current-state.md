@@ -153,8 +153,22 @@ The next data-only registration binds `headless-selector-rescue-v1` to the
 verified private twins and current selector. All 17 generic claim tests pass;
 consumer statements and every historical record are unchanged. No actual
 claim has been created/consumed. The pinned V11 SSH host identity and matching
-deployment key are located; a retained capture copy covers 300 s recovery +
-900 s target rollback + 120 s margin. It is not running. No phone or kernel
-change follows from these offline results. Complete connected preflight and
-capture setup before one RAM-only execution; do not rebuild the verified twins.
+deployment key are located. Exact-head run 33934354059 failed because the
+historical admission verifier omitted the canonical fallback-only claim family.
+The focused correction imports that family from the same fixed registry;
+30 admission and 17 consumer tests pass, including two fail-first regressions.
+Connected preflight refused before consumption; slot B, 7702 mV and SOC yes
+were observed. No boot or host networking change occurred.
+
+Do not execute the prepared rescue yet: exact V11 archive review found no early
+battery-health predicate and its old init disarms the watchdog before
+switch_root. The source watchdog correction is not in that signed fallback.
+The 1320-second collector is only an observation lifetime, not proof of
+continuous target rollback; it also stops on the first disconnect and lacks
+an admission check for remaining lifetime. It has not been started.
+Next: finish the registry CI checkpoint, then compose a coherent headless
+rescue with paired watchdog/attestation and early power gates using the retained
+kernel. Preserve the existing signed V11 and stock slot-A rescue unchanged.
+Any new composition needs fresh exact validation/admission; no consumed retry
+or experimental flash. Do not rebuild the already verified rescue twins.
 The [roadmap](../ROADMAP.md) holds later work.
