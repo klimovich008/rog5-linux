@@ -7,6 +7,7 @@ composition evidence, not final boot-wrapper or physical qualification.
 """
 import argparse
 import gzip
+import hashlib
 import io
 import importlib.util
 import json
@@ -118,6 +119,64 @@ echo COMPOSITION_UNIT_VERIFY_PASS
 '''
 
 
+def module_closure(members, release):
+    """Check the sealed power-then-UFS insmod order, not a hardware load proof.
+
+    archive_parameters separately binds the scripts to the reviewed call sites.
+    Module dependency metadata lists loadable dependencies, not built-in symbols;
+    vermagic agreement cannot by itself prove BTF/symbol or hardware compatibility.
+    """
+    power = members['sbin/rog5-load-persistent-power-usb'][1].decode()
+    init = members['init'][1].decode()
+    power_calls = list(re.finditer(r'(?m)^\s*if ! power_usb_failure=\$\(/sbin/rog5-load-persistent-power-usb\)', init))
+    ufs_calls = list(re.finditer(r'(?m)^\s*load_deferred_ufs_modules\s*$', init))
+    if len(power_calls) != 1 or len(ufs_calls) != 1 or power_calls[0].start() >= ufs_calls[0].start():
+        raise ValueError('unsupported power/UFS call-site order')
+    order = ['rog5-power-usb-modules/'+name for name in re.findall(
+        r'(?m)^load_module ([A-Za-z0-9_-]+\.ko) [A-Za-z0-9_-]+ [A-Za-z0-9_-]+$', power)]
+    order += re.findall(r'(?m)^\s*insmod /(rog5-ufs-modules/[A-Za-z0-9_-]+\.ko) \|\| return 1$', init)
+    inventory = {name for name in members if name.endswith('.ko')}
+    if not order or len(order) != len(set(order)) or set(order) != inventory:
+        raise ValueError('sealed module inventory/load-order mismatch')
+    rows, loaded, vermagic = [], set(), None
+    deadline = time.monotonic() + 10
+    with tempfile.TemporaryDirectory(prefix='rog5-module-metadata-') as temp:
+        for index, name in enumerate(order):
+            fields, data = members[name]
+            if (not stat.S_ISREG(fields[1]) or fields[4] != 1 or fields[2:4] != [0,0]
+                    or fields[1] & 0o6022 or len(data) < 64
+                    or data[:6] != b'\x7fELF\x02\x01' or data[16:20] != b'\x01\x00\xb7\x00'):
+                raise ValueError('unsafe or non-AArch64 module: '+name)
+            # Only verified regular member bytes, never archive paths/links.
+            directory=Path(temp)/str(index); directory.mkdir()
+            path=directory/Path(name).name; path.write_bytes(data); path.chmod(0o400)
+            metadata = {}
+            for field in ('name','depends','vermagic'):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ValueError('module metadata deadline exceeded')
+                metadata[field] = subprocess.check_output(['modinfo','-F',field,str(path)],
+                        text=True,timeout=min(5,remaining)).strip()
+            module=metadata['name']
+            if not re.fullmatch(r'[A-Za-z0-9_]+',module) or module in loaded:
+                raise ValueError('invalid/duplicate module identity: '+name)
+            if module != path.stem.replace('-','_'):
+                raise ValueError('module filename/name mismatch: '+name)
+            words=metadata['vermagic'].split()
+            if not words or words[0]!=release:
+                raise ValueError('module/kernel release mismatch: '+name)
+            if vermagic is not None and metadata['vermagic']!=vermagic:
+                raise ValueError('inconsistent module vermagic: '+name)
+            vermagic=metadata['vermagic']
+            dependencies=metadata['depends'].split(',') if metadata['depends'] else []
+            if any(not re.fullmatch(r'[A-Za-z0-9_-]+',dep) or dep.replace('-','_') not in loaded
+                   for dep in dependencies):
+                raise ValueError('module dependency absent or loaded too late: '+name)
+            loaded.add(module)
+            rows.append(dict(path=name,sha256=hashlib.sha256(data).hexdigest(),**metadata))
+    return rows
+
+
 def verify_mount(root, image):
     result = subprocess.check_output(['findmnt', '-J', '-o', 'TARGET,SOURCE,FSTYPE,OPTIONS',
                                       '--target', str(root)], text=True)
@@ -163,6 +222,7 @@ def main():
         raise ValueError('expanded archive exceeds 512 MiB')
     members = SEALED.ARCHIVE.entries(payload)
     values = archive_parameters(members)
+    modules = module_closure(members, values['KERNEL_RELEASE'])
     if ('Linux version '+values['KERNEL_RELEASE']+' ').encode() not in Path(inputs['artifact_paths']['kernel']).read_bytes():
         raise ValueError('kernel banner/archive release mismatch')
     args.output.mkdir(mode=0o700)  # New, private, never replace prior evidence.
@@ -207,6 +267,7 @@ def main():
                                    'no final wrapper/admission or module-load proof',
                                    'unit lifetime is a fixture, not deployed timeout verification'],
                       mount=mount, exit_code=code, duration_seconds=round(time.monotonic()-started, 3),
+                      module_metadata_in_load_order=modules,
                       checker_sha256=ACCEPTANCE.sha_file(Path(__file__)),
                       qemu_sha256=ACCEPTANCE.sha_file(Path('/usr/bin/qemu-aarch64-static')))
         (args.output/'result.json').write_text(json.dumps(record, indent=2)+'\n')

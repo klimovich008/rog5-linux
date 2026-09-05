@@ -398,3 +398,36 @@ No full local CI repeat was needed for this host-only test/entry/documentation
 checkpoint; the prior full local result remains separately identified, not
 attributed to these edits. The current physical descriptor remains persistent
 Linux, not fastboot; no authenticated recovery or charging PASS is inferred.
+
+**A01 sealed module metadata gap (R2):** the root composition checker paired
+scripts with repository source but did not inspect the archive's module
+inventory/dependencies. A fail-first regression exposed the missing check.
+It now reads all module metadata from those exact bytes, requires regular
+single-link root-owned AArch64 relocatables, matching names/release/full
+vermagic, and resolves each dependency before its consumer in the reviewed
+power-then-UFS order. Missing/extra/aliased modules, bad architecture/release,
+unresolved or late dependencies and a ten-second overall expiry are refused.
+Eight focused tests pass normally/optimized (0.037/0.038 s).
+
+All **19 unchanged modules** from unsigned archive `ce1b0b11…dce1a` passed
+the real host metadata check in **0.499 s**, with hashes and order retained
+privately. Separate exact BusyBox metadata inspection passed in 1.474 s only
+after supplying its explicitly labeled empty `modules.dep` fixture. Without
+that file BusyBox modinfo refused the query; production uses direct insmod,
+so this standalone inspection failure is not a demonstrated boot defect.
+No artifact changes were needed. BTF/symbol resolution and hardware load are
+not inferred from metadata; A01 remains BLOCKED on complete final composition.
+
+The timeout source audit confirms signed `rollback_timeout` feeds
+`rog5.recovery_timeout`; target init accepts 300–900 seconds, and observer and
+watchdog share that variable. The consumed manifest specifies 900 seconds.
+This is source/historical evidence only: a new wrapper and signed target must
+still prove their actual command line together before admission. No new
+candidate is issued and the consumed rescue remains permanently non-retryable.
+
+Final module replay passed in **0.507 s**, including verification that sealed
+init actually invokes power before UFS. Focused normal/optimized tests passed
+after that refinement. GitHub **33947683439** completed all four jobs for
+`a7f088c5`; this is the previous checkpoint, not CI for the new module check.
+Frozen active tier passed in **10.320 s**; no kernel/archive rebuild or full
+local CI repeat for this supporting host-only composition check.

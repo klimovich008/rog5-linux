@@ -16,6 +16,50 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_sealed_module_load_order_and_dependency_refusals(self):
+        item = lambda data: ([0, stat.S_IFREG | 0o644, 0, 0, 1], data)
+        elf = bytearray(64)
+        elf[:6] = b'\x7fELF\x02\x01'
+        elf[16:20] = b'\x01\x00\xb7\x00'
+        members = {
+            'init': item(b'insmod /rog5-ufs-modules/core.ko || return 1\n'
+                         b'if ! power_usb_failure=$(/sbin/rog5-load-persistent-power-usb); then\n'
+                         b' :\nfi\nload_deferred_ufs_modules\n'),
+            'sbin/rog5-load-persistent-power-usb': item(
+                b'load_module power.ko power power\n'),
+            'rog5-ufs-modules/core.ko': item(bytes(elf)),
+            'rog5-power-usb-modules/power.ko': item(bytes(elf)),
+        }
+        release='7.1.4-g359318de534f'
+        invalid_dependency=''
+        def inspect(argv, **kwargs):
+            name=Path(argv[-1]).stem
+            return {'name':name, 'vermagic':release+' SMP preempt mod_unload aarch64',
+                    'depends':invalid_dependency or ('power' if name=='core' else '')}[argv[2]]+'\n'
+        with patch.object(M.subprocess,'check_output',side_effect=inspect):
+            result=M.module_closure(members,release)
+            self.assertEqual([row['name'] for row in result],['power','core'])
+            for mutation in ('missing','extra','alias','wrong-arch','wrong-release','order'):
+                changed=copy.deepcopy(members)
+                expected=release
+                if mutation=='missing': del changed['rog5-ufs-modules/core.ko']
+                if mutation=='extra': changed['rog5-ufs-modules/extra.ko']=item(bytes(elf))
+                if mutation=='alias': changed['rog5-ufs-modules/core.ko'][0][1]=stat.S_IFLNK|0o777
+                if mutation=='wrong-arch': changed['rog5-ufs-modules/core.ko']=item(b'not ARM ELF')
+                if mutation=='wrong-release': expected=release+'wrong'
+                if mutation=='order':
+                    changed['init']=item(b'insmod /rog5-power-usb-modules/power.ko || return 1\n')
+                    changed['sbin/rog5-load-persistent-power-usb']=item(b'load_module core.ko core core\n')
+                with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                    M.module_closure(changed,expected)
+            for invalid_dependency in ('missing', 'core', '../power', 'power\ncore'):
+                with self.subTest(dependency=invalid_dependency), self.assertRaisesRegex(
+                        ValueError,'dependency absent or loaded too late'):
+                    M.module_closure(members,release)
+            with patch.object(M.time,'monotonic',side_effect=[0,11]), self.assertRaisesRegex(
+                    ValueError,'metadata deadline exceeded'):
+                M.module_closure(members,release)
+
     def members(self):
         values = dict(KERNEL_RELEASE='7.1.4-g359318de534f', UFS_STORAGE_MODE='read-only',
                       PROBE_BOOT_ID='staged-seal', NATIVE_ROOT_MODE='1',

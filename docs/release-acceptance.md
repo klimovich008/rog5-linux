@@ -36,6 +36,10 @@ with a disposable tmpfs upper. The caller provides/cleans a dedicated host-only
 `ro,noload,nodev,nosuid` ext4 loop mount. This checker permits a four-artifact
 receipt before wrapper packaging; full release still requires all five roles.
 It does **not** qualify the final wrapper, module loading, hardware or A01 alone.
+It also checks all sealed power/UFS module names, regular-file metadata,
+AArch64 relocatable headers, consistent vermagic and dependency order within
+a ten-second metadata budget. This is not BTF/symbol-resolution or hardware
+load proof; those remain separate from metadata agreement.
 
 Supporting C02 check: `rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE
 --output PRIVATE_NEW_DIRECTORY`. Requires a user systemd manager, sshd,

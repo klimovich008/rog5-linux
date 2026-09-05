@@ -69,7 +69,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Archive/root runtime component passes via rog5-dev check-rescue-root; final signed-wrapper, module closure, timing/transport composition and combined runner remain required."
+      "blocker": "Archive/root runtime and sealed module metadata/order components pass via rog5-dev check-rescue-root; final signed-wrapper, kernel BTF/symbol/load closure, timing/transport composition and combined runner remain required."
     },
     {
       "id": "A02",
