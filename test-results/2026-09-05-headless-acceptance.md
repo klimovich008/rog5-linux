@@ -160,3 +160,60 @@ Next: freeze/full CI for this recovery change, then verify a fresh signed RAM
 bundle/wrapper and establish pre-boot capture before the one-use rescue. The
 old wrapper/claim remains unused; no source-only fix is described as deployed.
 Current host free space is approximately 38 GiB; no build data was deleted.
+
+## Prestarted capture and exact signed rescue
+
+Delivery checkpoint `0afbc63e1a3811250b5cd5af1be5e7d34273943d` passed one
+full local CI in **478.334 s** and GitHub **33940190642** (exact-head, merge,
+publication, QEMU). Its clean offline matrix took 17.859 s: six PASS, eight
+BLOCKED, eleven NOT RUN. These results do not qualify the new dirty checkpoint.
+
+**R4/R8 host capture:** the old collector did not establish preboot addressing,
+prove remaining lifetime or survive disconnect. The passive receiver now uses
+canonical candidate/manifest identity, bounded concurrent clients, immutable
+source/process receipt, a live TCP readiness challenge and retained last-stage
+records. It never issues execution. H01 binds it to the release's exact boot
+image. Missing capture is BLOCKED; mismatched candidate/image is FAIL.
+
+A real host rehearsal exposed NetworkManager shared mode silently dropping a
+secondary IPv4 address. No phone was booted. The partial temporary zone change
+was restored, then the implementation kept the single shared address and used
+a scoped loopback diagnostic address/direct USB route. The regression fails
+the original approach. Corrected host rehearsal **PASS 2.699 s**, including
+profile/address/firewall/listener restoration. A disposable network namespace
+test passed real ARP/TCP and device-bound receive; namespaces were cleaned up.
+Thirteen receiver/network tests pass normally (0.086 s) and optimized (0.089 s).
+Twelve acceptance bookkeeping tests pass (0.220 s). The rehearsal predates the
+final source-receipt binding; fresh final-release H01 is still required.
+
+**R2/R8 exact delivery:** deterministic signed bundle and wrapper twins took
+**11.085 s** total. Wrapper archive builds were 3.662/3.654 s, repacks
+1.422/1.382 s; signing/packaging 0.301/0.274 s. No kernel was rebuilt. Retained
+target Image/DTB and all 19 modules are unchanged. Archive size 45,586,876 bytes,
+raw boot 96,092,160 bytes, boot-envelope image 100,663,296 bytes. The AVB footer
+is algorithm NONE; authentication is the embedded Ed25519 target signature,
+plus exact outer-byte admission on the intentionally unlocked phone.
+
+- Target manifest: `18b365468fe42d5e374abcbc57bae10d06ca1fd42708348f6d38afe59fd718dd`
+- Recovery archive: `316cb1f83f2f65d2ed57ee38fc5042b8031465feb2093ee7e9a624278a6b75e3`
+- Boot image: `dd96e3aab8775301f4bcef9313aa02b31b7efa3c18a3aee580e0052c314efcfb`
+
+Exact sealed ARM verifier passed in **2.686 s**, including signature, payload
+hashes and generated plan (600 s target, 900 s rollback). Public trust identity
+matches the retained verifier; private material remains outside Git. No new
+key was generated. Old signed V11 and the unused old rescue are preserved.
+
+The new RAM-embedded family initially failed canonical admission closure (six
+failures/one error, 3.082 s). Its consumer now derives this family from the same
+fixed registry. Altered records and repeated consumption are regression tested.
+All 31 admission tests pass (3.317 s); all 18 claim tests pass (0.138 s).
+Active tier passed in **9.639 s**. A fresh host rehearsal with source/receipt
+binding and the actual new candidate passed in **2.836 s**, restored all owned
+state and performed no boot. A subsequent delayed-link/zone regression failed
+first: sysfs discovery incorrectly installed a route before link-up. The final
+receiver waits for link/profile/zone convergence within the unchanged global
+deadline. All 14 receiver tests pass, including optimized Python (0.090 s).
+No claim was issued/consumed, phone boot performed, slot changed or phone
+storage accessed. Peak build disk usage was not instrumented; no peak figure
+is claimed. No build data was deleted. Live recovery remains the next milestone,
+not postponed until all later server criteria are implemented.

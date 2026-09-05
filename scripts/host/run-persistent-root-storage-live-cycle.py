@@ -308,7 +308,7 @@ WATCHDOG_OBSERVER_DETAIL = re.compile(
 SOFTDOG_PROBE_DETAIL = "softdog-armed-20"
 
 
-def parse_stage_record(payload: bytes) -> StageRecord:
+def parse_stage_record(payload: bytes, *, expected_release: str = TARGET_RELEASE) -> StageRecord:
     if len(payload) > STAGE_RECORD_MAX_BYTES:
         fail("target stage record exceeds its fixed bound")
     try:
@@ -322,7 +322,7 @@ def parse_stage_record(payload: bytes) -> StageRecord:
         fail("target stage record has the wrong field count")
     if lines[0] != "format=rog5-persistent-root-stage-v2":
         fail("target stage record format changed")
-    if lines[1] != f"target_release={TARGET_RELEASE}":
+    if lines[1] != f"target_release={expected_release}":
         fail("target stage record release changed")
     boot_id = lines[2].removeprefix("boot_id=")
     if lines[2] != f"boot_id={boot_id}" or not BOOT_ID.fullmatch(boot_id):

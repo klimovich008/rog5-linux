@@ -26,6 +26,12 @@
     ]
   },
   "defaults": {
+    "rescue_capture": {
+      "recovery_seconds": 300,
+      "target_rollback_seconds": 900,
+      "cleanup_seconds": 120,
+      "preflight_seconds": 60
+    },
     "environment": "Unprivileged development host; device rows use only the existing admitted lifecycle under one coordinator.",
     "mutations": "Offline: only test-owned temporary files/processes/loopback sockets. No phone contact, credentials, host service changes or persistent storage writes.",
     "cleanup": "Existing test temporary-directory/process cleanup; never remove shared artifacts or private evidence.",
@@ -407,7 +413,7 @@
         "verified release/admission",
         "owned host receiver"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/headless-stage-receiver.py", "--check", "--profile", "{capture_profile}", "--output", "{capture_output}"]],
       "deadline_seconds": 30,
       "pass_condition": "Before claim consumption prove bind/address/firewall/receiver lifetime and immutable receipt; capture candidate/boot/stage and last stage on loss.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -420,7 +426,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Connect existing admission adapter to supervised receiver; no new boot authority."
+      "blocker": "Start the exact receiver before claim consumption; supply matching --release and --capture. H01 grants no boot authority."
     },
     {
       "id": "H02",

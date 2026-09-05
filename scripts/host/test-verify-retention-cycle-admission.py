@@ -878,7 +878,8 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         for name, record in canonical.items():
             self.assertEqual(ADMISSION.EXPECTED_CLAIMS[name], record, name)
         families = (b"\nexecution=mainline-kexec-ram-only\n",
-                    b"\nexecution=fastboot-boot-fallback-only\n")
+                    b"\nexecution=fastboot-boot-fallback-only\n",
+                    b"\nexecution=fastboot-boot-ram-bundle\n")
         expected = {name: record for name, record in canonical.items()
                     if any(marker in record for marker in families)}
         self.assertTrue(all(any(marker in record for record in expected.values())
@@ -897,6 +898,19 @@ class RetentionCycleAdmissionTest(unittest.TestCase):
         claims = self.profile["claims"]
         claims["consumer_size"] = self.consumer.stat().st_size
         claims["consumer_sha256"] = digest(self.consumer.read_bytes())
+        self.save_profile()
+        self.assert_rejected("registry is not exact")
+
+    def test_embedded_ram_record_must_match_canonical_checkout(self) -> None:
+        records = [record for record in ADMISSION.canonical_native_ram_claims().values()
+                   if b"\nexecution=fastboot-boot-ram-bundle\n" in record]
+        self.assertTrue(records, "embedded RAM family omitted from closure")
+        field = next(line for line in records[0].decode().splitlines()
+                     if line.startswith("boot_image_sha256="))
+        self.consumer.write_text(self.consumer.read_text().replace(
+            field, "boot_image_sha256=" + "0" * 64, 1))
+        self.profile["claims"]["consumer_size"] = self.consumer.stat().st_size
+        self.profile["claims"]["consumer_sha256"] = digest(self.consumer.read_bytes())
         self.save_profile()
         self.assert_rejected("registry is not exact")
 

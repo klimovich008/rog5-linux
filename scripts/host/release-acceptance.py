@@ -111,7 +111,7 @@ def utc():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
-def run_one(test, output, release=None):
+def run_one(test, output, release=None, capture=None):
     row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
            'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
            'next_action': test['blocker'], 'commands': test['commands'], 'test_versions': {}}
@@ -125,6 +125,20 @@ def run_one(test, output, release=None):
         bindings = {'{kernel}': release['artifact_paths']['kernel'],
                     '{initramfs}': release['artifact_paths']['initramfs'],
                     '{test_output}': str(output/test['id'])}
+        if any(token.startswith('{capture_') for command in commands for token in command):
+            if capture is None:
+                row['next_action'] = 'supply the currently running exact receiver with --capture'
+                return row
+            try:
+                receipt = json.loads((capture/'receipt.json').read_text())
+                if (receipt['canonical_record']['candidate'] != release['candidate_id']
+                        or receipt['canonical_record']['boot_image_sha256'] != release['artifacts']['boot_bundle']['sha256']):
+                    raise ValueError('capture/release candidate or boot image mismatch')
+                row['capture_receipt_sha256'] = sha_file(capture/'receipt.json')
+                bindings.update({'{capture_profile}':receipt['profile'], '{capture_output}':str(capture)})
+            except (OSError, KeyError, TypeError, ValueError) as error:
+                row.update(status='FAIL', next_action='invalid capture binding: '+str(error))
+                return row
         commands = [[bindings.get(token, token) for token in command] for command in commands]
         if any('{' in token or '}' in token for command in commands for token in command):
             row['next_action'] = 'unknown unresolved runner argument'
@@ -182,6 +196,7 @@ def main():
     parser.add_argument('--list', action='store_true', help='show contract without executing')
     parser.add_argument('--output', type=Path, help='new private evidence directory outside repository')
     parser.add_argument('--release', type=Path, help='exact artifact receipt; no implied admission')
+    parser.add_argument('--capture', type=Path, help='currently running private receiver directory; H01 only')
     args = parser.parse_args()
     contract = load_contract()
     selected = select(contract, args.tier)
@@ -217,7 +232,7 @@ def main():
                    'status': 'NOT RUN', 'duration_seconds': 0,
                    'next_action': error or f'run {test["tier"]} prerequisite/check'}
         else:
-            row = run_one(test, output, report['release'])
+            row = run_one(test, output, report['release'], args.capture)
             print(f'{row["id"]}: {row["status"]} ({row["duration_seconds"]:.3f}s)', flush=True)
         report['tests'].append(row)
     after = source_identity()

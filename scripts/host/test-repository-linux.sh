@@ -158,6 +158,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/host/test-headless-stage-receiver.py
 	scripts/host/test-release-acceptance.py
 	scripts/host/test-rescue-root-composition.py
 	scripts/device/test-slotb-ram-bundle.py

@@ -120,6 +120,21 @@ class AcceptanceTest(unittest.TestCase):
             test['commands'] = [['python3', 'not-executed.py', '{initramfs}']]
             self.assertEqual(M.run_one(test, Path(tmp))['status'], 'BLOCKED')
 
+    def test_h01_requires_live_matching_capture_not_another_release(self):
+        test = next(t for t in self.contract['tests'] if t['id']=='H01')
+        release = dict(candidate_id='exact-rescue', artifact_paths=dict(kernel='/kernel',initramfs='/archive'),
+                       artifacts=dict(boot_bundle=dict(sha256='a'*64)))
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            self.assertEqual(M.run_one(test,root,release)['status'],'BLOCKED')
+            receipt=dict(profile='other',canonical_record=dict(candidate='wrong',boot_image_sha256='a'*64))
+            (root/'receipt.json').write_text(json.dumps(receipt))
+            self.assertEqual(M.run_one(test,root,release,root)['status'],'FAIL')
+            receipt['canonical_record']['candidate']='exact-rescue'
+            receipt['canonical_record']['boot_image_sha256']='b'*64
+            (root/'receipt.json').write_text(json.dumps(receipt))
+            self.assertEqual(M.run_one(test,root,release,root)['status'],'FAIL')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
