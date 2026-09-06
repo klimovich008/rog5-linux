@@ -13,6 +13,27 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'headless-selector-rescue-v2': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=headless-selector-rescue-v2\n'
+        b'candidate=headless-selector-rescue-v2\n'
+        b'target_bundle=persistent-native-root-v11\n'
+        b'manifest_sha256=a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2\n'
+        b'boot_image_sha256=bb6bffb14438672aa4d832e666a2ad348af9f78cfa6a06d24bd108c1c4d02195\n'
+        b'recovery_initramfs_sha256=5a6ceb165f951ce3e2fd053122767503ccaa43c752bf131b814ba50079a198b8\n'
+        b'selector_sha256=c15c77824e3cecf128288f2c273c6bd7f93825e837568c669d8288145541d904\n'
+        b'verification_source_commit=7865f0a8c4d13dfaaaf56c58873822bebb9395a8\n'
+        b'serial=M5AIKN00F0353YH\n'
+        b'product=lahaina\n'
+        b'usb_path=1-1.2\n'
+        b'expected_slot=b\n'
+        b'recovery_storage=read-only\n'
+        b'target_storage=accepted-v11-service-state-only\n'
+        b'flash=forbidden\n'
+        b'execution=fastboot-boot-fallback-only\n'
+        b'attempt_limit=1\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'headless-server-selector-v1': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=headless-server-selector-v1\n'
