@@ -4352,3 +4352,52 @@ checks remain pending for the next coherent integration, not waived. Current
 mandatory matrix is unchanged: S02 needs S01 plus authenticated, exact-interface
 live transfers and release-bound evidence. Never combine this component PASS
 with incompatible earlier device evidence into a green release.
+
+### V4 actual WPA/DHCP restart observation
+
+Clean source `5ce58d58f0663b87e70f91129961ae8e4e604a0f`. Read-only pinned
+readiness PASS **0.193 s**, still the same V4 boot. The six deployed userspace
+files matched. Reused the earlier passing systemd graph experiment rather than
+reopening its disproved dependency hypothesis or changing production units.
+
+The bounded private adapter verified the canonical consumed claim, signed
+manifest/archive identity, actual three radio/WPA/DHCP unit hashes with no
+drop-ins, healthy boot/trial record, inactive startup timers, PCI interface,
+117-node storage scope and existing battery/thermal gates before dispatch.
+Predeclared limits: **40 s per restart, 120 s overall**. Control remained over
+exact USB SSH; Wi-Fi SSH used the same pinned host key, direct non-USB host
+route, and authenticated server/client addresses plus boot identity. No payload
+files or network credentials were copied. Expected daemon lease/service logs
+are the only intended persistent effects; no boot, flash or claim reuse.
+
+Two adapter preflight defects are retained, not erased: **R2** assumed runtime
+`/run/rog5-native-wifi` was also the archive prefix (0 remote commands); **R3**
+mistook internal `rollback_healthy()` for a public `rollback-healthy` command
+(1 failed observational command, 0 restart attempts). The latter returned
+`unknown action`; the adapter did not call the real mutating `rollback` action.
+Corrected archive lookup and read-only exact healthy-record validation stopped
+these host defects from causing a boot cycle. Retained four-test adapter suite
+PASS **0.710 s** covers both captured failures and permitted identity changes.
+
+The single admitted observation then PASS **28.048 s** overall:
+
+- WPA restarted once; WPA and DHCP acquired new invocation IDs, lease/default
+  route returned and pinned Wi-Fi SSH worked in **16.780 s**.
+- DHCP restarted once; WPA stayed unchanged, lease/default route and pinned
+  Wi-Fi SSH recovered in **9.217 s**.
+- Radio invocation/start timestamp remained unchanged. USB SSH, healthd,
+  persistent state/SSH identity and Tailscale invocation identities remained
+  unchanged. Same boot throughout; no repeated hardware activation or reboot.
+- Final sample Full/100%, Good, **29.9°C**, **8.577 V**, battery **−7 mA**, USB
+  online. Do not relabel this short radio-active series as H03 regulation PASS.
+
+Private evidence: `rog5-server-hw11-20260906.Lo7km1SL/wifi-restart-live-r{1,2,3}`.
+Successful result SHA-256:
+`d74bf66c084d37ecacca01d051b97b6e82043d119d5e683a80b7e429f91d90f8`.
+Executed adapter SHA-256:
+`48e88be785bc0842a3768f10aa0d63d972cef891d1e76f2329c723964bd26d00`.
+This supplies actual F02 restart behavior, not S01 autonomous boot, S03's full
+service set, or final-release PASS. The acceptance dispatcher still has no F02
+evidence importer; it remains BLOCKED there rather than accepting exit zero.
+No kernel, target, shared lifecycle or trust code changed; no build/full CI was
+repeated. Installed-recovery replacement approval is still pending separately.
