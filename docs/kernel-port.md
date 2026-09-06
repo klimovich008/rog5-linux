@@ -27,7 +27,7 @@ New source pins (only API listings and selected small raw files were fetched):
 - **A:** [unofficial anakin, lineage-20](https://github.com/alfaonyt/android_device_asus_anakin/tree/8217cf8df4e64d99a12b2a388a9a76266e27446d), commit `8217cf8df4e64d99a12b2a388a9a76266e27446d`.
 - **D:** [Denial main](https://github.com/denialwm/denial/tree/85b2303e2f09ae7b7b993641f90061a200f03d53), commit `85b2303e2f09ae7b7b993641f90061a200f03d53`.
 
-Bounded recheck at project HEAD `fd387eb4897a9abfa5d35e530973a2459e379e8f`
+Bounded recheck at project HEAD `d82e459ff5a3837f09be9d5e7b8b49f1434de9f9`
 confirmed all four remote pins unchanged. Reused this assessment and the
 retained charger file (matching the hash above), without a new checkout.
 The retained `kernel-src` belongs to the original project workspace, not this
@@ -35,10 +35,13 @@ CI worktree; absence from the worktree does not mean the source needs downloadin
 The recheck also confirms a concrete protocol collision: L names `0x2108`
 `OEM_USB_PRESENT`, whereas retained ZS673KS code uses it to set charging
 suspend. Do not transfer opcode constants across these firmware protocols.
-No production correction follows from this comparison. The next acceptance
-work remains C02 exact-Arch SSH/rollback integration; its 11 archive regressions
-and 22 dispatcher regressions passed in 0.544 s and 0.662 s wall time during
-this recheck. These component checks do not qualify C02 or a phone release.
+No production correction follows from this comparison. C02 integration has
+since passed; resume A01 final composition closure without rebuilding the
+kernel. This recheck passed 14 composition regressions in normal and optimized
+Python (normal wall time 0.256 s), plus 25 dispatcher regressions in 0.942 s.
+These are focused component checks, not an A01 or phone-release PASS. Final
+wrapper, module-load/BTF and timing/transport closure remain required. No local
+device test was active or interrupted; publication CI for this HEAD was running.
 
 W identifies **ZenFone 8, I006D/ZS590KS**, not our ROG5 ZS673KS. L's
 `arch/arm64/boot/dts/vendor/qcom/Makefile` selects sake/vodka; complete immediate
@@ -71,7 +74,8 @@ video version is published or hardware-qualified. The public denialwm repo
 listing contains denial/flutter/skia/website, not Droidloom or the phone kernel.
 No downloadable source for those two was established by this bounded check;
 this is not a claim of absence everywhere.
-The recheck also inspected the public [v0.3.1 release](https://github.com/denialwm/denial/releases/tag/v0.3.1):
+The recheck also inspected the public [v0.3.1 prerelease](https://github.com/denialwm/denial/releases/tag/v0.3.1)
+directly by tag (the latest-stable-release API returns 404):
 its listed architecture-named packages are x86-64/amd64, with no ARM64-named
 package. The release explicitly excludes AArch64 binary packages and does not
 claim reproducible packages, independent rebuilding or offline dependency

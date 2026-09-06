@@ -40,6 +40,24 @@ MARKERS = ('PREPARE', 'EXITRD', 'SYSTEMD_EXEC', 'VOLATILE_HOST_KEY', 'SSH_POLICY
 def archive_parameters(members, *, profile='rescue'):
     if profile not in ('rescue', 'server-runtime'):
         raise ValueError('unknown composition profile')
+    # Matching source bytes are insufficient when the sealed file cannot be
+    # executed or is writable/owned by another account. Check before rendering
+    # or running any fixture; optional observation remains optional.
+    required_modes = {
+        'init': 0o755,
+        'usr/local/sbin/rog5-p2-attest': 0o755,
+        'sbin/rog5-load-persistent-power-usb': 0o755,
+        'usr/local/sbin/rog5-persistent-state': 0o755,
+        'usr/local/sbin/rog5-persistent-ssh-identity': 0o755,
+        'usr/local/sbin/rog5-persistent-keyring': 0o755,
+        'usr/local/share/rog5/rog5-package-keyring.service': 0o644,
+    }
+    if 'usr/local/sbin/rog5-startup-observer' in members:
+        required_modes['usr/local/sbin/rog5-startup-observer'] = 0o755
+    for name, mode in required_modes.items():
+        member = members.get(name)
+        if member is None or member[0][1:5] != [stat.S_IFREG | mode, 0, 0, 1]:
+            raise ValueError('invalid startup member metadata: '+name)
     source = members['init'][1].decode()
     keys = ('KERNEL_RELEASE', 'UFS_STORAGE_MODE', 'PROBE_BOOT_ID', 'NATIVE_ROOT_MODE',
             'SSH_DIAGNOSTIC_MODE', 'PERSISTENT_OVERLAY_MODE')

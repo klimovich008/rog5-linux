@@ -164,12 +164,27 @@ artifact as test source as well as verifying it as an artifact. The targeted
 bookkeeping fix removes only that duplicate hash, not integrity checks.
 This offline C02 row is **not a final release or current-phone qualification**.
 Its 120 s deadline has little headroom; no threshold was relaxed. Full local
-CI passed in **485.614 s**; exact-head publication checks remain separate.
+CI passed in **485.614 s**; all four publication jobs passed run 34016170872
+for `d82e459f…`.
 The [incident](../test-results/2026-09-05-headless-acceptance.md) records the
 fixture failures and exact proof. No production input, kernel or phone boot
 changed. Fresh H02 revalidation passed in **1.297 s** at uptime 9931.81 s,
 same boot, Full/Good 100%, 29.7°C, 8.615 V, zero current and USB online.
 Wi-Fi remains intentionally inactive; this is not H03 regulation evidence.
+
+A01 follow-up fixes a demonstrated offline checker gap: matching startup
+script bytes with invalid owner/mode/link metadata were accepted. The
+fail-first test reproduced 47 accepted malformed cases; 15 composition tests
+now pass in normal and optimized Python. Both retained rescue/server archives
+pass without rebuilding; active tier passed in 18.025 s. Full local CI for
+this separate checker checkpoint passed in **487.855 s**; remote publication
+is separate from the prior run above.
+Fresh same-rescue H02 passed in 1.242 s at uptime 11083.54 s, Full/Good 100%,
+29.7°C, USB online. A private QEMU test loaded all 19 exact retained server
+power/UFS modules under kernel `2649a272…` in **8.148 s**, without detected
+module/symbol/BTF errors. No physical probing or radio closure is implied.
+A01 remains incomplete pending whole-release closure; next run C02 on that
+same kernel/archive/root combination rather than importing mixed-kernel proof.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel
