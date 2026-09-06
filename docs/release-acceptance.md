@@ -49,6 +49,22 @@ refusals. The same VM checks the actual files with sealed BusyBox; missing or
 duplicate firmware result markers cannot pass. This does not establish radio
 activation or firmware behavior on physical hardware. Untested radio modules
 still leave the overall A01 result BLOCKED independently of firmware PASS.
+The server's board-only helpers use split offline evidence: the real S12
+provider's GPL export/namespace/function type must match the exact activator's
+dependency/relocation/declaration, and both real PMIC/S12 helpers must reject
+QEMU with ENODEV through the sealed one-call loader. For the activator only,
+`--activation-fixture-build PRIVATE_BUILD_DIRECTORY` supplies an existing
+QEMU-only link fixture. Its source, module and retained kit hashes are checked;
+the kit's actual vmlinux must reproduce the accepted Image. The unchanged
+consumer must pass kernel BTF checking and refuse the board, with zero validator
+calls, one post-BTF COMING event, no LIVE event, and complete fixture removal.
+This proves neither dynamic binding to an initialized real provider nor rail
+hold lifetime, changeset application or physical radio probing. Those remain
+mandatory live server tests. The fixture never enters a phone target/recovery
+archive and does not grant execution authority. Missing fixture/tools block A01;
+wrong hashes, counters, types or exports fail. `rog5-dev accept` forwards the
+same optional fixture argument only to A01. Existing builds are reused; wrapper
+or production-module rebuilds are unnecessary for this test harness change.
 For a canonical selector-trial record, the checker now reads both named bundles
 only from `/boot/rog5-linux/bundles/` inside the paired retained root. It first
 checks the exact selector hash, then bounded no-follow metadata/inventory reads

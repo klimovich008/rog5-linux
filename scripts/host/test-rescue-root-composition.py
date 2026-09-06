@@ -19,6 +19,52 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_board_helper_refusal_requires_exact_abi_and_preserves_activation_gap(self):
+        release='7.1.4-g359318de534f';magic=release+' SMP preempt mod_unload aarch64'
+        elf=bytearray(64);elf[:6]=b'\x7fELF\x02\x01';elf[16:20]=b'\x01\x00\xb7\x00'
+        members={}
+        for name in ('rog5-pmic-pon-readonly.ko','rog5-s12-ufs-vote.ko','module-once'):
+            M.SEALED.ARCHIVE.add(members,'rog5-native-wifi/'+name,bytes(elf),
+                                stat.S_IFREG|(0o755 if name=='module-once' else 0o644))
+        def metadata(args,**kwargs):
+            self.assertLessEqual(kwargs['timeout'],5)
+            return {'name':Path(args[-1]).stem.replace('-','_'), 'depends':'', 'vermagic':magic}[args[2]]+'\n'
+        with patch.object(M.subprocess,'check_output',side_effect=metadata):
+            rows=M.board_helper_refusals(members,magic)
+            self.assertEqual([r['name'] for r in rows],['rog5_pmic_pon_readonly','rog5_s12_ufs_vote'])
+            self.assertNotIn('rog5_wifi_activate',[r['name'] for r in rows])
+            for name in members:
+                if not stat.S_ISREG(members[name][0][1]):continue
+                bad=copy.deepcopy(members);bad[name][0][2]=1000
+                with self.subTest(name=name),self.assertRaises(ValueError):M.board_helper_refusals(bad,magic)
+            with self.assertRaises(ValueError):M.board_helper_refusals(members,'wrong release')
+        script=M.board_refusal_driver(rows)
+        self.assertEqual(script.count('/rog5-native-wifi/module-once '),2)
+        self.assertNotIn('insmod ',script)
+        for fault in ('','errno','success','duplicate','loaded'):
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);(root/'run').mkdir();(root/'modules').mkdir()
+                loader=root/'loader';loader.write_text('#!/bin/sh\n'+
+                    ('echo "module-once finit_module errno='+('2' if fault=='errno' else '19')+' (No such device); no retry"\n')+
+                    ('echo duplicate\n' if fault=='duplicate' else '')+
+                    ('exit 0\n' if fault=='success' else 'exit 1\n'));loader.chmod(0o755)
+                if fault=='loaded':(root/'modules/rog5_pmic_pon_readonly').mkdir()
+                fixture=script.replace('/rog5-native-wifi/module-once',str(loader)).replace('/run/',str(root/'run')+'/').replace('/sys/module/',str(root/'modules')+'/')
+                result=subprocess.run(['sh','-c','set -eu\n'+fixture],capture_output=True,timeout=3)
+                if fault:self.assertNotEqual(result.returncode,0,fault)
+                else:
+                    self.assertEqual(result.returncode,0,result.stderr)
+                    self.assertEqual(result.stdout.count(b'_REFUSED_ENODEV'),2)
+
+    def test_board_refusal_markers_are_exact_and_cannot_qualify_missing_proof(self):
+        rows=[{'name':'pon'},{'name':'s12'}]
+        base='\n'.join('COMPOSITION_'+name+'_PASS' for name in M.MARKERS)+'\nCOMPOSITION_VM_COMPLETE\n'
+        proof='COMPOSITION_HELPER_pon_REFUSED_ENODEV\nCOMPOSITION_HELPER_s12_REFUSED_ENODEV\n'
+        self.assertTrue(M.vm_runtime_passed(base+proof,0,[],refusals=rows))
+        for bad in ('',proof+proof,proof.replace('ENODEV','EINVAL'),''.join(reversed(proof.splitlines(True)))):
+            self.assertFalse(M.vm_runtime_passed(base+bad,0,[],refusals=rows))
+        self.assertFalse(M.vm_runtime_passed(base+proof,0,[]))
+
     def test_nested_radio_module_archive_is_exact_and_never_extracts_links(self):
         release='7.1.4-g359318de534f'
         name='lib/modules/'+release+'/kernel/fixture.ko'

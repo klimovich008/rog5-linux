@@ -3038,3 +3038,154 @@ interval), one full local CI **PASS 496.610 s**, `git diff --check` PASS.
 Only these timing notes changed afterward. No wrapper/kernel build, large
 checkout, phone contact or deployed-byte change. The remaining mandatory work
 is board-helper ABI/refusal qualification, not importing another phone's code.
+
+### Exact PMIC/S12 wrong-board refusal
+
+Continuation from clean `f942b8ba168e2eb3fa064aea85d39f940524bb62`; all four
+publication jobs PASS run **34031598540**. Fresh read-only pinned V7 gate PASS
+**0.233 s**, boot unchanged, uptime **4840.49 s**, 29.9°C, 8.599 V, zero current,
+Good/USB online, P24 RO and no failed systemd units. No phone mutation or boot.
+
+New A01 component uses the archive's exact `module-once` binary with exact PMIC
+and S12 module bytes, strict metadata/dependencies/vermagic and bounded host
+metadata reads. QEMU inserts each once; it must return status 1 with exactly one
+ENODEV line and no live module. The S12 command uses production `action=held-oem`
+but rejects the non-ASUS board before any rail access. No fake DT or provider.
+
+Initial missing-function/consumer regressions failed before implementation.
+One test fixture incorrectly included an automatically added parent directory
+in its regular-file mutation loop; fixed the fixture without weakening archive
+validation. All **33** tests PASS, normal **0.316 s**, optimized **0.309 s**;
+active tier **PASS 19.237 s**. The separate host metadata inspection initially
+lacked the script import path and failed before execution; its corrected read
+confirmed the exact module dependencies and full vermagic.
+
+`a01-server-helper-refusal-r1`: **BLOCKED 109.741 s**, VM runtime **PASS
+39.519 s**, virtual poweroff **15.520 s**. Both helper refusals PASS and all
+37 software loads still PASS; source was frozen and all artifacts/root unchanged.
+The S12 identity-check message appears once live and again in the final dmesg
+replay at the same timestamp, not evidence of a second initialization.
+Only `rog5-wifi-activate.ko` remains pending: it needs the actual S12 export.
+The retained August activation VM used a substitute provider; that fixture is
+not imported as proof of the production dependency. Earlier live core-module
+notes also explicitly exclude radio BTF, so they cannot close this gap.
+
+Keep this focused checkpoint uncommitted while resolving that last dependency;
+full local/exact-head CI remains due at the coherent publication boundary.
+No kernel rebuild, replacement module, candidate, control write or flash.
+
+### Activation dependency: split proof prototype
+
+Preserved the dirty two-helper checkpoint. Opus could not authenticate (expired
+OAuth, zero API tokens); OX Alpha is absent from the installed OpenCode model
+list. A bounded read-only Codex review under AGENTS.md recommended separately
+proving the real static edge and exact consumer loader/BTF/refusal, not importing
+the old shim-only receipt. Six already-completed agents were closed to release
+slots; the new reviewer was also closed after completion. No source was deleted.
+
+Independent exact-source audit used kernel commit
+`1eea8970e87f1e1509fc12a85456f55570cfb4b1` from the retained S12 source metadata.
+The unrelated build-source checkout does not contain that object. Module symbol
+resolution precedes COMING/BTF validation; the BTF notifier has priority zero.
+The verified archived config disables MODVERSIONS and BTF-mismatch allowance,
+and enables DEBUG_INFO_BTF_MODULES. CRC checks would not prove this ABI.
+
+The exact provider has a genuine GPL export, empty namespace and PREL32 export
+relocation; the consumer has the matching strong undefined symbol, one CALL26
+relocation, GPL license and explicit S12 module dependency. Provider split BTF
+describes signed 32-bit `int(void)`; consumer DWARF agrees (prototyped declaration,
+signed four-byte result, no parameters/variadic declaration). Its compact BTF
+does not retain the external declaration, so names/vermagic alone are not used
+as type proof. LLVM/pyelftools reject a provider DWARF R_AARCH64_NONE relocation;
+provider type inspection instead uses its actual BTF/base through installed
+libbpf, without suppressing that diagnostic or editing the artifact.
+Private `helper-type-inspection-r2.json` retains the parsed data. This is static
+metadata evidence, not a replacement for kernel BTF verification.
+
+Added `tests/fixtures/rog5-a01-s12-shim.c`, explicitly test-only. It refuses ASUS
+or non-QEMU boards, and kernels built without BTF checking or with mismatch
+allowance.
+Its sole export always returns EPERM and counts calls. A priority-minus-128
+module notifier observes the consumer only after the accepted kernel's BTF
+notifier; it requires actual BTF/base data and counts COMING/LIVE transitions.
+This cannot claim a protected hold or replace the real provider in production.
+
+`helper-fixture-build-r1` PASS **5.261 s**, 430 MiB private cache, using only
+retained exact source headers/scripts and hash-verified config/vmlinux/symvers.
+Those kit inputs were mounted read-only and remained unchanged. Fixture module
+SHA `495e5560ceb1e8cc2649b661103fc662d617abb0fe700797184451b85751e927`;
+matching full server vermagic. No production kernel/module or wrapper build.
+
+`activation-split-runtime-r1` PASS **100.859 s**, VM runtime **40.014 s**,
+virtual poweroff **15.569 s**. All 37 software loads and both real-provider/PMIC
+refusals passed, followed by the unchanged exact consumer's one-call ENODEV.
+Consumer BTF-COMING count **1**, validator calls **0**, consumer LIVE **0**;
+consumer absent, fixture removed. Root/kernel/archive hashes and frozen source
+were unchanged. The report explicitly sets A01/release qualification false:
+real-provider successful initialization, dynamic real-pair binding, actual
+validator/hold lifetime and hardware changeset/probes are NOT proved here.
+
+Integrate the static-edge validation and fresh runtime component with focused
+regressions before changing A01's pending result. Keep offline closure distinct
+from the mandatory physical radio/server tests; no acceptance threshold was
+relaxed. The existing 33 composition regressions still PASS **0.314 s**.
+No new full suite/publication during this unfinished integration checkpoint.
+Fresh pinned V7 health PASS **0.248 s**, uptime **7498.89 s**, 29.9°C, 8.597 V,
+zero current, Good/USB online, P24 RO and no failed units. This is not H03 or soak.
+
+### Integrated server A01 static edge and exact-consumer refusal
+
+Continued from `f942b8ba168e2eb3fa064aea85d39f940524bb62`, preserving the dirty
+two-helper checkpoint. Reused the completed pinned source-reuse assessment;
+the Denial v0.3.1 release page still excludes AArch64 binary packages. No
+downstream code, second framework or large source checkout was introduced.
+
+The remaining A01 gap was offline proof of the exact activation dependency,
+not a demonstrated production-driver fault (R2 composition evidence). The new
+static reader checks the real ELF export/GPL/namespace/PREL32 and strong
+undefined CALL26 edge, provider BTF/base signed-int32(void) and consumer DWARF.
+It explicitly does not claim kernel BTF or dynamic pair initialization.
+Missing inspection libraries block; malformed metadata fails, including under
+optimized Python. A bounded independent code sidecar supplied the reader/tests;
+integration review additionally reproduced and fixed acceptance of a nonnormal
+DWARF calling convention. No unrelated worker writes or phone access occurred.
+
+The existing QEMU-only fixture build is now bound to its source, module and kit
+hashes. The actual retained vmlinux reproduces the accepted Image using the
+reviewed arm64 objcopy flags; this check PASS **1.020 s**, without recompilation.
+Output size is bounded. One explicit optional argument feeds A01 through both
+`rog5-dev check-composition` and `rog5-dev accept`; no automatic fixture selection,
+target packaging, signature substitution or execution authority is introduced.
+
+Fail-first missing-function/marker tests and a nonnormal-calling-convention
+regression failed before correction. Final focused results: **33** composition,
+**3** fixture (including counter/error/cleanup cases), **63** static-edge tests
+PASS normally/optimized. Optional mutations against the hash-verified actual
+archive PASS **113 / 12.401 s** optimized. Active tier PASS **19.475 s**.
+An initial timing invocation lacked `/usr/bin/time` and failed before the suite;
+the retained corrected invocation uses Bash's builtin timer. A mistaken Python
+invocation of the shell entry point likewise failed before execution; direct
+`rog5-dev --help` passed. Neither is a kernel or physical execution failure.
+
+`a01-server-split-integrated-r1`: **PASS 110.953 s**, VM **39.505 s**.
+Frozen source worktree digest
+`45163ab8586481ecf110151ca5c9009681ebee25c1d26cb2077c324ed414bcba`;
+virtual boot `e45336c9-cf10-468c-91c7-9c64762d277d`. All seven required checks
+passed in one run. The same 37 software loads, two separate actual board-helper
+refusals and exact activator refusal passed. Its post-BTF COMING count is one,
+validator calls/LIVE zero; fixture removed. Exact kernel/archive/DTB/wrapper
+and paired root hashes are unchanged. Root is RO/noload with a tmpfs upper.
+
+This closes the offline A01 gap only. Real-provider successful initialization,
+dynamic actual-pair binding, hold lifetime, changeset/probes and physical radio
+remain distinct mandatory live evidence. `release_qualified=false`; consumed
+candidate state, slot A/V11 fallback, installed bytes and capture FAIL remain.
+No phone contact, new build, admission, signing or boot. Only these result notes
+changed after the frozen artifact run; no claim of final-release qualification.
+
+Frozen local checkpoint: one full repository CI **PASS 498.829 s** versus
+**496.610 s** previously; active **19.475 s** versus **18.754 s**. No complete
+suite was repeated on unchanged code. `git diff --check` PASS. Only completion
+timing/status notes changed after full CI. Existing kernel/wrapper/fixture
+artifacts were reused; no source tree, private evidence or build data deleted.
+Publication must use the existing branch/draft PR and exact-head/merge CI.

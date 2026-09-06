@@ -143,13 +143,18 @@ def rescue_bindings(path):
     return {'{rescue_'+key+'}': value for key,value in values.items()}
 
 
-def run_one(test, output, release=None, capture=None, rescue_inputs=None):
+def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None):
     row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
            'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
            'next_action': test['blocker'], 'commands': test['commands'], 'test_versions': {}}
     if not test['commands']:
         return row
     commands = test['commands']
+    if test['id']=='A01' and activation_fixture_build is not None:
+        if not activation_fixture_build.is_absolute():
+            row['next_action']='activation fixture build must be an absolute private directory'
+            return row
+        commands=[[*command,'--activation-fixture-build',str(activation_fixture_build)] for command in commands]
     if test['id'] == 'H01' and rescue_inputs is not None:
         # Revalidate original preboot receipt/timeline; do not pretend its
         # completed receiver is still alive. H02 separately authenticates now.
@@ -316,6 +321,7 @@ def main():
     parser.add_argument('--release', type=Path, help='exact artifact receipt; no implied admission')
     parser.add_argument('--capture', type=Path, help='currently running private receiver directory; H01 only')
     parser.add_argument('--rescue-inputs', type=Path, help='explicit original cycle and same-boot SSH arguments; never execution authority')
+    parser.add_argument('--activation-fixture-build',type=Path,help='existing exact-kernel QEMU-only link fixture build for A01')
     args = parser.parse_args()
     if args.capture and args.rescue_inputs:
         parser.error('choose live --capture or explicit completed-cycle --rescue-inputs, not both')
@@ -353,7 +359,7 @@ def main():
                    'status': 'NOT RUN', 'duration_seconds': 0,
                    'next_action': error or f'run {test["tier"]} prerequisite/check'}
         else:
-            row = run_one(test, output, report['release'], args.capture, args.rescue_inputs)
+            row = run_one(test, output, report['release'], args.capture, args.rescue_inputs,args.activation_fixture_build)
             print(f'{row["id"]}: {row["status"]} ({row["duration_seconds"]:.3f}s)', flush=True)
         report['tests'].append(row)
     after = source_identity()

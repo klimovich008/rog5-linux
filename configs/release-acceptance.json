@@ -57,7 +57,8 @@
       "prerequisites": [
         "exact release receipt",
         "assembled archive",
-        "retained root filesystem"
+        "retained root filesystem",
+        "server activation closure: pyelftools, libbpf, llvm-objcopy and exact-kernel QEMU-only link fixture build"
       ],
       "commands": [["python3", "scripts/host/check-release-composition.py", "--kernel", "{kernel}", "--dtb", "{dtb}", "--target-archive", "{initramfs}", "--root-image", "{rootfs}", "--boot-image", "{boot_bundle}", "--candidate", "{candidate}", "--output", "{test_output}"]],
       "required_checks": ["wrapper", "signed_target", "archive", "root_runtime", "module_load", "firmware", "timing_transport"],
@@ -70,7 +71,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Supply the exact five-role release and isolated runtime prerequisites. Selector-backed external bundles and untested server radio closure remain BLOCKED; rescue proof cannot qualify a different release."
+      "blocker": "Supply the exact five-role release and isolated runtime prerequisites; server activation closure additionally needs --activation-fixture-build. Real provider export/type proof and separate exact-kernel board refusals are offline evidence only; physical radio activation remains mandatory elsewhere. Rescue proof cannot qualify a different release."
     },
     {
       "id": "A02",

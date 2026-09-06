@@ -60,9 +60,11 @@ jobs:
             cpio \
             device-tree-compiler \
             libarchive-tools \
+            libbpf1 \
             libssl-dev \
             lld \
             openssl \
+            python3-pyelftools \
             pkg-config
       - name: Bootstrap pinned Android boot tools
         if: steps.select-tier.outputs.test_tier != 'active'
@@ -112,9 +114,11 @@ jobs:
             cpio \
             device-tree-compiler \
             libarchive-tools \
+            libbpf1 \
             libssl-dev \
             lld \
             openssl \
+            python3-pyelftools \
             pkg-config
       - name: Bootstrap pinned Android boot tools
         if: steps.select-tier.outputs.test_tier != 'active'

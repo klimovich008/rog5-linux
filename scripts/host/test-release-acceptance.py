@@ -160,6 +160,19 @@ class AcceptanceTest(unittest.TestCase):
         for argument in ('{kernel}', '{dtb}', '{initramfs}', '{rootfs}', '{boot_bundle}', '{candidate}'):
             self.assertIn(argument, test['commands'][0])
 
+    def test_a01_fixture_argument_is_explicit_and_not_execution_authority(self):
+        test=copy.deepcopy(self.contract['tests'][0])
+        original=copy.deepcopy(test['commands'])
+        test['commands']=[[sys.executable,'-c','import sys; print(sys.argv); raise SystemExit(77)']]
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            row=M.run_one(test,root,activation_fixture_build=Path('relative'))
+            self.assertEqual(row['status'],'BLOCKED');self.assertEqual(row['duration_seconds'],0)
+            row=M.run_one(test,root,activation_fixture_build=root)
+            self.assertEqual(row['status'],'BLOCKED')
+            self.assertIn('--activation-fixture-build',(root/'A01.log').read_text())
+        self.assertEqual(self.contract['tests'][0]['commands'],original)
+
     def test_a01_rejects_partial_or_wrong_release_proof(self):
         test = copy.deepcopy(self.contract['tests'][0])
         test['commands'] = [[sys.executable, '-c', 'pass']]
