@@ -34,7 +34,7 @@ ACCEPTANCE = load('rescue_acceptance', 'scripts/host/release-acceptance.py')
 FUNCTIONS = ('verify_exact_regular', 'prepare_volatile_root_account',
              'prepare_volatile_ssh_policy', 'verify_systemd_update_marker',
              'prepare_volatile_systemd_state', 'prepare_package_keyring', 'prepare_runtime')
-MARKERS = ('PREPARE', 'SYSTEMD_EXEC', 'VOLATILE_HOST_KEY', 'SSH_POLICY', 'UNIT_VERIFY')
+MARKERS = ('PREPARE', 'EXITRD', 'SYSTEMD_EXEC', 'VOLATILE_HOST_KEY', 'SSH_POLICY', 'UNIT_VERIFY')
 
 
 def archive_parameters(members, *, profile='rescue'):
@@ -66,6 +66,10 @@ def archive_parameters(members, *, profile='rescue'):
     power = members['sbin/rog5-load-persistent-power-usb'][1]
     if power != (REPO/'scripts/device/load-persistent-root-power-usb.sh').read_bytes():
         raise ValueError('stale power safety helper')
+    shutdown = members.get('shutdown')
+    if (shutdown is None or shutdown[0][1:5] != [stat.S_IFREG | 0o755, 0, 0, 1]
+            or shutdown[1] != (REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes()):
+        raise ValueError('unpaired shutdown helper')
     # Pair the strengthened watchdog with its actual startup/identity producer;
     # a fresh init plus a legacy producer would pass P2 but inevitably roll back.
     for name, source in (
@@ -135,6 +139,18 @@ find_exact_userdata() { printf '/dev/rog5-offline-fixture\n'; }
 '''+''.join(blocks)+'''
 prepare_runtime
 echo COMPOSITION_PREPARE_PASS
+# Reproduce the previous observer mistake from the actual Arch filesystem:
+# an absolute BusyBox pathname does not relocate its ELF interpreter. Never
+# execute shutdown; these commands only parse it with the exact sealed shell.
+if [ ! -e /newroot/lib/ld-musl-aarch64.so.1 ]; then
+    if chroot /newroot /run/initramfs/bin/busybox sh -n /run/initramfs/shutdown; then
+        echo 'FAIL exitrd unexpectedly executable without its interpreter' >&2
+        exit 1
+    fi
+    echo COMPOSITION_EXITRD_OUTSIDE_ROOT_REFUSED
+fi
+chroot /newroot /usr/bin/chroot /run/initramfs /bin/sh -n /shutdown
+echo COMPOSITION_EXITRD_PASS
 chroot /newroot /usr/bin/systemd-analyze --version
 echo COMPOSITION_SYSTEMD_EXEC_PASS
 mkdir -p /newroot/run/sshd

@@ -1724,3 +1724,50 @@ not evidence for a kernel correction. No phone test was interrupted. Resumed
 mandatory quick acceptance: A02 PASS 11.078 s, B01 PASS 4.287 s, G01 PASS 7.608 s,
 G02 PASS 0.866 s; total 23.873 s. Other rows remain NOT RUN in this run and
 `release_qualified` remains false; these passes are not merged with old releases.
+
+### Exitrd composition and power prerequisite checkpoint (2026-09-06)
+
+Starting clean source `b6532e208bad31588e8e073b359a84533771ae06`; all four
+GitHub jobs PASS in run 34002850859. Same exact server boot remained healthy
+beyond 3744 s. Read-only inventory found Full/Good 100%, 29.8°C, 8.623 V,
+battery current 0, charge counter 5116000; USB 5.021 V/366 mA, online, 500 mA
+input limit, Type-C device/sink. H03 remains BLOCKED: no start/end-threshold
+attributes; charge_full/design report ENODATA. Do not turn this into a guessed
+charge-policy write or qualify full-state regulation from a single sample.
+
+An ad-hoc host import omitted the repository scripts path before phone contact.
+A later optional Tailscale query used a nonexistent PATH entry and discarded
+the aggregate stdout on nonzero exit. Both were observer errors, not hardware
+failures. Recollection preserved stdout/stderr and optional errors separately;
+exact `/run/rog5-tailscale/tailscale` and its runtime socket report Running,
+online, Health `[]`. Custom `rog5-early-sshd`/`rog5-tailscaled` are active;
+generic `sshd` is intentionally masked. Independent peer SSH remains NOT RUN:
+the development host has no Tailscale executable, service or mesh route.
+
+A01/R2–R3 correction: `archive_parameters()` previously accepted a missing,
+altered or linked shutdown member. New regression failed for all three cases
+before binding exact source and root-owned executable metadata. The actual
+runtime fixture now tests the post-handover Arch/exitrd interpreter boundary,
+with syntax-only commands: wrong direct path fails when Arch lacks musl, while
+the nested chroot passes. No shutdown payload is executed.
+
+Focused tests: 14 PASS in 0.128 s and under `-O` in 0.125 s. Active tier PASS
+18.604 s. Exact existing server archive, kernel/DT and retained 32 GiB root
+were reused without rebuilding or copying the root. The real host-only
+read-only/no-recovery loop + disposable upper composition run PASS, reported
+37.465 s (excludes initial input hashing). Log contains the actual missing
+`/lib/ld-musl-aarch64.so.1` failure and subsequent EXITRD_PASS. Artifact hashes
+were checked before/after; owned mount/loop cleanup passed and no mapping
+remained. This is still an A01 component, not full-release or physical recovery
+qualification. Frozen full local CI PASS in 497.686 s (previous 488.169 s);
+no implementation changed during or after that run.
+
+Separate pinned-SSH comparison matched all 19 sealed core-module GNU build-ID
+notes to live `/sys/module` notes and confirmed initstate=live. This is physical
+core-module identity/load evidence, not radio closure or a whole A01 PASS.
+Kernel taint 4608 comprises out-of-tree modules and the retained boot-time WARN.
+The single early SPMI transaction failure reads SID5 address `0x104` during
+`pmic_spmi_probe`; `0xcf08` in its message is the arbiter status-register offset,
+not the PMIC register being read. This warning predates this release (July 25
+and August 31 evidence); it must not be hidden or newly blamed on charging.
+No new kernel change follows from the bounded comparison.

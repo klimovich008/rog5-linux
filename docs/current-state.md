@@ -96,9 +96,10 @@ defect. Keep the accepted kernel; Denial remains deferred and optional.
 1. New `rog5-dev check-deployed-server` compares six live userspace/helper
    files with repository-derived hashes and strict metadata through pinned SSH;
    first live component PASS in 0.297 s, with the captured stale-healthd fixture
-   rejected offline. A02 runs both Python modes. Finish whole-release composition
-   integration and retain the exitrd-musl regression before another build.
-   No kernel change is indicated.
+   rejected offline. A02 runs both Python modes. The composition checker now
+   binds `/shutdown` and reproduces the exitrd-musl failure from the retained
+   Arch root before proving the correct nested chroot (component PASS 37.465 s).
+   Finish whole-release composition integration; no kernel change is indicated.
 2. Qualify the updated recovery path separately from the old installed loader.
    Preserve stock A and signed V11; no consumed/ambiguous retry or implicit flash.
 3. Finish executable hardware acceptance integration, explicit durable scratch
@@ -107,6 +108,13 @@ defect. Keep the accepted kernel; Denial remains deferred and optional.
    Local-root RAM-trial success does not complete standalone boot qualification.
 4. Finish H03 regulation criteria and independent Tailscale peer SSH. Keep
    display/GPU/audio/sensor expansion outside the headless completion criteria.
+   Latest read-only check at uptime 3744 s: Full/Good 100%, 29.8°C, 8.623 V,
+   USB online at 5.021 V/366 mA with 500 mA input limit; device/sink role.
+   Charge-start/end thresholds are absent and full/design-capacity reads return
+   ENODATA. These are missing regulation evidence, not proof of bad charging.
+   Project SSH/health/Tailscale services are active with no failed units;
+   generic `sshd` is intentionally masked. Tailscale reports Running/online,
+   but this host has no Tailscale service/client/mesh route for the peer test.
 
 The [acceptance incident](../test-results/2026-09-05-headless-acceptance.md)
 retains source fixes, failed runs, exact artifacts and timing evidence. Older
