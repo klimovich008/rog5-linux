@@ -166,6 +166,8 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None):
                     '{initramfs}': release['artifact_paths']['initramfs'],
                     '{test_output}': str(output/test['id'])}
         bindings['{candidate}'] = release.get('candidate_id', '')
+        if 'dtb' in release['artifact_paths']:
+            bindings['{dtb}'] = release['artifact_paths']['dtb']
         if 'boot_bundle' in release['artifact_paths']:
             bindings['{boot_bundle}'] = release['artifact_paths']['boot_bundle']
         if any(token.startswith('{rescue_') for command in commands for token in command):
@@ -249,6 +251,24 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None):
                ended_at=utc(), log_sha256=sha_file(log_path))
     if row['status'] == 'PASS' and re.search(r'skipped=[1-9][0-9]*|^SKIP\b', log_path.read_text(errors='replace'), re.M):
         row.update(status='BLOCKED', next_action='required suite skipped behavior; supply prerequisites and rerun')
+    if row['status'] == 'PASS' and test['id'] == 'A01':
+        try:
+            proof_path = output/'A01/result.json'
+            proof = json.loads(proof_path.read_text())
+            elapsed = proof['duration_seconds']
+            if (proof['status'] != 'PASS' or proof['a01_qualified'] is not True
+                    or proof['source'] != source_identity()
+                    or proof['candidate'] != release['candidate_id']
+                    or proof['runner_sha256'] != sha_file(REPO/'scripts/host/check-release-composition.py')
+                    or proof['checks'] != dict.fromkeys(test['required_checks'], 'PASS')
+                    or type(elapsed) not in (int,float) or not math.isfinite(elapsed)
+                    or not 0 <= elapsed <= test['deadline_seconds']
+                    or proof['artifact_hashes'] != {k:v['sha256'] for k,v in release['artifacts'].items()}):
+                raise ValueError('A01 exact complete composition mismatch')
+            row['proof_sha256'] = sha_file(proof_path)
+            row['next_action'] = 'Proceed to the next mandatory test; offline composition grants no boot authority'
+        except (OSError,KeyError,TypeError,ValueError) as error:
+            row.update(status='FAIL', next_action='missing complete A01 proof: '+str(error))
     if row['status'] == 'PASS' and test['id'] == 'H02':
         try:
             proof = json.loads((output/'H02/result.json').read_text())

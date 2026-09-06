@@ -53,13 +53,14 @@
       "outcome": "Assembled release and retained root are coherent",
       "tier": "offline",
       "mandatory": true,
-      "environment": "Host with a private read-only no-recovery ext4 loop mount; disposable tmpfs upper and isolated ARM emulation; no phone or real block nodes in the fixture",
+      "environment": "Unprivileged host with retained QEMU container, exact target kernel and read-only virtual ext4 disk mounted ro/noload; disposable tmpfs upper; no phone, physical block passthrough or network",
       "prerequisites": [
         "exact release receipt",
         "assembled archive",
         "retained root filesystem"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-release-composition.py", "--kernel", "{kernel}", "--dtb", "{dtb}", "--target-archive", "{initramfs}", "--root-image", "{rootfs}", "--boot-image", "{boot_bundle}", "--candidate", "{candidate}", "--output", "{test_output}"]],
+      "required_checks": ["wrapper", "signed_target", "archive", "root_runtime", "module_load", "firmware", "timing_transport"],
       "deadline_seconds": 120,
       "pass_condition": "Verify init/attestation/watchdog ABI, units, module closure, timing and diagnostic endpoint; reject placeholders and mismatched bytes.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -69,7 +70,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Archive/root runtime and sealed module metadata/order components pass via rog5-dev check-rescue-root; final signed-wrapper, kernel BTF/symbol/load closure, timing/transport composition and combined runner remain required."
+      "blocker": "Supply the exact five-role release and isolated runtime prerequisites. Selector-backed external bundles and untested server radio closure remain BLOCKED; rescue proof cannot qualify a different release."
     },
     {
       "id": "A02",

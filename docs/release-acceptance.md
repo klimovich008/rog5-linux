@@ -31,6 +31,20 @@ identities, times, durations and log hashes are retained. Qualification also
 requires clean frozen source and every mandatory row passing for these inputs.
 Private paths, credentials, dumps and raw logs remain outside Git.
 
+A01 now dispatches `rog5-dev check-composition`'s underlying runner with all five
+artifact roles. It authenticates the retained wrapper and embedded signed target,
+then uses the exact kernel, sealed modules and Arch image in network-isolated
+QEMU. The virtual disk is read-only and mounted `ro,noload`; runtime writes use
+tmpfs OverlayFS. No host loop mount or physical-device passthrough is required
+by this combined path. Firmware inventory is bound to the existing builder's
+digest and staged with sealed BusyBox; generated units use the signed timeout.
+The real shell's stage record must pass the current host parser and its sender
+endpoint must match the receiver. These are offline composition checks, not
+physical firmware/USB or watchdog-expiry qualification. Missing checks return
+BLOCKED, not a partial PASS; external selector bundles and server radio extras
+still require their own integrated proof.
+The `required_checks` in the manifest is the single complete-proof checklist.
+
 Supporting A01 component check: `rog5-dev check-rescue-root --inputs RECEIPT
 --root PRIVATE_RO_LOOP_MOUNT --output PRIVATE_NEW_DIRECTORY`. It runs the exact
 archive's preparation functions, Arch systemd/sshd and generated-unit validation

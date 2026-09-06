@@ -8,6 +8,7 @@ import stat
 import subprocess
 import tempfile
 import unittest
+import struct
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('composition', Path(__file__).with_name('check-rescue-root-composition.py'))
@@ -16,6 +17,133 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_timing_binds_signed_values_and_host_receiver(self):
+        final=M.load('a01_timing_test','scripts/host/check-release-composition.py')
+        manifest=dict(bundle='fixture',target_id='fixture',target_timeout='600',rollback_timeout='900')
+        plan=dict(target_id='fixture',target_timeout='600',cmdline=
+                  'rdinit=/init rog5.bundle=fixture rog5.target_timeout=600 rog5.recovery_timeout=900')
+        wrapper=dict(cmdline='init=/init rog5.recovery_timeout=300')
+        members=self.members()
+        result=final.timing_contract(manifest,plan,wrapper,members)
+        self.assertEqual(result['capture_seconds'],1380)
+        self.assertEqual(result['rollback_seconds'],900)
+        for wrong in (plan['cmdline']+' rog5.recovery_timeout=900',
+                      plan['cmdline'].replace('900','600'),
+                      plan['cmdline'].replace('600','870')):
+            with self.assertRaises(ValueError):
+                final.timing_contract(manifest,dict(plan,cmdline=wrong),wrapper,members)
+        changed=copy.deepcopy(members)
+        fields,data=changed['init']
+        changed['init']=(fields,data.replace(b'169.254.77.1 8079',b'169.254.77.1 8080'))
+        with self.assertRaises(ValueError): final.timing_contract(manifest,plan,wrapper,changed)
+
+    def test_firmware_tree_checks_content_inventory_and_metadata(self):
+        members={}
+        for name,data in [('adsp.mdt',b'firmware'),('adsp.b00',b'')]:
+            M.SEALED.ARCHIVE.add(members,'opt/rog5-charge-firmware/'+name,data,stat.S_IFREG|0o644)
+        rows=''.join(M.hashlib.sha256(data).hexdigest()+'  '+name+'\n'
+                     for name,data in [('adsp.b00',b''),('adsp.mdt',b'firmware')])
+        digest=M.hashlib.sha256(rows.encode()).hexdigest()
+        self.assertEqual(M.firmware_composition(members,digest,2)['tree_sha256'],digest)
+        for bad in ('0'*64,digest):
+            changed=copy.deepcopy(members)
+            if bad==digest:
+                fields,data=changed['opt/rog5-charge-firmware/adsp.mdt']
+                fields[1]=stat.S_IFLNK|0o777
+            with self.assertRaises(ValueError): M.firmware_composition(changed,bad,2)
+        with self.assertRaises(ValueError): M.firmware_composition(members,digest,3)
+
+    def test_signed_runtime_timeout_replaces_only_the_fixture(self):
+        source=''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS)
+        script=M.driver(source,recovery_timeout=900)
+        self.assertIn('recovery_timeout=900\n',script)
+        self.assertNotIn('recovery_timeout=1\n',script)
+        for bad in (True,299,901,'900'):
+            with self.assertRaises(ValueError): M.driver(source,recovery_timeout=bad)
+
+    def test_vm_reuses_archive_without_duplicate_members_or_writable_root(self):
+        source=''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS)
+        members={}
+        M.SEALED.ARCHIVE.add(members,'init',source.encode(),stat.S_IFREG|0o755)
+        M.SEALED.ARCHIVE.add(members,'proc',b'',stat.S_IFDIR|0o755)
+        original=copy.deepcopy(members)
+        log=''.join('COMPOSITION_'+name+'_PASS\n' for name in M.MARKERS)+'COMPOSITION_VM_COMPLETE\n'
+        def run(command, **kwargs):
+            kwargs['stdout'].write(log.encode())
+            self.assertIn('file=/arch.ext4,format=raw,if=none,id=root,readonly=on',command)
+            self.assertIn('--network=none',command)
+            self.assertNotIn('--privileged',command)
+            self.assertNotIn('-dtb',command)
+            return subprocess.CompletedProcess(command,0)
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(M.subprocess,'check_output',return_value='a'*64+'\n'), \
+                patch.object(M.subprocess,'run',side_effect=run):
+            result=M.vm_runtime(members,[],Path(tmp)/'kernel',Path(tmp)/'root',Path(tmp),profile='rescue')
+            self.assertEqual(result['status'],'PASS')
+        self.assertEqual(members,original)
+
+    def test_combined_vm_refuses_missing_duplicate_or_failed_evidence(self):
+        rows = [dict(name='fixture')]
+        log = 'COMPOSITION_MODULE_fixture\n' + ''.join(
+            'COMPOSITION_'+name+'_PASS\n' for name in M.MARKERS)
+        log += 'COMPOSITION_VM_COMPLETE\n'
+        self.assertTrue(M.vm_runtime_passed(log, 0, rows))
+        for bad in (log.replace('COMPOSITION_EXITRD_PASS\n',''),
+                    log+'COMPOSITION_VM_FAILURE\n', log+'WARNING: fixture\n',
+                    log+'COMPOSITION_MODULE_fixture\n',
+                    log.replace('COMPOSITION_MODULE_fixture','echo COMPOSITION_MODULE_fixture')):
+            with self.subTest(log=bad):
+                self.assertFalse(M.vm_runtime_passed(bad,0,rows))
+        self.assertFalse(M.vm_runtime_passed(log,124,rows))
+
+    def test_verified_plan_requires_exact_record_and_command_hash(self):
+        command = 'rdinit=/init rog5.bundle=fixture'
+        record = dict(format='rog5-verified-plan-v1', bundle='fixture',
+                      manifest_sha256='a'*64, profile='persistent-root-ro-v1',
+                      kernel_file='Image', dtb_file='board.dtb', initramfs_file='initramfs.cpio.gz',
+                      target_id='fixture', target_release='7.1.4-g123456789abc',
+                      target_timeout='600', cmdline_sha256=M.hashlib.sha256(command.encode()).hexdigest(),
+                      cmdline=command)
+        encode = lambda r: ''.join(k+'='+v+'\n' for k,v in r.items()).encode()
+        self.assertEqual(M.verified_plan(encode(record),'fixture','a'*64), record)
+        for raw in (encode(record)+b'bundle=fixture\n', encode(record).rstrip(b'\n'),
+                    encode(dict(record, bundle='other')), encode(dict(record, manifest_sha256='b'*64)),
+                    encode(dict(record, cmdline_sha256='0'*64)), encode(dict(record, extra='value')),
+                    encode(dict(record, kernel_file='../Image')), b'not a plan\n'):
+            with self.subTest(raw=raw[:40]), self.assertRaises(ValueError):
+                M.verified_plan(raw,'fixture','a'*64)
+
+    def test_sealed_verifier_refuses_unsafe_input_before_process(self):
+        with patch.object(M.subprocess,'run') as run:
+            for bundle, digest in (('../bad','a'*64),('fixture','bad'),('fixture','a'*64)):
+                with self.subTest(bundle=bundle), self.assertRaises(ValueError):
+                    M.sealed_bundle_plan({},bundle,digest)
+            run.assert_not_called()
+
+    def test_wrapper_pairs_exact_payloads_and_full_command_line(self):
+        kernel, recovery = b'fixture kernel', b'fixture recovery'
+        cmdline = 'init=/init rog5.recovery_timeout=300'
+        header = b'ANDROID!' + struct.pack('<9I', len(kernel), len(recovery),
+                                            0, 1580, 0, 0, 0, 0, 3)
+        header += cmdline.encode().ljust(1536, b'\0')
+        boot = header.ljust(4096, b'\0') + kernel.ljust(4096, b'\0') + recovery
+        result = M.wrapper_composition(boot, kernel, recovery, cmdline)
+        self.assertFalse(result['avb_verified'])
+        self.assertFalse(result['release_qualified'])
+        for bad_boot, bad_kernel, bad_recovery, bad_cmdline in (
+            (boot, kernel+b'x', recovery, cmdline),
+            (boot, kernel, recovery+b'x', cmdline),
+            (boot, kernel, recovery, cmdline+' rog5.recovery_timeout=900'),
+            (boot[:-1], kernel, recovery, cmdline),
+            (b'WRONG!!!'+boot[8:], kernel, recovery, cmdline),
+            (boot[:40]+struct.pack('<I',4)+boot[44:], kernel, recovery, cmdline),
+            (boot[:20]+struct.pack('<I',0)+boot[24:], kernel, recovery, cmdline),
+            (boot[:24]+struct.pack('<I',1)+boot[28:], kernel, recovery, cmdline),
+            (boot[:12]+struct.pack('<I',len(recovery)+1)+boot[16:], kernel, recovery, cmdline),
+        ):
+            with self.subTest(size=len(bad_boot), cmdline=bad_cmdline), self.assertRaises(ValueError):
+                M.wrapper_composition(bad_boot, bad_kernel, bad_recovery, bad_cmdline)
+
     def test_shutdown_is_required_and_bound_to_reviewed_source(self):
         members = self.members()
         item = ([0, stat.S_IFREG | 0o755, 0, 0, 1],

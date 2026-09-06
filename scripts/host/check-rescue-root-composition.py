@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import stat
 import subprocess
 import tempfile
@@ -35,6 +36,92 @@ FUNCTIONS = ('verify_exact_regular', 'prepare_volatile_root_account',
              'prepare_volatile_ssh_policy', 'verify_systemd_update_marker',
              'prepare_volatile_systemd_state', 'prepare_package_keyring', 'prepare_runtime')
 MARKERS = ('PREPARE', 'EXITRD', 'SYSTEMD_EXEC', 'VOLATILE_HOST_KEY', 'SSH_POLICY', 'UNIT_VERIFY')
+
+
+def verified_plan(raw, bundle, manifest_hash):
+    """Consume the sealed verifier's complete v1 record without lossy dict parsing."""
+    if not raw or len(raw) > 4096 or not raw.endswith(b'\n') or b'\r' in raw or b'\0' in raw:
+        raise ValueError('invalid verified plan framing')
+    pairs = [line.split('=', 1) for line in raw.decode('ascii').splitlines()]
+    if any(len(pair) != 2 for pair in pairs) or len({p[0] for p in pairs}) != len(pairs):
+        raise ValueError('malformed or duplicate verified plan fields')
+    plan = dict(pairs)
+    keys = {'format','bundle','manifest_sha256','profile','kernel_file','dtb_file',
+            'initramfs_file','target_id','target_release','target_timeout','cmdline_sha256','cmdline'}
+    fixed = dict(format='rog5-verified-plan-v1', bundle=bundle, manifest_sha256=manifest_hash,
+                 kernel_file='Image', dtb_file='board.dtb', initramfs_file='initramfs.cpio.gz')
+    if (plan.keys() != keys or any(plan.get(k) != v for k,v in fixed.items())
+            or hashlib.sha256(plan['cmdline'].encode('ascii')).hexdigest() != plan['cmdline_sha256']):
+        raise ValueError('verified plan identity, schema or command hash mismatch')
+    return plan
+
+
+def sealed_bundle_plan(members, bundle, manifest_hash):
+    """Run only the verifier from a previously authenticated recovery archive.
+
+    The caller must bind recovery bytes to its reviewed wrapper. No source
+    substitute, private signing key, claim entry, target execution or device.
+    """
+    if (not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,127}', bundle)
+            or not re.fullmatch(r'[0-9a-f]{64}', manifest_hash)):
+        raise ValueError('invalid sealed bundle selection')
+    for name in ('bin/busybox', 'lib/ld-musl-aarch64.so.1', 'usr/libexec/rog5-bundle-verify'):
+        member = members.get(name)
+        if member is None or member[0][1:5] != [stat.S_IFREG | 0o755, 0, 0, 1]:
+            raise ValueError('invalid sealed verification runtime: '+name)
+    prefix = 'usr/share/rog5/ram-bundles/'+bundle
+    manifest = members.get(prefix+'/manifest')
+    if manifest is None or hashlib.sha256(manifest[1]).hexdigest() != manifest_hash:
+        raise ValueError('embedded manifest identity mismatch')
+    with tempfile.TemporaryDirectory(prefix='rog5-sealed-plan-') as tmp:
+        root = Path(tmp)
+        SEALED.extract(members, root)
+        (root/'rog5-qemu').touch()
+        script = ('set -eu\nmkdir -m 700 /run/rog5-bundles\ncp -a '
+                  +shlex.quote('/'+prefix)+' /run/rog5-bundles/\n'
+                  +'exec /rog5-qemu /usr/libexec/rog5-bundle-verify '
+                  +shlex.quote(bundle)+' '+manifest_hash+'\n')
+        result = subprocess.run([
+            'bwrap', '--unshare-all', '--uid', '0', '--gid', '0', '--cap-drop', 'ALL',
+            '--die-with-parent', '--new-session', '--ro-bind', str(root), '/',
+            '--tmpfs', '/run', '--dev', '/dev', '--ro-bind',
+            '/usr/bin/qemu-aarch64-static', '/rog5-qemu', '--clearenv',
+            '--setenv', 'PATH', '/sbin:/bin:/usr/sbin:/usr/bin',
+            '/rog5-qemu', '/bin/busybox', 'sh', '-c', script],
+            capture_output=True, timeout=20)
+        if result.returncode:
+            raise ValueError('sealed bundle verification refused: '+result.stderr.decode(errors='replace')[:512])
+        return verified_plan(result.stdout, bundle, manifest_hash)
+
+
+def wrapper_composition(boot, kernel, recovery, cmdline):
+    """Pair final boot-v3 bytes with reviewed inputs; NOT signature/admission.
+
+    Reuse the pinned Android unpacker used by the existing packaging workflow.
+    Callers still verify the boot-image identity, AVB, signed nested bundle and
+    target plan. In particular, header consistency alone grants no authority.
+    """
+    if (len(boot) < 4096 or len(boot) > 256 * 1024 * 1024
+            or boot[:8] != b'ANDROID!' or boot[40:44] != b'\x03\0\0\0'
+            or int.from_bytes(boot[20:24], 'little') != 1580 or any(boot[24:40])
+            or not kernel or not recovery or not cmdline or '\0' in cmdline):
+        raise ValueError('invalid boot-v3 composition inputs')
+    tool = REPO/'artifacts/android-boot-tools-v1/unpack_bootimg.py'
+    expected_tool = '7012fe91c4032446f23f3bd6f86fe1bc274517eb4e7aef923ed8396a5b619aef'
+    if tool.is_symlink() or hashlib.sha256(tool.read_bytes()).hexdigest() != expected_tool:
+        raise ValueError('boot unpacker identity changed')
+    unpacker = load('composition_boot_unpacker', str(tool.relative_to(REPO)))
+    with tempfile.TemporaryDirectory(prefix='rog5-wrapper-composition-') as tmp:
+        info = unpacker.unpack_boot_image(io.BytesIO(boot), tmp)
+        if (info.header_version != 3 or info.cmdline != cmdline
+                or info.kernel_size != len(kernel) or info.ramdisk_size != len(recovery)
+                or (Path(tmp)/'kernel').read_bytes() != kernel
+                or (Path(tmp)/'ramdisk').read_bytes() != recovery):
+            raise ValueError('wrapper kernel/recovery/command-line mismatch')
+    return dict(scope='boot-v3 payload pairing only', avb_verified=False,
+                release_qualified=False, cmdline=cmdline,
+                hashes={name: hashlib.sha256(data).hexdigest()
+                        for name, data in (('boot', boot), ('kernel', kernel), ('recovery', recovery))})
 
 
 def archive_parameters(members, *, profile='rescue'):
@@ -132,7 +219,7 @@ def archive_parameters(members, *, profile='rescue'):
     return values
 
 
-def driver(source, *, profile='rescue'):
+def driver(source, *, profile='rescue', recovery_timeout=None):
     if profile not in ('rescue', 'server-runtime'):
         raise ValueError('unknown composition profile')
     blocks = []
@@ -207,7 +294,34 @@ prepare_runtime
         script = script.replace('chroot /newroot /usr/bin/systemd-analyze verify', '''
 set -- "$@" /run/systemd/system/rog5-wifi-radio.service /run/systemd/system/rog5-wifi-wpa.service /run/systemd/system/rog5-wifi-dhcp.service /run/systemd/system/rog5-wifi-healthy.service /run/systemd/system/rog5-wifi-boot-rollback.timer /run/systemd/system/rog5-wifi-failure.service
 chroot /newroot /usr/bin/systemd-analyze verify''')
+    if recovery_timeout is not None:
+        if type(recovery_timeout) is not int or not 300 <= recovery_timeout <= 900:
+            raise ValueError('invalid signed runtime timeout')
+        script = script.replace('recovery_timeout=1\n', 'recovery_timeout='+str(recovery_timeout)+'\n')
+        script += '''
+if [ -e /run/systemd/system/rog5-startup-observer.service ]; then
+    [ "$(sed -n 's/^RuntimeMaxSec=//p' /run/systemd/system/rog5-startup-observer.service)" = "$recovery_timeout" ]
+    grep -Fx "ExecStart=/run/rog5-startup-observer $((recovery_timeout - 30))" /run/systemd/system/rog5-startup-observer.service
+fi
+echo COMPOSITION_TIMING_UNITS_PASS
+'''
     return script
+
+
+def firmware_composition(members, expected_hash, expected_count):
+    prefix='opt/rog5-charge-firmware/'
+    rows=[]
+    for path in sorted(name for name in members if name.startswith(prefix)):
+        name=path[len(prefix):]
+        fields,data=members[path]
+        if (not re.fullmatch(r'[A-Za-z0-9._-]+',name)
+                or fields[1:5] != [stat.S_IFREG|0o644,0,0,1]):
+            raise ValueError('invalid firmware member: '+path)
+        rows.append(dict(name=name,size=len(data),sha256=hashlib.sha256(data).hexdigest()))
+    digest=hashlib.sha256(''.join(row['sha256']+'  '+row['name']+'\n' for row in rows).encode()).hexdigest()
+    if len(rows)!=expected_count or digest!=expected_hash:
+        raise ValueError('firmware inventory/content differs from accepted build input')
+    return dict(tree_sha256=digest,files=rows,scope='sealed firmware composition, not DSP execution')
 
 
 def core_module_members(members, profile):
@@ -286,6 +400,135 @@ def module_closure(members, release):
             loaded.add(module)
             rows.append(dict(path=name,sha256=hashlib.sha256(data).hexdigest(),**metadata))
     return rows
+
+
+def vm_runtime_passed(log, code, modules):
+    lines = log.replace('\r\n', '\n').splitlines()
+    loaded = re.findall(r'^COMPOSITION_MODULE_([A-Za-z0-9_]+)$', '\n'.join(lines), re.M)
+    return (code == 0 and loaded == [row['name'] for row in modules]
+            and all(lines.count('COMPOSITION_'+name+'_PASS') == 1 for name in MARKERS)
+            and lines.count('COMPOSITION_VM_COMPLETE') == 1
+            and not re.search(r'COMPOSITION_VM_FAILURE|Unknown symbol|Invalid module|'
+                              r'BTF[^\n]*(?:invalid|fail)|Kernel panic|Oops:|WARNING:', log))
+
+
+def vm_runtime(members, modules, kernel, root_image, output, *, profile,
+               recovery_timeout=None, command_line=None, firmware=False):
+    """Combine exact module insertion and existing Arch preparation on QEMU virt.
+
+    No phone DTB, network, hardware activation or writable block device. The
+    caller authenticates inputs and hashes the retained root before and after.
+    This is runtime composition, not physical probe or watchdog qualification.
+    """
+    started = time.monotonic()
+    image = subprocess.check_output(['podman', 'image', 'inspect', '--format', '{{.Id}}',
+        'localhost/rog5-qemu-gate:ubuntu-24.04'], text=True, timeout=10).strip()
+    if not re.fullmatch(r'(?:sha256:)?[0-9a-f]{64}', image):
+        raise ValueError('invalid resolved QEMU container identity')
+    fixture = dict(members)
+    add = SEALED.ARCHIVE.add
+    for name in ('proc','sys','dev','run','mnt','mnt/root-ro','mnt/state','newroot'):
+        if name in fixture:
+            if not stat.S_ISDIR(fixture[name][0][1]):
+                raise ValueError('non-directory VM mountpoint: '+name)
+        else:
+            add(fixture,name,b'',stat.S_IFDIR | 0o755)
+    script = '''#!/bin/busybox sh
+set -eu
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+/bin/busybox --install -s /bin
+mount -t devtmpfs devtmpfs /dev
+exec </dev/console >/dev/console 2>&1
+trap 'echo COMPOSITION_VM_FAILURE; dmesg; poweroff -f' EXIT
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t tmpfs tmpfs /run
+'''
+    if firmware:
+        loader=members['sbin/rog5-load-persistent-power-usb'][1].decode()
+        begin=loader.index('[ -d "$firmware_source" ]')
+        end=loader.index('\n\n',loader.index("fail firmware-path",begin))
+        script += '''firmware_source=/opt/rog5-charge-firmware
+firmware_runtime=/run/rog5-charge-firmware
+fail() { echo "COMPOSITION_VM_FAILURE $*"; exit 1; }
+'''+loader[begin:end]+'''
+[ "$(cat /sys/module/firmware_class/parameters/path)" = "$firmware_runtime" ]
+echo COMPOSITION_FIRMWARE_RUNTIME_PASS
+'''
+    for row in modules:
+        # Paths and names came from module_closure, never free-form commands.
+        script += 'insmod '+shlex.quote('/'+row['path'])+'\n'
+        script += '[ "$(cat '+shlex.quote('/sys/module/'+row['name']+'/initstate')+')" = live ]\n'
+        script += 'echo COMPOSITION_MODULE_'+row['name']+'\n'
+    script += '''mount -t ext4 -o ro,noload /dev/vda /mnt/root-ro
+mount -t tmpfs tmpfs /mnt/state
+mkdir /mnt/state/upper /mnt/state/work
+mount -t overlay overlay -o lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work /newroot
+mount --bind /run /newroot/run
+mount --bind /dev /newroot/dev
+mount --bind /proc /newroot/proc
+mount --bind /sys /newroot/sys
+'''
+    if command_line is not None:
+        source=members['init'][1].decode()
+        begin=source.index('\nrecovery_timeout=600\n')
+        end=source.index('\narm_watchdog || force_rollback',begin)
+        script += source[begin:end].replace('$(cat /proc/cmdline)',shlex.join(shlex.split(command_line)))
+        script += '\n[ "$recovery_timeout" = '+shlex.quote(str(recovery_timeout))+' ]\n'
+    script += '/bin/sh /composition-test.sh\n'
+    if command_line is not None:
+        begin=source.index('publish_stage() {\n')
+        script += source[begin:source.index('\n}\n',begin)+3]+'''
+stage_sequence=0
+stage_record=/run/a01-stage.record
+target_boot_id=$(cat /proc/sys/kernel/random/boot_id)
+running_kernel_release=$(uname -r)
+log() { :; }
+publish_stage runtime PASS composition
+echo COMPOSITION_STAGE_BEGIN
+cat "$stage_record"
+echo COMPOSITION_STAGE_END
+'''
+    script += 'dmesg\necho COMPOSITION_VM_COMPLETE\ntrap - EXIT\npoweroff -f\n'
+    del fixture['init']  # Replace only the disposable VM entry, never sealed input.
+    add(fixture,'init',script.encode(),stat.S_IFREG | 0o755)
+    add(fixture,'composition-test.sh',driver(members['init'][1].decode(),profile=profile,
+                                            recovery_timeout=recovery_timeout).encode(),
+        stat.S_IFREG | 0o755)
+    archive = output/'composition-vm.cpio.gz'
+    archive.write_bytes(gzip.compress(SEALED.ARCHIVE.encode(fixture),mtime=0))
+    command = ['podman','run','--rm','--pull=never','--network=none','--cap-drop=ALL',
+        '--security-opt=no-new-privileges','--cpus=2','--memory=1g',
+        '-v',str(kernel)+':/Image:ro','-v',str(archive)+':/initramfs:ro',
+        '-v',str(root_image)+':/arch.ext4:ro',image,
+        'timeout','--kill-after=2','60','qemu-system-aarch64','-M','virt','-cpu','cortex-a72',
+        '-m','512','-smp','2','-nographic','-monitor','none','-nic','none','-no-reboot',
+        '-kernel','/Image','-initrd','/initramfs','-append','console=ttyAMA0 rdinit=/init panic=2',
+        '-drive','file=/arch.ext4,format=raw,if=none,id=root,readonly=on',
+        '-device','virtio-blk-device,drive=root']
+    with (output/'runtime.log').open('xb') as log:
+        try:
+            code = subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=70).returncode
+        except subprocess.TimeoutExpired:
+            code = 124
+    log = (output/'runtime.log').read_text(errors='replace')
+    passed=vm_runtime_passed(log,code,modules)
+    if firmware:
+        passed=passed and log.splitlines().count('COMPOSITION_FIRMWARE_RUNTIME_PASS')==1
+    frame=None
+    if command_line is not None:
+        passed=passed and log.splitlines().count('COMPOSITION_TIMING_UNITS_PASS')==1
+        frames=re.findall(r'(?m)^COMPOSITION_STAGE_BEGIN\r?\n(.*?)^COMPOSITION_STAGE_END\r?$',log,re.S)
+        if len(frames)==1:
+            frame=frames[0].replace('\r\n','\n')
+        else:
+            passed=False
+    return dict(status='PASS' if passed else 'FAIL',stage_frame=frame,
+        container=image,command=command,exit_code=code,modules=modules,
+        fixture_sha256=ACCEPTANCE.sha_file(archive),duration_seconds=time.monotonic()-started,
+        limitations=['virtual hardware only','tmpfs upper, no persistent state activation',
+                     'unit generation, not watchdog expiry execution',
+                     'radio activation and physical firmware responses not tested'])
 
 
 def verify_mount(root, image):
