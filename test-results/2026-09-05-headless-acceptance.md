@@ -1825,3 +1825,81 @@ and an ambiguous install refusing both reboot and retry. These adapters reuse
 the prior one-shot supervisor and normal exitrd teardown. They have not executed
 a transition or created a claim. Remote publication/CI and connected admission
 remain separate gates; a fallback branch PASS will not be relabeled R01.
+
+### Fallback qualification execution and observer mismatch (2026-09-06)
+
+Published source `23e8fe430dff4fb1dcc7c6634d660bf390458bb3` passed all four
+GitHub jobs in run 34005091904 before the sole execution. Exact transition to
+slot-B fastboot took 11.419 s. `headless-selector-rescue-v2` is permanently
+consumed: fastboot accepted the exact 100663296-byte image `bb6bffb1…` in
+12.812 s (adapter execution 15.216 s). The unchanged signed V11 fallback
+manifest `a684bad1…` reached recovery ACM S90 and target switch-root PASS.
+Its authenticated boot is `6aa96219-c542-441c-9500-dd540e89b249`, kernel
+`7.1.4-g359318de534f`. No flash or GPT mutation occurred.
+
+**R2/R3/R7, host observer defect:** the reused supervisor required
+`attested_boot_id=$boot` in `/run/rog5-p2-ready`, but the exact sealed V11
+producer has no such field. Captured pinned SSH returned the expected kernel,
+bundle, P2 PASS and active identity service. The offending predicate fails on
+that actual marker. The original smoke remains FAIL at **300.115 s**, not a
+kernel failure or a successful H02. A second read-only probe initially assumed
+Python existed on V11 and returned 127; its evidence is preserved. Exact shell
+collection instead passed in **0.209 s**, checking the same boot before/after,
+tmpfs marker, stable root-owned 0444 regular single-link file, target identity
+and pinned SSH. This is only a separately scoped fallback/SSH component;
+H02 and R01 remain NOT RUN in that component and no release is qualified.
+
+Private fail-first replay verifies the sealed producer and executes the actual
+failed predicate (2 tests). A draft family-specific observer contract has four
+regressions: captured legacy format is fallback-component-only, current server
+families still require boot-bound attestation, wrong/stale metadata and identity
+fail, and duplicate/failed/stale marker fields fail. It neither changes the
+running supervisor nor creates boot authority. No new candidate was built.
+Repository integration of this observer correction remains next work.
+
+The untouched supervisor ended normally after **1380.804 s**, retaining its last
+target stage, switch-root PASS. Capture alone reports NOT RUN for authenticated
+qualification. All four owned host route/firewall/profile/address cleanup
+events passed; subsequent host inspection confirmed the original shared USB
+profile, no temporary loopback address and no TCP/8079 listener. Same-boot
+read-only SSH at uptime 1398 s confirmed unchanged selector `c15c7782…` and
+healthy primary trial `bfc82fac…`, Full/Good 100%, 29.7°C, 8.621 V, zero battery
+current, USB online and empty pstore. Empty pstore is inconclusive; full-battery
+continuity is not proof of net-positive charging or qualified H03 regulation.
+
+Systemd is degraded solely by V11's existing empty-keyring WKD failure, with
+the same `fpr_email[1]: unbound variable` at line 64 already diagnosed above.
+It retries three times and hits its limit. The primary's tested bootstrap
+composition is absent from this old immutable fallback; no service was masked,
+reset or changed to hide it. This finding does not justify kernel replacement.
+The fallback's tmpfs upper also lacks the primary's Python/deployed userspace;
+do not combine acceptance evidence from these incompatible roots.
+
+After capture/cleanup, the unchanged implementation passed acceptance quick:
+A02 **10.180 s**, B01 **3.837 s**, G01 **7.309 s**, G02 **0.666 s**.
+The private observed-marker replay passed 2 tests in **0.378 s** and draft
+contract passed 4 in **0.001 s**. `git diff --check` passed. Only current-state
+and this incident changed after published HEAD; no redundant full CI or kernel
+build was run for these documentation updates. Quick PASS is not release PASS.
+
+The next observer-only correction extends existing `check-deployed-server`
+with `--readiness-only`; it does not introduce a second lifecycle or alter
+the old supervisor/results. A sanitized captured V11 marker reproduces the
+original failed grep. Five new test methods failed before implementation;
+the resulting 15-method suite passes normal/optimized Python in 0.113/0.103 s.
+Coverage includes legacy-only fallback scope, mandatory current-server boot
+binding, malformed/duplicate/stale fields, identity/metadata errors, exact
+NUL framing, no target Python and failure before credentials on wrong USB.
+Same-boot pinned-SSH execution of the integrated command passed in **0.251 s**.
+It reuses canonical entered-claim/manifest/credential/route checks, verifies the
+fixed runtime marker and records exact source/boot identity. No phone mutation,
+kernel rebuild, target signing, new claim or execution was requested. The
+legacy component remains distinct from the original smoke FAIL and H02/R01.
+
+Frozen checkpoint: active **16.633 s**, full local CI **483.726 s** (previous
+487.116 s); all tracked implementation inputs remained unchanged during CI.
+Only these final documentation timings followed CI. No kernel build was needed.
+The read-only recovery-path review still requires a separate isolated signed
+failure experiment for R01: installed helper v1 is not qualified for a formerly
+healthy primary's next failure, and RAM fallback selection does not prove that
+case. Keep the original failed smoke, current signed fallback and slot A intact.

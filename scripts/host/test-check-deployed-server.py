@@ -98,4 +98,59 @@ class Tests(unittest.TestCase):
         self.assertIn(['python3','scripts/host/test-check-deployed-server.py'],row['commands'])
         self.assertIn(['python3','-O','scripts/host/test-check-deployed-server.py'],row['commands'])
 
+
+class ReadinessTests(unittest.TestCase):
+    def setUp(self):
+        self.fixture=json.loads((M.REPO/'tests/fixtures/headless-userspace/legacy-fallback-readiness.json').read_text())
+        self.value=self.fixture['snapshot'];self.identity=self.fixture['identity']
+
+    def test_captured_legacy_marker_is_only_a_fallback_component(self):
+        old=subprocess.run(['grep','-Fxq','attested_boot_id='+self.identity['boot_id']],
+                           input=self.value['marker'],text=True)
+        self.assertEqual(old.returncode,1)
+        result=M.validate_readiness(self.value,self.identity,self.fixture['execution'])
+        self.assertFalse(result['marker_boot_bound']);self.assertFalse(result['release_qualified'])
+        self.assertEqual(result['scope'],'legacy fallback SSH/readiness component')
+
+    def test_current_server_never_accepts_legacy_attestation(self):
+        for family in ('fastboot-boot-selector-trial','fastboot-boot-ram-bundle'):
+            with self.subTest(family=family):
+                with self.assertRaisesRegex(ValueError,'boot-bound'):
+                    M.validate_readiness(self.value,self.identity,family)
+                value=dict(self.value,marker=self.value['marker']+'\nattested_boot_id='+self.identity['boot_id'])
+                self.assertTrue(M.validate_readiness(value,self.identity,family)['marker_boot_bound'])
+
+    def test_identity_metadata_and_fields_fail_closed(self):
+        changes={'boot_before':'wrong','boot_after':'wrong','kernel':'wrong','bundle':'wrong',
+                 'run_fstype':'ext4','marker_metadata':'0:0:600:regular file:1','ssh_identity_service':'inactive'}
+        for key,bad in changes.items():
+            with self.subTest(key=key),self.assertRaises(ValueError):
+                M.validate_readiness(dict(self.value,**{key:bad}),self.identity,self.fixture['execution'])
+        for marker in ('',self.value['marker']+'\nstatus=PASS',self.value['marker']+'\nbroken',
+                       self.value['marker'].replace('status=PASS','status=FAIL'),
+                       self.value['marker']+'\nattested_boot_id=wrong'):
+            with self.subTest(marker=marker),self.assertRaises(ValueError):
+                M.validate_readiness(dict(self.value,marker=marker),self.identity,self.fixture['execution'])
+        with self.assertRaises(ValueError):M.validate_readiness(self.value,self.identity,'unknown')
+
+    def test_readiness_transport_gate_precedes_credentials(self):
+        with mock.patch.object(M,'host_gate',side_effect=ValueError('wrong USB')),mock.patch.object(M.subprocess,'run') as run:
+            with self.assertRaisesRegex(ValueError,'wrong USB'):
+                M.collect_readiness(self.identity,None,None)
+            run.assert_not_called()
+
+    def test_probe_framing_and_no_target_python(self):
+        keys=('boot_before','boot_after','kernel','bundle','run_fstype','marker_metadata','ssh_identity_service','marker')
+        payload=('\0'.join(self.value[k] for k in keys)+'\0').encode()
+        self.assertEqual(M.parse_readiness(payload),self.value)
+        for bad in (payload[:-1],payload+b'extra\0',b'\xff',b'x'*20000):
+            with self.subTest(bad=bad[:10]),self.assertRaises(ValueError):M.parse_readiness(bad)
+        with mock.patch.object(M,'host_gate'),mock.patch.object(M,'credential'),mock.patch.object(M.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=payload)) as run:
+            actual=M.collect_readiness(self.identity,Path('/fixture/key'),Path('/fixture/hosts'))
+        self.assertEqual(actual,self.value)
+        call=run.call_args
+        self.assertEqual(call.args[0][-1],'sh -s')
+        self.assertNotIn('python',call.kwargs['input'].decode())
+        self.assertEqual(call.kwargs['timeout'],15)
+
 if __name__=='__main__': unittest.main()
