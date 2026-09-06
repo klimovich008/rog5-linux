@@ -1903,3 +1903,61 @@ The read-only recovery-path review still requires a separate isolated signed
 failure experiment for R01: installed helper v1 is not qualified for a formerly
 healthy primary's next failure, and RAM fallback selection does not prove that
 case. Keep the original failed smoke, current signed fallback and slot A intact.
+
+### Coherent headless rescue V6 preparation (2026-09-06)
+
+Starting clean source `4205a261b1e625aeeb9e307340e563071c34090d`; its head-exact,
+merge, publication and QEMU jobs all passed run 34007323724. Question: does the
+current headless composition initialize package trust while preserving pinned
+SSH and boot-bound watchdog readiness with Wi-Fi intentionally inactive?
+This advances H02 composition, not R01 or full-release qualification.
+
+The existing standalone archive builder refreshed the canonical V5 payload.
+Relative to V5 only init changed and package-keyring helper/unit were added.
+The exact accepted g359 kernel, DTB, 19 core modules and firmware archive were
+preserved. Both unsigned twins match; preparation took **6.983 s**. The actual
+retained Arch image was reused read-only/noload, without copying its 32 GiB.
+Sealed runtime/unit/module-metadata composition passed in **35.642 s** and
+owned mount/loop cleanup passed. All nine exact-archive QEMU watchdog/handover
+cases passed (summed case runtime **93.948 s**, not total wall-clock duration),
+including missing/stale ACK, P2-only, post-exec hang and separate failed init.
+
+Existing signing/build/repack tools produced identical signed bundle/recovery
+twins in **15.167 s**, with no ASUS or mainline kernel compilation. The final
+assembled wrapper was unpacked and checked against exact source/payloads; its
+sealed ARM verifier accepted signature, hashes and target plan. AVB verification
+used the descriptor-correct temporary `boot.img` name, avoiding the previous
+host-only basename defect. The outer AVB hash footer is not a cryptographic
+signature; the embedded target bundle retains its verified Ed25519 signature.
+Wrapper timeout stays 300 s; target rollback/target deadlines remain 900/600 s.
+
+Prepared `headless-acceptance-rescue-v6` identities:
+
+- target archive: `7703f3984dd161ee2ee13f9198068afcbebeb325624f1ce167f5922b0eb46c2d`;
+- manifest: `8beb3ab75ef406b1c293d0b207df8ab527b8da9b842beb1c0002539bef8494b3`;
+- recovery archive: `e2aa0c64e7eb3ae3260b42ff78a51cac1495e1d2653a9b0fd21a3449841ecb86`;
+- 100663296-byte boot image: `32704e44d04f650ca720ef260e4a62062b41c0a488907347ed4a710b4cc13d97`.
+
+Private output allocation was 868196352 bytes, including retained QEMU fixtures;
+this is not a measured peak-build high-water mark. Source stayed frozen during
+preparation/tests/packaging. Registration adds only one canonical data row;
+generic claim tests (19, **0.161 s**) and admission closure (33, **3.469 s**)
+cover it without new executable candidate branches. No new claim/admission,
+phone reboot, selector change, flash or phone storage operation occurred.
+Full local CI from unchanged implementation is reused explicitly; data-only
+registration gets focused/active validation before publication. A future live
+supervisor must use the integrated observer and independently inspect the
+current fallback's actual exitrd; V5/primary transition assumptions are not
+silently applicable to the now-running legacy V11 fallback.
+
+Registration active tier passed in **16.776 s**. The subsequent read-only
+source inspection passed in **0.261 s** on the same fallback boot at uptime
+3162 s: exact sealed V11 shutdown `ec3c7fd2…` is deployed, while repository
+shutdown is `1cd007ea…`. Its BusyBox/musl are present as root-owned executable
+regular single-link files in tmpfs. This is a confirmed version difference,
+not an unexplained mutation; a primary-derived transition expecting current
+shutdown must not be used blindly. Battery remained Full/Good 100%, 29.7°C,
+8.620 V, zero current and USB online; selector/trial remained unchanged.
+The publication scope is only the canonical prepared artifact row and these
+existing documents. Full implementation CI is explicitly reused from 4205a261;
+connected preflight and the new head's publication checks are still required.

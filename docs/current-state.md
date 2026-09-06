@@ -120,6 +120,25 @@ The bounded [source-reuse assessment](kernel-port.md#bounded-source-reuse-assess
 found incompatible downstream charging controls, not a demonstrated mainline
 defect. Keep the accepted kernel; Denial remains deferred and optional.
 
+Prepared **unissued/unbooted** `headless-acceptance-rescue-v6` refreshes V5's
+headless init and adds its missing package-keyring helper/unit. Both kernels,
+DTB and all 20 hardware payload members are unchanged. Target twins match
+(`7703f398…`); signed recovery twins and sealed verifier pass (`32704e44…`
+boot image). Only the canonical claim registry records its execution identity.
+Root/archive composition PASS 35.642 s; nine QEMU watchdog cases PASS.
+Registration active tier PASS 16.776 s. No selector or phone storage change.
+Read-only source inspection confirms V11's actual shutdown is `ec3c7fd2…`, not
+current source `1cd007ea…`; prepare its exact RAM transition instead of copying
+a newer-primary adapter assumption. At uptime 3162 s this fallback remained
+Full/Good 100%, 29.7°C, 8.620 V and USB online, with unchanged selector/trial.
+The original observer fix's source
+`4205a261…` passed all four GitHub jobs in run 34007323724.
+Next: publish this data-only registration, use the integrated readiness checker
+in the exact private supervisor, verify the running V11 exitrd before a normal
+storage-quiescent fastboot transition, then pass connected admission before
+one execution. New physical evidence is needed for coherent headless startup
+with the fixed keyring and Wi-Fi inactive, not to rediscover a marker parser bug.
+
 1. New `rog5-dev check-deployed-server` compares six live userspace/helper
    files with repository-derived hashes and strict metadata through pinned SSH;
    first live component PASS in 0.297 s, with the captured stale-healthd fixture
