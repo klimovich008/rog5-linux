@@ -88,6 +88,45 @@ D's component-specific LICENSE/LICENSES attribution (the project notice grants
 GPL-3.0-or-later; bundled components/assets retain their own licenses), rather
 than assuming the `GPL-3.0-only.txt` filename governs every component.
 
+### H03 capacity-unit follow-up
+
+**Use now as an offline telemetry correction, not charging qualification.**
+The next mandatory acceptance check traced the observed ENODATA capacity fields
+into retained Linux source `7a5cef0db4795d9d453a12e0f61b5b7634fc4d40`,
+`drivers/power/supply/qcom_battmgr.c` (SHA-256
+`e8841eb42094abd8abfd627d90fc31cb2ea958e93442ef94c856b7f6f7a426cd`).
+The sealed V6 module SHA-256 is
+`e69c859c85aef642847d045ad78929302db24cc6a79d67af5968be064131f7d5`;
+its DWARF source MD5 `235e843bd8bceff1ccd1d56b3876365b` matches this retained
+file. This compiler metadata corroborates the specific driver source, not the
+whole kernel Git identity or an independent cryptographic attestation.
+
+The SM8350 callback populates full/design capacities, but only laptop
+`BATTMGR_BAT_INFO` initializes `unit`. Zero-initialized phone state therefore
+retains mWh, and both charge-property cases return ENODATA. The phone probe
+branch needs `QCOM_BATTMGR_UNIT_mAh` before battery registration.
+[Jan-Michael Brummer's August 29 proposed fix](https://lkml.iu.edu/2608.3/10893.html)
+independently describes this same defect. Its Fairphone test is not ROG5 proof;
+upstream merge was not established. The separate charge-counter/CHARGE_NOW
+proposal and other-device current scaling are not imported.
+
+[Patch 0038](../patches/linux-7.1.4/0038-power-supply-qcom-battmgr-fix-charge-units.patch)
+contains only that initialization with attribution. The
+[compiled regression](../scripts/device/test-qcom-battmgr-charge-units.py)
+reproduces pre-fix phone ENODATA, checks both phone variants, preserves both
+laptop units and rejects extra policy changes. Its optional `--source` argument
+checks every marked fixture excerpt and applies the patch to a temporary copy
+of the actual driver; no retained source or build is changed. Active/full CI
+include the regression. GPL notices are retained in the fixture.
+
+No deployed module, candidate, charging threshold, control setter, GLINK message
+or reported scaling changes here. H03 remains incomplete: valid capacity
+reporting cannot alone demonstrate regulation. The smallest later hardware
+check is full/design-capacity readout through the exact ABI-matched patched
+module in an ordinarily required fresh signed release, with the existing
+power/thermal/USB observation. Do not unload live charging dependencies or
+consume a dedicated phone cycle merely to confirm an optional field.
+
 ## Why 7.1.4
 
 As of 2026-07-22, Linux 7.1.4 is the current stable kernel. It is a better research baseline than an unmaintained 6.7 SM8350 fork because upstream already contains SM8350 SoC support, the MSM DPU/DSI display stack, A660 GPU support, Qualcomm remoteproc, PMIC GLINK, UFS, and DWC3 infrastructure.

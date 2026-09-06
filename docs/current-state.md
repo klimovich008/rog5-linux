@@ -57,7 +57,7 @@ files, inactive radio, safe power and deployed 900-second watchdog ACK.
 The matrix took 62.396 s including full input rehashing; H02 itself took 1.366 s.
 H03 still needs predeclared charging/regulation criteria; no full-state charging
 qualification or new execution is implied. Full local CI passed in 486.402 s;
-exact-head publication CI is still required for the new commit.
+all four publication CI jobs passed run 34011983097 for `ac25155e…`.
 The first supervisor preflight failed before capture/claim/boot because its
 restricted PATH lacked `gh`; the fixed absolute path passed under actual
 runuser. A later host Python text/bytes error prevented sending the first
@@ -138,10 +138,22 @@ The bounded [source-reuse assessment](kernel-port.md#bounded-source-reuse-assess
 found incompatible downstream charging controls, not a demonstrated mainline
 defect. Keep the accepted kernel; Denial remains deferred and optional.
 
+The subsequent H03 source check did demonstrate a separate mainline telemetry
+defect: SM8350 leaves its capacity unit at zero/mWh, rejecting valid
+`charge_full`/`charge_full_design` with ENODATA. Patch `0038` initializes the
+phone protocol's charge unit only; compiled source-fragment regression and
+retained-source application pass. It is **not deployed or wired into an active
+candidate**. No live module replacement, control write or new boot is justified
+by these offline tests. See the [source audit](kernel-port.md#h03-capacity-unit-follow-up).
+H03 still needs declared regulation criteria and physical evidence; do not
+classify Full/zero-current alone as a charging pass.
+This offline follow-up passed the active tier in 17.196 s and full local CI in
+489.593 s; its publication CI must be checked separately from the prior H02 run.
+
 The coherent rescue checkpoint above is complete as a component. Reuse its
-accepted kernel and artifact evidence; no further source-reuse or kernel
+accepted kernel and artifact evidence; no further broad source-reuse or kernel
 redesign is indicated. H02 integration is now implemented and physically
-checked on the same rescue boot. Next freeze/publish this checkpoint, resolve
+checked on the same rescue boot. Next resolve
 H03 regulation criteria and plan the separate R01 experiment. The exact sealed failure helper uses
 `RESTART2("bootloader")`: expiry reaches fastboot, not automatically signed
 fallback SSH. Any host-assisted R01 cycle must prebind a fresh rescue execution

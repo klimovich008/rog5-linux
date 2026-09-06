@@ -1,0 +1,26 @@
+Subject: [PATCH] power: supply: qcom_battmgr: initialize phone charge units
+
+SM8350-class firmware supplies charge-domain values but has no
+BATTMGR_BAT_INFO response to initialize unit. The zero-initialized mWh
+value causes valid CHARGE_FULL and CHARGE_FULL_DESIGN reads to fail with
+ENODATA. Set the unit before registering the phone battery. Leave laptop
+firmware-selected units, charging controls and reported values unchanged.
+
+Based on Jan-Michael Brummer's independently published 2026-08-29 patch:
+https://lkml.iu.edu/2608.3/10893.html
+Local backport only: upstream merge and ROG5 hardware validation
+are not established here. Linux driver license: GPL-2.0-only.
+
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+--- a/drivers/power/supply/qcom_battmgr.c
++++ b/drivers/power/supply/qcom_battmgr.c
+@@ -1693,6 +1693,9 @@
+ 	} else {
++		/* Phone firmware reports charge units without BATTMGR_BAT_INFO. */
++		battmgr->unit = QCOM_BATTMGR_UNIT_mAh;
++
+ 		if (battmgr->variant == QCOM_BATTMGR_SM8550)
+ 			psy_desc = &sm8550_bat_psy_desc;
+ 		else
+ 			psy_desc = &sm8350_bat_psy_desc;
+ 
