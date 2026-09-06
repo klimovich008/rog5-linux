@@ -324,10 +324,11 @@ Predeclared criteria for the first executable observation:
   unsafe power, contradictory states, counter decrease, transport/identity
   loss or exceeded deadlines during execution are FAIL, not optional fields.
 
-No new observation is qualified yet. The immediate missing evidence is a
-complete same-release, timestamped current/charge-counter/input series plus
-supervised evaluation and H02 prerequisite—not another charge-limit sysfs
-inventory. Reuse the existing pinned observer/acceptance path; the historical
+The [V8 rescue observation](../test-results/2026-09-05-headless-acceptance.md#v8-live-rescue-and-h03-full-maintenance-qualified)
+subsequently qualified the firmware-Full branch. A new release still needs its
+same-release timestamped current/charge-counter/input series, supervised
+evaluation and H02 prerequisite—not another charge-limit sysfs inventory.
+Reuse the existing pinned observer/acceptance path; the historical
 battery collector is candidate-specific and is not directly usable here.
 The small `scripts/host/h03-regulation.py` Full-branch evaluator is exercised
 by A02, including missing data, implausible counters and net discharge. It

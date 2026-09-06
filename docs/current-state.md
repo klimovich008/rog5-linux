@@ -92,8 +92,8 @@ Unsupported charge-limit controls are not the blocker; none were written.
 
 ## Reuse and exact next action
 
-Preserve V11 access. **Next: publish the host checkpoint, then diagnose radio startup
-through the explicit pinned link-local diagnostic path before any successor.**
+Preserve V11 access. **Next: clear host preview capacity, finish V3 A01 and the
+remaining staging/transition adapter checks, then publish before one live trial.**
 The primary reached UFS, OverlayFS, systemd and authenticated diagnostic SSH
 at `169.254.77.2`; `10.77.0.2` never resolved. State/identity services stayed
 inactive behind radio qualification. USB disappeared about 158 seconds after
@@ -102,13 +102,22 @@ handler can request this reboot, but its actual result was not captured.
 No previous journal or pstore was retained; reset cause remains unproven.
 Current fallback power: Full/100%, Good, 29.8°C, 8.587 V, zero battery current.
 Private evidence/coordinator: `rog5-v7-server-modules-20260906.Ibl4iPCz/server-live-v2`.
-Staging and claim are terminal. No new candidate is issued. The host checker
-now has an explicit diagnostic-only mode; it cannot satisfy readiness or
-weaken partial-radio-failure rollback. Validate/publish this host checkpoint
-before connecting it to the next existing coordinator. Focused checks passed
+V2 staging and claim are terminal. Host diagnostics are published at
+`793a1ccf1ded9ba1be566a6eea3f09a38099735c`; all four CI jobs passed, run
+34053338818. This diagnostic-only mode cannot satisfy readiness or weaken
+partial-radio-failure rollback. Its focused checks passed
 21 tests in each Python mode; active took about 24 s, full local CI **526.057 s**.
 The complete sealed-BusyBox probe passed present/absent/wrong-boot fixtures in
-9.325 s, with systemctl/IP stand-ins. No kernel rebuild or new candidate.
+9.325 s, with systemctl/IP stand-ins. No kernel rebuild was needed.
+V3 signed target twins are prepared with only trial-descriptor/identity changes;
+the exact kernel, modules, DTB, radio policy and timers are unchanged. Existing
+verified recovery/wrapper twins are reused. Canonical registration is not a
+live claim, staging proof or execution authorization. Private preparation:
+`rog5-server-startup-20260906.ou4CkDi9`; exact hashes are in the dated report.
+Its read-only startup watcher and assembled coordinator pass 11 replay tests.
+**V3 A01 is BLOCKED before copying:** approximately 3.0 GiB RAM remained after
+reading the old preview, below the measured allocation requirement. Neither
+preview nor phone was modified; retain both existing root images. No V3 boot.
 C02's serial guest overhead is corrected without dropping validation; original
 151.045 s failure and diagnostic 114.037 s replay remain in the dated report.
 The source trial helper already rearms healthy primary state to pending, but
@@ -130,8 +139,9 @@ Its prospective root remains volatile at
 `/run/rog5-server-preview-20260906-Ibl4iPCz/root.ext4`,
 hash `8f4afbcceed4b2112981392127deaf5a057a9c1d193cb325ef55791810e792c5`.
 Do not reboot the host assuming that preview is durable. Original snapshot
-remains intact. Host free space is about 4.1 GiB; preserve the 3 GiB reserve.
+remains intact. Host free space is about 3.7 GiB; preserve the 3 GiB reserve.
 
+V3 registration checkpoint: active **20.808 s**, full local **510.782 s**, PASS.
 Use focused checks during edits, one full CI per relevant frozen integration,
 and meaningful publication batches. Active/full implementation checks already
 passed 20.197 / 498.170 s; do not rerun unchanged code for this evidence update.
