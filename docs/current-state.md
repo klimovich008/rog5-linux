@@ -97,6 +97,7 @@ These are component outcomes, **not a coherent final server PASS**.
 | H01/H02 capture component | Original startup replay PASS 0.027 s; all cleanup PASS; radio-free H02 qualification not claimed |
 | H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
+| F02 live behavior | WPA/DHCP restarts PASS 16.780 / 9.217 s; one radio activation, USB/core unchanged; acceptance import pending |
 | S01 standalone boot | BLOCKED on qualified installed recovery; current boot used host fastboot |
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
@@ -104,8 +105,8 @@ These are component outcomes, **not a coherent final server PASS**.
 S02's bounded stream component now passes offline (11 regressions, 256 MiB each
 direction). No live endpoint binding or S02 PASS is implied; details in the dated report.
 
-Latest V4 component telemetry: Full/100%, Good, 29.9°C, about 8.580 V,
-zero battery current, USB online supplying 262 mA below reported 500 mA.
+Latest V4 restart telemetry: Full/100%, Good, 29.9°C, about 8.577 V,
+battery current −7 mA, USB online; this snapshot is not regulation qualification.
 Same boot survived its 900-second watchdog checkpoint; the log records current
 P2/SSH readiness acknowledgement. This is healthy-path evidence, not R01.
 Earlier startup briefly drew battery current; these snapshots are not a
