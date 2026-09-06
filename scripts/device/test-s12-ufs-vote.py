@@ -4,6 +4,8 @@ from pathlib import Path
 import copy
 import importlib.util
 import json
+import hashlib
+import os
 import re
 import subprocess
 import tempfile
@@ -23,6 +25,41 @@ def function(text, name):
     return text[start:end]
 
 class S12VoteTest(unittest.TestCase):
+    def test_builders_reject_kernel_without_builtin_rpmh_read_before_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/'source';source.mkdir()
+            subprocess.run(['git','init','-q',str(source)],check=True)
+            env=dict(os.environ,GIT_AUTHOR_NAME='Fixture',GIT_AUTHOR_EMAIL='fixture@rog5.invalid',
+                     GIT_COMMITTER_NAME='Fixture',GIT_COMMITTER_EMAIL='fixture@rog5.invalid')
+            subprocess.run(['git','-C',str(source),'commit','--allow-empty','-qm','fixture'],
+                           env=env,check=True)
+            commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
+            kit=root/'kit';kit.mkdir();(kit/'.config').write_bytes(b'fixture\n')
+            digest=hashlib.sha256((kit/'.config').read_bytes()).hexdigest()
+            (kit/'build-meta.txt').write_text(f'patched_commit={commit}\n{digest} /.config\n')
+            tool=kit/'tools/bpf/resolve_btfids/resolve_btfids'
+            tool.parent.mkdir(parents=True);tool.write_text('#!/bin/sh\nexit 1\n');tool.chmod(0o755)
+            good='0x00000000\trpmh_read\tvmlinux\tEXPORT_SYMBOL_GPL\t\n'
+            variants=('',good.replace('rpmh_read','rpmh_write'),good.replace('vmlinux','module'),
+                      good.replace('EXPORT_SYMBOL_GPL','EXPORT_SYMBOL'),good+good)
+            for name in ('build-s12-ufs-vote.sh','build-native-wifi-activation.sh'):
+                builder=REPO/'scripts/device'/name
+                # Execute the real pre-build prefix; no compiler, output or device.
+                prefix=builder.read_text().split('before=$(sha256sum',1)[0]
+                for symbols in (*variants,good):
+                    with self.subTest(builder=name,symbols=symbols):
+                        (kit/'Module.symvers').write_text(symbols)
+                        output=root/'output'
+                        result=subprocess.run(['sh','-c',prefix+'\nprintf READY\n',str(builder),
+                            str(source),str(kit),str(output)],capture_output=True,text=True,timeout=5)
+                        if symbols==good:
+                            self.assertEqual(result.returncode,0,result.stderr)
+                            self.assertEqual(result.stdout,'READY')
+                        else:
+                            self.assertNotEqual(result.returncode,0)
+                            self.assertIn('exact built-in rpmh_read',result.stderr)
+                        self.assertFalse(output.exists())
+
     def test_oem_request_requires_hold_and_fresh_read_and_never_rounds(self):
         body=function(SOURCE.read_text(),'request_oem_voltage')
         code=r'''

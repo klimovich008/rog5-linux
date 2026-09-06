@@ -3295,3 +3295,95 @@ Final pinned same-boot V7 health PASS **0.245 s**, uptime **12460.40 s**,
 29.9°C, 8.595 V, zero current, Good/USB online, P24 RO and no failed units.
 All experiment processes are terminal. No charging-policy or threshold write,
 module reload on the phone, storage or execution-state change occurred.
+
+#### Combined server source: rescue/server built-in dependency mismatch
+
+Continued from `3cbbb350…`. Exact comparison of V7 `601c84c0c3c4` and the
+accepted server source `1eea8970e87f` finds nine changed files: the RPMh readback
+and ASUS S12 regulator support plus the NCM callback. V7's actual symvers lacks
+`rpmh_read`; its public header also lacks the declaration. The server S12 helper
+uses that function and the ASUS regulator point. A radio-only rebuild against
+V7 would therefore not yield the required server. No phone cycle was consumed
+to discover this R2 composition gap; the prior capacity-module result remains
+valid only for its stated rescue kernel.
+
+Fail-first tests reproduced ten rejected-input cases incorrectly crossing the
+old builder prefixes. Both builders now require one unnamespaced GPL
+`rpmh_read` export from vmlinux, before output creation or compilation. Missing,
+renamed, module-owned, non-GPL and duplicate records refuse. The positive fixture
+continues; this is a necessary dependency check, not complete ABI/board proof.
+S12 tests **9 PASS**, normal/optimized **0.566/0.578 s**; activation **5 PASS /
+0.234 s**. Existing RPMh **3**, ASUS selector **2**, capacity **3** and NCM **3**
+regressions pass. No readback, regulator voltage or charging policy is changed.
+
+New detached local source `f17befd4ef172cfb0ecbffd9e0af87122cfa66bc` starts at the
+accepted server source and adds exactly the attributed 0038/0039 changes in two
+files. Reverse patch checks pass; all other server source is unchanged. It uses
+the existing object store, not a download or history rewrite. The separate
+worktree preserves both accepted sources. Original config `889d836f…`, compiler
+image `bdb4bbda…` and kernel build contract are reused. A new built-in kernel is
+now justified by the demonstrated dependency, not by host-only failures.
+
+Private preparation/controller: `rog5-v7-server-modules-20260906.Ibl4iPCz`.
+Kernel preflight/build outcomes must be read from its process and result files,
+not inferred from this preparation note. New outputs are locked and input-bound;
+no copied mismatched cache, BTF bypass or weak modpost. Budget is 8 GiB for
+sequential twin outputs plus a 3 GiB free-space reserve; no artifacts deleted.
+There is no candidate, signing, admission, boot, staging or phone control write.
+
+### Bounded workflow correction and H03 outcome resumption
+
+Continued the dirty `3cbbb35014a0096adba6d6d8e46367aecf6dd367` checkpoint;
+no reset, cleanup, restarted build, phone contact or competing goal.
+Current state was 442 lines and is now about 130. Completed narratives already
+exist in this dated incident; all 50 artifact/commit identity tokens in the
+previous committed handoff remain here or in compact current state. No private
+evidence or artifact was deleted. ROADMAP's obsolete completion/display-first
+claim was corrected to the existing mandatory headless acceptance scope.
+
+Project systematic-debugging is now 75 lines, explicit-only throughout:
+focused correction for proven defects; bounded full investigation for repeated,
+unexplained or cross-component failures; hypothesis reassessment rather than
+automatic architecture verdict. Bounded labelled mitigations are permitted.
+Upstream examples/creation records remain historical, not compulsory phases.
+Both project skills validate; their scope was checked against proven BusyBox
+failure, an unrelated unknown incident, two non-discriminating USB failures,
+bounded mitigation and ordinary accepted-release reboot scenarios. No global
+skills/configuration were changed. The global kernel skill's unconditional
+devm/API preferences are generic guidance, not authority for a kernel rewrite;
+there is no blocking global instruction conflict for this checkpoint.
+
+Development now freezes the existing matrix as done, keeps unrelated work in
+the existing backlog, batches meaningful publications and separates experimental
+COMMIT/ambiguity from normal accepted-release boots and automatic fallback.
+No runtime claim/selector mechanism or required publication gate changed.
+Installed old boot B remains an actual qualification prerequisite.
+
+H03 no longer blocks simply on unsupported writable charge-limit attributes.
+The source-traced SM8350 firmware Full/current/counter/input path supports a
+predeclared full-maintenance observation without claiming programmable CC/CV
+settings. The 600 s / 10 s / 660 s contract now states polarity, neutral-current
+band, zero negative-mean/counter-drift tolerance, counter plausibility, state,
+power and timing conditions before any new measurements. No thresholds or
+charging controls were written. Historical net-positive evidence supports
+protocol interpretation, not a new release PASS.
+
+The small Full-branch evaluator resumes mandatory H03 work. New tests first
+failed because the implementation was absent, then all 33 acceptance tests
+passed in normal/optimized Python: **2.117 / 1.934 s** wall. Missing data,
+nonfinite/stale/late samples, unsupported states, unsafe readings, lost input,
+net discharge and impossible counters refuse. Balanced small current with
+unchanged counter reports maintenance, never net charging. The evaluator
+always reports `h03_qualified=false`; actual supervised identity/firmware/H02
+binding and a complete live series are still required. It adds no device runner,
+automatic boot, arbitrary evidence import or general framework.
+
+The already-running full local CI for the builder fix passed **589.229 s**
+(previous 498.829 s). Later observer/workflow edits are not falsely labelled
+part of that earlier frozen code check. First workflow active check was
+**28.630 s** versus prior 21.207 s under different concurrent build load;
+no speedup claim. Final active **PASS 28.337 s** includes the new H03 tests and
+link checks. Final focused/active results belong in the same private
+`rog5-v7-server-modules-20260906.Ibl4iPCz` directory.
+The original bounded sequential kernel twins continue without input changes.
+Neither clean twin outcome, final A01 nor physical H03 is inferred from progress.

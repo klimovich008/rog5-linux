@@ -12,6 +12,12 @@ expected=$(sed -n 's/^patched_commit=//p' "$kit/build-meta.txt")
 [ -z "$(git -C "$source_dir" status --porcelain)" ]
 [ "$(sha256sum "$kit/.config" | cut -d ' ' -f1)" = "$(awk '$2 == "/.config" {print $1}' "$kit/build-meta.txt")" ]
 [ -x "$kit/tools/bpf/resolve_btfids/resolve_btfids" ]
+# Rescue kernels may share the config but omit the server's built-in readback.
+awk '$2 == "rpmh_read" { n++; if ($3 != "vmlinux" || $4 != "EXPORT_SYMBOL_GPL" || NF != 4) bad=1 }
+     END { exit (n != 1 || bad) }' "$kit/Module.symvers" || {
+	echo 'FAIL kernel kit lacks exact built-in rpmh_read; refusing compilation' >&2
+	exit 1
+}
 before=$(sha256sum "$kit/.config" "$kit/vmlinux" "$kit/Module.symvers")
 mkdir "$output"
 output=$(realpath "$output")

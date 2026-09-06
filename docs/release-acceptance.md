@@ -254,15 +254,73 @@ operator/power-state allowance. These are qualification bounds, not altered
 kernel watchdog deadlines. A rescue with a longer verified staging budget must
 have its separate timing lattice documented before admission, not after failure.
 
-Charging smoke: **600 s**, samples every **10 s**, 660 s total allowance.
-Health must be Good, no unsafe temperature/voltage, and transport must remain
-available with Wi-Fi off. The exact current polarity, configured charge limit,
-measurement noise and battery-state interpretation must be bound from retained
-telemetry and reviewed before H03 runs. Until then H03 is BLOCKED. Below the
-limit require sustained net-positive charging; full/regulated batteries can pass
-only with validated regulation evidence. A flat voltage or one jump is not proof.
-Do not treat fastboot SOC as temperature/current telemetry. Existing stricter
-power/temperature gates take precedence; never widen them for this contract.
+### H03: firmware-managed charging outcome
+
+Observe **600 s**, every **10 s** (61 samples including both endpoints), within
+the existing **660 s** deadline. Freeze the measurement branch and exact
+kernel/module/firmware identity before collecting; H02 must pass for that
+release/boot. A same-boot diagnostic series without H02 is component evidence,
+not H03 qualification. Wi-Fi stays inactive; no charging-control writes.
+
+For this SM8350 interface, writable charge-limit attributes are **not required**.
+The exact `qcom_battmgr.c` SM8350 descriptor has no setter; each supported
+property read requests firmware data. STATUS, CURRENT_NOW and CHARGE_COUNTER
+are direct firmware results; capacity divides firmware hundredths by 100.
+Source pin `f17befd4ef172cfb0ecbffd9e0af87122cfa66bc` preserves these semantics.
+[Earlier sub-full observations](../test-results/2026-08-21-power-usb-v26-subfull-net-positive.md)
+support positive = charging; bind unchanged protocol/firmware before reusing
+that interpretation, not the old release's PASS.
+
+Linux distinguishes Full status and relative charge count from programmable
+constant-charge voltage/current. `voltage_max` is **not** proof of a configured
+termination setpoint. See the [power-supply ABI](https://docs.kernel.org/power/power_supply_class.html).
+For the firmware-default full-state branch, equivalent evidence is firmware
+Full/100% corroborated by input supply, battery current and relative charge
+trend over the entire window. This qualifies observed full-state maintenance,
+not an adjustable SOC cap, internal CC/CV settings or all charger protections.
+
+Predeclared criteria for the first executable observation:
+
+- Every sample: exact same boot/release, fresh bounded property reads, Good
+  health, USB online/device-sink, valid positive input voltage/current and
+  reported input limit. Input current must not exceed that limit. Retain raw
+  values, units, read times and errors; no forward-filled missing samples.
+- Preserve stricter admission gates: for the current full-state rescue,
+  0–39.9°C and 8.4–9.0 V pack. Also refuse voltage above a valid reported
+  maximum; do not infer cell voltages or change the hardware limit.
+- **Firmware Full branch:** Full and 100% throughout. Battery current must
+  remain within ±25 mA, its time-weighted mean must be nonnegative, and the
+  final charge counter must not be below the initial one (zero drift tolerance).
+  The ±25 mA band is an operational discrimination bound from the retained
+  battery-series verifier, not a claim of calibrated sensor accuracy. The
+  separate counter/no-negative-mean checks prevent it excusing net discharge.
+  Counter increase also cannot exceed the current-band integral over the window
+  (25 mA × span / 3600 in µAh); implausible jumps are not regulation evidence.
+- **Sub-full branch:** only with an independently established effective policy
+  for that exact firmware, no user SOC cap, and applicable safe-voltage gates.
+  All samples below full report Charging; median current exceeds +25 mA, at
+  least 90% of samples exceed +25 mA, time-weighted current is positive and
+  charge counter increases. A transition to Full needs a separately declared
+  mixed-state protocol; do not fit one after seeing a failed run.
+- Record monotonic sampling times; every interval 8–12 s, total span at least
+  600 s. Missing prerequisites are BLOCKED before execution. Missing samples,
+  unsafe power, contradictory states, counter decrease, transport/identity
+  loss or exceeded deadlines during execution are FAIL, not optional fields.
+
+No new observation is qualified yet. The immediate missing evidence is a
+complete same-release, timestamped current/charge-counter/input series plus
+supervised evaluation and H02 prerequisite—not another charge-limit sysfs
+inventory. Reuse the existing pinned observer/acceptance path; the historical
+battery collector is candidate-specific and is not directly usable here.
+The small `scripts/host/h03-regulation.py` Full-branch evaluator is exercised
+by A02, including missing data, implausible counters and net discharge. It
+performs no device action and always reports `h03_qualified=false`: outcome
+math is not boot/firmware identity, H02 or supervised collection proof.
+If current polarity or counter updates cannot be established on the selected
+firmware, obtain a bounded sub-full charge/current comparison through the same
+read-only PMIC interface; use independent current instrumentation if firmware
+cannot supply it. Do not discharge or reconfigure the phone just to force PASS.
+Capacity-unit patch 0038 is separate and does not itself prove regulation.
 
 Transfers: 256 MiB each way on each intended interface, ≤180 s/direction,
 matching hashes, using the scope established by the
