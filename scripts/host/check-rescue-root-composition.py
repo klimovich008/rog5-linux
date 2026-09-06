@@ -561,14 +561,93 @@ def module_closure(members, release):
     return rows
 
 
-def vm_runtime_passed(log, code, modules, *, firmware=False, radio=False):
+def board_helper_refusals(members, vermagic):
+    """Two exact modules can reach ENODEV without a fake ASUS board/provider.
+
+    Activation requires the real S12 export and remains a separate pending
+    check. Wrong-board refusal proves load-time ABI, not physical operation.
+    """
+    prefix='rog5-native-wifi/'
+    loader=members.get(prefix+'module-once')
+    if loader is None or loader[0][1:5]!=[stat.S_IFREG|0o755,0,0,1]:
+        raise ValueError('unsafe sealed one-call module loader')
+    rows=[];deadline=time.monotonic()+10
+    with tempfile.TemporaryDirectory(prefix='rog5-board-module-metadata-') as temp:
+        for filename,parameters in (('rog5-pmic-pon-readonly.ko',[]),
+                                    ('rog5-s12-ufs-vote.ko',['action=held-oem'])):
+            path=prefix+filename
+            member=members.get(path)
+            if (member is None or member[0][1:5]!=[stat.S_IFREG|0o644,0,0,1]
+                    or len(member[1])<64 or member[1][:6]!=b'\x7fELF\x02\x01'
+                    or member[1][16:20]!=b'\x01\x00\xb7\x00'):
+                raise ValueError('unsafe board helper: '+path)
+            file=Path(temp)/filename;file.write_bytes(member[1]);file.chmod(0o400)
+            info={}
+            for field in ('name','depends','vermagic'):
+                remaining=deadline-time.monotonic()
+                if remaining<=0:raise ValueError('board helper metadata deadline')
+                info[field]=subprocess.check_output(['modinfo','-F',field,str(file)],
+                    text=True,timeout=min(5,remaining)).strip()
+            if (info['name']!=file.stem.replace('-','_') or info['depends']
+                    or info['vermagic']!=vermagic):
+                raise ValueError('board helper identity/dependency/ABI mismatch')
+            rows.append(dict(path=path,parameters=parameters,
+                sha256=hashlib.sha256(member[1]).hexdigest(),**info))
+    return rows
+
+
+def board_refusal_driver(rows):
+    script=''
+    for row in rows:
+        command='/rog5-native-wifi/module-once '+shlex.quote('/'+row['path'])
+        command+=''.join(' '+shlex.quote(arg) for arg in row['parameters'])
+        script+='''set +e
+'''+command+''' >/run/composition-refusal.log 2>&1
+refusal_status=$?
+set -e
+[ "$refusal_status" -eq 1 ]
+[ "$(wc -l </run/composition-refusal.log)" -eq 1 ]
+grep -Eq '^module-once finit_module errno=19 [(].*[)]; no retry$' /run/composition-refusal.log
+'''
+        script+='[ ! -d '+shlex.quote('/sys/module/'+row['name'])+' ]\n'
+        script+='cat /run/composition-refusal.log\n'
+        script+='echo COMPOSITION_HELPER_'+row['name']+'_REFUSED_ENODEV\n'
+    return script
+
+
+def activation_refusal_driver():
+    """Never simulate a valid hold: inspect the consumer's safe refusal only."""
+    script='''[ ! -d /sys/module/rog5_s12_ufs_vote ]
+insmod /a01/rog5_a01_s12_shim.ko
+[ -s /sys/kernel/btf/rog5_a01_s12_shim ]
+[ "$(cat /sys/module/rog5_a01_s12_shim/parameters/validator_calls)" = 0 ]
+'''
+    consumer=dict(name='rog5_wifi_activate',path='rog5-native-wifi/rog5-wifi-activate.ko',parameters=[])
+    script+=board_refusal_driver([consumer]).replace(
+        'COMPOSITION_HELPER_rog5_wifi_activate','COMPOSITION_CONSUMER_rog5_wifi_activate')
+    return script+'''[ "$(cat /sys/module/rog5_a01_s12_shim/parameters/btf_coming)" = 1 ]
+[ "$(cat /sys/module/rog5_a01_s12_shim/parameters/consumer_live)" = 0 ]
+[ "$(cat /sys/module/rog5_a01_s12_shim/parameters/validator_calls)" = 0 ]
+rmmod rog5_a01_s12_shim
+[ ! -d /sys/module/rog5_a01_s12_shim ]
+echo COMPOSITION_ACTIVATION_SPLIT_PASS
+'''
+
+
+def vm_runtime_passed(log, code, modules, *, firmware=False, radio=False, refusals=(), activation=False):
     lines = log.replace('\r\n', '\n').splitlines()
     loaded = re.findall(r'^COMPOSITION_MODULE_([A-Za-z0-9_]+)$', '\n'.join(lines), re.M)
+    refused = re.findall(r'^COMPOSITION_HELPER_([A-Za-z0-9_]+)_REFUSED_ENODEV$', '\n'.join(lines), re.M)
     markers=MARKERS+ (('FIRMWARE_RUNTIME',) if firmware else ())
     if radio:
         if not firmware: return False
         markers+=('RADIO_FIRMWARE',)
+    split=[line for line in lines if line.startswith(('COMPOSITION_CONSUMER_','COMPOSITION_ACTIVATION_'))]
+    expected_split=['COMPOSITION_CONSUMER_rog5_wifi_activate_REFUSED_ENODEV',
+                    'COMPOSITION_ACTIVATION_SPLIT_PASS'] if activation else []
     return (code == 0 and loaded == [row['name'] for row in modules]
+            and refused == [row['name'] for row in refusals]
+            and split == expected_split
             and all(lines.count('COMPOSITION_'+name+'_PASS') == 1 for name in markers)
             and lines.count('COMPOSITION_VM_COMPLETE') == 1
             and not re.search(r'COMPOSITION_VM_FAILURE|Unknown symbol|Invalid module|'
@@ -576,7 +655,7 @@ def vm_runtime_passed(log, code, modules, *, firmware=False, radio=False):
 
 
 def vm_runtime(members, modules, kernel, root_image, output, *, profile,
-               recovery_timeout=None, command_line=None, firmware=False):
+               recovery_timeout=None, command_line=None, firmware=False, refusals=(), activation_fixture=None):
     """Combine exact module insertion and existing Arch preparation on QEMU virt.
 
     No phone DTB, network, hardware activation or writable block device. The
@@ -590,6 +669,12 @@ def vm_runtime(members, modules, kernel, root_image, output, *, profile,
         raise ValueError('invalid resolved QEMU container identity')
     fixture = dict(members)
     add = SEALED.ARCHIVE.add
+    if any(name=='a01' or name.startswith('a01/') for name in members):
+        raise ValueError('test-only fixture namespace present in target archive')
+    if activation_fixture is not None:
+        if not any(row['name']=='rog5_s12_ufs_vote' for row in refusals):
+            raise ValueError('consumer fixture cannot replace separate real provider proof')
+        add(fixture,'a01/rog5_a01_s12_shim.ko',activation_fixture,stat.S_IFREG|0o644)
     if profile=='server-runtime' and firmware:
         # Software radio modules need regulatory lookup before the later
         # runtime handover. Use the same sealed bytes in QEMU's default path;
@@ -629,6 +714,8 @@ echo COMPOSITION_FIRMWARE_RUNTIME_PASS
         script += 'insmod '+shlex.quote('/'+row['path'])+''.join(' '+shlex.quote(arg) for arg in row.get('parameters',[]))+'\n'
         script += '[ "$(cat '+shlex.quote('/sys/module/'+row['name']+'/initstate')+')" = live ]\n'
         script += 'echo COMPOSITION_MODULE_'+row['name']+'\n'
+    script += board_refusal_driver(refusals)
+    if activation_fixture is not None:script+=activation_refusal_driver()
     script += '''mount -t ext4 -o ro,noload /dev/vda /mnt/root-ro
 mount -t tmpfs tmpfs /mnt/state
 mkdir /mnt/state/upper /mnt/state/work
@@ -689,7 +776,8 @@ echo COMPOSITION_STAGE_END
             code = 124
     log = (output/'runtime.log').read_text(errors='replace')
     passed=vm_runtime_passed(log,code,modules,firmware=firmware,
-                             radio=firmware and profile=='server-runtime')
+                             radio=firmware and profile=='server-runtime',refusals=refusals,
+                             activation=activation_fixture is not None)
     frame=None
     if command_line is not None:
         passed=passed and log.splitlines().count('COMPOSITION_TIMING_UNITS_PASS')==1
@@ -699,7 +787,8 @@ echo COMPOSITION_STAGE_END
         else:
             passed=False
     return dict(status='PASS' if passed else 'FAIL',stage_frame=frame,
-        container=image,command=command,exit_code=code,modules=modules,
+        container=image,command=command,exit_code=code,modules=modules,board_refusals=list(refusals),
+        activation_split='PASS' if passed and activation_fixture is not None else 'NOT RUN',
         fixture_sha256=ACCEPTANCE.sha_file(archive),duration_seconds=time.monotonic()-started,
         limitations=['virtual hardware only','tmpfs upper, no persistent state activation',
                      'unit generation, not watchdog expiry execution',

@@ -51,6 +51,11 @@ not justify the NCM fix: its evidence is the accepted Image, packet capture and
 upstream callback. Reopen this assessment only for changed upstream pins or a
 specific failing acceptance test.
 
+At the `f942b8ba` continuation, the same pinned Denial release page still
+excludes AArch64 binary packages. The next acceptance work uses the retained
+server modules' own export/type and exact-kernel refusal evidence, not code
+from another phone. No new source checkout or downstream import was needed.
+
 W identifies **ZenFone 8, I006D/ZS590KS**, not our ROG5 ZS673KS. L's
 `arch/arm64/boot/dts/vendor/qcom/Makefile` selects sake/vodka; complete immediate
 qcom and vendor-config listings plus the complete ASUS DTS subtree contain no

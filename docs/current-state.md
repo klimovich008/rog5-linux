@@ -53,25 +53,33 @@ before any target frame. Later success does not erase that FAIL. The exact
 exception phase was not logged; retain conservative classification and the new
 sanitized replay fixture before deciding any host-only correction.
 
-**Next mandatory test:** complete the three board-only PMIC/S12/activation
-helper checks in server A01. Integrated software closure now loads **37 modules**
-from the exact sealed archive with matching dependencies/vermagic and production
-observation parameters. Wrapper/signatures/archive/root runtime/firmware/timing
-PASS; overall **BLOCKED 107.115 s**, solely `module_load` NOT RUN for those
-three helpers. Kernel/archive/root are unchanged; no ASUS hardware is faked.
-The nested module package is bounded and hash-closed; host modprobe only reads
-metadata, and insertion occurs in network-isolated QEMU. Normal/optimized
-regressions pass **31 cases** (0.262/0.259 s). A final fail-first regression
-also rejects an empty dependency plan; the earlier actual-artifact run remains
-component evidence, not a complete final-release proof.
-Previous published firmware checkpoint `433960e7` passes all four GitHub jobs
-in run **34030476565**, active **18.808 s**, full local CI **492.78 s**.
-Current software-closure checkpoint passes active **18.754 s** and one full
-local CI **496.610 s**. Exact-head/merge CI remains a separate publication
-check. These are host acceptance checks only; deployed artifacts and capture
-FAIL are unchanged.
-Do not import V7 core-only proof into the older server release. No downstream
-driver import or phone reboot is needed for the current offline work.
+**Server A01 PASS 110.953 s**, all seven required offline checks together;
+VM runtime **39.505 s**, unchanged exact kernel/archive/root. All **37** software
+modules load, real PMIC/S12 helpers refuse QEMU through the one-call loader, and
+the real provider's export/type matches the activator's declaration/relocation.
+An explicitly test-only link fixture lets the unchanged consumer pass kernel
+BTF checking and reach ENODEV: COMING 1, validator calls 0, LIVE 0, fixture removed.
+This is not dynamic binding to an initialized real provider, a rail hold or
+physical radio/charging qualification. No production driver changed.
+Private proof: `a01-server-split-integrated-r1` in the existing evidence directory.
+
+Focused regressions: composition **33**, fixture **3**, static edge **63**;
+normal/optimized PASS. Optimized real-archive mutations **113 / 12.401 s**;
+active **19.475 s**. The existing fixture build was reused; its kit's vmlinux
+reproduces the accepted Image (binding **1.020 s**), not just a matching release
+suffix. No kernel/wrapper rebuild or phone contact. One full local CI PASS
+**498.829 s** (previous **496.610 s**); only result notes changed afterward.
+Check the draft PR's exact-head/merge jobs for publication status; these offline
+passes grant no candidate admission.
+The bounded downstream/Denial assessment remains complete with no justified
+driver import. Keep V7 physical evidence separate from this older server's A01.
+
+**Next mandatory work:** qualify H03
+regulation and the coherent final server artifacts, including the accepted NCM
+correction; do not combine passes from the older server and V7 into one release.
+The deployed bytes and capture FAIL are unchanged. Last pinned V7 health was
+PASS at uptime 7498.89 s: 29.9°C, 8.597 V, zero current, Good/USB online, P24 RO,
+no failed units; this is retained evidence, not a new check or charging pass.
 R01 physical failure recovery, H03 regulation, ordinary/cold boots and the
 60-minute combined soak remain incomplete. See the
 [incident](../test-results/2026-09-05-headless-acceptance.md#v7-physical-ncm-and-current-root-checkpoint).

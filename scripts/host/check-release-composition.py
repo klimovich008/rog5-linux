@@ -265,6 +265,8 @@ def main():
     for option in ('kernel','dtb','target-archive','root-image','boot-image','output'):
         parser.add_argument('--'+option,type=Path,required=True)
     parser.add_argument('--candidate',required=True)
+    parser.add_argument('--activation-fixture-build',type=Path,
+                        help='existing private QEMU-only link fixture build; never a phone artifact')
     args=parser.parse_args()
     if not args.output.is_absolute() or args.output.resolve().is_relative_to(C.REPO) or args.output.exists():
         parser.error('output must be new and private outside Git')
@@ -295,15 +297,26 @@ def main():
             report['radio_firmware']=C.radio_firmware_composition(target)
         core,pending=C.core_module_members(target,report['profile'])
         modules=C.module_closure(core,report['plan']['target_release'])
+        refusals=[];activation_fixture=None
         if pending:
             target,modules,report['radio_modules']=C.radio_module_composition(target,modules,report['plan']['target_release'])
+            refusals=C.board_helper_refusals(target,modules[0]['vermagic'])
             pending=[row for row in pending if row['path'].endswith('.ko')]
+            edge=C.load('a01_edge','scripts/host/rog5_module_edge.py')
+            fixture=C.load('a01_fixture','scripts/host/rog5_a01_fixture.py')
+            try:
+                report['activation_static_edge']=edge.inspect_edge(target,modules[0]['vermagic'])
+                activation_fixture,report['activation_fixture']=fixture.load_fixture(
+                    args.activation_fixture_build,report['artifact_hashes']['kernel'],modules[0]['vermagic'])
+            except (edge.EdgeUnavailable,fixture.FixtureUnavailable) as error:
+                raise Blocked(str(error)) from error
         root_hash=C.ACCEPTANCE.sha_file(args.root_image)
         report['artifact_hashes']['rootfs']=root_hash
         report['runtime']=C.vm_runtime(target,modules,args.kernel,args.root_image,
                                      args.output,profile=report['profile'],firmware=True,
                                      recovery_timeout=report['timing']['rollback_seconds'],
-                                     command_line=report['plan']['cmdline'])
+                                     command_line=report['plan']['cmdline'],refusals=refusals,
+                                     activation_fixture=activation_fixture)
         if C.ACCEPTANCE.sha_file(args.root_image)!=root_hash or root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed')
         for role,path in (('kernel',args.kernel),('dtb',args.dtb),
@@ -324,6 +337,20 @@ def main():
         report['timing']['virtual_boot_id']=stage.boot_id
         checks['timing_transport']='PASS'
         checks['firmware']='PASS'  # Core and (when present) radio inventories + exact VM readback.
+        proven={row['path'] for row in refusals}
+        if activation_fixture is not None:
+            if report['runtime']['activation_split']!='PASS':
+                raise ValueError('missing exact consumer BTF/refusal evidence')
+            proven.add('rog5-native-wifi/rog5-wifi-activate.ko')
+            report['activation_scope']={
+                'offline_dependency_and_safe_refusal':'PASS',
+                'real_pair_hardware_initialization':'NOT RUN',
+                'limitations':['static real-provider edge plus separate exact-kernel refusals',
+                    'consumer relocation/BTF with inert test-only provider; no validator call',
+                    'not dynamic binding to initialized real provider, hold lifetime or changeset probes']}
+        pending=[row for row in pending if row['path'] not in proven]
+        report['board_helper_refusals']=dict(status='PASS' if refusals else 'NOT RUN',
+            modules=refusals,scope='exact-kernel ABI and wrong-board ENODEV; not hardware activation')
         if not pending:
             checks['module_load']='PASS'
         report['radio_module_tests']=pending
