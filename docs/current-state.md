@@ -101,6 +101,9 @@ These are component outcomes, **not a coherent final server PASS**.
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
 
+S02's bounded stream component now passes offline (11 regressions, 256 MiB each
+direction). No live endpoint binding or S02 PASS is implied; details in the dated report.
+
 Latest V4 component telemetry: Full/100%, Good, 29.9°C, about 8.580 V,
 zero battery current, USB online supplying 262 mA below reported 500 mA.
 Same boot survived its 900-second watchdog checkpoint; the log records current
@@ -133,7 +136,7 @@ and repeatability are separate acceptance outcomes.
 Current-state/skills cleanup is complete. Use focused reproduction for proven
 bugs and full investigation only for unexplained/repeated/cross-component ones.
 Run active/focused checks during edits; full CI once for relevant integration.
-Current active PASS **20.650 s**. Full local CI on unchanged production
+Current active PASS **21.473 s** including stream tests (previous 20.650 s). Full local CI on unchanged production
 `8a9c0318` PASS **507.876 s**, explicitly reused across reviewed test/docs-only
 changes with checked receipts; current exact-head remote CI remains separate.
 No kernel/wrapper rebuild was needed for the C02 fixture correction.
