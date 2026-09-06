@@ -3909,3 +3909,66 @@ Route/firewall/profile/address cleanup all PASS; coordinator and receiver are
 terminal. Private `startup-full-ci-r2.log`, `startup-active.log`, focused and
 sealed-shell logs retain the exact implementation validation. Final edits only
 update this evidence/current-state; unchanged implementation CI is reused.
+
+### V3 diagnostic integration checkpoint; host preview capacity blocked
+
+Published diagnostics source `793a1ccf1ded9ba1be566a6eea3f09a38099735c`
+passed all four jobs in run 34053338818. Private successor preparation is
+`rog5-server-startup-20260906.ou4CkDi9`; no target claim or physical execution.
+The sole question remains which radio startup step prevents persistent state
+and normal USB/SSH readiness. Do not infer its answer from source ordering.
+
+Target twins built in **11.345 s**; archive SHA
+`57e3a280be6ed5515d5458e8db46b0c5f8597bc8df72e515f32ac8a97318d27f`.
+Only the try-once descriptor and its digest differ from consumed V2. Kernel,
+modules, DTB, radio behavior, rollback and readiness deadlines are unchanged.
+Signed packaging/selector took **1.443 s**. Wrapper SHA remains
+`dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`;
+recovery archive remains
+`4ba0fccdc3752a64a1cf72de68a8d426eb3ef04ceaf871b50b8ea3b4d7e0c3a9`.
+No wrapper/kernel compile or duplicate wrapper copy was performed.
+New manifest `7719808f23b0aa51a3dd14a8fd0f72a8e3d3c68f21a678a6fabcaefde96d23d1`;
+selector `0b897e0211fd327c74881a502cab47cc3f614f226716b5c9532cb2c3eb8bf4bd`;
+trial `ef4e352839334eddf733468c556b99cd4a68f65b04f8604d48e26afa38866945`.
+Canonical V3 registration does not create a filesystem claim or bypass A01,
+staging, publication, exact-device or fallback requirements.
+
+The private coordinator adds one bounded read-only diagnostic watcher alongside
+normal readiness and passive capture. Complete captured SSH-active frames only
+trigger the existing pinned diagnostic checker; they cannot authenticate a boot
+or grant readiness. The checker still verifies canonical consumption, manifest,
+USB route, pinned host identity and exact boot/kernel/bundle. Its observations
+never convert failed normal readiness into PASS. No service, timer or radio
+control changes. Existing 300-second startup window, 24-second child bound and
+64-attempt observation cap apply only to reads, never target execution retries.
+
+Captured V2 frame replay, partial/mismatched/ambiguous identity, evidence-file
+metadata and deadline tests: **7 PASS, 0.033 s**, optimized Python **0.034 s**.
+The assembled coordinator fake-endpoint tests caught a cleanup-order regression:
+a stuck observer raised before receiver/network cleanup. The fail-first test
+failed with zero cleanup calls; moving the error report after cleanup gives
+**4 PASS, 0.010 s**. All endpoints were fake; this is not live-capture evidence.
+Canonical one-use tests passed **19 cases, 0.170 s**. Existing acceptance and
+receiver suites also passed. No claim was created by these tests.
+Generated policy is current; the active integration tier passed **20.808 s**.
+One full local integration run passed **510.782 s** (previous checkpoint
+526.057 s); no wrapper or kernel rebuild. After the frozen check, only evidence
+and the obsolete H03-status sentence changed. Private `full-ci-r1.log` retains
+the complete run. This does not replace exact-head remote publication checks.
+
+Prospective-root A01 preparation is **BLOCKED**, not a composition PASS. The
+read-only source hash check brought the retained tmpfs image into RAM; measured
+MemAvailable then fell to 3,217,612,800 bytes, below the prospective copy's
+allocated-source/new-bundle/metadata requirement. The adapter refused before
+creating its destination, invoking privileges, copying, or staging. Host disk
+free was 3,935,027,200 bytes; the 3 GiB reserve remains. No data was deleted.
+Both original disk snapshot and already-qualified V2 RAM preview remain intact.
+Capacity must be resolved before repeating preparation; do not weaken the
+gate or call V2's older root/selector evidence a V3 A01 pass.
+
+Remaining before hardware: exact V3 A01; current-V11 staging and clean fastboot
+transition adapters; coherent publication and preflight. The old consumed V2
+coordinator/publication inputs must not be reused as a new execution record.
+Fresh pinned SSH independently confirmed the same V11 boot: Full/100%, Good,
+29.9°C, 8.586 V, zero battery current and 350 mA USB input at 5.011 V under the
+500 mA limit. This is one health snapshot, not another H03 qualification.
