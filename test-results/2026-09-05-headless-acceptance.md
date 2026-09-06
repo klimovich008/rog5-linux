@@ -1677,3 +1677,50 @@ was substituted for the accepted RAM cycle. Preserve stock A and signed V11.
 Remaining work is the full acceptance matrix, deployed-overlay composition,
 updated recovery qualification, ordinary/off-start boots, durable scratch,
 combined soak, regulation criteria and independent mesh access. Goal not complete.
+
+### Reproducible deployed-userspace check (2026-09-06)
+
+Starting source `6b682c9b8247296a9bbefca2db0bdd42d2fbf08e`, clean; its four
+GitHub jobs passed run 34001434885. Same healthy server boot remained reachable.
+This checkpoint adds one read-only `rog5-dev check-deployed-server` command,
+not a successor image, loader or deployment framework.
+
+R2 defect addressed: source/composer validation did not bind healthd in the
+mutable persistent overlay. One repository-owned six-file inventory now derives
+expected hashes/sizes from source and compares actual runtime, healthy helper,
+trial helper, healthd, healthd unit and normal exitrd bytes. Canonical claim and
+manifest validation precede exact USB/NCM route verification and existing pinned
+SSH. The probe refuses wrong boot/bundle/kernel before userspace reads; all
+path components use descriptor-relative no-follow opens. Files are bounded and
+their identity/content metadata revalidated before/after read and at the path.
+No boot, mount, service change, new credential or storage-write command is used.
+
+The sanitized real stale-overlay hash/size is an executable regression fixture.
+Tests also reject missing/error/extra entries, wrong boot/bundle/kernel, metadata
+and hash changes, symlinks, oversized files and a pathname changed after read.
+An initial Python equality check accepted boolean/float zero as integer UID zero;
+both hostile cases failed before explicit integer type validation was added.
+Wrong transport is tested to fail before credential use. A02 includes both
+normal and optimized interpreters; active and broader CI retain the same suite.
+Ten focused tests PASS in 0.104/0.095 s; existing acceptance-runner 19 tests
+PASS in 0.537 s. Active tier PASS, approximately 16.616 s from log creation to
+last write; the final pathname revalidation then passed focused tests and is
+included in the frozen full-CI checkpoint.
+
+First actual-phone check PASS in 0.297 s with all six exact files on the same
+boot. It records source/worktree identity, canonical manifest, expected and
+observed file metadata/hashes and duration in private result JSON. This is a
+composition component only, not whole A01 or a qualified release. The complete
+hardware acceptance rows and installed-recovery qualification remain pending.
+Frozen full local CI PASS in 488.169 s (previous checkpoint 500.609 s; this
+single-run difference is not a performance guarantee). No source changed during
+the run; subsequent source-reuse assessment edits are documentation-only.
+No new candidate is needed to validate this host-only improvement.
+
+The bounded source-reuse assessment in `docs/kernel-port.md` pinned four public
+repositories and reused retained ASUS source without another checkout. It found
+different OEM control protocols and optional newly published Denial mobile UI,
+not evidence for a kernel correction. No phone test was interrupted. Resumed
+mandatory quick acceptance: A02 PASS 11.078 s, B01 PASS 4.287 s, G01 PASS 7.608 s,
+G02 PASS 0.866 s; total 23.873 s. Other rows remain NOT RUN in this run and
+`release_qualified` remains false; these passes are not merged with old releases.

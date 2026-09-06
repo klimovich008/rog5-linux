@@ -1,5 +1,80 @@
 # Linux 7.x board-port plan
 
+## Bounded source-reuse assessment — 2026-09-06
+
+This review does not change the [headless acceptance contract](release-acceptance.md).
+No kernel/control change, download of boot images, large checkout, phone restart,
+or charging-threshold adjustment is justified by these references. Existing
+ASUS source, accepted artifacts and current dirty work were preserved.
+
+### Provenance and limits
+
+No prior Denial/Droidloom/alfaonyt or named charging-interface assessment was
+found in the searched `docs`, `test-results`, `configs` and `scripts`. The ASUS
+5.4 source already retained under the project's `kernel-src/msm-5.4` is the
+primary downstream reference; its source archive SHA-256 is
+`3bfe58a00bfdd3839f9b626c2d34f0cc6778945458f1eef93cbfdea90bf2e5a8`.
+Its `drivers/power/supply/asus_battery_charger.c` hashes to
+`22aa2cd9d4259ac396c7dd52ebafbced1c4dcbe84565b4f0c3b74f95f0ce5ab7`.
+Unlike the Lineage board selection below, its Qualcomm DTS Makefile explicitly
+selects **ZS673KS** EVB through MP5 overlays through `ASUS_BUILD_PROJECT`.
+These are retained-source facts, not proof of today's firmware response.
+
+New source pins (only API listings and selected small raw files were fetched):
+
+- **L:** [Lineage ASUS SM8350, lineage-23.2](https://github.com/LineageOS/android_kernel_asus_sm8350/tree/74f54295bba6008ce873c70bd94a1f2ac104421c), commit `74f54295bba6008ce873c70bd94a1f2ac104421c`.
+- **W:** [official sake metadata](https://github.com/LineageOS/lineage_wiki/blob/4542b6bd3dea1c9377e4c42cf6664afeaace6168/_data/devices/sake.yml), commit `4542b6bd3dea1c9377e4c42cf6664afeaace6168`.
+- **A:** [unofficial anakin, lineage-20](https://github.com/alfaonyt/android_device_asus_anakin/tree/8217cf8df4e64d99a12b2a388a9a76266e27446d), commit `8217cf8df4e64d99a12b2a388a9a76266e27446d`.
+- **D:** [Denial main](https://github.com/denialwm/denial/tree/85b2303e2f09ae7b7b993641f90061a200f03d53), commit `85b2303e2f09ae7b7b993641f90061a200f03d53`.
+
+W identifies **ZenFone 8, I006D/ZS590KS**, not our ROG5 ZS673KS. L's
+`arch/arm64/boot/dts/vendor/qcom/Makefile` selects sake/vodka; complete immediate
+qcom and vendor-config listings plus the complete ASUS DTS subtree contain no
+anakin/ZS673KS board/config selection. The whole-kernel recursive API listing
+was truncated and is **not** evidence of global absence. Applicable generic
+SM8350 mechanisms exist, but this pin is not an ROG5 board port or boot source.
+A's `BoardConfig.mk` is Android build/userspace configuration, not Linux DTS;
+its TODO recovery section and repeated/unrelated module entries are not a
+validated minimal dependency closure.
+
+### Reuse decisions
+
+| Classification | Evidence, existing implementation and smallest useful test |
+|---|---|
+| **Use now: distinguish policy from telemetry** | A `BoardConfig.mk` maps `/sys/class/asuslib/charging_suspend` 0=enabled, 1=disabled. A `fastcharge/FastCharge.cpp` inversely maps fast-charge to `slow_charging_enable` and persists an Android property. Its failed-read default is zero, which can report fast-charge enabled without working hardware. Our observer already records missing/error fields separately. H03 must continue to require actual current, health, temperature, online state and battery-state evidence, never this service's boolean. No code imported. |
+| **Investigate only for H03 regulation failure: incompatible OEM controls** | L `drivers/power/supply/asus_battery_charger.c:578–626` implements those exact names. Suspend sends owner 32782, opcode `0x10001`, property 5; its show method returns cached state. Slow-charge schedules a worker: non-PD uses property 19, while PD uses panel/work-event policy. Retained ZS673KS source instead exposes `charging_suspend_en`, GET `0x2008`, SET `0x2108`, and mode/value opcode `0x2117` with slow-mode bit 1. Identical owner does not imply identical protocol. We use mainline `qcom_battmgr`, not these Android class attributes. First test is read-only deployed attribute/firmware-response inventory against the exact accepted kernel, then protocol fixtures before any proposed control write. No demonstrated current charging defect follows from this difference. |
+| **Investigate only for H03/USB failure: two-port arbitration and thermal policy** | Retained ASUS charger source identifies VBUS source 2 as side and 1 as bottom, handles side VID/PID/CC notifications, and has distinct side/bottom thermal modes (bits 2/4), IIO measurements and input-suspend policy. This is board-specific mechanism plus firmware/userspace policy, not proof both ports can sink independently. L's sake driver has a different single USB thermal worker; its thresholds cannot be transferred. Existing ROG5 side NCM + charging telemetry and thermal gates remain. Smallest test: correlate existing UCSI role/online/current/temperature samples on the current single-port connection; a second-port experiment only if a particular acceptance failure requires it. No heating or charge-limit experiment now. |
+| **Investigate only for S04–S07/R01 storage failure: UFS power transitions** | Retained `drivers/scsi/ufs/ufs-qcom.c:ufs_qcom_suspend` conditionally drops lane clocks/rails and asserts reset when the link is off; this is generic downstream mechanism, not a new ROG5 fix. Our `0003-ufs-pin-discovery-link-active-across-pm-and-shutdown.patch` intentionally retains the active link, disables auto-hibern8 and refuses PM in discovery containment, with bounded-write extensions. Do not transplant suspend or remove containment to chase power savings. First use existing reboot/scratch/soak evidence and link/PM counters to identify an actual transition failure. |
+| **Use now: retain exact dependency closure** | Existing `scripts/device/load-persistent-root-power-usb.sh` loads the reviewed 15-module remoteproc/GLINK/QRTR/PDR/battmgr/Type-C/UCSI chain and verifies the 29-file firmware inventory. ADSP firmware and board-specific reserved memory remain indispensable proprietary dependencies, not supplied by either Android device tree or open driver source. The optional dual-cell patch is read-only and separately gated; its presence in Git does not establish it is deployed. Reuse A01 exact sealed module/firmware/composition checks, not A's broad Android module list. |
+| **Not applicable: other-device boot/configuration imports** | W/L do not qualify anakin; no sake/vodka boot image, thermal constant, DTB or Android module list becomes an accepted ROG5 artifact. The existing exact-device, firmware, signed-artifact and fallback boundaries remain unchanged. |
+
+### Denial: defer the graphical session, reuse no second framework
+
+The [author's demonstration/comments](https://www.reddit.com/r/mobilelinux/comments/1w80kvt/arch_linux_on_a_oneplus_12r_powered_by_the_denial/)
+said the shown version, kernel and Droidloom were not yet released. At D,
+`dart_shell/lib/src/features/mobile/` now contains mobile scene/launcher/stage
+code: blanket "no mobile source" is obsolete, but this does not prove the exact
+video version is published or hardware-qualified. The public denialwm repo
+listing contains denial/flutter/skia/website, not Droidloom or the phone kernel.
+No downloadable source for those two was established by this bounded check;
+this is not a claim of absence everywhere.
+
+D [docs/BUILDING.md](https://github.com/denialwm/denial/blob/85b2303e2f09ae7b7b993641f90061a200f03d53/docs/BUILDING.md)
+requires architecture-matched Flutter engine/shell artifacts; first-party ARM64
+packages remain unpublished. Optional future admission needs qualified DRM/KMS,
+GBM/EGL GPU rendering, input/libinput/seat access, and the matching ARM64 engine,
+AOT shell/assets/ICU and embedder ABI. ARM64 source support does not prove ROG5
+graphics support. No Denial or Android-app runtime enters headless acceptance.
+
+Useful build ideas already match our workflow: pinned dependency inputs,
+separate engine/runtime caches, exact-byte verification, and promotion of tested
+payloads without recompilation. Keep our existing release/manifest/cache tools;
+no demonstrated gap justifies adopting Denial's build system. No source copied.
+Future reuse must retain L's GPL-2.0-only, A fastcharge's Apache-2.0 notices and
+D's component-specific LICENSE/LICENSES attribution (the project notice grants
+GPL-3.0-or-later; bundled components/assets retain their own licenses), rather
+than assuming the `GPL-3.0-only.txt` filename governs every component.
+
 ## Why 7.1.4
 
 As of 2026-07-22, Linux 7.1.4 is the current stable kernel. It is a better research baseline than an unmaintained 6.7 SM8350 fork because upstream already contains SM8350 SoC support, the MSM DPU/DSI display stack, A660 GPU support, Qualcomm remoteproc, PMIC GLINK, UFS, and DWC3 infrastructure.

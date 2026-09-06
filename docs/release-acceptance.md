@@ -41,6 +41,25 @@ AArch64 relocatable headers, consistent vermagic and dependency order within
 a ten-second metadata budget. This is not BTF/symbol-resolution or hardware
 load proof; those remain separate from metadata agreement.
 
+Supporting deployed-userspace check: `rog5-dev check-deployed-server --profile
+CLAIM_PROFILE --manifest EXACT_MANIFEST --boot-id BOOT_ID --identity-file KEY
+--known-hosts PINNED_HOSTS --output PRIVATE_NEW_DIRECTORY`. Use an already
+admitted persistent selector trial and its existing SSH credential. The host
+checks the canonical consumed record and manifest, exact NCM topology/driver
+and route before credential use, then pinned SSH verifies the requested boot,
+bundle and kernel. The target uses isolated Python without bytecode writes to
+read six repository-owned runtime/helper/healthd/unit/exitrd paths. Descriptor-
+relative no-follow access, file metadata, content hashes, bounded reads and
+before/after identity checks reject stale or changing deployed files. Sizes and
+hashes come from one source inventory, not manually copied constants.
+It requests no phone mutation, reboot or service restart; ordinary read/atime
+semantics apply. A failed read or missing file fails this required composition
+component. The 15-second SSH deadline does not extend any boot watchdog.
+`result.json` binds observed/expected bytes, source, canonical manifest and boot.
+This is not whole A01, installed-recovery, charging or standalone qualification.
+A02 includes its stale-overlay and strict metadata regressions in both Python
+modes; the active tier retains them when broadening to full CI.
+
 C01 now runs nine QEMU cases, including P2 success without persistent identity
 and stale identity. Its 500 s offline allowance covers nine 50 s subprocess
 bounds plus 50 s setup/collection margin; the executable harness test verifies
