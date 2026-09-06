@@ -150,19 +150,26 @@ classify Full/zero-current alone as a charging pass.
 This offline follow-up passed the active tier in 17.196 s and full local CI in
 489.593 s; all four publication jobs passed run 34013013582 for `83e2c66e…`.
 
-C02 in-progress checkpoint: the retained-Arch QEMU runner now also exercises
-the exact server archive's optional Wi-Fi rollback runtime/service/timer and
-SSH dependency. Two fresh VMs avoid reusing systemd's already-fired timer state.
-Healthy late SSH restart passed in **30.449 s**; stale Wi-Fi acceptance caused
-an orderly reboot in **26.592 s**, after the independent core watchdog ACK.
-Total **118.564 s** includes root hashing before/after; its hash is unchanged.
-Only a VM drop-in shortens the sealed 900 s timer to 15 s; no radio activates.
-This is **not full C02**: dispatcher/proof integration remains, and the 120 s
-row has little timing headroom. Preserve that deadline and test semantics.
+C02 is now executable through the acceptance dispatcher. It selected the
+sealed server archive's Wi-Fi rollback coverage and recorded **PASS 118.811 s**
+against exact retained kernel/archive/root inputs. Healthy late SSH restart
+passed in 29.195 s; stale acceptance caused orderly reboot in 27.190 s after
+core watchdog ACK. Two fresh VMs retain actual Arch systemd/sshd and sealed
+runtime/service/dependency bytes; only a VM drop-in shortens the timer to 15 s.
+Root hash is unchanged. A core-only archive selects the separate core cases;
+partial Wi-Fi payloads cannot silently downgrade coverage. Missing/stale proof,
+wrong artifact/source/runner identity and deadline overrun fail closed.
+The first integrated run hit 120 s because the dispatcher hashed the 32 GiB
+artifact as test source as well as verifying it as an artifact. The targeted
+bookkeeping fix removes only that duplicate hash, not integrity checks.
+This offline C02 row is **not a final release or current-phone qualification**.
+Its 120 s deadline has little headroom; no threshold was relaxed. Full local
+CI passed in **485.614 s**; exact-head publication checks remain separate.
 The [incident](../test-results/2026-09-05-headless-acceptance.md) records the
-failed reused-timer fixtures and condition-based wait correction. No production
-input, kernel, candidate or phone boot changed. Last phone health evidence
-remains the earlier same-rescue H02 check, not a fresh observation this turn.
+fixture failures and exact proof. No production input, kernel or phone boot
+changed. Fresh H02 revalidation passed in **1.297 s** at uptime 9931.81 s,
+same boot, Full/Good 100%, 29.7°C, 8.615 V, zero current and USB online.
+Wi-Fi remains intentionally inactive; this is not H03 regulation evidence.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel

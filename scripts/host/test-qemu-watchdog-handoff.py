@@ -9,7 +9,9 @@ repository-source fallback.
 By default the guest root is tmpfs with the public systemd test closure.
 --root-image instead uses retained Arch ext4 read-only with a RAM overlay,
 its systemd/sshd and the sealed SSH units. Keys and ACKs are guest fixtures;
-this mode does not qualify optional Wi-Fi rollback or all of C02 by itself.
+--c02 selects core-only or Wi-Fi rollback coverage from the archive itself
+and enforces the acceptance contract deadline; ordinary component runs do not
+qualify C02. Full composition and physical recovery remain separate tests.
 """
 import argparse
 import gzip
@@ -18,6 +20,7 @@ import json
 from pathlib import Path
 import re
 import runpy
+import shutil
 import stat
 import subprocess
 import time
@@ -84,14 +87,24 @@ ARCH_WIFI_VERIFY = r'''
 # invocation, successful exit and continued authenticated access, not silence.
 timer_fired=0
 for attempt in 1 2 3 4 5; do
-    invocation=$(systemctl show -p InvocationID --value rog5-wifi-boot-rollback.service)
-    active=$(systemctl show -p ActiveState --value rog5-wifi-boot-rollback.service)
+    snapshot=$(systemctl show rog5-wifi-boot-rollback.service -p InvocationID -p ActiveState -p Result -p ExecMainStatus)
+    invocation= active= service_result= service_status=
+    while IFS='=' read -r key value; do
+        case "$key" in
+            InvocationID) invocation=$value ;;
+            ActiveState) active=$value ;;
+            Result) service_result=$value ;;
+            ExecMainStatus) service_status=$value ;;
+        esac
+    done <<EOF
+$snapshot
+EOF
     if [ -n "$invocation" ] && [ "$active" = inactive ]; then timer_fired=1; break; fi
     sleep .2
 done
 test "$timer_fired" = 1
-test "$(systemctl show -p Result --value rog5-wifi-boot-rollback.service)" = success
-test "$(systemctl show -p ExecMainStatus --value rog5-wifi-boot-rollback.service)" = 0
+test "$service_result" = success
+test "$service_status" = 0
 ssh_proof
 echo ARCH_WIFI_HEALTHY_REARM_PASS
 echo HANDOFF_OBSERVATION_END
@@ -229,9 +242,25 @@ def main():
                         help="RO retained Arch ext4: two exact-systemd/SSH cases instead of public-runtime matrix")
     parser.add_argument('--wifi-rollback', action='store_true',
                         help='two fresh Arch guests: core ACK plus healthy/stale Wi-Fi timer rearm')
+    parser.add_argument('--c02', action='store_true',
+                        help='acceptance mode: archive-selected coverage and contract deadline')
     args = parser.parse_args()
-    if args.wifi_rollback and not args.root_image:
-        parser.error('--wifi-rollback requires --root-image')
+    if (args.wifi_rollback or args.c02) and not args.root_image:
+        parser.error('--wifi-rollback/--c02 requires --root-image')
+    if args.wifi_rollback and args.c02:
+        parser.error('--c02 selects coverage automatically; omit --wifi-rollback')
+    c02_deadline = None
+    if args.c02:
+        contract = json.loads((REPO/'configs/release-acceptance.json').read_text())
+        c02_deadline = next(row['deadline_seconds'] for row in contract['tests'] if row['id']=='C02')
+        if not shutil.which('podman'):
+            print('BLOCKED: missing podman')
+            return 77
+        available = subprocess.run(['podman','image','exists','localhost/rog5-qemu-gate:ubuntu-24.04'],
+                                   timeout=5, capture_output=True)
+        if available.returncode:
+            print('BLOCKED: retained QEMU container unavailable')
+            return 77
     if not __debug__:
         raise SystemExit("archive parser requires assertions enabled")
     archive = runpy.run_path(str(REPO / "scripts/device/build-native-wifi-boot-initramfs.py"))
@@ -239,6 +268,9 @@ def main():
         target_blob = args.target_archive.read_bytes()
         target = archive["entries"](gzip.decompress(target_blob))
         watchdog_source = watchdog_functions(target)
+        if args.c02:
+            args.wifi_rollback = any(name == 'rog5-native-wifi' or name.startswith('rog5-native-wifi/')
+                                     for name in target)
         wifi_members = wifi_rollback_members(target) if args.wifi_rollback else {}
     except (OSError, EOFError, ValueError, AssertionError, zlib.error) as exc:
         parser.error(f"target archive refused: {exc}")
@@ -541,13 +573,19 @@ echo HANDOFF_SWITCH_ROOT
                                         for name, data in ssh_units.items()},
                       scope='Exact retained Arch systemd/sshd and sealed SSH units/watchdog; '
                             'RO virtual root with RAM overlay, loopback keys and ACK fixtures; '
-                            '20-second test timer, not physical storage or optional Wi-Fi rollback qualification')
+                            '20-second test timer, not physical storage or whole-release qualification')
         if not unchanged:
             results.append(dict(mode='root-unchanged', passed=False))
     if sha_file(Path(__file__)) != runner_hash:
         results.append(dict(mode='runner-unchanged', passed=False))
     record.update(status='PASS' if all(case['passed'] for case in results) else 'FAIL',
                   duration_seconds=time.monotonic()-all_started)
+    if args.c02:
+        record['c02_variant'] = 'wifi-rollback' if args.wifi_rollback else 'core-only'
+        if record['duration_seconds'] > c02_deadline:
+            results.append(dict(mode='c02-deadline', passed=False))
+            record['status'] = 'FAIL'
+        record['c02_qualified'] = record['status'] == 'PASS'
     (output / "result.json").write_text(json.dumps(record, indent=2) + "\n")
     return 0 if all(case["passed"] for case in results) else 1
 

@@ -39,6 +39,22 @@ class AcceptanceTest(unittest.TestCase):
             self.assertEqual(row['status'], 'PASS', row)
             self.assertEqual((Path(tmp)/'A02.log').read_text().strip(), '/exact-retained-root')
 
+    def test_artifact_arguments_are_not_rehashed_as_repository_test_code(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            artifact = root/'root.ext4'
+            artifact.write_bytes(b'already bound by the verified artifact receipt')
+            test = copy.deepcopy(self.contract['tests'][1])
+            test['commands'] = [[sys.executable, '-c', 'pass', str(artifact)]]
+            original = M.sha_file
+            def source_hash(path):
+                self.assertNotEqual(path, artifact, 'duplicate artifact hash consumed test deadline')
+                return original(path)
+            with mock.patch.object(M, 'sha_file', side_effect=source_hash):
+                row = M.run_one(test, root)
+            self.assertEqual(row['status'], 'PASS')
+            self.assertNotIn(str(artifact), row['test_versions'])
+
     def test_overlay_missing_runtime_is_blocked_without_launching_commands(self):
         spec = importlib.util.spec_from_file_location(
             'overlay_test', SOURCE.with_name('test-qemu-overlay-recovery.py'))
@@ -216,6 +232,42 @@ class AcceptanceTest(unittest.TestCase):
         self.assertTrue(test['commands'])
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(M.run_one(test,Path(tmp))['status'],'BLOCKED')
+
+    def test_c02_is_executable_and_missing_exact_release_is_blocked(self):
+        test = next(t for t in self.contract['tests'] if t['id'] == 'C02')
+        self.assertTrue(test['commands'])
+        self.assertIn('--c02', test['commands'][0])
+        self.assertEqual(test['deadline_seconds'], 120)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(M.run_one(test, Path(tmp))['status'], 'BLOCKED')
+
+    def test_c02_exit_zero_without_exact_complete_proof_is_not_success(self):
+        test = copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='C02'))
+        test['commands'] = [[sys.executable, '-c', 'print("component PASS")']]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            release = dict(artifacts={role: dict(sha256='a'*64)
+                                      for role in ('kernel','initramfs','rootfs')})
+            self.assertEqual(M.run_one(test, root, release)['status'], 'FAIL')
+            (root/'C02').mkdir()
+            proof = dict(status='PASS', c02_qualified=True, root_image_unchanged=True,
+                         source_revision=subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+                         runner_sha256=M.sha_file(M.REPO/'scripts/host/test-qemu-watchdog-handoff.py'),
+                         kernel_sha256='a'*64, target_archive_sha256='a'*64,
+                         root_image_sha256='a'*64, duration_seconds=119,
+                         c02_variant='core-only',
+                         cases=[dict(mode=m,passed=True,exit_code=0) for m in
+                                ('systemd-ack','systemd-stale-identity')])
+            path = root/'C02/result.json'
+            for changes in (dict(c02_qualified=False), dict(root_image_unchanged=False),
+                            dict(kernel_sha256='b'*64), dict(target_archive_sha256='b'*64),
+                            dict(root_image_sha256='b'*64), dict(source_revision='b'*40),
+                            dict(runner_sha256='b'*64), dict(duration_seconds=121),
+                            dict(cases=[]), dict(c02_variant='unknown')):
+                path.write_text(json.dumps(dict(proof,**changes)))
+                self.assertEqual(M.run_one(test,root,release)['status'], 'FAIL', changes)
+            path.write_text(json.dumps(proof))
+            self.assertEqual(M.run_one(test,root,release)['status'], 'PASS')
 
     def test_h02_exit_zero_without_complete_proof_is_not_success(self):
         test = copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='H02'))
