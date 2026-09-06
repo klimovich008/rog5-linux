@@ -11,6 +11,9 @@ import unittest
 import struct
 import io
 import tarfile
+import threading
+import os
+import sys
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('composition', Path(__file__).with_name('check-rescue-root-composition.py'))
@@ -19,6 +22,43 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_a01_overlaps_initial_hash_and_joins_on_preflight_failure(self):
+        final=M.load('parallel_root_composition_test','scripts/host/check-release-composition.py')
+        started=threading.Event();release=threading.Event();finished=threading.Event()
+        real_hash=final.C.ACCEPTANCE.sha_file
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'root.ext4';root.write_bytes(b'exact retained image')
+            output=Path(tmp)/'result'
+            def digest(path):
+                if path!=root:return real_hash(path)
+                started.set()
+                try:
+                    if not release.wait(2):raise ValueError('hash was serialized')
+                    return real_hash(path)
+                finally:finished.set()
+            def inspect(args,checks):
+                overlap=started.wait(1)
+                release.set()
+                self.assertTrue(overlap,'initial root hash must overlap read-only preflight')
+                raise ValueError('bounded preflight fixture failure')
+            argv=['check-composition','--candidate','fixture','--output',str(output)]
+            for name in ('kernel','dtb','target-archive','root-image','boot-image'):
+                argv+=['--'+name,str(root)]
+            old_mask=os.umask(0o022)
+            try:
+                with patch.object(sys,'argv',argv),patch.object(final.shutil,'which',return_value='/fixture/tool'), \
+                        patch.object(final.C.ACCEPTANCE,'sha_file',side_effect=digest), \
+                        patch.object(final,'inspect',side_effect=inspect), \
+                        patch('builtins.print'):
+                    self.assertEqual(final.main(),1)
+                self.assertTrue(finished.is_set(),'failed preflight must join its hashing worker')
+                report=json.loads((output/'result.json').read_text())
+                self.assertEqual(report['status'],'FAIL')
+                self.assertFalse(report['a01_qualified'])
+                self.assertEqual(report['reason'],'bounded preflight fixture failure')
+            finally:
+                release.set();os.umask(old_mask)
+
     def test_board_helper_refusal_requires_exact_abi_and_preserves_activation_gap(self):
         release='7.1.4-g359318de534f';magic=release+' SMP preempt mod_unload aarch64'
         elf=bytearray(64);elf[:6]=b'\x7fELF\x02\x01';elf[16:20]=b'\x01\x00\xb7\x00'

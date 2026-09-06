@@ -5,6 +5,7 @@ Offline only. No claim consumption, signing, phone access or prerequisite setup.
 Incomplete dynamic composition remains BLOCKED, never an imported component PASS.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import gzip
 import hashlib
 import importlib.util
@@ -276,12 +277,18 @@ def main():
     checks={name:'NOT RUN' for name in contract['required_checks']}
     report=dict(status='BLOCKED',a01_qualified=False,release_qualified=False,checks=checks,
                 source=source,candidate=args.candidate,runner_sha256=C.ACCEPTANCE.sha_file(Path(__file__)))
+    root_pool=None
     try:
         if any(not shutil.which(tool) for tool in ('bwrap','python3','qemu-aarch64-static')):
             raise Blocked('missing isolated verification prerequisites')
         if args.root_image.is_symlink() or not args.root_image.is_absolute() or not args.root_image.is_file():
             raise Blocked('missing exact retained root image')
         root_before=root_identity(args.root_image)
+        # Hashing the large retained image is independent of the read-only
+        # wrapper/module checks. Join before any VM execution; retain the
+        # separate post-VM full hash and original pathname/metadata checks.
+        root_pool=ThreadPoolExecutor(max_workers=1,thread_name_prefix='a01-root-hash')
+        root_hash_result=root_pool.submit(C.ACCEPTANCE.sha_file,args.root_image)
         report.update(inspect(args,checks))
         if not shutil.which('podman') or not shutil.which('modinfo'):
             raise Blocked('missing exact-kernel VM/module prerequisites')
@@ -310,7 +317,9 @@ def main():
                     args.activation_fixture_build,report['artifact_hashes']['kernel'],modules[0]['vermagic'])
             except (edge.EdgeUnavailable,fixture.FixtureUnavailable) as error:
                 raise Blocked(str(error)) from error
-        root_hash=C.ACCEPTANCE.sha_file(args.root_image)
+        root_hash=root_hash_result.result()
+        if root_identity(args.root_image)!=root_before:
+            raise ValueError('retained root image changed during preflight')
         report['artifact_hashes']['rootfs']=root_hash
         report['runtime']=C.vm_runtime(target,modules,args.kernel,args.root_image,
                                      args.output,profile=report['profile'],firmware=True,
@@ -362,6 +371,9 @@ def main():
         report['reason']=str(error)
     except (OSError,ValueError,KeyError,subprocess.SubprocessError) as error:
         report.update(status='FAIL',reason=str(error))
+    finally:
+        if root_pool is not None:
+            root_pool.shutdown(wait=True,cancel_futures=True)
     report['duration_seconds']=time.monotonic()-start
     if source!=C.ACCEPTANCE.source_identity() or report['duration_seconds']>contract['deadline_seconds']:
         report.update(status='FAIL',reason='source changed or composition deadline exceeded')

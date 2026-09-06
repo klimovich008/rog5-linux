@@ -26,7 +26,7 @@ Do not delete unique source, artifacts, credentials, evidence or fallback.
 
 ## Running RAM rescue and installed recovery
 
-**V11 fallback is running after the consumed server-selector-v3 trial failed.**
+**Last verified: V11 fallback after the consumed server-selector-v3 trial failed.**
 Kernel `7.1.4-g359318de534f`; pinned SSH authenticated boot UUID
 `fbb0d3e4-96ca-469c-8edc-d26ffbcb5cf8` and bundle `persistent-native-root-v11`.
 Fallback manifest:
@@ -80,6 +80,7 @@ radio/persistent-root qualification. Detailed failures remain in the dated repor
 | C02 late SSH restart | PASS 91.570 s through dispatcher on c2539e3c; only its two isolated guests overlap, unchanged 120 s limit and before/after hashes |
 | Server C02 / prior live | V2 offline C02 PASS 77.233 s; live readiness FAIL, automatic V11 fallback SSH recovered |
 | V3 composition / staging | A01 PASS 104.639 s; staging/readback PASS; live readiness FAIL, automatic V11 SSH recovered |
+| V4 hw1.1 successor | Signed offline A01 PASS 106.750 s; no staging, admission, claim or phone execution yet |
 | F01 journal/OverlayFS | Exact inputs: disposable-image recovery/corruption tests PASS 75.432 s; not physical UFS crash proof |
 | R01 installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server | Local autonomous boots, qualified Wi-Fi, durability, powered-off start and 60-minute soak incomplete |
@@ -106,13 +107,15 @@ Its exact-source selector regression reproduces the rejection. The build path
 is now corrected to apply that patch and run the selector before compilation.
 No new charging policy, PCIe architecture or base-kernel change is needed.
 
-**Next: publish this tested integration and assemble/qualify a fresh successor
-using the repaired four-module family.**
+**Next: finish publication CI, then inspect/stage/admit the fresh V4 through
+the existing bounded lifecycle and observe radio/server readiness once.**
 Do not reuse V3 merely because its base Image/wrapper remain valid.
 The recovered module twins match; 71.871/66.620 seconds, 109,494,272 bytes
 combined. Exact-kernel QEMU component PASS 125.827 seconds (guest 43.738 s).
 This unsigned fixture is not an A01-qualified candidate or physical Wi-Fi PASS.
-A separately signed successor, exact assembly, staging and admission remain.
+V4 archive twins passed in 47.330 s; signed packaging reused Image/DTB/wrapper
+in 0.743 s. Manifest `a6296549c855e3c8a1fd9c2e807e196207d1be4ff48fe36db4a2627528fd0966`.
+Staging, admission and physical acceptance remain; no claim was created.
 
 Private evidence: `rog5-server-startup-20260906.ou4CkDi9`.
 Its `live-r1`, `v3-fallback-inspection-r1`, and `hw11-repair` are authoritative;
@@ -123,14 +126,20 @@ only its final reboot request changed. Installed boot B was not flashed.
 Reuse combined Image `ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`
 and its exact module kit in `rog5-v7-server-modules-20260906.Ibl4iPCz`.
 Preserve all original modules/build evidence; the four replacements are separate.
-The V3 host preview and lossless V2 archive remain volatile tmpfs. Their hashes
-and recovery procedure are retained in the dated report. Do not reboot the host
-assuming these caches are durable. Free host disk is about 3.4 GiB; keep 3 GiB.
+The V4 host preview, lossless V2/V3 archives and V4 signed package remain
+volatile tmpfs. Only redundant V3 raw cache was released after full restoration
+hash verification; its bytes remain recoverable. See the dated report.
+Do not reboot the host assuming these caches are durable. Keep 3 GiB disk reserve.
 
 Use focused tests during edits, one full CI at relevant integration, and batch
 publication. Active PASS 22.196 s; full local PASS 518.605 s (prior 510.782 s).
-Exact-head/merge/QEMU checks passed for the live source; this follow-up still
-needs its publication CI. Captured controller/artifacts were unchanged; the fix
-changes offline module-build instructions/tests and documentation only.
+All four CI jobs passed for `9dd03298ecfd0d0941c506e2096d9efe6af66296`
+(run 34060597581). The current successor registration/verification checkpoint
+needs its own publication checks. A01 first failed at 134.300 s despite all
+functional checks passing. Initial root hashing now overlaps independent
+read-only checks, joins before QEMU, and retains the second full hash and
+metadata checks. Same bytes passed at 106.750 s; no deadline was relaxed.
+Current private preparation/evidence: `rog5-server-hw11-20260906.Lo7km1SL`.
+Focused composition: 34 tests PASS; registration active PASS 21.452 s.
 Project-local skills and H03 policy cleanup are complete;
 global skills were not changed. Display and unrelated subsystems remain deferred.
