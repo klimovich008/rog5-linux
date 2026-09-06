@@ -4189,3 +4189,32 @@ Tested input is base `9dd03298ecfd0d0941c506e2096d9efe6af66296` plus dirty
 digest `fca0bbfcb804a65ac3e4a59ab8370a44d8ab1de64bb3a31a50a5b54eb52ab3db`;
 subsequent documentation records do not retroactively change that provenance.
 Physical radio/server acceptance, bounded staging and admission remain pending.
+
+### V4 C02 setup race — no phone cycle consumed
+
+Clean commit `8a9c0318e754e5f740f33ca989e503ed49215fbf` passed full local CI
+507.876 s and all four GitHub jobs in run 34062456992. V4's exact nine-case
+C01 run passed in 133.953 s; private result copy is `c01-result.json` in
+`rog5-server-hw11-20260906.Lo7km1SL`. Read-only staging preflight passed on
+the same V11 boot. No staging, RAM transfer, claim or reboot occurred.
+
+The optional parallel work was the mandatory exact-Arch C02 test. It failed
+overall in 103.588 s: healthy restart PASS 30.635 s, stale guest timeout 124
+after 40.307 s. The immutable root hash remained `3f5b41f7…`. In that fresh
+stale guest, the accelerated rollback service started at uptime 15.289 s,
+before `ARCH_WIFI_TIMER_STOPPED_BEFORE_DEADLINE`. Its later restart did not
+retrigger the already-fired one-time timer. Core watchdog ACK was valid.
+This was not a new phone/kernel failure, nor timer-state reuse across guests;
+the premature first invocation occurred within this guest's setup (R4).
+
+The pre-stop integer uptime check raced with the blocking stop command. A
+focused reproduction gives the setup an already-fired service and demonstrates
+that the previous code still declared setup ready. That regression failed
+before correction. The VM-only accelerated deadline now matches the existing
+20-second Arch/core-ACK window; the stop completes before checking time and
+requiring an empty InvocationID. The actual restart additionally requires an
+elapsed deadline. No daemon reload, production timer/unit/runtime change,
+kernel build, signature change or relaxation of the 40/120-second guest/C02
+bounds is introduced. Both fresh-VM outcomes remain mandatory.
+Nineteen focused fixture tests passed in 1.072 s. Exact C02 rerun remains to
+be performed on the frozen correction; the original FAIL is retained in `c02`.

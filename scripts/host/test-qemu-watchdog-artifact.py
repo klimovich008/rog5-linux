@@ -209,6 +209,28 @@ class WatchdogArtifactTest(unittest.TestCase):
     def test_arch_harness_roundtrips_complete_archive_and_readonly_disk(self):
         self.run_mocked_harness(use_arch=True)
 
+    def test_wifi_setup_rejects_a_timer_that_fired_during_ssh_setup(self):
+        # Real C02 log: the service started before the stopped-before-deadline
+        # marker. A pre-stop coarse uptime sample did not prove an unused timer.
+        setup=M.ARCH_WIFI_STOP.split('trial=',1)[0]
+        fixture='''set -eu
+systemctl() {
+    case "$*" in *InvocationID*) echo previously-fired;; esac
+}
+cut() { echo 14; }
+'''+setup+'\necho SETUP_READY\n'
+        result=RUN(['/bin/sh','-c',fixture],capture_output=True,text=True)
+        self.assertNotEqual(result.returncode,0)
+        self.assertNotIn('SETUP_READY',result.stdout)
+
+    def test_wifi_setup_checks_deadline_after_stop_not_before(self):
+        setup=M.ARCH_WIFI_STOP.split('trial=',1)[0]
+        self.assertLess(setup.index('stop rog5-wifi-boot-rollback.timer'),setup.index('/proc/uptime'))
+        for uptime,expected in ((19,0),(20,1)):
+            fixture='set -eu\nsystemctl() { :; }\ncut() { echo '+str(uptime)+'; }\n'+setup
+            result=RUN(['/bin/sh','-c',fixture],capture_output=True,text=True)
+            self.assertEqual(result.returncode,expected)
+
     def test_arch_wifi_harness_preserves_sealed_bytes_and_requires_both_outcomes(self):
         # A stale-case trial must not reuse the healthy guest's fired timer.
         self.assertNotIn('daemon-reload', M.ARCH_WIFI_VERIFY + M.ARCH_WIFI_STALE)
