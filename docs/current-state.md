@@ -26,16 +26,18 @@ Do not delete unique source, artifacts, credentials, evidence or fallback.
 
 ## Running RAM rescue and installed recovery
 
-**Consumed `headless-acceptance-rescue-v8` is running; never reexecute it.**
-Kernel `7.1.4-gf17befd4ef17`; boot UUID:
-`015153cc-86f0-440c-b49f-95a1733316b9`.
-Manifest:
-`2b565dbea7b14ffa90dd7100700f8db2b7554f9ac9f8eb8149d28dde02070e9f`.
-Frozen live/qualification source `d23304c04bc201c7ffb25fbac49b86b187969b31`;
-all four publication jobs passed, run 34046603853.
-One coordinator completed capture and cleanup; it is no longer running.
-Pinned SSH became ready in 59.785 s. H01/H02/H03 now pass on this boot.
-Exact artifact identities and private result locators are in the
+**V11 fallback is running after the consumed server-selector-v2 trial failed.**
+Kernel `7.1.4-g359318de534f`; pinned SSH authenticated boot UUID
+`61d60a1b-e4cd-472c-b439-590c1d31baa5` and bundle `persistent-native-root-v11`.
+Fallback manifest:
+`a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
+Failed primary boot: `8fac081d-65ba-4c6b-878d-d4acd0eda02d`, kernel
+`7.1.4-gf17befd4ef17`. Never retry it or consumed rescue V8.
+Live source `96e97de0716ebd12cacd391e1730a68b48de5f08`, all four CI jobs
+passed in run 34050866675. Its single coordinator is terminal after 1380.713 s;
+route, firewall, profile and address cleanup all passed. Do not restart it.
+V8's earlier H01/H02/H03 passes remain historical same-release evidence, not
+qualification of this server or current fallback. Exact identities are in the
 [dated evidence](../test-results/2026-09-05-headless-acceptance.md#v8-live-rescue-and-h03-full-maintenance-qualified).
 
 Pinned SSH: `10.77.0.2` (alias `169.254.77.2`), fingerprint
@@ -52,13 +54,12 @@ Preserved selector:
 previous healthy primary trial:
 `bfc82fac0199062bb7244e451299ed11c513c8895c8943ac3c5b86d4dbdb141b`.
 Signed `persistent-native-root-v11` fallback and stock A remain preserved.
-Active selector now names **staged, unissued `headless-server-selector-v2`**:
+Active selector names **consumed, failed `headless-server-selector-v2`**:
 `353b7a88f56733fe39ee31707981bccd3dd15b6b1d47822ca369b26bab779f99`.
 Old selector is preserved at `selector.rollback-headless-server-selector-v2`;
 old healthy trial hash `6705ccb23b337cce074eb28cc1f5556ef84b183b63bf3552f5a1e97858fb184d`
-is archived on P23. Active trial state is absent. P24 is relocked RO.
-**Do not perform an ordinary reboot yet:** next execution is a coordinated,
-one-use RAM trial, not accepted-release repeated-boot qualification.
+is archived on P23. New trial state remains `pending`; it is not healthy.
+P24 remains RO. **Do not retry this primary or perform an ordinary reboot.**
 RAM success does not prove installed recovery corrections. Ordinary accepted
 release reboot tests follow [distinct operation rules](development.md#experimental-execution-and-stable-operation);
 they do not permit retrying an experimental claim.
@@ -77,7 +78,7 @@ radio/persistent-root qualification. Detailed failures remain in the dated repor
 | H03 charging/regulation | PASS 604.523 s; 61 samples / 600.265 s, firmware-Full maintenance only |
 | C01 watchdog handover | Exact V8 kernel/archive: 9 cases PASS 138.299 s |
 | C02 late SSH restart | PASS 91.570 s through dispatcher on c2539e3c; only its two isolated guests overlap, unchanged 120 s limit and before/after hashes |
-| Server C02 / staging | Wi-Fi-aware C02 PASS 77.233 s; bounded file staging PASS 2.073 s and independent readback PASS 0.532 s; no boot or claim yet |
+| Server C02 / staging / live | Offline C02 PASS 77.233 s; staging/readback PASS; live server readiness FAIL, automatic V11 fallback SSH recovered |
 | F01 journal/OverlayFS | Exact inputs: disposable-image recovery/corruption tests PASS 75.432 s; not physical UFS crash proof |
 | R01 installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server | Local autonomous boots, qualified Wi-Fi, durability, powered-off start and 60-minute soak incomplete |
@@ -91,14 +92,23 @@ Unsupported charge-limit controls are not the blocker; none were written.
 
 ## Reuse and exact next action
 
-Keep V8 available. **Next: one coordinated RAM-only server-selector-v2 trial.**
-Source `60482471f6c0dcc327edf79fbeadfe8ef9597135` passed all four remote jobs,
-run 34049602683. It stayed frozen during server C02, signed verification,
-read-only preflight and staging. Private records/adapters are under
-`rog5-v7-server-modules-20260906.Ibl4iPCz/server-stage-v2`.
-Staging is terminal: never rerun it. Claim, entered and global-consumed records
-are absent. Adapt/check the existing capture/transition/execution adapters for
-this staged selector and current V8 boot before creating one claim; no rebuild.
+Preserve V11 access. **Next: publish the host checkpoint, then diagnose radio startup
+through the explicit pinned link-local diagnostic path before any successor.**
+The primary reached UFS, OverlayFS, systemd and authenticated diagnostic SSH
+at `169.254.77.2`; `10.77.0.2` never resolved. State/identity services stayed
+inactive behind radio qualification. USB disappeared about 158 seconds after
+host execution began, then installed recovery booted V11. The radio failure
+handler can request this reboot, but its actual result was not captured.
+No previous journal or pstore was retained; reset cause remains unproven.
+Current fallback power: Full/100%, Good, 29.8°C, 8.587 V, zero battery current.
+Private evidence/coordinator: `rog5-v7-server-modules-20260906.Ibl4iPCz/server-live-v2`.
+Staging and claim are terminal. No new candidate is issued. The host checker
+now has an explicit diagnostic-only mode; it cannot satisfy readiness or
+weaken partial-radio-failure rollback. Validate/publish this host checkpoint
+before connecting it to the next existing coordinator. Focused checks passed
+21 tests in each Python mode; active took about 24 s, full local CI **526.057 s**.
+The complete sealed-BusyBox probe passed present/absent/wrong-boot fixtures in
+9.325 s, with systemctl/IP stand-ins. No kernel rebuild or new candidate.
 C02's serial guest overhead is corrected without dropping validation; original
 151.045 s failure and diagnostic 114.037 s replay remain in the dated report.
 The source trial helper already rearms healthy primary state to pending, but
@@ -114,7 +124,7 @@ are complete; all 24 identities match. Reuse private
 is superseded by resume-result PASS, not a reason to restart the build.
 Image SHA:
 `ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`.
-The separately packaged, staged but unexecuted `headless-server-selector-v2` has full
+The separately packaged, now consumed `headless-server-selector-v2` has full
 offline A01 PASS 96.525 s; it is not the radio-inactive V8 rescue.
 Its prospective root remains volatile at
 `/run/rog5-server-preview-20260906-Ibl4iPCz/root.ext4`,

@@ -112,6 +112,18 @@ This is not whole A01, installed-recovery, charging or standalone qualification.
 A02 includes its stale-overlay and strict metadata regressions in both Python
 modes; the active tier retains them when broadening to full CI.
 
+For failed server startup, `check-deployed-server --startup-diagnostics` uses
+the same consumed selector record, manifest, exact boot/kernel/bundle and pinned
+SSH identity, but explicitly connects over the existing diagnostic address
+`169.254.77.2`. Both USB topology and its source route are checked before keys.
+It collects bounded core/radio unit status, the fixed radio-failure record,
+activation markers, addresses, power observations and kernel messages within
+20 seconds. Optional observations report present/absent/error. No service,
+radio, mount, reboot or acceptance action is requested. A collection PASS is
+not readiness, charging, safety or release qualification. Wrong identity,
+transport loss and malformed framing fail. Normal readiness still uses
+`10.77.0.2`; there is no implicit alternate-address acceptance or boot retry.
+
 Add `--readiness-only` for an already admitted target's bounded SSH/readiness
 component instead of the six-file inventory. This uses shell/coreutils, not
 target Python, with the same canonical consumed-record, manifest, pinned SSH
