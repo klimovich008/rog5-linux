@@ -193,7 +193,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Core exact-Arch systemd/sshd, sealed SSH units and watchdog pass via test-qemu-watchdog-handoff.py --root-image; optional Wi-Fi rollback timer/dependencies in that same target runtime and complete dispatcher integration remain required. Host-systemd timer evidence is not a substitute."
+      "blocker": "Exact-Arch core SSH/watchdog and optional Wi-Fi rollback components now pass via test-qemu-watchdog-handoff.py --root-image --wifi-rollback. Complete dispatcher/proof integration remains; retain the 120-second deadline and do not import component passes from another release."
     },
     {
       "id": "D01",

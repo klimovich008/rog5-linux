@@ -150,16 +150,19 @@ classify Full/zero-current alone as a charging pass.
 This offline follow-up passed the active tier in 17.196 s and full local CI in
 489.593 s; all four publication jobs passed run 34013013582 for `83e2c66e…`.
 
-C02 in-progress checkpoint: the existing QEMU handoff runner now accepts a
-retained Arch root read-only, preserving its actual systemd/sshd/accounts and
-using the sealed SSH units plus RAM-only fixtures. Healthy late SSH restart
-passed in 30.402 s; stale identity correctly reset in 23.034 s. Total 115.357 s
-includes root hashing before/after; its hash is unchanged. This is **not full
-C02**: combine the optional Wi-Fi rollback timer with that same target runtime
-before dispatcher integration. Do not substitute the host-systemd timer result.
-No production input, kernel, candidate or phone boot changed. The same rescue
-passed a fresh H02 check in 1.210 s at uptime 6931 s, Full/Good 100%, 29.7°C,
-8.616 V, zero current and USB online. This is still not H03 regulation proof.
+C02 in-progress checkpoint: the retained-Arch QEMU runner now also exercises
+the exact server archive's optional Wi-Fi rollback runtime/service/timer and
+SSH dependency. Two fresh VMs avoid reusing systemd's already-fired timer state.
+Healthy late SSH restart passed in **30.449 s**; stale Wi-Fi acceptance caused
+an orderly reboot in **26.592 s**, after the independent core watchdog ACK.
+Total **118.564 s** includes root hashing before/after; its hash is unchanged.
+Only a VM drop-in shortens the sealed 900 s timer to 15 s; no radio activates.
+This is **not full C02**: dispatcher/proof integration remains, and the 120 s
+row has little timing headroom. Preserve that deadline and test semantics.
+The [incident](../test-results/2026-09-05-headless-acceptance.md) records the
+failed reused-timer fixtures and condition-based wait correction. No production
+input, kernel, candidate or phone boot changed. Last phone health evidence
+remains the earlier same-rescue H02 check, not a fresh observation this turn.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel

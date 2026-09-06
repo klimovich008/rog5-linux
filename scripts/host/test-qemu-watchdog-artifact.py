@@ -39,6 +39,30 @@ def altered_init():
 
 
 class WatchdogArtifactTest(unittest.TestCase):
+    def test_wifi_rollback_requires_complete_exact_archive_members(self):
+        target = members()
+        for name in ('runtime', 'units/before-ssh.conf',
+                     'units/rog5-wifi-boot-rollback.service',
+                     'units/rog5-wifi-boot-rollback.timer'):
+            data = (REPO/'initramfs/native-wifi'/name).read_bytes()
+            ARCHIVE['add'](target, 'rog5-native-wifi/'+name, data,
+                           stat.S_IFREG | (0o755 if name == 'runtime' else 0o644))
+        selected = M.wifi_rollback_members(target)
+        self.assertEqual(len(selected), 4)
+        for name, data in selected.items():
+            self.assertEqual(data, target['rog5-native-wifi/'+name][1])
+            for mode, links in ((stat.S_IFLNK | 0o777, 1),
+                                (stat.S_IFREG | 0o666, 1),
+                                (stat.S_IFREG | 0o644, 2)):
+                changed = {k: (v[0][:], v[1]) for k, v in target.items()}
+                changed['rog5-native-wifi/'+name][0][1] = mode
+                changed['rog5-native-wifi/'+name][0][4] = links
+                with self.assertRaises(ValueError):
+                    M.wifi_rollback_members(changed)
+        del target['rog5-native-wifi/runtime']
+        with self.assertRaisesRegex(ValueError, 'missing.*runtime'):
+            M.wifi_rollback_members(target)
+
     def test_arch_ssh_unit_is_selected_from_sealed_init(self):
         units = M.arch_ssh_units(members())
         self.assertEqual(set(units), {'rog5-early-sshd.service', 'rog5-sshd-ed25519-key.service'})
@@ -151,9 +175,26 @@ class WatchdogArtifactTest(unittest.TestCase):
     def test_arch_harness_roundtrips_complete_archive_and_readonly_disk(self):
         self.run_mocked_harness(use_arch=True)
 
-    def run_mocked_harness(self, use_arch=False):
+    def test_arch_wifi_harness_preserves_sealed_bytes_and_requires_both_outcomes(self):
+        # A stale-case trial must not reuse the healthy guest's fired timer.
+        self.assertNotIn('daemon-reload', M.ARCH_WIFI_VERIFY + M.ARCH_WIFI_STALE)
+        checked = RUN(['/bin/sh', '-n'], input=M.ARCH_WIFI_STOP + M.ARCH_WIFI_VERIFY + M.ARCH_WIFI_STALE,
+                      text=True, capture_output=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        self.run_mocked_harness(use_arch=True, use_wifi=True)
+        for marker in ('ARCH_WIFI_HEALTHY_REARM_PASS', 'ARCH_WIFI_STALE_REARM_BEGIN'):
+            self.run_mocked_harness(use_arch=True, use_wifi=True, missing_marker=marker)
+
+    def run_mocked_harness(self, use_arch=False, use_wifi=False, missing_marker=None):
         init = altered_init()
         target = members(init)
+        if use_wifi:
+            for name in ('runtime', 'units/before-ssh.conf',
+                         'units/rog5-wifi-boot-rollback.service',
+                         'units/rog5-wifi-boot-rollback.timer'):
+                ARCHIVE['add'](target, 'rog5-native-wifi/'+name,
+                               (REPO/'initramfs/native-wifi'/name).read_bytes(),
+                               stat.S_IFREG | (0o755 if name == 'runtime' else 0o644))
         for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1",
                      "usr/libexec/rog5-reboot-bootloader"):
             ARCHIVE["add"](target, name, b"offline fixture: " + name.encode(),
@@ -198,6 +239,17 @@ class WatchdogArtifactTest(unittest.TestCase):
                     else:
                         log += ("HANDOFF_ARM_FAILED_ROLLBACK\nsysrq: Resetting\n"
                                 "reboot: Restarting system with command 'bootloader'\n")
+                    if use_wifi:
+                        self.assertIn('rog5.bundle=c02-fixture', command[command.index('-append')+1])
+                        log += 'ARCH_WIFI_TIMER_STOPPED_BEFORE_DEADLINE\n'
+                        if mode == 'systemd-ack':
+                            log += 'ARCH_WIFI_HEALTHY_REARM_PASS\n'
+                        else:
+                            log = log.replace("reboot: Restarting system with command 'bootloader'\n", '')
+                            log += ('watchdog acknowledged by current-boot P2 and SSH identity readiness\n'
+                                    'ARCH_WIFI_STALE_REARM_BEGIN\nreboot: Restarting system\n')
+                        if missing_marker:
+                            log = log.replace(missing_marker, 'MISSING')
                     kwargs["stdout"].write(log.encode())
                 else:
                     self.assertTrue(command[0].endswith("verify-qemu-systemd-runtime.sh"))
@@ -208,16 +260,19 @@ class WatchdogArtifactTest(unittest.TestCase):
             if use_arch:
                 (root/'arch.ext4').write_bytes(b'read-only fixture, no QEMU executed')
                 argv += ['--root-image', str(root/'arch.ext4')]
+            if use_wifi:
+                argv += ['--wifi-rollback']
             with mock.patch.object(M, "REPO", root), mock.patch.object(sys, "argv", argv), \
                     mock.patch.object(M.runpy, "run_path", return_value=ARCHIVE), \
                     mock.patch.object(M.subprocess, "run", side_effect=simulated_run), \
                     mock.patch.object(M.subprocess, "check_output", return_value="offline-image"), \
                     contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(M.main(), 0)
+                self.assertEqual(M.main(), 1 if missing_marker else 0)
             expected = {'systemd-ack', 'systemd-no-ack',
                 'systemd-stale-ack', 'systemd-p2-only', 'systemd-stale-identity',
                 'helper-unexecutable', 'hang-init', 'failed-init', 'fd-open-failure'}
-            self.assertEqual(set(seen), {'systemd-ack', 'systemd-stale-identity'} if use_arch else expected)
+            self.assertEqual(set(seen), {'systemd-ack', 'systemd-wifi-stale'} if use_wifi else
+                             {'systemd-ack', 'systemd-stale-identity'} if use_arch else expected)
             contract = json.loads((REPO/'configs/release-acceptance.json').read_text())
             row = next(row for row in contract['tests'] if row['id'] == 'C01')
             self.assertGreaterEqual(row['deadline_seconds'], sum(process_deadlines) + 50)
@@ -231,9 +286,24 @@ class WatchdogArtifactTest(unittest.TestCase):
                         self.assertNotIn('systemd-root/etc/'+name, guest)
                     self.assertIn(b'mount -t ext4 -o ro,noload /dev/vda', guest['init'][1])
                     self.assertIn(b'mount -t tmpfs -o mode=0755 tmpfs /run', guest['init'][1])
-                    self.assertIn(M.ARCH_SSH_RESTART.encode(), guest['systemd-root/observe'][1])
+                    if mode != 'systemd-wifi-stale':
+                        restart = M.ARCH_SSH_RESTART
+                        if use_wifi:
+                            restart = restart.replace('\nsleep 3\n', '\n')
+                            self.assertNotIn(b'\nsleep 3\n', guest['systemd-root/observe'][1])
+                        self.assertIn(restart.encode(), guest['systemd-root/observe'][1])
                     self.assertEqual(guest['systemd-root/etc/systemd/system/rog5-early-sshd.service'][1],
                                      M.arch_ssh_units(target)['rog5-early-sshd.service'])
+                if use_wifi:
+                    self.assertEqual(guest['wifi-fixture/runtime'][1], target['rog5-native-wifi/runtime'][1])
+                    unit_base = 'systemd-root/etc/systemd/system/'
+                    self.assertEqual(guest[unit_base+'rog5-wifi-boot-rollback.timer'][1],
+                                     target['rog5-native-wifi/units/rog5-wifi-boot-rollback.timer'][1])
+                    if mode == 'systemd-wifi-stale':
+                        self.assertIn(M.ARCH_WIFI_STALE.encode(), guest['systemd-root/observe'][1])
+                        self.assertNotIn(b'HANDOFF_OBSERVATION_END', guest['systemd-root/observe'][1])
+                    else:
+                        self.assertIn(M.ARCH_WIFI_VERIFY.encode(), guest['systemd-root/observe'][1])
                 for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1",
                              "usr/libexec/rog5-reboot-bootloader"):
                     self.assertEqual(guest[name][1], target[name][1])

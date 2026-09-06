@@ -9,7 +9,7 @@ ASUS source, accepted artifacts and current dirty work were preserved.
 
 ### Provenance and limits
 
-No prior Denial/Droidloom/alfaonyt or named charging-interface assessment was
+At the initial investigation, no prior Denial/Droidloom/alfaonyt or named charging-interface assessment was
 found in the searched `docs`, `test-results`, `configs` and `scripts`. The ASUS
 5.4 source already retained under the project's `kernel-src/msm-5.4` is the
 primary downstream reference; its source archive SHA-256 is
@@ -27,11 +27,18 @@ New source pins (only API listings and selected small raw files were fetched):
 - **A:** [unofficial anakin, lineage-20](https://github.com/alfaonyt/android_device_asus_anakin/tree/8217cf8df4e64d99a12b2a388a9a76266e27446d), commit `8217cf8df4e64d99a12b2a388a9a76266e27446d`.
 - **D:** [Denial main](https://github.com/denialwm/denial/tree/85b2303e2f09ae7b7b993641f90061a200f03d53), commit `85b2303e2f09ae7b7b993641f90061a200f03d53`.
 
-Bounded recheck at project HEAD `ca0359868bb5fc167a262a1399c22a59de6ed60d`
+Bounded recheck at project HEAD `fd387eb4897a9abfa5d35e530973a2459e379e8f`
 confirmed all four remote pins unchanged. Reused this assessment and the
 retained charger file (matching the hash above), without a new checkout.
 The retained `kernel-src` belongs to the original project workspace, not this
 CI worktree; absence from the worktree does not mean the source needs downloading.
+The recheck also confirms a concrete protocol collision: L names `0x2108`
+`OEM_USB_PRESENT`, whereas retained ZS673KS code uses it to set charging
+suspend. Do not transfer opcode constants across these firmware protocols.
+No production correction follows from this comparison. The next acceptance
+work remains C02 exact-Arch SSH/rollback integration; its 11 archive regressions
+and 22 dispatcher regressions passed in 0.544 s and 0.662 s wall time during
+this recheck. These component checks do not qualify C02 or a phone release.
 
 W identifies **ZenFone 8, I006D/ZS590KS**, not our ROG5 ZS673KS. L's
 `arch/arm64/boot/dts/vendor/qcom/Makefile` selects sake/vodka; complete immediate

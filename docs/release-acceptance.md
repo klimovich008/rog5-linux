@@ -146,10 +146,19 @@ restart; stale identity must reset instead. The 20-second fixture watchdog and
 40-second per-VM ceiling do not alter phone deadlines. Actual account records
 are retained, and `/run` is 0755 for strict key-path checks. The retained image
 is hashed before/after; no root copy, phone key, host mount or service is used.
-This closes the core target-runtime gap, but does not yet exercise the optional
-Wi-Fi rollback timer in that runtime. **C02 remains BLOCKED**, and no component
-PASS is imported into release results. Its result explicitly leaves C02/release
-qualification false; integrate the complete timer behavior before wiring C02.
+Add `--wifi-rollback` for the server archive containing the optional Wi-Fi
+runtime, timer, rollback service and SSH drop-in. All four are copied from the
+archive, not repository source. A VM-only drop-in shortens `OnBootSec` to 15 s;
+two fresh VMs test healthy and stale acceptance after core watchdog ACK.
+Healthy SSH restart must invoke the elapsed timer's service successfully and
+retain authenticated access; stale acceptance must instead reboot, not panic
+or reach the core watchdog's bootloader-reset path. No radio is activated.
+The healthy case waits for service completion, not an extra fixed sleep.
+This component passed in 118.564 s including both retained-root hashes.
+**C02 remains BLOCKED** pending complete dispatcher/proof integration; no
+component PASS is imported into release results. C02/release qualification
+fields remain false. The unchanged 120 s row needs measured timing headroom,
+not a silently relaxed deadline or reuse of another release's evidence.
 
 F01 uses `rog5-dev check-overlay-recovery --kernel EXACT_IMAGE --target-archive
 EXACT_ARCHIVE --root-image RETAINED_EXT4 --output PRIVATE_NEW_DIRECTORY`.
