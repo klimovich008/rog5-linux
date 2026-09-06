@@ -97,7 +97,7 @@ These are component outcomes, **not a coherent final server PASS**.
 | H01/H02 capture component | Original startup replay PASS 0.027 s; all cleanup PASS; radio-free H02 qualification not claimed |
 | H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
-| F02 live behavior | WPA/DHCP restarts PASS 16.780 / 9.217 s; one radio activation, USB/core unchanged; acceptance import pending |
+| F02 live behavior | WPA/DHCP PASS 16.780 / 9.217 s; offline evidence replay PASS 0.667 s; exact-head integration pending |
 | S01 standalone boot | BLOCKED on qualified installed recovery; current boot used host fastboot |
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |

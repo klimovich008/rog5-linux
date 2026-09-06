@@ -168,6 +168,7 @@ active_tests=(
 	scripts/host/test-headless-stage-receiver.py
 	scripts/host/test-release-acceptance.py
 	scripts/host/test-network-transfer-stream.py
+	scripts/host/test-wifi-restart-evidence.py
 	scripts/host/test-check-deployed-server.py
 	scripts/host/test-check-rescue-startup.py
 	scripts/host/test-check-charging-regulation.py

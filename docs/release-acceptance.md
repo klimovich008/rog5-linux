@@ -271,6 +271,22 @@ operator/power-state allowance. These are qualification bounds, not altered
 kernel watchdog deadlines. A rescue with a longer verified staging budget must
 have its separate timing lattice documented before admission, not after failure.
 
+### F02 retained live restart evidence
+
+`rog5-dev accept offline --test-id F02 --release RECEIPT --output NEW_DIRECTORY`
+also requires `--wifi-restart-inputs INPUTS --wifi-restart-inputs-sha256 HASH`.
+The input file pins the reviewed original result, observer source, composition,
+signed manifest and each stdout/stderr file. It contains no credentials and
+grants no execution authority. Replay never contacts the phone or repeats a
+restart. Missing inputs are BLOCKED, incompatible artifacts or altered evidence
+are FAIL. Original source/boot identity is retained and reuse is explicit.
+All five release artifact identities must match; new recovery/root/kernel bytes
+cannot silently inherit the old result. The original live observation must
+prove both WPA/DHCP restart propagation, unchanged radio/core identities, lease
+and pinned Wi-Fi SSH recovery within its predeclared 40 s/120 s limits.
+`--test-id` selects only within the requested tier; all omitted mandatory rows
+remain NOT RUN and cannot produce final-release qualification.
+
 ### S02 implementation boundary
 
 `scripts/host/network-transfer-stream.py` provides bounded, hash-checked local

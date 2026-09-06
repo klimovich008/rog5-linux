@@ -143,7 +143,7 @@ def rescue_bindings(path):
     return {'{rescue_'+key+'}': value for key,value in values.items()}
 
 
-def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None):
+def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None, wifi_restart_inputs=None):
     row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
            'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
            'next_action': test['blocker'], 'commands': test['commands'], 'test_versions': {}}
@@ -171,6 +171,16 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                     '{initramfs}': release['artifact_paths']['initramfs'],
                     '{test_output}': str(output/test['id'])}
         bindings['{candidate}'] = release.get('candidate_id', '')
+        if test['id']=='F02':
+            if wifi_restart_inputs is None:
+                row['next_action']='supply reviewed --wifi-restart-inputs and its SHA-256; never repeat the device test implicitly'
+                return row
+            path,pin=wifi_restart_inputs
+            if not path.is_absolute() or not re.fullmatch('[0-9a-f]{64}',pin):
+                row.update(status='FAIL',next_action='invalid Wi-Fi evidence input pin')
+                return row
+            bindings.update({'{wifi_restart_inputs}':str(path),'{wifi_restart_inputs_sha256}':pin,
+                             '{artifact_hashes}':json.dumps({k:v['sha256'] for k,v in release['artifacts'].items()})})
         if 'dtb' in release['artifact_paths']:
             bindings['{dtb}'] = release['artifact_paths']['dtb']
         if 'boot_bundle' in release['artifact_paths']:
@@ -274,6 +284,21 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             row['next_action'] = 'Proceed to the next mandatory test; offline composition grants no boot authority'
         except (OSError,KeyError,TypeError,ValueError) as error:
             row.update(status='FAIL', next_action='missing complete A01 proof: '+str(error))
+    if row['status']=='PASS' and test['id']=='F02':
+        try:
+            proof_path=output/'F02/result.json';proof=json.loads(proof_path.read_text())
+            if (proof['status']!='PASS' or proof['f02_qualified'] is not True or
+                    proof['source']!=source_identity() or proof['candidate']!=release['candidate_id'] or
+                    proof['artifact_hashes']!={k:v['sha256'] for k,v in release['artifacts'].items()} or
+                    proof['inputs_sha256']!=wifi_restart_inputs[1] or
+                    sha_file(wifi_restart_inputs[0])!=wifi_restart_inputs[1] or
+                    proof['runner_sha256']!=sha_file(REPO/'scripts/host/check-wifi-restart-evidence.py')):
+                raise ValueError('F02 input, source or artifact binding mismatch')
+            row.update(proof_sha256=sha_file(proof_path),evidence_reused=True,
+                       original_source=proof['original_source'],
+                       next_action='Proceed to the next mandatory outcome; retained replay grants no boot authority')
+        except (OSError,ValueError,KeyError,TypeError) as error:
+            row.update(status='FAIL',next_action='missing complete F02 proof: '+str(error))
     if row['status'] == 'PASS' and test['id'] == 'H02':
         try:
             proof = json.loads((output/'H02/result.json').read_text())
@@ -347,16 +372,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('tier', choices=['quick', 'offline', 'device-smoke', 'release'])
     parser.add_argument('--list', action='store_true', help='show contract without executing')
+    parser.add_argument('--test-id',action='append',help='run only this test within the selected tier; other mandatory tests remain NOT RUN')
     parser.add_argument('--output', type=Path, help='new private evidence directory outside repository')
     parser.add_argument('--release', type=Path, help='exact artifact receipt; no implied admission')
     parser.add_argument('--capture', type=Path, help='currently running private receiver directory; H01 only')
     parser.add_argument('--rescue-inputs', type=Path, help='explicit original cycle and same-boot SSH arguments; never execution authority')
     parser.add_argument('--activation-fixture-build',type=Path,help='existing exact-kernel QEMU-only link fixture build for A01')
+    parser.add_argument('--wifi-restart-inputs',type=Path,help='pinned retained live restart evidence; offline replay only')
+    parser.add_argument('--wifi-restart-inputs-sha256',help='reviewed SHA-256 of the restart evidence input file')
     args = parser.parse_args()
+    if bool(args.wifi_restart_inputs)!=bool(args.wifi_restart_inputs_sha256):
+        parser.error('Wi-Fi evidence path and SHA-256 are required together')
     if args.capture and args.rescue_inputs:
         parser.error('choose live --capture or explicit completed-cycle --rescue-inputs, not both')
     contract = load_contract()
     selected = select(contract, args.tier)
+    if args.test_id:
+        if (len(set(args.test_id))!=len(args.test_id) or
+                not set(args.test_id)<={test['id'] for test in selected}):
+            parser.error('test IDs must be unique and belong to the selected tier')
+        selected=[test for test in selected if test['id'] in args.test_id]
     if args.list:
         for test in selected:
             command = ' ; '.join(' '.join(c) for c in test['commands']) or 'BLOCKED: ' + test['blocker']
@@ -389,7 +424,8 @@ def main():
                    'status': 'NOT RUN', 'duration_seconds': 0,
                    'next_action': error or f'run {test["tier"]} prerequisite/check'}
         else:
-            row = run_one(test, output, report['release'], args.capture, args.rescue_inputs,args.activation_fixture_build)
+            row = run_one(test, output, report['release'], args.capture, args.rescue_inputs,args.activation_fixture_build,
+                          (args.wifi_restart_inputs,args.wifi_restart_inputs_sha256) if args.wifi_restart_inputs else None)
             print(f'{row["id"]}: {row["status"]} ({row["duration_seconds"]:.3f}s)', flush=True)
         report['tests'].append(row)
     after = source_identity()

@@ -129,6 +129,49 @@ class AcceptanceTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--output', result.stdout)
 
+    def test_f02_missing_evidence_is_blocked_without_process(self):
+        test=next(t for t in self.contract['tests'] if t['id']=='F02')
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(M.subprocess,'Popen') as process:
+            row=M.run_one(test,Path(tmp),dict(candidate_id='fixture',artifact_paths=dict(kernel='/kernel',initramfs='/archive')))
+            self.assertEqual(row['status'],'BLOCKED');process.assert_not_called()
+
+    def test_explicit_selection_cannot_qualify_omitted_mandatory_tests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output=Path(tmp)/'result'
+            run=subprocess.run([sys.executable,str(SOURCE),'offline','--test-id','F02','--output',str(output)],capture_output=True,text=True,timeout=5)
+            result=json.loads((output/'results.json').read_text())
+            self.assertFalse(result['qualified'])
+            self.assertEqual(next(t for t in result['tests'] if t['id']=='F02')['status'],'BLOCKED')
+            self.assertTrue(all(t['status']=='NOT RUN' for t in result['tests'] if t['id']!='F02'))
+        for arguments in (['quick','--test-id','F02'],['offline','--test-id','F02','--test-id','F02']):
+            run=subprocess.run([sys.executable,str(SOURCE),*arguments,'--list'],capture_output=True,text=True,timeout=5)
+            self.assertNotEqual(run.returncode,0)
+
+    def test_f02_exit_zero_without_bound_replay_is_not_pass(self):
+        test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='F02'))
+        test['commands']=[[sys.executable,'-c','pass']]
+        with tempfile.TemporaryDirectory() as tmp:
+            row=M.run_one(test,Path(tmp),dict(candidate_id='fixture',artifacts={}))
+        self.assertEqual(row['status'],'FAIL')
+
+    def test_f02_proof_requires_exact_artifacts_and_reviewed_input(self):
+        test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='F02'))
+        test['commands']=[[sys.executable,'-c','pass']]
+        for mutation in ('none','artifact','pin','qualified','source'):
+            with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);(root/'F02').mkdir();inputs=root/'inputs';inputs.write_text('{}')
+                pin=M.sha_file(inputs);release=dict(candidate_id='fixture',artifacts={'initramfs':dict(sha256='a'*64)})
+                proof=dict(status='PASS',f02_qualified=True,source=M.source_identity(),candidate='fixture',
+                    artifact_hashes={'initramfs':'a'*64},inputs_sha256=pin,original_source={'revision':'b'*40},
+                    runner_sha256=M.sha_file(M.REPO/'scripts/host/check-wifi-restart-evidence.py'))
+                if mutation=='artifact':proof['artifact_hashes']['initramfs']='c'*64
+                if mutation=='pin':proof['inputs_sha256']='d'*64
+                if mutation=='qualified':proof['f02_qualified']=False
+                if mutation=='source':proof['source']={}
+                (root/'F02/result.json').write_text(json.dumps(proof))
+                row=M.run_one(test,root,release,wifi_restart_inputs=(inputs,pin))
+                self.assertEqual(row['status'],'PASS' if mutation=='none' else 'FAIL',row)
+
     def test_keyring_ordering_component_is_discoverable_without_starting_units(self):
         result = subprocess.run([str(M.REPO/'scripts/host/rog5-dev'),
                                  'check-package-keyring', '--help'],
