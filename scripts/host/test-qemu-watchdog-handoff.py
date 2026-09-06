@@ -48,6 +48,68 @@ def arch_ssh_units(target):
     return result
 
 
+def wifi_rollback_members(target):
+    """No repository-source fallback for the optional target rollback path."""
+    result = {}
+    for name in ('runtime', 'units/before-ssh.conf',
+                 'units/rog5-wifi-boot-rollback.service',
+                 'units/rog5-wifi-boot-rollback.timer'):
+        key = 'rog5-native-wifi/'+name
+        if key not in target:
+            raise ValueError('missing sealed '+key)
+        fields, data = target[key]
+        expected = stat.S_IFREG | (0o755 if name == 'runtime' else 0o644)
+        if fields[1] != expected or fields[2:5] != [0, 0, 1]:
+            raise ValueError('invalid sealed member metadata: '+key)
+        result[name] = data
+    return result
+
+
+# Deliberate VM-only timer acceleration. The sealed timer/service/runtime and
+# SSH dependency remain byte-identical; no radio or phone path is activated.
+WIFI_TIMER_OVERRIDE = b'[Timer]\nOnBootSec=\nOnBootSec=15s\n'
+ARCH_WIFI_STOP = r'''
+systemctl is-active --quiet rog5-wifi-boot-rollback.timer
+test "$(cut -d. -f1 /proc/uptime)" -lt 15
+systemctl --job-mode=ignore-dependencies stop rog5-wifi-boot-rollback.timer
+systemctl is-active --quiet rog5-early-sshd.service
+trial=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+printf 'format=rog5-persistent-wifi-health-v1\ntrial_id=%s\nprimary_bundle=c02-fixture\nmode=try-once\n' "$trial" >/run/rog5-native-wifi/trial-descriptor
+printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' "$(cat /proc/sys/kernel/random/boot_id)" "$trial" >/run/rog5-native-wifi/healthy.record
+chmod 0444 /run/rog5-native-wifi/trial-descriptor /run/rog5-native-wifi/healthy.record
+echo ARCH_WIFI_TIMER_STOPPED_BEFORE_DEADLINE
+'''
+ARCH_WIFI_VERIFY = r'''
+# SSH restart must have pulled in the elapsed timer. Require an actual service
+# invocation, successful exit and continued authenticated access, not silence.
+timer_fired=0
+for attempt in 1 2 3 4 5; do
+    invocation=$(systemctl show -p InvocationID --value rog5-wifi-boot-rollback.service)
+    active=$(systemctl show -p ActiveState --value rog5-wifi-boot-rollback.service)
+    if [ -n "$invocation" ] && [ "$active" = inactive ]; then timer_fired=1; break; fi
+    sleep .2
+done
+test "$timer_fired" = 1
+test "$(systemctl show -p Result --value rog5-wifi-boot-rollback.service)" = success
+test "$(systemctl show -p ExecMainStatus --value rog5-wifi-boot-rollback.service)" = 0
+ssh_proof
+echo ARCH_WIFI_HEALTHY_REARM_PASS
+echo HANDOFF_OBSERVATION_END
+$BB poweroff -f
+'''
+ARCH_WIFI_STALE = r'''
+# Independent fresh VM: its timer was stopped before its first expiry, never
+# already fired or reloaded. Only Wi-Fi acceptance is stale; core ACK is valid.
+printf 'format=rog5-native-wifi-healthy-v1\nboot_id=00000000-0000-0000-0000-000000000000\ntrial_id=%s\nresult=PASS\n' "$trial" >/run/rog5-native-wifi/healthy.record
+chmod 0444 /run/rog5-native-wifi/healthy.record
+echo ARCH_WIFI_STALE_REARM_BEGIN
+systemctl restart rog5-early-sshd.service
+sleep 7
+echo ARCH_WIFI_STALE_REARM_FAILED
+exit 1
+'''
+
+
 # Guest-only fixtures: fresh ephemeral keys, loopback SSH, no phone credential.
 # The unit bytes and systemd/sshd executables are NOT replaced by these fixtures.
 ARCH_SSH_SETUP = r'''
@@ -165,7 +227,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--root-image", type=Path,
                         help="RO retained Arch ext4: two exact-systemd/SSH cases instead of public-runtime matrix")
+    parser.add_argument('--wifi-rollback', action='store_true',
+                        help='two fresh Arch guests: core ACK plus healthy/stale Wi-Fi timer rearm')
     args = parser.parse_args()
+    if args.wifi_rollback and not args.root_image:
+        parser.error('--wifi-rollback requires --root-image')
     if not __debug__:
         raise SystemExit("archive parser requires assertions enabled")
     archive = runpy.run_path(str(REPO / "scripts/device/build-native-wifi-boot-initramfs.py"))
@@ -173,6 +239,7 @@ def main():
         target_blob = args.target_archive.read_bytes()
         target = archive["entries"](gzip.decompress(target_blob))
         watchdog_source = watchdog_functions(target)
+        wifi_members = wifi_rollback_members(target) if args.wifi_rollback else {}
     except (OSError, EOFError, ValueError, AssertionError, zlib.error) as exc:
         parser.error(f"target archive refused: {exc}")
     # Refuse incompatible archives before creating evidence or invoking QEMU.
@@ -204,6 +271,8 @@ def main():
              "helper-unexecutable", "hang-init", "failed-init", "fd-open-failure")
     if root_image:
         modes = ('systemd-ack', 'systemd-stale-identity')
+    if args.wifi_rollback:
+        modes = ('systemd-ack', 'systemd-wifi-stale')
     for mode in modes:
         members = {}
 
@@ -279,7 +348,7 @@ if $BB test -e /proc/$pid/stat; then
 fi
 echo HANDOFF_OBSERVATION_END
 $BB poweroff -f
-""".replace(b"MODE", mode.encode()))
+""".replace(b"MODE", ('systemd-ack' if mode == 'systemd-wifi-stale' else mode).encode()))
         if root_image:
             for name, unit in ssh_units.items():
                 add('systemd-root/etc/systemd/system/'+name, unit)
@@ -297,6 +366,28 @@ UsePAM no
             observe = observe.replace(b'$BB sleep 11', ARCH_WAIT_ACK.encode())
             observe = observe.replace(b'echo HANDOFF_OBSERVATION_END',
                                       ARCH_SSH_RESTART.encode()+b'\necho HANDOFF_OBSERVATION_END')
+            if args.wifi_rollback:
+                for name, data in wifi_members.items():
+                    if name == 'runtime':
+                        add('wifi-fixture/runtime', data, stat.S_IFREG | 0o755)
+                    else:
+                        filename = name.removeprefix('units/')
+                        if filename == 'before-ssh.conf':
+                            filename = 'rog5-early-sshd.service.d/'+filename
+                        add('systemd-root/etc/systemd/system/'+filename, data)
+                add('systemd-root/etc/systemd/system/rog5-wifi-boot-rollback.timer.d/c02.conf',
+                    WIFI_TIMER_OVERRIDE)
+                observe = observe.replace(b'echo ARCH_SSH_INITIAL_PASS\n',
+                                          b'echo ARCH_SSH_INITIAL_PASS\n'+ARCH_WIFI_STOP.encode())
+                if mode == 'systemd-wifi-stale':
+                    observe = observe.replace(ARCH_SSH_RESTART.encode(), ARCH_WIFI_STALE.encode())
+                    observe = observe.replace(b'echo HANDOFF_OBSERVATION_END\n$BB poweroff -f', b'')
+                else:
+                    # The Wi-Fi case waits for actual service completion below;
+                    # do not add the core-only fixture's arbitrary quiet delay.
+                    observe = observe.replace(b'\nsleep 3\n', b'\n')
+                    observe = observe.replace(b'echo HANDOFF_OBSERVATION_END\n$BB poweroff -f',
+                                              ARCH_WIFI_VERIFY.encode())
             archive['replace'](members, 'systemd-root/observe', observe)
         init = r"""#!/bin/busybox sh
 set -eu
@@ -338,6 +429,8 @@ echo ARCH_ROOT_READ_ONLY_OVERLAY
 ''').replace('recovery_timeout=8\n', 'recovery_timeout=20\n')
         if mode == "fd-open-failure":
             init += "watchdog_kmsg=/missing/kmsg\n"
+        if args.wifi_rollback:
+            init += 'mkdir -p /run/rog5-native-wifi\ncp -a /wifi-fixture/. /run/rog5-native-wifi/\n'
         init += r"""
 arm_watchdog || { echo HANDOFF_ARM_FAILED_ROLLBACK; "$reboot_helper"; exit 1; }
 mkdir -p /run/initramfs/bin /run/initramfs/lib /run/initramfs/usr/libexec
@@ -376,6 +469,8 @@ echo HANDOFF_SWITCH_ROOT
             command[command.index(image):command.index(image)] = ['-v', str(root_image)+':/arch.ext4:ro']
             command += ['-drive', 'file=/arch.ext4,format=raw,if=none,id=root,readonly=on',
                         '-device', 'virtio-blk-device,drive=root']
+        if args.wifi_rollback:
+            command[command.index('-append')+1] += ' rog5.bundle=c02-fixture'
         started = time.monotonic()
         with (output / (mode + ".log")).open("xb") as log:
             result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=50)
@@ -389,6 +484,14 @@ echo HANDOFF_SWITCH_ROOT
             required += ["HANDOFF_NEW_INIT", "HANDOFF_OLD_PATH_GONE",
                          "watchdog acknowledged by current-boot P2 and SSH identity readiness",
                          "HANDOFF_OBSERVATION_END"]
+            if args.wifi_rollback:
+                required += ['ARCH_WIFI_TIMER_STOPPED_BEFORE_DEADLINE',
+                             'ARCH_WIFI_HEALTHY_REARM_PASS']
+        elif mode == 'systemd-wifi-stale':
+            required += ['HANDOFF_NEW_INIT', 'HANDOFF_OLD_PATH_GONE',
+                         'watchdog acknowledged by current-boot P2 and SSH identity readiness',
+                         'ARCH_WIFI_TIMER_STOPPED_BEFORE_DEADLINE',
+                         'ARCH_WIFI_STALE_REARM_BEGIN', 'reboot: Restarting system']
         elif mode == "helper-unexecutable":
             required += ["HANDOFF_NEW_INIT", "HANDOFF_OLD_PATH_GONE", "sysrq: Resetting"]
         else:
@@ -406,6 +509,12 @@ echo HANDOFF_SWITCH_ROOT
                 passed = passed and 'ARCH_SSH_RESTART_PASS' in log and "Restarting system" not in log
             elif 'ARCH_SSH_RESTART_PASS' in log:
                 passed = False
+            if mode == 'systemd-wifi-stale':
+                passed = passed and not any(marker in log for marker in (
+                    'ARCH_WIFI_STALE_REARM_FAILED', 'Kernel panic', "command 'bootloader'"))
+                if passed:
+                    passed = (log.index('ARCH_WIFI_STALE_REARM_BEGIN') <
+                              log.index('reboot: Restarting system'))
         results.append(dict(mode=mode, passed=passed, exit_code=result.returncode,
                             seconds=time.monotonic()-started))
         print(json.dumps(results[-1]), flush=True)
@@ -418,6 +527,12 @@ echo HANDOFF_SWITCH_ROOT
                   target_archive_sha256=hashlib.sha256(target_blob).hexdigest(),
                   container=image, cases=results)
     record.update(source_revision=source_revision, runner_sha256=runner_hash)
+    if args.wifi_rollback:
+        record.update(wifi_rollback_sha256={name: hashlib.sha256(data).hexdigest()
+                                           for name, data in wifi_members.items()},
+                      wifi_timer_override=WIFI_TIMER_OVERRIDE.decode(),
+                      wifi_cases_use_fresh_vms=True,
+                      wifi_test_scope='exact rollback runtime/service/dependency; VM ACK fixtures, no radio activation')
     if root_image:
         unchanged = sha_file(root_image) == root_hash
         record.update(root_image_sha256=root_hash, root_image_unchanged=unchanged,

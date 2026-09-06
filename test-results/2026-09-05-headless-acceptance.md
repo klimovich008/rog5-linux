@@ -2198,3 +2198,44 @@ Dispatcher regressions passed **22 cases / 0.567 s**; active tier passed
 **17.369 s**, with the existing optional artifact skips explicit. This is a
 local checkpoint, not a published/full-CI-qualified C02 implementation. r1
 failed before guest logs existed; its traceback remains in the task record.
+
+### Exact-Arch optional rollback component
+
+From `fd387eb4897a9abfa5d35e530973a2459e379e8f`, extended the same handoff
+runner with `--wifi-rollback`. Retained server archive `6934f732…` supplies
+runtime `a96de52d…`, service, timer and SSH drop-in byte-for-byte. The actual
+Arch systemd/sshd, sealed watchdog and read-only root remain; only fixture
+identity/keys and a 15 s timer drop-in live in RAM. No radio or phone operation.
+
+Private `c02-arch-wifi-qemu-r1`–`r3` under the existing V6 evidence directory
+preserve failed single-VM attempts (102.269/102.031/101.689 s). Healthy restart
+passed, but the second timer did not fire. The systematic-debugging procedure
+traced r3 to guest uptime **36.23 s**, requested deadline **34 s**,
+`SubState=elapsed`, next trigger infinity, and the prior healthy invocation.
+The 3.525 s daemon reload had overrun the new two-second deadline.
+[Systemd v260.2 timer.c](https://github.com/systemd/systemd/blob/v260.2/src/core/timer.c)
+confirms that a previously fired, expired one-time trigger is disabled; this
+was fixture state reuse, not a charging/kernel defect. Opus review could not
+authenticate (expired OAuth); an independent agent could not start because
+the existing agent limit was reached. No authentication settings were changed.
+
+Two fresh VMs eliminate reused timer state and runtime reload entirely.
+r4 passed in 33.561/26.284 s but totaled **121.161 s**, above the 120 s C02
+row, so it was not accepted as that row. Removed only the healthy Wi-Fi case's
+redundant three-second sleep: it already waits for the actual rollback service
+to finish and re-authenticates. Its regression failed before that correction.
+r5 passed **30.449/26.592 s**, total **118.564 s**. Healthy SSH PID changed
+**124 → 187**; stale Wi-Fi acceptance caused ordinary systemd reboot after
+the valid core watchdog ACK, not a panic/core-watchdog reset. Root hash remains
+`06cc805b…`; kernel remains `bdceaa51…`. Runner hash:
+`57f164eaf6cce106e9241cb55a0833dda2219bff6f346763b3e65279d90af98a`.
+
+Thirteen focused regressions cover sealed-member metadata/absence, archive
+roundtrip, distinct VM cases and required outcome evidence (0.857 s process).
+The active tier passed in **17.576 s** before the final wait-only correction
+and **17.525 s** afterward; dispatcher regressions passed 22 tests in 0.701 s.
+Optional retained-artifact skips remain explicit. Full local/publication CI
+is deferred to coherent C02 dispatcher integration, not claimed passed here.
+The result still says `c02_qualified=false` and `release_qualified=false`.
+Next bind the complete proof to the dispatcher and exact release inputs, with
+deadline headroom measured before publication. No kernel build is needed.
