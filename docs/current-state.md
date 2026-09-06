@@ -69,7 +69,7 @@ radio/persistent-root qualification. Detailed failures remain in the dated repor
 | H02 same-boot rescue | PASS; pinned SSH, deployed runtime and actual watchdog ACK verified |
 | H03 charging/regulation | PASS 604.523 s; 61 samples / 600.265 s, firmware-Full maintenance only |
 | C01 watchdog handover | Exact V8 kernel/archive: 9 cases PASS 138.299 s |
-| C02 late SSH restart | Initial run FAIL 151.045 s against 120 s; behavior passed. Instrumented diagnostic replay 114.037 s; timing robustness remains open |
+| C02 late SSH restart | PASS 91.570 s through dispatcher on c2539e3c; only its two isolated guests overlap, unchanged 120 s limit and before/after hashes |
 | F01 journal/OverlayFS | Exact inputs: disposable-image recovery/corruption tests PASS 75.432 s; not physical UFS crash proof |
 | R01 installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server | Local autonomous boots, qualified Wi-Fi, durability, powered-off start and 60-minute soak incomplete |
@@ -83,12 +83,14 @@ Unsupported charge-limit controls are not the blocker; none were written.
 
 ## Reuse and exact next action
 
-Keep V8 available. Address the demonstrated **host C02 timing** issue with
-bounded phase measurements; do not rebuild the kernel or consume a phone cycle.
-The diagnostic replay measured 29.627 + 29.670 s hashing the retained root,
-plus 53.497 s in guests. It did not establish the cause of the first run's
-extra overhead or justify changing the 120 s criterion.
-Then advance installed autonomous recovery and the existing server matrix.
+Keep V8 available. **Next: installed autonomous recovery and server testing.**
+C02's serial guest overhead is corrected without dropping validation; original
+151.045 s failure and diagnostic 114.037 s replay remain in the dated report.
+The source trial helper already rearms healthy primary state to pending, but
+the installed old loader and bootloader-reset helper do not prove autonomous
+rescue. Advance that existing recovery requirement; do not repeat its review.
+Fresh V8 H02 PASS 1.269 s on c2539e3c, same boot, actual watchdog ACK 900.048 s.
+The accepted-release ordinary reboot path must not reuse a RAM execution claim.
 No additional subsystem work or general architecture review is needed.
 
 Combined kernel source `f17befd4ef172cfb0ecbffd9e0af87122cfa66bc` and twins
@@ -108,6 +110,8 @@ remains intact. Host free space is about 4.1 GiB; preserve the 3 GiB reserve.
 Use focused checks during edits, one full CI per relevant frozen integration,
 and meaningful publication batches. Active/full implementation checks already
 passed 20.197 / 498.170 s; do not rerun unchanged code for this evidence update.
+The focused C02 harness regression passed 17 tests / 1.084 s and its active
+tier passed 20.595 s. No kernel/recovery/runtime bytes changed or were rebuilt.
 Project-local skills now distinguish proven fixes from unexplained failures;
 no global skills changed. Historical V6/V7, build, source-reuse and workflow
 narratives remain in the [existing report](../test-results/2026-09-05-headless-acceptance.md).

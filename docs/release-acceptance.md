@@ -206,6 +206,11 @@ identity cases. It enforces the unchanged 120 s contract and requires an exact
 complete result bound to source, runner, kernel, archive and unchanged root.
 Missing QEMU prerequisites are BLOCKED. Missing/partial/mismatched proof fails,
 even if a command exits zero. No other release's component pass is imported.
+Only C02 overlaps its two explicitly isolated guests (two workers, each bounded
+to two CPUs/1 GiB, with unique archives/logs and RAM overlays). Shared inputs
+remain read-only; both full root hashes still surround guest execution. Other
+watchdog cases stay sequential. Per-guest 40/50 s and row 120 s deadlines are
+unchanged; no timeout retry or partial result acceptance is added.
 The integrated retained-server row passed in **118.811 s**; whole-release
 qualification remains false. Timing headroom is narrow, not grounds to relax
 the deadline. Artifact bytes are verified as artifacts, not additionally
