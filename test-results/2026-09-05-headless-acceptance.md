@@ -3440,3 +3440,37 @@ AArch64 preprocessing and subtree comparison PASS. Existing outputs/logs
 remain. Corrected module A **PASS 223.630 s** with unchanged kernel/config/BTF
 base; module B and activation twins are still running. No new kernel checkout,
 kernel rebuild, source change, claim, signature or phone boot for that fix.
+
+### Completed combined twins and resumed A01 core component
+
+Published `d18182c13ce4a35584fef4d4bc5b16e513c8b244`: exact-head,
+merge-compat, qemu-system and candidate-publication PASS, run 34041670810.
+No additional full local run on unchanged source.
+
+The preserved exact-state resume completed: A **176.750 s**, independently
+clean B **1715.396 s**; all **24** checked kernel/config/symvers/vmlinux/module
+artifacts are byte-identical. Radio twins **223.630 / 214.831 s**, activation
+twins **22.019 / 21.919 s**, PMIC twins **4.275 / 4.124 s**. The QEMU-only
+helper fixture was built in **3.874 s** and separately validated against the
+actual vmlinux-produced Image. No host or phone module insertion occurred.
+
+Using existing standalone composition code, unsigned core target twins were
+assembled in **6.289 / 6.192 s**, hash
+`0241a611818638d2e3a6ff399ebea4d63fe6bbefc09a64d5e324d600a6415cb9`.
+The accepted derived PDR BTF-packaging exception is unchanged; raw kernel
+outputs remain intact. No ASUS wrapper compilation, signature or new claim.
+
+Existing A01 component routines ran the exact new Image and all 19 core
+modules against the current retained P24 snapshot, mounted RO/noload with
+disposable tmpfs upper. **PASS 81.283 s**, including artifact checks before and
+after; VM **19.611 s**. Firmware staging, module insertion, Arch preparation,
+exitrd containment, systemd execution, SSH policy, unit verification and
+timing/stage composition passed. Root bytes and source identity were unchanged.
+This is explicitly **not full A01 or release qualification**: radio/primary
+archive, signed wrapper/selector, H02/H03 and physical recovery remain open.
+
+Private result: `rog5-v7-server-modules-20260906.Ibl4iPCz/core-component/result.json`;
+kernel/radio/aux terminal records and failed original outputs remain there.
+Directory allocation is **8.9 GiB** (not a measured peak); free host space
+**5.5 GiB**, reserve **3 GiB**. No build data was deleted. Next work reuses
+these verified twins to complete the coherent server archive and final A01.
