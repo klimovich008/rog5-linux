@@ -60,6 +60,13 @@ No repeated full CI for unchanged inputs. While remote checks run, do useful
 independent work without modifying their frozen inputs or starting a second
 device coordinator. This policy changes iteration cadence, not release gates.
 
+A test-fixture-only correction may reuse the last successful full local CI for
+unchanged production inputs. Bind the original receipt, enumerate and review
+the exact test/documentation delta, run the changed tests and active tier, and
+retain exact-head remote checks. The publication adapter must reject any other
+changed path or altered receipt. Report original and current tested revisions;
+never relabel the older full run as testing the newer fixture.
+
 A01 overlaps its initial full retained-root hash with independent read-only
 composition checks. That hash must complete before QEMU; a separate post-VM
 full hash and pathname/metadata checks remain mandatory. The 120-second limit

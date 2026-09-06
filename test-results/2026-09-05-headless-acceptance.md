@@ -4216,5 +4216,16 @@ requiring an empty InvocationID. The actual restart additionally requires an
 elapsed deadline. No daemon reload, production timer/unit/runtime change,
 kernel build, signature change or relaxation of the 40/120-second guest/C02
 bounds is introduced. Both fresh-VM outcomes remain mandatory.
-Nineteen focused fixture tests passed in 1.072 s. Exact C02 rerun remains to
-be performed on the frozen correction; the original FAIL is retained in `c02`.
+Nineteen focused fixture tests passed in 1.072 s. Exact C02 rerun on clean
+`a86c228cecbb634f6bcfabd5137492e29401b6f5` passed in **82.750 s**:
+healthy 30.683 s and stale-ACK restart 27.125 s. The retained root was unchanged;
+both cases used the exact signed V4 archive and existing combined kernel.
+Private `c02-r2/result.json` records source, runner and artifact hashes. This
+proves the offline C02 outcome, not physical radio or whole-release acceptance.
+The original FAIL is retained in `c02`; no phone cycle was consumed.
+
+Full local CI from `8a9c0318` remains applicable only to unchanged production
+inputs. The reviewed delta comprises the two C02 fixture/test files and current
+documentation; publication must verify that exact scope, current focused/active
+results and immutable prior CI evidence. Required remote exact-head checks are
+not replaced by that reuse. No new kernel build or signing is needed.

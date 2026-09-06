@@ -81,7 +81,7 @@ radio/persistent-root qualification. Detailed failures remain in the dated repor
 | Server C02 / prior live | V2 offline C02 PASS 77.233 s; live readiness FAIL, automatic V11 fallback SSH recovered |
 | V3 composition / staging | A01 PASS 104.639 s; staging/readback PASS; live readiness FAIL, automatic V11 SSH recovered |
 | V4 hw1.1 successor | Signed offline A01 PASS 106.750 s; no staging, admission, claim or phone execution yet |
-| V4 C01 / C02 | C01 nine cases PASS 133.953 s; C02 FAIL 103.588 s: premature fixture timer expiry during initial SSH setup; correction awaiting exact rerun |
+| V4 C01 / C02 | C01 nine cases PASS 133.953 s; corrected C02 both cases PASS 82.750 s on clean `a86c228c`; original fixture FAIL retained |
 | F01 journal/OverlayFS | Exact inputs: disposable-image recovery/corruption tests PASS 75.432 s; not physical UFS crash proof |
 | R01 installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server | Local autonomous boots, qualified Wi-Fi, durability, powered-off start and 60-minute soak incomplete |
@@ -108,14 +108,13 @@ Its exact-source selector regression reproduces the rejection. The build path
 is now corrected to apply that patch and run the selector before compilation.
 No new charging policy, PCIe architecture or base-kernel change is needed.
 
-**Next: rerun C02 with the corrected setup fixture, publish that checkpoint,
-then stage/admit V4 and observe radio/server readiness once.**
+**Next: publish the tested C02 checkpoint, then stage/admit V4 and observe
+radio/server readiness once.**
 Read-only staging preflight passed; no transfer/write/claim/boot occurred.
-C02's healthy case passed, but the stale guest's 15-second test timer fired
-during initial SSH setup. The fixture now uses the existing 20-second core-ACK
-window, verifies no prior invocation after stopping, and proves the timer is
-elapsed before restart. Production timers, payloads and 120-second limit stay
-unchanged. Do not use the old C02 failure as a new phone/kernel diagnosis.
+C02's original stale guest fired its test timer during initial SSH setup.
+The corrected fixture passed both fresh-VM cases with the same signed V4 bytes
+and unchanged 120-second limit. Production timers and payloads did not change.
+Do not use the retained fixture failure as a new phone/kernel diagnosis.
 Do not reuse V3 merely because its base Image/wrapper remain valid.
 The recovered module twins match; 71.871/66.620 seconds, 109,494,272 bytes
 combined. Exact-kernel QEMU component PASS 125.827 seconds (guest 43.738 s).
@@ -141,7 +140,10 @@ Do not reboot the host assuming these caches are durable. Keep 3 GiB disk reserv
 Use focused checks, one full CI at relevant integration, and batch publication.
 Last integration: `8a9c0318e754e5f740f33ca989e503ed49215fbf`, full local PASS
 507.876 s; all four CI jobs PASS in run 34062456992. The newer C02 fixture
-correction passed 19 focused tests in 1.072 s; publication remains separate.
+correction passed 19 focused tests in 1.072 s and exact C02 in 82.750 s.
+Reuse that integration only across the reviewed test/documentation delta,
+with current focused/active checks and exact-head remote CI; reject any new
+production-input difference. Publication remains separate.
 A01 first failed at 134.300 s despite all
 functional checks passing. Initial root hashing now overlaps independent
 read-only checks, joins before QEMU, and retains the second full hash and
