@@ -2117,3 +2117,36 @@ kernel/recovery rebuild or repeated target execution occurred. Only this
 completion documentation changed after the full run; exact-head/merge CI will
 cover the publication commit. Next resolve H03 criteria, then qualify one
 coherent persistent server release and the separate failed-boot recovery route.
+
+### Bounded H03 source regression (not deployed)
+
+Publication `ac25155eb77d98cb8a4d02018895adbd2c4df1b5` passed all four jobs in
+GitHub run 34011983097. The next H03 check traced the actual ENODATA capacity
+failure into the sealed driver's source; provenance and upstream attribution
+are in the [existing source assessment](../docs/kernel-port.md#h03-capacity-unit-follow-up).
+Unlike the incompatible downstream controls, this is a demonstrated mainline
+unit-initialization defect, not a host parser or charging-policy failure.
+
+Before patch 0038 existed, the regression reproduced ENODATA from compiled
+unfixed SM8350/SM8550 source fragments; its two correction checks failed.
+After the one-assignment correction, three tests passed in **0.133 s**;
+retained-source excerpt/application checks plus test process took **0.206 s**.
+Optimized Python passed in **0.144 s** (process **0.298 s**).
+The fixture tests all four protocol variants with both unit states and both
+charge/energy full/design readouts; it does not emulate firmware transport.
+Only temporary copies are patched. The retained source, accepted build,
+running rescue, fallback, signed artifacts and one-use records are unchanged.
+No build, candidate issuance, module reload, phone contact or storage change
+was performed for this follow-up. H03 and whole-release acceptance remain
+incomplete; this does not prove net charging or regulation.
+
+Active tier passed **17.196 s** (previous 16.869 s); the frozen code then passed
+one full local CI in **489.593 s** (previous 486.402 s). These adjacent runs are
+not controlled benchmarks. Historical/optional retained-artifact skips remain
+visible, not hardware PASS. Full log is retained in the private
+`rog5-battmgr-units-20260906` checkpoint. Only this completion text and patch
+description wrapping changed afterward; focused normal/optimized/source checks
+were repeated, not full local CI. Kernel checkpatch via stdin reports no errors
+or warnings after wrapping. No production kernel/module build was needed.
+Exact-head/merge GitHub CI is required for the publication commit and is
+separate from the passed prior H02 checkpoint.

@@ -161,6 +161,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/device/test-qcom-battmgr-charge-units.py
 	scripts/device/test-startup-observer.py
 	"scripts/device/test-persistent-ssh-key-files.py"
 	scripts/host/test-headless-stage-receiver.py
