@@ -3596,3 +3596,51 @@ H01/H02 and sustains the predeclared H03 outcome. Consumed V7's historical H01
 failure remains FAIL; neither it nor server-selector-v2's radio-bearing archive
 can silently substitute for this rescue qualification. The original goal remains
 active; H03 and complete release qualification are not claimed from offline tests.
+
+### Matched radio-free rescue V8 prepared
+
+H03 implementation `4b22a9f670c1db44c55fc8fa98e2c6896c6ab6ba` passed all four
+remote jobs in **34045925726**. During CI, one pinned read-only V7 check passed
+in **0.265 s**: unchanged boot UUID, 29.9°C, 8.591 V, zero current, Good/USB
+online, P24 RO and no failed units. This is continuity, not H03 regulation.
+
+The next primary question remains matching rescue H01/H02 and predeclared
+firmware-Full H03. Original V7 capture failure remains **R7 / FAIL**; its
+anchored sysfs-read/removal correction has source replay and published CI.
+No kernel redesign was made for that host-side failure.
+
+One private recipe prepared `headless-acceptance-rescue-v8`, reusing the combined
+kernel/core archive twins and the radio-free V11 DTB `4f6518b3…6c76b8`.
+The server DTB's extra WCN/PCIe/S12 board nodes are not introduced into this
+radio-inactive rescue. Verified all 24 retained kernel artifacts against both
+builds and the exact 19-module core closure before signing. Existing signer,
+recovery builder and boot-v3 repacker produced identical twins **PASS 20.599 s**.
+No ASUS kernel rebuild, phone write, admission, live claim or execution.
+
+Private inputs/logs/results: `rog5-rescue-h03-20260906.CayoqOsI`.
+
+- Manifest: `2b565dbea7b14ffa90dd7100700f8db2b7554f9ac9f8eb8149d28dde02070e9f`.
+- Boot AVB: `1592fedf499f3eba0351c0d3af28a616400b4e00bdd4ccd08f54a04bb79e4687`.
+- Recovery: `33b0743cc87ad9081b4d1466b860d908f84617b97041d52a86ef7509c69b88dc`.
+- Kernel/core archive are unchanged `ece47c7d…bc74e` / `0241a611…15cb9`.
+
+Only a 20-line literal canonical artifact record was generated; no claim
+consumer/lifecycle implementation changed. Registration commit
+`fcfd15db51c225a67ea1d4c02a85c5d637cb3abb`: claim tests **19 PASS 0.174 s**,
+optimized **19 PASS 0.169 s**, admission closure **33 PASS 3.569 s**.
+Full assembled **A01 PASS 83.860 s**, all seven checks, exact source/artifacts,
+using the unchanged retained P24 snapshot. Not deployed or physical evidence.
+The full local implementation suite is reused unchanged from the H03 checkpoint;
+this is artifact/data-only work, not justification for another identical suite.
+
+The existing live adapter still requires successful remote CI for its exact
+publication head. Current PR selection conservatively uses the full branch
+diff, including on registry-only checkpoints; no unchecked waiver was added.
+Addressing that overhead requires an explicit tested selection-policy change,
+not labelling previous-head checks as current-head checks. It is not a kernel
+defect or a reason to alter boot/one-use behavior.
+
+Next: validate the retained live adapters against the new recipe, then a
+coordinated, non-retryable RAM attempt after publication and connected preflight.
+Keep current V7 running until that transition is ready. Host free disk is about
+4.2 GiB; the 3 GiB reserve and volatile server-root preview remain preserved.
