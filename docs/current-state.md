@@ -42,7 +42,7 @@ Pinned SSH: `10.77.0.2` (alias `169.254.77.2`), fingerprint
 `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
 Wi-Fi intentionally inactive. Rescue uses tmpfs upper over RO/noload P24 and
 existing bounded P23 service state; not the primary's persistent upper.
-P24 snapshot:
+Pre-staging P24 snapshot (not the current raw P24 image):
 `e1692971646809ff412363014d69a363aa543336a715e918ec0cc978cafa36c6`.
 
 **Installed boot B remains old/unqualified recovery:**
@@ -52,6 +52,13 @@ Preserved selector:
 previous healthy primary trial:
 `bfc82fac0199062bb7244e451299ed11c513c8895c8943ac3c5b86d4dbdb141b`.
 Signed `persistent-native-root-v11` fallback and stock A remain preserved.
+Active selector now names **staged, unissued `headless-server-selector-v2`**:
+`353b7a88f56733fe39ee31707981bccd3dd15b6b1d47822ca369b26bab779f99`.
+Old selector is preserved at `selector.rollback-headless-server-selector-v2`;
+old healthy trial hash `6705ccb23b337cce074eb28cc1f5556ef84b183b63bf3552f5a1e97858fb184d`
+is archived on P23. Active trial state is absent. P24 is relocked RO.
+**Do not perform an ordinary reboot yet:** next execution is a coordinated,
+one-use RAM trial, not accepted-release repeated-boot qualification.
 RAM success does not prove installed recovery corrections. Ordinary accepted
 release reboot tests follow [distinct operation rules](development.md#experimental-execution-and-stable-operation);
 they do not permit retrying an experimental claim.
@@ -70,6 +77,7 @@ radio/persistent-root qualification. Detailed failures remain in the dated repor
 | H03 charging/regulation | PASS 604.523 s; 61 samples / 600.265 s, firmware-Full maintenance only |
 | C01 watchdog handover | Exact V8 kernel/archive: 9 cases PASS 138.299 s |
 | C02 late SSH restart | PASS 91.570 s through dispatcher on c2539e3c; only its two isolated guests overlap, unchanged 120 s limit and before/after hashes |
+| Server C02 / staging | Wi-Fi-aware C02 PASS 77.233 s; bounded file staging PASS 2.073 s and independent readback PASS 0.532 s; no boot or claim yet |
 | F01 journal/OverlayFS | Exact inputs: disposable-image recovery/corruption tests PASS 75.432 s; not physical UFS crash proof |
 | R01 installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server | Local autonomous boots, qualified Wi-Fi, durability, powered-off start and 60-minute soak incomplete |
@@ -83,7 +91,14 @@ Unsupported charge-limit controls are not the blocker; none were written.
 
 ## Reuse and exact next action
 
-Keep V8 available. **Next: installed autonomous recovery and server testing.**
+Keep V8 available. **Next: one coordinated RAM-only server-selector-v2 trial.**
+Source `60482471f6c0dcc327edf79fbeadfe8ef9597135` passed all four remote jobs,
+run 34049602683. It stayed frozen during server C02, signed verification,
+read-only preflight and staging. Private records/adapters are under
+`rog5-v7-server-modules-20260906.Ibl4iPCz/server-stage-v2`.
+Staging is terminal: never rerun it. Claim, entered and global-consumed records
+are absent. Adapt/check the existing capture/transition/execution adapters for
+this staged selector and current V8 boot before creating one claim; no rebuild.
 C02's serial guest overhead is corrected without dropping validation; original
 151.045 s failure and diagnostic 114.037 s replay remain in the dated report.
 The source trial helper already rearms healthy primary state to pending, but
@@ -99,7 +114,7 @@ are complete; all 24 identities match. Reuse private
 is superseded by resume-result PASS, not a reason to restart the build.
 Image SHA:
 `ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`.
-The separately packaged, unexecuted `headless-server-selector-v2` has full
+The separately packaged, staged but unexecuted `headless-server-selector-v2` has full
 offline A01 PASS 96.525 s; it is not the radio-inactive V8 rescue.
 Its prospective root remains volatile at
 `/run/rog5-server-preview-20260906-Ibl4iPCz/root.ext4`,
