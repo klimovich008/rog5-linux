@@ -2,6 +2,7 @@
 """Small ROG5 acceptance dispatcher. No admission, device retry or evidence merge."""
 import argparse
 import datetime
+import errno
 import hashlib
 import json
 import math
@@ -180,7 +181,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                 row.update(status='FAIL',next_action='invalid Wi-Fi evidence input pin')
                 return row
             bindings.update({'{wifi_restart_inputs}':str(path),'{wifi_restart_inputs_sha256}':pin,
-                             '{artifact_hashes}':json.dumps({k:v['sha256'] for k,v in release['artifacts'].items()})})
+                             '{artifact_hashes}':','.join(k+'='+v['sha256'] for k,v in sorted(release['artifacts'].items()))})
         if 'dtb' in release['artifact_paths']:
             bindings['{dtb}'] = release['artifact_paths']['dtb']
         if 'boot_bundle' in release['artifact_paths']:
@@ -236,7 +237,14 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                 # Artifact arguments are already bound by verify_release and
                 # the exact-artifact runner. They are not test source: hashing
                 # a 32 GiB root here needlessly consumes the row's deadline.
-                if not Path(token).is_absolute() and path.is_file() and path.resolve().is_relative_to(REPO):
+                try:
+                    is_source=not Path(token).is_absolute() and path.is_file() and path.resolve().is_relative_to(REPO)
+                except OSError as error:
+                    if error.errno!=errno.ENAMETOOLONG:
+                        raise
+                    # Metadata argv values are not necessarily filesystem names.
+                    is_source=False
+                if is_source:
                     row['test_versions'][token] = sha_file(path)
             remaining = test['deadline_seconds'] - (time.monotonic() - started)
             if remaining <= 0:

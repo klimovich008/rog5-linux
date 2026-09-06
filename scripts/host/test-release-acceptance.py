@@ -154,6 +154,27 @@ class AcceptanceTest(unittest.TestCase):
             row=M.run_one(test,Path(tmp),dict(candidate_id='fixture',artifacts={}))
         self.assertEqual(row['status'],'FAIL')
 
+    def test_f02_generated_hash_argument_reaches_actual_runner(self):
+        test=next(t for t in self.contract['tests'] if t['id']=='F02')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);inputs=root/'inputs';inputs.write_text('{}')
+            release=dict(candidate_id='fixture',artifact_paths=dict(kernel='/not-read',initramfs='/not-read'),
+                         artifacts={role:dict(sha256='a'*64) for role in M.ARTIFACT_ROLES})
+            row=M.run_one(test,root,release,wifi_restart_inputs=(inputs,M.sha_file(inputs)))
+            # Invalid evidence reaches the real runner and fails there; generated
+            # metadata must not be mistaken for an unresolved placeholder.
+            self.assertEqual(row['status'],'FAIL',row)
+            self.assertEqual(row['exit_code'],1)
+            self.assertEqual(json.loads((root/'F02/result.json').read_text())['status'],'FAIL')
+
+    def test_long_metadata_argument_is_not_a_source_filename(self):
+        test=copy.deepcopy(self.contract['tests'][1])
+        test['commands']=[[sys.executable,'-c','import sys; print(len(sys.argv[1]))','a'*512]]
+        with tempfile.TemporaryDirectory() as tmp:
+            row=M.run_one(test,Path(tmp))
+            self.assertEqual(row['status'],'PASS',row)
+            self.assertNotIn('a'*512,row['test_versions'])
+
     def test_f02_proof_requires_exact_artifacts_and_reviewed_input(self):
         test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='F02'))
         test['commands']=[[sys.executable,'-c','pass']]

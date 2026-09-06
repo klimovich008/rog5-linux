@@ -117,7 +117,7 @@ def main():
     p.add_argument('--inputs-sha256',required=True)
     p.add_argument('--candidate',required=True)
     p.add_argument('--target-archive',type=Path,required=True)
-    p.add_argument('--artifact-hashes',required=True,help='JSON from the verified release receipt')
+    p.add_argument('--artifact-hashes',required=True,help='comma-separated role=SHA256 values from the verified release receipt')
     p.add_argument('--output',type=Path,required=True)
     args=p.parse_args();start=time.monotonic()
     spec=importlib.util.spec_from_file_location('wifi_acceptance',Path(__file__).with_name('release-acceptance.py'))
@@ -139,7 +139,10 @@ def main():
         adapter=data.pop('adapter');manifest_raw=data.pop('manifest')
         # Adapter is reviewed/hash-bound data, never imported or executed here.
         require(bool(adapter),'missing reviewed observation adapter')
-        hashes=decode(args.artifact_hashes)
+        pairs=[item.split('=',1) for item in args.artifact_hashes.split(',')]
+        require(all(len(item)==2 for item in pairs),'invalid artifact hash encoding')
+        hashes=dict(pairs)
+        require(len(hashes)==len(pairs),'duplicate artifact role')
         composition_matches(composition,args.candidate,hashes)
         # Read-only canonical lookup; this does not admit, execute or use credentials.
         spec=importlib.util.spec_from_file_location('wifi_claims',Path(__file__).with_name('consume-exact-boot-claim.py'))
