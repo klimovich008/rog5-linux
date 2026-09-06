@@ -4135,3 +4135,57 @@ for that unchanged implementation. Exact-head publication CI remains separate.
 Post-cleanup pinned read-only telemetry confirmed the same V11 boot, Full/100%,
 Good, 29.8°C, 8.583 V, zero battery current and 184 mA USB input below its
 500 mA limit. This single snapshot is not another H03 observation-window PASS.
+
+### V4 hw1.1 successor and bounded A01 scheduling correction
+
+The module correction's commit `9dd03298ecfd0d0941c506e2096d9efe6af66296`
+passed head-exact, merge-compat, QEMU and publication CI in run 34060597581.
+New private work: `rog5-server-hw11-20260906.Lo7km1SL`. No phone contact,
+staging, claim creation or execution occurred during this preparation.
+
+V4 asks whether the already-qualified hw1.1 correction lets the combined
+server finish radio startup and normal SSH. It replaces only the four
+ABI-coupled modules recorded above, nested checksums and distinct trial identity.
+Archive twins PASS 47.330 s; signed bundle twins PASS 0.743 s, reusing the
+unchanged Image, DTB, recovery twins and ASUS wrapper. No kernel rebuild.
+
+- Target: `a5ff5c003b44cb073b78990487c8ffc810e6ef635e85c8b0ab40ab18b67e2e8f`
+- Manifest: `a6296549c855e3c8a1fd9c2e807e196207d1be4ff48fe36db4a2627528fd0966`
+- Selector: `4c84b0c137408dbababe161f392fb9b0507e6bbad12050e7ab3ba6e30b44895a`
+- Trial: `7649ff69ab7ee80db8603f6b06adb2f0116245f676e948e7668e8d2003078c3c`
+- Host preview: `3f5b41f753d618d10b941d0c629f27e701ee9c536af90a473489e6b500b3c9c0`
+
+The fixed repository record is the sole new identity lookup; existing generic
+consumers resolve it. Thirty-three admission tests, 19 one-use tests and the
+optimized-Python consumer tests passed. Registration active tier: 21.452 s.
+These are offline checks, not a live claim or publication of private artifacts.
+
+Host reserve was maintained by putting the signed package in private tmpfs
+`rog5-server-hw11-package-9JmEsxUp/package`. The prior disposable V3 raw preview
+was losslessly archived before its redundant raw cache was released:
+`/run/rog5-server-preview-20260906-ou4CkDi9/rog5-v3-preview-archive-hxoxa0p4/root.ext4.zst`.
+Archive SHA-256 `fb794e2fd00b72d8785749bcbba210cf3212169e5a41038324eb44754f82f42e`,
+2,125,490,200 bytes. Full decompression verified 34,359,717,888 bytes and the
+original `599a79a6b1cb02fa6eb2dc4674a74c1040c0e96706078b067f5045e05fe1d4ee`
+hash. Preserve `archive-result.json` and its sparse zstd restoration command.
+The original disk snapshot and V2 archive remain unchanged. All these tmpfs
+artifacts remain volatile; this is not a durable backup claim.
+
+New preview preparation passed in 64.760 s, allocating 3,970,646,016 bytes.
+First exact signed A01 passed all seven functional checks but **FAIL** overall
+at 134.300 s against 120 s. Source and all artifacts remained unchanged.
+A separate read-only measurement found one full root hash took 23.653 s
+(19.977 user / 2.972 system seconds). This was host verification overhead,
+not a new phone kernel failure; no candidate was consumed to investigate it.
+
+The first full hash now runs alongside independent read-only composition
+checks, then joins before VM execution. Post-VM full hashing, inode/pathname
+metadata, source checks and the deadline remain. A regression failed before
+the correction and now proves overlap and worker join on failed preflight.
+All 34 focused composition tests PASS in 0.587 s; optimized regression PASS.
+The same signed artifacts then passed A01 in **106.750 s** (27.550 s faster).
+Original failure is retained; no criterion was weakened or relabelled.
+Tested input is base `9dd03298ecfd0d0941c506e2096d9efe6af66296` plus dirty
+digest `fca0bbfcb804a65ac3e4a59ab8370a44d8ab1de64bb3a31a50a5b54eb52ab3db`;
+subsequent documentation records do not retroactively change that provenance.
+Physical radio/server acceptance, bounded staging and admission remain pending.

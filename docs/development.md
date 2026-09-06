@@ -60,6 +60,11 @@ No repeated full CI for unchanged inputs. While remote checks run, do useful
 independent work without modifying their frozen inputs or starting a second
 device coordinator. This policy changes iteration cadence, not release gates.
 
+A01 overlaps its initial full retained-root hash with independent read-only
+composition checks. That hash must complete before QEMU; a separate post-VM
+full hash and pathname/metadata checks remain mandatory. The 120-second limit
+is unchanged. This scheduling optimization does not reuse a stale root digest.
+
 ## Packaging without identity-copy scripts
 
 The runtime packager accepts one JSON `--config` containing its non-credential
