@@ -133,7 +133,11 @@ a newer-primary adapter assumption. At uptime 3162 s this fallback remained
 Full/Good 100%, 29.7°C, 8.620 V and USB online, with unchanged selector/trial.
 The original observer fix's source
 `4205a261…` passed all four GitHub jobs in run 34007323724.
-Next: publish this data-only registration, use the integrated readiness checker
+All four registration CI jobs passed run 34007871579 at `2d5a0994…`.
+Exact legacy exitrd action-delta syntax passed with its sealed BusyBox/filesystem;
+pinned read-only inspection passed in the combined 0.516 s check at uptime
+3871 s, with unchanged installed boot B, selector/trial and safe battery state.
+No transition was installed or requested. Next: use the integrated readiness checker
 in the exact private supervisor, verify the running V11 exitrd before a normal
 storage-quiescent fastboot transition, then pass connected admission before
 one execution. New physical evidence is needed for coherent headless startup

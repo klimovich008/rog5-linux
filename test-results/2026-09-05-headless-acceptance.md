@@ -1961,3 +1961,29 @@ shutdown must not be used blindly. Battery remained Full/Good 100%, 29.7°C,
 The publication scope is only the canonical prepared artifact row and these
 existing documents. Full implementation CI is explicitly reused from 4205a261;
 connected preflight and the new head's publication checks are still required.
+
+Bounded source-reuse recheck at `2d5a0994…` reused the existing kernel-port
+assessment and retained ZS673KS charger source; all four public source pins
+remain unchanged. Denial's current release listing still provides no
+ARM64-named package. No imported driver, policy write, kernel rebuild, large
+checkout or device interruption was justified. Only the existing assessment
+was clarified. Returned to mandatory quick acceptance on this revision with
+the documentation-only diff frozen: A02 PASS **10.181 s**, B01 PASS **3.837 s**,
+G01 PASS **7.309 s**, G02 PASS **0.666 s**; total **22.018 s**. Other rows are
+NOT RUN in this run, not imported passes or release qualification. H02's exact
+V11-to-coherent-rescue transition remains the next physical checkpoint; this
+review does not issue, admit or execute V6. Existing exact-head CI was left
+running; no unchanged full local suite was repeated.
+
+Registration CI run 34007871579 finished successfully at exact `2d5a0994…`.
+The private V6 exitrd checker derives an action-only delta from the hash-bound
+sealed V11 archive, preserves its complete storage teardown, and parses the
+result in the exact ARM BusyBox/filesystem namespace. This is syntax/delta
+coverage, not hardware teardown proof. Pinned read-only same-boot inspection
+also verified deployed shutdown, BusyBox, musl, reboot helper/provider, selector,
+fallback manifest, healthy trial, RO P24 and unchanged installed boot B. Combined
+check PASS **0.516 s** at uptime 3871 s: Full/Good 100%, 29.7°C, 8.620 V, USB
+online. The known legacy keyring failure remains visible. New action-delta SHA
+`a3da03bf558a814c10388471eb38323e4f923349f87024274efa4408addb8753`
+is host-prepared only; no phone file was installed, no reboot requested, and no
+candidate consumed. Adapter execution and actual supervised H02 remain pending.
