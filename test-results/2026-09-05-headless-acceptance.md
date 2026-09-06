@@ -3972,3 +3972,82 @@ coordinator/publication inputs must not be reused as a new execution record.
 Fresh pinned SSH independently confirmed the same V11 boot: Full/100%, Good,
 29.9°C, 8.586 V, zero battery current and 350 mA USB input at 5.011 V under the
 500 mA limit. This is one health snapshot, not another H03 qualification.
+
+### V3 exact composition and bounded phone staging passed
+
+Frozen implementation/registration `ddd6ac41fb96ae00d4a0edfe0cdc3fc2a0d52dcc`
+passed head-exact, merge-compat, candidate-publication and qemu-system in run
+34055998034. Existing private preparation remains
+`rog5-server-startup-20260906.ou4CkDi9`; no kernel/wrapper rebuild or new ledger.
+
+The host capacity blocker was resolved without discarding verified bytes.
+The inactive, qualified V2 RAM preview was compressed after checking no reader,
+mount or loop association. A complete streaming restoration reproduced
+**34,359,717,888 bytes** and SHA
+`8f4afbcceed4b2112981392127deaf5a057a9c1d193cb325ef55791810e792c5`.
+Archive `/tmp/rog5-v2-preview-archive-dhah5w_s/root.ext4.zst` is
+**2,054,218,685 bytes**, SHA
+`9a76a3b9a2ef9fbda3bf063d0edef290c16626ae929b3dc861b86428b03e0546`.
+Only then was the redundant uncompressed RAM cache removed. Retention took
+**86.219 s**; private `archive-result.json` records exact restoration commands.
+The archive remains volatile tmpfs, as the old preview was. The original disk
+snapshot, signed bundles, recipes, old test evidence and phone were untouched.
+
+Restoring a separate image and staging V3 in it passed **127.813 s**. Allocation
+is 3,877,801,984 bytes; raw SHA
+`599a79a6b1cb02fa6eb2dc4674a74c1040c0e96706078b067f5045e05fe1d4ee`.
+This prospective image is not a claim about the physical P24 raw digest.
+
+A01 first passed all seven checks and completed its exact-kernel VM, but total
+**121.543 s** exceeded the existing **120 s** deadline: retained **FAIL** at
+`a01/result.json`. The source was independently confirmed unchanged. Read-only
+64 MiB mappings then rehashed the inactive archive and applied the documented
+[PAGEOUT cache hint](https://man7.org/linux/man-pages/man2/madvise.2.html), with
+no logical-file modification. There was no immediate MemAvailable increase;
+do not claim that this alone caused the subsequent timing improvement.
+The complete rerun passed **104.639 s**, all seven checks, unchanged root and
+artifacts, at `a01-r2/result.json`. No deadline, hash, check, kernel/module/DTB,
+radio policy or watchdog setting was relaxed. This is offline composition,
+not physical radio initialization or final-server qualification.
+
+Pinned read-only V11 staging inspection passed **0.669 s** on unchanged boot
+`61d60a1b-e4cd-472c-b439-590c1d31baa5`. It verified exact P23/P24 geometry,
+UUIDs, RO/write scope, power gates, all fallback payloads, failed V2 selector
+and its pending trial. Trial SHA:
+`d0fef94cb686b2065311638cbbb9665617e5ca65796a46dc718bf0d7f43e9091`.
+The current source is V11 fallback, not V8; this pending record is not healthy.
+
+The existing stager was adapted through its tested read-only prefix and bounded
+write tail. Four coordinator/postcheck tests passed **0.015 s**, including
+failed backup before transfer/entry and changed script before remote readback.
+A new disposable tmpfs utility fixture exposed its own incorrect `findmnt`
+subdirectory query before any persistent write. Trace proved an empty result;
+`--target` fixes that query. The regression passes **0.008 s**; the exact running
+Arch utilities then passed **0.562 s**. Retain the failed fixture/trace rather
+than blaming kernel or storage. An intermediate generated postcheck syntax
+error was likewise caught by AST validation before use; assembled postcheck
+execution against fake endpoints passed after correction. No phone cycle was
+consumed by these adapter defects (R7).
+
+One bounded staging transaction passed **2.324 s** after host backup, RAM
+transfer, payload verification, exact-source CI and artifact checks. It added
+only the five-file signed V3 bundle on P24 and changed its selector atomically.
+The failed V2 selector is preserved as
+`selector.rollback-headless-server-selector-v3`; its pending record is retained
+on P23 as `wifi-trial-state.failed-headless-server-selector-v2-` followed by the
+full trial hash above. Active trial is absent, not synthesized as healthy.
+Stock A, boot B, GPT, firmware, modem, calibration/security data, all prior
+bundles, and overlay/service-state image contents were preserved.
+
+Independent postcheck passed **0.602 s**: new files and backups match, P24 is
+mounted RO and block-locked, write scope is again only `sda sda23`, and the same
+V11 boot remains Good with USB input online. Private `stage/STAGING-ENTERED.json`,
+`STAGING-RESULT.json`, host backups, transaction log and `postcheck-r1/result.json`
+are authoritative. Do not rerun staging. A read-only host claim-store check
+found all V3 claim/entry markers absent. No boot, flash or claim was performed.
+
+Next: finish the current V11 exitrd-to-fastboot transition and V3 one-shot
+coordinator/publication bindings; use the early pinned startup diagnostics
+alongside normal readiness. Never perform an ordinary reboot into the old
+unqualified installed boot B, retry failed V2, or treat this checkpoint as a
+qualified standalone server.
