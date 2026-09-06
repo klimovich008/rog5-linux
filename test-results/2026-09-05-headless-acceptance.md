@@ -3724,3 +3724,46 @@ Evidence-only handoff update: current-state is 114 lines. Markdown targets and
 `git diff --check` PASS; the existing active tier PASS after the update, with
 per-test durations printed (no aggregate wall duration captured for this run).
 No unchanged full local or remote suite was rerun for these documentation edits.
+
+### C02 isolated-guest timing correction
+
+Started clean `3f1c38ecb72c3dd5c4cc8e2ea89f9a3507b0fc15`. The prior goal turn
+made progress (H01/H02/H03 qualified); it was not a stopped or retriable boot.
+Question: can the exact C02 behavior meet its existing 120 s contract without
+discarding root hashes or altering target/watchdog semantics?
+
+The two C02 guests have independent initramfs, logs, RAM overlays, loopback
+credentials and networkless containers; shared kernel/root inputs are read-only.
+The runner now overlaps only these two guests. C01 and other supporting modes
+remain sequential. Each guest retains its 40 s QEMU/50 s subprocess limit,
+2 CPU/1 GiB container cap; timeout errors propagate without retry. Both complete
+root hashes, ordered per-case proof and the unchanged 120 s row limit remain.
+This is host test-harness code only, not kernel, initramfs, claim or recovery code.
+
+New overlap/sequential/timeout tests first failed with missing implementation.
+The full 17-test artifact/harness suite then PASS 1.084 s, including an actual
+barrier in mocked complete C02 core and Wi-Fi runs, separate logs and retained
+read-only arguments. Active tier PASS 20.595 s; exact log
+`rog5-rescue-h03-20260906.CayoqOsI/c02-parallel-active.log`.
+Implementation committed as `c2539e3c27b4478e901f3058ad9b01de593fdb84`,
+then frozen for real exact-artifact qualification. No rebuild or phone boot.
+
+`c02-parallel-r3/results.json` under the same private directory is the actual
+existing acceptance dispatcher result: **C02 PASS 91.570 s**, versus the retained
+151.045 s failure. Input-receipt hashing outside the timed row took 30.146 s;
+it is reported separately, not hidden. The runner itself took 91.452 s with
+two workers; healthy SSH restart 30.482 s, stale-identity reset 23.366 s.
+Kernel/archive/root hashes match the V8 receipt, the retained root is unchanged,
+and complete proof passed the existing consumer. No prior FAIL was overwritten.
+The 114.037 s instrumented replay remains diagnostic only. This reduces serial
+guest overhead; it does not claim the old variable host delay's cause is proven
+or guarantee timing under arbitrary host load.
+
+Fresh same-boot H02 PASS 1.269 s, private `h02-c02-checkpoint/result.json`:
+exact V8 identity, runtime, Good power/thermal bounds, pinned SSH and actual
+900.048 s watchdog ACK. Wi-Fi remains intentionally inactive. This is continuity,
+not another H03 interval or whole-server qualification. Installed autonomous
+recovery, server radio/local persistent operation and remaining release rows
+remain the next work. The source demotion fix already exists; qualify deployed
+composition rather than reopening the same historical review. No global
+instruction, charging control, phone storage or installed boot image changed.
