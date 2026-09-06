@@ -43,6 +43,12 @@ endpoint must match the receiver. These are offline composition checks, not
 physical firmware/USB or watchdog-expiry qualification. Missing checks return
 BLOCKED, not a partial PASS; external selector bundles and server radio extras
 still require their own integrated proof.
+The server firmware check now verifies the complete sealed radio hash manifest
+and exact six-file WCN6855/regulatory inventory, with metadata/path/content
+refusals. The same VM checks the actual files with sealed BusyBox; missing or
+duplicate firmware result markers cannot pass. This does not establish radio
+activation or firmware behavior on physical hardware. Untested radio modules
+still leave the overall A01 result BLOCKED independently of firmware PASS.
 For a canonical selector-trial record, the checker now reads both named bundles
 only from `/boot/rog5-linux/bundles/` inside the paired retained root. It first
 checks the exact selector hash, then bounded no-follow metadata/inventory reads

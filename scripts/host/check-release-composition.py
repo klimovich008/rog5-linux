@@ -291,6 +291,8 @@ def main():
         if len(digests)!=1 or len(counts)!=1:
             raise ValueError('ambiguous accepted firmware build contract')
         report['firmware']=C.firmware_composition(target,digests[0],int(counts[0]))
+        if report['profile']=='server-runtime':
+            report['radio_firmware']=C.radio_firmware_composition(target)
         core,pending=C.core_module_members(target,report['profile'])
         modules=C.module_closure(core,report['plan']['target_release'])
         root_hash=C.ACCEPTANCE.sha_file(args.root_image)
@@ -318,9 +320,9 @@ def main():
             raise ValueError('unexpected exact-shell stage proof')
         report['timing']['virtual_boot_id']=stage.boot_id
         checks['timing_transport']='PASS'
+        checks['firmware']='PASS'  # Core and (when present) radio inventories + exact VM readback.
         if not pending:
             checks['module_load']='PASS'
-            checks['firmware']='PASS'
         report['radio_module_tests']=pending
         remaining=[k for k,v in checks.items() if v!='PASS']
         report['reason']='Remaining integrated checks: '+', '.join(remaining) if remaining else 'Complete offline composition proof'
