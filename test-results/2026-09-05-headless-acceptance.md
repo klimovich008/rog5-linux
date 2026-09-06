@@ -3387,3 +3387,56 @@ link checks. Final focused/active results belong in the same private
 `rog5-v7-server-modules-20260906.Ibl4iPCz` directory.
 The original bounded sequential kernel twins continue without input changes.
 Neither clean twin outcome, final A01 nor physical H03 is inferred from progress.
+
+### Combined build OOM recovery and identified capture-read race
+
+At `1ad38a4ecba0bbdc29e17a0f1ba19bdcf312ea90`, all four GitHub jobs PASS
+run 34040091326. The original build controller was authoritatively terminal:
+A failed after **1600.559 s**, B had not compiled. Host journal identifies
+CONSTRAINT_MEMCG and killed pahole at 3,115,168 KiB anonymous RSS, matching
+the container's 3 GiB/no-swap cap. This is R6 host resource failure, not a
+kernel/BTF source defect. The earlier successful build used 6 GiB.
+
+Preserved failure/result/log, source, config, object tree and output lock.
+The private resume controller changes only the runtime memory cap to 6 GiB
+with no swap; exact-state checks and compiler inputs are unchanged. A resumed
+in **176.750 s**, BTF and all 19 modules intact. Image
+`ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`,
+vmlinux `bd7652a0d88c5809a2de87db985ccb0fe96288eebd4d8694ff3ca354d967b69e`,
+symvers `b1856e308370c9b9678f5ae4d00d1b2d54d54e3dfd1c3e50b24a4962f5d0cd08`.
+A allocates **2.9 GiB**; independent clean B is still running. No twin PASS
+or assembled release is claimed. Recipes/logs remain in the same private
+`rog5-v7-server-modules-20260906.Ibl4iPCz` directory.
+
+Fresh exact V7 read-only health PASS **0.291 s**: same boot, uptime 15373.21 s,
+29.9°C/8.594 V, zero current, Good/USB online, P24 RO, no failed units. No
+radio activation, charging write, restart or persistent storage mutation.
+
+H01 investigation reproduced a specific failing boundary offline: after exact
+USB anchor resolution, removing the fixture device during idVendor read raises
+ENODEV, then discovery confirms absence. Old code permanently marked it failed.
+The new typed read exception plus phase logging distinguish only this expected
+pre-target enumeration interruption. It neither resets lifetime nor closes the
+listener, grants authority or retries execution. Unknown errors, unresolved
+identity, network/binding failures and errors after target observation remain
+fatal, even before the first frame; previous failure cannot be cleared.
+
+The original V7 untagged exception fixture still yields FAIL. Its precise
+historical syscall is unknowable from retained evidence; this correction does
+not retroactively qualify V7. Receiver **21 tests PASS 0.343/0.287 s** normal/
+optimized, including the fail-first actual filesystem-read/removal fixture.
+The startup consumer rejects malformed or post-target pending events; its
+seven new invalid subcases failed before correction. Consumer **19 tests PASS
+0.362/0.418 s** normal/optimized. One mistyped consumer-test filename failed
+before execution; corrected invocation is retained, not a test failure hidden
+as success. One full local CI **PASS 630.297 s** for the frozen shared capture
+changes; the unchanged earlier full suite was not rerun as a substitute.
+
+The first derived module kit omitted `arch/arm64/include/generated`; the
+existing Wi-Fi builder failed at `asm/types.h` before a module completed
+(10.867 s). This is a separate demonstrated kit-composition omission, not a
+kernel source defect. Added only the exact generated header subtree from A;
+AArch64 preprocessing and subtree comparison PASS. Existing outputs/logs
+remain. Corrected module A **PASS 223.630 s** with unchanged kernel/config/BTF
+base; module B and activation twins are still running. No new kernel checkout,
+kernel rebuild, source change, claim, signature or phone boot for that fix.

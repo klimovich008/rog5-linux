@@ -206,6 +206,10 @@ Prevention:
 - Add one idempotent `host-doctor` command that reports disk/inode headroom, bind sources, listeners, binfmt state, NetworkManager profiles, firewalld output, route state, compiler/container identity, and active build processes.
 - Add one reversible `host-reset-for-cycle` command that changes only project-owned state and produces a before/after receipt.
 - Require sufficient free space before build and deployment, including temporary twin-build peak usage.
+- Budget BTF/link memory as well as compiler memory. A 3 GiB container killed
+  pahole on the combined server kernel; the retained 6 GiB build allowance
+  completed it. Preserve the memcg evidence and resume only exact-state objects;
+  do not disable BTF or change kernel configuration to hide a host OOM.
 - Build from an immutable source snapshot. Never edit files used by an active build.
 - Keep each candidate in a fresh output directory and never reuse partial outputs.
 

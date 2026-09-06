@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Passive prestarted headless stage receiver. Never issues or executes a boot."""
 import argparse
+import errno
 import fcntl
 import hashlib
 import importlib.util
@@ -47,25 +48,42 @@ def stage_dict(stage):
     return {k: getattr(stage, k) for k in ('boot_id', 'sequence', 'stage', 'state', 'detail')}
 
 
+class UsbReadDisappeared(OSError):
+    """A specific anchored sysfs read, not an arbitrary transport exception."""
+    def __init__(self, error, operation):
+        super().__init__(error.errno, error.strerror)
+        self.operation = operation
+
+
 def update_transport(receiver, serial, ensure_route):
     """One discovery step; the caller owns the original bounded lifetime."""
+    phase = 'usb-discovery'
     try:
         mode, interface = usb_mode(serial)
+        phase = 'network-setup'
         if mode == 'target' and not ensure_route():
             mode, interface = 'enumerating', None
+        phase = 'listener-bind'
         receiver.transport(mode, interface)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-        # USB can vanish between sysfs discovery and the bounded NM/ip call.
-        # Keep the original capture deadline and last evidence, not admission:
-        # any failed check permanently invalidates this capture's readiness.
-        receiver.failed = True
-        receiver.emit(dict(event='transport-check-failed', reason=str(error)[:160],
-                           last_stage=stage_dict(receiver.last),
-                           last_startup=receiver.startup))
         try:
             mode, interface = usb_mode(serial)
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
             mode, interface = 'enumerating', None
+        # Recovery is expected to disconnect during kexec. Tolerate only a
+        # positively identified sysfs-read removal followed by actual absence,
+        # before target observation. Never clear an earlier failure or infer
+        # this classification from the historical untagged ENODEV message.
+        pending = (phase == 'usb-discovery' and isinstance(error, UsbReadDisappeared)
+                   and error.errno in (errno.ENOENT, errno.ENODEV)
+                   and not receiver.target_seen and receiver.mode != 'mismatch'
+                   and mode == 'absent')
+        receiver.failed |= not pending
+        receiver.emit(dict(event='usb-discovery-interrupted' if pending else 'transport-check-failed',
+                           phase=phase, errno=getattr(error, 'errno', None),
+                           observed_mode=mode, target_seen=receiver.target_seen,
+                           operation=getattr(error, 'operation', None), reason=str(error)[:160],
+                           last_stage=stage_dict(receiver.last), last_startup=receiver.startup))
         if mode == 'target':
             # Identity alone cannot substitute for the failed network check.
             mode, interface = 'enumerating', None
@@ -111,6 +129,7 @@ class Receiver:
         self.last = None
         self.startup = None
         self.failed = False
+        self.target_seen = False
         self.mode, self.interface = 'absent', None
         self.probe = None
         self.probe_response = lambda: {}
@@ -134,6 +153,7 @@ class Receiver:
             self.listener.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE,
                                      (interface or '').encode()+b'\0')
         self.mode, self.interface = mode, interface
+        self.target_seen |= mode == 'target'
         if mode == 'mismatch':
             self.failed = True
         self.emit(dict(event='transport', mode=mode, interface=interface,
@@ -268,7 +288,12 @@ def usb_mode(serial):
     if str(USB.resolve(strict=True)) != ANCHOR:
         return 'mismatch', None
     def field(name):
-        return (USB/name).read_text().strip()
+        try:
+            return (USB/name).read_text().strip()
+        except OSError as error:
+            if error.errno in (errno.ENOENT, errno.ENODEV):
+                raise UsbReadDisappeared(error, name) from error
+            raise
     identity = field('idVendor'), field('idProduct'), field('product')
     if identity[:2] == ('0b05', '4daf'):
         return ('fastboot' if field('serial') == serial else 'mismatch'), None
