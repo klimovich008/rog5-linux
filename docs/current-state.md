@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated: 2026-09-07. Authoritative handoff; live capture is still running.
+Updated: 2026-09-07. Authoritative handoff; V4 is running, capture completed.
 
 ## Active goal and scope
 
@@ -75,8 +75,9 @@ do not create another manual identity source.
 Private current work: `rog5-server-hw11-20260906.Lo7km1SL`.
 `live-r1`, `publication.json`, `deployed-r1`, `server-snapshot-r1` and
 `stage` bind the actual bytes, source, physical boot, backups and readbacks.
-The sole supervisor remains active for its fixed 1380-second capture window.
-Do not restart it, shorten the window or change its loaded inputs.
+The sole supervisor is terminal after 1380.640 seconds, receiver exit 0.
+Route/firewall/profile/address cleanup passed; do not restart that coordinator.
+Original startup replay PASS 0.027 s and post-cleanup same-boot SSH PASS 0.203 s.
 Live source is **`3e90756f936f44df8d495695d3890a58c00ca646`**;
 all four GitHub jobs passed run **34063760646** before staging/execution.
 Later documentation does not relabel that source or create new authority.
@@ -93,15 +94,17 @@ These are component outcomes, **not a coherent final server PASS**.
 | V4 staging / readback | PASS 2.124 / 0.538 s; P24 relocked, old records preserved |
 | V4 server startup | Pinned SSH PASS 84.957 s; radio and same-boot healthy trial proven |
 | V4 deployed userspace | Six exact files PASS 0.297 s; component snapshot PASS 0.379 s |
-| H01/H02 completed capture | Preboot capture verified; final timeline/cleanup not yet evaluated |
+| H01/H02 capture component | Original startup replay PASS 0.027 s; all cleanup PASS; radio-free H02 qualification not claimed |
 | H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
 | S01 standalone boot | BLOCKED on qualified installed recovery; current boot used host fastboot |
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
 
-Latest V4 component telemetry: Full/100%, Good, 29.8°C, about 8.581 V,
-zero battery current, USB online supplying 253 mA below reported 500 mA.
+Latest V4 component telemetry: Full/100%, Good, 29.9°C, about 8.580 V,
+zero battery current, USB online supplying 262 mA below reported 500 mA.
+Same boot survived its 900-second watchdog checkpoint; the log records current
+P2/SSH readiness acknowledgement. This is healthy-path evidence, not R01.
 Earlier startup briefly drew battery current; these snapshots are not a
 10-minute H03 series. H03's firmware-Full protocol is already defined;
 unsupported charge-limit controls are not a blocker and none were written.
@@ -110,12 +113,20 @@ radio-active snapshot a qualifying substitute or collect the same absent fields.
 
 ## Exact next action and development loop
 
-Finish the existing passive capture and evaluate its original startup/cleanup
-evidence. Keep this healthy server accessible; no ordinary reboot.
-Then advance S01/R01 from the retained installed-helper-v1 versus tested-v2
-comparison and exact working wrapper. A reviewed, verified installed recovery
-path must precede autonomous repeated boots. Do not start a new architecture
-review, invent another charging/kernel fix or flash an experimental payload.
+Keep this healthy server accessible; no ordinary reboot. Exact old/new wrapper
+comparison PASS 0.791 s: same ASUS kernel, header, command line and 100663296-byte
+size; differences are selector loader, v2 trial helper and reboot-helper mode
+only (reboot-helper bytes unchanged). Current recovery/source closure PASS
+0.289 s; unchanged ARM replay is reused, not rerun. No rebuild is required.
+Both retained installed boot-B copies rehash to `340f6392…`.
+
+Private `recovery-reuse-r1/REPLACEMENT-PROPOSAL.json` scopes only boot B;
+SHA-256 `98b8704cd097b05287064bd5e5cbf56adbe4776363060b9d35bcf426e154b04b`.
+It is **prepared, not authorized or executed**. Review/approval of this exact
+persistent replacement precedes its guarded executor and ordinary boot tests.
+Stock A, signed V11, GPT and data remain unchanged. No experimental flash is
+implied. S01/R01 still require real installed/controlled-failure evidence.
+Do not start a new architecture review or invent another charging/kernel fix.
 The physical hw1.1 issue is closed for this boot; full networking qualification
 and repeatability are separate acceptance outcomes.
 

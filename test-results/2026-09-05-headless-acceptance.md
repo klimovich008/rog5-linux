@@ -4276,3 +4276,46 @@ Installed boot B still contains the older trial helper that fails to rearm a
 healthy primary; S01/R01 and ordinary reboot qualification remain blocked on
 the existing exact recovery correction. Do not substitute this RAM success
 for autonomous boot or a controlled physical recovery test.
+
+### V4 completed capture and exact installed-recovery prerequisite
+
+The original coordinator completed its full **1380.640 s** window with receiver
+exit 0. Route, firewall, NetworkManager profile and diagnostic-address cleanup
+all PASS. The receiver's raw result is intentionally NOT RUN for qualification:
+capture alone is not authenticated acceptance. Original startup-timeline replay
+then PASS **0.027 s**, explicitly `h02_qualified=false`; radio-free current H02
+was not substituted with the active-Wi-Fi server. Post-cleanup pinned readiness
+PASS **0.203 s** on the same V4 boot. No reboot or claim was repeated.
+
+Read-only steady-state observation PASS **0.346 s**: Full/100%, Good, 29.9°C,
+8.580 V, zero battery current and 262 mA USB input under 500 mA. The retained
+kernel log at target uptime **902.468 s** records current-boot P2/SSH readiness
+acknowledgement. This proves the observed healthy watchdog path, not the missing
+controlled failed-boot R01 test or a 600-second H03 series.
+
+Bounded exact recovery/source closure PASS **0.289 s**. The actual V4 archive
+contains current init, normal `existing-recovery` selector entry, selector
+loader and the v2 trial helper byte-for-byte. Its unchanged ARM behavioral/twin
+evidence from full CI `8a9c0318` is explicitly reused with source/receipt hashes;
+no rebuild or redundant suite was run. An initial private comparison typo
+expected an extra mode-file newline; inspecting the exact bytes corrected the
+observer, not the image. It failed offline before any device operation.
+
+Old/new wrapper comparison PASS **0.791 s**. Installed-image copies
+`rog5-recovery-precommit-persistent-20260902-r1/boot_b-{a,b}.avb.img` both
+rehash to `340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
+The proposed replacement is the already RAM-tested `dcc487f1…` wrapper recorded
+above. Both have the same boot-v3 header, 100663296-byte image size, complete
+command line and ASUS kernel hash
+`838425a8bc0d49cd92a62df843ca939c3376b879c02faa8bab930d80913c7783`.
+Only the selector loader, trial helper and reboot-helper permissions differ;
+the latter's machine code is identical. No new kernel work is required.
+
+Private `recovery-reuse-r1/REPLACEMENT-PROPOSAL.json`, SHA-256
+`98b8704cd097b05287064bd5e5cbf56adbe4776363060b9d35bcf426e154b04b`, binds old/new
+bytes, exact device/slot/partition, proposed command, fresh power/identity/readback
+gates and rollback limits. It is REVIEW_REQUIRED_NOT_AUTHORIZED, not an issued
+candidate or executed flash. This scopes a future boot-B-only replacement;
+stock A, signed V11, GPT and filesystems remain unchanged. Restoring the old
+image also restores its known rearm defect. Ordinary boot qualification remains
+pending, not silently allowed by the successful RAM claim.
