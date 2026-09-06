@@ -146,7 +146,7 @@ consume a dedicated phone cycle merely to confirm an optional field.
 
 ### NCM bulk-transfer timer follow-up
 
-**Use now as a narrowly tested backport; physical correction remains unproven.**
+**Use now as a narrowly tested backport; bounded physical transfers now pass.**
 The exact running rescue's Image `bdceaa51…` contains the broken
 `ncm_tx_timeout` callback. Same-boot kallsyms locates it at Image offset
 11,951,996; disassembly calls `ndo_start_xmit`, discards its return value and
@@ -177,10 +177,14 @@ reproduces a stranded pending reply before the patch, verifies two BUSY results
 then successful delivery without any new traffic, and tests sustained BUSY and
 absent-device termination. Its optional `--source` check applies to a temporary
 copy of the retained driver and proves the tested callback matches exactly.
-This does not model DWC3 hardware or all timer concurrency. The patch is not
-deployed or silently added to an active build; the next focused kernel release
-must exercise the previously failing bulk-read plus parallel-SSH scenario and
-then complete the root snapshot. Do not hot-unload the active USB transport.
+This does not model DWC3 hardware or all timer concurrency. The separately
+reviewed, consumed V7 release deployed only this kernel correction and passed
+an 8 GiB bulk-read/parallel-SSH test plus the complete current P24 snapshot.
+See the [physical checkpoint](../test-results/2026-09-05-headless-acceptance.md#v7-physical-ncm-and-current-root-checkpoint).
+The earlier stall did not recur, but the host receiver separately marked its
+capture FAIL on pre-target ENODEV. Do not conflate that observation with a
+target reset or claim whole-release qualification. No additional downstream
+charging code or Denial runtime was imported. Do not hot-unload active USB.
 
 ## Why 7.1.4
 

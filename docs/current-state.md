@@ -22,6 +22,48 @@ Keep private credentials, raw evidence and artifacts outside Git; do not delete 
 
 ## Current running rescue
 
+**Consumed** `headless-acceptance-rescue-v7`, one RAM-only boot from clean
+`69a6806188c9957b1bca59206acf92d39746e4f1`; all four publication jobs PASS
+run **34027214673**. Never execute V7 again. Kernel `7.1.4-g601c84c0c3c4`,
+boot `120b2938-b143-4c17-ade4-69f4304c5802`, signed manifest `eca02756…`.
+No flash, selector, GPT or protected-data change. Stock A and signed V11 remain.
+
+| Same-boot result | Evidence |
+|---|---|
+| Exact V6 teardown to fastboot | PASS 10.243 s |
+| V7 fastboot / authenticated SSH readiness | 12.727 / 57.513 s |
+| 8 GiB P24 read + parallel pinned SSH | PASS 125.505 s; independent hashes match; 39 SSH checks, maximum 0.250 s |
+| Complete current P24 snapshot | PASS 386.132 s; 118 SSH checks, maximum 0.501 s; 3.8 GiB host allocation |
+| Deployed watchdog ACK | Current-boot P2 + SSH identity at uptime 902.552 s |
+| Capture | **FAIL** after pre-target sysfs ENODEV; preserved through 1380.577 s |
+| Owned host cleanup / final SSH | Four cleanup steps PASS; same boot at uptime 1380.79 s |
+
+P24 remained RO; snapshot SHA-256
+`e1692971646809ff412363014d69a363aa543336a715e918ec0cc978cafa36c6`.
+Private artifacts remain under `rog5-ncm-kernel-20260906.FwMH1o8D`.
+Temperature during reads was 29.8–29.9°C; final voltage 8.599 V, USB online,
+Good health, zero reported current. This is not H03 charging qualification.
+Wi-Fi stayed inactive. All live capture/read processes are terminal; SSH remains
+available. No new receiver, claim or boot is needed to continue offline work.
+
+The NCM bulk failure did not recur in these bounded tests. This supports the
+0039 correction, not a full soak or proof that all USB faults are fixed.
+Capture separately latched `[Errno 19] No such device` during recovery → absent
+before any target frame. Later success does not erase that FAIL. The exact
+exception phase was not logged; retain conservative classification and the new
+sanitized replay fixture before deciding any host-only correction.
+
+**Next mandatory test:** server A01 now verifies both signed selector bundles
+from the complete current root. Wrapper/signatures/archive/root runtime/timing
+PASS; **BLOCKED 96.626 s** on integrated extra radio-module and firmware checks.
+Do not import V7 core-only proof into the older server release. Reuse existing
+radio closure tests next; no downstream driver import or phone reboot is needed.
+R01 physical failure recovery, H03 regulation, ordinary/cold boots and the
+60-minute combined soak remain incomplete. See the
+[incident](../test-results/2026-09-05-headless-acceptance.md#v7-physical-ncm-and-current-root-checkpoint).
+
+## Previous rescue V6 — historical evidence
+
 **Consumed** `headless-acceptance-rescue-v6` ran once from published source
 `ae819406f4c4bbb37cc479ff6da8287ba6d393c2`; all four CI jobs passed run
 34008374648. Never execute this RAM candidate again.
@@ -132,7 +174,7 @@ not a demonstrated phone-kernel defect. Do not relax the deadline.
 Full battery, -13–0 mA and unchanged charge counter do not prove net-positive
 charging. H03 still needs predeclared full-battery regulation/noise criteria.
 
-## Next actions and remaining acceptance
+## Retained implementation history — current next action is above
 
 The bounded [source-reuse assessment](kernel-port.md#bounded-source-reuse-assessment--2026-09-06)
 found incompatible downstream charging controls, not a demonstrated mainline
@@ -274,7 +316,8 @@ Fresh pinned same-boot health **PASS 0.390 s**: Full/Good 100%, 29.7°C,
 8.608 V, USB online, P24 RO, no failed systemd units. Kernel twins use 3.0 GiB
 each; host has about 21 GiB free. No phone reboot, signing or storage write.
 
-**Prepared, not issued or booted:** `headless-acceptance-rescue-v7` reuses this
+**Preparation evidence (V7 is now consumed; see current state above):**
+`headless-acceptance-rescue-v7` reuses this
 kernel/19-module/DT baseline with NCM patch 0039. Nine exact-archive watchdog
 cases PASS **131.517 s**; real Arch/SSH healthy/stale handover PASS **113.439 s**,
 unchanged retained root. Signed bundle/recovery/boot twins PASS **13.711 s**,

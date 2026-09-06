@@ -1,0 +1,11 @@
+{
+  "scope": "Sanitized V7 receiver observation; exact exception phase was not retained",
+  "previous_mode": "recovery",
+  "errno": 19,
+  "message": "No such device",
+  "next_mode": "absent",
+  "later_mode": "target",
+  "target_stage_seen_before_error": false,
+  "expected_capture_failed": true,
+  "provenance": "2026-09-06 headless acceptance incident; do not infer target execution failure from this host event"
+}

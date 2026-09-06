@@ -2888,3 +2888,66 @@ Server A01 still needs the complete current snapshot. Physical NCM correction
 is unproven. Next: finish reviewed live coordinator/preflight, then one fresh
 RAM attempt with parallel SSH and bulk evidence. Preserve consumed V6 and the
 already signed V7 bytes; do not rebuild or re-sign merely to continue.
+
+### V7 physical NCM and current-root checkpoint
+
+Frozen source **69a6806188c9957b1bca59206acf92d39746e4f1** passed all four
+publication jobs in **34027214673**. Eight private adaptor checks PASS 0.406 s;
+exact sealed exitrd syntax/action-only delta and same-V6 inspection PASS 0.738 s.
+The existing teardown, modified only in RAM to request bootloader, reached exact
+slot-B fastboot in **10.243 s**, 8.622 V and battery-soc-ok yes. No flash.
+
+V7 was issued/consumed once and accepted by fastboot in **12.727 s**;
+authenticated readiness **57.513 s**. Boot
+`120b2938-b143-4c17-ade4-69f4304c5802`, kernel `7.1.4-g601c84c0c3c4`.
+Manifest/boot/recovery/archive identities are the verified preparation hashes
+above. Private coordinator/capture/evidence remains in the existing
+`rog5-ncm-kernel-20260906.FwMH1o8D` directory. Never retry this candidate.
+
+Read-only `bulk-r1` **PASS 125.505 s**: 8,589,934,592 bytes, SHA-256
+`ac1e0fe9ae8aed60ab63cde411a73358ed5a86b7b504e59b4278fb217fb0a6aa`,
+independent source/host hashes; 39 parallel pinned SSH/power/RO checks, maximum
+0.250 s. Source deadline 180 s, host 210 s, health 15 s; existing SSH keepalives
+unchanged. Private host decode tests reject truncation and wrong lengths.
+
+Complete `snapshot-r1` **PASS 386.132 s**: 34,359,717,888 bytes, SHA-256
+`e1692971646809ff412363014d69a363aa543336a715e918ec0cc978cafa36c6`,
+independently hashed on phone and host. 118 concurrent pinned SSH/power/RO
+checks, maximum 0.501 s. Target 550 s/host 580 s deadlines unchanged. Direct
+sparse decoding avoids a second compressed copy: 4,081,041,408 bytes allocated
+on host, against an 8 GiB bound and 7 GiB reserve after a 20 GiB initial gate.
+The completed private image is 0400. Previous partial snapshots remain intact.
+No phone-storage mutation, hot-unload or additional boot occurred.
+
+Temperature across reads 29.8–29.9°C, Good health and USB online. Deployed
+watchdog acknowledged current-boot P2/SSH at **902.552 s**; kernel-log prefix
+was preserved. Wi-Fi stayed inactive. These bounded passes support the NCM
+timer fix; they are not a combined soak, H03 regulation or R01 failure test.
+
+Capture **FAIL 1380.577 s**, independently of successful target checks:
+`[Errno 19] No such device` was recorded during recovery → absent, before any
+target frame. Exact exception phase was not retained. Later same-boot stages
+reached switch-root PASS and sshd running, but the receiver intentionally keeps
+its failed latch. Four owned cleanup operations (route/firewall/profile/address)
+PASS; final pinned read confirms the same boot at uptime **1380.79 s**, 29.9°C,
+8.599 V and zero current. All coordinator/read processes are terminal.
+
+The sanitized `rescue-pretarget-enodev.json` fixture replays this host observation
+and proves later target readiness cannot erase the FAIL. All **18 receiver
+tests PASS 0.115 s wall**. No production guard is relaxed: determine the exact
+discovery/route/bind phase offline before proposing a narrowly scoped host fix.
+Do not rebuild the kernel or consume a phone cycle to test a host classifier.
+
+Resumed server A01 against the new paired root: **BLOCKED 96.626 s**.
+Wrapper, signed primary/fallback, archive, actual root handover and timing/
+transport compatibility PASS; the root remained unchanged. Extra radio module
+and firmware proof remains NOT RUN. Its VM powered down cleanly at 12.920 s.
+That is the next mandatory offline integration task, not another source-review
+or hardware admission. The server release uses its own accepted kernel; no
+cross-release aggregation with V7's core-only module PASS is allowed.
+
+Checkpoint changes are documentation plus the retained host-observation replay,
+not production code. Active tier **PASS 19.075 s** (log creation-to-final-write
+interval); `git diff --check` PASS. No repeated kernel build or local full suite.
+Classify the new host observation under **R7**, with its exact exception phase
+still unproven; keep H01 FAIL rather than changing admission on that assumption.
