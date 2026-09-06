@@ -4425,3 +4425,15 @@ Focused malformed-record, hash/metadata, radio/core change, deadline and
 normal/optimized Python coverage precedes the frozen integration checkpoint.
 No source/runtime/kernel or physical mechanism changed. Full local CI is
 required once here because the shared acceptance dispatcher changed.
+
+The first actual `rog5-dev accept` invocation on clean `35417ce2…` was
+**BLOCKED**, not PASS: generated JSON hash metadata collided with the existing
+unresolved-brace guard. Total **104.400 s**, dominated by the full sparse-root
+receipt verification; the replay process never ran. Preserved in
+`f02-acceptance-r1`. A new end-to-end dispatcher regression reproduced it before
+correction. Hash metadata now uses explicit comma-separated `role=SHA256` pairs,
+without relaxing the placeholder guard. That regression also exposed the
+source-version collector treating a long non-path argument as a filename;
+`ENAMETOOLONG` now means non-source data, while other I/O errors still propagate.
+Both demonstrated host-only defects have focused coverage. No physical attempt
+or full CI had started, and no original artifact/result was relabeled.
