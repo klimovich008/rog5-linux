@@ -13,8 +13,10 @@ import json
 import os
 from pathlib import Path
 import re
+import resource
 import shlex
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -28,6 +30,12 @@ RECEIVER = C.load('composition_receiver', 'scripts/host/headless-stage-receiver.
 
 class Blocked(Exception):
     pass
+
+
+def root_identity(path):
+    s=path.lstat()
+    return (s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid,s.st_nlink,
+            s.st_size,s.st_mtime_ns,s.st_ctime_ns)
 
 
 def local_selector_identity(root_image, expected_hash):
@@ -58,6 +66,90 @@ def local_selector_identity(root_image, expected_hash):
     if actual!=expected_hash:
         raise ValueError('retained root selector mismatch: expected '+expected_hash+' observed '+actual)
     return dict(path=path,size=len(result.stdout),sha256=actual,scope='selector identity only')
+
+
+def root_member(root_image, path, limit, *, directory=False):
+    """Bounded read-only debugfs access to the fixed bundle store, not host paths."""
+    if (not re.fullmatch(r'/boot/rog5-linux/bundles/[a-z0-9][a-z0-9._-]{0,127}'
+                         r'(?:/(?:manifest|manifest[.]sig|Image|board[.]dtb|initramfs[.]cpio[.]gz))?',path)
+            or not root_image.is_absolute() or root_image.is_symlink() or not root_image.is_file()
+            or not 1 <= limit <= 256*1024*1024):
+        raise ValueError('invalid retained bundle read')
+    tool=shutil.which('debugfs')
+    if not tool: raise Blocked('read-only ext4 inspection requires debugfs')
+    before=root_identity(root_image)
+    def query(command, bound):
+        with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+            result=subprocess.run([tool,'-R',command,str(root_image)],stdout=output,stderr=errors,
+                timeout=5,preexec_fn=lambda:resource.setrlimit(resource.RLIMIT_FSIZE,(bound,bound)))
+            output.seek(0); data=output.read(bound+1)
+        if result.returncode or len(data)>bound:
+            raise ValueError('bounded retained bundle read failed')
+        return data
+    parts=path.split('/')[1:]
+    for index in range(1,len(parts)+1):
+        current='/'+'/'.join(parts[:index])
+        info=query('stat '+current,16384)
+        kind=re.findall(rb'Type: (\w+)\s+Mode:\s+([0-7]+)',info)
+        size=re.findall(rb'(?m)^User:\s+0\s+Group:\s+0\s+Project:\s+0\s+Size:\s+(\d+)$',info)
+        want_dir=index<len(parts) or directory
+        if (len(kind)!=1 or len(size)!=1 or kind[0][0]!=(b'directory' if want_dir else b'regular')
+                or int(kind[0][1],8)&0o7022):
+            raise ValueError('unsafe retained bundle metadata: '+current)
+        if not want_dir and (not re.search(rb'(?m)^Links: 1(?:\s|$)',info)
+                             or not 1<=int(size[0])<=limit):
+            raise ValueError('unsafe retained bundle size/links: '+current)
+    data=query(('ls -p ' if directory else 'cat ')+path,limit)
+    if (root_identity(root_image)!=before
+            or (not directory and len(data)!=int(size[0]))):
+        raise ValueError('retained bundle source changed or truncated')
+    return data
+
+
+def external_bundle_plan(root_image, record, recovery_members):
+    """Verify both selector bundles from the paired root with the sealed verifier.
+
+    This never accepts an unrelated host bundle directory or substitutes the
+    repository verifier for the bytes authenticated in the recovery image.
+    """
+    if record.get('execution')!='fastboot-boot-selector-trial':
+        raise Blocked('unsupported external bundle composition family')
+    bundles=[(record['target_bundle'],record['manifest_sha256']),
+             (record['fallback_bundle'],record['fallback_manifest_sha256'])]
+    if (bundles[0][0]==bundles[1][0] or any(
+            not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,127}',name)
+            or not re.fullmatch(r'[0-9a-f]{64}',digest) for name,digest in bundles)):
+        raise ValueError('invalid canonical external bundle selection')
+    before=root_identity(root_image)
+    selector=local_selector_identity(root_image,record['selector_sha256'])
+    members=dict(recovery_members); plans=[]
+    filenames={'manifest':4096,'manifest.sig':64,'Image':256*1024*1024,
+               'board.dtb':2*1024*1024,'initramfs.cpio.gz':256*1024*1024}
+    for bundle,digest in bundles:
+        path='/boot/rog5-linux/bundles/'+bundle
+        listing=root_member(root_image,path,16384,directory=True)
+        names=[]
+        for line in listing.splitlines():
+            if not line: continue
+            fields=line.split(b'/')
+            if len(fields)!=8 or fields[0] or fields[-1]:
+                raise ValueError('invalid retained bundle inventory')
+            if fields[5] not in (b'.',b'..'): names.append(fields[5].decode('ascii'))
+        if sorted(names)!=sorted(filenames):
+            raise ValueError('unexpected retained bundle inventory')
+        prefix='usr/share/rog5/ram-bundles/'+bundle
+        if any(name==prefix or name.startswith(prefix+'/') for name in members):
+            raise ValueError('mixed embedded and external bundle members')
+        for name,bound in filenames.items():
+            data=root_member(root_image,path+'/'+name,bound)
+            if name=='manifest' and hashlib.sha256(data).hexdigest()!=digest:
+                raise ValueError('retained bundle manifest mismatch')
+            C.SEALED.ARCHIVE.add(members,prefix+'/'+name,data,stat.S_IFREG|0o644)
+        plans.append(C.sealed_bundle_plan(members,bundle,digest))
+    if root_identity(root_image)!=before:
+        raise ValueError('retained root changed across bundle verification')
+    return members,plans[0],dict(source='retained-root-only',selector=selector,
+                                 primary=plans[0],fallback=plans[1])
 
 
 def timing_contract(manifest, plan, wrapper, members):
@@ -135,11 +227,11 @@ def inspect(args, checks):
     if len(payload)>512*1024*1024: raise ValueError('recovery archive too large')
     members=C.SEALED.ARCHIVE.entries(payload)
     bundle=record['target_bundle']; prefix='usr/share/rog5/ram-bundles/'+bundle
+    external=None
     if prefix+'/manifest' not in members:
-        if record.get('execution')=='fastboot-boot-selector-trial':
-            local_selector_identity(args.root_image,record['selector_sha256'])
-        raise Blocked('external signed-bundle input required for this wrapper; no phone storage will be accessed')
-    plan=C.sealed_bundle_plan(members,bundle,record['manifest_sha256'])
+        members,plan,external=external_bundle_plan(args.root_image,record,members)
+    else:
+        plan=C.sealed_bundle_plan(members,bundle,record['manifest_sha256'])
     hashes={'boot_bundle':hashlib.sha256(boot).hexdigest()}
     for role, filename, path in (('kernel','Image',args.kernel),('dtb','board.dtb',args.dtb),
                                   ('initramfs','initramfs.cpio.gz',args.target_archive)):
@@ -156,7 +248,8 @@ def inspect(args, checks):
     checks['archive']='PASS'
     manifest=dict(line.split('=',1) for line in members[prefix+'/manifest'][1].decode().splitlines())
     timing=timing_contract(manifest,plan,wrapper,target)
-    return dict(wrapper=wrapper,plan=plan,artifact_hashes=hashes,profile=profile,timing=timing)
+    return dict(wrapper=wrapper,plan=plan,artifact_hashes=hashes,profile=profile,timing=timing,
+                external_bundles=external)
 
 
 def target_members(blob):
@@ -186,6 +279,7 @@ def main():
             raise Blocked('missing isolated verification prerequisites')
         if args.root_image.is_symlink() or not args.root_image.is_absolute() or not args.root_image.is_file():
             raise Blocked('missing exact retained root image')
+        root_before=root_identity(args.root_image)
         report.update(inspect(args,checks))
         if not shutil.which('podman') or not shutil.which('modinfo'):
             raise Blocked('missing exact-kernel VM/module prerequisites')
@@ -205,7 +299,7 @@ def main():
                                      args.output,profile=report['profile'],firmware=True,
                                      recovery_timeout=report['timing']['rollback_seconds'],
                                      command_line=report['plan']['cmdline'])
-        if C.ACCEPTANCE.sha_file(args.root_image)!=root_hash:
+        if C.ACCEPTANCE.sha_file(args.root_image)!=root_hash or root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed')
         for role,path in (('kernel',args.kernel),('dtb',args.dtb),
                           ('initramfs',args.target_archive),('boot_bundle',args.boot_image)):

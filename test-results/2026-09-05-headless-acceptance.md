@@ -2729,3 +2729,124 @@ Resumed the executable acceptance loop with `rog5-dev accept quick`:
 Private observer `acceptance-quick` retains the exact dirty-source record and
 matrix. No historical release evidence was imported; A01 and unselected rows
 remain NOT RUN in this run and `qualified=false`. Only result notes follow it.
+
+### NCM kernel publication and exact-source build
+
+Published **56fcdc8667fd7d4b3c8f8b924a96242d937e0148** normally to the existing
+branch/PR; all four publication CI jobs **PASS**, run **34023915775**.
+The draft PR now distinguishes current headless acceptance from its historical
+consolidation results. No private payloads or credentials entered Git.
+
+Private `rog5-ncm-kernel-20260906.FwMH1o8D` contains the source worktree,
+`build.sh`, `launch.sh`, baseline config, preflight logs and active `build-a.log`.
+Source **601c84c0c3c42bec6da377ce38564a76d357f90a**, tree
+`dc8fb2613dea2594830e1a2ac70e816925bd37b6`, adds only patch 0039 above
+retained `34318ad1…`. The latter's UFS core SHA `f7bcbad6…` is exactly the
+source already used for the accepted external high-speed module; its integration
+is not a new storage-policy experiment. Config remains byte-identical
+`889d836f…`; no display, charging-control or capacity-unit patch is included.
+
+The initial container preflight failed before output creation because the
+retained source is itself a worktree whose common Git metadata lives elsewhere.
+Mounting the resolved common Git directory read-only fixes that host composition
+error. The next preflight verifies unchanged olddefconfig output, source/tree,
+UFS source, Clang 18.1.3, exact-state output locking and the new kernel release
+`7.1.4-g601c84c0c3c4`. The actual-source NCM regression passes all three tests
+in **0.249 s**. No new full suite was rerun on unchanged production source.
+
+Build A is running in pinned container `bdb4bbda…`, four jobs, 6 GiB memory
+cap, no network, read-only source and a 7200 s process bound. The first compile
+continues its prepared exact-state config output; there is no retained kernel
+object-cache hit. Source plus measured 5.5 GiB prior full-output scale leaves
+room for clean twins (27 GiB free after source preparation); recheck headroom
+before B and deployment. Do not edit this running recipe/source or call an
+observation timeout terminal. No twin/build PASS, candidate or admission yet.
+
+Fresh same-boot read-only health passes **0.368 s**, Full/Good 100%, 29.7°C,
+8.609 V, USB online, P24 RO and no failed systemd units. The installed NCM timer
+is unchanged until a separately verified fresh RAM release is executed.
+
+### External-root A01 composition implementation during compilation
+
+Demonstrated gap: even a coherent selector-backed server root had no path
+through A01; only embedded RAM bundles were supported. Added fail-first tests
+for paired primary/fallback verification and stale-selector refusal, then a
+bounded fixed-store `debugfs` reader. Neither a host bundle directory nor a
+repository-built verifier can substitute for retained-root bytes and the
+verifier authenticated in recovery. Parent/file symlinks, unsafe modes/owners,
+hardlinks, oversize/truncated reads, extra/mixed entries, altered manifests,
+signature refusal and source changes fail. Child file-size/time bounds cover
+actual reads; image metadata is checked across extraction and final runtime.
+
+The initial fake-directory parser expected the wrong slash-field count. Actual
+read-only `debugfs ls -p` output supplied the eight-field fixture, including
+empty directory-size fields and blank lines. The private component invocation
+also initially lacked the existing host-module import path and failed before
+artifact access; its corrected invocation uses the script directory explicitly.
+No phone cycle was used to discover either host issue.
+
+All **28** composition regressions PASS normally and optimized (optimized
+**0.524 s**); active tier **PASS 31.445 s**, concurrent with the four-job build.
+Actual component **PASS 4.913 s**: read all five V11 files from retained P24,
+verify manifest `a684bad1…`, signature and Image/DTB/archive with the verifier
+from authenticated V6 recovery. Private kernel-build evidence retains
+`external-root-component.py`, `.log`, `.json` and `external-active.log`.
+This is explicitly NOT A01: the old selector is still invalid for the current
+release, and no current paired-root or server-radio proof is claimed. Kernel
+build inputs were not modified. No phone contact, signing or admission occurred here.
+
+The frozen full local CI **FAIL 429.335 s** (`external-full-ci.log`): composition
+checks passed, but the unchanged lifecycle suite timed out at 15 s in the
+`mismatch` and `malformed` bad-progress subcases. Exact original focused replay
+then **PASS 3.409 s**, including all four subcases. Build contention/race remains
+a hypothesis, not a proven root cause. A diagnostic wrapper reproduced no
+timeouts but invalidated four source/guard assertions by replacing the runner;
+that run is not valid CI evidence. Preserve all logs, leave production deadlines
+unchanged, and resolve the targeted failure before publishing this checkpoint.
+The published NCM checkpoint's four GitHub jobs remain PASS; that result does
+not cover this dirty external-root implementation.
+
+### NCM build-A component checkpoint
+
+Build A **PASS 1258.793 s**, 3.0 GiB output, exact config `889d836f…`, Image
+`81fdcf8e600e09704e544f2add0a875276d598c3b21d8528807f398edda530c0`,
+Image.gz `796695512315f13022625fdc818f4a363844cec0d09788a9cad77ed991ad7db8`.
+Actual ARM64 object disassembly confirms BUSY-only timer rearm and return 1;
+success/no-netdev returns 0. All 19 modules match accepted allocated code/data
+and relocations; `.modinfo` differs only in expected release/intree metadata.
+Independent build B passed preflight and is still running in a distinct output
+directory; no source/recipe change or twin-reproducibility result is claimed.
+
+Existing initramfs tooling staged an unsigned component archive
+`01245c2dcfa7c2e0bee7b05b37b4f0266980b40ce653035ea6abf0b32e72f19a`,
+preserving the accepted pdr_interface-only BTF packaging exception. Isolated
+Arch/QEMU component **PASS 100.969 s** (VM runtime **31.112 s**), all 19 exact
+module loads, sealed firmware preparation and runtime stage parser. Source was
+unchanged across the run; kernel/archive/root hashes agree before and after.
+The VM had no networking or phone passthrough and used the read-only old root
+with a tmpfs upper. `vm-a/result.json` explicitly records `a01_qualified=false`
+and `release_qualified=false`: no current-root selector, physical NCM, radio
+activation or watchdog expiry proof is substituted by this component pass.
+
+Build B subsequently **PASS 1248.796 s**. `kernel-twins.json` compares all 25
+kernel/config/ABI/release/module files, byte-identical with clean exact source
+in **0.986 s**. Both raw outputs occupy 3.0 GiB. Target B was independently
+packaged through the same builder and accepted BTF exception; its archive hash
+is identical to A (`01245c2d…`). About 21 GiB host headroom remains. These are
+unsigned offline artifacts, not a new candidate or reuse of consumed V6.
+
+Fresh pinned same-rescue gate **PASS 0.390 s**, Full/Good 100%, 29.7°C,
+8.608 V, USB online, P24 RO and no failed systemd units (`health-b.json`).
+No phone reboot, charging control or persistent storage write occurred.
+
+Corrected diagnostic invocation preserves original source/guard assertions and
+traces only offline Fixture.run children. All 89 cases **PASS 98.408 s** with
+no timeout. The original uninstrumented suite then **PASS 97.600 s** (test body
+92.762 s). These replays do not establish why the initial full-CI run timed out.
+The remaining original CI tests were run sequentially from the repository's
+existing list with a disk-backed short TMPDIR, without rerunning the earlier
+passing prefix: **110 tests / 228.163 s PASS**. `ci-remainder/result.json` records the exact suffix, durations,
+runner hash and unchanged production digest. This completes local coverage but
+does not relabel the original **FAIL 429.335 s** run as PASS. Keep the original
+failure and require exact-head/merge CI before candidate admission/publication
+is accepted. No production deadline or lifecycle behavior was changed.

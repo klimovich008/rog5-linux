@@ -17,6 +17,95 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_external_primary_and_fallback_use_root_bytes_and_sealed_verifier(self):
+        final=M.load('external_composition_test','scripts/host/check-release-composition.py')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'root.ext4'; root.write_bytes(b'root')
+            record=dict(execution='fastboot-boot-selector-trial',target_bundle='primary',
+                        fallback_bundle='fallback',manifest_sha256=M.hashlib.sha256(b'primary').hexdigest(),
+                        fallback_manifest_sha256=M.hashlib.sha256(b'fallback').hexdigest(),selector_sha256='a'*64)
+            reads=[]; verified=[]; original={}
+            def read(image,path,limit,*,directory=False):
+                self.assertEqual(image,root); reads.append(path)
+                if directory:
+                    return b'/1/040700/0/0/.//\n/2/040755/0/0/..//\n\n'+b''.join(
+                        b'/3/100644/0/0/'+name.encode()+b'/1/\n' for name in
+                        ('manifest','manifest.sig','Image','board.dtb','initramfs.cpio.gz'))
+                parts=path.split('/'); return parts[-2].encode() if parts[-1]=='manifest' else b'payload'
+            def verify(members,bundle,digest):
+                verified.append((bundle,digest))
+                self.assertEqual(members['usr/share/rog5/ram-bundles/'+bundle+'/Image'][1],b'payload')
+                return dict(bundle=bundle,manifest_sha256=digest)
+            with patch.object(final,'local_selector_identity',return_value={}), \
+                    patch.object(final,'root_member',side_effect=read), \
+                    patch.object(final.C,'sealed_bundle_plan',side_effect=verify):
+                members,plan,evidence=final.external_bundle_plan(root,record,original)
+            self.assertEqual(original,{})
+            self.assertEqual(plan['bundle'],'primary')
+            self.assertEqual([x[0] for x in verified],['primary','fallback'])
+            self.assertEqual(evidence['source'],'retained-root-only')
+            self.assertTrue(all(p.startswith('/boot/rog5-linux/bundles/') for p in reads))
+            self.assertIn('usr/share/rog5/ram-bundles/fallback/manifest',members)
+            for fault in ('manifest','extra-entry','signature','mixed','unsafe-name','source-change'):
+                def bad_read(image,path,limit,*,directory=False):
+                    data=read(image,path,limit,directory=directory)
+                    if fault=='manifest' and path.endswith('/manifest'): return b'changed'
+                    if fault=='extra-entry' and directory: return data+b'/4/100644/0/0/extra/1/\n'
+                    if fault=='source-change' and path.endswith('/manifest'): root.write_bytes(root.read_bytes()+b'changed')
+                    return data
+                bad_record=dict(record)
+                if fault=='unsafe-name': bad_record['target_bundle']='../primary'
+                initial={'usr/share/rog5/ram-bundles/primary/Image':([],b'embedded')} if fault=='mixed' else {}
+                with patch.object(final,'local_selector_identity',return_value={}), \
+                        patch.object(final,'root_member',side_effect=bad_read), \
+                        patch.object(final.C,'sealed_bundle_plan',side_effect=ValueError('invalid signature')
+                                     if fault=='signature' else verify):
+                    with self.assertRaises(ValueError,msg=fault): final.external_bundle_plan(root,bad_record,initial)
+
+    def test_root_bundle_reads_are_bounded_nofollow_and_read_only(self):
+        final=M.load('root_bundle_reader_test','scripts/host/check-release-composition.py')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'root'; root.write_bytes(b'root')
+            faults=['none','symlink-parent','symlink-file','group-write','hardlink','oversize','short','change']
+            for fault in faults:
+                def run(command,**kwargs):
+                    self.assertNotIn('-w',command); self.assertEqual(command[-1],str(root))
+                    self.assertEqual(kwargs['timeout'],5); self.assertTrue(callable(kwargs['preexec_fn']))
+                    query=command[2]; last=query.endswith('/manifest')
+                    if query.startswith('stat '):
+                        kind='regular' if last else 'directory'; size=3 if last else 4096; mode='0400' if last else '0700'
+                        if (fault=='symlink-parent' and not last) or (fault=='symlink-file' and last): kind='symlink'
+                        if fault=='group-write': mode='0664'
+                        if fault=='oversize' and last: size=10000
+                        links=2 if fault=='hardlink' and last else 1
+                        data=f'Inode: 42 Type: {kind} Mode: {mode}\nUser: 0 Group: 0 Project: 0 Size: {size}\nLinks: {links}\n'.encode()
+                    else:
+                        self.assertEqual(query,'cat /boot/rog5-linux/bundles/fixture/manifest')
+                        data=b'x' if fault=='short' else b'abc'
+                        if fault=='change': root.write_bytes(root.read_bytes()+b'change')
+                    kwargs['stdout'].write(data)
+                    return subprocess.CompletedProcess(command,0)
+                with patch.object(final.shutil,'which',return_value='/usr/bin/debugfs'), \
+                        patch.object(final.subprocess,'run',side_effect=run):
+                    if fault=='none':
+                        self.assertEqual(final.root_member(root,'/boot/rog5-linux/bundles/fixture/manifest',4096),b'abc')
+                    else:
+                        with self.assertRaises(ValueError,msg=fault): final.root_member(root,'/boot/rog5-linux/bundles/fixture/manifest',4096)
+            for path in ('/etc/passwd','/boot/rog5-linux/bundles/../manifest','/boot/rog5-linux/bundles/fixture/evil;write'):
+                with self.assertRaises(ValueError): final.root_member(root,path,4096)
+
+    def test_external_bundle_rejects_stale_selector_before_payload_read(self):
+        final=M.load('external_stale_test','scripts/host/check-release-composition.py')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'root'; root.write_bytes(b'root')
+            record=dict(execution='fastboot-boot-selector-trial',target_bundle='primary',fallback_bundle='fallback',
+                        manifest_sha256='a'*64,fallback_manifest_sha256='b'*64,selector_sha256='c'*64)
+            with patch.object(final,'local_selector_identity',side_effect=ValueError('stale selector')), \
+                    patch.object(final,'root_member') as read:
+                with self.assertRaisesRegex(ValueError,'stale selector'):
+                    final.external_bundle_plan(root,record,{})
+                read.assert_not_called()
+
     def test_server_snapshot_rejects_captured_old_selector_without_writes(self):
         final=M.load('a01_selector_test','scripts/host/check-release-composition.py')
         # Retained P24 snapshot predates the current selector-v2 staging.

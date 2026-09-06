@@ -43,6 +43,14 @@ endpoint must match the receiver. These are offline composition checks, not
 physical firmware/USB or watchdog-expiry qualification. Missing checks return
 BLOCKED, not a partial PASS; external selector bundles and server radio extras
 still require their own integrated proof.
+For a canonical selector-trial record, the checker now reads both named bundles
+only from `/boot/rog5-linux/bundles/` inside the paired retained root. It first
+checks the exact selector hash, then bounded no-follow metadata/inventory reads
+and both signatures with the verifier authenticated in the recovery archive.
+It accepts no separate host bundle directory. Changed roots, mixed embedded
+payloads, extra entries or an invalid fallback fail; unsupported external
+families remain BLOCKED. Tests and a real retained-bundle component pass do not
+replace the still-required current-root/server-radio integrated result.
 The `required_checks` in the manifest is the single complete-proof checklist.
 
 Supporting A01 component check: `rog5-dev check-rescue-root --inputs RECEIPT
