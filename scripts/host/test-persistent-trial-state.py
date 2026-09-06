@@ -72,6 +72,9 @@ class PersistentTrialState(unittest.TestCase):
         self.root = Path(self.temporary.name) / "root"
         self.rog5 = self.root / "rog5"
         self.root.mkdir(mode=0o755)
+        # mkdir's mode is filtered by the caller's umask. This fixture must
+        # model the exact accepted mount-root mode, even in a private runner.
+        self.root.chmod(0o755)
         self.rog5.mkdir(mode=0o700)
         # Explicit offline replay of the release binary at its fixed paths.
         # Only this disposable state tree is writable; no host devices/network.

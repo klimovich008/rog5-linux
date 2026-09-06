@@ -15,5 +15,15 @@
     "WIFI_PROBE_ABORT phy-not-ready-after-60s"
   ],
   "cause": "hardware revision rejected before MSI/MHI/core initialization",
+  "recurrence": {
+    "source_revision": "4ba30f3964f7962242bab1f4910a61f8e3489453",
+    "candidate_consumed": true,
+    "records": [
+      "[42.787265] ath11k_pci 0000:01:00.0: Unsupported WCN6855 SOC hardware version: 1 16",
+      "[42.800830] ath11k_pci 0000:01:00.0: probe with driver ath11k_pci failed with error -95"
+    ],
+    "build_defect": "complete-module builder omitted the existing hw1.1 patch",
+    "normal_fallback_verified": true
+  },
   "not_evidence_of": ["firmware mismatch", "power reset", "USB loss", "UFS failure"]
 }
