@@ -9,6 +9,8 @@ import subprocess
 import tempfile
 import unittest
 import struct
+import io
+import tarfile
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('composition', Path(__file__).with_name('check-rescue-root-composition.py'))
@@ -17,6 +19,70 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_nested_radio_module_archive_is_exact_and_never_extracts_links(self):
+        release='7.1.4-g359318de534f'
+        name='lib/modules/'+release+'/kernel/fixture.ko'
+        def fixture(fault=''):
+            stream=io.BytesIO()
+            with tarfile.open(fileobj=stream,mode='w:gz') as tar:
+                row=tarfile.TarInfo('./'+name);row.mode=0o644;row.size=3
+                if fault=='traversal': row.name='../outside'
+                if fault=='owner': row.uid=1000
+                if fault=='writable': row.mode=0o666
+                if fault=='link': row.type=tarfile.SYMTYPE;row.linkname='/outside';row.size=0
+                if fault=='root-link': row.name='.';row.type=tarfile.SYMTYPE;row.linkname='/outside';row.size=0
+                tar.addfile(row,io.BytesIO(b'elf'))
+                if fault=='duplicate': tar.addfile(row,io.BytesIO(b'elf'))
+            members={}
+            M.SEALED.ARCHIVE.add(members,'rog5-native-wifi/module-root-complete.tar.gz',stream.getvalue(),stat.S_IFREG|0o644)
+            digest='0'*64 if fault=='hash' else M.hashlib.sha256(b'elf').hexdigest()
+            manifest=(digest+'  '+name+'\n').encode()
+            if fault=='extra-manifest': manifest+=('0'*64+'  lib/modules/'+release+'/extra\n').encode()
+            M.SEALED.ARCHIVE.add(members,'rog5-native-wifi/module-files.sha256',manifest,stat.S_IFREG|0o644)
+            return members
+        self.assertEqual(M.radio_module_files(fixture(),release),{name:b'elf'})
+        for fault in ('traversal','owner','writable','link','root-link','duplicate','hash','extra-manifest'):
+            with self.subTest(fault=fault),self.assertRaises(ValueError):
+                M.radio_module_files(fixture(fault),release)
+
+    def test_radio_dependencies_are_read_only_bounded_and_not_imported_from_host(self):
+        release='7.1.4-g359318de534f';vermagic=release+' SMP preempt mod_unload aarch64'
+        elf=bytearray(64);elf[:6]=b'\x7fELF\x02\x01';elf[16:20]=b'\x01\x00\xb7\x00';elf=bytes(elf)
+        relative='lib/modules/'+release+'/kernel/extra.ko'
+        members={}
+        for name,data in [('load-roots.txt',(M.REPO/'configs/kernel/rog5-native-wifi-module-roots').read_bytes()),
+                          ('probe-native-wifi.sh',(M.REPO/'scripts/device/probe-native-wifi.sh').read_bytes()),
+                          ('module-root-complete.tar.gz',b'package')]:
+            M.SEALED.ARCHIVE.add(members,'rog5-native-wifi/'+name,data,stat.S_IFREG|0o644)
+        original=copy.deepcopy(members)
+        core=[dict(name='core',vermagic=vermagic,sha256='0'*64)]
+        def run(args,**kwargs):
+            self.assertLessEqual(kwargs['timeout'],5)
+            if args[0]=='modprobe':
+                self.assertIn('--show-depends',args);self.assertIn('--ignore-install',args)
+                root=args[args.index('-d')+1]
+                if fault=='empty': return ''
+                if fault=='action': return 'install false\n'
+                if fault=='path': return 'insmod /unrelated/extra.ko\n'
+                return 'insmod '+root+'/'+relative+'\n'
+            return {'name':'core' if fault=='shadow' else 'extra',
+                    'vermagic':'wrong' if fault=='release' else vermagic,
+                    'depends':'missing' if fault=='dependency' else 'core'}[args[2]]+'\n'
+        with patch.object(M,'radio_module_files',return_value={relative:elf}), \
+                patch.object(M.subprocess,'check_output',side_effect=run):
+            fault=''
+            augmented,rows,proof=M.radio_module_composition(members,core,release)
+            self.assertEqual([row['name'] for row in rows],['core','extra'])
+            self.assertEqual(len(proof['software_modules']),1)
+            self.assertIn('a01-radio-modules/extra.ko',augmented)
+            self.assertEqual(members,original)
+            for fault in ('empty','action','path','shadow','release','dependency'):
+                with self.subTest(fault=fault),self.assertRaises(ValueError):
+                    M.radio_module_composition(members,core,release)
+            fault=''
+            with patch.object(M.time,'monotonic',side_effect=[0,16]),self.assertRaisesRegex(ValueError,'deadline'):
+                M.radio_module_composition(members,core,release)
+
     def test_external_primary_and_fallback_use_root_bytes_and_sealed_verifier(self):
         final=M.load('external_composition_test','scripts/host/check-release-composition.py')
         with tempfile.TemporaryDirectory() as tmp:

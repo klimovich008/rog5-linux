@@ -53,18 +53,23 @@ before any target frame. Later success does not erase that FAIL. The exact
 exception phase was not logged; retain conservative classification and the new
 sanitized replay fixture before deciding any host-only correction.
 
-**Next mandatory test:** server A01 now verifies both signed selector bundles
-from the complete current root. Wrapper/signatures/archive/root runtime/timing
-and **firmware PASS**; **BLOCKED 91.949 s** only on integrated extra radio-module
-checks. The new firmware check verifies six WCN6855/regulatory files against
-the sealed manifest and reads them back with exact BusyBox in QEMU.
-A separate 37-module software-load component PASS **98.258 s**, unchanged
-kernel/archive/root. Integrate that proof next, with honest separate treatment
-of the three board-only PMIC/S12/activation helpers; do not fake ASUS hardware
-or drop their identity/power guards to make a virtual test pass.
-This firmware-check checkpoint passes 29 normal/optimized regressions, active
-tier **18.808 s** and one full local CI **492.78 s**. It changes host acceptance
-checks only; deployed artifacts and the original capture FAIL are unchanged.
+**Next mandatory test:** complete the three board-only PMIC/S12/activation
+helper checks in server A01. Integrated software closure now loads **37 modules**
+from the exact sealed archive with matching dependencies/vermagic and production
+observation parameters. Wrapper/signatures/archive/root runtime/firmware/timing
+PASS; overall **BLOCKED 107.115 s**, solely `module_load` NOT RUN for those
+three helpers. Kernel/archive/root are unchanged; no ASUS hardware is faked.
+The nested module package is bounded and hash-closed; host modprobe only reads
+metadata, and insertion occurs in network-isolated QEMU. Normal/optimized
+regressions pass **31 cases** (0.262/0.259 s). A final fail-first regression
+also rejects an empty dependency plan; the earlier actual-artifact run remains
+component evidence, not a complete final-release proof.
+Previous published firmware checkpoint `433960e7` passes all four GitHub jobs
+in run **34030476565**, active **18.808 s**, full local CI **492.78 s**.
+Current software-closure checkpoint passes active **18.754 s** and one full
+local CI **496.610 s**. Exact-head/merge CI remains a separate publication
+check. These are host acceptance checks only; deployed artifacts and capture
+FAIL are unchanged.
 Do not import V7 core-only proof into the older server release. No downstream
 driver import or phone reboot is needed for the current offline work.
 R01 physical failure recovery, H03 regulation, ordinary/cold boots and the

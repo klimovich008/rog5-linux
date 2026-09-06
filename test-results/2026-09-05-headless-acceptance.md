@@ -3000,3 +3000,41 @@ Frozen implementation: active tier **PASS 18.808 s**, full local CI **PASS
 rebuild. Fresh pinned same-V7 health PASS **0.257 s** at uptime **2690.55 s**,
 Good/USB online, 29.9°C, 8.599 V, zero current and no failed systemd units.
 This remains component continuity, not H03 or a 60-minute combined soak.
+
+### Integrated server software-radio closure
+
+Continuation from `433960e72b6c714bb45cf05ddcd8c28ed3b702e0`; all four
+publication jobs PASS run **34030476565**. Reused the pinned source assessment,
+existing artifacts and preserved dirty work; no new checkout or phone contact.
+
+Concrete A01 gap: the verified nested radio-module package was not included in
+the integrated VM load test. The new reader validates bounded gzip/tar data,
+exact inventory and hashes, owner/mode/type/path safety without extractall.
+Metadata-only host modprobe resolves the canonical roots; full vermagic,
+dependencies, exact overlapping core bytes and ELF identity are checked before
+inserting the selected bytes into network-isolated QEMU. Firmware uses the same
+sealed files, with production observation parameters for the two software
+power-sequencing modules. No hardware endpoint or helper success is fabricated.
+
+Initial missing-reader regression failed before implementation. Final **31 tests
+PASS**, normal **0.262 s**, optimized **0.259 s**. Hostile cases include nested
+symlinks/traversal, duplicate/extra entries, changed hashes, wrong metadata,
+outside-host paths, install actions, ABI/dependency conflicts and deadlines.
+A final empty-plan subcase failed against the new implementation, then passed
+after explicit refusal; missing module proof cannot count as success.
+
+Actual `a01-server-radio-integrated-r1`: **BLOCKED 107.115 s**,
+runtime **PASS 38.797 s**, virtual poweroff **14.782 s**. All **37** selected
+core/software radio loads and six radio firmware checks passed. Exact kernel,
+archive and paired root hashes are unchanged. The only pending module entries
+are the three PMIC/S12/activation helpers already described above. Overall A01
+and release qualification remain false; this is not physical radio activation,
+charging qualification or a retry of the consumed server candidate.
+The empty-plan refusal was added after that actual-artifact run and covered by
+focused regressions; do not call the earlier proof a complete final-release run.
+
+Frozen code checkpoint: active **PASS 18.754 s** (log creation-to-final-write
+interval), one full local CI **PASS 496.610 s**, `git diff --check` PASS.
+Only these timing notes changed afterward. No wrapper/kernel build, large
+checkout, phone contact or deployed-byte change. The remaining mandatory work
+is board-helper ABI/refusal qualification, not importing another phone's code.

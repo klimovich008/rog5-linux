@@ -43,11 +43,13 @@ already-running full local CI finished successfully in **487.255 s**, including
 the pending stale-root guard and NCM regression. That dirty-tree result is not
 exact-head publication or final artifact qualification.
 
-Resume A01 through the separately demonstrated NCM bulk-transfer defect below,
-then obtain a complete paired root snapshot. These downstream references do
-not justify that fix: its evidence is the accepted Image, packet capture and
-upstream NCM callback. Do not repeat the source-reuse review unless upstream
-pins change or a specific failing acceptance test requires another comparison.
+The NCM correction and complete paired root snapshot have since passed their
+bounded physical checks; current A01 now loads the sealed software radio closure
+in QEMU. See [current state](current-state.md) for the remaining board-helper
+qualification, not another source-reuse review. These downstream references did
+not justify the NCM fix: its evidence is the accepted Image, packet capture and
+upstream callback. Reopen this assessment only for changed upstream pins or a
+specific failing acceptance test.
 
 W identifies **ZenFone 8, I006D/ZS590KS**, not our ROG5 ZS673KS. L's
 `arch/arm64/boot/dts/vendor/qcom/Makefile` selects sake/vodka; complete immediate
