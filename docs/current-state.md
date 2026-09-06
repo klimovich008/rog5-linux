@@ -77,16 +77,37 @@ types/bytes and refusal rules are unchanged. The new regression fails before
 the fix; **64** tests pass normally/optimized and **114 / 12.734 s** pass against
 the real archive under the retained Ubuntu library; active **19.626 s**. The earlier A01 VM/full
 local results are retained component evidence, not rerun results for this
-portability fix. Exact-head/merge CI must validate the corrected publication.
+portability fix. All four publication jobs PASS for exact head
+`8253a95a205e0b1014a54f2a9576af7778e67659`, run **34036160719**:
+head-exact, merge-compat, candidate-publication and qemu-system.
 The bounded downstream/Denial assessment remains complete with no justified
 driver import. Keep V7 physical evidence separate from this older server's A01.
 
 **Next mandatory work:** qualify H03
 regulation and the coherent final server artifacts, including the accepted NCM
 correction; do not combine passes from the older server and V7 into one release.
-The deployed bytes and capture FAIL are unchanged. Last pinned V7 health was
-PASS at uptime 7498.89 s: 29.9°C, 8.597 V, zero current, Good/USB online, P24 RO,
-no failed units; this is retained evidence, not a new check or charging pass.
+The deployed bytes and capture FAIL are unchanged. Pinned V7 health PASS at
+uptime **11055.69 s**: 29.9°C, 8.596 V, zero battery current, Good/USB online,
+P24 RO and no failed units. The subsequent read-only H03 inventory took
+**0.449 s**: Full/100%, USB 5.010 V/350 mA with a 500 mA input limit, device/sink
+role. Charge-limit attributes are absent; full/design capacity return ENODATA.
+The retained SM8350 property list explains the absent controls; this is not
+evidence that firmware regulation is absent. H03 remains **BLOCKED** pending
+validated regulation criteria. Neither zero current nor the reported 8.8 V
+maximum alone establishes a configured termination limit. No control write,
+module reload or boot was performed for this inventory.
+The existing 0038 capacity-unit correction now has exact V7 **in-tree module
+twins** (`998c30ca…`): **36.221 / 36.501 s**, with unchanged accepted Image,
+config and BTF base. Diskless QEMU loaded it with the other **14 unchanged sealed
+power modules**, enforced BTF and registered the battery driver without module
+taint: **PASS 6.325 s**. This is not a firmware response or H03 pass. Only this
+module is selected for later integration; do not replace dependencies with
+incidental private rebuild outputs. No signed archive or deployed byte changed.
+Active tier PASS **21.207 s**. Final pinned health PASS **0.245 s**, same V7 boot
+at uptime **12460.40 s**, 29.9°C/8.595 V, USB online/P24 RO/no failed units.
+The next coherent server composition can reuse this module experiment and the
+accepted NCM kernel; capacity readout still needs normally required hardware
+validation. Private recipes/results: `rog5-battmgr-module-20260906.R8ZllyeH`.
 R01 physical failure recovery, H03 regulation, ordinary/cold boots and the
 60-minute combined soak remain incomplete. See the
 [incident](../test-results/2026-09-05-headless-acceptance.md#v7-physical-ncm-and-current-root-checkpoint).

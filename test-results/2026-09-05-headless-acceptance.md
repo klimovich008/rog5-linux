@@ -3217,3 +3217,81 @@ API correction; published A01 and full local CI remain evidence for `aa59c3a3`.
 Run focused/active checks and new full exact-head/merge CI for the correction.
 Corrected active tier PASS **19.626 s**; whitespace check PASS. Only this timing
 note changed afterward; no additional full local run on the unchanged lifecycle.
+
+### H03 read-only prerequisite follow-up
+
+At clean source `8253a95a205e0b1014a54f2a9576af7778e67659`, GitHub run
+**34036160719** completed successfully: head-exact, merge-compat,
+candidate-publication and qemu-system. No full local suite was repeated for
+this documentation-only follow-up. The bounded source-reuse assessment remains
+complete; no additional checkout, framework, driver import or source rebuild.
+
+The next mandatory acceptance question is whether the deployed power interface
+can support predeclared H03 regulation criteria. Private
+`h03-initial-health.json` and `h03-readonly-inventory.json` in the existing V7
+evidence directory bind the readout to the exact serial, bundle, release and
+boot UUID. Existing strict SSH, USB topology/route, safe-power and P24-RO gates
+passed. Initial health took **0.254 s**, inventory **0.449 s**. Same V7 boot at
+uptime **11055.69 s**, no failed systemd units; no running test was interrupted.
+
+Battery: Full/100%, Good, 29.9°C, 8.596 V, zero reported current and
+5,106,000 µAh charge counter. USB: online, 5.010 V/350 mA, 500 mA input limit;
+Type-C device/sink, default power mode. Optional absent fields and the two
+full/design-capacity ENODATA errors were recorded without aborting observation.
+The retained SM8350 driver exposes no charge-control thresholds or setter;
+their absence is expected for this interface, not proof of missing firmware
+regulation. The source-checked 0038 capacity-unit regression PASS **3 tests /
+0.204 s**, applying only to a temporary source copy. It does not fix or prove
+charging policy and has not been deployed.
+
+**H03 BLOCKED**, not PASS: configured regulation limits and validated
+current-polarity/noise interpretation are still required before its unchanged
+600-second observation. Full/100%, a reported 8.8 V maximum or one zero-current
+sample cannot supply them. Next action: establish these criteria from the
+exact supported firmware/interface and retained charging evidence, then run
+the existing acceptance window. Carry the already-tested unit correction in
+an ordinarily required coherent release; do not hot-unload charging modules
+or issue a dedicated successor merely for optional telemetry. No control,
+storage, slot, signature, admission or execution state changed.
+
+#### Exact V7 capacity-module build and load checkpoint
+
+Continued on `8253a95a…`, preserving the documentation changes above. The
+question is whether existing patch 0038 can supply an ABI-compatible capacity
+telemetry correction without rebuilding the accepted NCM/UFS kernel. Private
+recipes and all failures remain in `rog5-battmgr-module-20260906.R8ZllyeH`.
+No new production patch, source checkout, signing, admission or device boot.
+
+The first external-module twins matched in **3.632/3.432 s** but intentionally
+carry external-module metadata. The diskless VM loaded all 15 modules; its
+first assertion wrongly expected the auxiliary driver directory to equal the
+module name. Exact driver and auxiliary-bus source prove the required name is
+`qcom_battmgr.pmic_glink_power_supply`. A source-checked assertion corrected this
+fixture-only defect; its failed VM log remains, with corrected PASS **6.213 s**.
+No production driver was changed to satisfy the fixture.
+
+Normal in-tree module builds now reuse a private minimal kit, original
+read-only `vmlinux.o`, config/BTF base and the full imported-symbol module set.
+The initial copy failed before make on a dot-file spelling; the initial entered
+make correctly refused absent `vmlinux.o` symbols. Neither failure was ignored.
+The corrected invocation explicitly targets the accepted kernel ABI and checks
+full resulting vermagic; no warning-only modpost, forced insertion or BTF bypass.
+Accepted source, Image, config and module inputs were hash-checked unchanged.
+
+Patched in-tree twins PASS **36.221/36.501 s** (whole preparation **74.463 s**),
+SHA-256 `998c30ca68914f7bce0b55f37df6b769abf295031c82a173506b5038beee818b`.
+Only the battery module is selected for later integration. Four incidental
+dependency rebuilds differ from baseline; they are not substituted or qualified.
+The final VM uses the original sealed dependency bytes plus only this corrected
+module: **15 loads, enforced BTF, driver registration and empty battery-module
+taint PASS 6.325 s**. Actual firmware callbacks/capacity readout and H03 remain
+unproved. The accepted Image SHA is `81fdcf8e…`; no kernel/wrapper rebuild.
+
+Active tier PASS **21.207 s**, versus **19.626 s** previously. Existing patch
+regressions remain in that tier; no full local/GitHub rerun for unchanged
+production code. New private allocation, including failed attempts, is
+**1,244,295,168 bytes** (post-run allocation, not sampled peak). Nothing deleted.
+Final pinned same-boot V7 health PASS **0.245 s**, uptime **12460.40 s**,
+29.9°C, 8.595 V, zero current, Good/USB online, P24 RO and no failed units.
+All experiment processes are terminal. No charging-policy or threshold write,
+module reload on the phone, storage or execution-state change occurred.
