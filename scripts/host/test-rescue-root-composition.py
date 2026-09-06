@@ -17,6 +17,38 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_server_snapshot_rejects_captured_old_selector_without_writes(self):
+        final=M.load('a01_selector_test','scripts/host/check-release-composition.py')
+        # Retained P24 snapshot predates the current selector-v2 staging.
+        old=(b'format=rog5-slotb-selector-v1\nbundle=persistent-native-root-v11\n'
+             b'manifest_sha256=a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2\n')
+        metadata=b'Inode: 393292   Type: regular    Mode:  0600\nUser: 0 Group: 0 Project: 0 Size: 145\nLinks: 1\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'retained.ext4'; root.write_bytes(b'fixture')
+            def run(command,**kwargs):
+                self.assertNotIn('-w',command)
+                self.assertEqual(command[-1],str(root))
+                data=metadata if command[2].startswith('stat ') else old
+                return subprocess.CompletedProcess(command,0,stdout=data,stderr=b'')
+            with patch.object(final.subprocess,'run',side_effect=run), \
+                    patch.object(final.shutil,'which',return_value='/usr/bin/debugfs'):
+                with self.assertRaisesRegex(ValueError,'retained root selector mismatch'):
+                    final.local_selector_identity(root,'c15c77824e3cecf128288f2c273c6bd7f93825e837568c669d8288145541d904')
+                digest=M.hashlib.sha256(old).hexdigest()
+                self.assertEqual(final.local_selector_identity(root,digest)['sha256'],digest)
+            self.assertEqual(root.read_bytes(),b'fixture')
+
+    def test_selector_metadata_refuses_missing_linked_and_oversize_before_cat(self):
+        final=M.load('a01_selector_metadata','scripts/host/check-release-composition.py')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'retained.ext4'; root.write_bytes(b'fixture')
+            for data in (b'',b'Type: symlink\nUser: 0 Group: 0 Project: 0 Size: 145\nLinks: 1\n',
+                         b'Type: regular\nUser: 0 Group: 0 Project: 0 Size: 9000\nLinks: 1\n'):
+                with patch.object(final.subprocess,'run',return_value=subprocess.CompletedProcess([],0,data,b'')) as run, \
+                        patch.object(final.shutil,'which',return_value='/usr/bin/debugfs'):
+                    with self.assertRaises(ValueError): final.local_selector_identity(root,'a'*64)
+                    self.assertEqual(run.call_count,1)
+
     def test_timing_binds_signed_values_and_host_receiver(self):
         final=M.load('a01_timing_test','scripts/host/check-release-composition.py')
         manifest=dict(bundle='fixture',target_id='fixture',target_timeout='600',rollback_timeout='900')

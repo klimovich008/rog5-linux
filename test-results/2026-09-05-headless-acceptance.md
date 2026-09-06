@@ -2561,3 +2561,171 @@ Both Python modes also pass all 28 dispatcher tests (1.138/1.128 s). No code
 changed during full CI; only these result notes follow it. Publication will
 use the existing branch/draft PR and exact-head plus merge CI. No claim that
 GitHub CI executes the private artifact test or qualifies the final server.
+
+Publication completed: all four jobs (head-exact, merge-compat, qemu-system,
+candidate-publication) PASS run **34020356108**, exact
+`8ad3e64d1e87153c3d35a1a8d9c6f69ce117661f`. No candidate execution follows.
+
+### Server A01 stale retained root and bounded read-only refresh
+
+Continued the next mandatory composition check, not another source review.
+The old retained P24 image `06cc805b…` has selector-v1 SHA
+`650e09d6b17cc055cabde291d29602ba33cb2c487b4f0712455fcd2b6a0b4c63`.
+Canonical selector-v2 is
+`c15c77824e3cecf128288f2c273c6bd7f93825e837568c669d8288145541d904`.
+Private `rog5-a01-selector-check-20260906.E1ZsYmmI` records **FAIL 0.773 s**
+before QEMU: wrapper PASS, remaining composition NOT RUN. R2 stale host
+composition is the demonstrated defect; no production kernel change follows.
+
+The new preflight reads only `/boot/rog5-linux/selector` with read-only debugfs,
+checks bounded regular root-owned single-link metadata, checks input stability
+and compares its digest with the canonical record. Captured obsolete selector,
+absent/symlinked/oversize metadata and no-write regressions cover the refusal.
+All 25 tests PASS normal/optimized (**0.334/0.328 s** wall); active tier
+PASS **18.920 s**. No full CI repeated or publication claimed for these edits.
+
+Separate exact-topology/pinned-SSH readouts in private
+`rog5-selector-live-read-20260906.gc98jxna` and
+`rog5-selector-live-hashes-20260906.pxh86g01` prove that the live P24 is
+RO/norecovery at `/.rog5/root-ro`, contains the expected selector-v2, and matches
+the retained primary/fallback manifest, signature, kernel, DTB and archive
+hashes. The mismatch is in the old host snapshot, not the installed selector.
+
+A replacement full P24 capture was bounded to RO reads, the exact existing
+boot/UFS node/size, periodic power/identity checks, host disk caps and deadlines.
+The first attempt, private `rog5-current-p24-snapshot-20260906.ymrNnRgr`, failed
+before any bytes because target Python was unavailable (R3); its zero-byte
+archive and failed script are preserved. Subsequent explicit installed-tool
+checks established Bash/dd/gzip/sha256sum/timeout/blockdev/stat compatibility
+and actual block identity **259:59**, not an assumed major/minor.
+
+The shell implementation in private
+`rog5-current-p24-snapshot-20260906.rH76Zs5n` passed its exact target gate and
+codec preflight, then captured **407,339,008 compressed bytes** before SSH
+reported `Timeout, server 10.77.0.2 not responding.` This is **FAIL**, no source
+completion/hash match, no decompressed root and no automatic stream retry.
+The last periodic sample at 44.371 s was safe (29.7°C, 8.610 V). The new script
+and partial data are retained; the old verified snapshot is unchanged.
+
+Independent post-failure pinned SSH PASS **0.209 s** on unchanged boot
+`64e209e2-0efe-40c6-8396-29f3e481f0ff`, 29.7°C, 8.611 V, USB online and P24 RO.
+No dd/gzip snapshot reader remained. Kernel tail ends at the existing
+900-second watchdog ACK with no new error there; a tail alone cannot exclude
+all faults. USB stayed on its anchored interface. The stream's short SSH
+liveness budget is a hypothesis, not a proven NCM/kernel cause; healthy
+concurrent sessions must remain part of the next discriminating observation.
+No boot, signature/claim operation, service restart, charging control, phone
+write, old-evidence deletion or candidate reuse occurred. Server A01 remains
+incomplete until the exact paired root and external signed-bundle closure pass.
+
+### Same-boot bulk-transfer boundary investigation
+
+No new candidate, boot, storage write, daemon restart or kernel change.
+Invoked explicit project-local systematic debugging after the second failed
+snapshot at the SSH boundary. Its source-first comparison stopped further
+unobserved snapshot attempts. The existing bounded tool-free Opus reviewer
+exited with expired OAuth; no authentication bypass or credential disclosure.
+Private `rog5-ssh-opus-review-20260906`-prefixed output retains that diagnostic.
+
+| Discriminating observation | Result and private evidence |
+|---|---|
+| Same SSH settings; generated 2 GiB zeros through gzip, then 12 s idle | PASS 28.783 s, exact expanded zero bytes; `rog5-ssh-stream-diagnostic-20260906.r0boN8pA` |
+| 128 MiB P24 ranges, each compared with a separate source-range SHA | First 38 ranges (4.75 GiB) verified in 99.067 s; range 38 failed after 13,336,576 compressed bytes; `rog5-current-p24-chunks-20260906.QHaOsqhy` |
+| Instrumented read of that same range 38 | Completed in 3.663 s, host range SHA `f290ec1ae3df37ad8155825349b50d204f187f19fd6e660cfaa153c659967b65`; no independent hash completion is claimed for this diagnostic; `rog5-ssh-range-trace-20260906`-prefixed evidence |
+| Instrumented 2 GiB physical prefix, original SSH limits | Supervisor stopped it at 25.398 s because parallel health exited 255; stderr was not retained by this first tracer, an explicit evidence gap; `rog5-ssh-bulk-trace-20260906.mQu9Hq71` |
+| Same bulk probe, only diagnostic ServerAliveCountMax 2 → 8 | Supervisor again stopped it, at 34.988 s. Retained health stderr explicitly says TCP connection timed out; `rog5-ssh-budget-trace-20260906.zMyLFII3` |
+
+The last two stream logs say killed by signal 15: those are supervisor-aborted
+traces, not independent stream-alive expiry. ConnectTimeout remained 3 s and
+the fixed overall probe bound remained unchanged. No diagnostic relaxation is
+promoted into lifecycle or acceptance code. OpenSSH documents that encrypted
+server-alive replies are distinct from connection establishment and TCP
+keepalives ([manual](https://man.openbsd.org/ssh_config#ServerAliveCountMax)).
+
+Both-end `ss -tinp` traces show retransmission, DSACK and reordering during
+otherwise advancing bulk traffic. They do not localize packet loss to the host,
+USB link or target kernel. A successful 12 s idle period rules out silence
+alone; a successful same-range read argues against a consistently unreadable
+sector. Short-connection failures under load are now directly evidenced.
+Server settings are ClientAliveInterval=0 and ChannelTimeout=none. SSH session
+events are under `_COMM=sshd-session`, not `journalctl -u sshd`; the latter's
+empty result must not be called absent logging. The target observed connection
+reset by the client after earlier stream-alive expiry.
+
+All readers/tracers are terminal. Fresh exact same-boot gate passed in
+0.189 s, 29.7°C, 8.610 V, USB online, P24 still RO. Kernel tail still ends at
+the old watchdog ACK; no new matched fault there, not proof of no kernel fault.
+Target TCP listen-overflow/drop and checksum-error counters are zero; host
+cumulative counters lack a per-experiment baseline and are not attributed to
+this incident. No complete new root image exists. Preserve all partials,
+original scripts and original root. Next obtain packet-level direction/loss
+evidence during the known load-dependent condition, not another guessed
+kernel or an uninstrumented complete snapshot. Headless acceptance remains
+active and incomplete; Opus authentication is not treated as the goal blocker.
+
+### Target packet evidence and reproduced NCM timer defect
+
+Prepared tcpdump 4.99.6/libpcap 1.10.6 from signature-verified Alpine 3.24
+packages using the retained ARM64 verifier container. Direct ARM64 container
+execution failed because binfmt was unavailable; explicit qemu-aarch64-static
+ran apk with package scripts disabled. No privileged host change or binfmt
+installation. The 6.7 MiB dependency set was staged only into verified tmpfs
+with no active swap, package SHA
+`90f2536c9cea0df1079a03b51e65e7baa22f71b795b8a8e10c7a1114fe7c504a`.
+Deployment/version check completed in **0.416 s**. Not a persistent package
+installation, phone-storage write, candidate or modification of sealed inputs.
+
+Private `rog5-tcp-observer-20260906.yP6qPYSw` retains the package, deployment,
+90-second process record, filtered packets and exact Image disassembly.
+The non-promiscuous filter selected only SYN/FIN/RST between the two exact USB
+addresses on TCP/22, with a 4096-record cap; capture readiness preceded load.
+It terminated with **112 records / zero kernel capture drops**, PCAP 9340 bytes,
+SHA `1453d09c76863f07e5997479d6376a8adefc065f3f06a5ab03e8e42d6227dbff`.
+The test stream was supervisor-aborted at **19.618 s** after a parallel TCP
+connect timeout. Host port 54918's SYNs reached the target; the target generated
+SYN-ACKs immediately and retransmitted them. Resets arrived in a tight later
+burst. This rules against absent sshd listening for that request, but outgoing
+packet taps occur before physical transmission and do not prove host receipt.
+Target qdisc had no drops and 144,359 cumulative requeues; host TCP checksum
+errors were zero. Neither cumulative statistic independently establishes cause.
+
+Inspection found the exact upstream NCM timer defect: `ncm_tx_timeout` ignores
+`NETDEV_TX_BUSY`, while `u_ether` returns BUSY when transmit requests are absent.
+No timer retry then flushes the pending NTB. The signed accepted Image
+`bdceaa51…`, located using same-boot symbol offsets without publishing raw kernel
+addresses, contains `blr x8` followed by unconditional zero return: the missing
+return handling is present in the accepted bytes, not only repository source.
+Independent upstream reports are linked from `docs/kernel-port.md`.
+
+Added a compiled actual-callback regression **before** the backport. The old
+callback demonstrably strands the reply after its first BUSY result; the new
+patch-dependent tests initially failed without the patch. Backport 0039 adds
+only BUSY handling and timer rearm at the unchanged 300us interval. All three
+tests PASS, including exact retained-source application, **0.196 s** normal and
+**0.214 s** optimized wall time. Added to the existing active/full test list.
+No active build source, image or module was changed; no signature, claim, boot,
+phone update, hot-unload or threshold adjustment. Physical resolution remains
+unproven until a fresh coherent kernel reproduces the same load scenario.
+
+Active tier PASS **18.900 s** at this frozen source checkpoint; private observer
+`active-tests.log` retains output. Full local CI **PASS 487.255 s**, including
+the preserved stale-root selector correction (previous full run 496.219 s).
+Private observer `full-ci.log` retains the run. No source edits interrupted it;
+only result/documentation updates follow. No private captures or binaries are
+staged for publication; exact-head publication is not yet claimed.
+
+The requested bounded external-source recheck reused the existing kernel-port
+assessment and confirmed all four pins unchanged. No new checkout, source
+import, charging-control change or phone contact. The current-kernel baseline
+is also retained: source `359318de534f196c1281de7195fbf5868c6f7333`, tree
+`8528fcd29e4ad19cf944f79c2ebb3438feee5e0b`, config `889d836f…` and accepted
+Image `bdceaa51…`. Its Git object exists in the retained UFS source repository;
+the removed temporary build path does not mean the source must be recreated.
+The display build is not substituted. Resume acceptance, not an architecture
+review; A01 still needs a complete current root after transport correction.
+
+Resumed the executable acceptance loop with `rog5-dev accept quick`:
+**PASS 23.153 s** (A02 10.660 s, B01 3.887 s, G01 7.360 s, G02 1.217 s).
+Private observer `acceptance-quick` retains the exact dirty-source record and
+matrix. No historical release evidence was imported; A01 and unselected rows
+remain NOT RUN in this run and `qualified=false`. Only result notes follow it.

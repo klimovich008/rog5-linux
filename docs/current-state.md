@@ -136,7 +136,9 @@ charging. H03 still needs predeclared full-battery regulation/noise criteria.
 
 The bounded [source-reuse assessment](kernel-port.md#bounded-source-reuse-assessment--2026-09-06)
 found incompatible downstream charging controls, not a demonstrated mainline
-defect. Keep the accepted kernel; Denial remains deferred and optional.
+defect from those references. All four source pins remain unchanged on the
+latest recheck; Denial remains deferred and optional. This does not supersede
+the separate acceptance-driven capacity-unit and NCM findings below.
 
 The subsequent H03 source check did demonstrate a separate mainline telemetry
 defect: SM8350 leaves its capacity unit at zero/mWh, rejecting valid
@@ -196,12 +198,45 @@ this is protocol composition, not physical USB qualification or watchdog expiry.
 All **23** composition regressions pass normally and optimized. Earlier fixture
 failures remain in the incident. External selector bundles/server radio extras
 are still BLOCKED rather than inheriting this rescue's PASS. Full local CI for
-this frozen checkpoint **PASS 496.219 s**; exact-head publication CI is next.
+this frozen checkpoint **PASS 496.219 s**; all four publication jobs PASS
+run **34020356108** at exact `8ad3e64d1e87153c3d35a1a8d9c6f69ce117661f`.
 No kernel build, admission, signing or phone cycle.
 Active tier PASS **18.479 s**. Fresh pinned H02 PASS **1.209 s** at uptime
 14795.36 s: same V6 boot, Full/Good 100%, 29.7°C, 8.613 V, USB online,
 zero current and watchdog acknowledged. Wi-Fi remains intentionally inactive;
 this is safe same-boot access evidence, not H03 regulation qualification.
+
+Server A01 next exposed a **stale host input**, not a phone selector defect:
+retained root `06cc805b…` contains selector-v1 `650e09d6…`; the live RO P24
+contains expected selector-v2 `c15c7782…` and the expected primary/fallback
+payload hashes. The new fixed-path read-only preflight rejects that stale input
+before QEMU. All 25 composition regressions PASS normally/optimized
+(0.334/0.328 s wall); active tier PASS **18.920 s**. These uncommitted checks
+are not covered by the published full-CI result above.
+The replacement RO snapshot is **incomplete**: missing target Python stopped
+the first probe before data; the tested shell stream later hit an SSH liveness
+timeout after 407,339,008 compressed bytes. Preserve both partial captures and
+the old image; neither partial is a usable root. Same-boot follow-up PASS
+**0.209 s**, 29.7°C, 8.611 V, P24 RO, no remaining reader. No reboot, charging
+control or phone write. Subsequent chunked capture verified 38 ranges/4.75 GiB,
+then also failed. Zero-stream/idle and the previously failed physical range
+passed separately. Instrumented bulk reads exposed TCP retransmission/reordering
+and new-connection timeouts; increasing only the diagnostic SSH alive count
+did not solve it. No timeout change is promoted. This is an unresolved
+load-dependent network failure, not a proven bad UFS sector or fixed kernel
+cause. All readers are terminal and same-boot power/RO access remains safe.
+Systematic debugging was invoked; bounded Opus review could not authenticate
+(expired OAuth), so diagnosis continued locally. Packet capture subsequently
+proved SYN arrival and SYN-ACK emission on the target during a failed handshake.
+The accepted Image's disassembly confirms an ignored BUSY return in the NCM
+timer callback, matching a published upstream defect. The narrow
+[0039 backport and compiled regression](kernel-port.md#ncm-bulk-transfer-timer-follow-up)
+now pass offline; full local CI **PASS 487.255 s** includes the preserved
+stale-root guard. No kernel has been rebuilt or deployed. Next prepare a fresh
+coherent kernel release for this fix, validate bulk transfer with parallel SSH,
+then obtain the paired root before server A01. Avoid another uninstrumented
+snapshot or hot-unloading USB. Physical causality remains to be demonstrated.
+Do not bypass it with unrelated host bundle files or import partial-root proof.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel

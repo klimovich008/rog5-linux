@@ -27,7 +27,7 @@ New source pins (only API listings and selected small raw files were fetched):
 - **A:** [unofficial anakin, lineage-20](https://github.com/alfaonyt/android_device_asus_anakin/tree/8217cf8df4e64d99a12b2a388a9a76266e27446d), commit `8217cf8df4e64d99a12b2a388a9a76266e27446d`.
 - **D:** [Denial main](https://github.com/denialwm/denial/tree/85b2303e2f09ae7b7b993641f90061a200f03d53), commit `85b2303e2f09ae7b7b993641f90061a200f03d53`.
 
-Bounded recheck at project HEAD `d82e459ff5a3837f09be9d5e7b8b49f1434de9f9`
+Bounded recheck at project HEAD `8ad3e64d1e87153c3d35a1a8d9c6f69ce117661f`
 confirmed all four remote pins unchanged. Reused this assessment and the
 retained charger file (matching the hash above), without a new checkout.
 The retained `kernel-src` belongs to the original project workspace, not this
@@ -35,13 +35,19 @@ CI worktree; absence from the worktree does not mean the source needs downloadin
 The recheck also confirms a concrete protocol collision: L names `0x2108`
 `OEM_USB_PRESENT`, whereas retained ZS673KS code uses it to set charging
 suspend. Do not transfer opcode constants across these firmware protocols.
-No production correction follows from this comparison. C02 integration has
-since passed; resume A01 final composition closure without rebuilding the
-kernel. This recheck passed 14 composition regressions in normal and optimized
-Python (normal wall time 0.256 s), plus 25 dispatcher regressions in 0.942 s.
-These are focused component checks, not an A01 or phone-release PASS. Final
-wrapper, module-load/BTF and timing/transport closure remain required. No local
-device test was active or interrupted; publication CI for this HEAD was running.
+No production correction follows from this comparison. The exact pinned
+BoardConfig, FastCharge service, charger driver, board Makefile, sake metadata
+and Denial build guide were rechecked. The public release/repository listings
+remain as described below. No device test was started or interrupted; the
+already-running full local CI finished successfully in **487.255 s**, including
+the pending stale-root guard and NCM regression. That dirty-tree result is not
+exact-head publication or final artifact qualification.
+
+Resume A01 through the separately demonstrated NCM bulk-transfer defect below,
+then obtain a complete paired root snapshot. These downstream references do
+not justify that fix: its evidence is the accepted Image, packet capture and
+upstream NCM callback. Do not repeat the source-reuse review unless upstream
+pins change or a specific failing acceptance test requires another comparison.
 
 W identifies **ZenFone 8, I006D/ZS590KS**, not our ROG5 ZS673KS. L's
 `arch/arm64/boot/dts/vendor/qcom/Makefile` selects sake/vodka; complete immediate
@@ -137,6 +143,44 @@ check is full/design-capacity readout through the exact ABI-matched patched
 module in an ordinarily required fresh signed release, with the existing
 power/thermal/USB observation. Do not unload live charging dependencies or
 consume a dedicated phone cycle merely to confirm an optional field.
+
+### NCM bulk-transfer timer follow-up
+
+**Use now as a narrowly tested backport; physical correction remains unproven.**
+The exact running rescue's Image `bdceaa51…` contains the broken
+`ncm_tx_timeout` callback. Same-boot kallsyms locates it at Image offset
+11,951,996; disassembly calls `ndo_start_xmit`, discards its return value and
+unconditionally returns zero (`HRTIMER_NORESTART`). This corroborates the
+retained source at `7a5cef0db4795d9d453a12e0f61b5b7634fc4d40`, not merely an
+assumption that repository source was deployed. The retained `f_ncm.c` SHA is
+`7830d82ce54a36ff4bfce4ffd593384a744f943477c5f335f104a006704a7a54`.
+
+`u_ether.c:eth_start_xmit` returns `NETDEV_TX_BUSY` when its USB transmit request
+pool is exhausted. The networking core retries ordinary packets, but the timer
+caller did not: its partial NTB can remain pending until more traffic fills it.
+Our bounded packet capture saw repeated host SYNs reach the phone and SYN-ACKs
+emitted immediately, with resets arriving later in a burst; this is consistent
+with delayed return traffic, not proof of exactly where each packet stalled.
+The substantial transmit requeue count is supporting context, not causal proof.
+
+[Cosmin Tanislav's August 17 patch](https://lkml.iu.edu/2608.2/02481.html)
+describes this precise callback defect. A separate
+[August 24 test report](https://lkml.iu.edu/2608.3/00281.html) reports multi-second
+NCM stalls on Raspberry Pi; that is independent corroboration, not ROG5 proof.
+[Patch 0039](../patches/linux-7.1.4/0039-usb-gadget-ncm-restart-busy-tx-timer.patch)
+restarts only a BUSY timer flush at the existing 300us interval. No queue,
+timeout, charging, storage or fallback policy changes. Attribution and the
+driver's GPL-2.0-or-later license are retained.
+
+The [compiled callback regression](../scripts/device/test-ncm-tx-timer.py)
+reproduces a stranded pending reply before the patch, verifies two BUSY results
+then successful delivery without any new traffic, and tests sustained BUSY and
+absent-device termination. Its optional `--source` check applies to a temporary
+copy of the retained driver and proves the tested callback matches exactly.
+This does not model DWC3 hardware or all timer concurrency. The patch is not
+deployed or silently added to an active build; the next focused kernel release
+must exercise the previously failing bulk-read plus parallel-SSH scenario and
+then complete the root snapshot. Do not hot-unload the active USB transport.
 
 ## Why 7.1.4
 
