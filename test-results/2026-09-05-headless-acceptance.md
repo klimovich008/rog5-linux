@@ -1595,3 +1595,85 @@ V10 selector and healthy-state hashes remain unchanged. No new physical test,
 phone write or fallback mutation occurred. The private old rescue supervisor
 still pins g359 and embedded-RAM semantics: adapt and check it for the new
 selector/g1ee trial before use, rather than invoking it unchanged.
+
+### Selector-backed persistent server: live checkpoint (2026-09-06)
+
+Executed from clean `918f3f6d48c6eed3c46a4b0b0858c121a4bc85fb`; all four
+GitHub jobs PASS run 33999018607. Reused the signed twins and sealed verification
+above; no new kernel build, flash, GPT or protected-partition operation.
+Primary question: can the corrected persistent server reach exact P2/SSH and
+trial health using normal selector-backed RAM recovery?
+
+The private reviewed staging adapter preserved the old V10 selector and healthy
+record both on the host and device. All five new bundle files passed readback;
+P24 was relocked RO, with only sda/sda23 writable. Persistent transaction took
+2.324 s. No trial helper state was synthesized by the host.
+
+R3 pre-install failure: `/run/initramfs/bin/busybox` could not execute from
+Arch because its ELF interpreter is `/lib/ld-musl-aarch64.so.1`. The interpreter
+exists inside the exitrd, not the Arch root. The attempted syntax check failed
+before backup/install/reboot. Same-boot inspection proved the original exitrd
+and absent staging destinations; the failed entry was retained. The exact
+`chroot /run/initramfs /bin/busybox sh -n` check passed. Only the terminal reboot
+action was then replaced in RAM; all normal storage teardown remained intact.
+This is not a retry of ambiguous execution. Eight private adapter tests PASS
+in 0.025 s, including default-read-only, failed backup before transfer, permanent
+staging refusal after entry, exact identities and the musl command regression.
+
+Normal teardown reached exact slot-B fastboot in 9.288 s: product lahaina,
+battery-soc-ok yes, 8640 mV. Both slots remained bootable, bootloader lineage
+unchanged. Prestarted capture verified its listener/address/firewall/route
+ownership before the new one-use claim was consumed. Sole fastboot boot:
+12.831 s. Recovery ACM recorded S70 loaded then S90 execute. New target boot:
+`dd9cd15a-d9a6-4128-9dfa-5d8ef8d91fbd`, Linux `7.1.4-g1eea8970e87f`.
+Authenticated P2/SSH identity ready at 83.174 s. Local P24 root plus bounded
+persistent overlay passed, with one allowed journal-recovery event and no UFS
+errors. Wi-Fi radio/WPA/DHCP and package trust initialization completed; trial
+became healthy. No failed units or outstanding jobs remained.
+
+R2 deployed-userspace gap: existing overlay healthd SHA
+`019418fa79530d0dd0d9383c781c4b599a058f4f0e5c9784193a2b5ef47b1e51`
+was still the older single-client version. One idle TCP connection caused a
+concurrent health request to time out after 2.276 s. Existing eight repository
+health tests PASS in 0.748 s. Backed up the deployed script and atomically
+installed tested SHA
+`6bed593e08f6e561cbe52cae092769845eefd08aadea5660e03e520655213d26`
+inside the accepted persistent overlay; unchanged systemd unit, no reboot.
+Update/restart/readback took 0.538 s. Concurrent idle/trickle clients then
+permitted exact health responses over USB (0.006 s) and Wi-Fi (0.660 s), and
+both stalled connections were closed. This overlay update is a distinct
+deployed component; it is not silently attributed to the signed initramfs.
+
+Same-boot component measurements (not formal all-release acceptance):
+
+| Check | Result / duration |
+|---|---|
+| 256 MiB USB upload/download | PASS 7.366 / 6.582 s |
+| 256 MiB Wi-Fi upload/download | PASS 171.180 / 104.777 s |
+| Transfer integrity/cleanup | All SHA-256/size checks pass; no new interface errors/drops; exact test-owned RAM files removed |
+| SSH restart | PASS 1.484 s; same pinned host and boot |
+| WPA+DHCP restart | PASS 17.513 s; radio InvocationID unchanged |
+| Health restart | PASS 0.383 s |
+| Powered observation | PASS 61 samples, 600.697 s, same boot/scope |
+| Capture lifetime | 1380.501 s; four owned cleanup steps PASS |
+
+Powered observation: Full/Good 100%, 8.622–8.624 V, 29.9–30.0°C,
+-13000 to 0 microamps, unchanged charge counter 5116000. Wi-Fi was active:
+this is neither H03 charging proof nor the 60-minute combined soak. Kernel-log
+prefix was preserved, with no new panic/oops, UFS I/O, emergency-RO or PMIC IRQ
+fault signature. Watchdog acknowledged P2 plus persistent SSH identity at
+uptime 902.559 s; the earlier SSH restart did not cause a rollback reboot.
+Final pinned SSH after capture cleanup proved the same boot, systemd running,
+healthy trial, expected selector and deployed healthd. Five live runtime/helper
+hashes match expected source. Tailscale Running, online, Health `[]`; independent
+peer SSH remains unproven. Phone PHY reported high-rate Wi-Fi 6 while host
+reported 54 Mb/s; investigate host-path performance without guessing a kernel fix.
+
+Private exact adapters, source/boot receipts, host rollback backups, raw capture,
+hashes and samples are retained in the selector-server-v1 evidence directory.
+All coordinator/sampler/transfer/restart processes completed. Installed boot B
+remains old recovery `340f6392…`; no ordinary boot or physical fallback test
+was substituted for the accepted RAM cycle. Preserve stock A and signed V11.
+Remaining work is the full acceptance matrix, deployed-overlay composition,
+updated recovery qualification, ordinary/off-start boots, durable scratch,
+combined soak, regulation criteria and independent mesh access. Goal not complete.
