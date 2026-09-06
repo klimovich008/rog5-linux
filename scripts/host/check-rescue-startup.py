@@ -114,6 +114,18 @@ def validate(record, identity, execution, receipt, receipt_hash, events, attempt
             and all(a['monotonic'] <= b['monotonic'] for a,b in zip(prepared, prepared[1:])),
             'incomplete or late preboot receiver preparation')
     require(not any(e['event'] == 'transport-check-failed' for e in events), 'capture transport integrity failed')
+    target_seen = False
+    for event in events:
+        target_seen |= (event['event'] in {'stage', 'startup-observation'} or
+                        (event['event'] == 'transport' and event.get('mode') == 'target'))
+        if event['event'] == 'usb-discovery-interrupted':
+            require(not target_seen and event.get('target_seen') is False
+                    and event.get('phase') == 'usb-discovery' and event.get('errno') in (2, 19)
+                    and event.get('operation') in {'idVendor', 'idProduct', 'product', 'serial'}
+                    and event.get('observed_mode') == 'absent'
+                    and 'last_stage' in event and event['last_stage'] is None
+                    and 'last_startup' in event and event['last_startup'] is None,
+                    'unproven pretarget USB-read interruption')
     require(type(smoke['execution_return']) is int and smoke['execution_return'] == 0
             and smoke['status'] == 'PASS', 'failed or ambiguous execution')
     require(bool(attempts) and all(type(a['code']) is int for a in attempts)

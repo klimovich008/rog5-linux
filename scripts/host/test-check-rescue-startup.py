@@ -114,6 +114,22 @@ class Tests(unittest.TestCase):
         self.events.insert(-1, dict(event='transport-check-failed', unix=1044, monotonic=144))
         with self.assertRaises(ValueError): self.check()
 
+    def test_pending_read_event_requires_exact_pretarget_classification(self):
+        event=dict(event='usb-discovery-interrupted',phase='usb-discovery',
+                   operation='idVendor',errno=19,observed_mode='absent',
+                   target_seen=False,last_stage=None,last_startup=None,
+                   unix=1010,monotonic=110)
+        self.events.insert(-1,event)
+        self.assertFalse(self.check()['h02_qualified'])
+        for field,bad in [('phase','network-setup'),('errno',13),
+                          ('observed_mode','mismatch'),('target_seen',True),
+                          ('operation','unknown'),('last_stage',{'stage':'runtime'})]:
+            original=event[field]; event[field]=bad
+            with self.subTest(field=field), self.assertRaises(ValueError): self.check()
+            event[field]=original
+        self.events.insert(-2,dict(event='transport',mode='target',unix=1009,monotonic=109))
+        with self.assertRaises(ValueError): self.check()
+
     def test_evidence_reader_rejects_symlinks_duplicates_and_large_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp); path = root/'receipt.json'

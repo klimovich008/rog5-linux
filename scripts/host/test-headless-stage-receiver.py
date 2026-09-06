@@ -5,6 +5,7 @@ from pathlib import Path
 import socket
 import json
 import hashlib
+import errno
 import tempfile
 import time
 import unittest
@@ -22,6 +23,31 @@ def frame(sequence=1, boot=BOOT):
 
 
 class ReceiverTest(unittest.TestCase):
+    def test_real_sysfs_read_disappearance_before_target_is_pending(self):
+        # Reproduce the read/USB-removal boundary, not a guessed generic error.
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); device=root/'device'; device.mkdir()
+            usb=root/'usb'; usb.symlink_to(device, target_is_directory=True)
+            events=[]; original=Path.read_text
+            def removed(path,*args,**kwargs):
+                if path==usb/'idVendor':
+                    usb.unlink()
+                    raise OSError(errno.ENODEV,'No such device')
+                return original(path,*args,**kwargs)
+            with M.Receiver('fixture',events.append,host='127.0.0.1',port=0) as receiver:
+                receiver.transport('recovery',None)
+                listener=receiver.listener.fileno()
+                with patch.object(M,'USB',usb), patch.object(M,'ANCHOR',str(device)), \
+                     patch.object(Path,'read_text',removed):
+                    self.assertTrue(M.update_transport(receiver,'fixture',lambda:True))
+                self.assertFalse(receiver.failed)
+                self.assertEqual(receiver.mode,'absent')
+                self.assertEqual(receiver.listener.fileno(),listener)
+                self.assertIsNone(receiver.last)
+                self.assertEqual(events[-2]['event'],'usb-discovery-interrupted')
+                self.assertEqual(events[-2]['operation'],'idVendor')
+                self.assertEqual(events[-2]['errno'],errno.ENODEV)
+
     def test_selector_trial_keeps_exact_manifest_and_fastboot_gates(self):
         # Same supervised fastboot transport, but the target comes from the
         # verified on-device selector, not an embedded RAM bundle.
@@ -48,6 +74,38 @@ class ReceiverTest(unittest.TestCase):
                      self.assertRaisesRegex(ValueError, error):
                     M.main()
                 self.assertFalse((root/'capture').exists())
+
+    def test_identified_read_removal_never_hides_other_failures(self):
+        for seen, next_mode, number, phase in (
+                (True,'absent',errno.ENODEV,'usb'),
+                (False,'enumerating',errno.ENODEV,'usb'),
+                (False,'mismatch',errno.ENODEV,'usb'),
+                (False,'target',errno.ENODEV,'usb'),
+                (False,'absent',errno.EACCES,'usb'),
+                (False,'absent',errno.ENODEV,'network')):
+            with self.subTest(seen=seen,mode=next_mode,number=number,phase=phase):
+                events=[]
+                with M.Receiver('fixture',events.append,host='127.0.0.1',port=0) as receiver:
+                    if seen:
+                        receiver.transport('target',None)
+                        receiver.transport('absent',None)  # No frame needed to latch observation.
+                    error=M.UsbReadDisappeared(OSError(number,'fixture'),'idVendor')
+                    discovery=[error,(next_mode,None)] if phase=='usb' else [('target',None),(next_mode,None)]
+                    def route(): raise error
+                    with patch.object(M,'usb_mode',side_effect=discovery):
+                        result=M.update_transport(receiver,'fixture',route)
+                    self.assertEqual(result,next_mode!='mismatch')
+                    self.assertTrue(receiver.failed)
+                    failure=next(e for e in events if e['event']=='transport-check-failed')
+                    self.assertEqual(failure['phase'],'usb-discovery' if phase=='usb' else 'network-setup')
+
+    def test_benign_enumeration_cannot_clear_an_existing_failure(self):
+        with M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0) as receiver:
+            receiver.failed=True
+            error=M.UsbReadDisappeared(OSError(errno.ENOENT,'fixture'),'idProduct')
+            with patch.object(M,'usb_mode',side_effect=[error,('absent',None)]):
+                M.update_transport(receiver,'fixture',lambda:True)
+            self.assertTrue(receiver.failed)
 
     def test_retained_pretarget_enodev_is_not_erased_by_later_readiness(self):
         fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/rescue-pretarget-enodev.json').read_text())
