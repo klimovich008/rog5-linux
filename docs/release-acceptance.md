@@ -135,8 +135,21 @@ recorder. A healthy ACK must prevent reboot after the original deadline; a
 stale ACK must not. Only uniquely named runtime user units and private fixtures
 are created, then stopped/removed; no login, phone or host reboot occurs.
 The result records source, archive hash, commands, PID changes and timings.
-This host-systemd component is not exact target/deployed-unit qualification:
-**C02 remains BLOCKED**, and no component PASS is imported into release results.
+This host-systemd component is not exact target/deployed-unit qualification.
+The existing `scripts/host/test-qemu-watchdog-handoff.py` now also accepts
+`--root-image RETAINED_EXT4` with its `--kernel`, `--target-archive` and `--output`
+arguments. That mode runs two network-isolated guests using the actual Arch
+systemd/sshd, sealed normal SSH/key-generation units, read-only ext4 and a RAM
+overlay. Guest-only key/config/ACK fixtures prove authenticated initial SSH,
+current-boot watchdog exit, a different SSH PID and authenticated access after
+restart; stale identity must reset instead. The 20-second fixture watchdog and
+40-second per-VM ceiling do not alter phone deadlines. Actual account records
+are retained, and `/run` is 0755 for strict key-path checks. The retained image
+is hashed before/after; no root copy, phone key, host mount or service is used.
+This closes the core target-runtime gap, but does not yet exercise the optional
+Wi-Fi rollback timer in that runtime. **C02 remains BLOCKED**, and no component
+PASS is imported into release results. Its result explicitly leaves C02/release
+qualification false; integrate the complete timer behavior before wiring C02.
 
 F01 uses `rog5-dev check-overlay-recovery --kernel EXACT_IMAGE --target-archive
 EXACT_ARCHIVE --root-image RETAINED_EXT4 --output PRIVATE_NEW_DIRECTORY`.

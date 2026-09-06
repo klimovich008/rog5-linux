@@ -193,7 +193,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "rog5-dev check-ssh-rollback proves the real host systemd/sshd transaction with sealed BusyBox and fixture acceptance; exact target systemd and deployed unit/runtime binding remain required."
+      "blocker": "Core exact-Arch systemd/sshd, sealed SSH units and watchdog pass via test-qemu-watchdog-handoff.py --root-image; optional Wi-Fi rollback timer/dependencies in that same target runtime and complete dispatcher integration remain required. Host-systemd timer evidence is not a substitute."
     },
     {
       "id": "D01",
