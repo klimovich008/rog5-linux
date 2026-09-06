@@ -244,7 +244,7 @@ The first container preflight lacked the shared Git metadata
 mount and stopped before output creation; the corrected read-only mount passed.
 Reuse the completed twins, not another checkout or rebuild. Private
 `rog5-ncm-kernel-20260906.FwMH1o8D` retains recipe, preflight and live build log.
-Finish clean twins and coherent kernel/module composition, validate bulk transfer with parallel SSH,
+With clean twins and coherent kernel/module composition complete, validate bulk transfer with parallel SSH,
 then obtain the paired root before server A01. Avoid another uninstrumented
 snapshot or hot-unloading USB. Physical causality remains to be demonstrated.
 Do not bypass it with unrelated host bundle files or import partial-root proof.
@@ -263,7 +263,9 @@ Active tier PASS **31.445 s** under concurrent compilation. Full local CI
 lifecycle tests then PASS **97.600 s**; the instrumented suite PASS **98.408 s**.
 Cause remains unproven; no deadline was relaxed. The previously unexecuted CI
 suffix also passes: **110 tests / 228.163 s**, unchanged production inputs. The original full run
-remains FAIL, not a retroactive green release; exact-head publication follows.
+remains FAIL, not a retroactive green release. Published
+`04ac38576edef855d3e4bab2aef253b6f390f5d3`; all four exact-head/merge/publication/
+QEMU jobs PASS run **34026414183**.
 New kernel A and unsigned target archive `01245c2d…` pass the isolated Arch/QEMU
 component in **100.969 s** (runtime 31.112 s), including all 19 module loads.
 The retained root is unchanged. This does not make its stale selector valid,
@@ -271,6 +273,21 @@ complete server radio closure, exercise physical NCM or qualify A01/the release.
 Fresh pinned same-boot health **PASS 0.390 s**: Full/Good 100%, 29.7°C,
 8.608 V, USB online, P24 RO, no failed systemd units. Kernel twins use 3.0 GiB
 each; host has about 21 GiB free. No phone reboot, signing or storage write.
+
+**Prepared, not issued or booted:** `headless-acceptance-rescue-v7` reuses this
+kernel/19-module/DT baseline with NCM patch 0039. Nine exact-archive watchdog
+cases PASS **131.517 s**; real Arch/SSH healthy/stale handover PASS **113.439 s**,
+unchanged retained root. Signed bundle/recovery/boot twins PASS **13.711 s**,
+without recompiling ASUS. Manifest `eca02756…`, boot `52b68f4e…`, recovery
+`2069fa20…`; full identities are in the canonical record generated from the
+package result and the incident. Combined rescue A01 **PASS 82.709 s**, seven
+required checks; not current server-root or physical NCM qualification.
+Registration checks: 19 claim, 33 admission and 17 receiver tests PASS; active
+tier **PASS 18.961 s**. No claim/entered/anchor marker exists for V7. The current
+dirty change is registration data and these result notes, not execution logic.
+Next finish the existing live coordinator/connected preflight and one fresh
+RAM cycle for bulk NCM plus parallel SSH. Do not repeat the kernel build, sign
+again, reuse V6 or substitute an ordinary reboot through old installed boot B.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel
