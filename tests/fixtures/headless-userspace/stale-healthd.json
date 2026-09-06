@@ -1,0 +1,8 @@
+{
+  "case": "2026-09-06 persistent overlay retained pre-fix healthd",
+  "role": "healthd",
+  "sha256": "019418fa79530d0dd0d9383c781c4b599a058f4f0e5c9784193a2b5ef47b1e51",
+  "size": 2113,
+  "observed_behavior": "Idle client blocked a concurrent health request until its 2-second timeout",
+  "expected": "FAIL deployed userspace mismatch"
+}

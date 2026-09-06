@@ -89,9 +89,16 @@ charging. H03 still needs predeclared full-battery regulation/noise criteria.
 
 ## Next actions and remaining acceptance
 
-1. Bind live deployed overlay userspace (especially healthd) into final
-   composition checks; preserve the idle-client and exitrd-musl regression
-   evidence before another candidate build. No kernel change is indicated.
+The bounded [source-reuse assessment](kernel-port.md#bounded-source-reuse-assessment--2026-09-06)
+found incompatible downstream charging controls, not a demonstrated mainline
+defect. Keep the accepted kernel; Denial remains deferred and optional.
+
+1. New `rog5-dev check-deployed-server` compares six live userspace/helper
+   files with repository-derived hashes and strict metadata through pinned SSH;
+   first live component PASS in 0.297 s, with the captured stale-healthd fixture
+   rejected offline. A02 runs both Python modes. Finish whole-release composition
+   integration and retain the exitrd-musl regression before another build.
+   No kernel change is indicated.
 2. Qualify the updated recovery path separately from the old installed loader.
    Preserve stock A and signed V11; no consumed/ambiguous retry or implicit flash.
 3. Finish executable hardware acceptance integration, explicit durable scratch
