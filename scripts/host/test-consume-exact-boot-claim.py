@@ -1471,8 +1471,14 @@ class ExactClaimConsumerTest(unittest.TestCase):
                 CLAIMS.consume(profile, self.root)
 
     def test_exact_selector_rescue_is_bound_and_permanently_one_use(self):
-        profile = 'headless-selector-rescue-v1'
-        payload = CLAIMS.expected_record(profile)
+        records = {name: record for name, record in PROFILES.items()
+                   if b'\nexecution=fastboot-boot-fallback-only\n' in record}
+        self.assertTrue(records)
+        for profile, payload in records.items():
+            with self.subTest(profile=profile):
+                self.check_exact_selector_rescue(profile, payload)
+
+    def check_exact_selector_rescue(self, profile, payload):
         fields = dict(line.split('=', 1) for line in payload.decode().splitlines())
         self.assertEqual(len(fields), len(payload.splitlines()))
         self.assertEqual(fields['recovery_profile'], profile)

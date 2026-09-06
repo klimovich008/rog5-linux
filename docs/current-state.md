@@ -102,6 +102,14 @@ defect. Keep the accepted kernel; Denial remains deferred and optional.
    Finish whole-release composition integration; no kernel change is indicated.
 2. Qualify the updated recovery path separately from the old installed loader.
    Preserve stock A and signed V11; no consumed/ambiguous retry or implicit flash.
+   Fresh **unissued/unbooted** `headless-selector-rescue-v2` has identical
+   offline-verified recovery twins. It binds the current selector and boots only
+   its signed V11 fallback without opening the recovery trial-write window.
+   This tests fallback selection/transport, **not R01 failed-target recovery**.
+   No claim or admission has been created. Installed helper v1 was replayed
+   against the tested v2: v1 leaves a previously healthy primary healthy on its
+   next selection; v2 rearms pending and selects fallback after an unacknowledged
+   attempt. Do not qualify installed boot B from v2 source or RAM evidence.
 3. Finish executable hardware acceptance integration, explicit durable scratch
    scope/readback after reboot, three ordinary boots, powered-off start,
    60-minute combined storage/network soak and isolated failed-boot recovery.

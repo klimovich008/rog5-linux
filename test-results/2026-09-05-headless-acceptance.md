@@ -1771,3 +1771,57 @@ The single early SPMI transaction failure reads SID5 address `0x104` during
 not the PMIC register being read. This warning predates this release (July 25
 and August 31 evidence); it must not be hidden or newly blamed on charging.
 No new kernel change follows from the bounded comparison.
+
+### Updated recovery fallback qualification preparation (2026-09-06)
+
+Starting clean source `7865f0a8c4d13dfaaaf56c58873822bebb9395a8`; its exact-head,
+merge, publication and QEMU jobs all passed run 34003755950. The existing
+server's six-file deployed check passed again in 0.249 s. At uptime 5750 s,
+the same boot had Full/Good 100%, 29.8°C, 8.622 V and zero battery current;
+USB was online at 5.050 V/175 mA with 500 mA input limit, device/sink role.
+Systemd/project SSH/health/Tailscale services were active, Wi-Fi addressed,
+selector unchanged and trial healthy. Native lower stayed RO/norecovery;
+existing P23/service-state mounts were unchanged. An ad-hoc first read used
+Android-style supply names; those missing paths were observer errors, corrected
+using the already retained `qcom-battmgr-*` names, not missing hardware.
+
+R2 recovery-composition evidence: exact installed backup `340f6392…` and tested
+RAM archive share init, local executor, bundle verifier, kexec and trust key.
+The selector loader and trial helper differ. Exact ARM binary replay of
+decide → healthy → decide → decide leaves v1 selecting primary/healthy;
+v2 rearms pending and then selects V11. Replay took 0.450 s in a disposable
+fixture, not on the phone. Current fallback-order tests passed 7 cases in
+0.495 s and exact ARM trial-helper tests passed 16 in 0.945 s.
+
+Prepared new `headless-selector-rescue-v2` from the same reviewed ASUS kernel,
+current recovery source/v2 helper and one executor pinned to the current
+selector. Its intended question is verified fallback selection/transport with
+no recovery trial write; it is not the separate R01 failed-target experiment.
+Existing signed V11 is unchanged. Recovery archive and boot twins are identical;
+the sealed ARM verifier accepted the exact fallback signature and every payload.
+The canonical claim registry alone records the new identities; other consumers
+derive them. Extending the existing fallback claim regression to all such rows
+avoids another candidate-specific copied test. Registration is not issuance.
+
+R3 host-only check failure: `avbtool verify_image` resolves the descriptor's
+partition name `boot.img`, not `recovery-a.avb.img`. The check initially stopped
+after verifying the NONE vbmeta footer because that sibling did not exist.
+No image or phone change followed. Verification of an exact temporary `boot.img`
+copy passed; offline replay also rejected the missing-name and changed-payload
+fixtures. Corrected verification took 1.454 s, reusing the already built bytes.
+The original build timer was not saved before the exception: no precise build
+duration is claimed. Retained outputs occupied approximately 291 MiB; no new
+kernel compilation, target signing, private-key use, admission, claim issuance,
+phone reboot, selector change or installed-image write occurred.
+
+Frozen validation passed: active 16.568 s; full local CI 487.116 s (previous
+497.686 s, not a performance guarantee). No source changed during either run.
+Read-only physical hashing then confirmed installed boot B itself, not merely
+its retained backup, is `340f6392…`; all five V11 payload hashes still match.
+The default transition inspection passed on the same boot at uptime 6538 s.
+Five offline private-adapter tests passed in 0.007 s, covering exact derivation,
+source/target identity, read-only default, publication failure before entry,
+and an ambiguous install refusing both reboot and retry. These adapters reuse
+the prior one-shot supervisor and normal exitrd teardown. They have not executed
+a transition or created a claim. Remote publication/CI and connected admission
+remain separate gates; a fallback branch PASS will not be relabeled R01.
