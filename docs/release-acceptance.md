@@ -154,11 +154,18 @@ Healthy SSH restart must invoke the elapsed timer's service successfully and
 retain authenticated access; stale acceptance must instead reboot, not panic
 or reach the core watchdog's bootloader-reset path. No radio is activated.
 The healthy case waits for service completion, not an extra fixed sleep.
-This component passed in 118.564 s including both retained-root hashes.
-**C02 remains BLOCKED** pending complete dispatcher/proof integration; no
-component PASS is imported into release results. C02/release qualification
-fields remain false. The unchanged 120 s row needs measured timing headroom,
-not a silently relaxed deadline or reuse of another release's evidence.
+The supporting component passed in 118.564 s including both retained-root hashes.
+The C02 dispatcher now invokes `--c02` instead of accepting supporting-component
+results. It automatically selects Wi-Fi cases when that archive carries a
+Wi-Fi payload (partial payloads fail); otherwise it selects core ACK/stale
+identity cases. It enforces the unchanged 120 s contract and requires an exact
+complete result bound to source, runner, kernel, archive and unchanged root.
+Missing QEMU prerequisites are BLOCKED. Missing/partial/mismatched proof fails,
+even if a command exits zero. No other release's component pass is imported.
+The integrated retained-server row passed in **118.811 s**; whole-release
+qualification remains false. Timing headroom is narrow, not grounds to relax
+the deadline. Artifact bytes are verified as artifacts, not additionally
+rehashed as repository test source inside the timed row.
 
 F01 uses `rog5-dev check-overlay-recovery --kernel EXACT_IMAGE --target-archive
 EXACT_ARCHIVE --root-image RETAINED_EXT4 --output PRIVATE_NEW_DIRECTORY`.

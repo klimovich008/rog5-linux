@@ -181,11 +181,12 @@
       "mandatory": true,
       "environment": "Unprivileged host; additional isolated prerequisites as listed",
       "prerequisites": [
-        "systemd/QEMU fixture with exact release units"
+        "python3", "podman", "retained Arch root and exact release archive/kernel",
+        "localhost/rog5-qemu-gate:ubuntu-24.04 container already installed"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/test-qemu-watchdog-handoff.py", "--kernel", "{kernel}", "--target-archive", "{initramfs}", "--root-image", "{rootfs}", "--c02", "--output", "{test_output}"]],
       "deadline_seconds": 120,
-      "pass_condition": "Actual late SSH restart does not reactivate rollback after current-boot healthy ACK; stale acceptance cannot suppress rollback.",
+      "pass_condition": "Actual late SSH restart does not reboot after current-boot healthy ACK, even if it rearms the optional timer; stale acceptance cannot suppress rollback. Exact archive selects the required core-only or Wi-Fi cases; both must pass on the retained Arch runtime.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
       "mutations": "Only test-owned disposable fixtures and processes; no phone or shared host changes.",
       "cleanup": "Use existing isolated test cleanup; preserve failure logs.",
@@ -193,7 +194,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Exact-Arch core SSH/watchdog and optional Wi-Fi rollback components now pass via test-qemu-watchdog-handoff.py --root-image --wifi-rollback. Complete dispatcher/proof integration remains; retain the 120-second deadline and do not import component passes from another release."
+      "blocker": "Requires exact release inputs and retained Arch/QEMU prerequisites. Component-only, stale, partial or mismatched proof is not C02 acceptance."
     },
     {
       "id": "D01",

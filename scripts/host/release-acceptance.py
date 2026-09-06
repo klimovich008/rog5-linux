@@ -4,6 +4,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -215,7 +216,10 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None):
         for command in commands:
             for token in command:
                 path = REPO/token
-                if path.is_file():
+                # Artifact arguments are already bound by verify_release and
+                # the exact-artifact runner. They are not test source: hashing
+                # a 32 GiB root here needlessly consumes the row's deadline.
+                if not Path(token).is_absolute() and path.is_file() and path.resolve().is_relative_to(REPO):
                     row['test_versions'][token] = sha_file(path)
             remaining = test['deadline_seconds'] - (time.monotonic() - started)
             if remaining <= 0:
@@ -256,6 +260,31 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None):
             row['proof_sha256'] = sha_file(output/'H02/result.json')
         except (OSError, KeyError, TypeError, ValueError) as error:
             row.update(status='FAIL', next_action='missing complete H02 proof: '+str(error))
+    if row['status'] == 'PASS' and test['id'] == 'C02':
+        try:
+            proof_path = output/'C02/result.json'
+            proof = json.loads(proof_path.read_text())
+            expected = {'core-only': ['systemd-ack', 'systemd-stale-identity'],
+                        'wifi-rollback': ['systemd-ack', 'systemd-wifi-stale']}
+            elapsed = proof['duration_seconds']
+            if (proof['status'] != 'PASS' or proof['c02_qualified'] is not True
+                    or proof['root_image_unchanged'] is not True
+                    or type(elapsed) not in (int,float) or not math.isfinite(elapsed)
+                    or not 0 <= elapsed <= test['deadline_seconds']
+                    or proof['source_revision'] != subprocess.check_output(
+                        ['git','-C',str(REPO),'rev-parse','HEAD'], text=True).strip()
+                    or proof['runner_sha256'] != sha_file(REPO/'scripts/host/test-qemu-watchdog-handoff.py')
+                    or [case['mode'] for case in proof['cases']] != expected[proof['c02_variant']]
+                    or any(case['passed'] is not True or case['exit_code'] != 0 for case in proof['cases'])):
+                raise ValueError('C02 exact qualification mismatch')
+            for field, role in (('kernel_sha256','kernel'), ('target_archive_sha256','initramfs'),
+                                ('root_image_sha256','rootfs')):
+                if proof[field] != release['artifacts'][role]['sha256']:
+                    raise ValueError('C02 artifact mismatch: '+role)
+            row['proof_sha256'] = sha_file(proof_path)
+            row['next_action'] = 'Qualify remaining mandatory tests on the same release.'
+        except (OSError, KeyError, TypeError, ValueError) as error:
+            row.update(status='FAIL', next_action='missing complete C02 proof: '+str(error))
     return row
 
 

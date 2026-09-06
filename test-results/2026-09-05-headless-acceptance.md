@@ -2239,3 +2239,44 @@ is deferred to coherent C02 dispatcher integration, not claimed passed here.
 The result still says `c02_qualified=false` and `release_qualified=false`.
 Next bind the complete proof to the dispatcher and exact release inputs, with
 deadline headroom measured before publication. No kernel build is needed.
+
+### C02 dispatcher integration
+
+From `42c9b7e6fb19f034efad47a7028dcdad5b78e787`, made C02 executable with
+archive-selected `--c02` coverage and exact result validation. Fail-first tests
+proved that the old dispatcher accepted exit zero without a C02 proof. New
+tests reject partial cases, wrong kernel/archive/root hashes, stale source or
+runner identity, missing proof, false qualification and deadline overrun.
+The optional Wi-Fi service readout now uses one systemctl property snapshot
+instead of repeated processes; no production service or timing value changes.
+
+The first integrated row reached both VM outcomes but failed at **120.016 s**.
+Inspection and a fail-first regression identified a separate host defect:
+`run_one` hashed every file argument, including the 32 GiB root, as test source
+inside the deadline. It now hashes only repository-owned relative test source.
+Receipt verification, exact artifact identities and runner pre/post root hashes
+remain. No artifact check or deadline was removed.
+
+`c02-integrated-wifi-r2` under the existing private V6 directory records
+**C02 PASS 118.811 s**; guest cases **29.195/27.190 s**. Kernel/archive/root
+remain `bdceaa51…`/`6934f732…`/`06cc805b…`, explicitly an offline retained
+server composition, not an admitted candidate or proof about current rescue.
+Runner `e49ea51d…`; proof SHA-256
+`716ff3a94d549704d1127aef9aad1f461554b63c3544e04c9dead7932dfd61e6`.
+The private input receipt and driver preserve exact paths, source/worktree,
+contract and command identities; `release_qualified=false` remains explicit.
+The timing margin is narrow. Do not silently relax 120 s or reinterpret an
+overrun as PASS. Normal/optimized dispatcher tests and archive regressions pass;
+full frozen CI and publication checks follow this integration checkpoint.
+
+Final focused checks passed **25 dispatcher tests / 0.921 s** and **15 archive
+tests / 1.166 s**; optimized dispatcher execution also passed. Frozen full local
+CI passed once in **485.614 s** (previous published checkpoint 489.593 s;
+not a controlled benchmark). Private log: `c02-full-ci-r1.log` in the same
+evidence directory. Only completion documentation changed afterward.
+Fresh pinned same-rescue H02 passed **1.297 s**, uptime **9931.81 s**,
+Full/Good 100%, 29.7°C, 8.615 V, current zero and USB online. Same boot, sealed
+runtime files and 900 s watchdog ACK; no radio activation, service restart,
+boot, build or flash. `c02-publish-health-r1` retains this separate proof, not
+imported into the offline composition's C02 row or a green release. Exact-head
+and merge publication CI must cover the new commit before any hardware use.

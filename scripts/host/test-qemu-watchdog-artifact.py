@@ -185,7 +185,21 @@ class WatchdogArtifactTest(unittest.TestCase):
         for marker in ('ARCH_WIFI_HEALTHY_REARM_PASS', 'ARCH_WIFI_STALE_REARM_BEGIN'):
             self.run_mocked_harness(use_arch=True, use_wifi=True, missing_marker=marker)
 
-    def run_mocked_harness(self, use_arch=False, use_wifi=False, missing_marker=None):
+    def test_c02_selects_coverage_from_exact_archive(self):
+        self.run_mocked_harness(use_arch=True, qualify=True)
+        self.run_mocked_harness(use_arch=True, use_wifi=True, qualify=True)
+        self.run_mocked_harness(use_arch=True, use_wifi=True, qualify=True,
+                               missing_marker='ARCH_WIFI_HEALTHY_REARM_PASS')
+
+    def test_c02_missing_container_is_blocked_without_artifact_or_vm_access(self):
+        argv = ['handoff','--kernel','/missing/kernel','--target-archive','/missing/archive',
+                '--root-image','/missing/root','--output','/missing/output','--c02']
+        with mock.patch.object(sys,'argv',argv), mock.patch.object(M.shutil,'which',return_value=None), \
+                mock.patch.object(M.subprocess,'run') as run, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(M.main(),77)
+            run.assert_not_called()
+
+    def run_mocked_harness(self, use_arch=False, use_wifi=False, missing_marker=None, qualify=False):
         init = altered_init()
         target = members(init)
         if use_wifi:
@@ -212,12 +226,16 @@ class WatchdogArtifactTest(unittest.TestCase):
             source = root / "initramfs/persistent-root-init"
             source.parent.mkdir()
             source.write_bytes(SOURCE)
+            (root/'configs').mkdir()
+            (root/'configs/release-acceptance.json').write_bytes((REPO/'configs/release-acceptance.json').read_bytes())
             seen = []
             process_deadlines = []
 
             def simulated_run(command, **kwargs):
                 if command == ["/bin/sh", "-n"]:
                     return RUN(command, **kwargs)
+                if command[:3] == ['podman','image','exists']:
+                    return subprocess.CompletedProcess(command, 0)
                 if command[0] == "podman":
                     if use_arch:
                         self.assertIn('file=/arch.ext4,format=raw,if=none,id=root,readonly=on', command)
@@ -260,9 +278,12 @@ class WatchdogArtifactTest(unittest.TestCase):
             if use_arch:
                 (root/'arch.ext4').write_bytes(b'read-only fixture, no QEMU executed')
                 argv += ['--root-image', str(root/'arch.ext4')]
-            if use_wifi:
+            if qualify:
+                argv += ['--c02']
+            elif use_wifi:
                 argv += ['--wifi-rollback']
             with mock.patch.object(M, "REPO", root), mock.patch.object(sys, "argv", argv), \
+                    mock.patch.object(M.shutil, 'which', return_value='/fixture/podman'), \
                     mock.patch.object(M.runpy, "run_path", return_value=ARCHIVE), \
                     mock.patch.object(M.subprocess, "run", side_effect=simulated_run), \
                     mock.patch.object(M.subprocess, "check_output", return_value="offline-image"), \
@@ -314,7 +335,9 @@ class WatchdogArtifactTest(unittest.TestCase):
                 self.assertEqual(record[key], hashlib.sha256(data).hexdigest())
             if use_arch:
                 self.assertTrue(record['root_image_unchanged'])
-                self.assertFalse(record['c02_qualified'])
+                self.assertEqual(record['c02_qualified'], qualify and not missing_marker)
+                if qualify:
+                    self.assertEqual(record['c02_variant'], 'wifi-rollback' if use_wifi else 'core-only')
                 self.assertFalse(record['release_qualified'])
                 self.assertIn('not physical storage', record['scope'])
             else:
