@@ -211,6 +211,100 @@ def collect_readiness(identity,key,known_hosts):
     return parse_readiness(result.stdout)
 
 
+STARTUP_KEYS=('boot_before','boot_after','kernel','bundle','units','radio_record',
+              'markers','addresses','power','dmesg')
+# Fixed, bounded observations only. No service action, radio activation, mount,
+# acceptance write or rollback suppression. The sealed BusyBox bounds commands.
+STARTUP_PROBE=r'''set -eu
+export LC_ALL=C
+bb() { /run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox "$@"; }
+before=$(cat /proc/sys/kernel/random/boot_id)
+test "$before" = "$expected_boot"
+kernel=$(uname -r); test "$kernel" = "$expected_release"
+bundle= count=0
+set -f
+for arg in $(cat /proc/cmdline); do
+ case "$arg" in rog5.bundle=*) bundle=${arg#rog5.bundle=}; count=$((count+1));; esac
+done
+test "$count" = 1; test "$bundle" = "$expected_bundle"
+observe() {
+ if value=$(bb timeout -s KILL 2 "$@" 2>&1); then
+  printf 'present\n%s' "$value"
+ else printf 'error\n'; fi
+}
+units=$(observe /usr/bin/systemctl show --no-pager \
+ rog5-wifi-radio.service rog5-wifi-failure.service rog5-persistent-state.service \
+ rog5-persistent-ssh-identity.service rog5-early-sshd.service \
+ -p Id -p LoadState -p ActiveState -p SubState -p Result -p ExecMainStatus)
+record=/run/rog5-native-wifi/radio-failure
+radio_record='absent
+'
+if test -e "$record" || test -L "$record"; then
+ radio_record='error
+'
+ if test -f "$record" && test ! -L "$record" &&
+    test "$(stat -c '%u:%g:%a:%h' "$record")" = 0:0:444:1 &&
+    test "$(stat -c %s "$record")" -le 256; then
+  radio_record=$(observe /run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox head -c 256 "$record")
+ fi
+fi
+markers=$(for name in radio-entered radio-activation-entered probe-entered; do
+ path=/run/rog5-native-wifi/$name
+ if test -d "$path" && test ! -L "$path"; then printf '%s=present\n' "$name"
+ elif test -e "$path" || test -L "$path"; then printf '%s=error\n' "$name"
+ else printf '%s=absent\n' "$name"; fi
+done)
+addresses=$(observe /usr/bin/ip -brief address)
+power=$(for supply in qcom-battmgr-bat qcom-battmgr-usb; do
+ for field in health temp status capacity voltage_now current_now online current_max; do
+  path=/sys/class/power_supply/$supply/$field
+  printf '%s/%s=' "$supply" "$field"
+  if test -f "$path"; then bb head -c 128 "$path" || printf 'error\n'
+  else printf 'absent\n'; fi
+ done
+done)
+dmesg=$(observe /run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox dmesg -s 8192)
+after=$(cat /proc/sys/kernel/random/boot_id); test "$after" = "$before"
+printf '%s\0' "$before" "$after" "$kernel" "$bundle" "$units" "$radio_record" \
+ "present
+$markers" "$addresses" "present
+$power" "$dmesg"
+'''
+
+
+def parse_startup_diagnostics(payload,identity):
+    if len(payload)>32768: raise ValueError('startup diagnostics exceeded bound')
+    parts=payload.decode('utf-8',errors='replace').split('\0')
+    if len(parts)!=len(STARTUP_KEYS)+1 or parts[-1]:
+        raise ValueError('startup diagnostic framing')
+    actual=dict(zip(STARTUP_KEYS,parts[:-1]))
+    for key,expected in [('boot_before',identity['boot_id']),('boot_after',identity['boot_id']),
+                         ('kernel',identity['release']),('bundle',identity['bundle'])]:
+        if actual[key]!=expected: raise ValueError('startup diagnostic identity mismatch: '+key)
+    for key in STARTUP_KEYS[4:]:
+        if actual[key].split('\n',1)[0] not in {'present','absent','error'}:
+            raise ValueError('startup observation status: '+key)
+    return actual
+
+
+def collect_startup_diagnostics(identity,key,known_hosts):
+    def gate():
+        host_gate(identity)
+        rows=json.loads(CAPTURE.run('ip','-j','route','get',CAPTURE.PEER))
+        if len(rows)!=1 or rows[0].get('dev')!=CAPTURE.INTERFACE or rows[0].get('prefsrc')!=CAPTURE.ADDRESS:
+            raise ValueError('wrong pinned diagnostic route')
+    gate()  # Before credential access; never an arbitrary alternate endpoint.
+    credential(key,True);credential(known_hosts,False)
+    argv=ssh_command(key,known_hosts)
+    argv[-1]='root@'+CAPTURE.PEER
+    script=''.join('expected_'+name+'='+shlex.quote(identity[field])+'\n'
+                   for name,field in [('boot','boot_id'),('release','release'),('bundle','bundle')])+STARTUP_PROBE
+    result=subprocess.run([*argv,'sh -s'],input=script.encode(),capture_output=True,timeout=20)
+    if result.returncode: raise ValueError('authenticated startup diagnostic probe failed')
+    gate()
+    return parse_startup_diagnostics(result.stdout,identity)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--profile',required=True)
@@ -219,8 +313,11 @@ def main():
     parser.add_argument('--identity-file',required=True,type=Path)
     parser.add_argument('--known-hosts',required=True,type=Path)
     parser.add_argument('--output',required=True,type=Path)
-    parser.add_argument('--readiness-only',action='store_true',
+    mode=parser.add_mutually_exclusive_group()
+    mode.add_argument('--readiness-only',action='store_true',
                         help='shell-only SSH/readiness component, not six-file or release qualification')
+    mode.add_argument('--startup-diagnostics',action='store_true',
+                      help='explicit pinned link-local observations only; never readiness or release PASS')
     args=parser.parse_args()
     started=time.monotonic()
     if not re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',args.boot_id):
@@ -237,7 +334,7 @@ def main():
     manifest=dict(line.split('=',1) for line in raw.decode('ascii').splitlines())
     identity=dict(serial=record['serial'],bundle=record['target_bundle'],
                   release=manifest['target_release'],boot_id=args.boot_id)
-    expected={} if args.readiness_only else expected_files();source=CAPTURE.ACCEPTANCE.source_identity()
+    expected={} if args.readiness_only or args.startup_diagnostics else expected_files();source=CAPTURE.ACCEPTANCE.source_identity()
     output=args.output.resolve()
     if not args.output.is_absolute() or output.is_relative_to(REPO) or output.exists():
         raise ValueError('output must be a new private directory outside Git')
@@ -245,17 +342,25 @@ def main():
     report=dict(status='FAIL',source=source,identity=identity,expected=expected,
                 manifest_sha256=record['manifest_sha256'],canonical_record=record,
                 runner_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                scope='SSH/readiness component' if args.readiness_only else 'six-file deployed userspace component; not full release, power or installed-recovery qualification',
+                scope=('authenticated startup observations only; not readiness or qualification' if args.startup_diagnostics else
+                       'SSH/readiness component' if args.readiness_only else
+                       'six-file deployed userspace component; not full release, power or installed-recovery qualification'),
                 release_qualified=False,
+                readiness_qualified=False,
                 mutations='none requested; ordinary filesystem read/atime semantics only')
     try:
-        actual=(collect_readiness if args.readiness_only else collect)(identity,args.identity_file,args.known_hosts)
+        collector=(collect_startup_diagnostics if args.startup_diagnostics else
+                   collect_readiness if args.readiness_only else collect)
+        actual=collector(identity,args.identity_file,args.known_hosts)
         report['actual']=actual
-        if args.readiness_only:
+        if args.startup_diagnostics:
+            report.update(scope='authenticated startup observations only; not readiness or qualification',
+                          readiness_qualified=False)
+        elif args.readiness_only:
             report.update(validate_readiness(actual,identity,record['execution']))
         else:
             validate_snapshot(actual,identity,expected)
-        if source!=CAPTURE.ACCEPTANCE.source_identity() or (not args.readiness_only and expected!=expected_files()):
+        if source!=CAPTURE.ACCEPTANCE.source_identity() or (not (args.readiness_only or args.startup_diagnostics) and expected!=expected_files()):
             raise ValueError('source changed during check')
         report['status']='PASS'
     except (OSError,ValueError,subprocess.SubprocessError) as error:

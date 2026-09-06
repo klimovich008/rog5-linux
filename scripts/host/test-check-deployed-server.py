@@ -99,6 +99,69 @@ class Tests(unittest.TestCase):
         self.assertIn(['python3','-O','scripts/host/test-check-deployed-server.py'],row['commands'])
 
 
+class StartupDiagnosticTests(unittest.TestCase):
+    # Replays the selector-v2 observation: diagnostic SSH worked while the
+    # normal server address could not resolve. That is not readiness PASS.
+    def setUp(self):
+        self.identity=dict(serial='fixture',boot_id='11111111-1111-4111-8111-111111111111',
+                           bundle='fixture',release='fixture-kernel')
+        self.keys=('boot_before','boot_after','kernel','bundle','units','radio_record',
+                   'markers','addresses','power','dmesg')
+        self.value=dict(zip(self.keys,[self.identity['boot_id']]*2+
+            ['fixture-kernel','fixture','present\nstate=inactive\nidentity=inactive\nsshd=active',
+             'absent\n','present\nradio-entered=present','present\n169.254.77.2/30',
+             'present\nhealth=Good','error\n']))
+        self.payload=('\0'.join(self.value[k] for k in self.keys)+'\0').encode()
+
+    def test_diagnostic_address_does_not_change_readiness(self):
+        with mock.patch.object(M,'host_gate'),mock.patch.object(M,'credential'), \
+             mock.patch.object(M.subprocess,'run',return_value=SimpleNamespace(
+                 returncode=255,stdout=b'',stderr=b'No route to host')) as run:
+            with self.assertRaises(ValueError):
+                M.collect_readiness(self.identity,Path('/key'),Path('/hosts'))
+            self.assertEqual(run.call_count,1)
+            self.assertIn('root@10.77.0.2',run.call_args.args[0])
+
+    def test_explicit_diagnostics_keep_pinned_auth_and_optional_errors(self):
+        route=json.dumps([dict(dev=M.CAPTURE.INTERFACE,prefsrc='169.254.77.1')])
+        with mock.patch.object(M,'host_gate'),mock.patch.object(M,'credential'), \
+             mock.patch.object(M.CAPTURE,'run',return_value=route), \
+             mock.patch.object(M.subprocess,'run',return_value=SimpleNamespace(returncode=0,stdout=self.payload)) as run:
+            result=M.collect_startup_diagnostics(self.identity,Path('/key'),Path('/hosts'))
+        self.assertEqual(result,self.value)
+        self.assertEqual(run.call_count,1)
+        argv=run.call_args.args[0]
+        self.assertIn('root@169.254.77.2',argv)
+        self.assertIn('StrictHostKeyChecking=yes',argv)
+        self.assertIn('HostKeyAlias=169.254.77.2',argv)
+        self.assertEqual(run.call_args.kwargs['timeout'],20)
+
+    def test_wrong_linklocal_route_precedes_credentials(self):
+        with mock.patch.object(M,'host_gate'),mock.patch.object(M,'credential') as key, \
+             mock.patch.object(M.CAPTURE,'run',return_value='[{"dev":"wlan0","prefsrc":"169.254.77.1"}]'), \
+             mock.patch.object(M.subprocess,'run') as run:
+            with self.assertRaises(ValueError):
+                M.collect_startup_diagnostics(self.identity,Path('/key'),Path('/hosts'))
+            key.assert_not_called();run.assert_not_called()
+
+    def test_malformed_or_wrong_boot_diagnostics_fail(self):
+        for payload in (self.payload[:-1],self.payload+b'extra\0',b'x'*32769,
+                        self.payload.replace(self.identity['boot_id'].encode(),b'wrong',1)):
+            with self.subTest(payload=payload[:20]),self.assertRaises(ValueError):
+                M.parse_startup_diagnostics(payload,self.identity)
+
+    def test_timeout_executes_the_sealed_binary_not_a_shell_function(self):
+        command=M.STARTUP_PROBE.split('radio_record=$(',1)[1].split(')\n',1)[0]
+        self.assertNotIn('observe bb ',command)
+        self.assertIn('/run/initramfs/lib/ld-musl-aarch64.so.1 /run/initramfs/bin/busybox head -c 256',command)
+
+    def test_modes_are_mutually_exclusive(self):
+        with mock.patch.object(sys,'argv',['check','--readiness-only','--startup-diagnostics']), \
+             mock.patch.object(M.CAPTURE.CLAIMS,'verify_entered') as entered:
+            with self.assertRaises(SystemExit): M.main()
+            entered.assert_not_called()
+
+
 class ReadinessTests(unittest.TestCase):
     def setUp(self):
         self.fixture=json.loads((M.REPO/'tests/fixtures/headless-userspace/legacy-fallback-readiness.json').read_text())

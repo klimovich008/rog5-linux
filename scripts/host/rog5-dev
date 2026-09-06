@@ -26,7 +26,7 @@ case $action in
       'rog5-dev accept quick|offline|device-smoke|release --output PRIVATE_NEW_DIRECTORY [--release RECEIPT]' \
       'rog5-dev check-composition --kernel IMAGE --dtb DTB --target-archive ARCHIVE --root-image ROOT --boot-image BOOT --candidate ID --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-rescue-root --inputs RECEIPT --root PRIVATE_RO_LOOP_MOUNT --output PRIVATE_NEW_DIRECTORY' \
-      'rog5-dev check-deployed-server [--readiness-only] --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --boot-id BOOT_ID --identity-file KEY --known-hosts PINNED_HOSTS --output PRIVATE_NEW_DIRECTORY' \
+      'rog5-dev check-deployed-server [--readiness-only|--startup-diagnostics] --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --boot-id BOOT_ID --identity-file KEY --known-hosts PINNED_HOSTS --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-rescue-startup --cycle PRIVATE_CYCLE --execution-record EXACT_RECORD --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-package-keyring --output PRIVATE_NEW_DIRECTORY' \

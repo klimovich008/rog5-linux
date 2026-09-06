@@ -3841,3 +3841,71 @@ capture and V8-to-fastboot transition, then one admitted RAM-only V2 trial.
 Do not perform an ordinary reboot into the staged unissued selector or reuse
 V8's consumed claim. Installed autonomous recovery and full-server qualification
 remain outstanding. Source/recovery/kernel rebuilds are not needed for staging.
+
+### Server-selector-v2 failed startup; automatic V11 rescue recovered
+
+One host execution on frozen `96e97de0716ebd12cacd391e1730a68b48de5f08`
+(all four jobs PASS, run 34050866675) consumed the staged V2 claim. Never retry.
+V8's checked RAM exitrd transition reached exact slot-B fastboot in **11.323 s**;
+voltage **8601 mV**, `battery-soc-ok=yes`. Capture preceded one RAM boot, accepted
+in **12.799 s**. No flash, repeated staging, GPT or protected-data operation.
+
+Primary boot `8fac081d-65ba-4c6b-878d-d4acd0eda02d` reached UFS, storage locks,
+local OverlayFS and switch-root. The reporter showed P2 active/exited and SSH
+active/running, with state/identity inactive/dead. Normal `10.77.0.2` failed ARP;
+**strict pinned SSH at `169.254.77.2` authenticated that exact primary boot**.
+This is diagnostic access, not server acceptance. At about 158 seconds after
+host execution started, transport disappeared. The startup row failed its
+unchanged 300-second deadline; no host retry was attempted.
+
+Installed recovery then verified/executed the preserved V11 fallback. Pinned
+SSH proved `persistent-native-root-v11`, kernel `7.1.4-g359318de534f`, boot
+`61d60a1b-e4cd-472c-b439-590c1d31baa5`. It reported Full/100%, Good, 29.8 C,
+8.587 V and zero battery current. P24 remained RO with tmpfs upper and accepted
+service-state storage. The V2 trial remains pending, not healthy. This observed
+automatic recovery is useful evidence, not the separately controlled R01 test.
+No prior-boot journal or pstore was retained; neither absence disproves panic.
+Read-only debugfs inspection of the unmounted root upper found healthd, not
+shadow copies of the core state/identity units.
+
+Source inspection narrows, but does not prove, causality: radio qualification
+precedes persistent state and stable USB address installation. Its failure unit
+requests reboot independently of the sealed **900-second** rollback timer.
+The actual radio result/reset reason was missed. Do not label this a kernel
+defect or an outer-watchdog expiry from elapsed time alone. Relevant prevention
+classes are **R2** (whole startup composition/evidence) and **R7** (live endpoint
+assumptions); these classify investigation gaps, not a proven reset cause.
+
+Private evidence: `rog5-v7-server-modules-20260906.Ibl4iPCz/server-live-v2`,
+including immutable execution, ACM/NCM frames, primary link-local SSH proof,
+fallback identity/postmortem, upper inventory and `diagnosis-r1.json`.
+The initial startup test is terminal. Its unchanged passive receiver retains
+the original 1380-second window and owned network cleanup. No receiver,
+supervisor, signed artifact or phone runtime bytes changed during capture.
+
+Focused correction: existing `check-deployed-server` gains **explicit**
+`--startup-diagnostics`, not alternate-address readiness. It uses canonical
+consumption/manifest checks and pinned SSH, verifies the same USB/source route
+and exact boot/kernel/bundle, and collects bounded radio/core unit status,
+failure record, activation markers, addresses, power and dmesg. Optional fields
+remain present/absent/error; collection never grants readiness or release PASS.
+No radio activation, acceptance write, service action or timer change occurs.
+Normal readiness stays at `10.77.0.2`; wrong identity/fallback cannot pass it.
+The captured address failure is replayed in focused tests. A real sealed-BusyBox
+rehearsal caught a new `timeout`/shell-function mistake before hardware use;
+the corrected exact record command passed in **0.805 s**. Only archive/runtime
+path relocation was simulated. Full Arch/systemd hardware collection is not
+claimed by this isolated command check. The full diagnostic shell additionally
+passed present/absent/wrong-boot cases under the sealed BusyBox in **9.325 s**,
+with systemctl/IP fixtures. Focused tests: **21 PASS** in each Python mode;
+active tier about **24.4 s** (log creation-to-final-write interval); full local
+CI **PASS 526.057 s** using Bash's elapsed timer. The first timing
+launch could not find `/usr/bin/time` and ran no suite; its log is preserved.
+No successor is issued by these host changes.
+
+Passive capture completed at **1380.713 s**, preserving the primary's final
+switch-root PASS and separately rejecting V11 frames as another release.
+Route/firewall/profile/address cleanup all PASS; coordinator and receiver are
+terminal. Private `startup-full-ci-r2.log`, `startup-active.log`, focused and
+sealed-shell logs retain the exact implementation validation. Final edits only
+update this evidence/current-state; unchanged implementation CI is reused.
