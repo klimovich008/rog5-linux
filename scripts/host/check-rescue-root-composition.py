@@ -18,6 +18,7 @@ import shlex
 import stat
 import subprocess
 import tempfile
+import tarfile
 import time
 
 REPO = Path(__file__).resolve().parents[2]
@@ -370,6 +371,118 @@ def radio_firmware_composition(members):
                 scope='sealed WCN6855/regulatory content; physical firmware response untested')
 
 
+def radio_module_files(members, release):
+    """Read a bounded, hash-closed nested module tree without extractall()."""
+    prefix='rog5-native-wifi/'
+    values=[]
+    for name in ('module-root-complete.tar.gz','module-files.sha256'):
+        entry=members.get(prefix+name)
+        if (entry is None or entry[0][1:5] != [stat.S_IFREG|0o644,0,0,1]):
+            raise ValueError('invalid nested module package metadata')
+        values.append(entry[1])
+    package,manifest=values
+    if not re.fullmatch(r'7\.1\.4-g[0-9a-f]{12}',release) or len(package)>128*1024**2 or len(manifest)>65536:
+        raise ValueError('module package bounds/release')
+    root='lib/modules/'+release+'/'
+    expected={}
+    for line in manifest.splitlines():
+        match=re.fullmatch(rb'([0-9a-f]{64})  ([A-Za-z0-9_./-]{1,255})',line)
+        if not match: raise ValueError('invalid module manifest')
+        digest,name=(value.decode() for value in match.groups())
+        if (name in expected or not name.startswith(root)
+                or any(part in ('','.','..') for part in name.split('/'))):
+            raise ValueError('unsafe/duplicate module manifest path')
+        expected[name]=digest
+    if not expected or not manifest.endswith(b'\n'):
+        raise ValueError('empty/truncated module manifest')
+    files={};seen=set();total=0
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(package)) as compressed:
+            payload=compressed.read(160*1024**2+1)
+        if len(payload)>160*1024**2: raise ValueError('expanded tar bound')
+        with tarfile.open(fileobj=io.BytesIO(payload),mode='r:') as tar:
+            for member in tar:
+                name=member.name.removeprefix('./')
+                if name in ('','.'):
+                    if ('.' in seen or not member.isdir() or member.uid or member.gid or member.mode&0o6022):
+                        raise ValueError('unsafe nested archive root')
+                    seen.add('.');continue
+                if (name in seen or len(seen)>=256 or member.uid or member.gid
+                        or member.mode&0o6022 or any(part in ('','.','..') for part in name.split('/'))):
+                    raise ValueError('unsafe nested module member')
+                seen.add(name)
+                if member.isdir():
+                    if not (root.startswith(name+'/') or name.startswith(root)):
+                        raise ValueError('directory outside exact module tree')
+                    continue
+                if not member.isfile() or name not in expected or member.size>32*1024**2:
+                    raise ValueError('unlisted or nonregular nested module')
+                total+=member.size
+                if total>128*1024**2: raise ValueError('expanded module package bound')
+                data=tar.extractfile(member).read()
+                if hashlib.sha256(data).hexdigest()!=expected[name]: raise ValueError('nested module hash mismatch')
+                files[name]=data
+    except (tarfile.TarError,EOFError) as error:
+        raise ValueError('invalid nested module archive') from error
+    if files.keys()!=expected.keys() or any(str(parent) in files for name in files for parent in Path(name).parents):
+        raise ValueError('nested module inventory/path collision')
+    return files
+
+
+def radio_module_composition(members, core, release):
+    """Resolve sealed software radio roots; board activation stays pending."""
+    prefix='rog5-native-wifi/'
+    roots=members.get(prefix+'load-roots.txt')
+    if (roots is None or roots[0][1:5] != [stat.S_IFREG|0o644,0,0,1]
+            or roots[1]!=(REPO/'configs/kernel/rog5-native-wifi-module-roots').read_bytes()
+            or members[prefix+'probe-native-wifi.sh'][1]!=(REPO/'scripts/device/probe-native-wifi.sh').read_bytes()):
+        raise ValueError('unpaired sealed radio load order')
+    files=radio_module_files(members,release)
+    fixture=dict(members);rows=list(core);loaded={row['name']:row for row in core}
+    order=[name for name in roots[1].decode().splitlines() if name not in ('phy-qcom-qmp-pcie','ath11k_pci')]
+    order+=['phy-qcom-qmp-pcie','ath11k_pci']
+    deadline=time.monotonic()+15
+    def read(args):
+        remaining=deadline-time.monotonic()
+        if remaining<=0: raise ValueError('radio dependency deadline exceeded')
+        return subprocess.check_output(args,text=True,timeout=min(5,remaining)).strip()
+    with tempfile.TemporaryDirectory(prefix='rog5-radio-closure-') as temp:
+        root=Path(temp)
+        for name,data in files.items():
+            path=root/name;path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_bytes(data);path.chmod(0o400)
+        for name in order:
+            plan=read(['modprobe','-C','/dev/null','--ignore-install','--show-depends','-d',str(root),'-S',release,name])
+            if not plan: raise ValueError('empty radio dependency plan: '+name)
+            for line in plan.splitlines():
+                # All configured roots are modular in this sealed composition.
+                fields=line.split()
+                if len(fields)!=2 or fields[0]!='insmod': raise ValueError('unexpected dependency action')
+                path=Path(fields[1]);relative=str(path.relative_to(root))
+                if relative not in files or not relative.endswith('.ko'): raise ValueError('module outside sealed tree')
+                data=files[relative]
+                info={field:read(['modinfo','-F',field,str(path)]) for field in ('name','depends','vermagic')}
+                module=info['name'];digest=hashlib.sha256(data).hexdigest()
+                if (not re.fullmatch(r'[A-Za-z0-9_]+',module)
+                        or info['vermagic']!=core[0]['vermagic'] or info['vermagic'].split()[0]!=release
+                        or data[:6]!=b'\x7fELF\x02\x01' or data[16:20]!=b'\x01\x00\xb7\x00'):
+                    raise ValueError('radio module identity/ABI mismatch')
+                if module in loaded:
+                    if loaded[module]['sha256']!=digest: raise ValueError('conflicting already-loaded module')
+                    continue
+                if any(dep.replace('-','_') not in loaded for dep in info['depends'].split(',') if dep):
+                    raise ValueError('radio dependency absent or late')
+                target='a01-radio-modules/'+module+'.ko'
+                SEALED.ARCHIVE.add(fixture,target,data,stat.S_IFREG|0o644)
+                parameters={'pwrseq_qcom_wcn':['serial_observation_ms=250'],
+                            'pci_pwrctrl_pwrseq':['observation_ms=250']}.get(module,[])
+                row=dict(path=target,sha256=digest,parameters=parameters,**info)
+                rows.append(row);loaded[module]=row
+    return fixture,rows,dict(roots=order,software_modules=rows[len(core):],
+        package_sha256=hashlib.sha256(members[prefix+'module-root-complete.tar.gz'][1]).hexdigest(),
+        scope='software module closure/load only; ASUS board-only helpers remain untested')
+
+
 def core_module_members(members, profile):
     """Keep the power/UFS closure strict; radio activation is a separate test.
 
@@ -477,6 +590,12 @@ def vm_runtime(members, modules, kernel, root_image, output, *, profile,
         raise ValueError('invalid resolved QEMU container identity')
     fixture = dict(members)
     add = SEALED.ARCHIVE.add
+    if profile=='server-runtime' and firmware:
+        # Software radio modules need regulatory lookup before the later
+        # runtime handover. Use the same sealed bytes in QEMU's default path;
+        # no Qualcomm PCI endpoint or firmware execution is simulated.
+        for row in radio_firmware_composition(members)['files']:
+            add(fixture,'lib/'+row['name'],members['rog5-native-wifi/'+row['name']][1],stat.S_IFREG|0o644)
     for name in ('proc','sys','dev','run','mnt','mnt/root-ro','mnt/state','newroot'):
         if name in fixture:
             if not stat.S_ISDIR(fixture[name][0][1]):
@@ -507,7 +626,7 @@ echo COMPOSITION_FIRMWARE_RUNTIME_PASS
 '''
     for row in modules:
         # Paths and names came from module_closure, never free-form commands.
-        script += 'insmod '+shlex.quote('/'+row['path'])+'\n'
+        script += 'insmod '+shlex.quote('/'+row['path'])+''.join(' '+shlex.quote(arg) for arg in row.get('parameters',[]))+'\n'
         script += '[ "$(cat '+shlex.quote('/sys/module/'+row['name']+'/initstate')+')" = live ]\n'
         script += 'echo COMPOSITION_MODULE_'+row['name']+'\n'
     script += '''mount -t ext4 -o ro,noload /dev/vda /mnt/root-ro

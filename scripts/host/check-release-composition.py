@@ -295,6 +295,9 @@ def main():
             report['radio_firmware']=C.radio_firmware_composition(target)
         core,pending=C.core_module_members(target,report['profile'])
         modules=C.module_closure(core,report['plan']['target_release'])
+        if pending:
+            target,modules,report['radio_modules']=C.radio_module_composition(target,modules,report['plan']['target_release'])
+            pending=[row for row in pending if row['path'].endswith('.ko')]
         root_hash=C.ACCEPTANCE.sha_file(args.root_image)
         report['artifact_hashes']['rootfs']=root_hash
         report['runtime']=C.vm_runtime(target,modules,args.kernel,args.root_image,
