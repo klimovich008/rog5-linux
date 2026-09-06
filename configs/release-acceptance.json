@@ -508,7 +508,19 @@
         "H02 PASS",
         "battery health/temperature/current/input telemetry"
       ],
-      "commands": [],
+      "commands": [[
+        "python3", "scripts/host/check-charging-regulation.py",
+        "--cycle", "{rescue_cycle}",
+        "--execution-record", "{rescue_execution_record}",
+        "--profile", "{rescue_profile}",
+        "--manifest", "{rescue_manifest}",
+        "--identity-file", "{rescue_identity_file}",
+        "--known-hosts", "{rescue_known_hosts}",
+        "--expected-candidate", "{candidate}",
+        "--archive", "{initramfs}",
+        "--boot-image", "{boot_bundle}",
+        "--output", "{test_output}"
+      ]],
       "deadline_seconds": 660,
       "pass_condition": "Observe 600s at 10s cadence: healthy and safe temperature, stable transport; below limit sustained positive battery charge trend/current; at validated limit regulation/full state permitted, not fabricated charging.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -521,7 +533,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Implement and execute the predeclared H03 firmware-managed observation in docs/release-acceptance.md: same-release H02 plus 600s current/counter/input evidence and evaluator. Unsupported writable charge-limit attributes alone do not block; missing required measurements do."
+      "blocker": "Supply the matching consumed radio-inactive rescue and H02 evidence, then run the predeclared 600s firmware-Full observation. No boot or retry is initiated. Sub-full/mixed-state protocols are not implemented; absent charge-limit controls alone do not block."
     },
     {
       "id": "S01",

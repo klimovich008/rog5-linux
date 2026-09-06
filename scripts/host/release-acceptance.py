@@ -285,6 +285,36 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             row['proof_sha256'] = sha_file(output/'H02/result.json')
         except (OSError, KeyError, TypeError, ValueError) as error:
             row.update(status='FAIL', next_action='missing complete H02 proof: '+str(error))
+    if row['status'] == 'PASS' and test['id'] == 'H03':
+        try:
+            proof_path=output/'H03/result.json'
+            proof=json.loads(proof_path.read_text())
+            elapsed=proof['duration_seconds']
+            if (proof['status']!='PASS' or proof['h03_qualified'] is not True
+                    or proof['source']!=source_identity()
+                    or proof['candidate']!=release['candidate_id']
+                    or proof['runner_sha256']!=sha_file(REPO/'scripts/host/check-charging-regulation.py')
+                    or proof['criteria_sha256']!=sha_file(REPO/'scripts/host/h03-regulation.py')
+                    or type(proof['samples']) is not int or proof['samples']!=61
+                    or type(elapsed) not in (int,float) or not math.isfinite(elapsed)
+                    or not 600<=elapsed<=test['deadline_seconds']
+                    or proof['artifact_hashes']['initramfs']!=release['artifacts']['initramfs']['sha256']
+                    or proof['artifact_hashes']['boot_image']!=release['artifacts']['boot_bundle']['sha256']):
+                raise ValueError('H03 exact observation mismatch')
+            h02=output/'H03/h02/result.json'
+            prior=json.loads(h02.read_text())
+            if (sha_file(h02)!=proof['h02_sha256'] or prior['status']!='PASS'
+                    or prior['h02_qualified'] is not True
+                    or prior['identity']!=proof['identity']
+                    or prior['canonical_record']['candidate']!=release['candidate_id']
+                    or prior['artifact_hashes']!=proof['artifact_hashes']):
+                raise ValueError('H03 H02 prerequisite mismatch')
+            expected={'h02.log','samples.jsonl'}|{f'sample-{i:02d}.raw' for i in range(61)}
+            if set(proof['evidence'])!=expected or any(sha_file(output/'H03'/p)!=proof['evidence'][p] for p in expected):
+                raise ValueError('H03 raw evidence incomplete/changed')
+            row['proof_sha256']=sha_file(proof_path)
+        except (OSError,KeyError,TypeError,ValueError) as error:
+            row.update(status='FAIL',next_action='missing complete H03 proof: '+str(error))
     if row['status'] == 'PASS' and test['id'] == 'C02':
         try:
             proof_path = output/'C02/result.json'

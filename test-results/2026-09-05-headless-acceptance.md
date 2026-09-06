@@ -3548,3 +3548,51 @@ coherent radio-free rescue composition and verifies no loaded ath11k/PHY;
 the full radio-bearing selector-v2 server cannot silently substitute for it.
 Keep these first-milestone and later server outcomes explicit instead of
 turning unrelated artifacts into one green release.
+
+### Executable H03 collection checkpoint
+
+Continued `462e7fccb360a854a6d9f2336e5d8fa0e21426da` and its dirty H03
+implementation; no reset, kernel rebuild, phone contact, claim, admission,
+charging-control or phone-storage write. The earlier bounded workflow cleanup
+is retained, not redone. The existing mandatory acceptance matrix remains done;
+display is optional and historical investigations stay linked, not reloaded.
+
+`check-charging-regulation.py` now runs the predeclared firmware-Full branch:
+fresh H02 qualification, same boot/source/artifacts, exact runtime and 29-file
+firmware agreement, 61 actual samples over 600 seconds, and final revalidation.
+Missing prerequisites are BLOCKED; missing/stale/unsafe readings or transport
+loss during observation are FAIL. No automatic retry or charging-control write.
+The math-only helper remains non-qualifying. Raw replies, errors, target/host
+times, sample counts and content hashes are retained outside Git. Charge-limit
+sysfs absence is not a requirement; required outcome measurements still are.
+
+Fail-first regressions demonstrated two defects during implementation:
+nonzero SSH replies lost their partial output, and the initial dispatcher could
+accept contradictory failed H02 metadata with a true qualification flag. Fixed
+both, retaining bounded failure bytes without retry and requiring matching
+successful H02 proof. Exit zero, wrong source/artifacts, missing samples, false
+qualification and failed prerequisites cannot produce H03 PASS. Required power
+checks are evaluated immediately rather than after the complete window.
+
+Focused collector checks **11 PASS 2.843 s**, including explicitly selected
+sealed ARM64 BusyBox execution with present/absent/read-error simulated sysfs.
+Archive `0241a611818638d2e3a6ff399ebea4d63fe6bbefc09a64d5e324d600a6415cb9`;
+probe `322996dc21e534e08da74b680c7fca0084048a45bcf92b7eff3bce44e5b8cc03`.
+This establishes applet/firmware composition compatibility, not hardware charging.
+Acceptance regressions **35 PASS 1.571 s**, optimized Python **35 PASS 1.581 s**
+(wall 1.716 s). Optimized collector replay **10 PASS**, with the explicit sealed
+integration not selected in that invocation, not counted as another pass.
+
+Frozen integration: active tier **PASS 20.197 s**; full local CI **PASS 498.170 s**,
+run once. No new 3–6 second or faster-full-CI claim: the optimization is focused
+iteration and batched shared-behavior validation, not removing required checks.
+Private logs: `rog5-h03-collector-20260906.IW5bi9HR`. Detailed report/current-state
+updates after CI do not change tested executable inputs. Remote exact-head/merge
+publication is the next integration gate. No ASUS wrapper/cache invalidation or
+large build output; host free space remains approximately 4.8 GiB.
+
+The next physical question is whether a matching radio-inactive rescue clears
+H01/H02 and sustains the predeclared H03 outcome. Consumed V7's historical H01
+failure remains FAIL; neither it nor server-selector-v2's radio-bearing archive
+can silently substitute for this rescue qualification. The original goal remains
+active; H03 and complete release qualification are not claimed from offline tests.

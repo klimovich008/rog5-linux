@@ -316,6 +316,21 @@ The small `scripts/host/h03-regulation.py` Full-branch evaluator is exercised
 by A02, including missing data, implausible counters and net discharge. It
 performs no device action and always reports `h03_qualified=false`: outcome
 math is not boot/firmware identity, H02 or supervised collection proof.
+The executable `scripts/host/check-charging-regulation.py` now supplies H03 via
+`rog5-dev accept device-smoke` with the existing release/rescue input
+bindings. It revalidates H02 before collection; binds the exact archive, running
+runtime and 29-file charging firmware; collects one read-only sample per interval;
+and rechecks runtime/identity after the window. No boot/admission/retry occurs.
+Each required field reports present/absent/error; raw failed replies are retained
+privately. Missing prerequisites are BLOCKED, whereas loss or unsafe data during
+observation is FAIL. Partial samples are counted accurately, never qualified.
+The dispatcher requires complete, hash-bound H03/H02 evidence for the same
+source and artifacts; exit zero alone is insufficient. The Full-only runner does
+not silently substitute a sub-full or mixed-state protocol.
+Focused replay is `python3 -B scripts/host/test-check-charging-regulation.py`.
+Set `ROG5_H03_TEST_ARCHIVE` to the exact sealed core archive to additionally run
+its ARM64 BusyBox against simulated sysfs in an isolated root. That explicit
+offline check needs bubblewrap/static QEMU and does not contact the phone.
 If current polarity or counter updates cannot be established on the selected
 firmware, obtain a bounded sub-full charge/current comparison through the same
 read-only PMIC interface; use independent current instrumentation if firmware
