@@ -3513,3 +3513,38 @@ debugfs writes and exact read-back. Preview **PASS 23.832 s**, hash
 It is prospective staging evidence, not the deployed phone root. Original
 snapshot, fallback and actual phone selector/trial are untouched. Full signed
 A01, exact-head publication and all physical acceptance remain to be proved.
+
+### Full selector-v2 A01 and publication completed
+
+At `7899c961d4b6687e73162abd4064705ee42d51b9`, full signed **A01 PASS
+96.525 s**: wrapper, signed target, archive, root runtime, module load,
+firmware and timing/transport all PASS. Result is retained in private
+`rog5-v7-server-modules-20260906.Ibl4iPCz/selector-v2-a01/result.json`.
+It explicitly remains offline evidence against the prospective P24 copy,
+not deployment, physical charging or recovery qualification.
+
+Dynamic B01 admission closure **33 tests PASS**, normal **4.495 s**, optimized
+**4.885 s**. All four remote jobs **PASS**, run **34043424542** (head-exact,
+merge-compat, qemu-system and candidate-publication). No additional full local
+suite for the data-only record; shared consumer behavior is unchanged. Draft
+PR1 was updated without rewriting its retained historical section.
+
+Fresh read-only same-boot V7 continuity **PASS 0.344 s**: uptime 19005.75 s,
+29.9°C, 8.592 V, zero current, original boot UUID, safe RO P24, no failed units.
+No radio activation, reboot, charging-control or phone-storage write occurred.
+
+The prospective root remains volatile under `/run`. Compressing it hit the
+predeclared 1.5 GiB output cap after **30.842 s** (SIGXFSZ), rather than consuming
+the host reserve. Only the incomplete new compressed duplicate was removed
+after confirming both the original snapshot and full RAM preview remained;
+logs and retention note are kept. No verified build, source, credential,
+backup or original evidence was deleted. Host free space returned to 4.8 GiB.
+Do not claim the preview is durably archived or automatically reusable after
+a host reboot. Preserve it pending staging or an explicit retention solution.
+
+Next mandatory work is executable H03 collection, then matching radio-inactive
+rescue H01/H02/H03. The existing H02 checker deliberately accepts only the
+coherent radio-free rescue composition and verifies no loaded ath11k/PHY;
+the full radio-bearing selector-v2 server cannot silently substitute for it.
+Keep these first-milestone and later server outcomes explicit instead of
+turning unrelated artifacts into one green release.

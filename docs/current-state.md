@@ -67,13 +67,13 @@ do not combine the older server's offline passes with V7 hardware passes.
 | Early capture / H01 | V7 FAIL retained; anchored read/removal correction passes focused/full CI, awaiting new physical evidence |
 | H02 | V6 integrated PASS retained; cannot silently transfer to another release/boot |
 | H03 | BLOCKED until supported firmware evidence and executable observation are qualified; do not repeat absent-control inventory |
-| A01 | Older server PASS 110.953 s / VM 39.505 s; final combined kernel composition still required |
+| A01 | Selector v2 full signed offline composition PASS 96.525 s, all seven checks; prospective root, not deployed proof |
 | R01 / installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server qualification | Three ordinary boots, powered-off start, storage durability and 60-minute combined soak incomplete |
 
-Last retained V7 health (not continuous monitoring): uptime 15373.21 s, 29.9°C,
-8.594 V, zero battery current, Good/USB online, P24 RO, no failed units;
-fresh same-boot gate PASS 0.291 s during this continuation.
+Last retained V7 health (not continuous monitoring): uptime 19005.75 s, 29.9°C,
+8.592 V, zero battery current, Good/USB online, P24 RO, no failed units;
+fresh same-boot gate PASS 0.344 s after assembled A01.
 Full/100% and zero current alone do not qualify regulation. Charge-limit
 attributes are unsupported by this SM8350 interface; capacity ENODATA is the
 separate proven 0038 unit defect. No charging control has been written.
@@ -83,47 +83,38 @@ separate proven 0038 unit defect. No charging control has been written.
 **Primary question:** can the exact final server composition preserve accepted
 RPMh/S12 support while incorporating the proven capacity and NCM corrections?
 
-V7 lacks built-in `rpmh_read` and the accepted ASUS S12 selector point.
-Matching config/vermagic is insufficient for server radio. Both S12/activation
-builders now reject missing/ambiguous built-in readback before compilation;
-ten fail-first negative cases plus valid input are covered. No policy change.
+The combined kernel restores accepted RPMh/S12 support missing from V7;
+builders reject absent/ambiguous built-in readback. Do not mix the two ABIs.
 
 Combined source `f17befd4ef172cfb0ecbffd9e0af87122cfa66bc` preserves accepted
 server `1eea8970e87f1e1509fc12a85456f55570cfb4b1` and adds only existing
-0038/0039 in two files. Kernel/config/ABI inputs are frozen. Build A's BTF
-step hit a confirmed 3 GiB container OOM after 1600.559 s. Exact-state resume
-with the previously proven 6 GiB allowance PASS 176.750 s, BTF intact, 19 modules.
+0038/0039 in two files. Kernel/config/ABI inputs are frozen; use the verified
+twins, not a rebuild. Host OOM/kit corrections are in the dated evidence.
 Image SHA: `ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`.
 Independent clean B PASS 1715.396 s; all 24 artifacts match A. Results remain
 under private `rog5-v7-server-modules-20260906.Ibl4iPCz`; reuse completed outputs.
 Matching radio/activation twins and PMIC twins also PASS. No build is pending.
-Full local CI passed in 589.229 s for the builder correction and 630.297 s
-for the later shared capture correction; no unchanged rerun. This is
-not a claim that the final assembled release or new kernel has passed A01.
+Relevant shared-code local CI passed; no unchanged full rerun is needed.
 Host reserve is 3 GiB; no deletion authorized by this checkpoint.
-No new live claim, admission or execution. Unsigned core archives
-match (`0241a611818638d2e3a6ff399ebea4d63fe6bbefc09a64d5e324d600a6415cb9`).
-Exact new kernel/core/retained Arch QEMU component PASS 81.283 s (VM 19.611 s);
-fixture vmlinux-to-Image binding PASS. Matching complete server archive twins
+No new live claim, admission or execution. Matching complete server archive twins
 `6f9199f5413e6d59bce6cb7973593ef1afa858630af7541c3aa2f0a5a3e73e07`
 PASS 73.336 s; 37-module/radio/Arch component PASS 105.604 s (VM 38.939 s).
 Proposed `headless-server-selector-v2` was signed through the existing workflow
 in 6.084 s; wrapper is byte-identical to the retained selector wrapper. Its
 canonical exact record is packaging data, not a created or consumed live claim.
-Full signed A01 remains pending; no deployment or phone boot occurred.
+Full signed A01 PASS 96.525 s, all seven checks; no deployment or phone boot.
 
-The V7-only in-tree capacity module twins (`998c30ca…`) and QEMU PASS 6.325 s
-remain in `rog5-battmgr-module-20260906.R8ZllyeH`; do not mix that ABI with
-the new combined kernel. Older source/builds/evidence are preserved.
-Published `d18182c13ce4a35584fef4d4bc5b16e513c8b244` passed all four
-jobs, run 34041670810. Working HEAD/status and current CI logs take precedence
-over these historical results. Prior full CI 498.829 s; final workflow active
-PASS 28.337 s (previous 21.207 s under different load).
+Published `7899c961d4b6687e73162abd4064705ee42d51b9` passed all four
+jobs, run 34043424542. Working HEAD/status and current CI logs take precedence
+over these historical results. Detailed build/test timings are in the dated report.
 
 ## Exact next action
 
-The matching radio/primary archive and signed package are complete. Run full
-assembled A01 with the private RAM-backed prospective P24 staging copy under
+The matching radio/primary archive, signed package and full A01 are complete.
+Implement the H03 supervised collector using its predeclared Full-state branch,
+then qualify H01/H02/H03 on a matching radio-inactive rescue. H02 intentionally
+rejects radio-bearing server archives; do not mislabel selector v2 as that rescue.
+The A01 prospective P24 copy remains under
 `/run/rog5-server-preview-20260906-Ibl4iPCz/root.ext4` (not phone evidence).
 Preview hash `8f4afbcceed4b2112981392127deaf5a057a9c1d193cb325ef55791810e792c5`;
 original P24 snapshot is unchanged. Reuse outputs; do not recompile ASUS.
@@ -133,9 +124,10 @@ The capture fix now recognizes only an anchored sysfs-read ENOENT/ENODEV
 followed by confirmed absence before any target observation. It keeps unknown,
 network/binding and post-target errors fatal and never clears an earlier FAIL.
 Historical untagged V7 evidence remains FAIL. Capture fix publication and twins
-passed; final assembled A01 still precedes another phone cycle. Free host space
-is 4.8 GiB; preserve the 3 GiB reserve. The disposable RAM preview is reproducible
-from retained inputs and must be cleaned up after testing, not treated as durable.
+passed. Free host space is 4.8 GiB; preserve the 3 GiB reserve. The RAM preview
+is volatile. A bounded compression exceeded its 1.5 GiB cap; only that incomplete
+duplicate was removed. Retain the preview pending staging/retention resolution;
+do not reboot the host assuming it is durable. Original snapshot remains intact.
 
 Use focused checks during edits and one full CI per relevant frozen integration;
 publish at meaningful checkpoints. Keep one physical coordinator. Scope and
