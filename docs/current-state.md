@@ -232,11 +232,45 @@ The accepted Image's disassembly confirms an ignored BUSY return in the NCM
 timer callback, matching a published upstream defect. The narrow
 [0039 backport and compiled regression](kernel-port.md#ncm-bulk-transfer-timer-follow-up)
 now pass offline; full local CI **PASS 487.255 s** includes the preserved
-stale-root guard. No kernel has been rebuilt or deployed. Next prepare a fresh
-coherent kernel release for this fix, validate bulk transfer with parallel SSH,
+stale-root guard. Published `56fcdc8667fd7d4b3c8f8b924a96242d937e0148`;
+all four publication jobs **PASS** run **34023915775**.
+Fresh kernel A **PASS 1258.793 s** from `601c84c0c3c4…` with the exact accepted
+config and deployed high-speed UFS source. Image `81fdcf8e…`; 19 modules have
+identical allocated code/data and relocations to the accepted modules, with
+only expected release metadata changes. Independent clean build B **PASS
+1248.796 s**. All 25 compared kernel/config/ABI/module files and both unsigned
+target archives are byte-identical; no deployment is claimed.
+The first container preflight lacked the shared Git metadata
+mount and stopped before output creation; the corrected read-only mount passed.
+Reuse the completed twins, not another checkout or rebuild. Private
+`rog5-ncm-kernel-20260906.FwMH1o8D` retains recipe, preflight and live build log.
+Finish clean twins and coherent kernel/module composition, validate bulk transfer with parallel SSH,
 then obtain the paired root before server A01. Avoid another uninstrumented
 snapshot or hot-unloading USB. Physical causality remains to be demonstrated.
 Do not bypass it with unrelated host bundle files or import partial-root proof.
+
+Fresh pre-build pinned SSH/identity/power/RO gate PASS **0.368 s** on the same
+rescue boot: Full/Good 100%, 29.7°C, 8.609 V, zero current, USB online, P24 RO,
+no failed systemd units. No phone restart, control write or storage mutation.
+
+A01 now has a tested external-selector bundle reader:
+it reads primary/fallback only from the paired retained root and uses the
+authenticated sealed verifier for both. All 28 composition tests pass normal/
+optimized; actual V11 root extraction/signature component PASS **4.913 s**.
+Active tier PASS **31.445 s** under concurrent compilation. Full local CI
+**FAIL 429.335 s**: two existing bad-progress lifecycle fixture subcases exceeded
+15 s; the exact focused test subsequently PASS **3.409 s**. All 89 original
+lifecycle tests then PASS **97.600 s**; the instrumented suite PASS **98.408 s**.
+Cause remains unproven; no deadline was relaxed. The previously unexecuted CI
+suffix also passes: **110 tests / 228.163 s**, unchanged production inputs. The original full run
+remains FAIL, not a retroactive green release; exact-head publication follows.
+New kernel A and unsigned target archive `01245c2d…` pass the isolated Arch/QEMU
+component in **100.969 s** (runtime 31.112 s), including all 19 module loads.
+The retained root is unchanged. This does not make its stale selector valid,
+complete server radio closure, exercise physical NCM or qualify A01/the release.
+Fresh pinned same-boot health **PASS 0.390 s**: Full/Good 100%, 29.7°C,
+8.608 V, USB online, P24 RO, no failed systemd units. Kernel twins use 3.0 GiB
+each; host has about 21 GiB free. No phone reboot, signing or storage write.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel
