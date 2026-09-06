@@ -324,6 +324,52 @@ def firmware_composition(members, expected_hash, expected_count):
     return dict(tree_sha256=digest,files=rows,scope='sealed firmware composition, not DSP execution')
 
 
+def radio_firmware_composition(members):
+    """Verify the sealed WCN6855 inventory, not physical firmware execution.
+
+    The caller already authenticated the enclosing archive. Reuse its actual
+    radio manifest rather than substituting files from the host firmware tree.
+    """
+    prefix='rog5-native-wifi/'
+    required={'firmware/ath11k/WCN6855/hw1.1/'+name for name in
+              ('amss.bin','board-2.bin','m3.bin','regdb.bin')}
+    required.update(('firmware/regulatory.db','firmware/regulatory.db.p7s'))
+    manifest=members.get(prefix+'radio-files.sha256')
+    if (manifest is None or manifest[0][1:5] != [stat.S_IFREG|0o644,0,0,1]
+            or not manifest[1] or len(manifest[1])>65536
+            or not manifest[1].endswith(b'\n')):
+        raise ValueError('invalid sealed radio manifest')
+    hashes={}
+    for line in manifest[1].splitlines():
+        match=re.fullmatch(rb'([0-9a-f]{64})  ([A-Za-z0-9_./-]{1,255})',line)
+        if not match: raise ValueError('invalid radio manifest record')
+        digest,name=(value.decode('ascii') for value in match.groups())
+        if any(part in ('','.','..') for part in name.split('/')) or name in hashes:
+            raise ValueError('unsafe or duplicate radio manifest path')
+        member=members.get(prefix+name)
+        if (member is None or not stat.S_ISREG(member[0][1])
+                or member[0][2:5] != [0,0,1] or member[0][1]&0o6022
+                or hashlib.sha256(member[1]).hexdigest()!=digest):
+            raise ValueError('radio manifest content/metadata mismatch: '+name)
+        hashes[name]=digest
+    firmware=set()
+    for path,(fields,data) in members.items():
+        if not path.startswith(prefix+'firmware/'): continue
+        if stat.S_ISDIR(fields[1]):
+            if fields[2:4]!=[0,0] or fields[1]&0o6022:
+                raise ValueError('unsafe radio firmware directory')
+            continue
+        name=path[len(prefix):];firmware.add(name)
+        if name not in required or fields[1:5]!=[stat.S_IFREG|0o644,0,0,1]:
+            raise ValueError('unexpected radio firmware member: '+path)
+    if firmware!=required or {name for name in hashes if name.startswith('firmware/')}!=required:
+        raise ValueError('radio firmware inventory mismatch')
+    return dict(manifest_sha256=hashlib.sha256(manifest[1]).hexdigest(),
+                files=[dict(name=name,sha256=hashes[name],size=len(members[prefix+name][1]))
+                       for name in sorted(required)],
+                scope='sealed WCN6855/regulatory content; physical firmware response untested')
+
+
 def core_module_members(members, profile):
     """Keep the power/UFS closure strict; radio activation is a separate test.
 
@@ -402,11 +448,15 @@ def module_closure(members, release):
     return rows
 
 
-def vm_runtime_passed(log, code, modules):
+def vm_runtime_passed(log, code, modules, *, firmware=False, radio=False):
     lines = log.replace('\r\n', '\n').splitlines()
     loaded = re.findall(r'^COMPOSITION_MODULE_([A-Za-z0-9_]+)$', '\n'.join(lines), re.M)
+    markers=MARKERS+ (('FIRMWARE_RUNTIME',) if firmware else ())
+    if radio:
+        if not firmware: return False
+        markers+=('RADIO_FIRMWARE',)
     return (code == 0 and loaded == [row['name'] for row in modules]
-            and all(lines.count('COMPOSITION_'+name+'_PASS') == 1 for name in MARKERS)
+            and all(lines.count('COMPOSITION_'+name+'_PASS') == 1 for name in markers)
             and lines.count('COMPOSITION_VM_COMPLETE') == 1
             and not re.search(r'COMPOSITION_VM_FAILURE|Unknown symbol|Invalid module|'
                               r'BTF[^\n]*(?:invalid|fail)|Kernel panic|Oops:|WARNING:', log))
@@ -476,6 +526,13 @@ mount --bind /sys /newroot/sys
         script += source[begin:end].replace('$(cat /proc/cmdline)',shlex.join(shlex.split(command_line)))
         script += '\n[ "$recovery_timeout" = '+shlex.quote(str(recovery_timeout))+' ]\n'
     script += '/bin/sh /composition-test.sh\n'
+    if profile=='server-runtime' and firmware:
+        # Exact sealed BusyBox checks the same manifest as the target radio
+        # loader. This performs no radio activation, module insertion or write
+        # outside the disposable VM's tmpfs runtime.
+        script += '''(cd /run/rog5-native-wifi && sha256sum -c radio-files.sha256)
+echo COMPOSITION_RADIO_FIRMWARE_PASS
+'''
     if command_line is not None:
         begin=source.index('publish_stage() {\n')
         script += source[begin:source.index('\n}\n',begin)+3]+'''
@@ -512,9 +569,8 @@ echo COMPOSITION_STAGE_END
         except subprocess.TimeoutExpired:
             code = 124
     log = (output/'runtime.log').read_text(errors='replace')
-    passed=vm_runtime_passed(log,code,modules)
-    if firmware:
-        passed=passed and log.splitlines().count('COMPOSITION_FIRMWARE_RUNTIME_PASS')==1
+    passed=vm_runtime_passed(log,code,modules,firmware=firmware,
+                             radio=firmware and profile=='server-runtime')
     frame=None
     if command_line is not None:
         passed=passed and log.splitlines().count('COMPOSITION_TIMING_UNITS_PASS')==1

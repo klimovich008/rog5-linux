@@ -182,6 +182,38 @@ class CompositionTest(unittest.TestCase):
         for bad in (True,299,901,'900'):
             with self.assertRaises(ValueError): M.driver(source,recovery_timeout=bad)
 
+    def test_radio_firmware_requires_exact_signed_inventory_and_content(self):
+        prefix='rog5-native-wifi/'
+        names=['firmware/ath11k/WCN6855/hw1.1/'+name for name in
+               ('amss.bin','board-2.bin','m3.bin','regdb.bin')]
+        names+=['firmware/regulatory.db','firmware/regulatory.db.p7s']
+        members={}; rows=[]
+        for name in names:
+            data=('fixture:'+name).encode()
+            M.SEALED.ARCHIVE.add(members,prefix+name,data,stat.S_IFREG|0o644)
+            rows.append(M.hashlib.sha256(data).hexdigest()+'  '+name+'\n')
+        manifest=''.join(rows).encode()
+        M.SEALED.ARCHIVE.add(members,prefix+'radio-files.sha256',manifest,stat.S_IFREG|0o644)
+        result=M.radio_firmware_composition(members)
+        self.assertEqual({row['name'] for row in result['files']},set(names))
+        for fault in ('changed','absent','extra','symlink','writable','owner','duplicate','traversal','unlisted'):
+            changed=copy.deepcopy(members); path=prefix+names[0]
+            fields,data=changed[path]
+            if fault=='changed': changed[path]=(fields,data+b'changed')
+            elif fault=='absent': del changed[path]
+            elif fault=='extra': M.SEALED.ARCHIVE.add(changed,prefix+'firmware/extra.bin',b'x',stat.S_IFREG|0o644)
+            elif fault=='symlink': fields[1]=stat.S_IFLNK|0o777
+            elif fault=='writable': fields[1]=stat.S_IFREG|0o666
+            elif fault=='owner': fields[2]=1000
+            else:
+                metadata,content=changed[prefix+'radio-files.sha256']
+                if fault=='duplicate': content+=rows[0].encode()
+                elif fault=='traversal': content=content.replace(names[0].encode(),b'firmware/../amss.bin')
+                else: content=''.join(rows[1:]).encode()
+                changed[prefix+'radio-files.sha256']=(metadata,content)
+            with self.subTest(fault=fault),self.assertRaises(ValueError):
+                M.radio_firmware_composition(changed)
+
     def test_vm_reuses_archive_without_duplicate_members_or_writable_root(self):
         source=''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS)
         members={}
@@ -216,6 +248,13 @@ class CompositionTest(unittest.TestCase):
             with self.subTest(log=bad):
                 self.assertFalse(M.vm_runtime_passed(bad,0,rows))
         self.assertFalse(M.vm_runtime_passed(log,124,rows))
+        complete=log+'COMPOSITION_FIRMWARE_RUNTIME_PASS\nCOMPOSITION_RADIO_FIRMWARE_PASS\n'
+        self.assertTrue(M.vm_runtime_passed(complete,0,rows,firmware=True,radio=True))
+        for marker in ('FIRMWARE_RUNTIME','RADIO_FIRMWARE'):
+            token='COMPOSITION_'+marker+'_PASS\n'
+            for invalid in (complete.replace(token,''),complete+token):
+                with self.subTest(marker=marker):
+                    self.assertFalse(M.vm_runtime_passed(invalid,0,rows,firmware=True,radio=True))
 
     def test_verified_plan_requires_exact_record_and_command_hash(self):
         command = 'rdinit=/init rog5.bundle=fixture'

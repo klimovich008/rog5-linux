@@ -2951,3 +2951,52 @@ not production code. Active tier **PASS 19.075 s** (log creation-to-final-write
 interval); `git diff --check` PASS. No repeated kernel build or local full suite.
 Classify the new host observation under **R7**, with its exact exception phase
 still unproven; keep H01 FAIL rather than changing admission on that assumption.
+
+### Server radio firmware composition
+
+Continuation from clean **d7b8fe1e62ba17db70db98558102ec4eb469e205**; all four
+publication jobs subsequently PASS **34029155854**. No new phone cycle, source
+checkout, kernel/module build, firmware write or charging-policy change.
+
+Concrete gap: A01 validated/staged the charging firmware but deliberately left
+all server radio firmware NOT RUN. Added a bounded validator for the archive's
+actual `radio-files.sha256`, exact WCN6855 hw1.1/regulatory inventory and safe
+regular metadata. It rejects changed/missing/extra files, symlinks, wrong owner,
+writable payloads, duplicate/traversal/unlisted manifest entries. The initial
+regression failed before implementation. Normal and optimized composition
+suites now pass **29 cases**. A separate missing/duplicate VM-marker regression
+binds the result consumer to the actual firmware check, not an echoed claim.
+
+Actual server A01 **BLOCKED 91.949 s**, now **firmware PASS** and only
+`module_load` NOT RUN. The same virtual boot executes sealed BusyBox manifest
+verification and retains `COMPOSITION_RADIO_FIRMWARE_PASS`; actual virtual
+poweroff uptime **12.391 s**. Source was frozen for the run and current root
+`e1692971…` was unchanged. Private `a01-server-radio-fw-r1` retains the whole
+report, signed artifact identities and VM log. A later host-only marker-consumer
+refactor passes normal/optimized regressions; this earlier proof is component
+evidence, not a new coherent final-release result.
+
+The private `radio-module-component-r1` subsequently **PASS 98.258 s**:
+37 actual core/software radio modules inserted into the exact server kernel;
+runtime runner **38.464 s**, virtual poweroff uptime **14.574 s**. The canonical
+17-root list and complete nested module hash inventory were checked; host
+`modprobe --show-depends` (no insertion) supplied the dependency order. Only the
+same sealed bytes were inserted in network-isolated QEMU. Six radio firmware
+files were placed in the disposable VM's default search path for regulatory
+lookup; this is not the phone's activation path. No warning/oops/BTF/unknown-
+symbol marker matched, and kernel/archive/root hashes matched before/after.
+The first read-only inventory command omitted the host script import path and
+failed before artifact execution; the corrected invocation is retained.
+
+This component intentionally omits `rog5-pmic-pon-readonly`, `rog5-s12-ufs-vote`
+and `rog5-wifi-activate`: they require exact ASUS board state and the activation
+helper has a direct S12-provider dependency. Do not invent a successful hardware
+initialization on QEMU or weaken their guards. The component explicitly records
+`a01_qualified=false` and `release_qualified=false`; integrate software closure
+and resolve the board-only ABI/refusal proof separately before claiming A01.
+
+Frozen implementation: active tier **PASS 18.808 s**, full local CI **PASS
+492.78 s**, `git diff --check` PASS. Full CI was run once; no wrapper/kernel
+rebuild. Fresh pinned same-V7 health PASS **0.257 s** at uptime **2690.55 s**,
+Good/USB online, 29.9°C, 8.599 V, zero current and no failed systemd units.
+This remains component continuity, not H03 or a 60-minute combined soak.

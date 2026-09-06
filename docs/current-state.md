@@ -55,9 +55,18 @@ sanitized replay fixture before deciding any host-only correction.
 
 **Next mandatory test:** server A01 now verifies both signed selector bundles
 from the complete current root. Wrapper/signatures/archive/root runtime/timing
-PASS; **BLOCKED 96.626 s** on integrated extra radio-module and firmware checks.
-Do not import V7 core-only proof into the older server release. Reuse existing
-radio closure tests next; no downstream driver import or phone reboot is needed.
+and **firmware PASS**; **BLOCKED 91.949 s** only on integrated extra radio-module
+checks. The new firmware check verifies six WCN6855/regulatory files against
+the sealed manifest and reads them back with exact BusyBox in QEMU.
+A separate 37-module software-load component PASS **98.258 s**, unchanged
+kernel/archive/root. Integrate that proof next, with honest separate treatment
+of the three board-only PMIC/S12/activation helpers; do not fake ASUS hardware
+or drop their identity/power guards to make a virtual test pass.
+This firmware-check checkpoint passes 29 normal/optimized regressions, active
+tier **18.808 s** and one full local CI **492.78 s**. It changes host acceptance
+checks only; deployed artifacts and the original capture FAIL are unchanged.
+Do not import V7 core-only proof into the older server release. No downstream
+driver import or phone reboot is needed for the current offline work.
 R01 physical failure recovery, H03 regulation, ordinary/cold boots and the
 60-minute combined soak remain incomplete. See the
 [incident](../test-results/2026-09-05-headless-acceptance.md#v7-physical-ncm-and-current-root-checkpoint).
