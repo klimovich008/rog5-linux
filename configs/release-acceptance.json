@@ -99,6 +99,15 @@
           "python3",
           "-O",
           "scripts/host/test-check-deployed-server.py"
+        ],
+        [
+          "python3",
+          "scripts/host/test-check-rescue-startup.py"
+        ],
+        [
+          "python3",
+          "-O",
+          "scripts/host/test-check-rescue-startup.py"
         ]
       ],
       "deadline_seconds": 30,
@@ -462,11 +471,16 @@
       "environment": "Host-supervised exact phone and admitted coherent release",
       "prerequisites": [
         "H01 PASS",
-        "unconsumed exact candidate",
+        "exact candidate unconsumed at original execution, now permanently consumed",
         "pinned SSH identity",
         "safe power gates"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-rescue-startup.py", "--qualify-current",
+        "--cycle", "{rescue_cycle}", "--execution-record", "{rescue_execution_record}",
+        "--profile", "{rescue_profile}", "--manifest", "{rescue_manifest}",
+        "--identity-file", "{rescue_identity_file}", "--known-hosts", "{rescue_known_hosts}",
+        "--expected-candidate", "{candidate}", "--archive", "{initramfs}",
+        "--boot-image", "{boot_bundle}", "--output", "{test_output}"]],
       "deadline_seconds": 300,
       "pass_condition": "One admitted execution reaches pinned key-only SSH on exact boot and artifact; Wi-Fi deliberately inactive; watchdog matches archive.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -479,7 +493,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Coherent new rescue composition and capture must pass first; prepared historical rescue is not eligible."
+      "blocker": "Supply exact release and private rescue inputs for an already consumed coherent rescue whose same boot is still reachable; no execution or retry is initiated."
     },
     {
       "id": "H03",

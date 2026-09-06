@@ -211,6 +211,35 @@ class AcceptanceTest(unittest.TestCase):
             (root/'receipt.json').write_text(json.dumps(receipt))
             self.assertEqual(M.run_one(test,root,release,root)['status'],'FAIL')
 
+    def test_h02_is_executable_but_missing_cycle_inputs_are_blocked(self):
+        test = next(t for t in self.contract['tests'] if t['id']=='H02')
+        self.assertTrue(test['commands'])
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(M.run_one(test,Path(tmp))['status'],'BLOCKED')
+
+    def test_h02_exit_zero_without_complete_proof_is_not_success(self):
+        test = copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='H02'))
+        test['commands'] = [[sys.executable, '-c', 'print("component PASS")']]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.assertEqual(M.run_one(test,root)['status'],'FAIL')
+            (root/'H02').mkdir()
+            (root/'H02/result.json').write_text(json.dumps(dict(status='PASS',h02_qualified=False)))
+            self.assertEqual(M.run_one(test,root)['status'],'FAIL')
+
+    def test_rescue_inputs_bind_only_known_arguments_to_exact_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'inputs.json'
+            values = dict(profile='fixture',cycle='/private/cycle',execution_record='/private/record',
+                          manifest='/private/manifest',identity_file='/private/key',known_hosts='/private/hosts')
+            path.write_text(json.dumps(values))
+            result = M.rescue_bindings(path)
+            self.assertEqual(result['{rescue_profile}'], 'fixture')
+            self.assertEqual(result['{rescue_cycle}'], '/private/cycle')
+            for extra in (dict(command='/bin/sh'), dict(cycle='relative')):
+                path.write_text(json.dumps(dict(values,**extra)))
+                with self.assertRaises(ValueError): M.rescue_bindings(path)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -2042,3 +2042,78 @@ cycle needs fresh separately bound execution records; it cannot qualify the
 old installed loader's previously-healthy-primary demotion or autonomous rescue.
 No R01 candidate or failure injection was issued. Complete H02 integration,
 H03 criteria, persistent-server boots/soak and R01 remain outstanding.
+
+Bounded source-reuse follow-up at `ca0359868…` confirmed the four existing
+remote pins unchanged and the retained ZS673KS charger hash unchanged. No
+checkout, driver import, control write, rebuild or reboot was needed. The
+existing assessment now distinguishes Denial's exact-byte release promotion
+from reproducible builds. Resumed the H02 readiness component: 15 observer
+regressions passed in **0.107 s**; a fresh strict-pinned, canonical-claim-bound
+readiness check passed in **0.237 s** on the same V6 boot `64e209e2…`.
+Private result: the existing V6 cycle's `source-reuse-readiness-checkpoint`.
+This is new same-boot component evidence, not a replayed boot or a complete
+H02 PASS; the dispatcher integration remains pending. No running device test
+was interrupted, and no unchanged full local suite was repeated.
+
+### Executable startup-evidence checkpoint
+
+Added `rog5-dev check-rescue-startup` to close the missing original-timeline
+replay component of H02. It checks the canonical consumed record, exact
+manifest and capture receipt, pre-execution setup ordering, original deadline,
+producer/source versions and raw boot-bound readiness. It does not contact the
+phone or grant authority. Its result explicitly leaves whole H02 and release
+qualification false: watchdog/archive, Wi-Fi isolation and power components
+must still be connected before that row can pass.
+
+The new regression file first failed because the runner did not exist. Final
+13-case suites passed in normal/optimized Python (**0.104/0.098 s**), including
+late/missing capture, wrong boot/candidate, ambiguous execution, changed
+producer, malformed metadata and deadline failures. Existing dispatcher tests
+passed **19 cases / 0.528 s**. The retained real V6 transcript passed replay in
+**0.028 s**, explicitly reusing its original **59.555 s** startup timing, not
+starting a new deadline. Source and every consumed evidence hash are retained
+in the private V6 `startup-replay-r1/result.json`.
+
+Active tier exited zero in **16.869 s**; its two pre-existing retained-ARM-artifact
+skips (PMIC rail reader and V1/V2 trial-state replay) remain visible,
+not mandatory hardware PASS. The first timing invocation lacked `/usr/bin/time`
+and did not start tests; Bash's timing keyword captured the actual run. Logs
+remain in the private `rog5-startup-integration-20260906` checkpoint directory.
+The prior published head's CI run 34010050129 completed successfully; it does
+not validate these uncommitted additions. Full local/exact-head publication
+CI remains due when H02 integration reaches its frozen publication checkpoint.
+No kernel/recovery rebuild, candidate issue, phone operation or storage write
+was performed for this host-only change. Keep this checkpoint; finish the
+remaining same-boot H02 evidence integration without another physical attempt.
+
+The subsequent integration closes H02: `--qualify-current` verifies canonical
+boot/archive bytes, paired sealed watchdog/identity producers, eight actual
+runtime files, intentional radio absence and safe power through pinned SSH on
+the original boot. The exact sealed BusyBox probe passed in disposable target
+paths with fixture mount/dmesg observations; an actual fixture radio directory
+was rejected. No target Python, new boot, control write or candidate is needed.
+Five new runtime regressions first failed for missing implementation; final
+normal/optimized suites passed **18 cases / 0.108–0.104 s**. Dispatcher coverage
+now has **22 cases**, including refusal of exit-zero component output without
+complete exact H02 proof. Supplied private inputs are named arguments, not
+commands, and original-cycle reuse remains explicit.
+
+Fresh same-boot qualification passed in **1.102 s**. Integrated device-smoke
+recorded **H01 PASS 0.166 s / H02 PASS 1.366 s / H03 BLOCKED**, total **62.396 s**
+including all five retained artifact hashes before/after. The original startup
+deadline remains 300 s and observed startup remains 59.555 s. Watchdog arm
+2.468063 s and ACK 902.519531 s match the signed 900-second interval. Battery:
+Full/Good, 100%, 29.7°C, 8.618 V, zero current, USB online; this is not H03 net
+charging or full-state regulation proof. Kernel/boot remain unchanged.
+
+The frozen implementation passed full local CI in **486.402 s** (previous
+implementation checkpoint 483.726 s; not a controlled performance benchmark).
+The full tier separately passed retained ARM trial-state replay; its optional
+rail-artifact skip remains visible. Private logs remain alongside the previous
+active run, and the V6 directory retains `h02-current-r1` and
+`acceptance-h02-r1` with exact source/worktree, artifact and evidence hashes.
+The latter matrix is not a green release. No experimental flash, GPT change,
+kernel/recovery rebuild or repeated target execution occurred. Only this
+completion documentation changed after the full run; exact-head/merge CI will
+cover the publication commit. Next resolve H03 criteria, then qualify one
+coherent persistent server release and the separate failed-boot recovery route.

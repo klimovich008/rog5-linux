@@ -18,7 +18,9 @@ required test → PASS/FAIL/BLOCKED/NOT RUN → evidence → next action.
 Nonzero exit means failure or blocked selected checks. A quick PASS is **not**
 a qualified release. Missing prerequisites, unimplemented runners, mandatory
 skips and transport loss never count as success. There is no historical-results
-import or cross-run merge. Source changes during execution invalidate the run.
+import or cross-release merge. Explicit rescue-cycle replay below revalidates
+raw evidence and authenticates the same live boot; reused evidence is labelled.
+Source changes during execution invalidate the run.
 
 `--release` accepts private `rog5-release-inputs-v1` JSON with `candidate_id`,
 `source_revision` and `artifacts`: `kernel`, `dtb`, `initramfs`, `rootfs`,
@@ -80,6 +82,42 @@ or installed recovery, and never overwrite an earlier failed smoke result.
 Future supervisors should call this observer instead of copying a marker grep;
 do not change a running supervisor or reuse its execution claim to repair an
 observer. The 15-second read-only call does not extend boot/rollback deadlines.
+
+`rog5-dev check-rescue-startup --cycle PRIVATE_CYCLE --execution-record
+EXACT_RECORD --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --output
+PRIVATE_NEW_DIRECTORY` replays the original supervised startup without phone
+contact. It binds the canonical consumed record, manifest, original receiver
+receipt, pre-execution host preparation and original 300-second SSH timeline.
+The captured readiness fields are revalidated rather than trusting their PASS
+label. Changed producer versions, mismatched boot/source, duplicate JSON,
+symlinked/oversized/mutating files, late setup and ambiguous execution fail.
+Evidence reuse is explicit and hashes are recorded. This does not restart a
+dead receiver or execute a target. Default replay reports `h02_qualified=false`.
+Add `--qualify-current --archive EXACT_ARCHIVE --boot-image EXACT_BOOT
+--identity-file KEY --known-hosts PINNED_HOSTS` to qualify H02 on the same
+still-running boot. The canonical record binds artifact hashes; archive checks
+pair the actual watchdog with startup/identity producers and exclude the radio
+payload. Pinned SSH checks eight deployed files, cmdline timeout, absent radio,
+Good health/USB online, 0–39.9°C and 8.4–9.0 V pack voltage. The original startup
+must meet 300 s; later watchdog evidence must show one arm and one current-boot
+ACK after the signed timeout (up to 5 s scheduling margin). The checker never
+waits out or extends that timeout and cannot qualify a not-yet-observed ACK.
+Power safety at Full is not H03 charging regulation. The exact sealed BusyBox
+script is exercised with disposable hardware/mount fixtures; live collection
+then checks actual paths. Normal/optimized tests run in A02 and active/full CI.
+
+For integrated H01/H02 use `rog5-dev accept device-smoke --release RECEIPT
+--rescue-inputs PRIVATE_JSON --output PRIVATE_NEW_DIRECTORY`. The private JSON
+contains only `profile`, `cycle`, `execution_record`, `manifest`, `identity_file`
+and `known_hosts`; all paths are absolute. It names arguments, never a command.
+Do not combine it with live `--capture`. H01 revalidates the original preboot
+receipt; H02 additionally requires fresh exact same-boot evidence and complete
+qualification output, not just exit zero. Both bind the release candidate and
+boot image. Artifact source/previous physical source remains in canonical and
+cycle records; the release receipt's `source_revision` identifies the current
+qualification checkpoint, not a claim that reused kernels were rebuilt there.
+The resulting matrix explicitly labels reuse and leaves all missing mandatory
+rows BLOCKED/NOT RUN. This is not an automatic retry or an imported green run.
 
 C01 now runs nine QEMU cases, including P2 success without persistent identity
 and stale identity. Its 500 s offline allowance covers nine 50 s subprocess
