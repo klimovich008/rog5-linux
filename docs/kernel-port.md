@@ -27,6 +27,12 @@ New source pins (only API listings and selected small raw files were fetched):
 - **A:** [unofficial anakin, lineage-20](https://github.com/alfaonyt/android_device_asus_anakin/tree/8217cf8df4e64d99a12b2a388a9a76266e27446d), commit `8217cf8df4e64d99a12b2a388a9a76266e27446d`.
 - **D:** [Denial main](https://github.com/denialwm/denial/tree/85b2303e2f09ae7b7b993641f90061a200f03d53), commit `85b2303e2f09ae7b7b993641f90061a200f03d53`.
 
+Bounded recheck at project HEAD `2d5a0994c6d0d80eab5cba86bb9040dc3c6427e6`
+confirmed all four remote pins unchanged. Reused this assessment and the
+retained charger file (matching the hash above), without a new checkout.
+The retained `kernel-src` belongs to the original project workspace, not this
+CI worktree; absence from the worktree does not mean the source needs downloading.
+
 W identifies **ZenFone 8, I006D/ZS590KS**, not our ROG5 ZS673KS. L's
 `arch/arm64/boot/dts/vendor/qcom/Makefile` selects sake/vodka; complete immediate
 qcom and vendor-config listings plus the complete ASUS DTS subtree contain no
@@ -58,6 +64,10 @@ video version is published or hardware-qualified. The public denialwm repo
 listing contains denial/flutter/skia/website, not Droidloom or the phone kernel.
 No downloadable source for those two was established by this bounded check;
 this is not a claim of absence everywhere.
+The recheck also inspected the public [v0.3.1 release](https://github.com/denialwm/denial/releases/tag/v0.3.1):
+its listed architecture-named packages are x86-64/amd64, with no ARM64-named
+package. This corroborates the build documentation, not device compatibility
+or a claim that every published artifact was downloaded and inspected.
 
 D [docs/BUILDING.md](https://github.com/denialwm/denial/blob/85b2303e2f09ae7b7b993641f90061a200f03d53/docs/BUILDING.md)
 requires architecture-matched Flutter engine/shell artifacts; first-party ARM64
