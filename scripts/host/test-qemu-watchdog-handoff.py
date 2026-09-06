@@ -89,11 +89,15 @@ def wifi_rollback_members(target):
 
 # Deliberate VM-only timer acceleration. The sealed timer/service/runtime and
 # SSH dependency remain byte-identical; no radio or phone path is activated.
-WIFI_TIMER_OVERRIDE = b'[Timer]\nOnBootSec=\nOnBootSec=15s\n'
+# Match the existing 20-second Arch/core-ACK window: the old 15-second fixture
+# could fire during initial SSH setup. Prove unused state after stopping and
+# elapsed time before the later restart; never reuse an already-fired timer.
+WIFI_TIMER_OVERRIDE = b'[Timer]\nOnBootSec=\nOnBootSec=20s\n'
 ARCH_WIFI_STOP = r'''
 systemctl is-active --quiet rog5-wifi-boot-rollback.timer
-test "$(cut -d. -f1 /proc/uptime)" -lt 15
 systemctl --job-mode=ignore-dependencies stop rog5-wifi-boot-rollback.timer
+test "$(cut -d. -f1 /proc/uptime)" -lt 20
+test -z "$(systemctl show -p InvocationID --value rog5-wifi-boot-rollback.service)"
 systemctl is-active --quiet rog5-early-sshd.service
 trial=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 printf 'format=rog5-persistent-wifi-health-v1\ntrial_id=%s\nprimary_bundle=c02-fixture\nmode=try-once\n' "$trial" >/run/rog5-native-wifi/trial-descriptor
@@ -431,6 +435,8 @@ UsePAM no
                     WIFI_TIMER_OVERRIDE)
                 observe = observe.replace(b'echo ARCH_SSH_INITIAL_PASS\n',
                                           b'echo ARCH_SSH_INITIAL_PASS\n'+ARCH_WIFI_STOP.encode())
+                observe = observe.replace(ARCH_SSH_RESTART.encode(),
+                    b'test "$(cut -d. -f1 /proc/uptime)" -ge 20\n'+ARCH_SSH_RESTART.encode())
                 if mode == 'systemd-wifi-stale':
                     observe = observe.replace(ARCH_SSH_RESTART.encode(), ARCH_WIFI_STALE.encode())
                     observe = observe.replace(b'echo HANDOFF_OBSERVATION_END\n$BB poweroff -f', b'')
