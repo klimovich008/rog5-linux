@@ -166,6 +166,7 @@ active_tests=(
 	scripts/host/test-headless-stage-receiver.py
 	scripts/host/test-release-acceptance.py
 	scripts/host/test-check-deployed-server.py
+	scripts/host/test-check-rescue-startup.py
 	scripts/host/test-rescue-root-composition.py
 	scripts/device/test-slotb-ram-bundle.py
 	scripts/device/test-standalone-rescue-composition.py

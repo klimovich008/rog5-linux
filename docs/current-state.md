@@ -50,8 +50,14 @@ RO/noload P24 plus the existing P23 service-state image; it is **not** the
 primary's 16 GiB persistent upper. Selector `c15c7782…` and healthy primary
 trial `bfc82fac…` are unchanged. Stock A and signed V11 are preserved.
 
-These are component passes, not a green release or H03 full-state regulation
-qualification. H02's complete executable acceptance integration remains pending.
+The integrated device-smoke matrix now records **H01 PASS / H02 PASS / H03
+BLOCKED**, not a qualified release. Explicit retained-cycle replay plus fresh
+same-boot pinned SSH verifies the original 59.555-second startup, sealed runtime
+files, inactive radio, safe power and deployed 900-second watchdog ACK.
+The matrix took 62.396 s including full input rehashing; H02 itself took 1.366 s.
+H03 still needs predeclared charging/regulation criteria; no full-state charging
+qualification or new execution is implied. Full local CI passed in 486.402 s;
+exact-head publication CI is still required for the new commit.
 The first supervisor preflight failed before capture/claim/boot because its
 restricted PATH lacked `gh`; the fixed absolute path passed under actual
 runuser. A later host Python text/bytes error prevented sending the first
@@ -134,8 +140,9 @@ defect. Keep the accepted kernel; Denial remains deferred and optional.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further source-reuse or kernel
-redesign is indicated. Next integrate H02's complete runner and plan the
-separate R01 experiment. The exact sealed failure helper uses
+redesign is indicated. H02 integration is now implemented and physically
+checked on the same rescue boot. Next freeze/publish this checkpoint, resolve
+H03 regulation criteria and plan the separate R01 experiment. The exact sealed failure helper uses
 `RESTART2("bootloader")`: expiry reaches fastboot, not automatically signed
 fallback SSH. Any host-assisted R01 cycle must prebind a fresh rescue execution
 and its evidence budget, preserve one-use behavior, and remain distinct from

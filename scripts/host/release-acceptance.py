@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import time
 
@@ -111,13 +112,51 @@ def utc():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
-def run_one(test, output, release=None, capture=None):
+def rescue_bindings(path):
+    """Only named arguments for the existing rescue checker, never a command."""
+    require_keys = {'profile', 'cycle', 'execution_record', 'manifest', 'identity_file', 'known_hosts'}
+    if not path.is_absolute(): raise ValueError('rescue inputs must be absolute')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
+                or before.st_nlink != 1 or before.st_mode & 0o022 or before.st_size > 16384):
+            raise ValueError('unsafe rescue input metadata')
+        raw = stream.read(16385)
+        after = os.fstat(stream.fileno())
+        signature = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mode, s.st_uid, s.st_gid,
+                               s.st_nlink, s.st_mtime_ns, s.st_ctime_ns)
+        if len(raw) > 16384 or signature(before) != signature(after) or signature(path.lstat()) != signature(after):
+            raise ValueError('rescue inputs changed during read')
+    def unique(pairs):
+        values = {}
+        for key, value in pairs:
+            if key in values: raise ValueError('duplicate rescue input')
+            values[key] = value
+        return values
+    values = json.loads(raw, object_pairs_hook=unique)
+    if (set(values) != require_keys or any(not isinstance(v,str) or not v for v in values.values())
+            or not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,127}', values['profile'])
+            or any(not Path(v).is_absolute() for k,v in values.items() if k != 'profile')):
+        raise ValueError('invalid rescue input arguments')
+    return {'{rescue_'+key+'}': value for key,value in values.items()}
+
+
+def run_one(test, output, release=None, capture=None, rescue_inputs=None):
     row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
            'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
            'next_action': test['blocker'], 'commands': test['commands'], 'test_versions': {}}
     if not test['commands']:
         return row
     commands = test['commands']
+    if test['id'] == 'H01' and rescue_inputs is not None:
+        # Revalidate original preboot receipt/timeline; do not pretend its
+        # completed receiver is still alive. H02 separately authenticates now.
+        commands = [['python3', 'scripts/host/check-rescue-startup.py',
+                     '--cycle', '{rescue_cycle}', '--execution-record', '{rescue_execution_record}',
+                     '--profile', '{rescue_profile}', '--manifest', '{rescue_manifest}',
+                     '--boot-image', '{boot_bundle}',
+                     '--expected-candidate', '{candidate}', '--output', '{test_output}']]
     if any('{' in token or '}' in token for command in commands for token in command):
         if release is None:
             row['next_action'] = 'supply verified exact artifact receipt; source tests are not archive proof'
@@ -125,6 +164,20 @@ def run_one(test, output, release=None, capture=None):
         bindings = {'{kernel}': release['artifact_paths']['kernel'],
                     '{initramfs}': release['artifact_paths']['initramfs'],
                     '{test_output}': str(output/test['id'])}
+        bindings['{candidate}'] = release.get('candidate_id', '')
+        if 'boot_bundle' in release['artifact_paths']:
+            bindings['{boot_bundle}'] = release['artifact_paths']['boot_bundle']
+        if any(token.startswith('{rescue_') for command in commands for token in command):
+            if rescue_inputs is None:
+                row['next_action'] = 'supply exact private --rescue-inputs; no boot is initiated'
+                return row
+            try:
+                bindings.update(rescue_bindings(rescue_inputs))
+                row['rescue_inputs_sha256'] = sha_file(rescue_inputs)
+                row['evidence_reused'] = True
+            except (OSError, TypeError, ValueError) as error:
+                row.update(status='FAIL', next_action='invalid rescue inputs: '+str(error))
+                return row
         if 'rootfs' in release['artifact_paths']:
             bindings['{rootfs}'] = release['artifact_paths']['rootfs']
         if any(token.startswith('{capture_') for command in commands for token in command):
@@ -192,6 +245,17 @@ def run_one(test, output, release=None, capture=None):
                ended_at=utc(), log_sha256=sha_file(log_path))
     if row['status'] == 'PASS' and re.search(r'skipped=[1-9][0-9]*|^SKIP\b', log_path.read_text(errors='replace'), re.M):
         row.update(status='BLOCKED', next_action='required suite skipped behavior; supply prerequisites and rerun')
+    if row['status'] == 'PASS' and test['id'] == 'H02':
+        try:
+            proof = json.loads((output/'H02/result.json').read_text())
+            if (proof['status'] != 'PASS' or proof['h02_qualified'] is not True
+                    or proof['canonical_record']['candidate'] != release['candidate_id']
+                    or proof['artifact_hashes']['initramfs'] != release['artifacts']['initramfs']['sha256']
+                    or proof['artifact_hashes']['boot_image'] != release['artifacts']['boot_bundle']['sha256']):
+                raise ValueError('H02 exact qualification mismatch')
+            row['proof_sha256'] = sha_file(output/'H02/result.json')
+        except (OSError, KeyError, TypeError, ValueError) as error:
+            row.update(status='FAIL', next_action='missing complete H02 proof: '+str(error))
     return row
 
 
@@ -202,7 +266,10 @@ def main():
     parser.add_argument('--output', type=Path, help='new private evidence directory outside repository')
     parser.add_argument('--release', type=Path, help='exact artifact receipt; no implied admission')
     parser.add_argument('--capture', type=Path, help='currently running private receiver directory; H01 only')
+    parser.add_argument('--rescue-inputs', type=Path, help='explicit original cycle and same-boot SSH arguments; never execution authority')
     args = parser.parse_args()
+    if args.capture and args.rescue_inputs:
+        parser.error('choose live --capture or explicit completed-cycle --rescue-inputs, not both')
     contract = load_contract()
     selected = select(contract, args.tier)
     if args.list:
@@ -237,10 +304,18 @@ def main():
                    'status': 'NOT RUN', 'duration_seconds': 0,
                    'next_action': error or f'run {test["tier"]} prerequisite/check'}
         else:
-            row = run_one(test, output, report['release'], args.capture)
+            row = run_one(test, output, report['release'], args.capture, args.rescue_inputs)
             print(f'{row["id"]}: {row["status"]} ({row["duration_seconds"]:.3f}s)', flush=True)
         report['tests'].append(row)
     after = source_identity()
+    report['evidence_reused'] = any(row.get('evidence_reused', False) for row in report['tests'])
+    if args.rescue_inputs:
+        try:
+            if any(row['rescue_inputs_sha256'] != sha_file(args.rescue_inputs)
+                   for row in report['tests'] if 'rescue_inputs_sha256' in row):
+                error = 'rescue inputs changed during run'
+        except OSError as exc:
+            error = 'rescue input revalidation failed: '+str(exc)
     if before != after:
         error = 'source changed during run; results are not a frozen checkpoint'
     if args.release and report['release']:
