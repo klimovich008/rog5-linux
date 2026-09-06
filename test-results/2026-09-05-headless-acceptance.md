@@ -4229,3 +4229,50 @@ inputs. The reviewed delta comprises the two C02 fixture/test files and current
 documentation; publication must verify that exact scope, current focused/active
 results and immutable prior CI evidence. Required remote exact-head checks are
 not replaced by that reuse. No new kernel build or signing is needed.
+
+### V4 live hw1.1/server startup passed (2026-09-07)
+
+Frozen `3e90756f936f44df8d495695d3890a58c00ca646` passed all four GitHub jobs
+in run 34063760646 and current active tier **20.650 s**. Full local CI from
+`8a9c0318` (507.876 s) was explicitly reused only for unchanged production
+inputs. The private publication adapter rejects other changed paths, altered
+receipts and a changed C02 fixture. Eleven adapter tests PASS 0.697 s; optimized
+reuse regression also passed. Original receipts and source labels remain intact.
+
+Bounded staging passed **2.124 s**, independent readback **0.538 s**. The five
+signed V4 files and selector were verified; the exact failed V3 selector/trial
+were backed up and archived, P24 relocked RO. Stock A, boot B, GPT, protected
+partitions, existing images and signed V11 were preserved. No flash occurred.
+
+The checked RAM-only V11 exitrd action transition reached exact slot-B fastboot
+in **9.381 s**, battery 8595 mV and `battery-soc-ok=yes`. One V4 claim was
+consumed after capture preparation. Fastboot accepted the image in **12.860 s**;
+adapter execution returned in **16.102 s**. No execution was retried.
+
+Target boot `17ff6c19-3ed1-4441-92ef-b6bdbfacfeb8`, kernel
+`7.1.4-gf17befd4ef17`, reached pinned normal server SSH in **84.957 s**.
+The primary question is answered: the existing hw1.1 patch let ath11k pass
+the previously rejected hardware revision, load firmware, expose the PHY and
+associate. Persistent service state/SSH identity and WPA/DHCP completed.
+Healthd and Tailscale are active. Exact six-file deployed comparison PASS
+**0.297 s** and same-boot read-only component snapshot PASS **0.379 s**.
+The boot-bound healthy record matches the trial ID, persistent trial state is
+healthy and startup rollback timers are inactive as intended. This does not
+unconsume the host claim or authorize another experimental execution.
+
+Startup attestation shows native RO/norecovery P24 with existing P23 persistent
+OverlayFS, strict-key-only SSH, 117 block nodes and zero UFS error events.
+Latest observed power was Full/100%, Good, 29.8°C, 8.581 V, zero battery
+current and 253 mA USB input under 500 mA. Brief earlier startup discharge is
+retained. These are radio-active component observations, not H03's radio-free
+600-second protocol or a net-positive charge-series claim.
+
+Private evidence remains in `rog5-server-hw11-20260906.Lo7km1SL`:
+`live-r1`, `stage`, `deployed-r1`, `server-snapshot-r1`, `publication.json`.
+The original coordinator continues passive capture for 1380 seconds; final
+capture/cleanup has not yet been evaluated. This documentation-only handoff
+does not change its program inputs or relabel the live source revision.
+Installed boot B still contains the older trial helper that fails to rearm a
+healthy primary; S01/R01 and ordinary reboot qualification remain blocked on
+the existing exact recovery correction. Do not substitute this RAM success
+for autonomous boot or a controlled physical recovery test.

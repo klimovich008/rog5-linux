@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated: 2026-09-07. Authoritative handoff, not continuous monitoring.
+Updated: 2026-09-07. Authoritative handoff; live capture is still running.
 
 ## Active goal and scope
 
@@ -10,7 +10,7 @@ Qualify one reliable standalone headless Arch server under the existing
 Use `scripts/host/rog5-dev accept`; missing prerequisites, skipped mandatory
 tests and lost transport are not PASS. Display remains optional.
 Use the [development loop](development.md); unrelated findings belong in the
-[backlog](../ROADMAP.md), not a new review or goal.
+[backlog](../ROADMAP.md). Do not reopen completed reviews without new evidence.
 
 ## Exact device and authority
 
@@ -24,131 +24,110 @@ requires separately reviewed exact scope and approval. Scoped credentials and
 reversible diagnostics remain authorized; private material stays outside Git.
 Do not delete unique source, artifacts, credentials, evidence or fallback.
 
-## Running RAM rescue and installed recovery
+## Running server and installed recovery
 
-**Last verified: V11 fallback after the consumed server-selector-v3 trial failed.**
-Kernel `7.1.4-g359318de534f`; pinned SSH authenticated boot UUID
-`fbb0d3e4-96ca-469c-8edc-d26ffbcb5cf8` and bundle `persistent-native-root-v11`.
-Fallback manifest:
-`a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
-Failed primary boot: `655c5d76-02aa-441b-ad5d-7217b0f54f13`, kernel
-`7.1.4-gf17befd4ef17`. Never retry it or consumed rescue V8.
-Live source `4ba30f3964f7962242bab1f4910a61f8e3489453`, all four CI jobs
-passed in run 34058164544. Its single coordinator is terminal at 1380.786 s.
-Capture/readiness are FAIL; route, firewall, profile and address cleanup PASS.
-Do not restart it. Fallback frames were not accepted as primary success.
-V8's earlier H01/H02/H03 passes remain historical same-release evidence, not
-qualification of this server or current fallback. Exact identities are in the
-[dated evidence](../test-results/2026-09-05-headless-acceptance.md#v8-live-rescue-and-h03-full-maintenance-qualified).
+**V4 is running successfully from its sole RAM-only execution.**
+Bundle `headless-server-selector-v4`, kernel `7.1.4-gf17befd4ef17`,
+authenticated boot UUID `17ff6c19-3ed1-4441-92ef-b6bdbfacfeb8`.
+Pinned normal SSH became ready in **84.957 s**. The physical hw1.1 correction
+worked: ath11k firmware/PHY started, Wi-Fi associated and received an address.
+Persistent state/SSH identity, Wi-Fi WPA/DHCP, healthd and Tailscale are active.
+The exact same-boot healthy record and persistent trial state are verified.
+The trial helper stopped the startup rollback timers after healthy acceptance.
+
+V4's execution claim remains **permanently consumed**, even though its runtime
+trial is healthy. These are different states; never reexecute the RAM claim.
+Failed V2/V3 and rescue V8 also remain consumed. Earlier narratives and exact
+identities are retained in the [dated report](../test-results/2026-09-05-headless-acceptance.md).
 
 Pinned SSH: `10.77.0.2` (alias `169.254.77.2`), fingerprint
 `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
-Wi-Fi intentionally inactive. Rescue uses tmpfs upper over RO/noload P24 and
-existing bounded P23 service state; not the primary's persistent upper.
-Pre-staging P24 snapshot (not the current raw P24 image):
-`e1692971646809ff412363014d69a363aa543336a715e918ec0cc978cafa36c6`.
+Native lower P24 is RO/norecovery; persistent upper and service state use the
+existing bounded P23 images. Startup attestation: 117 block nodes, only the
+accepted write scope, zero UFS errors and strict-key-only SSH.
+Pre-staging P24 snapshot `e1692971646809ff412363014d69a363aa543336a715e918ec0cc978cafa36c6`
+is historical, not a hash of the now-staged physical partition.
 
-**Installed boot B remains old/unqualified recovery:**
+**Installed boot B is still old/unqualified recovery:**
 `340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
-Signed `persistent-native-root-v11` fallback and stock A remain preserved.
-Active selector now names **consumed, failed `headless-server-selector-v3`**:
-`0b897e0211fd327c74881a502cab47cc3f614f226716b5c9532cb2c3eb8bf4bd`.
-The failed V2 selector is preserved at `selector.rollback-headless-server-selector-v3`:
-`353b7a88f56733fe39ee31707981bccd3dd15b6b1d47822ca369b26bab779f99`.
-Its exact pending trial `d0fef94cb686b2065311638cbbb9665617e5ca65796a46dc718bf0d7f43e9091`
-is archived on P23 as failed-V2 evidence. V3 was executed once; it is not healthy. Do not retry its target or claim.
-Earlier healthy-trial/selector archives remain unchanged; see the dated report.
-P24 is RO; independent postcheck passed. **Do not perform an ordinary reboot.**
-V3's claim is consumed. Never retry failed V2/V3 or rescue V8.
-RAM success does not prove installed recovery corrections. Ordinary accepted
-release reboot tests follow [distinct operation rules](development.md#experimental-execution-and-stable-operation);
-they do not permit retrying an experimental claim.
+Its older trial helper does not rearm a previously healthy primary before the
+next attempt. Existing offline evidence already demonstrates the defect.
+Do not perform an ordinary reboot or rediscover it with another uncontrolled
+phone failure. Signed V11 fallback and stock A remain preserved.
+Fallback manifest:
+`a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
 
-## Acceptance matrix and current blocker
+## Current exact artifacts and evidence
 
-These are rescue/component results, **not a coherent final server PASS**.
-Do not merge older server results or radio-free rescue evidence into server
-radio/persistent-root qualification. Detailed failures remain in the dated report.
+V4 manifest:
+`a6296549c855e3c8a1fd9c2e807e196207d1be4ff48fe36db4a2627528fd0966`.
+Target archive:
+`a5ff5c003b44cb073b78990487c8ffc810e6ef635e85c8b0ab40ab18b67e2e8f`.
+Selector:
+`4c84b0c137408dbababe161f392fb9b0507e6bbad12050e7ab3ba6e30b44895a`.
+Image:
+`ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`.
+RAM wrapper:
+`dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
+Other hashes derive from the canonical record and private deployment receipt;
+do not create another manual identity source.
+
+Private current work: `rog5-server-hw11-20260906.Lo7km1SL`.
+`live-r1`, `publication.json`, `deployed-r1`, `server-snapshot-r1` and
+`stage` bind the actual bytes, source, physical boot, backups and readbacks.
+The sole supervisor remains active for its fixed 1380-second capture window.
+Do not restart it, shorten the window or change its loaded inputs.
+Live source is **`3e90756f936f44df8d495695d3890a58c00ca646`**;
+all four GitHub jobs passed run **34063760646** before staging/execution.
+Later documentation does not relabel that source or create new authority.
+
+## Acceptance matrix and remaining blocker
+
+These are component outcomes, **not a coherent final server PASS**.
 
 | Outcome | Result / next action |
 |---|---|
-| A01 rescue composition | PASS 83.860 s, exact V8 signed archive; reused unchanged packaging evidence |
-| H01 capture | PASS 0.416 s; original preboot capture replay, no new execution |
-| H02 same-boot rescue | PASS; pinned SSH, deployed runtime and actual watchdog ACK verified |
-| H03 charging/regulation | PASS 604.523 s; 61 samples / 600.265 s, firmware-Full maintenance only |
-| C01 watchdog handover | Exact V8 kernel/archive: 9 cases PASS 138.299 s |
-| C02 late SSH restart | PASS 91.570 s through dispatcher on c2539e3c; only its two isolated guests overlap, unchanged 120 s limit and before/after hashes |
-| Server C02 / prior live | V2 offline C02 PASS 77.233 s; live readiness FAIL, automatic V11 fallback SSH recovered |
-| V3 composition / staging | A01 PASS 104.639 s; staging/readback PASS; live readiness FAIL, automatic V11 SSH recovered |
-| V4 hw1.1 successor | Signed offline A01 PASS 106.750 s; no staging, admission, claim or phone execution yet |
-| V4 C01 / C02 | C01 nine cases PASS 133.953 s; corrected C02 both cases PASS 82.750 s on clean `a86c228c`; original fixture FAIL retained |
-| F01 journal/OverlayFS | Exact inputs: disposable-image recovery/corruption tests PASS 75.432 s; not physical UFS crash proof |
-| R01 installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
-| Persistent server | Local autonomous boots, qualified Wi-Fi, durability, powered-off start and 60-minute soak incomplete |
+| V4 A01 composition | PASS 106.750 s on exact signed bytes |
+| V4 C01 watchdog handover | Nine cases PASS 133.953 s |
+| V4 C02 late SSH restart | Both cases PASS 82.750 s on clean `a86c228c`; original fixture FAIL retained |
+| V4 staging / readback | PASS 2.124 / 0.538 s; P24 relocked, old records preserved |
+| V4 server startup | Pinned SSH PASS 84.957 s; radio and same-boot healthy trial proven |
+| V4 deployed userspace | Six exact files PASS 0.297 s; component snapshot PASS 0.379 s |
+| H01/H02 completed capture | Preboot capture verified; final timeline/cleanup not yet evaluated |
+| H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
+| F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
+| S01 standalone boot | BLOCKED on qualified installed recovery; current boot used host fastboot |
+| S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
+| R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
 
-H03 observed Full/100%, Good, 29.8°C, 8.590 V, battery current 0 µA and
-unchanged 5,106,000 µAh counter throughout. USB supplied 172–447 mA at
-4.983–5.053 V, below the reported 500 mA limit. Required before/after firmware,
-runtime, source and same-boot checks passed. This proves full-charge maintenance,
-not programmable limits, sub-full charging or uninterrupted future health.
-Unsupported charge-limit controls are not the blocker; none were written.
+Latest V4 component telemetry: Full/100%, Good, 29.8°C, about 8.581 V,
+zero battery current, USB online supplying 253 mA below reported 500 mA.
+Earlier startup briefly drew battery current; these snapshots are not a
+10-minute H03 series. H03's firmware-Full protocol is already defined;
+unsupported charge-limit controls are not a blocker and none were written.
+The existing H03 rescue protocol requires inactive Wi-Fi; do not call this
+radio-active snapshot a qualifying substitute or collect the same absent fields.
 
-## Current blocker and exact next action
+## Exact next action and development loop
 
-V3 captured the already-recorded WCN6851 hw1.1 rejection: PCIe powered up and
-enumerated, then ath11k returned `-95` for hardware version `1 16`. The radio
-service failed; normal service-state/identity never started. Diagnostic SSH
-remained available before the failure handler started and USB disappeared.
-Automatic V11 fallback was independently authenticated. No crash cause is
-inferred from absent pstore or from the driver rejection alone.
+Finish the existing passive capture and evaluate its original startup/cleanup
+evidence. Keep this healthy server accessible; no ordinary reboot.
+Then advance S01/R01 from the retained installed-helper-v1 versus tested-v2
+comparison and exact working wrapper. A reviewed, verified installed recovery
+path must precede autonomous repeated boots. Do not start a new architecture
+review, invent another charging/kernel fix or flash an experimental payload.
+The physical hw1.1 issue is closed for this boot; full networking qualification
+and repeatability are separate acceptance outcomes.
 
-The complete-module builder omitted the existing device patch already qualified
-in [V15](../test-results/2026-08-31-wifi-late-activation.md#v15-live-firmware-phy-and-scan-pass-consumed).
-Its exact-source selector regression reproduces the rejection. The build path
-is now corrected to apply that patch and run the selector before compilation.
-No new charging policy, PCIe architecture or base-kernel change is needed.
+Current-state/skills cleanup is complete. Use focused reproduction for proven
+bugs and full investigation only for unexplained/repeated/cross-component ones.
+Run active/focused checks during edits; full CI once for relevant integration.
+Current active PASS **20.650 s**. Full local CI on unchanged production
+`8a9c0318` PASS **507.876 s**, explicitly reused across reviewed test/docs-only
+changes with checked receipts; current exact-head remote CI remains separate.
+No kernel/wrapper rebuild was needed for the C02 fixture correction.
 
-**Next: publish the tested C02 checkpoint, then stage/admit V4 and observe
-radio/server readiness once.**
-Read-only staging preflight passed; no transfer/write/claim/boot occurred.
-C02's original stale guest fired its test timer during initial SSH setup.
-The corrected fixture passed both fresh-VM cases with the same signed V4 bytes
-and unchanged 120-second limit. Production timers and payloads did not change.
-Do not use the retained fixture failure as a new phone/kernel diagnosis.
-Do not reuse V3 merely because its base Image/wrapper remain valid.
-The recovered module twins match; 71.871/66.620 seconds, 109,494,272 bytes
-combined. Exact-kernel QEMU component PASS 125.827 seconds (guest 43.738 s).
-This unsigned fixture is not an A01-qualified candidate or physical Wi-Fi PASS.
-V4 archive twins passed in 47.330 s; signed packaging reused Image/DTB/wrapper
-in 0.743 s. Manifest `a6296549c855e3c8a1fd9c2e807e196207d1be4ff48fe36db4a2627528fd0966`.
-Staging, admission and physical acceptance remain; no claim was created.
-
-Private evidence: `rog5-server-startup-20260906.ou4CkDi9`.
-Its `live-r1`, `v3-fallback-inspection-r1`, and `hw11-repair` are authoritative;
-details and artifact hashes stay in the [dated report](../test-results/2026-09-05-headless-acceptance.md).
-The V11 RAM exitrd action-only transition reached exact fastboot in 9.351 s;
-only its final reboot request changed. Installed boot B was not flashed.
-
-Reuse combined Image `ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`
-and its exact module kit in `rog5-v7-server-modules-20260906.Ibl4iPCz`.
-Preserve all original modules/build evidence; the four replacements are separate.
-The V4 host preview, lossless V2/V3 archives and V4 signed package remain
-volatile tmpfs. Only redundant V3 raw cache was released after full restoration
-hash verification; its bytes remain recoverable. See the dated report.
-Do not reboot the host assuming these caches are durable. Keep 3 GiB disk reserve.
-
-Use focused checks, one full CI at relevant integration, and batch publication.
-Last integration: `8a9c0318e754e5f740f33ca989e503ed49215fbf`, full local PASS
-507.876 s; all four CI jobs PASS in run 34062456992. The newer C02 fixture
-correction passed 19 focused tests in 1.072 s and exact C02 in 82.750 s.
-Reuse that integration only across the reviewed test/documentation delta,
-with current focused/active checks and exact-head remote CI; reject any new
-production-input difference. Publication remains separate.
-A01 first failed at 134.300 s despite all
-functional checks passing. Initial root hashing now overlaps independent
-read-only checks, joins before QEMU, and retains the second full hash and
-metadata checks. Same bytes passed at 106.750 s; no deadline was relaxed.
-Current private preparation/evidence: `rog5-server-hw11-20260906.Lo7km1SL`.
-Focused composition: 34 tests PASS; registration active PASS 21.452 s.
-Project-local skills and H03 policy cleanup are complete;
-global skills were not changed. Display and unrelated subsystems remain deferred.
+Preserve the combined kernel/module kit, signed package, V4 root preview and
+lossless V2/V3 preview archives. Some are volatile tmpfs; do not reboot the host
+assuming they are durable. Keep 3 GiB disk reserve; no ad-hoc deletion.
+See the dated report for restoration commands, peak sizes and prior failures.
