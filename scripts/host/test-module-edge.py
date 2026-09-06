@@ -263,6 +263,16 @@ class EdgeTests(unittest.TestCase):
             with self.assertRaises(edge.EdgeUnavailable):
                 edge.inspect_edge(self.members, MAGIC)
 
+    def test_ubuntu_library_without_new_split_still_parses_exact_types(self):
+        actual=ctypes.CDLL('libbpf.so.1')
+        class UbuntuLibrary:
+            def __getattr__(self,name):
+                if name=='btf__new_split':
+                    raise AttributeError('undefined symbol: btf__new_split')
+                return getattr(actual,name)
+        with patch.object(ctypes,'CDLL',return_value=UbuntuLibrary()):
+            self.check_valid(self.members)
+
     def test_missing_split_api(self):
         with patch.object(ctypes, 'CDLL', return_value=object()):
             with self.assertRaises(edge.EdgeUnavailable):

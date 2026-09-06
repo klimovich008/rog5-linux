@@ -2,16 +2,17 @@
 
 members uses the archive parser's {path: (newc_fields, bytes)} contract. The
 caller must authenticate the archive/signature; hashes here bind the inspected
-bytes, not their provenance. No subprocess, file write, module insertion or
+bytes, not their provenance. No subprocess, filesystem write, module insertion or
 hardware access occurs. Provider DWARF is deliberately not consulted (its
 R_AARCH64_NONE is unsupported); its unmodified split BTF/base supplies types.
-Requires pyelftools and libbpf.so.1 with btf__new_split. Missing host support is
+Requires pyelftools and libbpf.so.1 with btf__parse_raw_split. Missing host support is
 EdgeUnavailable; absent/malformed artifact metadata is ValueError.
 """
 
 import ctypes as C
 import hashlib
 import io
+import os
 import re
 import stat
 import struct
@@ -194,7 +195,7 @@ def _libbpf():
         lib = C.CDLL('libbpf.so.1')
         for name, args, result in (
             ('btf__new', [C.c_void_p, C.c_uint32], C.c_void_p),
-            ('btf__new_split', [C.c_void_p, C.c_uint32, C.c_void_p], C.c_void_p),
+            ('btf__parse_raw_split', [C.c_char_p, C.c_void_p], C.c_void_p),
             ('libbpf_get_error', [C.c_void_p], C.c_long),
             ('btf__type_cnt', [C.c_void_p], C.c_uint32),
             ('btf__type_by_id', [C.c_void_p, C.c_uint32], C.POINTER(C.c_uint32)),
@@ -212,12 +213,17 @@ def _btf_type(elf):
     base_data = _section(elf, '.BTF.base').data()
     split_data = _section(elf, '.BTF').data()
     lib = _libbpf()
-    base_buf, split_buf = C.create_string_buffer(base_data), C.create_string_buffer(split_data)
+    base_buf = C.create_string_buffer(base_data)
     base = lib.btf__new(base_buf, len(base_data))
     _require(bool(base) and not lib.libbpf_get_error(base), 'invalid provider BTF base')
     split = None
     try:
-        parsed = lib.btf__new_split(split_buf, len(split_data), base)
+        # Ubuntu 24.04's libbpf lacks the exported memory constructor. Use its
+        # older raw-split API over an anonymous descriptor, never a caller path
+        # or altered BTF. libbpf copies the parsed bytes before the fd closes.
+        with os.fdopen(os.memfd_create('rog5-a01-btf',os.MFD_CLOEXEC),'w+b') as raw:
+            raw.write(split_data);raw.flush();raw.seek(0)
+            parsed = lib.btf__parse_raw_split(('/proc/self/fd/'+str(raw.fileno())).encode(),base)
         _require(bool(parsed) and not lib.libbpf_get_error(parsed), 'invalid provider split BTF')
         split = parsed
 
