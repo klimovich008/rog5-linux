@@ -97,7 +97,7 @@ These are component outcomes, **not a coherent final server PASS**.
 | H01/H02 capture component | Original startup replay PASS 0.027 s; all cleanup PASS; radio-free H02 qualification not claimed |
 | H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
-| F02 live behavior | WPA/DHCP PASS 16.780 / 9.217 s; offline evidence replay PASS 0.667 s; exact-head integration pending |
+| F02 acceptance | PASS 0.816 s replay, 47.366 s including exact artifact verification; original live source/boot preserved |
 | S01 standalone boot | BLOCKED on qualified installed recovery; current boot used host fastboot |
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
@@ -137,10 +137,11 @@ and repeatability are separate acceptance outcomes.
 Current-state/skills cleanup is complete. Use focused reproduction for proven
 bugs and full investigation only for unexplained/repeated/cross-component ones.
 Run active/focused checks during edits; full CI once for relevant integration.
-Current active PASS **21.473 s** including stream tests (previous 20.650 s). Full local CI on unchanged production
-`8a9c0318` PASS **507.876 s**, explicitly reused across reviewed test/docs-only
-changes with checked receipts; current exact-head remote CI remains separate.
-No kernel/wrapper rebuild was needed for the C02 fixture correction.
+Full local CI on clean **`eb32d347` PASS 500.163 s** (previous 507.876 s).
+The initial 196.636 s failure was the private launcher's inherited umask, not
+a weakened key guard; corrected child umask 022 passed, private logs stayed 077.
+Last standalone active tier was 21.473 s; current full CI includes its coverage.
+Exact-head/merge publication checks remain separate. No kernel/wrapper rebuild.
 
 Preserve the combined kernel/module kit, signed package, V4 root preview and
 lossless V2/V3 preview archives. Some are volatile tmpfs; do not reboot the host

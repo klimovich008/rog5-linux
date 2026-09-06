@@ -4437,3 +4437,30 @@ source-version collector treating a long non-path argument as a filename;
 `ENAMETOOLONG` now means non-source data, while other I/O errors still propagate.
 Both demonstrated host-only defects have focused coverage. No physical attempt
 or full CI had started, and no original artifact/result was relabeled.
+
+### Frozen F02 integration and publication checkpoint
+
+Clean tested source **`eb32d3471c54750b62694d78ca85fae79d8862cf`**.
+`rog5-dev accept offline --test-id F02` PASS **0.816 s** for the replay;
+total **47.366 s** includes full artifact receipt checks before and after it.
+All five retained artifact identities matched. `f02-acceptance-r2/results.json`
+explicitly preserves observed source `5ce58d58…`, marks reuse, leaves every
+unselected mandatory row NOT RUN and sets `qualified=false`. This is F02 PASS,
+not a green final server. The first 104.400 s blocked run remains retained.
+
+The initial full CI run stopped after **196.636 s** at the host-key fixture's
+loose-parent case. The private launcher set umask 077 for its logs and
+unintentionally passed it to CI: `mkdir(mode=0755)` became 0700, so the guard
+correctly did not reject a private directory. The exact test reproduces FAIL
+under 077 and PASS under 022. This is a launcher/environment defect, not a
+production SSH guard defect; no production permission rule was changed.
+
+Only CI was rerun, using child umask **022** while the outer private-log umask
+remained **077**. The already-passed unchanged F02 run was reused by hash, not
+repeated. Full `scripts/host/test-repository-linux.sh ci` then **PASS 500.163 s**
+versus the previous **507.876 s**; no causal performance improvement is claimed.
+Private `f02-ci-r2/result.json` binds the frozen source, environment, reproducer,
+original F02 receipt and full log. No kernel, wrapper or target rebuild occurred.
+The documentation-only publication commit does not relabel this tested source.
+Exact-head/merge GitHub checks are separate; no new candidate or phone operation
+is implied. Installed-recovery replacement approval remains pending.
