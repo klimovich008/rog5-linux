@@ -39,6 +39,29 @@ def altered_init():
 
 
 class WatchdogArtifactTest(unittest.TestCase):
+    def test_arch_ssh_unit_is_selected_from_sealed_init(self):
+        units = M.arch_ssh_units(members())
+        self.assertEqual(set(units), {'rog5-early-sshd.service', 'rog5-sshd-ed25519-key.service'})
+        self.assertIn(b'ExecStart=/usr/bin/sshd -D\n', units['rog5-early-sshd.service'])
+        self.assertNotIn(b'DEBUG3', units['rog5-early-sshd.service'])
+        changed = SOURCE.replace(b'ExecStart=/usr/bin/sshd -D\n',
+                                 b'ExecStart=/usr/bin/sshd -D -e\n')
+        with self.assertRaisesRegex(ValueError, 'normal SSH unit'):
+            M.arch_ssh_units(members(changed))
+
+    def test_arch_probe_uses_real_restart_authentication_and_bounded_wait(self):
+        script = M.ARCH_SSH_SETUP + M.ARCH_WAIT_ACK + M.ARCH_SSH_RESTART
+        checked = RUN(['/bin/sh', '-n'], input=script, text=True, capture_output=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        for marker in ('StrictHostKeyChecking=yes', 'BatchMode=yes',
+                       'systemctl restart rog5-early-sshd.service',
+                       'old_pid', 'new_pid', 'ARCH_SSH_RESTART_PASS'):
+            self.assertIn(marker, script)
+        self.assertIn('timeout 5', script)
+        self.assertNotIn('StrictHostKeyChecking=no', script)
+        self.assertIn('test "$watchdog_done" = 1', script)
+        self.assertNotIn('sleep 23', script)
+
     def test_exact_archive_bytes_and_behavior_not_repository(self):
         init = altered_init()
         start = init.index(b"watchdog_bb() {\n")
@@ -123,6 +146,12 @@ class WatchdogArtifactTest(unittest.TestCase):
                     self.assertFalse(output.exists())
 
     def test_mocked_harness_embeds_archive_block_and_records_provenance(self):
+        self.run_mocked_harness()
+
+    def test_arch_harness_roundtrips_complete_archive_and_readonly_disk(self):
+        self.run_mocked_harness(use_arch=True)
+
+    def run_mocked_harness(self, use_arch=False):
         init = altered_init()
         target = members(init)
         for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1",
@@ -149,13 +178,21 @@ class WatchdogArtifactTest(unittest.TestCase):
                 if command == ["/bin/sh", "-n"]:
                     return RUN(command, **kwargs)
                 if command[0] == "podman":
+                    if use_arch:
+                        self.assertIn('file=/arch.ext4,format=raw,if=none,id=root,readonly=on', command)
+                        self.assertIn(str(root/'arch.ext4')+':/arch.ext4:ro', command)
+                        self.assertIn('--network=none', command)
                     process_deadlines.append(kwargs['timeout'])
                     mode = Path(kwargs["stdout"].name).stem
                     seen.append(mode)
                     log = "HANDOFF_SWITCH_ROOT\nHANDOFF_NEW_INIT\nHANDOFF_OLD_PATH_GONE\n"
+                    if use_arch:
+                        log += 'ARCH_ROOT_READ_ONLY_OVERLAY\nARCH_SSH_INITIAL_PASS\n'
                     if mode == "systemd-ack":
                         log += ("watchdog acknowledged by current-boot P2 and SSH identity readiness\n"
                                 "HANDOFF_OBSERVATION_END\n")
+                        if use_arch:
+                            log += 'ARCH_SSH_RESTART_PASS\n'
                     elif mode == "failed-init":
                         log += "can't execute '/missing-init'\nKernel panic\n"
                     else:
@@ -168,15 +205,19 @@ class WatchdogArtifactTest(unittest.TestCase):
 
             argv = ["handoff", "--kernel", str(kernel), "--target-archive", str(archive),
                     "--output", str(output)]
+            if use_arch:
+                (root/'arch.ext4').write_bytes(b'read-only fixture, no QEMU executed')
+                argv += ['--root-image', str(root/'arch.ext4')]
             with mock.patch.object(M, "REPO", root), mock.patch.object(sys, "argv", argv), \
                     mock.patch.object(M.runpy, "run_path", return_value=ARCHIVE), \
                     mock.patch.object(M.subprocess, "run", side_effect=simulated_run), \
                     mock.patch.object(M.subprocess, "check_output", return_value="offline-image"), \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(M.main(), 0)
-            self.assertEqual(set(seen), {'systemd-ack', 'systemd-no-ack',
+            expected = {'systemd-ack', 'systemd-no-ack',
                 'systemd-stale-ack', 'systemd-p2-only', 'systemd-stale-identity',
-                'helper-unexecutable', 'hang-init', 'failed-init', 'fd-open-failure'})
+                'helper-unexecutable', 'hang-init', 'failed-init', 'fd-open-failure'}
+            self.assertEqual(set(seen), {'systemd-ack', 'systemd-stale-identity'} if use_arch else expected)
             contract = json.loads((REPO/'configs/release-acceptance.json').read_text())
             row = next(row for row in contract['tests'] if row['id'] == 'C01')
             self.assertGreaterEqual(row['deadline_seconds'], sum(process_deadlines) + 50)
@@ -185,6 +226,14 @@ class WatchdogArtifactTest(unittest.TestCase):
                 guest = ARCHIVE["entries"](gzip.decompress((output / (mode + ".cpio.gz")).read_bytes()))
                 self.assertIn(block, guest["init"][1])
                 self.assertEqual(guest["init"][1].count(b"ARCHIVE_ONLY_WATCHDOG"), 1)
+                if use_arch:
+                    for name in ('passwd', 'group', 'nsswitch.conf', 'shadow'):
+                        self.assertNotIn('systemd-root/etc/'+name, guest)
+                    self.assertIn(b'mount -t ext4 -o ro,noload /dev/vda', guest['init'][1])
+                    self.assertIn(b'mount -t tmpfs -o mode=0755 tmpfs /run', guest['init'][1])
+                    self.assertIn(M.ARCH_SSH_RESTART.encode(), guest['systemd-root/observe'][1])
+                    self.assertEqual(guest['systemd-root/etc/systemd/system/rog5-early-sshd.service'][1],
+                                     M.arch_ssh_units(target)['rog5-early-sshd.service'])
                 for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1",
                              "usr/libexec/rog5-reboot-bootloader"):
                     self.assertEqual(guest[name][1], target[name][1])
@@ -193,7 +242,13 @@ class WatchdogArtifactTest(unittest.TestCase):
             for key, data in (("target_init_sha256", init), ("target_archive_sha256", blob),
                               ("watchdog_source_sha256", block)):
                 self.assertEqual(record[key], hashlib.sha256(data).hexdigest())
-            self.assertIn("not full deployed composition", record["scope"])
+            if use_arch:
+                self.assertTrue(record['root_image_unchanged'])
+                self.assertFalse(record['c02_qualified'])
+                self.assertFalse(record['release_qualified'])
+                self.assertIn('not physical storage', record['scope'])
+            else:
+                self.assertIn("not full deployed composition", record["scope"])
 
 
 if __name__ == "__main__":

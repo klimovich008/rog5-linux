@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Offline switch_root experiment; no phone, credentials, networking or disks.
+"""Offline switch_root experiment; no phone, real credentials or external network.
 
 This executes the exact supplied archive's init watchdog functions through real
 systemd/switch_root, not the complete deployed init or physical phone reset
 effectiveness. BusyBox, its interpreter and the exact static reboot helper are
 copied from that same archive. Missing/legacy watchdogs are refused; there is no
 repository-source fallback.
-The guest's new root is tmpfs; systemd comes from the public test closure.
+By default the guest root is tmpfs with the public systemd test closure.
+--root-image instead uses retained Arch ext4 read-only with a RAM overlay,
+its systemd/sshd and the sealed SSH units. Keys and ACKs are guest fixtures;
+this mode does not qualify optional Wi-Fi rollback or all of C02 by itself.
 """
 import argparse
 import gzip
@@ -21,6 +24,94 @@ import time
 import zlib
 
 REPO = Path(__file__).resolve().parents[2]
+
+
+def sha_file(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def arch_ssh_units(target):
+    source = target['init'][1].decode()
+    result = {}
+    for variable, name in (('early_sshd_unit', 'rog5-early-sshd.service'),
+                           ('ed25519_unit', 'rog5-sshd-ed25519-key.service')):
+        units = re.findall(r'cat >"\$'+variable+r'" <<\'EOF\'\n(.*?)\nEOF', source, re.S)
+        if variable == 'early_sshd_unit':
+            units = [unit for unit in units if '\nExecStart=/usr/bin/sshd -D\n' in unit]
+        if len(units) != 1:
+            raise ValueError('missing or ambiguous normal SSH unit: '+variable)
+        result[name] = (units[0]+'\n').encode()
+    return result
+
+
+# Guest-only fixtures: fresh ephemeral keys, loopback SSH, no phone credential.
+# The unit bytes and systemd/sshd executables are NOT replaced by these fixtures.
+ARCH_SSH_SETUP = r'''
+export PATH=/usr/bin:/bin
+ip link set lo up
+# Only the guest RAM overlay: retain real system accounts (Arch sshd uses
+# nobody) and unlock root for this ephemeral, key-only loopback fixture.
+sed -i 's/^root:[^:]*/root:x/' /etc/shadow
+ssh-keygen -q -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
+ssh-keygen -q -t ed25519 -N '' -f /run/c02-client
+printf '127.0.0.1 %s\n' "$(cat /etc/ssh/ssh_host_ed25519_key.pub)" >/run/c02-hosts
+ssh_proof() {
+    test "$(timeout 5 ssh -F /dev/null -o BatchMode=yes -o IdentitiesOnly=yes \
+        -o IdentityAgent=none -o StrictHostKeyChecking=yes -o UpdateHostKeys=no \
+        -o UserKnownHostsFile=/run/c02-hosts -o ConnectTimeout=2 \
+        -i /run/c02-client root@127.0.0.1 /usr/bin/cat /proc/sys/kernel/random/boot_id)" \
+        = "$(cat /proc/sys/kernel/random/boot_id)"
+}
+systemctl --version
+stat -c 'ARCH_SSH_PATH %a %u %g %n' /run /run/c02-client.pub /etc/shadow
+mkdir -p /run/sshd
+/usr/bin/sshd -t -e
+systemctl start rog5-early-sshd.service
+# Type=simple acknowledges exec setup, not the listening socket. Bound the
+# guest-only readiness wait without changing the sealed unit or watchdog.
+ready=0
+for attempt in 1 2 3 4 5; do
+    if ssh_proof; then ready=1; break; fi
+    sleep .2
+done
+test "$ready" = 1
+old_pid=$(systemctl show -p MainPID --value rog5-early-sshd.service)
+test "$old_pid" -gt 1
+echo ARCH_SSH_INITIAL_PASS
+'''
+ARCH_SSH_RESTART = r'''
+systemctl restart rog5-early-sshd.service
+ready=0
+for attempt in 1 2 3 4 5; do
+    if ssh_proof; then ready=1; break; fi
+    sleep .2
+done
+test "$ready" = 1
+new_pid=$(systemctl show -p MainPID --value rog5-early-sshd.service)
+test "$new_pid" -gt 1
+test "$old_pid" != "$new_pid"
+echo "ARCH_SSH_PID_CHANGE $old_pid $new_pid"
+sleep 3
+ssh_proof
+echo ARCH_SSH_RESTART_PASS
+'''
+ARCH_WAIT_ACK = r'''
+# Wait for the real watchdog child, not a new full delay after SSH setup.
+watchdog_done=0
+for attempt in $(seq 1 30); do
+    if [ ! -e /proc/$pid/stat ] ||
+       $BB awk '$3 == "Z" { ok=1 } END { exit !ok }' /proc/$pid/stat; then
+        watchdog_done=1
+        break
+    fi
+    sleep 1
+done
+test "$watchdog_done" = 1
+'''
 
 
 def watchdog_functions(target):
@@ -67,10 +158,13 @@ def watchdog_functions(target):
 
 
 def main():
+    all_started = time.monotonic()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--kernel", type=Path, required=True)
     parser.add_argument("--target-archive", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--root-image", type=Path,
+                        help="RO retained Arch ext4: two exact-systemd/SSH cases instead of public-runtime matrix")
     args = parser.parse_args()
     if not __debug__:
         raise SystemExit("archive parser requires assertions enabled")
@@ -83,12 +177,24 @@ def main():
         parser.error(f"target archive refused: {exc}")
     # Refuse incompatible archives before creating evidence or invoking QEMU.
     kernel = args.kernel.resolve(strict=True)
+    runner_hash = sha_file(Path(__file__))
+    root_image = args.root_image
+    root_hash = None
+    ssh_units = {}
+    if root_image:
+        if not root_image.is_absolute() or root_image.is_symlink() or not root_image.is_file():
+            parser.error('root image must be an absolute ordinary retained file')
+        ssh_units = arch_ssh_units(target)
+        root_hash = sha_file(root_image)
+    source_revision = subprocess.check_output(['git', '-C', str(REPO), 'rev-parse', 'HEAD'], text=True).strip()
     args.output.mkdir(mode=0o700)  # Never replace an earlier experiment.
     output = args.output.resolve()
     runtime = REPO / "artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz"
-    subprocess.run([str(REPO / "scripts/host/verify-qemu-systemd-runtime.sh"),
-                    str(runtime)], check=True)
-    base = archive["entries"](gzip.decompress(runtime.read_bytes()))
+    base = {}
+    if not root_image:
+        subprocess.run([str(REPO / "scripts/host/verify-qemu-systemd-runtime.sh"),
+                        str(runtime)], check=True)
+        base = archive["entries"](gzip.decompress(runtime.read_bytes()))
     image = subprocess.check_output([
         "podman", "image", "inspect", "--format", "{{.Id}}",
         "localhost/rog5-qemu-gate:ubuntu-24.04"], text=True).strip()
@@ -96,6 +202,8 @@ def main():
     modes = ("systemd-ack", "systemd-no-ack", "systemd-stale-ack",
              "systemd-p2-only", "systemd-stale-identity",
              "helper-unexecutable", "hang-init", "failed-init", "fd-open-failure")
+    if root_image:
+        modes = ('systemd-ack', 'systemd-stale-identity')
     for mode in modes:
         members = {}
 
@@ -114,10 +222,12 @@ def main():
         add("systemd-root/usr/lib/ld-musl-aarch64.so.1",
             target["lib/ld-musl-aarch64.so.1"][1], stat.S_IFREG | 0o755)
         add("systemd-root/etc/machine-id", b"0123456789abcdef0123456789abcdef\n")
-        add("systemd-root/etc/os-release", b'ID=rog5-qemu\nNAME="ROG5 handoff test"\n')
-        add("systemd-root/etc/passwd", b"root:x:0:0:root:/:/usr/bin/busybox\n")
-        add("systemd-root/etc/group", b"root:x:0:\n")
-        add("systemd-root/etc/nsswitch.conf", b"passwd: files\ngroup: files\n")
+        if not root_image:
+            add("systemd-root/etc/os-release", b'ID=rog5-qemu\nNAME="ROG5 handoff test"\n')
+        if not root_image:
+            add("systemd-root/etc/passwd", b"root:x:0:0:root:/:/usr/bin/busybox\n")
+            add("systemd-root/etc/group", b"root:x:0:\n")
+            add("systemd-root/etc/nsswitch.conf", b"passwd: files\ngroup: files\n")
         add("systemd-root/etc/systemd/system/default.target", b"""[Unit]
 DefaultDependencies=no
 Requires=observe.service
@@ -170,6 +280,24 @@ fi
 echo HANDOFF_OBSERVATION_END
 $BB poweroff -f
 """.replace(b"MODE", mode.encode()))
+        if root_image:
+            for name, unit in ssh_units.items():
+                add('systemd-root/etc/systemd/system/'+name, unit)
+            add('systemd-root/etc/ssh/sshd_config', b'''ListenAddress 127.0.0.1
+HostKey /etc/ssh/ssh_host_ed25519_key
+AuthorizedKeysFile /run/c02-client.pub
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+UsePAM no
+''')
+            fields, observe = members['systemd-root/observe']
+            observe = observe.replace(b'echo HANDOFF_OLD_PATH_GONE\n',
+                                      b'echo HANDOFF_OLD_PATH_GONE\n'+ARCH_SSH_SETUP.encode())
+            observe = observe.replace(b'$BB sleep 11', ARCH_WAIT_ACK.encode())
+            observe = observe.replace(b'echo HANDOFF_OBSERVATION_END',
+                                      ARCH_SSH_RESTART.encode()+b'\necho HANDOFF_OBSERVATION_END')
+            archive['replace'](members, 'systemd-root/observe', observe)
         init = r"""#!/bin/busybox sh
 set -eu
 export PATH=/bin
@@ -192,6 +320,22 @@ watchdog_sysrq=/proc/sysrq-trigger
 watchdog_pid_file=/run/rog5-p2-watchdog.pid
 recovery_timeout=8
 """
+        if root_image:
+            init = init.replace('mount -t tmpfs tmpfs /run\n',
+                                'mount -t tmpfs -o mode=0755 tmpfs /run\n')
+            init = init.replace('mount -t tmpfs tmpfs /newroot\n', '''
+mkdir -p /lower /upper
+for attempt in 1 2 3 4 5; do
+    [ -b /dev/vda ] && break
+    sleep 1
+done
+[ "$(blockdev --getro /dev/vda)" = 1 ]
+mount -t ext4 -o ro,noload /dev/vda /lower
+mount -t tmpfs -o size=256m tmpfs /upper
+mkdir /upper/upper /upper/work
+mount -t overlay -o lowerdir=/lower,upperdir=/upper/upper,workdir=/upper/work overlay /newroot
+echo ARCH_ROOT_READ_ONLY_OVERLAY
+''').replace('recovery_timeout=8\n', 'recovery_timeout=20\n')
         if mode == "fd-open-failure":
             init += "watchdog_kmsg=/missing/kmsg\n"
         init += r"""
@@ -228,6 +372,10 @@ echo HANDOFF_SWITCH_ROOT
                    "-m", "512", "-smp", "2", "-nographic", "-monitor", "none", "-nic", "none",
                    "-no-reboot", "-kernel", "/Image", "-initrd", "/initramfs", "-append",
                    "console=ttyAMA0 rdinit=/init panic=2 systemd.log_target=console systemd.show_status=yes"]
+        if root_image:
+            command[command.index(image):command.index(image)] = ['-v', str(root_image)+':/arch.ext4:ro']
+            command += ['-drive', 'file=/arch.ext4,format=raw,if=none,id=root,readonly=on',
+                        '-device', 'virtio-blk-device,drive=root']
         started = time.monotonic()
         with (output / (mode + ".log")).open("xb") as log:
             result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=50)
@@ -252,6 +400,12 @@ echo HANDOFF_SWITCH_ROOT
             passed = False
         if mode == "failed-init" and "command 'bootloader'" in log:
             passed = False
+        if root_image:
+            passed = passed and 'ARCH_ROOT_READ_ONLY_OVERLAY' in log and 'ARCH_SSH_INITIAL_PASS' in log
+            if mode == 'systemd-ack':
+                passed = passed and 'ARCH_SSH_RESTART_PASS' in log and "Restarting system" not in log
+            elif 'ARCH_SSH_RESTART_PASS' in log:
+                passed = False
         results.append(dict(mode=mode, passed=passed, exit_code=result.returncode,
                             seconds=time.monotonic()-started))
         print(json.dumps(results[-1]), flush=True)
@@ -263,6 +417,22 @@ echo HANDOFF_SWITCH_ROOT
                   kernel_sha256=hashlib.sha256(kernel.read_bytes()).hexdigest(),
                   target_archive_sha256=hashlib.sha256(target_blob).hexdigest(),
                   container=image, cases=results)
+    record.update(source_revision=source_revision, runner_sha256=runner_hash)
+    if root_image:
+        unchanged = sha_file(root_image) == root_hash
+        record.update(root_image_sha256=root_hash, root_image_unchanged=unchanged,
+                      c02_qualified=False, release_qualified=False,
+                      ssh_units_sha256={name: hashlib.sha256(data).hexdigest()
+                                        for name, data in ssh_units.items()},
+                      scope='Exact retained Arch systemd/sshd and sealed SSH units/watchdog; '
+                            'RO virtual root with RAM overlay, loopback keys and ACK fixtures; '
+                            '20-second test timer, not physical storage or optional Wi-Fi rollback qualification')
+        if not unchanged:
+            results.append(dict(mode='root-unchanged', passed=False))
+    if sha_file(Path(__file__)) != runner_hash:
+        results.append(dict(mode='runner-unchanged', passed=False))
+    record.update(status='PASS' if all(case['passed'] for case in results) else 'FAIL',
+                  duration_seconds=time.monotonic()-all_started)
     (output / "result.json").write_text(json.dumps(record, indent=2) + "\n")
     return 0 if all(case["passed"] for case in results) else 1
 

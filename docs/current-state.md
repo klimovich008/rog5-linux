@@ -148,7 +148,18 @@ by these offline tests. See the [source audit](kernel-port.md#h03-capacity-unit-
 H03 still needs declared regulation criteria and physical evidence; do not
 classify Full/zero-current alone as a charging pass.
 This offline follow-up passed the active tier in 17.196 s and full local CI in
-489.593 s; its publication CI must be checked separately from the prior H02 run.
+489.593 s; all four publication jobs passed run 34013013582 for `83e2c66e…`.
+
+C02 in-progress checkpoint: the existing QEMU handoff runner now accepts a
+retained Arch root read-only, preserving its actual systemd/sshd/accounts and
+using the sealed SSH units plus RAM-only fixtures. Healthy late SSH restart
+passed in 30.402 s; stale identity correctly reset in 23.034 s. Total 115.357 s
+includes root hashing before/after; its hash is unchanged. This is **not full
+C02**: combine the optional Wi-Fi rollback timer with that same target runtime
+before dispatcher integration. Do not substitute the host-systemd timer result.
+No production input, kernel, candidate or phone boot changed. The same rescue
+passed a fresh H02 check in 1.210 s at uptime 6931 s, Full/Good 100%, 29.7°C,
+8.616 V, zero current and USB online. This is still not H03 regulation proof.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel

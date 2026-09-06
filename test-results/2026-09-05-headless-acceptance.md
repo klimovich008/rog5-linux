@@ -2150,3 +2150,51 @@ were repeated, not full local CI. Kernel checkpatch via stdin reports no errors
 or warnings after wrapping. No production kernel/module build was needed.
 Exact-head/merge GitHub CI is required for the publication commit and is
 separate from the passed prior H02 checkpoint.
+
+### Exact-Arch C02 component checkpoint
+
+`83e2c66e6c7ad7ca5dc097c5a758a3ad9c033c65` passed all four jobs in
+CI 34013013582. Fresh pinned same-rescue readiness passed **0.245 s**;
+full H02 revalidation passed **1.210 s** at uptime 6931.37 s, same boot,
+Full/Good 100%, 29.7°C, 8.616 V, zero current, USB online and the same 900 s ACK.
+No SSH restart or reboot was requested on the phone in this iteration.
+
+Extended the existing QEMU handoff runner, not the kernel or lifecycle, with
+`--root-image`. The retained Arch root is presented as a read-only virtual disk
+and mounted ro/noload under a RAM overlay. Its actual systemd **260.2-2-arch**,
+sshd and account database execute with the exact archive's SSH/keygen units,
+BusyBox and watchdog functions. Private ephemeral VM keys, loopback-only SSH,
+fixture configuration/ACKs and a 20 s test timer do not qualify phone credentials,
+hardware activation, optional Wi-Fi rollback, or the final release.
+
+Preserved failed attempts: r1 rejected a duplicate archive member before QEMU;
+r2 exposed missing startup diagnostics; r3 identified the fixture's missing
+`nobody` privilege-separation account; r4 reached SSH but rejected authentication
+with world-writable default tmpfs `/run`; r5 authenticated and restarted SSH
+but exceeded the unchanged 40 s guest ceiling due to a redundant fixed wait.
+Complete-archive regressions cover duplicate/replacement and account/mode errors.
+The fixture now preserves Arch accounts, uses `/run` 0755, waits boundedly for
+the real listener and observes actual watchdog exit instead of sleeping a new
+full interval. No security check or timeout was weakened; these were fixture
+defects, not demonstrated production-kernel defects.
+
+r6 passed both cases in **30.004/22.884 s**, total **115.192 s**. Final r7 adds
+explicit false C02/release-qualification fields and also passed **30.402/23.034 s**,
+total **115.357 s**, including both 32 GiB input hashes. Healthy SSH PID changed
+**121 → 177** with pinned, key-only command execution after restart; stale
+identity instead caused the exact bootloader reset without a restart PASS.
+The root remains `06cc805b…`; kernel/archive remain `bdceaa51…`/`7703f398…`.
+Both guest archives/logs total about **3.7 MiB** per run, no root-image copy.
+The existing private V6 directory retains `c02-arch-qemu-r1` through `r7` and
+the fresh phone observers. **11 focused tests pass** (final 0.440 s), including
+roundtrip archive, read-only disk, exact-unit and unchanged nine-case C01 checks.
+
+C02 still requires the optional Wi-Fi rollback timer in the same target runtime
+and dispatcher integration; commands remain empty/BLOCKED. Do not combine this
+component with host-systemd or prior-primary evidence into an invented green row.
+Kernel rebuild, admission, physical failure injection and full publication CI
+are not needed merely to continue this in-progress offline integration.
+Dispatcher regressions passed **22 cases / 0.567 s**; active tier passed
+**17.369 s**, with the existing optional artifact skips explicit. This is a
+local checkpoint, not a published/full-CI-qualified C02 implementation. r1
+failed before guest logs existed; its traceback remains in the task record.
