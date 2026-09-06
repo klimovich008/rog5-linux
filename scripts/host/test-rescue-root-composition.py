@@ -16,6 +16,30 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_shutdown_is_required_and_bound_to_reviewed_source(self):
+        members = self.members()
+        item = ([0, stat.S_IFREG | 0o755, 0, 0, 1],
+                (M.REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes())
+        members['shutdown'] = item
+        M.archive_parameters(members)
+        for value in (None, (item[0], b'#!/bin/sh\nexit 0\n'),
+                      ([0, stat.S_IFLNK | 0o777, 0, 0, 1], item[1])):
+            altered = copy.deepcopy(members)
+            if value is None:
+                del altered['shutdown']
+            else:
+                altered['shutdown'] = value
+            with self.subTest(value=value is None), self.assertRaises(ValueError):
+                M.archive_parameters(altered)
+
+    def test_exitrd_is_checked_from_the_arch_root_without_execution(self):
+        sealed = ''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS)
+        script = M.driver(sealed, profile='server-runtime')
+        self.assertIn('chroot /newroot /usr/bin/chroot /run/initramfs /bin/sh -n /shutdown', script)
+        self.assertIn('COMPOSITION_EXITRD_PASS', script)
+        self.assertIn('EXITRD', M.MARKERS)
+        self.assertNotIn('chroot /newroot /usr/bin/chroot /run/initramfs /bin/sh /shutdown', script)
+
     def test_sealed_module_load_order_and_dependency_refusals(self):
         item = lambda data: ([0, stat.S_IFREG | 0o644, 0, 0, 1], data)
         elf = bytearray(64)
@@ -66,6 +90,8 @@ class CompositionTest(unittest.TestCase):
                       SSH_DIAGNOSTIC_MODE='0', PERSISTENT_OVERLAY_MODE=overlay)
         item = lambda data: ([0, stat.S_IFREG | 0o755], data)
         return {
+            'shutdown': ([0, stat.S_IFREG | 0o755, 0, 0, 1],
+                         (M.REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes()),
             'init': item(M.SEALED.ARCHIVE.render_boot_template(M.REPO/'initramfs/persistent-root-init', values)),
             'usr/local/sbin/rog5-p2-attest': item(M.SEALED.ARCHIVE.render_boot_template(
                 M.REPO/'initramfs/persistent-root-attest', {k: values[k] for k in (

@@ -36,6 +36,12 @@ with a disposable tmpfs upper. The caller provides/cleans a dedicated host-only
 `ro,noload,nodev,nosuid` ext4 loop mount. This checker permits a four-artifact
 receipt before wrapper packaging; full release still requires all five roles.
 It does **not** qualify the final wrapper, module loading, hardware or A01 alone.
+The sealed shutdown helper must match the reviewed source and file metadata.
+After runtime preparation, the checker parses it from the actual Arch root
+through `/usr/bin/chroot /run/initramfs /bin/sh -n /shutdown`. If Arch lacks
+musl, it also reproduces the failed direct absolute-path BusyBox invocation;
+an executable path alone does not relocate the ELF interpreter. Neither check
+executes shutdown or reboots any system.
 It also checks all sealed power/UFS module names, regular-file metadata,
 AArch64 relocatable headers, consistent vermagic and dependency order within
 a ten-second metadata budget. This is not BTF/symbol-resolution or hardware
