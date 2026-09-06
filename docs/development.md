@@ -4,7 +4,22 @@ Start at [current state](current-state.md). Work on one question and choose the
 cheapest artifact that changes its answer. Historical profile names are not
 the active server. In particular, `power-usb-active.json` and its generated
 lock still describe the older NFS observer track; they are kept for its
-regression/publication contract, not the installed V10 selector.
+regression/publication contract, not current installed-selector identity.
+
+## Qualification-first scope
+
+The mandatory matrix in [release acceptance](release-acceptance.md) is the
+definition of done. Select the highest-value failing or blocked outcome, state
+one question, and work to evidence. Fix newly found defects now only if they
+block qualification or materially threaten the release. Put unrelated work in
+the existing [backlog](../ROADMAP.md), not another review or state ledger.
+Reopen a completed review only when new evidence changes its conclusion.
+
+Use focused reproduction/correction for demonstrated defects. Repeated,
+unexplained or cross-component failures warrant explicit systematic debugging;
+failed attempts trigger hypothesis reassessment, not an architecture verdict.
+Bounded experiments and labelled mitigations are permitted while an original
+cause is unknown. An unrelated incident need not block a separately proven fix.
 
 ## Commands and tests
 
@@ -35,6 +50,15 @@ merge validation remain separate; main pushes now select from before/head.
 Unknown or unavailable diffs broaden validation. Scheduled/manual validation
 runs nightly and QEMU. Required job names are retained, with explicit skipped
 merge handling for non-PR runs.
+
+Batch related fixes into one frozen integration checkpoint; record the exact
+source/dirty-input identity tested. Run focused checks during edits, one full
+local CI for relevant shared changes, then publish with existing exact-head
+and merge requirements. Documentation-only follow-up gets its link/active
+checks; it does not retroactively change the source covered by earlier CI.
+No repeated full CI for unchanged inputs. While remote checks run, do useful
+independent work without modifying their frozen inputs or starting a second
+device coordinator. This policy changes iteration cadence, not release gates.
 
 ## Packaging without identity-copy scripts
 
@@ -107,8 +131,23 @@ The native RAM loader and transaction are
 `scripts/device/load-native-ram-bundle.sh` and
 `scripts/device/execute-native-ram-bundle-transaction.sh`; host admission must
 precede them. Neither this command front door nor packaging consumes a claim.
-Never retry an ambiguous or post-COMMIT target. The deferred screen test needs
-one operator-attended cycle; it is not part of repository consolidation.
+Never retry an ambiguous or post-COMMIT experimental target.
+
+## Experimental execution and stable operation
+
+| Operation | Rule and required evidence |
+|---|---|
+| Issue an experimental candidate | Exact signed composition and admission first; one execution claim consumed at COMMIT. Packaging never grants authority. |
+| Ambiguous experimental execution | Treat as consumed; collect diagnostics and use the independently verified recovery route. Do not resend COMMIT or relabel it an ordinary reboot. |
+| Ordinary accepted-release reboot | Repeated boots are required for qualification, each with fresh boot identity, verified installed artifacts, power gates and complete logs. Do not reexecute an experimental RAM claim. Verify the installed loader/release supports the existing normal path first. |
+| Automatic fallback / recovery qualification | Exercise the existing verified selector and rollback path with an isolated failed test candidate. Do not corrupt installed payloads. A simulated pass or host-assisted fastboot rescue does not prove autonomous fallback. |
+
+These distinctions document existing boundaries, not a new retry mechanism.
+An accepted release is not permanently barred from reboot by experimental
+one-use rules. Conversely, current RAM-rescue success does not qualify an old
+installed loader. Any selector/claim/rollback mechanism change needs focused
+regressions and the applicable full/trust checks before use. Storage/flash
+authorization remains separately scoped; no policy wording grants it.
 
 ## Retention and context
 

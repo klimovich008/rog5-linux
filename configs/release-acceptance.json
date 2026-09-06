@@ -521,7 +521,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Predeclare configured limit, current polarity, noise tolerance and sampling criteria from exact release telemetry before execution."
+      "blocker": "Implement and execute the predeclared H03 firmware-managed observation in docs/release-acceptance.md: same-release H02 plus 600s current/counter/input evidence and evaluator. Unsupported writable charge-limit attributes alone do not block; missing required measurements do."
     },
     {
       "id": "S01",

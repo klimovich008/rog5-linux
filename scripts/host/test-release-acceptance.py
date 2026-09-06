@@ -343,5 +343,69 @@ class AcceptanceTest(unittest.TestCase):
                 with self.assertRaises(ValueError): M.rescue_bindings(path)
 
 
+class H03FullObservationTest(unittest.TestCase):
+    """Outcome math only; these fixtures cannot qualify physical H03."""
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location(
+            'h03_regulation', SOURCE.with_name('h03-regulation.py'))
+        self.h03 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.h03)
+        self.samples = [
+            dict(elapsed_s=10*i, status='Full', capacity=100, health='Good',
+                 current_ua=0, counter_uah=5106000, voltage_uv=8596000,
+                 voltage_max_uv=8800000, temp_dc=299, usb_online=1,
+                 usb_voltage_uv=5010000, usb_current_ua=350000,
+                 input_limit_ua=500000, role='device/sink')
+            for i in range(61)]
+
+    def test_full_outcome_needs_no_writable_charge_limit(self):
+        result = self.h03.evaluate_full(self.samples)
+        self.assertEqual(result['outcome'], 'full-state-maintenance')
+        self.assertFalse(result['h03_qualified'])
+        self.assertEqual(result['span_seconds'], 600)
+
+    def test_missing_short_stale_and_nonfinite_series_refuse(self):
+        changes = [
+            lambda s: s.pop(),
+            lambda s: s[30].pop('current_ua'),
+            lambda s: s[30].update(elapsed_s=s[29]['elapsed_s']),
+            lambda s: s[30].update(elapsed_s=float('nan')),
+            lambda s: s[30].update(current_ua=True),
+            lambda s: s[30].update(counter_uah=2**32),
+            lambda s: s[-1].update(elapsed_s=660),
+        ]
+        for change in changes:
+            samples = copy.deepcopy(self.samples)
+            change(samples)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.h03.evaluate_full(samples)
+
+    def test_full_zero_current_alone_cannot_pass(self):
+        changes = dict(status='Unknown', capacity=99, health='Overheat',
+                       usb_online=0, usb_current_ua=0, input_limit_ua=300000,
+                       role='host/source', temp_dc=400, voltage_uv=8800001,
+                       voltage_max_uv=0, current_ua=-25001)
+        for field, value in changes.items():
+            samples = copy.deepcopy(self.samples)
+            samples[30][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.h03.evaluate_full(samples)
+        for field, value in [('counter_uah',5105999), ('counter_uah',5116000),
+                             ('current_ua',-1)]:
+            samples = copy.deepcopy(self.samples)
+            samples[-1][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.h03.evaluate_full(samples)
+
+    def test_small_balanced_current_is_not_misreported_as_net_charging(self):
+        self.samples[20]['current_ua'] = -13000
+        self.samples[21]['current_ua'] = 13000
+        result = self.h03.evaluate_full(self.samples)
+        self.assertEqual(result['mean_current_ua'], 0)
+        self.assertEqual(result['counter_delta_uah'], 0)
+        self.assertEqual(result['outcome'], 'full-state-maintenance')
+        self.assertFalse(result['h03_qualified'])
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

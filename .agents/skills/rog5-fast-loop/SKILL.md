@@ -9,6 +9,13 @@ Start with `docs/current-state.md`, Git status and HEAD. Then read the latest
 relevant result and applicable R1–R10 sections of `docs/development-lessons.md`.
 Active context is a pointer, not another required history load. Read the full
 pre-build/live checklists before issuing a successor.
+Use bounded log excerpts and metadata-only PR queries for orientation, not the
+entire historical diff or lifecycle transcript.
+
+Use the existing mandatory acceptance matrix as the definition of done. Work
+the highest-value failing/blocked outcome to evidence. Unrelated findings go
+to the existing backlog; reopen completed reviews only for materially new
+evidence. No new architecture review or feature expansion for its own sake.
 
 State one question and classify the changed layer. Use the smallest artifact:
 
@@ -40,6 +47,9 @@ Keep exact identity/boot-chain, power/thermal, signatures, storage/backup,
 independent watchdog/fallback and permanent non-retry after COMMIT or ambiguous
 execution. Existing task authorization remains valid; destructive storage
 review stays separate. Packaging never grants boot authority.
+This non-retry rule governs experimental execution, not ordinary repeated
+boots of an accepted release. Follow the distinct operation rules in
+docs/development.md; verify installed bytes before using the normal boot path.
 
 Historical QMP-UFS/GPU matrices are nightly unless changed. Do not repeat full
 local CI on unchanged source, or full remote CI for admission-only data when
@@ -49,6 +59,10 @@ One live boot answers one question while collecting adjacent evidence; do not
 consume a candidate to discover an optional field. After two non-discriminating
 failures at one boundary, stop successors, invoke explicit systematic debugging
 or a bounded independent review, verify findings, and reconsider the approach.
+Use focused reproduction/correction for a separately proven bug; an unrelated
+unknown incident does not block it. Repeated failures prompt evidence and
+hypothesis reassessment, not an automatic wrong-architecture verdict. Label
+bounded mitigations honestly when original causality is still unknown.
 
 Record edit-to-test, build/cache, CI and boot-to-evidence timings, plus whether
 the failure was infrastructure or kernel. Update current state and one dated
