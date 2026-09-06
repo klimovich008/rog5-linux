@@ -1,0 +1,246 @@
+name: Offline smoke
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '23 2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-smoke-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  head-exact:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      head_sha: ${{ steps.verify-head.outputs.head_sha }}
+      test_tier: ${{ steps.select-tier.outputs.test_tier }}
+      qemu: ${{ steps.select-tier.outputs.qemu }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify exact reviewed head
+        id: verify-head
+        shell: bash
+        run: |
+          expected=${{ github.event.pull_request.head.sha || github.sha }}
+          actual=$(git rev-parse HEAD)
+          printf 'expected_head=%s\nactual_head=%s\n' "$expected" "$actual"
+          test "$actual" = "$expected"
+          echo "head_sha=$actual" >> "$GITHUB_OUTPUT"
+      - name: Select bounded test tier
+        id: select-tier
+        shell: bash
+        run: |
+          selection=$(scripts/host/select-repository-test-tier.py \
+            --event '${{ github.event_name }}' \
+            '${{ github.event.pull_request.base.sha || github.event.before }}' \
+            '${{ github.event.pull_request.head.sha || github.sha }}')
+          tier=$(sed -n 's/^tier=//p' <<<"$selection")
+          qemu=$(sed -n 's/^qemu=//p' <<<"$selection")
+          case $tier in active|probe|ci|nightly) ;; *) exit 1 ;; esac
+          case $qemu in yes|no) ;; *) exit 1 ;; esac
+          printf 'test_tier=%s\nqemu=%s\n' "$tier" "$qemu" | tee -a "$GITHUB_OUTPUT"
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            clang \
+            cpio \
+            device-tree-compiler \
+            libarchive-tools \
+            libbpf1 \
+            libssl-dev \
+            lld \
+            openssl \
+            python3-pyelftools \
+            pkg-config
+      - name: Bootstrap pinned Android boot tools
+        if: steps.select-tier.outputs.test_tier != 'active'
+        run: scripts/host/fetch-android-boot-tools.sh
+      - name: Build canonical boot-v3 template
+        if: steps.select-tier.outputs.test_tier != 'active'
+        run: scripts/host/build-canonical-boot-v3-template.sh
+      - name: Run hardware-free recovery core
+        run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
+
+  merge-compat:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      qemu: ${{ steps.select-tier.outputs.qemu }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+      - name: Verify intentional merge ref
+        shell: bash
+        run: |
+          expected=${{ github.sha }}
+          actual=$(git rev-parse HEAD)
+          printf 'expected_merge=%s\nactual_merge=%s\n' "$expected" "$actual"
+          test "$actual" = "$expected"
+      - name: Select merge-compatibility test tier
+        id: select-tier
+        run: |
+          selection=$(scripts/host/select-repository-test-tier.py \
+            --event merge \
+            '${{ github.event.pull_request.base.sha }}' \
+            HEAD)
+          tier=$(sed -n 's/^tier=//p' <<<"$selection")
+          qemu=$(sed -n 's/^qemu=//p' <<<"$selection")
+          case $tier in active|probe|ci) ;; *) exit 1 ;; esac
+          case $qemu in yes|no) ;; *) exit 1 ;; esac
+          printf 'test_tier=%s\nqemu=%s\n' "$tier" "$qemu" | tee -a "$GITHUB_OUTPUT"
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            clang \
+            cpio \
+            device-tree-compiler \
+            libarchive-tools \
+            libbpf1 \
+            libssl-dev \
+            lld \
+            openssl \
+            python3-pyelftools \
+            pkg-config
+      - name: Bootstrap pinned Android boot tools
+        if: steps.select-tier.outputs.test_tier != 'active'
+        run: scripts/host/fetch-android-boot-tools.sh
+      - name: Build canonical boot-v3 template
+        if: steps.select-tier.outputs.test_tier != 'active'
+        run: scripts/host/build-canonical-boot-v3-template.sh
+      - name: Run merge-compatibility recovery core
+        run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
+
+  candidate-publication:
+    if: github.event_name == 'pull_request'
+    needs: head-exact
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.head-exact.outputs.head_sha }}
+      - name: Publish exact reviewed candidate checkpoint
+        run: |
+          actual=$(git rev-parse HEAD)
+          printf 'reviewed_head=%s\nvalidated_head=%s\n' \
+            "${{ github.event.pull_request.head.sha }}" \
+            "$actual"
+          test "$actual" = "${{ needs.head-exact.outputs.head_sha }}"
+          test "${{ needs.head-exact.outputs.head_sha }}" = "${{ github.event.pull_request.head.sha }}"
+          candidate=$(python3 -c 'import json; print(json.load(open("manifests/power-usb-active.lock.json"))["candidate_path"])')
+          expected_candidate_sha=$(python3 -c 'import json; print(json.load(open("manifests/power-usb-active.lock.json"))["candidate_sha256"])')
+          candidate_sha=$(sha256sum "$candidate" | cut -d ' ' -f 1)
+          test "$candidate_sha" = "$expected_candidate_sha"
+          scripts/host/generate-power-usb-active.py
+          {
+            printf 'format=rog5-reviewed-candidate-publication-v1\n'
+            printf 'head_sha=%s\n' "$actual"
+            printf 'candidate=%s\n' "$candidate"
+            printf 'candidate_sha256=%s\n' "$candidate_sha"
+            printf 'authority=none\n'
+          } > candidate-publication-checkpoint.txt
+      - name: Upload reviewed candidate checkpoint
+        uses: actions/upload-artifact@v6
+        with:
+          name: reviewed-candidate-${{ needs.head-exact.outputs.head_sha }}
+          path: candidate-publication-checkpoint.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  qemu-system:
+    needs: [head-exact, merge-compat]
+    # Explicit status handling allows main/manual/scheduled runs when the
+    # PR-only merge job is skipped, but never runs after failed validation.
+    if: >-
+      !cancelled() && needs.head-exact.result == 'success' &&
+      (needs.merge-compat.result == 'success' || needs.merge-compat.result == 'skipped') &&
+      (needs.head-exact.outputs.qemu == 'yes' || needs.merge-compat.outputs.qemu == 'yes')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Restore pinned ARM64 kernel
+        id: qemu-kernel-cache
+        uses: actions/cache@v6
+        with:
+          path: build/qemu-smoke-kernel/arch/arm64/boot/Image
+          key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}
+      - name: Install full-system smoke dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            bc \
+            bison \
+            build-essential \
+            clang \
+            cpio \
+            flex \
+            gcc-aarch64-linux-gnu \
+            git \
+            iproute2 \
+            libelf-dev \
+            libc6-dev-arm64-cross \
+            libssl-dev \
+            lld \
+            llvm \
+            nfs-ganesha \
+            nfs-ganesha-vfs \
+            qemu-system-arm
+      - name: Fetch pinned upstream Linux source
+        if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p build/qemu-linux-source
+          git -C build/qemu-linux-source init
+          git -C build/qemu-linux-source fetch --depth=1 \
+            https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
+            refs/tags/v7.1.4
+          git -C build/qemu-linux-source checkout --detach FETCH_HEAD
+          test "$(git -C build/qemu-linux-source rev-parse HEAD)" = \
+            7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+      - name: Build ARM64 virt kernel
+        if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
+        run: |
+          scripts/host/build-qemu-smoke-kernel.sh \
+            build/qemu-linux-source \
+            build/qemu-smoke-kernel
+      - name: Save pinned ARM64 kernel after build
+        if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/qemu-smoke-kernel/arch/arm64/boot/Image
+          key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}
+      - name: Isolate TCP 2049 from the package service
+        run: |
+          sudo systemctl stop nfs-ganesha.service
+          if ss -H -ltn 'sport = :2049' | grep -q .; then
+            echo 'FAIL TCP port 2049 remains occupied after stopping the package service' >&2
+            exit 1
+          fi
+      - name: Boot kernel and initramfs under QEMU
+        run: |
+          scripts/host/test-qemu-system-smoke.sh \
+            build/qemu-smoke-kernel/arch/arm64/boot/Image
+          scripts/host/test-qemu-diagnostic-handoff.sh \
+            build/qemu-smoke-kernel/arch/arm64/boot/Image
+          sudo scripts/host/test-qemu-network-root-nfs.sh \
+            build/qemu-smoke-kernel/arch/arm64/boot/Image

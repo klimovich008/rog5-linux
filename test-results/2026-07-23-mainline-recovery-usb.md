@@ -7,7 +7,8 @@
 > QMP/SuperSpeed. The storage-free and USB2-only classifications below are
 > false. Nothing was flashed. The logs remain historical evidence only; the
 > later v6 passed its then-current offline checks but failed live ACM data and
-> rollback. Current fixes require a full rebuild; there is no boot candidate.
+> rollback. Recovery v12 later rebuilt the fixes reproducibly and passes the
+> complete credential-free offline verifier, but it has not been booted.
 
 Result: **PASS** for Linux 7.1.4 kernel/userspace entry and automatic
 rollback; **BLOCKED AT HOST USB ENUMERATION**.

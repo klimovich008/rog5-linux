@@ -1,0 +1,8 @@
+# Compile the Qualcomm PMIC temperature-alarm driver into the network-root
+# kernel so its critical-trip IRQ path does not depend on userspace module
+# loading. Hardware registration and shutdown behavior remain unproven.
+CONFIG_QCOM_SPMI_TEMP_ALARM=y
+
+# Keep the accepted kernel's disabled forced-poweroff fallback until orderly
+# shutdown and rollback timing can be measured on hardware.
+CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS=0

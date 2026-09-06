@@ -1,0 +1,385 @@
+#!/usr/bin/env python3
+"""Offline archive-selection regressions. Mocked guest logs are never QEMU proof."""
+import contextlib
+import gzip
+import hashlib
+import importlib.util
+import io
+import json
+from pathlib import Path
+import runpy
+import stat
+import subprocess
+import sys
+import tempfile
+import threading
+import unittest
+from unittest import mock
+
+REPO = Path(__file__).resolve().parents[2]
+SPEC = importlib.util.spec_from_file_location(
+    "watchdog_handoff", Path(__file__).with_name("test-qemu-watchdog-handoff.py"))
+M = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(M)
+ARCHIVE = runpy.run_path(str(REPO / "scripts/device/build-native-wifi-boot-initramfs.py"))
+SOURCE = (REPO / "initramfs/persistent-root-init").read_bytes()
+RUN = subprocess.run
+
+
+def members(init=SOURCE):
+    target = {}
+    if init is not None:
+        ARCHIVE["add"](target, "init", init, stat.S_IFREG | 0o755)
+    return target
+
+
+def altered_init():
+    before = b'./initramfs/lib/ld-musl-aarch64.so.1 ./initramfs/bin/busybox "$@"'
+    assert SOURCE.count(before) == 1
+    return SOURCE.replace(before, b"return 43 # ARCHIVE_ONLY_WATCHDOG")
+
+
+class WatchdogArtifactTest(unittest.TestCase):
+    def test_only_explicit_isolated_guests_overlap_with_separate_logs(self):
+        for parallel in (False, True):
+            with self.subTest(parallel=parallel), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                cases = [(name, [name], root/(name+'.log')) for name in ('healthy', 'stale')]
+                barrier = threading.Barrier(2)
+                seen = []
+
+                def guest(command, **kwargs):
+                    self.assertEqual(kwargs['timeout'], 50)
+                    name = command[0]
+                    seen.append(name+'-start')
+                    if parallel:
+                        barrier.wait(timeout=2)
+                    kwargs['stdout'].write(name.encode())
+                    seen.append(name+'-end')
+                    return subprocess.CompletedProcess(command, 0)
+
+                with mock.patch.object(M.subprocess, 'run', side_effect=guest):
+                    rows = list(M.run_guest_cases(cases, parallel=parallel))
+                self.assertEqual([row[0] for row in rows], ['healthy', 'stale'])
+                self.assertEqual([row[2] for row in rows], ['healthy', 'stale'])
+                self.assertTrue(all(row[1].returncode == 0 and row[3] >= 0 for row in rows))
+                if not parallel:
+                    self.assertEqual(seen, ['healthy-start', 'healthy-end', 'stale-start', 'stale-end'])
+
+    def test_guest_timeout_is_not_retried_or_hidden(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
+                M.subprocess, 'run', side_effect=subprocess.TimeoutExpired('fixture', 50)) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                list(M.run_guest_cases([('one', ['fixture'], Path(tmp)/'one.log')], parallel=True))
+            self.assertEqual(run.call_count, 1)
+
+    def test_wifi_rollback_requires_complete_exact_archive_members(self):
+        target = members()
+        for name in ('runtime', 'units/before-ssh.conf',
+                     'units/rog5-wifi-boot-rollback.service',
+                     'units/rog5-wifi-boot-rollback.timer'):
+            data = (REPO/'initramfs/native-wifi'/name).read_bytes()
+            ARCHIVE['add'](target, 'rog5-native-wifi/'+name, data,
+                           stat.S_IFREG | (0o755 if name == 'runtime' else 0o644))
+        selected = M.wifi_rollback_members(target)
+        self.assertEqual(len(selected), 4)
+        for name, data in selected.items():
+            self.assertEqual(data, target['rog5-native-wifi/'+name][1])
+            for mode, links in ((stat.S_IFLNK | 0o777, 1),
+                                (stat.S_IFREG | 0o666, 1),
+                                (stat.S_IFREG | 0o644, 2)):
+                changed = {k: (v[0][:], v[1]) for k, v in target.items()}
+                changed['rog5-native-wifi/'+name][0][1] = mode
+                changed['rog5-native-wifi/'+name][0][4] = links
+                with self.assertRaises(ValueError):
+                    M.wifi_rollback_members(changed)
+        del target['rog5-native-wifi/runtime']
+        with self.assertRaisesRegex(ValueError, 'missing.*runtime'):
+            M.wifi_rollback_members(target)
+
+    def test_arch_ssh_unit_is_selected_from_sealed_init(self):
+        units = M.arch_ssh_units(members())
+        self.assertEqual(set(units), {'rog5-early-sshd.service', 'rog5-sshd-ed25519-key.service'})
+        self.assertIn(b'ExecStart=/usr/bin/sshd -D\n', units['rog5-early-sshd.service'])
+        self.assertNotIn(b'DEBUG3', units['rog5-early-sshd.service'])
+        changed = SOURCE.replace(b'ExecStart=/usr/bin/sshd -D\n',
+                                 b'ExecStart=/usr/bin/sshd -D -e\n')
+        with self.assertRaisesRegex(ValueError, 'normal SSH unit'):
+            M.arch_ssh_units(members(changed))
+
+    def test_arch_probe_uses_real_restart_authentication_and_bounded_wait(self):
+        script = M.ARCH_SSH_SETUP + M.ARCH_WAIT_ACK + M.ARCH_SSH_RESTART
+        checked = RUN(['/bin/sh', '-n'], input=script, text=True, capture_output=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        for marker in ('StrictHostKeyChecking=yes', 'BatchMode=yes',
+                       'systemctl restart rog5-early-sshd.service',
+                       'old_pid', 'new_pid', 'ARCH_SSH_RESTART_PASS'):
+            self.assertIn(marker, script)
+        self.assertIn('timeout 5', script)
+        self.assertNotIn('StrictHostKeyChecking=no', script)
+        self.assertIn('test "$watchdog_done" = 1', script)
+        self.assertNotIn('sleep 23', script)
+
+    def test_exact_archive_bytes_and_behavior_not_repository(self):
+        init = altered_init()
+        start = init.index(b"watchdog_bb() {\n")
+        expected = init[start:init.index(b"physical_topology_count() {\n", start)]
+        with mock.patch.object(M, "REPO", Path("/nonexistent-repository")):
+            block = M.watchdog_functions(members(init))
+        self.assertEqual(block.encode(), expected)
+        self.assertNotEqual(block, M.watchdog_functions(members()))
+        # Execute only our harmless changed function, never archive init.
+        result = RUN(["/bin/sh", "-c", block + "\nwatchdog_bb\n"], timeout=5)
+        self.assertEqual(result.returncode, 43)
+
+    def test_missing_init_refuses_without_source_fallback(self):
+        with self.assertRaisesRegex(ValueError, "missing init.*no repository-source fallback"):
+            M.watchdog_functions(members(None))
+
+    def test_invalid_init_member_metadata(self):
+        for mode, links in ((stat.S_IFLNK | 0o777, 1), (stat.S_IFDIR | 0o755, 1),
+                            (stat.S_IFREG | 0o644, 1), (stat.S_IFREG | 0o755, 2)):
+            target = members()
+            target["init"][0][1] = mode
+            target["init"][0][4] = links
+            with self.subTest(mode=mode, links=links), self.assertRaisesRegex(
+                    ValueError, "single-link executable regular file"):
+                M.watchdog_functions(target)
+
+    def test_legacy_disarm_style_refused_even_with_new_functions(self):
+        for init in (b"#!/bin/sh\narm_watchdog() { :; }\ndisarm_watchdog() { :; }\n",
+                     SOURCE + b"\ndisarm_watchdog\n"):
+            with self.subTest(init=init[:40]), self.assertRaisesRegex(
+                    ValueError, "legacy disarm-style.*no repository-source fallback"):
+                M.watchdog_functions(members(init))
+
+    def test_missing_duplicate_and_malformed_boundaries(self):
+        for name in (b"watchdog_bb", b"watchdog_acknowledged", b"watchdog_expired",
+                     b"arm_watchdog", b"physical_topology_count"):
+            for init in (SOURCE.replace(name + b"() {\n", name + b"_missing() {\n"),
+                         SOURCE + b"\n" + name + b"() {\n :\n}\n",
+                         SOURCE.replace(name + b"() {\n", name + b"() { ")):
+                with self.subTest(name=name), self.assertRaisesRegex(
+                        ValueError, "missing, duplicate or malformed"):
+                    M.watchdog_functions(members(init))
+
+    def test_bad_order_and_shell_syntax_refused(self):
+        reordered = SOURCE.replace(b"watchdog_bb()", b"TEMP()")
+        reordered = reordered.replace(b"watchdog_expired()", b"watchdog_bb()")
+        reordered = reordered.replace(b"TEMP()", b"watchdog_expired()")
+        for init, error in ((reordered, "function order"),
+                            (SOURCE.replace(b"watchdog_bb() {\n", b"watchdog_bb() {\nif\n"),
+                             "malformed shell syntax"),
+                            (SOURCE + b"\nif\n", "malformed shell syntax"),
+                            (SOURCE + b"\xff", "invalid UTF-8"),
+                            (SOURCE + b"\0", "malformed shell text"),
+                            (SOURCE.replace(b"\n", b"\r\n"), "malformed shell text")):
+            with self.subTest(error=error), self.assertRaisesRegex(ValueError, error):
+                M.watchdog_functions(members(init))
+
+    def test_cli_refuses_bad_archive_before_output_kernel_or_qemu(self):
+        fixtures = (b"not gzip", bytes.fromhex("1f8b080000000000000307"),
+                    gzip.compress(b"not newc"),
+                    gzip.compress(ARCHIVE["encode"](members(None))),
+                    gzip.compress(ARCHIVE["encode"](members(b"#!/bin/sh\n: \n"))),
+                    gzip.compress(ARCHIVE["encode"](members(SOURCE + b"\ndisarm_watchdog\n"))))
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = root / "input.cpio.gz"
+            output = root / "must-not-exist"
+            for blob in fixtures:
+                archive.write_bytes(blob)
+                argv = ["handoff", "--target-archive", str(archive), "--kernel",
+                        str(root / "missing-kernel"), "--output", str(output)]
+                with self.subTest(blob=blob[:10]), mock.patch.object(sys, "argv", argv), \
+                        mock.patch.object(M.subprocess, "run") as run, \
+                        mock.patch.object(M.subprocess, "check_output") as inspect, \
+                        contextlib.redirect_stderr(io.StringIO()) as stderr:
+                    with self.assertRaises(SystemExit) as refusal:
+                        M.main()
+                    self.assertEqual(refusal.exception.code, 2)
+                    self.assertIn("target archive refused", stderr.getvalue())
+                    run.assert_not_called()
+                    inspect.assert_not_called()
+                    self.assertFalse(output.exists())
+
+    def test_mocked_harness_embeds_archive_block_and_records_provenance(self):
+        self.run_mocked_harness()
+
+    def test_arch_harness_roundtrips_complete_archive_and_readonly_disk(self):
+        self.run_mocked_harness(use_arch=True)
+
+    def test_arch_wifi_harness_preserves_sealed_bytes_and_requires_both_outcomes(self):
+        # A stale-case trial must not reuse the healthy guest's fired timer.
+        self.assertNotIn('daemon-reload', M.ARCH_WIFI_VERIFY + M.ARCH_WIFI_STALE)
+        checked = RUN(['/bin/sh', '-n'], input=M.ARCH_WIFI_STOP + M.ARCH_WIFI_VERIFY + M.ARCH_WIFI_STALE,
+                      text=True, capture_output=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        self.run_mocked_harness(use_arch=True, use_wifi=True)
+        for marker in ('ARCH_WIFI_HEALTHY_REARM_PASS', 'ARCH_WIFI_STALE_REARM_BEGIN'):
+            self.run_mocked_harness(use_arch=True, use_wifi=True, missing_marker=marker)
+
+    def test_c02_selects_coverage_from_exact_archive(self):
+        self.run_mocked_harness(use_arch=True, qualify=True)
+        self.run_mocked_harness(use_arch=True, use_wifi=True, qualify=True)
+        self.run_mocked_harness(use_arch=True, use_wifi=True, qualify=True,
+                               missing_marker='ARCH_WIFI_HEALTHY_REARM_PASS')
+
+    def test_c02_missing_container_is_blocked_without_artifact_or_vm_access(self):
+        argv = ['handoff','--kernel','/missing/kernel','--target-archive','/missing/archive',
+                '--root-image','/missing/root','--output','/missing/output','--c02']
+        with mock.patch.object(sys,'argv',argv), mock.patch.object(M.shutil,'which',return_value=None), \
+                mock.patch.object(M.subprocess,'run') as run, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(M.main(),77)
+            run.assert_not_called()
+
+    def run_mocked_harness(self, use_arch=False, use_wifi=False, missing_marker=None, qualify=False):
+        init = altered_init()
+        target = members(init)
+        if use_wifi:
+            for name in ('runtime', 'units/before-ssh.conf',
+                         'units/rog5-wifi-boot-rollback.service',
+                         'units/rog5-wifi-boot-rollback.timer'):
+                ARCHIVE['add'](target, 'rog5-native-wifi/'+name,
+                               (REPO/'initramfs/native-wifi'/name).read_bytes(),
+                               stat.S_IFREG | (0o755 if name == 'runtime' else 0o644))
+        for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1",
+                     "usr/libexec/rog5-reboot-bootloader"):
+            ARCHIVE["add"](target, name, b"offline fixture: " + name.encode(),
+                           stat.S_IFREG | 0o755)
+        blob = gzip.compress(ARCHIVE["encode"](target), mtime=0)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive, kernel, output = root / "target.gz", root / "Image", root / "output"
+            archive.write_bytes(blob)
+            kernel.write_bytes(b"offline kernel fixture, never booted")
+            runtime = root / "artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz"
+            runtime.parent.mkdir(parents=True)
+            runtime.write_bytes(gzip.compress(ARCHIVE["encode"]({})))
+            # Intentionally different source exists beside the supplied archive.
+            source = root / "initramfs/persistent-root-init"
+            source.parent.mkdir()
+            source.write_bytes(SOURCE)
+            (root/'configs').mkdir()
+            (root/'configs/release-acceptance.json').write_bytes((REPO/'configs/release-acceptance.json').read_bytes())
+            seen = []
+            process_deadlines = []
+            isolated_pair = threading.Barrier(2)
+
+            def simulated_run(command, **kwargs):
+                if command == ["/bin/sh", "-n"]:
+                    return RUN(command, **kwargs)
+                if command[:3] == ['podman','image','exists']:
+                    return subprocess.CompletedProcess(command, 0)
+                if command[0] == "podman":
+                    if use_arch:
+                        self.assertIn('file=/arch.ext4,format=raw,if=none,id=root,readonly=on', command)
+                        self.assertIn(str(root/'arch.ext4')+':/arch.ext4:ro', command)
+                        self.assertIn('--network=none', command)
+                    process_deadlines.append(kwargs['timeout'])
+                    mode = Path(kwargs["stdout"].name).stem
+                    seen.append(mode)
+                    if qualify:
+                        isolated_pair.wait(timeout=2)
+                    log = "HANDOFF_SWITCH_ROOT\nHANDOFF_NEW_INIT\nHANDOFF_OLD_PATH_GONE\n"
+                    if use_arch:
+                        log += 'ARCH_ROOT_READ_ONLY_OVERLAY\nARCH_SSH_INITIAL_PASS\n'
+                    if mode == "systemd-ack":
+                        log += ("watchdog acknowledged by current-boot P2 and SSH identity readiness\n"
+                                "HANDOFF_OBSERVATION_END\n")
+                        if use_arch:
+                            log += 'ARCH_SSH_RESTART_PASS\n'
+                    elif mode == "failed-init":
+                        log += "can't execute '/missing-init'\nKernel panic\n"
+                    else:
+                        log += ("HANDOFF_ARM_FAILED_ROLLBACK\nsysrq: Resetting\n"
+                                "reboot: Restarting system with command 'bootloader'\n")
+                    if use_wifi:
+                        self.assertIn('rog5.bundle=c02-fixture', command[command.index('-append')+1])
+                        log += 'ARCH_WIFI_TIMER_STOPPED_BEFORE_DEADLINE\n'
+                        if mode == 'systemd-ack':
+                            log += 'ARCH_WIFI_HEALTHY_REARM_PASS\n'
+                        else:
+                            log = log.replace("reboot: Restarting system with command 'bootloader'\n", '')
+                            log += ('watchdog acknowledged by current-boot P2 and SSH identity readiness\n'
+                                    'ARCH_WIFI_STALE_REARM_BEGIN\nreboot: Restarting system\n')
+                        if missing_marker:
+                            log = log.replace(missing_marker, 'MISSING')
+                    kwargs["stdout"].write(log.encode())
+                else:
+                    self.assertTrue(command[0].endswith("verify-qemu-systemd-runtime.sh"))
+                return subprocess.CompletedProcess(command, 0)
+
+            argv = ["handoff", "--kernel", str(kernel), "--target-archive", str(archive),
+                    "--output", str(output)]
+            if use_arch:
+                (root/'arch.ext4').write_bytes(b'read-only fixture, no QEMU executed')
+                argv += ['--root-image', str(root/'arch.ext4')]
+            if qualify:
+                argv += ['--c02']
+            elif use_wifi:
+                argv += ['--wifi-rollback']
+            with mock.patch.object(M, "REPO", root), mock.patch.object(sys, "argv", argv), \
+                    mock.patch.object(M.shutil, 'which', return_value='/fixture/podman'), \
+                    mock.patch.object(M.runpy, "run_path", return_value=ARCHIVE), \
+                    mock.patch.object(M.subprocess, "run", side_effect=simulated_run), \
+                    mock.patch.object(M.subprocess, "check_output", return_value="offline-image"), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(M.main(), 1 if missing_marker else 0)
+            expected = {'systemd-ack', 'systemd-no-ack',
+                'systemd-stale-ack', 'systemd-p2-only', 'systemd-stale-identity',
+                'helper-unexecutable', 'hang-init', 'failed-init', 'fd-open-failure'}
+            self.assertEqual(set(seen), {'systemd-ack', 'systemd-wifi-stale'} if use_wifi else
+                             {'systemd-ack', 'systemd-stale-identity'} if use_arch else expected)
+            contract = json.loads((REPO/'configs/release-acceptance.json').read_text())
+            row = next(row for row in contract['tests'] if row['id'] == 'C01')
+            self.assertGreaterEqual(row['deadline_seconds'], sum(process_deadlines) + 50)
+            block = M.watchdog_functions(target).encode()
+            for mode in seen:
+                guest = ARCHIVE["entries"](gzip.decompress((output / (mode + ".cpio.gz")).read_bytes()))
+                self.assertIn(block, guest["init"][1])
+                self.assertEqual(guest["init"][1].count(b"ARCHIVE_ONLY_WATCHDOG"), 1)
+                if use_arch:
+                    for name in ('passwd', 'group', 'nsswitch.conf', 'shadow'):
+                        self.assertNotIn('systemd-root/etc/'+name, guest)
+                    self.assertIn(b'mount -t ext4 -o ro,noload /dev/vda', guest['init'][1])
+                    self.assertIn(b'mount -t tmpfs -o mode=0755 tmpfs /run', guest['init'][1])
+                    if mode != 'systemd-wifi-stale':
+                        restart = M.ARCH_SSH_RESTART
+                        if use_wifi:
+                            restart = restart.replace('\nsleep 3\n', '\n')
+                            self.assertNotIn(b'\nsleep 3\n', guest['systemd-root/observe'][1])
+                        self.assertIn(restart.encode(), guest['systemd-root/observe'][1])
+                    self.assertEqual(guest['systemd-root/etc/systemd/system/rog5-early-sshd.service'][1],
+                                     M.arch_ssh_units(target)['rog5-early-sshd.service'])
+                if use_wifi:
+                    self.assertEqual(guest['wifi-fixture/runtime'][1], target['rog5-native-wifi/runtime'][1])
+                    unit_base = 'systemd-root/etc/systemd/system/'
+                    self.assertEqual(guest[unit_base+'rog5-wifi-boot-rollback.timer'][1],
+                                     target['rog5-native-wifi/units/rog5-wifi-boot-rollback.timer'][1])
+                    if mode == 'systemd-wifi-stale':
+                        self.assertIn(M.ARCH_WIFI_STALE.encode(), guest['systemd-root/observe'][1])
+                        self.assertNotIn(b'HANDOFF_OBSERVATION_END', guest['systemd-root/observe'][1])
+                    else:
+                        self.assertIn(M.ARCH_WIFI_VERIFY.encode(), guest['systemd-root/observe'][1])
+                for name in ("bin/busybox", "lib/ld-musl-aarch64.so.1",
+                             "usr/libexec/rog5-reboot-bootloader"):
+                    self.assertEqual(guest[name][1], target[name][1])
+            record = json.loads((output / "result.json").read_text())
+            self.assertEqual(record["watchdog_source_origin"], "target-archive:init")
+            for key, data in (("target_init_sha256", init), ("target_archive_sha256", blob),
+                              ("watchdog_source_sha256", block)):
+                self.assertEqual(record[key], hashlib.sha256(data).hexdigest())
+            if use_arch:
+                self.assertTrue(record['root_image_unchanged'])
+                self.assertEqual(record['c02_qualified'], qualify and not missing_marker)
+                if qualify:
+                    self.assertEqual(record['c02_variant'], 'wifi-rollback' if use_wifi else 'core-only')
+                self.assertFalse(record['release_qualified'])
+                self.assertIn('not physical storage', record['scope'])
+            else:
+                self.assertIn("not full deployed composition", record["scope"])
+
+
+if __name__ == "__main__":
+    unittest.main()

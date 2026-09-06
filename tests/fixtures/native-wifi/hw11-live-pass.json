@@ -1,0 +1,20 @@
+{
+  "candidate_consumed": true,
+  "kernel_release": "7.1.4-g1eea8970e87f",
+  "records": [
+    "ath11k_pci 0000:01:00.0: MSI vectors: 32",
+    "ath11k_pci 0000:01:00.0: wcn6855 hw1.1",
+    "mhi mhi0: Power on setup success",
+    "ath11k_pci 0000:01:00.0: chip_id 0x0 chip_family 0xb board_id 0xff soc_id 0x400c0110",
+    "ath11k_pci 0000:01:00.0 wlp1s0: renamed from wlan0",
+    "WIFI_PHY_READY uptime=64.48 460.63",
+    "RADIO_INTERFACE present name=wlp1s0",
+    "RADIO_SCAN status=0"
+  ],
+  "scan_bss_count": 33,
+  "normal_fallback_verified": true,
+  "association_tested": false,
+  "wifi_ssh_tested": false,
+  "qmi_validity_flags_observed": false,
+  "ssids_and_bssids_included": false
+}

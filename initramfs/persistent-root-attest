@@ -1,0 +1,469 @@
+#!/bin/sh
+set -eu
+
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+fail() {
+	echo "rog5-p2-attest: FAIL $*" >/dev/kmsg
+	exit 1
+}
+
+progress() {
+	uptime=unknown
+	IFS=' ' read -r uptime _ </proc/uptime || true
+	echo "rog5-p2-attest: PROGRESS $* uptime=$uptime" >/dev/kmsg
+}
+
+expected_physical_count=117
+expected_seal_sha256=02231e86746fbc656090f52c96d7e0c968c7ca86ba7449c306f611ea20c6a876
+expected_source_seal_sha256=42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a
+expected_image_bytes=17179869184
+expected_image_uuid=598a876b-a8db-4859-a01a-1b864b0a87f4
+expected_image_label=ROG5_ARCH_A
+expected_probe_bytes=132
+expected_ufs_storage_mode=@EXPECTED_UFS_STORAGE_MODE@
+expected_probe_boot_id=@EXPECTED_PROBE_BOOT_ID@
+expected_native_root_mode=@EXPECTED_NATIVE_ROOT_MODE@
+expected_persistent_overlay_mode=@EXPECTED_PERSISTENT_OVERLAY_MODE@
+expected_native_bytes=34359717888
+expected_native_uuid=8b03827a-cc2d-4408-8558-e9b61195f96b
+expected_overlay_bytes=17179869184
+expected_overlay_uuid=f4834541-6e7a-4214-80d5-818fcc5cc252
+expected_overlay_label=ROG5_ROOT_RW_V1
+overlay_record=/run/rog5-persistent-overlay.runtime
+lower=/.rog5/root-ro
+image=/.rog5/userdata-ro/rog5/images/arch-local-a.ext4
+userdata_record=/run/rog5-p2-userdata-device
+loop_record=/run/rog5-p2-root-loop-device
+runtime_busybox=/run/initramfs/bin/busybox
+runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1
+
+[ -f "$runtime_busybox" ] && [ ! -L "$runtime_busybox" ] &&
+	[ -x "$runtime_busybox" ] &&
+	[ -f "$runtime_loader" ] && [ ! -L "$runtime_loader" ] &&
+	[ -x "$runtime_loader" ] || fail 'retained runtime toolchain is absent'
+
+runtime_blockdev() {
+	"$runtime_loader" "$runtime_busybox" blockdev "$@"
+}
+
+sshd_effective_option() {
+	option=$1
+	awk -v option="$option" '
+	tolower($1) == option {
+		count++
+		if (NF != 2)
+			invalid=1
+		value=tolower($2)
+	}
+	END {
+		if (invalid || count != 1)
+			exit 1
+		print value
+	}' "$sshd_effective"
+}
+
+progress start
+
+[ -f "$userdata_record" ] && [ ! -L "$userdata_record" ] &&
+	[ "$(stat -c %a "$userdata_record")" = 444 ] ||
+	fail 'resolved userdata identity record is absent'
+IFS= read -r userdata <"$userdata_record" ||
+	fail 'resolved userdata identity record is unreadable'
+case $expected_native_root_mode:$userdata in
+	0:/dev/sd[a-z]23|1:/dev/sd[a-z]24) ;;
+	*) fail 'resolved root node is unsafe' ;;
+esac
+userdata_name=${userdata##*/}
+[ -b "$userdata" ] && [ -e "/sys/class/block/$userdata_name/partition" ] ||
+	fail 'resolved userdata device disappeared'
+if [ "$expected_native_root_mode" -eq 1 ]; then
+	root_loop=$userdata
+	loop_name=$userdata_name
+	[ ! -e "$loop_record" ] && [ ! -L "$loop_record" ] ||
+		fail 'native root unexpectedly retained a loop record'
+	[ "$(runtime_blockdev --getro "$root_loop")" = 1 ] &&
+		[ "$(runtime_blockdev --getsize64 "$root_loop")" = \
+		"$expected_native_bytes" ] ||
+		fail 'native root is not exact and read-only'
+	blkid_record=$(blkid "$root_loop") || fail 'native-root filesystem identity is absent'
+	printf '%s\n' "$blkid_record" | grep -Fq " UUID=\"$expected_native_uuid\"" ||
+		fail 'native-root UUID changed'
+else
+	[ -f "$loop_record" ] && [ ! -L "$loop_record" ] &&
+		[ "$(stat -c %a "$loop_record")" = 444 ] ||
+		fail 'resolved local-image loop record is absent'
+	IFS= read -r root_loop <"$loop_record" ||
+		fail 'resolved local-image loop record is unreadable'
+	case $root_loop in /dev/loop[0-9]*) ;; *) fail 'resolved loop node is unsafe' ;; esac
+	loop_name=${root_loop##*/}
+	[ -b "$root_loop" ] && [ -d "/sys/class/block/$loop_name/loop" ] ||
+		fail 'resolved local-image loop disappeared'
+	[ "$(runtime_blockdev --getro "$root_loop")" = 1 ] &&
+		[ "$(runtime_blockdev --getsize64 "$root_loop")" = \
+		"$expected_image_bytes" ] ||
+		fail 'local-image loop is not exact and read-only'
+	[ -f "$image" ] && [ ! -L "$image" ] &&
+		[ "$(stat -c '%u:%g:%a:%s:%h' "$image")" = \
+		"0:0:600:$expected_image_bytes:1" ] ||
+		fail 'published local image metadata changed'
+	blkid_record=$(blkid "$root_loop") || fail 'local-image filesystem identity is absent'
+	printf '%s\n' "$blkid_record" | grep -Fq " UUID=\"$expected_image_uuid\"" ||
+		fail 'local-image UUID changed'
+fi
+printf '%s\n' "$blkid_record" | grep -Fq " LABEL=\"$expected_image_label\"" ||
+	fail 'root filesystem label changed'
+printf '%s\n' "$blkid_record" | grep -Fq ' TYPE="ext4"' ||
+	fail 'root filesystem type changed'
+
+probe_dir=$lower/var/lib/rog5
+probe_path=$probe_dir/local-image-write-probe-v1
+current_boot_id=$(cat /proc/sys/kernel/random/boot_id) ||
+	fail 'current boot identity is unavailable'
+case $expected_ufs_storage_mode in
+	local-write)
+		[ "$expected_probe_boot_id" = current ] ||
+			fail 'write-probe producer policy changed'
+		probe_boot_id=$current_boot_id
+		;;
+	read-only)
+		if [ "$expected_probe_boot_id" = staged-seal ]; then
+			probe_boot_id=staged-seal
+		elif [ "$expected_probe_boot_id" = any-prior ]; then
+			probe_boot_id=any-prior
+		else
+			printf '%s\n' "$expected_probe_boot_id" |
+				grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+				fail 'write-probe producer identity is invalid'
+			[ "$expected_probe_boot_id" != "$current_boot_id" ] ||
+				fail 'write-probe producer is not from an earlier boot'
+			probe_boot_id=$expected_probe_boot_id
+		fi
+		;;
+	*) fail 'UFS storage mode changed' ;;
+esac
+if [ "$probe_boot_id" = staged-seal ]; then
+	[ ! -e "$probe_path" ] && [ ! -L "$probe_path" ] ||
+		fail 'staged local image unexpectedly carries a write probe'
+else
+for path in "$lower/var" "$lower/var/lib" "$probe_dir"; do
+	[ -d "$path" ] && [ ! -L "$path" ] ||
+		fail 'local-image write-probe ancestry changed'
+done
+[ -f "$probe_path" ] && [ ! -L "$probe_path" ] &&
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$probe_path")" = \
+	"0:0:444:$expected_probe_bytes:1" ] ||
+	fail 'local-image write-probe metadata changed'
+[ "$(wc -l <"$probe_path")" -eq 3 ] &&
+	grep -Fxq 'format=rog5-local-image-write-probe-v1' "$probe_path" &&
+	grep -Fxq "image_uuid=$expected_image_uuid" "$probe_path" ||
+	fail 'local-image write-probe content changed'
+if [ "$probe_boot_id" = any-prior ]; then
+	probe_boot_id=$(sed -n 's/^boot_id=//p' "$probe_path") ||
+		fail 'write-probe producer identity is unavailable'
+	[ "$(grep -c '^boot_id=' "$probe_path")" -eq 1 ] ||
+		fail 'write-probe producer identity is ambiguous'
+	printf '%s\n' "$probe_boot_id" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		fail 'write-probe producer identity is invalid'
+	[ "$probe_boot_id" != "$current_boot_id" ] ||
+		fail 'write-probe producer is not from an earlier boot'
+fi
+grep -Fxq "boot_id=$probe_boot_id" "$probe_path" ||
+	fail 'local-image write-probe content changed'
+fi
+progress local-image-write-pass
+
+[ -e /run/rog5-p2-root-mounted ] ||
+	fail 'initramfs handoff marker is absent'
+grep -Fxq \
+	'PASS sealed local image matches exact boot-critical identities' \
+	/run/rog5-p2-root-verification.txt ||
+	fail 'initramfs root verification record changed'
+[ "$(sha256sum "$lower/.rog5-persistent-seal" | cut -d ' ' -f 1)" = \
+	"$expected_seal_sha256" ] ||
+	fail 'mounted lower seal changed after handoff'
+[ "$(sha256sum "$lower/.rog5-source-seal" | cut -d ' ' -f 1)" = \
+	"$expected_source_seal_sha256" ] ||
+	fail 'mounted lower source seal changed after handoff'
+[ "$(stat -c '%u:%g:%a:%h' /etc/shadow)" = 0:0:600:1 ] &&
+	grep -Eq '^root:x:[0-9]+:{6}$' /etc/shadow ||
+	fail 'volatile root account state is not key-login capable'
+lower_root_password=$(sed -n 's/^root:\([^:]*\):.*/\1/p' "$lower/etc/shadow") ||
+	fail 'lower root account state is unreadable'
+case $lower_root_password in !*) ;; *)
+	fail 'lower root account state changed persistently' ;;
+esac
+if [ "$expected_native_root_mode" -eq 0 ]; then
+	[ ! -e /.rog5/userdata-ro/rog5/state/good ] ||
+		fail 'unbooted root was promoted'
+	[ ! -e /.rog5/userdata-ro/rog5/state/next ] ||
+		fail 'unbooted root was selected'
+fi
+
+awk '$1 == "overlay" && $2 == "/" && $3 == "overlay" &&
+	$4 ~ /(^|,)rw(,|$)/ { found++ }
+	END { exit found != 1 }' /proc/mounts ||
+	fail 'active root is not a writable volatile overlay'
+if [ "$expected_native_root_mode" -eq 0 ]; then
+	awk -v userdata="$userdata" '$1 == userdata && $2 == "/.rog5/userdata-ro" &&
+		$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ { found++ }
+		END { exit found != 1 }' /proc/mounts ||
+		fail 'userdata backing mount is not the exact read-only ext4 partition'
+fi
+awk -v loop="$root_loop" '$1 == loop && $2 == "/.rog5/root-ro" &&
+	$3 == "ext4" && $4 ~ /(^|,)ro(,|$)/ &&
+	$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ { found++ }
+	END { exit found != 1 }' /proc/mounts ||
+	fail 'local-image lower is not the exact read-only ext4 loop mount'
+case $expected_persistent_overlay_mode in
+	0)
+		awk '$1 == "tmpfs" && $2 == "/.rog5/state" && $3 == "tmpfs" &&
+			$4 ~ /(^|,)rw(,|$)/ { found++ }
+			END { exit found != 1 }' /proc/mounts ||
+			fail 'overlay state is not writable tmpfs'
+		expected_block_mounts=$((2 - expected_native_root_mode))
+		;;
+	1)
+		[ "$expected_native_root_mode:$expected_ufs_storage_mode" = 1:read-only ] ||
+			fail 'persistent overlay composition changed'
+		[ -f "$overlay_record" ] && [ ! -L "$overlay_record" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$overlay_record")" = 0:0:400:1 ] ||
+			fail 'persistent overlay runtime record is absent'
+		[ "$(grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' \
+			"$overlay_record")" -eq 1 ] || fail 'persistent overlay record changed'
+		overlay_disk=$(sed -n 's/^disk=//p' "$overlay_record")
+		overlay_userdata=$(sed -n 's/^userdata=//p' "$overlay_record")
+		overlay_loop=$(sed -n 's/^loop=//p' "$overlay_record")
+		overlay_image=$(sed -n 's/^image=//p' "$overlay_record")
+		case $overlay_userdata in /dev/sd[a-z]23) ;; *) fail 'overlay userdata is unsafe' ;; esac
+		case $overlay_loop in /dev/loop[0-9]*) ;; *) fail 'overlay loop is unsafe' ;; esac
+		[ "$overlay_disk" = "${overlay_userdata%23}" ] &&
+			[ "$userdata" = "${overlay_disk}24" ] &&
+			[ "$overlay_image" = rog5/root/root-overlay-v1.ext4 ] ||
+			fail 'persistent overlay device relationship changed'
+		[ -b "$overlay_userdata" ] && [ -b "$overlay_loop" ] ||
+			fail 'persistent overlay block node disappeared'
+		[ "$(runtime_blockdev --getro "$overlay_userdata")" = 0 ] &&
+			[ "$(runtime_blockdev --getro "$overlay_disk")" = 0 ] &&
+			[ "$(runtime_blockdev --getsize64 "$overlay_loop")" = \
+				"$expected_overlay_bytes" ] || fail 'persistent overlay write scope changed'
+		overlay_file=/.rog5/userdata-rw/$overlay_image
+		[ -f "$overlay_file" ] && [ ! -L "$overlay_file" ] &&
+			[ "$(stat -c '%u:%g:%a:%s:%h' "$overlay_file")" = \
+				"0:0:600:$expected_overlay_bytes:1" ] ||
+			fail 'persistent overlay image metadata changed'
+		overlay_blkid=$(blkid "$overlay_loop") || fail 'persistent overlay identity absent'
+		printf '%s\n' "$overlay_blkid" | grep -Fq " UUID=\"$expected_overlay_uuid\"" &&
+			printf '%s\n' "$overlay_blkid" | grep -Fq " LABEL=\"$expected_overlay_label\"" &&
+			printf '%s\n' "$overlay_blkid" | grep -Fq ' TYPE="ext4"' ||
+			fail 'persistent overlay filesystem identity changed'
+		awk -v device="$overlay_userdata" '$1 == device &&
+			$2 == "/.rog5/userdata-rw" && $3 == "ext4" &&
+			$4 ~ /(^|,)rw(,|$)/ && $4 ~ /(^|,)nodev(,|$)/ &&
+			$4 ~ /(^|,)nosuid(,|$)/ && $4 ~ /(^|,)noexec(,|$)/ { found++ }
+			END { exit found != 1 }' /proc/mounts ||
+			fail 'persistent userdata mount changed'
+		awk -v loop="$overlay_loop" '$1 == loop && $2 == "/.rog5/state" &&
+			$3 == "ext4" && $4 ~ /(^|,)rw(,|$)/ &&
+			$4 ~ /(^|,)nodev(,|$)/ && $4 ~ /(^|,)nosuid(,|$)/ &&
+			$4 !~ /(^|,)noexec(,|$)/ { found++ }
+			END { exit found != 1 }' /proc/mounts ||
+			fail 'persistent overlay state mount changed'
+		overlay_userdata_name=${overlay_userdata##*/}
+		overlay_loop_name=${overlay_loop##*/}
+		IFS= read -r expected_overlay_userdata \
+			<"/sys/class/block/$overlay_userdata_name/dev"
+		IFS= read -r expected_overlay_loop <"/sys/class/block/$overlay_loop_name/dev"
+		expected_block_mounts=3
+		;;
+	*) fail 'persistent overlay mode changed' ;;
+esac
+
+block_mounts=0
+IFS= read -r expected_device <"/sys/class/block/$userdata_name/dev"
+IFS= read -r expected_loop <"/sys/class/block/$loop_name/dev"
+while read -r _ _ device _ mountpoint _ rest; do
+	[ -e "/sys/dev/block/$device" ] || continue
+	block_mounts=$((block_mounts + 1))
+	if [ "$expected_native_root_mode" -eq 0 ] &&
+		[ "$device" = "$expected_device" ] &&
+		[ "$mountpoint" = /.rog5/userdata-ro ]; then
+		continue
+	fi
+	if [ "$device" = "$expected_loop" ] &&
+		[ "$mountpoint" = /.rog5/root-ro ]; then
+		continue
+	fi
+	if [ "$expected_persistent_overlay_mode" -eq 1 ] &&
+		[ "$device" = "$expected_overlay_userdata" ] &&
+		[ "$mountpoint" = /.rog5/userdata-rw ]; then
+		continue
+	fi
+	if [ "$expected_persistent_overlay_mode" -eq 1 ] &&
+		[ "$device" = "$expected_overlay_loop" ] &&
+		[ "$mountpoint" = /.rog5/state ]; then
+		continue
+	fi
+	fail "unexpected block-backed mount: $mountpoint"
+done </proc/self/mountinfo
+[ "$block_mounts" -eq "$expected_block_mounts" ] ||
+	fail 'physical block-backed mount count changed'
+progress mounts-pass
+
+physical_count=0
+for sys_disk in /sys/class/block/*; do
+	[ -e "$sys_disk/device" ] || continue
+	[ ! -e "$sys_disk/partition" ] || continue
+	disk=${sys_disk##*/}
+	for sys_block in "$sys_disk" "$sys_disk"/"$disk"*; do
+		[ -e "$sys_block/dev" ] || continue
+		[ "$sys_block" = "$sys_disk" ] ||
+			[ -e "$sys_block/partition" ] || continue
+		device=/dev/${sys_block##*/}
+		[ -b "$device" ] || fail "missing block node: $device"
+		IFS= read -r readonly <"$sys_block/ro" ||
+			fail "unreadable sysfs block state: $device"
+		expected_readonly=1
+		if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+			case $device in
+				"$overlay_disk"|"$overlay_userdata") expected_readonly=0 ;;
+			esac
+		fi
+		[ "$readonly" = "$expected_readonly" ] ||
+			fail "writable sysfs block state: $device"
+		[ "$(runtime_blockdev --getro "$device")" = "$expected_readonly" ] ||
+			fail "writable block ioctl state: $device"
+		physical_count=$((physical_count + 1))
+	done
+done
+[ "$physical_count" -eq "$expected_physical_count" ] ||
+	fail 'physical topology count changed'
+progress physical-readonly-pass
+
+blocked_query_count=$(dmesg |
+	grep -F -c 'ROG5 UFS discovery: blocked device query' || true)
+blocked_scsi_count=$(dmesg |
+	grep -F -c 'ROG5 UFS discovery: blocked SCSI opcode' || true)
+journal_recovery_count=$(dmesg |
+	grep -E -i -c 'EXT4-fs.*(journal recovery|recovery complete|recovering journal)' ||
+	true)
+journal_recovery_allowed=0
+if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+	overlay_loop_name=${overlay_loop##*/}
+	overlay_recovery_count=$(dmesg | grep -F -c \
+		"EXT4-fs ($overlay_loop_name): recovery complete" || true)
+	if [ "$overlay_recovery_count" -le 1 ] &&
+		[ "$overlay_recovery_count" -eq "$journal_recovery_count" ]; then
+		journal_recovery_allowed=$overlay_recovery_count
+	fi
+fi
+ufs_error_count=$(dmesg |
+	grep -E -i -c '(ufshcd|ufshcd-qcom|scsi|sd [0-9]).*(fatal|abort|reset|I/O error|timed out)' ||
+	true)
+[ "$blocked_query_count" -eq 0 ] ||
+	fail 'blocked device query appeared'
+[ "$blocked_scsi_count" -eq 0 ] ||
+	fail 'blocked SCSI opcode appeared'
+[ "$journal_recovery_count" -eq "$journal_recovery_allowed" ] ||
+	fail 'ext4 journal recovery appeared'
+[ "$ufs_error_count" -eq 0 ] ||
+	fail 'UFS or SCSI error appeared'
+progress ufs-health-pass
+
+ip -o -4 address show dev usb0 |
+	grep -Fq '169.254.77.2/30' ||
+	fail 'USB management address is absent'
+systemctl is-active --quiet rog5-early-sshd.service ||
+	fail 'strict SSH service is not active'
+[ ! -e /run/rog5-sshd-effective ] &&
+	[ ! -L /run/rog5-sshd-effective ] &&
+	[ ! -e /run/rog5-sshd-effective.next ] &&
+	[ ! -L /run/rog5-sshd-effective.next ] ||
+	fail 'effective SSH evidence already exists'
+sshd_effective=/run/rog5-sshd-effective
+sshd_effective_next=$sshd_effective.next
+umask 077
+sshd -T >"$sshd_effective_next" ||
+	fail 'effective SSH policy is unavailable'
+sshd_effective_size=$(stat -c %s "$sshd_effective_next") ||
+	fail 'effective SSH evidence size is unavailable'
+[ "$sshd_effective_size" -gt 0 ] && [ "$sshd_effective_size" -le 65536 ] ||
+	fail 'effective SSH evidence is outside its bound'
+chown 0:0 "$sshd_effective_next" && chmod 0400 "$sshd_effective_next" &&
+	mv "$sshd_effective_next" "$sshd_effective" ||
+	fail 'effective SSH evidence publication failed'
+[ "$(stat -c '%u:%g:%a:%h' "$sshd_effective")" = 0:0:400:1 ] ||
+	fail 'effective SSH evidence identity changed'
+[ "$(sshd_effective_option passwordauthentication)" = no ] ||
+	fail 'SSH password authentication is enabled'
+permit_root_login=$(sshd_effective_option permitrootlogin) ||
+	fail 'SSH root policy is unavailable'
+case $permit_root_login in without-password|prohibit-password) ;; *)
+	fail 'SSH root policy changed'
+	;;
+esac
+[ "$(sshd_effective_option pubkeyauthentication)" = yes ] ||
+	fail 'SSH public-key authentication is disabled'
+[ "$(sshd_effective_option kbdinteractiveauthentication)" = no ] ||
+	fail 'SSH keyboard-interactive authentication is enabled'
+[ "$(sshd_effective_option usepam)" = no ] ||
+	fail 'PAM remains enabled for early key-only SSH'
+[ -s /etc/ssh/ssh_host_ed25519_key ] &&
+	[ "$(stat -c %a /etc/ssh/ssh_host_ed25519_key)" = 600 ] ||
+	fail 'volatile SSH host identity is absent'
+progress ssh-policy-pass
+
+backlight_count=0
+for brightness in /sys/class/backlight/*/brightness; do
+	[ -e "$brightness" ] || continue
+	backlight_count=$((backlight_count + 1))
+	[ "$(cat "$brightness")" = 0 ] ||
+		fail 'a physical backlight is on'
+done
+
+temporary=/run/.rog5-p2-ready.$$
+trap 'rm -f -- "$temporary"' EXIT HUP INT TERM
+{
+	printf '%s\n' 'status=PASS'
+	printf '%s\n' "attested_boot_id=$current_boot_id"
+	printf '%s\n' "kernel=$(uname -r)"
+	printf '%s\n' "physical_blocks=$physical_count"
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+			printf '%s\n' 'block_backed_mounts=3'
+			printf '%s\n' 'userdata_mount=rw-noexec'
+			printf '%s\n' 'overlay_state=ext4-rw-exec'
+		else
+			printf '%s\n' 'block_backed_mounts=1'
+			printf '%s\n' 'overlay_state=tmpfs-rw'
+		fi
+		printf '%s\n' 'root_mount=native-root-ro-noload'
+	else
+		printf '%s\n' 'block_backed_mounts=2'
+		printf '%s\n' 'userdata_mount=ro-noload'
+		printf '%s\n' 'local_image_mount=ro-noload'
+	fi
+	printf '%s\n' 'local_image_write_probe=PASS'
+	if [ "$expected_native_root_mode" -eq 1 ]; then
+		if [ "$expected_persistent_overlay_mode" -eq 1 ]; then
+			printf '%s\n' 'root=native-ext4-overlay-persistent'
+		else
+			printf '%s\n' 'root=native-ext4-overlay-tmpfs'
+		fi
+	else
+		printf '%s\n' 'root=local-ext4-overlay-tmpfs'
+	fi
+	printf '%s\n' "blocked_device_queries=$blocked_query_count"
+	printf '%s\n' "blocked_scsi_commands=$blocked_scsi_count"
+	printf '%s\n' "journal_recovery_events=$journal_recovery_count"
+	printf '%s\n' "allowed_overlay_recovery_events=$journal_recovery_allowed"
+	printf '%s\n' "ufs_error_events=$ufs_error_count"
+	printf '%s\n' "backlights=$backlight_count"
+	printf '%s\n' 'ssh=strict-key-only'
+} >"$temporary"
+chmod 0444 "$temporary"
+mv -T -- "$temporary" /run/rog5-p2-ready
+trap - EXIT HUP INT TERM
+
+echo 'rog5-p2-attest: PASS bounded-write persistent Arch root ready' >/dev/kmsg

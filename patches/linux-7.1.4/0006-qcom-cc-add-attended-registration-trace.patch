@@ -1,0 +1,201 @@
+From d4bb00313e92514f89bc0a9e7a7dffcb4884834f Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Sat, 25 Jul 2026 01:00:00 +0000
+Subject: [PATCH] clk: qcom: trace attended common-clock registration
+
+Add a read-only, default-off core parameter which traces only the
+SM8350 GPU clock controller through each common registration phase.
+
+A diagnostic-only 100 ms settle after each marker lets the USB log
+follower deliver the last completed phase before a hardware stall. No
+register, clock, reset, regulator, storage, or persistent-state operation
+is added.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/clk/qcom/common.c | 65 +++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 63 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/clk/qcom/common.c b/drivers/clk/qcom/common.c
+index eec369d21..4e294f9f3 100644
+--- a/drivers/clk/qcom/common.c
++++ b/drivers/clk/qcom/common.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/export.h>
++#include <linux/delay.h>
+ #include <linux/module.h>
+ #include <linux/regmap.h>
+ #include <linux/platform_device.h>
+@@ -28,6 +29,27 @@ struct qcom_cc {
+ 	struct dev_pm_domain_list *pd_list;
+ };
+ 
++static bool rog5_qcom_cc_probe_trace;
++core_param(rog5_qcom_cc_probe_trace, rog5_qcom_cc_probe_trace, bool, 0400);
++
++static bool qcom_cc_rog5_trace_enabled(struct device *dev)
++{
++	return rog5_qcom_cc_probe_trace && dev->of_node &&
++	       of_device_is_compatible(dev->of_node, "qcom,sm8350-gpucc");
++}
++
++static void qcom_cc_rog5_trace(struct device *dev, const char *phase,
++			       int index, int ret)
++{
++	if (!qcom_cc_rog5_trace_enabled(dev))
++		return;
++
++	dev_notice(dev,
++		   "ROG5 QCOM CC diagnostic: phase=%s index=%d ret=%d\n",
++		   phase, index, ret);
++	msleep(100);
++}
++
+ const
+ struct freq_tbl *qcom_find_freq(const struct freq_tbl *f, unsigned long rate)
+ {
+@@ -333,30 +355,44 @@ int qcom_cc_really_probe(struct device *dev,
+ 	size_t num_clk_hws = desc->num_clk_hws;
+ 	struct clk_hw **clk_hws = desc->clk_hws;
+ 
++	qcom_cc_rog5_trace(dev, "entry", -1, 0);
+ 	cc = devm_kzalloc(dev, sizeof(*cc), GFP_KERNEL);
+-	if (!cc)
++	if (!cc) {
++		qcom_cc_rog5_trace(dev, "allocation-complete", -1, -ENOMEM);
+ 		return -ENOMEM;
++	}
++	qcom_cc_rog5_trace(dev, "allocation-complete", -1, 0);
+ 
++	qcom_cc_rog5_trace(dev, "power-domain-attach-begin", -1, 0);
+ 	ret = devm_pm_domain_attach_list(dev, NULL, &cc->pd_list);
++	qcom_cc_rog5_trace(dev, "power-domain-attach-complete", -1, ret);
+ 	if (ret < 0 && ret != -EEXIST)
+ 		return ret;
+ 
+ 	if (desc->use_rpm) {
++		qcom_cc_rog5_trace(dev, "runtime-enable-begin", -1, 0);
+ 		ret = devm_pm_runtime_enable(dev);
++		qcom_cc_rog5_trace(dev, "runtime-enable-complete", -1, ret);
+ 		if (ret)
+ 			return ret;
+ 
++		qcom_cc_rog5_trace(dev, "runtime-resume-begin", -1, 0);
+ 		ret = pm_runtime_resume_and_get(dev);
++		qcom_cc_rog5_trace(dev, "runtime-resume-complete", -1, ret);
+ 		if (ret)
+ 			return ret;
+ 	}
+ 
+ 	if (desc->driver_data) {
++		qcom_cc_rog5_trace(dev, "driver-pll-begin", -1, 0);
+ 		ret = qcom_cc_clk_pll_configure(desc->driver_data, regmap);
++		qcom_cc_rog5_trace(dev, "driver-pll-complete", -1, ret);
+ 		if (ret)
+ 			goto put_rpm;
+ 
++		qcom_cc_rog5_trace(dev, "driver-registers-begin", -1, 0);
+ 		qcom_cc_clk_regs_configure(dev, desc->driver_data, regmap);
++		qcom_cc_rog5_trace(dev, "driver-registers-complete", -1, 0);
+ 	}
+ 
+ 	reset = &cc->reset;
+@@ -367,25 +403,34 @@ int qcom_cc_really_probe(struct device *dev,
+ 	reset->regmap = regmap;
+ 	reset->reset_map = desc->resets;
+ 
++	qcom_cc_rog5_trace(dev, "reset-register-begin", -1, 0);
+ 	ret = devm_reset_controller_register(dev, &reset->rcdev);
++	qcom_cc_rog5_trace(dev, "reset-register-complete", -1, ret);
+ 	if (ret)
+ 		goto put_rpm;
+ 
+ 	if (desc->gdscs && desc->num_gdscs) {
++		qcom_cc_rog5_trace(dev, "gdsc-allocation-begin", -1, 0);
+ 		scd = devm_kzalloc(dev, sizeof(*scd), GFP_KERNEL);
+ 		if (!scd) {
+ 			ret = -ENOMEM;
++			qcom_cc_rog5_trace(dev, "gdsc-allocation-complete", -1, ret);
+ 			goto put_rpm;
+ 		}
++		qcom_cc_rog5_trace(dev, "gdsc-allocation-complete", -1, 0);
+ 		scd->dev = dev;
+ 		scd->scs = desc->gdscs;
+ 		scd->num = desc->num_gdscs;
+ 		scd->pd_list = cc->pd_list;
++		qcom_cc_rog5_trace(dev, "gdsc-register-begin", -1, 0);
+ 		ret = gdsc_register(scd, &reset->rcdev, regmap);
++		qcom_cc_rog5_trace(dev, "gdsc-register-complete", -1, ret);
+ 		if (ret)
+ 			goto put_rpm;
++		qcom_cc_rog5_trace(dev, "gdsc-action-begin", -1, 0);
+ 		ret = devm_add_action_or_reset(dev, qcom_cc_gdsc_unregister,
+ 					       scd);
++		qcom_cc_rog5_trace(dev, "gdsc-action-complete", -1, ret);
+ 		if (ret)
+ 			goto put_rpm;
+ 	}
+@@ -393,9 +438,11 @@ int qcom_cc_really_probe(struct device *dev,
+ 	if (desc->driver_data &&
+ 	    desc->driver_data->dfs_rcgs &&
+ 	    desc->driver_data->num_dfs_rcgs) {
++		qcom_cc_rog5_trace(dev, "dfs-register-begin", -1, 0);
+ 		ret = qcom_cc_register_rcg_dfs(regmap,
+ 					       desc->driver_data->dfs_rcgs,
+ 					       desc->driver_data->num_dfs_rcgs);
++		qcom_cc_rog5_trace(dev, "dfs-register-complete", -1, ret);
+ 		if (ret)
+ 			goto put_rpm;
+ 	}
+@@ -403,10 +450,14 @@ int qcom_cc_really_probe(struct device *dev,
+ 	cc->rclks = rclks;
+ 	cc->num_rclks = num_clks;
+ 
++	qcom_cc_rog5_trace(dev, "drop-protected-begin", -1, 0);
+ 	qcom_cc_drop_protected(dev, cc);
++	qcom_cc_rog5_trace(dev, "drop-protected-complete", -1, 0);
+ 
+ 	for (i = 0; i < num_clk_hws; i++) {
++		qcom_cc_rog5_trace(dev, "clock-hw-register-begin", i, 0);
+ 		ret = devm_clk_hw_register(dev, clk_hws[i]);
++		qcom_cc_rog5_trace(dev, "clock-hw-register-complete", i, ret);
+ 		if (ret)
+ 			goto put_rpm;
+ 	}
+@@ -415,21 +466,31 @@ int qcom_cc_really_probe(struct device *dev,
+ 		if (!rclks[i])
+ 			continue;
+ 
++		qcom_cc_rog5_trace(dev, "clock-regmap-register-begin", i, 0);
+ 		ret = devm_clk_register_regmap(dev, rclks[i]);
++		qcom_cc_rog5_trace(dev, "clock-regmap-register-complete", i, ret);
+ 		if (ret)
+ 			goto put_rpm;
+ 	}
+ 
++	qcom_cc_rog5_trace(dev, "provider-register-begin", -1, 0);
+ 	ret = devm_of_clk_add_hw_provider(dev, qcom_cc_clk_hw_get, cc);
++	qcom_cc_rog5_trace(dev, "provider-register-complete", -1, ret);
+ 	if (ret)
+ 		goto put_rpm;
+ 
++	qcom_cc_rog5_trace(dev, "interconnect-register-begin", -1, 0);
+ 	ret = qcom_cc_icc_register(dev, desc);
++	qcom_cc_rog5_trace(dev, "interconnect-register-complete", -1, ret);
+ 
+ put_rpm:
+-	if (desc->use_rpm)
++	if (desc->use_rpm) {
++		qcom_cc_rog5_trace(dev, "runtime-put-begin", -1, 0);
+ 		pm_runtime_put(dev);
++		qcom_cc_rog5_trace(dev, "runtime-put-complete", -1, 0);
++	}
+ 
++	qcom_cc_rog5_trace(dev, "exit", -1, ret);
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(qcom_cc_really_probe);
+-- 
+2.55.0

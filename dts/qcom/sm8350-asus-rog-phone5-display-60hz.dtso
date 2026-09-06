@@ -1,0 +1,114 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+
+	fragment@100 {
+		target-path = "/soc@0/rsc@18200000/regulators-1";
+
+		__overlay__ {
+			vdd-l3-l4-l5-l7-l13-supply = <&vreg_bob>;
+
+			vreg_l12c_1p8: ldo12 {
+				regulator-name = "vreg_l12c_1p8";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-initial-mode = <3>;
+			};
+
+			vreg_l13c_3p0: ldo13 {
+				regulator-name = "vreg_l13c_3p0";
+				regulator-min-microvolt = <3000000>;
+				regulator-max-microvolt = <3000000>;
+				regulator-initial-mode = <3>;
+			};
+		};
+	};
+};
+
+&tlmm {
+	rog5_panel_default: rog5-panel-default-state {
+		reset-pins {
+			pins = "gpio24";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		te-pins {
+			pins = "gpio82";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+		};
+
+		iris-wakeup-pins {
+			pins = "gpio92";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-disable;
+		};
+
+		iris-ready-pins {
+			pins = "gpio84";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-disable;
+			input-enable;
+		};
+	};
+};
+
+&dispcc {
+	status = "okay";
+};
+
+&mdss {
+	status = "okay";
+};
+
+&mdss_mdp {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	vdda-supply = <&vreg_l6b_1p2>;
+	status = "okay";
+
+	panel@0 {
+		compatible = "asus,rog5-ams678-er2";
+		reg = <0>;
+
+		vddio-supply = <&vreg_l12c_1p8>;
+		vdd-supply = <&vreg_l13c_3p0>;
+		reset-gpios = <&tlmm 24 1>;
+		te-gpios = <&tlmm 82 0>;
+		iris-wakeup-gpios = <&tlmm 92 0>;
+		iris-bypass-ready-gpios = <&tlmm 84 0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&rog5_panel_default>;
+
+		width-mm = <69>;
+		height-mm = <157>;
+
+		port {
+			rog5_panel_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	data-lanes = <0 1 2 3>;
+	remote-endpoint = <&rog5_panel_in>;
+};
+
+&mdss_dsi0_phy {
+	vdds-supply = <&vreg_l5b_0p88>;
+	status = "okay";
+};

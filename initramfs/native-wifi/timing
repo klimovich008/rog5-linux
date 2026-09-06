@@ -1,0 +1,11 @@
+# Sealed automatic RAM-qualification budget; no runtime environment overrides.
+query_seconds=45
+mode_seconds=95
+hold_seconds=165
+radio_seconds=600
+outer_seconds=900
+cleanup_seconds=90
+kill_seconds=2
+trace_byte_limit=4194304
+display_report_seconds=60
+host_parent_seconds=1020

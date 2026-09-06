@@ -1,0 +1,67 @@
+diff --git a/drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.c b/drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.c
+index c7e4bee..0b6e2b2 100644
+--- a/drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.c
++++ b/drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/device.h>
++#include <linux/delay.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+ #include <linux/pci-pwrctrl.h>
+@@ -27,6 +28,21 @@ struct pwrseq_pwrctrl_pdata {
+ 	int (*validate_device)(struct device *dev);
+ };
+ 
++/* Diagnostic-only: allow already-queued host evidence to drain before power. */
++static unsigned int observation_ms;
++module_param(observation_ms, uint, 0400);
++MODULE_PARM_DESC(observation_ms, "Diagnostic boundary pause, 0..1000 ms");
++
++static void pwrseq_pwrctrl_observe(struct device *dev, const char *stage, int ret)
++{
++	if (!observation_ms)
++		return;
++
++	dev_info(dev, "ROG5_PWRCTRL_OBSERVE stage=%s result=%d pause_ms=%u\n",
++		 stage, ret, observation_ms);
++	msleep(observation_ms);
++}
++
+ static int pwrseq_pwrctrl_qcm_wcn_validate_device(struct device *dev)
+ {
+ 	/*
+@@ -57,7 +73,12 @@ static int pwrseq_pwrctrl_power_on(struct pci_pwrctrl *pwrctrl)
+ 	struct pwrseq_pwrctrl *pwrseq = container_of(pwrctrl,
+ 					   struct pwrseq_pwrctrl, pwrctrl);
+ 
+-	return pwrseq_power_on(pwrseq->pwrseq);
++	int ret;
++
++	pwrseq_pwrctrl_observe(pwrctrl->dev, "power-on-enter", 0);
++	ret = pwrseq_power_on(pwrseq->pwrseq);
++	pwrseq_pwrctrl_observe(pwrctrl->dev, "power-on-return", ret);
++	return ret;
+ }
+ 
+ static int pwrseq_pwrctrl_power_off(struct pci_pwrctrl *pwrctrl)
+@@ -75,6 +96,10 @@ static int pwrseq_pwrctrl_probe(struct platform_device *pdev)
+ 	struct device *dev = &pdev->dev;
+ 	int ret;
+ 
++	if (observation_ms > 1000)
++		return -EINVAL;
++	pwrseq_pwrctrl_observe(dev, "probe-enter", 0);
++
+ 	pdata = device_get_match_data(dev);
+ 	if (!pdata || !pdata->target)
+ 		return -EINVAL;
+@@ -104,6 +129,7 @@ static int pwrseq_pwrctrl_probe(struct platform_device *pdev)
+ 		return dev_err_probe(dev, ret,
+ 				     "Failed to register the pwrctrl wrapper\n");
+ 
++	pwrseq_pwrctrl_observe(dev, "probe-ready", 0);
+ 	return 0;
+ }
+ 

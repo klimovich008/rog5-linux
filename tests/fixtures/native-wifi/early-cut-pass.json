@@ -1,0 +1,17 @@
+{
+  "source": "V21 exact-phone early USB-data cutoff",
+  "consumed": true,
+  "cutoff_target_uptime_lower": 5.614896664,
+  "cutoff_target_uptime_upper": 5.786192050,
+  "native_userdata_mount_uptime": 11.432074,
+  "usb_data_off_seconds": 84.503898583,
+  "fresh_authenticated_endpoint": true,
+  "strict_project_ssh_key_and_new_boot": true,
+  "wifi_ssh_while_usb_off": true,
+  "same_instance_usb_restored": true,
+  "fallback_v11_restored": true,
+  "physical_charger_only_boot_proven": false,
+  "sustained_net_positive_charging_proven": false,
+  "managed_tailscale_ssh_authenticated": false,
+  "persistent_selector_changed": false
+}

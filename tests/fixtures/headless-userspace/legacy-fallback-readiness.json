@@ -1,0 +1,19 @@
+{
+  "provenance": "2026-09-06 signed V11 fallback: captured marker and observed tmpfs/metadata/service; boot ID anonymized. Original host predicate required absent attested_boot_id and failed. Not release acceptance evidence.",
+  "execution": "fastboot-boot-fallback-only",
+  "identity": {
+    "boot_id": "11111111-1111-4111-8111-111111111111",
+    "bundle": "persistent-native-root-v11",
+    "release": "7.1.4-g359318de534f"
+  },
+  "snapshot": {
+    "boot_before": "11111111-1111-4111-8111-111111111111",
+    "boot_after": "11111111-1111-4111-8111-111111111111",
+    "kernel": "7.1.4-g359318de534f",
+    "bundle": "persistent-native-root-v11",
+    "run_fstype": "tmpfs",
+    "marker_metadata": "0:0:444:regular file:1",
+    "ssh_identity_service": "active",
+    "marker": "status=PASS\nkernel=7.1.4-g359318de534f\nphysical_blocks=117\nblock_backed_mounts=1\nroot_mount=native-root-ro-noload\nlocal_image_write_probe=PASS\nroot=native-ext4-overlay-tmpfs\nblocked_device_queries=0\nblocked_scsi_commands=0\njournal_recovery_events=0\nufs_error_events=0\nbacklights=0\nssh=strict-key-only"
+  }
+}

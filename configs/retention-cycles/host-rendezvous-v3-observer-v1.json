@@ -1,0 +1,376 @@
+{
+  "format": "rog5-retention-cycle-admission-review-v1",
+  "profile": "host-rendezvous-v3-observer-v1",
+  "state": "hold",
+  "authority": "none",
+  "boot_authority": "none",
+  "retention": "unproven",
+  "missing_pstore": "inconclusive",
+  "evidence_owner": "verifier-euid",
+  "recovery_cmdline": "init=/init selinux=0 printk.devkmsg=on rog5linux.test=1 ramoops.mem_address=0x9b800000 ramoops.mem_size=0x400000 ramoops.record_size=0x100000 ramoops.console_size=0x300000 ramoops.pmsg_size=0 ramoops.ftrace_size=0 ramoops.dump_oops=1 rog5.recovery_timeout=180",
+  "recovery_inputs": {
+    "init": {
+      "path": "initramfs/recovery-init",
+      "size": 19023,
+      "sha256": "b3bc4fd4d2015a3f9dabdb1cc8a849783bcab6cdfb72beb6f3b152cae3d60281",
+      "mode": "0755"
+    },
+    "control_build": {
+      "path": "configs/recovery-control/aarch64-build-v1.json",
+      "size": 969,
+      "sha256": "f6149deb2784047464fffb7f89ac702e5c6b178215903cba1bd4ba0a340f1839",
+      "mode": "0644"
+    }
+  },
+  "sequence": [
+    "diagnostic-target",
+    "exact-alpine-fallback",
+    "bootloader",
+    "observation-recovery",
+    "postmortem-status"
+  ],
+  "root_inventory": {
+    "execution": [
+      "SHA256SUMS:file",
+      "builder-qualification.txt:file",
+      "bundle-a:directory",
+      "bundle-b:directory",
+      "candidate-a.txt:file",
+      "candidate-b.txt:file",
+      "recovery:directory",
+      "wrapper:directory"
+    ],
+    "observer": [
+      "builder-profile.txt:file",
+      "builder-qualification.txt:file",
+      "cache-publication.txt:file",
+      "glob-cwd:directory",
+      "inspection:directory",
+      "observation-wrapper-evidence.txt:file",
+      "repack:directory",
+      "source-seal-after.txt:file",
+      "source-seal-before.txt:file",
+      "wrapper-a:directory",
+      "wrapper-b:directory"
+    ]
+  },
+  "execution": {
+    "role": "target-execution-v1",
+    "candidate_path": "configs/recovery-candidates/headless-netroot-early-diag-v2.json",
+    "candidate_size": 1411,
+    "candidate_sha256": "41c23330fd95d7c7426434ae3c19f948208f221ddc4f502859137f22b7eab9cf",
+    "candidate_mode": "0644",
+    "artifact_inventory_mode": "0644",
+    "candidate": "headless-netroot-early-diag-v2",
+    "candidate_record": {
+      "path_a": "candidate-a.txt",
+      "path_b": "candidate-b.txt",
+      "size": 306,
+      "sha256": "8082c10bde22d728696feb81b723505d35d08a790059f436d8714ffa7c8cf108",
+      "mode": "0644"
+    },
+    "bundle_a": "bundle-a/headless-netroot-early-diag-v2",
+    "bundle_b": "bundle-b/headless-netroot-early-diag-v2",
+    "runtime_manifest": {
+      "path_a": "bundle-a/headless-netroot-early-diag-v2/manifest",
+      "path_b": "bundle-b/headless-netroot-early-diag-v2/manifest",
+      "size": 834,
+      "sha256": "54f534203fe3efbb95713eaef861b1bdb6ae6c56dad2f1b2b77dd09efed36efc",
+      "mode": "0400"
+    },
+    "runtime_signature": {
+      "path_a": "bundle-a/headless-netroot-early-diag-v2/manifest.sig",
+      "path_b": "bundle-b/headless-netroot-early-diag-v2/manifest.sig",
+      "size": 64,
+      "sha256": "0d1647bc485f6d7a0bd0c8945d17db6d79d7c14bc1acab62a580a5b8b7b40e88",
+      "mode": "0400"
+    },
+    "trust_key": {
+      "path": "recovery/ephemeral-public.raw",
+      "size": 32,
+      "sha256": "f10ca0762e51a3d606a9a11422c55e8447e6bad2021cb9f3aca5ba69ef17c57b",
+      "mode": "0600"
+    },
+    "private_key_path": "recovery/ephemeral-private.raw",
+    "trust_class": "production-project",
+    "recovery_mode": "full-v1",
+    "avb_algorithm": "NONE",
+    "recovery_initramfs": {
+      "path_a": "recovery/initramfs-a/rog5-stable-recovery.cpio.gz",
+      "path_b": "recovery/initramfs-b/rog5-stable-recovery.cpio.gz",
+      "size": 7605169,
+      "sha256": "ab0a3ee219684c994af386cb60e5280dcc4269457b196f96ca3928acce691f0b",
+      "mode": "0600"
+    },
+    "wrapper_config": {
+      "path_a": "wrapper/wrapper-a/asus-kexec-stage/.config",
+      "path_b": "wrapper/wrapper-b/asus-kexec-stage/.config",
+      "size": 185763,
+      "sha256": "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f",
+      "mode": "0644"
+    },
+    "wrapper_image": {
+      "path_a": "wrapper/wrapper-a/asus-kexec-stage/arch/arm64/boot/Image",
+      "path_b": "wrapper/wrapper-b/asus-kexec-stage/arch/arm64/boot/Image",
+      "size": 50498048,
+      "sha256": "8a600acfc6f7e01f9eb932e0a04174079d6ee68142c44fad819fe96bbd34325d",
+      "mode": "0755"
+    },
+    "raw_boot": {
+      "path_a": "wrapper/repack/stable-recovery-a.raw.img",
+      "path_b": "wrapper/repack/stable-recovery-b.raw.img",
+      "size": 58109952,
+      "sha256": "ea9e90fdbf1bfdbe75816462ae79897e6cf7749d9e87607be2b033b7cfb06517",
+      "mode": "0644"
+    },
+    "unsigned_avb": {
+      "path_a": "wrapper/repack/stable-recovery-a.avb.img",
+      "path_b": "wrapper/repack/stable-recovery-b.avb.img",
+      "size": 100663296,
+      "sha256": "cba4e6e858c46a431eaa96a72af65e72ba601fa3169a63aad07864cc5122370d",
+      "mode": "0644"
+    },
+    "claim": "unissued"
+  },
+  "observer": {
+    "role": "observation-only-v1",
+    "host_action": "postmortem-status",
+    "recovery_mode": "observation-only-v1",
+    "avb_algorithm": "NONE",
+    "wrapper_evidence": {
+      "path": "observation-wrapper-evidence.txt",
+      "size": 823,
+      "sha256": "116d21a57514b25fa7c43137b925bce94d9d83e9bbb7287bcceb2a0a50fd8b11",
+      "mode": "0600"
+    },
+    "recovery_initramfs": {
+      "path_a": "wrapper-a/rog5-kexec-stage-initramfs.cpio.gz",
+      "path_b": "wrapper-b/rog5-kexec-stage-initramfs.cpio.gz",
+      "size": 5374739,
+      "sha256": "b2440d8ccc2f22b9c9072a2404569d2a5843f7dab186a2ccac307a929a4941ad",
+      "mode": "0644"
+    },
+    "wrapper_config": {
+      "path_a": "wrapper-a/asus-kexec-stage/.config",
+      "path_b": "wrapper-b/asus-kexec-stage/.config",
+      "size": 185763,
+      "sha256": "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f",
+      "mode": "0644"
+    },
+    "wrapper_image": {
+      "path_a": "wrapper-a/asus-kexec-stage/arch/arm64/boot/Image",
+      "path_b": "wrapper-b/asus-kexec-stage/arch/arm64/boot/Image",
+      "size": 48400896,
+      "sha256": "eedb7deb64aa42de582245b121f4ea581d0b1e21e9eb49f3591e98df8f63ef59",
+      "mode": "0755"
+    },
+    "raw_boot": {
+      "path_a": "repack/stable-recovery-a.raw.img",
+      "path_b": "repack/stable-recovery-b.raw.img",
+      "size": 53784576,
+      "sha256": "5daf0919d38c9f7b1ffde85a8c5e9aabdbba526bcafa1a528bd8c31e27dda171",
+      "mode": "0600"
+    },
+    "unsigned_avb": {
+      "path_a": "repack/stable-recovery-a.avb.img",
+      "path_b": "repack/stable-recovery-b.avb.img",
+      "size": 100663296,
+      "sha256": "3c9b282090691b169cf96b6e6b8c458d8b592d1d1420138ef0d327cb2b9ae73b",
+      "mode": "0600"
+    },
+    "claim": "unissued"
+  },
+  "claims": {
+    "consumer": "scripts/host/consume-exact-boot-claim.py",
+    "consumer_size": 81543,
+    "consumer_sha256": "dc848c65e49763e92a0993d1d4608cb0196817cc334d20ad9c43a90c20c34a3b",
+    "consumer_mode": "0755",
+    "execution": "not-defined",
+    "observer": "not-defined",
+    "sequence_reference": {
+      "path": "scripts/host/retention-cycle-sequence-reference.py",
+      "size": 11923,
+      "sha256": "97075ed7c09cf2c5df5566a971c922d8ea9b1d6b0e53e19f33bed3d220378e44",
+      "mode": "0755",
+      "implementation": "reference-only",
+      "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
+      "execution_identifier": "retention-host-rendezvous-v3-execution-v1",
+      "execution_record_sha256": "ef0895b7e104a283c44113a67c8f51e826b0088d597b0969ed5ca774e0dc7bbd",
+            "observer_identifier": "retention-host-rendezvous-v3-observer-v1",
+            "observer_record_sha256": "f0b687163c38fe07c637c6ae863e0244d5cfb2af2d6a97632875473e3c33e345"
+        },
+        "transaction_fixture": {
+            "path": "scripts/host/retention-cycle-transaction.py",
+            "size": 40185,
+            "sha256": "f13fa41bfee58b79eab9ed76650049d0fb160ea578d60071b3199440a8868428",
+            "mode": "0644",
+            "implementation": "offline-append-only-fixture",
+            "event_format": "rog5-retention-cycle-event-v1",
+            "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
+            "live_entrypoint": "none",
+            "claim_registration": "none",
+            "policy_allow_rows": 0,
+            "ambiguous_reopen": "terminal-only"
+        },
+        "adapter_fixture": {
+            "path": "scripts/host/retention-cycle-adapter.py",
+            "size": 10260,
+            "sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
+            "mode": "0644",
+            "implementation": "callback-only-fixture",
+            "journal_sha256": "f13fa41bfee58b79eab9ed76650049d0fb160ea578d60071b3199440a8868428",
+            "cycle_sha256": "d8a3a085d2dfb474728d16cdf568547e529f026239a37a40881183c04ed8a078",
+            "invocation_count": 6,
+            "live_entrypoint": "none",
+            "builtin_executor": "none",
+            "claim_registration": "none",
+            "policy_allow_rows": 0
+        },
+        "executor_contract": {
+            "path": "scripts/host/retention-cycle-executor-contract.py",
+            "size": 14562,
+            "sha256": "17a85c9074f95ac08a6e3b8c99ad3f14f4df91b68afe3f02688057450309fef2",
+            "mode": "0644",
+            "implementation": "pure-process-contract-v1",
+            "adapter_sha256": "c36b4bfa407b4c5d0df6e32f2b69ebbbf411eaad75649465f89161aa84bf6976",
+            "invocation_count": 6,
+            "boot_result_protocol": "rog5-retention-boot-result-v1",
+            "boot_result_dynamic_inputs": ["fastboot_serial", "usb_location"],
+            "inherited_environment": "none",
+            "stdin": "devnull",
+            "stdout_stderr": "separate-bounded-pipes",
+            "timeout_seconds": [15, 300, 240, 15, 300, 90],
+            "output_limit_bytes": [4096, 131072, 131072, 4096, 131072, 16384],
+            "timeout_cleanup": "process-group",
+            "fallback_transport": "nonce-framed-acm",
+            "private_key_input": "none",
+            "host_pin_access": "unopened-path-contract-only",
+            "live_entrypoint": "none",
+            "builtin_executor": "none",
+            "credential_use": "none",
+            "claim_registration": "none",
+            "policy_allow_rows": 0
+        },
+        "executor_boundary": {
+            "path": "scripts/host/retention-cycle-executor-boundary.py",
+            "size": 24548,
+            "sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
+            "mode": "0644",
+            "implementation": "pure-descriptor-output-boundary-v1",
+            "executor_contract_sha256": "17a85c9074f95ac08a6e3b8c99ad3f14f4df91b68afe3f02688057450309fef2",
+            "boot_result_protocol": "rog5-retention-boot-result-v1",
+            "decoded_actions": [
+                "execution-claim",
+                "execution-boot",
+                "fallback-reboot",
+                "observer-claim",
+                "observer-boot",
+                "postmortem-read"
+            ],
+            "blocked_actions": {
+                "execution-boot": "hold-gate-no-current-success",
+                "observer-boot": "hold-gate-no-current-success"
+            },
+            "live_producer_state": {
+                "execution-boot": "hold-gate-no-current-success",
+                "fallback-reboot": "guarded-producer-defined",
+                "observer-boot": "hold-gate-no-current-success"
+            },
+            "program_open_flags": ["O_CLOEXEC", "O_NOFOLLOW", "O_RDONLY"],
+            "directory_open_flags": ["O_CLOEXEC", "O_DIRECTORY", "O_NOFOLLOW", "O_RDONLY"],
+            "python_interpreter": {
+                "logical_path": "/usr/bin/python3",
+                "resolved_path": "/usr/bin/python3.13",
+                "link_target": "python3.13",
+                "size": 14352,
+                "sha256": "62cf34d8c76bbde1cceea478800c3b9125a90746dd73f1281614823bdcf1b718"
+            },
+            "bash_interpreter": {
+                "logical_path": "/usr/bin/bash",
+                "resolved_path": "/usr/bin/bash",
+                "link_target": "none",
+                "size": 1162328,
+                "sha256": "66bb45cd80c82ea4c352c774c0f1577ad51707f55749e90dd6b787a9fb3022d1"
+            },
+            "fallback_host_pin": "public-ed25519-snapshot-required",
+            "fallback_host_pin_sha256": "not-defined",
+            "runtime_closure": "offline-fixture-only-production-descriptor-execution-unproven",
+            "live_entrypoint": "none",
+            "builtin_executor": "none",
+            "credential_use": "none",
+            "claim_registration": "none",
+            "policy_allow_rows": 0
+        },
+        "executor_runtime": {
+            "path": "scripts/host/retention-cycle-runtime-closure.py",
+            "size": 38531,
+            "sha256": "2cce1d450805d4a5f43352b221d35011e43ade5868817cce37b322912f3c765b",
+            "mode": "0644",
+            "implementation": "offline-fresh-pipe-fixture-v1",
+            "executor_boundary_sha256": "76cd7367e73e1ec8e38d545b2cf387c8700279dca6aba3f337a9a9123b8f1e43",
+            "transaction_sha256": "f13fa41bfee58b79eab9ed76650049d0fb160ea578d60071b3199440a8868428",
+            "intent_binding": "held-fsynced-event-descriptor",
+            "pipe_binding": "fresh-empty-cloexec-distinct",
+            "process_backend": "forked-fixed-writer-only",
+            "runtime_nonce": "getrandom-256-bit",
+            "single_use": "in-process-attempt-terminal",
+            "timeout_cleanup": "process-group-term-kill",
+            "result_type": "offline-wrapper-adapter-ineligible",
+            "live_entrypoint": "none",
+            "adapter_wiring": "none",
+            "production_execution": "none",
+            "production_descriptor_execution": "unproven",
+            "connected_admission": "none",
+            "credential_use": "none",
+            "result_authority": "none",
+            "claim_registration": "none",
+            "policy_allow_rows": 0
+        },
+        "executor_descriptor_fixture": {
+            "runner_path": "scripts/host/retention-cycle-descriptor-execution.py",
+            "runner_size": 30039,
+            "runner_sha256": "7e82e52ed44343f665f5f03f26b8540c7743415d74145c58db0eb3b935dd1d8a",
+            "runner_mode": "0644",
+            "probe_path": "scripts/host/retention-cycle-descriptor-probe.py",
+            "probe_size": 5288,
+            "probe_sha256": "afba8ae9c2bff325eadcae781895aafd7934897b238edcdc72bf73f7f38e20f5",
+            "probe_mode": "0644",
+            "implementation": "offline-held-fd-exec-v1",
+            "executor_runtime_sha256": "2cce1d450805d4a5f43352b221d35011e43ade5868817cce37b322912f3c765b",
+            "interpreter_logical_path": "/usr/bin/python3",
+            "interpreter_resolved_path": "/usr/bin/python3.13",
+            "interpreter_sha256": "62cf34d8c76bbde1cceea478800c3b9125a90746dd73f1281614823bdcf1b718",
+            "program_exec_fd": 198,
+            "interpreter_exec_fd": 199,
+            "interpreter_execution": "fexecve-held-descriptor",
+            "program_execution": "proc-self-fd-held-descriptor",
+            "repository_cwd": "held-directory-fchdir",
+            "environment": "closed-exact",
+            "umask": "0077",
+            "stdin": "devnull",
+            "stdout": "bounded-pipe",
+            "stderr": "bounded-pipe",
+            "modes": ["success", "timeout", "descendant", "overflow", "exit"],
+            "single_use": "in-process-attempt-terminal",
+            "timeout_cleanup": "process-group-term-kill",
+            "result_type": "offline-evidence-adapter-ineligible",
+            "fixture_descriptor_execution": "proven",
+            "production_descriptor_execution": "unproven",
+            "live_entrypoint": "none",
+            "adapter_wiring": "none",
+            "production_execution": "none",
+            "connected_admission": "none",
+            "credential_use": "none",
+            "result_authority": "none",
+            "claim_registration": "none",
+            "policy_allow_rows": 0
+        },
+        "issuance_requirement": "distinct-exact-records",
+        "reuse": "forbidden"
+  },
+  "policy": {
+    "path": "manifests/temporary-boot-images.tsv",
+    "mode": "0644",
+    "required_allow_rows": 2
+  }
+}

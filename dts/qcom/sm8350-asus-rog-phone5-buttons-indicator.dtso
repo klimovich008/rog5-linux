@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+
+	fragment@100 {
+		target-path = "/";
+
+		__overlay__ {
+			gpio-keys {
+				compatible = "gpio-keys";
+				pinctrl-names = "default";
+				pinctrl-0 = <&rog5_volume_up_default>;
+
+				key-volume-up {
+					label = "volume_up";
+					gpios = <&pm8350_gpios 6 1>;
+					linux,input-type = <1>;
+					linux,code = <115>;
+					debounce-interval = <15>;
+					linux,can-disable;
+					wakeup-source;
+				};
+			};
+		};
+	};
+};
+
+&pm8350_gpios {
+	rog5_volume_up_default: volume-up-default-state {
+		pins = "gpio6";
+		function = "normal";
+		input-enable;
+		bias-pull-up;
+		power-source = <1>;
+	};
+};
+
+&pon_pwrkey {
+	status = "okay";
+};
+
+&pon_resin {
+	linux,code = <114>;
+	status = "okay";
+};
+
+&pm8350c_pwm {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	led@2 {
+		reg = <2>;
+		color = <2>;
+		function = "status";
+		default-state = "off";
+	};
+};

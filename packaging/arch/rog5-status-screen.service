@@ -1,0 +1,40 @@
+[Unit]
+Description=ROG Phone 5 minimal local status screen
+After=systemd-udevd.service NetworkManager.service
+Before=rog5-power-button.service
+ConditionPathExists=/usr/local/libexec/rog5-status-screen
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStartPre=/usr/local/bin/rog5-screen-toggle.sh off
+ExecStart=/usr/local/libexec/rog5-status-screen watch
+Restart=always
+RestartSec=3s
+DevicePolicy=closed
+DeviceAllow=/dev/tty1 rw
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectSystem=strict
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,101 +1,145 @@
-# Current state — 2026-07-23
+# ROG5 current state
 
-## Hardware and boot
+Updated: 2026-09-06. Authoritative handoff, not continuous monitoring.
 
-- Device: ASUS ROG Phone 5, codename `anakin`, SM8350 / Snapdragon 888, Adreno 660.
-- Bootloader: unlocked; verified boot reports orange.
-- Active Android slot during the recorded tests: slot B.
-- Stable 5.4 baseline userspace: Alpine 3.24 on the userdata-backed root filesystem.
-- Target userspace: Arch Linux ARM with systemd and minimal Plasma. The locked
-  archive passed its historical suite but contains the previous module set;
-  restaging with the accepted kernel is mandatory before first boot.
-- Stable experimental kernel: `5.4.210-qgki-perf #20`.
-- Boot method: temporary `fastboot boot`; the experimental kernel has not been flashed.
+## Active goal and scope
 
-## Passing baseline
+Qualify one reliable standalone headless Arch server under the existing
+[acceptance contract](release-acceptance.md) and
+[mandatory manifest](../configs/release-acceptance.json).
+Use `scripts/host/rog5-dev accept`; missing prerequisites, skipped mandatory
+tests and lost transport are not PASS. Display remains optional.
+Use the [development loop](development.md); unrelated findings belong in the
+[backlog](../ROADMAP.md), not a new review or goal.
 
-The 5.4.210 #20 smoke test currently passes:
+## Exact device and authority
 
-- UFS root and initramfs startup
-- USB NCM and SSH at the private debug address
-- DSI DRM connector and panel backlight
-- FocalTech touch input
-- ADSP startup and the real Qualcomm battery charger driver
-- native UPower battery reporting
-- Plasma Mobile on the physical panel using software rendering
-- power-button screen toggle and default OLED blanking
-- Wi-Fi client and AP/hotspot after delayed radio startup
-- modem stability with supervised `rmtfs` and patched `tqftpserv`
+Phone `M5AIKN00F0353YH`, product `lahaina`, anchored side USB `1-1.2`.
+Preserve official WW33 slot A (`33.0210.0210.200`) as charging/rescue.
+[Stock charging restoration](asus-charging-recovery.md) is complete.
+Keep identity/slot/topology/boot-chain, signatures, battery/thermal,
+bounded storage/backups, independent rollback and experimental one-use guards.
+No experimental flash, GPT or protected-data change. New destructive storage
+requires separately reviewed exact scope and approval. Scoped credentials and
+reversible diagnostics remain authorized; private material stays outside Git.
+Do not delete unique source, artifacts, credentials, evidence or fallback.
 
-At the last baseline capture the battery was full, the panel backlight was zero, zram was 3 GiB and unused, and the server remained reachable with the physical screen off. The screen toggle now applies Wayland DPMS as well as backlight zero, and restores DPMS plus the saved brightness on wake.
+## Running RAM rescue and installed recovery
 
-## Display modes
+**Last verified: V11 fallback after the consumed server-selector-v3 trial failed.**
+Kernel `7.1.4-g359318de534f`; pinned SSH authenticated boot UUID
+`fbb0d3e4-96ca-469c-8edc-d26ffbcb5cf8` and bundle `persistent-native-root-v11`.
+Fallback manifest:
+`a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
+Failed primary boot: `655c5d76-02aa-441b-ad5d-7217b0f54f13`, kernel
+`7.1.4-gf17befd4ef17`. Never retry it or consumed rescue V8.
+Live source `4ba30f3964f7962242bab1f4910a61f8e3489453`, all four CI jobs
+passed in run 34058164544. Its single coordinator is terminal at 1380.786 s.
+Capture/readiness are FAIL; route, firewall, profile and address cleanup PASS.
+Do not restart it. Fallback frames were not accepted as primary success.
+V8's earlier H01/H02/H03 passes remain historical same-release evidence, not
+qualification of this server or current fallback. Exact identities are in the
+[dated evidence](../test-results/2026-09-05-headless-acceptance.md#v8-live-rescue-and-h03-full-maintenance-qualified).
 
-The vendor DRM connector publishes these mode names:
+Pinned SSH: `10.77.0.2` (alias `169.254.77.2`), fingerprint
+`SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
+Wi-Fi intentionally inactive. Rescue uses tmpfs upper over RO/noload P24 and
+existing bounded P23 service state; not the primary's persistent upper.
+Pre-staging P24 snapshot (not the current raw P24 image):
+`e1692971646809ff412363014d69a363aa543336a715e918ec0cc978cafa36c6`.
 
-```text
-1080x2448x144x150024cmd
-1080x2448x120x150003cmd
-1080x2448x90x150007cmd
-1080x2448x60x138333cmd
-```
+**Installed boot B remains old/unqualified recovery:**
+`340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
+Signed `persistent-native-root-v11` fallback and stock A remain preserved.
+Active selector now names **consumed, failed `headless-server-selector-v3`**:
+`0b897e0211fd327c74881a502cab47cc3f614f226716b5c9532cb2c3eb8bf4bd`.
+The failed V2 selector is preserved at `selector.rollback-headless-server-selector-v3`:
+`353b7a88f56733fe39ee31707981bccd3dd15b6b1d47822ca369b26bab779f99`.
+Its exact pending trial `d0fef94cb686b2065311638cbbb9665617e5ca65796a46dc718bf0d7f43e9091`
+is archived on P23 as failed-V2 evidence. V3 was executed once; it is not healthy. Do not retry its target or claim.
+Earlier healthy-trial/selector archives remain unchanged; see the dated report.
+P24 is RO; independent postcheck passed. **Do not perform an ordinary reboot.**
+V3's claim is consumed. Never retry failed V2/V3 or rescue V8.
+RAM success does not prove installed recovery corrections. Ordinary accepted
+release reboot tests follow [distinct operation rules](development.md#experimental-execution-and-stable-operation);
+they do not permit retrying an experimental claim.
 
-The mode names encode the intended 144/120/90/60 Hz panel profiles. Generic `modetest` calculates misleading refresh values because the vendor command-mode timings are not conventional desktop timings. The connector capability blob explicitly reports no qsync, dynamic FPS, or dynamic bit-clock support, so the safe UI is a fixed-mode selector. The low-power default should be 60 Hz; 90 Hz is the balanced interactive profile; 120/144 Hz should be opt-in.
+## Acceptance matrix and current blocker
 
-The live KScreen mapping is verified as 144 -> ID 1, 120 -> ID 2, 90 -> ID 3, and 60 -> ID 4. The current default is the 60 Hz server profile with DPMS off.
+These are rescue/component results, **not a coherent final server PASS**.
+Do not merge older server results or radio-free rescue evidence into server
+radio/persistent-root qualification. Detailed failures remain in the dated report.
 
-## GPU blocker
+| Outcome | Result / next action |
+|---|---|
+| A01 rescue composition | PASS 83.860 s, exact V8 signed archive; reused unchanged packaging evidence |
+| H01 capture | PASS 0.416 s; original preboot capture replay, no new execution |
+| H02 same-boot rescue | PASS; pinned SSH, deployed runtime and actual watchdog ACK verified |
+| H03 charging/regulation | PASS 604.523 s; 61 samples / 600.265 s, firmware-Full maintenance only |
+| C01 watchdog handover | Exact V8 kernel/archive: 9 cases PASS 138.299 s |
+| C02 late SSH restart | PASS 91.570 s through dispatcher on c2539e3c; only its two isolated guests overlap, unchanged 120 s limit and before/after hashes |
+| Server C02 / prior live | V2 offline C02 PASS 77.233 s; live readiness FAIL, automatic V11 fallback SSH recovered |
+| V3 composition / staging | A01 PASS 104.639 s; staging/readback PASS; live readiness FAIL, automatic V11 SSH recovered |
+| V4 hw1.1 successor | Signed offline A01 PASS 106.750 s; no staging, admission, claim or phone execution yet |
+| F01 journal/OverlayFS | Exact inputs: disposable-image recovery/corruption tests PASS 75.432 s; not physical UFS crash proof |
+| R01 installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
+| Persistent server | Local autonomous boots, qualified Wi-Fi, durability, powered-off start and 60-minute soak incomplete |
 
-The extracted A660 firmware loads and Mesa 26.1.1 Turnip can identify `Turnip Adreno (TM) 660` on a fresh boot. It is not stable.
+H03 observed Full/100%, Good, 29.8°C, 8.590 V, battery current 0 µA and
+unchanged 5,106,000 µAh counter throughout. USB supplied 172–447 mA at
+4.983–5.053 V, below the reported 500 mA limit. Required before/after firmware,
+runtime, source and same-boot checks passed. This proves full-charge maintenance,
+not programmable limits, sub-full charging or uninterrupted future health.
+Unsupported charge-limit controls are not the blocker; none were written.
 
-Reproducer:
+## Current blocker and exact next action
 
-1. First raw `O_RDWR` open of `/dev/kgsl-3d0` succeeds.
-2. Close it.
-3. A second raw open fails with `ETIMEDOUT`.
-4. Kernel log reports GMU HFI error `115 902 PwrLimitsExitIdl` and a CP read-translation page fault at a varying low address.
+V3 captured the already-recorded WCN6851 hw1.1 rejection: PCIe powered up and
+enumerated, then ath11k returned `-95` for hardware version `1 16`. The radio
+service failed; normal service-state/identity never started. Diagnostic SSH
+remained available before the failure handler started and USB disappeared.
+Automatic V11 fallback was independently authenticated. No crash cause is
+inferred from absent pstore or from the driver rejection alone.
 
-The same failure occurs on 5.4.134 and 5.4.210 #20. It remains with ACD, BCL, and IFPC disabled and with rail/clock/bus/no-nap debug forces enabled. This proves the current blocker is the vendor KGSL/GMU open/idle transition, not KDE, Zink, Xvnc, or a Turnip command submission.
+The complete-module builder omitted the existing device patch already qualified
+in [V15](../test-results/2026-08-31-wifi-late-activation.md#v15-live-firmware-phy-and-scan-pass-consumed).
+Its exact-source selector regression reproduces the rejection. The build path
+is now corrected to apply that patch and run the selector before compilation.
+No new charging policy, PCIe architecture or base-kernel change is needed.
 
-GPU tests are intentionally a separate opt-in tier because the failure poisons KGSL until reboot.
+**Next: finish publication CI, then inspect/stage/admit the fresh V4 through
+the existing bounded lifecycle and observe radio/server readiness once.**
+Do not reuse V3 merely because its base Image/wrapper remain valid.
+The recovered module twins match; 71.871/66.620 seconds, 109,494,272 bytes
+combined. Exact-kernel QEMU component PASS 125.827 seconds (guest 43.738 s).
+This unsigned fixture is not an A01-qualified candidate or physical Wi-Fi PASS.
+V4 archive twins passed in 47.330 s; signed packaging reused Image/DTB/wrapper
+in 0.743 s. Manifest `a6296549c855e3c8a1fd9c2e807e196207d1be4ff48fe36db4a2627528fd0966`.
+Staging, admission and physical acceptance remain; no claim was created.
 
-## Desktop and RAM
+Private evidence: `rog5-server-startup-20260906.ou4CkDi9`.
+Its `live-r1`, `v3-fallback-inspection-r1`, and `hw11-repair` are authoritative;
+details and artifact hashes stay in the [dated report](../test-results/2026-09-05-headless-acceptance.md).
+The V11 RAM exitrd action-only transition reached exact fastboot in 9.351 s;
+only its final reboot request changed. Installed boot B was not flashed.
 
-- Plasma Mobile, Plasma Desktop, Plasma NetworkManager, Discover, and the Alpine APK backend are installed.
-- The physical session currently forces Qt Quick and OpenGL software rendering.
-- noVNC/Xvnc is also a software path and should remain an emergency/admin interface, not the GPU validation target.
-- Repaired localhost-only remote-session launchers are installed. The nested KDE/Chromium session remains stopped during the thermally limited native kernel compile.
-- Recorded memory usage was about 0.85 GiB without the full physical UI and about 1.4 GiB with Plasma Mobile, radio services, and caches active. The device has roughly 11 GiB usable RAM, so reliability and idle power matter more than aggressive memory trimming.
+Reuse combined Image `ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`
+and its exact module kit in `rog5-v7-server-modules-20260906.Ibl4iPCz`.
+Preserve all original modules/build evidence; the four replacements are separate.
+The V4 host preview, lossless V2/V3 archives and V4 signed package remain
+volatile tmpfs. Only redundant V3 raw cache was released after full restoration
+hash verification; its bytes remain recoverable. See the dated report.
+Do not reboot the host assuming these caches are durable. Keep 3 GiB disk reserve.
 
-## Known operational constraints
-
-- Radio startup is delayed to avoid a low-battery boot power spike.
-- The current vendor kernel has BPF and uprobes but no `/sys/kernel/btf/vmlinux`; GodShell cannot run its CO-RE eBPF programs on this baseline.
-- The boot image is not persistent. Any normal reboot returns to the installed fallback kernel.
-- PC cross-compilation is active in Docker. Linux 7.1.4 and the ASUS-source 5.4.210 kexec staging kernel both compile successfully on the PC.
-- Credentials and private identifiers are deliberately excluded from this repository.
-
-## Mainline recovery status
-
-The historical header-v3 v2 image temporarily booted and produced staging and
-target logs. Those logs include Linux 7.1.4 entering `/init`, mounting
-configfs, configuring NCM and ACM, binding the `a600000` UDC, creating `usb0`,
-and later returning through rollback. Ramoops from that run also supported the
-TLMM GPIO 52-59 reservation and built-in Qualcomm SNPS FEMTO USB2 PHY changes.
-These remain useful historical observations, not a passing recovery gate.
-
-A later live and artifact audit found that the v2 staging `/` was a writable
-physical UFS filesystem. Its target DTB also enabled the UFS controller, UFS
-PHY, and QMP/SuperSpeed PHY. The earlier “zero storage mounts” and USB2-only
-claims were therefore false. Nothing was flashed, but every v2 boot artifact
-is superseded and must not be booted again.
-
-The later v6 candidate embedded the staging initramfs in the ASUS 5.4 kernel
-and carried a USB2-only target DTB with UFS, QMP/SuperSpeed, and the secondary
-USB controller disabled. It passed its then-current offline suite, but live
-ACM data and automatic rollback failed. Source fixes now supervise ACM and
-hold a timed wake lock with repeated forced-reboot fallback. Two fresh Linux
-7.1 kernel/module/DTB builds are byte-identical, but the target/staging
-initramfs, ASUS wrapper, boot image, hash pins, and complete verifier have not
-been rebuilt. There is no current boot candidate. The raw ramoops reader and
-bootloader restart-reason helper remain under `tools/diagnostics/`.
+Use focused tests during edits, one full CI at relevant integration, and batch
+publication. Active PASS 22.196 s; full local PASS 518.605 s (prior 510.782 s).
+All four CI jobs passed for `9dd03298ecfd0d0941c506e2096d9efe6af66296`
+(run 34060597581). The current successor registration/verification checkpoint
+needs its own publication checks. A01 first failed at 134.300 s despite all
+functional checks passing. Initial root hashing now overlaps independent
+read-only checks, joins before QEMU, and retains the second full hash and
+metadata checks. Same bytes passed at 106.750 s; no deadline was relaxed.
+Current private preparation/evidence: `rog5-server-hw11-20260906.Lo7km1SL`.
+Focused composition: 34 tests PASS; registration active PASS 21.452 s.
+Project-local skills and H03 policy cleanup are complete;
+global skills were not changed. Display and unrelated subsystems remain deferred.

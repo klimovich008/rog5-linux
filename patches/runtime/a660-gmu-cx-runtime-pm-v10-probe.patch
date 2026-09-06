@@ -1,0 +1,411 @@
+--- a660-gmu-cx-runtime-pm-v10-probe.base
++++ a660-gmu-cx-runtime-pm-v10-probe
+@@ -59,12 +59,12 @@
+ 	fail 'NFS lower is not read-only'
+ [ "$(find /sys/class/block -mindepth 1 -maxdepth 1 -type l \
+ 	-exec test -e {}/device \; -print 2>/dev/null | wc -l)" -eq 0 ] ||
+-	fail 'physical block device is present before GMU resume-entry probe'
++	fail 'physical block device is present before GMU/CX runtime-PM probe'
+ [ "$(findmnt -rn -o SOURCE |
+ 	awk '/^\/dev\// { count++ } END { print count + 0 }')" -eq 0 ] ||
+-	fail 'block-backed mount is present before GMU resume-entry probe'
++	fail 'block-backed mount is present before GMU/CX runtime-PM probe'
+ [ "$(cat /sys/class/net/usb0/carrier)" = 1 ] ||
+-	fail 'USB network carrier is down before GMU resume-entry probe'
++	fail 'USB network carrier is down before GMU/CX runtime-PM probe'
+ [ "$(ip -4 -o address show dev usb0 |
+ 	awk '$4 == "169.254.77.2/30" { count++ }
+ 		END { print count + 0 }')" -eq 1 ] ||
+@@ -125,14 +125,14 @@
+ 	4220552fbf17562128c956c3cfdbb8abd22e26f2c6a7f22e94422ef34b10e587 \
+ 	'UBWC module'
+ verify_file "$msm_module" 644 \
+-	b485e8719d6ddf80542a5dc2fdf5bba795d40c69fa220b44571323a8a1d7d861 \
+-	'GMU resume-entry MSM module'
++	c36fd352c48d624eff9f17fb8200c8f151209eae066d1f276ab3bff67c5d465d \
++	'GMU/CX runtime-PM MSM module'
+ verify_file "$helper" 755 \
+ 	d3303a04182625606e0dfc343205f677a80fcf55ab6928de53fad82852863bae \
+ 	'one-open helper'
+ verify_file "$trace_oracle" 755 \
+-	48325037a54fe737aa4c623a1be59f644952bd21d9f13f0bba6a6563fea6f223 \
+-	'signed device-scoped v9 trace oracle'
++	33ccadc6ae1e5f6f12ed83de0ddc192d30d204e229ec1b97aa813e1d0ac9c7e6 \
++	'exact GMU/linked-CX v10 trace oracle'
+ verify_file "$firmware_root/qcom/a660_sqe.fw" 644 \
+ 	d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76 \
+ 	'SQE firmware'
+@@ -140,7 +140,7 @@
+ 	8acab7b417d9ebde89a1de9ae1e2c261d352fcab122e31ecd580cec9fe2ae5e7 \
+ 	'GMU firmware'
+ [ ! -e "$firmware_root/qcom/sm8350/a660_zap.mbn" ] ||
+-	fail 'ZAP firmware exists in GMU resume-entry root'
++	fail 'ZAP firmware exists in GMU/CX runtime-PM root'
+ [ "$(find "$lower" -xdev -type f \
+ 	\( -name a660_sqe.fw -o -name a660_gmu.bin -o -name a660_zap.mbn \) |
+ 	wc -l)" -eq 2 ] ||
+@@ -160,6 +160,10 @@
+ 	grep -Fxq \
+ 	'gmu_resume_entry_only:Stop one exact A660 open at GMU resume entry before resource activation (bool)' ||
+ 	fail 'MSM module lacks GMU resume-entry parameter'
++modinfo -p "$msm_module" |
++	grep -Fxq \
++	'gmu_cx_runtime_pm_only:Resume and synchronously roll back exact A660 GMU/CX power once before GX (bool)' ||
++	fail 'MSM module lacks GMU/CX runtime-PM parameter'
+ modinfo -p "$msm_module" | grep -Fxq 'separate_gpu_kms: (bool)' ||
+ 	fail 'MSM module lacks separate GPU parameter'
+ for module in gpucc_sm8350 msm drm_exec drm_gpuvm gpu_sched mdt_loader \
+@@ -201,6 +205,13 @@
+ for device in "$gpucc_device" "$smmu_device" "$gpu_device" "$gmu_device"; do
+ 	[ ! -e "$device/driver" ] || fail 'GPU diagnostic device is already bound'
+ done
++gmu_name=$(basename "$gmu_device")
++[ "$gmu_name" = 3d6a000.gmu ] ||
++	fail 'GMU platform-device name is unexpected'
++cx_name=genpd:0:3d6a000.gmu
++gx_name=genpd:1:3d6a000.gmu
++cx_device=/sys/bus/genpd/devices/$cx_name
++gx_device=/sys/bus/genpd/devices/$gx_name
+ [ -d /sys/bus/platform/drivers/arm-smmu ] ||
+ 	fail 'built-in ARM SMMU driver is absent'
+ smmu_name=$(basename "$smmu_device")
+@@ -236,13 +247,13 @@
+ check_no_drm_fds || fail 'a process holds a DRM descriptor before module load'
+ 
+ firmware_pattern='a660_sqe.fw|a660_gmu.bin|a660_zap.mbn'
+-entry_marker='A660 GMU resume entry reached before resource activation; reject resume'
+-rollback_marker='A660 GMU resume entry passed and rolled back; reject open'
++entry_marker='A660 GMU/CX runtime PM resumed and synchronously suspended; reject resume'
++rollback_marker='A660 GMU/CX runtime PM passed and GPU load rolled back; reject open'
+ fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+ fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
+ for pattern in "$firmware_pattern" "$entry_marker" "$rollback_marker"; do
+ 	[ "$(dmesg | grep -Ec "$pattern" || true)" -eq 0 ] ||
+-		fail "GMU resume-entry evidence exists before probe: $pattern"
++		fail "GMU/CX runtime-PM evidence exists before probe: $pattern"
+ done
+ [ "$(dmesg | grep -Ec "$fatal_pattern" || true)" -eq 0 ] ||
+ 	fail 'fatal kernel signature exists before probe'
+@@ -266,8 +277,10 @@
+ rog5_gmu_v10_pm_resume_ret
+ rog5_gmu_v10_resume
+ rog5_gmu_v10_resume_ret
+-rog5_gmu_v10_mark_hit
+-rog5_gmu_v10_mark_hit_ret
++rog5_gmu_v10_mark_attempt
++rog5_gmu_v10_mark_attempt_ret
++rog5_gmu_v10_mark_passed
++rog5_gmu_v10_mark_passed_ret
+ rog5_gmu_v10_rollback
+ rog5_gmu_v10_rollback_ret
+ rog5_gmu_v10_vma_map
+@@ -284,7 +297,10 @@
+ rog5_gmu_v10_ucode_unload
+ rog5_gmu_v10_fw_request
+ rog5_gmu_v10_fw_release
+-rog5_gmu_v10_runtime_pm
++rog5_gmu_v10_runtime_pm_resume
++rog5_gmu_v10_runtime_pm_resume_ret
++rog5_gmu_v10_runtime_pm_suspend
++rog5_gmu_v10_runtime_pm_suspend_ret
+ rog5_gmu_v10_clk_rate
+ rog5_gmu_v10_enable_irq
+ rog5_gmu_v10_msm_pm_resume
+@@ -309,6 +325,10 @@
+ 		cp "$trace_root/trace" "$trace_snapshot" || trace_status=1
+ 	fi
+ 	printf '\n' >"$trace_root/set_event_pid" || trace_status=1
++	for event in rpm_resume rpm_suspend; do
++		printf '0\n' >"$trace_root/events/rpm/$event/enable" ||
++			trace_status=1
++	done
+ 	if [ -d "$trace_root/events/rog5_gmu_v10" ]; then
+ 		printf '0\n' >"$trace_root/events/rog5_gmu_v10/enable" ||
+ 			trace_status=1
+@@ -451,8 +471,8 @@
+ insmod "$mdt_module" || post_fail 'mdt_loader load failed'
+ insmod "$ubwc_module" || post_fail 'ubwc_config load failed'
+ echo 'rog5-a660-gmu-cx-runtime-pm-v10: MSM load begin' >/dev/kmsg
+-insmod "$msm_module" separate_gpu_kms=1 gmu_resume_entry_only=1 ||
+-	post_fail 'GMU resume-entry MSM module load failed'
++insmod "$msm_module" separate_gpu_kms=1 gmu_cx_runtime_pm_only=1 ||
++	post_fail 'GMU/CX runtime-PM MSM module load failed'
+ 
+ for module in gpucc_sm8350 msm drm_exec drm_gpuvm gpu_sched mdt_loader \
+ 	ubwc_config
+@@ -462,8 +482,12 @@
+ done
+ [ "$(cat /sys/module/msm/parameters/separate_gpu_kms)" = Y ] ||
+ 	post_fail 'separate_gpu_kms is not enabled'
+-[ "$(cat /sys/module/msm/parameters/gmu_resume_entry_only)" = Y ] ||
+-	post_fail 'gmu_resume_entry_only=Y is not preserved'
++[ "$(cat /sys/module/msm/parameters/gmu_cx_runtime_pm_only)" = Y ] ||
++	post_fail 'gmu_cx_runtime_pm_only=Y is not preserved'
++[ "$(stat -c %a /sys/module/msm/parameters/gmu_cx_runtime_pm_only)" = 400 ] ||
++	post_fail 'gmu_cx_runtime_pm_only became writable'
++[ "$(cat /sys/module/msm/parameters/gmu_resume_entry_only)" = N ] ||
++	post_fail 'gmu_resume_entry_only=N is not preserved'
+ [ "$(stat -c %a /sys/module/msm/parameters/gmu_resume_entry_only)" = 400 ] ||
+ 	post_fail 'gmu_resume_entry_only became writable'
+ [ "$(cat /sys/module/msm/parameters/ucode_allocation_only)" = N ] ||
+@@ -481,9 +505,14 @@
+ 	post_fail 'A660 bound an unexpected driver'
+ [ ! -e "$gmu_device/driver" ] ||
+ 	post_fail 'GMU unexpectedly acquired a separate platform driver'
++[ -e "$cx_device" ] && [ -L "$cx_device/subsystem" ] ||
++	post_fail 'linked CX virtual power-domain device is absent'
++[ -e "$gx_device" ] && [ -L "$gx_device/subsystem" ] ||
++	post_fail 'GX virtual power-domain device is absent'
+ 
+ for runtime_path in "$smmu_device/power/runtime_status" \
+-	"$gmu_device/power/runtime_status"
++	"$gmu_device/power/runtime_status" "$cx_device/power/runtime_status" \
++	"$gx_device/power/runtime_status"
+ do
+ 	[ -r "$runtime_path" ] ||
+ 		post_fail "runtime status is unreadable: $runtime_path"
+@@ -523,7 +552,7 @@
+ for pattern in "$firmware_pattern" "$entry_marker" "$rollback_marker"; do
+ 	[ "$(dmesg | tail -n +"$dmesg_start" |
+ 		grep -Ec "$pattern" || true)" -eq 0 ] ||
+-		post_fail "premature GMU resume-entry evidence appeared: $pattern"
++		post_fail "premature GMU/CX runtime-PM evidence appeared: $pattern"
+ done
+ 
+ debug_root=/sys/kernel/debug
+@@ -547,9 +576,17 @@
+ [ ! -s "$trace_root/kprobe_events" ] ||
+ 	post_fail 'an unrelated kprobe event already exists'
+ [ ! -d "$trace_root/events/rog5_gmu_v10" ] ||
+-	post_fail 'stale GMU resume-entry trace group exists'
++	post_fail 'stale GMU/CX runtime-PM trace group exists'
++for event in rpm_resume rpm_suspend; do
++	enable=$trace_root/events/rpm/$event/enable
++	[ -w "$enable" ] ||
++		post_fail "built-in RPM trace event is unavailable: $event"
++	[ "$(cat "$enable")" = 0 ] ||
++		post_fail "built-in RPM trace event is already enabled: $event"
++done
+ for symbol in adreno_load_gpu adreno_runtime_resume a6xx_gmu_pm_resume \
+-	a6xx_gmu_resume msm_a660_gmu_resume_entry_only_mark_hit \
++	a6xx_gmu_resume msm_a660_gmu_cx_runtime_pm_only_mark_attempt \
++	msm_a660_gmu_cx_runtime_pm_only_mark_passed \
+ 	adreno_rollback_gpu_load_only msm_gem_vma_map \
+ 	msm_gem_vma_unmap msm_gem_vma_close msm_gem_unpin_iova \
+ 	msm_gem_free_object msm_gem_kernel_new msm_gem_get_vaddr \
+@@ -562,7 +599,7 @@
+ 		"[[:space:]]${symbol}[[:space:]]+\\[msm\\]$" /proc/kallsyms)" -eq 1 ] ||
+ 		post_fail "required MSM trace symbol is not unique: $symbol"
+ done
+-for symbol in __pm_runtime_resume clk_set_rate enable_irq \
++for symbol in __pm_runtime_resume __pm_runtime_suspend clk_set_rate enable_irq \
+ 	request_firmware_direct release_firmware qcom_scm_is_available \
+ 	qcom_scm_gpu_init_regs \
+ 	qcom_scm_pas_auth_and_reset qcom_scm_set_gpu_smmu_aperture
+@@ -581,8 +618,10 @@
+ 	'r:rog5_gmu_v10/rog5_gmu_v10_pm_resume_ret msm:a6xx_gmu_pm_resume ret=$retval:u32' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_resume msm:a6xx_gmu_resume' \
+ 	'r:rog5_gmu_v10/rog5_gmu_v10_resume_ret msm:a6xx_gmu_resume ret=$retval:u32' \
+-	'p:rog5_gmu_v10/rog5_gmu_v10_mark_hit msm:msm_a660_gmu_resume_entry_only_mark_hit' \
+-	'r:rog5_gmu_v10/rog5_gmu_v10_mark_hit_ret msm:msm_a660_gmu_resume_entry_only_mark_hit ret=$retval:u64' \
++	'p:rog5_gmu_v10/rog5_gmu_v10_mark_attempt msm:msm_a660_gmu_cx_runtime_pm_only_mark_attempt' \
++	'r:rog5_gmu_v10/rog5_gmu_v10_mark_attempt_ret msm:msm_a660_gmu_cx_runtime_pm_only_mark_attempt ret=$retval:u64' \
++	'p:rog5_gmu_v10/rog5_gmu_v10_mark_passed msm:msm_a660_gmu_cx_runtime_pm_only_mark_passed' \
++	'r:rog5_gmu_v10/rog5_gmu_v10_mark_passed_ret msm:msm_a660_gmu_cx_runtime_pm_only_mark_passed ret=$retval:u64' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_rollback msm:adreno_rollback_gpu_load_only dev=$arg1:x64' \
+ 	'r:rog5_gmu_v10/rog5_gmu_v10_rollback_ret msm:adreno_rollback_gpu_load_only ret=$retval:s64' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_vma_map msm:msm_gem_vma_map vma=$arg1:x64' \
+@@ -599,7 +638,10 @@
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_fw_request request_firmware_direct' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_fw_release release_firmware fw=$arg1:x64' \
+-	'p:rog5_gmu_v10/rog5_gmu_v10_runtime_pm __pm_runtime_resume dev=$arg1:x64' \
++	'p:rog5_gmu_v10/rog5_gmu_v10_runtime_pm_resume __pm_runtime_resume dev=$arg1:x64' \
++	'r:rog5_gmu_v10/rog5_gmu_v10_runtime_pm_resume_ret __pm_runtime_resume ret=$retval:u32' \
++	'p:rog5_gmu_v10/rog5_gmu_v10_runtime_pm_suspend __pm_runtime_suspend dev=$arg1:x64' \
++	'r:rog5_gmu_v10/rog5_gmu_v10_runtime_pm_suspend_ret __pm_runtime_suspend ret=$retval:u32' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_clk_rate clk_set_rate' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_enable_irq enable_irq' \
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_msm_pm_resume msm:msm_gpu_pm_resume' \
+@@ -617,12 +659,16 @@
+ 	'p:rog5_gmu_v10/rog5_gmu_v10_scm_aperture qcom_scm_set_gpu_smmu_aperture' \
+ 	>>"$trace_root/kprobe_events"
+ then
+-	post_fail 'GMU resume-entry trace registration failed'
++	post_fail 'GMU/CX runtime-PM trace registration failed'
+ fi
+ [ -d "$trace_root/events/rog5_gmu_v10" ] ||
+-	post_fail 'GMU resume-entry trace group was not created'
++	post_fail 'GMU/CX runtime-PM trace group was not created'
+ printf '1\n' >"$trace_root/events/rog5_gmu_v10/enable" ||
+-	post_fail 'GMU resume-entry trace enable failed'
++	post_fail 'GMU/CX runtime-PM trace enable failed'
++printf '1\n' >"$trace_root/events/rpm/rpm_resume/enable" ||
++	post_fail 'RPM resume trace enable failed'
++printf '1\n' >"$trace_root/events/rpm/rpm_suspend/enable" ||
++	post_fail 'RPM suspend trace enable failed'
+ trace_active=1
+ 
+ open_dmesg_start=$(( $(dmesg | wc -l) + 1 ))
+@@ -694,14 +740,25 @@
+ 
+ [ -s "$trace_snapshot" ] || post_fail 'PID-filtered trace is empty'
+ trace_oracle_output=$("$trace_oracle" "$trace_snapshot") ||
+-	post_fail 'signed device-scoped trace oracle rejected the live trace'
++	post_fail 'exact GMU/linked-CX trace oracle rejected the live trace'
+ printf '%s\n' "$trace_oracle_output" | grep -Eq \
+-	'^PASS A660 GMU/CX runtime-PM v10 trace oracle returns=-117/-117/-117 gpu_runtime_pm=1 generic_runtime_pm=[1-9][0-9]*$' ||
+-	post_fail 'signed device-scoped trace oracle output is not exact'
+-generic_runtime_pm=${trace_oracle_output##*=}
+-case $generic_runtime_pm in
+-	*[!0-9]*|'') post_fail 'generic runtime-PM count is malformed' ;;
++	'^PASS A660 GMU/CX runtime-PM v10 trace oracle returns=-117/-117/-117 gpu_runtime_pm=1 gmu_runtime_pm=1/1 cx_runtime_pm=1/1 cx_suspend_ret=[01] generic_resume=[1-9][0-9]* generic_suspend=[1-9][0-9]*$' ||
++	post_fail 'exact GMU/linked-CX trace oracle output is not exact'
++cx_suspend_ret=$(printf '%s\n' "$trace_oracle_output" |
++	sed -n 's/.* cx_suspend_ret=\\([01]\\) generic_resume=.*/\\1/p')
++generic_resume=$(printf '%s\n' "$trace_oracle_output" |
++	sed -n 's/.* generic_resume=\\([0-9][0-9]*\\) generic_suspend=.*/\\1/p')
++generic_suspend=$(printf '%s\n' "$trace_oracle_output" |
++	sed -n 's/.* generic_suspend=\\([0-9][0-9]*\\)$/\\1/p')
++case $cx_suspend_ret in
++	0|1) ;;
++	*) post_fail 'CX runtime-suspend result is malformed' ;;
+ esac
++for count in "$generic_resume" "$generic_suspend"; do
++	case $count in
++		''|0|*[!0-9]*) post_fail 'generic runtime-PM count is malformed' ;;
++	esac
++done
+ require_event_count rog5_gmu_v10_load_gpu 1 'adreno_load_gpu entry'
+ require_event_count rog5_gmu_v10_load_gpu_ret 1 'adreno_load_gpu return'
+ [ "$(grep -c 'rog5_gmu_v10_load_gpu_ret:.*ret=0' \
+@@ -714,12 +771,20 @@
+ require_event_count rog5_gmu_v10_pm_resume_ret 1 'A6xx GMU PM-resume return'
+ require_event_count rog5_gmu_v10_resume 1 'A6xx GMU-resume entry'
+ require_event_count rog5_gmu_v10_resume_ret 1 'A6xx GMU-resume return'
+-require_event_count rog5_gmu_v10_mark_hit 1 'GMU resume-entry one-shot hit'
+-require_event_count rog5_gmu_v10_mark_hit_ret 1 \
+-	'GMU resume-entry one-shot result'
+-[ "$(grep -c 'rog5_gmu_v10_mark_hit_ret:.*ret=1' \
++require_event_count rog5_gmu_v10_mark_attempt 1 \
++	'GMU/CX runtime-PM one-shot attempt'
++require_event_count rog5_gmu_v10_mark_attempt_ret 1 \
++	'GMU/CX runtime-PM one-shot attempt result'
++[ "$(grep -c 'rog5_gmu_v10_mark_attempt_ret:.*ret=1' \
++	"$trace_snapshot" || true)" -eq 1 ] ||
++	post_fail 'GMU/CX runtime-PM one-shot was already consumed'
++require_event_count rog5_gmu_v10_mark_passed 1 \
++	'GMU/CX runtime-PM passed transition'
++require_event_count rog5_gmu_v10_mark_passed_ret 1 \
++	'GMU/CX runtime-PM passed result'
++[ "$(grep -c 'rog5_gmu_v10_mark_passed_ret:.*ret=1' \
+ 	"$trace_snapshot" || true)" -eq 1 ] ||
+-	post_fail 'GMU resume-entry one-shot was already consumed'
++	post_fail 'GMU/CX runtime-PM diagnostic did not reach passed state'
+ require_event_count rog5_gmu_v10_rollback 1 'GPU-load rollback entry'
+ require_event_count rog5_gmu_v10_rollback_ret 1 'GPU-load rollback return'
+ [ "$(grep -c 'rog5_gmu_v10_rollback_ret:.*ret=0' \
+@@ -742,9 +807,8 @@
+ require_event_count rog5_gmu_v10_ucode_unload 1 'ucode unload'
+ require_event_count rog5_gmu_v10_fw_request 2 'firmware request'
+ require_event_count rog5_gmu_v10_fw_release 2 'firmware release'
+-# V9 keeps the v8 kernel and v7-proven rollback. The signed/device-scoped
+-# oracle above classifies the one GPU outer runtime-PM call without imposing
+-# a false process-global count on unrelated runtime-PM devices.
++# The oracle classifies the exact GPU, GMU consumer, and linked CX supplier
++# calls without imposing a false process-global runtime-PM count.
+ require_event_count rog5_gmu_v10_clk_rate 0 'clock-rate activation'
+ require_event_count rog5_gmu_v10_enable_irq 0 'IRQ activation'
+ for forbidden_event in rog5_gmu_v10_msm_pm_resume \
+@@ -824,9 +888,9 @@
+ 
+ open_log=$(dmesg | tail -n +"$open_dmesg_start")
+ [ "$(printf '%s\n' "$open_log" | grep -Fc "$entry_marker")" -eq 1 ] ||
+-	post_fail 'GMU resume-entry marker count is not one'
++	post_fail 'GMU/CX runtime-PM marker count is not one'
+ [ "$(printf '%s\n' "$open_log" | grep -Fc "$rollback_marker")" -eq 1 ] ||
+-	post_fail 'GMU resume-entry rollback marker count is not one'
++	post_fail 'GMU/CX runtime-PM rollback marker count is not one'
+ [ "$(printf '%s\n' "$open_log" |
+ 	grep -Fc "Couldn't power up the GPU: -117")" -eq 1 ] ||
+ 	post_fail 'outer GPU runtime-PM EUCLEAN marker count is not one'
+@@ -834,9 +898,9 @@
+ 	post_fail 'SQE firmware request count is not one'
+ [ "$(printf '%s\n' "$open_log" | grep -Fc a660_gmu.bin)" -eq 1 ] ||
+ 	post_fail 'GMU firmware request count is not one'
+-forbidden_open='a660_zap[.]mbn|A660 ucode-allocation-only|qcom_scm|pas_auth|zap.shader|HFI|a6xx_gmu_start|GPU hardware init|GPU fault|RBBM|CP_SQE'
++forbidden_open='a660_zap[.]mbn|A660 ucode-allocation-only|qcom_scm|pas_auth|zap.shader|secure init|MMIO|HFI|a6xx_gmu_start|GPU hardware init|GPU fault|RBBM|CP_SQE'
+ if printf '%s\n' "$open_log" | grep -Ei "$forbidden_open"; then
+-	post_fail 'open crossed the GMU resume-entry hardware boundary'
++	post_fail 'open crossed the GMU/CX runtime-PM hardware boundary'
+ fi
+ check_no_drm_fds ||
+ 	post_fail 'a DRM descriptor survived the failed open'
+@@ -849,30 +913,36 @@
+ settled_log=$(dmesg | tail -n +"$open_dmesg_start")
+ [ "$(printf '%s\n' "$settled_log" |
+ 	grep -Fc "$entry_marker")" -eq 1 ] ||
+-	post_fail 'GMU resume-entry marker changed during settling'
++	post_fail 'GMU/CX runtime-PM marker changed during settling'
+ [ "$(printf '%s\n' "$settled_log" |
+ 	grep -Fc "$rollback_marker")" -eq 1 ] ||
+-	post_fail 'GMU resume-entry rollback marker changed during settling'
++	post_fail 'GMU/CX runtime-PM rollback marker changed during settling'
+ [ "$(printf '%s\n' "$settled_log" |
+ 	grep -Fc "Couldn't power up the GPU: -117")" -eq 1 ] ||
+ 	post_fail 'outer runtime-PM EUCLEAN marker changed during settling'
+ if printf '%s\n' "$settled_log" | grep -Ei "$forbidden_open"; then
+-	post_fail 'later work crossed the GMU resume-entry hardware boundary'
++	post_fail 'later work crossed the GMU/CX runtime-PM hardware boundary'
+ fi
+ check_no_drm_fds ||
+ 	post_fail 'a DRM descriptor appeared during settling'
+-for runtime_path in "$smmu_device/power/runtime_status" \
+-	"$gmu_device/power/runtime_status"
+-do
+-	[ "$(cat "$runtime_path")" = suspended ] ||
+-		post_fail "runtime state changed after failed open: $runtime_path"
+-done
++smmu_runtime_status=suspended
++gmu_runtime_status=suspended
++cx_runtime_status=suspended
++gx_runtime_status=suspended
++[ "$(cat "$smmu_device/power/runtime_status")" = "$smmu_runtime_status" ] ||
++	post_fail 'SMMU runtime state changed after failed open'
++[ "$(cat "$gmu_device/power/runtime_status")" = "$gmu_runtime_status" ] ||
++	post_fail 'GMU runtime state changed after failed open'
++[ "$(cat "$cx_device/power/runtime_status")" = "$cx_runtime_status" ] ||
++	post_fail 'linked CX runtime state changed after failed open'
++[ "$(cat "$gx_device/power/runtime_status")" = "$gx_runtime_status" ] ||
++	post_fail 'GX runtime state changed after failed open'
+ 
+ [ "$(systemctl is-system-running 2>/dev/null || true)" = running ] ||
+-	post_fail 'systemd regressed after GMU resume-entry open'
++	post_fail 'systemd regressed after GMU/CX runtime-PM open'
+ [ "$(systemctl --failed --no-legend --plain 2>/dev/null |
+ 	awk 'NF { count++ } END { print count + 0 }')" -eq 0 ] ||
+-	post_fail 'a systemd unit failed after GMU resume-entry open'
++	post_fail 'a systemd unit failed after GMU/CX runtime-PM open'
+ [ "$(find /sys/class/block -mindepth 1 -maxdepth 1 -type l \
+ 	-exec test -e {}/device \; -print 2>/dev/null | wc -l)" -eq 0 ] ||
+ 	post_fail 'physical block device appeared'
+@@ -892,7 +962,7 @@
+ 	[ "$value" -le "$thermal_max" ] || thermal_max=$value
+ done
+ [ "$thermal_count" -ge 20 ] && [ "$thermal_max" -lt 50000 ] ||
+-	post_fail 'thermal state is not safe after GMU resume-entry open'
++	post_fail 'thermal state is not safe after GMU/CX runtime-PM open'
+ [ "$(dmesg | grep -Ec "$fatal_pattern" || true)" -eq 0 ] ||
+ 	post_fail 'fatal kernel signature appeared'
+ [ "$(dmesg | tail -n +"$dmesg_start" |
+@@ -903,6 +973,8 @@
+ probe_safe=1
+ disarm_watchdog
+ trap - EXIT HUP INT TERM
+-printf 'PASS A660 gmu-resume-entry-v9 open_invocations=1 open_errno=117 gmu_resume_entry_only=Y firmware_request_only=N ucode_allocation_only=N firmware_requests=2 firmware_releases=2 entry_markers=1 rollback_markers=1 adreno_load_gpu=1 runtime_resume=1 gmu_pm_resume=1 gmu_resume=1 rollback=1 gpu_runtime_pm=1 generic_runtime_pm=%s inner_runtime_pm=0 clocks=0 irq=0 hfi=0 devfreq=0 llc=0 hw_init=0 scm=0 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
+-	"$generic_runtime_pm" "$thermal_count" "$thermal_max" "$reprobe_attempted" \
++printf 'PASS A660 gmu-cx-runtime-pm-v10 open_invocations=1 open_errno=117 gmu_cx_runtime_pm_only=Y gmu_resume_entry_only=N firmware_request_only=N ucode_allocation_only=N firmware_requests=2 firmware_releases=2 entry_markers=1 rollback_markers=1 adreno_load_gpu=1 runtime_resume=1 gmu_pm_resume=1 gmu_resume=1 rollback=1 gpu_runtime_pm=1 gmu_runtime_pm=1/1 cx_runtime_pm=1/1 cx_suspend_ret=%s generic_resume=%s generic_suspend=%s gx_runtime_pm=0 gmu_runtime_status=%s cx_runtime_status=%s gx_runtime_status=%s clocks=0 secure=0 mmio=0 irq=0 firmware_start=0 hfi=0 devfreq=0 llc=0 hw_init=0 scm=0 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
++	"$cx_suspend_ret" "$generic_resume" "$generic_suspend" \
++	"$gmu_runtime_status" "$cx_runtime_status" "$gx_runtime_status" \
++	"$thermal_count" "$thermal_max" "$reprobe_attempted" \
+ 	"$driver_override_state"

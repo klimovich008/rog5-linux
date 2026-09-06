@@ -1,0 +1,10 @@
+[Unit]
+Description=Return the RAM trial to the unchanged persistent V11 fallback
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-native-wifi/runtime rollback
+TimeoutStartSec=10s

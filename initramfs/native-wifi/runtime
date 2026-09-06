@@ -1,0 +1,399 @@
+#!/bin/sh
+# RAM-only automatic-boot qualification. Timers remain armed until fallback.
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+root=/run/rog5-native-wifi
+state=/run/rog5-wifi-association
+secret=/persist/secrets/wifi/network.conf
+fail() { echo "FAIL native-wifi: $*" >&2; exit 1; }
+
+interface_identity() {
+	interface=$(cat "$root/interface") || return 1
+	case $interface in ''|*[!A-Za-z0-9_.:-]*) return 1 ;; esac
+	[ "$(readlink -f "/sys/class/net/$interface/device")" = \
+		"$(readlink -f /sys/bus/pci/devices/0000:01:00.0)" ] || return 1
+	[ "$(cat /sys/bus/pci/devices/0000:01:00.0/vendor)" = 0x17cb ] &&
+		[ "$(cat /sys/bus/pci/devices/0000:01:00.0/device)" = 0x1103 ] &&
+		[ "$(cat /sys/bus/pci/devices/0000:01:00.0/subsystem_vendor)" = 0x17cb ] &&
+		[ "$(cat /sys/bus/pci/devices/0000:01:00.0/subsystem_device)" = 0x0108 ]
+}
+
+install_status_screen() {
+	units=$1
+	install_status_file() {
+		source=$1
+		destination=$2
+		if [ -e "$destination" ] || [ -L "$destination" ]; then
+			[ -f "$destination" ] && [ ! -L "$destination" ] &&
+				[ "$(stat -c '%u:%g:%a:%h' "$destination")" = 0:0:755:1 ] &&
+				cmp "$source" "$destination" || return 1
+			return 0
+		fi
+		cp -p "$source" "$destination" || return 1
+		chmod 0755 "$destination" || return 1
+		[ "$(stat -c '%u:%g:%a:%h' "$destination")" = 0:0:755:1 ] &&
+			cmp "$source" "$destination"
+	}
+	present=0
+	# The common userspace bundle carries load-pwrkey even in headless mode.
+	# That dormant helper is not display opt-in; a real display set still
+	# requires it (and its exact metadata) below before any activation.
+	for path in screen-toggle.sh status-screen.sh power-buttond.py \
+		qcom-pon.ko \
+		units/rog5-status-screen.service units/rog5-power-button.service; do
+		if [ -e "$root/$path" ] || [ -L "$root/$path" ]; then
+			present=$((present + 1))
+		fi
+	done
+	[ "$present" -eq 0 ] && return 0
+	[ "$present" -eq 6 ] || return 1
+	for path in screen-toggle.sh status-screen.sh power-buttond.py load-pwrkey; do
+		[ -f "$root/$path" ] && [ ! -L "$root/$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/$path")" = 0:0:755:1 ] ||
+			return 1
+	done
+	[ -f "$root/qcom-pon.ko" ] && [ ! -L "$root/qcom-pon.ko" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$root/qcom-pon.ko")" = 0:0:644:1 ] ||
+		return 1
+	for path in rog5-status-screen.service rog5-power-button.service; do
+		[ -f "$root/units/$path" ] && [ ! -L "$root/units/$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/units/$path")" = 0:0:644:1 ] ||
+			return 1
+		[ ! -e "$units/$path" ] && [ ! -L "$units/$path" ] || return 1
+		[ ! -e "$units/multi-user.target.wants/$path" ] &&
+			[ ! -L "$units/multi-user.target.wants/$path" ] || return 1
+	done
+	# Validate persistent copies even when the optional hardware is unavailable.
+	# Absence must not hide a mismatched or aliased installed executable.
+	mkdir -p /newroot/usr/local/bin /newroot/usr/local/libexec \
+		"$units/multi-user.target.wants" || return 1
+	install_status_file "$root/screen-toggle.sh" \
+		/newroot/usr/local/bin/rog5-screen-toggle.sh || return 1
+	install_status_file "$root/status-screen.sh" \
+		/newroot/usr/local/libexec/rog5-status-screen || return 1
+	install_status_file "$root/power-buttond.py" \
+		/newroot/usr/local/libexec/rog5-power-buttond || return 1
+	# Load the reviewed module in this trusted initramfs runtime.  The
+	# long-running button service deliberately has no CAP_SYS_MODULE; its
+	# ExecStartPre repeats the same helper only as an idempotent identity check.
+	release=$(cat "$root/kernel-release") || return 1
+	case $release in ''|*[!A-Za-z0-9._+-]*) return 1 ;; esac
+	[ "$(uname -r)" = "$release" ] || return 1
+	module_base=/lib/modules
+	module_root=$module_base/$release
+	module_index=/lib/modules/$release/modules.dep
+	for directory in "$module_base" "$module_root"; do
+		if [ -e "$directory" ] || [ -L "$directory" ]; then
+			[ -d "$directory" ] && [ ! -L "$directory" ] || return 1
+		else
+			mkdir -m 0755 "$directory" || return 1
+		fi
+	done
+	[ ! -e "$module_index" ] && [ ! -L "$module_index" ] || return 1
+	: >"$module_index" || return 1
+	chmod 0444 "$module_index" || return 1
+	[ "$(stat -c '%u:%g:%a:%s:%h' "$module_index")" = 0:0:444:0:1 ] ||
+		return 1
+	pwrkey_result=/run/rog5-pwrkey-result
+	[ ! -e "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] || return 1
+	pwrkey_status=0
+	ROG5_PWRKEY_RESULT=$pwrkey_result "$root/load-pwrkey" || pwrkey_status=$?
+	[ -f "$pwrkey_result" ] && [ ! -L "$pwrkey_result" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$pwrkey_result")" = 0:0:444:1 ] &&
+		[ "$(stat -c %s "$pwrkey_result")" -le 64 ] || return 1
+	pwrkey_outcome=$(cat "$pwrkey_result") || return 1
+	printf '%s\n' "$pwrkey_outcome" | cmp -s - "$pwrkey_result" || return 1
+	pwrkey_available=0
+	case $pwrkey_status:$pwrkey_outcome in
+		0:pwrkey-pass) pwrkey_available=1 ;;
+		1:pwrkey-input-zero) echo 'OBS absent power-button input' ;;
+		# A module-load failure can be an invalid artifact, not missing hardware.
+		# Metadata, ABI, platform identity, ambiguity, unexpected exits and
+		# malformed results remain fatal. This is not a generic fail-open.
+		*) return 1 ;;
+	esac
+	p2_unit=$units/rog5-p2-ready.service
+	p2_dropin_dir=$units/rog5-p2-ready.service.d
+	p2_dropin=$units/rog5-p2-ready.service.d/10-screen-off.conf
+	[ -f "$p2_unit" ] && [ ! -L "$p2_unit" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$p2_unit")" = 0:0:644:1 ] || return 1
+	[ ! -e "$p2_dropin_dir" ] && [ ! -L "$p2_dropin_dir" ] || return 1
+	mkdir "$p2_dropin_dir" || return 1
+	# Best-effort display operation only. The P2 attestor still independently
+	# rejects any physical backlight left on; its other safety gates are intact.
+	printf '%s\n' '[Service]' \
+		'ExecStartPre=-/usr/local/bin/rog5-screen-toggle.sh off' \
+		>"$p2_dropin" || return 1
+	chmod 0644 "$p2_dropin" || return 1
+	[ "$(stat -c '%u:%g:%a:%h' "$p2_dropin")" = 0:0:644:1 ] || return 1
+	# Enable only the exact supported display endpoint, never an arbitrary
+	# backlight discovered by a wildcard. No polling delays core installation.
+	if [ ! -w /sys/class/backlight/panel0-backlight/brightness ] ||
+		[ ! -r /sys/class/backlight/panel0-backlight/max_brightness ]; then
+		echo 'OBS absent status-screen backlight'
+		return 0
+	fi
+	if [ ! -c /dev/tty1 ] || [ -L /dev/tty1 ]; then
+		echo 'OBS absent status-screen tty'
+		return 0
+	fi
+	for display_unit in rog5-status-screen rog5-power-button; do
+		if [ "$display_unit" = rog5-power-button ] && [ "$pwrkey_available" -eq 0 ]; then
+			continue
+		fi
+		cp -p "$root/units/$display_unit.service" \
+			"$units/$display_unit.service" || return 1
+		ln -s "../$display_unit.service" \
+			"$units/multi-user.target.wants/$display_unit.service" || return 1
+	done
+}
+
+install_units() {
+	units=/run/systemd/system
+	display_diagnostic=0
+	if [ -e "$root/display-diagnostic" ] || [ -L "$root/display-diagnostic" ]; then
+		[ -f "$root/display-diagnostic" ] &&
+			[ ! -L "$root/display-diagnostic" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/display-diagnostic")" = 0:0:444:1 ] &&
+			[ "$(cat "$root/display-diagnostic")" = rog5-display-diagnostic-v1 ] ||
+			return 1
+		display_diagnostic=1
+	fi
+	install_status_screen "$units" || return 1
+	cp -p "$root/units/rog5-wifi-failure.service" \
+		"$units/rog5-wifi-failure.service" || return 1
+	for suffix in service timer; do
+		cp -p "$root/units/rog5-wifi-boot-rollback.$suffix" \
+			"$units/rog5-wifi-boot-rollback.$suffix" || return 1
+	done
+	ln -s ../rog5-wifi-boot-rollback.timer \
+		"$units/sysinit.target.wants/rog5-wifi-boot-rollback.timer" || return 1
+	mkdir "$units/rog5-early-sshd.service.d" || return 1
+	cp -p "$root/units/before-ssh.conf" \
+		"$units/rog5-early-sshd.service.d/10-wifi-rollback.conf" || return 1
+	if [ "$display_diagnostic" -eq 0 ]; then
+		for unit in rog5-wifi-radio rog5-wifi-wpa rog5-wifi-dhcp; do
+			[ ! -e "$units/$unit.service" ] && [ ! -L "$units/$unit.service" ] ||
+				return 1
+			cp -p "$root/units/$unit.service" "$units/$unit.service" || return 1
+			case $unit in
+				rog5-wifi-dhcp) target=multi-user.target ;;
+				*) target=sysinit.target ;;
+			esac
+			mkdir -p "$units/$target.wants" || return 1
+			ln -s "../$unit.service" "$units/$target.wants/$unit.service" || return 1
+		done
+		if [ -e "$root/trial-descriptor" ] || [ -L "$root/trial-descriptor" ]; then
+			[ -f "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] &&
+				[ "$(stat -c '%u:%g:%a:%h' "$root/trial-descriptor")" = 0:0:444:1 ] ||
+				return 1
+			cp -p "$root/units/rog5-wifi-healthy.service" \
+				"$units/rog5-wifi-healthy.service" || return 1
+			ln -s ../rog5-wifi-healthy.service \
+				"$units/multi-user.target.wants/rog5-wifi-healthy.service" || return 1
+		fi
+		mkdir "$units/rog5-persistent-state.service.d" || return 1
+		cp -p "$root/units/before-state.conf" \
+			"$units/rog5-persistent-state.service.d/10-wifi-radio.conf" || return 1
+		# Network ownership is explicit; do not race a second WPA/DHCP manager.
+		printf '%s\n' '[keyfile]' \
+			'unmanaged-devices=interface-name:usb0;type:wifi' \
+			>/run/NetworkManager/conf.d/10-rog5-p2.conf
+	else
+		[ ! -e "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] ||
+			return 1
+		printf '%s\n' '[keyfile]' 'unmanaged-devices=interface-name:usb0' \
+			>/run/NetworkManager/conf.d/10-rog5-p2.conf
+	fi
+}
+
+verify_prepared_network() {
+	[ -d "$state" ] && [ ! -L "$state" ] &&
+		[ "$(stat -c '%u:%g:%a' "$state")" = 0:0:700 ] || return 1
+	for file in private-network.conf dhcpcd.conf; do
+		[ -f "$state/$file" ] && [ ! -L "$state/$file" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$state/$file")" = 0:0:600:1 ] || return 1
+	done
+	[ "$(stat -c %s "$state/private-network.conf")" = "$size" ] &&
+		[ "$(stat -c %s "$state/dhcpcd.conf")" = 0 ] &&
+		[ "$(find "$state" -mindepth 1 -maxdepth 1 -print | wc -l)" -eq 2 ] &&
+		cmp -s "$secret" "$state/private-network.conf"
+}
+
+prepare_network() {
+	interface_identity || fail 'interface identity changed'
+	systemctl is-active --quiet rog5-persistent-state.service || fail 'state unavailable'
+	[ "$(findmnt -n -o TARGET --target /persist)" = /persist ] &&
+		[ "$(findmnt -n -o FSTYPE --target /persist)" = ext4 ] || fail 'state mount changed'
+	for dir in /persist/secrets /persist/secrets/wifi; do
+		[ -d "$dir" ] && [ ! -L "$dir" ] &&
+			[ "$(stat -c '%u:%g:%a' "$dir")" = 0:0:700 ] || fail 'private directory metadata'
+	done
+	[ -f "$secret" ] && [ ! -L "$secret" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$secret")" = 0:0:600:1 ] || fail 'private config metadata'
+	size=$(stat -c %s "$secret")
+	[ "$size" -gt 0 ] && [ "$size" -le 4096 ] || fail 'private config size'
+	if [ -e "$state" ] || [ -L "$state" ]; then
+		# ExecStartPre runs again on a WPA restart. Reuse only exact unchanged
+		# private state; never overwrite a live configuration or repair an
+		# ambiguous partial setup implicitly.
+		verify_prepared_network || fail 'prepared network state changed'
+	else
+		mkdir -m 0700 "$state"
+		cp "$secret" "$state/private-network.conf"
+		chmod 0600 "$state/private-network.conf"
+		: >"$state/dhcpcd.conf"
+		chmod 0600 "$state/dhcpcd.conf"
+		verify_prepared_network || fail 'private config copy'
+	fi
+	ip link set dev "$interface" up
+}
+
+run_wpa() {
+	interface_identity || fail 'interface identity changed'
+	exec /usr/bin/env "OPENSSL_CONF=$root/wpa-userspace/openssl.cnf" \
+		"$root/wpa-userspace/lib/ld-musl-aarch64.so.1" --library-path "$root/wpa-userspace/lib" \
+		"$root/wpa-userspace/sbin/wpa_supplicant" -Dnl80211 -i "$interface" -c "$state/private-network.conf"
+}
+
+run_dhcp() {
+	interface_identity || fail 'interface identity changed'
+	# Foreground lease maintenance follows carrier; never own the USB interface.
+	# systemd-resolved's native resolvconf hook supplies DNS on this Arch root.
+	exec /usr/bin/dhcpcd -4 -B -L -m 100 -C hostname \
+		-f "$state/dhcpcd.conf" -t 0 "$interface"
+}
+
+radio_refused() {
+	# Distinct from Wi-Fi healthy: a current-boot pre-activation refusal can
+	# only defer radio services. It never commits a persistent trial.
+	refusal=$root/radio-refused
+	[ -f "$refusal" ] && [ ! -L "$refusal" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$refusal")" = 0:0:444:1 ] &&
+		[ "$(stat -c %s "$refusal")" -le 256 ] || return 1
+	[ -d "$root/radio-entered" ] && [ ! -L "$root/radio-entered" ] &&
+		[ "$(stat -c '%u:%g:%a' "$root/radio-entered")" = 0:0:700 ] || return 1
+	for unexpected in radio-activation-entered radio-failure interface; do
+		[ ! -e "$root/$unexpected" ] && [ ! -L "$root/$unexpected" ] || return 1
+	done
+	refusal_boot=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	printf '%s\n' "$refusal_boot" | grep -Eq \
+		'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || return 1
+	refusal_bundle=
+	refusal_count=0
+	set -f
+	for argument in $(cat /proc/cmdline); do
+		case $argument in rog5.bundle=*)
+			refusal_bundle=${argument#rog5.bundle=}
+			refusal_count=$((refusal_count + 1)) ;;
+		esac
+	done
+	set +f
+	[ "$refusal_count" = 1 ] && [ "${#refusal_bundle}" -le 64 ] || return 1
+	case $refusal_bundle in ''|*[!a-z0-9-]*) return 1 ;; esac
+	printf 'format=rog5-radio-refusal-v1\nboot_id=%s\nbundle=%s\nreason=below-radio-voltage\n' \
+		"$refusal_boot" "$refusal_bundle" | cmp -s - "$refusal" || return 1
+}
+
+radio_enabled() {
+	if [ -e "$root/radio-refused" ] || [ -L "$root/radio-refused" ]; then
+		# systemd ExecCondition 1 skips, 255 fails. Never skip on a malformed
+		# or partial-activation result just because an interface is missing.
+		radio_refused || return 255
+		return 1
+	fi
+	return 0
+}
+
+refused_core_ready() {
+	radio_refused || return 1
+	# Require the same boot-qualified P2 + SSH-identity latch as the root
+	# watchdog. Continued listener lifetime is intentionally not a condition.
+	core_ack=/run/rog5-p2-ready
+	identity_ack=/run/rog5-persistent-ssh-identity.record
+	for path in "$core_ack" "$identity_ack"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:444:1 ] || return 1
+	done
+	[ "$(stat -c %s "$core_ack")" -le 4096 ] &&
+		[ "$(stat -c %s "$identity_ack")" -le 256 ] || return 1
+	[ "$(grep -c '^status=' "$core_ack")" = 1 ] &&
+		grep -Fxq status=PASS "$core_ack" &&
+		[ "$(grep -c '^attested_boot_id=' "$core_ack")" = 1 ] &&
+		grep -Fxq "attested_boot_id=$refusal_boot" "$core_ack" || return 1
+	awk -F= -v boot="$refusal_boot" '
+	NF != 2 { exit 1 }
+	NR == 1 && $0 != "format=rog5-persistent-ssh-identity-v1" { exit 1 }
+	NR == 2 && $0 != "mode=seed" && $0 != "mode=load" { exit 1 }
+	NR == 3 && ($1 != "fingerprint" || length($2) != 50 ||
+		$2 !~ /^SHA256:[A-Za-z0-9+\/]+$/) { exit 1 }
+	NR == 4 && $0 != "identity_boot_id=" boot { exit 1 }
+	END { if (NR != 4) exit 1 }' "$identity_ack" || return 1
+	[ "$(cat /sys/class/power_supply/qcom-battmgr-bat/health)" = Good ] || return 1
+	temp=$(cat /sys/class/power_supply/qcom-battmgr-bat/temp) || return 1
+	voltage=$(cat /sys/class/power_supply/qcom-battmgr-bat/voltage_now) || return 1
+	[ "$temp" -ge 0 ] && [ "$temp" -lt 400 ] &&
+		[ "$voltage" -ge 7500000 ] && [ "$voltage" -le 8800000 ] &&
+		[ "$(cat /sys/class/power_supply/qcom-battmgr-usb/online)" = 1 ] || return 1
+	for zone in /sys/class/thermal/thermal_zone*/temp; do
+		[ -r "$zone" ] || continue
+		value=$(cat "$zone") || { echo "OBS error $zone"; continue; }
+		case $value in ''|*[!0-9]*) echo "OBS unsupported $zone"; continue ;; esac
+		[ "$value" -lt 60000 ] || return 1
+	done
+	return 0
+}
+
+rollback_healthy() {
+	# SSH Requires can re-arm an elapsed OnBootSec timer after healthy stopped
+	# it. Only exact acceptance for this boot/trial may suppress that reboot.
+	selector=$root/trial-descriptor
+	record=$root/healthy.record
+	for path in "$selector" "$record"; do
+		[ -f "$path" ] && [ ! -L "$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$path")" = 0:0:444:1 ] &&
+			[ "$(stat -c %s "$path")" -le 256 ] || return 1
+	done
+	trial_id=$(sed -n 's/^trial_id=//p' "$selector") || return 1
+	primary=$(sed -n 's/^primary_bundle=//p' "$selector") || return 1
+	[ "${#trial_id}" -eq 64 ] || return 1
+	case $trial_id in *[!0-9a-f]*) return 1 ;; esac
+	[ "${#primary}" -le 64 ] || return 1
+	case $primary in ''|[!a-z0-9]*|*[!a-z0-9._-]*|*..*) return 1 ;; esac
+	printf 'format=rog5-persistent-wifi-health-v1\ntrial_id=%s\nprimary_bundle=%s\nmode=try-once\n' \
+		"$trial_id" "$primary" | cmp -s - "$selector" || return 1
+	boot_id=$(cat /proc/sys/kernel/random/boot_id) || return 1
+	[ "${#boot_id}" -eq 36 ] && printf '%s\n' "$boot_id" |
+		grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		return 1
+	cmdline=$(cat /proc/cmdline) || return 1
+	# Reject missing/duplicate bundle tokens, including a matching last token.
+	set -f
+	count=0
+	for argument in $cmdline; do
+		case $argument in rog5.bundle=*)
+			[ "$argument" = "rog5.bundle=$primary" ] || return 1
+			count=$((count + 1)) ;;
+		esac
+	done
+	[ "$count" -eq 1 ] || return 1
+	printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
+		"$boot_id" "$trial_id" | cmp -s - "$record"
+}
+
+[ "$#" = 1 ] || fail 'one action required'
+[ "$(id -u)" = 0 ] || fail 'root required'
+umask 077
+case $1 in
+	install) install_units ;;
+	radio) exec "$root/radio" ;;
+	radio-enabled) radio_enabled ;;
+	prepare) prepare_network ;;
+	wpa) run_wpa ;;
+	dhcp) run_dhcp ;;
+	# Invalid or absent acceptance is ordinary rollback, never a failed gate
+	# that accidentally prevents the service from requesting its reboot.
+	rollback) rollback_healthy || refused_core_ready || systemctl --no-block reboot ;;
+	*) fail 'unknown action' ;;
+esac

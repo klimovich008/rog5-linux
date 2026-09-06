@@ -30,6 +30,13 @@ Pixelworks confirms that the ROG Phone 5 family uses its i6 visual processor: [P
 
 The vendor tree reserves distinct regions for ADSP, CDSP, SLPI, modem, camera/video, GPU, secure heaps, SMEM, command DB, logs, and hypervisor services. Addresses and sizes must be translated deliberately. Copying the generic MTP reserved-memory map risks DMA corruption and is prohibited.
 
+The accepted board contract additionally excludes
+`0xcbc00000+0x04400000`, `0xd8000000+0x00800000`, and
+`0xedc00000+0x12000000` from ordinary allocation. Only the middle memshare
+span is `no-map`, matching the stock runtime FDT. This contract is
+live-validated by ADSP PAS/SCM startup; changing or deleting any span requires
+a new RAM-only rollback-guarded test.
+
 ## Evidence policy
 
 Only subsystem facts needed for the port are copied into this document. Do not commit `/proc/cmdline`, `/sys/firmware/fdt`, decompiled vendor DTS, serial numbers, partition GUIDs, Wi-Fi data, firmware blobs, or panel command payloads without a separate licensing and privacy review.

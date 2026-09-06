@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -f
 
-template=${1:?usage: repack-android-boot-v3.sh TEMPLATE KERNEL RAMDISK MKBOOTIMG_DIR AVBTOOL RAW AVB PARTITION_SIZE [CMDLINE_OVERRIDES]}
+template=${1:?usage: repack-android-boot-v3.sh TEMPLATE KERNEL RAMDISK MKBOOTIMG_DIR AVBTOOL RAW AVB PARTITION_SIZE [CMDLINE_OVERRIDES [CMDLINE_REMOVE_KEYS]]}
 kernel=${2:?missing kernel}
 ramdisk=${3:?missing ramdisk}
 mkbootimg_dir=${4:?missing mkbootimg directory}
@@ -10,6 +11,7 @@ raw=${6:?missing raw output}
 avb=${7:?missing AVB output}
 partition_size=${8:?missing partition size}
 cmdline_overrides=${9:-}
+cmdline_remove_keys=${10:-}
 
 unpack=$mkbootimg_dir/unpack_bootimg.py
 mkbootimg=$mkbootimg_dir/mkbootimg.py
@@ -32,27 +34,39 @@ for ((index = 0; index < ${#args[@]}; index++)); do
 	case ${args[$index]} in
 		--kernel)
 			((index + 1 < ${#args[@]}))
-			args[$((index + 1))]=$kernel
+			args[index + 1]=$kernel
 			kernel_args=$((kernel_args + 1))
 			;;
 		--ramdisk)
 			((index + 1 < ${#args[@]}))
-			args[$((index + 1))]=$ramdisk
+			args[index + 1]=$ramdisk
 			ramdisk_args=$((ramdisk_args + 1))
 			;;
 		--cmdline)
 			((index + 1 < ${#args[@]}))
+			current=${args[$((index + 1))]}
+			for key in $cmdline_remove_keys; do
+				[[ $key =~ ^[A-Za-z0-9._-]+$ ]]
+				filtered=
+				for token in $current; do
+					[[ ${token%%=*} == "$key" ]] ||
+						filtered+="${filtered:+ }$token"
+				done
+				current=$filtered
+			done
 			if [[ -n $cmdline_overrides ]]; then
 				for override in $cmdline_overrides; do
-					[[ $override =~ ^[A-Za-z0-9._-]+=[^[:space:]]+$ ]]
+					[[ $override =~ ^[A-Za-z0-9._-]+(=[^[:space:]]+)?$ ]]
 					key=${override%%=*}
-					current=
-					for token in ${args[$((index + 1))]}; do
-						[[ ${token%%=*} == "$key" ]] || current+="${current:+ }$token"
+					filtered=
+					for token in $current; do
+						[[ ${token%%=*} == "$key" ]] ||
+							filtered+="${filtered:+ }$token"
 					done
-					args[$((index + 1))]="${current:+$current }$override"
+					current="${filtered:+$filtered }$override"
 				done
 			fi
+			args[index + 1]=$current
 			cmdline_args=$((cmdline_args + 1))
 			;;
 	esac
@@ -60,7 +74,8 @@ done
 ((kernel_args == 1))
 ((ramdisk_args == 1))
 ((cmdline_args <= 1))
-[[ -z $cmdline_overrides || $cmdline_args == 1 ]]
+[[ -z $cmdline_overrides && -z $cmdline_remove_keys ||
+	$cmdline_args == 1 ]]
 
 mkdir -p "$(dirname "$raw")" "$(dirname "$avb")"
 python3 "$mkbootimg" "${args[@]}" --output "$raw.tmp"

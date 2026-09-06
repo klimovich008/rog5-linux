@@ -1,0 +1,76 @@
+{
+  "format": "rog5-power-usb-generated-lock-v1",
+  "source_sha256": "f8586950a1b008eb8c08457fd0b6dd4a0aabf4f1b14b3dd85f42e2158f73f433",
+  "candidate": "headless-power-usb-observer-v27",
+  "candidate_path": "configs/recovery-candidates/headless-power-usb-observer-v27.json",
+  "candidate_sha256": "a649be47afe6e82523aa10662c1a70ee24ee57eb5b4e23c0ca8a1708e8c539cd",
+  "marker_sha256": "db7a623492bfbb16ad99535fa88b6af2f0acf06c35de0fdcc924473cfeb0f6f6",
+  "python_lock_sha256": "4de3ee24dae060416786c4378a871fb6a63df82bc16761f4e25d6915566f48be",
+  "shell_lock_sha256": "9858e4513a0357c4f713b8e14a914f92330c3b434224bfb7a264b05a59d9fd49",
+  "target_lock_sha256": "1d517450e6e33afcb3434e72e263688762ae7ad5c4e38cfca0322bedfddb362e",
+  "expected_manifest_sha256": "bfb14efa6f2015a354dfdec92dad422b1dd2d66040e92fcd8510bf18b58cffd9",
+  "output_root": "build/power-usb-observer-v27-offline-r1",
+  "probe_phase": "post-ssh",
+  "boot_policy_basis": "one exact post-SSH side-port power plus NFS staging cycle for the bounded local Arch image; RAM-only; externally consumed exact claim required; never flash or retry after entry",
+  "artifact_role": "unbooted V27 local-image staging successor; exact live-proven post-SSH kernel, DTB, initramfs, and recovery composition with a fresh identity; one RAM-only use only; never flash",
+  "boot_policy_status": "none",
+  "timing": {
+    "prepare_timeout_seconds": 260,
+    "host_readiness_seconds": 90,
+    "control_timeout_seconds": 360,
+    "recovery_timeout_seconds": 300,
+    "target_timeout_seconds": 600,
+    "rollback_timeout_seconds": 900,
+    "fallback_timeout_seconds": 600,
+    "cleanup_margin_seconds": 120,
+    "network_server_timeout_seconds": 1020,
+    "sampler_timeout_seconds": 960,
+    "fallback_control_margin_seconds": 120,
+    "fallback_contact_budget_seconds": 3600
+  },
+  "host": {
+    "measured_peak_build_bytes": 10000000000,
+    "minimum_free_bytes": 50000000000,
+    "minimum_free_inodes": 1000000,
+    "project_tcp_ports": [
+      2049,
+      8080,
+      8081
+    ],
+    "networkmanager_profile": "rog5-fallback-usb-ssh",
+    "networkmanager_autoconnect": "no",
+    "usb_location": "1-1.2",
+    "fastboot_serial": "M5AIKN00F0353YH",
+    "fastboot_product": "lahaina"
+  },
+  "capability": {
+    "recovery_contract": "exact-a600000-v1",
+    "recovery_verifier": "scripts/device/verify-stable-recovery-initramfs.sh",
+    "fallback_verifier": "scripts/host/wait-stock-android-fallback.py",
+    "target_verifier": "scripts/device/verify-network-root-initramfs.sh",
+    "recovery_commands": [
+      "busybox",
+      "ip",
+      "kexec",
+      "mount",
+      "rog5-bundle-fetch",
+      "rog5-bundle-verify",
+      "rog5-recovery-control"
+    ],
+    "target_commands": [
+      "ip",
+      "mount",
+      "sshd",
+      "systemd",
+      "watchdog"
+    ],
+    "host_commands": [
+      "fastboot",
+      "firewall-cmd",
+      "ip",
+      "nmcli",
+      "ss",
+      "systemctl"
+    ]
+  }
+}

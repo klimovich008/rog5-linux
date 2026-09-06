@@ -1,0 +1,96 @@
+#!/bin/sh
+set -eu
+set -f
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+expected_release=@EXPECTED_KERNEL_RELEASE@
+expected_bundle=@EXPECTED_BUNDLE@
+expected_udc=a600000.usb
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
+
+return_bootloader() {
+	sync || true
+	"$reboot_helper" || true
+	while :; do sleep 3600; done
+}
+
+delayed_return() {
+	sleep "$1"
+	return_bootloader
+}
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || mount -t tmpfs tmpfs /dev
+mkdir -p /run /sys/kernel/config
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+echo /sbin/mdev >/proc/sys/kernel/hotplug 2>/dev/null || :
+mdev -s || :
+
+(
+	sleep 180
+	return_bootloader
+) &
+
+[ "$(uname -r)" = "$expected_release" ] || delayed_return 5
+grep -qw "rog5.bundle=$expected_bundle" /proc/cmdline || delayed_return 5
+mount -t configfs configfs /sys/kernel/config || delayed_return 5
+gadget=/sys/kernel/config/usb_gadget/rog5-local-image-stage
+mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409" ||
+	delayed_return 5
+echo 0x1d6b >"$gadget/idVendor"
+echo 0x0104 >"$gadget/idProduct"
+echo Linux >"$gadget/strings/0x409/manufacturer"
+echo 'ROG5 local image stage' >"$gadget/strings/0x409/product"
+echo 'NCM UDC inventory' >"$gadget/configs/c.1/strings/0x409/configuration"
+mkdir -p "$gadget/functions/ncm.usb0" || delayed_return 5
+ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0" ||
+	delayed_return 5
+
+classify_name() {
+	case $1 in
+		a800000.usb) delayed_return 15 ;;
+		a600000.dwc3) delayed_return 20 ;;
+		a800000.dwc3) delayed_return 25 ;;
+		ci_hdrc.*) delayed_return 30 ;;
+		musb*|*.musb) delayed_return 35 ;;
+		dwc2*|*.dwc2) delayed_return 40 ;;
+		dummy_udc.*) delayed_return 45 ;;
+		*.usb) delayed_return 50 ;;
+		*.dwc3) delayed_return 55 ;;
+		*) delayed_return 60 ;;
+	esac
+}
+
+attempt=0
+stable=0
+seen_zero=0
+while [ "$attempt" -lt 250 ]; do
+	count=0
+	expected=0
+	extra=
+	for candidate in /sys/class/udc/*; do
+		[ -e "$candidate" ] || continue
+		name=$(basename "$candidate")
+		count=$((count + 1))
+		if [ "$name" = "$expected_udc" ]; then
+			expected=$((expected + 1))
+		else
+			extra=$name
+		fi
+	done
+	case $count:$expected in
+		0:0) seen_zero=1; stable=0 ;;
+		1:1)
+			stable=$((stable + 1))
+			[ "$stable" -lt 50 ] || delayed_return 10
+			;;
+		1:0) classify_name "$extra" ;;
+		2:1) classify_name "$extra" ;;
+		*) delayed_return 70 ;;
+	esac
+	attempt=$((attempt + 1))
+	sleep 0.1
+done
+[ "$seen_zero" -eq 0 ] || delayed_return 75
+delayed_return 80

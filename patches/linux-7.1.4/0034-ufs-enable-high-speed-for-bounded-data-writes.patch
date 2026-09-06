@@ -1,0 +1,52 @@
+From: ROG5 Linux Project <rog5-linux@localhost>
+Subject: [PATCH] ufs: enable high-speed gear for bounded data writes
+
+The bounded-write profile currently permits SCSI data writes while retaining
+the discovery profile's early return before ufshcd_config_pwr_mode(). This
+leaves the UFS link in low-speed discovery mode and limits writes to roughly
+0.66 MiB/s.
+
+Keep optional BKOPS, timestamp, WriteBooster, exception-event, devfreq and
+runtime-PM changes disabled, but permit the one reference-clock attribute
+needed by the standard high-speed transition and execute that transition for
+the compile-time bounded-write profile.
+
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+index 7d6c3f21c..c8a0d1f28 100644
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -166,6 +166,9 @@ static bool ufshcd_discovery_query_allowed(u8 opcode, u8 idn, u8 index,
+ 	case UPIU_QUERY_OPCODE_READ_ATTR:
+ 	case UPIU_QUERY_OPCODE_READ_FLAG:
+ 		return true;
++	case UPIU_QUERY_OPCODE_WRITE_ATTR:
++		return IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE) &&
++		       idn == QUERY_ATTR_IDN_REF_CLK_FREQ && !index && !selector;
+ 	case UPIU_QUERY_OPCODE_SET_FLAG:
+ 		return idn == QUERY_FLAG_IDN_FDEVICEINIT && !index && !selector;
+ 	default:
+@@ -9393,15 +9396,20 @@ static int ufshcd_post_device_init(struct ufs_hba *hba)
+ 	if (hba->dme_qos_sysfs_handle)
+ 		sysfs_notify_dirent(hba->dme_qos_sysfs_handle);
+ 
+-	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
++	    !IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE)) {
+ 		dev_info(hba->dev,
+ 			"ROG5 UFS discovery: optional device writes and high-speed gear switch disabled\n");
+ 		return 0;
+ 	}
+ 
+-	ufshcd_force_reset_auto_bkops(hba);
+-
+-	ufshcd_set_timestamp_attr(hba);
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		dev_info(hba->dev,
++			"ROG5 UFS bounded data-write high-speed gear switch enabled\n");
++	} else {
++		ufshcd_force_reset_auto_bkops(hba);
++		ufshcd_set_timestamp_attr(hba);
++	}
+ 
+ 	if (!hba->max_pwr_info.is_valid)
+ 		return 0;

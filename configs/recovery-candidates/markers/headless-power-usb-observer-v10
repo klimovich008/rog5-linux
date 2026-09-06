@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v10
+predecessor=headless-power-usb-observer-v9
+purpose=measured-timeout-deferred-ssh-charging-observer

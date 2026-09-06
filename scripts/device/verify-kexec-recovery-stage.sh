@@ -1,11 +1,33 @@
 #!/bin/sh
 set -eu
 
-artifact_dir=${1:?usage: verify-kexec-recovery-stage.sh ARTIFACT_DIR MKBOOTIMG_DIR AVBTOOL EXPECTED_SHA256}
+artifact_dir=${1:?usage: verify-kexec-recovery-stage.sh ARTIFACT_DIR MKBOOTIMG_DIR AVBTOOL EXPECTED_SHA256 ACCESS_MODE [AUTHORIZED_KEY]}
 mkbootimg_dir=${2:?missing mkbootimg directory}
 avbtool=${3:?missing avbtool}
 expected_sums=${4:?missing expected SHA-256 manifest}
+access_mode=${5:?missing access mode}
+authorized_key=${6:-}
 [ -r "$expected_sums" ] || { echo "FAIL missing $expected_sums" >&2; exit 1; }
+case $access_mode in
+	acm-only)
+		[ -z "$authorized_key" ] || {
+			echo 'FAIL acm-only mode cannot include an authorized key' >&2
+			exit 1
+		}
+		;;
+	ssh)
+		[ -r "$authorized_key" ] ||
+			{ echo 'FAIL authorized key is not readable' >&2; exit 1; }
+		grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' "$authorized_key" ||
+			{ echo 'FAIL invalid authorized key format' >&2; exit 1; }
+		awk 'NF { count++ } END { exit count != 1 }' "$authorized_key" ||
+			{ echo 'FAIL expected exactly one authorized key' >&2; exit 1; }
+		;;
+	*)
+		echo 'FAIL access mode must be acm-only or ssh' >&2
+		exit 1
+		;;
+esac
 
 check_hash() {
 	file=$1
@@ -52,6 +74,7 @@ config=$artifact_dir/config-5.4.210-kexec-stage-builtin-recovery
 grep -qx 'CONFIG_KEXEC=y' "$config"
 grep -qx '# CONFIG_KEXEC_FILE is not set' "$config"
 grep -qx 'CONFIG_BLK_DEV_INITRD=y' "$config"
+grep -qx '# CONFIG_PM_AUTOSLEEP is not set' "$config"
 grep -qx 'CONFIG_INITRAMFS_SOURCE="/root/build/rog5-kexec-stage-initramfs.cpio.gz"' "$config"
 grep -qx 'CONFIG_INITRAMFS_COMPRESSION=".gz"' "$config"
 cmp "$artifact_dir/embedded-kexec-stage-initramfs.cpio.gz" \
@@ -76,7 +99,12 @@ for node in \
 	/soc@0/ufshc@1d84000 \
 	/soc@0/phy@1d87000 \
 	/soc@0/phy@88e8000 \
-	/soc@0/usb@a8f8800
+	/soc@0/usb@a8f8800 \
+	/reserved-memory/memory@9b800000 \
+	/soc@0/gpu@3d00000 \
+	/soc@0/gmu@3d6a000 \
+	/soc@0/clock-controller@3d90000 \
+	/soc@0/iommu@3da0000
 do
 	[ "$(fdtget -t s "$dtb" "$node" status)" = disabled ]
 done
@@ -98,9 +126,31 @@ gzip -dc "$artifact_dir/rog5-kexec-stage-initramfs.cpio.gz" | \
 ! grep -q 'mount.*\(userdata\|rootdev\)' "$stage/target/init"
 grep -qx 'set -u' "$stage/target/init"
 cmp "$stage/target/init" "$(dirname "$0")/../../initramfs/recovery-init"
-grep -Fq 'rog5-recovery-rollback' "$stage/target/init"
-grep -Fq '>/sys/power/wake_lock' "$stage/target/init"
+grep -Fq 'touch /run/rog5-recovery-armed' "$stage/target/init"
+grep -Fq 'sleep "$timeout"' "$stage/target/init"
+grep -Fq 'echo $! >/run/rog5-recovery-watchdog.pid' "$stage/target/init"
+! grep -Fq '/sys/power/wake_lock' "$stage/target/init"
 grep -Fq 'rog5-recovery-acm.pid' "$stage/target/init"
+grep -Fq '</proc/self/mountinfo' "$stage/target/init"
+grep -Fq 'blockdev --setro' "$stage/target/init"
+grep -Fq 'blockdev --getro' "$stage/target/init"
+grep -Fq '[ -e "$sys_disk/device" ] || continue' "$stage/target/init"
+grep -Fq '[ -e "$sys_block/partition" ] || continue' "$stage/target/init"
+storage_lines=$(grep -n '^if ! isolate_storage; then$' "$stage/target/init" | cut -d: -f1)
+[ "$(printf '%s\n' "$storage_lines" | awk 'NF { count++ } END { print count + 0 }')" -eq 2 ]
+storage_line=$(printf '%s\n' "$storage_lines" | sed -n '1p')
+post_mdev_storage_line=$(printf '%s\n' "$storage_lines" | sed -n '2p')
+usb_line=$(grep -n '^usb_mode=' "$stage/target/init" | cut -d: -f1)
+mdev_line=$(grep -n '^if ! mdev -s; then$' "$stage/target/init" | cut -d: -f1)
+tty_line=$(grep -n '^\[ -c /dev/ttyGS0 \] || {$' "$stage/target/init" | cut -d: -f1)
+acm_line=$(grep -n '^serve_acm &$' "$stage/target/init" | cut -d: -f1)
+bind_line=$(grep -n '^[[:space:]]*echo "\$udc" >"\$gadget/UDC"$' \
+	"$stage/target/init" | cut -d: -f1)
+[ "$storage_line" -lt "$usb_line" ]
+[ "$mdev_line" -lt "$tty_line" ]
+[ "$tty_line" -lt "$post_mdev_storage_line" ]
+[ "$post_mdev_storage_line" -lt "$acm_line" ]
+[ "$acm_line" -lt "$bind_line" ]
 [ -x "$stage/staging/usr/sbin/kexec" ]
 [ -x "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" ]
 grep -qx 'set -u' "$stage/staging/init"
@@ -108,11 +158,15 @@ cmp "$stage/staging/init" "$(dirname "$0")/../../initramfs/recovery-init"
 cmp "$stage/staging/usr/local/sbin/rog5-load-mainline-recovery" \
 	"$(dirname "$0")/load-mainline-recovery.sh"
 for root in "$stage/target" "$stage/staging"; do
-	[ -s "$root/root/.ssh/authorized_keys" ]
-	[ "$(stat -c %a "$root/root/.ssh/authorized_keys")" = 600 ]
-	awk 'NF { count++ } END { exit count != 1 }' "$root/root/.ssh/authorized_keys"
-	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' \
-		"$root/root/.ssh/authorized_keys"
+	[ -x "$root/bin/busybox" ]
+	[ "$(readlink "$root/sbin/blockdev")" = /bin/busybox ]
+	if [ "$access_mode" = ssh ]; then
+		[ -s "$root/root/.ssh/authorized_keys" ]
+		[ "$(stat -c %a "$root/root/.ssh/authorized_keys")" = 600 ]
+		cmp "$root/root/.ssh/authorized_keys" "$authorized_key"
+	else
+		[ ! -e "$root/root/.ssh/authorized_keys" ]
+	fi
 	grep -qx 'PasswordAuthentication no' "$root/etc/ssh/sshd_config"
 	grep -qx 'PermitRootLogin prohibit-password' "$root/etc/ssh/sshd_config"
 done
@@ -159,7 +213,7 @@ python3 "$avbtool" info_image \
 	--image "$avb" >"$stage/avb-info"
 grep -q '^Algorithm:[[:space:]]*NONE$' "$stage/avb-info"
 grep -q 'Partition Name:[[:space:]]*boot$' "$stage/avb-info"
-ln -s "$avb" "$stage/boot.img"
+ln -s "$(realpath "$avb")" "$stage/boot.img"
 python3 "$avbtool" verify_image --image "$stage/boot.img" >/dev/null
 
 echo 'PASS self-contained two-stage kexec recovery bundle; offline validation only'

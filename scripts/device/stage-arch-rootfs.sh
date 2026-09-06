@@ -42,13 +42,17 @@ install -Dm0644 "$firmware/qcom/sm8350/a660_zap.mbn" \
 install -Dm0755 "$repo/scripts/device/display-profile.sh" /usr/local/bin/rog5-display-profile.sh
 install -Dm0755 "$repo/scripts/device/power-profile.sh" /usr/local/bin/rog5-power-profile.sh
 install -Dm0755 "$repo/scripts/device/screen-toggle.sh" /usr/local/bin/rog5-screen-toggle.sh
-install -Dm0755 "$repo/scripts/device/vpn-hotspot.sh" /usr/local/sbin/rog5-vpn-hotspot.sh
-install -Dm0644 "$repo/packaging/arch/rog5-vpn-hotspot.service" /etc/systemd/system/rog5-vpn-hotspot.service
+install -Dm0755 "$repo/scripts/device/collect-baseline.sh" \
+	/usr/local/bin/rog5-collect-baseline.sh
+install -Dm0755 "$repo/scripts/device/vpn-hotspot-v2.sh" /usr/local/sbin/rog5-vpn-hotspot.sh
+install -Dm0644 "$repo/packaging/arch/rog5-vpn-hotspot-v2.service" /etc/systemd/system/rog5-vpn-hotspot.service
 install -Dm0644 "$repo/packaging/arch/rog5-chromium-headless.service" \
 	/etc/systemd/system/rog5-chromium-headless.service
 install -Dm0644 "$repo/packaging/arch/rog5-server-inhibit.service" \
 	/etc/systemd/system/rog5-server-inhibit.service
 install -Dm0644 "$repo/packaging/arch/rog5-ttyd.service" /etc/systemd/system/rog5-ttyd.service
+install -Dm0644 "$repo/packaging/arch/10-rog5-usb-unmanaged.conf" \
+	/etc/NetworkManager/conf.d/10-rog5-usb-unmanaged.conf
 
 if getent passwd alarm >/dev/null; then
 	usermod -l rog5 alarm
@@ -62,6 +66,17 @@ for group in input render video; do
 	getent group "$group" >/dev/null && usermod -aG "$group" rog5
 done
 
+getent passwd rog5-agent >/dev/null && {
+	echo 'FAIL reserved rog5-agent account already exists' >&2
+	exit 1
+}
+useradd --system --user-group \
+	--home-dir /var/lib/rog5-agent --no-create-home \
+	--shell /usr/bin/nologin rog5-agent
+usermod -L rog5-agent
+install -d -o rog5-agent -g rog5-agent -m0700 \
+	/var/lib/rog5-agent /var/lib/rog5-agent/private
+
 install -d -m0700 /root/.ssh
 install -m0600 "$authorized_key" /root/.ssh/authorized_keys
 install -d -o rog5 -g rog5 -m0700 /home/rog5/.ssh
@@ -71,13 +86,8 @@ install -d -o rog5 -g rog5 -m0755 /home/rog5/.config \
 	/home/rog5/.config/systemd/user/app-org.kde.krdpserver.service.d
 install -o rog5 -g rog5 -m0644 "$repo/packaging/arch/krdp-loopback.conf" \
 	/home/rog5/.config/systemd/user/app-org.kde.krdpserver.service.d/10-rog5-loopback.conf
-install -d -m0755 /etc/ssh/sshd_config.d
-cat > /etc/ssh/sshd_config.d/10-rog5-server.conf <<'EOF'
-PasswordAuthentication no
-KbdInteractiveAuthentication no
-PermitRootLogin prohibit-password
-PubkeyAuthentication yes
-EOF
+install -Dm0644 "$repo/packaging/arch/10-rog5-sshd.conf" \
+	/etc/ssh/sshd_config.d/10-rog5-server.conf
 
 usermod -L root
 rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id
@@ -119,8 +129,13 @@ modules_sha256=$MODULES_SHA256
 kernel_release=$TARGET_KERNEL_RELEASE
 EOF
 pacman -Q | LC_ALL=C sort > /etc/rog5/packages.txt
+if [[ -r /etc/fstab ]]; then
+	! awk '$1 !~ /^#/ && ($1 ~ /^\/dev\// || $1 ~ /^(UUID|PARTUUID)=/) {
+		exit 1
+	}' /etc/fstab
+fi
 gpgconf --homedir /etc/pacman.d/gnupg --kill all || true
 find /etc/pacman.d/gnupg -type s -delete
 
 TARGET_KERNEL_RELEASE=$TARGET_KERNEL_RELEASE \
-	/bin/bash "$repo/scripts/device/verify-staged-arch-rootfs.sh"
+	/bin/bash "$repo/scripts/device/verify-staged-arch-rootfs-v2.sh"

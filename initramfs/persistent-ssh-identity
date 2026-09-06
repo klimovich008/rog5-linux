@@ -1,0 +1,170 @@
+#!/bin/sh
+set -eu
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+fail() {
+	printf 'rog5-persistent-ssh: FAIL %s\n' "$*" >/dev/kmsg 2>/dev/null ||
+		printf 'rog5-persistent-ssh: FAIL %s\n' "$*" >&2
+	exit 1
+}
+
+action=${1:-}
+[ "$#" -eq 1 ] || fail 'usage: persistent-ssh-identity preflight|apply'
+case $action in preflight|apply) ;; *) fail 'invalid action' ;; esac
+
+runtime_loader=/run/initramfs/lib/ld-musl-aarch64.so.1
+runtime_busybox=/run/initramfs/bin/busybox
+persist_root=/persist/etc/ssh
+persist_identity=$persist_root/host-ed25519-v1
+persist_next=$persist_identity.next
+runtime_private=/etc/ssh/ssh_host_ed25519_key
+runtime_public=$runtime_private.pub
+runtime_private_next=$runtime_private.next
+runtime_public_next=$runtime_public.next
+identity_record=/run/rog5-persistent-ssh-identity.record
+pid_file=/run/sshd.pid
+
+[ -f "$runtime_loader" ] && [ ! -L "$runtime_loader" ] &&
+	[ -x "$runtime_loader" ] && [ -f "$runtime_busybox" ] &&
+	[ ! -L "$runtime_busybox" ] && [ -x "$runtime_busybox" ] ||
+	fail 'sealed runtime toolchain is unavailable'
+
+bb() {
+	"$runtime_loader" "$runtime_busybox" "$@"
+}
+
+verify_key_pair() {
+	private=$1
+	public=$2
+	# OpenSSH comments (including the boot hostname) change encoded lengths,
+	# not key identity. Keep bounded inputs and exact ownership/mode/link gates.
+	private_size=$(bb stat -c %s "$private" 2>/dev/null) || return 1
+	public_size=$(bb stat -c %s "$public" 2>/dev/null) || return 1
+	[ "$private_size" -ge 256 ] && [ "$private_size" -le 4096 ] &&
+		[ "$public_size" -ge 80 ] && [ "$public_size" -le 1024 ] || return 1
+	[ -f "$private" ] && [ ! -L "$private" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$private")" = \
+			"0:0:600:$private_size:1" ] || return 1
+	[ -f "$public" ] && [ ! -L "$public" ] &&
+		[ "$(bb stat -c '%u:%g:%a:%s:%h' "$public")" = \
+			"0:0:644:$public_size:1" ] || return 1
+	derived=$(/usr/bin/ssh-keygen -y -f "$private" |
+		bb awk '{ print $1 " " $2 }') || return 1
+	case $derived in 'ssh-ed25519 '*) ;; *) return 1 ;; esac
+	published=$(bb awk 'NR != 1 || NF < 2 || $1 != "ssh-ed25519" { exit 1 }
+		{ print $1 " " $2 }' "$public") || return 1
+	[ "$derived" = "$published" ] || return 1
+	fingerprint=$(/usr/bin/ssh-keygen -E sha256 -lf "$public" |
+		bb awk '{ print $2 }') || return 1
+	printf '%s\n' "$fingerprint" |
+		bb grep -Eq '^SHA256:[A-Za-z0-9+/]{43}$'
+}
+
+verify_sshd_listener() {
+	[ -f "$pid_file" ] && [ ! -L "$pid_file" ] || return 1
+	pid_metadata=$(bb stat -c '%u:%g:%a:%h' "$pid_file" 2>/dev/null) ||
+		return 1
+	[ "$pid_metadata" = 0:0:644:1 ] || return 1
+	sshd_pid=$(bb cat "$pid_file" 2>/dev/null) || return 1
+	case $sshd_pid in ''|*[!0-9]*) return 1 ;; esac
+	[ "$sshd_pid" -gt 1 ] && [ -d "/proc/$sshd_pid" ] || return 1
+	[ "$(bb cat "/proc/$sshd_pid/comm")" = sshd ] &&
+		[ "$(bb readlink -f "/proc/$sshd_pid/exe")" = /usr/bin/sshd ] &&
+		[ "$(bb sed -n 's/^PPid:[[:space:]]*//p' "/proc/$sshd_pid/status")" = 1 ]
+}
+
+verify_contract() {
+	[ -d "$persist_root" ] && [ ! -L "$persist_root" ] &&
+		[ "$(bb stat -c '%u:%g:%a' "$persist_root")" = 0:0:700 ] ||
+		return 1
+	verify_key_pair "$runtime_private" "$runtime_public" || return 1
+	verify_sshd_listener || return 1
+	[ ! -e "$runtime_private_next" ] && [ ! -L "$runtime_private_next" ] &&
+		[ ! -e "$runtime_public_next" ] && [ ! -L "$runtime_public_next" ] ||
+		return 1
+	if [ -e "$persist_identity" ] || [ -L "$persist_identity" ]; then
+		[ -d "$persist_identity" ] && [ ! -L "$persist_identity" ] &&
+			[ "$(bb stat -c '%u:%g:%a' "$persist_identity")" = 0:0:700 ] ||
+			return 1
+		verify_key_pair "$persist_identity/ssh_host_ed25519_key" \
+			"$persist_identity/ssh_host_ed25519_key.pub" || return 1
+		[ ! -e "$persist_next" ] && [ ! -L "$persist_next" ] || return 1
+		identity_mode=load
+	else
+		[ ! -L "$persist_identity" ] && [ ! -e "$persist_next" ] &&
+			[ ! -L "$persist_next" ] || return 1
+		inventory=$(bb find "$persist_root" -mindepth 1 -maxdepth 1 -print)
+		[ -z "$inventory" ] || return 1
+		identity_mode=seed
+	fi
+}
+
+seed_identity() {
+	umask 077
+	bb mkdir -m 0700 "$persist_next" || return 1
+	bb cp -p "$runtime_private" "$persist_next/ssh_host_ed25519_key" ||
+		return 1
+	bb cp -p "$runtime_public" "$persist_next/ssh_host_ed25519_key.pub" ||
+		return 1
+	verify_key_pair "$persist_next/ssh_host_ed25519_key" \
+		"$persist_next/ssh_host_ed25519_key.pub" || return 1
+	bb sync
+	bb mv "$persist_next" "$persist_identity" || return 1
+	verify_key_pair "$persist_identity/ssh_host_ed25519_key" \
+		"$persist_identity/ssh_host_ed25519_key.pub"
+}
+
+load_identity() {
+	umask 077
+	bb cp -p "$persist_identity/ssh_host_ed25519_key" \
+		"$runtime_private_next" || return 1
+	bb cp -p "$persist_identity/ssh_host_ed25519_key.pub" \
+		"$runtime_public_next" || return 1
+	verify_key_pair "$runtime_private_next" "$runtime_public_next" || return 1
+	bb mv "$runtime_private_next" "$runtime_private" || return 1
+	bb mv "$runtime_public_next" "$runtime_public" || return 1
+	verify_key_pair "$runtime_private" "$runtime_public"
+}
+
+publish_identity() {
+	record_next=$identity_record.next
+	[ "$identity_record" != "$0" ] && [ "$record_next" != "$0" ] || return 1
+	[ ! -e "$identity_record" ] && [ ! -L "$identity_record" ] &&
+		[ ! -e "$record_next" ] && [ ! -L "$record_next" ] || return 1
+	identity_boot_id=$(bb cat /proc/sys/kernel/random/boot_id) || return 1
+	printf '%s\n' "$identity_boot_id" |
+		bb grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+		return 1
+	printf 'format=rog5-persistent-ssh-identity-v1\nmode=%s\nfingerprint=%s\nidentity_boot_id=%s\n' \
+		"$identity_mode" "$fingerprint" "$identity_boot_id" >"$record_next" || return 1
+	bb chown 0:0 "$record_next" || return 1
+	bb chmod 0444 "$record_next" || return 1
+	bb mv "$record_next" "$identity_record" || return 1
+}
+
+verify_contract || fail 'identity preflight failed'
+if [ "$action" = preflight ]; then
+	printf 'format=rog5-persistent-ssh-preflight-v1\nmode=%s\nresult=PASS\n' \
+		"$identity_mode"
+	exit 0
+fi
+
+case $identity_mode in
+	seed) seed_identity || fail 'persistent identity seed failed' ;;
+	load) load_identity || fail 'persistent identity load failed' ;;
+esac
+verify_key_pair "$runtime_private" "$runtime_public" ||
+	fail 'runtime identity verification failed'
+verify_sshd_listener || fail 'sshd listener changed before reload'
+kill -HUP "$sshd_pid" || fail 'sshd reload failed'
+attempt=0
+while [ "$attempt" -lt 50 ]; do
+	verify_sshd_listener && break
+	attempt=$((attempt + 1))
+	bb sleep 0.1
+done
+verify_sshd_listener || fail 'sshd listener did not survive reload'
+publish_identity || fail 'identity publication failed'
+printf 'rog5-persistent-ssh: PASS mode=%s fingerprint=%s\n' \
+	"$identity_mode" "$fingerprint" >/dev/kmsg 2>/dev/null || true

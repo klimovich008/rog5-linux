@@ -1,0 +1,430 @@
+#!/usr/bin/env python3
+"""Small ROG5 acceptance dispatcher. No admission, device retry or evidence merge."""
+import argparse
+import datetime
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import re
+import shutil
+import signal
+import stat
+import subprocess
+import time
+
+REPO = Path(__file__).resolve().parents[2]
+CONTRACT = REPO/'configs/release-acceptance.json'
+STATUSES = ['PASS', 'FAIL', 'BLOCKED', 'NOT RUN']
+ARTIFACT_ROLES = {'kernel', 'dtb', 'initramfs', 'rootfs', 'boot_bundle'}
+
+
+def sha_file(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def load_contract():
+    contract = json.loads(CONTRACT.read_text())
+    validate_contract(contract)
+    return contract
+
+
+def validate_contract(contract):
+    if contract.get('format') != 'rog5-release-acceptance-v1' or contract.get('statuses') != STATUSES:
+        raise ValueError('unsupported contract/status vocabulary')
+    seen = set()
+    for test in contract['tests']:
+        if not re.fullmatch(r'[A-Z][0-9]{2}', test['id']) or test['id'] in seen:
+            raise ValueError('invalid/duplicate test ID')
+        seen.add(test['id'])
+        for field in ('outcome', 'environment', 'prerequisites', 'pass_condition',
+                      'fail_condition', 'mutations', 'cleanup', 'required_evidence'):
+            if not test.get(field):
+                raise ValueError(f'{test["id"]}: missing {field}')
+        if type(test['mandatory']) is not bool or type(test['deadline_seconds']) is not int or test['deadline_seconds'] <= 0:
+            raise ValueError('invalid mandatory/deadline')
+        if test['tier'] not in {'quick', 'offline', 'device-smoke', 'release'}:
+            raise ValueError('unknown test tier')
+        if not test['commands'] and not test['blocker']:
+            raise ValueError('unimplemented check needs an explicit blocker')
+        for command in test['commands']:
+            if not command or any(not isinstance(x, str) or not x for x in command):
+                raise ValueError('commands must be nonempty argv arrays')
+    if not seen:
+        raise ValueError('empty contract')
+
+
+def select(contract, tier):
+    return [t for t in contract['tests'] if t['tier'] in contract['tiers'][tier]]
+
+
+def all_pass(rows):
+    required = [r for r in rows if r['mandatory']]
+    return bool(required) and all(r['status'] == 'PASS' for r in required)
+
+
+def source_identity(repo=REPO):
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(repo), *args])
+    revision = git('rev-parse', 'HEAD').decode().strip()
+    status = git('status', '--porcelain=v1', '--untracked-files=all')
+    digest = hashlib.sha256(revision.encode() + status + git('diff', '--binary', '--no-ext-diff', 'HEAD'))
+    for name in sorted(git('ls-files', '--others', '--exclude-standard', '-z').split(b'\0')):
+        if name:
+            path = repo/os.fsdecode(name)
+            digest.update(name + b'\0')
+            if path.is_symlink():
+                digest.update(os.fsencode(os.readlink(path)))
+            elif path.is_file():
+                digest.update(sha_file(path).encode())
+    return {'revision': revision, 'worktree_digest': digest.hexdigest(), 'clean': not status}
+
+
+def verify_release(path, *, required_roles=None):
+    record = json.loads(path.read_text())
+    if record.get('format') != 'rog5-release-inputs-v1' or not re.fullmatch(r'[0-9a-f]{40}', record.get('source_revision', '')):
+        raise ValueError('release input format/revision')
+    if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,127}', record.get('candidate_id', '')):
+        raise ValueError('release candidate identity')
+    required_roles = ARTIFACT_ROLES if required_roles is None else required_roles
+    if not required_roles or not required_roles <= set(record.get('artifacts', {})) <= ARTIFACT_ROLES:
+        raise ValueError('release must bind kernel, DTB, archive, retained root image and boot bundle')
+    identities = {}
+    for role, artifact in record['artifacts'].items():
+        target = Path(artifact['path'])
+        if not target.is_absolute() or target.is_symlink() or not target.is_file():
+            raise ValueError(f'{role}: not an exact regular artifact')
+        if type(artifact.get('size')) is not int or target.stat().st_size != artifact['size']:
+            raise ValueError(f'{role}: size mismatch')
+        if not re.fullmatch(r'[0-9a-f]{64}', artifact.get('sha256', '')) or sha_file(target) != artifact['sha256']:
+            raise ValueError(f'{role}: hash mismatch')
+        identities[role] = {key: artifact[key] for key in ('size', 'sha256')}
+    return {'candidate_id': record['candidate_id'], 'source_revision': record['source_revision'],
+            'artifact_paths': {role: artifact['path'] for role, artifact in record['artifacts'].items()},
+            'artifacts': identities, 'receipt_sha256': sha_file(path)}
+
+
+def utc():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+def rescue_bindings(path):
+    """Only named arguments for the existing rescue checker, never a command."""
+    require_keys = {'profile', 'cycle', 'execution_record', 'manifest', 'identity_file', 'known_hosts'}
+    if not path.is_absolute(): raise ValueError('rescue inputs must be absolute')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
+                or before.st_nlink != 1 or before.st_mode & 0o022 or before.st_size > 16384):
+            raise ValueError('unsafe rescue input metadata')
+        raw = stream.read(16385)
+        after = os.fstat(stream.fileno())
+        signature = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mode, s.st_uid, s.st_gid,
+                               s.st_nlink, s.st_mtime_ns, s.st_ctime_ns)
+        if len(raw) > 16384 or signature(before) != signature(after) or signature(path.lstat()) != signature(after):
+            raise ValueError('rescue inputs changed during read')
+    def unique(pairs):
+        values = {}
+        for key, value in pairs:
+            if key in values: raise ValueError('duplicate rescue input')
+            values[key] = value
+        return values
+    values = json.loads(raw, object_pairs_hook=unique)
+    if (set(values) != require_keys or any(not isinstance(v,str) or not v for v in values.values())
+            or not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,127}', values['profile'])
+            or any(not Path(v).is_absolute() for k,v in values.items() if k != 'profile')):
+        raise ValueError('invalid rescue input arguments')
+    return {'{rescue_'+key+'}': value for key,value in values.items()}
+
+
+def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None):
+    row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
+           'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
+           'next_action': test['blocker'], 'commands': test['commands'], 'test_versions': {}}
+    if not test['commands']:
+        return row
+    commands = test['commands']
+    if test['id']=='A01' and activation_fixture_build is not None:
+        if not activation_fixture_build.is_absolute():
+            row['next_action']='activation fixture build must be an absolute private directory'
+            return row
+        commands=[[*command,'--activation-fixture-build',str(activation_fixture_build)] for command in commands]
+    if test['id'] == 'H01' and rescue_inputs is not None:
+        # Revalidate original preboot receipt/timeline; do not pretend its
+        # completed receiver is still alive. H02 separately authenticates now.
+        commands = [['python3', 'scripts/host/check-rescue-startup.py',
+                     '--cycle', '{rescue_cycle}', '--execution-record', '{rescue_execution_record}',
+                     '--profile', '{rescue_profile}', '--manifest', '{rescue_manifest}',
+                     '--boot-image', '{boot_bundle}',
+                     '--expected-candidate', '{candidate}', '--output', '{test_output}']]
+    if any('{' in token or '}' in token for command in commands for token in command):
+        if release is None:
+            row['next_action'] = 'supply verified exact artifact receipt; source tests are not archive proof'
+            return row
+        bindings = {'{kernel}': release['artifact_paths']['kernel'],
+                    '{initramfs}': release['artifact_paths']['initramfs'],
+                    '{test_output}': str(output/test['id'])}
+        bindings['{candidate}'] = release.get('candidate_id', '')
+        if 'dtb' in release['artifact_paths']:
+            bindings['{dtb}'] = release['artifact_paths']['dtb']
+        if 'boot_bundle' in release['artifact_paths']:
+            bindings['{boot_bundle}'] = release['artifact_paths']['boot_bundle']
+        if any(token.startswith('{rescue_') for command in commands for token in command):
+            if rescue_inputs is None:
+                row['next_action'] = 'supply exact private --rescue-inputs; no boot is initiated'
+                return row
+            try:
+                bindings.update(rescue_bindings(rescue_inputs))
+                row['rescue_inputs_sha256'] = sha_file(rescue_inputs)
+                row['evidence_reused'] = True
+            except (OSError, TypeError, ValueError) as error:
+                row.update(status='FAIL', next_action='invalid rescue inputs: '+str(error))
+                return row
+        if 'rootfs' in release['artifact_paths']:
+            bindings['{rootfs}'] = release['artifact_paths']['rootfs']
+        if any(token.startswith('{capture_') for command in commands for token in command):
+            if capture is None:
+                row['next_action'] = 'supply the currently running exact receiver with --capture'
+                return row
+            try:
+                receipt = json.loads((capture/'receipt.json').read_text())
+                if (receipt['canonical_record']['candidate'] != release['candidate_id']
+                        or receipt['canonical_record']['boot_image_sha256'] != release['artifacts']['boot_bundle']['sha256']):
+                    raise ValueError('capture/release candidate or boot image mismatch')
+                row['capture_receipt_sha256'] = sha_file(capture/'receipt.json')
+                bindings.update({'{capture_profile}':receipt['profile'], '{capture_output}':str(capture)})
+            except (OSError, KeyError, TypeError, ValueError) as error:
+                row.update(status='FAIL', next_action='invalid capture binding: '+str(error))
+                return row
+        commands = [[bindings.get(token, token) for token in command] for command in commands]
+        if any('{' in token or '}' in token for command in commands for token in command):
+            row['next_action'] = 'unknown unresolved runner argument'
+            return row
+        row['commands'] = commands
+    for prerequisite in test['prerequisites']:
+        if prerequisite in {'python3', 'bash', 'sh', 'gcc', 'git', 'cpio', 'podman', 'bwrap'} and not shutil.which(prerequisite):
+            row['next_action'] = f'missing prerequisite: {prerequisite}'
+            return row
+        if prerequisite.startswith('artifacts/') and not (REPO/prerequisite).is_file():
+            row['next_action'] = f'missing prerequisite: {prerequisite}'
+            return row
+    started = time.monotonic()
+    log_path = output/(test['id'] + '.log')
+    row['log'] = log_path.name
+    row['status'] = 'PASS'
+    # Whole test shares one deadline; child groups cannot outlive a timed-out test.
+    with log_path.open('wb') as log:
+        for command in commands:
+            for token in command:
+                path = REPO/token
+                # Artifact arguments are already bound by verify_release and
+                # the exact-artifact runner. They are not test source: hashing
+                # a 32 GiB root here needlessly consumes the row's deadline.
+                if not Path(token).is_absolute() and path.is_file() and path.resolve().is_relative_to(REPO):
+                    row['test_versions'][token] = sha_file(path)
+            remaining = test['deadline_seconds'] - (time.monotonic() - started)
+            if remaining <= 0:
+                row.update(status='FAIL', next_action='test deadline exhausted')
+                break
+            try:
+                process = subprocess.Popen(command, cwd=REPO, stdout=log, stderr=subprocess.STDOUT,
+                                           start_new_session=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
+            except FileNotFoundError:
+                row.update(status='BLOCKED', next_action=f'missing executable: {command[0]}')
+                break
+            try:
+                code = process.wait(timeout=remaining)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+                row.update(status='FAIL', next_action='test deadline exceeded; owned process group stopped')
+                break
+            row['exit_code'] = code
+            if code == 77:
+                row.update(status='BLOCKED', next_action='runner prerequisite unavailable; see private log')
+                break
+            if code:
+                row.update(status='FAIL', next_action=f'fix failing test; exit {code}; see private log')
+                break
+    row.update(duration_seconds=round(time.monotonic() - started, 3),
+               ended_at=utc(), log_sha256=sha_file(log_path))
+    if row['status'] == 'PASS' and re.search(r'skipped=[1-9][0-9]*|^SKIP\b', log_path.read_text(errors='replace'), re.M):
+        row.update(status='BLOCKED', next_action='required suite skipped behavior; supply prerequisites and rerun')
+    if row['status'] == 'PASS' and test['id'] == 'A01':
+        try:
+            proof_path = output/'A01/result.json'
+            proof = json.loads(proof_path.read_text())
+            elapsed = proof['duration_seconds']
+            if (proof['status'] != 'PASS' or proof['a01_qualified'] is not True
+                    or proof['source'] != source_identity()
+                    or proof['candidate'] != release['candidate_id']
+                    or proof['runner_sha256'] != sha_file(REPO/'scripts/host/check-release-composition.py')
+                    or proof['checks'] != dict.fromkeys(test['required_checks'], 'PASS')
+                    or type(elapsed) not in (int,float) or not math.isfinite(elapsed)
+                    or not 0 <= elapsed <= test['deadline_seconds']
+                    or proof['artifact_hashes'] != {k:v['sha256'] for k,v in release['artifacts'].items()}):
+                raise ValueError('A01 exact complete composition mismatch')
+            row['proof_sha256'] = sha_file(proof_path)
+            row['next_action'] = 'Proceed to the next mandatory test; offline composition grants no boot authority'
+        except (OSError,KeyError,TypeError,ValueError) as error:
+            row.update(status='FAIL', next_action='missing complete A01 proof: '+str(error))
+    if row['status'] == 'PASS' and test['id'] == 'H02':
+        try:
+            proof = json.loads((output/'H02/result.json').read_text())
+            if (proof['status'] != 'PASS' or proof['h02_qualified'] is not True
+                    or proof['canonical_record']['candidate'] != release['candidate_id']
+                    or proof['artifact_hashes']['initramfs'] != release['artifacts']['initramfs']['sha256']
+                    or proof['artifact_hashes']['boot_image'] != release['artifacts']['boot_bundle']['sha256']):
+                raise ValueError('H02 exact qualification mismatch')
+            row['proof_sha256'] = sha_file(output/'H02/result.json')
+        except (OSError, KeyError, TypeError, ValueError) as error:
+            row.update(status='FAIL', next_action='missing complete H02 proof: '+str(error))
+    if row['status'] == 'PASS' and test['id'] == 'H03':
+        try:
+            proof_path=output/'H03/result.json'
+            proof=json.loads(proof_path.read_text())
+            elapsed=proof['duration_seconds']
+            if (proof['status']!='PASS' or proof['h03_qualified'] is not True
+                    or proof['source']!=source_identity()
+                    or proof['candidate']!=release['candidate_id']
+                    or proof['runner_sha256']!=sha_file(REPO/'scripts/host/check-charging-regulation.py')
+                    or proof['criteria_sha256']!=sha_file(REPO/'scripts/host/h03-regulation.py')
+                    or type(proof['samples']) is not int or proof['samples']!=61
+                    or type(elapsed) not in (int,float) or not math.isfinite(elapsed)
+                    or not 600<=elapsed<=test['deadline_seconds']
+                    or proof['artifact_hashes']['initramfs']!=release['artifacts']['initramfs']['sha256']
+                    or proof['artifact_hashes']['boot_image']!=release['artifacts']['boot_bundle']['sha256']):
+                raise ValueError('H03 exact observation mismatch')
+            h02=output/'H03/h02/result.json'
+            prior=json.loads(h02.read_text())
+            if (sha_file(h02)!=proof['h02_sha256'] or prior['status']!='PASS'
+                    or prior['h02_qualified'] is not True
+                    or prior['identity']!=proof['identity']
+                    or prior['canonical_record']['candidate']!=release['candidate_id']
+                    or prior['artifact_hashes']!=proof['artifact_hashes']):
+                raise ValueError('H03 H02 prerequisite mismatch')
+            expected={'h02.log','samples.jsonl'}|{f'sample-{i:02d}.raw' for i in range(61)}
+            if set(proof['evidence'])!=expected or any(sha_file(output/'H03'/p)!=proof['evidence'][p] for p in expected):
+                raise ValueError('H03 raw evidence incomplete/changed')
+            row['proof_sha256']=sha_file(proof_path)
+        except (OSError,KeyError,TypeError,ValueError) as error:
+            row.update(status='FAIL',next_action='missing complete H03 proof: '+str(error))
+    if row['status'] == 'PASS' and test['id'] == 'C02':
+        try:
+            proof_path = output/'C02/result.json'
+            proof = json.loads(proof_path.read_text())
+            expected = {'core-only': ['systemd-ack', 'systemd-stale-identity'],
+                        'wifi-rollback': ['systemd-ack', 'systemd-wifi-stale']}
+            elapsed = proof['duration_seconds']
+            if (proof['status'] != 'PASS' or proof['c02_qualified'] is not True
+                    or proof['root_image_unchanged'] is not True
+                    or type(elapsed) not in (int,float) or not math.isfinite(elapsed)
+                    or not 0 <= elapsed <= test['deadline_seconds']
+                    or proof['source_revision'] != subprocess.check_output(
+                        ['git','-C',str(REPO),'rev-parse','HEAD'], text=True).strip()
+                    or proof['runner_sha256'] != sha_file(REPO/'scripts/host/test-qemu-watchdog-handoff.py')
+                    or [case['mode'] for case in proof['cases']] != expected[proof['c02_variant']]
+                    or any(case['passed'] is not True or case['exit_code'] != 0 for case in proof['cases'])):
+                raise ValueError('C02 exact qualification mismatch')
+            for field, role in (('kernel_sha256','kernel'), ('target_archive_sha256','initramfs'),
+                                ('root_image_sha256','rootfs')):
+                if proof[field] != release['artifacts'][role]['sha256']:
+                    raise ValueError('C02 artifact mismatch: '+role)
+            row['proof_sha256'] = sha_file(proof_path)
+            row['next_action'] = 'Qualify remaining mandatory tests on the same release.'
+        except (OSError, KeyError, TypeError, ValueError) as error:
+            row.update(status='FAIL', next_action='missing complete C02 proof: '+str(error))
+    return row
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('tier', choices=['quick', 'offline', 'device-smoke', 'release'])
+    parser.add_argument('--list', action='store_true', help='show contract without executing')
+    parser.add_argument('--output', type=Path, help='new private evidence directory outside repository')
+    parser.add_argument('--release', type=Path, help='exact artifact receipt; no implied admission')
+    parser.add_argument('--capture', type=Path, help='currently running private receiver directory; H01 only')
+    parser.add_argument('--rescue-inputs', type=Path, help='explicit original cycle and same-boot SSH arguments; never execution authority')
+    parser.add_argument('--activation-fixture-build',type=Path,help='existing exact-kernel QEMU-only link fixture build for A01')
+    args = parser.parse_args()
+    if args.capture and args.rescue_inputs:
+        parser.error('choose live --capture or explicit completed-cycle --rescue-inputs, not both')
+    contract = load_contract()
+    selected = select(contract, args.tier)
+    if args.list:
+        for test in selected:
+            command = ' ; '.join(' '.join(c) for c in test['commands']) or 'BLOCKED: ' + test['blocker']
+            print(f'{test["id"]}\t{test["deadline_seconds"]}s\t{test["outcome"]}\t{command}')
+        return 0
+    if args.output is None:
+        parser.error('execution requires --output pointing to a new private directory')
+    output = args.output.resolve()
+    if output.is_relative_to(REPO) or output.exists():
+        parser.error('output must be new and outside repository (private logs)')
+    output.mkdir(mode=0o700, parents=False)
+    before = source_identity()
+    started = time.monotonic()
+    report = {'format': 'rog5-release-results-v1', 'started_at': utc(), 'tier': args.tier,
+              'source': before, 'contract_sha256': sha_file(CONTRACT),
+              'runner_sha256': sha_file(Path(__file__)), 'release': None,
+              'evidence_reused': False, 'qualified': False, 'tests': []}
+    error = ''
+    if args.release:
+        try:
+            report['release'] = verify_release(args.release)
+            if report['release']['source_revision'] != before['revision']:
+                raise ValueError('artifact source revision does not match tested HEAD')
+        except (ValueError, KeyError, OSError, TypeError) as exc:
+            error = str(exc)
+    selected_ids = {t['id'] for t in selected}
+    for test in contract['tests']:
+        if test['id'] not in selected_ids or error:
+            row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
+                   'status': 'NOT RUN', 'duration_seconds': 0,
+                   'next_action': error or f'run {test["tier"]} prerequisite/check'}
+        else:
+            row = run_one(test, output, report['release'], args.capture, args.rescue_inputs,args.activation_fixture_build)
+            print(f'{row["id"]}: {row["status"]} ({row["duration_seconds"]:.3f}s)', flush=True)
+        report['tests'].append(row)
+    after = source_identity()
+    report['evidence_reused'] = any(row.get('evidence_reused', False) for row in report['tests'])
+    if args.rescue_inputs:
+        try:
+            if any(row['rescue_inputs_sha256'] != sha_file(args.rescue_inputs)
+                   for row in report['tests'] if 'rescue_inputs_sha256' in row):
+                error = 'rescue inputs changed during run'
+        except OSError as exc:
+            error = 'rescue input revalidation failed: '+str(exc)
+    if before != after:
+        error = 'source changed during run; results are not a frozen checkpoint'
+    if args.release and report['release']:
+        try:
+            if verify_release(args.release) != report['release']:
+                error = 'release receipt changed during run; no coherent release evidence'
+        except (ValueError, KeyError, OSError, TypeError) as exc:
+            error = 'artifact revalidation failed: ' + str(exc)
+    report.update(ended_at=utc(), duration_seconds=round(time.monotonic()-started, 3),
+                  source_after=after, invalid_reason=error)
+    selected_rows = [r for r in report['tests'] if r['id'] in selected_ids]
+    report['result'] = ('FAIL' if error or any(r['status'] == 'FAIL' for r in selected_rows)
+                        else 'PASS' if all_pass(selected_rows) else 'BLOCKED')
+    report['qualified'] = bool(not error and before['clean'] and report['release'] and all_pass(report['tests']))
+    (output/'results.json').write_text(json.dumps(report, indent=2) + '\n')
+    matrix = ['# Current run — not an aggregate of historical releases', '',
+              f'Tier: {args.tier}; result: {report["result"]}; release qualified: {report["qualified"]}.', '',
+              '| Required test | Result | Evidence | Next action |', '|---|---|---|---|']
+    for row in report['tests']:
+        matrix.append(f'| {row["id"]}: {row["outcome"]} | {row["status"]} | {row.get("log", "none")} | {row["next_action"]} |')
+    (output/'matrix.md').write_text('\n'.join(matrix) + '\n')
+    print(f'{report["result"]}; release qualified={report["qualified"]}; evidence: {output}')
+    return {'PASS': 0, 'FAIL': 1, 'BLOCKED': 2}[report['result']]
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+exec /usr/libexec/rog5-selector-v2-loader existing-recovery

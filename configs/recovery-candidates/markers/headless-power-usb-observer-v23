@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v23
+predecessor=headless-power-usb-observer-v22
+purpose=busybox-compatible-exact-udc-probe

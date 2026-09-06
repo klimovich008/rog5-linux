@@ -1,0 +1,596 @@
+#!/bin/sh
+set -eu
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/libexec
+
+selector=/mnt/arch/boot/rog5-linux/selector
+source_root=/mnt/arch/boot/rog5-linux/bundles
+bundle_root=/run/rog5-bundles
+plan=/run/rog5-slotb.plan
+reboot_helper=/usr/libexec/rog5-reboot-bootloader
+trial_helper=/usr/libexec/rog5-persistent-trial-state
+target_mount=/mnt/arch
+userdata_mount=/mnt/userdata
+watchdog_seconds=180
+selection_report_delay=0.30
+status_file=/run/rog5-slotb-loader.status
+reporter_pid=
+expected_udc=a600000.dwc3
+udc_class=/sys/class/udc
+usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+disk=
+arch_root=
+userdata=
+selector_format=
+trial_id=
+primary_bundle=
+primary_manifest_hash=
+fallback_bundle=
+fallback_manifest_hash=
+loader_mode=standalone
+fallback_selector_hash=
+embedded_root=/usr/share/rog5/ram-bundles
+ram_bundle=
+ram_manifest_hash=
+
+case $# in
+	0) ;;
+	1)
+		[ "$1" = existing-recovery ] || {
+			echo 'FAIL invalid slot-B loader mode' >&2
+			exit 1
+		}
+		loader_mode=existing-recovery
+		;;
+	2)
+		[ "$1" = existing-recovery-fallback ] && [ "${#2}" -eq 64 ] &&
+			printf '%s\n' "$2" | grep -Eq '^[0-9a-f]{64}$' || {
+			echo 'FAIL invalid exact-selector fallback request' >&2
+			exit 1
+		}
+		loader_mode=existing-recovery
+		fallback_selector_hash=$2
+		;;
+	3)
+		[ "$1" = existing-recovery-ram ] && [ "${#2}" -le 64 ] &&
+			printf '%s\n' "$2" | grep -Eq '^[a-z0-9][a-z0-9._-]{0,63}$' &&
+			[ "${#3}" -eq 64 ] &&
+			printf '%s\n' "$3" | grep -Eq '^[0-9a-f]{64}$' || {
+			echo 'FAIL invalid exact RAM-bundle request' >&2; exit 1
+		}
+		case $2 in *..*) exit 1 ;; esac
+		# grep is line-oriented; reject embedded newlines separately.
+		[ "$(printf '%s' "$2" | tr -d '\n')" = "$2" ] || exit 1
+		[ "$3" != 0000000000000000000000000000000000000000000000000000000000000000 ] || exit 1
+		loader_mode=existing-recovery
+		ram_bundle=$2
+		ram_manifest_hash=$3
+		;;
+	*) echo 'FAIL invalid slot-B loader arguments' >&2; exit 1 ;;
+esac
+
+log() { echo "rog5-slotb-loader: $*" >/dev/kmsg 2>/dev/null || true; }
+
+set_stage() {
+	stage=$1 status=$2 detail=$3
+	printf 'format=rog5-slotb-loader-progress-v1 stage=%s status=%s detail=%s\n' \
+		"$stage" "$status" "$detail" >"$status_file.tmp"
+	mv "$status_file.tmp" "$status_file"
+	log "stage=$stage status=$status detail=$detail"
+}
+
+report_stage() {
+	while :; do
+		if [ -c /dev/ttyGS0 ]; then
+			timeout 1 sh -c 'cat "$1" > /dev/ttyGS0' sh "$status_file" \
+				2>/dev/null || true
+		fi
+		sleep 0.25
+	done
+}
+
+single_expected_udc() {
+	found=
+	matches=0
+	for candidate in "$udc_class"/*; do
+		[ -e "$candidate" ] || continue
+		name=$(basename "$candidate")
+		case $name in
+			*a600000*) found=$name; matches=$((matches + 1)) ;;
+		esac
+	done
+	[ "$matches" -eq 1 ] && [ "$found" = "$expected_udc" ] || return 1
+	printf '%s\n' "$found"
+}
+
+configure_loader_usb() {
+	attempt=0
+	while [ "$attempt" -lt 100 ] && [ ! -e "$usb_mode" ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -e "$usb_mode" ] || return 1
+	echo peripheral >"$usb_mode" || return 1
+	mkdir -p /sys/kernel/config
+	mount -t configfs configfs /sys/kernel/config 2>/dev/null || return 1
+	gadget=/sys/kernel/config/usb_gadget/rog5-slotb-loader
+	mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"
+	echo 0x1d6b >"$gadget/idVendor"
+	echo 0x0104 >"$gadget/idProduct"
+	echo Linux >"$gadget/strings/0x409/manufacturer"
+	echo 'ROG5 slot B loader' >"$gadget/strings/0x409/product"
+	echo 'loader progress' >"$gadget/configs/c.1/strings/0x409/configuration"
+	mkdir "$gadget/functions/acm.usb0"
+	ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+	mdev -s || return 1
+	udc=
+	attempt=0
+	while [ "$attempt" -lt 200 ] && [ -z "$udc" ]; do
+		if first=$(single_expected_udc); then
+			sleep 0.1
+			second=$(single_expected_udc) || return 1
+			[ "$first" = "$second" ] || return 1
+			udc=$first
+			break
+		fi
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ "$udc" = "$expected_udc" ] || return 1
+	printf '%s\n' "$udc" >"$gadget/UDC" || return 1
+	[ "$(cat "$gadget/UDC")" = "$expected_udc" ] || return 1
+	[ "$(single_expected_udc)" = "$expected_udc" ] || return 1
+	attempt=0
+	while [ "$attempt" -lt 100 ] && [ ! -c /dev/ttyGS0 ]; do
+		sleep 0.1
+		attempt=$((attempt + 1))
+	done
+	[ -c /dev/ttyGS0 ]
+}
+
+return_bootloader() {
+	trap - EXIT HUP INT TERM
+	log 'returning to bootloader'
+	"$reboot_helper" >/dev/null 2>&1 &
+	sleep 3
+	printf b >/proc/sysrq-trigger 2>/dev/null || true
+	while :; do sleep 3600; done
+}
+
+fail() {
+	set_stage terminal FAIL "$1"
+	log "FAIL $1"
+	sleep 1
+	[ "$loader_mode" = standalone ] || exit 1
+	return_bootloader
+}
+trap 'fail interrupted' HUP INT TERM
+
+if [ "$loader_mode" = standalone ]; then
+	mount -t proc proc /proc 2>/dev/null || true
+	mount -t sysfs sysfs /sys 2>/dev/null || true
+	mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+	mkdir -p /dev/pts /run "$target_mount"
+	mount -t devpts devpts /dev/pts 2>/dev/null || true
+	mount -t tmpfs -o mode=0755,nodev,nosuid tmpfs /run 2>/dev/null || true
+	echo /sbin/mdev >/proc/sys/kernel/hotplug
+	mdev -s
+
+	set_stage S00 PASS init
+	configure_loader_usb || fail usb_setup
+	report_stage &
+	reporter_pid=$!
+	sleep 1
+	set_stage S10 PASS usb_ready
+
+	(
+		sleep "$watchdog_seconds"
+		log 'loader watchdog expired'
+		"$reboot_helper" >/dev/null 2>&1 &
+		sleep 3
+		printf b >/proc/sysrq-trigger 2>/dev/null || true
+	) &
+	watchdog_pid=$!
+else
+	[ "$(cat /etc/rog5/recovery-mode)" = persistent-slotb-loader-v1 ] ||
+		fail recovery_mode
+	[ -c /dev/ttyGS0 ] || fail recovery_transport
+	[ "$(stat -c '%u:%g:%a:%h' "$bundle_root")" = 0:0:700:2 ] ||
+		fail bundle_root
+	mkdir -p "$target_mount"
+	set_stage S10 PASS recovery_ready
+	report_stage &
+	reporter_pid=$!
+	watchdog_pid=
+fi
+
+resolve_storage() {
+	matches=0
+	for sys_disk in /sys/class/block/sd[a-z]; do
+		[ -e "$sys_disk/device" ] && [ ! -e "$sys_disk/partition" ] || continue
+		[ "$(cat "$sys_disk/size")" = 494927872 ] || continue
+		[ "$(cat "$sys_disk/queue/logical_block_size")" = 4096 ] || continue
+		name=$(basename "$sys_disk")
+		candidate=
+		candidate_userdata=
+		for part in "$sys_disk"/"$name"*; do
+			[ -e "$part/partition" ] || continue
+			partname=$(sed -n 's/^PARTNAME=//p' "$part/uevent" | sed -n '1p')
+			if [ "$(cat "$part/partition"):$partname" = 23:userdata ] &&
+				[ "$(cat "$part/start")" = 18821440 ] &&
+				[ "$(cat "$part/size")" = 408997568 ]; then
+				candidate_userdata=/dev/$(basename "$part")
+				continue
+			fi
+			[ "$(cat "$part/partition"):$partname" = 24:arch_root_a ] || continue
+			[ "$(cat "$part/start")" = 427819008 ] || continue
+			[ "$(cat "$part/size")" = 67108824 ] || continue
+			candidate=/dev/$(basename "$part")
+		done
+		[ -n "$candidate" ] && [ -n "$candidate_userdata" ] || continue
+		disk=/dev/$name
+		arch_root=$candidate
+		userdata=$candidate_userdata
+		matches=$((matches + 1))
+	done
+	[ "$matches" -eq 1 ] && [ -b "$disk" ] && [ -b "$arch_root" ] &&
+		[ -b "$userdata" ] || return 1
+	[ "$(blockdev --getsize64 "$disk")" = 253403070464 ] &&
+		[ "$(blockdev --getsize64 "$arch_root")" = 34359717888 ] &&
+		[ "$(blockdev --getsize64 "$userdata")" = 209406754816 ]
+}
+
+valid_bundle_name() {
+	printf '%s\n' "$1" | grep -Eq '^[a-z0-9][a-z0-9._-]{0,63}$' || return 1
+	case $1 in *..*) return 1 ;; esac
+}
+
+valid_hash() {
+	printf '%s\n' "$1" | grep -Eq '^[0-9a-f]{64}$' || return 1
+	[ "$1" != 0000000000000000000000000000000000000000000000000000000000000000 ]
+}
+
+read_selector() {
+	[ -f "$selector" ] && [ ! -L "$selector" ] || return 1
+	[ "$(stat -c '%u:%g:%a:%h' "$selector")" = 0:0:600:1 ] || return 1
+	! grep -q "$(printf '\r')" "$selector" || return 1
+	selector_format=$(sed -n '1p' "$selector")
+	case $selector_format in
+	format=rog5-slotb-selector-v1)
+		[ "$(wc -l <"$selector")" -eq 3 ] || return 1
+		bundle=$(sed -n 's/^bundle=//p' "$selector")
+		manifest_hash=$(sed -n 's/^manifest_sha256=//p' "$selector")
+		[ "$(sed -n '2p' "$selector")" = "bundle=$bundle" ] &&
+			[ "$(sed -n '3p' "$selector")" = \
+			"manifest_sha256=$manifest_hash" ] || return 1
+		valid_bundle_name "$bundle" && valid_hash "$manifest_hash"
+		;;
+	format=rog5-slotb-selector-v2)
+		[ "$(wc -l <"$selector")" -eq 7 ] || return 1
+		trial_id=$(sed -n 's/^trial_id=//p' "$selector")
+		primary_bundle=$(sed -n 's/^primary_bundle=//p' "$selector")
+		primary_manifest_hash=$(sed -n \
+			's/^primary_manifest_sha256=//p' "$selector")
+		fallback_bundle=$(sed -n 's/^fallback_bundle=//p' "$selector")
+		fallback_manifest_hash=$(sed -n \
+			's/^fallback_manifest_sha256=//p' "$selector")
+		[ "$(sed -n '2p' "$selector")" = "trial_id=$trial_id" ] &&
+			[ "$(sed -n '3p' "$selector")" = \
+			"primary_bundle=$primary_bundle" ] &&
+			[ "$(sed -n '4p' "$selector")" = \
+			"primary_manifest_sha256=$primary_manifest_hash" ] &&
+			[ "$(sed -n '5p' "$selector")" = \
+			"fallback_bundle=$fallback_bundle" ] &&
+			[ "$(sed -n '6p' "$selector")" = \
+			"fallback_manifest_sha256=$fallback_manifest_hash" ] &&
+			[ "$(sed -n '7p' "$selector")" = mode=try-once ] || return 1
+		valid_hash "$trial_id" && valid_bundle_name "$primary_bundle" &&
+			valid_hash "$primary_manifest_hash" &&
+			valid_bundle_name "$fallback_bundle" &&
+			valid_hash "$fallback_manifest_hash" &&
+			[ "$primary_bundle" != "$fallback_bundle" ] || return 1
+		bundle=$primary_bundle
+		manifest_hash=$primary_manifest_hash
+		;;
+	*) return 1 ;;
+	esac
+}
+
+apply_fallback_request() {
+	[ -n "$fallback_selector_hash" ] || return 0
+	# The sealed executor binds this rescue to one reviewed selector, not an
+	# arbitrary bundle/path. Only its already signed fallback may be selected.
+	[ "$selector_format" = format=rog5-slotb-selector-v2 ] &&
+		[ "$(sha256sum "$selector" | cut -d ' ' -f 1)" = \
+			"$fallback_selector_hash" ] || return 1
+	bundle=$fallback_bundle
+	manifest_hash=$fallback_manifest_hash
+	# Reuse the read-only single-bundle path; never open the trial write window.
+	selector_format=format=rog5-slotb-selector-v1
+}
+
+verify_all_storage_read_only() {
+	count=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		[ -b "$device" ] && [ "$(blockdev --getro "$device")" = 1 ] &&
+			[ "$(cat "$sys_block/ro")" = 1 ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq 117 ]
+}
+
+relock_all_storage() {
+	status=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		[ -b "$device" ] && blockdev --setro "$device" || status=1
+	done
+	verify_all_storage_read_only || status=1
+	return "$status"
+}
+
+verify_trial_write_window() {
+	count=0
+	writable=0
+	for sys_block in /sys/class/block/sd*; do
+		[ -e "$sys_block/dev" ] || continue
+		device=/dev/$(basename "$sys_block")
+		expected=1
+		case $device in
+		"$disk"|"$userdata") expected=0; writable=$((writable + 1)) ;;
+		esac
+		[ -b "$device" ] && [ "$(blockdev --getro "$device")" = "$expected" ] &&
+			[ "$(cat "$sys_block/ro")" = "$expected" ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq 117 ] && [ "$writable" -eq 2 ]
+}
+
+select_trial_bundle() {
+	selected=$fallback_bundle
+	trial_ready=0
+	trial_attempt=0
+	trial_failure=none
+	while [ "$trial_attempt" -lt 3 ]; do
+		trial_attempt=$((trial_attempt + 1))
+		trial_mounted=0
+		trial_attempt_ready=1
+		trial_cleanup=1
+		trial_failure=relock
+		relock_all_storage || trial_attempt_ready=0
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=disk-rw
+			blockdev --setrw "$disk" || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=userdata-rw
+			blockdev --setrw "$userdata" || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=write-window
+			verify_trial_write_window || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=mkdir
+			mkdir -m 0700 "$userdata_mount" || trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=mount
+			if mount -t ext4 -o rw,nodev,nosuid,noexec,noatime \
+				"$userdata" "$userdata_mount"; then
+				trial_mounted=1
+			else
+				trial_attempt_ready=0
+			fi
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_failure=identity
+			identity=$(blkid "$userdata") || trial_attempt_ready=0
+			printf '%s\n' "$identity" |
+				grep -Fq ' UUID="0892bacf-3e02-41b0-84a4-5f05c2df7ce5"' ||
+				trial_attempt_ready=0
+			printf '%s\n' "$identity" |
+				grep -Fq ' LABEL="rog5-linux"' || trial_attempt_ready=0
+			printf '%s\n' "$identity" | grep -Fq ' TYPE="ext4"' ||
+				trial_attempt_ready=0
+		fi
+		if [ "$trial_attempt_ready" -eq 1 ]; then
+			trial_ready=1
+			trial_failure=none
+			break
+		fi
+		[ "$trial_mounted" -eq 0 ] || sync || trial_cleanup=0
+		[ "$trial_mounted" -eq 0 ] ||
+			umount "$userdata_mount" || trial_cleanup=0
+		relock_all_storage || trial_cleanup=0
+		if [ -d "$userdata_mount" ]; then
+			rmdir "$userdata_mount" 2>/dev/null || trial_cleanup=0
+		fi
+		[ "$trial_cleanup" -eq 1 ] || return 1
+		log "trial preflight retry attempt=$trial_attempt reason=$trial_failure"
+		[ "$trial_attempt" -eq 3 ] || sleep 0.25
+	done
+	if [ "$trial_ready" -eq 1 ]; then
+		# Never retry after this exact helper may publish or observe state.
+		decision=$("$trial_helper" decide "$trial_id" "$primary_bundle" \
+			"$primary_manifest_hash" "$fallback_bundle" \
+			"$fallback_manifest_hash") || decision=$fallback_bundle
+		case $decision in
+		"$primary_bundle") selected=$decision; trial_result=primary ;;
+		"$fallback_bundle") selected=$decision; trial_result=fallback-helper ;;
+		*) selected=$fallback_bundle; trial_result=fallback-invalid ;;
+		esac
+	else
+		trial_result=fallback-prep-$trial_failure
+	fi
+	trial_cleanup=1
+	[ "${trial_mounted:-0}" -eq 0 ] || sync || trial_cleanup=0
+	[ "${trial_mounted:-0}" -eq 0 ] ||
+		umount "$userdata_mount" || trial_cleanup=0
+	relock_all_storage || trial_cleanup=0
+	if [ -d "$userdata_mount" ]; then
+		rmdir "$userdata_mount" 2>/dev/null || trial_cleanup=0
+	fi
+	[ "$trial_cleanup" -eq 1 ] || return 1
+	trial_selection_detail=trial-${trial_result}-a${trial_attempt}
+	case $selected in
+	"$primary_bundle") bundle=$primary_bundle; manifest_hash=$primary_manifest_hash ;;
+	"$fallback_bundle") bundle=$fallback_bundle; manifest_hash=$fallback_manifest_hash ;;
+	*) return 1 ;;
+	esac
+}
+
+copy_bundle() {
+	name=$1
+	source=$source_root/$name
+	[ -d "$source" ] && [ ! -L "$source" ] || return 1
+	cp -a "$source" "$bundle_root/"
+}
+
+verify_bundle() {
+	name=$1 hash=$2 output=$3
+	/usr/libexec/rog5-bundle-verify "$name" "$hash" >"$output" || return 1
+	[ "$(grep -c '^cmdline=' "$output")" -eq 1 ] || return 1
+	[ -n "$(sed -n 's/^cmdline=//p' "$output")" ]
+}
+
+disable_haven_watchdog() {
+	control=
+	matches=0
+	for device in /sys/bus/platform/devices/*; do
+		[ -f "$device/of_node/compatible" ] || continue
+		[ "$(basename "$(readlink -f "$device/driver" 2>/dev/null)")" = hh-watchdog ] || continue
+		tr '\000' '\n' <"$device/of_node/compatible" | grep -qx qcom,hh-watchdog || continue
+		[ -f "$device/disable" ] && [ ! -L "$device/disable" ] || return 1
+		control=$device/disable
+		matches=$((matches + 1))
+	done
+	[ "$matches" -eq 1 ] || return 1
+	printf 1 >"$control" || return 1
+	[ "$(cat "$control")" = 1 ] || return 1
+	! dmesg | grep -q 'Failed to deactivate secure wdog'
+}
+
+prepare_embedded_bundle() {
+	valid_bundle_name "$ram_bundle" && valid_hash "$ram_manifest_hash" || return 1
+	# Recovery owns the empty private runtime directory. Embedded data lives
+	# outside /run, which recovery replaces with tmpfs before this executor.
+	for directory in "$embedded_root" "$bundle_root" "$embedded_root/$ram_bundle"; do
+		[ -d "$directory" ] && [ ! -L "$directory" ] || return 1
+	done
+	[ "$(stat -c '%u:%g:%a:%h' "$embedded_root")" = 0:0:700:3 ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$bundle_root")" = 0:0:700:2 ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$embedded_root/$ram_bundle")" = 0:0:700:2 ] || return 1
+	for entry in "$bundle_root"/* "$bundle_root"/.[!.]* "$bundle_root"/..?*; do
+		[ ! -e "$entry" ] && [ ! -L "$entry" ] || return 1
+	done
+	count=0
+	for entry in "$embedded_root/$ram_bundle"/* "$embedded_root/$ram_bundle"/.[!.]* "$embedded_root/$ram_bundle"/..?*; do
+		[ -e "$entry" ] || [ -L "$entry" ] || continue
+		case ${entry##*/} in Image|board.dtb|initramfs.cpio.gz|manifest|manifest.sig) ;; *) return 1 ;; esac
+		[ -f "$entry" ] && [ ! -L "$entry" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$entry")" = 0:0:600:1 ] || return 1
+		count=$((count + 1))
+	done
+	[ "$count" -eq 5 ] || return 1
+	relock_all_storage || return 1
+	cp -a "$embedded_root/$ram_bundle" "$bundle_root/" || return 1
+	bundle=$ram_bundle
+	manifest_hash=$ram_manifest_hash
+	verify_bundle "$bundle" "$manifest_hash" "$plan" || return 1
+}
+
+resolve_storage || fail storage_identity
+set_stage S20 PASS storage_resolved
+if [ -n "$ram_bundle" ]; then
+	prepare_embedded_bundle || fail ram_bundle
+	set_stage S50 PASS ram_bundle_copied
+else
+blockdev --setro "$disk" || fail disk_lock
+blockdev --setro "$arch_root" || fail root_lock
+[ "$(blockdev --getro "$disk")" = 1 ] || fail disk_not_read_only
+[ "$(blockdev --getro "$arch_root")" = 1 ] || fail root_not_read_only
+mount -t ext4 -o ro,noload "$arch_root" "$target_mount" || fail root_mount
+set_stage S30 PASS root_mounted
+read_selector || fail selector
+apply_fallback_request || fail rescue_selector
+set_stage S40 PASS selector_verified
+
+if [ "$loader_mode" = standalone ]; then
+	mkdir -m 0700 "$bundle_root"
+else
+	[ "$(stat -c '%u:%g:%a:%h' "$bundle_root")" = 0:0:700:2 ] ||
+		fail bundle_root_changed
+fi
+case $selector_format in
+format=rog5-slotb-selector-v1)
+	copy_bundle "$bundle" || fail bundle_copy
+	;;
+format=rog5-slotb-selector-v2)
+	copy_bundle "$fallback_bundle" || fail fallback_bundle_copy
+	primary_failure=none
+	copy_bundle "$primary_bundle" || primary_failure=copy
+	;;
+*) fail selector_format ;;
+esac
+sync
+umount "$target_mount" || fail root_unmount
+[ -z "$fallback_selector_hash" ] ||
+	relock_all_storage || fail rescue_relock
+set_stage S50 PASS bundle_copied
+
+case $selector_format in
+format=rog5-slotb-selector-v1)
+	verify_bundle "$bundle" "$manifest_hash" "$plan" || fail bundle_verify
+	;;
+format=rog5-slotb-selector-v2)
+	verify_bundle "$fallback_bundle" "$fallback_manifest_hash" \
+		"$plan.fallback" || fail fallback_bundle_verify
+	if [ "$primary_failure" = none ]; then
+		verify_bundle "$primary_bundle" "$primary_manifest_hash" \
+			"$plan.primary" || primary_failure=verify
+	fi
+	if [ "$primary_failure" = none ]; then
+		select_trial_bundle || fail trial_state
+	else
+		# A broken primary is not a reason to bypass a verified fallback.
+		# No trial write window is needed for bytes we will never execute;
+		# retain the exact all-storage read-only gate normally run by selection.
+		relock_all_storage || fail trial_state
+		bundle=$fallback_bundle
+		manifest_hash=$fallback_manifest_hash
+		trial_selection_detail=trial-fallback-primary-$primary_failure
+	fi
+	case $bundle in
+	"$primary_bundle") cp "$plan.primary" "$plan" ;;
+	"$fallback_bundle") cp "$plan.fallback" "$plan" ;;
+	*) fail trial_decision ;;
+	esac
+	set_stage S65 PASS "$trial_selection_detail"
+	sleep "$selection_report_delay"
+	;;
+	*) fail selector_format ;;
+esac
+fi # storage-selector path; RAM mode bypasses mounts and trial writes
+command_line=$(sed -n 's/^cmdline=//p' "$plan")
+[ -n "$command_line" ] || fail empty_cmdline
+set_stage S60 PASS bundle_verified
+
+payload=$bundle_root/$bundle
+/usr/sbin/kexec -c -l "$payload/Image" \
+	--dtb="$payload/board.dtb" \
+	--initrd="$payload/initramfs.cpio.gz" \
+	--command-line="$command_line" || fail kexec_load
+set_stage S70 PASS kexec_loaded
+disable_haven_watchdog || fail haven_watchdog
+set_stage S80 PASS haven_disabled
+log "executing signed local bundle $bundle"
+[ "$loader_mode" = existing-recovery ] ||
+	kill "$watchdog_pid" 2>/dev/null || true
+set_stage S90 PASS execute
+sleep 0.5
+/usr/sbin/kexec -e
+fail kexec_returned
