@@ -22,30 +22,42 @@ Keep private credentials, raw evidence and artifacts outside Git; do not delete 
 
 ## Current running rescue
 
-`headless-selector-rescue-v2` is now **consumed**, not unissued. Its sole RAM
-execution on published source `23e8fe430dff4fb1dcc7c6634d660bf390458bb3`
-selected the unchanged signed `persistent-native-root-v11` fallback, kernel
-`7.1.4-g359318de534f`, boot `6aa96219-c542-441c-9500-dd540e89b249`.
-Never execute this candidate again. No flash, GPT or selector change occurred.
+**Consumed** `headless-acceptance-rescue-v6` ran once from published source
+`ae819406f4c4bbb37cc479ff6da8287ba6d393c2`; all four CI jobs passed run
+34008374648. Never execute this RAM candidate again.
+Kernel `7.1.4-g359318de534f`, boot
+`64e209e2-0efe-40c6-8396-29f3e481f0ff`.
+Signed manifest `8beb3ab7…`, boot image `32704e44…`; exact identities and
+preparation evidence remain in the [incident](../test-results/2026-09-05-headless-acceptance.md).
 
-Pinned USB SSH and a separately scoped fallback/P2 component passed. The
-original smoke remains **FAIL**: its host predicate required `attested_boot_id`,
-which the exact old V11 producer never emits (R2/R3/R7). Do not weaken current
-server attestation or relabel this as H02/R01. The integrated
-`check-deployed-server --readiness-only` preserves that distinction and passed
-on this same boot in 0.251 s. Captured-marker tests run in normal/optimized
-Python; future supervisors must reuse this checker instead of the copied grep.
-Capture completed in 1380.804 s; owned route/firewall/profile/address cleanup
-passed. At uptime 1398 s the same boot remained reachable, Full/Good 100%,
-29.7°C, 8.621 V, zero battery current and USB online. This is not H03 regulation
-qualification. Pstore was empty and remains inconclusive.
+| Same-boot component | Measured result |
+|---|---|
+| Exact V11-to-fastboot RAM exitrd transition | PASS 9.260 s; no flash or selector change |
+| Sole V6 fastboot operation / authenticated readiness | 12.824 s / PASS 59.555 s |
+| Package trust and keyring refresh | PASS; no failed systemd units |
+| Eight deployed runtime files vs sealed archive | PASS 0.246 s, including shutdown/keyring/SSH helpers |
+| Powered continuity | PASS 95 samples / 960.494 s; Full/Good 100%, 29.7–29.8°C, USB online |
+| Deployed watchdog | Current-boot P2 + SSH identity ACK at uptime 902.520 s |
+| Late SSH service restart / new pinned connection | PASS 0.230 s / 0.191 s; same boot |
+| Capture / owned host cleanup | 1380.479 s; route/firewall/profile/address cleanup PASS |
+| Pinned readiness after cleanup | PASS 0.193 s |
 
-The only failed systemd unit is the known V11 uninitialized package-keyring
-refresh (`fpr_email[1]: unbound variable`). Its fix was validated on the primary
-below but is not in this immutable fallback. No failure was hidden/reset.
-The fallback uses a tmpfs root upper, not the primary's 16 GiB persistent upper;
-do not transfer primary userspace, Wi-Fi or Tailscale evidence to this boot.
-Current selector hash and its previous healthy-primary trial remain unchanged.
+The kernel-log prefix was retained with no new matched warning/oops/UFS-error
+lines. The initial SPMI warning remains visible; this is not proof that the
+kernel is fault-free. Do not treat empty pstore as proof of no crash.
+Wi-Fi is deliberately inactive. This rescue uses a tmpfs root upper over
+RO/noload P24 plus the existing P23 service-state image; it is **not** the
+primary's 16 GiB persistent upper. Selector `c15c7782…` and healthy primary
+trial `bfc82fac…` are unchanged. Stock A and signed V11 are preserved.
+
+These are component passes, not a green release or H03 full-state regulation
+qualification. H02's complete executable acceptance integration remains pending.
+The first supervisor preflight failed before capture/claim/boot because its
+restricted PATH lacked `gh`; the fixed absolute path passed under actual
+runuser. A later host Python text/bytes error prevented sending the first
+service-restart script; its failure and corrected invocation are retained.
+Neither was a kernel failure or a retry of target execution. All capture and
+power-monitor processes are now terminal.
 
 ## Previous primary checkpoint and installed recovery
 
@@ -120,28 +132,15 @@ The bounded [source-reuse assessment](kernel-port.md#bounded-source-reuse-assess
 found incompatible downstream charging controls, not a demonstrated mainline
 defect. Keep the accepted kernel; Denial remains deferred and optional.
 
-Prepared **unissued/unbooted** `headless-acceptance-rescue-v6` refreshes V5's
-headless init and adds its missing package-keyring helper/unit. Both kernels,
-DTB and all 20 hardware payload members are unchanged. Target twins match
-(`7703f398…`); signed recovery twins and sealed verifier pass (`32704e44…`
-boot image). Only the canonical claim registry records its execution identity.
-Root/archive composition PASS 35.642 s; nine QEMU watchdog cases PASS.
-Registration active tier PASS 16.776 s. No selector or phone storage change.
-Read-only source inspection confirms V11's actual shutdown is `ec3c7fd2…`, not
-current source `1cd007ea…`; prepare its exact RAM transition instead of copying
-a newer-primary adapter assumption. At uptime 3162 s this fallback remained
-Full/Good 100%, 29.7°C, 8.620 V and USB online, with unchanged selector/trial.
-The original observer fix's source
-`4205a261…` passed all four GitHub jobs in run 34007323724.
-All four registration CI jobs passed run 34007871579 at `2d5a0994…`.
-Exact legacy exitrd action-delta syntax passed with its sealed BusyBox/filesystem;
-pinned read-only inspection passed in the combined 0.516 s check at uptime
-3871 s, with unchanged installed boot B, selector/trial and safe battery state.
-No transition was installed or requested. Next: use the integrated readiness checker
-in the exact private supervisor, verify the running V11 exitrd before a normal
-storage-quiescent fastboot transition, then pass connected admission before
-one execution. New physical evidence is needed for coherent headless startup
-with the fixed keyring and Wi-Fi inactive, not to rediscover a marker parser bug.
+The coherent rescue checkpoint above is complete as a component. Reuse its
+accepted kernel and artifact evidence; no further source-reuse or kernel
+redesign is indicated. Next integrate H02's complete runner and plan the
+separate R01 experiment. The exact sealed failure helper uses
+`RESTART2("bootloader")`: expiry reaches fastboot, not automatically signed
+fallback SSH. Any host-assisted R01 cycle must prebind a fresh rescue execution
+and its evidence budget, preserve one-use behavior, and remain distinct from
+autonomous standalone recovery qualification. Do not silently change the
+failure helper or installed loader to make that test easier.
 
 1. New `rog5-dev check-deployed-server` compares six live userspace/helper
    files with repository-derived hashes and strict metadata through pinned SSH;

@@ -1987,3 +1987,58 @@ online. The known legacy keyring failure remains visible. New action-delta SHA
 `a3da03bf558a814c10388471eb38323e4f923349f87024274efa4408addb8753`
 is host-prepared only; no phone file was installed, no reboot requested, and no
 candidate consumed. Adapter execution and actual supervised H02 remain pending.
+
+### V6 physical rescue and powered checkpoint (2026-09-06)
+
+Published source `ae819406f4c4bbb37cc479ff6da8287ba6d393c2` passed all four jobs
+in run 34008374648. The exact legacy shutdown action-only RAM transition passed
+in **9.260 s**, reaching anchored slot-B fastboot at 8.632 V / SOC-safe yes.
+No flash, GPT, selector or target-bundle staging operation occurred. Existing
+prepared signed twins were reused without rebuilding either kernel.
+
+The first privileged supervisor preflight failed before capture/claim/boot:
+`runuser` inherited a PATH without `gh`. Its log and adapters were preserved;
+the existing absolute executable path corrected it. Eight private adapter tests
+passed normal/optimized Python in 0.305/0.309 s, and actual runuser preflight
+passed before starting a new capture. Capture-aware network preflight also
+distinguishes the original empty zone from receipt-verified `nm-shared`.
+
+`headless-acceptance-rescue-v6` is **consumed permanently**. The sole fastboot
+operation completed in **12.824 s**. Recovery reported verified bundle,
+loaded kexec and execute; the target reported switch-root PASS. Integrated
+pinned SSH/current-boot readiness passed at **59.555 s**, boot
+`64e209e2-0efe-40c6-8396-29f3e481f0ff`, kernel `7.1.4-g359318de534f`.
+Wi-Fi remained inactive. The refreshed keyring bootstrap and subsequent WKD
+refresh both succeeded, with no failed systemd units. Eight live runtime files
+matched the exact sealed archive in **0.246 s**, with root ownership, modes,
+single-link regular files and stable before/after metadata. Package trust is
+bound from the accepted service-state image; no key material was exported.
+
+Bounded powered continuity passed **95 samples / 960.494 s**: same boot and
+selector, Full/Good 100%, 29.7–29.8°C, 8.619 V and USB input online. The deployed
+watchdog logged current-boot P2 + SSH identity ACK at **902.519531 s** uptime.
+Kernel-log prefix continuity held, with no new matched warning/oops/UFS-error
+lines; the initial SPMI warning is retained, not suppressed. This idle/full
+battery component does not qualify H03 regulation or a loaded server soak.
+
+A first service-restart invocation failed in host Python's input encoding
+before any script was sent (`bytes` with `text=True`). A local cat fixture
+reproduced it; corrected text input passed. Both failure/entry records remain.
+The subsequent single SSH service restart passed in **0.230 s**, changing its
+main PID; fresh pinned readiness passed in **0.191 s**, on the same boot.
+This is not a retry of candidate execution or full C02 release qualification.
+
+Capture ended in **1380.479 s** with exit zero; all four owned route/firewall/
+profile/address cleanup events passed. Its result correctly remains evidence,
+not authenticated qualification by itself. Pinned SSH/readiness after cleanup
+passed in **0.193 s**. All monitor/capture processes are terminal. The original
+selector and healthy trial remain unchanged; signed V11 and stock A remain
+preserved. The current rescue has a tmpfs upper, not the primary persistent
+upper. No passes are silently imported across these different compositions.
+
+Read-only R01 review verified that this exact sealed reset helper requests
+fastboot, not autonomous fallback boot. A later host-assisted failure/rescue
+cycle needs fresh separately bound execution records; it cannot qualify the
+old installed loader's previously-healthy-primary demotion or autonomous rescue.
+No R01 candidate or failure injection was issued. Complete H02 integration,
+H03 criteria, persistent-server boots/soak and R01 remain outstanding.
