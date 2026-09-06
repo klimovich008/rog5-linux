@@ -3644,3 +3644,83 @@ Next: validate the retained live adapters against the new recipe, then a
 coordinated, non-retryable RAM attempt after publication and connected preflight.
 Keep current V7 running until that transition is ready. Host free disk is about
 4.2 GiB; the 3 GiB reserve and volatile server-root preview remain preserved.
+
+### V8 live rescue and H03 Full maintenance qualified
+
+Continued clean published `d23304c04bc201c7ffb25fbac49b86b187969b31`;
+all four jobs passed in run 34046603853. Frozen source and active coordinator
+inputs were not edited during execution or qualification. Existing packaging,
+full CI and exact-head checks were reused, not rebuilt/repeated.
+Private evidence remains under `rog5-rescue-h03-20260906.CayoqOsI`.
+
+V7 exited via the already-tested RAM-only exitrd action with normal storage
+teardown: exact fastboot PASS 10.223 s, product lahaina, slot B, 8604 mV,
+battery-soc-ok yes. No flash or partition-layout write. One V8 claim was
+consumed; execution returned zero in 15.903 s (fastboot 12.813 s).
+Pinned SSH became ready in 59.785 s. The original receiver completed its
+1380-second capture window, returned zero and restored host setup.
+Do not retry consumed V7 or V8.
+
+Exact V8 identity:
+- boot UUID `015153cc-86f0-440c-b49f-95a1733316b9`;
+- kernel `7.1.4-gf17befd4ef17`;
+- Image `ece47c7d52627d390bccdbcdab23295fe795820c66174d8de41cbc221cbac74e`;
+- target archive `0241a611818638d2e3a6ff399ebea4d63fe6bbefc09a64d5e324d600a6415cb9`;
+- signed boot `1592fedf499f3eba0351c0d3af28a616400b4e00bdd4ccd08f54a04bb79e4687`;
+- recovery archive `33b0743cc87ad9081b4d1466b860d908f84617b97041d52a86ef7509c69b88dc`;
+- manifest `2b565dbea7b14ffa90dd7100700f8db2b7554f9ac9f8eb8149d28dde02070e9f`.
+
+The private adapter's preboot regression covered privileged capture evidence
+ownership: fixed no-follow files are handed to the acceptance reader only
+after receiver exit, with 0600 modes and unchanged bytes. Ten adapter tests
+passed in 0.684 s. A separate closed smoke summary needed the same bounded
+ownership handoff; its bytes stayed
+`a42fef0942547b9169c6f9a5a12c723859c6cedfc1e97eb2b3f4e50867235a81`.
+No live input or phone data was changed to correct this host-only issue.
+Future coordinator maintenance should include that closed summary; no successor
+is needed. Historical failed capture evidence was not relabelled PASS.
+
+The existing acceptance dispatcher ran H01 and H03; H03 itself freshly
+qualified H02, avoiding a duplicate H02 call. Results are
+`qualification-r1/results.json`, with nested `H03/h02/result.json`.
+H01 PASS 0.416 s. H02 PASS on the same boot, including deployed bytes,
+radio inactivity, power and the actual current-boot watchdog acknowledgement.
+H03 PASS 604.523 s at the dispatcher (collector 604.338 s):
+61 raw samples span 600.265 s, with source/artifact/firmware/runtime/boot
+checks before and after. Full/100%, Good, 29.8°C and 8.590 V throughout;
+battery current 0 µA and counter 5,106,000 µAh unchanged.
+USB input 172–447 mA at 4.983–5.053 V remained below its 500 mA limit.
+This qualifies the predeclared **firmware Full-maintenance branch only**,
+not sub-full charging, programmable limits or a complete server release.
+There were no charging-control writes or missing-field substitutions.
+
+Independent offline work used the exact V8 kernel/archive, not older g601
+proofs. `c01-exact-r1/result.json`: nine watchdog/root-handover cases PASS
+138.299 s. `f01-exact-r1/result.json`: disposable journal recovery and
+corruption rejection PASS 75.432 s; protected inputs/root hashes unchanged.
+These are offline component results, not physical reset/UFS qualification.
+
+`c02-exact-r1/result.json` remains **FAIL**: 151.045 s exceeds the unchanged
+120 s contract, although both real Arch/systemd/SSH cases passed and the
+retained root stayed unchanged. A bounded diagnostic replay wrapped only
+existing hash calls with timing, retained in `time-c02.py`,
+`c02-timing-r2.log` and `c02-timing-r2/result.json`.
+It completed in 114.037 s: root hashes 29.627/29.670 s, guests
+30.581/22.916 s. The wrapper changed no hashes, guest behavior, timeout or
+production source. This demonstrates host verification overhead but does not
+prove why the first run was slower. Keep it labelled diagnostic, not an
+erasure of the initial failure or a stable timing guarantee. No kernel fix,
+threshold relaxation or physical boot is justified by this host timing result.
+
+The bounded workflow correction remains complete: compact current state,
+explicit-only proportionate debugging, frozen mandatory scope, distinct
+experimental/accepted-release operations and supported H03 telemetry.
+No global instruction edits, history deletion, new framework or build cleanup.
+Next: resolve C02 timing robustness and installed autonomous recovery, then
+advance the existing persistent-server matrix. R01, Wi-Fi, repeated ordinary
+boots, powered-off start, durability and soak remain unqualified.
+
+Evidence-only handoff update: current-state is 114 lines. Markdown targets and
+`git diff --check` PASS; the existing active tier PASS after the update, with
+per-test durations printed (no aggregate wall duration captured for this run).
+No unchanged full local or remote suite was rerun for these documentation edits.
