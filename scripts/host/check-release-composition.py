@@ -30,6 +30,36 @@ class Blocked(Exception):
     pass
 
 
+def local_selector_identity(root_image, expected_hash):
+    """Read only the fixed loader selector; never mount, repair or stage a root.
+
+    This is an early stale-input refusal, not full selector/bundle qualification.
+    debugfs defaults to read-only; no command or filesystem path comes from metadata.
+    """
+    if (not root_image.is_absolute() or root_image.is_symlink() or not root_image.is_file()
+            or not re.fullmatch(r'[0-9a-f]{64}',expected_hash)):
+        raise ValueError('invalid retained root/selector identity')
+    tool=shutil.which('debugfs')
+    if not tool:
+        raise Blocked('read-only ext4 inspection requires debugfs')
+    signature=lambda s:(s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid,s.st_nlink,
+                        s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+    before=signature(root_image.lstat())
+    path='/boot/rog5-linux/selector'
+    info=subprocess.run([tool,'-R','stat '+path,str(root_image)],capture_output=True,timeout=5)
+    size=re.findall(rb'(?m)^User:\s+0\s+Group:\s+0\s+Project:\s+0\s+Size:\s+([0-9]+)$',info.stdout)
+    if (info.returncode or b'Type: regular' not in info.stdout or len(size)!=1
+            or not 1<=int(size[0])<=4096 or not re.search(rb'(?m)^Links: 1(?:\s|$)',info.stdout)):
+        raise ValueError('missing or unsafe retained root selector')
+    result=subprocess.run([tool,'-R','cat '+path,str(root_image)],capture_output=True,timeout=5)
+    if result.returncode or len(result.stdout)!=int(size[0]) or signature(root_image.lstat())!=before:
+        raise ValueError('retained root selector read changed or failed')
+    actual=hashlib.sha256(result.stdout).hexdigest()
+    if actual!=expected_hash:
+        raise ValueError('retained root selector mismatch: expected '+expected_hash+' observed '+actual)
+    return dict(path=path,size=len(result.stdout),sha256=actual,scope='selector identity only')
+
+
 def timing_contract(manifest, plan, wrapper, members):
     def options(line):
         values={}
@@ -106,6 +136,8 @@ def inspect(args, checks):
     members=C.SEALED.ARCHIVE.entries(payload)
     bundle=record['target_bundle']; prefix='usr/share/rog5/ram-bundles/'+bundle
     if prefix+'/manifest' not in members:
+        if record.get('execution')=='fastboot-boot-selector-trial':
+            local_selector_identity(args.root_image,record['selector_sha256'])
         raise Blocked('external signed-bundle input required for this wrapper; no phone storage will be accessed')
     plan=C.sealed_bundle_plan(members,bundle,record['manifest_sha256'])
     hashes={'boot_bundle':hashlib.sha256(boot).hexdigest()}
