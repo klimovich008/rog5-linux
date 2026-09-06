@@ -88,7 +88,7 @@ class CompositionTest(unittest.TestCase):
         values = dict(KERNEL_RELEASE='7.1.4-g359318de534f', UFS_STORAGE_MODE='read-only',
                       PROBE_BOOT_ID='staged-seal', NATIVE_ROOT_MODE='1',
                       SSH_DIAGNOSTIC_MODE='0', PERSISTENT_OVERLAY_MODE=overlay)
-        item = lambda data: ([0, stat.S_IFREG | 0o755], data)
+        item = lambda data: ([0, stat.S_IFREG | 0o755, 0, 0, 1], data)
         return {
             'shutdown': ([0, stat.S_IFREG | 0o755, 0, 0, 1],
                          (M.REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes()),
@@ -100,8 +100,27 @@ class CompositionTest(unittest.TestCase):
             'usr/local/sbin/rog5-persistent-state': item((M.REPO/'initramfs/persistent-service-state').read_bytes()),
             'usr/local/sbin/rog5-persistent-ssh-identity': item((M.REPO/'initramfs/persistent-ssh-identity').read_bytes()),
             'usr/local/sbin/rog5-persistent-keyring': item((M.REPO/'initramfs/persistent-package-keyring').read_bytes()),
-            'usr/local/share/rog5/rog5-package-keyring.service': item((M.REPO/'configs/systemd/rog5-package-keyring.service').read_bytes()),
+            'usr/local/share/rog5/rog5-package-keyring.service': (
+                [0, stat.S_IFREG | 0o644, 0, 0, 1],
+                (M.REPO/'configs/systemd/rog5-package-keyring.service').read_bytes()),
         }
+
+    def test_matching_startup_bytes_require_safe_executable_metadata(self):
+        members = self.members()
+        members['usr/local/sbin/rog5-startup-observer'] = (
+            [0, stat.S_IFREG | 0o755, 0, 0, 1],
+            (M.REPO/'initramfs/persistent-startup-observer').read_bytes())
+        M.archive_parameters(members)
+        for name in members:
+            mutations = ((1, stat.S_IFLNK | 0o777), (1, stat.S_IFREG | 0o666),
+                         (2, 1000), (3, 1000), (4, 2))
+            if name != 'usr/local/share/rog5/rog5-package-keyring.service':
+                mutations += ((1, stat.S_IFREG | 0o644),)
+            for index, value in mutations:
+                changed = copy.deepcopy(members)
+                changed[name][0][index] = value
+                with self.subTest(member=name, field=index, value=value), self.assertRaises(ValueError):
+                    M.archive_parameters(changed)
 
     def server_members(self):
         members = self.members('1')
@@ -224,9 +243,10 @@ test "$(stat -c %a /run/rog5-persistent-state-userdata-device)" = 444
 
     def test_driver_verifies_present_observer_and_rejects_stale_observer_bytes(self):
         members=self.members()
-        fields=[0, stat.S_IFREG | 0o755]
+        fields=[0, stat.S_IFREG | 0o755, 0, 0, 1]
         members['usr/local/sbin/rog5-startup-observer']=(fields,b'#!/bin/sh\nexit 0\n')
-        with self.assertRaises(ValueError): M.archive_parameters(members)
+        with self.assertRaisesRegex(ValueError, 'stale startup observer'):
+            M.archive_parameters(members)
         self.assertIn('/run/systemd/system/rog5-startup-observer.service',
                       M.driver(members['init'][1].decode()))
 

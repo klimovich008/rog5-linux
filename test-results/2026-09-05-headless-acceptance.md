@@ -2280,3 +2280,68 @@ runtime files and 900 s watchdog ACK; no radio activation, service restart,
 boot, build or flash. `c02-publish-health-r1` retains this separate proof, not
 imported into the offline composition's C02 row or a green release. Exact-head
 and merge publication CI must cover the new commit before any hardware use.
+
+### Bounded source recheck and A01 resumption
+
+At `d82e459ff5a3837f09be9d5e7b8b49f1434de9f9`, all four external source
+pins in `docs/kernel-port.md` remain unchanged. Retained ASUS charger source
+hash matches; the incompatible `0x2108` meanings were reverified directly.
+Denial v0.3.1 is a prerelease, with no ARM64-named asset; its latest-stable API
+returns 404, which is not evidence that no prerelease exists. No code imported,
+large checkout, kernel build or phone interaction. Existing CI continued.
+
+Resumed A01 using existing `archive_parameters`, `core_module_members` and
+`module_closure` against the retained server-runtime-r2 archive and its original
+receipt kernel. Exact sizes/hashes and banner match: archive `6934f732…`, kernel
+`2649a272…`, release `7.1.4-g1eea8970e87f`. Nineteen sealed power/UFS module
+metadata entries passed in **1.367 s**; four auxiliary radio payloads remain
+**NOT RUN** for load/closure. This is not the different `bdceaa51…` kernel used
+for C02's userspace-only VMs. Do not combine those component results into a
+coherent release PASS. A01 still needs final wrapper, full module-load/BTF,
+root/timing/transport integration. No root mount or module execution occurred.
+Fourteen composition regressions pass in normal and optimized Python; 25
+dispatcher regressions pass. Full CI was not repeated for documentation only.
+
+### A01 startup member metadata correction
+
+The existing checker compared startup/helper content but omitted owner, mode
+and link-count checks for seven mandatory members and the optional observer.
+A fail-first test preserved the exact contents while altering metadata: **47
+cases were incorrectly accepted** before the fix. The checker now requires
+root-owned, single-link regular executables (0755), and a regular 0644 keyring
+unit, before executing any fixture. Observer absence remains optional. The
+old stale-observer test now uses valid metadata so it still tests content.
+This is R2 offline composition coverage, not a demonstrated deployed defect.
+
+All **15 composition tests** pass under normal and optimized Python. Existing
+server/rescue archives pass the strengthened check in **0.680/0.386 s**;
+no artifact changed. Active tier **PASS 18.025 s**, private
+`a01-metadata-active.3fwGMKbT.log` in the V6 evidence directory. Full local CI
+will run once on this frozen checkpoint; previous exact-head, merge,
+candidate-publication and QEMU CI all passed run 34016170872 for `d82e459f…`.
+
+Fresh read-only same-boot H02 **PASS 1.242 s**, retained under
+`a01-health.Bsg16f8c/result` in that directory: uptime **11083.54 s**, Full/Good
+100%, **29.7°C**, **8.614 V**, zero current, USB online and original watchdog
+ACK. No radio activation, reboot, charging write or release qualification.
+
+Frozen full local CI **PASS 487.855 s**, private
+`a01-metadata-full-ci.BUtVRXPv.log`; optional unavailable-artifact skips remain
+visible and do not qualify those artifact tests. Only completion docs changed
+afterward. No rerun on unchanged implementation.
+
+While CI ran, a private isolated QEMU experiment used the existing archive
+parser/metadata/load-order checks to construct a VM-only init from exact sealed
+BusyBox, musl and 19 power/UFS modules. Under their **exact server kernel**
+`2649a272…`, every module reached `live`; exit 0, completion marker present,
+no detected module/symbol/BTF/panic/oops/warning errors: **PASS 8.148 s**.
+Archive `6934f732…` and kernel hashes were checked before/after. Container
+`a7303c3b…`, network disabled, no phone/host block access or real root image.
+Private `rog5-a01-module-qemu-20260906.2YwQWQ2V` retains harness, command,
+VM archive, log and result; harness SHA-256
+`e4bcc0c6a7b69905c287d6a9fa3f926d3ac81fe3383429c1ca7cf094ee68b87d`,
+result `5912a4fd0f019c0b6411d37b372c8c074ed616e2b8b18ca121008c8e2595e552`.
+Hardware probing and four auxiliary radio payloads remain **NOT RUN**.
+This proves core module insertion, not whole A01, physical operation or an
+admitted release. Next C02 uses this exact server kernel with the retained
+server archive/root; its earlier different-kernel evidence is not imported.
