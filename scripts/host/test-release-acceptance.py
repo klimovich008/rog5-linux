@@ -146,6 +146,43 @@ class AcceptanceTest(unittest.TestCase):
             self.assertEqual(row['status'], 'BLOCKED')
             self.assertEqual(row['duration_seconds'], 0)
 
+    def test_a01_exit_zero_without_complete_proof_is_not_success(self):
+        test = copy.deepcopy(self.contract['tests'][0])
+        test['commands'] = [[sys.executable, '-c', 'print("component PASS")']]
+        with tempfile.TemporaryDirectory() as tmp:
+            row = M.run_one(test, Path(tmp))
+            self.assertEqual(row['status'], 'FAIL')
+
+    def test_a01_has_an_executable_exact_input_command(self):
+        test = self.contract['tests'][0]
+        self.assertEqual(test['id'], 'A01')
+        self.assertTrue(test['commands'])
+        for argument in ('{kernel}', '{dtb}', '{initramfs}', '{rootfs}', '{boot_bundle}', '{candidate}'):
+            self.assertIn(argument, test['commands'][0])
+
+    def test_a01_rejects_partial_or_wrong_release_proof(self):
+        test = copy.deepcopy(self.contract['tests'][0])
+        test['commands'] = [[sys.executable, '-c', 'pass']]
+        release = dict(candidate_id='fixture', artifacts={k:dict(sha256='a'*64) for k in M.ARTIFACT_ROLES})
+        proof = dict(status='PASS', a01_qualified=True, source=M.source_identity(), candidate='fixture',
+                     duration_seconds=1, runner_sha256=M.sha_file(M.REPO/'scripts/host/check-release-composition.py'),
+                     checks=dict.fromkeys(test['required_checks'],'PASS'),
+                     artifact_hashes=dict.fromkeys(M.ARTIFACT_ROLES,'a'*64))
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); (root/'A01').mkdir()
+            for mutation in ('none','partial','missing-root','wrong-source','false','wrong-hash','late'):
+                changed=copy.deepcopy(proof)
+                if mutation=='partial': changed['checks']['root_runtime']='NOT RUN'
+                if mutation=='missing-root': del changed['artifact_hashes']['rootfs']
+                if mutation=='wrong-source': changed['source']['revision']='0'*40
+                if mutation=='false': changed['a01_qualified']=False
+                if mutation=='wrong-hash': changed['artifact_hashes']['kernel']='b'*64
+                if mutation=='late': changed['duration_seconds']=121
+                (root/'A01/result.json').write_text(json.dumps(changed))
+                with self.subTest(mutation=mutation):
+                    row=M.run_one(test,root,release)
+                    self.assertEqual(row['status'],'PASS' if mutation=='none' else 'FAIL',row)
+
     def test_deadline_nonzero_and_missing_executable_are_not_success(self):
         with tempfile.TemporaryDirectory() as tmp:
             test = copy.deepcopy(self.contract['tests'][1])

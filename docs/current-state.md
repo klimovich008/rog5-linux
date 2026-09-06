@@ -172,19 +172,36 @@ changed. Fresh H02 revalidation passed in **1.297 s** at uptime 9931.81 s,
 same boot, Full/Good 100%, 29.7°C, 8.615 V, zero current and USB online.
 Wi-Fi remains intentionally inactive; this is not H03 regulation evidence.
 
-A01 follow-up fixes a demonstrated offline checker gap: matching startup
-script bytes with invalid owner/mode/link metadata were accepted. The
-fail-first test reproduced 47 accepted malformed cases; 15 composition tests
-now pass in normal and optimized Python. Both retained rescue/server archives
-pass without rebuilding; active tier passed in 18.025 s. Full local CI for
-this separate checker checkpoint passed in **487.855 s**; remote publication
-is separate from the prior run above.
-Fresh same-rescue H02 passed in 1.242 s at uptime 11083.54 s, Full/Good 100%,
-29.7°C, USB online. A private QEMU test loaded all 19 exact retained server
-power/UFS modules under kernel `2649a272…` in **8.148 s**, without detected
-module/symbol/BTF errors. No physical probing or radio closure is implied.
-A01 remains incomplete pending whole-release closure; next run C02 on that
-same kernel/archive/root combination rather than importing mixed-kernel proof.
+A01 is now executable for the exact embedded-bundle rescue composition.
+Published `52b24f66…` fixes startup metadata validation (47 malformed cases
+previously accepted); full local CI **487.855 s**, all four remote jobs PASS
+run **34017100368**. Fresh same-rescue H02: **1.242 s**, uptime 11083.54 s,
+Full/Good 100%, 29.7°C, USB online; still not H03 regulation qualification.
+
+Retained server kernel `2649a272…` passes core module insertion (**19 / 8.148 s**)
+and Arch radio software roots (**17 / 90.525 s**) in QEMU. The latter omits
+hardware activation and production firmware-path setup: out-of-tree SHA-256
+taint and regulatory.db lookup failure are retained, not hidden. Exact-kernel
+C02 also PASS **117.759 s**, fresh healthy/stale VMs **30.098/25.887 s** and
+unchanged root hash. No earlier mixed-kernel proof was imported.
+
+The combined V6 A01 run **PASS 83.502 s**, all seven required checks in one
+source/artifact-bound proof. Exact wrapper/AVB, sealed signature/plan, archive,
+Arch runtime, 19 core module loads, 29-file firmware staging and signed timing/
+stage-consumer compatibility passed. QEMU **18.720 s**, root hash unchanged;
+only a virtual read-only disk and tmpfs upper were exposed. A01 uses the real
+900-second target budget for generated units, not the older one-second fixture.
+The exact shell produced a stage record accepted by the current host parser;
+this is protocol composition, not physical USB qualification or watchdog expiry.
+All **23** composition regressions pass normally and optimized. Earlier fixture
+failures remain in the incident. External selector bundles/server radio extras
+are still BLOCKED rather than inheriting this rescue's PASS. Full local CI for
+this frozen checkpoint **PASS 496.219 s**; exact-head publication CI is next.
+No kernel build, admission, signing or phone cycle.
+Active tier PASS **18.479 s**. Fresh pinned H02 PASS **1.209 s** at uptime
+14795.36 s: same V6 boot, Full/Good 100%, 29.7°C, 8.613 V, USB online,
+zero current and watchdog acknowledged. Wi-Fi remains intentionally inactive;
+this is safe same-boot access evidence, not H03 regulation qualification.
 
 The coherent rescue checkpoint above is complete as a component. Reuse its
 accepted kernel and artifact evidence; no further broad source-reuse or kernel

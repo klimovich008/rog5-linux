@@ -2345,3 +2345,219 @@ Hardware probing and four auxiliary radio payloads remain **NOT RUN**.
 This proves core module insertion, not whole A01, physical operation or an
 admitted release. Next C02 uses this exact server kernel with the retained
 server archive/root; its earlier different-kernel evidence is not imported.
+
+### C02 with the exact server kernel
+
+After publishing **52b24f66d29e2371b6843facc799787fe0001d47**, ran the existing
+C02 dispatcher with kernel `2649a272…`, archive `6934f732…` and retained Arch
+root `06cc805b…`. Source stayed clean/unchanged. **PASS 117.759 s** under the
+unchanged 120-second deadline; healthy/stale fresh VMs **30.098/25.887 s**.
+Actual Arch systemd/sshd, exact sealed watchdog/SSH/Wi-Fi rollback helpers;
+healthy late SSH restart survived and stale acceptance caused ordinary reboot.
+Root hash unchanged; no radio activation or physical access. This replaces
+the mixed-kernel limitation for C02 but is not combined-release qualification.
+Evidence: `c02-exact-server-r1` under the private module-QEMU directory above;
+runner proof SHA-256
+`16ac97a7a904d2953f1e3013cce247a4c51aece2ce3e6894973c1eed8f2dce6f`.
+Remote run **34017100368** covers the published checker checkpoint; still
+in progress when this result was recorded. No full CI rerun for these result
+notes; no production input changed after its frozen full-suite PASS.
+
+### A01 sealed radio software closure
+
+At `52b24f66…` with only the preceding result notes dirty, inspected the sealed
+radio package: 86 tar entries / 65,022,576 bytes, including its module indexes
+and 17 load roots. A private QEMU fixture validates tar bounds/type/ownership/
+paths, uses exact sealed BusyBox/core modules, mounts retained Arch ext4
+RO/noload, and invokes that root's `modprobe --show-depends` followed by module
+insertion for each sealed load root. Only virtual hardware is exposed; no
+S12/PMU/PCIe activation helper, phone DTB, credentials or host storage writes.
+
+All **17 roots returned successfully**, from crypto dependencies through
+ath11k_pci; **PASS 90.525 s** including full pre/post retained-image hashing.
+Kernel/archive/root are `2649a272…` / `6934f732…` / `06cc805b…`; source and
+inputs unchanged. Exit 0/completion marker; no detected symbol, invalid-module,
+BTF, panic/oops/warning errors. This is software insertion evidence only.
+The log explicitly retains `sha256` out-of-tree taint and `regulatory.db`
+lookup failure. The archive contains `firmware/regulatory.db` (6380 bytes)
+and `.p7s` (1085 bytes); this VM omitted the production custom firmware path.
+Do not promote the result to firmware availability or physical Wi-Fi PASS.
+
+Private evidence: `rog5-a01-radio-qemu-20260906.hXRbZPnh`, including harness,
+VM archive, command, log, input identities and result. Harness SHA-256
+`a6a35e17b07a426761c72e4633562dc64e568eb5fc4a440313558670af5388fd`;
+result `3f9c891cdd22e82f356d86438db1dc9e55759329586dffa014fb20e873b948c9`.
+No production source/artifact modification, build, signing, admission or phone
+contact. Full local CI was not repeated for private experiments/result notes.
+All four jobs subsequently passed remote run **34017100368** for `52b24f66…`.
+
+### A01 reusable wrapper pairing
+
+Added `wrapper_composition` to the existing composition checker, extracting
+the payload-pairing responsibility from retained private packaging practice.
+It reuses the hash-pinned Android unpacker and compares complete command line,
+kernel and recovery bytes. Boot-v3 magic/version/header size/reserved fields,
+truncation and declared lengths are checked; malformed/mismatched fixtures
+fail in normal Python and `-O`. The initial new test failed because this
+shared entry point did not exist; subsequent header-size/reserved-field tests
+exposed two omissions in the new helper before they were corrected. This is
+new A01 coverage, not a claim that a deployed wrapper was broken.
+
+Retained V6 boot `32704e44…`, ASUS kernel `838425a8…`, recovery `e2aa0c64…`
+and original template `1636cf80…` were hash-verified before comparison.
+Full template command line (including the 300 s recovery-stage timeout)
+matches: **PASS 0.735 s**. Result explicitly says `avb_verified=false` and
+`release_qualified=false`; nested signed-bundle plan/admission are separate.
+No signing, claim consumption, kernel build or phone contact.
+
+All **16 composition tests** pass normally and optimized; active tier
+**PASS 18.146 s**, private `a01-wrapper-active.dJXYDpai.log` in the existing V6
+directory. This helper still needs combined A01 runner integration; full CI
+will run at that coherent checkpoint. Existing result notes were consolidated
+in current-state rather than creating another ledger.
+
+### A01 sealed verifier and plan consumer
+
+Extended the existing composition checker with an isolated invocation of the
+verifier from a caller-authenticated recovery archive. It requires exact
+runtime metadata and manifest identity before extracting through the existing
+safe extractor. Only the fixed selected bundle is copied into private tmpfs;
+network/host devices/capabilities are absent. No source-built verifier is
+substituted, and no claim, signing key or target executor is called.
+
+The plan consumer requires the complete 12-field v1 record, rejecting duplicate,
+unknown/missing fields, malformed framing, changed bundle/hash/filenames and
+incorrect command hash. New tests first failed because this shared consumer
+did not exist; they are additional A01 coverage, not a historical-root-cause claim.
+All **18 composition tests** pass normally and with `-O`; active tier
+**PASS 18.124 s**, `a01-plan-active.7WYVj6fk.log` in the V6 private directory.
+
+Against hash-verified V6 recovery `e2aa0c64…`, the actual sealed verifier
+accepted manifest `8beb3ab7…` and emitted the expected plan in **2.216 s**.
+Two disposable corrupted copies were rejected: changed `manifest.sig`
+(invalid signature, **0.243 s**) and changed `Image` (kernel SHA-256 mismatch,
+**0.920 s**). Recovery/target timeouts remain 900/600 s in the signed target
+plan, distinct from the wrapper's 300-second recovery-stage timeout.
+This still does not complete A01: AVB, target/root identity, timing and module/
+firmware checks must be connected in one executable row. Full CI/publication
+remain deferred to that coherent integration checkpoint. No phone contact.
+
+### A01 executable integration checkpoint
+
+At HEAD `52b24f66d29e2371b6843facc799787fe0001d47`, preserved the dirty
+composition work and connected `check-release-composition.py` to the existing
+A01 manifest and `rog5-dev`. The manifest defines the required check set once.
+The entry authenticates the canonical wrapper identity before executing sealed
+code, verifies AVB integrity, runs the sealed bundle verifier, and compares the
+supplied kernel/DTB/archive with the authenticated embedded target. Offline
+inspection of retained consumed artifacts does not consume or reuse execution.
+
+New regressions first exposed an empty A01 command and acceptance of a zero-exit
+substitute without proof. The dispatcher now rejects missing/partial proof,
+wrong source/candidate/runner/artifact identities and deadline overrun. All
+28 dispatcher tests pass in normal and optimized Python. No criteria were
+removed to manufacture a PASS.
+
+The actual five-role V6 receipt run completed **BLOCKED in 4.074 s** (inner
+3.924 s): wrapper, signed target and archive PASS; root runtime, module load,
+firmware and timing/transport NOT RUN. Source/worktree digest remained
+`a8d98a2b71e58293d820bba8471bd0a645a8ec06d7f869260bdfa8637137b6ae` throughout.
+Private `rog5-a01-integration-20260906.2RLL82x8` retains the receipt, command,
+AVB log and proof. This is an honest incomplete A01, not release qualification.
+Full local/exact-head CI still covers published `52b24f66…`, not these edits;
+the next full run belongs to the coherent frozen integration checkpoint.
+
+The bounded source-reuse investigation is finished in `docs/kernel-port.md`.
+The Denial release-page recheck still lists the pinned v0.3.1 as an x86-64
+prerelease explicitly excluding AArch64 binaries. No new checkout, framework,
+charging control, phone contact or boot followed from the references. Resume
+the remaining A01 dynamic checks rather than repeating that investigation.
+
+### A01 combined exact-kernel runtime and core modules
+
+Integrated the existing Arch runtime-preparation driver with core module
+insertion in one isolated QEMU run. It uses exact V6 kernel `bdceaa51…`, target
+`7703f398…`, root `06cc805b…`, and the same authenticated wrapper/bundle as the
+preceding A01 entry. No phone DTB, radio activator, network or physical block
+passthrough; the virtual root disk is read-only, mounted ro/noload, with a
+disposable tmpfs upper. No fresh kernel, signing or execution claim.
+
+The first fixture build failed before QEMU in **34.695 s** because its archive
+builder refuses duplicate mountpoint/init members. Captured in private
+`rog5-a01-runtime-20260906.t3csw195`. A focused regression reproduced the exact
+exception before correcting only the disposable fixture's member reuse. Input
+archive members remain unchanged. Additional tests reject absent/duplicate
+completion markers, echoed markers, module failures and nonzero VM status.
+
+The corrected integrated run in private `rog5-a01-runtime-20260906.31qo8yc5`
+completed **BLOCKED 82.353 s**, within the unchanged 120 s deadline. Wrapper,
+signed target, archive, root runtime and core module-load checks PASS. The VM
+took **18.016 s**: all 19 modules reached live state; actual Arch systemd and
+sshd executed, generated units verified, key-only policy and the exact nested
+exitrd parse passed. No matched panic/oops/warning/symbol/BTF failure. Root
+pre/post SHA-256 is unchanged, with source/worktree digest
+`c899fc321f12676ac452b5569cfda9c985416c07e36382578a266dc0d50c96a6`
+stable for the run. These passes do not imply physical driver probing.
+
+All **20** composition regressions pass normally and optimized (optimized
+0.146 s). Firmware and timing/transport remain NOT RUN in combined A01; the
+runtime preparation still uses its explicitly labeled unit-generation timing
+fixture. Server radio extras cannot inherit the rescue core-module PASS.
+Next finish these composition gaps before the frozen full-CI/publication
+checkpoint. No candidate, phone contact or alteration of installed recovery.
+
+After this offline run, the active tier passed in **18.479 s** (private V6
+`a01-runtime-active.dF9UsOjE.log`). A separate read-only, identity-gated pinned
+SSH check passed H02 in **1.209 s**, private V6
+`a01-runtime-health.ZmYBiGyT/result`: same boot `64e209e2…`, uptime 14795.36 s,
+all expected deployed files matching, Full/Good 100%, 29.7°C, 8.613 V,
+zero current, USB online and original watchdog ACK. Wi-Fi remains inactive.
+No service mutation/reboot; Full-state zero current does not qualify H03.
+
+### A01 complete embedded-rescue composition
+
+Completed firmware and timing/transport integration without rebuilding target
+artifacts. The existing builder's firmware-tree digest and loader's inventory
+count remain the only accepted source; all 29 file hashes and safe metadata
+are checked, including intentionally empty adsp.b26. QEMU executes the sealed
+loader's firmware-staging section and verifies firmware_class's search path.
+No physical remoteproc, thermal, charging or radio control is exercised.
+
+The signed manifest/plan/wrapper values are checked against the existing host
+capture lattice: recovery 300 s, target 600 s, rollback 900 s, capture 1380 s.
+Duplicate or mismatched command-line values and sender/receiver endpoints fail
+closed. The sealed target timeout parser executes in BusyBox; generated units
+use the actual 900 s value and the optional observer receives 870 s. The sealed
+publish_stage function emits a real VM-boot-bound record; the existing host
+consumer accepts its exact runtime/PASS/composition frame. No watchdog timer is
+shortened or allowed to fire in this composition test; C02 remains separate.
+
+New tests initially failed because the missing integrated checks had no entry
+points. All **23** composition tests now pass normally (**0.173 s**) and with
+`-O` (**0.167 s**); all **28** dispatcher tests PASS (**1.140 s**). Corrupt
+firmware/metadata/count, malformed budgets and wrong transport endpoints are
+covered. The dispatcher requires every check and exact artifact/source proof,
+never just zero exit. Its successful next-action text now reflects completion.
+
+Actual combined A01 **PASS 83.502 s** (inner 83.300 s, VM **18.720 s**) within
+the unchanged 120 s deadline. Private `rog5-a01-complete-20260906.vb4tjcnd`
+retains the five-role receipt, invocation, AVB/runtime logs and final proof SHA
+`6aaf1e7960f2ed8eec3008ae8bc9698b90131a4ba3361085300ccc2c6fc8b38e`.
+All seven checks passed together against exact V6 artifacts; root hash
+`06cc805b…` and other input hashes remained unchanged. Source `52b24f66…`,
+worktree digest `f2e723cee42ebfa523b07d197cdb0e4ab61e28fa4a406a7b70d40246af4e94e7`
+was stable during the run. Subsequent edits update result/docs and dispatcher
+next-action wording only; this retained dirty-source proof is not silently
+relabelled as a clean final server release.
+
+Selector-backed external bundles and auxiliary server radio/firmware closure
+remain BLOCKED. No rescue PASS is imported into that distinct composition.
+Full local/exact-head CI follow at this frozen publication checkpoint. No
+phone contact, claim consumption, signing, build or installed-state mutation.
+
+Frozen full local CI **PASS 496.219 s**; previous published checker checkpoint
+was 487.855 s. Private V6 `a01-complete-ci.J0gx4tEt.log` retains the full run.
+Both Python modes also pass all 28 dispatcher tests (1.138/1.128 s). No code
+changed during full CI; only these result notes follow it. Publication will
+use the existing branch/draft PR and exact-head plus merge CI. No claim that
+GitHub CI executes the private artifact test or qualifies the final server.
