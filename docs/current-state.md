@@ -66,7 +66,7 @@ do not combine the older server's offline passes with V7 hardware passes.
 | NCM under load | V7 8 GiB read + 39 SSH checks PASS 125.505 s; complete P24 capture + 118 checks PASS 386.132 s |
 | Early capture / H01 | V7 FAIL retained; anchored read/removal correction passes focused/full CI, awaiting new physical evidence |
 | H02 | V6 integrated PASS retained; cannot silently transfer to another release/boot |
-| H03 | BLOCKED until supported firmware evidence and executable observation are qualified; do not repeat absent-control inventory |
+| H03 | Supervised Full-state collector and offline checks PASS. Live same-release H02/600 s series still required; absent charge-limit controls are not the blocker |
 | A01 | Selector v2 full signed offline composition PASS 96.525 s, all seven checks; prospective root, not deployed proof |
 | R01 / installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server qualification | Three ordinary boots, powered-off start, storage durability and 60-minute combined soak incomplete |
@@ -80,8 +80,8 @@ separate proven 0038 unit defect. No charging control has been written.
 
 ## Frozen work in progress
 
-**Primary question:** can the exact final server composition preserve accepted
-RPMh/S12 support while incorporating the proven capacity and NCM corrections?
+**Primary question:** can H03 retain a complete same-boot charging window and
+reject missing, unsafe or stale measurements using supported firmware telemetry?
 
 The combined kernel restores accepted RPMh/S12 support missing from V7;
 builders reject absent/ambiguous built-in readback. Do not mix the two ABIs.
@@ -111,15 +111,18 @@ over these historical results. Detailed build/test timings are in the dated repo
 ## Exact next action
 
 The matching radio/primary archive, signed package and full A01 are complete.
-Implement the H03 supervised collector using its predeclared Full-state branch,
-then qualify H01/H02/H03 on a matching radio-inactive rescue. H02 intentionally
+Publish the tested H03 collector checkpoint, then qualify H01/H02/H03 on a
+matching radio-inactive rescue. H02 intentionally
 rejects radio-bearing server archives; do not mislabel selector v2 as that rescue.
 The A01 prospective P24 copy remains under
 `/run/rog5-server-preview-20260906-Ibl4iPCz/root.ext4` (not phone evidence).
 Preview hash `8f4afbcceed4b2112981392127deaf5a057a9c1d193cb325ef55791810e792c5`;
 original P24 snapshot is unchanged. Reuse outputs; do not recompile ASUS.
-H03's predeclared plan is in the acceptance contract; its Full-state evaluator
-passes offline but still needs same-release supervised collection and H02.
+H03 revalidates H02, runtime/firmware, 61 fresh samples and end-state identity.
+It performs no boot, admission, retry or charging-control write. Offline replay
+and simulated sysfs are not charging evidence; the physical series remains open.
+Active tier PASS 20.197 s; full local CI PASS 498.170 s. Reuse these unchanged
+checks; exact-head publication remains separate. See the dated incident for detail.
 The capture fix now recognizes only an anchored sysfs-read ENOENT/ENODEV
 followed by confirmed absence before any target observation. It keeps unknown,
 network/binding and post-target errors fatal and never clears an earlier FAIL.

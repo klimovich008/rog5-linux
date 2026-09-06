@@ -169,6 +169,7 @@ active_tests=(
 	scripts/host/test-release-acceptance.py
 	scripts/host/test-check-deployed-server.py
 	scripts/host/test-check-rescue-startup.py
+	scripts/host/test-check-charging-regulation.py
 	scripts/host/test-rescue-root-composition.py
 	scripts/host/test-a01-fixture.py
 	scripts/host/test-module-edge.py

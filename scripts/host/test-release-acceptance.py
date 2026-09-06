@@ -20,6 +20,43 @@ SPEC.loader.exec_module(M)
 
 
 class AcceptanceTest(unittest.TestCase):
+    def test_h03_exact_proof_and_required_evidence(self):
+        test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='H03'))
+        test['commands']=[[sys.executable,'-c','pass']]
+        for mutation in ('none','failed-h02','wrong-artifact','missing-sample','false-result','wrong-source'):
+            with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as tmp:
+                output=Path(tmp);folder=output/'H03';(folder/'h02').mkdir(parents=True)
+                release=dict(candidate_id='fixture',artifacts={
+                    'initramfs':{'sha256':'a'*64},'boot_bundle':{'sha256':'b'*64}})
+                prior=dict(status='PASS',h02_qualified=True,identity={'boot_id':'fixture'},
+                           canonical_record={'candidate':'fixture'},
+                           artifact_hashes={'initramfs':'a'*64,'boot_image':'b'*64})
+                if mutation=='failed-h02':prior['status']='FAIL'
+                h02=folder/'h02/result.json';h02.write_text(json.dumps(prior))
+                evidence={}
+                for name in ['h02.log','samples.jsonl',*[f'sample-{i:02d}.raw' for i in range(61)]]:
+                    path=folder/name;path.write_bytes(b'offline dispatcher fixture')
+                    evidence[name]=M.sha_file(path)
+                proof=dict(status='PASS',h03_qualified=True,source=M.source_identity(),candidate='fixture',
+                           runner_sha256=M.sha_file(M.REPO/'scripts/host/check-charging-regulation.py'),
+                           criteria_sha256=M.sha_file(M.REPO/'scripts/host/h03-regulation.py'),
+                           samples=61,duration_seconds=610,artifact_hashes=prior['artifact_hashes'],
+                           identity=prior['identity'],h02_sha256=M.sha_file(h02),evidence=evidence)
+                if mutation=='wrong-artifact':proof['artifact_hashes']['initramfs']='c'*64
+                if mutation=='missing-sample':(folder/'sample-60.raw').unlink()
+                if mutation=='false-result':proof['h03_qualified']=False
+                if mutation=='wrong-source':proof['source']={}
+                (folder/'result.json').write_text(json.dumps(proof))
+                row=M.run_one(test,output,release)
+                self.assertEqual(row['status'],'PASS' if mutation=='none' else 'FAIL',row)
+
+    def test_h03_exit_zero_without_complete_observation_is_not_success(self):
+        test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='H03'))
+        test['commands']=[[sys.executable,'-c','pass']]
+        with tempfile.TemporaryDirectory() as tmp:
+            row=M.run_one(test,Path(tmp),dict(candidate_id='fixture',artifacts={}))
+        self.assertEqual(row['status'],'FAIL')
+
     def test_overlay_recovery_is_discoverable_without_starting_qemu(self):
         result = subprocess.run([str(M.REPO/'scripts/host/rog5-dev'),
                                  'check-overlay-recovery', '--help'],
