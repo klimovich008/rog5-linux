@@ -339,11 +339,11 @@
       "outcome": "WPA/DHCP restart without repeated hardware activation",
       "tier": "offline",
       "mandatory": true,
-      "environment": "Unprivileged host; additional isolated prerequisites as listed",
+      "environment": "Offline replay on unprivileged host of reviewed authenticated target restart evidence",
       "prerequisites": [
-        "exact units/runtime fixture"
+        "exact release receipt", "pinned live restart logs and original composition evidence"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-wifi-restart-evidence.py", "--inputs", "{wifi_restart_inputs}", "--inputs-sha256", "{wifi_restart_inputs_sha256}", "--candidate", "{candidate}", "--target-archive", "{initramfs}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 120,
       "pass_condition": "Restart WPA and DHCP after successful activation; preserve one hardware activation and recover address/SSH.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -353,7 +353,7 @@
         "full command/runner log",
         "duration and exit status"
       ],
-      "blocker": "Idempotent preparation passes real-file fixtures; rog5-dev check-wifi-restart proves host systemd restart propagation and one radio activation with daemon fixtures. Actual target WPA/DHCP address/SSH recovery remains required."
+      "blocker": "Supply pinned actual target WPA/DHCP lease and SSH recovery evidence for matching release artifacts. Source/systemd fixtures alone are not F02 PASS."
     },
     {
       "id": "F03",

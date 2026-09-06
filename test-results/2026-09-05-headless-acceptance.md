@@ -4401,3 +4401,27 @@ service set, or final-release PASS. The acceptance dispatcher still has no F02
 evidence importer; it remains BLOCKED there rather than accepting exit zero.
 No kernel, target, shared lifecycle or trust code changed; no build/full CI was
 repeated. Installed-recovery replacement approval is still pending separately.
+
+### F02 acceptance replay integration
+
+Starting `607ad5ce1f4e85c30739a1e0b1f5ee32bd20516e`. The original restart run
+was not repeated. The new offline importer pins its reviewed result, adapter,
+composition, signed manifest and all 44 stdout/stderr files, then independently
+checks the snapshots, restart propagation, three authenticated Wi-Fi boundaries
+and predeclared deadlines. It compares deployed unit hashes with the actual
+sealed archive and requires all five composition artifact identities to match
+the supplied release. Original observed source remains `5ce58d58…`, not the
+later importer source. New input-file hashes seal the reviewed retained files;
+they are not represented as hashes collected by the original observer.
+
+Initial real replay PASS **0.667 s**. Input pin
+`8c8b6aab76e6521f1e5701351733c4582ca9743013e0f52b271ca167a883b1e4`
+is private `wifi-restart-evidence-inputs.json` in the existing work directory.
+This is evidence input, not candidate admission or another current-state ledger.
+The acceptance dispatcher now exposes F02 replay and explicit `--test-id`;
+unselected mandatory rows stay NOT RUN. Missing input is BLOCKED, while a
+zero-exit process without complete artifact/source/input-bound proof is FAIL.
+Focused malformed-record, hash/metadata, radio/core change, deadline and
+normal/optimized Python coverage precedes the frozen integration checkpoint.
+No source/runtime/kernel or physical mechanism changed. Full local CI is
+required once here because the shared acceptance dispatcher changed.
