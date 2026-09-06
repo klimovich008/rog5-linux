@@ -71,9 +71,9 @@ do not combine the older server's offline passes with V7 hardware passes.
 | R01 / installed recovery | Incomplete; sealed failure helper returns fastboot, not autonomous fallback SSH |
 | Persistent server qualification | Three ordinary boots, powered-off start, storage durability and 60-minute combined soak incomplete |
 
-Last retained V7 health (not continuous monitoring): uptime 19005.75 s, 29.9°C,
-8.592 V, zero battery current, Good/USB online, P24 RO, no failed units;
-fresh same-boot gate PASS 0.344 s after assembled A01.
+Last retained V7 health (not continuous monitoring): uptime 21651.68 s, 29.9°C,
+8.591 V, zero battery current, Good/USB online, P24 RO, no failed units;
+fresh same-boot gate PASS 0.265 s before V8 preparation.
 Full/100% and zero current alone do not qualify regulation. Charge-limit
 attributes are unsupported by this SM8350 interface; capacity ENODATA is the
 separate proven 0038 unit defect. No charging control has been written.
@@ -104,15 +104,18 @@ in 6.084 s; wrapper is byte-identical to the retained selector wrapper. Its
 canonical exact record is packaging data, not a created or consumed live claim.
 Full signed A01 PASS 96.525 s, all seven checks; no deployment or phone boot.
 
-Published `7899c961d4b6687e73162abd4064705ee42d51b9` passed all four
-jobs, run 34043424542. Working HEAD/status and current CI logs take precedence
+Published `4b22a9f670c1db44c55fc8fa98e2c6896c6ab6ba` passed all four
+jobs, run 34045925726. Working HEAD/status and current CI logs take precedence
 over these historical results. Detailed build/test timings are in the dated report.
 
 ## Exact next action
 
-The matching radio/primary archive, signed package and full A01 are complete.
-Publish the tested H03 collector checkpoint, then qualify H01/H02/H03 on a
-matching radio-inactive rescue. H02 intentionally
+Matching radio-free `headless-acceptance-rescue-v8` packaging twins PASS 20.599 s;
+full signed A01 PASS 83.860 s on `fcfd15db51c225a67ea1d4c02a85c5d637cb3abb`.
+Private recipe/results: `rog5-rescue-h03-20260906.CayoqOsI`. No live claim or boot.
+Manifest `2b565dbea7b14ffa90dd7100700f8db2b7554f9ac9f8eb8149d28dde02070e9f`.
+Publish this data checkpoint and validate the existing live adapters for V7 →
+fastboot → one V8 attempt, then qualify H01/H02/H03. H02 intentionally
 rejects radio-bearing server archives; do not mislabel selector v2 as that rescue.
 The A01 prospective P24 copy remains under
 `/run/rog5-server-preview-20260906-Ibl4iPCz/root.ext4` (not phone evidence).
@@ -127,7 +130,7 @@ The capture fix now recognizes only an anchored sysfs-read ENOENT/ENODEV
 followed by confirmed absence before any target observation. It keeps unknown,
 network/binding and post-target errors fatal and never clears an earlier FAIL.
 Historical untagged V7 evidence remains FAIL. Capture fix publication and twins
-passed. Free host space is 4.8 GiB; preserve the 3 GiB reserve. The RAM preview
+passed. Free host space is 4.2 GiB; preserve the 3 GiB reserve. The RAM preview
 is volatile. A bounded compression exceeded its 1.5 GiB cap; only that incomplete
 duplicate was removed. Retain the preview pending staging/retention resolution;
 do not reboot the host assuming it is durable. Original snapshot remains intact.
