@@ -2850,3 +2850,41 @@ runner hash and unchanged production digest. This completes local coverage but
 does not relabel the original **FAIL 429.335 s** run as PASS. Keep the original
 failure and require exact-head/merge CI before candidate admission/publication
 is accepted. No production deadline or lifecycle behavior was changed.
+
+### Published composition and prepared NCM rescue V7
+
+Published **04ac38576edef855d3e4bab2aef253b6f390f5d3**, normal push to the
+existing draft PR. All four jobs PASS run **34026414183**. This fresh remote
+result covers the actual implementation head; it does not erase the retained
+local timeout. Nine exact-archive watchdog cases on the new kernel PASS
+**131.517 s**, including no/stale ACK, P2-only, unexecutable helper, userspace
+hang, failed-init panic and failed FD arm. Real retained Arch/systemd/SSH
+healthy/stale cases PASS **113.439 s**, same root hash before/after. These are
+offline component proofs, not R01 physical recovery.
+
+One private JSON recipe now names **headless-acceptance-rescue-v7**. Existing
+runtime signer, recovery builder and boot-v3 repacker produced identical twins
+in **13.711 s**; the ASUS kernel was reused. No phone contact, new claim,
+admission or boot was performed by packaging. Artifact evidence remains in
+the existing private `rog5-ncm-kernel-20260906.FwMH1o8D` directory:
+
+- manifest: `eca02756542e0af41c0ef45479fdcce9cad0e6f06a13ae3253fae139a8cfb18f`
+- boot: `52b68f4e5f3a74deaddb07f0efcf21848604eb4177ef2d0fe789b6a05c630f4c`
+- recovery: `2069fa20b8ebcde4720eae4514101b1d445d1cf4b0c6086e1dbcfc54e6a59f1d`
+- target archive remains `01245c2dcfa7c2e0bee7b05b37b4f0266980b40ce653035ea6abf0b32e72f19a`.
+
+Generated only the new literal canonical registry row from the signed package
+result, preserving historical rows and all execution/claim code. Claim (19),
+admission (33) and stage-receiver (17) tests PASS. All three live claim/entered/
+anchor paths are absent; a registry template is not an issued claim. Active
+tier PASS **18.961 s**.
+
+Combined V7 rescue A01 **PASS 82.709 s**, all seven required checks with one
+source/artifact-bound report (`a01-v7/result.json`); VM runtime **19.195 s**.
+Actual wrapper, AVB, sealed verifier/manifest, target archive, 19 modules,
+firmware and timing/stage protocol agree. Its old retained root is valid only
+for this embedded rescue runtime test, not the current selector-backed server.
+Server A01 still needs the complete current snapshot. Physical NCM correction
+is unproven. Next: finish reviewed live coordinator/preflight, then one fresh
+RAM attempt with parallel SSH and bulk evidence. Preserve consumed V6 and the
+already signed V7 bytes; do not rebuild or re-sign merely to continue.
