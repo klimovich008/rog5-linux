@@ -49,6 +49,24 @@ class ReceiverTest(unittest.TestCase):
                     M.main()
                 self.assertFalse((root/'capture').exists())
 
+    def test_retained_pretarget_enodev_is_not_erased_by_later_readiness(self):
+        fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/rescue-pretarget-enodev.json').read_text())
+        events=[]
+        with M.Receiver('7.1.4-g359318de534f',events.append,host='127.0.0.1',port=0,peer='127.0.0.1') as receiver:
+            receiver.transport(fixture['previous_mode'],None)
+            with patch.object(M,'usb_mode',side_effect=[
+                    OSError(fixture['errno'],fixture['message']),
+                    (fixture['next_mode'],None)]):
+                self.assertTrue(M.update_transport(receiver,'fixture-serial',lambda:True))
+            self.assertEqual(receiver.failed,fixture['expected_capture_failed'])
+            self.assertIsNone(receiver.last)
+            self.assertEqual(events[-2]['event'],'transport-check-failed')
+            with patch.object(M,'usb_mode',return_value=(fixture['later_mode'],None)):
+                self.assertTrue(M.update_transport(receiver,'fixture-serial',lambda:True))
+            receiver.record(frame(),'127.0.0.1')
+            self.assertEqual(receiver.last.boot_id,BOOT)
+            self.assertTrue(receiver.failed)  # Preserve the actual FAIL, not a retroactive pass.
+
     def test_live_disconnect_during_nmcli_preserves_capture_and_last_stage(self):
         fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/rescue-state-host-loss.json').read_text())
         events=[]
