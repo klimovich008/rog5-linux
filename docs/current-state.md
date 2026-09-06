@@ -71,6 +71,13 @@ suffix. No kernel/wrapper rebuild or phone contact. One full local CI PASS
 **498.829 s** (previous **496.610 s**); only result notes changed afterward.
 Check the draft PR's exact-head/merge jobs for publication status; these offline
 passes grant no candidate admission.
+Publication `aa59c3a3` exposed Ubuntu libbpf 1.3.0's missing `btf__new_split`
+export. The host-only reader now uses the available raw-split API over a memfd;
+types/bytes and refusal rules are unchanged. The new regression fails before
+the fix; **64** tests pass normally/optimized and **114 / 12.734 s** pass against
+the real archive under the retained Ubuntu library; active **19.626 s**. The earlier A01 VM/full
+local results are retained component evidence, not rerun results for this
+portability fix. Exact-head/merge CI must validate the corrected publication.
 The bounded downstream/Denial assessment remains complete with no justified
 driver import. Keep V7 physical evidence separate from this older server's A01.
 

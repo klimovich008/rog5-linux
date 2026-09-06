@@ -3189,3 +3189,31 @@ suite was repeated on unchanged code. `git diff --check` PASS. Only completion
 timing/status notes changed after full CI. Existing kernel/wrapper/fixture
 artifacts were reused; no source tree, private evidence or build data deleted.
 Publication must use the existing branch/draft PR and exact-head/merge CI.
+
+#### Publication-only libbpf compatibility correction
+
+Published `aa59c3a34515c608eff2ed042e07e201e996f22e` normally. GitHub run
+**34035655758** failed both head/merge at the new static module suite:
+Ubuntu `libbpf1 1:1.3.0-2build2` has no exported `btf__new_split`. This is an R6
+host-library assumption, not a production-kernel or phone failure. Raw failing
+logs remain private; their generic killed worker messages are not the cause.
+
+The fail-first missing-constructor regression reproduced the exact exception.
+Use `btf__parse_raw_split` over a private anonymous memfd instead; unchanged BTF
+bytes are copied before closure. The signature is also present in upstream
+libbpf commit `20c0a9e3d7e7d4aeb283eae982543c9cacc29477`,
+[`src/btf.h`](https://github.com/libbpf/libbpf/blob/20c0a9e3d7e7d4aeb283eae982543c9cacc29477/src/btf.h).
+Actual package capability, not header availability, is the runtime proof.
+No skipped checks, weaker types, dependency upgrade or phone change.
+
+Host normal/optimized **64 PASS / 0.329/0.328 s**. Retained Ubuntu builder
+`bdb4bbda…` with the exact CI libbpf package PASS **64 / 0.460 s** optimized;
+real sealed-archive mutations PASS **114 / 12.734 s**, network disabled and
+inputs read-only. Its first invocation lacked pyelftools and failed before
+inspection; supplying the already-installed pure-Python package as a read-only
+bind (no dependency download/image change) resolved that fixture prerequisite.
+No QEMU/whole local-suite result is relabelled as rerun after this host-only
+API correction; published A01 and full local CI remain evidence for `aa59c3a3`.
+Run focused/active checks and new full exact-head/merge CI for the correction.
+Corrected active tier PASS **19.626 s**; whitespace check PASS. Only this timing
+note changed afterward; no additional full local run on the unchanged lifecycle.
