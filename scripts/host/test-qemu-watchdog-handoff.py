@@ -14,6 +14,7 @@ and enforces the acceptance contract deadline; ordinary component runs do not
 qualify C02. Full composition and physical recovery remain separate tests.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import gzip
 import hashlib
 import json
@@ -35,6 +36,24 @@ def sha_file(path):
         for chunk in iter(lambda: stream.read(1024 * 1024), b''):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def run_guest_cases(cases, *, parallel=False):
+    """Only C02 opts into two isolated VMs; all other guests remain sequential.
+
+    Each guest has its own archive, private log, RAM overlay and networkless
+    container. Shared kernel/root inputs are read-only. Keep the existing
+    per-guest timeout and propagate failures without retrying.
+    """
+    def run_case(case):
+        mode, command, path = case
+        started = time.monotonic()
+        with path.open('xb') as log:
+            result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=50)
+        return mode, result, path.read_text(errors='replace'), time.monotonic()-started
+
+    with ThreadPoolExecutor(max_workers=2 if parallel else 1) as pool:
+        yield from pool.map(run_case, cases)
 
 
 def arch_ssh_units(target):
@@ -305,6 +324,7 @@ def main():
         modes = ('systemd-ack', 'systemd-stale-identity')
     if args.wifi_rollback:
         modes = ('systemd-ack', 'systemd-wifi-stale')
+    guest_cases = []
     for mode in modes:
         members = {}
 
@@ -503,10 +523,8 @@ echo HANDOFF_SWITCH_ROOT
                         '-device', 'virtio-blk-device,drive=root']
         if args.wifi_rollback:
             command[command.index('-append')+1] += ' rog5.bundle=c02-fixture'
-        started = time.monotonic()
-        with (output / (mode + ".log")).open("xb") as log:
-            result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, timeout=50)
-        log = (output / (mode + ".log")).read_text(errors="replace")
+        guest_cases.append((mode, command, output/(mode+'.log')))
+    for mode, result, log, elapsed in run_guest_cases(guest_cases, parallel=args.c02):
         required = [] if mode == "fd-open-failure" else ["HANDOFF_SWITCH_ROOT"]
         if mode == "fd-open-failure":
             required += ["HANDOFF_ARM_FAILED_ROLLBACK", "reboot: Restarting system with command 'bootloader'"]
@@ -548,7 +566,7 @@ echo HANDOFF_SWITCH_ROOT
                     passed = (log.index('ARCH_WIFI_STALE_REARM_BEGIN') <
                               log.index('reboot: Restarting system'))
         results.append(dict(mode=mode, passed=passed, exit_code=result.returncode,
-                            seconds=time.monotonic()-started))
+                            seconds=elapsed))
         print(json.dumps(results[-1]), flush=True)
     record = dict(scope="QEMU exact archive watchdog functions; harness init/ACK producer fixtures, "
                         "not full deployed composition or phone/storage proof",
@@ -581,6 +599,7 @@ echo HANDOFF_SWITCH_ROOT
     record.update(status='PASS' if all(case['passed'] for case in results) else 'FAIL',
                   duration_seconds=time.monotonic()-all_started)
     if args.c02:
+        record['isolated_guest_workers'] = 2
         record['c02_variant'] = 'wifi-rollback' if args.wifi_rollback else 'core-only'
         if record['duration_seconds'] > c02_deadline:
             results.append(dict(mode='c02-deadline', passed=False))

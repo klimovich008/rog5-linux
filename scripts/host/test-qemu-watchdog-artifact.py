@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -39,6 +40,39 @@ def altered_init():
 
 
 class WatchdogArtifactTest(unittest.TestCase):
+    def test_only_explicit_isolated_guests_overlap_with_separate_logs(self):
+        for parallel in (False, True):
+            with self.subTest(parallel=parallel), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                cases = [(name, [name], root/(name+'.log')) for name in ('healthy', 'stale')]
+                barrier = threading.Barrier(2)
+                seen = []
+
+                def guest(command, **kwargs):
+                    self.assertEqual(kwargs['timeout'], 50)
+                    name = command[0]
+                    seen.append(name+'-start')
+                    if parallel:
+                        barrier.wait(timeout=2)
+                    kwargs['stdout'].write(name.encode())
+                    seen.append(name+'-end')
+                    return subprocess.CompletedProcess(command, 0)
+
+                with mock.patch.object(M.subprocess, 'run', side_effect=guest):
+                    rows = list(M.run_guest_cases(cases, parallel=parallel))
+                self.assertEqual([row[0] for row in rows], ['healthy', 'stale'])
+                self.assertEqual([row[2] for row in rows], ['healthy', 'stale'])
+                self.assertTrue(all(row[1].returncode == 0 and row[3] >= 0 for row in rows))
+                if not parallel:
+                    self.assertEqual(seen, ['healthy-start', 'healthy-end', 'stale-start', 'stale-end'])
+
+    def test_guest_timeout_is_not_retried_or_hidden(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
+                M.subprocess, 'run', side_effect=subprocess.TimeoutExpired('fixture', 50)) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                list(M.run_guest_cases([('one', ['fixture'], Path(tmp)/'one.log')], parallel=True))
+            self.assertEqual(run.call_count, 1)
+
     def test_wifi_rollback_requires_complete_exact_archive_members(self):
         target = members()
         for name in ('runtime', 'units/before-ssh.conf',
@@ -230,6 +264,7 @@ class WatchdogArtifactTest(unittest.TestCase):
             (root/'configs/release-acceptance.json').write_bytes((REPO/'configs/release-acceptance.json').read_bytes())
             seen = []
             process_deadlines = []
+            isolated_pair = threading.Barrier(2)
 
             def simulated_run(command, **kwargs):
                 if command == ["/bin/sh", "-n"]:
@@ -244,6 +279,8 @@ class WatchdogArtifactTest(unittest.TestCase):
                     process_deadlines.append(kwargs['timeout'])
                     mode = Path(kwargs["stdout"].name).stem
                     seen.append(mode)
+                    if qualify:
+                        isolated_pair.wait(timeout=2)
                     log = "HANDOFF_SWITCH_ROOT\nHANDOFF_NEW_INIT\nHANDOFF_OLD_PATH_GONE\n"
                     if use_arch:
                         log += 'ARCH_ROOT_READ_ONLY_OVERLAY\nARCH_SSH_INITIAL_PASS\n'
