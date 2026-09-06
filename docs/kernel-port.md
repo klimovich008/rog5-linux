@@ -151,6 +151,18 @@ module in an ordinarily required fresh signed release, with the existing
 power/thermal/USB observation. Do not unload live charging dependencies or
 consume a dedicated phone cycle merely to confirm an optional field.
 
+The next read-only V7 H03 inventory confirms the same capacity ENODATA and
+absent charge-control thresholds. The retained V7 driver's `sm8350_bat_props`
+does not advertise those thresholds, and `sm8350_bat_psy_desc` has no setter;
+the adjacent SM8550 description does. Do not enable another variant's controls
+to fill this observational gap. This explains Linux interface availability,
+not the proprietary firmware's regulation behavior. Full/100%, USB current
+and `voltage_max` are not substitutes for a validated charge-limit contract.
+The actual-source 0038 regression still passes (three tests, **0.204 s** total),
+without changing the accepted source or deployed module. See the existing
+[acceptance incident](../test-results/2026-09-05-headless-acceptance.md#h03-read-only-prerequisite-follow-up)
+for the bounded result; no new kernel import or dedicated phone cycle follows.
+
 ### NCM bulk-transfer timer follow-up
 
 **Use now as a narrowly tested backport; bounded physical transfers now pass.**
