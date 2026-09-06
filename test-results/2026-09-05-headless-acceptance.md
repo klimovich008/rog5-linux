@@ -4051,3 +4051,87 @@ coordinator/publication bindings; use the early pinned startup diagnostics
 alongside normal readiness. Never perform an ordinary reboot into the old
 unqualified installed boot B, retry failed V2, or treat this checkpoint as a
 qualified standalone server.
+
+### V3 live: known hw1.1 support omitted from combined modules
+
+Source `4ba30f3964f7962242bab1f4910a61f8e3489453` passed all four remote jobs
+in run 34058164544. Private evidence remains in the existing
+`rog5-server-startup-20260906.ou4CkDi9` directory. No repeated full local CI,
+kernel build or wrapper build was needed for these private adapter bindings.
+
+The exact deployed V11 exitrd matched its retained archive, including the old
+shutdown `ec3c7fd28aa099a147a6f3c693c3eb4142be92f2dfd62c94efa5d06a2eec8ec2`.
+Its NVMEM reboot-mode provider was bound. The action-only RAM change produced
+`a3da03bf558a814c10388471eb38323e4f923349f87024274efa4408addb8753`, preserving
+the entire teardown prefix. Three sealed-BusyBox/delta/state-only teardown
+replays passed in 1.463 s, optimized Python 1.406 s; ten adapter tests passed
+in 0.693/0.739 s. These simulations are not hardware unmount proof.
+Fresh read-only inspection passed 0.767 s. One normal systemd shutdown with
+that RAM action reached exact fastboot in 9.351 s: slot B, 8596 mV, SOC OK.
+No installed image, slot or GPT change occurred.
+
+The single V3 execution returned in 16.053 s under its prestarted receiver.
+Target boot `655c5d76-02aa-441b-ad5d-7217b0f54f13` reached UFS, OverlayFS,
+systemd and authenticated early SSH. The new collector captured 38 successful
+observations before transport loss, rather than treating diagnostic SSH as
+normal readiness. At target uptime 42.787 s, `ath11k_pci` rejected WCN6855
+hardware version `1 16` with `-95`. The radio unit later became failed with
+status 1 and its failure handler started; service-state/identity remained
+inactive. The unchanged 300-second normal server-readiness outcome is FAIL.
+No missing optional charge-limit field caused this failure.
+
+This is a recurrence of the retained V14 failure, not a new hardware theory.
+[V15 already proved the matching hw1.1 driver/firmware path](2026-08-31-wifi-late-activation.md#v15-live-firmware-phy-and-scan-pass-consumed).
+The exact source of the combined module build reproduces `1:10 -> -95` in
+the existing selector test. Its builder copied unpatched upstream ath11k,
+omitting the device patch used by the separate four-module builder. Reuse
+that correction; do not reopen charging/PCIe architecture or force hw2.0.
+The live recurrence is added to the existing rejection fixture. A new build-path
+test failed before the fix; the corrected builder applies/checks the patch in
+its private source copy and executes the real selector before make. Patch hash
+is included in the before/after build-input check. Focused tests passed: eight
+hw1.1 tests 0.096 s, module-kit script 0.083 s. R2/R3 composition-capability gap.
+
+Automatic V11 fallback was authenticated as boot
+`fbb0d3e4-96ca-469c-8edc-d26ffbcb5cf8`; the exact exitrd, power and storage
+observation passed in 1.079 s. This is later SSH-proof time, not the first
+possible fallback appearance. V3 and its claim are permanently consumed.
+The original passive capture is terminal at 1380.786 s. It remains FAIL after
+transport loss and rejecting the different fallback kernel's frames, not a
+combined-release success. Route, firewall, profile and address cleanup each
+passed. Do not restart the coordinator. The first fallback NCM interface was
+observed at Unix 1788727828.335; pinned fallback proof completed later at
+1788728008.604. Do not substitute that later proof time for enumeration time.
+
+While passive collection continued, the existing four-module builder restored
+hw1.1 against the unchanged `7.1.4-gf17befd4ef17` kit. Twins passed in
+71.871/66.620 s, allocated 109,494,272 bytes combined. Exact module SHA-256:
+
+- ath: `50f605ce5505e5552c807e1bc767af68365ca8f1e3b2d703416411d18f89decd`
+- ath11k: `334a8065b2cbe0f9490e20dc9fb2298099755fceadba521d8969f8f60264de45`
+- ath11k_pci: `aacd425adbd594a71bda7da9a2ecdf5779b99653dc5edfe5d7b2689aae5e4c45`
+- ath11k_ahb: `bf89be67d5743cbd1e1316dcdc6e8237081c59f194c410b4e3fd1dbb26bb2654`
+
+Unsigned, offline-only substitution into the prior target passed exact-kernel
+QEMU software closure, BTF, safe helper refusal and Arch preparation in
+125.827 s (guest 43.738 s). This component check has no candidate-admission
+authority and is not a pass of the 120-second signed A01 release runner.
+Original signed V3, base Image/DTB, all old modules, firmware, wrapper and
+phone state were untouched by the rebuild. No new successor is issued.
+
+Integration's first active run failed in 13.725 s, before full CI. The private
+runner's umask 077 filtered a test fixture's requested root mode 0755 to 0700;
+the real trial-state guard correctly rejected it. The fixture now explicitly
+sets its intended mode. Under umask 077, 15 cases passed and one optional case
+was skipped. The runner keeps logs private but gives subprocess tests the
+usual umask 022. No production permission guard or phone data was relaxed.
+
+The frozen integration passed active **22.196 s** and full local CI
+**518.605 s** (previous **20.808/510.782 s**). Actual tested input is base
+`4ba30f3964f7962242bab1f4910a61f8e3489453` plus worktree digest
+`7efb7c8e438d0d9bc472584264531a0dda3806759eb7d2dd5356b6de12610f91`;
+only final evidence/status text changed afterward. No full local CI is repeated
+for that unchanged implementation. Exact-head publication CI remains separate.
+Post-cleanup pinned read-only telemetry confirmed the same V11 boot, Full/100%,
+Good, 29.8°C, 8.583 V, zero battery current and 184 mA USB input below its
+500 mA limit. This single snapshot is not another H03 observation-window PASS.

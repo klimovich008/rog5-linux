@@ -7,6 +7,8 @@ output=${3:?missing new output directory}
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 module_roots=$repo/configs/kernel/rog5-native-wifi-module-roots
 [ -f "$module_roots" ] && [ ! -L "$module_roots" ]
+hw11_patch=$repo/patches/linux/device/ath11k-wcn6851-hw11.patch
+[ -f "$hw11_patch" ] && [ ! -L "$hw11_patch" ]
 jobs=${JOBS:-4}
 case $jobs in 1|2|3|4|5|6|7|8) ;; *) echo 'FAIL unsafe JOBS' >&2; exit 1 ;; esac
 source_dir=$(realpath "$source_dir")
@@ -34,7 +36,7 @@ mkdir "$output"
 output=$(realpath "$output")
 work=$output/source
 mkdir "$work"
-before=$(sha256sum "$kernel_kit/.config" "$kernel_kit/vmlinux")
+before=$(sha256sum "$kernel_kit/.config" "$kernel_kit/vmlinux" "$hw11_patch")
 for directory in drivers/bus/mhi/host drivers/net/wireless/ath/ath11k \
 	net/rfkill net/wireless net/mac80211; do
 	mkdir -p "$work/$directory"
@@ -64,6 +66,14 @@ done
 cp "$source_dir/net/qrtr/mhi.c" "$work/net/qrtr/"
 cp "$source_dir/net/qrtr/qrtr.h" "$work/net/qrtr/"
 
+# This exact phone reports WCN6851 revision 1:0x10. The generic upstream
+# ath11k modules load in QEMU but reject that physical revision. Apply the
+# existing device patch to the private module copy, as the four-module repair
+# builder does, and execute its selector regression before compilation.
+git -C "$work" apply --check "$hw11_patch"
+git -C "$work" apply "$hw11_patch"
+python3 "$repo/scripts/device/test-native-ath11k-hw11.py" --selector-source "$work/drivers/net/wireless/ath/ath11k"
+
 # QMP PCIe is a self-contained upstream module: its CONFIG symbol is used only
 # by Kbuild, not by any C/header consumer. Select that object externally without
 # changing the running kernel configuration, headers, Image or built-in ABI.
@@ -89,7 +99,7 @@ export KCFLAGS="-fdebug-prefix-map=$source_dir=/usr/src/rog5-linux -fdebug-prefi
 export KAFLAGS=$KCFLAGS
 make -C "$source_dir" O="$kernel_kit" M="$work" ARCH=arm64 LLVM=1 \
 	-j "$jobs" JOBS=1 modules
-[ "$(sha256sum "$kernel_kit/.config" "$kernel_kit/vmlinux")" = "$before" ]
+[ "$(sha256sum "$kernel_kit/.config" "$kernel_kit/vmlinux" "$hw11_patch")" = "$before" ]
 
 root=$output/module-root
 mkdir "$root"

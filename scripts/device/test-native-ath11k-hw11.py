@@ -94,6 +94,21 @@ def additions():
 
 
 class Hw11Test(unittest.TestCase):
+    def test_base_builder_includes_device_patch_and_selector_before_make(self):
+        # V3 rediscovered the retained V14 failure because the combined-module
+        # builder omitted the patch already used by the ath-only builder.
+        # The real selector execution below tests behavior; this assertion
+        # ensures the other production build path actually invokes it.
+        source = (REPO/'scripts/device/build-native-wifi-modules.sh').read_text()
+        self.assertIn('hw11_patch=$repo/patches/linux/device/ath11k-wcn6851-hw11.patch', source)
+        steps = ['git -C "$work" apply --check "$hw11_patch"',
+                 'git -C "$work" apply "$hw11_patch"',
+                 'python3 "$repo/scripts/device/test-native-ath11k-hw11.py" --selector-source "$work/drivers/net/wireless/ath/ath11k"',
+                 'make -C "$source_dir"']
+        positions = [source.index(step) for step in steps]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(source.count('"$kernel_kit/vmlinux" "$hw11_patch"'), 2)
+
     def test_full_selector_skips_the_earlier_qca6390_switch(self):
         source = '''static int ath11k_pci_probe(void) {
 case QCA6390_DEVICE_ID:
@@ -115,6 +130,11 @@ case WCN6855_DEVICE_ID:
         observed = re.search(r'Unsupported WCN6855 SOC hardware version: (\d+) (\d+)', '\n'.join(fixture['records']))
         self.assertIsNotNone(observed)
         major, minor = map(int, observed.groups())
+        recurrence = re.search(r'Unsupported WCN6855 SOC hardware version: (\d+) (\d+)',
+                               '\n'.join(fixture['recurrence']['records']))
+        self.assertIsNotNone(recurrence)
+        self.assertEqual(tuple(map(int, recurrence.groups())), (major, minor))
+        self.assertTrue(fixture['recurrence']['candidate_consumed'])
         self.assertTrue(fixture['power_sequence_passed'] and fixture['pci_identity_passed'])
         self.assertFalse(fixture['firmware_boot_reached'] or fixture['wifi_phy_ready'])
         branch = additions()['drivers/net/wireless/ath/ath11k/pci.c']
