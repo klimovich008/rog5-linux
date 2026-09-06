@@ -3767,3 +3767,77 @@ recovery, server radio/local persistent operation and remaining release rows
 remain the next work. The source demotion fix already exists; qualify deployed
 composition rather than reopening the same historical review. No global
 instruction, charging control, phone storage or installed boot image changed.
+
+### Server V2 staged from the qualified V8 rescue
+
+Continued clean `60482471f6c0dcc327edf79fbeadfe8ef9597135`; the preceding
+turn made progress (C02 correction), not a stopped/retriable device execution.
+All four exact-head/merge/QEMU/publication jobs PASS run 34049602683.
+No repository implementation or active artifact input changed during this cycle.
+
+Existing acceptance dispatcher **server C02 PASS 77.233 s**, with the exact
+37-module server archive and prospective root already qualified by A01.
+Input verification outside the row took 35.201 s. Both actual Arch guest cases
+passed: healthy late SSH/Wi-Fi-timer restart retained access; stale Wi-Fi health
+caused rollback. Root hash unchanged; no physical radio activation is inferred.
+Private `rog5-v7-server-modules-20260906.Ibl4iPCz/server-c02-r1` retains the
+full receipt/results. This is server-specific evidence, not imported rescue C02.
+
+Read-only phone staging inspection PASS **0.634 s** on unchanged V8 boot
+`015153cc-86f0-440c-b49f-95a1733316b9`. It verified exact host/device topology,
+kernel/boot, P24/P23 sources/UUIDs/sizes, 117-node write scope, existing selector
+and healthy trial metadata/hashes, existing overlay identity, safe power,
+five V11 fallback hashes and absent staging destinations. No mutation occurred
+in that inspection. The existing tested transaction was instantiated with
+canonical V2 data; only identities/scalars/payload hashes changed, not its
+write/relock algorithm. Shell syntax and no-effect read-only cleanup passed.
+Three coordinator ordering tests PASS 0.005 s: default inspection cannot
+transfer, failed backup prevents transfer/entry, and local refusal precedes
+device/credential use. There is no new repository lifecycle framework.
+
+Immediately before staging, the exact authenticated recovery's sealed verifier
+revalidated both primary/fallback signatures and payloads from the paired
+root preview; all five transfer files, including manifest signature, matched
+those verified bytes. Canonical artifact hashes, clean source and successful
+remote CI were checked again. No signing key was needed. Candidate claim,
+entry and global consumed marker were absent.
+
+**Bounded staging PASS 2.073 s.** New five-file V2 bundle installed on P24;
+old selector copied/verified before atomic selector replacement, P24 remounted
+RO and block-locked, then old healthy trial archived on P23. Old records were
+first preserved/hash-verified/fsynced on the host. No trial state was fabricated.
+The independent 180 s relock guard and single non-retryable transaction remained.
+No flash, GPT, protected partition, overlay/service-state contents, reboot or
+boot-claim operation occurred. Old primary, V11 fallback and stock A remain.
+
+Private `server-stage-v2/STAGING-ENTERED.json`, `STAGING-RESULT.json`,
+`execution-r1` backups/logs and `proposal.json` retain exact commands, source,
+coordinator/template/script hashes, authorized file-write scope and interruption
+limits. Staging script SHA:
+`2ce92efb639e72cdf68a274101f3979eda53550ca03a3d4670c24ca5ee290b1d`.
+Active selector:
+`353b7a88f56733fe39ee31707981bccd3dd15b6b1d47822ca369b26bab779f99`.
+Old selector:
+`c15c77824e3cecf128288f2c273c6bd7f93825e837568c669d8288145541d904`.
+Archived healthy trial:
+`6705ccb23b337cce074eb28cc1f5556ef84b183b63bf3552f5a1e97858fb184d`.
+On-device preserved paths are `selector.rollback-headless-server-selector-v2`
+under `/boot/rog5-linux` on P24 and
+`wifi-trial-state.accepted-server-v1-6705ccb23b337cce074eb28cc1f5556ef84b183b63bf3552f5a1e97858fb184d`
+under `/rog5/boot` on P23. Their host copies are `execution-r1/old-selector`
+and `old-trial`. Cross-filesystem interruption requires inspecting these exact
+records; never blindly rerun staging or synthesize a healthy trial.
+
+Independent postcheck **PASS 0.532 s** rehashed all staged files and preserved
+records, checked owner/mode/link metadata, absent active trial, exact V8 boot,
+Good/online power and P24 RO with only `sda sda23` writable. The original P24
+snapshot and RAM preview remain unchanged on the host; their raw-image hashes
+must not be presented as the now-modified physical P24 hash. Physical readback
+proves the staged files, not a complete post-staging raw snapshot.
+
+V8 remains running. A final read-only claim-store check confirms all V2 claim,
+entered and consumed markers absent. Next: adapt/test the existing coordinator,
+capture and V8-to-fastboot transition, then one admitted RAM-only V2 trial.
+Do not perform an ordinary reboot into the staged unissued selector or reuse
+V8's consumed claim. Installed autonomous recovery and full-server qualification
+remain outstanding. Source/recovery/kernel rebuilds are not needed for staging.
