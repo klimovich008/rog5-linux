@@ -4319,3 +4319,36 @@ candidate or executed flash. This scopes a future boot-B-only replacement;
 stock A, signed V11, GPT and filesystems remain unchanged. Restoring the old
 image also restores its known rearm defect. Ordinary boot qualification remains
 pending, not silently allowed by the successful RAM claim.
+
+### S02 bounded stream component, offline checkpoint
+
+Starting source `fe196ca72e422b12a0e8d9432929ab13b6d683a0`; no phone contact,
+claim, reboot, build or publication performed for this component. S01 remains
+blocked on the separately reviewed installed-recovery replacement. This work
+addresses S02's missing reusable bounded transfer implementation, not a newly
+inferred kernel fault. The initial regression invocation failed because the
+implementation did not yet exist; no production source was broken to force it.
+
+The new stdlib stream primitive uses nonce/offset-derived incompressible bytes,
+bounded buffers, strict byte counts and SHA-256, an exact duplicate-rejecting
+receipt, bounded stderr and one deadline covering preparation, pipes and exit.
+Owned subprocess groups are terminated on completion/error, without retries.
+Endpoints independently time out after 180 seconds. No payload files, listener,
+SSH discovery or storage operations are part of this component.
+
+Eleven real-subprocess regressions PASS: both directions, truncation, extra or
+corrupt bytes, malformed/duplicate/boolean receipt fields, nonzero exit, stderr
+and receipt floods, idle readers/writers, inherited pipes, closed-pipe process
+hangs and pre-spawn argument limits. Normal Python PASS **1.078 s** wall time;
+optimized Python PASS **1.023 s** unittest time. Local 256 MiB upload/download
+PASS **2.464 / 1.690 s**, matching digest
+`f90688280a6c6195887a098cffbbf8bdb72b27ca439130ebb9e856e56c28b84e`.
+These are local pipe timings, not USB/Wi-Fi bandwidth or S02 qualification.
+
+Active tier PASS **21.473 s**, versus prior **20.650 s**; the new suite took
+**1.077 s** within that run. It is registered once and retained by broader CI.
+No unchanged full CI or kernel/wrapper build was repeated. Full publication
+checks remain pending for the next coherent integration, not waived. Current
+mandatory matrix is unchanged: S02 needs S01 plus authenticated, exact-interface
+live transfers and release-bound evidence. Never combine this component PASS
+with incompatible earlier device evidence into a green release.

@@ -271,6 +271,16 @@ operator/power-state allowance. These are qualification bounds, not altered
 kernel watchdog deadlines. A rescue with a longer verified staging budget must
 have its separate timing lattice documented before admission, not after failure.
 
+### S02 implementation boundary
+
+`scripts/host/network-transfer-stream.py` provides bounded, hash-checked local
+pipe streaming and send/receive endpoints without payload files or retries.
+Its subprocess regression suite is in the active tier. It explicitly returns
+`s02_qualified=false`: endpoint authentication, USB/Wi-Fi interface binding,
+same-release/boot checks and S01 prerequisites remain the live runner's work.
+Do not invoke it against the phone as a substitute for that runner. Python
+availability and these exact endpoint bytes must be verified before deployment.
+
 ### H03: firmware-managed charging outcome
 
 Observe **600 s**, every **10 s** (61 samples including both endpoints), within
