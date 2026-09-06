@@ -20,9 +20,36 @@ COMMIT or ambiguity. No experimental flash, GPT or protected-data change.
 New destructive storage needs separately reviewed exact scope and approval.
 Keep private credentials, raw evidence and artifacts outside Git; do not delete them.
 
-## Running server and installed recovery
+## Current running rescue
 
-- Running **consumed** RAM execution `headless-server-selector-v1`, kernel
+`headless-selector-rescue-v2` is now **consumed**, not unissued. Its sole RAM
+execution on published source `23e8fe430dff4fb1dcc7c6634d660bf390458bb3`
+selected the unchanged signed `persistent-native-root-v11` fallback, kernel
+`7.1.4-g359318de534f`, boot `6aa96219-c542-441c-9500-dd540e89b249`.
+Never execute this candidate again. No flash, GPT or selector change occurred.
+
+Pinned USB SSH and a separately scoped fallback/P2 component passed. The
+original smoke remains **FAIL**: its host predicate required `attested_boot_id`,
+which the exact old V11 producer never emits (R2/R3/R7). Do not weaken current
+server attestation or relabel this as H02/R01. The integrated
+`check-deployed-server --readiness-only` preserves that distinction and passed
+on this same boot in 0.251 s. Captured-marker tests run in normal/optimized
+Python; future supervisors must reuse this checker instead of the copied grep.
+Capture completed in 1380.804 s; owned route/firewall/profile/address cleanup
+passed. At uptime 1398 s the same boot remained reachable, Full/Good 100%,
+29.7°C, 8.621 V, zero battery current and USB online. This is not H03 regulation
+qualification. Pstore was empty and remains inconclusive.
+
+The only failed systemd unit is the known V11 uninitialized package-keyring
+refresh (`fpr_email[1]: unbound variable`). Its fix was validated on the primary
+below but is not in this immutable fallback. No failure was hidden/reset.
+The fallback uses a tmpfs root upper, not the primary's 16 GiB persistent upper;
+do not transfer primary userspace, Wi-Fi or Tailscale evidence to this boot.
+Current selector hash and its previous healthy-primary trial remain unchanged.
+
+## Previous primary checkpoint and installed recovery
+
+- Previous **consumed** RAM execution `headless-server-selector-v1`, kernel
   `7.1.4-g1eea8970e87f`, boot `dd9cd15a-d9a6-4128-9dfa-5d8ef8d91fbd`.
   Do not execute this RAM candidate again. Previous rescue v1–v5 remain consumed.
 - Normal selector-backed recovery verified the staged signed primary and
@@ -44,7 +71,7 @@ Keep private credentials, raw evidence and artifacts outside Git; do not delete 
   Wi-Fi associated and acquired DHCP. Tailscale is Running/online, Health `[]`;
   independent mesh-peer SSH is still unproven.
 
-## Latest physical checkpoint
+## Previous primary physical checkpoint
 
 Source `918f3f6d48c6eed3c46a4b0b0858c121a4bc85fb` passed full local CI
 in 500.609 s and all four GitHub jobs in run 33999018607 before execution.
@@ -102,11 +129,12 @@ defect. Keep the accepted kernel; Denial remains deferred and optional.
    Finish whole-release composition integration; no kernel change is indicated.
 2. Qualify the updated recovery path separately from the old installed loader.
    Preserve stock A and signed V11; no consumed/ambiguous retry or implicit flash.
-   Fresh **unissued/unbooted** `headless-selector-rescue-v2` has identical
-   offline-verified recovery twins. It binds the current selector and boots only
-   its signed V11 fallback without opening the recovery trial-write window.
-   This tests fallback selection/transport, **not R01 failed-target recovery**.
-   No claim or admission has been created. Installed helper v1 was replayed
+   **Consumed** `headless-selector-rescue-v2` used identical offline-verified
+   twins to boot V11 without opening the recovery trial-write window. Its
+   fallback-selection/transport component is **not R01 failed-target recovery**;
+   reuse the integrated readiness checker in the next supervisor. The observer
+   checkpoint passed active tests in 16.633 s and full local CI in 483.726 s.
+   Installed helper v1 was replayed
    against the tested v2: v1 leaves a previously healthy primary healthy on its
    next selection; v2 rearms pending and selects fallback after an unacknowledged
    attempt. Do not qualify installed boot B from v2 source or RAM evidence.
@@ -116,7 +144,7 @@ defect. Keep the accepted kernel; Denial remains deferred and optional.
    Local-root RAM-trial success does not complete standalone boot qualification.
 4. Finish H03 regulation criteria and independent Tailscale peer SSH. Keep
    display/GPU/audio/sensor expansion outside the headless completion criteria.
-   Latest read-only check at uptime 3744 s: Full/Good 100%, 29.8°C, 8.623 V,
+   Previous-primary read-only check at uptime 3744 s: Full/Good 100%, 29.8°C, 8.623 V,
    USB online at 5.021 V/366 mA with 500 mA input limit; device/sink role.
    Charge-start/end thresholds are absent and full/design-capacity reads return
    ENODATA. These are missing regulation evidence, not proof of bad charging.

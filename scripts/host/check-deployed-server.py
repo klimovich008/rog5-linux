@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only exact userspace check on an already admitted persistent server."""
+"""Read-only userspace or readiness check on an already admitted target."""
 import argparse
 import hashlib
 import importlib.util
@@ -111,23 +111,104 @@ print(json.dumps(actual))
 '''
 
 
+def ssh_command(key,known_hosts):
+    return ['/usr/bin/ssh','-F','/dev/null','-o','BatchMode=yes','-o','IdentitiesOnly=yes',
+            '-o','IdentityAgent=none','-o','StrictHostKeyChecking=yes','-o','UpdateHostKeys=no',
+            '-o','ConnectionAttempts=1','-o','ConnectTimeout=3','-o','ServerAliveInterval=2',
+            '-o','ServerAliveCountMax=2','-o','HostKeyAlias=169.254.77.2',
+            '-o','UserKnownHostsFile='+str(known_hosts),'-i',str(key),'root@10.77.0.2']
+
+
 def collect(identity,key,known_hosts):
     host_gate(identity)  # Before opening credentials or invoking SSH.
     credential(key,True);credential(known_hosts,False)
     request=dict(identity={k:identity[k] for k in ('boot_id','bundle','release')},
                  files={role:target for role,(_,target,_) in FILES.items()})
     script='INPUT='+repr(json.dumps(request))+'\n'+PROBE
-    argv=['/usr/bin/ssh','-F','/dev/null','-o','BatchMode=yes','-o','IdentitiesOnly=yes',
-          '-o','IdentityAgent=none','-o','StrictHostKeyChecking=yes','-o','UpdateHostKeys=no',
-          '-o','ConnectionAttempts=1','-o','ConnectTimeout=3','-o','ServerAliveInterval=2',
-          '-o','ServerAliveCountMax=2','-o','HostKeyAlias=169.254.77.2',
-          '-o','UserKnownHostsFile='+str(known_hosts),'-i',str(key),'root@10.77.0.2',
+    argv=[*ssh_command(key,known_hosts),
           'python3 -I -B -c '+shlex.quote(script)]
     result=subprocess.run(argv,capture_output=True,timeout=15)
     if result.returncode or len(result.stdout)>16384:
         raise ValueError('authenticated probe failed or exceeded output bound')
     host_gate(identity)
     return json.loads(result.stdout)
+
+
+READINESS_FAMILIES={'fastboot-boot-fallback-only','fastboot-boot-ram-bundle','fastboot-boot-selector-trial'}
+READINESS_KEYS=('boot_before','boot_after','kernel','bundle','run_fstype',
+                'marker_metadata','ssh_identity_service','marker')
+# V11 has no Python. These exact shell/coreutils commands were exercised on its
+# retained target filesystem and in a separate authenticated same-boot probe.
+READINESS_PROBE=r'''set -eu
+export LC_ALL=C
+before=$(cat /proc/sys/kernel/random/boot_id)
+test "$before" = "$expected_boot"
+kernel=$(uname -r)
+test "$kernel" = "$expected_release"
+bundle=
+count=0
+set -f
+for arg in $(cat /proc/cmdline); do
+ case "$arg" in rog5.bundle=*) bundle=${arg#rog5.bundle=}; count=$((count+1));; esac
+done
+test "$count" = 1
+test "$bundle" = "$expected_bundle"
+test -d /run; test ! -L /run
+file=/run/rog5-p2-ready
+test -f "$file"; test ! -L "$file"
+test "$(stat -c %s "$file")" -le 16384
+identity=$(stat -c '%d:%i:%s:%y:%z:%a:%u:%g:%h:%F' "$file")
+metadata=$(stat -c '%u:%g:%a:%F:%h' "$file")
+marker=$(cat "$file")
+test "$identity" = "$(stat -c '%d:%i:%s:%y:%z:%a:%u:%g:%h:%F' "$file")"
+fs=$(findmnt -n -o FSTYPE --target "$file")
+service=$(systemctl is-active rog5-persistent-ssh-identity.service)
+after=$(cat /proc/sys/kernel/random/boot_id)
+printf '%s\0' "$before" "$after" "$kernel" "$bundle" "$fs" "$metadata" "$service" "$marker"
+'''
+
+
+def parse_readiness(payload):
+    if len(payload)>20000: raise ValueError('readiness output exceeded bound')
+    fields=payload.decode('ascii').split('\0')
+    if len(fields)!=len(READINESS_KEYS)+1 or fields[-1]:
+        raise ValueError('invalid readiness framing')
+    return dict(zip(READINESS_KEYS,fields[:-1]))
+
+
+def validate_readiness(actual,identity,family):
+    if family not in READINESS_FAMILIES: raise ValueError('unsupported readiness family')
+    if (actual.get('boot_before')!=identity['boot_id'] or actual.get('boot_after')!=identity['boot_id']
+            or actual.get('kernel')!=identity['release'] or actual.get('bundle')!=identity['bundle']):
+        raise ValueError('readiness target identity mismatch')
+    if (actual.get('run_fstype')!='tmpfs' or actual.get('marker_metadata')!='0:0:444:regular file:1'
+            or actual.get('ssh_identity_service')!='active'):
+        raise ValueError('readiness marker freshness/metadata or SSH identity service')
+    rows=[line.split('=',1) for line in actual['marker'].splitlines()]
+    if not rows or any(len(row)!=2 for row in rows) or len({row[0] for row in rows})!=len(rows):
+        raise ValueError('malformed or duplicate readiness fields')
+    fields=dict(rows)
+    if fields.get('status')!='PASS' or fields.get('kernel')!=identity['release'] or fields.get('ssh')!='strict-key-only':
+        raise ValueError('readiness core fields failed')
+    bound=fields.get('attested_boot_id')
+    if bound is not None and bound!=identity['boot_id']:
+        raise ValueError('stale boot-bound readiness')
+    legacy=bound is None and family=='fastboot-boot-fallback-only'
+    if not legacy and bound!=identity['boot_id']:
+        raise ValueError('current server requires boot-bound readiness')
+    return dict(scope='legacy fallback SSH/readiness component' if legacy else 'boot-bound SSH/readiness component',
+                marker_boot_bound=not legacy,release_qualified=False)
+
+
+def collect_readiness(identity,key,known_hosts):
+    host_gate(identity)  # Same exact topology/route and credential gates as composition.
+    credential(key,True);credential(known_hosts,False)
+    script=''.join('expected_'+name+'='+shlex.quote(identity[field])+'\n'
+                   for name,field in [('boot','boot_id'),('release','release'),('bundle','bundle')])+READINESS_PROBE
+    result=subprocess.run([*ssh_command(key,known_hosts),'sh -s'],input=script.encode(),capture_output=True,timeout=15)
+    if result.returncode: raise ValueError('authenticated readiness probe failed')
+    host_gate(identity)
+    return parse_readiness(result.stdout)
 
 
 def main():
@@ -138,12 +219,16 @@ def main():
     parser.add_argument('--identity-file',required=True,type=Path)
     parser.add_argument('--known-hosts',required=True,type=Path)
     parser.add_argument('--output',required=True,type=Path)
+    parser.add_argument('--readiness-only',action='store_true',
+                        help='shell-only SSH/readiness component, not six-file or release qualification')
     args=parser.parse_args()
     started=time.monotonic()
     if not re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',args.boot_id):
         raise ValueError('invalid exact boot ID')
     record=dict(line.split('=',1) for line in CAPTURE.CLAIMS.expected_record(args.profile).decode().splitlines())
-    if record['execution']!='fastboot-boot-selector-trial':
+    if args.readiness_only and record['execution'] not in READINESS_FAMILIES:
+        raise ValueError('unsupported readiness family')
+    if not args.readiness_only and record['execution']!='fastboot-boot-selector-trial':
         raise ValueError('check requires the admitted persistent selector trial family')
     CAPTURE.CLAIMS.verify_entered(args.profile)  # Read-only; never creates authority.
     raw=args.manifest.read_bytes()
@@ -152,7 +237,7 @@ def main():
     manifest=dict(line.split('=',1) for line in raw.decode('ascii').splitlines())
     identity=dict(serial=record['serial'],bundle=record['target_bundle'],
                   release=manifest['target_release'],boot_id=args.boot_id)
-    expected=expected_files();source=CAPTURE.ACCEPTANCE.source_identity()
+    expected={} if args.readiness_only else expected_files();source=CAPTURE.ACCEPTANCE.source_identity()
     output=args.output.resolve()
     if not args.output.is_absolute() or output.is_relative_to(REPO) or output.exists():
         raise ValueError('output must be a new private directory outside Git')
@@ -160,13 +245,17 @@ def main():
     report=dict(status='FAIL',source=source,identity=identity,expected=expected,
                 manifest_sha256=record['manifest_sha256'],canonical_record=record,
                 runner_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                scope='six-file deployed userspace component; not full release, power or installed-recovery qualification',
+                scope='SSH/readiness component' if args.readiness_only else 'six-file deployed userspace component; not full release, power or installed-recovery qualification',
+                release_qualified=False,
                 mutations='none requested; ordinary filesystem read/atime semantics only')
     try:
-        actual=collect(identity,args.identity_file,args.known_hosts)
+        actual=(collect_readiness if args.readiness_only else collect)(identity,args.identity_file,args.known_hosts)
         report['actual']=actual
-        validate_snapshot(actual,identity,expected)
-        if source!=CAPTURE.ACCEPTANCE.source_identity() or expected!=expected_files():
+        if args.readiness_only:
+            report.update(validate_readiness(actual,identity,record['execution']))
+        else:
+            validate_snapshot(actual,identity,expected)
+        if source!=CAPTURE.ACCEPTANCE.source_identity() or (not args.readiness_only and expected!=expected_files()):
             raise ValueError('source changed during check')
         report['status']='PASS'
     except (OSError,ValueError,subprocess.SubprocessError) as error:

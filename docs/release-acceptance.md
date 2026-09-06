@@ -66,6 +66,21 @@ This is not whole A01, installed-recovery, charging or standalone qualification.
 A02 includes its stale-overlay and strict metadata regressions in both Python
 modes; the active tier retains them when broadening to full CI.
 
+Add `--readiness-only` for an already admitted target's bounded SSH/readiness
+component instead of the six-file inventory. This uses shell/coreutils, not
+target Python, with the same canonical consumed-record, manifest, pinned SSH
+and host topology/route gates. It checks the exact expected boot before/after,
+kernel/bundle, stable root-owned 0444 single-link regular marker on tmpfs and
+active persistent SSH identity service. Current server families require a
+matching `attested_boot_id`; only the canonical fallback-only family may use
+the observed older marker without that field. Such results explicitly say
+`legacy fallback SSH/readiness component`, `marker_boot_bound=false` and
+`release_qualified=false`. They do not qualify H02, R01, the watchdog, power,
+or installed recovery, and never overwrite an earlier failed smoke result.
+Future supervisors should call this observer instead of copying a marker grep;
+do not change a running supervisor or reuse its execution claim to repair an
+observer. The 15-second read-only call does not extend boot/rollback deadlines.
+
 C01 now runs nine QEMU cases, including P2 success without persistent identity
 and stale identity. Its 500 s offline allowance covers nine 50 s subprocess
 bounds plus 50 s setup/collection margin; the executable harness test verifies
