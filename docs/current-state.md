@@ -101,10 +101,16 @@ Full local CI passed in 589.229 s for the builder correction and 630.297 s
 for the later shared capture correction; no unchanged rerun. This is
 not a claim that the final assembled release or new kernel has passed A01.
 Host reserve is 3 GiB; no deletion authorized by this checkpoint.
-No new candidate is issued, signed, admitted or executed. Unsigned core archives
+No new live claim, admission or execution. Unsigned core archives
 match (`0241a611818638d2e3a6ff399ebea4d63fe6bbefc09a64d5e324d600a6415cb9`).
 Exact new kernel/core/retained Arch QEMU component PASS 81.283 s (VM 19.611 s);
-fixture vmlinux-to-Image binding PASS. Full A01/radio composition remains open.
+fixture vmlinux-to-Image binding PASS. Matching complete server archive twins
+`6f9199f5413e6d59bce6cb7973593ef1afa858630af7541c3aa2f0a5a3e73e07`
+PASS 73.336 s; 37-module/radio/Arch component PASS 105.604 s (VM 38.939 s).
+Proposed `headless-server-selector-v2` was signed through the existing workflow
+in 6.084 s; wrapper is byte-identical to the retained selector wrapper. Its
+canonical exact record is packaging data, not a created or consumed live claim.
+Full signed A01 remains pending; no deployment or phone boot occurred.
 
 The V7-only in-tree capacity module twins (`998c30ca…`) and QEMU PASS 6.325 s
 remain in `rog5-battmgr-module-20260906.R8ZllyeH`; do not mix that ABI with
@@ -116,9 +122,11 @@ PASS 28.337 s (previous 21.207 s under different load).
 
 ## Exact next action
 
-The bounded instruction/H03 clarification and core component are complete.
-Assemble the matching radio/primary archive and test the coherent final release
-for A01; reuse verified outputs, do not recompile ASUS for host/doc changes.
+The matching radio/primary archive and signed package are complete. Run full
+assembled A01 with the private RAM-backed prospective P24 staging copy under
+`/run/rog5-server-preview-20260906-Ibl4iPCz/root.ext4` (not phone evidence).
+Preview hash `8f4afbcceed4b2112981392127deaf5a057a9c1d193cb325ef55791810e792c5`;
+original P24 snapshot is unchanged. Reuse outputs; do not recompile ASUS.
 H03's predeclared plan is in the acceptance contract; its Full-state evaluator
 passes offline but still needs same-release supervised collection and H02.
 The capture fix now recognizes only an anchored sysfs-read ENOENT/ENODEV
@@ -126,7 +134,8 @@ followed by confirmed absence before any target observation. It keeps unknown,
 network/binding and post-target errors fatal and never clears an earlier FAIL.
 Historical untagged V7 evidence remains FAIL. Capture fix publication and twins
 passed; final assembled A01 still precedes another phone cycle. Free host space
-is 5.5 GiB; avoid duplicate large images and preserve the 3 GiB reserve.
+is 4.8 GiB; preserve the 3 GiB reserve. The disposable RAM preview is reproducible
+from retained inputs and must be cleaned up after testing, not treated as durable.
 
 Use focused checks during edits and one full CI per relevant frozen integration;
 publish at meaningful checkpoints. Keep one physical coordinator. Scope and

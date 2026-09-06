@@ -3474,3 +3474,42 @@ kernel/radio/aux terminal records and failed original outputs remain there.
 Directory allocation is **8.9 GiB** (not a measured peak); free host space
 **5.5 GiB**, reserve **3 GiB**. No build data was deleted. Next work reuses
 these verified twins to complete the coherent server archive and final A01.
+
+### Matching full server archive and signed selector package
+
+From `92449973a7adb6adc30a4717fb9203c07605063f`, existing builders refreshed
+the accepted persistent server with the exact combined ABI. All retained
+firmware and radio userspace bytes are preserved; the nested module manifest
+and outer boot manifest were regenerated. Target twins match:
+`6f9199f5413e6d59bce6cb7973593ef1afa858630af7541c3aa2f0a5a3e73e07`,
+**73.336 s**. Complete 37-module software load/firmware staging, separate
+board-safe refusals, consumer BTF relocation/refusal, Arch/systemd/SSH/unit and
+timing preparation **PASS 105.604 s**, VM **38.939 s**. Not physical activation.
+Active tier **PASS 23.188 s**. These results remain in the same private build
+directory (`server-assembly-result.json`, `server-component/result.json`).
+
+Proposed `headless-server-selector-v2` signed-package twins **PASS 6.084 s**.
+ASUS kernel was reused, and the recovery wrapper is byte-identical to the
+retained selector wrapper `dcc487f1…`, not another kernel build. The target
+manifest is `3a02a526e98dc8987cdede58f5124c0430034092cdb0a6fb6edfc164476f9155`;
+selector `353b7a88f56733fe39ee31707981bccd3dd15b6b1d47822ca369b26bab779f99`.
+One canonical exact-record row was added; no runtime/admission mechanism
+changed and no real claim was created. Existing dynamic tamper/permanent
+consumption tests cover the new row: **19 PASS**, normal **0.293 s**, optimized
+**0.322 s**. Acceptance contract tests **33 PASS 1.274 s**. Admission-only data
+uses these isolated checks per development policy; publication gates remain.
+
+Disk reserve prevented a second disk-backed root copy. A disposable private
+copy was made under host `/run` tmpfs with explicit RAM/headroom gates. A
+pre-copy metadata gate caught an old 20 KiB padding assumption before any
+credential or write; the preparation now derives size from the verified
+capture result (34,359,717,888 bytes), not that copied constant. Copy/hash proof
+**PASS 57.332 s**, initially 3,633,270,784 allocated bytes. Existing project
+credential workflow only created the private host directory; no phone access.
+
+Only the disposable copy received the new bundle/selector using bounded
+debugfs writes and exact read-back. Preview **PASS 23.832 s**, hash
+`8f4afbcceed4b2112981392127deaf5a057a9c1d193cb325ef55791810e792c5`.
+It is prospective staging evidence, not the deployed phone root. Original
+snapshot, fallback and actual phone selector/trial are untouched. Full signed
+A01, exact-head publication and all physical acceptance remain to be proved.
