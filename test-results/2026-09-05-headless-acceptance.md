@@ -4996,3 +4996,53 @@ Checkout now uses the event's merge SHA, still verified by `git rev-parse HEAD`.
 All **35 selector/workflow tests PASS** normal/optimized; exact-head shell
 contract PASS. No gate, security setting or failure result was bypassed.
 Full frozen integration validation is the next publication checkpoint.
+
+### S05 three ordinary boots and pinned consumer (2026-09-07)
+
+Frozen source `93d6ee17c5d93de9e44925c261538861cca133e0` passed full local CI
+**496.400 s**, log SHA-256
+`13ece8aea336d2bae3140ef70a160e42ccceab4ba5311c2d8d0d804e58c002e4`.
+Remote **34088992649** passed exact-head/merge/publication/QEMU. The CI merge
+race fix is complete; it was not a kernel failure. No build was needed.
+
+Seven fake private coordinator tests passed **0.311/0.397 s** normal/optimized:
+owned-PID close, durable close intent, stale/failed health refusal, observation
+failure, ambiguous single request and full-window preservation. Read-only exact
+installed boot-B, signed bundles, healthy latch and root preflight passed
+**3.633 s**. The coordinator reused these qualified helpers without changing
+target, watchdog, accepted service configuration or experimental claim state.
+
+One sequence started from `7979945f-e6bc-46b6-aa5f-26091f1aed1c` and issued
+exactly three ordinary reboot requests, return 0 each:
+
+| New boot ID | Boot→verified health | Through capture cleanup |
+|---|---:|---:|
+| `9ca79fdf-9acf-44ab-b1ea-58b5717db115` | 94.908 s | 96.060 s |
+| `bac36fa5-a947-421e-b8e0-4db7dd6f2fb9` | 96.612 s | 97.810 s |
+| `24db7908-5479-4d1a-a9cd-eeccbf1cb564` | 97.400 s | 98.585 s |
+
+Total **311.524 s**, supervision **311.529 s**, below the unchanged 1080 s
+deadline. Each raw transport trace shows one source disconnect, one recovery
+appearance and one target appearance; all stages belong to its verified new
+boot. No observed intermediary failure was discarded. This cannot rule out an
+unobserved pre-USB event and is not absence-of-pstore crash proof. Full failure
+capture was armed before each request; healthy-only closure and four-step
+cleanup passed. Final SSH/root PASS **1.026 s**, Full/100%, Good, **29.8°C,
+8.563 V, 0 mA**. This snapshot does not qualify H03. No flash/storage-layout
+change occurred. The physical sequence must not be repeated for parser work.
+
+Pinned input `s05-evidence-inputs-r1.json` under the existing private prefix:
+`7a9bc83e1ca7006992fe64de3f8d0fae1abec5a9d0f9b70fc068b4f41f526a7c`.
+The offline S05 consumer revalidates full S01, exact installed preflight,
+source/dependency identity, raw health/root/stages, actual commands and complete
+cleanup. A missing S05 dispatcher registration failed first; it now passes.
+Boolean exit-status acceptance was reproduced in the draft consumer and fixed
+with explicit type validation, effective under optimized Python. Nine evidence
+tests PASS **0.776/1.036 s** normal/optimized; 47 dispatcher PASS **3.980 s**;
+12 existing runtime tests PASS **0.660 s**. Direct real evidence replay PASS;
+frozen publication/dispatcher qualification is next, not final release PASS.
+
+Three full captures alone would require **4140 s** versus the measured
+**311.524 s** whole smoke sequence (about 64 minutes avoided). The old full
+capture is still used for actual failure/recovery qualification. Artifact
+bytes are unchanged; no kernel/module/wrapper rebuild or cache invalidation.

@@ -1,7 +1,8 @@
 # ROG5 current state
 
-Updated: 2026-09-07. S01–S04 batch qualification passed on unchanged V4
-artifacts. The server is running; repeated-boot S05 qualification is next.
+Updated: 2026-09-07. S01–S04 batch passed on unchanged V4 artifacts.
+S05's three ordinary boots and pinned offline replay passed; integration
+publication is next. The server remains running.
 
 ## Goal and authority
 
@@ -23,11 +24,11 @@ Ordinary accepted-release reboots are distinct from experimental claim retries.
 ## Installed release and current access
 
 Bundle `headless-server-selector-v4`, kernel `7.1.4-gf17befd4ef17`.
-Current authenticated boot: `7979945f-e6bc-46b6-aa5f-26091f1aed1c`.
-The latest ordinary installed boot reached strict-key SSH/local root in
-**87.113 s**; previous ordinary boots took **84.956/85.531/86.377 s**.
-Post-capture-cleanup SSH/root check PASS **0.919 s** on the same new boot.
-Last telemetry: **Full/100%, Good, 29.7°C, 8.566 V, 0 mA**.
+Current authenticated boot: `24db7908-5479-4d1a-a9cd-eeccbf1cb564`.
+Three consecutive installed boots reached exact root, pinned SSH and healthy
+trial commits in **94.908/96.612/97.400 s**; total sequence **311.524 s**.
+Post-capture-cleanup SSH/root check PASS **1.026 s** on the third boot.
+Last telemetry: **Full/100%, Good, 29.8°C, 8.563 V, 0 mA**.
 This snapshot is not H03 charging-regulation qualification.
 
 USB SSH: `10.77.0.2`, pinned alias `169.254.77.2`.
@@ -82,7 +83,9 @@ These component results do **not** constitute one qualified final release.
 | S02 transfers | Physical PASS 298.494 s; unchanged evidence replay PASS 3.471 s |
 | S03 service restarts | Physical PASS 33.648 s; dispatcher PASS 0.215 s |
 | S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
-| S05–S07 | Three boots, powered-off start and 60-minute combined soak outstanding |
+| S05 three boots | Physical sequence PASS 311.524 s; pinned replay PASS, dispatcher/publication pending |
+| S06 powered-off start | Requires verified off interval and physical start; ordinary reboot is not a substitute |
+| S07 combined soak | 60-minute storage/network observation outstanding; next independent implementation |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
 H03's firmware-Full method is already defined; absent charge-limit controls
@@ -93,38 +96,29 @@ reconnect; do not restart services or re-review the kernel for that incident.
 
 ## Latest checkpoint and exact next action
 
-Frozen live/assessment source: `e2cbf147700d5588c929a86cefee1083e7e1a430`.
-`s04-ordinary-boot-r2` is terminal: supervisor **1387.360 s**, receiver
-**1380.604 s**, exit **0**. All four host cleanup steps passed. One new 64 MiB
-owned file passed fsync/readback, one ordinary reboot, identical-hash readback
-and exact cleanup. No scratch file/namespace remains; no flash, slot, GPT or
-raw-storage action ran. The earlier R7 capture failure remains FAIL in the
-[dated report](../test-results/2026-09-05-headless-acceptance.md); never retry it.
+Frozen S05 live source: `93d6ee17c5d93de9e44925c261538861cca133e0`.
+`s05-three-boots-r1` is terminal: three requests, exit 0 each; three distinct
+new boot IDs, healthy records, capture closure and all four host cleanup steps.
+Each capture was armed for the full failure window before its ordinary reboot.
+Only proven healthy startup allowed owned early closure; ambiguity or failure
+would keep full observation and forbid another reboot. No new RAM claim, flash,
+slot, GPT or raw-storage operation occurred. Do not repeat these boots.
 
-Private `s04-r2-batch-acceptance` records S01/S02/S03/S04 PASS, total **91.868 s**.
-It batches unchanged artifact verification; older observations retain original
-attribution. Unselected mandatory outcomes remain NOT RUN, `qualified=false`.
-The 900-second rollback and complete independent capture were not shortened.
+The S05 consumer replays pinned full S01 baseline, actual preflights, commands,
+raw root/health/stage evidence and closure. It checks original dependency bytes
+and timing against the observed revision; replay is not a new physical run.
+Private input: `s05-evidence-inputs-r1.json`, SHA-256
+`7a9bc83e1ca7006992fe64de3f8d0fae1abec5a9d0f9b70fc068b4f41f526a7c`.
+Do not count smoke evidence as full S01/R01 or final release qualification.
 
-Next: bind the tested ordinary-smoke helpers to pinned evidence and the single
-coordinator, then run S05's three-boot sequence. The full capture is 1380 s per boot, incompatible
-with S05's 1080 s total deadline. Read-only evidence on the current boot confirms
-the exact healthy record and successful trial commit at **58.603 s** target
-uptime; no target watchdog/kernel change is indicated. A future smoke closure
-must require same-release full-watchdog evidence, fresh current-boot health,
-normal source→target continuity and complete cleanup. Failed/ambiguous boots
-retain full recovery observation and prohibit another action. This shorter
-mode is **not connected to live execution or qualified yet**; do not improvise it.
-Do not count smoke evidence as full S01/R01 qualification or relax boot deadlines.
-
-The new `ordinary-boot-smoke.py` component validates fresh healthy records,
-safe closure/cleanup and three consecutive boots; 22 tests PASS normal/optimized.
-Timing comes from `defaults.ordinary_smoke`, fitting the unchanged 1080 s budget.
-It cannot grant S01/S05/release PASS. Full integration and exact-head CI are pending.
-Documentation CI `34087645077` failed only merge checkout: the moving merge ref
-resolved to a regenerated commit with the same parents. A failing regression now
-passes with checkout pinned to the event's merge SHA; exact-head verification
-and required checks remain intact. No phone action followed that CI failure.
+Next: freeze/publish the S05 consumer, run one full local CI and exact-head CI,
+and pass it through the existing acceptance dispatcher. Prepare the bounded
+S07 combined-load test while independent checks run. S06 still needs physical
+off/start conditions; do not silently substitute another ordinary reboot.
+Full S04 evidence and the earlier failed R7 capture remain in the
+[dated report](../test-results/2026-09-05-headless-acceptance.md).
+The mutable GitHub merge-ref race is fixed and verified at `93d6ee17`; do not
+reopen it without new evidence. No repository security setting was changed.
 
 ## Fast loop / validation checkpoint
 
@@ -135,11 +129,12 @@ Broader tiers include narrow tests. Development PASS is never release PASS.
 Freeze active test inputs; batch fixes; reuse unchanged evidence with its
 original source, not a newer label. No kernel/wrapper rebuild occurred here.
 
-S04 integration `e2cbf147`: 14 evidence tests PASS normal/optimized,
-47 dispatcher and 12 runtime regressions PASS. Full local CI **523.219 s**;
-all four exact-head/merge/publication/QEMU jobs PASS **34084953097**.
-Exact current phone Python/tmpfs tests PASS **14.188 s**, cleanup verified.
-No kernel/module/wrapper rebuild; do not rerun full CI for this narrative update.
+S05 smoke integration `93d6ee17`: full local CI **496.400 s**;
+all four exact-head/merge/publication/QEMU jobs PASS **34088992649**.
+Seven private coordinator failure/ownership tests passed normal/optimized.
+The new consumer's nine tests pass normal/optimized; 47 dispatcher and 12
+existing runtime regressions pass. Frozen consumer integration remains pending.
+No kernel/module/wrapper rebuild; all five release artifact identities unchanged.
 The impact/dependency selector checkpoint `d75359b7` and receiver correction
 `884a1a41` remain complete. Historical timings and preserved failures are linked
 from the dated report, not another active ledger.

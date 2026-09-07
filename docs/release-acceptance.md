@@ -42,6 +42,18 @@ capture must still finish its full window; file success cannot hide capture loss
 Replay performs no phone contact or storage action. Exact-target fixtures may
 use an owned `/run` tmpfs directory, never the service-state image.
 
+S05 uses `--runtime-inputs S05=ABSOLUTE_PATH,SHA256` with one completed
+`rog5-repeated-boot-evidence-v1` sequence. The existing runtime replay validates
+three consecutive ordinary installed boots against a full same-release S01
+baseline, pinned preflights/commands, raw root/readiness/healthy records and
+complete capture cleanup. Each boot must reach healthy startup within 300 s;
+the complete sequence stays within 1080 s. Full failure observation is armed
+before each request. An owned capture may close early only after a fresh,
+verified healthy commit; failure/ambiguity retains full observation and forbids
+another action. Smoke evidence is not full watchdog/R01 or release qualification.
+Replay preserves the actual observed source revision and checks unchanged
+producer dependencies; it neither reboots nor retries any experimental claim.
+
 `--release` accepts private `rog5-release-inputs-v1` JSON with `candidate_id`,
 `source_revision` and `artifacts`: `kernel`, `dtb`, `initramfs`, `rootfs`,
 `boot_bundle`. Each artifact has an absolute `path`, `size`, and `sha256`.

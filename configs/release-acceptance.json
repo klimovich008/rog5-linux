@@ -117,6 +117,8 @@
         ["python3", "-O", "scripts/host/test-check-standalone-boot.py"],
         ["python3", "scripts/host/test-ordinary-boot-smoke.py"],
         ["python3", "-O", "scripts/host/test-ordinary-boot-smoke.py"],
+        ["python3", "scripts/host/test-repeated-boot-evidence.py"],
+        ["python3", "-O", "scripts/host/test-repeated-boot-evidence.py"],
         ["python3", "scripts/host/test-server-runtime-evidence.py"],
         ["python3", "-O", "scripts/host/test-server-runtime-evidence.py"],
         ["python3", "scripts/host/test-storage-durability-evidence.py"],
@@ -663,7 +665,7 @@
         "ordinary reboot authority",
         "host supervisor"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-server-runtime-evidence.py", "--kind", "S05", "--inputs", "{runtime_inputs}", "--inputs-sha256", "{runtime_inputs_sha256}", "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 1080,
       "pass_condition": "Three consecutive distinct boot IDs, each <=300s to coherent systemd/pinned SSH/charging/storage, no failed intermediary boot.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -676,7 +678,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Must be one coherent final release, not passes collected across builds."
+      "blocker": "Supply one pinned completed three-boot sequence with a full same-release S01 baseline, exact installed-byte preflights, healthy commits and receiver cleanup. Replay performs no reboot or claim operation."
     },
     {
       "id": "S06",
