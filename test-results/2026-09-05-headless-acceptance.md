@@ -5961,3 +5961,35 @@ required; neither this attempt nor its cleanup qualifies S07.
 
 Raw failure and cleanup remain in the private `rog5-cpu-cap-diagnostic` r1/r2
 outputs. No unique failed evidence or accepted artifacts were removed.
+
+### Corrected CPU-cap diagnostic PASS (2026-09-07; not release qualification)
+
+Exact source `d1585090a211e17e16172c0ee10d9690570392b7`, clean digest
+`296b9792e3b560fd2b7d4a283c3cb5b82527ede351d65f473d9cd22b498e2b56`:
+full local CI PASS **523.834 s**, all four remote jobs PASS **34146544906**.
+Exact-target fixtures PASS **1.721 s** (host **2.139 s**), with unchanged real
+CPU settings before/after. No kernel, DT, module or target archive rebuild.
+Private coordinator replay PASS **7.831/7.579 s**, normal/optimized; independent
+restoration readback now runs even when target session closure reports failure.
+
+Fresh r3 diagnostic measured **600.496 s**, total **624.298 s**, with the fixed
+caps and unchanged guards/load sizes. **19 storage windows, 32 transfers** across
+both USB/Wi-Fi directions, **61 samples**. Peak device thermal **47.1°C**;
+battery Good, maximum **30.3°C**, final **8.525 V**. Same accepted V5 boot.
+All workers stopped; both target and independent host readback verified original
+maxima **1804800/2419200/2841600 kHz**. New scratch children were cleaned; only
+the existing failed-soak child remains. No reboot, claim, flash or service edit.
+
+Result SHA-256:
+`e7fac83fb3660a05a47962f618517f1ab4fca7f5ddb53e08c705f4afd52b077e`.
+Private archive `cpu-cap-diagnostic-r3.tar.gz`, **130,599 bytes**, **277 files**
+read-back matched, SHA-256
+`e4fbb695db8118a83c4338a232b98aeef99c0daead066268b401cb60d47afad8`.
+Failed r1/r2 archive is preserved separately, 21 files, SHA-256
+`eb39ea79d8155df9d05e0d5a085dd799acec4c8681b364c4671c47c55f7c3f23`.
+
+This discriminates a viable CPU-cap mitigation; it does not prove a unique cause
+for the old V4 incident or qualify a release with temporary settings. S07 and
+release flags remain false. Next: integrate the tested policy without coupling
+display, reuse the accepted kernel, then qualify one coherent release with the
+full mandatory matrix. Do not relabel this diagnostic as a one-hour soak.
