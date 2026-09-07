@@ -113,8 +113,9 @@ Offline reproduction now covers this expected teardown. The correction allows
 up to three read-only rechecks within 150 ms, capped by the capture deadline;
 only classified pre-target descriptor loss followed by actual absence qualifies.
 Unclassified errors and identity/network/post-target failures remain fatal.
-Next: frozen integration checks, then the next independently required ordinary
-boot using fresh evidence. Do not boot merely to fix this parser or relabel the
+Next: prepare the next independently required ordinary boot using fresh
+evidence under qualified receiver code `884a1a41`. Do not boot merely to fix
+this parser or relabel the
 old capture. Changing this producer invalidates old S01 dependency reuse.
 The S04 replay draft and synthetic tests are private; the pending integration
 patch is **not applied**. Its complete-evidence builder correctly refuses the
@@ -136,3 +137,8 @@ Full local CI PASS **490.798 s** (previous **493.111 s**).
 All four remote jobs PASS **34078827158**; local/remote work overlapped.
 The earlier selector checkpoint `d75359b7` is complete; do not restart it.
 Historical implementation detail and timing are in the dated report.
+
+Receiver correction `884a1a41`: 31 receiver tests and 24 boot-evidence tests
+PASS; full local CI PASS **487.068 s**. All four remote jobs in **34082298535**
+PASS. No device action under this code yet. The following documentation-only
+checkpoint does not relabel those tests as executing newer source.

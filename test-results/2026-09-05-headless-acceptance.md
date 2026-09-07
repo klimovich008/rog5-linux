@@ -4860,3 +4860,14 @@ unknown recheck detail. New classified follow-up fixtures failed before the fix.
 This changes a capture producer: historical S01 dependency reuse must fail
 closed, not be relabeled. Frozen integration validation is still required before
 using the corrected receiver on another independently justified ordinary boot.
+
+Correction source **`884a1a41b143b8cc49d57b8d670754b7f719609e`** subsequently
+passed all 31 receiver/network regressions (**0.279 s**, optimized) and 24
+standalone-boot evidence regressions (**1.636 s**). Full frozen local CI PASS
+**487.068 s**, log SHA-256
+`43df0e5a21aed8e0e95a3cf084cf8a14ce3c530021087b73d236da60e59ddb02`.
+The development selector correctly returned `eligible=false`, tier `ci` for
+this capture-producer change. All four jobs in remote **34082298535** passed:
+head-exact, merge-compat, publication and QEMU. No physical operation
+followed this correction. These checks do not retrospectively qualify the
+earlier failed capture or count a missing repeated-boot/soak result as PASS.
