@@ -114,7 +114,8 @@ def classify(paths: list[str]) -> tuple[str, str]:
     normalized = sorted({path for path in paths if path})
     if not normalized:
         return "ci", "yes"
-    runtime = [path for path in normalized if not documentation(path)]
+    runtime = [path for path in normalized
+               if not documentation(path) and path != NARRATIVE_REPORT]
     if not runtime:
         return "active", "no"
     if all(path in PROBE_ONLY for path in runtime):

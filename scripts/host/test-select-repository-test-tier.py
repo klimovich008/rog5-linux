@@ -157,6 +157,19 @@ class TierSelectorTest(unittest.TestCase):
             ("ci", "yes"),
         )
 
+    def test_reviewed_narrative_uses_same_ci_and_development_scope(self):
+        report = MODULE.NARRATIVE_REPORT
+        for paths in ([report], [report, 'docs/current-state.md', 'README.md']):
+            self.assertTrue(MODULE.development_decision(paths)['eligible'])
+            self.assertEqual(MODULE.classify(paths), ('active', 'no'))
+        self.assertEqual(MODULE.classify([
+            report, 'scripts/host/early-target-diagnostics.py']), ('probe', 'no'))
+        for dependency in ('initramfs/native-wifi/runtime',
+                           'scripts/host/consume-exact-boot-claim.py',
+                           'test-results/runtime.md', 'new/unknown.py'):
+            with self.subTest(dependency=dependency):
+                self.assertEqual(MODULE.classify([report, dependency]), ('ci', 'yes'))
+
     def test_kernel_dtb_recovery_or_storage_changes_require_qemu(self) -> None:
         for path in (
             "initramfs/network-root-init",

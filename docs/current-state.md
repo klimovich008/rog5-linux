@@ -117,8 +117,9 @@ All temporary controls/helpers were restored/removed; installed files are unchan
 Source now sets/verifies power-save OFF during server Wi-Fi preparation/restart.
 An authenticated ISC-licensed `iw` package is included in the target composition;
 the existing musl/libnl, kernel, firmware and module bytes remain unchanged.
-Next finish full integration CI and qualify an explicit userspace-refresh target
-before deployment. Do not compare the running V4 runtime with the newly edited
+Full local/exact-head integration now passes; qualify an explicit userspace-refresh
+target before deployment. First recover enough host staging capacity without
+deleting unique evidence or the accepted preview. Do not compare the V4 runtime with the newly edited
 source and call the intentional difference corruption; use its retained receipt.
 No new boot claim was issued. Keep the 60°C guard and full soak requirement.
 Opus review was unavailable because OAuth expired; continue independent work.
@@ -147,9 +148,14 @@ dated report; no older run is relabelled as testing a newer source revision.
 **34108234266** PASS. Unchanged full/kernel checks were reused with their
 original identities; diagnostic parser tests also passed on exact target Python.
 `980ced2e`: selected checks **57.627 s**, all four remote jobs **34112468763** PASS.
-New policy: preparation/restart tests PASS normal/optimized and sealed BusyBox
-(23.571 s); 40 composition tests PASS normal/optimized (8.996/8.920 s), plus
-dependency-tamper tests. Full integration belongs to the new frozen source.
+`2e38e6c1`: full local CI **495.222 s**, all four remote jobs **34117128997** PASS.
+New policy tests pass normal/optimized and sealed BusyBox (23.571 s).
+Actual-base unsigned archive/tool check PASS **4.532 s**, hardware/init unchanged;
+not A01 or device qualification. Extra VM component was interrupted before guest
+execution while compressing its fixture: NOT RUN, not reused as a pass.
+New paired-preview capacity is insufficient: prior allocation **3.971 GB** plus
+staging margin, `/run` free **1.664 GB**, disk free **3.273 GB** including the
+protected **3 GiB** reserve. Do not sign/stage a successor into this shortage.
 Keep the 3 GiB host reserve. Ignored Python caches were moved recoverably to
 tmpfs, plus one old 66.5 MB kallsyms intermediate (hash verified); final build
 artifacts/source/evidence remain intact. Use private tmpfs for new test logs,

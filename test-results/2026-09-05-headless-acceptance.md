@@ -5430,3 +5430,61 @@ canonical installer and verifies altered-iw rejection; no production gate was
 relaxed. Both normal/optimized composition suites and the direct acceptance /
 runtime-evidence consumers pass focused checks. A new frozen full run is required;
 the partial failed run is not reused or relabelled as qualification.
+
+#### Frozen Wi-Fi mitigation checkpoint and actual-base validation
+
+`2e38e6c12cfbb51c4e82482d13d1b77e783bfe57`, clean digest
+`543303e6020c2663597c0bf7710d9a752ae347777820179949fe11dc56db5e8c`,
+passed full local CI **495.222 s**. All four remote jobs in **34117128997**
+(exact head, merge compatibility, QEMU and publication) passed. This source is
+pushed normally. The later result-only documentation does not relabel that run.
+
+The bounded workflow correction remains `d75359b7`: reviewed observer/userspace
+leaves can use local focused/active/exact-target checks, while mixed critical or
+unknown dependencies broaden selection. Broader tiers retain narrow coverage.
+This initramfs/tool dependency was correctly **ineligible** for that fast path;
+full integration remained mandatory. No kernel, firmware, module or wrapper
+rebuild occurred. Prior selected checks took **53.476–57.627 s**, versus this
+**495.222 s** full checkpoint; these are different workloads, not a controlled
+speedup benchmark. Independent archive work overlapped remote CI.
+
+An unsigned, never-admitted actual-base fixture explicitly refreshed V4 userspace.
+Composition, unchanged hardware/init verification and sealed-library QEMU-user
+`iw --version` passed **4.532 s**. Archive SHA-256:
+`a34df3b6524edc8f7b0451cc53b7f3dd4a49971aa8c52cb9b4b64c8dd2e09fb4`.
+Actual differences are only runtime, trial descriptor, derived boot-file checksums,
+iw and its license. All 24 hardware archive members remain byte-identical.
+This fixture is not a signed successor or an A01/release PASS.
+
+A further runtime component against the retained read-only root was stopped
+before QEMU launched. Initial input hashes, archive pairing and module closure
+returned successfully; interruption occurred inside default gzip compression
+of the disposable VM fixture. The last process observation was 109 seconds;
+total/phase durations were not retained. Guest execution and final root check
+are NOT RUN. Neither compression nor memory pressure is established as the
+sole cause of delay; do not redesign the kernel or retry hardware for it.
+The private driver's first import-path failure also occurred before any VM or
+phone operation; adding the existing host-module path corrected that launcher.
+
+The next signed paired-root preview is capacity-blocked before creation:
+previous measured allocation **3,970,646,016 bytes**, plus new bundle/metadata
+and safety margin; `/run` free **1,663,631,360 bytes**, `/tmp` free approximately
+**580,915,200 bytes**, disk free approximately **3,272,785,920 bytes** including
+the unchanged **3,221,225,472-byte** reserve. Inputs/backups/failed scratch remain
+preserved. No successor was issued, signed, admitted, staged or booted here.
+Retain the current preview and arrange sufficient capacity through reviewed
+recoverable cache retention or another suitable destination before proceeding.
+Then qualify exact signed composition and the mitigation under the unchanged
+mandatory charging/network/reboot/soak criteria. S07 remains FAIL, thermal
+cause remains unresolved, and the installed V4 policy remains ON.
+
+One additional bounded workflow defect was reproduced before correction: the
+reviewed narrative report selected `active/no-QEMU` for local development but
+`ci/QEMU` in ordinary CI. Its only tracked references are documentation and
+selector tests, not runtime/build inputs. CI now uses the same exact report
+exception. The fail-first test covers report-only, mixed docs, report+probe,
+critical initramfs/admission, other evidence and unknown paths. It does not
+exempt the whole evidence directory or weaken PR merge-base coverage.
+This removes full head-check/QEMU work from genuinely narrative-only push
+checkpoints; critical deltas and release promotion keep their required checks.
+The selector correction itself requires a fresh coherent integration run.
