@@ -6,8 +6,9 @@ S07 remains FAIL: its thermal refusal is unexplained. A bounded Wi-Fi on/off/on
 comparison supports power-save-off as a server-mode mitigation; both transfers
 then passed. The userspace/initramfs correction is implemented, not installed.
 The accepted server remains running with power saving restored to ON.
-V5 signed target twins and sealed verification pass; preserve the scratch file
-and qualify the paired composition before another soak. No V5 claim or boot yet.
+V5 signed twins, paired A01 composition and local/exact-head integration pass.
+Preserve the scratch file; qualify healthy-V4 staging before another soak.
+No V5 admission, live claim, staging or boot yet.
 
 ## Goal and authority
 
@@ -33,7 +34,9 @@ Current authenticated boot: `24db7908-5479-4d1a-a9cd-eeccbf1cb564`.
 Three consecutive installed boots reached exact root, pinned SSH and healthy
 trial commits in **94.908/96.612/97.400 s**; total sequence **311.524 s**.
 Post-capture-cleanup SSH/root check PASS **1.026 s** on the third boot.
-Latest read-only diagnostic: **Good, 29.8°C, 8.534 V**, same authenticated boot.
+Latest read-only diagnostic: **Good, 29.8°C, 8.532 V, 99%, Full**, USB online,
+reported current zero, same authenticated boot. Healthy service is active/exited;
+both boot rollback timers are inactive, and the exact V4 trial is healthy.
 The failed soak's scratch namespace remains intentionally preserved.
 This snapshot is not H03 charging-regulation qualification.
 
@@ -79,7 +82,7 @@ These component results do **not** constitute one qualified final release.
 
 | Outcome | Current evidence / next action |
 |---|---|
-| A01 V4 composition | PASS 106.750 s on signed bytes; lower-image VM alone does not reproduce Python installed in persistent upper |
+| A01 V5 composition | PASS 103.346 s on exact signed target, reused wrapper and paired lower image; not physical qualification |
 | C01 watchdog handover | Nine cases PASS 133.953 s |
 | C02 late SSH restart | PASS 82.750 s; original failed fixture preserved |
 | F01 disposable recovery | Exact-input PASS 75.432 s; not physical crash/power-cut proof |
@@ -119,11 +122,14 @@ All temporary controls/helpers were restored/removed; installed files are unchan
 Source now sets/verifies power-save OFF during server Wi-Fi preparation/restart.
 An authenticated ISC-licensed `iw` package is included in the target composition;
 the existing musl/libnl, kernel, firmware and module bytes remain unchanged.
-Full implementation local/exact-head integration passes. V5 signed twins are ready in private
-work `rog5-server-wifi-ps-20260907.aSQZz23O`; use its plan, recipe and build receipt.
-Its expected record is registered once, without a live claim. Finish registration
-validation, prepare the paired preview from the verified V4 archive and run exact
-A01 before admission or staging. Signing/registration do not grant boot authority.
+V5 private work `rog5-server-wifi-ps-20260907.aSQZz23O` contains the canonical
+plan/recipe, signed package, paired preview, A01 and registration results.
+At clean `09d22f9d`, A01 and full local/exact-head/merge integration pass.
+Next adapt and offline-test the existing bounded staging transaction for the
+observed healthy V4 source. The previous transaction assumes V11 and a pending
+failed trial: do not just replace candidate numbers and execute it. Preserve
+the old selector/trial and relock/fallback guarantees; then perform one admitted
+V5 cycle. Signing/registration alone do not grant boot authority.
 Do not compare the V4 runtime with the newly edited
 source and call the intentional difference corruption; use its retained receipt.
 No new boot claim was issued. Keep the 60°C guard and full soak requirement.
@@ -139,24 +145,25 @@ Broader tiers include narrow tests. Development PASS is never release PASS.
 Freeze active test inputs; batch fixes; reuse unchanged evidence with its
 original source, not a newer label. No kernel/wrapper rebuild occurred here.
 
-`fa500750`: full local CI **503.225 s**, all four remote jobs **34118625377** PASS.
-Selector regressions: 36 PASS normal/optimized **0.746/0.656 s**. The single
-reviewed narrative now selects active checks in CI as well as development;
-other evidence, unknown paths, mixed critical deltas and full PR scope stay broad.
-V5 unsigned twins PASS **8.375 s**, **110.617 MB**; exact sealed syntax PASS
-**0.727 s**. Archive:
-`c4044bd28a5c9bbfb18ef77113aee4cd3bb56e5ab78350bb2454926d830fbfc0`.
-Signed twins and sealed recovery verifier PASS **4.649 s**; canonical manifest
-and selector hashes are in the registry and private package receipt.
-Actual-base tool/library check PASS **4.532 s**; not A01/device qualification.
-The extra VM component was interrupted before guest execution: NOT RUN.
-Older test/source/incident identities remain in the dated report, not relabelled.
+`09d22f9d`: focused registry normal/optimized PASS **8.875 s**, full local CI
+PASS **516.936 s**, all four remote jobs **34121734062** PASS. A01 **103.346 s**.
+The preceding selector integration took **503.225 s**; full qualification is
+not claimed faster. Reviewed narrative-only checks take **34.958 s** locally;
+mixed critical deltas and full PR scope stay broad. Eligible isolated development
+experiments avoid unrelated remote waiting, never release gates.
+V5 target twins **8.375 s**, sealed syntax **0.727 s**, signing/verifier
+**4.649 s**, wrapper-reuse check **0.474 s**, paired preview **62.105 s**.
+No kernel/wrapper rebuild. Full identities and original test revisions remain
+in the canonical record/private receipts and dated report, not relabelled.
 
 Capacity recovered by verified lossless retention: old temporary source/build
 copies (**2.874 GB**) and V4 raw preview (**3.971 GB**) released only after full
 archive comparison/restoration hashing. Archives and restoration records remain;
-no unique information, phone data or accepted image was discarded. `/run` now
-has about **5.02 GB** free. Preserve **3 GiB** on disk and recheck RAM/swap before
-the next preview. Restore the old source/build cache before any builder using it.
+no unique information, phone data or accepted image was discarded. The new V5
+preview occupies **4.063 GB**; `/run` has about **959 MB** free. One duplicate
+generated VM archive was released after verifying its retained durable twin,
+restoring disk free space to about **3.264 GB**. Logs/results are unchanged;
+`duplicate-vm-retention-r1.json` records exact restoration. Keep **3 GiB** reserve.
+Restore the old source/build cache before any builder using it.
 Private prefix `rog5-server-hw11-20260906.Lo7km1SL` owns both retention records;
 archives remain volatile tmpfs, not durable backups. Do not reboot the host yet.
