@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Offline archive-selection regressions. Mocked guest logs are never QEMU proof."""
 import contextlib
+import errno
 import gzip
 import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import runpy
 import stat
@@ -40,6 +42,77 @@ def altered_init():
 
 
 class WatchdogArtifactTest(unittest.TestCase):
+    def test_sparse_hash_matches_logical_bytes_without_reading_zero_holes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'sparse'
+            with path.open('wb') as stream:
+                stream.write(b'first')
+                stream.seek(4*1024*1024+17)
+                stream.write(b'last')
+            expected = hashlib.sha256(path.read_bytes()).hexdigest()
+            opened = Path.open
+            reads = []
+            class Tracked:
+                def __init__(self, stream): self.stream = stream
+                def __enter__(self): return self
+                def __exit__(self, *args): self.stream.close()
+                def __getattr__(self, name): return getattr(self.stream, name)
+                def read(self, size=-1):
+                    data = self.stream.read(size); reads.append(len(data)); return data
+            def track(p, *args, **kwargs): return Tracked(opened(p, *args, **kwargs))
+            with mock.patch.object(Path, 'open', track):
+                self.assertEqual(M.sha_file(path), expected)
+            self.assertLess(sum(reads), path.stat().st_size//2)
+
+    def test_sparse_hash_empty_zero_only_dense_and_partial_tail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, size, payload in [('empty',0,b''), ('holes',1048583,b''),
+                                         ('dense',0,b'abc'*4096), ('tail',1048591,b'end')]:
+                with self.subTest(name=name):
+                    path=Path(tmp)/name
+                    with path.open('wb') as stream:
+                        stream.truncate(size)
+                        if payload: stream.seek(size); stream.write(payload)
+                    self.assertEqual(M.sha_file(path),hashlib.sha256(path.read_bytes()).hexdigest())
+
+    def test_sparse_hash_unsupported_extent_api_falls_back_to_full_hash(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'sparse'
+            with path.open('wb') as stream: stream.truncate(1048591)
+            expected=hashlib.sha256(path.read_bytes()).hexdigest()
+            metrics={}
+            with mock.patch.object(M.os,'lseek',side_effect=OSError(errno.EINVAL,'unsupported')):
+                self.assertEqual(M.sha_file(path,metrics=metrics),expected)
+            self.assertEqual(metrics['mode'],'linear-fallback')
+            self.assertEqual(metrics['bytes_read'],path.stat().st_size)
+
+    def test_sparse_hash_invalid_extent_and_io_error_are_not_hidden(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'sparse'
+            with path.open('wb') as stream: stream.truncate(1048591)
+            with mock.patch.object(M.os,'lseek',return_value=1048592):
+                with self.assertRaisesRegex(ValueError,'invalid hash data extent'): M.sha_file(path)
+            with mock.patch.object(M.os,'lseek',side_effect=OSError(errno.EIO,'failed')):
+                with self.assertRaises(OSError): M.sha_file(path)
+
+    def test_hash_rejects_input_change_instead_of_retrying(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'dense';path.write_bytes(b'abc'*4096)
+            opened=Path.open
+            class Changed:
+                def __init__(self, stream): self.stream=stream; self.changed=False
+                def __enter__(self): return self
+                def __exit__(self,*args): self.stream.close()
+                def __getattr__(self,name): return getattr(self.stream,name)
+                def read(self,size=-1):
+                    data=self.stream.read(size)
+                    if not self.changed:
+                        self.changed=True
+                        with opened(path,'ab') as other: other.write(b'changed')
+                    return data
+            with mock.patch.object(Path,'open',lambda p,*a,**kw:Changed(opened(p,*a,**kw))):
+                with self.assertRaisesRegex(ValueError,'hash input changed'): M.sha_file(path)
+
     def test_only_explicit_isolated_guests_overlap_with_separate_logs(self):
         for parallel in (False, True):
             with self.subTest(parallel=parallel), tempfile.TemporaryDirectory() as tmp:

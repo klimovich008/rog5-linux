@@ -5606,3 +5606,65 @@ Logs and results were untouched. Private `duplicate-vm-retention-r1.json`
 records restoration to the absent old pathname; result PASS **1.354 s**.
 Disk free then **3,264,557,056 bytes**. Old V4 preview remains archived, while
 the new V5 preview is separate and still volatile. Do not reboot the host.
+
+### Healthy-V4 staging and C02 host-overhead correction (2026-09-07)
+
+At clean `779c31737905c9d226496955c89581cb75f58291`, all four remote checks
+passed in [run 34123896043](https://github.com/klimovich008/rog5-linux/actions/runs/34123896043).
+The original full local/A01 source remains `09d22f9d`; only the reviewed result
+notes changed between those commits, not runtime or artifact bytes.
+
+The existing staging transaction was adapted for the observed healthy V4 trial,
+not a V11/pending-trial substitution. It holds a nonblocking exclusive record
+lock, verifies pathname identity, health-service completion and inactive boot
+timers, and revalidates before archival. The P24 arm/write/sync/relock sequence
+is unchanged. Eight exact-Arch cases passed in **3.838 s** on lower-image tools.
+Connected read-only staging inspection passed **0.751 s**.
+
+The additional deployed-byte check then correctly refused that tool proof:
+the persistent upper contains different bash/flock/coreutils/OpenSSL bytes and
+newer ACL/attr library targets. Unavailable old library filenames are not proof
+of corruption; several other libraries and glibc match the lower image exactly.
+The failing inventory is retained as `stage/deployed-tool-mismatch-r1.json`.
+A bounded authenticated read-only snapshot captured **15,206,400 bytes** in
+**0.655 s**, SHA-256
+`36b74308e2c727b877785803fcc16ac00da814ea5e79b9019562c92eba41506a`.
+An initial snapshot rejected ordinary symlink permission bits; the owner/type
+check was corrected without allowing group/other-writable regular files.
+The same eight cases passed on the actual deployed executables in **3.414 s**.
+Every negative case matched its exact refusal. Six complete fake-endpoint
+coordinator cases passed **0.010 s**, including backup/preflight/final-gate
+failure and non-retry after failed or ambiguous target execution.
+
+The authorized staging then passed **2.223 s**, independent readback **0.659 s**.
+Only the new signed five-file bundle, rollback selector and active selector on
+P24, plus archival of the exact healthy V4 trial on P23, were changed. All prior
+bundles, signed V11 fallback, stock slot A, boot B, GPT and protected data were
+preserved. P24 is read-only again. No V5 claim, admission, boot or flash occurred.
+The active trial is absent by design after archival; do not rerun staging or
+restart the old healthy writer. Private canonical record/proposal/backups and
+postcheck remain under `rog5-server-wifi-ps-20260907.aSQZz23O/stage`.
+
+Next mandatory C02 used the exact new archive and paired root. Both real QEMU
+guests passed (**31.184/27.676 s**, overlapping); the root remained unchanged.
+However total time **121.667 s** exceeded the unchanged **120 s** contract:
+**FAIL**, not a new release PASS. About 90 s was outside the guest interval;
+the original run did not time individual host phases, so no precise attribution
+of that entire interval is claimed.
+
+Read-only extent inspection found **34,359,717,888 logical bytes**, of which
+**30,296,256,512** are zero holes and **4,063,461,376** are data. The old helper
+read every logical byte on both passes. A fail-first test demonstrated that
+unnecessary read volume. The test-only helper now feeds the exact zero bytes
+for reported holes, reads all data, falls back to full reads on unsupported
+sparse seeking, and rejects I/O errors, invalid extents or input mutation.
+Normal focused suite: **24 PASS, 1.160 s**; optimized hash tests: **5 PASS,
+0.018 s**. Existing guest deadlines, observation windows and both full logical
+hash checks are unchanged. No kernel, target, recovery or admission code changed.
+
+On the full paired image, the new helper read **4,063,461,376 bytes** in
+**21.601 s** and reproduced the original full-read digest exactly:
+`c58b02f2a9ef587b8ce60973446cf88d18c6f708e76dd16b7ed33f17ac22d517`.
+Cache warmth was not controlled; the deterministic read-volume reduction is
+proven, not a cold-cache speedup claim. Freeze the fixture checkpoint and rerun
+C02 with recorded phase metrics before live admission. Retain the failed run.
