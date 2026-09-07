@@ -5668,3 +5668,79 @@ On the full paired image, the new helper read **4,063,461,376 bytes** in
 Cache warmth was not controlled; the deterministic read-volume reduction is
 proven, not a cold-cache speedup claim. Freeze the fixture checkpoint and rerun
 C02 with recorded phase metrics before live admission. Retain the failed run.
+
+### V5 watchdog, ordinary boot and networking checkpoint (2026-09-07)
+
+Frozen source `f5546aad88d40cb044aa9b5365577de47a2f2c0a`, worktree digest
+`15d0b43f6988eecbb618f16b5e4ce2f1f962a91373c15c9f203e3677f1ed4753`.
+All four remote jobs PASS in
+[run 34127183003](https://github.com/klimovich008/rog5-linux/actions/runs/34127183003).
+Active tier PASS **35.046 s**. The full local integration result is explicitly
+reused from unchanged production inputs at `09d22f9d`, **516.936 s**; it is not
+relabelled as testing newer code. No additional full local suite was needed for
+the reviewed test-fixture/documentation delta. Release criteria are unchanged.
+
+V5 C01: all nine real handover/watchdog cases PASS **135.450 s**. C02 r2 PASS
+**93.348 s**, guest cases **31.491/28.332 s**, complete before/after root hashes
+**30.181/30.102 s**. Both reproduce the A01 paired lower-image digest. The failed
+121.667 s run remains FAIL. Measured improvement **28.319 s** is not a controlled
+cold-cache comparison. Deterministic data-read reduction is 88%, with every
+logical zero byte still hashed and the same 120 s total deadline.
+
+Private work remains `rog5-server-wifi-ps-20260907.aSQZz23O`. The adapted existing
+coordinator passed 22 offline cases in **1.867 s**. Exact V4 BusyBox shutdown
+action tests and deployed shutdown/helper/boot-B/fallback/RO inspection passed.
+The RAM-only final reboot action preserved the existing storage teardown and
+reached exact anchored fastboot in **12.493 s**, slot B, **8544 mV**, SOC gate yes.
+No flash or persistent shutdown-script replacement occurred.
+
+One V5 claim was created and permanently consumed. Prestarted capture covered
+one verified RAM-only boot, SSH **84.786 s**, boot
+`8c75c1a3-667a-4e2e-98f1-87ab903b80a8`. Startup power saving was OFF and the V5
+trial healthy. Full initial capture **1380.893 s** and all four cleanup operations
+passed. Raw capture NOT RUN is intentional: a capture is not release acceptance.
+Stock A, accepted boot B, signed V11 fallback and the old failed-soak scratch
+remain preserved. This is mitigation evidence, not a unique old-failure cause.
+
+Five ordinary-coordinator tests passed, including refusal while prior capture is
+live, incomplete/shortened cleanup, wrong boot and pre-credential source refusal.
+A Python default-argument scoping defect was fixed before phone access. Read-only
+preflight PASS **3.712 s**, immediate pre-execution preflight PASS **3.961 s**.
+`ordinary-preparation.json` binds the unchanged preparation source and artifacts.
+
+One installed ordinary V5 reboot then reached local root/pinned SSH in **86.540 s**,
+boot `73f6c434-4de3-43f3-af96-06f08193e788`. No fastboot boot, new claim, flash,
+staging or host boot service was used. Full ordinary supervision **1385.704 s**
+completed with receiver return zero and all host cleanup verified. Canonical S01
+replay PASS **0.078 s**; this is one ordinary boot, not S05 or release PASS.
+
+Independent preparation during capture exposed an R7 evidence handoff defect:
+calling S01's internal evaluator omitted `runner_sha256`, required by S02.
+A complete replay failed first with that exact missing field. A separate r2
+adapter now calls the canonical CLI, retaining source/interpreter/runner metadata;
+the active preparation was not edited. Two cases PASS **0.050/0.047 s** in normal/
+optimized Python. No kernel redesign, new boot or remote CI was needed.
+
+The established transfer/restart adapters were rebound to V5 recipe and S01
+inputs. Exact snapshot/transfer thermal refusals now retain zone and value from
+one read, with the same strict 60°C boundary. Nine transfer tests PASS
+**0.181/0.175 s**, nine restart/reconnect tests **0.023/0.038 s**, normal/optimized.
+Generated pipe endpoints ran offline with only hardware observations mocked;
+the live transfer also executed exact target guards before payload dispatch.
+
+S02 physical PASS **313.126 s**, four independent 256 MiB nonce/hash transfers:
+USB upload/download **9.072/7.663 s**, Wi-Fi **178.391/109.786 s**. The upload
+is close to the unchanged 180 s bound: little margin, not robust endurance.
+Canonical S02 replay PASS **3.496 s**. S03 health/SSH/WPA/DHCP restart sequence
+PASS **36.427 s**, with no unintended radio activation; replay PASS **0.069 s**.
+All three outcomes bind the same V5 artifacts and ordinary boot. Evidence:
+`ordinary-boot-r1-evidence`, `s02-transfer-live-r1`, `s02-evidence-r1`,
+`s03-services-live-r1`, `s03-evidence-r1`, and their pinned input receipts.
+
+Final transfer power snapshot: Good, **30.0°C / 8.569 V / 100%**, Full, **−6 mA**.
+Earlier same-boot Charging snapshots showed **−73/+91 mA**. None is H03; the
+same-release radio-inactive prerequisite and full regulation window remain.
+Do not combine historical V4 S04/S05 or V8 charging passes into green V5 results.
+Next: V5 S04 scoped file durability, then repeated boots, powered-off startup,
+full combined soak and controlled recovery. No physical test is left running
+at this publication checkpoint. Kernel/wrapper bytes are reused unchanged.
