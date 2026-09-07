@@ -18,6 +18,8 @@ from concurrent.futures import ThreadPoolExecutor
 import gzip
 import hashlib
 import json
+import errno
+import os
 from pathlib import Path
 import re
 import runpy
@@ -30,11 +32,63 @@ import zlib
 REPO = Path(__file__).resolve().parents[2]
 
 
-def sha_file(path):
+def sha_file(path, *, metrics=None):
+    """Hash every logical byte; avoid reading filesystem-declared zero holes.
+
+    This is not a sparse/content identity shortcut: holes still enter SHA-256
+    as their exact number of zero bytes. Unsupported SEEK_DATA/HOLE falls back
+    to the original full read. Changed inputs or invalid extents are refused.
+    """
+    started = time.monotonic()
     digest = hashlib.sha256()
-    with path.open('rb') as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
-            digest.update(chunk)
+    read_bytes = hole_bytes = 0
+    mode = 'linear'
+    def identity(metadata):
+        return (metadata.st_dev, metadata.st_ino, metadata.st_size,
+                metadata.st_mtime_ns, metadata.st_ctime_ns)
+    with path.open('rb', buffering=0) as stream:
+        before = os.fstat(stream.fileno())
+        if (stat.S_ISREG(before.st_mode) and before.st_blocks*512 < before.st_size
+                and hasattr(os, 'SEEK_DATA') and hasattr(os, 'SEEK_HOLE')):
+            mode = 'sparse-logical'
+            zeros = bytes(1024*1024)
+            position = 0
+            try:
+                while position < before.st_size:
+                    try:
+                        data = os.lseek(stream.fileno(), position, os.SEEK_DATA)
+                    except OSError as error:
+                        if error.errno != errno.ENXIO: raise
+                        data = before.st_size
+                    if not position <= data <= before.st_size:
+                        raise ValueError('invalid hash data extent')
+                    count = data-position
+                    hole_bytes += count
+                    while count:
+                        size = min(count, len(zeros))
+                        digest.update(zeros[:size]); count -= size
+                    if data == before.st_size: break
+                    end = os.lseek(stream.fileno(), data, os.SEEK_HOLE)
+                    if not data < end <= before.st_size:
+                        raise ValueError('invalid hash hole extent')
+                    stream.seek(data)
+                    while data < end:
+                        chunk = stream.read(min(end-data, 1024*1024))
+                        if not chunk: raise ValueError('hash input truncated')
+                        digest.update(chunk); data += len(chunk); read_bytes += len(chunk)
+                    position = end
+            except OSError as error:
+                if error.errno not in (errno.EINVAL, errno.ENOTSUP, errno.ENOSYS): raise
+                mode = 'linear-fallback'
+                digest = hashlib.sha256(); hole_bytes = 0; stream.seek(0)
+        if mode != 'sparse-logical':
+            for chunk in iter(lambda: stream.read(1024*1024), b''):
+                digest.update(chunk); read_bytes += len(chunk)
+        if identity(before) != identity(os.fstat(stream.fileno())) or identity(before) != identity(path.stat()):
+            raise ValueError('hash input changed during read')
+    if metrics is not None:
+        metrics.update(mode=mode, logical_bytes=before.st_size, bytes_read=read_bytes,
+                       zero_hole_bytes=hole_bytes, seconds=time.monotonic()-started)
     return digest.hexdigest()
 
 
@@ -302,12 +356,14 @@ def main():
     runner_hash = sha_file(Path(__file__))
     root_image = args.root_image
     root_hash = None
+    root_hash_metrics = {}
     ssh_units = {}
     if root_image:
         if not root_image.is_absolute() or root_image.is_symlink() or not root_image.is_file():
             parser.error('root image must be an absolute ordinary retained file')
         ssh_units = arch_ssh_units(target)
-        root_hash = sha_file(root_image)
+        root_hash_metrics['before'] = {}
+        root_hash = sha_file(root_image, metrics=root_hash_metrics['before'])
     source_revision = subprocess.check_output(['git', '-C', str(REPO), 'rev-parse', 'HEAD'], text=True).strip()
     args.output.mkdir(mode=0o700)  # Never replace an earlier experiment.
     output = args.output.resolve()
@@ -590,8 +646,10 @@ echo HANDOFF_SWITCH_ROOT
                       wifi_cases_use_fresh_vms=True,
                       wifi_test_scope='exact rollback runtime/service/dependency; VM ACK fixtures, no radio activation')
     if root_image:
-        unchanged = sha_file(root_image) == root_hash
+        root_hash_metrics['after'] = {}
+        unchanged = sha_file(root_image, metrics=root_hash_metrics['after']) == root_hash
         record.update(root_image_sha256=root_hash, root_image_unchanged=unchanged,
+                      root_hash_metrics=root_hash_metrics,
                       c02_qualified=False, release_qualified=False,
                       ssh_units_sha256={name: hashlib.sha256(data).hexdigest()
                                         for name, data in ssh_units.items()},

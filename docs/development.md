@@ -118,6 +118,12 @@ composition checks. That hash must complete before QEMU; a separate post-VM
 full hash and pathname/metadata checks remain mandatory. The 120-second limit
 is unchanged. This scheduling optimization does not reuse a stale root digest.
 
+C02's sparse-root checksum still hashes every logical byte. Filesystem-reported
+holes contribute their exact zero bytes without reading them from disk; unsupported
+sparse seeking falls back to a full read. Invalid extents, I/O errors and changed
+inputs are refused. Results record both checksums' read volume and duration;
+neither root check nor the 120-second deadline is omitted.
+
 ## Packaging without identity-copy scripts
 
 The runtime packager accepts one JSON `--config` containing its non-credential
