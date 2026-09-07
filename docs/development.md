@@ -29,6 +29,7 @@ directory. Each command delegates to an existing implementation.
 ```sh
 scripts/host/rog5-dev test active
 scripts/host/rog5-dev select --event push BASE HEAD
+scripts/host/rog5-dev select --development BASE HEAD
 scripts/host/rog5-dev build-initramfs --help
 scripts/host/rog5-dev package --help
 scripts/host/rog5-dev check-target --help
@@ -59,6 +60,47 @@ checks; it does not retroactively change the source covered by earlier CI.
 No repeated full CI for unchanged inputs. While remote checks run, do useful
 independent work without modifying their frozen inputs or starting a second
 device coordinator. This policy changes iteration cadence, not release gates.
+
+### Development-only fast eligibility
+
+`select --development BASE HEAD` emits a JSON **NOT RUN** decision, the exact
+commit/tree, selector hash, impact, focused/optimized tests and remaining
+requirements. It is not test evidence or admission. Freeze the named checkout
+and retain the decision beside the existing run receipt; record actual tested
+source, artifacts, toolchain/configuration/environment and durations. A dirty
+checkout is not represented by the committed tree and must be recorded and
+reclassified before use. No previous run is relabelled and no new result cache
+is introduced by this selector.
+
+The first reviewed leaves are the read-only standalone-root observer and
+healthd's isolated userspace implementation (plus their tests). Documentation
+and the reviewed current narrative report may accompany them; other retained
+test reports can be runtime inputs and are not exempt. Any other changed
+dependency selects full CI: notably the
+deployed verifier, generated service units, lifecycle, admission, charging,
+shutdown, watchdog, DT, initramfs, kernel and storage. A small diff does not
+override this. Module work still needs exact module/dependency builds,
+ABI/vermagic/BTF/firmware closure and final packaged composition. Registration
+changes retain all-consumer/canonical-record and altered/consumed-record
+rejection checks in normal and optimized Python; they are not a fast-path leaf.
+
+Under standing authority, an eligible **development observation/experiment**
+may proceed after its focused normal/optimized tests, active checks and exact
+target/payload compatibility checks, without waiting for unrelated remote CI.
+Use a fresh dedicated `/run/rog5-dev-experiments` child (host-side for a host
+observer). A healthd experiment uses a separate bounded loopback listener and
+exact target Python, never the accepted service, port or persistent unit/config.
+Record cleanup and a bounded service-level result; failed/missing prerequisites
+remain FAIL/BLOCKED, not development success. Do not promote a changed observer
+into a boot/power/storage safety gate through this route. The existing exact
+device, signatures, power/thermal, storage and fallback checks still apply.
+
+No fast-path decision grants reboot, target execution, signing, flash or release
+authority. Critical integration and final release retain relevant full local
+and exact-head/merge CI plus the unchanged mandatory physical matrix. Broader
+tiers now union active/probe coverage, execute duplicates once, and preserve
+the existing isolated/shared-state scheduling. Reuse kernel/module/wrapper
+caches only under their existing exact-input contracts.
 
 A test-fixture-only correction may reuse the last successful full local CI for
 unchanged production inputs. Bind the original receipt, enumerate and review

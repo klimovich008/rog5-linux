@@ -22,6 +22,71 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TierSelectorTest(unittest.TestCase):
+    def test_broad_tiers_retain_all_narrow_tests_once(self):
+        runner=SOURCE.with_name('test-repository-linux.sh').read_text()
+        declarations=[]
+        for name in ('native_wifi_probe_tests','active_tests','probe_tests','shared_tests'):
+            declarations.append(re.search(r'^'+name+r'=\(\n.*?^\)',runner,re.M|re.S).group())
+        selection=runner[runner.index('if [[ $tier == active ]]; then'):runner.index('for test_path in "${tests[@]}"; do')]
+        def selected(tier):
+            code='set -eu\n'+'\n'.join(declarations)+'\ntier_tests=()\ntier='+tier+'\n'+selection+'\nprintf "%s\\n" "${tests[@]}"'
+            return subprocess.check_output(['bash','-c',code],text=True).splitlines()
+        narrow=set(selected('active'))|set(selected('probe'))
+        for tier in ('ci','nightly'):
+            tests=selected(tier)
+            self.assertLessEqual(narrow,set(tests))
+            self.assertEqual(len(tests),len(set(tests)))
+
+    def test_explicit_development_impact_and_dependencies(self):
+        observer='scripts/host/check-standalone-root.py'
+        service='scripts/device/rog5-healthd.py'
+        for paths,impact in ((['docs/current-state.md'],'documentation'),
+                            ([observer,'README.md','test-results/2026-09-05-headless-acceptance.md'],'read-only-observer'),
+                            ([service],'isolated-userspace')):
+            d=MODULE.development_decision(paths)
+            self.assertTrue(d['eligible'])
+            self.assertEqual(d['impact'],impact)
+            self.assertFalse(d['remote_ci_before_experiment'])
+            self.assertFalse(d['release_qualified'])
+            self.assertEqual(d['status'],'NOT RUN')
+        for dependency in ('scripts/host/check-deployed-server.py',
+                           'packaging/arch/rog5-healthd.service',
+                           'initramfs/persistent-root-shutdown-standalone',
+                           'scripts/host/consume-exact-boot-claim.py',
+                           'new/unknown.py'):
+            with self.subTest(dependency=dependency):
+                d=MODULE.development_decision([observer,service,dependency])
+                self.assertFalse(d['eligible'])
+                self.assertTrue(d['remote_ci_before_experiment'])
+                self.assertEqual(d['tier'],'ci')
+        self.assertFalse(MODULE.development_decision([observer,'test-results/runtime.md'])['eligible'])
+
+    def test_development_mixed_checks_are_unioned(self):
+        d=MODULE.development_decision(['scripts/host/check-standalone-root.py',
+                                     'scripts/device/rog5-healthd.py'])
+        self.assertIn('scripts/host/test-check-standalone-root.py',d['focused_tests'])
+        self.assertIn('scripts/device/test-rog5-healthd.py',d['focused_tests'])
+        self.assertTrue(d['exact_target_required'])
+        self.assertTrue(d['service_experiment_required'])
+        self.assertFalse(MODULE.development_decision([])['eligible'])
+
+    def test_critical_one_line_paths_cannot_use_development_fast_path(self):
+        for path in ('patches/linux/module.patch','dts/qcom/phone.dts',
+                     'configs/boot-admission-policy.tsv','initramfs/power',
+                     'scripts/device/build-qcom-wdt-module.sh','manifests/power-usb-active.json'):
+            d=MODULE.development_decision([path])
+            self.assertFalse(d['eligible'])
+            self.assertTrue(d['final_composition_required'])
+
+    def test_module_and_registration_checks_are_explicit(self):
+        d=MODULE.development_decision(['tools/module_once/module-once.c'])
+        self.assertTrue(d['module_ABI_BTF_closure_required'])
+        self.assertFalse(d['eligible'])
+        d=MODULE.development_decision(['scripts/host/consume-exact-boot-claim.py'])
+        self.assertTrue(d['all_admission_consumers_required'])
+        self.assertIn('scripts/host/test-verify-retention-cycle-admission.py',d['optimized_tests'])
+        self.assertFalse(d['eligible'])
+
     def test_every_probe_change_runs_its_own_regression_suite(self) -> None:
         runner = SOURCE.with_name("test-repository-linux.sh").read_text()
         # Evaluate only the actual array declarations, never runner setup/tests.
@@ -243,6 +308,22 @@ class GitSelectionTest(unittest.TestCase):
         with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(MODULE.main(["--event", "push", "0" * 40, self.root]), 0)
         self.assertEqual(output.getvalue(), "tier=ci\nqemu=yes\n")
+
+    def test_development_cli_records_exact_objects_without_claiming_tests(self):
+        import json
+        head=self.commit({'README.md':'changed\n'},self.root)
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(MODULE.main(['--development',self.root,head]),0)
+        value=json.loads(output.getvalue())
+        self.assertEqual(value['head_revision'],head)
+        self.assertEqual(value['head_tree'],self.git('rev-parse',head+'^{tree}'))
+        self.assertEqual(value['status'],'NOT RUN')
+        self.assertTrue(value['eligible'])
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):
+            MODULE.main(['--development','bad-ref',head])
+        self.assertFalse(json.loads(output.getvalue())['eligible'])
 
 
 class WorkflowSelectionTest(unittest.TestCase):

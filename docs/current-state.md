@@ -131,8 +131,9 @@ Next: finish S01's ordinary-boot evidence binding and prestarted normal-reboot
 capture, then repeated boot/recovery qualification. No new flash is needed.
 Passive installed-reboot capture now separates the authenticated source boot
 from a new boot after observed disconnect; 28 focused regressions pass.
-Check bootloader slot-success metadata read-only before repeated boots: the
-zeroed AOSP-style `misc` location does not establish Qualcomm slot status.
+Read-only GPT verification passed: B is active, with the Qualcomm-style
+boot-success bit unset. The zeroed AOSP-style `misc` location is not a valid
+slot record. Exact ASUS retry behavior remains unproven; no metadata was written.
 `rog5-dev check-standalone-root` is available; it does not qualify an earlier
 boot or repeat one. Host 8081 is SteamOS CEF proxy, not a project boot server;
 its upstream unit has no overrides. Leave this unrelated service untouched.
@@ -156,7 +157,9 @@ Subsequent optional-only observer correction uses focused/active checks;
 required voltage, temperature and input-power gates remain strict.
 Final observer/entry-point active tier PASS **23.879 s**.
 All four publication checks passed run **34070395934** on **`1666d17c`**.
-The new host receiver checkpoint needs its own full CI; no kernel/wrapper rebuild.
+Receiver checkpoint **`5cc288e6` full local CI PASS 480.583 s**; no rebuild.
+Exact-head/merge run **34071546898** is in progress. These documentation-only
+results follow the frozen code run; batch them with the next checkpoint.
 
 Preserve the combined kernel/module kit, signed package, V4 root preview and
 lossless V2/V3 preview archives. Some are volatile tmpfs; do not reboot the host
