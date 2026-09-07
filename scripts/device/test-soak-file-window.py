@@ -1,5 +1,5 @@
 """Real scratch I/O with fixture identity; no phone, block writes or services."""
-import copy,importlib.util,os,stat,tempfile,unittest
+import contextlib,copy,importlib.util,io,json,os,stat,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 HERE=Path(__file__).resolve().parent
@@ -8,6 +8,25 @@ def load(name,path):
 M=load('soak_window',HERE/'soak-file-window.py');F=load('soak_fixture',HERE/'test-durability-target.py')
 OPS=(HERE/'durability-file-ops.py').read_text();GUARD=(HERE/'durability-target.py').read_text()
 class Tests(unittest.TestCase):
+ def test_failed_guard_preserves_exact_rejected_sample_without_reread(self):
+  for thermal in ({'thermal_zone11':'60000'},{}):
+   state=dict(thermal=thermal,power={'temp':'300'},unrelated_private_value='do not log')
+   error=ValueError('unsafe or absent thermal');output=io.StringIO()
+   observe=unittest.mock.Mock(return_value=state)
+   guard=dict(observe=observe,validate=unittest.mock.Mock(side_effect=error))
+   with patch.object(M.os,'open') as opened,contextlib.redirect_stderr(output):
+    with self.assertRaises(ValueError) as raised:M.backing_advice(guard,{})
+    self.assertIs(raised.exception,error);opened.assert_not_called()
+   observe.assert_called_once_with()
+   line=output.getvalue().splitlines();self.assertEqual(len(line),1)
+   self.assertTrue(line[0].startswith('soak-guard-evidence '))
+   self.assertEqual(json.loads(line[0].split(' ',1)[1]),dict(thermal=thermal,power={'temp':'300'}))
+ def test_diagnostic_failure_never_masks_original_refusal(self):
+  error=ValueError('unsafe power')
+  guard=dict(observe=lambda:dict(thermal={},power={}),validate=unittest.mock.Mock(side_effect=error))
+  with patch.object(M,'print',side_effect=OSError('stderr unavailable'),create=True):
+   with self.assertRaises(ValueError) as raised:M.checked_observation(guard,{})
+  self.assertIs(raised.exception,error)
  def test_backing_cache_advice_is_fixed_read_only_and_rejects_bad_files(self):
   for wrong in (None,'symlink','mode','size','device'):
    with self.subTest(wrong=wrong),tempfile.TemporaryDirectory() as tmp:

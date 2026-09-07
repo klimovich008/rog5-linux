@@ -4,7 +4,7 @@
 Caller supplies authenticated fixed-scope REQUEST and exact source strings.
 No reboot, mount, service changes or retry; failed/partial files stay intact.
 """
-import hashlib,json,os,signal,stat,time
+import hashlib,json,os,signal,stat,sys,time
 WINDOW=30
 DEADLINE=50
 SIZE=64*1024**2
@@ -12,10 +12,20 @@ def require(ok,reason):
  if not ok:raise ValueError(reason)
 def load(raw,name):
  result={'__name__':name};exec(compile(raw,name,'exec'),result);return result
+def checked_observation(guard,request):
+ value=guard['observe']()
+ try:guard['validate'](value,request)
+ except Exception:
+  # Retain the actual rejected sample, not a later cooler reread. Only these
+  # non-secret fields are needed; logging failure must never mask refusal.
+  try:print('soak-guard-evidence '+json.dumps({k:value.get(k) for k in ('thermal','power')}),file=sys.stderr,flush=True)
+  except Exception:pass
+  raise
+ return value
 def backing_advice(guard,request):
  # loop1 is buffered: evict its fixed backing file's clean pages as well as
  # the scratch inode below. No global drop_caches, loop flag or service edit.
- guard['validate'](guard['observe'](),request)
+ checked_observation(guard,request)
  parent=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
  try:
   for component in ('.rog5','userdata-rw','rog5','state'):
@@ -35,7 +45,7 @@ def backing_advice(guard,request):
     require(stat.S_ISREG(current.st_mode) and (current.st_dev,current.st_ino)==(s.st_dev,s.st_ino),
      'backing pathname changed')
    same();os.posix_fadvise(fd,0,s.st_size,os.POSIX_FADV_DONTNEED);same()
-   guard['validate'](guard['observe'](),request)
+   checked_observation(guard,request)
   finally:os.close(fd)
  finally:os.close(parent)
 def run(request,ops_source,guard_source,*,clock=time.monotonic,pause=time.sleep):
@@ -44,11 +54,11 @@ def run(request,ops_source,guard_source,*,clock=time.monotonic,pause=time.sleep)
  guard['request_valid'](request)
  require(request['phase']=='prepare' and request['size']==SIZE,'fixed scratch preparation')
  require(hasattr(os,'posix_fadvise') and hasattr(os,'POSIX_FADV_DONTNEED'),'cache advice unavailable')
- before=guard['observe']();guard['validate'](before,request);state=before;next_check=0
+ before=checked_observation(guard,request);state=before;next_check=0
  def gate(force=False):
   nonlocal state,next_check
   if force or clock()>=next_check:
-   state=guard['observe']();guard['validate'](state,request);next_check=clock()+.5
+   state=checked_observation(guard,request);next_check=clock()+.5
  parent=guard['opened_parent'](request['scope']);started=clock();reads=0
  try:
   free=os.fstatvfs(parent)
