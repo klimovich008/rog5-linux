@@ -14,6 +14,16 @@ def request_valid(request):
             else request['origin_boot_id']!=request['identity']['boot_id'],'wrong boot phase')
     require(request['scope']['path']=='/persist' and type(request['scope']['dev']) is int
             and type(request['scope']['inode']) is int,'fixed parent scope')
+    namespace_policy(request['scope'])
+def namespace_policy(scope):
+    exists=scope.get('test_directory_exists',False)
+    require(type(exists) is bool,'namespace presence type')
+    if exists:
+        inode=scope.get('namespace_inode')
+        require(type(inode) is int and inode>0,'existing namespace requires pinned inode')
+        return inode
+    require('namespace_inode' not in scope,'contradictory absent namespace')
+    return None
 def read(path):return Path(path).read_text().strip()
 def observe():
     return dict(boot=read('/proc/sys/kernel/random/boot_id'),kernel=os.uname().release,
@@ -62,47 +72,68 @@ def open_namespace(parent,expected=None):
         s=os.fstat(fd)
         require(s.st_uid==0 and s.st_gid==0 and stat.S_IMODE(s.st_mode)==0o700
                 and s.st_dev==os.fstat(parent).st_dev and (expected is None or s.st_ino==expected),'namespace mismatch')
+        revalidate_namespace(parent,fd)
         return fd
     except BaseException:os.close(fd);raise
+def revalidate_namespace(parent,fd):
+    current=os.stat(NAMESPACE,dir_fd=parent,follow_symlinks=False);opened=os.fstat(fd)
+    require(stat.S_ISDIR(current.st_mode) and stat.S_IMODE(current.st_mode)==0o700 and
+            (current.st_dev,current.st_ino)==(opened.st_dev,opened.st_ino),'namespace changed')
+def begin_namespace(parent,scope):
+    expected=namespace_policy(scope)
+    if expected is None:
+        os.mkdir(NAMESPACE,0o700,dir_fd=parent);os.fsync(parent)
+    return open_namespace(parent,expected)
+def cleanup_namespace(parent,fd,scope):
+    revalidate_namespace(parent,fd)
+    expected=namespace_policy(scope)
+    if expected is not None:
+        require(os.fstat(fd).st_ino==expected,'namespace mismatch')
+        return # Existing evidence and its parent are never removed.
+    require(os.listdir(fd)==[],'unexpected namespace content')
+    os.rmdir(NAMESPACE,dir_fd=parent);os.fsync(parent)
 def _run(request,ops_source):
     start=time.monotonic()
     ops={};exec(compile(ops_source,'sealed-durability-file-ops','exec'),ops)
-    state=observe();validate(state,request);before=state;next_check=0
+    state=observe();validate(state,request);before=state;next_check=0;namespace_fd=None
     def guard(force=False):
         nonlocal next_check,state
         if force or time.monotonic()>=next_check:
             state=observe();validate(state,request);next_check=time.monotonic()+.5
+            if namespace_fd is not None:revalidate_namespace(parent,namespace_fd)
     parent=opened_parent(request['scope'])
     try:
         if request['phase']=='probe':
-            try:os.stat(NAMESPACE,dir_fd=parent,follow_symlinks=False)
-            except FileNotFoundError:pass
-            else:raise ValueError('test namespace already exists')
+            expected=namespace_policy(request['scope'])
+            if expected is not None:os.close(open_namespace(parent,expected))
+            else:
+                try:os.stat(NAMESPACE,dir_fd=parent,follow_symlinks=False)
+                except FileNotFoundError:pass
+                else:raise ValueError('test namespace already exists')
             result={}
         elif request['phase']=='prepare':
             v=os.fstatvfs(parent)
             require(v.f_bavail*v.f_frsize>=256*1024**2 and v.f_favail>=32,'scratch headroom')
-            guard(True);os.mkdir(NAMESPACE,0o700,dir_fd=parent);os.fsync(parent)
-            fd=open_namespace(parent)
+            guard(True);fd=begin_namespace(parent,request['scope']);namespace_fd=fd
             try:
                 result=ops['prepare'](fd,'s04-'+request['nonce'][:32],request['nonce'],SIZE,guard)
                 require(ops['verify'](fd,result,guard)==result['sha256'],'initial readback')
                 result=dict(file=result,namespace_inode=os.fstat(fd).st_ino)
-            finally:os.close(fd)
+            finally:namespace_fd=None;os.close(fd)
         else:
             result=request['prepared'];file=result['file']
             require(file['nonce']==request['nonce'] and file['name']=='s04-'+request['nonce'][:32]
                     and file['file']['size']==SIZE,'prepared record scope')
             fd=open_namespace(parent,result['namespace_inode'])
+            namespace_fd=fd
             try:
+                expected=namespace_policy(request['scope'])
+                require(expected is None or expected==result['namespace_inode'],'changed namespace scope')
                 require(ops['verify'](fd,file,guard)==file['sha256'],'post-reboot readback')
                 if request['phase']=='cleanup':
                     guard(True);ops['cleanup'](fd,file,guard)
-                    require(os.listdir(fd)==[],'unexpected namespace content')
-                    current=os.stat(NAMESPACE,dir_fd=parent,follow_symlinks=False)
-                    require(current.st_ino==result['namespace_inode'] and stat.S_ISDIR(current.st_mode),'namespace changed')
-                    os.rmdir(NAMESPACE,dir_fd=parent);os.fsync(parent)
-            finally:os.close(fd)
+                    cleanup_namespace(parent,fd,request['scope'])
+            finally:namespace_fd=None;os.close(fd)
         guard(True)
         return dict(status='PASS',phase=request['phase'],identity=request['identity'],
             origin_boot_id=request['origin_boot_id'],nonce=request['nonce'],size=SIZE,prepared=result,

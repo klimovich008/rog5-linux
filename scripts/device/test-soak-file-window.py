@@ -54,7 +54,7 @@ class Tests(unittest.TestCase):
       self.assertEqual(advise.call_args.args[1:],(0,4*1024**3,os.POSIX_FADV_DONTNEED))
      self.assertTrue(all(not flags&(os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC) for _,flags in calls))
      self.assertTrue(all(flags&os.O_NOFOLLOW for _,flags in calls))
- def exercise(self,parent,*,failure=None):
+ def exercise(self,parent,*,failure=None,existing=False):
   g=M.load(GUARD,'fixture_guard');state=F.snapshot();time=[0];base_load=M.load;fstat=os.fstat
   g['observe']=lambda:copy.deepcopy(state);g['opened_parent']=lambda scope:os.dup(parent)
   original=g['open_namespace']
@@ -70,7 +70,10 @@ class Tests(unittest.TestCase):
    if failure=='boot':state['boot']='different'
   def namespaces(raw,name):return g if name=='qualified-durability-target' else base_load(raw,name)
   with patch.object(M,'load',side_effect=namespaces),patch.object(M,'backing_advice') as backing:
-   result=M.run(F.request('prepare'),OPS,GUARD,clock=lambda:time[0],pause=pause)
+   request=F.request('prepare')
+   if existing:
+    request['scope'].update(test_directory_exists=True,namespace_inode=os.stat(g['NAMESPACE'],dir_fd=parent).st_ino)
+   result=M.run(request,OPS,GUARD,clock=lambda:time[0],pause=pause)
    self.assertEqual(backing.call_count,result['readbacks'])
    return result
  def test_real_write_fsync_uncached_readback_and_cleanup(self):
@@ -98,6 +101,19 @@ class Tests(unittest.TestCase):
    try:
     with self.assertRaises(FileExistsError):self.exercise(fd)
     self.assertTrue((Path(tmp)/'rog5-release-acceptance').is_dir())
+   finally:os.close(fd)
+ def test_reviewed_existing_namespace_preserves_failed_evidence(self):
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/'rog5-release-acceptance';path.mkdir(mode=0o700)
+   retained=path/'failed';retained.write_bytes(b'original evidence');retained.chmod(0o400)
+   before=retained.stat();fd=os.open(tmp,os.O_RDONLY|os.O_DIRECTORY)
+   try:
+    result=self.exercise(fd,existing=True)
+    self.assertEqual(result['status'],'PASS');self.assertEqual(list(path.iterdir()),[retained])
+    self.assertEqual(retained.read_bytes(),b'original evidence')
+    after=retained.stat()
+    self.assertEqual((before.st_ino,before.st_mode,before.st_mtime_ns),
+                     (after.st_ino,after.st_mode,after.st_mtime_ns))
    finally:os.close(fd)
  def test_invalid_request_or_missing_advice_cannot_write(self):
   with patch.object(M.os,'mkdir') as mkdir:

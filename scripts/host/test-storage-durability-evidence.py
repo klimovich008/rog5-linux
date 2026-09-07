@@ -13,13 +13,14 @@ SOURCES=P.sources();HASHES=P.hashes(SOURCES)
 NONCE='1'*64
 HASH=hashlib.sha256(b''.join(OPS.chunks(NONCE,64*1024**2))).hexdigest()
 def encoded(value):return json.dumps(value).encode()
-def fixture():
+def fixture(existing=False):
  root=B.load('durability_root_fixture',R/'scripts/host/test-check-standalone-root.py').Tests();root.setUp()
  origin=root.identity;identity=dict(origin,boot_id='22222222-2222-4222-8222-222222222222')
  source=dict(clean=True,revision='a'*40,worktree_digest='b'*64)
  plan=dict(nonce=NONCE)
  scope=dict(status='PASS',mutation='none',identity=origin,scope=dict(path='/persist',uid=0,gid=0,
   mode=0o755,dev=1793,inode=2,test_directory_exists=False))
+ if existing:scope['scope'].update(test_directory_exists=True,namespace_inode=12)
  file=dict(name='s04-'+NONCE[:32],nonce=NONCE,sha256=HASH,parent_inode=12,directory_inode=13,
   file=dict(inode=14,size=64*1024**2,mode=0o400,uid=0,gid=0,nlink=1))
  prepared=dict(file=file,namespace_inode=12)
@@ -52,6 +53,8 @@ class Tests(unittest.TestCase):
   with self.assertRaises((ValueError,KeyError,TypeError)):self.check(values)
  def test_complete_component(self):
   self.assertTrue(self.check(fixture())['s04_qualified'])
+ def test_existing_namespace_complete_component(self):
+  self.assertTrue(self.check(fixture(existing=True))['s04_qualified'])
  def test_requires_distinct_boot_and_same_release(self):
   self.reject(lambda d,r,b,a:a.update(identity=b['identity']))
   self.reject(lambda d,r,b,a:a['identity'].update(bundle='another'))

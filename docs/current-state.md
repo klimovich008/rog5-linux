@@ -79,8 +79,11 @@ These component results do not constitute a qualified final release.
 | S07 soak | Full 3600 s V5 combined-load run required; old thermal cause unresolved |
 | R01 recovery | Controlled isolated failed-boot recovery still outstanding |
 
-Next: adapt the existing S04 file-cycle bindings, test them offline, then run
-one bounded write/fsync/readback plus ordinary reboot and verify durability.
+The preserved failed-soak file exposed a scratch-namespace assumption in the
+S04/S07 tooling. The correction supports a pinned existing parent while keeping
+fresh exclusive children and preserving prior evidence; focused tests pass.
+Next: full integration, exact-target tmpfs tests and read-only namespace pinning,
+then one bounded write/fsync/readback plus ordinary reboot and durability proof.
 Reuse the accepted kernel and installed boot path; no new experimental claim.
 S02 Wi-Fi upload took 178.391 s against a 180 s bound: PASS with little margin,
 not proof of robust endurance. Keep this concern for the combined-load test.

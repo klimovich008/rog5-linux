@@ -84,7 +84,55 @@ class Tests(unittest.TestCase):
             with self.assertRaises(ValueError):M.main(r,'')
             observed.assert_not_called();mkdir.assert_not_called()
 
+    def test_namespace_scope_requires_explicit_consistent_pin(self):
+        for fields in ({'test_directory_exists':True},
+                       {'test_directory_exists':True,'namespace_inode':True},
+                       {'test_directory_exists':True,'namespace_inode':0},
+                       {'test_directory_exists':1,'namespace_inode':123},
+                       {'test_directory_exists':False,'namespace_inode':123}):
+            r=request();r['scope'].update(fields)
+            with self.subTest(fields=fields),mock.patch.object(M,'observe') as observed:
+                with self.assertRaises(ValueError):M.main(r,'')
+                observed.assert_not_called()
+
+    def test_existing_namespace_symlink_wrong_inode_mode_or_device_refused(self):
+        from types import SimpleNamespace
+        for wrong in ('symlink','inode','mode','device'):
+            with self.subTest(wrong=wrong),tempfile.TemporaryDirectory() as tmp:
+                path=Path(tmp)/M.NAMESPACE;path.mkdir(mode=0o700)
+                expected=path.stat().st_ino
+                if wrong=='symlink':path.rename(Path(tmp)/'original');path.symlink_to('original')
+                if wrong=='mode':path.chmod(0o777)
+                parent=os.open(tmp,os.O_RDONLY|os.O_DIRECTORY);fstat=os.fstat
+                def root_owner(fd):
+                    s=fstat(fd)
+                    return SimpleNamespace(st_uid=0,st_gid=0,st_mode=s.st_mode,st_ino=s.st_ino,
+                        st_dev=s.st_dev+(1 if wrong=='device' and fd!=parent else 0))
+                try:
+                    with mock.patch.object(M.os,'fstat',side_effect=root_owner),mock.patch.object(M.os,'mkdir') as mkdir:
+                        with self.assertRaises((ValueError,OSError)):
+                            M.begin_namespace(parent,dict(test_directory_exists=True,
+                                namespace_inode=expected+(1 if wrong=='inode' else 0)))
+                        mkdir.assert_not_called()
+                finally:os.close(parent)
+
+    def test_namespace_path_replacement_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/M.NAMESPACE;path.mkdir(mode=0o700)
+            parent=os.open(tmp,os.O_RDONLY|os.O_DIRECTORY);fd=os.open(path,os.O_RDONLY|os.O_DIRECTORY)
+            try:
+                path.rename(Path(tmp)/'retained');path.mkdir(mode=0o700)
+                with self.assertRaisesRegex(ValueError,'namespace changed'):M.revalidate_namespace(parent,fd)
+                self.assertTrue((Path(tmp)/'retained').is_dir());self.assertTrue(path.is_dir())
+            finally:os.close(fd);os.close(parent)
+
     def test_complete_adapter_on_disposable_filesystem_with_identity_fixture(self):
+        self.exercise_adapter(False)
+
+    def test_existing_pinned_namespace_preserves_prior_evidence(self):
+        self.exercise_adapter(True)
+
+    def exercise_adapter(self, preserve):
         # Substitute physical observations and the root-owned /persist parent
         # only. All file creation, fsync, verification and cleanup are real.
         raw=Path(__file__).with_name('durability-file-ops.py').read_text()
@@ -99,13 +147,22 @@ class Tests(unittest.TestCase):
                 return SimpleNamespace(st_uid=0,st_gid=0,st_mode=s.st_mode,st_dev=s.st_dev,st_ino=s.st_ino)
             with mock.patch.object(M.os,'fstat',side_effect=root_owner):return original(parent,expected)
         with tempfile.TemporaryDirectory() as tmp:
+            retained=Path(tmp)/M.NAMESPACE/'previous-failed-evidence'
+            if preserve:
+                retained.parent.mkdir(mode=0o700)
+                retained.write_bytes(b'preserve exact failure evidence')
+                retained.chmod(0o400)
+                original_bytes=retained.read_bytes();original_stat=retained.stat()
             parent=os.open(tmp,os.O_RDONLY|os.O_DIRECTORY)
             state=snapshot()
             try:
                 with mock.patch.object(M,'opened_parent',side_effect=lambda scope:os.dup(parent)), \
                      mock.patch.object(M,'open_namespace',side_effect=namespace), \
                      mock.patch.object(M,'observe',side_effect=lambda:copy.deepcopy(state)):
-                    r=request();self.assertEqual(M.main(r,raw)['prepared'],{})
+                    r=request()
+                    if preserve:
+                        r['scope'].update(test_directory_exists=True,namespace_inode=retained.parent.stat().st_ino)
+                    self.assertEqual(M.main(r,raw)['prepared'],{})
                     r['phase']='prepare';prepared=M.main(r,raw)
                     self.assertEqual(prepared['prepared']['file']['file']['size'],M.SIZE)
                     with self.assertRaises(FileExistsError):M.main(r,raw)
@@ -113,7 +170,14 @@ class Tests(unittest.TestCase):
                     r['identity']['boot_id']='different';state['boot']='different'
                     self.assertEqual(M.main(r,raw)['prepared'],prepared['prepared'])
                     r['phase']='cleanup';self.assertEqual(M.main(r,raw)['status'],'PASS')
-                    self.assertEqual(os.listdir(parent),[])
+                    if preserve:
+                        self.assertEqual(os.listdir(parent),[M.NAMESPACE])
+                        self.assertEqual(list(retained.parent.iterdir()),[retained])
+                        self.assertEqual(retained.read_bytes(),original_bytes)
+                        current=retained.stat()
+                        self.assertEqual((current.st_ino,current.st_mode,current.st_mtime_ns),
+                                         (original_stat.st_ino,original_stat.st_mode,original_stat.st_mtime_ns))
+                    else:self.assertEqual(os.listdir(parent),[])
             finally:os.close(parent)
 
 if __name__=='__main__':unittest.main()

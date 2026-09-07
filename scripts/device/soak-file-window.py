@@ -54,17 +54,17 @@ def run(request,ops_source,guard_source,*,clock=time.monotonic,pause=time.sleep)
  guard['request_valid'](request)
  require(request['phase']=='prepare' and request['size']==SIZE,'fixed scratch preparation')
  require(hasattr(os,'posix_fadvise') and hasattr(os,'POSIX_FADV_DONTNEED'),'cache advice unavailable')
- before=checked_observation(guard,request);state=before;next_check=0
+ before=checked_observation(guard,request);state=before;next_check=0;namespace_fd=None
  def gate(force=False):
   nonlocal state,next_check
   if force or clock()>=next_check:
    state=checked_observation(guard,request);next_check=clock()+.5
+   if namespace_fd is not None:guard['revalidate_namespace'](parent,namespace_fd)
  parent=guard['opened_parent'](request['scope']);started=clock();reads=0
  try:
   free=os.fstatvfs(parent)
   require(free.f_bavail*free.f_frsize>=256*1024**2 and free.f_favail>=32,'scratch headroom')
-  gate(True);os.mkdir(guard['NAMESPACE'],0o700,dir_fd=parent);os.fsync(parent)
-  fd=guard['open_namespace'](parent);inode=os.fstat(fd).st_ino
+  gate(True);fd=guard['begin_namespace'](parent,request['scope']);namespace_fd=fd
   try:
    record=ops['prepare'](fd,'s04-'+request['nonce'][:32],request['nonce'],SIZE,gate)
    while True:
@@ -85,11 +85,8 @@ def run(request,ops_source,guard_source,*,clock=time.monotonic,pause=time.sleep)
     if clock()-started>=WINDOW:break
     pause(.5)
    gate(True);ops['cleanup'](fd,record,gate)
-   require(os.listdir(fd)==[],'unexpected scratch namespace content')
-   current=os.stat(guard['NAMESPACE'],dir_fd=parent,follow_symlinks=False)
-   require(current.st_ino==inode and stat.S_ISDIR(current.st_mode),'scratch namespace replaced')
-   os.rmdir(guard['NAMESPACE'],dir_fd=parent);os.fsync(parent)
-  finally:os.close(fd)
+   guard['cleanup_namespace'](parent,fd,request['scope'])
+  finally:namespace_fd=None;os.close(fd)
   gate(True)
   return dict(status='PASS',s07_qualified=False,identity=request['identity'],nonce=request['nonce'],
    size=SIZE,readbacks=reads,seconds=clock()-started,file=record,cleanup=True,
