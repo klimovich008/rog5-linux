@@ -4647,3 +4647,37 @@ revisions and exact development decision identities are covered. Thirty-four
 selector tests PASS in normal and optimized Python (optimized **0.601 s**).
 The original failures remain in private `workflow-impact-before.log`.
 This is workflow evidence only; S01 remains the next mandatory physical outcome.
+
+### Completed ordinary boot and S01 replay
+
+The bounded workflow checkpoint `d75359b781e9386561474004df7db980435bab6b`
+passed full local CI **477.118 s** (previous **480.583 s**), with all four
+remote jobs PASS in **34072737998**. Prior receiver run **34071546898** also
+completed successfully. The representative development selection takes
+**0.077 s**; it is an eligibility decision, not a test result. Eligible local
+experiments avoid unrelated remote waiting; critical integration and final
+promotion still require their relevant full checks. No build/cache invalidation.
+
+One ordinary installed reboot at that clean source reached pinned SSH and
+native P24 root in **85.531 s**, new boot
+`26f9f5e7-a3e1-463f-b9e5-7e6ba3bdaaf7`. The coordinator completed in
+**1385.867 s**, receiver exit 0, all four cleanup steps PASS. Current-boot P2/SSH
+watchdog acknowledgement occurred at **902.493 s**. Post-cleanup SSH/root PASS
+**0.862 s**: Full/100%, Good, 29.9°C, 8.573 V, −6 mA, USB online.
+The read-only boot-LUN GPT snapshot was unchanged across this ordinary reboot;
+this does not prove every ASUS retry policy, and no slot metadata was written.
+
+The new public offline S01 checker replays these retained observations in
+**0.069 s**. Twenty-four focused tests cover missing closure, shortened timing,
+mixed sources/boots, unbound markers, ambiguous reboot return, transport loss,
+NFS/unknown listeners, wrong root/write scope/power, changed producers/artifacts,
+symlink/altered/missing files and optimized execution. Admission dispatch now
+rejects exit-zero without complete bound S01 proof; this regression failed
+before the dispatcher correction. Fixtures are sanitized, not synthetic live PASS.
+Private evidence remains under `recovery-reuse-r1/ordinary-boot-r1` and
+`ordinary-s01-inputs-v1.json`; no private raw material is published.
+
+This proves one ordinary local boot, **not** three boots, powered-off startup,
+S02 transfers, sustained charging, endurance or controlled failed-boot recovery.
+Next: qualify the frozen replay integration, then use the running server for
+S02. No extra phone boot or target rebuild was consumed for this binding.

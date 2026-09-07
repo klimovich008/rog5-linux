@@ -270,6 +270,25 @@ Optional current/status/capacity fields record `present`, `absent` or `error`;
 their absence does not fail a root check. Health, voltage, temperature and
 external-input evidence remain required. This does not qualify H03 regulation.
 
+`rog5-dev check-standalone-boot` qualifies **one** completed ordinary local
+boot by offline replay, not by issuing another reboot. Supply a private pinned
+`rog5-standalone-boot-evidence-v1` input file with the fixed roles declared in
+the runner. Each file has an absolute path and SHA-256; reviewed coordinator
+sources are hashed data, never executed. The evidence must include prestarted
+capture, the exact installed artifact/manifest, original clean source, matching
+A01 five-role composition, current-boot authenticated readiness/local root,
+host boot-service absence, the full capture window and successful cleanup.
+The original SSH/root deadline remains 300 seconds; replay does not shorten
+the longer watchdog observation. Missing closure is BLOCKED, contradictory
+or altered evidence FAIL. No new claim is consumed.
+
+Use `rog5-dev accept release --test-id S01 --release RECEIPT
+--standalone-boot-inputs INPUTS --standalone-boot-inputs-sha256 SHA256
+--output PRIVATE_NEW_DIRECTORY` for the existing matrix. Original device-run
+source and current assessment source remain separate; no relabeling old tests.
+Artifact bytes and relevant producer dependencies must still match. Other
+mandatory outcomes remain NOT RUN, including repeated boots and recovery.
+
 Every row's environment, prerequisites, runner, deadline, outcome, mutation,
 cleanup and evidence contract is in the JSON. Empty command lists carry explicit
 implementation blockers; they are not placeholders that return success.

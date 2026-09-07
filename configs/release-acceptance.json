@@ -106,6 +106,8 @@
           "python3",
           "scripts/host/test-check-rescue-startup.py"
         ],
+        ["python3", "scripts/host/test-check-standalone-boot.py"],
+        ["python3", "-O", "scripts/host/test-check-standalone-boot.py"],
         [
           "python3",
           "-O",
@@ -545,7 +547,7 @@
         "coherent persistent release",
         "host boot services absent"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-standalone-boot.py", "--inputs", "{standalone_boot_inputs}", "--inputs-sha256", "{standalone_boot_inputs_sha256}", "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 300,
       "pass_condition": "Native local root and expected overlays/units proven, no NFS/host boot dependency; pinned SSH and current boot identity.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -558,7 +560,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Installed recovery now boots. check-standalone-root supplies current local-root/readiness evidence only; bind ordinary installed-boot timing, host boot-service absence and completed capture before S01 qualification."
+      "blocker": "Supply pinned completed ordinary-boot evidence and matching five-role release/A01 proof. Offline replay never starts or retries a boot. The 300s startup deadline is enforced against the original observation; the full predeclared capture must also be closed with successful cleanup."
     },
     {
       "id": "S02",
