@@ -23,6 +23,95 @@ def frame(sequence=1, boot=BOOT):
 
 
 class ReceiverTest(unittest.TestCase):
+    def test_ordinary_reboot_ignores_source_until_observed_disconnect(self):
+        events=[]
+        with M.Receiver('7.1.4-g359318de534f',events.append,host='127.0.0.1',port=0,
+                        peer='127.0.0.1',source_boot_id=BOOT) as receiver:
+            route=unittest.mock.Mock(return_value=True)
+            with patch.object(M,'usb_mode',return_value=('target',None)):
+                M.update_transport(receiver,'fixture',route)
+            route.assert_not_called()
+            self.assertEqual(receiver.mode,'source')
+            self.assertFalse(receiver.target_seen)
+            receiver.record(frame(),'127.0.0.1')
+            self.assertIsNone(receiver.last)
+            with patch.object(M,'usb_mode',return_value=('absent',None)):
+                M.update_transport(receiver,'fixture',route)
+            self.assertTrue(receiver.source_disconnected)
+            with patch.object(M,'usb_mode',return_value=('target',None)):
+                M.update_transport(receiver,'fixture',route)
+            route.assert_called_once()
+            other='87654321-4321-4abc-8def-1234567890ab'
+            receiver.record(frame(1,other),'127.0.0.1')
+            self.assertEqual(receiver.last.boot_id,other)
+            self.assertFalse(receiver.failed)
+
+    def test_ordinary_reboot_cannot_accept_old_boot_after_disconnect(self):
+        with M.Receiver('7.1.4-g359318de534f',lambda e:None,host='127.0.0.1',port=0,
+                        peer='127.0.0.1',source_boot_id=BOOT) as receiver:
+            receiver.transport('source',None)
+            receiver.transport('absent',None)
+            receiver.transport('target',None)
+            receiver.record(frame(),'127.0.0.1')
+            self.assertTrue(receiver.failed)
+            self.assertIsNone(receiver.last)
+
+    def test_ordinary_reboot_missing_disconnect_is_not_inferred(self):
+        with M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0,source_boot_id=BOOT) as receiver:
+            receiver.transport('source',None)
+            receiver.transport('recovery',None)
+            self.assertTrue(receiver.failed)
+            self.assertFalse(receiver.source_disconnected)
+
+    def test_capture_mode_must_be_requested_explicitly(self):
+        with self.assertRaisesRegex(ValueError,'capture mode'):
+            M.check_capture_mode({'source_boot_id':BOOT},None)
+        with self.assertRaisesRegex(ValueError,'capture mode'):
+            M.check_capture_mode({},BOOT)
+        M.check_capture_mode({},None)
+        M.check_capture_mode({'source_boot_id':BOOT},BOOT)
+
+    def test_ordinary_source_removal_read_race_is_pending_not_target_loss(self):
+        with M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0,source_boot_id=BOOT) as receiver:
+            receiver.transport('source',None)
+            error=M.UsbReadDisappeared(OSError(errno.ENODEV,'fixture'),'idVendor')
+            with patch.object(M,'usb_mode',side_effect=[error,('absent',None)]):
+                M.update_transport(receiver,'fixture',lambda:True)
+            self.assertTrue(receiver.source_disconnected)
+            self.assertFalse(receiver.target_seen)
+            self.assertFalse(receiver.failed)
+
+    def test_ordinary_mode_requires_exact_source_topology_and_selector_family(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest=Path(tmp)/'manifest'
+            raw=b'target_release=fixture\nrollback_timeout=900\n';manifest.write_bytes(raw)
+            for family,boot,mode,expected in (
+                ('fastboot-boot-selector-trial',BOOT,('target',M.INTERFACE),'absolute output'),
+                ('fastboot-boot-selector-trial',BOOT,('mismatch',None),'ordinary capture'),
+                ('fastboot-boot-selector-trial','bad-id',('target',M.INTERFACE),'ordinary capture'),
+                ('fastboot-boot-fallback-only',BOOT,('target',M.INTERFACE),'ordinary capture')):
+                record=f'execution={family}\nmanifest_sha256={hashlib.sha256(raw).hexdigest()}\nserial=fixture\n'.encode()
+                with self.subTest(family=family,boot=boot,mode=mode), \
+                    patch.object(M.sys,'argv',['receiver','--profile','fixture','--manifest',str(manifest),
+                        '--source-boot-id',boot,'--output','relative-capture']), \
+                    patch.object(M.os,'geteuid',return_value=0), \
+                    patch.object(M.CLAIMS,'expected_record',return_value=record), \
+                    patch.object(M,'usb_mode',return_value=mode),self.assertRaisesRegex(ValueError,expected):
+                    M.main()
+
+    def test_ordinary_source_listener_remains_probeable_without_target_binding(self):
+        with M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0,source_boot_id=BOOT) as receiver:
+            with patch.object(M,'usb_mode',return_value=('target',M.INTERFACE)):
+                M.update_transport(receiver,'fixture',lambda:True)
+            self.assertIsNone(receiver.interface)
+            receiver.probe=b'PROBE ordinary\n'
+            receiver.probe_response=lambda:dict(ready=receiver.mode=='source' and not receiver.source_disconnected)
+            with socket.create_connection(receiver.listener.getsockname()) as client:
+                client.sendall(receiver.probe);client.shutdown(socket.SHUT_WR)
+                for _ in range(3):receiver.poll(.01)
+                self.assertEqual(json.loads(client.recv(1024)),dict(ready=True))
+
+
     def test_real_sysfs_read_disappearance_before_target_is_pending(self):
         # Reproduce the read/USB-removal boundary, not a guessed generic error.
         with tempfile.TemporaryDirectory() as tmp:
