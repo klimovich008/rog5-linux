@@ -34,7 +34,7 @@ case $action in
       'rog5-dev check-package-keyring --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-wifi-restart --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-overlay-recovery --kernel EXACT_IMAGE --target-archive EXACT_ARCHIVE --root-image RETAINED_EXT4 --output PRIVATE_NEW_DIRECTORY' \
-      'rog5-dev select [--event push|pull_request] BASE HEAD' \
+      'rog5-dev select [--development] [--event push|pull_request] BASE HEAD' \
       'rog5-dev build-initramfs --help' \
       'rog5-dev package --config RECIPE --private-key KEY --bundle-root OUTPUT' \
       'rog5-dev check-target --release RELEASE ARCHIVE -- APPLET [ARGS...]' \

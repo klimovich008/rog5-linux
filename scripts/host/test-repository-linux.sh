@@ -465,8 +465,19 @@ if [[ $tier == active ]]; then
 elif [[ $tier == probe ]]; then
 	tests=("${probe_tests[@]}")
 else
-	tests=("${active_tests[@]}" "${shared_tests[@]}" "${tier_tests[@]}")
+	tests=("${active_tests[@]}" "${probe_tests[@]}" "${shared_tests[@]}" "${tier_tests[@]}")
 fi
+
+# Union coverage without rerunning overlapping suites. Preserve first-seen
+# order and the existing explicitly isolated/shared-state scheduling policy.
+declare -A seen_tests=()
+unique_tests=()
+for selected in "${tests[@]}"; do
+	[[ ! ${seen_tests[$selected]+yes} ]] || continue
+	seen_tests[$selected]=1
+	unique_tests+=("$selected")
+done
+tests=("${unique_tests[@]}")
 
 for test_path in "${tests[@]}"; do
 	test_file=$repo/$test_path

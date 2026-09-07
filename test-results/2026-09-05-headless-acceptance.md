@@ -4608,3 +4608,42 @@ S01 still needs authenticated new-boot/root and host boot-service-absence
 evidence. No phone reboot, flash, claim or storage write occurred while making
 this change. The prior publication run **34070395934** completed all four jobs
 successfully at exact source **`1666d17c3da0dad91be45965434dbc0be625b16a`**.
+
+Receiver code checkpoint **`5cc288e61ca66b155e8fca1dfecd0d4704e7389f`** passed
+full local CI in **480.583 s**, versus 501.142 s previously. Clean source was
+frozen throughout; private `recovery-reuse-r1/ordinary-capture-ci-r1` records
+log SHA-256 `09959324d6def1dc51582140c78ed5f913f8a8fda6631d824f88f5a416817856`.
+The commit is pushed; exact-head/merge run **34071546898** is still running.
+
+Independent same-boot read-only `sfdisk --verify/--json` on the protected boot
+LUN reported no GPT errors. B's attribute bits are 48–53: the Qualcomm active
+bit is set, boot-success bit 54 is clear, unbootable bit 55 is clear. This
+interpretation follows [the pinned HAL](https://github.com/LineageOS/android_hardware_qcom_bootctrl/blob/e4868c89bd6433a5d14df4b33f66b2003bddb7ad/boot_control.cpp)
+and [pinned attribute definitions](https://github.com/LineageOS/android_hardware_qcom_bootctrl/blob/846dfb0652cc142e1783cbe085783527bbe4a190/gpt-utils/gpt-utils.h),
+not an audited ASUS ABL retry implementation. Do not infer a retry count or
+grant a GPT/misc write from it. The AOSP-style misc record was all zero and
+invalid, not a successful-slot record. Private `boot-control-gpt-readonly-r1`
+retains the raw observation and interpretation; no slot metadata was changed.
+Latest same-boot battery snapshot remains Full/100%, Good, 29.9°C, 8.576 V,
+−6 mA. No ordinary reboot or H03 qualification was claimed by these checks.
+
+### Bounded impact-based development selection
+
+The requested workflow correction extends existing `rog5-dev select` with a
+development-only JSON decision. It identifies reviewed observer/isolated-service
+leaves and reports exact committed inputs, required local checks and no release
+qualification. Changed dependencies, critical behavior, registration and unknown
+paths remain broad. No kernel/module/wrapper cache inputs or security settings
+changed. This removes unrelated remote-CI waiting for those locally validated
+experiments, not for boot/recovery or release qualification.
+
+A fail-first behavioral test reproduced a coverage defect: full CI omitted
+`test-observe-early-mainline-power.sh`, although probe ran it. Broad tiers now
+take the ordered union of active/probe/shared/tier tests, running each once.
+The regression executes the runner's actual array/selection code and proves
+coverage inclusion and no duplicate execution. Mixed paths, changed dependencies,
+unknown paths, critical one-line changes, registration, module checks, invalid
+revisions and exact development decision identities are covered. Thirty-four
+selector tests PASS in normal and optimized Python (optimized **0.601 s**).
+The original failures remain in private `workflow-impact-before.log`.
+This is workflow evidence only; S01 remains the next mandatory physical outcome.
