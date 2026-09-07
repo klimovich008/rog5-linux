@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated 2026-09-07: V7 startup FAIL; verified signed V11 fallback is running.
+Updated 2026-09-08: V7 startup FAIL; verified signed V11 fallback is running.
 V6 and V7 are permanently consumed. Never retry, restage or flash them.
 
 ## Goal and authority
@@ -67,8 +67,9 @@ namespace/ordering test passed in **12.492 s** while tmpfiles remained pending.
 This proves the dependency/sandbox behavior, not reduced physical temperature.
 No kernel, DT, module, threshold, cap order or watchdog change is proposed.
 
-Next: qualify/publish this frozen critical-runtime correction once, then
-assemble its target archive with the reused kernel/wrapper. Before any new
+Correction `4b03207d30f1b1e238fc3fdf3bf1bd4c5125b752` passed full local CI
+**548.467 s** and all four remote jobs in **34164958369**. Next: assemble
+its target archive with the reused kernel/wrapper. Before any new
 candidate, validate the effective deployed runtime, all artifact/admission
 boundaries, fallback and power. A new physical attempt must answer whether
 earlier capped startup passes the unchanged thermal guard. V7 cannot be reused.
@@ -86,6 +87,15 @@ persistent upper contains 261. These base-root passes must not be described
 as complete deployed-upper qualification. The focused 261 runtime replay
 closes only the ordering/namespace question. Final A01 must include the
 effective upper/runtime composition; a missing matching input stays BLOCKED.
+
+The complete inactive 16 GiB upper is now retained read-only, SHA256
+`dff8988f3c2f4c5204d2e827114f63e54068acc530a75010dd2d522de3795388`.
+Single-stream acquisition/verification **40.866 s**, 27 power checks; no phone
+mount/write/reboot. A failed earlier transfer remains archived, not accepted.
+QEMU with both actual filesystem layers read-only passed the systemd 261 graph
+and old-library whiteout checks; **22.477 s** guest/post-hash interval. This is
+not full A01: incorporate the upper into the paired successor composition and
+C02, keeping fresh complete input hashes. Do not revert to base-only testing.
 
 V7 staging PASS **2.024 s**, no flash; P24 relocked and fallback hashes verified.
 One execution only. Startup readiness FAIL at **301.118 s**.
@@ -129,5 +139,7 @@ archived V4/V6 roots, released duplicate wrapper intermediates, historical
 V5/V6 narratives and detailed results are in the
 [existing dated report](../test-results/2026-09-05-headless-acceptance.md).
 Some retained artifacts/archives remain in volatile RAM: no host reboot yet.
+Home has approximately 3.45 GB free after the upper snapshot. The next artifact
+plan must preserve the 3 GiB reserve and avoid another unnecessary raw-root copy.
 Never remove the failed-soak scratch, accepted payloads or archived claims.
 Host port 8081 is unrelated SteamOS CEF; leave it untouched.

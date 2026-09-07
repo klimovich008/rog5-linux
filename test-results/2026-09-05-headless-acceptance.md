@@ -6414,3 +6414,69 @@ substitute for the mandatory exact-target graph/namespace proof above.
 This power-policy change remains ineligible for observer fast admission.
 One new full local/exact-head integration checkpoint is required; receipt path
 is private `cpu-ordering-ci-r1`. No further candidate has been issued or booted.
+
+### 2026-09-08 — Frozen correction qualified; complete runtime input retained
+
+The preceding pending-CI statement is historical. Frozen source
+`4b03207d30f1b1e238fc3fdf3bf1bd4c5125b752`, digest
+`d036536728a656a038cefaa827903f68988c5997bfd163cf0b12694ab3ad36a8`, passed
+one full local CI in **548.467 s** (previous 544.611 s; no full-suite speedup).
+Log `7a127b3346c4cef753699dacc56be5887b00ed77bd8c59c329211d079bdb0c6b`.
+All four [remote jobs](https://github.com/klimovich008/rog5-linux/actions/runs/34164958369)
+passed: head-exact **450 s**, merge **393 s**, QEMU **123 s**, publication **113 s**.
+Local/remote checks overlapped read-only runtime investigation and retention;
+none were shortened. Source stayed frozen. Active tier and focused tests passed
+before this checkpoint; unsupported old-host graph checks are not target proof.
+
+To close the base/upper input gap, the inactive deployed upper was inventoried:
+16 GiB logical, 1,184,116,736 B allocated, clean ext4, UUID
+`f4834541-6e7a-4214-80d5-818fcc5cc252`. No source mount, repair or write occurred.
+The first sparse transfer stopped when an independent monitoring SSH connection
+timed out, leaving an incomplete host file. Exact fallback boot ID remained
+`b4dca8ff-bcb6-4b48-abf1-8f45d661634e`; fresh SSH returned Full/100%, Good,
+29.9°C, 8.596 V. Host USB logs show no transfer-time disconnect. Connection
+starvation is a plausible explanation, not a proven kernel/USB root cause.
+
+The incomplete 10,894,715,904-byte copy was losslessly archived and its complete
+decompression verified, then only its raw duplicate was released (1,072,898,048 B).
+Archive `/tmp/rog5-incomplete-upper-RQC9RvLM/incomplete.ext4.zst`, 304,429,752 B,
+SHA256 `c5f926bb8d9655660d9b77e318d2889aa818644b3fcb9cfe9db36d624152abca`;
+restored incomplete bytes SHA256
+`34f42553df9003e1be6715fe4bdfadae1ed5e44ceac1e97cd31d5b53acdc613c`.
+Restore only to a new private path, check size/hash, and never use it as a valid
+filesystem. Failure logs and all source bytes remain preserved.
+
+The revised acquisition used one authenticated SSH stream with the same source/
+power checks running on-target every second. Three offline fixtures proved
+pre-entry refusal, stopping a running worker after refusal, and healthy completion.
+It reused the previously measured source digest only under unchanged inode/
+metadata/boot and inactive-source checks; the completed host file independently
+matched all logical bytes. Transfer **30.170 s**, 27 safety samples, total
+**40.866 s**, host hash **10.148 s**; sparse holes were hashed as exact zeros.
+Snapshot `effective-upper-r2/root-overlay-v1.ext4`, 17,179,869,184 B logical,
+1,184,137,216 B allocated, mode 0400, SHA256
+`dff8988f3c2f4c5204d2e827114f63e54068acc530a75010dd2d522de3795388`.
+Home free afterward: 3,449,769,984 B, above the unchanged 3 GiB reserve.
+This is read-only backup/input retention, not target execution or release PASS.
+
+The full upper and retained base were then supplied as **read-only** QEMU block
+devices, with a disposable guest-RAM overlay. An initial fixture assumed vda/vdb
+order and failed before userspace when virtio enumerated them in reverse; the
+record remains FAIL. Selection now checks both known filesystem UUIDs, exact
+sizes, uniqueness and read-only state rather than enumeration order.
+The corrected probe passed: systemd **261.2-1**, expected whiteouts hide old
+260 libraries, old CPU unit has the tmpfiles edge and corrected unit does not.
+Full upper pre/post hashes and both files' metadata remained unchanged. The
+base digest was explicitly reused from its paired-preview evidence, not freshly
+recomputed by this probe. Reported guest/post-hash
+interval **22.477 s** excludes the initial full upper hash; do not call it total
+edit-to-result time. Log SHA256
+`312a5cea9fabd2859678ce96140230fed628a7439ee03c937b3c157b037f9f3c`.
+The source is 4b03207d; reused guest scaffolding is explicitly 9a2188a7.
+No manually substituted systemd package was used in this complete-layer probe.
+It closes the focused graph/runtime-input question, not full A01/C02 or S01.
+
+Next: paired successor archive/composition using the retained effective upper,
+existing kernel/wrapper and full valid input evidence; then one fresh admitted
+startup test. V6/V7 remain consumed. No candidate was issued or phone rebooted
+during this follow-up. All mandatory release outcomes remain unchanged.
