@@ -17,6 +17,29 @@ class Backend:
   if self.failure and len(self.writes)==self.failure:raise OSError('injected write failure')
   self.value[name]['maximum']=value
 class Tests(unittest.TestCase):
+ def test_async_qos_apply_and_restore(self):
+  class Delayed(Backend):
+   def __init__(self):super().__init__();self.pending={}
+   def set_maximum(self,name,value):
+    self.writes.append((name,value));self.pending[name]=[value,2]
+   def snapshot(self):
+    for name,(value,remaining) in list(self.pending.items()):
+     if remaining==0:self.value[name]['maximum']=value;del self.pending[name]
+     else:self.pending[name][1]-=1
+    return super().snapshot()
+  b=Delayed();original=b.snapshot()
+  result=M.run(b,lambda:None,b.snapshot)
+  self.assertEqual({n:p['maximum'] for n,p in result['action'].items()},M.CAPS)
+  self.assertEqual(b.snapshot(),original);self.assertEqual(len(b.writes),6)
+ def test_failed_write_cancels_pending_qos_even_when_readback_is_old(self):
+  class Pending(Backend):
+   def set_maximum(self,name,value):
+    self.writes.append((name,value));self.pending=(name,value)
+    if len(self.writes)==1:raise OSError('request accepted before interrupted return')
+  b=Pending();original=b.snapshot()
+  with self.assertRaises(OSError):M.run(b,lambda:None,lambda:self.fail('action ran'))
+  self.assertEqual(b.pending,('policy0',original['policy0']['maximum']))
+  self.assertEqual(b.writes,[('policy0',M.CAPS['policy0']),('policy0',original['policy0']['maximum'])])
  def test_action_sees_caps_and_exact_restoration(self):
   b=Backend();original=b.snapshot();seen=[]
   result=M.run(b,lambda:seen.append('gate'),lambda: b.snapshot())
@@ -63,8 +86,15 @@ class Tests(unittest.TestCase):
   self.assertEqual(b.value['policy7']['maximum'],2841600)
  def test_noop_readback_never_runs_action(self):
   b=Backend();b.set_maximum=lambda *args:b.writes.append(args);called=[]
-  with self.assertRaises(ValueError):M.run(b,lambda:None,lambda:called.append(True))
+  with patch.object(M,'SETTLE_SECONDS',.02),self.assertRaisesRegex(ValueError,'deadline'):M.run(b,lambda:None,lambda:called.append(True))
   self.assertEqual(called,[])
+  self.assertEqual(b.writes,[('policy0',M.CAPS['policy0']),('policy0',fixture()['policy0']['maximum'])])
+ def test_unexpected_intermediate_policy_refuses_without_retry(self):
+  b=Backend()
+  def write(name,value):b.writes.append((name,value));b.value[name]['maximum']=998400
+  b.set_maximum=write
+  with self.assertRaisesRegex(ValueError,'restoration'):M.run(b,lambda:None,lambda:self.fail('action ran'))
+  self.assertEqual(b.writes,[('policy0',M.CAPS['policy0'])])
  def disk(self,root):
   root.chmod(0o755)
   for name,p in fixture().items():
