@@ -574,6 +574,7 @@ class CompositionTest(unittest.TestCase):
                         [0, stat.S_IFREG | mode, 0, 0, 1], data)
         members[prefix+'automatic'] = ([0, stat.S_IFREG | 0o444, 0, 0, 1],
                                        b'rog5-native-wifi-boot-v1\n')
+        M.SEALED.ARCHIVE.install_wifi_iw(members)
         return members
 
     def test_server_runtime_requires_explicit_profile_and_current_radio_userspace(self):
@@ -581,7 +582,8 @@ class CompositionTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             M.archive_parameters(members)
         self.assertEqual(M.archive_parameters(members, profile='server-runtime')['PERSISTENT_OVERLAY_MODE'], '1')
-        for name in ('runtime', 'timing', 'units/before-state.conf', 'automatic'):
+        for name in ('runtime', 'timing', 'units/before-state.conf', 'automatic',
+                     'wpa-userspace/sbin/iw'):
             altered = copy.deepcopy(members)
             fields, data = altered['rog5-native-wifi/'+name]
             altered['rog5-native-wifi/'+name] = fields, data+b'\n'
