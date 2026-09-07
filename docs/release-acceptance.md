@@ -54,6 +54,29 @@ another action. Smoke evidence is not full watchdog/R01 or release qualification
 Replay preserves the actual observed source revision and checks unchanged
 producer dependencies; it neither reboots nor retries any experimental claim.
 
+S07's predeclared method uses `defaults.server_soak`. After at most 60 s of
+preflight and 60 s of warm-up, measure 3600 s with concurrent authenticated
+USB/Wi-Fi pipe traffic and scratch I/O. Alternate both directions with 64 MiB
+nonrepeating payloads; each transfer has a 90 s ceiling. The storage worker
+reuses the tested S04 file/guard primitives: one fresh 64 MiB file in the owned
+`/persist/rog5-release-acceptance` namespace, write/fsync, repeated cache-dropped
+verified reads for 30 s, then exact cleanup. Never exceed 128 windows / 8 GiB
+written or retry a failed window; failed/partial files remain for inspection.
+This uses the existing `s04-<nonce>` library namespace with fresh nonces, not
+earlier S04 evidence. No service, charging-control, mount or boot operation runs.
+
+Every 10 s, retain current-boot power/thermal/storage state, kernel-log sequence,
+ext4 error counters and backing-device I/O statistics. New failure records,
+missing/reset counters, log gaps, unsafe power, lost identity/transport or
+missed/stale heartbeats fail the test. The retained old boot warning is baseline
+data, never a blanket exception for a new warning. Both loop1 and sda23 must
+show corresponding read/write sectors for the actual file-window count; cached
+success messages alone are insufficient. Stop scheduling after the measured
+hour, finish owned workers, prove cleanup/services and inspect final logs within
+the unchanged 3900 s total deadline. These components do not independently
+qualify S07; the mandatory row remains NOT RUN until completed live evidence
+passes its acceptance consumer. A short simulated interval is never an hour.
+
 `--release` accepts private `rog5-release-inputs-v1` JSON with `candidate_id`,
 `source_revision` and `artifacts`: `kernel`, `dtb`, `initramfs`, `rootfs`,
 `boot_bundle`. Each artifact has an absolute `path`, `size`, and `sha256`.

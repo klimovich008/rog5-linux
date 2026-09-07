@@ -26,6 +26,16 @@
     ]
   },
   "defaults": {
+    "server_soak": {
+      "observation_seconds": 3600,
+      "heartbeat_seconds": 10,
+      "preflight_seconds": 60,
+      "warmup_seconds": 60,
+      "cleanup_seconds": 180,
+      "max_file_windows": 128,
+      "network_bytes": 67108864,
+      "network_deadline_seconds": 90
+    },
     "ordinary_smoke": {
       "startup_seconds": 300,
       "preflight_seconds": 30,

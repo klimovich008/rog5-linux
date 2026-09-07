@@ -5072,3 +5072,42 @@ wrong-boot heartbeats. These are preparation, not a one-hour test or S07 PASS.
 An import-path omission in the private preparation helper failed before phone
 contact and was corrected to use the same repository module path as its parent.
 No kernel, service, file payload or storage-layout change was involved.
+
+### S07 bounded worker and exact runtime checkpoint (2026-09-07)
+
+S05 remote **34092855927** completed successfully for
+`2efa7cdfdeb325c0840696315d8ee0bdd3abee03`: head-exact, merge-compat,
+candidate-publication and QEMU all PASS. No running CI was replaced for the
+documentation-only checkpoint `8afe3423`.
+
+The new 68-line storage worker reuses the unchanged qualified file primitives
+and device guard; it does not replace production services or write a boot image.
+Five disposable-filesystem tests PASS **3.166 s**; failed power/identity/scope
+preserves the bounded file, and an existing namespace is not reused or removed.
+On the actual phone's Python **3.14.7**, normal and optimized tests PASS, total
+**13.787 s** including host checks (**13.228 s** target tests). Only an owned
+`/run` tmpfs tree was created and removed; persistent storage was not tested.
+Worker SHA-256:
+`ab27dfd3a7b6d321a984a9224b53750b918511ef3cd3c5cd0c16c1b1c62c6582`.
+Test SHA-256:
+`9e64697f2dfd5804c2a4d04593e92e7208ceadac08fc3bb9129b8d58408006e7`.
+The three loaded durability source/test dependencies also match the exact-target
+receipt; no image rebuild or invented cache hit. The runtime test's original
+dirty source identity is retained, not relabeled as a later commit execution.
+
+Seven observer tests cover new kernel faults, sequence gaps/replay, stale boot
+heartbeats, missing/reset ext4 counters, actual backing I/O and canonical timeout
+budget. Four private coordinator tests exercise a simulated complete schedule,
+preflight/installed/endpoint refusals, ambiguous single write and network/log
+failure: **3.771/3.531 s** normal/optimized. They start no SSH or real persistent
+test. Initial fixture execution exposed the real home-volume headroom gate;
+the offline fixture now supplies synthetic space explicitly. The live gate is
+not weakened: stage logs on a separate tmpfs filesystem with its own headroom,
+retain the 3 GiB home reserve and durably archive raw evidence before reboot.
+
+The method is documented before execution: 3600 measured seconds after bounded
+warm-up, simultaneous authenticated USB/Wi-Fi traffic, repeated 30-second scratch
+windows, at most 8 GiB written, and 10-second observations. The 3900-second total
+deadline and all power/thermal/storage/identity protections remain. Frozen full
+local and exact-head validation are next; no physical soak has been attempted,
+and these tests do not qualify S07 or the final release.
