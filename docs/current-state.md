@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated: 2026-09-07. Authoritative handoff; V4 is running, capture completed.
+Updated: 2026-09-07. V4 has passed its first normal installed boot; capture runs.
 
 ## Active goal and scope
 
@@ -26,10 +26,11 @@ Do not delete unique source, artifacts, credentials, evidence or fallback.
 
 ## Running server and installed recovery
 
-**V4 is running successfully from its sole RAM-only execution.**
+**V4 is running from the newly verified installed boot-B loader.**
 Bundle `headless-server-selector-v4`, kernel `7.1.4-gf17befd4ef17`,
-authenticated boot UUID `17ff6c19-3ed1-4441-92ef-b6bdbfacfeb8`.
-Pinned normal SSH became ready in **84.957 s**. The physical hw1.1 correction
+authenticated boot UUID `45658aff-75c5-458b-95ae-3d7cf32c5d2d`.
+Pinned SSH became ready in **78.726 s** after the ordinary reboot request.
+The prior sole RAM boot reached SSH in 84.957 s. The physical hw1.1 correction
 worked: ath11k firmware/PHY started, Wi-Fi associated and received an address.
 Persistent state/SSH identity, Wi-Fi WPA/DHCP, healthd and Tailscale are active.
 The exact same-boot healthy record and persistent trial state are verified.
@@ -48,12 +49,13 @@ accepted write scope, zero UFS errors and strict-key-only SSH.
 Pre-staging P24 snapshot `e1692971646809ff412363014d69a363aa543336a715e918ec0cc978cafa36c6`
 is historical, not a hash of the now-staged physical partition.
 
-**Installed boot B is still old/unqualified recovery:**
-`340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
-Its older trial helper does not rearm a previously healthy primary before the
-next attempt. Existing offline evidence already demonstrates the defect.
-Do not perform an ordinary reboot or rediscover it with another uncontrolled
-phone failure. Signed V11 fallback and stock A remain preserved.
+**Installed boot B now has the verified v2 rearming trial helper:**
+`dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
+User-approved boot-B-only replacement completed once; exact physical readback
+PASS 1.477 s includes fresh root/healthy-trial/power checks. The old image and
+both verified backups remain `340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
+First installed boot works; repeated boots and controlled recovery remain
+unqualified. Signed V11 fallback and stock A remain preserved.
 Fallback manifest:
 `a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
 
@@ -75,12 +77,14 @@ do not create another manual identity source.
 Private current work: `rog5-server-hw11-20260906.Lo7km1SL`.
 `live-r1`, `publication.json`, `deployed-r1`, `server-snapshot-r1` and
 `stage` bind the actual bytes, source, physical boot, backups and readbacks.
-The sole supervisor is terminal after 1380.640 seconds, receiver exit 0.
+The original RAM supervisor is terminal after 1380.640 seconds, receiver exit 0.
 Route/firewall/profile/address cleanup passed; do not restart that coordinator.
 Original startup replay PASS 0.027 s and post-cleanup same-boot SSH PASS 0.203 s.
 Live source is **`3e90756f936f44df8d495695d3890a58c00ca646`**;
 all four GitHub jobs passed run **34063760646** before staging/execution.
-Later documentation does not relabel that source or create new authority.
+Replacement source is `d559b95cdeb757b5ed978ea74b5c09b4d88e90d4`;
+all four GitHub jobs passed run **34068234458** before the operation.
+Later documentation does not relabel either observed source.
 
 ## Acceptance matrix and remaining blocker
 
@@ -98,16 +102,16 @@ These are component outcomes, **not a coherent final server PASS**.
 | H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
 | F02 acceptance | PASS 0.816 s replay, 47.366 s including exact artifact verification; original live source/boot preserved |
-| S01 standalone boot | BLOCKED on qualified installed recovery; current boot used host fastboot |
+| S01 standalone boot | First installed local-root/SSH boot PASS component; formal qualification pending |
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
 
 S02's bounded stream component now passes offline (11 regressions, 256 MiB each
 direction). No live endpoint binding or S02 PASS is implied; details in the dated report.
 
-Latest V4 restart telemetry: Full/100%, Good, 29.9°C, about 8.577 V,
-battery current −7 mA, USB online; this snapshot is not regulation qualification.
-Same boot survived its 900-second watchdog checkpoint; the log records current
+Latest installed V4 telemetry: Full/100%, Good, 29.9°C, about 8.574 V,
+battery current −8 mA, USB online; this snapshot is not regulation qualification.
+Prior RAM boot survived its 900-second watchdog checkpoint; its log records
 P2/SSH readiness acknowledgement. This is healthy-path evidence, not R01.
 Earlier startup briefly drew battery current; these snapshots are not a
 10-minute H03 series. H03's firmware-Full protocol is already defined;
@@ -117,19 +121,21 @@ radio-active snapshot a qualifying substitute or collect the same absent fields.
 
 ## Exact next action and development loop
 
-Keep this healthy server accessible; no ordinary reboot. Exact old/new wrapper
-comparison PASS 0.791 s: same ASUS kernel, header, command line and 100663296-byte
-size; differences are selector loader, v2 trial helper and reboot-helper mode
-only (reboot-helper bytes unchanged). Current recovery/source closure PASS
-0.289 s; unchanged ARM replay is reused, not rerun. No rebuild is required.
-Both retained installed boot-B copies rehash to `340f6392…`.
+Keep the new server accessible while its single bounded observer completes.
+Private `recovery-reuse-r1/live-r1` owns capture, automatic host cleanup and the
+non-retry transition/flash/reboot records. Do not start a second coordinator.
+`recovery-reuse-r1/readback-r1/result.json` proves new boot-B bytes, new boot ID,
+local P24 root, healthy trial, restored normal shutdown and preserved fallback.
+Next: complete this observation, then formal S01 and ordinary boot/recovery
+qualification through the existing acceptance contract. No new flash is needed.
 
 Private `recovery-reuse-r1/REPLACEMENT-PROPOSAL.json` scopes only boot B;
 SHA-256 `98b8704cd097b05287064bd5e5cbf56adbe4776363060b9d35bcf426e154b04b`.
-It is **prepared, not authorized or executed**. Review/approval of this exact
-persistent replacement precedes its guarded executor and ordinary boot tests.
-Stock A, signed V11, GPT and data remain unchanged. No experimental flash is
-implied. S01/R01 still require real installed/controlled-failure evidence.
+User approval is retained separately; the original hashed proposal is immutable.
+One boot-B transfer passed in **2.784 s**, following an 11.295 s clean-shutdown
+transition to exact slot-B fastboot (8594 mV, SOC OK). No other partition was
+written. Stock A, signed V11, GPT and data remain unchanged. S01/R01 and repeated
+boot qualification are not inferred from the first successful installed boot.
 Do not start a new architecture review or invent another charging/kernel fix.
 The physical hw1.1 issue is closed for this boot; full networking qualification
 and repeatability are separate acceptance outcomes.
@@ -140,7 +146,7 @@ Run active/focused checks during edits; full CI once for relevant integration.
 Full local CI on clean **`eb32d347` PASS 500.163 s** (previous 507.876 s).
 The initial 196.636 s failure was the private launcher's inherited umask, not
 a weakened key guard; corrected child umask 022 passed, private logs stayed 077.
-Last standalone active tier was 21.473 s; current full CI includes its coverage.
+Post-installation documentation active tier PASS **24.398 s**; no full-CI repeat.
 Exact-head/merge publication checks remain separate. No kernel/wrapper rebuild.
 
 Preserve the combined kernel/module kit, signed package, V4 root preview and

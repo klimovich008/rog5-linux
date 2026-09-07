@@ -4464,3 +4464,61 @@ original F02 receipt and full log. No kernel, wrapper or target rebuild occurred
 The documentation-only publication commit does not relabel this tested source.
 Exact-head/merge GitHub checks are separate; no new candidate or phone operation
 is implied. Installed-recovery replacement approval remains pending.
+
+### Approved boot-B replacement and first normal installed V4 boot
+
+On 2026-09-07 the user approved the exact boot-B replacement proposal
+`98b8704cd097b05287064bd5e5cbf56adbe4776363060b9d35bcf426e154b04b`.
+Approval is an adjacent private record; the original proposal was not rewritten.
+Source `d559b95cdeb757b5ed978ea74b5c09b4d88e90d4` had all four successful jobs in
+GitHub run **34068234458**, including exact-head, merge, QEMU and publication.
+Full local CI remains the original clean `eb32d347` **500.163 s** run; no code
+or artifact was rebuilt for this operation.
+
+The question was whether the already RAM-tested normal recovery entry could
+rearm and start the healthy installed primary. Exact old/new kernel, cmdline,
+header and size comparison was reused. Both old boot-B copies rehashed to
+`340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
+
+Read-only preparation initially rejected an invented Android slot field in
+the mainline kexec cmdline (R3/R7 host assumption). No mutation occurred.
+The retained raw cmdline proves it has no `androidboot.slot_suffix`; the actual
+slot is therefore checked in exact fastboot before flashing. The corrected
+preflight preserved device, boot, power, storage, fallback and sealed exitrd
+checks. Five focused private regressions pass in normal **0.839 s** and
+optimized **0.865 s** Python, including exclusive entry, wrong slot, battery
+threshold and malformed/wrong-partition/duplicate flash transcripts. Exact
+V4 BusyBox syntax and action-only RAM shutdown delta passed; no teardown code
+changed. Connected preflight PASS **1.969 s**.
+
+The single coordinator started passive USB/ACM capture, made the reviewed
+RAM-only shutdown action change, and requested systemd's storage teardown.
+Exact fastboot appeared in **11.295 s**: correct serial/product/topology, slot B,
+boot B 100663296 bytes, battery **8594 mV**, SOC OK, both slots not unbootable.
+The existing stage receiver established logging/addressing/firewall before
+the transfer. The exclusive execution record binds approval, backups, artifact,
+CI, actual command, abort conditions and rollback limits. A sealed in-memory
+copy prevents pathname substitution between verification and transfer.
+
+Only boot B was written, once, in **2.784 s**. New installed SHA-256:
+`dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
+One normal `fastboot reboot` then started V4 from local storage; no RAM claim
+was replayed. Authenticated SSH returned in **78.726 s**, with new boot UUID
+`45658aff-75c5-458b-95ae-3d7cf32c5d2d`. Exact read-only boot-B hash plus local
+P24 root, healthy trial, unchanged six deployed files, normal shutdown bytes,
+signed fallback and power checks PASS **1.477 s**. Wi-Fi/core services active;
+battery Full/100%, Good, **29.9°C**, **8.574 V**, **−8 mA**, USB online.
+This snapshot is not a net-charging or H03 observation-window result.
+
+Evidence stays in existing private work under `recovery-reuse-r1`:
+`preflight-r1` preserves the host-only failure; `preflight-r2`, `live-r1` and
+`readback-r1/result.json` bind successful checks and actions. Stock A, GPT,
+P23/P24 layout, protected partitions and V11 fallback were not rewritten.
+The bounded receiver remains active for the watchdog window and owns automatic
+network cleanup. First installed boot is a component PASS, not a completed
+S01–S07/R01 matrix, powered-off proof or a qualified final server release.
+
+Documentation-only checkpoint: `git diff --check` and active tier PASS
+**24.398 s**. An unavailable `/usr/bin/time` failed before tests started;
+its log is retained, and the successful invocation used Bash's timing builtin.
+No full local CI or physical operation was repeated for this status update.
