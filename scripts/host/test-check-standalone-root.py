@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Local-root observations: fail closed without confusing a component with S01."""
 import copy
+import contextlib
 import importlib.util
-from pathlib import Path
+import io
+import json
+from pathlib import Path, PurePosixPath
 import subprocess
+from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 spec=importlib.util.spec_from_file_location('root_check',Path(__file__).with_name('check-standalone-root.py'))
 M=importlib.util.module_from_spec(spec);spec.loader.exec_module(M)
@@ -69,5 +74,34 @@ class Tests(unittest.TestCase):
         self.assertEqual(p.returncode,0,p.stderr)
         self.assertIn('--boot-id',p.stdout)
         self.assertNotIn('--reboot',p.stdout)
+
+    def collect_fixture(self,missing,error):
+        class FixturePath(PurePosixPath):
+            def glob(self,pattern):return []
+            def resolve(self,strict=False):return PurePosixPath('/dev/sda24')
+        def opened(path,*args,**kwargs):
+            path=str(path)
+            if path.endswith('/'+missing):raise error('fixture unsupported field')
+            value={'/proc/sys/kernel/random/boot_id':self.identity['boot_id'],
+                '/proc/cmdline':'rog5.bundle=fixture'}.get(path,'fixture')
+            return io.StringIO(value)
+        output=io.StringIO()
+        with mock.patch('pathlib.Path',FixturePath),mock.patch('builtins.open',opened), \
+             mock.patch('os.uname',return_value=SimpleNamespace(release='fixture')), \
+             mock.patch('subprocess.check_output',return_value='active\n'),contextlib.redirect_stdout(output):
+            exec('request='+repr(self.identity)+'\n'+M.PROBE,{})
+        return json.loads(output.getvalue())
+
+    def test_optional_field_absence_and_error_are_observations(self):
+        for field in ('capacity','status','current_now'):
+            for error,status in ((FileNotFoundError,'absent'),(PermissionError,'error')):
+                with self.subTest(field=field,error=error):
+                    value=self.collect_fixture(field,error)
+                    self.assertEqual(value['power_optional'][field],{'status':status})
+
+    def test_missing_required_power_is_not_swallowed(self):
+        for field in ('health','temp','voltage_now','online'):
+            with self.subTest(field=field),self.assertRaises(FileNotFoundError):
+                self.collect_fixture(field,FileNotFoundError)
 
 if __name__=='__main__':unittest.main()

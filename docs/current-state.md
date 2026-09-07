@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated: 2026-09-07. V4 has passed its first normal installed boot; capture runs.
+Updated: 2026-09-07. V4 installed boot and watchdog observation passed; capture closed.
 
 ## Active goal and scope
 
@@ -109,10 +109,10 @@ These are component outcomes, **not a coherent final server PASS**.
 S02's bounded stream component now passes offline (11 regressions, 256 MiB each
 direction). No live endpoint binding or S02 PASS is implied; details in the dated report.
 
-Latest installed V4 telemetry: Full/100%, Good, 29.9°C, about 8.574 V,
-battery current −8 mA, USB online; this snapshot is not regulation qualification.
-Prior RAM boot survived its 900-second watchdog checkpoint; its log records
-P2/SSH readiness acknowledgement. This is healthy-path evidence, not R01.
+Latest installed V4 telemetry: Full/100%, Good, 29.9°C, about 8.575 V,
+battery current −10 mA, USB online; this snapshot is not regulation qualification.
+Installed boot also survived the 900-second watchdog checkpoint: current-boot
+P2/SSH acknowledgement at 902.538 s. This is healthy-path evidence, not R01.
 Earlier startup briefly drew battery current; these snapshots are not a
 10-minute H03 series. H03's firmware-Full protocol is already defined;
 unsupported charge-limit controls are not a blocker and none were written.
@@ -121,13 +121,14 @@ radio-active snapshot a qualifying substitute or collect the same absent fields.
 
 ## Exact next action and development loop
 
-Keep the new server accessible while its single bounded observer completes.
-Private `recovery-reuse-r1/live-r1` owns capture, automatic host cleanup and the
-non-retry transition/flash/reboot records. Do not start a second coordinator.
+Keep the new server accessible. `recovery-reuse-r1/live-r1` is terminal:
+receiver exit 0 after 1380.750 s, supervisor 1397.416 s. Route, firewall,
+profile and address cleanup all PASS; do not restart this consumed operation.
 `recovery-reuse-r1/readback-r1/result.json` proves new boot-B bytes, new boot ID,
 local P24 root, healthy trial, restored normal shutdown and preserved fallback.
-Next: complete this observation, then formal S01 and ordinary boot/recovery
-qualification through the existing acceptance contract. No new flash is needed.
+Post-cleanup pinned SSH/local-root component PASS 0.985 s on the same boot.
+Next: finish S01's ordinary-boot evidence binding and prestarted normal-reboot
+capture, then repeated boot/recovery qualification. No new flash is needed.
 `rog5-dev check-standalone-root` is available; it does not qualify an earlier
 boot or repeat one. Host 8081 is SteamOS CEF proxy, not a project boot server;
 its upstream unit has no overrides. Leave this unrelated service untouched.
@@ -146,10 +147,10 @@ and repeatability are separate acceptance outcomes.
 Current-state/skills cleanup is complete. Use focused reproduction for proven
 bugs and full investigation only for unexplained/repeated/cross-component ones.
 Run active/focused checks during edits; full CI once for relevant integration.
-Full local CI on clean **`eb32d347` PASS 500.163 s** (previous 507.876 s).
-The initial 196.636 s failure was the private launcher's inherited umask, not
-a weakened key guard; corrected child umask 022 passed, private logs stayed 077.
-Post-installation documentation active tier PASS **24.398 s**; no full-CI repeat.
+Full local CI on clean **`5a8f91c2` PASS 501.142 s** (previous 500.163 s).
+Subsequent optional-only observer correction uses focused/active checks;
+required voltage, temperature and input-power gates remain strict.
+Final observer/entry-point active tier PASS **23.879 s**.
 Exact-head/merge publication checks remain separate. No kernel/wrapper rebuild.
 
 Preserve the combined kernel/module kit, signed package, V4 root preview and
