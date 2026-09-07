@@ -94,4 +94,3 @@ def cleanup(parent,record,guard=lambda:None):
   require(current.st_ino==record['directory_inode'] and stat.S_ISDIR(current.st_mode),'cleanup pathname changed')
   os.rmdir(record['name'],dir_fd=parent);os.fsync(parent)
  finally:os.close(fd)
-
