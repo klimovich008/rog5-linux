@@ -2,10 +2,10 @@
 
 Updated: 2026-09-07. S01–S04 batch passed on unchanged V4 artifacts.
 S05's three ordinary boots, pinned dispatcher replay and full local CI passed.
-All exact-head remote checks passed. S07 now exercises real UFS reads, but its
-latest run stopped at a thermal guard. Exact rejected-sample logging is qualified.
-The server remains running; cached and uncached read-only isolation passed.
-Preserve the scratch file and isolate sustained network/combined-load behavior.
+All exact-head remote checks passed. S07 remains FAIL: its thermal refusal is
+unexplained; separate Wi-Fi diagnostics now prove intermittent TCP-connect loss.
+The server remains running; USB closure and cached/uncached reads passed.
+Preserve the scratch file; investigate Wi-Fi delivery, not another blind soak.
 
 ## Goal and authority
 
@@ -31,7 +31,7 @@ Current authenticated boot: `24db7908-5479-4d1a-a9cd-eeccbf1cb564`.
 Three consecutive installed boots reached exact root, pinned SSH and healthy
 trial commits in **94.908/96.612/97.400 s**; total sequence **311.524 s**.
 Post-capture-cleanup SSH/root check PASS **1.026 s** on the third boot.
-Latest read-only diagnostic: **Good, 29.9°C, 8.533 V**, same authenticated boot.
+Latest read-only diagnostic: **Good, 29.8°C, 8.534 V**, same authenticated boot.
 The failed soak's scratch namespace remains intentionally preserved.
 This snapshot is not H03 charging-regulation qualification.
 
@@ -89,7 +89,7 @@ These component results do **not** constitute one qualified final release.
 | S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
 | S05 three boots | Physical sequence PASS 311.524 s; dispatcher PASS 0.315 s at `2efa7cdf` |
 | S06 powered-off start | Requires verified off interval and physical start; ordinary reboot is not a substitute |
-| S07 combined soak | FAIL: thermal guard refused; old rejected sample unavailable. Logging qualified; cached/uncached reads passed. Next: sustained network/combined-load isolation |
+| S07 combined soak | FAIL: thermal refusal unexplained; separate Wi-Fi connects time out before authentication. Next: isolate wireless delivery delay; retain guards and scratch |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
 H03's firmware-Full method is already defined; absent charge-limit controls
@@ -115,9 +115,19 @@ On unchanged V4 artifacts and source `1b37755b`:
 - uncached reads: 111 readbacks / **181.269 s**, 315 samples, peak **42.1°C**;
   **7,449,083,904 bytes** read on both loop1 and UFS, loop writes unchanged.
 
-These are component observations, not S07 or H03 qualification. Next: a bounded
-sustained-network or combined-read experiment with exact failure evidence;
-do not weaken 60°C protection or launch another blind full soak.
+These are component observations, not S07 or H03 qualification. Subsequent
+Wi-Fi-only diagnostics at `89348350` retained exact stderr: one 64 MiB upload
+passed in **43.007 s** (peak 37.8°C), but the next connect timed out in **3.008 s**.
+A second instrumented attempt also timed out before upload data; phone packet
+capture saw no packets, with zero capture drops. A separate successful connect
+took **2.055 s**: duplicate SYNs arrived together about 1.8 s after capture began,
+then SYN-ACK followed within 0.2 ms. This validates the observer, not the timeout.
+USB stayed healthy; no new captured kernel/ext4 errors or boot change.
+Host Wi-Fi power saving is on; phone power-save state is not yet observed.
+Do not infer which wireless endpoint/AP caused the delay or raise deadlines.
+Next obtain the phone's read-only nl80211 power-save state, then choose one
+bounded single-variable experiment. No charging/service/storage control changes.
+Keep the 60°C guard and original soak duration; detailed evidence is in the report.
 Opus review was unavailable because OAuth expired; continue independent work.
 S06 needs physical off/start conditions, not another ordinary reboot.
 
@@ -140,6 +150,10 @@ Read-only inspection was corrected from 1024 full guard snapshots per file to
 the qualified half-second cadence: **30-second timeout → 0.920 s**; forced
 start/end checks remain. All historical results and archive hashes are in the
 dated report; no older run is relabelled as testing a newer source revision.
+`89348350`: selected documentation active checks **53.476 s**, remote
+**34108234266** PASS. Unchanged full/kernel checks were reused with their
+original identities; diagnostic parser tests also passed on exact target Python.
 Keep the 3 GiB host reserve. Ignored Python caches were moved recoverably to
-tmpfs; no source/build/evidence deletion. Use private tmpfs for new test logs,
+tmpfs, plus one old 66.5 MB kallsyms intermediate (hash verified); final build
+artifacts/source/evidence remain intact. Use private tmpfs for new test logs,
 then verify a durable archive before reboot. Do not repeat unchanged suites.
