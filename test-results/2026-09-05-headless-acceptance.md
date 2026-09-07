@@ -5833,3 +5833,60 @@ retain their actual original source identities with unchanged artifact checks.
 No device process remains running. Next: full V5 combined soak, powered-off
 startup, same-release radio-inactive charging qualification and controlled
 failed-boot recovery. None is implied PASS by the completed components.
+
+### V5 combined soak: CPU thermal guard, not a kernel crash (2026-09-07)
+
+Source `0f952801cde0a118127f7c21a89cc81b7e4ff93d`, unchanged V5 artifacts and
+boot `96b722da-4ddc-4611-b813-a62149df541f`. The documentation checkpoint passed
+active **36.514 s** and all four exact-head/merge/publication/QEMU jobs in run
+**34140417474**. The private adapter reused full local **521.345 s** from
+`1bfc86a2`, explicitly allowing only the two changed documentation files and
+requiring current active/remote evidence. Original tests retain their revision.
+
+Five scheduling tests passed **6.192/6.161 s**, normal/optimized; four initial
+reuse/thermal tests **0.007/0.015 s**, scope tests **0.003/0.004 s**, five real
+pipe-observer tests **0.907 s**. Read-only scope preparation passed **0.994 s**.
+Current target Python/worker hashes matched the original exact-target tests in
+**0.643 s**, avoiding an unchanged **21.124 s** replay. No kernel, DT, archive,
+wrapper, service or charging-control change was made for this cycle.
+
+The full 3600 s observation was attempted once and **FAILED**. First failing
+host thermal sample: **408.604 s** overall / **359.863 s** of the measured window,
+`thermal_zone13=60100` m°C. The independent target network guard then reported
+`thermal_zone13=60400`. Battery was Good / **30.3°C / 8.530 V**. Terminal cleanup
+completed at **424.324 s**, both owned workers stopped. Thirteen storage windows
+and twenty-two network transfers completed; no automatic retry occurred.
+The executing storage window returned successfully and removed its exact child.
+Read-only post-test inventory found only the previously preserved failed-soak
+child, not a new leftover. Authenticated same-boot deployed-state proof passed.
+
+Read-only thermal mapping passed **0.725 s**: zone13 is `cpu6-bottom-thermal`,
+enabled `step_wise`, passive trips **90/95°C**, critical **110°C**, CPU4/CPU7
+cooling devices attached. This matches `arch/arm64/boot/dts/qcom/sm8350.dtsi`
+at retained kernel commit `f17befd4ef172cfb0ecbffd9e0af87122cfa66bc`.
+Actual built config enables CPU frequency thermal support and step_wise;
+all three live clusters use `qcom-cpufreq-hw`/`schedutil`. Maximum frequencies
+are **1.8048/2.4192/2.8416 GHz**, cooling states zero after load.
+CPU6 cooled to **38.8°C**; battery Good / **30.3°C / 8.548 V**, USB online.
+
+Conclusion: the test's conservative 60°C threshold trips below the deployed
+CPU cooling policy. This explains the qualification refusal; it does not prove
+a kernel defect, hardware overtemperature, or the original V4 thermal cause.
+Classify as a newly discriminated CPU power/qualification-policy boundary,
+not R7 host parsing. Do not turn it into a kernel redesign or raise thresholds.
+Next experiment: evaluate a conservative, bounded CPU maximum-frequency cap
+with exact restoration, unchanged guards and equivalent combined load. This
+requires relevant power-policy validation, not the observer fast path.
+
+The bounded Opus request failed before inference: expired OAuth could not be
+refreshed. Continue independently; do not repeatedly retry authentication.
+Captured refusal fixture now passes five guard/reuse tests **0.008/0.015 s** in
+normal/optimized Python. Offline soak replay remains a private draft, not a
+registered S07 PASS producer; eleven draft tests passed **0.220/0.231 s**.
+
+Private evidence archive `s07-v5-failed-soak-r1.tar.gz`: **95,768 bytes**,
+189 files read-back matched, SHA-256
+`19eb50cf037c6cd9233912ac148ee3eba1b5a2c634893a2398ad57715f651347`.
+Original RAM-backed evidence and all prior failures are preserved. No boot,
+claim, flashing, GPT, protected partition or accepted service configuration
+was changed. S07 remains FAIL; the final server release remains unqualified.
