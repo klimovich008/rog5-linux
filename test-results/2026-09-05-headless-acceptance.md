@@ -5744,3 +5744,30 @@ Do not combine historical V4 S04/S05 or V8 charging passes into green V5 results
 Next: V5 S04 scoped file durability, then repeated boots, powered-off startup,
 full combined soak and controlled recovery. No physical test is left running
 at this publication checkpoint. Kernel/wrapper bytes are reused unchanged.
+
+### Preserved scratch evidence and S04/S07 isolation (2026-09-07)
+
+Starting at `b847e5ef953f20ac21e76b7a9556252ff1ea62f9`, offline reproduction
+confirmed that retained failed-soak evidence prevented the next durability test:
+both tools required the entire fixed scratch namespace to be absent. Deleting
+that evidence or falsely reporting absence would be incorrect. New target/host
+tests failed first with `test namespace already exists` / `authorized scratch
+parent`; the soak case independently failed with FileExistsError.
+
+The existing target now shares small begin/revalidate/cleanup helpers with the
+soak worker. A read-only scope can explicitly pin an existing namespace inode;
+the target still requires root ownership, mode 0700, the verified filesystem,
+no-follow access and an unchanged pathname. Each attempt creates a fresh
+exclusive nonce child. Cleanup of a successful attempt removes that exact child
+only; prior evidence and its namespace remain. Absent-parent behavior is unchanged.
+Host validation rejects contradictory scopes and result inodes that differ from
+the pinned scope; a fail-first result test proved the missing consumer check.
+
+Real disposable filesystem tests cover create/fsync/readback/cleanup while
+preserving the prior file bytes, inode, mode and modification time. Host phase
+and evidence replay cover the new scope without changing deadlines or acceptance
+meaning. Symlink, wrong inode/device/mode, path replacement, unsafe measurements,
+partial writes and nonce reuse remain refusals. All focused suites passed in
+normal and optimized Python; final integration and exact-target tests are still
+required before any new persistent scratch write. No kernel, wrapper, target
+archive, signed bundle, boot B or phone storage was changed in this correction.

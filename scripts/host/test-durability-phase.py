@@ -27,6 +27,13 @@ class Tests(unittest.TestCase):
         self.request('probe')
         self.assertEqual(self.request('verify',NEW,self.previous())['prepared'],self.record)
         self.request('cleanup',NEW,self.previous('verify'))
+    def test_explicit_pinned_existing_namespace_is_not_an_absence_claim(self):
+        self.scope['scope'].update(test_directory_exists=True,namespace_inode=123)
+        self.assertEqual(self.request()['scope']['namespace_inode'],123)
+        self.assertIs(self.request()['scope']['test_directory_exists'],True)
+        for bad in (None,True,0,-1,'123'):
+            self.scope['scope']['namespace_inode']=bad
+            with self.subTest(bad=bad),self.assertRaises(ValueError):self.request()
     def test_previous_phase_required_and_bound(self):
         with self.assertRaises(ValueError):self.request('verify',NEW)
         for key,value in [('status','FAIL'),('phase','probe'),('inputs_sha256','0'*64),('script_hashes',{})]:
@@ -50,6 +57,13 @@ class Tests(unittest.TestCase):
             self.scope=saved
     def test_prepare_does_not_accept_previous_operation(self):
         with self.assertRaises(ValueError):self.request(previous=self.previous())
+    def test_changed_existing_namespace_result_refused(self):
+        self.scope['scope'].update(test_directory_exists=True,namespace_inode=123)
+        request=self.request()
+        value=dict(request,status='PASS',seconds=1,prepared=copy.deepcopy(self.record),ops_sha256='a'*64)
+        M.validate_result(value,request,'a'*64)
+        value['prepared']['namespace_inode']=124
+        with self.assertRaises(ValueError):M.validate_result(value,request,'a'*64)
     def test_result_identity_hash_deadline_and_record_checked(self):
         request=self.request();value=dict(request,status='PASS',seconds=1,prepared=self.record,ops_sha256='a'*64)
         M.validate_result(value,request,'a'*64)

@@ -29,6 +29,13 @@ hashes, pinned S01 inputs, pinned read-only scope inventory and a random nonce.
 Only `/persist/rog5-release-acceptance/s04-<nonce-prefix>/scratch.bin` is used,
 bounded to 64 MiB. Verify requires a different authenticated boot; cleanup
 requires the exact successful verification and unchanged source/input hashes.
+The read-only scope may explicitly identify an existing root-owned 0700 scratch
+namespace by inode. It is opened descriptor-relative/no-follow on the same
+filesystem and revalidated during the operation. Only a fresh exclusive
+`s04-<nonce-prefix>` child may be created; cleanup removes only that verified
+child and preserves the existing namespace and all other evidence. Missing,
+changed or unpinned existing namespaces still refuse before file creation.
+The soak worker uses the same namespace handling. No failed child is reused.
 The coordinator must qualify the storage-test code, establish capture, perform
 the separately supervised ordinary reboot and enforce S04's overall deadline.
 A phase PASS does **not** qualify S04. Supply the completed sequence with

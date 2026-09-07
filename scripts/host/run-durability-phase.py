@@ -12,6 +12,7 @@ sys.path.insert(0,str(R/'scripts/host'))
 spec=importlib.util.spec_from_file_location('durability_boot',R/'scripts/host/check-standalone-boot.py')
 B=importlib.util.module_from_spec(spec);spec.loader.exec_module(B)
 ROOT=B.ROOT;D=ROOT.D;require=ROOT.require
+TARGET=B.load('durability_namespace_policy',R/'scripts/device/durability-target.py')
 SOURCES=('scripts/device/durability-file-ops.py','scripts/device/durability-target.py',
          'scripts/host/run-durability-phase.py')
 def sources():return {p:(R/p).read_bytes() for p in SOURCES}
@@ -27,8 +28,9 @@ def phase_request(plan,origin,scope,phase,boot_id,previous,source_hashes,plan_ha
             'scope observation identity or mutation')
     parent=scope['scope']
     require(parent['path']=='/persist' and parent['uid']==parent['gid']==0 and parent['mode']==0o755
-            and parent['test_directory_exists'] is False and type(parent['dev']) is int
+            and type(parent['test_directory_exists']) is bool and type(parent['dev']) is int
             and type(parent['inode']) is int,'authorized scratch parent')
+    TARGET.namespace_policy(parent)
     identity=dict(origin,boot_id=boot_id)
     if phase in ('probe','prepare'):
         require(previous is None and identity==origin,'prepare must use qualified source boot')
@@ -53,6 +55,10 @@ def validate_result(value,request,ops_hash):
             and all(value[k]==request[k] for k in ('identity','origin_boot_id','nonce','size'))
             and value['ops_sha256']==ops_hash and 0<=B.number(value['seconds'])<=60,
             'target phase result mismatch')
+    expected=TARGET.namespace_policy(request['scope'])
+    if expected is not None and request['phase']!='probe':
+        require(type(value['prepared']['namespace_inode']) is int and
+                value['prepared']['namespace_inode']==expected,'changed existing namespace result')
     if request['phase'] in ('verify','cleanup'):
         require(value['prepared']==request['prepared'],'file record changed after preparation')
     elif request['phase']=='prepare':
