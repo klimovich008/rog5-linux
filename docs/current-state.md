@@ -71,10 +71,13 @@ Correction `4b03207d30f1b1e238fc3fdf3bf1bd4c5125b752` passed full local CI
 **548.467 s** and all four remote jobs in **34164958369**. V8 target twins match
 (8.325 s); wrapper reuse passed (0.426 s), then signed twins/sealed verification
 passed (4.673 s). Its canonical record derives from that exact package; no
-claim, staging or physical execution yet. Paired V8 A01 now passes with the
-complete upper in **88.128 s**. Finish exact watchdog/publication checks, then
-stage and test whether earlier CPU capping passes the unchanged thermal guard.
-V7 cannot be reused.
+claim, staging or physical execution yet. V8 A01/C01/C02 now pass in
+**88.128/131.751/104.415 s**. Full local and all four remote checks pass at
+`c389e0dfb2cc01be02e46a590f2b3a07a98bb2b9`. Next: prepare/test the scoped staging
+transaction from the running V11 fallback, preserving V7's exact `pending`
+record as consumed evidence. The old healthy-V5 source transaction is not valid
+unchanged. Then test whether earlier CPU capping passes the unchanged thermal
+guard. V7 cannot be reused; offline PASS does not itself grant execution.
 
 ## Evidence and qualification limits
 
@@ -92,7 +95,7 @@ V8 A01 checks both full image hashes before/after execution. Its offline failure
 identified missing fixture copy-up of existing systemd markers and SSH keyword
 case mismatch. Corrected fixture preserves marker bytes and retained SSH keys;
 policy still rejects missing, duplicate or unsafe values. Signed payloads were
-unchanged. V8 C01/C02 remain to be qualified; V7 C02 is historical evidence only.
+unchanged. V8 C02 uses the same complete upper; V7 C02 is historical evidence only.
 
 V7 staging PASS **2.024 s**, no flash; P24 relocked and fallback hashes verified.
 One execution only. Startup readiness FAIL at **301.118 s**.
@@ -107,7 +110,7 @@ Do not combine incompatible releases into one green result.
 
 | Outcome | Current result / next action |
 |---|---|
-| A01 / C01 / C02 | V8 A01 PASS with complete upper; V8 watchdog checks pending |
+| A01 / C01 / C02 | V8 offline PASS; A01/C02 include complete upper; not physical acceptance |
 | H01 / H02 | V11 fallback SSH/power proof; same-release radio-inactive rescue not qualified |
 | H03 regulation | NOT RUN for V7; defined firmware-Full method, not absent-field success |
 | S01 local startup | V7 FAIL; test corrected CPU startup ordering |
@@ -143,8 +146,12 @@ exact-head/merge and final artifact checks remain required before execution.
 Disposable QEMU compression now takes **2.634 s**, versus **22.786 s**, with
 identical decompressed content; signed archives/build settings are unchanged.
 Focused plus active checks passed **55.274 s** before the final SSH-case fix;
-changed composition tests then passed normal/optimized. Frozen integration
-checks follow, overlapping independent watchdog work. No result is relabelled.
+changed composition tests then passed normal/optimized. Frozen full local CI
+passed **560.697 s**; all four remote jobs passed in **34169434998**. A01's exact
+tested fixture bytes are bound to that commit without relabelling its original
+source. C02 with concurrent local CI exceeded its 120 s deadline (**148.159 s**);
+running it separately passed **104.415 s**. Keep heavy local checks separate on
+this memory-constrained host; remote CI may overlap. No deadline was relaxed.
 Home has about 3.26 GB free. The V5 raw preview is losslessly delta-archived
 against a hash-verified durable V7 base; 4.10 GB of duplicate RAM allocation
 was released. Preserve the delta + base together. Current private work and

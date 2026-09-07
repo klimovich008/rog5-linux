@@ -6598,3 +6598,29 @@ All A01 composition fields passed. V8 C01/C02 and physical startup are separate,
 still pending. No claim, target execution or phone storage change occurred.
 Private A01 attempts/diagnostics and compression receipt remain under the
 current private work directory; no full transcripts or private payloads in Git.
+
+Frozen checkpoint `c389e0dfb2cc01be02e46a590f2b3a07a98bb2b9` then passed full local
+CI **560.697 s** (prior shared checkpoint **544.355 s**), log SHA256
+`de65fdc3cabaf7aaa900ceb34e76a485f56061fd30868b68c7538de2ce6a49f0`.
+All four remote jobs passed in **34169434998**: exact head 466 s, merge 467 s,
+publication 126 s, QEMU 122 s. The remote wall span was 595 s. A01 reuse is
+explicit: reconstruction of its original two-file dirty diff exactly matches
+the committed fixture code; only current documentation was added. Original
+source/result identities remain unchanged in `a01-checkpoint-binding.json`.
+
+V8 C02 initially **FAIL, 148.159 s**, with full local CI concurrently active.
+Both guest cases passed and both full image hashes were unchanged, but the
+post-guest base checksum took 64.253 s and the unchanged 120 s limit was exceeded.
+The failed receipt remains. After local CI finished, identical C02 inputs passed
+in **104.415 s** (guest cases 31.295/27.987 s). This supports scheduling these
+memory-heavy local checks separately, not weakening the deadline or skipping
+hashes. Remote checks/preparation may still overlap. C01 then passed all **nine
+cases, 131.751 s**, on the exact V8 archive and c389e0df source.
+
+Fresh read-only staging facts confirmed the same V11 boot, unchanged boot-B
+hash, Full 100%, Good 29.8°C, 8.594 V, current 0. V7's canonical trial remains
+`pending`, SHA256 `83aaf07fef155e0695aba50f54c0a40c5d686aae20d5d0d5c241a3463fb9b306`;
+it is consumed evidence, not healthy/retry authority. V8's claim and both entered
+paths are absent. Next action is the scoped V11/pending-V7 staging adaptation
+and exact preflight, not execution of the old healthy-source transaction.
+No phone write/reboot occurred. Offline qualification is not final server PASS.

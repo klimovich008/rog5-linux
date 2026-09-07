@@ -117,6 +117,12 @@ A01 overlaps its initial full retained-root hash with independent read-only
 composition checks. That hash must complete before QEMU; a separate post-VM
 full hash and pathname/metadata checks remain mandatory. The 120-second limit
 is unchanged. This scheduling optimization does not reuse a stale root digest.
+Disposable A01 VM archives use deterministic gzip level 1; exact decompressed
+CPIO content remains unchanged. Signed release compression is not affected.
+On the constrained development host, do not overlap memory-heavy A01/C02 work
+with full local CI: a measured C02 deadline failure passed when run separately.
+Overlap remote CI and bounded independent preparation instead. Keep the failed
+run and original deadline; a successful isolated rerun does not erase it.
 
 C02's sparse-root checksum still hashes every logical byte. Filesystem-reported
 holes contribute their exact zero bytes without reading them from disk; unsupported
