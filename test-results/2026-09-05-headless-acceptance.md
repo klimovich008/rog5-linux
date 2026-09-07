@@ -5333,3 +5333,92 @@ to tmpfs: `.tmp_vmlinux.kallsyms1`, **66,514,544 bytes**, pre/post hash
 Its exact source/destination and restore instructions are in private CACHE-MOVE.md.
 Final images/vmlinux, sources, credentials and evidence were not removed.
 No kernel build or physical reboot occurred; no safety threshold was relaxed.
+
+### S07 power-save mitigation and userspace correction (2026-09-07)
+
+The prior goal turn was progress, not a wait: it isolated intermittent TCP setup
+failure. This continuation kept the same accepted V4 boot and artifacts. All
+physical observations below ran at clean `980ced2e3a0c7c51d158c0ee2e089b854fbe2b80`
+(digest `3d4bfe962523f1f42c631f8573de7013b0f5e0937c910eb945862ced423a164a`).
+That documentation checkpoint passed selected local checks **57.627 s** and all
+four remote jobs **34112468763**. Its result hash is
+`9a35ccc96cc014c273235e13e1432dc7f51797fc9a868ec5e3a7bf2a62c2dbba`.
+
+The retained kernel's `nl80211_get_power_save()` returns configured `wdev->ps`,
+not independently measured firmware sleep. Its UAPI constants were compiled
+from the exact retained headers. Three read-only parser tests passed normally,
+optimized and on exact target Python; both target queries reported **ON**,
+total **0.900 s**. `CONFIG_CFG80211_DEFAULT_PS=y` and the runtime previously
+had no server-specific override. No charging control was involved.
+
+One bounded on/off/on connection comparison changed only this temporary phone
+interface setting. The original ON state, exact interface index, USB/boot
+identity, input power, battery/temperature and storage guards were maintained.
+An ambiguous OFF acknowledgement cannot cause a second OFF request; cleanup
+makes one distinct restoration request. Host Wi-Fi power saving stayed ON.
+
+| Phase | TCP-connect timeouts | Connection durations |
+|---|---:|---|
+| ON before | 2 / 8 | 0.358–3.010 s |
+| OFF | 0 / 8 | 0.255–0.598 s |
+| ON after | 1 / 8 | 0.290–3.008 s |
+
+Total **50.208 s**; ON restoration and authenticated USB closure passed.
+A separate temporary OFF window then passed both 64 MiB verified pipes:
+upload **40.996 s**, download **27.553 s**, total **70.890 s**. Peaks were
+36.8/36.5°C. Lease limit 150 s plus bounded restoration fits inside the unchanged
+180-second independent endpoint timer; a second transfer is not started without
+its full 90-second budget and cleanup margin. Original ON state was restored.
+Final battery: Good, **29.8°C / 8.534 V**; no new captured kernel records or
+ext4 errors. No persistent scratch write, service restart or boot occurred.
+
+This supports **power-save-off as a candidate server mitigation**, not proof
+of a unique driver/AP root cause or a 60-minute soak PASS. The earlier thermal
+refusal remains unexplained. Prior packet event times were userspace capture
+timestamps, not kernel packet timestamps or synchronized host transmit times;
+scheduling/queueing can contribute to that observation.
+
+The exact-target dry run also exposed a private test-assembly bug (R7/R9): an
+entry-point string inside a quoted fixture was selected before the test class.
+A fail-first rendering regression reproduced the empty class body; selecting
+the terminal entry point fixed it. No radio write occurred in those failed dry
+runs. Lease restoration, failure/timeout and acknowledgement fixtures then
+passed normal/optimized on the exact target. Private diagnostic code remains
+outside Git and is not a new production networking framework.
+
+Production correction: `prepare_network()` uses standard `iw` to set and query
+OFF on startup and WPA restart. Refused SET, still-ON state, and unsuccessful GET
+with misleading OFF stdout all refuse startup. The latter fixture failed before
+explicit command-status handling was added. Activation, charging thresholds,
+thermal guards, watchdogs, storage scope and boot claims are unchanged.
+
+The unmodified Alpine v3.22/aarch64 `iw-6.9-r0.apk` was authenticated by its APK
+signature; apk-tools' executable signature was independently verified before
+use. Source/license attribution is in `third_party/iw`. One archive hash pin
+drives extraction and derived executable/file-manifest hashes. The composer
+adds the tool/license during explicit userspace refresh, including older bases
+without iw, and rejects altered tool bytes or an altered/aliased dependency.
+No firmware, library, kernel, module or wrapper rebuild is needed.
+
+Exact retained-library QEMU load PASS **0.017 s**. A disposable target tmpfs copy
+using those same library hashes proved iw get/off/get/on/get and cleanup in
+**0.928 s**. The upstream license was byte-for-byte verified. Focused source
+tests passed: preparation/restart **5 tests, 0.916/0.816 s** normal/optimized;
+exact sealed BusyBox **5 tests, 23.571 s**; composition **40 tests, 8.996/8.920 s**,
+plus new archive-tamper/symlink tests **0.071/0.088 s**. Two manually assembled
+composition fixtures were updated to include the newly required dependency;
+the production composition gate was not weakened to accept its absence.
+
+Private archives were verified against every included file:
+
+- `s07-wifi-power-crossover-r1.tar.gz` (18 files),
+  `2ad40dd311af4f81e2369cdeb75dc3938ee7ddd037b3301fa0482362f34e6a44`;
+- `s07-wifi-power-mitigation-r2.tar.gz`,
+  `1bc39f0302f93c9cf9034fe1e1f41842b0624999d05a6fb313e45f62718d4813`.
+
+The source correction is not installed and no successor has been admitted.
+Full local/remote integration is required for its frozen initramfs composition,
+then exact assembled-release and mandatory hardware acceptance. Running V4
+retains its original ON policy and receipt; do not diagnose that deliberate
+source/deployment difference as corruption. S07 and final release remain FAIL /
+unqualified. Preserve the original failed scratch file pending its exact cleanup.

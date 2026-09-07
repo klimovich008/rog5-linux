@@ -20,10 +20,48 @@ REPO = Path(__file__).resolve().parents[2]
 EPOCH = 1681862400
 TRIAL_HELPER = REPO / (REPO/'configs/persistent-trial-helper.path').read_text().strip()
 TRIAL_HELPER_SHA256 = (TRIAL_HELPER.parent/'SHA256SUMS').read_text().split(' ', 1)[0]
+IW_PACKAGE = REPO/'third_party/iw/iw-6.9-r0.apk'
+IW_PACKAGE_SHA256 = '5739a3fecb602323af92307f9be3a34f0a850bde23ffb7efab7f272ccab60a15'
 
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def wifi_iw_files():
+    """One authenticated dependency input; derive executable/manifest identities."""
+    fd = os.open(IW_PACKAGE, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= 200000:
+            raise ValueError('iw package metadata')
+        raw = stream.read(200001)
+    if sha(raw) != IW_PACKAGE_SHA256:
+        raise ValueError('iw package identity')
+    # APK v2 concatenates signed/control/data tar streams. Never extract paths.
+    with tarfile.open(fileobj=io.BytesIO(gzip.decompress(raw)), mode='r:',
+                      ignore_zeros=True) as package:
+        matches = [m for m in package if m.name == 'usr/sbin/iw']
+        if len(matches) != 1 or not matches[0].isfile() or not 0 < matches[0].size < 400000:
+            raise ValueError('iw package entry')
+        binary = package.extractfile(matches[0]).read()
+    return {
+        'rog5-native-wifi/wpa-userspace/sbin/iw': (0o755, binary),
+        'rog5-native-wifi/wpa-userspace/COPYING.iw':
+            (0o644, (REPO/'third_party/iw/COPYING').read_bytes()),
+    }
+
+
+def install_wifi_iw(members):
+    files = wifi_iw_files()
+    for name, (mode, data) in files.items():
+        if name in members:
+            if members[name][0][1:5] != [stat.S_IFREG | mode, 0, 0, 1]:
+                raise ValueError('iw composition metadata')
+            replace(members, name, data)
+        else:
+            add(members, name, data, stat.S_IFREG | mode)
+    return set(files)
 
 
 def entries(data):
@@ -137,6 +175,11 @@ def verify_radio_composition(members):
     small target archive when this ABI changes; no kernel build is needed.
     """
     prefix = 'rog5-native-wifi/'
+    for name, (mode, data) in wifi_iw_files().items():
+        entry = members.get(name)
+        if (entry is None or entry[0][1:5] != [stat.S_IFREG | mode, 0, 0, 1]
+                or entry[1] != data):
+            raise ValueError('iw composition mismatch; recompose target archive')
     outer = re.findall(rb'^outer_seconds=([0-9]+)$',
                        (REPO/'initramfs/native-wifi/timing').read_bytes(), re.M)
     if len(outer) != 1 or int(outer[0]) <= 0:
@@ -236,6 +279,7 @@ def compose(base, package, record):
             data = path.read_bytes().replace(b'@OUTER_SECONDS@', timing['outer_seconds'].encode())
             add(members, prefix+str(path.relative_to(REPO/'initramfs/native-wifi')),
                 data, stat.S_IFREG | (0o755 if os.access(path, os.X_OK) else 0o644))
+    install_wifi_iw(members)
     add(members, prefix+'automatic', b'rog5-native-wifi-boot-v1\n', stat.S_IFREG | 0o444)
     add(members, prefix+'kernel-release', release.encode()+b'\n', stat.S_IFREG | 0o444)
     checks = ''.join(f'{sha(data)}  {name[len(prefix):]}\n' for name, (fields, data)

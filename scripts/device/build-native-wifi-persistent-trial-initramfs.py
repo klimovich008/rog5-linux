@@ -139,6 +139,7 @@ def compose_successor(base, expected_base, descriptor, helper, *, refresh_usersp
                     (REPO/'scripts/device/probe-native-wifi.sh').read_bytes())
     changed = {descriptor_name, radio_name, probe_name, checks_name}
     if refresh_userspace:
+        changed.update(ARCHIVE.install_wifi_iw(members))
         require(members[helper_name][0][1:5] == [stat.S_IFREG | 0o755, 0, 0, 1],
                 'unsafe retained trial helper metadata')
         # The outer base hash authenticates the old payload. The new helper
