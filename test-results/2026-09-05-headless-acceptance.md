@@ -4749,3 +4749,25 @@ exit-zero without complete evidence. Original live raw material stays private.
 The retained physical evidence replayed PASS: S02 **3.415 s**, S03 **0.069 s**.
 Frozen full local/remote integration remains the next publication gate.
 No phone operation was repeated while adding these bindings.
+
+Frozen **`a74766d763c345c4b278d6babde7a5e9b31583ec`** subsequently passed full
+local CI in **493.111 s** (previous 515.382 s), log SHA-256
+`91aaba2d519b8c4f863b3dc7e723125e4ce26b0227234c93ed1c1358a43fd6e7`.
+The actual A02 tier passed in **16.483 s**. Combined S02/S03 dispatcher
+evaluation passed in **59.130 s** including exact five-role artifact checks:
+S02 **3.522 s**, S03 **0.215 s**. Remaining tests stayed NOT RUN and
+`qualified=false`. This is compatible evidence reuse, not relabeling either
+physical observation as a new run. Pushed; remote run **34076983924** is active.
+
+While CI ran, a read-only S04 scope query passed in **0.949 s** on the same
+authenticated boot: /persist is expected ext4 loop1 backed by the accepted
+P23 service-state image, with **3,974,451,200 bytes** available and **262,070**
+free inodes. The proposed test namespace is absent. No phone file was created.
+Private `s04-scope-readonly-r1` retains the full mount/root/power scope proof.
+
+The private `durability-file-ops.py` prototype has nine disposable-host tests,
+including the full 64 MiB size, partial writes, existing-name refusal, symlink,
+wrong inode/extra-entry and content/hardlink rejection (normal **0.559 s**).
+It has no phone CLI, mounting, reboot or cleanup path. This is preparation,
+not UFS/reboot durability evidence; the scoped target wrapper, exact-runtime
+checks, post-reboot ownership/cleanup and relevant storage CI are still needed.
