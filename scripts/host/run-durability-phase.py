@@ -93,7 +93,8 @@ def main():
                 operation='single file phase; no reboot, mount, raw storage write or automatic retry')
     try:
         identity=request['identity']
-        D.validate_snapshot(D.collect(identity,args.identity_file,args.known_hosts),identity,D.expected_files())
+        expected=D.expected_files(plan['candidate'])
+        D.validate_snapshot(D.collect(identity,args.identity_file,args.known_hosts),identity,expected)
         D.validate_readiness(D.collect_readiness(identity,args.identity_file,args.known_hosts),identity,record['execution'])
         D.host_gate(identity)
         root_script='request='+repr(identity)+'\n'+ROOT.PROBE

@@ -27,10 +27,27 @@ FILES={
 }
 
 
-def expected_files():
+def expected_files(profile):
+    """Use the canonical release source, never infer deployed bytes from HEAD."""
     result={}
+    record=dict(line.split('=',1) for line in CAPTURE.CLAIMS.expected_record(profile).decode().splitlines())
+    if record.get('execution')!='fastboot-boot-selector-trial':
+        raise ValueError('unsupported deployed userspace family')
+    revision=record.get('verification_source_commit')
+    if not isinstance(revision,str) or not re.fullmatch('[0-9a-f]{40}',revision):
+        raise ValueError('missing exact deployed source revision')
+    kind=subprocess.run(['git','--no-replace-objects','-C',str(REPO),'cat-file','-t',revision],
+                        capture_output=True,timeout=5)
+    if kind.returncode or kind.stdout!=b'commit\n':
+        raise ValueError('reviewed deployed source commit unavailable')
     for role,(source,target,mode) in FILES.items():
-        payload=(REPO/source).read_bytes()
+        value=subprocess.run(['git','--no-replace-objects','-C',str(REPO),'cat-file','blob',revision+':'+source],
+                             capture_output=True,timeout=5)
+        if value.returncode:
+            raise ValueError('reviewed deployed source missing: '+role)
+        payload=value.stdout
+        if not 0<len(payload)<=1048576:
+            raise ValueError('expected deployed file size bound: '+role)
         result[role]=dict(status='present',path=target,size=len(payload),
                           sha256=hashlib.sha256(payload).hexdigest(),mode=mode,uid=0,gid=0,nlink=1)
     return result
@@ -334,7 +351,7 @@ def main():
     manifest=dict(line.split('=',1) for line in raw.decode('ascii').splitlines())
     identity=dict(serial=record['serial'],bundle=record['target_bundle'],
                   release=manifest['target_release'],boot_id=args.boot_id)
-    expected={} if args.readiness_only or args.startup_diagnostics else expected_files();source=CAPTURE.ACCEPTANCE.source_identity()
+    expected={} if args.readiness_only or args.startup_diagnostics else expected_files(args.profile);source=CAPTURE.ACCEPTANCE.source_identity()
     output=args.output.resolve()
     if not args.output.is_absolute() or output.is_relative_to(REPO) or output.exists():
         raise ValueError('output must be a new private directory outside Git')
@@ -360,7 +377,7 @@ def main():
             report.update(validate_readiness(actual,identity,record['execution']))
         else:
             validate_snapshot(actual,identity,expected)
-        if source!=CAPTURE.ACCEPTANCE.source_identity() or (not (args.readiness_only or args.startup_diagnostics) and expected!=expected_files()):
+        if source!=CAPTURE.ACCEPTANCE.source_identity() or (not (args.readiness_only or args.startup_diagnostics) and expected!=expected_files(args.profile)):
             raise ValueError('source changed during check')
         report['status']='PASS'
     except (OSError,ValueError,subprocess.SubprocessError) as error:
