@@ -1,7 +1,7 @@
 # ROG5 current state
 
-Updated 2026-09-07: bounded CPU-cap diagnostic PASS; S07 release soak still outstanding.
-Next: validate the boot-integrated CPU policy, package a successor, then qualify it.
+Updated 2026-09-07: CPU-policy integration and signed V6 package PASS; not deployed.
+Next: resolve measured preview capacity, then A01/admission and full-release soak.
 
 ## Goal and authority
 
@@ -84,38 +84,33 @@ These component results do not constitute a qualified final release.
 The scratch-namespace correction passed full local/remote CI, exact-target RAM
 tests and live S04: a fresh 64 MiB file survived reboot and exact child-only
 cleanup; the prior failed-soak file remains preserved. Do not repeat S04.
-The V5 soak ran once: 13 successful storage windows, 22 completed transfers;
-host guard failed at 408.604 s overall, all workers stopped by 424.324 s.
-No reboot or claim retry. Exact SSH/root proof passed afterward on the same boot.
-New scratch children were cleaned; the original failed-soak file remains intact.
-`thermal_zone13` is `cpu6-bottom-thermal`, not the battery. Deployed `step_wise`
-cooling starts at 90/95°C, matching exact SM8350 source; the test refuses 60°C.
-This is a conservative qualification-policy mismatch, not proof of kernel panic
-or hardware damage. The old V4 cause remains unproven. Do not raise the guard.
-The first bounded cap attempt stopped before load: asynchronous cpufreq QoS
-readback defeated the helper's synchronous assumption. One cluster remained
-capped; a single exact cleanup write restored all original settings, with
-same-boot SSH and readback proof. No reboot or accepted service change.
-The correction waits <=1 s for each policy update and always cancels entered
-QoS requests during restoration, even if the visible limit still looks original.
-Nineteen focused tests pass normal/optimized, including delayed-QoS and interrupted
-write regressions. Source `d1585090` passed full local CI **523.834 s**, all four
-remote jobs **34146544906**, and exact-target fixtures **1.721 s**.
-The corrected diagnostic passed **600.496 s** measured (**624.298 s** total):
-19 storage windows, 32 USB/Wi-Fi transfers, 61 observation samples. Peak device
-temperature **47.1°C**, battery Good / max **30.3°C**, final **8.525 V**.
-Original CPU maxima were independently restored to 1.8048/2.4192/2.8416 GHz.
-All workers stopped and new scratch children were removed; prior evidence remains.
-Caps 1.2096/1.5552/1.5552 GHz are a demonstrated mitigation, not installed policy.
-Next: boot-integrated headless CPU policy using existing packaging, then full
-coherent-release qualification. Keep kernel/archive cache reuse and all guards.
-Boot integration is implemented but not deployed: explicit composer opt-in,
-one-shot service after P2/before radio, fixed three-sysfs-attribute write scope,
-no display dependency or daemon. Failed setup still restores prior limits.
-Focused normal/optimized and archive tests pass; full frozen CI, exact-target
-systemd sandbox/composition checks and successor admission are still required.
-It is critical power behavior, not a low-risk observer shortcut or release PASS.
-Do not label this temporary cap diagnostic as S07 PASS or retry the uncapped soak.
+Uncapped V5 tripped the unchanged 60°C zone guard, below deployed CPU cooling
+trips (90/95°C). This is not proof of panic or hardware damage. Do not raise
+the guard. The bounded 600.496 s cap diagnostic peaked at 47.1°C and restored
+all CPU settings; it is not S07 PASS. Exact failures, QoS correction, cleanup
+and diagnostic evidence remain in the dated report; do not retry those runs.
+
+Boot integration source `8159678703756c3b9a06f81004c8ed15479087f5` passed full
+local CI **525.864 s** and all four remote jobs **34149182578**. Exact-target
+systemd sandbox/start/restart fixtures passed **1.366 s**, normal/optimized,
+with cleanup and unchanged real CPU snapshots. The one-shot policy follows P2,
+precedes radio, and writes only the three maximum-frequency attributes.
+Failed setup restores prior settings. This remains critical power behavior.
+Unsigned twins **8.985 s**, wrapper reuse **0.481 s**, signed packaging and sealed
+verification **4.669 s**. No kernel/DT/module/wrapper rebuild or phone mutation.
+V6 is **not registered, admitted, staged or executed**; no claim was created.
+Private preparation: `rog5-server-cpu-policy-20260907.lwlreSEe`.
+V6 manifest:
+`61c34cefc6cbb335203a609ee695e3db4638b1a747c22ab235460407ad1713eb`.
+V6 target archive:
+`f0c866f10892bc129bbcc421316c243cd67fdc9307e6f7ee76d0e0dfd91b7433`.
+Other identities derive from its private package receipt; this is not A01 PASS.
+The existing root-preview preflight is BLOCKED: `/run` needs **4,324,853,581 B**,
+has **959,254,528 B**; memory+swap needs **8,485,603,149 B**, has **4,128,399,360 B**.
+Home has only ~6.6 MB beyond its 3 GiB reserve. No new root copy was attempted.
+Resolve capacity through verified retention/available storage, preserving all
+existing evidence; then exact paired-root A01 and admission precede one V6 boot.
+No permission renewal, guard reduction, old-result relabelling or rebuild is needed.
 S02 Wi-Fi upload took 178.391 s against a 180 s bound: PASS with little margin,
 not proof of robust endurance. Keep this concern for the combined-load test.
 No device test is running at this checkpoint. Keep one coordinator and freeze
