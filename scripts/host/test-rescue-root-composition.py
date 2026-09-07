@@ -22,6 +22,61 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_vm_compression_is_fast_reproducible_and_preserves_every_member(self):
+        members={}
+        M.SEALED.ARCHIVE.add(members,'fixture',b'exact fixture\n'*100,stat.S_IFREG|0o755)
+        raw=M.SEALED.ARCHIVE.encode(members)
+        with patch.object(M.gzip,'compress',wraps=M.gzip.compress) as compressor:
+            first=M.encode_vm_fixture(members)
+            compressor.assert_called_once_with(raw,compresslevel=1,mtime=0)
+        self.assertEqual(M.gzip.decompress(first),raw)
+        self.assertEqual(first,M.encode_vm_fixture(members))
+
+    def test_retained_markers_copy_up_without_rewriting_or_following_links(self):
+        for fault in ('', 'missing', 'symlink', 'directory', 'oversized'):
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)
+                for name in ('etc','var'):(root/name).mkdir()
+                marker=root/'etc/.updated'
+                original=b'TIMESTAMP_NSEC=1788816552000000000\n'
+                if fault=='symlink':marker.symlink_to(root/'outside')
+                elif fault=='directory':marker.mkdir()
+                elif fault!='missing':marker.write_bytes(b'x'*513 if fault=='oversized' else original)
+                script=M.effective_marker_copyup().replace('/newroot',str(root))
+                result=subprocess.run(['sh','-c','set -eu\n'+script],capture_output=True,timeout=3)
+                self.assertEqual(result.returncode==0,fault in ('','missing'),result.stderr)
+                if not fault:self.assertEqual(marker.read_bytes(),original)
+                if fault=='missing':self.assertFalse(marker.exists())
+                self.assertFalse((root/'outside').exists())
+
+    def test_composition_uses_disposable_key_without_replacing_retained_identity(self):
+        source=(M.REPO/'initramfs/persistent-root-init').read_text()
+        script=M.driver(source).split('echo COMPOSITION_PREPARE_PASS\n',1)[1]
+        key='/run/sshd/a01_host_ed25519_key'
+        self.assertIn("-f "+key,script)
+        self.assertIn('sshd -T -h '+key,script)
+        self.assertNotIn('-f /etc/ssh/ssh_host_',script)
+        self.assertNotIn('rm /newroot/etc/ssh',script)
+
+    def test_ssh_policy_accepts_real_keyword_case_but_never_missing_or_unsafe_values(self):
+        # Retained OpenSSH 10.5p1 emits canonical-case names; older builds lower-case.
+        source=(M.REPO/'initramfs/persistent-root-init').read_text()
+        driver=M.driver(source)
+        policy=driver.split('>/run/ssh-effective\n',1)[1].split('echo COMPOSITION_SSH_POLICY_PASS',1)[0]
+        valid='PasswordAuthentication no\nKbdInteractiveAuthentication no\nUsePAM no\nHostbasedAuthentication no\nGSSAPIAuthentication no\nPubkeyAuthentication yes\nPermitRootLogin prohibit-password\n'
+        cases=[(valid,True),(valid.lower(),True),
+               (valid.replace('prohibit-password','without-password'),True),
+               (valid+'usepam no\n',False),(valid.replace('UsePAM no\n',''),False),
+               (valid.replace('UsePAM no','UsePAM yes'),False),
+               (valid.replace('PubkeyAuthentication yes','PubkeyAuthentication no'),False),
+               (valid.replace('prohibit-password','yes'),False),
+               (valid.replace('UsePAM no','UsePAM no extra'),False)]
+        for content,passed in cases:
+            with tempfile.TemporaryDirectory() as tmp:
+                path=Path(tmp)/'effective';path.write_text(content)
+                result=subprocess.run(['sh','-c','set -eu\n'+policy.replace('/run/ssh-effective',str(path))],capture_output=True,timeout=3)
+                self.assertEqual(result.returncode==0,passed,content)
+
     def test_effective_root_uses_exact_readonly_layers_not_virtio_order(self):
         with tempfile.TemporaryDirectory() as tmp:
             base=Path(tmp)/'base';upper=Path(tmp)/'upper'
@@ -46,6 +101,8 @@ class CompositionTest(unittest.TestCase):
                 self.assertIn('test -z "$lower_device"',script)
                 self.assertIn('test -z "$upper_device"',script)
                 self.assertIn('EFFECTIVE_DEPLOYED_UPPER_READ_ONLY',script)
+                self.assertIn(M.effective_marker_copyup(),script)
+                self.assertLess(script.index('mount -t overlay'),script.index(M.effective_marker_copyup()))
                 ids[1]=ids[0]
                 with self.assertRaisesRegex(ValueError,'distinct'):
                     M.effective_root_mounts(base,upper,root_mount='/lower',state_mount='/state')

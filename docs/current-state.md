@@ -68,41 +68,31 @@ This proves the dependency/sandbox behavior, not reduced physical temperature.
 No kernel, DT, module, threshold, cap order or watchdog change is proposed.
 
 Correction `4b03207d30f1b1e238fc3fdf3bf1bd4c5125b752` passed full local CI
-**548.467 s** and all four remote jobs in **34164958369**. Next: assemble
-its target archive with the reused kernel/wrapper. V8 target twins now match
+**548.467 s** and all four remote jobs in **34164958369**. V8 target twins match
 (8.325 s); wrapper reuse passed (0.426 s), then signed twins/sealed verification
 passed (4.673 s). Its canonical record derives from that exact package; no
-claim, staging or physical execution yet. Validate the paired V8 base + complete
-upper and admission closure next, then test whether earlier CPU capping passes
-the unchanged thermal guard. V7 cannot be reused.
+claim, staging or physical execution yet. Paired V8 A01 now passes with the
+complete upper in **88.128 s**. Finish exact watchdog/publication checks, then
+stage and test whether earlier CPU capping passes the unchanged thermal guard.
+V7 cannot be reused.
 
 ## Evidence and qualification limits
 
 V7 signed manifest:
 `4eaeb9f8859f7fa9c64b5e40b3764452da504d0ce5438afd20760305bc23e7b9`.
 Other artifact identities derive from its canonical expected record.
-Source `9a2188a76aa4712a4b9a25c3d665c0cffbc3fe14`: full local CI PASS
-**544.611 s**; all four remote jobs PASS in **34162547059**.
-V7 A01/C01/C02 passed **91.137/131.861/74.290 s**, respectively.
-However, the retained base root contains systemd 260 while the deployed
-persistent upper contains 261. These base-root passes must not be described
-as complete deployed-upper qualification. The focused 261 runtime replay
-closes only the ordering/namespace question. Final A01 must include the
-effective upper/runtime composition; a missing matching input stays BLOCKED.
+Historical base-only passes did not cover deployed systemd 261/OpenSSH 10.5.
+Final persistent-overlay qualification now requires the complete matching upper;
+a missing matching input stays BLOCKED. Historical timings/identities remain
+in the dated report, not a combined green release.
 
 The complete inactive 16 GiB upper is now retained read-only, SHA256
 `dff8988f3c2f4c5204d2e827114f63e54068acc530a75010dd2d522de3795388`.
-Single-stream acquisition/verification **40.866 s**, 27 power checks; no phone
-mount/write/reboot. A failed earlier transfer remains archived, not accepted.
-QEMU with both actual filesystem layers read-only passed the systemd 261 graph
-and old-library whiteout checks; **22.477 s** guest/post-hash interval. This is
-not full A01. The existing A01/C02 runners now accept complete RO upper images
-and require them for persistent-overlay qualification. C02 on V7's retained
-bytes passed with actual systemd 261 in **94.539 s**, including healthy SSH
-restart and stale-readiness rollback. Its first run caught an existing-host-key
-fixture collision; private VM tmpfs now isolates disposable SSH keys. A01
-correctly rejects V7's old CPU unit against the new source. Next: fresh successor
-composition, not another V7 boot. Details are in the dated report below.
+V8 A01 checks both full image hashes before/after execution. Its offline failures
+identified missing fixture copy-up of existing systemd markers and SSH keyword
+case mismatch. Corrected fixture preserves marker bytes and retained SSH keys;
+policy still rejects missing, duplicate or unsafe values. Signed payloads were
+unchanged. V8 C01/C02 remain to be qualified; V7 C02 is historical evidence only.
 
 V7 staging PASS **2.024 s**, no flash; P24 relocked and fallback hashes verified.
 One execution only. Startup readiness FAIL at **301.118 s**.
@@ -117,7 +107,7 @@ Do not combine incompatible releases into one green result.
 
 | Outcome | Current result / next action |
 |---|---|
-| A01 / C01 / C02 | V7 offline passes; effective-upper limitation above; requalify changed composition |
+| A01 / C01 / C02 | V8 A01 PASS with complete upper; V8 watchdog checks pending |
 | H01 / H02 | V11 fallback SSH/power proof; same-release radio-inactive rescue not qualified |
 | H03 regulation | NOT RUN for V7; defined firmware-Full method, not absent-field success |
 | S01 local startup | V7 FAIL; test corrected CPU startup ordering |
@@ -150,7 +140,12 @@ Full local CI at `66adf616` passed in 544.355 s; all four remote jobs passed in
 34167400408. Focused checks took 14.283 s. Do not repeat unchanged full local CI
 for the literal V8 record: check every affected admission consumer; remote
 exact-head/merge and final artifact checks remain required before execution.
-Home has about 3.34 GB free. The V5 raw preview is losslessly delta-archived
+Disposable QEMU compression now takes **2.634 s**, versus **22.786 s**, with
+identical decompressed content; signed archives/build settings are unchanged.
+Focused plus active checks passed **55.274 s** before the final SSH-case fix;
+changed composition tests then passed normal/optimized. Frozen integration
+checks follow, overlapping independent watchdog work. No result is relabelled.
+Home has about 3.26 GB free. The V5 raw preview is losslessly delta-archived
 against a hash-verified durable V7 base; 4.10 GB of duplicate RAM allocation
 was released. Preserve the delta + base together. Current private work and
 relocation receipts: `rog5-cpu-startup-20260908.kjE4IqCf`.
