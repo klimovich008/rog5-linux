@@ -5488,3 +5488,49 @@ exempt the whole evidence directory or weaken PR merge-base coverage.
 This removes full head-check/QEMU work from genuinely narrative-only push
 checkpoints; critical deltas and release promotion keep their required checks.
 The selector correction itself requires a fresh coherent integration run.
+
+That integration passed at clean `fa500750a445ef48f18219a6bd4d04861645a11d`,
+digest `d0cf4c36f29e11d432f96d4a7553088ef88873017cd8999f8705c5fdd4d398ae`:
+full local **503.225 s**, all four remote jobs **34118625377** PASS. Focused
+selector tests: 36 PASS normal/optimized **0.746/0.656 s**. The earlier failed
+report-only test is preserved as the concrete regression. Result-only notes
+afterward do not change the source covered by these tests.
+
+Capacity was then recovered without discarding unique inputs. Only the old
+temporary module tree's `source` and `build-area` copies were released after
+archiving, comparing every entry, checking unchanged metadata and refusing
+open users with `lsof`. All 103,805 entries / **2,873,929,728 allocated bytes**
+are retained in **611,650,761 bytes**, SHA-256
+`3de709a635b623f50a354ff1b347a2d46b9f2d0543682ad792db0a362b2318ca`.
+Archive verification took **28.713 s**, fresh release checks **15.192 s**.
+Module outputs outside those directories, photographs, evidence and credentials
+remain in place. Restore the archived directories before any old builder uses
+their original paths; never extract over unrelated changes.
+
+The already-qualified V4 raw host preview was separately retained through the
+existing lossless-preview procedure. Full decompression and a fresh original
+hash both verified **34,359,717,888 bytes** with the original
+`3f5b41f753d618d10b941d0c629f27e701ee9c536af90a473489e6b500b3c9c0`
+identity before releasing its **3,970,646,016-byte** raw allocation. Archive:
+**2,196,763,689 bytes**, SHA-256
+`d827af407613af5d9cf210d824fcba2c346e0f078471c39570553f3253893eb5`;
+total **119.214 s**. `/run` then had **5,022,625,792 bytes** available.
+Both archives remain tmpfs, like their originals—not durable backup claims.
+Exact restoration commands and verified records are retained under the existing
+private work prefix (`old-module-cache-release-r1.json` and
+`v4-preview-retention-r1/archive-result.json`). Do not reboot the host yet.
+New scripts/component evidence also have a verified durable small archive:
+`s07-wifi-composition-checkpoint-r3.tar.gz`,
+`e3910ce9b05202313fc3a674131b4fa872985724b877a191e9ea7e4ff2956621`.
+
+Work resumed on the mandatory server outcome: V5 unsigned userspace target
+twins at the same clean `fa500750` source passed in **8.375 s**, allocating
+**110,616,576 bytes**. Kernel/DT/module/firmware bytes were reused unchanged.
+Archive SHA-256:
+`c4044bd28a5c9bbfb18ef77113aee4cd3bb56e5ab78350bb2454926d830fbfc0`.
+Only runtime, iw/license, trial descriptor and derived checksums differ from V4.
+The assembled archive's own BusyBox syntax check passed **0.727 s**. Canonical
+private plan/recipe/build evidence: `rog5-server-wifi-ps-20260907.aSQZz23O`.
+No signing, admission, staging, claim, flash or phone boot occurred. Next package
+and qualify the exact paired composition before the single-use physical trial;
+this preparation is not a release or S07 PASS. Installed V4 remains unchanged.
