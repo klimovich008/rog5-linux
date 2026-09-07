@@ -4771,3 +4771,40 @@ wrong inode/extra-entry and content/hardlink rejection (normal **0.559 s**).
 It has no phone CLI, mounting, reboot or cleanup path. This is preparation,
 not UFS/reboot durability evidence; the scoped target wrapper, exact-runtime
 checks, post-reboot ownership/cleanup and relevant storage CI are still needed.
+
+### S04 bounded file-phase checkpoint
+
+Run **34076983924** completed all four checks successfully at exact `a74766d7`.
+Starting source for this checkpoint is `97d20e9fa8d5fc4f6ca6264c4612b8231123c72f`.
+The existing private prototype became a small repository file-operation library,
+fixed `/persist` target adapter and `rog5-dev durability-phase` host entry.
+No mount, formatting, raw write, reboot or automatic retry is implemented there.
+The runner reuses canonical/S01 closure, pinned readers, deployed-file/readiness,
+exact USB/SSH and local-root guards. Post-reboot verification and cleanup consume
+the previous exact phase; cleanup only removes verified owned scratch objects.
+
+Fail-first host fixtures exposed four adapter defects: an empty thermal set
+passed `all()`, malformed `ro=2` could look like an allowed writable node, the
+service mount device number was not bound, and an initial failure left its
+alarm armed. All four now reject/clean up correctly. The 27 focused cases pass
+normally and optimized: file operations **0.567/0.568 s**, target adapter
+**1.286/1.285 s**, host phase **0.001/0.001 s**. These exercise real disposable
+file/fsync/cleanup syscalls but fixture the hardware observations. Selector tests
+PASS **0.630 s**; unknown storage paths retain broad CI. S04 tests are in shared
+CI, not added to unrelated short observer checks.
+
+Private `s04-exact-runtime-r1` is **FAIL**, retained unchanged: existing QEMU
+composition reached its unit checks, then `/usr/bin/python3` was absent from
+the paired lower image. VM **22.054 s**, entire input hashing/run **135.148 s**;
+all artifact inputs remained unchanged. No Python fixture executed. This is
+R3 test-runtime composition, not a physical/kernel failure and not a reason to
+rebuild the kernel. Read-only `s04-python-inventory-r1` then PASS **0.577 s** on
+the same authenticated boot: installed Python **3.14.7**, executable and selected
+runtime/library hashes retained privately. The installed persistent upper is
+not reproduced merely by booting the lower image in QEMU.
+
+Next exact-runtime test will use an owned phone tmpfs directory after required
+storage CI. It must finish and clean up before persistent S04 preparation.
+No target persistent scratch file, reboot, flash, claim or charging-control write
+occurred. No package download or kernel/wrapper build was needed. Phase PASS
+never substitutes for complete S04 or coherent final-release qualification.
