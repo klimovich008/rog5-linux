@@ -6,7 +6,8 @@ S07 remains FAIL: its thermal refusal is unexplained. A bounded Wi-Fi on/off/on
 comparison supports power-save-off as a server-mode mitigation; both transfers
 then passed. The userspace/initramfs correction is implemented, not installed.
 The accepted server remains running with power saving restored to ON.
-Preserve its scratch file and qualify the new composition before another soak.
+V5 unsigned target twins are prepared; preserve the scratch file and qualify
+the new signed composition before another soak. No V5 claim or boot yet.
 
 ## Goal and authority
 
@@ -66,8 +67,9 @@ Historical source/boot/backup identities remain in the
 [dated report](../test-results/2026-09-05-headless-acceptance.md); do not relabel them.
 
 Private work prefix: `rog5-server-hw11-20260906.Lo7km1SL`.
-Preserve the combined module kit, signed package, V4 root preview and lossless
-V2/V3 preview archives. Some inputs are volatile tmpfs: do not reboot the host
+Preserve the combined module kit, signed package and lossless V2/V3/V4 preview
+archives. V4's raw preview is now archived, not at its old path. Some inputs are
+volatile tmpfs: do not reboot the host
 assuming they are durable. Keep 3 GiB disk reserve; no ad-hoc deletion.
 Host port 8081 is the unrelated SteamOS CEF proxy; leave it untouched.
 
@@ -117,9 +119,11 @@ All temporary controls/helpers were restored/removed; installed files are unchan
 Source now sets/verifies power-save OFF during server Wi-Fi preparation/restart.
 An authenticated ISC-licensed `iw` package is included in the target composition;
 the existing musl/libnl, kernel, firmware and module bytes remain unchanged.
-Full local/exact-head integration now passes; qualify an explicit userspace-refresh
-target before deployment. First recover enough host staging capacity without
-deleting unique evidence or the accepted preview. Do not compare the V4 runtime with the newly edited
+Full local/exact-head integration passes. V5 unsigned twins are ready in private
+work `rog5-server-wifi-ps-20260907.aSQZz23O`; use its plan, recipe and build receipt.
+Next sign/package through the existing workflow, prepare the paired preview
+from the verified V4 archive, and run exact A01 before admission or staging.
+Do not compare the V4 runtime with the newly edited
 source and call the intentional difference corruption; use its retained receipt.
 No new boot claim was issued. Keep the 60°C guard and full soak requirement.
 Opus review was unavailable because OAuth expired; continue independent work.
@@ -134,29 +138,22 @@ Broader tiers include narrow tests. Development PASS is never release PASS.
 Freeze active test inputs; batch fixes; reuse unchanged evidence with its
 original source, not a newer label. No kernel/wrapper rebuild occurred here.
 
-`1b37755ba4710594564d0e0d44f547f4dbf4439a`: full local CI **516.841 s** and
-all four remote jobs **34105698682** PASS. Local/remote checks overlapped.
-Eight error-evidence worker tests pass normal/optimized **3.156/3.181 s**;
-exact phone Python fixtures pass **14.106 s**, owned tmpfs cleanup verified.
-Only the actual rejected thermal/power sample is logged; the original guard
-and exception remain. No kernel/module/wrapper rebuild or changed release bytes.
-Read-only inspection was corrected from 1024 full guard snapshots per file to
-the qualified half-second cadence: **30-second timeout → 0.920 s**; forced
-start/end checks remain. All historical results and archive hashes are in the
-dated report; no older run is relabelled as testing a newer source revision.
-`89348350`: selected documentation active checks **53.476 s**, remote
-**34108234266** PASS. Unchanged full/kernel checks were reused with their
-original identities; diagnostic parser tests also passed on exact target Python.
-`980ced2e`: selected checks **57.627 s**, all four remote jobs **34112468763** PASS.
-`2e38e6c1`: full local CI **495.222 s**, all four remote jobs **34117128997** PASS.
-New policy tests pass normal/optimized and sealed BusyBox (23.571 s).
-Actual-base unsigned archive/tool check PASS **4.532 s**, hardware/init unchanged;
-not A01 or device qualification. Extra VM component was interrupted before guest
-execution while compressing its fixture: NOT RUN, not reused as a pass.
-New paired-preview capacity is insufficient: prior allocation **3.971 GB** plus
-staging margin, `/run` free **1.664 GB**, disk free **3.273 GB** including the
-protected **3 GiB** reserve. Do not sign/stage a successor into this shortage.
-Keep the 3 GiB host reserve. Ignored Python caches were moved recoverably to
-tmpfs, plus one old 66.5 MB kallsyms intermediate (hash verified); final build
-artifacts/source/evidence remain intact. Use private tmpfs for new test logs,
-then verify a durable archive before reboot. Do not repeat unchanged suites.
+`fa500750`: full local CI **503.225 s**, all four remote jobs **34118625377** PASS.
+Selector regressions: 36 PASS normal/optimized **0.746/0.656 s**. The single
+reviewed narrative now selects active checks in CI as well as development;
+other evidence, unknown paths, mixed critical deltas and full PR scope stay broad.
+V5 unsigned twins PASS **8.375 s**, **110.617 MB**; exact sealed syntax PASS
+**0.727 s**. Archive:
+`c4044bd28a5c9bbfb18ef77113aee4cd3bb56e5ab78350bb2454926d830fbfc0`.
+Actual-base tool/library check PASS **4.532 s**; not A01/device qualification.
+The extra VM component was interrupted before guest execution: NOT RUN.
+Older test/source/incident identities remain in the dated report, not relabelled.
+
+Capacity recovered by verified lossless retention: old temporary source/build
+copies (**2.874 GB**) and V4 raw preview (**3.971 GB**) released only after full
+archive comparison/restoration hashing. Archives and restoration records remain;
+no unique information, phone data or accepted image was discarded. `/run` now
+has about **5.02 GB** free. Preserve **3 GiB** on disk and recheck RAM/swap before
+the next preview. Restore the old source/build cache before any builder using it.
+Private prefix `rog5-server-hw11-20260906.Lo7km1SL` owns both retention records;
+archives remain volatile tmpfs, not durable backups. Do not reboot the host yet.
