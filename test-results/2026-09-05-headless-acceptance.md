@@ -5422,3 +5422,11 @@ then exact assembled-release and mandatory hardware acceptance. Running V4
 retains its original ON policy and receipt; do not diagnose that deliberate
 source/deployment difference as corruption. S07 and final release remain FAIL /
 unqualified. Preserve the original failed scratch file pending its exact cleanup.
+
+First full integration at `97813b37a25d2b7278da3e0acaa5d2e234cc34e4` stopped
+after **73.355 s** at a manually assembled server-composition fixture missing
+the new tool (remote **34116670474** also failed). The fixture now calls the
+canonical installer and verifies altered-iw rejection; no production gate was
+relaxed. Both normal/optimized composition suites and the direct acceptance /
+runtime-evidence consumers pass focused checks. A new frozen full run is required;
+the partial failed run is not reused or relabelled as qualification.
