@@ -92,8 +92,11 @@ New scratch children were cleaned; the original failed-soak file remains intact.
 cooling starts at 90/95°C, matching exact SM8350 source; the test refuses 60°C.
 This is a conservative qualification-policy mismatch, not proof of kernel panic
 or hardware damage. The old V4 cause remains unproven. Do not raise the guard.
-Next: design/test a bounded reversible CPU maximum-frequency cap experiment,
-with exact prior-value restoration and unchanged load/thermal/storage guards.
+The experiment primitive `scripts/device/cpu-frequency-cap.py` is implemented,
+not deployed: fixed caps 1.2096/1.5552/1.5552 GHz, at most a 720 s lease,
+exact prior-value restoration and unchanged load/thermal/storage guards.
+Sixteen focused tests pass normal/optimized; full CI and exact-target fixtures
+are required before a live cap. No accepted service or power setting changed.
 It is critical power behavior, not a low-risk observer shortcut or release PASS.
 Do not repeat the full soak until that experiment produces discriminating evidence.
 S02 Wi-Fi upload took 178.391 s against a 180 s bound: PASS with little margin,

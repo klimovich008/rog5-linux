@@ -87,6 +87,15 @@ class TierSelectorTest(unittest.TestCase):
         self.assertIn('scripts/host/test-verify-retention-cycle-admission.py',d['optimized_tests'])
         self.assertFalse(d['eligible'])
 
+    def test_cpu_power_cap_is_critical_even_when_mixed_with_observer(self):
+        for path in ('scripts/device/cpu-frequency-cap.py','scripts/device/power-profile.sh'):
+            d=MODULE.development_decision([path,'scripts/host/check-standalone-root.py'])
+            self.assertIn('critical-runtime',d['impact_categories'])
+            self.assertEqual(d['tier'],'ci')
+            self.assertFalse(d['eligible'])
+            self.assertTrue(d['remote_ci_before_experiment'])
+            self.assertIn('scripts/host/test-check-standalone-root.py',d['focused_tests'])
+
     def test_every_probe_change_runs_its_own_regression_suite(self) -> None:
         runner = SOURCE.with_name("test-repository-linux.sh").read_text()
         # Evaluate only the actual array declarations, never runner setup/tests.

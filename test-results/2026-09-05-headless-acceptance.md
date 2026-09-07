@@ -5890,3 +5890,36 @@ Private evidence archive `s07-v5-failed-soak-r1.tar.gz`: **95,768 bytes**,
 Original RAM-backed evidence and all prior failures are preserved. No boot,
 claim, flashing, GPT, protected partition or accepted service configuration
 was changed. S07 remains FAIL; the final server release remains unqualified.
+
+### Bounded CPU-cap experiment primitive (2026-09-07; not deployed)
+
+The existing `power-profile.sh` changes only the governor and invokes display
+control. It was not reused or changed for this headless experiment. New
+`scripts/device/cpu-frequency-cap.py` is an inert-on-import, fixed-scope helper:
+only `scaling_max_freq` on policies 0/4/7, caps **1209600/1555200/1555200 kHz**,
+all present in the retained hardware frequency table. It validates all policy
+identities and limits before writing, checks readback, and restores original
+values after success, partial apply, guard refusal or action error. It never
+writes a governor, voltage, charger control or thermal trip.
+
+A lease is bounded to **720 s**, with a separate 15 s alarm allowance for setup
+and restoration. Termination/disconnect/alarm handlers unwind through cleanup;
+an existing alarm is refused. Concurrent external policy changes are not
+overwritten. SIGKILL cannot execute Python cleanup: the future coordinator must
+verify restoration independently; an unexplained leftover cap is not success.
+Ordinary reboot restores kernel defaults, but is not silently substituted for
+verified cleanup. The accepted watchdog, boot B and stock-A rescue are untouched.
+
+Sixteen focused tests PASS **0.038/0.041 s**, normal/optimized Python, including
+real descriptor-relative fixture I/O, symlink/path replacement refusal, partial
+writes, interruption, observer error and existing-alarm preservation. Selector
+coverage treats CPU caps/power profiles as critical, retains mixed observer
+tests and requires full local/remote qualification before a physical experiment.
+The helper is registered in active and therefore broader test tiers.
+
+Next: full frozen CI plus exact-target RAM-only fixtures and read-only sysfs
+compatibility, then one separately identified diagnostic experiment with a
+**600 s combined-load window** inside the lease and verified restoration before
+expiry. Preserve the existing 60°C/40°C CPU-zone/battery limits and load sizes;
+the short experiment can discriminate mitigation but cannot qualify S07 or
+the release. No live CPU-cap write has occurred at this checkpoint.

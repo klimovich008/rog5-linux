@@ -176,6 +176,7 @@ active_tests=(
 	scripts/host/test-repeated-boot-evidence.py
 	scripts/host/test-soak-observation.py
 	scripts/device/test-soak-file-window.py
+	scripts/device/test-cpu-frequency-cap.py
 	scripts/host/test-server-runtime-evidence.py
 	scripts/host/test-check-rescue-startup.py
 	scripts/host/test-check-charging-regulation.py
