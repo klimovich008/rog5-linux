@@ -1,7 +1,7 @@
 # ROG5 current state
 
 Updated 2026-09-07: CPU-policy integration and signed V6 package PASS; not deployed.
-Next: resolve measured preview capacity, then A01/admission and full-release soak.
+Next: exact V6 paired-root A01 and registry qualification, then admission/soak.
 
 ## Goal and authority
 
@@ -98,19 +98,25 @@ precedes radio, and writes only the three maximum-frequency attributes.
 Failed setup restores prior settings. This remains critical power behavior.
 Unsigned twins **8.985 s**, wrapper reuse **0.481 s**, signed packaging and sealed
 verification **4.669 s**. No kernel/DT/module/wrapper rebuild or phone mutation.
-V6 is **not registered, admitted, staged or executed**; no claim was created.
+V6 has a canonical record; it is **not admitted, staged or executed**. No claim exists.
 Private preparation: `rog5-server-cpu-policy-20260907.lwlreSEe`.
 V6 manifest:
 `61c34cefc6cbb335203a609ee695e3db4638b1a747c22ab235460407ad1713eb`.
 V6 target archive:
 `f0c866f10892bc129bbcc421316c243cd67fdc9307e6f7ee76d0e0dfd91b7433`.
 Other identities derive from its private package receipt; this is not A01 PASS.
-The existing root-preview preflight is BLOCKED: `/run` needs **4,324,853,581 B**,
-has **959,254,528 B**; memory+swap needs **8,485,603,149 B**, has **4,128,399,360 B**.
-Home has only ~6.6 MB beyond its 3 GiB reserve. No new root copy was attempted.
-Resolve capacity through verified retention/available storage, preserving all
-existing evidence; then exact paired-root A01 and admission precede one V6 boot.
-No permission renewal, guard reduction, old-result relabelling or rebuild is needed.
+Capacity refusal is resolved: **8,280,854,528 B** of old duplicate wrapper-a
+linker/cache intermediates were released, retaining every verified wrapper-b twin.
+No source, final image, log, unique input or active cache was removed. Exact
+restore inventory is retained privately. The V5 preview and V4 compressed preview
+were losslessly relocated to `retained-host-inputs` in the private V6 directory;
+old RAM paths are absent. Their hashes are unchanged; historical runs keep their
+original identities. Do not recreate old previews merely to reuse their paths.
+`/run` now has ~5.02 GB free; memory+swap ~10.74 GB. Home retains ~5.30 GB free.
+One deleted local test mock (not a phone controller) was stopped after preserving
+its script/log. V6 canonical package/consumer closure and altered/consumed-record
+tests pass normal/optimized. Full registry CI and exact paired-root A01 remain
+required before admission and one boot; no guard or timeout was weakened.
 S02 Wi-Fi upload took 178.391 s against a 180 s bound: PASS with little margin,
 not proof of robust endurance. Keep this concern for the combined-load test.
 No device test is running at this checkpoint. Keep one coordinator and freeze
@@ -138,8 +144,7 @@ Target twins **8.375 s**, signing/sealed verification **4.649 s**, wrapper reuse
 **0.474 s**: no new kernel or wrapper build. C02 sparse hashing reduced data read
 volume by 88% while retaining both complete logical hashes and the 120 s limit.
 
-Keep the 3 GiB host disk reserve; current headroom is tight. Old preview/cache
-inputs are losslessly archived with verified restoration records. Some archives
-and the 4.063 GB V5 preview are volatile tmpfs, not durable backups. Do not reboot
-the host yet. Do not discard unique evidence, accepted artifacts or credentials.
+Keep the 3 GiB host disk reserve. V5/V4 previews and duplicate-cache restoration
+records are now durable; other archives and the V6 package remain volatile.
+Do not reboot the host yet or discard unique evidence/artifacts/credentials.
 Host port 8081 is unrelated SteamOS CEF; leave it untouched.
