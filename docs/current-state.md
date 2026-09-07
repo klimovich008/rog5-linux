@@ -6,8 +6,8 @@ S07 remains FAIL: its thermal refusal is unexplained. A bounded Wi-Fi on/off/on
 comparison supports power-save-off as a server-mode mitigation; both transfers
 then passed. The userspace/initramfs correction is implemented, not installed.
 The accepted server remains running with power saving restored to ON.
-V5 unsigned target twins are prepared; preserve the scratch file and qualify
-the new signed composition before another soak. No V5 claim or boot yet.
+V5 signed target twins and sealed verification pass; preserve the scratch file
+and qualify the paired composition before another soak. No V5 claim or boot yet.
 
 ## Goal and authority
 
@@ -119,10 +119,11 @@ All temporary controls/helpers were restored/removed; installed files are unchan
 Source now sets/verifies power-save OFF during server Wi-Fi preparation/restart.
 An authenticated ISC-licensed `iw` package is included in the target composition;
 the existing musl/libnl, kernel, firmware and module bytes remain unchanged.
-Full local/exact-head integration passes. V5 unsigned twins are ready in private
+Full implementation local/exact-head integration passes. V5 signed twins are ready in private
 work `rog5-server-wifi-ps-20260907.aSQZz23O`; use its plan, recipe and build receipt.
-Next sign/package through the existing workflow, prepare the paired preview
-from the verified V4 archive, and run exact A01 before admission or staging.
+Its expected record is registered once, without a live claim. Finish registration
+validation, prepare the paired preview from the verified V4 archive and run exact
+A01 before admission or staging. Signing/registration do not grant boot authority.
 Do not compare the V4 runtime with the newly edited
 source and call the intentional difference corruption; use its retained receipt.
 No new boot claim was issued. Keep the 60°C guard and full soak requirement.
@@ -145,6 +146,8 @@ other evidence, unknown paths, mixed critical deltas and full PR scope stay broa
 V5 unsigned twins PASS **8.375 s**, **110.617 MB**; exact sealed syntax PASS
 **0.727 s**. Archive:
 `c4044bd28a5c9bbfb18ef77113aee4cd3bb56e5ab78350bb2454926d830fbfc0`.
+Signed twins and sealed recovery verifier PASS **4.649 s**; canonical manifest
+and selector hashes are in the registry and private package receipt.
 Actual-base tool/library check PASS **4.532 s**; not A01/device qualification.
 The extra VM component was interrupted before guest execution: NOT RUN.
 Older test/source/incident identities remain in the dated report, not relabelled.
