@@ -6314,3 +6314,103 @@ never overwrite another input. V5, signed V11 fallback, phone storage and all
 unique evidence remain preserved. No host reboot while these archives are volatile.
 Private preparation/evidence: `rog5-boot-cpu-diag-20260907.cnXiH8My`.
 V7 A01/C01/C02 and physical acceptance remain unproven; packaging is not admission.
+
+### 2026-09-07 — V7 executed once: thermal refusal and startup-order correction
+
+The preceding preparation status is historical. Source
+`9a2188a76aa4712a4b9a25c3d665c0cffbc3fe14` passed full local CI **544.611 s**
+(previous integration 523.918 s; no claimed full-suite speedup), and all four
+remote jobs in [34162547059](https://github.com/klimovich008/rog5-linux/actions/runs/34162547059).
+Root preview **126.828 s**, A01 **91.137 s**, C01 **131.861 s**, C02 **74.290 s**
+overlapped publication checks. QEMU kernel cache hit; no kernel/DT/module/wrapper
+rebuild. The previously described exact-input prose-only reuse avoided one
+unchanged 523.9-second local run; the critical registration checkpoint still ran.
+
+Private preparation was separated from hardware entry: pending remote CI may
+permit fixture/receipt preparation only. Four normal/optimized scheduling tests
+passed **0.005/0.004 s**. The unchanged live executor still requires completed
+exact-head remote evidence and fresh success from all four jobs. Wrong head,
+failed checks and unknown states are rejected. No gate/security-setting bypass.
+
+Exact deployed staging-tool capture **0.800 s**, target lock fixtures **3.008 s**,
+private adapter checks **3.263 s**. Scoped bundle/selector staging PASS **2.024 s**;
+V5's healthy record was archived, P24 relocked, all V11 fallback bytes verified.
+Only owned bundle/selector/trial paths changed; no flash/GPT/format/slot change.
+The action-only RAM exitrd transition reached exact fastboot B in **11.297 s**,
+8.612–8.613 V, SOC=yes. V7 was consumed before its **one** temporary execution.
+The accepted loader transfer/boot returned successfully in **12.805 s**.
+
+**Observed S01 FAIL:** V7 boot `c591ab27-9079-4261-9806-80f61e1e04d7` reached
+local root/systemd and an authenticated early diagnostic snapshot. That snapshot
+reported Full/100%, Good, 30.0°C, 8.593 V, -8,000 µA and USB online. It is not H03.
+Steady server readiness never passed; the component deadline failed at
+**301.118 s**. Passive capture remained for **1380.703 s**. Route, firewall,
+NetworkManager profile and address cleanup all passed. Last target stage was
+switch-root PASS; the target journal provides the later independent boundary.
+
+Read-only acquisition of the inactive 16 GiB upper retained an 8 MiB journal,
+SHA256 `70d0b631f4e62290c36840e0c0316c41316ff2c275c4c9d1ac1a70c47314a7fc`.
+Boot-bound monotonic records show:
+
+| Event | Target uptime (s) |
+|---|---:|
+| Coldplug finished | 21.839 |
+| tmpfiles finished | 21.924 |
+| CPU policy started | 21.926 |
+| `thermal_zone13=62400 mC; required <60000 mC` | 22.338 |
+| failure service requested reboot | 24.745 |
+
+The traceback reaches **core.run's first guard**, before snapshot/validation/
+`entered` and CPU-cap writes. This precise no-cap-write conclusion applies to
+V7, not V6's per-policy refusal. The failing-boot sensor type and pre-guard series
+were not collected; do not infer them from another boot. The guard caused an
+orderly failure-service reboot, not demonstrated panic or host parser failure.
+Empty pstore remains inconclusive. Signed V11 fallback then authenticated on
+boot `b4dca8ff-bcb6-4b48-abf1-8f45d661634e`, kernel `7.1.4-g359318de534f`.
+Its exact manifest, 117-block topology, P24 RO and safe battery state passed.
+V7 is permanently consumed. This unplanned fallback is not controlled R01 proof.
+
+**R2/R4 demonstrated defect:** the early CPU unit's `PrivateTmp=yes` adds an
+implicit dependency on tmpfiles despite `DefaultDependencies=no`. The actual
+systemd 261.2 source confirms that the connected `/var/tmp` namespace adds this
+ordering. [Exact systemd source](https://github.com/systemd/systemd/blob/4925d9f07fc697efccd98a93046ff535b8832445/src/core/unit.c)
+The minimal correction uses `PrivateTmp=disconnected` and
+`InaccessiblePaths=/var/tmp`. P2, Wi-Fi/basic/shutdown ordering, private /tmp,
+remaining sandbox, caps, temperature limits, restoration and watchdogs remain.
+Removing this hidden delay is proven; preventing the physical thermal refusal
+is still a hypothesis requiring a separately qualified successor.
+
+**Actual-runtime check:** the retained P24 base is systemd 260.2-2, whereas the
+deployed persistent upper is 261.2-1. Prior base-root A01/C02 passes were not
+complete effective-upper qualification. That gap must be resolved for final A01;
+do not relabel base-only tests as deployed-runtime tests. Bounded read-only
+package retention and eight installed ELF comparisons passed **3.238 s**.
+Cached package hashes: systemd
+`c49fdf62d594a79a66dc2dc6695695fe637c2b2e5deca87d72804b16dd13d31a`, libs
+`27658b346c44b1e1c6d5965963a9f72957d08292b20ee65b264ea7e94494f800`.
+These bytes were used only in guest RAM over the unchanged read-only base;
+no package was installed on the phone or host and no large root copy was made.
+
+The first graph fixture incorrectly expected `PrivateTmp` to return a string;
+that legacy D-Bus property is boolean. `PrivateTmpEx` reports the actual mode.
+[Exact D-Bus definition](https://github.com/systemd/systemd/blob/4925d9f07fc697efccd98a93046ff535b8832445/src/core/dbus-execute.c)
+A second fixture exceeded its unchanged 20-second guest watchdog through repeated
+systemctl queries. Both FAILs are retained. Batching the same property queries
+completed the exact-261 graph proof in **12.843 s**, without extending its bound.
+Separate namespace execution PASS **12.492 s**: tmpfiles remained deliberately
+pending; the changed unit ran; /tmp stayed private, /var/tmp inaccessible and
+the system tree read-only. Only executable/P2/hardware paths were explicit guest
+fixtures; no CPU control or phone storage was touched. Neither is release PASS.
+Graph/sandbox log hashes:
+`c7c79097005c4d02e4be400f5886271e31e543a925b1a488a4d705a5dba643de` /
+`be21959abcee12bbcc3a8afc1ff3d572dac53b8ed8b061c1d4e49cf45d8617fb`.
+
+Two focused regressions failed before the two-line production fix (**0.329 s**).
+Afterward CPU-policy tests **10 PASS, 0.426/0.427 s** normal/optimized; cap tests
+**21 PASS, 0.307/0.305 s**; selector **37 PASS, 0.739 s**. The graph tests never
+install/start host units. Hosts older than systemd 257 explicitly skip only the
+two unsupported graph checks; static composition checks remain and this cannot
+substitute for the mandatory exact-target graph/namespace proof above.
+This power-policy change remains ineligible for observer fast admission.
+One new full local/exact-head integration checkpoint is required; receipt path
+is private `cpu-ordering-ci-r1`. No further candidate has been issued or booted.
