@@ -5111,3 +5111,47 @@ windows, at most 8 GiB written, and 10-second observations. The 3900-second tota
 deadline and all power/thermal/storage/identity protections remain. Frozen full
 local and exact-head validation are next; no physical soak has been attempted,
 and these tests do not qualify S07 or the final release.
+
+### S07 buffered-loop failure and bounded correction (2026-09-07)
+
+Frozen source `577557a86803bfe5b98ccafdb7209561174ce2d8` passed local CI
+**497.415 s** and all four jobs in remote **34096567487**. The accepted V4 kernel,
+DT, modules, root and boot bundle were reused byte-for-byte; no new boot/flash.
+The actual combined-load run was stopped cleanly after **618.199 s**, before
+wasting the remainder of the hour. It completed 19 cleaned 64 MiB file windows
+and 32 authenticated network transfers. At read-only closure, loop1 had read
+**34,493,964,288 bytes** but sda23 only **8192 bytes**; writes were respectively
+**1,280,344,064 / 1,369,858,048 bytes**. Required UFS reads for 19 windows were
+at least **1,275,068,416 bytes**. S07 is **FAIL**, not shortened PASS.
+
+Classification **R2/R9**: the test exercised the buffered loop's page cache, not
+the required underlying UFS reads. `loop1/loop/dio=0` and the fixed 4 GiB backing
+file were observed. This is not a demonstrated kernel/UFS defect. An explicit
+SIGINT stopped scheduling and joined both workers; the empty KeyboardInterrupt
+message is explained in the private stop record. No automatic retry occurred.
+Closure PASS **0.384 s**: unchanged boot `24db7908-5479-4d1a-a9cd-eeccbf1cb564`,
+authenticated SSH, scratch namespace absent, unchanged zero filesystem-error
+counters, Good health, **30.0°C / 8.553 V**. No reboot or persistent service edit.
+
+Durable private archive `s07-stopped-buffered-loop-r1.tar.gz` SHA-256:
+`b94d336dded0c229b87c836d32f948a3db22525de5f6e2174c8816f638a13e3c`.
+Archive readback verifies result/events/closure hashes; original raw files remain.
+Only 7.4 MiB of ignored Python caches moved recoverably to tmpfs for host reserve;
+no unique source, builds or evidence were deleted.
+
+Correction: advise the exact backing file's clean cache pages as well as the
+scratch inode, using read-only descriptor-relative no-follow opens and fixed
+owner/mode/device/size checks. No global drop_caches or loop/service changes.
+[Linux documents DONTNEED](https://man7.org/linux/man-pages/man2/posix_fadvise.2.html)
+as advisory: successful return alone is not physical-I/O proof. Keep real backing
+counters authoritative, now checked after each completed window rather than
+only after the hour. The captured discrepancy is an offline regression fixture.
+
+The new early-check regression fails against the original private coordinator
+(it finishes the observation window before rejecting) and passes against r2.
+Five coordinator tests PASS **5.488/5.482 s**, normal/optimized. Six worker tests
+PASS **3.218/3.086 s**, including no-write/symlink/mode/geometry/device rejection;
+exact phone Python fixtures PASS **14.005 s**, owned tmpfs cleanup verified.
+Eight observer tests PASS **0.004 s**. Full frozen integration is next; the cache
+correction has not yet been exercised on the live backing file. A private offline
+S07 consumer draft remains separate, unregistered and not qualification evidence.

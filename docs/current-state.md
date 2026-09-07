@@ -2,8 +2,9 @@
 
 Updated: 2026-09-07. S01–S04 batch passed on unchanged V4 artifacts.
 S05's three ordinary boots, pinned dispatcher replay and full local CI passed.
-All exact-head remote checks passed. S07's bounded soak worker is being
-qualified; the server remains running and the hour-long test has not started.
+All exact-head remote checks passed. S07 stopped with a test-composition failure:
+buffered loop reads did not reach UFS. The server remains running; qualify the
+bounded cache-advice/early-counter correction, not a new kernel.
 
 ## Goal and authority
 
@@ -29,7 +30,7 @@ Current authenticated boot: `24db7908-5479-4d1a-a9cd-eeccbf1cb564`.
 Three consecutive installed boots reached exact root, pinned SSH and healthy
 trial commits in **94.908/96.612/97.400 s**; total sequence **311.524 s**.
 Post-capture-cleanup SSH/root check PASS **1.026 s** on the third boot.
-Last telemetry: **Full/100%, Good, 29.8°C, 8.563 V, 0 mA**.
+Last closure telemetry: **Good, 30.0°C, 8.553 V**, same authenticated boot.
 This snapshot is not H03 charging-regulation qualification.
 
 USB SSH: `10.77.0.2`, pinned alias `169.254.77.2`.
@@ -86,7 +87,7 @@ These component results do **not** constitute one qualified final release.
 | S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
 | S05 three boots | Physical sequence PASS 311.524 s; dispatcher PASS 0.315 s at `2efa7cdf` |
 | S06 powered-off start | Requires verified off interval and physical start; ordinary reboot is not a substitute |
-| S07 combined soak | Worker/observer and exact phone Python fixtures pass; frozen CI then physical hour pending |
+| S07 combined soak | FAIL: buffered loop hid UFS reads; cleanup/SSH passed. Qualify correction, prove backing reads early, then measure a full hour |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
 H03's firmware-Full method is already defined; absent charge-limit controls
@@ -105,19 +106,18 @@ Only proven healthy startup allowed owned early closure; ambiguity or failure
 would keep full observation and forbid another reboot. No new RAM claim, flash,
 slot, GPT or raw-storage operation occurred. Do not repeat these boots.
 
-The S05 consumer replays pinned full S01 baseline, actual preflights, commands,
-raw root/health/stage evidence and closure. It checks original dependency bytes
-and timing against the observed revision; replay is not a new physical run.
-Private input: `s05-evidence-inputs-r1.json`, SHA-256
-`7a9bc83e1ca7006992fe64de3f8d0fae1abec5a9d0f9b70fc068b4f41f526a7c`.
-Do not count smoke evidence as full S01/R01 or final release qualification.
-
-S05 consumer `2efa7cdf` is pushed; full local CI PASS **497.398 s**, dispatcher
-PASS **0.315 s**, total unchanged-artifact assessment **49.920 s**.
-Remote **34092855927** passed all four checks. S07's worker, observer and private
-coordinator now have focused coverage; run one frozen local/exact-head checkpoint
-before the combined load. S06 still needs physical
-off/start conditions; do not silently substitute another ordinary reboot.
+S05's complete pinned evidence and original source identities remain in the
+dated report; do not repeat its three boots or relabel replay as live work.
+S07 source `577557a8` passed local CI **497.415 s** and all four remote jobs
+**34096567487**. Its run stopped after **618.199 s**, 19 cleaned scratch windows
+and 32 completed transfers. UFS reads were only **8192 bytes** despite **34.494 GB**
+of loop reads: a second page cache, not a demonstrated kernel fault.
+Same-boot read-only closure PASS **0.384 s**; scratch absent, ext4 counters zero.
+Private `s07-stopped-buffered-loop-r1.tar.gz` is durable/hash-verified.
+Next: freeze/qualify the correction once, then use `s07-combined-soak-r2.py`.
+Prove backing I/O after the first completed window, before continuing the full
+3600-second measurement. Never shorten/relabel the failed run as PASS.
+S06 needs physical off/start conditions, not another ordinary reboot.
 Full S04 evidence and the earlier failed R7 capture remain in the
 [dated report](../test-results/2026-09-05-headless-acceptance.md).
 The mutable GitHub merge-ref race is fixed and verified at `93d6ee17`; do not
@@ -142,18 +142,13 @@ The impact/dependency selector checkpoint `d75359b7` and receiver correction
 `884a1a41` remain complete. Historical timings and preserved failures are linked
 from the dated report, not another active ledger.
 
-S07 read-only preparation PASS **0.917 s** on the current boot: scratch namespace
-absent, **3.974 GB** available, 726 contiguous kernel records, all three relevant
-ext4 error counters present/zero, cache-advice support available. The early SPMI
-WARN is the previously recorded boot warning, not a new failure. Private draft
-worker tests pass on disposable filesystems; exact phone Python **3.14.7** tests
-PASS **13.787 s** normal/optimized with verified `/run` tmpfs cleanup. All five
-tested source hashes still match. No persistent soak write has run. Observer
-tests cover logs, counters, actual I/O and the 3600/3900 s timing contract.
-Four private coordinator tests pass normal/optimized, including refusal before
-writes, ambiguity, endpoint mismatch and log loss. The private runner is
-`s07-combined-soak-r1.py`; it must verify current full local and exact-head CI
-before any credential use. Use one new private `/tmp` output directory because
-home has only about 5 MiB above the 3 GiB reserve; retain raw logs and archive
-them durably before host reboot. Do not delete build/evidence data or reduce the
-reserve to run a test. Next freeze this batch, validate, then run S07 once.
+S07 correction: fixed-file, descriptor-relative read-only cache advice on the
+verified 4 GiB service-state backing file plus scratch-inode advice. No global
+cache drop, loop reconfiguration or accepted-service edit. Six worker tests pass
+**3.218/3.086 s**; exact phone Python fixtures pass **14.005 s**, normal/optimized,
+owned /run cleanup verified. This is not proof of physical cache eviction.
+The observed counter discrepancy is a fixture; five private coordinator tests
+pass **5.488/5.482 s**, including early refusal and stopped workers.
+Keep the 3 GiB host reserve. Ignored Python caches were moved recoverably to
+tmpfs; no source/build/evidence deletion. Use private tmpfs for new test logs,
+then verify a durable archive before reboot. Do not repeat unchanged suites.

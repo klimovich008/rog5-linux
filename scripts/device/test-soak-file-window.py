@@ -8,6 +8,33 @@ def load(name,path):
 M=load('soak_window',HERE/'soak-file-window.py');F=load('soak_fixture',HERE/'test-durability-target.py')
 OPS=(HERE/'durability-file-ops.py').read_text();GUARD=(HERE/'durability-target.py').read_text()
 class Tests(unittest.TestCase):
+ def test_backing_cache_advice_is_fixed_read_only_and_rejects_bad_files(self):
+  for wrong in (None,'symlink','mode','size','device'):
+   with self.subTest(wrong=wrong),tempfile.TemporaryDirectory() as tmp:
+    root=Path(tmp);parent=root/'.rog5/userdata-rw/rog5/state';parent.mkdir(parents=True)
+    path=parent/'server-state-v1.ext4'
+    with path.open('wb') as f:f.truncate(4*1024**3 if wrong!='size' else 4096)
+    path.chmod(0o600 if wrong!='mode' else 0o666)
+    if wrong=='symlink':
+     path.rename(parent/'retained');path.symlink_to('retained')
+    opened=os.open;fstat=os.fstat;calls=[]
+    def fixture_open(name,flags,*args,**kwargs):
+     calls.append((name,flags));return opened(tmp if name=='/' else name,flags,*args,**kwargs)
+    def root_owner(fd):
+     s=list(fstat(fd));s[4]=s[5]=0;return os.stat_result(s)
+    dev=path.stat().st_dev;device=f'{os.major(dev)}:{os.minor(dev)}'
+    guard=dict(read=lambda name:device if wrong!='device' else '999:999',observe=lambda:{},validate=lambda *unused:None)
+    with patch.object(M.os,'open',side_effect=fixture_open),patch.object(M.os,'fstat',side_effect=root_owner), \
+         patch.object(M.os,'posix_fadvise') as advise:
+     if wrong:
+      with self.assertRaises((ValueError,OSError)):M.backing_advice(guard,{})
+      advise.assert_not_called()
+     else:
+      M.backing_advice(guard,{})
+      self.assertEqual(advise.call_count,1)
+      self.assertEqual(advise.call_args.args[1:],(0,4*1024**3,os.POSIX_FADV_DONTNEED))
+     self.assertTrue(all(not flags&(os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC) for _,flags in calls))
+     self.assertTrue(all(flags&os.O_NOFOLLOW for _,flags in calls))
  def exercise(self,parent,*,failure=None):
   g=M.load(GUARD,'fixture_guard');state=F.snapshot();time=[0];base_load=M.load;fstat=os.fstat
   g['observe']=lambda:copy.deepcopy(state);g['opened_parent']=lambda scope:os.dup(parent)
@@ -23,8 +50,10 @@ class Tests(unittest.TestCase):
    if failure=='scope':state['blocks']['fixture0']='0'
    if failure=='boot':state['boot']='different'
   def namespaces(raw,name):return g if name=='qualified-durability-target' else base_load(raw,name)
-  with patch.object(M,'load',side_effect=namespaces):
-   return M.run(F.request('prepare'),OPS,GUARD,clock=lambda:time[0],pause=pause)
+  with patch.object(M,'load',side_effect=namespaces),patch.object(M,'backing_advice') as backing:
+   result=M.run(F.request('prepare'),OPS,GUARD,clock=lambda:time[0],pause=pause)
+   self.assertEqual(backing.call_count,result['readbacks'])
+   return result
  def test_real_write_fsync_uncached_readback_and_cleanup(self):
   with tempfile.TemporaryDirectory() as tmp:
    fd=os.open(tmp,os.O_RDONLY|os.O_DIRECTORY)

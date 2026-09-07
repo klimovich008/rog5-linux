@@ -12,6 +12,32 @@ def require(ok,reason):
  if not ok:raise ValueError(reason)
 def load(raw,name):
  result={'__name__':name};exec(compile(raw,name,'exec'),result);return result
+def backing_advice(guard,request):
+ # loop1 is buffered: evict its fixed backing file's clean pages as well as
+ # the scratch inode below. No global drop_caches, loop flag or service edit.
+ guard['validate'](guard['observe'](),request)
+ parent=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+ try:
+  for component in ('.rog5','userdata-rw','rog5','state'):
+   child=os.open(component,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=parent)
+   os.close(parent);parent=child;s=os.fstat(parent)
+   require(s.st_uid==s.st_gid==0 and not s.st_mode&0o022,'unsafe backing directory')
+  name='server-state-v1.ext4'
+  fd=os.open(name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=parent)
+  try:
+   s=os.fstat(fd);device=guard['read']('/sys/class/block/sda23/dev').split(':')
+   require(len(device)==2 and all(v.isdecimal() for v in device),'backing device identity')
+   require(stat.S_ISREG(s.st_mode) and s.st_uid==s.st_gid==0 and stat.S_IMODE(s.st_mode)==0o600
+    and s.st_nlink==1 and s.st_size==4*1024**3 and s.st_dev==os.makedev(*map(int,device)),
+    'unexpected backing file identity/geometry')
+   def same():
+    current=os.stat(name,dir_fd=parent,follow_symlinks=False)
+    require(stat.S_ISREG(current.st_mode) and (current.st_dev,current.st_ino)==(s.st_dev,s.st_ino),
+     'backing pathname changed')
+   same();os.posix_fadvise(fd,0,s.st_size,os.POSIX_FADV_DONTNEED);same()
+   guard['validate'](guard['observe'](),request)
+  finally:os.close(fd)
+ finally:os.close(parent)
 def run(request,ops_source,guard_source,*,clock=time.monotonic,pause=time.sleep):
  ops=load(ops_source,'qualified-durability-file-ops')
  guard=load(guard_source,'qualified-durability-target')
@@ -33,6 +59,7 @@ def run(request,ops_source,guard_source,*,clock=time.monotonic,pause=time.sleep)
    record=ops['prepare'](fd,'s04-'+request['nonce'][:32],request['nonce'],SIZE,gate)
    while True:
     gate(True)
+    backing_advice(guard,request)
     child=ops['child'](fd,record['name'])
     try:
      file=os.open('scratch.bin',os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=child)
