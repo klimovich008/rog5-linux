@@ -88,7 +88,8 @@ class TierSelectorTest(unittest.TestCase):
         self.assertFalse(d['eligible'])
 
     def test_cpu_power_cap_is_critical_even_when_mixed_with_observer(self):
-        for path in ('scripts/device/cpu-frequency-cap.py','scripts/device/power-profile.sh'):
+        for path in ('scripts/device/cpu-frequency-cap.py','scripts/device/power-profile.sh',
+                     'scripts/device/headless-cpu-policy.py','packaging/arch/rog5-headless-cpu-policy.service'):
             d=MODULE.development_decision([path,'scripts/host/check-standalone-root.py'])
             self.assertIn('critical-runtime',d['impact_categories'])
             self.assertEqual(d['tier'],'ci')

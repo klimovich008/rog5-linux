@@ -1,7 +1,7 @@
 # ROG5 current state
 
 Updated 2026-09-07: bounded CPU-cap diagnostic PASS; S07 release soak still outstanding.
-Next: integrate the demonstrated CPU policy into a coherent release, then qualify it.
+Next: validate the boot-integrated CPU policy, package a successor, then qualify it.
 
 ## Goal and authority
 
@@ -109,6 +109,11 @@ All workers stopped and new scratch children were removed; prior evidence remain
 Caps 1.2096/1.5552/1.5552 GHz are a demonstrated mitigation, not installed policy.
 Next: boot-integrated headless CPU policy using existing packaging, then full
 coherent-release qualification. Keep kernel/archive cache reuse and all guards.
+Boot integration is implemented but not deployed: explicit composer opt-in,
+one-shot service after P2/before radio, fixed three-sysfs-attribute write scope,
+no display dependency or daemon. Failed setup still restores prior limits.
+Focused normal/optimized and archive tests pass; full frozen CI, exact-target
+systemd sandbox/composition checks and successor admission are still required.
 It is critical power behavior, not a low-risk observer shortcut or release PASS.
 Do not label this temporary cap diagnostic as S07 PASS or retry the uncapped soak.
 S02 Wi-Fi upload took 178.391 s against a 180 s bound: PASS with little margin,

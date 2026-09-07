@@ -17,6 +17,23 @@ class Backend:
   if self.failure and len(self.writes)==self.failure:raise OSError('injected write failure')
   self.value[name]['maximum']=value
 class Tests(unittest.TestCase):
+ def test_retained_policy_is_explicit_and_never_reports_restoration(self):
+  b=Backend();result=M.run(b,lambda:None,lambda:None,retain_on_success=True)
+  self.assertEqual({n:p['maximum'] for n,p in b.snapshot().items()},M.CAPS)
+  self.assertEqual(len(b.writes),3);self.assertTrue(result['policy_retained'])
+  self.assertEqual(result['restoration'],'NOT REQUESTED');self.assertFalse(result['release_qualified'])
+  # Ordinary service restart is idempotent; it never raises an existing cap.
+  again=M.run(b,lambda:None,lambda:None,retain_on_success=True)
+  self.assertEqual(again['after'],result['after'])
+ def test_retention_failure_restores_and_invalid_option_never_writes(self):
+  b=Backend();original=b.snapshot()
+  def fail():raise ValueError('service setup failed')
+  with self.assertRaises(ValueError):M.run(b,lambda:None,fail,retain_on_success=True)
+  self.assertEqual(b.snapshot(),original)
+  for value in (1,'yes',None):
+   b=Backend()
+   with self.assertRaises(ValueError):M.run(b,lambda:None,lambda:None,retain_on_success=value)
+   self.assertEqual(b.writes,[])
  def test_async_qos_apply_and_restore(self):
   class Delayed(Backend):
    def __init__(self):super().__init__();self.pending={}

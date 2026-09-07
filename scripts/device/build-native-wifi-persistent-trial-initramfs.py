@@ -103,13 +103,16 @@ def compose(base, expected_base, descriptor, helper):
     }
 
 
-def compose_successor(base, expected_base, descriptor, helper, *, refresh_userspace=False):
+def compose_successor(base, expected_base, descriptor, helper, *, refresh_userspace=False,
+                      headless_cpu_policy=False):
     """Refresh an execution identity; optionally recompose repository radio units.
 
     Kernel/init/storage composition is separate. Hardware payloads, firmware
     and modules are preserved. Explicit refresh installs the canonical helper;
     identity-only successors still require the retained helper to match it.
     """
+    require(type(headless_cpu_policy) is bool and (not headless_cpu_policy or refresh_userspace),
+            'CPU policy requires explicit userspace refresh')
     require(sha(base) == expected_base, 'base hash mismatch')
     trial = ARCHIVE.parse_trial_descriptor(descriptor)
     require(sha(helper) == ARCHIVE.TRIAL_HELPER_SHA256, 'trial helper hash mismatch')
@@ -168,6 +171,8 @@ def compose_successor(base, expected_base, descriptor, helper, *, refresh_usersp
                 else:
                     ARCHIVE.add(members, name, data, mode)
                 changed.add(name)
+    if refresh_userspace and (headless_cpu_policy or prefix+'cpu-frequency-cap.py' in members):
+        changed.update(ARCHIVE.install_headless_cpu_policy(members))
     checks = ''.join(
         f'{sha(data)}  {name[len(prefix):]}\n'
         for name, (fields, data) in sorted(members.items())
@@ -203,8 +208,12 @@ def main():
     parser.add_argument('--successor', action='store_true')
     parser.add_argument('--refresh-userspace', action='store_true',
                         help='with --successor, refresh repository radio userspace as one composition')
+    parser.add_argument('--headless-cpu-policy', action='store_true',
+                        help='with --successor --refresh-userspace, include the tested fixed CPU limits')
     args = parser.parse_args()
     require(not args.refresh_userspace or args.successor, 'userspace refresh requires --successor')
+    require(not args.headless_cpu_policy or (args.successor and args.refresh_userspace),
+            'CPU policy requires successor userspace refresh')
     require(re.fullmatch(r'[0-9a-f]{64}', args.expected_base_sha256), 'invalid base SHA-256')
     record = Path(str(args.output)+'.json')
     require(not os.path.lexists(args.output) and not os.path.lexists(record),
@@ -212,6 +221,8 @@ def main():
     started = time.monotonic()
     composer = compose_successor if args.successor else compose
     options = {'refresh_userspace': True} if args.refresh_userspace else {}
+    if args.headless_cpu_policy:
+        options['headless_cpu_policy'] = True
     packed, result = composer(args.base.read_bytes(), args.expected_base_sha256,
                               args.trial_descriptor.read_bytes(),
                               args.trial_helper.read_bytes(), **options)

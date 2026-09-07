@@ -167,6 +167,44 @@ def render_boot_template(path, values):
     return text.encode()
 
 
+def headless_cpu_files():
+    return {
+        'cpu-frequency-cap.py': REPO/'scripts/device/cpu-frequency-cap.py',
+        'headless-cpu-policy.py': REPO/'scripts/device/headless-cpu-policy.py',
+        'units/rog5-headless-cpu-policy.service': REPO/'packaging/arch/rog5-headless-cpu-policy.service',
+    }
+
+
+def install_headless_cpu_policy(members):
+    prefix = 'rog5-native-wifi/'
+    if prefix+'display-diagnostic' in members:
+        raise ValueError('headless CPU policy is not a display diagnostic')
+    changed = set()
+    for name, path in headless_cpu_files().items():
+        name = prefix+name
+        if name in members:
+            if members[name][0][1:5] != [stat.S_IFREG | 0o644, 0, 0, 1]:
+                raise ValueError('CPU policy member metadata')
+            replace(members, name, path.read_bytes())
+        else:
+            add(members, name, path.read_bytes(), stat.S_IFREG | 0o644)
+        changed.add(name)
+    return changed
+
+
+def verify_headless_cpu_composition(members):
+    files = headless_cpu_files()
+    prefix = 'rog5-native-wifi/'
+    if not any(prefix+name in members for name in files):
+        return  # Explicit opt-in; historical archives keep their original policy.
+    for name, path in files.items():
+        entry = members.get(prefix+name)
+        if entry is None or entry[0][1:5] != [stat.S_IFREG | 0o644, 0, 0, 1] or entry[1] != path.read_bytes():
+            raise ValueError('CPU policy composition mismatch: '+name)
+    if prefix+'display-diagnostic' in members:
+        raise ValueError('CPU policy/display diagnostic mismatch')
+
+
 def verify_radio_composition(members):
     """Refusal producer, service consumers and rollback are one target ABI.
 
@@ -174,6 +212,7 @@ def verify_radio_composition(members):
     refresh the radio while silently keeping older consumers. Recompose the
     small target archive when this ABI changes; no kernel build is needed.
     """
+    verify_headless_cpu_composition(members)
     prefix = 'rog5-native-wifi/'
     for name, (mode, data) in wifi_iw_files().items():
         entry = members.get(name)
