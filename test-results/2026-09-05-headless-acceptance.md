@@ -4871,3 +4871,46 @@ this capture-producer change. All four jobs in remote **34082298535** passed:
 head-exact, merge-compat, publication and QEMU. No physical operation
 followed this correction. These checks do not retrospectively qualify the
 earlier failed capture or count a missing repeated-boot/soak result as PASS.
+
+### Fresh ordinary boot and S04 evidence integration (2026-09-07)
+
+At clean `62127ec943be8c4ff7685ad90658a13b7ae7856d`, read-only current-root
+precheck PASS **0.738 s**. The fresh ordinary coordinator reused CI at exact
+`884a1a41` only after proving that subsequent changes were the two named current/
+result documents; original CI source and log hash were retained, not relabeled.
+Installed boot-B, five signed bundle files, selector, V11 fallback manifest,
+shutdown, power and local-root preflight PASS **3.725 s**.
+
+Exactly one ordinary reboot reached authenticated SSH/local root in **84.956 s**,
+boot `49c7c467-a268-4cd8-8277-f078d4a6795d`. Receiver exit **0**, duration
+**1380.532 s**, complete supervision **1385.625 s**, all four host cleanup steps
+PASS. Eight stage frames and 28 startup observations belong to that boot.
+No transport exception occurred: this cycle proves complete operation with the
+qualified receiver, not physical execution of its new bounded-error branch.
+The prior S04 capture remains FAIL. No flash, slot operation, candidate retry,
+scratch write or charging-control write occurred in this new boot cycle.
+
+The complete S01 evaluator PASS, then `rog5-dev accept release --test-id S01`
+PASS **0.215 s**; total dispatcher/artifact validation **72.882 s**.
+The initial mistaken `device-smoke` selection was rejected before execution;
+S01 correctly belongs to the release tier. All unselected mandatory outcomes
+remain NOT RUN, `qualified=false`. Input SHA-256:
+`0e95802a21f926889de2153d000dd3bc9a93ba1c76977bb39b7b878e64edd83f`;
+dispatcher S01 proof:
+`563d7044ec1c537fa56b03f2cf848ffd1ac6c0b4c92a70d552ebaca820118307`.
+Post-cleanup root/SSH PASS **0.886 s**, Full/100%, Good, 29.8°C, 8.568 V,
+0 mA and USB online. This snapshot is not the sustained H03 series.
+
+While capture ran, the pending S04 consumer stayed outside the frozen tree.
+Four additional outer-gate tests prove failed/missing before-or-after capture
+and altered pinned evidence cannot reach the successful file-component check.
+Fourteen private tests PASS **2.125/2.311 s** normal/optimized. The patch then
+applied and compiled in a small isolated preview; no kernel/wrapper build or
+active-input modification was needed. After capture and S01 dispatcher closed,
+the consumer was integrated into the existing runtime runner and mandatory S04
+row, using the existing `--runtime-inputs` mechanism, not another framework.
+It verifies both S01 captures, source/command hashes, raw roots, phase order,
+payload contents, the original 660-second file bound and exact cleanup.
+Public focused checks PASS: 14 S04 tests **2.280/2.193 s**, 47 dispatcher tests
+**3.699 s**, 12 existing runtime tests **0.661 s**. Frozen full CI remains the
+next integration gate; the old failed S04 cycle cannot qualify under this code.

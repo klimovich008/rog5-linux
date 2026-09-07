@@ -1,7 +1,7 @@
 # ROG5 current state
 
-Updated: 2026-09-07. S04 file/reboot/readback passed; full qualification remains
-blocked by a pre-target host capture classification. The phone is accessible.
+Updated: 2026-09-07. Fresh S01 ordinary boot/capture qualification passed.
+S04's complete evidence consumer is integrated; frozen CI is next.
 
 ## Goal and authority
 
@@ -23,11 +23,11 @@ Ordinary accepted-release reboots are distinct from experimental claim retries.
 ## Installed release and current access
 
 Bundle `headless-server-selector-v4`, kernel `7.1.4-gf17befd4ef17`.
-Current authenticated boot: `355266ac-6ec4-4880-8fa7-a2e2d6589dad`.
+Current authenticated boot: `49c7c467-a268-4cd8-8277-f078d4a6795d`.
 The latest ordinary installed boot reached strict-key SSH/local root in
-**86.377 s**; the preceding ordinary boot took **85.531 s**.
-Post-capture-cleanup SSH/root check PASS **0.780 s** on the same new boot.
-Last telemetry: **Full/100%, Good, 29.9°C, 8.567 V, -7 mA**, USB online.
+**84.956 s**; previous ordinary boots took **85.531/86.377 s**.
+Post-capture-cleanup SSH/root check PASS **0.886 s** on the same new boot.
+Last telemetry: **Full/100%, Good, 29.8°C, 8.568 V, 0 mA**, USB online.
 This snapshot is not H03 charging-regulation qualification.
 
 USB SSH: `10.77.0.2`, pinned alias `169.254.77.2`.
@@ -78,7 +78,7 @@ These component results do **not** constitute one qualified final release.
 | F02 Wi-Fi restart | PASS replay 0.816 s on unchanged artifacts; original live source retained |
 | H01/H02 | Capture/startup components exist; radio-inactive same-release H02 not qualified |
 | H03 regulation | Earlier V8 Full-maintenance PASS, not a V4 same-release PASS |
-| S01 local boot | Earlier complete acceptance PASS 0.266 s; latest boot capture returned FAIL as described below |
+| S01 local boot | Fresh full capture/cleanup PASS; dispatcher PASS 0.215 s at `62127ec9` |
 | S02 transfers | Physical PASS 298.494 s; dispatcher PASS 3.522 s |
 | S03 service restarts | Physical PASS 33.648 s; dispatcher PASS 0.215 s |
 | S04 durability | Physical file component PASS 93.252 s; full capture/dispatcher qualification incomplete |
@@ -113,14 +113,20 @@ Offline reproduction now covers this expected teardown. The correction allows
 up to three read-only rechecks within 150 ms, capped by the capture deadline;
 only classified pre-target descriptor loss followed by actual absence qualifies.
 Unclassified errors and identity/network/post-target failures remain fatal.
-Next: prepare the next independently required ordinary boot using fresh
-evidence under qualified receiver code `884a1a41`. Do not boot merely to fix
-this parser or relabel the
-old capture. Changing this producer invalidates old S01 dependency reuse.
-The S04 replay draft and synthetic tests are private; the pending integration
-patch is **not applied**. Its complete-evidence builder correctly refuses the
-failed capture. Resolve that evidence question before admission/qualification.
-The old scratch plan is bound to the prior boot; do not reuse it on this boot.
+Fresh `ordinary-boot-r2` at `62127ec9` is terminal: receiver **1380.532 s**,
+exit **0**, supervision **1385.625 s**, all four cleanup steps PASS.
+The complete S01 replay and acceptance entry point PASS. Eight stage frames and
+28 startup records belong to the new boot; there were no transport exceptions.
+This does not claim the 150 ms exception branch was exercised physically.
+Private `ordinary-boot-r2-evidence` and `ordinary-boot-r2-acceptance` retain pins
+and the matrix. No flash, new claim or scratch write occurred in this cycle.
+
+S04's tested replay consumer is now integrated into the existing runtime runner.
+Next: freeze/qualify that integration, then create a fresh scope/nonce/file plan
+bound to this successful S01 boot. Reuse unchanged target runtime evidence only
+after checking its exact dependencies. One subsequent scoped file/reboot cycle
+must provide matching clean capture and cleanup; the old failed cycle/plan is
+never reused or relabeled. No kernel or wrapper rebuild is required.
 
 ## Fast loop / validation checkpoint
 
@@ -140,5 +146,5 @@ Historical implementation detail and timing are in the dated report.
 
 Receiver correction `884a1a41`: 31 receiver tests and 24 boot-evidence tests
 PASS; full local CI PASS **487.068 s**. All four remote jobs in **34082298535**
-PASS. No device action under this code yet. The following documentation-only
-checkpoint does not relabel those tests as executing newer source.
+PASS. Fresh ordinary-r2 used those unchanged receiver bytes with original CI
+attribution retained. The new S04 consumer integration needs its own frozen CI.

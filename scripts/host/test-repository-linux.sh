@@ -206,6 +206,7 @@ shared_tests=(
 	scripts/device/test-durability-file-ops.py
 	scripts/device/test-durability-target.py
 	scripts/host/test-durability-phase.py
+	scripts/host/test-storage-durability-evidence.py
 	scripts/host/test-repository-linux-runner-contract.sh
 	scripts/device/test-probe-network-root-battery-telemetry.sh
 	scripts/device/test-inspect-local-image-partial.sh

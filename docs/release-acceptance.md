@@ -31,9 +31,16 @@ bounded to 64 MiB. Verify requires a different authenticated boot; cleanup
 requires the exact successful verification and unchanged source/input hashes.
 The coordinator must qualify the storage-test code, establish capture, perform
 the separately supervised ordinary reboot and enforce S04's overall deadline.
-A phase PASS does **not** qualify S04; its matrix row remains unimplemented until
-the complete physical sequence has a tested evidence consumer. Exact-target
-fixtures may use an owned `/run` tmpfs directory, never the service-state image.
+A phase PASS does **not** qualify S04. Supply the completed sequence with
+`--runtime-inputs S04=ABSOLUTE_PATH,SHA256` to `rog5-dev accept release`.
+The `rog5-storage-durability-evidence-v1` input binds all three phase reports,
+raw target/root evidence, plan/scope, entry and complete before/after S01 inputs.
+The existing runtime runner replays both S01 captures, checks the exact observed
+file-operation source, independently derives the 64 MiB payload hash and verifies
+phase order, the 660-second file-cycle bound and exact cleanup. Independent
+capture must still finish its full window; file success cannot hide capture loss.
+Replay performs no phone contact or storage action. Exact-target fixtures may
+use an owned `/run` tmpfs directory, never the service-state image.
 
 `--release` accepts private `rog5-release-inputs-v1` JSON with `candidate_id`,
 `source_revision` and `artifacts`: `kernel`, `dtb`, `initramfs`, `rootfs`,
