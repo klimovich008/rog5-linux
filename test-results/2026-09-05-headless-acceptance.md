@@ -4681,3 +4681,47 @@ This proves one ordinary local boot, **not** three boots, powered-off startup,
 S02 transfers, sustained charging, endurance or controlled failed-boot recovery.
 Next: qualify the frozen replay integration, then use the running server for
 S02. No extra phone boot or target rebuild was consumed for this binding.
+
+### S01 integration and live S02/S03 progression
+
+Frozen **`f641fec9be5bf4d5d4a776f4245e6faaabab77d0`** passed full local CI
+**515.382 s**; log SHA-256
+`b47449a5b54fcd7406e5e36d4dcd3566d06cded0e1f8988b68cbfd871b6b1ff9`.
+This overlapped artifact hashing and phone transfer work, versus 477.118 s for
+the preceding workflow checkpoint; it is not evidence that CI itself became
+faster. S01 through the actual acceptance dispatcher PASS **0.266 s**; other
+rows remained NOT RUN and release qualified stayed false. The published
+run **34075265459** has passed head-exact, merge-compat and candidate-publication;
+qemu-system is still running at this checkpoint. No full remote PASS implied.
+
+S02's isolated, in-memory Python/SSH endpoints moved **256 MiB each way**:
+USB upload/download **9.169 / 7.733 s**; Wi-Fi **167.289 / 106.029 s**.
+All hashes matched within the unchanged **180 s/direction, 720 s total**
+bounds; total **298.494 s**. Host source/interface and authenticated target
+socket/reverse route were bound explicitly. The DHCP address was rediscovered.
+During transfers, a two-second target guard checked identity, input power,
+battery/thermal limits and block write scope. No payload file, service
+configuration, radio activation, reboot or persistent write was needed.
+The original eleven stream regressions plus six private endpoint tests passed.
+Private `s02-transfer-live-r1` retains source/scripts, identities and observations.
+
+S03 initially FAILed at **4.474 s**: health restart passed, the SSH restart
+command returned zero, then its first read-only reconnect was refused. No
+restart was repeated inside that failed operation. A later authenticated
+same-boot check passed. This is **R4/R6 host-test reconnect handling**, not a
+demonstrated kernel defect; the old report/source remain immutable.
+Four regressions use the captured refusal and reject host-key/other failures
+and unbounded waiting. Only read-only reconnect probes are retried within
+eight seconds; action dispatch is never retried. A new ordinary-service
+qualification run then passed in **33.648 s**: health **1.841 s**, SSH
+**2.561 s**, WPA **18.093 s**, DHCP **9.309 s**. Each requested restart occurred
+once; expected DHCP propagation was checked, all other invocation identities
+remained unchanged, and both transports authenticated on the same boot.
+Private `s03-services-live-r1/r2` retain the original failure and corrected run.
+
+End state: same boot `26f9f5e7-a3e1-463f-b9e5-7e6ba3bdaaf7`,
+Full/100%, Good, **30.0°C, 8.569 V, 0 mA**, USB online.
+S02/S03 are physical evidence, but their existing dispatcher rows still need
+pinned replay binding. They do not complete H03, storage durability, three
+ordinary boots, powered-off startup, 60-minute combined soak or R01.
+No new kernel/wrapper build, flash, claim consumption or GPT operation occurred.
