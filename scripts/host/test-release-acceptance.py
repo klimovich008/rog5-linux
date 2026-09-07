@@ -147,6 +147,44 @@ class AcceptanceTest(unittest.TestCase):
             run=subprocess.run([sys.executable,str(SOURCE),*arguments,'--list'],capture_output=True,text=True,timeout=5)
             self.assertNotEqual(run.returncode,0)
 
+    def test_runtime_evidence_missing_and_zero_exit_are_not_success(self):
+        for kind in ('S02','S03'):
+            test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']==kind))
+            self.assertTrue(test['commands'])
+            with tempfile.TemporaryDirectory() as tmp:
+                release=dict(candidate_id='fixture',artifact_paths=dict(kernel='/unused',initramfs='/unused'))
+                row=M.run_one(test,Path(tmp),release)
+                self.assertEqual(row['status'],'BLOCKED')
+                self.assertIn('--runtime-inputs',row['next_action'])
+                test['commands']=[[sys.executable,'-c','pass']]
+                self.assertEqual(M.run_one(test,Path(tmp),release)['status'],'FAIL')
+
+    def test_runtime_input_cli_rejects_duplicate_unknown_relative_and_missing_pin(self):
+        for values in (['S04=/tmp/input,'+'a'*64],['S02=relative,'+'a'*64],
+                       ['S02=/tmp/input'],['S02=/tmp/input,'+'a'*64]*2):
+            args=[token for value in values for token in ('--runtime-inputs',value)]
+            p=subprocess.run([sys.executable,str(SOURCE),'release','--list',*args],capture_output=True,text=True,timeout=5)
+            self.assertNotEqual(p.returncode,0)
+
+    def test_runtime_proof_requires_exact_pinned_input_and_artifacts(self):
+        for kind in ('S02','S03'):
+            test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']==kind))
+            test['commands']=[[sys.executable,'-c','pass']]
+            for mutation in ('none','pin','source','artifact','qualified'):
+                with self.subTest(kind=kind,mutation=mutation),tempfile.TemporaryDirectory() as tmp:
+                    root=Path(tmp);(root/kind).mkdir();inputs=root/'inputs';inputs.write_text('{}')
+                    pin=M.sha_file(inputs);release=dict(candidate_id='fixture',artifacts={'initramfs':dict(sha256='a'*64)})
+                    proof=dict(status='PASS',**{kind.lower()+'_qualified':True},source=M.source_identity(),candidate='fixture',
+                        artifact_hashes={'initramfs':'a'*64},inputs_sha256=pin,original_source=dict(revision='b'*40),
+                        runner_sha256=M.sha_file(M.REPO/'scripts/host/check-server-runtime-evidence.py'))
+                    if mutation=='pin':proof['inputs_sha256']='d'*64
+                    if mutation=='source':proof['source']={}
+                    if mutation=='artifact':proof['artifact_hashes']={}
+                    if mutation=='qualified':proof[kind.lower()+'_qualified']=False
+                    (root/kind/'result.json').write_text(json.dumps(proof))
+                    row=M.run_one(test,root,release,runtime_inputs={kind:(inputs,pin)})
+                    self.assertEqual(row['status'],'PASS' if mutation=='none' else 'FAIL',row)
+
     def test_s01_missing_evidence_is_blocked_without_phone_contact(self):
         test=next(t for t in self.contract['tests'] if t['id']=='S01')
         self.assertTrue(test['commands'])

@@ -289,6 +289,24 @@ source and current assessment source remain separate; no relabeling old tests.
 Artifact bytes and relevant producer dependencies must still match. Other
 mandatory outcomes remain NOT RUN, including repeated boots and recovery.
 
+`rog5-dev check-server-runtime --kind S02|S03` replays completed transfer or
+restart evidence. It uses the same pinned-file convention, adds matching
+five-role A01/S01 evidence, and never executes retained private coordinator
+source. S02 recomputes all four 256 MiB nonce-derived hashes and checks raw
+before/after service snapshots and exact link identities. S03 validates
+restart propagation, unchanged radio/core identities and four authenticated
+Wi-Fi confirmations. Only the captured immediate SSH connection refusal is
+accepted as a bounded read-only reconnect, never an action retry or host-key
+failure. Original 180-second transfer and 40-second restart bounds remain.
+
+The existing dispatcher takes `--runtime-inputs S02=ABSOLUTE_PATH,SHA256`
+and/or `--runtime-inputs S03=ABSOLUTE_PATH,SHA256`, with `--release` and
+selected `--test-id` values. Inputs use format
+`rog5-server-runtime-evidence-v1`; fixed evidence roles and bounded numbered
+stdout/stderr roles are checked by the runner. Missing inputs are BLOCKED,
+altered/incomplete evidence FAIL. Evaluator source is distinct from the
+original observed source; replay cannot qualify a different artifact set.
+
 Every row's environment, prerequisites, runner, deadline, outcome, mutation,
 cleanup and evidence contract is in the JSON. Empty command lists carry explicit
 implementation blockers; they are not placeholders that return success.
