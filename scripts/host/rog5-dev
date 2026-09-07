@@ -34,7 +34,7 @@ case $action in
       'rog5-dev check-standalone-root --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --boot-id BOOT_ID --identity-file KEY --known-hosts PINNED_HOSTS --output PRIVATE_NEW_DIRECTORY (read-only component; not S01 boot qualification)' \
       'rog5-dev check-standalone-boot --inputs PRIVATE_RECEIPT --inputs-sha256 SHA256 --candidate PROFILE --artifact-hashes ROLE=SHA256,... --output PRIVATE_NEW_DIRECTORY (offline S01 replay; no boot)' \
       'rog5-dev durability-phase --help (one scoped S04 file phase; no reboot, retry or release PASS)' \
-      'rog5-dev check-server-runtime --kind S02|S03 --inputs PRIVATE_RECEIPT --inputs-sha256 SHA256 --candidate PROFILE --artifact-hashes ROLE=SHA256,... --output PRIVATE_NEW_DIRECTORY (offline replay; no phone contact)' \
+      'rog5-dev check-server-runtime --kind S02|S03|S04 --inputs PRIVATE_RECEIPT --inputs-sha256 SHA256 --candidate PROFILE --artifact-hashes ROLE=SHA256,... --output PRIVATE_NEW_DIRECTORY (offline replay; no phone contact)' \
       'rog5-dev check-rescue-startup --cycle PRIVATE_CYCLE --execution-record EXACT_RECORD --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-package-keyring --output PRIVATE_NEW_DIRECTORY' \

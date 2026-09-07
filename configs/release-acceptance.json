@@ -110,6 +110,8 @@
         ["python3", "-O", "scripts/host/test-check-standalone-boot.py"],
         ["python3", "scripts/host/test-server-runtime-evidence.py"],
         ["python3", "-O", "scripts/host/test-server-runtime-evidence.py"],
+        ["python3", "scripts/host/test-storage-durability-evidence.py"],
+        ["python3", "-O", "scripts/host/test-storage-durability-evidence.py"],
         [
           "python3",
           "-O",
@@ -626,7 +628,7 @@
         "S01 PASS",
         "explicit authorized writable directory/size receipt"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-server-runtime-evidence.py", "--kind", "S04", "--inputs", "{runtime_inputs}", "--inputs-sha256", "{runtime_inputs_sha256}", "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 660,
       "pass_condition": "One <=64MiB owned scratch file, fsync file+directory, readback SHA; after ordinary reboot same bytes; cleanup only exact owned file.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -639,7 +641,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "No storage operation until exact authorized scratch scope is bound."
+      "blocker": "Supply completed pinned S04 file phases, exact authorized scope and before/after S01 capture. Replay performs no storage write or reboot."
     },
     {
       "id": "S05",
