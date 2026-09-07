@@ -5923,3 +5923,41 @@ compatibility, then one separately identified diagnostic experiment with a
 expiry. Preserve the existing 60°C/40°C CPU-zone/battery limits and load sizes;
 the short experiment can discriminate mitigation but cannot qualify S07 or
 the release. No live CPU-cap write has occurred at this checkpoint.
+
+### CPU-cap asynchronous QoS correction (2026-09-07)
+
+Source `cbea8552817bfdb77d781a848d300bf02216739c` passed full local CI
+**500.548 s** and all four remote jobs in **34143963226**. Exact-target Python
+fixtures passed **0.622 s** (host **0.997 s**) without real sysfs writes.
+Private coordinator replay passed **6.668/6.942 s**, normal/optimized.
+Accepted kernel, archive, boot and service bytes were reused unchanged.
+
+The live invocation first refused a relative evidence path before credentials
+or phone contact (**0.000262 s**, R7); the absolute-path invocation then entered
+once and failed before any storage/network worker started (**8.744 s**).
+The final CPU readback showed policy4 still capped to **1555200 kHz**. A separate
+read-only query confirmed this. One cleanup write restored its original
+**2419200 kHz**, with all three full policy snapshots equal to their originals
+after **0.060 s**. Boot identity remained
+`96b722da-4ddc-4611-b813-a62149df541f`; SSH and exact power/storage gates passed.
+No reboot, claim retry, scratch write or persistent service change occurred.
+
+Proven source mechanism: retained kernel
+`f17befd4ef172cfb0ecbffd9e0af87122cfa66bc`, `drivers/cpufreq/cpufreq.c`:
+`store_one` updates a frequency-QoS request; `cpufreq_notifier_max` schedules
+`policy->update`. Successful sysfs write does not imply immediate visible
+`policy->max`. The helper assumed synchronous readback and could skip restoring
+a request whose pending cap was not visible yet (R3 exact-runtime semantics).
+This is a helper defect, not evidence that the kernel needs rewriting.
+
+Two regressions failed before correction: delayed apply/restore and accepted
+write followed by an error while readback still equals the old value. The fix
+polls for at most **1 s** per update, accepts only exact before/after snapshots,
+never retries the write, and always replaces an entered QoS request with its
+original value during cleanup. Unexpected concurrent values remain refusal.
+Nineteen tests PASS **0.324/0.303 s**, normal/optimized; no-op timeout and
+intermediate-value refusal are covered. New full CI/target tests are still
+required; neither this attempt nor its cleanup qualifies S07.
+
+Raw failure and cleanup remain in the private `rog5-cpu-cap-diagnostic` r1/r2
+outputs. No unique failed evidence or accepted artifacts were removed.

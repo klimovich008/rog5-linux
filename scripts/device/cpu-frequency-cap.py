@@ -11,8 +11,22 @@ import os,re,signal,stat,time
 CAPS={'policy0':1209600,'policy4':1555200,'policy7':1555200}
 CPUS={'policy0':'0 1 2 3','policy4':'4 5 6','policy7':'7'}
 ROOT='/sys/devices/system/cpu/cpufreq'
+SETTLE_SECONDS=1.0
 def require(ok,why):
  if not ok:raise ValueError(why)
+def settled(read,before,after):
+ """cpufreq QoS schedules policy->update; a successful store is not readback.
+
+Only the exact pre-write or requested snapshot is valid while waiting. Never
+repeat the write to make it converge or accept unrelated concurrent changes.
+"""
+ deadline=time.monotonic()+SETTLE_SECONDS
+ while True:
+  current=read()
+  require(time.monotonic()<=deadline,'CPU policy update deadline')
+  if current==after:return
+  require(current==before,'unexpected CPU policy during update')
+  time.sleep(min(.02,max(0,deadline-time.monotonic())))
 def validate(value):
  require(set(value)==set(CAPS),'unexpected CPU policy set')
  for name,p in value.items():
@@ -32,7 +46,7 @@ def run(backend,guard,action):
    entered.append(name)  # A failed write may already have reached the kernel.
    backend.set_maximum(name,limit)
    expected[name]['maximum']=limit
-   require(backend.snapshot()==expected,'cap readback mismatch')
+   settled(backend.snapshot,current,expected)
   guard();during=backend.snapshot();result=action()
  finally:
   errors=[]
@@ -41,8 +55,10 @@ def run(backend,guard,action):
     current=backend.snapshot()[name];prior=original[name]
     require({k:v for k,v in current.items() if k!='maximum'}=={k:v for k,v in prior.items() if k!='maximum'},'policy identity changed')
     require(current['maximum'] in (CAPS[name],prior['maximum']),'external maximum change')
-    if current['maximum']!=prior['maximum']:backend.set_maximum(name,prior['maximum'])
-    require(backend.snapshot()[name]==prior,'original cap not restored')
+    # Even an old visible maximum can hide our pending QoS request. Replace
+    # that request unconditionally after entry, including failed write returns.
+    backend.set_maximum(name,prior['maximum'])
+    settled(lambda:backend.snapshot()[name],current,prior)
    except (OSError,ValueError,KeyError,TypeError) as error:errors.append(name+': '+str(error))
   if errors:raise ValueError('restoration incomplete: '+'; '.join(errors))
  after=backend.snapshot();require(after==original,'post-restoration policy changed')
