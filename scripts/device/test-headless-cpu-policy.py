@@ -69,8 +69,20 @@ class Tests(unittest.TestCase):
      ('/sys/class/power_supply/qcom-battmgr-bat/voltage_now','6900000'),('/sys/class/power_supply/qcom-battmgr-usb/online','0'),
      ('/sys/class/thermal/thermal_zone0/temp','60000'),('/sys/class/block/sdz0/ro','0')):
      before=(root/path.lstrip('/')).read_text();put(path,bad)
-     with self.subTest(path=path),self.assertRaises(ValueError):M.guard()
+     with self.subTest(path=path),self.assertRaises(ValueError) as failure:M.guard()
+     if path=='/sys/class/thermal/thermal_zone0/temp':
+      # V6's retained journal proved thermal refusal but lost the sensor/value.
+      self.assertIn('thermal_zone0=60000 mC; required <60000 mC',str(failure.exception))
      put(path,before)
+    thermal='/sys/class/thermal/thermal_zone0/temp'
+    put(thermal,'59999');self.assertEqual(M.guard(),boot)
+    put(thermal,'unsupported')
+    with self.assertRaisesRegex(ValueError,'thermal_zone0 read error: ValueError'):M.guard()
+    (root/thermal.lstrip('/')).unlink()
+    (root/thermal.lstrip('/')).mkdir()
+    with self.assertRaisesRegex(ValueError,'thermal_zone0 read error: IsADirectoryError'):M.guard()
+    (root/thermal.lstrip('/')).rmdir()
+    with self.assertRaisesRegex(ValueError,'no thermal zones'):M.guard()
     p2['attested_boot_id']='stale'
     with self.assertRaises(ValueError):M.guard()
  def test_p2_record_has_no_symlink_or_duplicate_field_escape(self):

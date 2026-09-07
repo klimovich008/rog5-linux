@@ -6121,3 +6121,76 @@ admission tests pass in both modes, including changed artifact fields and consum
 claims; registration is data-only, without another copied executor or authority.
 Next: full frozen registry CI plus exact V6 paired-root A01, retaining original
 kernel/wrapper and CPU implementation evidence. No V6 claim, stage, boot or flash.
+
+### V6 staged, consumed once, thermal-policy refusal and verified fallback
+
+Frozen registry source `a65fc1294c8b4048b7df0c301724deb1de0640b6` passed full
+local CI **556.713 s**, log
+`d8887ad0ce9a1472dc8767b9713bda51670b90af92aae4e763c458f24e40aecd`,
+and all four remote jobs in **34151850294**. Paired-root preview **119.177 s**;
+A01 **93.967 s**, C01 nine cases **144.739 s**, C02 **76.265 s**, with these
+independent tests overlapping CI. Their exact receipts remain private; no older
+run is relabelled. Kernel, DT, modules and wrapper were reused without rebuilding.
+
+Exact V6 staging PASS **2.227 s**, independent postcheck **0.686 s**: five
+signed bundle files and selector on P24, archived V5 healthy trial on P23,
+P24 restored RO. Fallback payloads/selector backup remained exact. No claim or
+boot occurred during staging. Exact deployed staging-tool fixtures passed eight
+cases **3.138 s**; coordinator replay normal/optimized **0.009/0.009 s**.
+
+The existing private boot coordinator was bound to V6's current receipts.
+Its first offline adapter run failed because the exitrd inspection fixture had
+not yet been prepared; no phone mutation or claim. The exact source-exitrd
+inspection and sealed BusyBox action tests then PASS **2.007 s**. Frozen
+adapter/observer/supervisor tests normal/optimized PASS **3.817 s**. Obsolete
+fixture-only CI-reuse handling was replaced by exact-current full-CI binding.
+No extra full suite, kernel build, or remote publication wait was needed.
+
+The RAM-only shutdown-action transition reached exact slot-B fastboot in
+**11.300 s**, battery **8545 mV**, SOC gate yes. One V6 claim was permanently
+consumed. The unchanged accepted wrapper was sent in **2.342 s**; fastboot boot
+accepted in **10.436 s**. Target boot
+`2fb95880-ac79-46ea-8fd5-ceb5b7157e38` reached local root and systemd but never
+qualified SSH. Startup **FAIL at 301.248 s**; complete independent capture
+**1380.559 s**, firewall/profile/address cleanup PASS. No retries or flashing.
+
+The retained **8 MiB** persistent-upper journal, acquired read-only while the
+upper image was unmounted, binds the actual V6 boot:
+`cc2cce65ce0a7a814eda46da3907c0c0a109325f2d151e00c3233c9d3ee725c7`.
+At target monotonic **21.992 s** the CPU policy started; at **23.105 s** its
+per-write guard raised `ValueError: unsafe or unavailable thermal state`.
+At **24.460 s**, the failure service requested ordinary reboot. The journal
+shows orderly systemd shutdown, not evidence of a panic/USB-only failure.
+Wall-clock device timestamps differ from host capture; use boot identity and
+monotonic ordering, not naive timestamp subtraction.
+
+Exact pinned fallback SSH/power/write-scope proof PASS **0.554 s**:
+V11 boot `52cac9c3-8e59-479b-9f1d-f5d796ea4d9b`, Good, **30.4°C**, **8.573 V**,
+Charging, USB online; 117 block nodes, only sda/sda23 writable, P24 RO.
+The V6 selector and pending trial deliberately cause fallback, not another V6
+execution. V5 rollback selector, archived healthy record and bundle remain intact.
+This unplanned recovery is not the separately controlled R01 qualification.
+
+**R2/R3 evidence gap:** the guard combined missing inventory and any temperature
+at/above 60000 mC into one error, omitting the sensor/value. The loop iteration
+is unknown; do not assert no writes or a particular CPU temperature. No secondary
+restoration exception was recorded, but failing-boot frequency readback is absent.
+The target fixture exercised cap application/restoration under its sandbox on a
+steady running V5, not the complete boot-time thermal trajectory.
+Read-only sandbox visibility on V11 PASS **0.492 s** does not reproduce V6;
+it only contradicts the simple unreadable-sysfs hypothesis. Empty pstore is
+inconclusive. No thermal threshold, charging control or timeout was changed.
+
+Focused correction: retain the rejected thermal zone/value, distinguish no zones
+from malformed/unreadable data, preserve the same strict **<60000 mC** condition
+and fail-before-write behavior. The private three-case before/after regression
+passes normally/optimized in **0.644 s** total; old code fails each requested
+diagnostic. The repository's existing guard regression also failed first.
+After correction, eight policy cases PASS **0.183/0.174 s**; the existing cap
+transactions remain covered. This is a diagnostic fix, not restored V6 or a
+thermal-startup solution. Stronger validation remains required for power code.
+
+Next: qualify the correction, resolve safe boot-time cap application using the
+accepted baseline where possible, and only then prepare a new successor.
+Do not retry V6, raise the safety limit, or count earlier release components
+as a coherent V6 PASS. Private evidence: `rog5-server-cpu-policy-20260907.lwlreSEe`.
