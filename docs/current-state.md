@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated 2026-09-07: accepted V5 restored and healthy; host-validator fix in qualification.
+Updated 2026-09-07: V5 healthy; host-validator CI and complete-guard cap experiment PASS.
 V6 is permanently consumed. Do not retry, restage or flash it.
 
 ## Goal and authority
@@ -57,8 +57,10 @@ The correction requires an explicit candidate, derives expectations from its
 canonical exact source commit, disables Git replacement objects, and fails on
 missing inputs before credentials. Local-root and durability consumers agree.
 The original FAIL remains: full capture 1380.929 s, all four host cleanups PASS.
-Next: finish validator CI and recheck the running local root without another
-boot; then resolve safe boot-time CPU limits on this accepted baseline.
+Correction `e22f606a` passed full local CI **523.918 s** and all four remote jobs
+in **34160126847**. Same-boot corrected local-root check PASS **0.921 s**, not
+a replacement for the original failed smoke or full S01 qualification.
+Next: resolve the boot-time CPU-policy boundary before a successor/long soak.
 
 V6 (`headless-server-selector-v6`) reached local root and systemd, then its CPU
 policy guard refused at target uptime ~23.105 s. The boot-bound persistent journal
@@ -73,8 +75,13 @@ The `<60000 mC` limit remains unchanged. Diagnostic correction `0005794c`
 passed full local CI 526.219 s and all four remote jobs in 34155585303; it is not
 deployed or a thermal-startup fix. Read-only complete-guard observation on V5
 passed for 10 s, peak 36.8°C, unchanged CPU maxima; this does not reproduce startup.
-Exact new validator CI belongs to private `deployed-release-ci-r1`, not that
-preceding thermal-diagnostic run. Do not issue a successor merely for missing data.
+The complete guard plus real cap application/restoration subsequently passed
+inside the unchanged service sandbox: **6.635 s** total, 5 s lease, peak **36.8°C**.
+Original CPU maxima were independently restored; no service was installed.
+This rules out a persistent steady-state guard/sandbox failure, not a transient
+startup condition. TSENS is built in; retained pre-boot evidence has no CPU
+temperature series. The rejected V6 zone/value remains unknown. No new boot,
+signing, claim or flash occurred. Do not issue successors merely for missing data.
 
 The private live work is `rog5-server-cpu-policy-20260907.lwlreSEe`.
 V6 manifest:
@@ -94,7 +101,7 @@ V5 cannot be combined with V6 into a green release.
 | A01 / C01 / C02 | V6 offline PASS 93.967 / 144.739 / 76.265 s; physical startup still failed |
 | H01 / H02 | V11 fallback SSH/power proof; same-release radio-inactive rescue not qualified |
 | H03 regulation | NOT RUN for V6; firmware-Full method is defined, missing fields are not PASS |
-| S01 local startup | V5 running/healthy; latest smoke FAIL at host source comparison; recheck after fix |
+| S01 local startup | V5 healthy; corrected root component PASS 0.921 s; original smoke FAIL preserved |
 | S02 transfers | V5 PASS; Wi-Fi upload had little deadline margin; validate final release |
 | S03 restart recovery | V5 PASS; validate final release |
 | S04 durability | V5 PASS with owned scratch cleanup; prior failed-soak file preserved |
