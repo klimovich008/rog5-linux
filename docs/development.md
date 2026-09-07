@@ -51,6 +51,10 @@ merge validation remain separate; main pushes now select from before/head.
 Unknown or unavailable diffs broaden validation. Scheduled/manual validation
 runs nightly and QEMU. Required job names are retained, with explicit skipped
 merge handling for non-PR runs.
+The single reviewed current narrative report is documentation in both the
+development and CI selectors. Other `test-results` paths remain potentially
+executable inputs and select broader checks; mixed critical changes still win.
+PR merge checks continue to cover their full relevant branch delta.
 
 Batch related fixes into one frozen integration checkpoint; record the exact
 source/dirty-input identity tested. Run focused checks during edits, one full
