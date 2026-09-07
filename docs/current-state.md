@@ -1,7 +1,7 @@
 # ROG5 current state
 
-Updated 2026-09-07: V5 F01/F02 and S01–S05 passed on the same artifact set.
-Next: prepare the full V5 combined-load soak; retain the remaining power/recovery gates.
+Updated 2026-09-07: V5 F01/F02 and S01–S05 passed; S07 failed the 60°C CPU-zone guard.
+Next: bounded CPU power-policy experiment; no unchanged soak retry or kernel rebuild.
 
 ## Goal and authority
 
@@ -34,7 +34,7 @@ USB SSH `10.77.0.2`, pinned alias `169.254.77.2`, host fingerprint
 `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
 Native P24 lower is RO/norecovery; persistent upper/service-state images are
 on authorized P23. Attestation checks 117 block nodes and exact write scope.
-Latest restart snapshot: Good, 30.1°C, 8.559 V, 100%, Full, −23 mA, USB online.
+Post-soak snapshot: Good, 30.3°C, 8.548 V, 99%, Full, 0 mA, USB online.
 These snapshots are not H03 PASS or proof of net-positive charging under load.
 Healthy V5 trial and preserved failed-soak scratch digest were verified.
 
@@ -78,15 +78,24 @@ These component results do not constitute a qualified final release.
 | S04 durability | PASS 93.289 s file cycle; full 1385.988 s supervision and canonical replay complete |
 | S05 repeated boots | PASS three consecutive ordinary boots; 313.102 s total, clean closures |
 | S06 powered-off start | Physical off/start proof required, not an ordinary reboot |
-| S07 soak | Full 3600 s V5 combined-load run required; old thermal cause unresolved |
+| S07 soak | FAIL after 359.863 s measured: CPU6 zone 60.1–60.4°C; full hour still required |
 | R01 recovery | Controlled isolated failed-boot recovery still outstanding |
 
 The scratch-namespace correction passed full local/remote CI, exact-target RAM
 tests and live S04: a fresh 64 MiB file survived reboot and exact child-only
 cleanup; the prior failed-soak file remains preserved. Do not repeat S04.
-Next: bind the existing soak runner to V5 and the current pinned namespace,
-run its focused checks, then the full 3600 s storage/network observation.
-Use the accepted kernel and installed boot path; no new experimental claim.
+The V5 soak ran once: 13 successful storage windows, 22 completed transfers;
+host guard failed at 408.604 s overall, all workers stopped by 424.324 s.
+No reboot or claim retry. Exact SSH/root proof passed afterward on the same boot.
+New scratch children were cleaned; the original failed-soak file remains intact.
+`thermal_zone13` is `cpu6-bottom-thermal`, not the battery. Deployed `step_wise`
+cooling starts at 90/95°C, matching exact SM8350 source; the test refuses 60°C.
+This is a conservative qualification-policy mismatch, not proof of kernel panic
+or hardware damage. The old V4 cause remains unproven. Do not raise the guard.
+Next: design/test a bounded reversible CPU maximum-frequency cap experiment,
+with exact prior-value restoration and unchanged load/thermal/storage guards.
+It is critical power behavior, not a low-risk observer shortcut or release PASS.
+Do not repeat the full soak until that experiment produces discriminating evidence.
 S02 Wi-Fi upload took 178.391 s against a 180 s bound: PASS with little margin,
 not proof of robust endurance. Keep this concern for the combined-load test.
 No device test is running at this checkpoint. Keep one coordinator and freeze
@@ -106,6 +115,10 @@ F01/F02/S04/S05 observations bind that source; S01–S03 retain their original
 `f5546aad` source, with unchanged artifact/dependency evidence, not a new label.
 Exact-target RAM tests took **21.124 s**. Independent F01 ran entirely during
 the required S04 capture; **178.586 s** dispatcher time added no serial wait.
+Documentation checkpoint `0f952801` passed active **36.514 s** and all four remote
+jobs, run **34140417474**. S07 explicitly reused the original full-CI result;
+unchanged target runtime/worker verification **0.643 s** reused the **21.124 s**
+exact-target run without relabelling it. No new kernel/wrapper build or flash.
 Target twins **8.375 s**, signing/sealed verification **4.649 s**, wrapper reuse
 **0.474 s**: no new kernel or wrapper build. C02 sparse hashing reduced data read
 volume by 88% while retaining both complete logical hashes and the 120 s limit.
