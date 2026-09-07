@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated 2026-09-07: V5 healthy; host-validator CI and complete-guard cap experiment PASS.
+Updated 2026-09-07: V5 healthy; V7 diagnostic package prepared, not admitted/executed.
 V6 is permanently consumed. Do not retry, restage or flash it.
 
 ## Goal and authority
@@ -60,7 +60,8 @@ The original FAIL remains: full capture 1380.929 s, all four host cleanups PASS.
 Correction `e22f606a` passed full local CI **523.918 s** and all four remote jobs
 in **34160126847**. Same-boot corrected local-root check PASS **0.921 s**, not
 a replacement for the original failed smoke or full S01 qualification.
-Next: resolve the boot-time CPU-policy boundary before a successor/long soak.
+Next: finish V7 exact composition/registry qualification, then one supervised
+startup test of the unchanged thermal gate. No claim or hardware entry exists yet.
 
 V6 (`headless-server-selector-v6`) reached local root and systemd, then its CPU
 policy guard refused at target uptime ~23.105 s. The boot-bound persistent journal
@@ -81,7 +82,18 @@ Original CPU maxima were independently restored; no service was installed.
 This rules out a persistent steady-state guard/sandbox failure, not a transient
 startup condition. TSENS is built in; retained pre-boot evidence has no CPU
 temperature series. The rejected V6 zone/value remains unknown. No new boot,
-signing, claim or flash occurred. Do not issue successors merely for missing data.
+claim or flash occurred during that experiment. Optional missing fields never
+justify a successor; the remaining startup safety refusal requires discrimination.
+
+V7 changes only the trial descriptor, generated target checksums and the tested
+thermal diagnostic message. Thresholds, cap order, timing, kernel/DT/modules and
+wrapper are unchanged. Target twins **9.095 s**, wrapper reuse **0.446 s**, sealed
+commands **1.431 s**, signed twins/verifier **4.828 s**. Canonical consumer and
+rejection tests PASS **11.237 s**. Signed manifest
+`4eaeb9f8859f7fa9c64b5e40b3764452da504d0ce5438afd20760305bc23e7b9`;
+other identities derive from its one expected record. Expected-record registration
+does not create a filesystem claim. Private work: `rog5-boot-cpu-diag-20260907.cnXiH8My`.
+The bounded Opus review failed on expired OAuth; no review conclusions were used.
 
 The private live work is `rog5-server-cpu-policy-20260907.lwlreSEe`.
 V6 manifest:
@@ -98,7 +110,7 @@ V5 cannot be combined with V6 into a green release.
 
 | Outcome | Current result / next action |
 |---|---|
-| A01 / C01 / C02 | V6 offline PASS 93.967 / 144.739 / 76.265 s; physical startup still failed |
+| A01 / C01 / C02 | V7 pending; prior V6 results do not qualify the changed archive |
 | H01 / H02 | V11 fallback SSH/power proof; same-release radio-inactive rescue not qualified |
 | H03 regulation | NOT RUN for V6; firmware-Full method is defined, missing fields are not PASS |
 | S01 local startup | V5 healthy; corrected root component PASS 0.921 s; original smoke FAIL preserved |
@@ -132,5 +144,8 @@ A01/C01/C02 overlapped registry CI. No kernel/DT/module/wrapper rebuild or flash
 twins retained. Exact restoration inventory and relocated V5/V4 previews are
 durable under the private V6 `retained-host-inputs`. Old RAM preview paths are
 absent; do not rebuild merely to recreate them. Preserve the 3 GiB home reserve.
-V6 package/paired preview and other archives remain volatile: no host reboot yet.
+V6 host preview was losslessly archived to private `/tmp/rog5-v6-preview-archive-gkrldufe`;
+complete decompression matched its original SHA256. Its raw RAM copy was released
+(4,097,179,648 B); never rebuild it merely to recreate the old path. See the dated
+report for restoration identity. V6 package and archives remain volatile: no host reboot yet.
 Host port 8081 is unrelated SteamOS CEF; leave it untouched.
