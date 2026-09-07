@@ -43,4 +43,11 @@ class Tests(unittest.TestCase):
    with self.assertRaises(ValueError):M.io_progress(before,dict(after,**change),2)
   with self.assertRaises(ValueError):M.io_progress(after,before,2)
   with self.assertRaises(ValueError):M.io_progress(before,after,True)
+ def test_captured_buffered_loop_discrepancy_is_not_storage_read_proof(self):
+  # Stopped live S07: loop1 reads were real block I/O but its buffered backing
+  # file satisfied them without corresponding UFS reads (loop/dio=0).
+  before={name:' '.join(['0']*17) for name in ('loop1','sda23')};after={}
+  for name,reads,writes in (('loop1',34493964288,1280344064),('sda23',8192,1369858048)):
+   fields=['0']*17;fields[2]=str(reads//512);fields[6]=str(writes//512);after[name]=' '.join(fields)
+  with self.assertRaisesRegex(ValueError,'backing-device'):M.io_progress(before,after,19)
 if __name__=='__main__':unittest.main()

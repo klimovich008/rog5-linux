@@ -62,6 +62,13 @@ reuses the tested S04 file/guard primitives: one fresh 64 MiB file in the owned
 `/persist/rog5-release-acceptance` namespace, write/fsync, repeated cache-dropped
 verified reads for 30 s, then exact cleanup. Never exceed 128 windows / 8 GiB
 written or retry a failed window; failed/partial files remain for inspection.
+Buffered loop1 has a second page cache: also advise its exact 4 GiB service-state
+backing file with DONTNEED before each readback, opened read-only through fixed
+no-follow directory descriptors with owner/mode/device/geometry checks. This
+does not reconfigure loop1 or drop global caches. Advice is not guaranteed;
+backing-device read/write counters must advance after the first completed window
+and throughout the run, not only at the final checkpoint. The failed cached-read
+run remains FAIL, and the original 3600/3900-second criteria remain unchanged.
 This uses the existing `s04-<nonce>` library namespace with fresh nonces, not
 earlier S04 evidence. No service, charging-control, mount or boot operation runs.
 
