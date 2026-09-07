@@ -221,6 +221,12 @@ verify_prepared_network() {
 		cmp -s "$secret" "$state/private-network.conf"
 }
 
+run_iw() {
+	"$root/wpa-userspace/lib/ld-musl-aarch64.so.1" \
+		--library-path "$root/wpa-userspace/lib" \
+		"$root/wpa-userspace/sbin/iw" "$@"
+}
+
 prepare_network() {
 	interface_identity || fail 'interface identity changed'
 	systemctl is-active --quiet rog5-persistent-state.service || fail 'state unavailable'
@@ -248,6 +254,12 @@ prepare_network() {
 		verify_prepared_network || fail 'private config copy'
 	fi
 	ip link set dev "$interface" up
+	# Headless-server mitigation for observed power-save TCP setup stalls.
+	# Reassert on WPA restart; never alter radio activation or thermal limits.
+	run_iw dev "$interface" set power_save off || fail 'Wi-Fi power-save policy refused'
+	power_save=$(run_iw dev "$interface" get power_save) || fail 'Wi-Fi power-save query failed'
+	[ "$power_save" = 'Power save: off' ] ||
+		fail 'Wi-Fi power-save policy not confirmed'
 }
 
 run_wpa() {

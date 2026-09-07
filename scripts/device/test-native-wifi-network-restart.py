@@ -29,6 +29,18 @@ class NetworkRestart(unittest.TestCase):
         self.secret.write_text('network={\n ssid="disposable-fixture"\n}\n')
         self.secret.chmod(0o600)
         self.state=self.root/'association'
+        self.radio=self.root/'radio'
+        loader=self.radio/'wpa-userspace/lib/ld-musl-aarch64.so.1'
+        loader.parent.mkdir(parents=True)
+        loader.write_text('#!/bin/sh\nset -eu\n'
+            'test "$1" = --library-path\nshift 3\n'
+            'test "$1 $2" = "dev wlp1s0"\nshift 2\n'
+            'printf "%s\\n" "$*" >>'+shlex.quote(str(self.root/'iw.log'))+'\n'
+            'case "$*" in\n'
+            ' "set power_save off") test ! -e '+shlex.quote(str(self.root/'iw-refuse'))+' ;;\n'
+            ' "get power_save") if test -e '+shlex.quote(str(self.root/'iw-still-on'))+'; then echo "Power save: on"; else echo "Power save: off"; fi; test ! -e '+shlex.quote(str(self.root/'iw-query-error'))+' ;;\n'
+            ' *) exit 9 ;;\nesac\n')
+        loader.chmod(0o755)
 
     def prepare(self, count=1, *, owner='0:0'):
         source=SOURCE.read_text()
@@ -43,7 +55,7 @@ systemctl() { test "$*" = 'is-active --quiet rog5-persistent-state.service'; }
 findmnt() { case "$3" in TARGET) echo /persist ;; FSTYPE) echo ext4 ;; *) exit 9 ;; esac; }
 stat() { command stat "$@" | sed '''+shlex.quote('s/^'+str(os.getuid())+':'+str(os.getgid())+':/'+owner+':/')+'''; }
 ip() { test "$*" = 'link set dev wlp1s0 up'; printf '%s\\n' "$*" >>'''+shlex.quote(str(self.root/'ip.log'))+'''; }
-'''+f'state={shlex.quote(str(self.state))}\nsecret={shlex.quote(str(self.secret))}\n'+functions+'\n'+('prepare_network\n'*count)
+'''+f'root={shlex.quote(str(self.radio))}\nstate={shlex.quote(str(self.state))}\nsecret={shlex.quote(str(self.secret))}\n'+functions+'\n'+('prepare_network\n'*count)
         if SEALED_ARCHIVE:
             spec=importlib.util.spec_from_file_location('sealed',REPO/'scripts/host/run-sealed-busybox.py')
             sealed=importlib.util.module_from_spec(spec);spec.loader.exec_module(sealed)
@@ -75,6 +87,20 @@ ip() { test "$*" = 'link set dev wlp1s0 up'; printf '%s\\n' "$*" >>'''+shlex.quo
         self.secret.write_text('changed fixture\n')
         self.assertNotEqual(self.prepare().returncode,0)
         self.assertEqual((self.state/'private-network.conf').read_bytes(),original)
+
+    def test_server_power_save_is_set_and_verified_on_every_prepare(self):
+        result=self.prepare(count=2)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertTrue((self.root/'iw.log').exists(),'server policy was not applied')
+        self.assertEqual((self.root/'iw.log').read_text(),
+                         'set power_save off\nget power_save\n'*2)
+
+    def test_failed_or_unconfirmed_power_save_change_refuses_wpa_start(self):
+        for marker in ('iw-refuse','iw-still-on','iw-query-error'):
+            path=self.root/marker;path.touch()
+            result=self.prepare()
+            self.assertNotEqual(result.returncode,0,marker)
+            path.unlink()
 
     def test_partial_unsafe_or_aliased_existing_state_is_refused(self):
         for mutation in ('missing-config','directory-mode','config-mode','dhcp-mode','dhcp-content','extra-file','symlink','hardlink'):

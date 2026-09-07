@@ -85,6 +85,34 @@ class PersistentComposerValidation(unittest.TestCase):
             b'fixture-primary', b'fixture-successor')
         self.successor = True
 
+    def test_final_archive_contains_iw_and_rejects_altered_tool(self):
+        archive, _, _, _, _ = composer_fixture()
+        members = archive.entries(gzip.decompress(self.base))
+        name = 'rog5-native-wifi/wpa-userspace/sbin/iw'
+        self.assertTrue(name in members, 'missing packaged iw')
+        self.assertTrue('rog5-native-wifi/wpa-userspace/COPYING.iw' in members,
+                        'missing iw attribution')
+        fields, data = members[name]
+        self.assertTrue(data.startswith(b'\x7fELF'))
+        members[name] = (fields, data[:-1] + bytes([data[-1] ^ 1]))
+        with self.assertRaisesRegex(ValueError, 'iw composition'):
+            archive.verify_radio_composition(members)
+
+    def test_iw_dependency_rejects_altered_archive_and_symlink(self):
+        from unittest import mock
+        archive, _, _, _, _ = composer_fixture()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/'iw.apk'
+            path.write_bytes(archive.IW_PACKAGE.read_bytes() + b'altered')
+            with mock.patch.object(archive, 'IW_PACKAGE', path):
+                with self.assertRaisesRegex(ValueError, 'iw package identity'):
+                    archive.wifi_iw_files()
+            path.unlink()
+            path.symlink_to(archive.IW_PACKAGE)
+            with mock.patch.object(archive, 'IW_PACKAGE', path):
+                with self.assertRaises(OSError):
+                    archive.wifi_iw_files()
+
     def run_composer(self, root, optimized, expected_hash=None):
         for name, data in (('base.gz', self.base), ('descriptor', self.descriptor),
                            ('helper', self.helper)):
@@ -104,6 +132,8 @@ class PersistentComposerValidation(unittest.TestCase):
         archive = self.module.ARCHIVE
         members = archive.entries(gzip.decompress(self.base))
         stale = 'rog5-native-wifi/units/rog5-wifi-wpa.service'
+        for name in archive.wifi_iw_files():
+            members.pop(name)  # The retained deployed baseline predates iw.
         archive.replace(members, stale, b'[Service]\nExecStart=/not-used\n')
         archive.replace(members, 'rog5-native-wifi/trial-state', b'old helper in authenticated base')
         self.base = gzip.compress(archive.encode(members), mtime=0)
@@ -857,6 +887,7 @@ class AutomaticWifi(unittest.TestCase):
             b'[Service]\nTimeoutStartSec=@OUTER_SECONDS@s\n',
             0o100644,
         )
+        archive.install_wifi_iw(members)
         base = gzip.compress(archive.encode(members), mtime=0)
         descriptor = (
             'format=rog5-persistent-wifi-health-v1\n'
@@ -938,6 +969,7 @@ class AutomaticWifi(unittest.TestCase):
             ('boot-files.sha256', b'old-checks\n', 0o100444),
         ):
             archive.add(members, 'rog5-native-wifi/'+name, data, mode)
+        archive.install_wifi_iw(members)
         base = gzip.compress(archive.encode(members), mtime=0)
         packed, result = module.compose(base, module.sha(base))
         output = archive.entries(gzip.decompress(packed))

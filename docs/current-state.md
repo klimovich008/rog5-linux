@@ -2,10 +2,11 @@
 
 Updated: 2026-09-07. S01–S04 batch passed on unchanged V4 artifacts.
 S05's three ordinary boots, pinned dispatcher replay and full local CI passed.
-All exact-head remote checks passed. S07 remains FAIL: its thermal refusal is
-unexplained; separate Wi-Fi diagnostics now prove intermittent TCP-connect loss.
-The server remains running; USB closure and cached/uncached reads passed.
-Preserve the scratch file; investigate Wi-Fi delivery, not another blind soak.
+S07 remains FAIL: its thermal refusal is unexplained. A bounded Wi-Fi on/off/on
+comparison supports power-save-off as a server-mode mitigation; both transfers
+then passed. The userspace/initramfs correction is implemented, not installed.
+The accepted server remains running with power saving restored to ON.
+Preserve its scratch file and qualify the new composition before another soak.
 
 ## Goal and authority
 
@@ -89,7 +90,7 @@ These component results do **not** constitute one qualified final release.
 | S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
 | S05 three boots | Physical sequence PASS 311.524 s; dispatcher PASS 0.315 s at `2efa7cdf` |
 | S06 powered-off start | Requires verified off interval and physical start; ordinary reboot is not a substitute |
-| S07 combined soak | FAIL: thermal refusal unexplained; separate Wi-Fi connects time out before authentication. Next: isolate wireless delivery delay; retain guards and scratch |
+| S07 combined soak | FAIL; power-save mitigation source-only. Qualify refreshed target composition, then resume endurance; thermal cause and preserved scratch remain outstanding |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
 H03's firmware-Full method is already defined; absent charge-limit controls
@@ -100,34 +101,26 @@ reconnect; do not restart services or re-review the kernel for that incident.
 
 ## Latest checkpoint and exact next action
 
-S05's three boots and the S07 buffered-loop correction are complete; their
-source identities and original evidence remain in the dated report. Do not
-repeat those tests or reopen the fixed merge-ref race without new evidence.
-S07 r2 failed a Wi-Fi upload with lost stderr. r3 stopped after **383.599 s** at
-the storage thermal guard; the rejected numeric sample is irrecoverable.
-No new kernel records or ext4 errors appeared in captured data. The last file
-is preserved and fully hash-verified. All diagnostic workers are stopped.
+S05, buffered-loop correction and cached/uncached thermal isolation are complete;
+retain their original evidence in the dated report rather than repeating them.
+S07's exact rejected thermal sample is irrecoverable; improved logging is qualified.
+Separate packet/SSH observations located intermittent pre-authentication loss,
+not a proven kernel cause. USB stayed healthy, with no new captured kernel/ext4
+errors. The failed scratch file remains preserved and hash-verified.
+The read-only nl80211 query confirmed phone power saving ON. With host settings
+unchanged, connection failures were **2/8 ON → 0/8 OFF → 1/8 ON**. OFF connections
+all completed below 0.6 s. A separate guarded OFF window passed 64 MiB upload /
+download in **40.996/27.553 s**, peak below 37°C; ON restoration and USB closure
+passed. This supports a mitigation, not a complete driver/AP root-cause claim.
+All temporary controls/helpers were restored/removed; installed files are unchanged.
 
-On unchanged V4 artifacts and source `1b37755b`:
-
-- idle: 60 samples / 30 seconds, peak **35.5°C**;
-- cached read/hash: 119 readbacks / **181.828 s**, 357 samples, peak **36.8°C**;
-- uncached reads: 111 readbacks / **181.269 s**, 315 samples, peak **42.1°C**;
-  **7,449,083,904 bytes** read on both loop1 and UFS, loop writes unchanged.
-
-These are component observations, not S07 or H03 qualification. Subsequent
-Wi-Fi-only diagnostics at `89348350` retained exact stderr: one 64 MiB upload
-passed in **43.007 s** (peak 37.8°C), but the next connect timed out in **3.008 s**.
-A second instrumented attempt also timed out before upload data; phone packet
-capture saw no packets, with zero capture drops. A separate successful connect
-took **2.055 s**: duplicate SYNs arrived together about 1.8 s after capture began,
-then SYN-ACK followed within 0.2 ms. This validates the observer, not the timeout.
-USB stayed healthy; no new captured kernel/ext4 errors or boot change.
-Host Wi-Fi power saving is on; phone power-save state is not yet observed.
-Do not infer which wireless endpoint/AP caused the delay or raise deadlines.
-Next obtain the phone's read-only nl80211 power-save state, then choose one
-bounded single-variable experiment. No charging/service/storage control changes.
-Keep the 60°C guard and original soak duration; detailed evidence is in the report.
+Source now sets/verifies power-save OFF during server Wi-Fi preparation/restart.
+An authenticated ISC-licensed `iw` package is included in the target composition;
+the existing musl/libnl, kernel, firmware and module bytes remain unchanged.
+Next finish full integration CI and qualify an explicit userspace-refresh target
+before deployment. Do not compare the running V4 runtime with the newly edited
+source and call the intentional difference corruption; use its retained receipt.
+No new boot claim was issued. Keep the 60°C guard and full soak requirement.
 Opus review was unavailable because OAuth expired; continue independent work.
 S06 needs physical off/start conditions, not another ordinary reboot.
 
@@ -153,6 +146,10 @@ dated report; no older run is relabelled as testing a newer source revision.
 `89348350`: selected documentation active checks **53.476 s**, remote
 **34108234266** PASS. Unchanged full/kernel checks were reused with their
 original identities; diagnostic parser tests also passed on exact target Python.
+`980ced2e`: selected checks **57.627 s**, all four remote jobs **34112468763** PASS.
+New policy: preparation/restart tests PASS normal/optimized and sealed BusyBox
+(23.571 s); 40 composition tests PASS normal/optimized (8.996/8.920 s), plus
+dependency-tamper tests. Full integration belongs to the new frozen source.
 Keep the 3 GiB host reserve. Ignored Python caches were moved recoverably to
 tmpfs, plus one old 66.5 MB kallsyms intermediate (hash verified); final build
 artifacts/source/evidence remain intact. Use private tmpfs for new test logs,
