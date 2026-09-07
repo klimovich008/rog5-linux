@@ -55,7 +55,7 @@ class UsbReadDisappeared(OSError):
         self.operation = operation
 
 
-def update_transport(receiver, serial, ensure_route):
+def update_transport(receiver, serial, ensure_route, *, deadline=None):
     """One discovery step; the caller owns the original bounded lifetime."""
     phase = 'usb-discovery'
     try:
@@ -68,22 +68,48 @@ def update_transport(receiver, serial, ensure_route):
         phase = 'listener-bind'
         receiver.transport(mode, interface)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
-        try:
-            mode, interface = usb_mode(serial)
-        except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
-            mode, interface = 'enumerating', None
+        def removal_read(exc):
+            return (isinstance(exc, UsbReadDisappeared)
+                    and exc.errno in (errno.ENOENT, errno.ENODEV)
+                    and exc.operation in {'idVendor', 'idProduct', 'product', 'serial'})
+        eligible = (phase == 'usb-discovery' and removal_read(error)
+                    and not receiver.target_seen and receiver.mode != 'mismatch')
+        started = time.monotonic()
+        limit = min(started + .15, deadline if deadline is not None else started + .15)
+        rechecks = 0
+        followup_error = None
+        for attempt in range(4):
+            if attempt:
+                remaining = limit - time.monotonic()
+                if not eligible or mode != 'enumerating' or remaining <= 0:
+                    break
+                if followup_error is not None and not removal_read(followup_error):
+                    break
+                time.sleep(min(.05, remaining))
+                if time.monotonic() >= limit:
+                    break
+                rechecks += 1
+            followup_error = None
+            try:
+                mode, interface = usb_mode(serial)
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as followup:
+                followup_error = followup
+                mode, interface = 'enumerating', None
         # Recovery is expected to disconnect during kexec. Tolerate only a
         # positively identified sysfs-read removal followed by actual absence,
         # before target observation. Never clear an earlier failure or infer
         # this classification from the historical untagged ENODEV message.
-        pending = (phase == 'usb-discovery' and isinstance(error, UsbReadDisappeared)
-                   and error.errno in (errno.ENOENT, errno.ENODEV)
-                   and not receiver.target_seen and receiver.mode != 'mismatch'
-                   and mode == 'absent')
+        # Sysfs descriptors may disappear before their parent is removed.
+        # Resolve only this read-only pre-target race, never retry networking,
+        # extend the capture deadline, or accept an unresolved read as absence.
+        pending = (eligible and mode == 'absent'
+                   and (deadline is None or time.monotonic() < deadline))
         receiver.failed |= not pending
         receiver.emit(dict(event='usb-discovery-interrupted' if pending else 'transport-check-failed',
                            phase=phase, errno=getattr(error, 'errno', None),
                            observed_mode=mode, target_seen=receiver.target_seen,
+                           removal_rechecks=rechecks, removal_seconds=time.monotonic()-started,
+                           followup_errno=getattr(followup_error, 'errno', None),
                            operation=getattr(error, 'operation', None), reason=str(error)[:160],
                            last_stage=stage_dict(receiver.last), last_startup=receiver.startup))
         if mode == 'target':
@@ -440,7 +466,7 @@ def main():
             (args.output/'receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
             emit(dict(event='listener-started', address=ADDRESS, port=PORT, authority='none'))
             while not stopping and time.monotonic() < deadline:
-                if not update_transport(receiver, record['serial'], ensure_route):
+                if not update_transport(receiver, record['serial'], ensure_route, deadline=deadline):
                     stopping = True
                 receiver.poll()
             result = dict(status='FAIL' if receiver.failed or log_full else 'NOT RUN',

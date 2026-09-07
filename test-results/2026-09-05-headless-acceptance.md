@@ -4808,3 +4808,55 @@ storage CI. It must finish and clean up before persistent S04 preparation.
 No target persistent scratch file, reboot, flash, claim or charging-control write
 occurred. No package download or kernel/wrapper build was needed. Phase PASS
 never substitutes for complete S04 or coherent final-release qualification.
+
+### S04 ordinary reboot: file PASS, capture FAIL (2026-09-07)
+
+Frozen source `23afc6a497db56be1d0ce5af6225359e8ee24af4` passed full local CI
+in **490.798 s**, log SHA-256
+`f732440f31ea763d2a3cafe710c26fa11a221a6706b6afe6a17fa4283136594d`.
+All four exact-head/merge/publication/QEMU jobs passed in **34078827158**.
+Local and remote validation overlapped; no kernel or wrapper rebuild occurred.
+
+The first private tmpfs fixture refused `/run` mode 1777 before creating anything.
+The corrected fixture accepts root-owned sticky tmpfs as a parent, then creates
+an exclusive mode-0700 child. Six parent/headroom cases passed. Production
+storage guards were not changed. Exact installed Python normal/optimized target
+fixtures passed **5.686 s**, including cleanup, before persistent preparation.
+This uses the actual persistent upper; the earlier lower-only VM failure remains.
+
+The exact 64 MiB owned scratch file passed prepare/fsync/readback, **one ordinary
+accepted-release reboot**, same-hash verification and exact cleanup. SHA-256:
+`efb41ff4c5141ac1ecc65b0e02347db3a1c50d62c45b60445b001037150c4f23`.
+Prepare **1.973 s**, verify **2.260 s**, cleanup **1.769 s**; file cycle
+**93.252 s**. New boot `355266ac-6ec4-4880-8fa7-a2e2d6589dad` reached
+authenticated SSH/local root in **86.377 s**. The owned file and namespace were
+removed only after verification; no flash, slot, GPT or raw-storage action ran.
+
+The independent capture ran its full **1380.780 s** and returned **1 / FAIL**;
+supervision ended in **1387.232 s**. Do not replace this with the file result.
+The sole transport-check failure was a tagged `product` ENODEV during recovery
+teardown, before any target observation. The immediate recheck was recorded
+`enumerating`; its exception detail was not collected. The next poll observed
+absence **100.346 ms** later. Independent udev recorded the anchored USB parent
+removal **0.294 ms** after the initial error, then new target enumeration.
+The receiver collected nine stage frames and 28 startup observations, with no
+other transport-check failure. All four host cleanup steps passed. Post-cleanup
+SSH/root PASS **0.780 s** on the same boot; Full/100%, Good, 29.9°C, 8.567 V,
+-7 mA, USB online. This snapshot is not H03's sustained regulation test.
+
+Classification: **R7 host pre-target teardown resolution**, not a demonstrated
+kernel/UFS defect. Private `s04-ordinary-boot-r1` is terminal and must not be
+re-executed. The S04 replay prototype correctly refuses incomplete after-boot
+capture; its pending integration patch is not applied. The old plan is bound
+to the old boot and must not be reused. Full S04 qualification remains incomplete.
+
+The bounded offline correction adds at most three read-only rechecks within
+**150 ms**, capped by the existing capture deadline. Only tagged descriptor
+ENOENT/ENODEV before target observation can enter this path; positive absence
+is still required. Unclassified follow-up errors, permission errors, mismatch,
+target/network errors and prior failures remain failures. No boot/network action
+is retried. The sanitized observation fixture retains the original FAIL and the
+unknown recheck detail. New classified follow-up fixtures failed before the fix.
+This changes a capture producer: historical S01 dependency reuse must fail
+closed, not be relabeled. Frozen integration validation is still required before
+using the corrected receiver on another independently justified ordinary boot.
