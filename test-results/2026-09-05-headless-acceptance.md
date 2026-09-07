@@ -4522,3 +4522,35 @@ Documentation-only checkpoint: `git diff --check` and active tier PASS
 **24.398 s**. An unavailable `/usr/bin/time` failed before tests started;
 its log is retained, and the successful invocation used Bash's timing builtin.
 No full local CI or physical operation was repeated for this status update.
+
+### Installed-root acceptance component
+
+Continuation from clean `4b0ea6650cfc4f018198a3db77235ad67c1eba90` preserves
+the same installed boot and its running observer; no second phone cycle starts.
+S01 had no executable current-root check and its blocker still said recovery
+needed restoring. `check-standalone-root.py`, exposed through `rog5-dev`, now
+reuses the existing exact admission/manifest/USB/pinned SSH and deployed-file
+checks, then tests physical root geometry, read-only/norecovery P24 lower,
+local P23 persistent loop upper, network-mount absence, writable-node scope,
+core units and power. It is deliberately a component: `s01_qualified=false`.
+The mandatory S01 outcome still requires complete ordinary-boot provenance,
+timing and host boot-service-absence evidence; no skipped criterion is green.
+
+Eight focused regressions pass normally **0.112 s** and optimized **0.103 s**.
+Mount records are sanitized from the retained real V4 snapshot; tests reject
+missing/stacked mounts, NFS/other network mounts, wrong geometry/backing,
+writable lower, unsafe power, wrong boot and unavailable core services.
+Read-only physical component PASS **0.933 s** on boot `45658aff…`, source
+`4b0ea665` plus recorded dirty digest
+`a3b496e4cb71ea68f804c7e3ecfa9cd54d87cf2647f4b7568b823170f97a4d16`.
+Evidence: existing private `recovery-reuse-r1/local-root-r1`; raw observation
+SHA-256 `6bdbb0a6f1f320de3071640ec2646f5be81920825be55c1c30b4735f78c050b6`.
+Battery Full/100%, Good, 29.9°C, 8.574 V, −12 mA; not H03 qualification.
+
+Port 8081 was identified read-only as PID 1's upstream
+`steam-web-debug-portforward.socket`, activating `systemd-socket-proxyd` to
+127.0.0.1:8080 under `cef-port-fwd`, with no unit overrides. It is unrelated to
+ROG5 boot serving; no service was stopped or port policy weakened. The old
+NFS-track host doctor is not the native-server lifecycle. This distinction
+must be retained in the next S01 host observation rather than shutting down
+unrelated SteamOS functionality or inferring boot dependence from a port alone.

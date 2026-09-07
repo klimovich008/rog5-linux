@@ -102,7 +102,7 @@ These are component outcomes, **not a coherent final server PASS**.
 | H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
 | F02 acceptance | PASS 0.816 s replay, 47.366 s including exact artifact verification; original live source/boot preserved |
-| S01 standalone boot | First installed local-root/SSH boot PASS component; formal qualification pending |
+| S01 standalone boot | Installed boot PASS component; new read-only local-root check PASS 0.933 s; boot-evidence binding pending |
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
 
@@ -128,6 +128,9 @@ non-retry transition/flash/reboot records. Do not start a second coordinator.
 local P24 root, healthy trial, restored normal shutdown and preserved fallback.
 Next: complete this observation, then formal S01 and ordinary boot/recovery
 qualification through the existing acceptance contract. No new flash is needed.
+`rog5-dev check-standalone-root` is available; it does not qualify an earlier
+boot or repeat one. Host 8081 is SteamOS CEF proxy, not a project boot server;
+its upstream unit has no overrides. Leave this unrelated service untouched.
 
 Private `recovery-reuse-r1/REPLACEMENT-PROPOSAL.json` scopes only boot B;
 SHA-256 `98b8704cd097b05287064bd5e5cbf56adbe4776363060b9d35bcf426e154b04b`.

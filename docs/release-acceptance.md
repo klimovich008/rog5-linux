@@ -256,6 +256,17 @@ older component result is silently treated as a final-release PASS.
 | S01–S07 | Local Arch, USB/Wi-Fi, service restarts, durable scratch, 3 boots, off-start, 60 min soak | Subsequent final-release qualification; no historical mixed-build PASS |
 | R01 | Real recovery after one controlled failed isolated boot | Separate physical experiment; never corrupt installed payloads or interrupt storage power |
 
+`rog5-dev check-standalone-root` is the bounded read-only S01 root component.
+It reuses canonical admission/manifest, exact USB, pinned SSH, six deployed-file
+and boot-bound readiness checks. It validates physical P24 geometry, local
+read-only/norecovery lower, persistent loop upper, write scope, core services
+and safe power; network mounts fail. It never reboots or grants execution and
+always reports `s01_qualified=false`: a current snapshot cannot prove which
+host services were absent during an earlier boot. Ordinary-boot timing,
+installed-artifact and completed-capture evidence remain required separately.
+Do not disable unrelated host services merely because they share a historical
+project port; identify their actual unit/configuration and endpoint first.
+
 Every row's environment, prerequisites, runner, deadline, outcome, mutation,
 cleanup and evidence contract is in the JSON. Empty command lists carry explicit
 implementation blockers; they are not placeholders that return success.
