@@ -4962,3 +4962,37 @@ smoke closure, backed by unchanged full-watchdog qualification and complete
 cleanup, is the next implementation/test target. Failed/ambiguous boots must
 retain full postmortem observation; no timing policy or receiver was changed
 for the completed S04 cycle. Do not raise deadlines merely to manufacture PASS.
+
+### Ordinary-smoke components and exact merge snapshot (2026-09-07)
+
+Starting source `ddddc7e2403391d54acbc7fdaae2ac99327cb471`; no phone action.
+The new ordinary-smoke component validates current-boot healthy/trial/SSH
+records, safe power/storage/readiness, prestarted capture, positive source
+disconnect and target handover. Its closure check rejects late transport loss,
+ambiguous execution, missing/failed receiver exit and incomplete host cleanup.
+Three-boot sequence checks reject missing/extra/non-consecutive boots and
+overlapping/late preflight. None can independently return S01, S05 or release
+qualification. Pinned producer/artifact replay and coordinator integration
+remain required before use. The mandatory S05 row remains unimplemented.
+
+The existing acceptance manifest owns startup/preflight/close **300/30/30 s**,
+fresh-decision **5 s** and receiver-stop **10 s** bounds. Three complete budgets
+fit the existing **1080 s** S05 deadline. Full recovery capture is unchanged;
+failure cannot select healthy-only closure. Focused tests: **22 PASS** normal
+**3.010 s**, optimized **4.145 s**; existing **24 S01 tests PASS 1.300 s** and
+**47 dispatcher tests PASS 3.595 s**. The original shortened-S01 rejection is
+unchanged. No kernel, module, wrapper or device image was rebuilt.
+
+Remote documentation run **34087645077** failed its merge checkout equality
+check, while exact head and candidate publication passed; QEMU was skipped.
+Expected event merge `f2dd144a8e55d6da5f1758a837afcfa57616fc3e`, actual checked-out
+merge `a0a817702af5d3fdec89e8db00ebb814f239a9b2`. GitHub's commit API showed both
+had parents `3cc3f4434023c5b5a531aba6faf2a03166b72aa1` and
+`ddddc7e2403391d54acbc7fdaae2ac99327cb471`. The workflow selected a mutable merge
+ref but compared it to the immutable event SHA. This is a host CI identity race,
+not new kernel evidence. A disposable-Git regression reproduces ref regeneration
+after event capture and failed before the one-line checkout correction.
+Checkout now uses the event's merge SHA, still verified by `git rev-parse HEAD`.
+All **35 selector/workflow tests PASS** normal/optimized; exact-head shell
+contract PASS. No gate, security setting or failure result was bypassed.
+Full frozen integration validation is the next publication checkpoint.

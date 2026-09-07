@@ -26,6 +26,13 @@
     ]
   },
   "defaults": {
+    "ordinary_smoke": {
+      "startup_seconds": 300,
+      "preflight_seconds": 30,
+      "close_seconds": 30,
+      "decision_seconds": 5,
+      "receiver_stop_seconds": 10
+    },
     "rescue_capture": {
       "recovery_seconds": 300,
       "target_rollback_seconds": 900,
@@ -108,6 +115,8 @@
         ],
         ["python3", "scripts/host/test-check-standalone-boot.py"],
         ["python3", "-O", "scripts/host/test-check-standalone-boot.py"],
+        ["python3", "scripts/host/test-ordinary-boot-smoke.py"],
+        ["python3", "-O", "scripts/host/test-ordinary-boot-smoke.py"],
         ["python3", "scripts/host/test-server-runtime-evidence.py"],
         ["python3", "-O", "scripts/host/test-server-runtime-evidence.py"],
         ["python3", "scripts/host/test-storage-durability-evidence.py"],

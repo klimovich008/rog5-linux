@@ -106,16 +106,25 @@ It batches unchanged artifact verification; older observations retain original
 attribution. Unselected mandatory outcomes remain NOT RUN, `qualified=false`.
 The 900-second rollback and complete independent capture were not shortened.
 
-Next: implement/test bounded ordinary-boot smoke closure for S05, then run its
-three-boot sequence. The present full capture is 1380 s per boot, incompatible
+Next: bind the tested ordinary-smoke helpers to pinned evidence and the single
+coordinator, then run S05's three-boot sequence. The full capture is 1380 s per boot, incompatible
 with S05's 1080 s total deadline. Read-only evidence on the current boot confirms
 the exact healthy record and successful trial commit at **58.603 s** target
 uptime; no target watchdog/kernel change is indicated. A future smoke closure
 must require same-release full-watchdog evidence, fresh current-boot health,
 normal source→target continuity and complete cleanup. Failed/ambiguous boots
 retain full recovery observation and prohibit another action. This shorter
-mode is **not implemented or qualified yet**; do not improvise it.
+mode is **not connected to live execution or qualified yet**; do not improvise it.
 Do not count smoke evidence as full S01/R01 qualification or relax boot deadlines.
+
+The new `ordinary-boot-smoke.py` component validates fresh healthy records,
+safe closure/cleanup and three consecutive boots; 22 tests PASS normal/optimized.
+Timing comes from `defaults.ordinary_smoke`, fitting the unchanged 1080 s budget.
+It cannot grant S01/S05/release PASS. Full integration and exact-head CI are pending.
+Documentation CI `34087645077` failed only merge checkout: the moving merge ref
+resolved to a regenerated commit with the same parents. A failing regression now
+passes with checkout pinned to the event's merge SHA; exact-head verification
+and required checks remain intact. No phone action followed that CI failure.
 
 ## Fast loop / validation checkpoint
 
