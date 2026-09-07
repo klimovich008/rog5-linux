@@ -103,16 +103,16 @@ These are component outcomes, **not a coherent final server PASS**.
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
 | F02 acceptance | PASS 0.816 s replay, 47.366 s including exact artifact verification; original live source/boot preserved |
 | S01 standalone boot | Acceptance dispatcher PASS 0.266 s; original 85.531 s to SSH/root, complete capture/cleanup |
-| S02 transfers | Physical PASS 298.494 s; public replay PASS 3.415 s; dispatcher integration qualifying |
-| S03 restarts | Physical PASS 33.648 s; public replay PASS 0.069 s; first reconnect-race FAIL retained |
+| S02 transfers | Physical PASS 298.494 s; acceptance dispatcher PASS 3.522 s on unchanged artifacts |
+| S03 restarts | Physical PASS 33.648 s; acceptance dispatcher PASS 0.215 s; first reconnect-race FAIL retained |
 | S04–S07 | Durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
 
 S02/S03 evidence is retained under `s02-transfer-live-r1` and
 `s03-services-live-r2`. Exact endpoint/boot, payload hashes, service invocation
-identities and power guards passed. Pinned dispatcher bindings now exist;
-full integration qualification follows the frozen checkpoint. Do not substitute
-an aggregate final-release PASS. See the dated report.
+identities and power guards passed. Combined dispatcher PASS 59.130 s including
+exact artifact verification; remaining rows stay NOT RUN. Do not substitute an
+aggregate final-release PASS. See the dated report.
 
 Latest installed V4 telemetry: Full/100%, Good, 30.0°C, about 8.569 V,
 battery current 0 mA, USB online; this snapshot is not regulation qualification.
@@ -131,8 +131,12 @@ supervisor 1385.867 s, receiver exit 0; route/firewall/profile/address cleanup
 all PASS. Never restart this exact operation. Original clean source:
 `d75359b781e9386561474004df7db980435bab6b`. Post-cleanup pinned SSH/root PASS
 0.862 s on the same boot. The separate approved boot-B replacement is complete.
-Next: qualify the frozen S02/S03 bindings, then S04 durability and repeated-boot
-qualification. Preserve the first S03
+Next: finish S04's scoped file-operation integration, target/runtime checks and
+required storage CI before its live write/reboot/readback. Read-only scope proof
+passed: expected ext4 service image at /persist, 3.974 GB available, test namespace
+absent. A private nine-case host prototype passes, but has no target executor or
+post-reboot cleanup and is not live-ready. No phone scratch file exists.
+Preserve the first S03
 failure: immediate post-restart SSH refusal needed bounded read-only reconnect,
 not another restart or kernel fix. Corrected case: SSH recovered in 2.561 s.
 Replay needs no new boot or build. Durability/repeated-boot tests will need
@@ -167,6 +171,11 @@ Remote run **34075265459**: all four jobs PASS, including qemu-system.
 24 replay/44 dispatcher focused tests pass, including optimized validation.
 Kernel/wrapper build count zero; no accepted target/cache inputs changed.
 All new live observations retain original clean source `f641fec9`.
+
+Runtime-evidence checkpoint **`a74766d763c345c4b278d6babde7a5e9b31583ec`**:
+full local CI PASS **493.111 s**; pushed, remote run **34076983924** running.
+A02 PASS 16.483 s; 12 runtime/47 dispatcher tests pass. No repeated phone cycle.
+Private S04 scope observation source is `a74766d7`; it made no phone writes.
 
 Preserve the combined kernel/module kit, signed package, V4 root preview and
 lossless V2/V3 preview archives. Some are volatile tmpfs; do not reboot the host
