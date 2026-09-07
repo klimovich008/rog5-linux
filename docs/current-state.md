@@ -1,7 +1,7 @@
 # ROG5 current state
 
-Updated 2026-09-07: V5 F01/F02 and S01–S05 passed; S07 failed the 60°C CPU-zone guard.
-Next: bounded CPU power-policy experiment; no unchanged soak retry or kernel rebuild.
+Updated 2026-09-07: bounded CPU-cap diagnostic PASS; S07 release soak still outstanding.
+Next: integrate the demonstrated CPU policy into a coherent release, then qualify it.
 
 ## Goal and authority
 
@@ -78,7 +78,7 @@ These component results do not constitute a qualified final release.
 | S04 durability | PASS 93.289 s file cycle; full 1385.988 s supervision and canonical replay complete |
 | S05 repeated boots | PASS three consecutive ordinary boots; 313.102 s total, clean closures |
 | S06 powered-off start | Physical off/start proof required, not an ordinary reboot |
-| S07 soak | FAIL after 359.863 s measured: CPU6 zone 60.1–60.4°C; full hour still required |
+| S07 soak | Uncapped FAIL; 600.5 s capped diagnostic PASS is not the required full-hour release test |
 | R01 recovery | Controlled isolated failed-boot recovery still outstanding |
 
 The scratch-namespace correction passed full local/remote CI, exact-target RAM
@@ -98,12 +98,19 @@ capped; a single exact cleanup write restored all original settings, with
 same-boot SSH and readback proof. No reboot or accepted service change.
 The correction waits <=1 s for each policy update and always cancels entered
 QoS requests during restoration, even if the visible limit still looks original.
-Nineteen focused tests pass normal/optimized, including the failing delayed-QoS
-and interrupted-write regressions. Updated full CI and exact-target fixtures
-are required before another cap experiment. Caps remain 1.2096/1.5552/1.5552 GHz,
-lease <=720 s, unchanged load/thermal/storage guards. No kernel rebuild needed.
+Nineteen focused tests pass normal/optimized, including delayed-QoS and interrupted
+write regressions. Source `d1585090` passed full local CI **523.834 s**, all four
+remote jobs **34146544906**, and exact-target fixtures **1.721 s**.
+The corrected diagnostic passed **600.496 s** measured (**624.298 s** total):
+19 storage windows, 32 USB/Wi-Fi transfers, 61 observation samples. Peak device
+temperature **47.1°C**, battery Good / max **30.3°C**, final **8.525 V**.
+Original CPU maxima were independently restored to 1.8048/2.4192/2.8416 GHz.
+All workers stopped and new scratch children were removed; prior evidence remains.
+Caps 1.2096/1.5552/1.5552 GHz are a demonstrated mitigation, not installed policy.
+Next: boot-integrated headless CPU policy using existing packaging, then full
+coherent-release qualification. Keep kernel/archive cache reuse and all guards.
 It is critical power behavior, not a low-risk observer shortcut or release PASS.
-Do not repeat the full soak until that experiment produces discriminating evidence.
+Do not label this temporary cap diagnostic as S07 PASS or retry the uncapped soak.
 S02 Wi-Fi upload took 178.391 s against a 180 s bound: PASS with little margin,
 not proof of robust endurance. Keep this concern for the combined-load test.
 No device test is running at this checkpoint. Keep one coordinator and freeze
