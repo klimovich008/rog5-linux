@@ -6235,3 +6235,32 @@ The new frozen checkpoint's full-CI receipt is private `deployed-release-ci-r1`.
 Next is read-only revalidation without another boot, then the remaining safe
 CPU-policy/charging/endurance and controlled-recovery qualification, not release
 completion. Earlier V5 components are not a substitute for the final full matrix.
+
+At frozen **`e22f606a4cbd4327e348ad5eacc7bdc032b56c7d`**, full local CI PASS
+**523.918 s** (preceding run 526.219 s; not a claimed material suite speedup),
+log SHA-256 `8180f5c294c69329f33b5d901960d18115b3ca4a14339b4e4de12f6ee8d72822`.
+All four remote jobs PASS in
+[34160126847](https://github.com/klimovich008/rog5-linux/actions/runs/34160126847).
+Same-boot corrected local-root check PASS **0.921 s**. This avoids another boot
+to recheck already-correct V5 bytes; it is not a 0.921-second boot or replacement
+for the original failed smoke. No kernel/module/DT/archive/wrapper was rebuilt.
+
+The next bounded S07 investigation exercised the **complete** CPU guard and
+real `scaling_max_freq` writes in the exact production service sandbox, using
+a separately named transient unit. Five-second lease, total **6.635 s**, peak
+**36.8°C**; independent post-unit readback matched all original policies.
+Only the three fixed CPU maxima changed temporarily. Owned RAM logs/unit were
+cleaned; accepted services, persistent configuration, charging controls and fallback
+remained unchanged. Three dispatcher tests PASS normal/optimized **0.008/0.006 s**,
+including partial-entry guard failure with restoration; existing core behavior
+was covered by the frozen CI. No reboot, signing, claim or flash.
+Private `v5-complete-guard-cap-r1`: script
+`b77c375b14ef32acd066b3d97e65c55d32f51570f5be70199c8204db8c57e89a`, output
+`2f00cc3beb65bb6266b238f6996d6ebf1af0103e51f07589b31fcc9e0c873977`.
+
+This closes the steady-state complete-guard/sandbox gap, **not** V6 startup or
+the 60-minute soak. Exact built config has `CONFIG_QCOM_TSENS=y`; late loading
+of a TSENS module is unsupported. No retained pre-boot CPU-temperature series
+or rejected sensor/value exists. Do not infer a particular hot zone, no crash
+from empty pstore, or release acceptance from this experiment. The next decision
+must address the remaining boot-time condition, with V6 permanently consumed.
