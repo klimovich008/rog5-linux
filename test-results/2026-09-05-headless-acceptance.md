@@ -5534,3 +5534,24 @@ private plan/recipe/build evidence: `rog5-server-wifi-ps-20260907.aSQZz23O`.
 No signing, admission, staging, claim, flash or phone boot occurred. Next package
 and qualify the exact paired composition before the single-use physical trial;
 this preparation is not a release or S07 PASS. Installed V4 remains unchanged.
+
+### V5 signed composition preparation (2026-09-07)
+
+At clean `7fc60e6f6c1f3a71146025a17c8bfeddf9f1a9a9`, V5 signing through the
+existing recipe packager, twin comparison and the actual recovery's sealed
+verifier passed **4.649 s**. The signing public key was checked against sealed
+recovery bytes; private material stayed outside Git and output. The target build
+retains its `fa500750` identity; the two-file documentation delta was checked,
+not relabelled as a rebuilt target or a new full-CI pass.
+
+- Manifest: `747b669e0a8587de7cc338ab0d82552cdeaad79604fae8c145a6e05b334c743f`
+- Selector: `46e2e7b8bf92c863e3f0d3b62d9f98ac0c9e45435d548795488aea2da5c98650`
+
+One expected-record row was generated from that package and the existing V4
+record. Recovery/fallback, serial/product/topology, storage scope, no-flash and
+one-use semantics are unchanged. No live claim, staging, boot or execution
+authority was created. All earlier candidates remain consumed. Next validate
+registry consumers and the paired-root A01 composition; do not infer physical
+qualification from a signature or an expected record.
+The private packaging launcher's string/Path mismatch failed before key use;
+its path adapter was corrected. Production packager/source behavior was unchanged.
