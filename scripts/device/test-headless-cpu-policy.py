@@ -1,5 +1,5 @@
 """Boot policy API, exact archive members and optional runtime installation."""
-import copy,importlib.util,json,os,signal,subprocess,tempfile,unittest
+import copy,importlib.util,json,os,re,signal,subprocess,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 R=Path(__file__).resolve().parents[2]
@@ -43,6 +43,8 @@ class Tests(unittest.TestCase):
    self.assertIn(line,unit)
   self.assertNotIn('display',unit);self.assertNotIn('ExecStop=',unit)
   self.assertIn('ProtectKernelTunables=yes',unit)
+  self.assertIn('PrivateTmp=disconnected\nInaccessiblePaths=/var/tmp\n',unit)
+  self.assertNotIn('PrivateTmp=yes',unit)
   self.assertEqual([v for v in unit.splitlines() if v.startswith('ReadWritePaths=')],
    ['ReadWritePaths=/sys/devices/system/cpu/cpufreq/'+name+'/scaling_max_freq' for name in F.M.CAPS])
   with tempfile.TemporaryDirectory() as tmp:
@@ -50,6 +52,38 @@ class Tests(unittest.TestCase):
    for name in ('rog5-p2-ready','rog5-wifi-radio','rog5-wifi-failure'):
     (root/(name+'.service')).write_text('[Unit]\nDefaultDependencies=no\n[Service]\nType=oneshot\nExecStart=/bin/true\n')
    subprocess.run(['systemd-analyze','verify',str(path)],check=True,capture_output=True,timeout=10)
+ def manager_graph(self,unit):
+  # No units are installed/started. The host manager is an additional graph
+  # regression, not a substitute for the deployed systemd/QEMU check.
+  version=subprocess.check_output(['systemd-analyze','--version'],text=True,timeout=5)
+  match=re.match(r'systemd (\d+)\b',version)
+  self.assertIsNotNone(match)
+  if int(match[1])<257:
+   self.skipTest('host systemd lacks PrivateTmp=disconnected; exact target graph/sandbox qualification still required')
+  with tempfile.TemporaryDirectory(prefix='rog5-cpu-graph-') as tmp:
+   root=Path(tmp);path=root/'rog5-headless-cpu-policy.service';path.write_text(unit)
+   for name in ('rog5-p2-ready','rog5-wifi-radio','rog5-wifi-failure'):
+    (root/(name+'.service')).write_text('[Unit]\nDefaultDependencies=no\n[Service]\nType=oneshot\nExecStart=/bin/true\n')
+   p=subprocess.run(['systemd-analyze','verify',str(path)],capture_output=True,text=True,timeout=10,
+     env=dict(os.environ,SYSTEMD_LOG_LEVEL='debug',LC_ALL='C',SYSTEMD_COLORS='0'))
+   self.assertEqual(p.returncode,0,p.stderr[-2000:])
+   raw=p.stdout+p.stderr;mark='Unit rog5-headless-cpu-policy.service:'
+   self.assertEqual(raw.count(mark),1)
+   dump=re.split(r'\n\t\S+ Unit ',raw.split(mark,1)[1],maxsplit=1)[0]
+   after=set(re.findall(r'^\s+After: (\S+)',dump,re.M))
+   self.assertIn('rog5-p2-ready.service',after)
+   return dump,after
+ def test_no_implicit_tmpfiles_delay_and_namespace_retained(self):
+  unit=(R/'packaging/arch/rog5-headless-cpu-policy.service').read_text()
+  dump,after=self.manager_graph(unit)
+  self.assertNotIn('systemd-tmpfiles-setup.service',after)
+  self.assertRegex(dump,r'PrivateTmp: disconnected\n')
+  self.assertRegex(dump,r'InaccessiblePaths: /var/tmp\n')
+ def test_legacy_fixture_reproduces_hidden_dependency(self):
+  unit=(R/'packaging/arch/rog5-headless-cpu-policy.service').read_text()
+  legacy=unit.replace('PrivateTmp=disconnected\nInaccessiblePaths=/var/tmp\n','PrivateTmp=yes\n')
+  _,after=self.manager_graph(legacy)
+  self.assertIn('systemd-tmpfiles-setup.service',after)
  def test_guard_rejects_wrong_boot_device_power_and_scope(self):
   with tempfile.TemporaryDirectory() as tmp:
    root=Path(tmp);boot='96b722da-4ddc-4611-b813-a62149df541f'

@@ -1,7 +1,7 @@
 # ROG5 current state
 
-Updated 2026-09-07: V5 healthy; V7 diagnostic package prepared, not admitted/executed.
-V6 is permanently consumed. Do not retry, restage or flash it.
+Updated 2026-09-07: V7 startup FAIL; verified signed V11 fallback is running.
+V6 and V7 are permanently consumed. Never retry, restage or flash them.
 
 ## Goal and authority
 
@@ -9,143 +9,125 @@ Qualify one reliable unattended headless Arch server under the existing
 [acceptance contract](release-acceptance.md) and
 [mandatory matrix](../configs/release-acceptance.json). Display is optional.
 Missing prerequisites/evidence remain BLOCKED or NOT RUN, never PASS.
-Keep unrelated work in the backlog. No new architecture review or goal.
+No new architecture review or goal; unrelated work remains in the backlog.
 
 Exact phone: `M5AIKN00F0353YH`, product `lahaina`, side USB anchor `1-1.2`.
 Preserve official WW33 slot A (`33.0210.0210.200`) as charging/rescue.
 Stock charging restoration is complete; no super or stock restoration work.
-Preserve identity/slot/topology, signatures, battery/thermal, scoped storage,
-backups, independent fallback and permanent experimental one-use protections.
-No new flash, GPT or protected-data operation. Destructive scope remains separate.
-Private credentials, raw journals and evidence stay outside Git.
+Keep identity/slot/topology, signatures, battery/thermal, scoped storage/backups,
+independent fallback and permanent experimental one-use protections.
+No new flash, GPT or protected-data operation. Destructive scope is separate.
+Private credentials, packages, raw journals and evidence remain outside Git.
 
 ## Current phone and installed artifacts
 
-The installed boot-B loader remains unchanged:
+The installed boot-B loader is unchanged:
 `dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
 Retained previous boot B:
 `340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
 Signed V11 fallback manifest:
 `a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
 
-Current kernel `7.1.4-gf17befd4ef17`, bundle `headless-server-selector-v5`,
-boot `660c70d5-f01f-4eda-82fe-4e1d6c9a4a08`.
+Running bundle `persistent-native-root-v11`, kernel `7.1.4-g359318de534f`,
+boot `b4dca8ff-bcb6-4b48-abf1-8f45d661634e`.
 Authenticated USB SSH `10.77.0.2`, pinned alias `169.254.77.2`, fingerprint
 `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
-Read-only proof: 117 physical block nodes; only sda/sda23 writable; P24 remains RO.
-Current snapshot: Good, 29.9°C, 8.602 V, Full/100%, battery current 0, USB online.
-This snapshot is not H03 qualification. The 16 GiB persistent root upper is active.
-Core services and Wi-Fi radio/WPA/DHCP are active; current-boot healthy commit
-completed at 59.468 s. Use `rog5-early-sshd` and `rog5-tailscaled`, not generic
-service names. Tailscale uses `/run/rog5-tailscale/tailscale` with
-`--socket=/run/rog5-tailscale/tailscaled.sock`; peer connectivity is not yet proven.
+Read-only fallback proof PASS: exact manifest, 117 physical block nodes,
+only sda/sda23 writable, P24 RO; battery Good, below 40°C, USB online.
+The 16 GiB persistent upper is unmounted in fallback. Do not mount it just
+to inspect logs; bounded read-only debugfs acquisition is already proven.
 
-P24 selector now points to accepted V5; its P23 trial is freshly healthy.
-Bounded restoration preserved V6's failed selector and pending record, original
-V5 rollback copies, all bundles and permanent claim consumption. P24 was relocked.
-One ordinary boot returned to V5; no RAM candidate retry, signing or flash.
-V11 remains the independently verified fallback, not the currently running root.
+The failed V7 selector/trial intentionally selects fallback, not another V7
+execution. V5 accepted bundle/rollback selector/archived healthy record,
+V6 failure records, V11 and all one-use claims remain preserved.
+V5's previous healthy boot `660c70d5-f01f-4eda-82fe-4e1d6c9a4a08` ended.
+Do not execute a previous restoration or transition script unchanged.
 
-## Latest boundary and next action
+## Current blocker and exact next action
 
-The latest ordinary-boot smoke failed in the host checker after V5 returned
-authenticated SSH. `expected_files()` compared deployed V5 runtime with newer
-checkout bytes. All six deployed files match the canonical V5 reviewed source;
-the four initramfs-resident files also match its retained signed archive.
-This is an R2/R6 release-expectation error, not a new kernel failure.
-The correction requires an explicit candidate, derives expectations from its
-canonical exact source commit, disables Git replacement objects, and fails on
-missing inputs before credentials. Local-root and durability consumers agree.
-The original FAIL remains: full capture 1380.929 s, all four host cleanups PASS.
-Correction `e22f606a` passed full local CI **523.918 s** and all four remote jobs
-in **34160126847**. Same-boot corrected local-root check PASS **0.921 s**, not
-a replacement for the original failed smoke or full S01 qualification.
-Next: finish V7 exact composition/registry qualification, then one supervised
-startup test of the unchanged thermal gate. No claim or hardware entry exists yet.
+**S01: apply the existing conservative CPU policy early enough at startup.**
+V7 boot `c591ab27-9079-4261-9806-80f61e1e04d7` reached local root/systemd.
+The persistent journal proves:
+- tmpfiles finished at 21.924 s; CPU policy started at 21.926 s;
+- at 22.338 s, `thermal_zone13=62400 mC; required <60000 mC`;
+- core.run's initial guard refused before its snapshot or CPU cap writes;
+- the failure service requested orderly reboot at 24.745 s.
 
-V6 (`headless-server-selector-v6`) reached local root and systemd, then its CPU
-policy guard refused at target uptime ~23.105 s. The boot-bound persistent journal
-proves `ValueError: unsafe or unavailable thermal state`, followed by OnFailure
-and an orderly requested reboot. This is not evidence of kernel panic or host
-SSH/parser failure. The trace does not identify the zone, temperature or loop
-iteration; do not claim zero writes or a particular CPU temperature.
-The transaction's restoration path reported no secondary error, but no failing-
-boot frequency readback exists. Empty pstore remains inconclusive.
+This is an actual thermal refusal, not missing optional telemetry or a host
+SSH/parser error. The exact failing-boot zone type and earlier temperature
+series were not retained. Do not infer V6's unknown zone/value from V7.
+The new diagnostic message worked; it was not itself a thermal fix.
 
-The `<60000 mC` limit remains unchanged. Diagnostic correction `0005794c`
-passed full local CI 526.219 s and all four remote jobs in 34155585303; it is not
-deployed or a thermal-startup fix. Read-only complete-guard observation on V5
-passed for 10 s, peak 36.8°C, unchanged CPU maxima; this does not reproduce startup.
-The complete guard plus real cap application/restoration subsequently passed
-inside the unchanged service sandbox: **6.635 s** total, 5 s lease, peak **36.8°C**.
-Original CPU maxima were independently restored; no service was installed.
-This rules out a persistent steady-state guard/sandbox failure, not a transient
-startup condition. TSENS is built in; retained pre-boot evidence has no CPU
-temperature series. The rejected V6 zone/value remains unknown. No new boot,
-claim or flash occurred during that experiment. Optional missing fields never
-justify a successor; the remaining startup safety refusal requires discrimination.
+**R2/R4 correction:** `PrivateTmp=yes` adds an implicit tmpfiles dependency.
+The two-line unit change uses `PrivateTmp=disconnected` and blocks `/var/tmp`.
+It retains P2 ordering, private /tmp, the remaining sandbox and all safety gates.
+The deployed systemd 261 manager/client/shared-library bytes reproduced the
+old graph and verified its removal in QEMU: **12.843 s**. A separate RAM-only
+namespace/ordering test passed in **12.492 s** while tmpfiles remained pending.
+This proves the dependency/sandbox behavior, not reduced physical temperature.
+No kernel, DT, module, threshold, cap order or watchdog change is proposed.
 
-V7 changes only the trial descriptor, generated target checksums and the tested
-thermal diagnostic message. Thresholds, cap order, timing, kernel/DT/modules and
-wrapper are unchanged. Target twins **9.095 s**, wrapper reuse **0.446 s**, sealed
-commands **1.431 s**, signed twins/verifier **4.828 s**. Canonical consumer and
-rejection tests PASS **11.237 s**. Signed manifest
-`4eaeb9f8859f7fa9c64b5e40b3764452da504d0ce5438afd20760305bc23e7b9`;
-other identities derive from its one expected record. Expected-record registration
-does not create a filesystem claim. Private work: `rog5-boot-cpu-diag-20260907.cnXiH8My`.
-The bounded Opus review failed on expired OAuth; no review conclusions were used.
+Next: qualify/publish this frozen critical-runtime correction once, then
+assemble its target archive with the reused kernel/wrapper. Before any new
+candidate, validate the effective deployed runtime, all artifact/admission
+boundaries, fallback and power. A new physical attempt must answer whether
+earlier capped startup passes the unchanged thermal guard. V7 cannot be reused.
 
-The private live work is `rog5-server-cpu-policy-20260907.lwlreSEe`.
-V6 manifest:
-`61c34cefc6cbb335203a609ee695e3db4638b1a747c22ab235460407ad1713eb`.
-Target archive:
-`f0c866f10892bc129bbcc421316c243cd67fdc9307e6f7ee76d0e0dfd91b7433`.
-Failure boot: `2fb95880-ac79-46ea-8fd5-ceb5b7157e38`.
-Other hashes derive from its canonical record and private deployment receipts.
+## Evidence and qualification limits
+
+V7 signed manifest:
+`4eaeb9f8859f7fa9c64b5e40b3764452da504d0ce5438afd20760305bc23e7b9`.
+Other artifact identities derive from its canonical expected record.
+Source `9a2188a76aa4712a4b9a25c3d665c0cffbc3fe14`: full local CI PASS
+**544.611 s**; all four remote jobs PASS in **34162547059**.
+V7 A01/C01/C02 passed **91.137/131.861/74.290 s**, respectively.
+However, the retained base root contains systemd 260 while the deployed
+persistent upper contains 261. These base-root passes must not be described
+as complete deployed-upper qualification. The focused 261 runtime replay
+closes only the ordering/namespace question. Final A01 must include the
+effective upper/runtime composition; a missing matching input stays BLOCKED.
+
+V7 staging PASS **2.024 s**, no flash; P24 relocked and fallback hashes verified.
+One execution only. Startup readiness FAIL at **301.118 s**.
+Full capture **1380.703 s**, all route/firewall/profile/address cleanups PASS.
+Last target transport stage: switch-root PASS; independent journal identified
+the later CPU guard failure. Unplanned fallback is not controlled R01 proof.
+Private work/evidence: `rog5-boot-cpu-diag-20260907.cnXiH8My`.
 
 ## Mandatory outcomes
 
-One coherent final release must pass all mandatory rows. Component passes from
-V5 cannot be combined with V6 into a green release.
+Do not combine incompatible releases into one green result.
 
 | Outcome | Current result / next action |
 |---|---|
-| A01 / C01 / C02 | V7 pending; prior V6 results do not qualify the changed archive |
+| A01 / C01 / C02 | V7 offline passes; effective-upper limitation above; requalify changed composition |
 | H01 / H02 | V11 fallback SSH/power proof; same-release radio-inactive rescue not qualified |
-| H03 regulation | NOT RUN for V6; firmware-Full method is defined, missing fields are not PASS |
-| S01 local startup | V5 healthy; corrected root component PASS 0.921 s; original smoke FAIL preserved |
-| S02 transfers | V5 PASS; Wi-Fi upload had little deadline margin; validate final release |
-| S03 restart recovery | V5 PASS; validate final release |
-| S04 durability | V5 PASS with owned scratch cleanup; prior failed-soak file preserved |
-| S05 repeated boots | V5 three ordinary boots PASS in 313.102 s; not V6 evidence |
-| S06 powered-off start | Physical powered-off/start qualification outstanding |
+| H03 regulation | NOT RUN for V7; defined firmware-Full method, not absent-field success |
+| S01 local startup | V7 FAIL; test corrected CPU startup ordering |
+| S02 transfers | V5 PASS only; qualify final release and Wi-Fi margin |
+| S03 restart recovery | V5 PASS only; qualify final release |
+| S04 durability | V5 PASS only; prior failed-soak scratch preserved |
+| S05 repeated boots | V5 three ordinary boots PASS, 313.102 s; not V7 evidence |
+| S06 powered-off start | NOT RUN |
 | S07 combined load | V5 uncapped FAIL; capped 600.496 s diagnostic is not 60-minute PASS |
-| F01 / F02 | V5 offline recovery/Wi-Fi-restart PASS; preserve exact-input evidence |
-| R01 recovery | Unplanned V6 fallback is not the separately controlled failed-boot test |
-
-Complete history, exact earlier identities and evidence are in the
-[dated report](../test-results/2026-09-05-headless-acceptance.md).
-V5 private work: `rog5-server-wifi-ps-20260907.aSQZz23O`.
-Never remove its failed-soak scratch, accepted artifacts or archived claims.
+| F01 / F02 | Retained offline recovery/Wi-Fi-restart passes; exact-input reuse only |
+| R01 recovery | Controlled isolated failed-boot qualification still outstanding |
 
 ## Fast loop and retention
 
-Use [development](development.md): impact/dependency selection, focused edits,
-exact assembled/target checks, frozen integration checkpoints and separate
-development/release results. Unknown/critical changes retain stronger checks.
-V6 implementation source `81596787` passed full local CI 525.864 s. Registry
-source `a65fc129` passed full local CI 556.713 s and remote run 34151850294, all
-four jobs. Do not relabel these as testing later diagnostic edits.
-Unsigned target twins 8.985 s, wrapper reuse 0.481 s, signed packaging 4.669 s.
-Private coordinator normal/optimized checks 3.817 s; no repeated full CI.
-A01/C01/C02 overlapped registry CI. No kernel/DT/module/wrapper rebuild or flash.
+Use [development](development.md): impact/dependency selection, exact-target
+checks, frozen integration checkpoints and separate development/release results.
+Unknown/critical changes stay broad. Documentation/eligible experiments need
+not repeat unrelated CI; actual artifacts and safety dependencies still bind.
+V7 target twins **9.095 s**, wrapper reuse **0.446 s**, signed packaging **4.828 s**.
+Registry CI, root preview and A01/C01/C02 overlapped; no kernel/wrapper rebuild.
+Private preparation may overlap pending CI; staging/execution still require
+completed exact remote checks. It is not a live-admission waiver.
 
-8,280,854,528 B of duplicate old wrapper intermediates were released with verified
-twins retained. Exact restoration inventory and relocated V5/V4 previews are
-durable under the private V6 `retained-host-inputs`. Old RAM preview paths are
-absent; do not rebuild merely to recreate them. Preserve the 3 GiB home reserve.
-V6 host preview was losslessly archived to private `/tmp/rog5-v6-preview-archive-gkrldufe`;
-complete decompression matched its original SHA256. Its raw RAM copy was released
-(4,097,179,648 B); never rebuild it merely to recreate the old path. See the dated
-report for restoration identity. V6 package and archives remain volatile: no host reboot yet.
+Preserve the 3 GiB home reserve. Retained preview restoration identities,
+archived V4/V6 roots, released duplicate wrapper intermediates, historical
+V5/V6 narratives and detailed results are in the
+[existing dated report](../test-results/2026-09-05-headless-acceptance.md).
+Some retained artifacts/archives remain in volatile RAM: no host reboot yet.
+Never remove the failed-soak scratch, accepted payloads or archived claims.
 Host port 8081 is unrelated SteamOS CEF; leave it untouched.
