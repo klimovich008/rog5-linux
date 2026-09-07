@@ -1,0 +1,14 @@
+{
+  "origin": "S04 ordinary boot, 2026-09-07; sanitized receiver/udev observations",
+  "previous_mode": "recovery",
+  "operation": "product",
+  "errno": 19,
+  "target_seen": false,
+  "immediate_recheck": "enumerating",
+  "immediate_recheck_exception": "not recorded",
+  "next_poll_mode": "absent",
+  "next_poll_delay_seconds": 0.100346402,
+  "udev_parent_remove_delay_seconds": 0.000293620,
+  "later_mode": "target",
+  "original_capture_result": "FAIL"
+}

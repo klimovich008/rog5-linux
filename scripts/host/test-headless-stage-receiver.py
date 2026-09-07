@@ -179,7 +179,7 @@ class ReceiverTest(unittest.TestCase):
                         receiver.transport('target',None)
                         receiver.transport('absent',None)  # No frame needed to latch observation.
                     error=M.UsbReadDisappeared(OSError(number,'fixture'),'idVendor')
-                    discovery=[error,(next_mode,None)] if phase=='usb' else [('target',None),(next_mode,None)]
+                    discovery=[error]+[(next_mode,None)]*5 if phase=='usb' else [('target',None),(next_mode,None)]
                     def route(): raise error
                     with patch.object(M,'usb_mode',side_effect=discovery):
                         result=M.update_transport(receiver,'fixture',route)
@@ -187,6 +187,60 @@ class ReceiverTest(unittest.TestCase):
                     self.assertTrue(receiver.failed)
                     failure=next(e for e in events if e['event']=='transport-check-failed')
                     self.assertEqual(failure['phase'],'usb-discovery' if phase=='usb' else 'network-setup')
+
+    def test_teardown_waits_for_positive_absence_before_target(self):
+        # Retained S04 trace: product ENODEV, unresolved recheck, then absent
+        # 100 ms later. Its unrecorded second exception cannot be inferred;
+        # this fixture explicitly supplies classified follow-up observations.
+        fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/s04-usb-descriptor-teardown.json').read_text())
+        self.assertEqual(fixture['original_capture_result'],'FAIL')
+        self.assertEqual(fixture['immediate_recheck_exception'],'not recorded')
+        for followup in (fixture['immediate_recheck'], 'tagged-error'):
+            events=[]
+            with self.subTest(followup=followup), M.Receiver('fixture',events.append,
+                    host='127.0.0.1',port=0) as receiver:
+                receiver.transport(fixture['previous_mode'],None)
+                error=M.UsbReadDisappeared(OSError(fixture['errno'],'No such device'),fixture['operation'])
+                unresolved=error if followup=='tagged-error' else ('enumerating',None)
+                route=unittest.mock.Mock(return_value=True)
+                with patch.object(M,'usb_mode',side_effect=[error,unresolved,unresolved,('absent',None)]), \
+                        patch.object(M.time,'sleep') as sleep:
+                    M.update_transport(receiver,'fixture',route)
+                self.assertFalse(receiver.failed)
+                self.assertEqual(receiver.mode,'absent')
+                event=next(e for e in events if e['event']=='usb-discovery-interrupted')
+                self.assertEqual(event['removal_rechecks'],2)
+                self.assertLessEqual(sum(c.args[0] for c in sleep.call_args_list),.15)
+                route.assert_not_called()
+
+    def test_teardown_resolution_is_bounded_and_never_masks_other_errors(self):
+        for followup in ('enumerating','tagged-error','untagged','permission','mismatch','target'):
+            events=[]
+            with self.subTest(followup=followup), M.Receiver('fixture',events.append,
+                    host='127.0.0.1',port=0) as receiver:
+                receiver.transport('recovery',None)
+                error=M.UsbReadDisappeared(OSError(errno.ENODEV,'fixture'),'product')
+                next_read={'tagged-error':error,'untagged':OSError(errno.ENODEV,'fixture'),
+                           'permission':PermissionError(errno.EACCES,'fixture')}.get(followup,(followup,None))
+                with patch.object(M,'usb_mode',side_effect=[error]+[next_read]*5) as read, \
+                        patch.object(M.time,'sleep') as sleep:
+                    M.update_transport(receiver,'fixture',lambda:True)
+                self.assertTrue(receiver.failed)
+                self.assertLessEqual(read.call_count,5)
+                self.assertLessEqual(sum(c.args[0] for c in sleep.call_args_list),.151)
+                if followup not in ('enumerating','tagged-error'):
+                    sleep.assert_not_called()
+                self.assertTrue(any(e['event']=='transport-check-failed' for e in events))
+
+    def test_teardown_cannot_extend_capture_deadline(self):
+        with M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0) as receiver:
+            error=M.UsbReadDisappeared(OSError(errno.ENODEV,'fixture'),'product')
+            with patch.object(M,'usb_mode',side_effect=[error,('enumerating',None)]), \
+                    patch.object(M.time,'monotonic',return_value=100), \
+                    patch.object(M.time,'sleep') as sleep:
+                M.update_transport(receiver,'fixture',lambda:True,deadline=100)
+            self.assertTrue(receiver.failed)
+            sleep.assert_not_called()
 
     def test_benign_enumeration_cannot_clear_an_existing_failure(self):
         with M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0) as receiver:
