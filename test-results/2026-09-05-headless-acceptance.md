@@ -5555,3 +5555,54 @@ registry consumers and the paired-root A01 composition; do not infer physical
 qualification from a signature or an expected record.
 The private packaging launcher's string/Path mismatch failed before key use;
 its path adapter was corrected. Production packager/source behavior was unchanged.
+
+### V5 composition and integration checkpoint (2026-09-07)
+
+At clean `09d22f9d2503a9dee421c1146dd1e2d570739cb8`, digest
+`a809f8a259df87c2a29e9798796e87e2acbd5d136d938fc2ca4275fb96068fd8`:
+
+- Six focused registry/consumer/receiver runs, normal and optimized: PASS
+  **8.875 s**, including all-family closure and altered/consumed-record refusal.
+- New paired host preview: PASS **62.105 s**, **4,063,461,376 allocated bytes**.
+  Whole lower-image hash:
+  `c58b02f2a9ef587b8ce60973446cf88d18c6f708e76dd16b7ed33f17ac22d517`.
+- Exact A01: PASS **103.346 s**, including signed target, reused wrapper,
+  root handover, module loading, firmware and timing/transport. Guest completion
+  alone was not accepted: final host checks and result also passed.
+- One frozen full local CI: PASS **516.936 s**. All four remote jobs PASS in
+  [run 34121734062](https://github.com/klimovich008/rog5-linux/actions/runs/34121734062).
+  Remote duration was approximately **590 s**, overlapped with independent work.
+  This is not a faster full-suite claim versus the preceding **503.225 s** run.
+
+The unchanged recovery reuse check passed **0.474 s**. Target twins took
+**8.375 s**, sealed syntax **0.727 s**, signing/sealed verification **4.649 s**;
+neither kernel nor wrapper was rebuilt. The report-only active check previously
+took **34.958 s**, versus full integration around eight minutes. Eligibility
+removes unrelated remote waiting only for reviewed isolated development leaves;
+critical changes, broad PR coverage and final promotion retain stronger checks.
+
+During CI, an authenticated read-only snapshot passed **0.610 s** on the same
+V4 boot `24db7908-5479-4d1a-a9cd-eeccbf1cb564`: Good, **29.8°C**, **8.532 V**,
+**99%**, firmware Full, current zero, USB online. This is not H03: its defined
+Full branch requires a complete qualified window, including 100% capacity.
+The exact V4 trial was healthy, healthy.service active/exited/success, and both
+boot rollback timers inactive. Initial private snapshot import failed before
+credentials/phone access; adding the established scripts/host module search
+path corrected the launcher only. Production files were unchanged.
+
+The old staging transaction expects V11 plus a pending failed trial. Its
+healthy-V4 successor must be adapted and tested before execution; no blind
+identity substitution. Preserve selector/trial backups, bounded P24 write/relock
+and signed fallback. No V5 admission, claim, staging, boot or flash occurred.
+S07 remains FAIL with unexplained thermal refusal; the new policy is a supported
+Wi-Fi mitigation, not a proven unique driver/AP root cause or a soak PASS.
+
+Disk headroom briefly fell below the unchanged 3 GiB reserve. Two generated VM
+archives were proven byte-identical, owner/mode/size stable and unused. Only
+the failed A01 run's redundant **73,961,472-byte allocation** was released;
+the successful A01-r2 copy remains durable with SHA-256
+`3875332074396c663140e66d04650a2ff63a3918e5275dd2da708da0aaa7d989`.
+Logs and results were untouched. Private `duplicate-vm-retention-r1.json`
+records restoration to the absent old pathname; result PASS **1.354 s**.
+Disk free then **3,264,557,056 bytes**. Old V4 preview remains archived, while
+the new V5 preview is separate and still volatile. Do not reboot the host.
