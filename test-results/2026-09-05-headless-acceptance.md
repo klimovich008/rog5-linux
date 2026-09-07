@@ -6015,3 +6015,62 @@ Focused tests: CPU transaction 21 PASS **0.308/0.305 s**, boot-policy 8 PASS
 to edit its own read-only test record; corrected fixture chmod sequencing, not
 production permission checks. Full integration and exact-target checks remain
 pending. Accepted V5, restored CPU defaults, rescue and phone storage unchanged.
+
+### CPU-policy packaging checkpoint and measured capacity refusal (2026-09-07)
+
+Frozen source `8159678703756c3b9a06f81004c8ed15479087f5`, clean digest
+`abef86e109ca7cd9e8224bf560994541a896d564132c39e9b5cd38717edfe6bc`:
+full local CI **525.864 s**, log SHA-256
+`bb488cdfcbd5c6b1e35912133e15b1440faf67aad77f310a8131d35172567b9b`.
+Remote **34149182578** head-exact, merge-compat, candidate-publication and
+qemu-system all PASS for that exact source. No unchanged full suite repeated.
+
+Exact deployed V5 Python/systemd ran normal and optimized private CPU-policy
+fixtures, each with start/restart, in **1.366 s** (host **1.626 s**). The actual
+unit sandbox properties were used with an owned tmpfs cpufreq projection; both
+mapping identity and read-only unrelated attributes were checked before writes.
+Failure cleanup, retention and idempotent restart passed. Private units/files
+were removed; independently read real CPU snapshots were identical before/after.
+Battery Good, 30.2°C, 8.532→8.525 V; same accepted boot
+`96b722da-4ddc-4611-b813-a62149df541f`. No real CPU or accepted service write.
+Raw stdout SHA-256:
+`295144c389c757e8287215bfa51d5b97d963566ab72037553b11d9ce3cb5b6ca`.
+This is sandbox execution evidence, not successor boot-order or release PASS.
+
+V6 exact target twins completed **8.985 s**, allocating **110,641,152 bytes**.
+Only runtime, boot-files checksum list, trial descriptor and the three CPU-policy
+members differ from V5. Complete twin hash:
+`f0c866f10892bc129bbcc421316c243cd67fdc9307e6f7ee76d0e0dfd91b7433`.
+Retained kernel/DT/modules/init are unchanged. Recovery input diff plus sealed
+source and twin-byte verification passed **0.481 s**; wrapper was not rebuilt.
+Existing packager, signing key and embedded verifier passed **4.669 s**:
+
+- Manifest: `61c34cefc6cbb335203a609ee695e3db4638b1a747c22ab235460407ad1713eb`.
+- Selector: `a2783fb5e915ea1a2c6cff8a33fbcff5660a805edb108e86155a5fc203fec74f`.
+- Trial: `551812cc768a0f24116151c73a7adcae71786385663ca5297ebed93ef4dc7dc6`.
+- Package receipt: `071581bfecea89757cfa5af9d7c71bf2dc849b5b20fdcc27b39b53a00738159e`.
+
+V6 remains unregistered/unadmitted/unstaged/unexecuted. Signing is not authority.
+Accepted boot B, signed V11 fallback, stock A and all phone storage are unchanged.
+Private preparation is `rog5-server-cpu-policy-20260907.lwlreSEe`; package output
+is volatile user runtime storage, not a durable backup. Do not reboot the host.
+
+Next mandatory A01 paired-root preparation refused before copying: measured
+prior allocation **4,063,461,376 B**, new package **93,620,045 B**, plus existing
+metadata/headroom allowances require **4,324,853,581 B** free on `/run` versus
+**959,254,528 B** available. Required memory+swap **8,485,603,149 B** versus
+**4,128,399,360 B**; home **3,227,873,280 B** barely exceeds **3,221,225,472 B**
+reserve. Read-only prerequisite evaluation took **0.003 s**. This is a real
+host-capacity blocker, not a new phone failure; no candidate was consumed.
+No data was deleted, compressed again or overwritten to force the gate through.
+
+The bounded workflow correction already lives in `rog5-dev select --development`
+and the shared tier union: eligible observers/isolated userspace need local,
+exact-target and service evidence but no unrelated remote wait; mixed critical
+or unknown dependencies retain full checks. Source `81596787` extends regression
+coverage to boot CPU power policy so even a one-line change remains critical.
+Fast-loop savings here are the reused **525.864 s** full run, unchanged kernel
+and wrapper, and <15 s target/package work—not weakened thermal/soak criteria.
+Next: verified capacity recovery, exact V6 root/composition, admission and one
+boot, then the complete unchanged release matrix. Do not relabel the ten-minute
+diagnostic as S07, or combine old and new releases into one green result.
