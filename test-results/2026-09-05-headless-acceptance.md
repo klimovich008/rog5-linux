@@ -6074,3 +6074,50 @@ and wrapper, and <15 s target/package work—not weakened thermal/soak criteria.
 Next: verified capacity recovery, exact V6 root/composition, admission and one
 boot, then the complete unchanged release matrix. Do not relabel the ten-minute
 diagnostic as S07, or combine old and new releases into one green result.
+
+### Capacity recovery and V6 canonical registration (2026-09-07)
+
+Documentation checkpoint `5c50e9846624ddb741510c6157bc7d545ca515c8` passed
+active **42.421 s** and all four remote jobs **34150886447**; production full CI
+remains the separately labelled `81596787` result, not relabelled newer evidence.
+
+Bounded inventory found 7,314 byte-identical generated intermediates in the old
+`persistent-slotb-loader-v2/v3/v4-wrapper` A/B twins: only `wrapper-a/vmlinux.o`
+and matching `wrapper-a/.thinlto-cache/llvmcache-*`. Inventory **21.196 s**;
+inactive-user checks, full rehash, recorded entry, exact-file release and final
+retained-copy verification **41.152 s**. **8,280,854,528 B** recovered. Every
+wrapper-b copy remains; source, final images, unique cache entries, configs,
+build logs, active kernel/module caches and phone artifacts are unchanged.
+Inventory SHA-256:
+`388c53aa5a0cdd1e16666cfa41c6b0d5d3b04b045739e8d1dc9041158febf49b`.
+Restoration copies each retained file only into its absent original pathname,
+restores metadata, and verifies its recorded digest. Private inventory and
+entry/completion records are retained durably with the V6 work.
+
+The verified V5 raw preview and V4 compressed preview were copied sparsely to
+private durable `retained-host-inputs`, fsynced, read-back hashed, then released
+from their original RAM-backed paths after a second inactive-user check.
+Post-release retained hashes pass. Total **231.292 s**; logical digests remain
+V5 `c58b02f2a9ef587b8ce60973446cf88d18c6f708e76dd16b7ed33f17ac22d517`
+and V4 archive `d827af407613af5d9cf210d824fcba2c346e0f078471c39570553f3253893eb5`.
+Allocated durable sizes are **4,004,409,344 / 2,196,815,872 B**. This relocates
+host inputs, not phone partitions or old evidence identities. `/run` regained
+4.063 GB; available memory+swap now exceeds 10 GB, satisfying the prior deficit.
+
+An independent host-only finding: PID 3407911, start tick 69861365, was an
+orphaned shell mock from a deleted September-6 test fixture, not live recovery.
+Its exact deleted script and 895-byte log were preserved before pidfd-bound
+SIGTERM; verified terminal in **0.004 s**. No group-wide kill or phone action.
+Repeated polling of a missing fixture root explains its continued activity;
+the original test teardown failure is not attributed without further evidence.
+Backlog: bounded fixture-liveness cleanup if current tests reproduce this leak;
+do not change real target one-use behavior to address an old host mock.
+
+The existing canonical lookup now contains V6's exact signed record. A private
+package/consumer check failed first with `claim profile is not repository-owned`,
+then passed normal/optimized across composition, receiver, deployed verifier,
+admission and admission-family lookup. The existing 19 claim-consumer and 33
+admission tests pass in both modes, including changed artifact fields and consumed
+claims; registration is data-only, without another copied executor or authority.
+Next: full frozen registry CI plus exact V6 paired-root A01, retaining original
+kernel/wrapper and CPU implementation evidence. No V6 claim, stage, boot or flash.
