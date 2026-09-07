@@ -22,6 +22,19 @@ import or cross-release merge. Explicit rescue-cycle replay below revalidates
 raw evidence and authenticates the same live boot; reused evidence is labelled.
 Source changes during execution invalidate the run.
 
+S04 preparation uses `rog5-dev durability-phase --help`: one explicit `probe`,
+`prepare`, `verify` or `cleanup` operation, never a reboot or automatic retry.
+The private `rog5-s04-file-plan-v1` binds the canonical candidate, artifact
+hashes, pinned S01 inputs, pinned read-only scope inventory and a random nonce.
+Only `/persist/rog5-release-acceptance/s04-<nonce-prefix>/scratch.bin` is used,
+bounded to 64 MiB. Verify requires a different authenticated boot; cleanup
+requires the exact successful verification and unchanged source/input hashes.
+The coordinator must qualify the storage-test code, establish capture, perform
+the separately supervised ordinary reboot and enforce S04's overall deadline.
+A phase PASS does **not** qualify S04; its matrix row remains unimplemented until
+the complete physical sequence has a tested evidence consumer. Exact-target
+fixtures may use an owned `/run` tmpfs directory, never the service-state image.
+
 `--release` accepts private `rog5-release-inputs-v1` JSON with `candidate_id`,
 `source_revision` and `artifacts`: `kernel`, `dtb`, `initramfs`, `rootfs`,
 `boot_bundle`. Each artifact has an absolute `path`, `size`, and `sha256`.

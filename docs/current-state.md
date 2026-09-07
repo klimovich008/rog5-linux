@@ -131,11 +131,15 @@ supervisor 1385.867 s, receiver exit 0; route/firewall/profile/address cleanup
 all PASS. Never restart this exact operation. Original clean source:
 `d75359b781e9386561474004df7db980435bab6b`. Post-cleanup pinned SSH/root PASS
 0.862 s on the same boot. The separate approved boot-B replacement is complete.
-Next: finish S04's scoped file-operation integration, target/runtime checks and
-required storage CI before its live write/reboot/readback. Read-only scope proof
+Next: qualify S04's new scoped file-phase runner and exact-target RAM fixtures,
+then perform its supervised write/reboot/readback. Read-only scope proof
 passed: expected ext4 service image at /persist, 3.974 GB available, test namespace
-absent. A private nine-case host prototype passes, but has no target executor or
-post-reboot cleanup and is not live-ready. No phone scratch file exists.
+absent. The public helper/adapter/phase runner has 27 disposable-host tests,
+normal and optimized PASS. Storage CI and exact-target checks are pending;
+no phone scratch file exists. The first VM test correctly failed: the retained
+lower root has no Python, whereas the running persistent upper provides 3.14.7.
+Do not relabel that VM as testing the installed runtime. Next exact-runtime
+check uses an owned phone tmpfs fixture after CI, not a persistent write.
 Preserve the first S03
 failure: immediate post-restart SSH refusal needed bounded read-only reconnect,
 not another restart or kernel fix. Corrected case: SSH recovered in 2.561 s.
@@ -173,7 +177,7 @@ Kernel/wrapper build count zero; no accepted target/cache inputs changed.
 All new live observations retain original clean source `f641fec9`.
 
 Runtime-evidence checkpoint **`a74766d763c345c4b278d6babde7a5e9b31583ec`**:
-full local CI PASS **493.111 s**; pushed, remote run **34076983924** running.
+full local CI PASS **493.111 s**; all four jobs PASS in remote run **34076983924**.
 A02 PASS 16.483 s; 12 runtime/47 dispatcher tests pass. No repeated phone cycle.
 Private S04 scope observation source is `a74766d7`; it made no phone writes.
 
