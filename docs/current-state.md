@@ -1,8 +1,8 @@
 # ROG5 current state
 
 Updated: 2026-09-07. S01–S04 batch passed on unchanged V4 artifacts.
-S05's three ordinary boots and pinned offline replay passed; integration
-publication is next. The server remains running.
+S05's three ordinary boots, pinned dispatcher replay and full local CI passed.
+Exact-head remote CI is running. The server remains running.
 
 ## Goal and authority
 
@@ -83,7 +83,7 @@ These component results do **not** constitute one qualified final release.
 | S02 transfers | Physical PASS 298.494 s; unchanged evidence replay PASS 3.471 s |
 | S03 service restarts | Physical PASS 33.648 s; dispatcher PASS 0.215 s |
 | S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
-| S05 three boots | Physical sequence PASS 311.524 s; pinned replay PASS, dispatcher/publication pending |
+| S05 three boots | Physical sequence PASS 311.524 s; dispatcher PASS 0.315 s at `2efa7cdf` |
 | S06 powered-off start | Requires verified off interval and physical start; ordinary reboot is not a substitute |
 | S07 combined soak | 60-minute storage/network observation outstanding; next independent implementation |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
@@ -111,8 +111,10 @@ Private input: `s05-evidence-inputs-r1.json`, SHA-256
 `7a9bc83e1ca7006992fe64de3f8d0fae1abec5a9d0f9b70fc068b4f41f526a7c`.
 Do not count smoke evidence as full S01/R01 or final release qualification.
 
-Next: freeze/publish the S05 consumer, run one full local CI and exact-head CI,
-and pass it through the existing acceptance dispatcher. Prepare the bounded
+S05 consumer `2efa7cdf` is pushed; full local CI PASS **497.398 s**, dispatcher
+PASS **0.315 s**, total unchanged-artifact assessment **49.920 s**.
+Remote **34092855927** is running. Finish that check before advancing publication;
+do not cancel it with a documentation-only push. Prepare the bounded
 S07 combined-load test while independent checks run. S06 still needs physical
 off/start conditions; do not silently substitute another ordinary reboot.
 Full S04 evidence and the earlier failed R7 capture remain in the
@@ -132,9 +134,17 @@ original source, not a newer label. No kernel/wrapper rebuild occurred here.
 S05 smoke integration `93d6ee17`: full local CI **496.400 s**;
 all four exact-head/merge/publication/QEMU jobs PASS **34088992649**.
 Seven private coordinator failure/ownership tests passed normal/optimized.
-The new consumer's nine tests pass normal/optimized; 47 dispatcher and 12
-existing runtime regressions pass. Frozen consumer integration remains pending.
+The consumer's nine tests pass normal/optimized; 47 dispatcher, 12 existing
+runtime, 14 durability and 35 selector/workflow regressions pass.
 No kernel/module/wrapper rebuild; all five release artifact identities unchanged.
 The impact/dependency selector checkpoint `d75359b7` and receiver correction
 `884a1a41` remain complete. Historical timings and preserved failures are linked
 from the dated report, not another active ledger.
+
+S07 read-only preparation PASS **0.917 s** on the current boot: scratch namespace
+absent, **3.974 GB** available, 726 contiguous kernel records, all three relevant
+ext4 error counters present/zero, cache-advice support available. The early SPMI
+WARN is the previously recorded boot warning, not a new failure. Private draft
+observation predicates pass five tests normal/optimized; no soak or storage
+worker ran. Next implement/test the bounded worker/coordinator using the existing
+file/transfer primitives. Keep the full 3600-second physical requirement.

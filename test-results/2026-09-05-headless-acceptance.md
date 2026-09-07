@@ -5046,3 +5046,29 @@ Three full captures alone would require **4140 s** versus the measured
 **311.524 s** whole smoke sequence (about 64 minutes avoided). The old full
 capture is still used for actual failure/recovery qualification. Artifact
 bytes are unchanged; no kernel/module/wrapper rebuild or cache invalidation.
+
+Frozen consumer `2efa7cdfdeb325c0840696315d8ee0bdd3abee03` passed full local CI
+**497.398 s** (previous **496.400 s**), log SHA-256
+`a1f42656fe5ce6010b7424eb8e2ed0f533cd1e22c6f94e8347ab13c6c1d37578`.
+S05 dispatcher PASS **0.315 s**, total **49.920 s** including unchanged-artifact
+verification. This assessment ran alongside CI; physical observations retain
+source `93d6ee17`, and unselected mandatory outcomes remain NOT RUN. Published
+commit `2efa7cdf`; remote exact-head/merge run **34092855927** is still running
+at this checkpoint. No pending run was cancelled for this evidence update.
+
+Next-outcome S07 read-only preparation PASS **0.917 s** on boot
+`24db7908-5479-4d1a-a9cd-eeccbf1cb564`: authorized `/persist` loop-backed state
+has **3,974,451,200 bytes** and 262,070 inodes available, scratch namespace
+absent; `/dev/kmsg` returns 726 consecutive records (0–725). All of
+loop1/sda23/sda24 expose zero ext4 errors; target Python supports cache advice.
+Raw output SHA-256:
+`17b0b089a6f2510a5b0b1b6575cc62e69ac925ab588a40932bd6a4446d48415f`.
+The SID5/0x104 SPMI boot warning matches the already-recorded warning; do not
+reopen that comparison without new evidence. New kernel records during soak
+must be monitored independently of this baseline; log gaps remain failures.
+Five private draft observer tests PASS normal/optimized (**0.001 s** each),
+covering error records, sequence loss, filesystem-counter changes and stale or
+wrong-boot heartbeats. These are preparation, not a one-hour test or S07 PASS.
+An import-path omission in the private preparation helper failed before phone
+contact and was corrected to use the same repository module path as its parent.
+No kernel, service, file payload or storage-layout change was involved.
