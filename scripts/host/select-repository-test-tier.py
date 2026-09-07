@@ -55,7 +55,7 @@ def impact_categories(paths: list[str]) -> list[str]:
         elif path.startswith('dts/') or path.endswith(('.dts','.dtso','.dtb')):
             categories.add('device-tree')
         elif any(word in path for word in ('charging','shutdown','watchdog','storage','recovery',
-                                           'cpu-frequency-cap','power-profile')):
+                                           'cpu-frequency-cap','headless-cpu-policy','power-profile')):
             categories.add('critical-runtime')
         elif '/module' in path or path.endswith('.ko'):
             categories.add('kernel-module')

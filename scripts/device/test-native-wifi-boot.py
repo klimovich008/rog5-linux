@@ -77,6 +77,7 @@ class PersistentComposerValidation(unittest.TestCase):
             '\nprimary_bundle=fixture-primary\nmode=try-once\n').encode()
         self.successor = False
         self.refresh_userspace = False
+        self.headless_cpu_policy = False
 
     def prepare_successor(self):
         self.base, _ = self.module.compose(
@@ -124,7 +125,8 @@ class PersistentComposerValidation(unittest.TestCase):
              '--trial-descriptor', str(root/'descriptor'),
              '--trial-helper', str(root/'helper'), '--output', str(root/'output.gz'),
              *(['--successor'] if self.successor else []),
-             *(['--refresh-userspace'] if self.refresh_userspace else [])],
+             *(['--refresh-userspace'] if self.refresh_userspace else []),
+             *(['--headless-cpu-policy'] if self.headless_cpu_policy else [])],
             capture_output=True, timeout=15)
 
     def test_explicit_userspace_refresh_pairs_stale_units_without_changing_hardware(self):
@@ -159,6 +161,29 @@ class PersistentComposerValidation(unittest.TestCase):
                 outputs.append(packed)
         self.assertEqual(len(outputs), 2)
         self.assertEqual(outputs[0], outputs[1])
+
+    def test_headless_cpu_policy_cli_is_explicit_and_roundtrips_exact_payloads(self):
+        self.prepare_successor()
+        self.headless_cpu_policy = True
+        self.check_rejected()  # Flag never silently refreshes or authorizes.
+        self.refresh_userspace = True
+        archive = self.module.ARCHIVE
+        original = archive.entries(gzip.decompress(self.base))
+        outputs = []
+        for optimized in (False, True):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                result = self.run_composer(root, optimized)
+                self.assertEqual(result.returncode, 0, result.stderr.decode())
+                packed = (root/'output.gz').read_bytes()
+                members = archive.entries(gzip.decompress(packed))
+                archive.verify_radio_composition(members)
+                for name, path in archive.headless_cpu_files().items():
+                    self.assertEqual(members['rog5-native-wifi/'+name][1],path.read_bytes())
+                for name in ('init','lib/firmware/preserved.bin','lib/modules/preserved.ko'):
+                    self.assertEqual(members[name],original[name])
+                outputs.append(packed)
+        self.assertEqual(outputs[0],outputs[1])
 
     def test_userspace_refresh_still_refuses_identity_reuse_and_wrong_artifacts(self):
         self.prepare_successor()
@@ -763,6 +788,7 @@ class AutomaticWifi(unittest.TestCase):
             command = (
                 'set -eu\nroot=' + str(payload) + '\n'
                 'install_status_screen() { :; }\n'
+                'install_headless_cpu_policy() { :; }\n'
                 'stat() { case "${3:-}" in '
                 '*/display-post-switch-report) echo 0:0:755:1 ;; '
                 '*.service) echo 0:0:644:1 ;; '

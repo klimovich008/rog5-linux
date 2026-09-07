@@ -5993,3 +5993,25 @@ for the old V4 incident or qualify a release with temporary settings. S07 and
 release flags remain false. Next: integrate the tested policy without coupling
 display, reuse the accepted kernel, then qualify one coherent release with the
 full mandatory matrix. Do not relabel this diagnostic as a one-hour soak.
+
+### Boot-integrated CPU policy implementation (2026-09-07; NOT DEPLOYED)
+
+The existing target-archive composer now supports explicit `--headless-cpu-policy`
+with successor/userspace refresh. Core, entry point and service are sealed and
+verified together; missing/altered members are rejected. Kernel/init, firmware
+and module bytes remain unchanged in the composer regression. Normal/optimized
+CLI output is byte-identical. Packaging grants no execution authority.
+
+The one-shot service runs after current-boot P2 and before radio/basic startup.
+It retains fixed caps only after successful guarded application; failures and
+signals restore original requests using the tested asynchronous-QoS mechanism.
+No background daemon, display call, charger write, service-state file or shutdown
+uncap is added. Existing radio voltage gates and rollback remain unchanged.
+The unit declares only three maximum-frequency attributes writable; exact-target
+systemd namespace execution still needs proof before deployment.
+
+Focused tests: CPU transaction 21 PASS **0.308/0.305 s**, boot-policy 8 PASS
+**0.061/0.060 s**, archive/runtime 42 PASS **9.329 s**. A fixture initially tried
+to edit its own read-only test record; corrected fixture chmod sequencing, not
+production permission checks. Full integration and exact-target checks remain
+pending. Accepted V5, restored CPU defaults, rescue and phone storage unchanged.

@@ -35,9 +35,14 @@ def validate(value):
    0<p['minimum']<=CAPS[name]<=p['maximum'],'cap must only lower maximum above minimum')
   require(type(p['frequencies']) is list and all(type(v) is int and v>0 for v in p['frequencies'])
    and CAPS[name] in p['frequencies'],'cap absent from hardware frequency table')
-def run(backend,guard,action):
- """Apply all three reviewed caps, run bounded caller action, restore originals."""
- guard();original=backend.snapshot();validate(original);entered=[];during=None;result=None
+def run(backend,guard,action,*,retain_on_success=False):
+ """Apply fixed caps; experiments restore, explicit boot setup may retain them.
+
+Retention changes only successful completion, never failed/partial application.
+It is kernel state for this boot, not permission to install persistent files.
+"""
+ require(type(retain_on_success) is bool,'retention must be explicit boolean')
+ guard();original=backend.snapshot();validate(original);entered=[];during=None;result=None;retained=False
  try:
   for name,limit in CAPS.items():
    guard();current=backend.snapshot()
@@ -48,9 +53,12 @@ def run(backend,guard,action):
    expected[name]['maximum']=limit
    settled(backend.snapshot,current,expected)
   guard();during=backend.snapshot();result=action()
+  if retain_on_success:
+   guard();require(backend.snapshot()==during,'policy changed before retention')
+   retained=True
  finally:
   errors=[]
-  for name in reversed(entered):
+  for name in ([] if retained else reversed(entered)):
    try:
     current=backend.snapshot()[name];prior=original[name]
     require({k:v for k,v in current.items() if k!='maximum'}=={k:v for k,v in prior.items() if k!='maximum'},'policy identity changed')
@@ -61,8 +69,9 @@ def run(backend,guard,action):
     settled(lambda:backend.snapshot()[name],current,prior)
    except (OSError,ValueError,KeyError,TypeError) as error:errors.append(name+': '+str(error))
   if errors:raise ValueError('restoration incomplete: '+'; '.join(errors))
- after=backend.snapshot();require(after==original,'post-restoration policy changed')
- return dict(before=original,during=during,after=after,action=result,restoration='PASS',release_qualified=False)
+ after=backend.snapshot();require(after==(during if retained else original),'post-transaction policy changed')
+ return dict(before=original,during=during,after=after,action=result,
+  restoration='NOT REQUESTED' if retained else 'PASS',policy_retained=retained,release_qualified=False)
 
 def lease(backend,guard,observe,seconds,*,clock=time.monotonic,pause=time.sleep):
  """Bounded main-thread lease. Caller streams observations, never changes scope.

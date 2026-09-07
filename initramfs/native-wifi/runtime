@@ -149,6 +149,33 @@ install_status_screen() {
 	done
 }
 
+install_headless_cpu_policy() {
+	units=$1
+	present=0
+	for path in cpu-frequency-cap.py headless-cpu-policy.py units/rog5-headless-cpu-policy.service; do
+		if [ -e "$root/$path" ] || [ -L "$root/$path" ]; then
+			present=$((present + 1))
+		fi
+	done
+	[ "$present" -eq 0 ] && return 0
+	[ "$present" -eq 3 ] && [ "$display_diagnostic" -eq 0 ] || return 1
+	for path in cpu-frequency-cap.py headless-cpu-policy.py units/rog5-headless-cpu-policy.service; do
+		[ -f "$root/$path" ] && [ ! -L "$root/$path" ] &&
+			[ "$(stat -c '%u:%g:%a:%h' "$root/$path")" = 0:0:644:1 ] || return 1
+	done
+	unit=rog5-headless-cpu-policy.service
+	for path in "$units/$unit" "$units/sysinit.target.wants/$unit" \
+		"$units/rog5-wifi-radio.service.d"; do
+		[ ! -e "$path" ] && [ ! -L "$path" ] || return 1
+	done
+	cp -p "$root/units/$unit" "$units/$unit" || return 1
+	ln -s "../$unit" "$units/sysinit.target.wants/$unit" || return 1
+	mkdir "$units/rog5-wifi-radio.service.d" || return 1
+	printf '%s\n' '[Unit]' "Requires=$unit" "After=$unit" \
+		>"$units/rog5-wifi-radio.service.d/10-cpu-policy.conf" || return 1
+	chmod 0644 "$units/rog5-wifi-radio.service.d/10-cpu-policy.conf"
+}
+
 install_units() {
 	units=/run/systemd/system
 	display_diagnostic=0
@@ -206,6 +233,7 @@ install_units() {
 		printf '%s\n' '[keyfile]' 'unmanaged-devices=interface-name:usb0' \
 			>/run/NetworkManager/conf.d/10-rog5-p2.conf
 	fi
+	install_headless_cpu_policy "$units" || return 1
 }
 
 verify_prepared_network() {
