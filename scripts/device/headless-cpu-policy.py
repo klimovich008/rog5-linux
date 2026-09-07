@@ -34,7 +34,12 @@ def guard():
   and 7500000<=int(read(root+'voltage_now'))<=8800000,'unsafe battery')
  require(read('/sys/class/power_supply/qcom-battmgr-usb/online')=='1','input power absent')
  zones=list(Path('/sys/class/thermal').glob('thermal_zone*/temp'))
- require(zones and all(int(p.read_text())<60000 for p in zones),'unsafe or unavailable thermal state')
+ require(zones,'unavailable thermal state: no thermal zones')
+ for p in zones:
+  try:temperature=int(p.read_text())
+  except (OSError,ValueError) as error:
+   raise ValueError(p.parent.name+' read error: '+type(error).__name__) from error
+  require(temperature<60000,p.parent.name+'='+str(temperature)+' mC; required <60000 mC')
  blocks={p.parent.name:p.read_text().strip() for p in Path('/sys/class/block').glob('sd*/ro')}
  require(len(blocks)==117 and all(v in ('0','1') for v in blocks.values())
   and {k for k,v in blocks.items() if v=='0'}<={'sda','sda23'},'storage write scope')
