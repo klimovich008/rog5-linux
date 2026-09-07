@@ -1,7 +1,7 @@
 # ROG5 current state
 
-Updated: 2026-09-07. Fresh S01 ordinary boot/capture qualification passed.
-S04's complete evidence consumer is integrated; frozen CI is next.
+Updated: 2026-09-07. S01–S04 batch qualification passed on unchanged V4
+artifacts. The server is running; repeated-boot S05 qualification is next.
 
 ## Goal and authority
 
@@ -23,19 +23,19 @@ Ordinary accepted-release reboots are distinct from experimental claim retries.
 ## Installed release and current access
 
 Bundle `headless-server-selector-v4`, kernel `7.1.4-gf17befd4ef17`.
-Current authenticated boot: `49c7c467-a268-4cd8-8277-f078d4a6795d`.
+Current authenticated boot: `7979945f-e6bc-46b6-aa5f-26091f1aed1c`.
 The latest ordinary installed boot reached strict-key SSH/local root in
-**84.956 s**; previous ordinary boots took **85.531/86.377 s**.
-Post-capture-cleanup SSH/root check PASS **0.886 s** on the same new boot.
-Last telemetry: **Full/100%, Good, 29.8°C, 8.568 V, 0 mA**, USB online.
+**87.113 s**; previous ordinary boots took **84.956/85.531/86.377 s**.
+Post-capture-cleanup SSH/root check PASS **0.919 s** on the same new boot.
+Last telemetry: **Full/100%, Good, 29.7°C, 8.566 V, 0 mA**.
 This snapshot is not H03 charging-regulation qualification.
 
 USB SSH: `10.77.0.2`, pinned alias `169.254.77.2`.
 Host-key fingerprint: `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
 Native P24 lower is RO/norecovery; persistent upper and service-state images
 remain on authorized P23. Attestation checks 117 block nodes and exact write scope.
-Wi-Fi transfers, service restarts and Tailscale previously worked; do not
-relabel those observations as fresh tests on the latest boot.
+S02 Wi-Fi/USB transfers and S03 service-restart evidence retain their original
+boot/source identities; batch replay is not a new execution of those tests.
 
 The approved boot-B replacement is **already complete**. Installed image:
 `dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
@@ -78,10 +78,10 @@ These component results do **not** constitute one qualified final release.
 | F02 Wi-Fi restart | PASS replay 0.816 s on unchanged artifacts; original live source retained |
 | H01/H02 | Capture/startup components exist; radio-inactive same-release H02 not qualified |
 | H03 regulation | Earlier V8 Full-maintenance PASS, not a V4 same-release PASS |
-| S01 local boot | Fresh full capture/cleanup PASS; dispatcher PASS 0.215 s at `62127ec9` |
-| S02 transfers | Physical PASS 298.494 s; dispatcher PASS 3.522 s |
+| S01 local boot | Fresh full capture/cleanup PASS; dispatcher PASS 0.215 s at `e2cbf147` |
+| S02 transfers | Physical PASS 298.494 s; unchanged evidence replay PASS 3.471 s |
 | S03 service restarts | Physical PASS 33.648 s; dispatcher PASS 0.215 s |
-| S04 durability | Physical file component PASS 93.252 s; full capture/dispatcher qualification incomplete |
+| S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
 | S05–S07 | Three boots, powered-off start and 60-minute combined soak outstanding |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
@@ -91,42 +91,31 @@ Review the stated radio-inactive prerequisite before collecting a V4 series.
 The first S03 SSH reconnect refusal is already fixed by bounded read-only
 reconnect; do not restart services or re-review the kernel for that incident.
 
-## Latest S04 cycle and exact next action
+## Latest checkpoint and exact next action
 
-Frozen live source: `23afc6a497db56be1d0ce5af6225359e8ee24af4`.
-`s04-ordinary-boot-r1` is terminal: supervisor **1387.232 s**,
-receiver **1380.780 s**, receiver return **1**. Never restart this operation.
-One 64 MiB owned file passed fsync, initial readback, one ordinary reboot,
-identical-hash readback and exact cleanup. No scratch file/namespace remains.
-No flash, slot, repartition or raw-storage command was performed.
-All route/firewall/profile/address cleanup steps passed.
+Frozen live/assessment source: `e2cbf147700d5588c929a86cefee1083e7e1a430`.
+`s04-ordinary-boot-r2` is terminal: supervisor **1387.360 s**, receiver
+**1380.604 s**, exit **0**. All four host cleanup steps passed. One new 64 MiB
+owned file passed fsync/readback, one ordinary reboot, identical-hash readback
+and exact cleanup. No scratch file/namespace remains; no flash, slot, GPT or
+raw-storage action ran. The earlier R7 capture failure remains FAIL in the
+[dated report](../test-results/2026-09-05-headless-acceptance.md); never retry it.
 
-The sole capture failure was a tagged USB `product` read ENODEV during recovery
-teardown, before target observation. Its immediate follow-up was recorded as
-`enumerating`; the next poll saw `absent`, then the exact native NCM target.
-Independent udev records the anchored parent removal at that transition.
-The old receiver only tolerates a tagged read error followed immediately by
-`absent`. Preserve its actual FAIL; later SSH alone cannot erase it.
-See private capture/events, USB udev trace and the dated report.
+Private `s04-r2-batch-acceptance` records S01/S02/S03/S04 PASS, total **91.868 s**.
+It batches unchanged artifact verification; older observations retain original
+attribution. Unselected mandatory outcomes remain NOT RUN, `qualified=false`.
+The 900-second rollback and complete independent capture were not shortened.
 
-Offline reproduction now covers this expected teardown. The correction allows
-up to three read-only rechecks within 150 ms, capped by the capture deadline;
-only classified pre-target descriptor loss followed by actual absence qualifies.
-Unclassified errors and identity/network/post-target failures remain fatal.
-Fresh `ordinary-boot-r2` at `62127ec9` is terminal: receiver **1380.532 s**,
-exit **0**, supervision **1385.625 s**, all four cleanup steps PASS.
-The complete S01 replay and acceptance entry point PASS. Eight stage frames and
-28 startup records belong to the new boot; there were no transport exceptions.
-This does not claim the 150 ms exception branch was exercised physically.
-Private `ordinary-boot-r2-evidence` and `ordinary-boot-r2-acceptance` retain pins
-and the matrix. No flash, new claim or scratch write occurred in this cycle.
-
-S04's tested replay consumer is now integrated into the existing runtime runner.
-Next: freeze/qualify that integration, then create a fresh scope/nonce/file plan
-bound to this successful S01 boot. Reuse unchanged target runtime evidence only
-after checking its exact dependencies. One subsequent scoped file/reboot cycle
-must provide matching clean capture and cleanup; the old failed cycle/plan is
-never reused or relabeled. No kernel or wrapper rebuild is required.
+Next: implement/test bounded ordinary-boot smoke closure for S05, then run its
+three-boot sequence. The present full capture is 1380 s per boot, incompatible
+with S05's 1080 s total deadline. Read-only evidence on the current boot confirms
+the exact healthy record and successful trial commit at **58.603 s** target
+uptime; no target watchdog/kernel change is indicated. A future smoke closure
+must require same-release full-watchdog evidence, fresh current-boot health,
+normal source→target continuity and complete cleanup. Failed/ambiguous boots
+retain full recovery observation and prohibit another action. This shorter
+mode is **not implemented or qualified yet**; do not improvise it.
+Do not count smoke evidence as full S01/R01 qualification or relax boot deadlines.
 
 ## Fast loop / validation checkpoint
 
@@ -137,14 +126,11 @@ Broader tiers include narrow tests. Development PASS is never release PASS.
 Freeze active test inputs; batch fixes; reuse unchanged evidence with its
 original source, not a newer label. No kernel/wrapper rebuild occurred here.
 
-At `23afc6a4`: 27 file/adapter/phase tests PASS normal/optimized.
-Exact phone Python/tmpfs fixtures PASS **5.686 s**, cleanup verified.
-Full local CI PASS **490.798 s** (previous **493.111 s**).
-All four remote jobs PASS **34078827158**; local/remote work overlapped.
-The earlier selector checkpoint `d75359b7` is complete; do not restart it.
-Historical implementation detail and timing are in the dated report.
-
-Receiver correction `884a1a41`: 31 receiver tests and 24 boot-evidence tests
-PASS; full local CI PASS **487.068 s**. All four remote jobs in **34082298535**
-PASS. Fresh ordinary-r2 used those unchanged receiver bytes with original CI
-attribution retained. The new S04 consumer integration needs its own frozen CI.
+S04 integration `e2cbf147`: 14 evidence tests PASS normal/optimized,
+47 dispatcher and 12 runtime regressions PASS. Full local CI **523.219 s**;
+all four exact-head/merge/publication/QEMU jobs PASS **34084953097**.
+Exact current phone Python/tmpfs tests PASS **14.188 s**, cleanup verified.
+No kernel/module/wrapper rebuild; do not rerun full CI for this narrative update.
+The impact/dependency selector checkpoint `d75359b7` and receiver correction
+`884a1a41` remain complete. Historical timings and preserved failures are linked
+from the dated report, not another active ledger.

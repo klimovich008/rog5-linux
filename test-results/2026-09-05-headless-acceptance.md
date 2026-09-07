@@ -4914,3 +4914,51 @@ payload contents, the original 660-second file bound and exact cleanup.
 Public focused checks PASS: 14 S04 tests **2.280/2.193 s**, 47 dispatcher tests
 **3.699 s**, 12 existing runtime tests **0.661 s**. Frozen full CI remains the
 next integration gate; the old failed S04 cycle cannot qualify under this code.
+
+### S04 closed qualification and bounded S05 preparation (2026-09-07)
+
+Frozen source `e2cbf147700d5588c929a86cefee1083e7e1a430` passed full local CI
+**523.219 s**, log SHA-256
+`cf87c8e0e593a7c9a3460cb4c53e6321a1ed2a3b27d439d1b75c97741d910999`.
+Remote **34084953097** passed exact head, merge compatibility, publication and
+QEMU. No kernel/module/wrapper rebuild was needed. Exact phone Python/tmpfs
+fixtures were rerun **14.188 s** because the old selected-file inventory did not
+bind every loaded interpreter dependency; cleanup passed. No invented cache hit.
+
+Fresh plan v2 used the qualified ordinary-r2 boot and new read-only scope.
+Exactly one ordinary reboot reached boot
+`7979945f-e6bc-46b6-aa5f-26091f1aed1c` in **87.113 s**. The 64 MiB file cycle
+passed **95.589 s**, including write/fsync/readback, reboot, identical-hash
+readback and exact cleanup. Receiver ran **1380.604 s**, exit **0**;
+supervision **1387.360 s**. Route/firewall/profile/address cleanup all passed.
+No transport exception occurred; this is not physical proof of the bounded
+ENODEV exception branch. The old failed cycle remains failed and is not reused.
+
+One existing `rog5-dev accept release` invocation selected S01/S02/S03/S04:
+**PASS 0.215/3.471/0.215/0.465 s**, total artifact/assessment **91.868 s**.
+It avoids four separate whole-artifact assessment passes; the earlier S01-only
+invocation took **72.882 s**, not a measured four-test baseline. S02/S03 reuse
+is explicit and preserves original source/boot identities. No older run was
+relabeled. All omitted mandatory outcomes remain NOT RUN, `qualified=false`.
+Private prefix `rog5-server-hw11-20260906.Lo7km1SL`, inputs:
+
+- `s04-r2-ordinary-s01-inputs.json`:
+  `ec56d98544171d1d605883eb68725d766051bb806675dcc5125d7c178e3fe4b4`.
+- `s04-r2-evidence-inputs.json`:
+  `be749a90730873f818ab8e3915c0a121f4ebde1d964ed3f43e1040ef3ec08c21`.
+
+Post-cleanup exact SSH/root PASS **0.919 s**: Good, Full/100%, **29.7°C,
+8.566 V, 0 mA**. This is a snapshot, not H03's sustained observation.
+No flash, new claim, slot operation, GPT or raw-storage command ran.
+
+Independent read-only S05 preparation (**0.207 s**) found root-owned 0444
+current-boot healthy and persistent SSH identity records. The exact healthy
+unit reports success/exit0, monotonic start **48.724 s**, exit **58.603 s**.
+Raw observation SHA-256:
+`f8f60bb5b6018073b2209f798a7b6826e031ac59265738783cc07a508cc2a095`.
+It is labelled observation-only, not S05 PASS. The present 1380-second capture
+per boot conflicts with S05's 1080-second total budget. A bounded healthy-only
+smoke closure, backed by unchanged full-watchdog qualification and complete
+cleanup, is the next implementation/test target. Failed/ambiguous boots must
+retain full postmortem observation; no timing policy or receiver was changed
+for the completed S04 cycle. Do not raise deadlines merely to manufacture PASS.
