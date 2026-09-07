@@ -5266,3 +5266,70 @@ possible. No kernel correction is justified yet. Next use one bounded network
 or combined-read experiment with retained failure diagnostics, rather than a
 new write workload/full-hour test merely to discover a missing numeric sample.
 All diagnostic processes are terminal; S07 and the final release remain unqualified.
+
+### S07 Wi-Fi delivery boundary, no kernel change (2026-09-07)
+
+Source `8934835054025033526e820a0e142ed55411e94a`, clean worktree digest
+`93322924858bc276b0d3599f66192f577319514514f7e713a1d7c4f30b48dcf7`.
+Selected documentation active tier PASS **53.476 s**, result SHA-256
+`449cf36d93debd545cd2c7b0f2c0cec86933f51f5ef6816f46e82175b5c35174`;
+remote **34108234266** PASS. Full CI at `1b37755b` was reused only after proving
+the intervening paths were the current narrative and this report. No kernel,
+module, target archive, wrapper, service or persistent configuration changed.
+The accepted boot and five release artifact identities remain as recorded above.
+
+A Wi-Fi-only scheduling window stopped after **47.524 s**. Upload 0 passed:
+64 MiB / **43.007 s**, peak **37.8°C**. Download 1 never reached its target
+command: SSH returned 255 after **3.008 s**, `Connection timed out` to TCP/22.
+This is pre-authentication failure, not a failed hash or thermal sample.
+Read-only USB closure passed; boot, address and service invocations were stable.
+No matching authentication entry, new captured kernel record or ext4 error.
+An older AP channel change preceded this incident by roughly 13 minutes and
+is not established as causal. Missing `iw`/packet tools are not kernel defects.
+
+One separate read-only SSH command with a diagnostic ten-second connect window
+passed **0.413 s**. Local normal/optimized `ssh -G` checks proved the one replaced
+timeout, single connection attempt, bindings and strict credential/host-key
+settings. This result does not justify raising the production three-second
+window or relabel either failed transfer. No transfer or boot was retried.
+
+A small passive AF_PACKET observer was then validated against the exact retained
+kernel socket ABI and phone Python (three tests normal/optimized, including
+wrong address/port, truncated/fragmented headers, bounded capture and no send or
+promiscuous operation). It records only control headers/counts, no packet data.
+One guarded-upload attempt failed at connect in **3.008 s**; total **4.828 s**.
+Phone capture saw **zero packets / zero capture drops**, with authenticated USB
+closure intact. That observation alone was insufficient to validate capture.
+
+The positive-control read-only connection then passed **2.055 s**, total
+**3.569 s**: 49 captured packets, zero drops; two identical incoming SYNs at
+target monotonic **14750.188558 / 14750.188650**, followed by SYN-ACK at
+**14750.188732**. Capture started **14748.388222**. These are target-clock
+times; they are not a synchronized host transmit-to-receive latency measure.
+The evidence places delay before the phone TCP response, not SSH authentication,
+but does not distinguish host radio, AP buffering/loss or phone radio power save.
+Host power save was observed **on**, signal -39 dBm. Phone power-save state is
+NOT OBSERVED. NetworkManager's [live-update source](https://github.com/NetworkManager/NetworkManager/blob/main/src/core/devices/wifi/nm-device-wifi.c)
+does not list powersave among reapplicable wireless fields; no profile change,
+reconnect or privileged power-control experiment was attempted.
+
+Final USB closure: same boot, Good **29.8°C / 8.534 V**, loop1/sda23/sda24
+ext4 error counts zero; preserved scratch unchanged. S07 remains FAIL, not a
+shortened soak PASS. Next read the phone's nl80211 power-save state and choose
+one bounded single-variable experiment; no evidence yet warrants a kernel fix.
+The earlier thermal incident remains separate and unexplained.
+
+Private evidence archives, individually verified against every retained file:
+
+- `s07-wifi-connect-observation-r1.tar.gz`, 32 files,
+  `5862827883be8d3e925c3764eee7bf42ae2e409e6411992a69d77b155c8955b5`;
+- `s07-wifi-connect-observation-r2.tar.gz`, 14 files,
+  `544b22d4141471275474a5b36bfa1fc35f9cb1e9311ded1b5aba1869bd426f6b`.
+
+The 3 GiB host reserve was briefly crossed by background usage. One ignored,
+user-owned intermediate from an old stopped wrapper build was moved recoverably
+to tmpfs: `.tmp_vmlinux.kallsyms1`, **66,514,544 bytes**, pre/post hash
+`529443247ef5bbc157e0cfae531ad18a0dc619453e61e1609109054c19ad06d8`.
+Its exact source/destination and restore instructions are in private CACHE-MOVE.md.
+Final images/vmlinux, sources, credentials and evidence were not removed.
+No kernel build or physical reboot occurred; no safety threshold was relaxed.
