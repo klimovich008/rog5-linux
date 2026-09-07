@@ -69,4 +69,3 @@ class Tests(unittest.TestCase):
   with self.assertRaises(ValueError):M.prepare(self.fd,self.name,'b'*64,1024,guard)
   self.assertTrue((self.root/self.name/'scratch.bin').exists())
 if __name__=='__main__':unittest.main()
-
