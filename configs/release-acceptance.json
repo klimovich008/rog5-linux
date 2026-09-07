@@ -558,7 +558,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Recovery access must be restored before native qualification."
+      "blocker": "Installed recovery now boots. check-standalone-root supplies current local-root/readiness evidence only; bind ordinary installed-boot timing, host boot-service absence and completed capture before S01 qualification."
     },
     {
       "id": "S02",
