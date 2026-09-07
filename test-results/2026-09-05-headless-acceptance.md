@@ -4725,3 +4725,27 @@ S02/S03 are physical evidence, but their existing dispatcher rows still need
 pinned replay binding. They do not complete H03, storage durability, three
 ordinary boots, powered-off startup, 60-minute combined soak or R01.
 No new kernel/wrapper build, flash, claim consumption or GPT operation occurred.
+
+### S02/S03 acceptance bindings
+
+Remote run **34075265459** subsequently completed all four jobs successfully at
+exact **`f641fec9`**, including qemu-system. The documentation checkpoint
+`0d437b14` preserved the completed observations without relabeling their source.
+
+One public offline runner now serves the existing S02/S03 rows. It reuses the
+existing pinned no-follow readers, canonical lookup, A01/S01 matching and
+stream implementation. Retained private coordinator sources remain data,
+never executable plugins. It recomputes the four payload hashes, checks raw
+snapshot/command closure, exact link identities, unchanged radio/core state,
+restart propagation, original deadlines and the captured read-only SSH refusal.
+The S03 transport guard is extracted as a literal and its actual command
+hashes rechecked; it is not executed during replay.
+
+Twelve focused regressions and 47 dispatcher tests PASS, including optimized
+malformed-input/hash rejection. Cases include missing directions/logs, altered
+release/boot/interface, wrong stream digest, unsafe or mistyped telemetry,
+unrequested radio activation, overlapping restarts, host-key failures and
+exit-zero without complete evidence. Original live raw material stays private.
+The retained physical evidence replayed PASS: S02 **3.415 s**, S03 **0.069 s**.
+Frozen full local/remote integration remains the next publication gate.
+No phone operation was repeated while adding these bindings.

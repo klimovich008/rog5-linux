@@ -108,6 +108,8 @@
         ],
         ["python3", "scripts/host/test-check-standalone-boot.py"],
         ["python3", "-O", "scripts/host/test-check-standalone-boot.py"],
+        ["python3", "scripts/host/test-server-runtime-evidence.py"],
+        ["python3", "-O", "scripts/host/test-server-runtime-evidence.py"],
         [
           "python3",
           "-O",
@@ -573,7 +575,7 @@
         "qualified Wi-Fi above unchanged activation gate",
         "isolated transfer endpoints"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-server-runtime-evidence.py", "--kind", "S02", "--inputs", "{runtime_inputs}", "--inputs-sha256", "{runtime_inputs_sha256}", "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 720,
       "pass_condition": "Each interface transfers 256MiB both ways with exact hashes and <=180s per direction; ensure route binds intended interface.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -586,7 +588,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Implement bounded transfer runner; prior separate release evidence is context only."
+      "blocker": "Supply pinned completed S02 observations with same-boot S01 and matching five-role A01/release identities. Replay never starts a transfer or boot."
     },
     {
       "id": "S03",
@@ -599,7 +601,7 @@
         "host supervisor",
         "verified independent rescue"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-server-runtime-evidence.py", "--kind", "S03", "--inputs", "{runtime_inputs}", "--inputs-sha256", "{runtime_inputs_sha256}", "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 300,
       "pass_condition": "Restart each service once; reconnect with same host/boot identity and healthy state; no reboot or second radio activation.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -612,7 +614,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Implement bounded restart runner."
+      "blocker": "Supply pinned completed S03 observations and same-boot S01 with unchanged release identities. Replay never restarts a service or retries an action."
     },
     {
       "id": "S04",

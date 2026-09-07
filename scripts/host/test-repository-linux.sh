@@ -172,6 +172,7 @@ active_tests=(
 	scripts/host/test-check-deployed-server.py
 	scripts/host/test-check-standalone-root.py
 	scripts/host/test-check-standalone-boot.py
+	scripts/host/test-server-runtime-evidence.py
 	scripts/host/test-check-rescue-startup.py
 	scripts/host/test-check-charging-regulation.py
 	scripts/host/test-rescue-root-composition.py
