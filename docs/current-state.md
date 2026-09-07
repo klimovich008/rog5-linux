@@ -3,8 +3,9 @@
 Updated: 2026-09-07. S01–S04 batch passed on unchanged V4 artifacts.
 S05's three ordinary boots, pinned dispatcher replay and full local CI passed.
 All exact-head remote checks passed. S07 now exercises real UFS reads, but its
-latest run stopped at a thermal guard. The server remains running. Preserve the
-failed scratch file and qualify exact rejected-sample logging before more load.
+latest run stopped at a thermal guard. Exact rejected-sample logging is qualified.
+The server remains running; cached and uncached read-only isolation passed.
+Preserve the scratch file and isolate sustained network/combined-load behavior.
 
 ## Goal and authority
 
@@ -30,7 +31,7 @@ Current authenticated boot: `24db7908-5479-4d1a-a9cd-eeccbf1cb564`.
 Three consecutive installed boots reached exact root, pinned SSH and healthy
 trial commits in **94.908/96.612/97.400 s**; total sequence **311.524 s**.
 Post-capture-cleanup SSH/root check PASS **1.026 s** on the third boot.
-Last read-only closure: **Good, 30.0°C, 8.531 V**, same authenticated boot.
+Latest read-only diagnostic: **Good, 29.9°C, 8.533 V**, same authenticated boot.
 The failed soak's scratch namespace remains intentionally preserved.
 This snapshot is not H03 charging-regulation qualification.
 
@@ -88,7 +89,7 @@ These component results do **not** constitute one qualified final release.
 | S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
 | S05 three boots | Physical sequence PASS 311.524 s; dispatcher PASS 0.315 s at `2efa7cdf` |
 | S06 powered-off start | Requires verified off interval and physical start; ordinary reboot is not a substitute |
-| S07 combined soak | FAIL: UFS reads proven, then storage thermal guard refused; exact rejected sample missing. Scratch preserved; fix error evidence before further load |
+| S07 combined soak | FAIL: thermal guard refused; old rejected sample unavailable. Logging qualified; cached/uncached reads passed. Next: sustained network/combined-load isolation |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
 H03's firmware-Full method is already defined; absent charge-limit controls
@@ -99,37 +100,26 @@ reconnect; do not restart services or re-review the kernel for that incident.
 
 ## Latest checkpoint and exact next action
 
-Frozen S05 live source: `93d6ee17c5d93de9e44925c261538861cca133e0`.
-`s05-three-boots-r1` is terminal: three requests, exit 0 each; three distinct
-new boot IDs, healthy records, capture closure and all four host cleanup steps.
-Each capture was armed for the full failure window before its ordinary reboot.
-Only proven healthy startup allowed owned early closure; ambiguity or failure
-would keep full observation and forbid another reboot. No new RAM claim, flash,
-slot, GPT or raw-storage operation occurred. Do not repeat these boots.
+S05's three boots and the S07 buffered-loop correction are complete; their
+source identities and original evidence remain in the dated report. Do not
+repeat those tests or reopen the fixed merge-ref race without new evidence.
+S07 r2 failed a Wi-Fi upload with lost stderr. r3 stopped after **383.599 s** at
+the storage thermal guard; the rejected numeric sample is irrecoverable.
+No new kernel records or ext4 errors appeared in captured data. The last file
+is preserved and fully hash-verified. All diagnostic workers are stopped.
 
-S05's complete pinned evidence and original source identities remain in the
-dated report; do not repeat its three boots or relabel replay as live work.
-S07 source `577557a8` passed local CI **497.415 s** and all four remote jobs
-**34096567487**. Its run stopped after **618.199 s**, 19 cleaned scratch windows
-and 32 completed transfers. UFS reads were only **8192 bytes** despite **34.494 GB**
-of loop reads: a second page cache, not a demonstrated kernel fault.
-Same-boot read-only closure PASS **0.384 s**; scratch absent, ext4 counters zero.
-Private `s07-stopped-buffered-loop-r1.tar.gz` is durable/hash-verified.
-The cache correction at `6295d34f` passed local CI **521.255 s** and all four
-remote jobs **34099477039**. r2 proved UFS reads but failed a Wi-Fi upload with
-lost stderr; one Wi-Fi-only diagnostic upload passed, not S07 qualification.
-r3 retained network diagnostics and failed after **383.599 s** at the storage
-thermal guard. Eleven windows cleaned; the twelfth 64 MiB file remains. All
-workers stopped. No new kernel records or ext4 errors appeared in captured data.
-Next: qualify exact rejected-sample logging, verify the preserved scratch state,
-and choose a bounded discriminating thermal experiment, not another blind soak.
-The 30-second idle series peaked at **35.5°C**; it cannot disprove a load spike.
+On unchanged V4 artifacts and source `1b37755b`:
+
+- idle: 60 samples / 30 seconds, peak **35.5°C**;
+- cached read/hash: 119 readbacks / **181.828 s**, 357 samples, peak **36.8°C**;
+- uncached reads: 111 readbacks / **181.269 s**, 315 samples, peak **42.1°C**;
+  **7,449,083,904 bytes** read on both loop1 and UFS, loop writes unchanged.
+
+These are component observations, not S07 or H03 qualification. Next: a bounded
+sustained-network or combined-read experiment with exact failure evidence;
+do not weaken 60°C protection or launch another blind full soak.
 Opus review was unavailable because OAuth expired; continue independent work.
 S06 needs physical off/start conditions, not another ordinary reboot.
-Full S04 evidence and the earlier failed R7 capture remain in the
-[dated report](../test-results/2026-09-05-headless-acceptance.md).
-The mutable GitHub merge-ref race is fixed and verified at `93d6ee17`; do not
-reopen it without new evidence. No repository security setting was changed.
 
 ## Fast loop / validation checkpoint
 
@@ -140,28 +130,16 @@ Broader tiers include narrow tests. Development PASS is never release PASS.
 Freeze active test inputs; batch fixes; reuse unchanged evidence with its
 original source, not a newer label. No kernel/wrapper rebuild occurred here.
 
-S05 smoke integration `93d6ee17`: full local CI **496.400 s**;
-all four exact-head/merge/publication/QEMU jobs PASS **34088992649**.
-Seven private coordinator failure/ownership tests passed normal/optimized.
-The consumer's nine tests pass normal/optimized; 47 dispatcher, 12 existing
-runtime, 14 durability and 35 selector/workflow regressions pass.
-No kernel/module/wrapper rebuild; all five release artifact identities unchanged.
-The impact/dependency selector checkpoint `d75359b7` and receiver correction
-`884a1a41` remain complete. Historical timings and preserved failures are linked
-from the dated report, not another active ledger.
-
-S07 correction: fixed-file, descriptor-relative read-only cache advice on the
-verified 4 GiB service-state backing file plus scratch-inode advice. No global
-cache drop, loop reconfiguration or accepted-service edit. Six worker tests pass
-**3.218/3.086 s**; exact phone Python fixtures pass **14.005 s**, normal/optimized,
-owned /run cleanup verified. This is not proof of physical cache eviction.
-The observed counter discrepancy is a fixture; five private coordinator tests
-pass **5.488/5.482 s**, including early refusal and stopped workers.
+`1b37755ba4710594564d0e0d44f547f4dbf4439a`: full local CI **516.841 s** and
+all four remote jobs **34105698682** PASS. Local/remote checks overlapped.
+Eight error-evidence worker tests pass normal/optimized **3.156/3.181 s**;
+exact phone Python fixtures pass **14.106 s**, owned tmpfs cleanup verified.
+Only the actual rejected thermal/power sample is logged; the original guard
+and exception remain. No kernel/module/wrapper rebuild or changed release bytes.
+Read-only inspection was corrected from 1024 full guard snapshots per file to
+the qualified half-second cadence: **30-second timeout → 0.920 s**; forced
+start/end checks remain. All historical results and archive hashes are in the
+dated report; no older run is relabelled as testing a newer source revision.
 Keep the 3 GiB host reserve. Ignored Python caches were moved recoverably to
 tmpfs; no source/build/evidence deletion. Use private tmpfs for new test logs,
 then verify a durable archive before reboot. Do not repeat unchanged suites.
-
-Rejected-sample logging: eight worker tests PASS **3.156/3.181 s** normal/optimized;
-exact phone Python fixtures PASS **14.106 s**, owned tmpfs cleanup verified.
-The original guard and exception remain unchanged; only thermal/power values
-from the actual rejected observation are logged. Frozen integration is next.
