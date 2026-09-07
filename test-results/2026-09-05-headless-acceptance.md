@@ -6264,3 +6264,53 @@ of a TSENS module is unsupported. No retained pre-boot CPU-temperature series
 or rejected sensor/value exists. Do not infer a particular hot zone, no crash
 from empty pstore, or release acceptance from this experiment. The next decision
 must address the remaining boot-time condition, with V6 permanently consumed.
+
+### 2026-09-07 — V7 thermal-refusal discrimination preparation
+
+Starting clean source `5d61dfc69d08eea0dd593ff100bd878dc3d1d563`; current V5
+remained on boot `660c70d5-f01f-4eda-82fe-4e1d6c9a4a08`, Full/100%, Good,
+29.9°C, 8.594 V, and all original CPU maxima restored. This is a snapshot, not H03.
+The existing traceback establishes that main's initial guard and core.run's
+initial guard passed before a per-policy guard refused. It still cannot identify
+the failing iteration or sensor. The bounded tool-free Opus review failed at
+authentication (expired OAuth, 1.521 s); no model conclusions were adopted.
+
+**Question:** can the complete CPU safety gate finish at startup, and if not,
+which exact thermal condition is rejected? This is the mandatory boot-time
+refusal, not an optional telemetry field. V7 only refreshes the proven diagnostic
+message and a fresh trial identity/checksum inventory. No threshold, cap ordering,
+timeout, kernel, DT, module or wrapper behavior changes. V6 remains consumed.
+
+The preceding full local/remote CI at `e22f606a` was reused explicitly: Git proves
+only the two already-tested prose files changed afterward, and reconstruction
+of that dirty-tree test digest matches exactly. Four reuse tests PASS normal/
+optimized **0.048/0.032 s**, rejecting changed prose bytes or any production path.
+No old result is relabelled as a new full-CI run. This avoids another 523.9-second
+local run and unrelated remote wait solely for the documentation commit.
+
+Target twins PASS **9.095 s**, exactly three changed members, 110,641,152 B total.
+Archive `bd764972845c5dd5ee3d753dcec20d430e53bc1b0656b14a184f8497ba9ea501`.
+Exact wrapper reuse PASS **0.446 s**; BusyBox syntax/all-file hashes **1.431 s**.
+An initial host fixture redirected to absent `/dev/null` in the sealed extraction;
+removing only that output suppression let the unchanged target commands execute.
+This was detected offline, not on a consumed phone attempt.
+Signed twins and native sealed verifier PASS **4.828 s**:
+manifest `4eaeb9f8859f7fa9c64b5e40b3764452da504d0ce5438afd20760305bc23e7b9`.
+One canonical expected record was generated from the package; all consumer
+bindings and eight normal/optimized rejection suites PASS **11.237 s**.
+No filesystem claim, admission, staging, boot or flash occurred.
+
+Host capacity prevented another raw preview: `/home` is ext4, so reflink reuse
+is unavailable. The inactive V6 host preview was losslessly compressed and
+fully decompressed/hashed in **84.142 s**. Archive **2,196,725,207 B**,
+SHA256 `4ff24f8b273eb5ae5a076642e51ba0af190b6bfa983023630dbb65650e639c52`;
+expanded **34,359,717,888 B**, original SHA256
+`e6ab1e5b94ab92af7da9d63519459ab9e92620031d4d112617095e21d2bf7d5f`.
+After fresh metadata/unused/loop/hash checks, only that raw RAM file was released,
+recovering **4,097,179,648 B**. Archive:
+`/tmp/rog5-v6-preview-archive-gkrldufe/root.ext4.zst`. Restore with `zstd -d --sparse`
+to a **new** raw pathname, requiring the exact expanded size/hash before use;
+never overwrite another input. V5, signed V11 fallback, phone storage and all
+unique evidence remain preserved. No host reboot while these archives are volatile.
+Private preparation/evidence: `rog5-boot-cpu-diag-20260907.cnXiH8My`.
+V7 A01/C01/C02 and physical acceptance remain unproven; packaging is not admission.
