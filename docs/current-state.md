@@ -2,7 +2,8 @@
 
 Updated: 2026-09-07. S01–S04 batch passed on unchanged V4 artifacts.
 S05's three ordinary boots, pinned dispatcher replay and full local CI passed.
-Exact-head remote CI is running. The server remains running.
+All exact-head remote checks passed. S07's bounded soak worker is being
+qualified; the server remains running and the hour-long test has not started.
 
 ## Goal and authority
 
@@ -85,7 +86,7 @@ These component results do **not** constitute one qualified final release.
 | S04 durability | New file cycle PASS 95.589 s; full capture/cleanup and dispatcher PASS 0.465 s |
 | S05 three boots | Physical sequence PASS 311.524 s; dispatcher PASS 0.315 s at `2efa7cdf` |
 | S06 powered-off start | Requires verified off interval and physical start; ordinary reboot is not a substitute |
-| S07 combined soak | 60-minute storage/network observation outstanding; next independent implementation |
+| S07 combined soak | Worker/observer and exact phone Python fixtures pass; frozen CI then physical hour pending |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
 H03's firmware-Full method is already defined; absent charge-limit controls
@@ -113,9 +114,9 @@ Do not count smoke evidence as full S01/R01 or final release qualification.
 
 S05 consumer `2efa7cdf` is pushed; full local CI PASS **497.398 s**, dispatcher
 PASS **0.315 s**, total unchanged-artifact assessment **49.920 s**.
-Remote **34092855927** is running. Finish that check before advancing publication;
-do not cancel it with a documentation-only push. Prepare the bounded
-S07 combined-load test while independent checks run. S06 still needs physical
+Remote **34092855927** passed all four checks. S07's worker, observer and private
+coordinator now have focused coverage; run one frozen local/exact-head checkpoint
+before the combined load. S06 still needs physical
 off/start conditions; do not silently substitute another ordinary reboot.
 Full S04 evidence and the earlier failed R7 capture remain in the
 [dated report](../test-results/2026-09-05-headless-acceptance.md).
@@ -145,6 +146,14 @@ S07 read-only preparation PASS **0.917 s** on the current boot: scratch namespac
 absent, **3.974 GB** available, 726 contiguous kernel records, all three relevant
 ext4 error counters present/zero, cache-advice support available. The early SPMI
 WARN is the previously recorded boot warning, not a new failure. Private draft
-observation predicates pass five tests normal/optimized; no soak or storage
-worker ran. Next implement/test the bounded worker/coordinator using the existing
-file/transfer primitives. Keep the full 3600-second physical requirement.
+worker tests pass on disposable filesystems; exact phone Python **3.14.7** tests
+PASS **13.787 s** normal/optimized with verified `/run` tmpfs cleanup. All five
+tested source hashes still match. No persistent soak write has run. Observer
+tests cover logs, counters, actual I/O and the 3600/3900 s timing contract.
+Four private coordinator tests pass normal/optimized, including refusal before
+writes, ambiguity, endpoint mismatch and log loss. The private runner is
+`s07-combined-soak-r1.py`; it must verify current full local and exact-head CI
+before any credential use. Use one new private `/tmp` output directory because
+home has only about 5 MiB above the 3 GiB reserve; retain raw logs and archive
+them durably before host reboot. Do not delete build/evidence data or reduce the
+reserve to run a test. Next freeze this batch, validate, then run S07 once.
