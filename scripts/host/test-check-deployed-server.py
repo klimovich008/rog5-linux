@@ -20,7 +20,8 @@ M=importlib.util.module_from_spec(spec);spec.loader.exec_module(M)
 
 class Tests(unittest.TestCase):
     def setUp(self):
-        self.expected=M.expected_files()
+        fixture=json.loads((M.REPO/'tests/fixtures/headless-userspace/accepted-runtime-source-mismatch.json').read_text())
+        self.expected=M.expected_files(fixture['candidate'])
         self.identity=dict(boot_id='11111111-1111-4111-8111-111111111111',bundle='fixture',release='fixture-kernel')
         self.value=dict(**self.identity,files=copy.deepcopy(self.expected))
 
@@ -97,6 +98,75 @@ class Tests(unittest.TestCase):
         row=next(test for test in contract['tests'] if test['id']=='A02')
         self.assertIn(['python3','scripts/host/test-check-deployed-server.py'],row['commands'])
         self.assertIn(['python3','-O','scripts/host/test-check-deployed-server.py'],row['commands'])
+
+
+class CanonicalReleaseExpectedFilesTests(unittest.TestCase):
+    def fixture(self):
+        return json.loads((M.REPO/'tests/fixtures/headless-userspace/accepted-runtime-source-mismatch.json').read_text())
+
+    def test_captured_accepted_runtime_uses_release_not_checkout(self):
+        f=self.fixture();expected=M.expected_files(f['candidate'])
+        runtime=expected[f['role']]
+        self.assertEqual(runtime['sha256'],f['observed_sha256'])
+        self.assertEqual(runtime['size'],f['observed_size'])
+        self.assertNotEqual(runtime['sha256'],f['incorrect_checkout_sha256'])
+        identity=dict(boot_id='fixture-boot',bundle='fixture',release='fixture')
+        value=dict(identity,files=copy.deepcopy(expected))
+        M.validate_snapshot(value,identity,expected)
+        value['files'][f['role']]['sha256']=f['incorrect_checkout_sha256']
+        with self.assertRaisesRegex(ValueError,'runtime'):
+            M.validate_snapshot(value,identity,expected)
+
+    def test_no_implicit_checkout_or_worktree_dependency(self):
+        candidate=self.fixture()['candidate']
+        with self.assertRaises(TypeError):M.expected_files()
+        with mock.patch.object(Path,'read_bytes',side_effect=AssertionError('working-tree input')):
+            M.expected_files(candidate)
+
+    def test_unavailable_or_noncommit_revision_is_refused(self):
+        candidate=self.fixture()['candidate']
+        for code,payload in ((1,b''),(0,b'tree\n'),(0,b'blob\n')):
+            with mock.patch.object(M.subprocess,'run',return_value=SimpleNamespace(returncode=code,stdout=payload)),self.assertRaisesRegex(ValueError,'commit unavailable'):
+                M.expected_files(candidate)
+
+    def test_revision_is_pinned_and_replace_objects_disabled(self):
+        candidate=self.fixture()['candidate']
+        record=M.CAPTURE.CLAIMS.expected_record(candidate)
+        fields=dict(line.split('=',1) for line in record.decode().splitlines())
+        revision=fields['verification_source_commit']
+        for bad in ('HEAD','--all','a'*39,'a'*41,'A'*40):
+            altered=record.replace(revision.encode(),bad.encode())
+            with mock.patch.object(M.CAPTURE.CLAIMS,'expected_record',return_value=altered),self.assertRaisesRegex(ValueError,'exact deployed source'):
+                M.expected_files(candidate)
+        original=M.subprocess.run;calls=[]
+        def capture(command,**kwargs):
+            calls.append(command);return original(command,**kwargs)
+        with mock.patch.object(M.subprocess,'run',side_effect=capture):
+            M.expected_files(candidate)
+        self.assertEqual(len(calls),1+len(M.FILES))
+        self.assertTrue(all(c[:2]==['git','--no-replace-objects'] for c in calls))
+        self.assertTrue(all(revision in c[-1] for c in calls))
+
+    def test_missing_or_oversized_blob_is_refused(self):
+        candidate=self.fixture()['candidate']
+        for result in (SimpleNamespace(returncode=1,stdout=b''),SimpleNamespace(returncode=0,stdout=b''),SimpleNamespace(returncode=0,stdout=b'x'*1048577)):
+            with mock.patch.object(M.subprocess,'run',side_effect=[SimpleNamespace(returncode=0,stdout=b'commit\n'),result]),self.assertRaises(ValueError):
+                M.expected_files(candidate)
+
+    def test_all_live_consumers_supply_a_candidate(self):
+        for filename in ('check-deployed-server.py','check-standalone-root.py','run-durability-phase.py'):
+            tree=ast.parse((M.REPO/'scripts/host'/filename).read_text())
+            calls=[node for node in ast.walk(tree) if isinstance(node,ast.Call) and
+                   ((isinstance(node.func,ast.Name) and node.func.id=='expected_files') or
+                    (isinstance(node.func,ast.Attribute) and node.func.attr=='expected_files'))]
+            self.assertTrue(calls,filename)
+            self.assertTrue(all(len(node.args)==1 and not node.keywords for node in calls),filename)
+            main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
+            collections=[node for node in ast.walk(main) if isinstance(node,ast.Call) and
+                         ((isinstance(node.func,ast.Name) and node.func.id in {'collect','collector'}) or
+                          (isinstance(node.func,ast.Attribute) and node.func.attr=='collect'))]
+            self.assertTrue(collections,filename)
+            self.assertLess(min(node.lineno for node in calls),min(node.lineno for node in collections),filename)
 
 
 class StartupDiagnosticTests(unittest.TestCase):

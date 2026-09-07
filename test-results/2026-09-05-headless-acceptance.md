@@ -6194,3 +6194,44 @@ Next: qualify the correction, resolve safe boot-time cap application using the
 accepted baseline where possible, and only then prepare a new successor.
 Do not retry V6, raise the safety limit, or count earlier release components
 as a coherent V6 PASS. Private evidence: `rog5-server-cpu-policy-20260907.lwlreSEe`.
+
+### 2026-09-07 — Restore accepted V5; fix checkout-relative deployment validation
+
+Starting source `0005794cba66118d0b140339422559d03496e785` was clean, with full
+local CI **526.219 s** and remote **34155585303**, all four jobs PASS.
+V6 remained consumed. Exact installed AArch64 trial-helper replay proved that
+interrupted restoration selects fallback, while an accepted healthy pair rearms
+pending before primary execution. Normal/optimized tests **0.285/0.268 s**;
+actual fallback shell/file/locking commands in disposable RAM **1.296 s**.
+
+Bounded selector/trial restoration **PASS 2.250 s** preserved failed V6 records,
+all payloads, boot B and slot A; P24 returned RO. The first independent postcheck
+used mountpoint lookup instead of `findmnt --target` for `/run/initramfs`.
+The retained before/after read-only regression corrected only that probe;
+postcheck **PASS 1.147 s**. No extra persistent transaction or reboot was issued.
+
+One ordinary accepted-release boot reached V5
+`660c70d5-f01f-4eda-82fe-4e1d6c9a4a08`. Fresh healthy commit completed at target
+**59.468 s**. The smoke failed at `deployed userspace mismatch: runtime`:
+the checker hashed current checkout runtime `c253e7aa…`, while the actual V5
+runtime is `7120d170…`, matching its reviewed source and signed archive.
+All six actual deployed file identities matched that release. Separate read-only
+root/service/power checks passed; Full/100%, **29.9°C**, **8.602 V**. Complete
+CPU guard observation **10.354 s**, peak **36.8°C**, no CPU changes. Wi-Fi services
+and the custom Tailscale daemon are active; no peer-connectivity claim.
+The original smoke remains FAIL, not relabelled. Capture completed **1380.929 s**,
+supervision **1384.257 s**, route/firewall/profile/address cleanup all PASS.
+
+**R2/R6 correction:** require the canonical candidate's exact reviewed source for
+deployed-file expectations, never ambient HEAD. Reject missing/noncommit inputs,
+ignore Git replacement objects, retain altered-file/metadata rejection, and use
+the same rule in standalone-root and durability checks. Root failure reports now
+retain expected/observed userspace records. A fail-first ordering regression
+caught the durability lookup occurring after SSH collection; it now runs first.
+Focused checks: deployed **27 cases, 0.360/0.339 s** normal/optimized; root
+**10 cases, 0.111/0.105 s**; durability **8 cases, 0.001/0.001 s**.
+No kernel, DT, module, initramfs or wrapper rebuild; no signing or flash.
+The new frozen checkpoint's full-CI receipt is private `deployed-release-ci-r1`.
+Next is read-only revalidation without another boot, then the remaining safe
+CPU-policy/charging/endurance and controlled-recovery qualification, not release
+completion. Earlier V5 components are not a substitute for the final full matrix.

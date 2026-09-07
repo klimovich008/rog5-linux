@@ -1,0 +1,9 @@
+{
+  "case": "2026-09-07 accepted-release return used current-checkout runtime expectation",
+  "candidate": "headless-server-selector-v5",
+  "role": "runtime",
+  "observed_sha256": "7120d170c4cdc4b64c1bf10a810a9b07e780db50057206112bda0b9e61898ccd",
+  "observed_size": 17853,
+  "incorrect_checkout_sha256": "c253e7aab597c71726b4f11049980b00e5bba1dc214580455733dc96f7ab1205",
+  "expected": "compare deployed bytes with canonical reviewed release, not current checkout"
+}

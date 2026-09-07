@@ -119,7 +119,10 @@ def main():
         manifest_sha256=record['manifest_sha256'],s01_qualified=False,release_qualified=False,
         scope='current local-root/readiness component only; no historical boot-service absence or ordinary reboot proof')
     try:
-        D.validate_snapshot(D.collect(identity,args.identity_file,args.known_hosts),identity,D.expected_files())
+        expected=D.expected_files(args.profile)
+        actual=D.collect(identity,args.identity_file,args.known_hosts)
+        report.update(expected_userspace=expected,userspace=actual)
+        D.validate_snapshot(actual,identity,expected)
         readiness=D.collect_readiness(identity,args.identity_file,args.known_hosts)
         D.validate_readiness(readiness,identity,record['execution'])
         D.host_gate(identity)

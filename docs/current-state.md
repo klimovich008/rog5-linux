@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated 2026-09-07: V6 startup FAIL; exact V11 fallback SSH/power/storage proof PASS.
+Updated 2026-09-07: accepted V5 restored and healthy; host-validator fix in qualification.
 V6 is permanently consumed. Do not retry, restage or flash it.
 
 ## Goal and authority
@@ -28,21 +28,37 @@ Retained previous boot B:
 Signed V11 fallback manifest:
 `a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
 
-Current fallback kernel `7.1.4-g359318de534f`, bundle `persistent-native-root-v11`,
-boot `52cac9c3-8e59-479b-9f1d-f5d796ea4d9b`.
+Current kernel `7.1.4-gf17befd4ef17`, bundle `headless-server-selector-v5`,
+boot `660c70d5-f01f-4eda-82fe-4e1d6c9a4a08`.
 Authenticated USB SSH `10.77.0.2`, pinned alias `169.254.77.2`, fingerprint
 `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
 Read-only proof: 117 physical block nodes; only sda/sda23 writable; P24 remains RO.
-Fallback snapshot: Good, 30.4°C, 8.573 V, Charging, USB online.
-This snapshot is not H03 or a sustained-current qualification.
-Fallback uses a temporary root upper; the unmounted persistent upper remains intact.
+Current snapshot: Good, 29.9°C, 8.602 V, Full/100%, battery current 0, USB online.
+This snapshot is not H03 qualification. The 16 GiB persistent root upper is active.
+Core services and Wi-Fi radio/WPA/DHCP are active; current-boot healthy commit
+completed at 59.468 s. Use `rog5-early-sshd` and `rog5-tailscaled`, not generic
+service names. Tailscale uses `/run/rog5-tailscale/tailscale` with
+`--socket=/run/rog5-tailscale/tailscaled.sock`; peer connectivity is not yet proven.
 
-P24 selector points to consumed V6; P23 V6 trial remains pending, so the loader
-selects V11 instead of retrying V6. V5 bundle, selector rollback copy and archived
-healthy trial remain preserved. Restore an accepted release only through a
-reviewed bounded selector/trial restoration, not by resetting V6 consumption.
+P24 selector now points to accepted V5; its P23 trial is freshly healthy.
+Bounded restoration preserved V6's failed selector and pending record, original
+V5 rollback copies, all bundles and permanent claim consumption. P24 was relocked.
+One ordinary boot returned to V5; no RAM candidate retry, signing or flash.
+V11 remains the independently verified fallback, not the currently running root.
 
-## Latest failure and next action
+## Latest boundary and next action
+
+The latest ordinary-boot smoke failed in the host checker after V5 returned
+authenticated SSH. `expected_files()` compared deployed V5 runtime with newer
+checkout bytes. All six deployed files match the canonical V5 reviewed source;
+the four initramfs-resident files also match its retained signed archive.
+This is an R2/R6 release-expectation error, not a new kernel failure.
+The correction requires an explicit candidate, derives expectations from its
+canonical exact source commit, disables Git replacement objects, and fails on
+missing inputs before credentials. Local-root and durability consumers agree.
+The original FAIL remains: full capture 1380.929 s, all four host cleanups PASS.
+Next: finish validator CI and recheck the running local root without another
+boot; then resolve safe boot-time CPU limits on this accepted baseline.
 
 V6 (`headless-server-selector-v6`) reached local root and systemd, then its CPU
 policy guard refused at target uptime ~23.105 s. The boot-bound persistent journal
@@ -53,15 +69,12 @@ iteration; do not claim zero writes or a particular CPU temperature.
 The transaction's restoration path reported no secondary error, but no failing-
 boot frequency readback exists. Empty pstore remains inconclusive.
 
-The original `<60000 mC` limit remains unchanged. A focused diagnostic correction
-records the rejected zone/value, distinguishes absent inventory/read failure,
-and does not add writes, delays or retries. It is not a thermal-startup fix or a
-new deployment. Normal/optimized fail-first fixtures cover the missing evidence.
-Exact validation results for this correction are retained in the private
-`thermal-diagnostic-ci-r1/result.json` and matching GitHub run, not older V6 CI.
-Next: qualify this small correction, then resolve safe boot-time CPU policy
-application before another successor. Prefer a bounded experiment on a restored
-accepted baseline; do not consume another image merely to rediscover missing data.
+The `<60000 mC` limit remains unchanged. Diagnostic correction `0005794c`
+passed full local CI 526.219 s and all four remote jobs in 34155585303; it is not
+deployed or a thermal-startup fix. Read-only complete-guard observation on V5
+passed for 10 s, peak 36.8°C, unchanged CPU maxima; this does not reproduce startup.
+Exact new validator CI belongs to private `deployed-release-ci-r1`, not that
+preceding thermal-diagnostic run. Do not issue a successor merely for missing data.
 
 The private live work is `rog5-server-cpu-policy-20260907.lwlreSEe`.
 V6 manifest:
@@ -81,7 +94,7 @@ V5 cannot be combined with V6 into a green release.
 | A01 / C01 / C02 | V6 offline PASS 93.967 / 144.739 / 76.265 s; physical startup still failed |
 | H01 / H02 | V11 fallback SSH/power proof; same-release radio-inactive rescue not qualified |
 | H03 regulation | NOT RUN for V6; firmware-Full method is defined, missing fields are not PASS |
-| S01 local startup | V6 FAIL; V5 previously PASS |
+| S01 local startup | V5 running/healthy; latest smoke FAIL at host source comparison; recheck after fix |
 | S02 transfers | V5 PASS; Wi-Fi upload had little deadline margin; validate final release |
 | S03 restart recovery | V5 PASS; validate final release |
 | S04 durability | V5 PASS with owned scratch cleanup; prior failed-soak file preserved |
