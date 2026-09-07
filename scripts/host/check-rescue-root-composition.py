@@ -260,15 +260,30 @@ echo COMPOSITION_EXITRD_PASS
 chroot /newroot /usr/bin/systemd-analyze --version
 echo COMPOSITION_SYSTEMD_EXEC_PASS
 mkdir -p /newroot/run/sshd
-chroot /newroot /usr/bin/ssh-keygen -q -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
+# Keep the retained identity untouched; only this VM's key is disposable.
+chroot /newroot /usr/bin/ssh-keygen -q -t ed25519 -N '' -f /run/sshd/a01_host_ed25519_key
 echo COMPOSITION_VOLATILE_HOST_KEY_PASS
-chroot /newroot /usr/bin/sshd -T >/run/ssh-effective
-for option in passwordauthentication kbdinteractiveauthentication usepam hostbasedauthentication gssapiauthentication; do
-    [ "$(awk -v k="$option" '$1 == k { n++; v=$2 } END { if(n!=1) exit 1; print v }' /run/ssh-effective)" = no ]
-done
-[ "$(awk '$1 == "pubkeyauthentication" { print $2 }' /run/ssh-effective)" = yes ]
-case $(awk '$1 == "permitrootlogin" { print $2 }' /run/ssh-effective) in
-    prohibit-password|without-password) ;; *) exit 1 ;; esac
+chroot /newroot /usr/bin/sshd -T -h /run/sshd/a01_host_ed25519_key >/run/ssh-effective
+# OpenSSH 10.5 prints canonical-case keywords; older versions lower-case them.
+# Normalize names only, and reject missing/duplicate fields or unsafe values.
+awk '
+BEGIN {
+    split("passwordauthentication kbdinteractiveauthentication usepam hostbasedauthentication gssapiauthentication", names)
+    for (i in names) expected[names[i]]="no"
+    expected["pubkeyauthentication"]="yes"
+    expected["permitrootlogin"]="prohibit-password"
+}
+{
+    key=tolower($1)
+    if (key in expected) {
+        count[key]++
+        value=$2
+        if (key=="permitrootlogin" && value=="without-password") value="prohibit-password"
+        if (NF!=2 || value!=expected[key]) bad=1
+    }
+}
+END { for (key in expected) if (count[key]!=1) bad=1; exit bad }
+' /run/ssh-effective
 echo COMPOSITION_SSH_POLICY_PASS
 set -- /run/systemd/system/rog5-p2-ready.service /run/systemd/system/rog5-early-sshd.service /run/systemd/system/rog5-persistent-state.service /run/systemd/system/rog5-persistent-ssh-identity.service
 if [ -e /run/systemd/system/rog5-startup-observer.service ]; then
@@ -654,6 +669,25 @@ def vm_runtime_passed(log, code, modules, *, firmware=False, radio=False, refusa
                               r'BTF[^\n]*(?:invalid|fail)|Kernel panic|Oops:|WARNING:', log))
 
 
+def effective_marker_copyup():
+    """Preserve production's merged/physical marker pairing in the RAM fixture."""
+    return '''
+# The retained upper is a read-only middle layer, not this VM's writable
+# upper. Open existing markers through OverlayFS to copy up their exact bytes.
+# Never write behind the mounted overlay or synthesize a missing marker.
+for subtree in etc var; do
+    test -d /newroot/$subtree; test ! -L /newroot/$subtree
+    marker=/newroot/$subtree/.updated
+    test ! -L "$marker"
+    if [ -e "$marker" ]; then
+        test -f "$marker"
+        test "$(stat -c %s "$marker")" -le 512
+        : >> "$marker"
+    fi
+done
+'''
+
+
 def effective_root_mounts(root_image, upper_image, *, root_mount, state_mount):
     """Guest-only RO base + retained upper + disposable RAM writes.
 
@@ -706,7 +740,14 @@ mount -t tmpfs -o size=256m tmpfs {state_mount}
 mkdir {state_mount}/upper {state_mount}/work
 mount -t overlay overlay -o lowerdir=/deployed-upper/upper:{root_mount},upperdir={state_mount}/upper,workdir={state_mount}/work /newroot
 echo EFFECTIVE_DEPLOYED_UPPER_READ_ONLY
-'''
+'''+effective_marker_copyup()
+
+
+def encode_vm_fixture(members):
+    # Disposable QEMU input only, never a release archive or signed image.
+    # Level 1 preserves exact CPIO content and deterministic headers while
+    # avoiding ~20 seconds of level-9 compression on the measured composition.
+    return gzip.compress(SEALED.ARCHIVE.encode(members),compresslevel=1,mtime=0)
 
 
 def vm_runtime(members, modules, kernel, root_image, output, *, profile,
@@ -818,7 +859,7 @@ echo COMPOSITION_STAGE_END
                                             recovery_timeout=recovery_timeout).encode(),
         stat.S_IFREG | 0o755)
     archive = output/'composition-vm.cpio.gz'
-    archive.write_bytes(gzip.compress(SEALED.ARCHIVE.encode(fixture),mtime=0))
+    archive.write_bytes(encode_vm_fixture(fixture))
     command = ['podman','run','--rm','--pull=never','--network=none','--cap-drop=ALL',
         '--security-opt=no-new-privileges','--cpus=2','--memory=1g',
         '-v',str(kernel)+':/Image:ro','-v',str(archive)+':/initramfs:ro',

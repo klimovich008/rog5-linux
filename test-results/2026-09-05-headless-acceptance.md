@@ -6555,3 +6555,46 @@ record is generated from that package; this registration alone grants no
 execution or retry authority. Paired V8 A01/C02 and admission remain pending.
 Fresh read-only fallback SSH proof passed **0.673 s**, same boot identity,
 Full 100%, Good 29.8°C, 8.596 V, USB online. This is not a 600-second H03 PASS.
+
+### 2026-09-08 — V8 effective-runtime qualification and fixture latency
+
+Canonical V8 registration checkpoint `6605b6d582d3a2b27a9915d3b298cc6df8d96aa0`
+passed every affected consumer in normal/optimized Python (171.178 s of new
+work plus explicitly bound prior rows) and all four remote jobs in 34168392062.
+The original 66adf616 full-local receipt remains identified as that revision;
+it is not relabelled as a newer full run. V8 remains unconsumed.
+
+The next mandatory A01 used the exact signed V8 archive and both retained
+filesystem layers. First FAIL **100.943 s**: production validates systemd's
+merged and physical-upper `.updated` markers, but the RO-middle-layer fixture
+had not copied existing markers into its disposable RAM upper. Return-location
+instrumentation identified that check. Opening bounded regular markers through
+OverlayFS copies up exact bytes; missing markers are not synthesized and links,
+directories or oversized markers are refused. Both backing images remain RO.
+The VM now generates its test SSH key in `/run/sshd`, never over retained keys.
+
+Second FAIL **111.815 s** reached systemd 261 and then the SSH-policy assertion.
+Retained OpenSSH **10.5p1 / OpenSSL 3.6.4** emits canonical-case keywords such as
+`UsePAM`, while the old test expected lowercase. Its `-T` returned 0 and 4801
+bytes, not absent telemetry. Matching now normalizes keyword case only, still
+requiring all seven safe fields exactly once. Regression fixtures reject
+missing, duplicate/mixed-case, malformed and unsafe values; both Python modes
+pass. No authentication or other target policy changed.
+
+The same 157,246,464-byte VM CPIO compressed at level 9 in **22.786 s**
+(74,062,592 bytes), versus level 1 in **2.634 s** (76,690,028 bytes).
+Both decompressed identically. Only disposable A01 fixtures use the faster
+deterministic encoding; release archives, signatures and kernel inputs do not.
+Focused plus active checks passed **55.274 s** before the final parser/encoding
+correction; final composition tests passed **40 cases** in normal/optimized
+Python. Full integration follows at one frozen checkpoint, not after each edit.
+
+V8 A01 then **PASS, 88.128 s**, on 6605b6d5 plus exact dirty source digest
+`ba446b5939663035a07ad0b40e48da14300ca96a8335e40a7c8c333c7e7394af`.
+Both complete hashes remained unchanged: base
+`607ec5c05536d63eac248295e65ea3552c42af8686279a4c368ca633610cb6b0`, upper
+`dff8988f3c2f4c5204d2e827114f63e54068acc530a75010dd2d522de3795388`.
+All A01 composition fields passed. V8 C01/C02 and physical startup are separate,
+still pending. No claim, target execution or phone storage change occurred.
+Private A01 attempts/diagnostics and compression receipt remain under the
+current private work directory; no full transcripts or private payloads in Git.
