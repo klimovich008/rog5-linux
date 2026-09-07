@@ -5771,3 +5771,65 @@ partial writes and nonce reuse remain refusals. All focused suites passed in
 normal and optimized Python; final integration and exact-target tests are still
 required before any new persistent scratch write. No kernel, wrapper, target
 archive, signed bundle, boot B or phone storage was changed in this correction.
+
+### V5 durability, repeated boots and remaining offline recovery (2026-09-07)
+
+Frozen storage integration `1bfc86a2c7be57d09adb42c8705ed4edb4e942b0` passed
+full local CI **521.345 s**, then all four jobs in remote run **34136133422**.
+An earlier local run failed in **224.832 s** because the private launcher leaked
+its 0077 log umask into fixture creation. The exact negative host-key fixture
+failed at 0077 and passed at 0022. Only the launcher child environment changed;
+private logs stayed 0077, and production key guards were not weakened. Retain
+both runs. This was a host test-environment defect, not a phone/kernel failure.
+
+Seven S04 adapter checks passed normal/optimized **0.190/0.189 s**; two completed
+capture-binding tests passed **0.056/0.079 s**. Exact-target Python 3.14.7 ran six
+normal/optimized file/target/soak suites exclusively in an owned `/run` directory:
+PASS **21.124 s** including verified cleanup. No persistent fixture writes.
+Read-only installed preflight PASS **3.989 s**; source/artifact/backup/fallback,
+power and namespace prerequisites were bound before the physical operation.
+
+S04 created one new 64 MiB child under the pinned existing scratch namespace,
+fsynced it, performed one ordinary installed V5 reboot, verified exact readback
+and removed only that child. The old failed-soak file was preserved. Local root
+and SSH returned in **85.610 s**, boot `32a1d0ae-e263-4a04-8f42-6bd6b4ec5d7d`.
+File cycle PASS **93.289 s**. Full independent supervision **1385.988 s** ended
+with receiver zero and all host cleanup verified; canonical S01/S04 replays
+passed **0.092/0.346 s**. File success alone was not used as S04 qualification.
+
+During that capture, exact V5 F01 ran through the existing acceptance dispatcher
+using networkless QEMU and disposable RAM-backed disks. PASS **89.422 s**;
+dispatcher including artifact checks **178.586 s**, entirely overlapped with
+the mandatory capture. Interrupted-write/recovery/corruption guests passed
+**3.118/11.438/2.662 s**. Recovered ext4 passed read-only e2fsck, protected
+sentinel stayed unchanged, and before/after kernel/archive/root hashes matched.
+This proves the specified disposable-image behavior, not physical crash recovery.
+The complete evidence archive was read-back verified; originals were not deleted.
+
+S05 then performed three consecutive ordinary installed boots, no claim retry,
+flash or scratch write. Verified healthy-state times **97.290/95.301/96.347 s**;
+total supervision **313.102 s**. Boot IDs:
+`a1d7679e-08d3-42dc-9f26-0d0de7c93e51`,
+`e56d16f4-547a-40a0-919c-3d924a9c6e30`,
+`96b722da-4ddc-4611-b813-a62149df541f`.
+Each had exact installed preflight, prestarted full failure capture, current-boot
+healthy commit and verified qualified smoke closure. Twelve coordinator tests
+passed **0.304/0.361 s**, normal/optimized; two binder tests **0.775/0.737 s**.
+Canonical replay of all 61 pinned evidence roles passed **0.140 s**.
+
+F02 collected the SSH_CONNECTION fields absent from the prior S03 observations,
+without relabelling those logs or restarting radio activation. Five adapter
+tests passed **0.642/0.664 s**. Live WPA/DHCP restart PASS **29.017 s** with exact
+sealed units, unchanged core/radio identities, leases and three pinned Wi-Fi SSH
+endpoint checks. Canonical F02 replay PASS **0.642 s**. Final snapshot: Good,
+**30.1°C / 8.559 V / Full / 100% / −23 mA**, USB online; not H03 qualification.
+
+Private V5 evidence: `s04-evidence-r1`, `s05-evidence-r1`, `f02-evidence-r1`,
+their input receipts and raw producer directories. F01 archive:
+`f01-v5-evidence-r1.tar.gz`, SHA-256
+`8ccbc329e13fade80e50c41c97303872da8ab4c37506eff0853defedf483dd0d`.
+All new observations above bind clean `1bfc86a2`; prior A01/C01/C02 and S01–S03
+retain their actual original source identities with unchanged artifact checks.
+No device process remains running. Next: full V5 combined soak, powered-off
+startup, same-release radio-inactive charging qualification and controlled
+failed-boot recovery. None is implied PASS by the completed components.
