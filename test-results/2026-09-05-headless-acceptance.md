@@ -6480,3 +6480,40 @@ Next: paired successor archive/composition using the retained effective upper,
 existing kernel/wrapper and full valid input evidence; then one fresh admitted
 startup test. V6/V7 remain consumed. No candidate was issued or phone rebooted
 during this follow-up. All mandatory release outcomes remain unchanged.
+
+## 2026-09-08 — complete-overlay acceptance input, no phone cycle
+
+Started at `fad999d0128285afcbd76aad890665171006c2ad` (clean; all four remote
+jobs passed in 34166212244). The demonstrated gap was base-only A01/C02 despite
+the deployed upper replacing systemd 260 with 261. The bounded correction adds
+`--root-upper-image` to the existing runners and one optional `root_upper`
+artifact in the existing release receipt; no separate framework or ledger.
+Persistent-overlay qualification refuses a missing complete upper. The receipt
+checks size/hash, forwards the input only to A01/C02, and verifies its unchanged
+hash in their results. C02 now records the actual dirty-tree source digest and
+its shared composition dependency instead of identifying source by HEAD alone.
+Both filesystems are RO/noload, selected by distinct UUID/size rather than
+virtio order, under a disposable RAM upper. Whiteout semantics stay intact.
+
+Initial complete-layer C02 FAIL **87.884 s**: the exact retained upper contains
+an SSH host key, so the old fixture's key generation prompted to overwrite it
+and exited. This is a harness defect, not a phone/kernel defect. The correction
+masks `/etc/ssh` with private guest tmpfs before loopback fixture installation;
+retained credentials are neither reused nor overwritten. A regression failed
+before that fix. The rerun passed **94.539 s**, under the unchanged 120-second
+contract; guest ACK/restart and stale-readiness cases took **30.305/27.838 s**.
+Actual systemd was 261.2-1; no substituted package runtime. Both full input
+hashes were unchanged. Source was fad999d0 plus exact dirty digest
+`ec070dd32ae77247c15fa1f0cf76a0a90eba6d3a0a739c27849550347580d10b`.
+These tests exercise retained V7 bytes offline; V7 remains consumed and this
+does not qualify a successor or authorize another physical execution.
+
+A01 refused the old V7 CPU unit against the corrected repository source in
+**38.156 s**, before VM execution. Do not bypass this mismatch: assemble the
+fresh corrected target and paired signed bundle/root first. Kernel, modules,
+DT and installed wrapper remain unchanged; no compilation is needed for them.
+The existing focused tests cover duplicate/malformed filesystem identities,
+symlink inputs, RO attachment, required upper evidence, tampered receipt data,
+the SSH-key fixture boundary and source/proof binding. Full local CI belongs
+once at the frozen shared-runner checkpoint; unchanged old CI is not relabelled.
+Private evidence/work: `rog5-cpu-startup-20260908.kjE4IqCf`.

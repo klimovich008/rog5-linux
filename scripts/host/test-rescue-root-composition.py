@@ -22,6 +22,45 @@ SPEC.loader.exec_module(M)
 
 
 class CompositionTest(unittest.TestCase):
+    def test_effective_root_uses_exact_readonly_layers_not_virtio_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base=Path(tmp)/'base';upper=Path(tmp)/'upper'
+            base.write_bytes(b'b'*4096);upper.write_bytes(b'u'*8192)
+            ids=['11111111-1111-1111-1111-111111111111',
+                 '22222222-2222-2222-2222-222222222222']
+            def identify(command,**kwargs):
+                self.assertEqual(command[:6],['blkid','-p','-s','UUID','-o','value'])
+                self.assertNotIn('-w',command)
+                return ids[0 if command[-1]==str(base) else 1]+'\n'
+            with patch.object(M.subprocess,'check_output',side_effect=identify):
+                script=M.effective_root_mounts(base,upper,root_mount='/lower',state_mount='/state')
+                self.assertEqual(subprocess.run(['/bin/sh','-n'],input=script,text=True).returncode,0)
+                self.assertIn('UUID="'+ids[0]+'"',script)
+                self.assertIn('UUID="'+ids[1]+'"',script)
+                self.assertIn('blockdev --getro "$device"',script)
+                self.assertIn('blockdev --getsize64 "$lower_device"',script)
+                self.assertIn('mount -t ext4 -o ro,noload "$upper_device"',script)
+                self.assertIn('lowerdir=/deployed-upper/upper:/lower',script)
+                self.assertIn('test ! -L /deployed-upper/upper',script)
+                self.assertNotIn('mount -t ext4 -o ro,noload /dev/vda',script)
+                self.assertIn('test -z "$lower_device"',script)
+                self.assertIn('test -z "$upper_device"',script)
+                self.assertIn('EFFECTIVE_DEPLOYED_UPPER_READ_ONLY',script)
+                ids[1]=ids[0]
+                with self.assertRaisesRegex(ValueError,'distinct'):
+                    M.effective_root_mounts(base,upper,root_mount='/lower',state_mount='/state')
+
+    def test_effective_root_refuses_missing_symlink_and_unsafe_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base=Path(tmp)/'base';upper=Path(tmp)/'upper'
+            base.write_bytes(b'b'*4096);upper.symlink_to(base)
+            with self.assertRaises(ValueError):
+                M.effective_root_mounts(base,upper,root_mount='/lower',state_mount='/state')
+            upper.unlink();upper.write_bytes(b'u'*8192)
+            for bad in ('', 'not-a-uuid', '11111111-1111-1111-1111-111111111111\nEXTRA'):
+                with patch.object(M.subprocess,'check_output',return_value=bad),self.assertRaises(ValueError):
+                    M.effective_root_mounts(base,upper,root_mount='/lower',state_mount='/state')
+
     def test_a01_overlaps_initial_hash_and_joins_on_preflight_failure(self):
         final=M.load('parallel_root_composition_test','scripts/host/check-release-composition.py')
         started=threading.Event();release=threading.Event();finished=threading.Event()

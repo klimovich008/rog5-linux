@@ -369,6 +369,14 @@ class AcceptanceTest(unittest.TestCase):
                     row=M.run_one(test,root,release)
                     self.assertEqual(row['status'],'PASS' if mutation=='none' else 'FAIL',row)
 
+            release['root_upper']=dict(path='/private/upper.ext4',sha256='c'*64,size=8192)
+            layered=dict(proof,artifact_hashes=dict(proof['artifact_hashes'],root_upper='c'*64),
+                         root_upper_unchanged=True,runtime=dict(root_scope='retained-base-and-upper'))
+            for changes in ({},dict(root_upper_unchanged=False),dict(runtime={}),
+                            dict(artifact_hashes=proof['artifact_hashes'])):
+                (root/'A01/result.json').write_text(json.dumps(dict(layered,**changes)))
+                self.assertEqual(M.run_one(test,root,release)['status'],'FAIL' if changes else 'PASS')
+
     def test_deadline_nonzero_and_missing_executable_are_not_success(self):
         with tempfile.TemporaryDirectory() as tmp:
             test = copy.deepcopy(self.contract['tests'][1])
@@ -416,6 +424,27 @@ class AcceptanceTest(unittest.TestCase):
             self.assertEqual(before['revision'], after['revision'])
             self.assertNotEqual(before['worktree_digest'], after['worktree_digest'])
             self.assertFalse(after['clean'])
+
+    def test_optional_deployed_upper_is_verified_and_forwarded_only_to_root_tests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);artifact=root/'artifact';artifact.write_bytes(b'retained upper')
+            item=dict(path=str(artifact),size=artifact.stat().st_size,sha256=M.sha_file(artifact))
+            record=dict(format='rog5-release-inputs-v1',candidate_id='fixture',source_revision='a'*40,
+                        artifacts={role:dict(item) for role in M.ARTIFACT_ROLES},root_upper=dict(item))
+            receipt=root/'receipt.json';receipt.write_text(json.dumps(record))
+            release=M.verify_release(receipt)
+            self.assertEqual(release['root_upper'],item)
+            for key,bad in (('sha256','b'*64),('size',False),('path','relative')):
+                changed=copy.deepcopy(record);changed['root_upper'][key]=bad
+                receipt.write_text(json.dumps(changed))
+                with self.assertRaises(ValueError):M.verify_release(receipt)
+            for test_id in ('A01','C02','A02'):
+                test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']==test_id))
+                test['commands']=[[sys.executable,'-c','import sys; print(sys.argv); raise SystemExit(77)']]
+                row=M.run_one(test,root,release)
+                self.assertEqual(row['status'],'BLOCKED')
+                self.assertEqual('--root-upper-image' in (root/(test_id+'.log')).read_text(),
+                                 test_id in ('A01','C02'))
 
     def test_no_cross_run_import_or_automatic_evidence_reuse(self):
         help_text = subprocess.run([sys.executable, str(SOURCE), '--help'],
@@ -474,6 +503,8 @@ class AcceptanceTest(unittest.TestCase):
             self.assertEqual(M.run_one(test, root, release)['status'], 'FAIL')
             (root/'C02').mkdir()
             proof = dict(status='PASS', c02_qualified=True, root_image_unchanged=True,
+                         source=M.source_identity(),
+                         composition_runner_sha256=M.sha_file(M.REPO/'scripts/host/check-rescue-root-composition.py'),
                          source_revision=subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
                          runner_sha256=M.sha_file(M.REPO/'scripts/host/test-qemu-watchdog-handoff.py'),
                          kernel_sha256='a'*64, target_archive_sha256='a'*64,
@@ -486,11 +517,19 @@ class AcceptanceTest(unittest.TestCase):
                             dict(kernel_sha256='b'*64), dict(target_archive_sha256='b'*64),
                             dict(root_image_sha256='b'*64), dict(source_revision='b'*40),
                             dict(runner_sha256='b'*64), dict(duration_seconds=121),
-                            dict(cases=[]), dict(c02_variant='unknown')):
+                            dict(cases=[]), dict(c02_variant='unknown'),dict(source={}),
+                            dict(composition_runner_sha256='b'*64)):
                 path.write_text(json.dumps(dict(proof,**changes)))
                 self.assertEqual(M.run_one(test,root,release)['status'], 'FAIL', changes)
             path.write_text(json.dumps(proof))
             self.assertEqual(M.run_one(test,root,release)['status'], 'PASS')
+            release['root_upper']=dict(path='/private/upper.ext4',sha256='c'*64,size=8192)
+            layered=dict(proof,root_upper_sha256='c'*64,root_upper_unchanged=True,
+                         root_scope='retained-base-and-upper')
+            for changes in ({},dict(root_upper_sha256='d'*64),dict(root_upper_unchanged=False),
+                            dict(root_scope='retained-base-only')):
+                path.write_text(json.dumps(dict(layered,**changes)))
+                self.assertEqual(M.run_one(test,root,release)['status'],'FAIL' if changes else 'PASS')
 
     def test_h02_exit_zero_without_complete_proof_is_not_success(self):
         test = copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='H02'))

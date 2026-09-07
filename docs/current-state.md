@@ -94,8 +94,13 @@ Single-stream acquisition/verification **40.866 s**, 27 power checks; no phone
 mount/write/reboot. A failed earlier transfer remains archived, not accepted.
 QEMU with both actual filesystem layers read-only passed the systemd 261 graph
 and old-library whiteout checks; **22.477 s** guest/post-hash interval. This is
-not full A01: incorporate the upper into the paired successor composition and
-C02, keeping fresh complete input hashes. Do not revert to base-only testing.
+not full A01. The existing A01/C02 runners now accept complete RO upper images
+and require them for persistent-overlay qualification. C02 on V7's retained
+bytes passed with actual systemd 261 in **94.539 s**, including healthy SSH
+restart and stale-readiness rollback. Its first run caught an existing-host-key
+fixture collision; private VM tmpfs now isolates disposable SSH keys. A01
+correctly rejects V7's old CPU unit against the new source. Next: fresh successor
+composition, not another V7 boot. Details are in the dated report below.
 
 V7 staging PASS **2.024 s**, no flash; P24 relocked and fallback hashes verified.
 One execution only. Startup readiness FAIL at **301.118 s**.

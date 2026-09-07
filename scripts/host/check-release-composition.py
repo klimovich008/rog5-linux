@@ -266,6 +266,8 @@ def main():
     for option in ('kernel','dtb','target-archive','root-image','boot-image','output'):
         parser.add_argument('--'+option,type=Path,required=True)
     parser.add_argument('--candidate',required=True)
+    parser.add_argument('--root-upper-image',type=Path,
+                        help='complete retained deployed ext4 upper, read-only; required when qualifying that deployment')
     parser.add_argument('--activation-fixture-build',type=Path,
                         help='existing private QEMU-only link fixture build; never a phone artifact')
     args=parser.parse_args()
@@ -289,7 +291,16 @@ def main():
         # separate post-VM full hash and original pathname/metadata checks.
         root_pool=ThreadPoolExecutor(max_workers=1,thread_name_prefix='a01-root-hash')
         root_hash_result=root_pool.submit(C.ACCEPTANCE.sha_file,args.root_image)
+        upper_before=None;upper_hash=None
+        if args.root_upper_image:
+            if (args.root_upper_image.is_symlink() or not args.root_upper_image.is_absolute()
+                    or not args.root_upper_image.is_file()):
+                raise Blocked('missing exact retained upper image')
+            upper_before=root_identity(args.root_upper_image)
+            upper_hash=C.ACCEPTANCE.sha_file(args.root_upper_image)
         report.update(inspect(args,checks))
+        if report['profile']=='server-runtime' and args.root_upper_image is None:
+            raise Blocked('persistent-overlay release requires the complete retained upper image')
         if not shutil.which('podman') or not shutil.which('modinfo'):
             raise Blocked('missing exact-kernel VM/module prerequisites')
         target=target_members(read_artifact(args.target_archive))
@@ -321,13 +332,22 @@ def main():
         if root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed during preflight')
         report['artifact_hashes']['rootfs']=root_hash
+        if args.root_upper_image:
+            if root_identity(args.root_upper_image)!=upper_before:
+                raise ValueError('retained upper image changed during preflight')
+            report['artifact_hashes']['root_upper']=upper_hash
         report['runtime']=C.vm_runtime(target,modules,args.kernel,args.root_image,
                                      args.output,profile=report['profile'],firmware=True,
                                      recovery_timeout=report['timing']['rollback_seconds'],
                                      command_line=report['plan']['cmdline'],refusals=refusals,
-                                     activation_fixture=activation_fixture)
+                                     activation_fixture=activation_fixture,upper_image=args.root_upper_image)
         if C.ACCEPTANCE.sha_file(args.root_image)!=root_hash or root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed')
+        if args.root_upper_image:
+            if (C.ACCEPTANCE.sha_file(args.root_upper_image)!=upper_hash
+                    or root_identity(args.root_upper_image)!=upper_before):
+                raise ValueError('retained upper image changed')
+            report['root_upper_unchanged']=True
         for role,path in (('kernel',args.kernel),('dtb',args.dtb),
                           ('initramfs',args.target_archive),('boot_bundle',args.boot_image)):
             if C.ACCEPTANCE.sha_file(path)!=report['artifact_hashes'][role]:

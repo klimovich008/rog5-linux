@@ -654,8 +654,64 @@ def vm_runtime_passed(log, code, modules, *, firmware=False, radio=False, refusa
                               r'BTF[^\n]*(?:invalid|fail)|Kernel panic|Oops:|WARNING:', log))
 
 
+def effective_root_mounts(root_image, upper_image, *, root_mount, state_mount):
+    """Guest-only RO base + retained upper + disposable RAM writes.
+
+    A complete retained upper is a middle lower layer: OverlayFS still applies
+    its whiteouts/opaque directories. Never extract it as an ordinary tar tree.
+    Identify both supplied filesystems, not unstable virtio enumeration order.
+    Callers hash and revalidate both inputs before/after the guest.
+    """
+    if any(not path.is_absolute() or path.is_symlink() or not path.is_file()
+           for path in (root_image,upper_image)):
+        raise ValueError('effective root requires ordinary retained images')
+    specs=[]
+    for path in (root_image,upper_image):
+        before=path.stat()
+        uuid=subprocess.check_output(['blkid','-p','-s','UUID','-o','value',str(path)],
+                                     text=True,timeout=5).strip()
+        if (not re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}',uuid)
+                or path.stat()!=before or before.st_size<4096):
+            raise ValueError('invalid or changing retained filesystem identity')
+        specs.append((uuid,before.st_size))
+    if specs[0][0]==specs[1][0]:
+        raise ValueError('retained filesystems must have distinct UUIDs')
+    for mountpoint in (root_mount,state_mount):
+        if not re.fullmatch(r'/[a-z/-]+',mountpoint):
+            raise ValueError('unsafe VM mountpoint')
+    return f'''
+mkdir -p {root_mount} {state_mount} /deployed-upper
+lower_device=; upper_device=
+for attempt in 1 2 3 4 5; do
+    [ -b /dev/vda ] && [ -b /dev/vdb ] && break
+    sleep 1
+done
+for device in /dev/vda /dev/vdb; do
+    test "$(blockdev --getro "$device")" = 1
+    identity=$(blkid "$device")
+    case "$identity" in
+        *' UUID="{specs[0][0]}"'*) test -z "$lower_device"; lower_device=$device ;;
+        *' UUID="{specs[1][0]}"'*) test -z "$upper_device"; upper_device=$device ;;
+        *) exit 41 ;;
+    esac
+done
+test -n "$lower_device"; test -n "$upper_device"
+test "$lower_device" != "$upper_device"
+test "$(blockdev --getsize64 "$lower_device")" = {specs[0][1]}
+test "$(blockdev --getsize64 "$upper_device")" = {specs[1][1]}
+mount -t ext4 -o ro,noload "$lower_device" {root_mount}
+mount -t ext4 -o ro,noload "$upper_device" /deployed-upper
+test -d /deployed-upper/upper; test ! -L /deployed-upper/upper
+mount -t tmpfs -o size=256m tmpfs {state_mount}
+mkdir {state_mount}/upper {state_mount}/work
+mount -t overlay overlay -o lowerdir=/deployed-upper/upper:{root_mount},upperdir={state_mount}/upper,workdir={state_mount}/work /newroot
+echo EFFECTIVE_DEPLOYED_UPPER_READ_ONLY
+'''
+
+
 def vm_runtime(members, modules, kernel, root_image, output, *, profile,
-               recovery_timeout=None, command_line=None, firmware=False, refusals=(), activation_fixture=None):
+               recovery_timeout=None, command_line=None, firmware=False, refusals=(),
+               activation_fixture=None, upper_image=None):
     """Combine exact module insertion and existing Arch preparation on QEMU virt.
 
     No phone DTB, network, hardware activation or writable block device. The
@@ -716,10 +772,13 @@ echo COMPOSITION_FIRMWARE_RUNTIME_PASS
         script += 'echo COMPOSITION_MODULE_'+row['name']+'\n'
     script += board_refusal_driver(refusals)
     if activation_fixture is not None:script+=activation_refusal_driver()
-    script += '''mount -t ext4 -o ro,noload /dev/vda /mnt/root-ro
+    script += effective_root_mounts(root_image,upper_image,root_mount='/mnt/root-ro',
+                                    state_mount='/mnt/state') if upper_image else '''mount -t ext4 -o ro,noload /dev/vda /mnt/root-ro
 mount -t tmpfs tmpfs /mnt/state
 mkdir /mnt/state/upper /mnt/state/work
 mount -t overlay overlay -o lowerdir=/mnt/root-ro,upperdir=/mnt/state/upper,workdir=/mnt/state/work /newroot
+'''
+    script += '''
 mount --bind /run /newroot/run
 mount --bind /dev /newroot/dev
 mount --bind /proc /newroot/proc
@@ -769,6 +828,10 @@ echo COMPOSITION_STAGE_END
         '-kernel','/Image','-initrd','/initramfs','-append','console=ttyAMA0 rdinit=/init panic=2',
         '-drive','file=/arch.ext4,format=raw,if=none,id=root,readonly=on',
         '-device','virtio-blk-device,drive=root']
+    if upper_image:
+        command[command.index(image):command.index(image)]=['-v',str(upper_image)+':/upper.ext4:ro']
+        command+=['-drive','file=/upper.ext4,format=raw,if=none,id=upper,readonly=on',
+                  '-device','virtio-blk-device,drive=upper']
     with (output/'runtime.log').open('xb') as log:
         try:
             code = subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=70).returncode
@@ -778,6 +841,8 @@ echo COMPOSITION_STAGE_END
     passed=vm_runtime_passed(log,code,modules,firmware=firmware,
                              radio=firmware and profile=='server-runtime',refusals=refusals,
                              activation=activation_fixture is not None)
+    if upper_image:
+        passed=passed and log.splitlines().count('EFFECTIVE_DEPLOYED_UPPER_READ_ONLY')==1
     frame=None
     if command_line is not None:
         passed=passed and log.splitlines().count('COMPOSITION_TIMING_UNITS_PASS')==1
@@ -787,6 +852,7 @@ echo COMPOSITION_STAGE_END
         else:
             passed=False
     return dict(status='PASS' if passed else 'FAIL',stage_frame=frame,
+        root_scope='retained-base-and-upper' if upper_image else 'retained-base-only',
         container=image,command=command,exit_code=code,modules=modules,board_refusals=list(refusals),
         activation_split='PASS' if passed and activation_fixture is not None else 'NOT RUN',
         fixture_sha256=ACCEPTANCE.sha_file(archive),duration_seconds=time.monotonic()-started,

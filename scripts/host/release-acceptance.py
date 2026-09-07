@@ -95,8 +95,7 @@ def verify_release(path, *, required_roles=None):
     required_roles = ARTIFACT_ROLES if required_roles is None else required_roles
     if not required_roles or not required_roles <= set(record.get('artifacts', {})) <= ARTIFACT_ROLES:
         raise ValueError('release must bind kernel, DTB, archive, retained root image and boot bundle')
-    identities = {}
-    for role, artifact in record['artifacts'].items():
+    def verify_artifact(role,artifact):
         target = Path(artifact['path'])
         if not target.is_absolute() or target.is_symlink() or not target.is_file():
             raise ValueError(f'{role}: not an exact regular artifact')
@@ -104,10 +103,15 @@ def verify_release(path, *, required_roles=None):
             raise ValueError(f'{role}: size mismatch')
         if not re.fullmatch(r'[0-9a-f]{64}', artifact.get('sha256', '')) or sha_file(target) != artifact['sha256']:
             raise ValueError(f'{role}: hash mismatch')
-        identities[role] = {key: artifact[key] for key in ('size', 'sha256')}
-    return {'candidate_id': record['candidate_id'], 'source_revision': record['source_revision'],
+        return {key: artifact[key] for key in ('size','sha256')}
+    identities={role:verify_artifact(role,artifact) for role,artifact in record['artifacts'].items()}
+    result={'candidate_id': record['candidate_id'], 'source_revision': record['source_revision'],
             'artifact_paths': {role: artifact['path'] for role, artifact in record['artifacts'].items()},
             'artifacts': identities, 'receipt_sha256': sha_file(path)}
+    if 'root_upper' in record:
+        result['root_upper']=dict(verify_artifact('root_upper',record['root_upper']),
+                                  path=record['root_upper']['path'])
+    return result
 
 
 def utc():
@@ -151,6 +155,8 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
     if not test['commands']:
         return row
     commands = test['commands']
+    if test['id'] in ('A01','C02') and release and 'root_upper' in release:
+        commands=[[*command,'--root-upper-image',release['root_upper']['path']] for command in commands]
     if test['id']=='A01' and activation_fixture_build is not None:
         if not activation_fixture_build.is_absolute():
             row['next_action']='activation fixture build must be an absolute private directory'
@@ -299,6 +305,12 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             proof_path = output/'A01/result.json'
             proof = json.loads(proof_path.read_text())
             elapsed = proof['duration_seconds']
+            expected_hashes={k:v['sha256'] for k,v in release['artifacts'].items()}
+            if 'root_upper' in release:
+                expected_hashes['root_upper']=release['root_upper']['sha256']
+                if (proof.get('root_upper_unchanged') is not True
+                        or proof.get('runtime',{}).get('root_scope')!='retained-base-and-upper'):
+                    raise ValueError('missing deployed-upper composition proof')
             if (proof['status'] != 'PASS' or proof['a01_qualified'] is not True
                     or proof['source'] != source_identity()
                     or proof['candidate'] != release['candidate_id']
@@ -306,7 +318,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                     or proof['checks'] != dict.fromkeys(test['required_checks'], 'PASS')
                     or type(elapsed) not in (int,float) or not math.isfinite(elapsed)
                     or not 0 <= elapsed <= test['deadline_seconds']
-                    or proof['artifact_hashes'] != {k:v['sha256'] for k,v in release['artifacts'].items()}):
+                    or proof['artifact_hashes'] != expected_hashes):
                 raise ValueError('A01 exact complete composition mismatch')
             row['proof_sha256'] = sha_file(proof_path)
             row['next_action'] = 'Proceed to the next mandatory test; offline composition grants no boot authority'
@@ -388,6 +400,8 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                     or proof['source_revision'] != subprocess.check_output(
                         ['git','-C',str(REPO),'rev-parse','HEAD'], text=True).strip()
                     or proof['runner_sha256'] != sha_file(REPO/'scripts/host/test-qemu-watchdog-handoff.py')
+                    or proof['source']!=source_identity()
+                    or proof['composition_runner_sha256']!=sha_file(REPO/'scripts/host/check-rescue-root-composition.py')
                     or [case['mode'] for case in proof['cases']] != expected[proof['c02_variant']]
                     or any(case['passed'] is not True or case['exit_code'] != 0 for case in proof['cases'])):
                 raise ValueError('C02 exact qualification mismatch')
@@ -395,6 +409,10 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                                 ('root_image_sha256','rootfs')):
                 if proof[field] != release['artifacts'][role]['sha256']:
                     raise ValueError('C02 artifact mismatch: '+role)
+            if 'root_upper' in release and (proof.get('root_upper_sha256')!=release['root_upper']['sha256']
+                    or proof.get('root_upper_unchanged') is not True
+                    or proof.get('root_scope')!='retained-base-and-upper'):
+                raise ValueError('C02 deployed-upper mismatch')
             row['proof_sha256'] = sha_file(proof_path)
             row['next_action'] = 'Qualify remaining mandatory tests on the same release.'
         except (OSError, KeyError, TypeError, ValueError) as error:
