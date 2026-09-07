@@ -19,7 +19,7 @@ for token in \
 	'test "$actual" = "$expected"' \
 	'head_sha=$actual' \
 	'merge-compat:' \
-	'ref: refs/pull/${{ github.event.pull_request.number }}/merge' \
+	'ref: ${{ github.sha }}' \
 	'expected=${{ github.sha }}' \
 	'candidate-publication:' \
 	'needs: head-exact' \

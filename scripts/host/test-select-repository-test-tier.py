@@ -354,6 +354,27 @@ class WorkflowSelectionTest(unittest.TestCase):
         self.assertNotIn("github.event.pull_request.head.sha", merge)
         self.assertIn("qemu: ${{ steps.select-tier.outputs.qemu }}", merge)
 
+    def test_merge_checkout_survives_ref_regeneration_after_event(self) -> None:
+        # Observed CI: same merge parents, different merge SHA by checkout time.
+        with tempfile.TemporaryDirectory() as directory:
+            def git(*args, data=None):
+                return subprocess.check_output(['git','-C',directory,*args],input=data,
+                    env=dict(os.environ,GIT_AUTHOR_NAME='Fixture',GIT_AUTHOR_EMAIL='fixture@example.invalid',
+                        GIT_COMMITTER_NAME='Fixture',GIT_COMMITTER_EMAIL='fixture@example.invalid'),
+                    stderr=subprocess.DEVNULL).decode().strip()
+            git('init','-q');tree=git('mktree',data=b'')
+            base=git('commit-tree',tree,'-m','base')
+            head=git('commit-tree',tree,'-p',base,'-m','head')
+            event=git('commit-tree',tree,'-p',base,'-p',head,'-m','event merge')
+            regenerated=git('commit-tree',tree,'-p',base,'-p',head,'-m','regenerated merge')
+            git('update-ref','refs/pull/1/merge',regenerated)
+            merge=self.jobs['merge-compat']
+            selected=re.search(r'^          ref: (.+)$',merge,re.M).group(1)
+            selected=selected.replace('${{ github.sha }}',event).replace('${{ github.event.pull_request.number }}','1')
+            git('checkout','--detach',selected)
+            self.assertEqual(git('rev-parse','HEAD'),event,
+                'mutable merge ref does not prove the event merge SHA')
+
     def test_only_active_skips_bootstrap_after_selection(self) -> None:
         for job_name in ("head-exact", "merge-compat"):
             job = self.jobs[job_name]
