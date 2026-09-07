@@ -28,8 +28,8 @@ Do not delete unique source, artifacts, credentials, evidence or fallback.
 
 **V4 is running from the newly verified installed boot-B loader.**
 Bundle `headless-server-selector-v4`, kernel `7.1.4-gf17befd4ef17`,
-authenticated boot UUID `45658aff-75c5-458b-95ae-3d7cf32c5d2d`.
-Pinned SSH became ready in **78.726 s** after the ordinary reboot request.
+authenticated boot UUID `26f9f5e7-a3e1-463f-b9e5-7e6ba3bdaaf7`.
+Pinned SSH/local root became ready in **85.531 s** after one ordinary reboot.
 The prior sole RAM boot reached SSH in 84.957 s. The physical hw1.1 correction
 worked: ath11k firmware/PHY started, Wi-Fi associated and received an address.
 Persistent state/SSH identity, Wi-Fi WPA/DHCP, healthd and Tailscale are active.
@@ -54,7 +54,7 @@ is historical, not a hash of the now-staged physical partition.
 User-approved boot-B-only replacement completed once; exact physical readback
 PASS 1.477 s includes fresh root/healthy-trial/power checks. The old image and
 both verified backups remain `340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
-First installed boot works; repeated boots and controlled recovery remain
+Ordinary installed boot works; three-boot qualification and controlled recovery remain
 unqualified. Signed V11 fallback and stock A remain preserved.
 Fallback manifest:
 `a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
@@ -102,17 +102,17 @@ These are component outcomes, **not a coherent final server PASS**.
 | H03 regulation | Earlier V8 Full-maintenance PASS; not a same-release V4 PASS |
 | F01 disposable recovery | Prior exact-input PASS 75.432 s; not physical UFS crash proof |
 | F02 acceptance | PASS 0.816 s replay, 47.366 s including exact artifact verification; original live source/boot preserved |
-| S01 standalone boot | Installed boot PASS component; new read-only local-root check PASS 0.933 s; boot-evidence binding pending |
+| S01 standalone boot | Completed ordinary boot replay PASS 0.069 s; 85.531 s to SSH/root, full capture/cleanup; public integration qualification underway |
 | S02–S07 | Final transfers/restarts/durability/three boots/off-start/60-minute soak incomplete |
 | R01 physical recovery | Controlled isolated failure qualification outstanding; no installed corruption |
 
 S02's bounded stream component now passes offline (11 regressions, 256 MiB each
 direction). No live endpoint binding or S02 PASS is implied; details in the dated report.
 
-Latest installed V4 telemetry: Full/100%, Good, 29.9°C, about 8.575 V,
-battery current −10 mA, USB online; this snapshot is not regulation qualification.
+Latest installed V4 telemetry: Full/100%, Good, 29.9°C, about 8.573 V,
+battery current −6 mA, USB online; this snapshot is not regulation qualification.
 Installed boot also survived the 900-second watchdog checkpoint: current-boot
-P2/SSH acknowledgement at 902.538 s. This is healthy-path evidence, not R01.
+P2/SSH acknowledgement at 902.493 s. This is healthy-path evidence, not R01.
 Earlier startup briefly drew battery current; these snapshots are not a
 10-minute H03 series. H03's firmware-Full protocol is already defined;
 unsupported charge-limit controls are not a blocker and none were written.
@@ -121,21 +121,21 @@ radio-active snapshot a qualifying substitute or collect the same absent fields.
 
 ## Exact next action and development loop
 
-Keep the new server accessible. `recovery-reuse-r1/live-r1` is terminal:
-receiver exit 0 after 1380.750 s, supervisor 1397.416 s. Route, firewall,
-profile and address cleanup all PASS; do not restart this consumed operation.
-`recovery-reuse-r1/readback-r1/result.json` proves new boot-B bytes, new boot ID,
-local P24 root, healthy trial, restored normal shutdown and preserved fallback.
-Post-cleanup pinned SSH/local-root component PASS 0.985 s on the same boot.
-Next: finish S01's ordinary-boot evidence binding and prestarted normal-reboot
-capture, then repeated boot/recovery qualification. No new flash is needed.
+Keep the server accessible. `recovery-reuse-r1/ordinary-boot-r1` is terminal:
+supervisor 1385.867 s, receiver exit 0; route/firewall/profile/address cleanup
+all PASS. Never restart this exact operation. Original clean source:
+`d75359b781e9386561474004df7db980435bab6b`. Post-cleanup pinned SSH/root PASS
+0.862 s on the same boot. The separate approved boot-B replacement is complete.
+Next: freeze/test S01 replay integration, then S02 bounded USB/Wi-Fi transfers.
+No new boot, flash, kernel or wrapper rebuild is needed for these steps.
 Passive installed-reboot capture now separates the authenticated source boot
 from a new boot after observed disconnect; 28 focused regressions pass.
 Read-only GPT verification passed: B is active, with the Qualcomm-style
 boot-success bit unset. The zeroed AOSP-style `misc` location is not a valid
 slot record. Exact ASUS retry behavior remains unproven; no metadata was written.
-`rog5-dev check-standalone-root` is available; it does not qualify an earlier
-boot or repeat one. Host 8081 is SteamOS CEF proxy, not a project boot server;
+`rog5-dev check-standalone-boot` binds pinned completed capture, installed bytes,
+original source, A01 and authenticated local-root evidence. Missing data is
+BLOCKED, not PASS. It cannot boot or retry. Host 8081 is SteamOS CEF proxy;
 its upstream unit has no overrides. Leave this unrelated service untouched.
 
 Private `recovery-reuse-r1/REPLACEMENT-PROPOSAL.json` scopes only boot B;
@@ -152,14 +152,14 @@ and repeatability are separate acceptance outcomes.
 Current-state/skills cleanup is complete. Use focused reproduction for proven
 bugs and full investigation only for unexplained/repeated/cross-component ones.
 Run active/focused checks during edits; full CI once for relevant integration.
-Full local CI on clean **`5a8f91c2` PASS 501.142 s** (previous 500.163 s).
-Subsequent optional-only observer correction uses focused/active checks;
-required voltage, temperature and input-power gates remain strict.
-Final observer/entry-point active tier PASS **23.879 s**.
-All four publication checks passed run **34070395934** on **`1666d17c`**.
-Receiver checkpoint **`5cc288e6` full local CI PASS 480.583 s**; no rebuild.
-Exact-head/merge run **34071546898** is in progress. These documentation-only
-results follow the frozen code run; batch them with the next checkpoint.
+Impact-selector checkpoint **`d75359b7` full local CI PASS 477.118 s**
+(previous 480.583 s). All four remote checks passed **34072737998**; prior
+receiver run **34071546898** also passed. Eligible development observers and
+isolated userspace need applicable local checks, not unrelated remote waiting;
+critical/unknown dependencies remain broad. Broad tiers retain narrow coverage.
+Representative earlier active tier: 23.879 s; selector 0.077 s, NOT a test PASS.
+S01 replay focused tests pass normal/optimized; full integration CI follows
+the frozen checkpoint. No accepted target/cache inputs changed.
 
 Preserve the combined kernel/module kit, signed package, V4 root preview and
 lossless V2/V3 preview archives. Some are volatile tmpfs; do not reboot the host

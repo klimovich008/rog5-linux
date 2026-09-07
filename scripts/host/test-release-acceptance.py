@@ -147,6 +147,40 @@ class AcceptanceTest(unittest.TestCase):
             run=subprocess.run([sys.executable,str(SOURCE),*arguments,'--list'],capture_output=True,text=True,timeout=5)
             self.assertNotEqual(run.returncode,0)
 
+    def test_s01_missing_evidence_is_blocked_without_phone_contact(self):
+        test=next(t for t in self.contract['tests'] if t['id']=='S01')
+        self.assertTrue(test['commands'])
+        release=dict(candidate_id='fixture',artifact_paths=dict(kernel='/unused',initramfs='/unused'))
+        with tempfile.TemporaryDirectory() as tmp:
+            row=M.run_one(test,Path(tmp),release)
+        self.assertEqual(row['status'],'BLOCKED')
+        self.assertIn('--standalone-boot-inputs',row['next_action'])
+
+    def test_s01_exit_zero_without_complete_replay_is_not_pass(self):
+        test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='S01'))
+        test['commands']=[[sys.executable,'-c','pass']]
+        with tempfile.TemporaryDirectory() as tmp:
+            row=M.run_one(test,Path(tmp),dict(candidate_id='fixture',artifacts={}))
+        self.assertEqual(row['status'],'FAIL')
+
+    def test_s01_proof_rejects_different_inputs_or_artifacts(self):
+        test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='S01'))
+        test['commands']=[[sys.executable,'-c','pass']]
+        for mutation in ('none','artifact','pin','qualified','source'):
+            with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);(root/'S01').mkdir();inputs=root/'inputs';inputs.write_text('{}')
+                pin=M.sha_file(inputs);release=dict(candidate_id='fixture',artifacts={'initramfs':dict(sha256='a'*64)})
+                proof=dict(status='PASS',s01_qualified=True,source=M.source_identity(),candidate='fixture',
+                    artifact_hashes={'initramfs':'a'*64},inputs_sha256=pin,original_source={'revision':'b'*40},
+                    runner_sha256=M.sha_file(M.REPO/'scripts/host/check-standalone-boot.py'))
+                if mutation=='artifact':proof['artifact_hashes']['initramfs']='c'*64
+                if mutation=='pin':proof['inputs_sha256']='d'*64
+                if mutation=='qualified':proof['s01_qualified']=False
+                if mutation=='source':proof['source']={}
+                (root/'S01/result.json').write_text(json.dumps(proof))
+                row=M.run_one(test,root,release,standalone_boot_inputs=(inputs,pin))
+                self.assertEqual(row['status'],'PASS' if mutation=='none' else 'FAIL',row)
+
     def test_f02_exit_zero_without_bound_replay_is_not_pass(self):
         test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='F02'))
         test['commands']=[[sys.executable,'-c','pass']]
