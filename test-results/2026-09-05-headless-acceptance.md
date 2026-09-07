@@ -4587,3 +4587,24 @@ bound, and the remaining mandatory release/recovery tests are still outstanding.
 Final focused observer/entry-point active tier PASS **23.879 s**; clean diff
 check passed. Publication includes the frozen full-CI base plus the reviewed
 optional-observation/test/documentation delta, without relabeling the base run.
+
+### Ordinary installed-reboot capture
+
+The passive receiver previously required fastboot, preventing early capture
+for an ordinary installed-release reboot. Its optional `--source-boot-id`
+mode now ignores the authenticated old boot until an observed USB disconnect,
+then requires a different boot identity. The loopback readiness probe works
+before the disconnect without claiming the old target as a new attempt.
+Experimental executors reject this receipt mode; claim handling is unchanged.
+Capture is not authenticated qualification and grants no execution authority.
+
+Seven added regressions cover source-frame exclusion, stale source return,
+missing disconnect, receipt mode separation, ENODEV during source removal,
+wrong identity/family and real loopback readiness. The retained
+`ordinary-capture-before.log` reproduces the missing mode against the original
+implementation. All 28 focused tests pass normally and with Python optimization
+in about 0.1 s. No target bytes or build cache inputs changed.
+S01 still needs authenticated new-boot/root and host boot-service-absence
+evidence. No phone reboot, flash, claim or storage write occurred while making
+this change. The prior publication run **34070395934** completed all four jobs
+successfully at exact source **`1666d17c3da0dad91be45965434dbc0be625b16a`**.

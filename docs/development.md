@@ -161,6 +161,17 @@ installed loader. Any selector/claim/rollback mechanism change needs focused
 regressions and the applicable full/trust checks before use. Storage/flash
 authorization remains separately scoped; no policy wording grants it.
 
+For an installed-release reboot, start `headless-stage-receiver.py` with
+`--source-boot-id` set to the freshly authenticated current boot UUID. Use the
+same option with `--check`; experimental RAM executors deliberately reject
+this capture mode. Authenticate installed bytes, fallback and power separately
+before the reboot request. The receiver is passive and grants no authority.
+It ignores the old boot, requires an observed USB disconnect, then accepts
+only a different boot's frames. Missing disconnect, returning old identity or
+mixed boot evidence cannot qualify a reboot. Complete pinned SSH/local-root
+verification and host boot-service-absence evidence are still required for S01.
+Do not infer bootloader slot-success state from Linux trial-health records.
+
 ## Retention and context
 
 Current state owns accepted identities and links to evidence. Active context

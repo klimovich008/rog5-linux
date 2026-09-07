@@ -60,6 +60,8 @@ def update_transport(receiver, serial, ensure_route):
     phase = 'usb-discovery'
     try:
         mode, interface = usb_mode(serial)
+        if receiver.is_source(mode):
+            mode, interface = 'source', None
         phase = 'network-setup'
         if mode == 'target' and not ensure_route():
             mode, interface = 'enumerating', None
@@ -118,7 +120,12 @@ def parse_startup_observation(payload, release):
 
 
 class Receiver:
-    def __init__(self, release, emit, *, host=ADDRESS, port=PORT, peer=PEER, client_seconds=2):
+    def __init__(self, release, emit, *, host=ADDRESS, port=PORT, peer=PEER, client_seconds=2,
+                 source_boot_id=None):
+        if source_boot_id is not None and not STAGES.BOOT_ID.fullmatch(source_boot_id):
+            raise ValueError('invalid ordinary-reboot source boot')
+        self.source_boot_id = source_boot_id
+        self.source_disconnected = False
         self.release, self.emit, self.peer = release, emit, peer
         self.client_seconds = client_seconds
         self.listener = socket.socket()
@@ -142,7 +149,17 @@ class Receiver:
             client.close()
         self.listener.close()
 
+    def is_source(self, mode):
+        return self.source_boot_id is not None and not self.source_disconnected and mode == 'target'
+
     def transport(self, mode, interface):
+        if self.source_boot_id is not None and not self.source_disconnected:
+            if mode == 'absent':
+                self.source_disconnected = True
+                self.emit(dict(event='source-disconnected', source_boot_id=self.source_boot_id))
+            elif mode not in {'source', 'enumerating'}:
+                self.failed = True
+                self.emit(dict(event='missing-source-disconnect', mode=mode))
         if (mode, interface) == (self.mode, self.interface):
             return
         # Close accepted sockets from the previous USB identity before rebinding.
@@ -166,6 +183,8 @@ class Receiver:
         try:
             if payload.startswith(b'format=rog5-startup-observation-v1\n'):
                 current = parse_startup_observation(payload, self.release)
+                if current['boot_id'] == self.source_boot_id:
+                    raise ValueError('source boot returned after disconnect')
                 boot = self.last.boot_id if self.last else (self.startup or {}).get('boot_id')
                 if boot and current['boot_id'] != boot:
                     raise ValueError('startup observation changed boot')
@@ -175,6 +194,8 @@ class Receiver:
                 self.emit(dict(event='startup-observation', observation=current, authenticated=False))
                 return
             current = STAGES.parse_stage_record(payload, expected_release=self.release)
+            if current.boot_id == self.source_boot_id:
+                raise ValueError('source boot returned after disconnect')
             if self.startup and current.boot_id != self.startup['boot_id']:
                 raise ValueError('stage changed observed startup boot')
             if self.last:
@@ -249,8 +270,15 @@ def process_start(pid):
     return Path(f'/proc/{pid}/stat').read_text().rpartition(') ')[2].split()[19]
 
 
-def check_receiver(output, profile):
+def check_capture_mode(receipt, source_boot_id):
+    if (receipt.get('source_boot_id') != source_boot_id or
+            (source_boot_id is not None and not STAGES.BOOT_ID.fullmatch(source_boot_id))):
+        raise ValueError('capture mode/source boot mismatch')
+
+
+def check_receiver(output, profile, *, source_boot_id=None):
     receipt = json.loads((output/'receipt.json').read_text())
+    check_capture_mode(receipt, source_boot_id)
     canonical = dict(line.split('=',1) for line in CLAIMS.expected_record(profile).decode().splitlines())
     if (receipt['canonical_record'] != canonical or receipt['profile'] != profile
             or receipt['source'] != ACCEPTANCE.source_identity()
@@ -275,6 +303,7 @@ def check_receiver(output, profile):
     if (live.get('ready') is not True or live.get('candidate') != canonical['candidate']
             or live.get('pid') != receipt['pid']
             or live.get('required_seconds') != receipt['required_seconds']
+            or live.get('source_boot_id') != source_boot_id
             or not lifetime_ready(receipt['deadline_monotonic'], time.monotonic(), receipt['required_seconds'])):
         raise ValueError('receiver not ready or remaining lifetime insufficient')
     return dict(status='PASS', test='H01-receiver', profile=profile,
@@ -319,9 +348,11 @@ def main():
     parser.add_argument('--manifest', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--source-boot-id',
+                        help='passive ordinary-reboot capture; caller must authenticate this installed source boot; grants no reboot authority')
     args = parser.parse_args()
     if args.check:
-        print(json.dumps(check_receiver(args.output, args.profile)))
+        print(json.dumps(check_receiver(args.output, args.profile, source_boot_id=args.source_boot_id)))
         return 0
     if args.manifest is None or os.geteuid() != 0:
         raise ValueError('receiver needs an exact manifest and scoped host-network privileges')
@@ -342,7 +373,12 @@ def main():
         raise ValueError('review capture lattice for different target rollback')
     required = timing['recovery_seconds']+rollback+timing['cleanup_seconds']
     lifetime = required+timing['preflight_seconds']
-    if usb_mode(record['serial']) != ('fastboot', None):
+    if args.source_boot_id is not None:
+        if (not STAGES.BOOT_ID.fullmatch(args.source_boot_id)
+                or record['execution'] != 'fastboot-boot-selector-trial'
+                or usb_mode(record['serial']) != ('target', INTERFACE)):
+            raise ValueError('ordinary capture requires exact installed source and selector family')
+    elif usb_mode(record['serial']) != ('fastboot', None):
         raise ValueError('receiver must start at exact fastboot before this attempt')
     if not args.output.is_absolute():
         raise ValueError('use an absolute output path')
@@ -376,19 +412,22 @@ def main():
                 log_full = True
                 return
             log.write(json.dumps(event, sort_keys=True)+'\n'); log.flush()
-        with NETWORK.prepared(lifetime, emit, lambda: usb_mode(record['serial'])[0]=='target') as network, Receiver(release, emit) as receiver:
+        with NETWORK.prepared(lifetime, emit, lambda: usb_mode(record['serial'])[0]=='target') as network, Receiver(
+                release, emit, source_boot_id=args.source_boot_id) as receiver:
             deadline, ensure_route = network
             host_ready()
             receiver.probe = ('PROBE '+os.urandom(24).hex()+'\n').encode()
             def readiness():
                 try:
                     host_ready()
-                    valid = not stopping and not receiver.failed and receiver.mode == 'fastboot'
+                    mode_ready = (receiver.mode == 'source' and not receiver.source_disconnected
+                                  if args.source_boot_id is not None else receiver.mode == 'fastboot')
+                    valid = not stopping and not receiver.failed and mode_ready
                 except (ValueError, OSError, subprocess.SubprocessError):
                     valid = False
                 return dict(ready=valid and lifetime_ready(deadline, time.monotonic(), required),
                             remaining_seconds=deadline-time.monotonic(), required_seconds=required,
-                            candidate=record['candidate'], pid=os.getpid())
+                            candidate=record['candidate'], pid=os.getpid(), source_boot_id=args.source_boot_id)
             receiver.probe_response = readiness
             receipt = dict(format='rog5-headless-capture-v1', profile=args.profile, canonical_record=record,
                            source=ACCEPTANCE.source_identity(),
@@ -396,6 +435,8 @@ def main():
                            pid=os.getpid(), process_start=process_start(os.getpid()), deadline_monotonic=deadline, required_seconds=required,
                            host_boot_id=Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
                            probe=receiver.probe.decode(), started_monotonic=started, timing=timing)
+            if args.source_boot_id is not None:
+                receipt['source_boot_id'] = args.source_boot_id
             (args.output/'receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
             emit(dict(event='listener-started', address=ADDRESS, port=PORT, authority='none'))
             while not stopping and time.monotonic() < deadline:
@@ -406,6 +447,8 @@ def main():
                           reason='capture is evidence, not authenticated device qualification',
                           last_stage=stage_dict(receiver.last), last_startup=receiver.startup,
                           duration_seconds=time.monotonic()-started)
+            if args.source_boot_id is not None:
+                result.update(source_boot_id=args.source_boot_id,source_disconnected=receiver.source_disconnected)
             (args.output/'result.json').write_text(json.dumps(result, indent=2)+'\n')
             emit(dict(event='capture-ended', **result))
             return 1 if receiver.failed or log_full else 0
