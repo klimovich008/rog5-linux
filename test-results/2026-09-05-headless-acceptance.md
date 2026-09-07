@@ -6517,3 +6517,41 @@ symlink inputs, RO attachment, required upper evidence, tampered receipt data,
 the SSH-key fixture boundary and source/proof binding. Full local CI belongs
 once at the frozen shared-runner checkpoint; unchanged old CI is not relabelled.
 Private evidence/work: `rog5-cpu-startup-20260908.kjE4IqCf`.
+
+Checkpoint `66adf6163d5f6d33d65ff9c59d5225dca95ff78f` passed full local CI
+**544.355 s** (previous CPU checkpoint **548.467 s**), log SHA256
+`b80747e094972a70e9f10c28a3a421a3357993489898630855801d688c4e7217`.
+All four exact-head/merge/publication/QEMU jobs passed in **34167400408**.
+Focused normal/optimized composition and acceptance, watchdog artifact and
+selection checks passed **14.283 s**. An initial added-test placement error was
+fixed before freezing; its failed 6.049-second record is preserved. No repeated
+full local run on unchanged source. CI overlapped retention and target assembly.
+
+The V5 raw preview was losslessly encoded relative to the exact V7 base using
+Ubuntu's authenticated xdelta3 3.0.11 package (SHA256
+`211bf0fe07f1bb95870dd6da981f56c2e17237286b261f1fe2d77d34ff1f106e`).
+The **118,349-byte** reverse delta SHA256 is
+`ff6354cc6140cd9880aa195ab9ce79ab10d0b5284c2cfa02a0b5ac552b9fe726`;
+full decoded 34,359,717,888 bytes exactly matched the prior V5 hash
+`c58b02f2a9ef587b8ce60973446cf88d18c6f708e76dd16b7ed33f17ac22d517`.
+Encode/decode took **36.406/54.372 s**, total verification **134.869 s**.
+After verifying this recovery representation and refusing in-use inputs, only
+the duplicate V5 raw file was released. The complete V7 base was copied to
+durable storage, full-hash verified and fsynced before its RAM copy was released.
+Its hash remains `db05ad58324df9efc2c7dd1b63dd2d7bb1129832c79fb05ded6bec6811bcfeb5`.
+The move took **53.400 s**, released **4,097,179,648 RAM bytes**, and preserved
+the 3 GiB home reserve. Keep the delta and base together; exact restoration and
+path relocation are in `v5-root-retention-r1` / `root-retention-final-r1` private
+receipts. Older paths in immutable reports are historical, not current inputs.
+No accepted source, fallback, claim or phone data was removed.
+
+Fresh V8 target twins passed **8.325 s**, archive SHA256
+`26a093275bd0fe910d5f3c439e58f801096ff89f13778627bafa8627cc92a842`.
+Only the trial descriptor, generated file manifest and CPU unit differ from V7.
+The verified kernel/DT/modules and recovery twins are reused; wrapper proof
+**0.426 s**, no compilation. Twin signing, selector generation and the actual
+sealed verifier passed **4.673 s** after complete 66adf616 CI. The canonical
+record is generated from that package; this registration alone grants no
+execution or retry authority. Paired V8 A01/C02 and admission remain pending.
+Fresh read-only fallback SSH proof passed **0.673 s**, same boot identity,
+Full 100%, Good 29.8°C, 8.596 V, USB online. This is not a 600-second H03 PASS.

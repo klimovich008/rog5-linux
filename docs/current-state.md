@@ -1,6 +1,6 @@
 # ROG5 current state
 
-Updated 2026-09-08: V7 startup FAIL; verified signed V11 fallback is running.
+Updated 2026-09-08: V8 signed preparation; verified V11 fallback is running.
 V6 and V7 are permanently consumed. Never retry, restage or flash them.
 
 ## Goal and authority
@@ -69,10 +69,12 @@ No kernel, DT, module, threshold, cap order or watchdog change is proposed.
 
 Correction `4b03207d30f1b1e238fc3fdf3bf1bd4c5125b752` passed full local CI
 **548.467 s** and all four remote jobs in **34164958369**. Next: assemble
-its target archive with the reused kernel/wrapper. Before any new
-candidate, validate the effective deployed runtime, all artifact/admission
-boundaries, fallback and power. A new physical attempt must answer whether
-earlier capped startup passes the unchanged thermal guard. V7 cannot be reused.
+its target archive with the reused kernel/wrapper. V8 target twins now match
+(8.325 s); wrapper reuse passed (0.426 s), then signed twins/sealed verification
+passed (4.673 s). Its canonical record derives from that exact package; no
+claim, staging or physical execution yet. Validate the paired V8 base + complete
+upper and admission closure next, then test whether earlier CPU capping passes
+the unchanged thermal guard. V7 cannot be reused.
 
 ## Evidence and qualification limits
 
@@ -144,7 +146,13 @@ archived V4/V6 roots, released duplicate wrapper intermediates, historical
 V5/V6 narratives and detailed results are in the
 [existing dated report](../test-results/2026-09-05-headless-acceptance.md).
 Some retained artifacts/archives remain in volatile RAM: no host reboot yet.
-Home has approximately 3.45 GB free after the upper snapshot. The next artifact
-plan must preserve the 3 GiB reserve and avoid another unnecessary raw-root copy.
+Full local CI at `66adf616` passed in 544.355 s; all four remote jobs passed in
+34167400408. Focused checks took 14.283 s. Do not repeat unchanged full local CI
+for the literal V8 record: check every affected admission consumer; remote
+exact-head/merge and final artifact checks remain required before execution.
+Home has about 3.34 GB free. The V5 raw preview is losslessly delta-archived
+against a hash-verified durable V7 base; 4.10 GB of duplicate RAM allocation
+was released. Preserve the delta + base together. Current private work and
+relocation receipts: `rog5-cpu-startup-20260908.kjE4IqCf`.
 Never remove the failed-soak scratch, accepted payloads or archived claims.
 Host port 8081 is unrelated SteamOS CEF; leave it untouched.
