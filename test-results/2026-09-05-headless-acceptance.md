@@ -5211,3 +5211,58 @@ preserved scratch state, then use a bounded discriminating experiment. Do not
 repeat an hour-long soak merely to discover the rejected measurement. The
 offline consumer draft (ten synthetic tests normal/optimized) is unregistered;
 it now rejects missing/failed stderr receipts and altered transfer guards.
+
+### S07 qualified diagnostics and read-only thermal isolation (2026-09-07)
+
+Frozen `1b37755ba4710594564d0e0d44f547f4dbf4439a`, worktree digest
+`d2fb1bf0bd21e133362e8a00e0ed4fcd859593e7467c20a229904a301945bedf`,
+passed full local CI **516.841 s** and all four remote jobs **34105698682**.
+Local result SHA-256:
+`f10f0a56ac50ba05f0c665250e53056f6e766f0e634885b032056d105d56f1c1`.
+CI log SHA-256:
+`7e2d602b80a8828bef8624f03f309863e8a879e5695a49cc57ed39d056eefb3b`.
+No kernel/wrapper rebuild. The later documentation update does not relabel this
+run as testing newer source. The two checks ran concurrently; no duplicate CI.
+
+Preserved-file inspection first timed out after **30.668 s** in sysfs sampling:
+the private helper invoked the full guard for every 64 KiB read. The corrected
+helper uses the already-qualified 0.5-second cadence plus forced start/end
+checks. An exact rendered-function test reproduces **1024 → 1** reads within a
+single interval and verifies renewal/forced checks and original-error propagation,
+normal/optimized **0.004 s** each. Read-only full-file verification then passed
+**0.920 s**; no file was removed. The exact retained 64 MiB file SHA-256 is
+`f90c243d4322a3501652f919017c8db2fe434c5be65b8923dc8d8158567cd79c`.
+Private archive `s07-preserved-scratch-read-r2.tar.gz`, nine files verified:
+`c1ec04814f42e3e0d182a67e76fa4fb6294f5689eb16f405c1c3bf8ba850f85b`.
+
+Two separate bounded read-only experiments followed, not retries of the failed
+write, not a shortened S07, and not new boot candidates. Both used the same
+accepted boot and five artifact hashes, logged exact source/worker/command
+identities, kept the 60°C/battery/storage guards, and left the file intact.
+
+| Component | Duration | Evidence |
+|---|---:|---|
+| Cached read/hash only | 181.828 s | 119 full verified reads; 357 samples; peak 36.8°C; max sample gap 0.598 s |
+| Uncached read/hash only | 181.269 s | 111 full verified reads; 315 samples; peak 42.1°C; max sample gap 0.832 s |
+
+Uncached read counters increased **7,449,083,904 bytes** on both loop1 and
+sda23. Loop1 writes did not increase. The backing-advice operation remains
+read-only; no global cache drop, loop settings, charging controls or accepted
+service changed. Cached-read battery stayed Good **29.8°C / 8.536 V**;
+uncached-read final sample was Good **29.9°C / 8.533 V**. This is not charging
+regulation/net-positive-current qualification. Three rendered cached-loop tests
+and two additional cache-advice tests passed normal/optimized in **0.002/0.003 s**.
+The earlier exact Python/qualified primitive tests were reused, not rerun.
+
+Raw output hashes: cached
+`3433271ada022519f359b579ab0419e60927eff0bab60b9616290d7064622b3c`;
+uncached `07c58f5a08d99937a2bd2edc39255967c84c6ad39b3a51074de3afb8e6154791`.
+Private archive `s07-readonly-thermal-isolation-r1.tar.gz`, ten files verified:
+`fedfcc5176d9ecc6014ca55f57d65e9b8dcfdff0283636c50c8a97fdad51a86f`.
+
+Neither isolated load reproduced the thermal refusal. Sustained network load,
+combined activity, longer-duration effects and a transient sensor report remain
+possible. No kernel correction is justified yet. Next use one bounded network
+or combined-read experiment with retained failure diagnostics, rather than a
+new write workload/full-hour test merely to discover a missing numeric sample.
+All diagnostic processes are terminal; S07 and the final release remain unqualified.
