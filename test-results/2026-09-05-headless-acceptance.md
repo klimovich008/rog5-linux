@@ -5155,3 +5155,59 @@ exact phone Python fixtures PASS **14.005 s**, owned tmpfs cleanup verified.
 Eight observer tests PASS **0.004 s**. Full frozen integration is next; the cache
 correction has not yet been exercised on the live backing file. A private offline
 S07 consumer draft remains separate, unregistered and not qualification evidence.
+
+### S07 physical UFS proof, network evidence gap and thermal refusal (2026-09-07)
+
+Source `6295d34ff8f842add6cc6702dcba750004db1988` passed full local CI
+**521.255 s** and all four remote jobs **34099477039**. Local and remote ran in
+parallel; about 8.5 minutes of validation overlapped. The accepted kernel,
+wrapper, DT, modules and root bytes were reused. No build, flash or reboot.
+
+r2 completed 17 cleaned storage windows and 26 transfers before a Wi-Fi upload
+returned nonzero, **473.270 measured seconds** into the observation; total
+**553.392 s** includes stopping workers. Backing UFS reads matched loop reads.
+The pipe helper lost endpoint stderr, so the cause cannot be recovered. A
+host-only bounded stderr observer passed five real-pipe tests normal/optimized
+(**0.926/0.927 s**) and a separate Wi-Fi-only upload passed **45.775 s**.
+That does not establish combined-load health or retrospectively classify r2.
+Durable archive `s07-network-failure-r2.tar.gz` (168 files verified) SHA-256:
+`1af04c9ffa895d8541a7f6658024c678daada1faa344c46a399572dc8c98cc67`.
+
+r3 kept the full observation window and original 60°C guard. After **383.599 s**
+total, with 11 cleaned windows and 21 transfers, storage window 12 exited at
+`backing_advice -> durability-target.validate`: **unsafe or absent thermal**.
+All workers stopped. The 64 MiB scratch file with nonce prefix
+`6a477af2fdbb020235fd9a2f2aeb31ab` remains preserved; do not retry or delete it
+without exact state verification. The last sampled maximum was 40.1°C; the
+actual rejected mapping was not recorded. A >=60°C sample or empty mapping
+could produce this error; ordinary sysfs I/O/parse errors have different paths.
+Neither true overheating nor a sensor defect is established. No new kernel
+records or ext4 errors appeared in captured data; this is not pstore-based proof.
+
+Read-only closure verified the same boot and Good **30.0°C / 8.531 V**, but
+correctly returned FAIL for cleanup because the namespace remains. A subsequent
+30-second idle observer captured 60 complete samples, range **30.0–35.5°C**;
+total **36.200 s**. It changed no controls and cannot disprove a load-dependent
+excursion. Retained TSENS source at `f17befd4ef172cfb0ecbffd9e0af87122cfa66bc`
+polls the validity field before reading temperature; no kernel correction is
+justified by the missing failure sample. CPU thermal trips remain 90/95/110°C;
+the stricter experiment guard is unchanged. Bounded Opus review could not start
+because its OAuth session expired; no review conclusion is being claimed.
+
+R7/R9 evidence defect: the exact rejected storage observation was discarded.
+The regression failed before the fix (zero evidence lines). A small worker-only
+helper now logs only that sample's thermal/power fields and re-raises the same
+exception. No reread, threshold, workload, timeout, cleanup or authority change.
+Eight tests PASS normal/optimized **3.156/3.181 s**, including empty/60°C cases,
+no additional read or open after refusal, and logging failure preserving refusal.
+Exact phone Python normal/optimized fixtures PASS **14.106 s**; only owned `/run`
+test files were created/removed, not the preserved persistent scratch namespace.
+The test receipt retains its original dirty source identity and exact file hashes.
+Durable archive `s07-thermal-refusal-r3.tar.gz` (190 files verified) SHA-256:
+`edb132a24ee0d62dbbf3f4ac5cb9bbd2f11d02278f2fa6ada8e9f1cbeb6a044e`.
+
+S07 remains FAIL. Qualify this frozen error-evidence correction, inspect the
+preserved scratch state, then use a bounded discriminating experiment. Do not
+repeat an hour-long soak merely to discover the rejected measurement. The
+offline consumer draft (ten synthetic tests normal/optimized) is unregistered;
+it now rejects missing/failed stderr receipts and altered transfer guards.
