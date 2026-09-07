@@ -107,6 +107,19 @@ QEMU. The virtual disk is read-only and mounted `ro,noload`; runtime writes use
 tmpfs OverlayFS. No host loop mount or physical-device passthrough is required
 by this combined path. Firmware inventory is bound to the existing builder's
 digest and staged with sealed BusyBox; generated units use the signed timeout.
+
+For a deployed persistent overlay, the receipt additionally binds `root_upper`
+as `{path, size, sha256}` for the complete inactive ext4 upper snapshot. A01 and
+C02 receive `--root-upper-image`; their persistent-overlay qualification refuses
+a missing upper. Both retained disks stay read-only, identified by distinct
+filesystem UUIDs and sizes, with journal replay disabled. The upper is a middle
+OverlayFS lower layer, preserving whiteouts and opaque directories; only the
+guest's new tmpfs upper is writable. Full before/after hashes bind both inputs.
+C02 masks retained `/etc/ssh` with guest tmpfs before generating disposable
+loopback-only keys. It neither uses nor overwrites retained host keys. The base
+five artifact roles for other acceptance rows are unchanged. Evidence from a
+base-only run cannot qualify the deployed overlay or a newer source snapshot.
+
 The real shell's stage record must pass the current host parser and its sender
 endpoint must match the receiver. These are offline composition checks, not
 physical firmware/USB or watchdog-expiry qualification. Missing checks return

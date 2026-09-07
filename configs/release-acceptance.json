@@ -75,6 +75,7 @@
         "exact release receipt",
         "assembled archive",
         "retained root filesystem",
+        "persistent-overlay releases: complete retained inactive upper filesystem, supplied as root_upper in the release receipt",
         "server activation closure: pyelftools, libbpf, llvm-objcopy and exact-kernel QEMU-only link fixture build"
       ],
       "commands": [["python3", "scripts/host/check-release-composition.py", "--kernel", "{kernel}", "--dtb", "{dtb}", "--target-archive", "{initramfs}", "--root-image", "{rootfs}", "--boot-image", "{boot_bundle}", "--candidate", "{candidate}", "--output", "{test_output}"]],

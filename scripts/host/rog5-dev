@@ -28,7 +28,7 @@ case $action in
     printf '%s\n' 'rog5-dev test [active|probe|ci|nightly]' \
       'rog5-dev capture-rescue --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev accept quick|offline|device-smoke|release --output PRIVATE_NEW_DIRECTORY [--release RECEIPT]' \
-      'rog5-dev check-composition --kernel IMAGE --dtb DTB --target-archive ARCHIVE --root-image ROOT --boot-image BOOT --candidate ID --output PRIVATE_NEW_DIRECTORY' \
+      'rog5-dev check-composition --kernel IMAGE --dtb DTB --target-archive ARCHIVE --root-image ROOT [--root-upper-image COMPLETE_EXT4_UPPER] --boot-image BOOT --candidate ID --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-rescue-root --inputs RECEIPT --root PRIVATE_RO_LOOP_MOUNT --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-deployed-server [--readiness-only|--startup-diagnostics] --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --boot-id BOOT_ID --identity-file KEY --known-hosts PINNED_HOSTS --output PRIVATE_NEW_DIRECTORY' \
       'rog5-dev check-standalone-root --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --boot-id BOOT_ID --identity-file KEY --known-hosts PINNED_HOSTS --output PRIVATE_NEW_DIRECTORY (read-only component; not S01 boot qualification)' \

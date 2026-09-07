@@ -328,7 +328,13 @@ cut() { echo 14; }
             self.assertEqual(M.main(),77)
             run.assert_not_called()
 
-    def run_mocked_harness(self, use_arch=False, use_wifi=False, missing_marker=None, qualify=False):
+    def test_complete_upper_is_attached_readonly_hashed_and_required(self):
+        self.run_mocked_harness(use_arch=True,qualify=True,use_upper=True)
+        self.run_mocked_harness(use_arch=True,qualify=True,use_upper=True,
+                               missing_marker='EFFECTIVE_DEPLOYED_UPPER_READ_ONLY')
+
+    def run_mocked_harness(self, use_arch=False, use_wifi=False, missing_marker=None, qualify=False,
+                           use_upper=False):
         init = altered_init()
         target = members(init)
         if use_wifi:
@@ -371,6 +377,9 @@ cut() { echo 14; }
                         self.assertIn('file=/arch.ext4,format=raw,if=none,id=root,readonly=on', command)
                         self.assertIn(str(root/'arch.ext4')+':/arch.ext4:ro', command)
                         self.assertIn('--network=none', command)
+                    if use_upper:
+                        self.assertIn('file=/upper.ext4,format=raw,if=none,id=upper,readonly=on',command)
+                        self.assertIn(str(root/'upper.ext4')+':/upper.ext4:ro',command)
                     process_deadlines.append(kwargs['timeout'])
                     mode = Path(kwargs["stdout"].name).stem
                     seen.append(mode)
@@ -379,6 +388,8 @@ cut() { echo 14; }
                     log = "HANDOFF_SWITCH_ROOT\nHANDOFF_NEW_INIT\nHANDOFF_OLD_PATH_GONE\n"
                     if use_arch:
                         log += 'ARCH_ROOT_READ_ONLY_OVERLAY\nARCH_SSH_INITIAL_PASS\n'
+                    if use_upper:
+                        log += 'EFFECTIVE_DEPLOYED_UPPER_READ_ONLY\n'
                     if mode == "systemd-ack":
                         log += ("watchdog acknowledged by current-boot P2 and SSH identity readiness\n"
                                 "HANDOFF_OBSERVATION_END\n")
@@ -398,8 +409,8 @@ cut() { echo 14; }
                             log = log.replace("reboot: Restarting system with command 'bootloader'\n", '')
                             log += ('watchdog acknowledged by current-boot P2 and SSH identity readiness\n'
                                     'ARCH_WIFI_STALE_REARM_BEGIN\nreboot: Restarting system\n')
-                        if missing_marker:
-                            log = log.replace(missing_marker, 'MISSING')
+                    if missing_marker:
+                        log = log.replace(missing_marker, 'MISSING')
                     kwargs["stdout"].write(log.encode())
                 else:
                     self.assertTrue(command[0].endswith("verify-qemu-systemd-runtime.sh"))
@@ -410,6 +421,9 @@ cut() { echo 14; }
             if use_arch:
                 (root/'arch.ext4').write_bytes(b'read-only fixture, no QEMU executed')
                 argv += ['--root-image', str(root/'arch.ext4')]
+            if use_upper:
+                (root/'upper.ext4').write_bytes(b'complete retained upper fixture')
+                argv+=['--root-upper-image',str(root/'upper.ext4')]
             if qualify:
                 argv += ['--c02']
             elif use_wifi:
@@ -419,6 +433,10 @@ cut() { echo 14; }
                     mock.patch.object(M.runpy, "run_path", return_value=ARCHIVE), \
                     mock.patch.object(M.subprocess, "run", side_effect=simulated_run), \
                     mock.patch.object(M.subprocess, "check_output", return_value="offline-image"), \
+                    mock.patch.object(M.COMPOSITION.ACCEPTANCE,'source_identity',
+                                      return_value=dict(revision='f'*40,worktree_digest='d'*64,clean=False)), \
+                    mock.patch.object(M, 'effective_root_mounts',create=True,
+                                      return_value='echo EFFECTIVE_DEPLOYED_UPPER_READ_ONLY\n'), \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(M.main(), 1 if missing_marker else 0)
             expected = {'systemd-ack', 'systemd-no-ack',
@@ -437,7 +455,16 @@ cut() { echo 14; }
                 if use_arch:
                     for name in ('passwd', 'group', 'nsswitch.conf', 'shadow'):
                         self.assertNotIn('systemd-root/etc/'+name, guest)
-                    self.assertIn(b'mount -t ext4 -o ro,noload /dev/vda', guest['init'][1])
+                    if not use_upper:
+                        self.assertIn(b'mount -t ext4 -o ro,noload /dev/vda', guest['init'][1])
+                    else:
+                        self.assertIn(b'EFFECTIVE_DEPLOYED_UPPER_READ_ONLY',guest['init'][1])
+                    # A real retained upper can contain host keys. Do not reuse,
+                    # prompt to overwrite, or erase them in the isolated fixture.
+                    masking=b'mount -t tmpfs -o mode=0700 tmpfs /newroot/etc/ssh'
+                    self.assertIn(masking,guest['init'][1])
+                    self.assertLess(guest['init'][1].index(masking),
+                                    guest['init'][1].index(b'cp -a /systemd-root/. /newroot/'))
                     self.assertIn(b'mount -t tmpfs -o mode=0755 tmpfs /run', guest['init'][1])
                     if mode != 'systemd-wifi-stale':
                         restart = M.ARCH_SSH_RESTART
@@ -461,6 +488,8 @@ cut() { echo 14; }
                              "usr/libexec/rog5-reboot-bootloader"):
                     self.assertEqual(guest[name][1], target[name][1])
             record = json.loads((output / "result.json").read_text())
+            self.assertEqual(record['source']['worktree_digest'],'d'*64)
+            self.assertFalse(record['source']['clean'])
             self.assertEqual(record["watchdog_source_origin"], "target-archive:init")
             for key, data in (("target_init_sha256", init), ("target_archive_sha256", blob),
                               ("watchdog_source_sha256", block)):
@@ -472,6 +501,10 @@ cut() { echo 14; }
                     self.assertEqual(record['c02_variant'], 'wifi-rollback' if use_wifi else 'core-only')
                 self.assertFalse(record['release_qualified'])
                 self.assertIn('not physical storage', record['scope'])
+                if use_upper:
+                    self.assertTrue(record['root_upper_unchanged'])
+                    self.assertEqual(record['root_upper_sha256'],hashlib.sha256((root/'upper.ext4').read_bytes()).hexdigest())
+                    self.assertEqual(record['root_scope'],'retained-base-and-upper')
             else:
                 self.assertIn("not full deployed composition", record["scope"])
 

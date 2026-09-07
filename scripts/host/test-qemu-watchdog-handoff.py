@@ -17,6 +17,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import gzip
 import hashlib
+import importlib.util
 import json
 import errno
 import os
@@ -30,6 +31,10 @@ import time
 import zlib
 
 REPO = Path(__file__).resolve().parents[2]
+SPEC = importlib.util.spec_from_file_location('handoff_composition', Path(__file__).with_name('check-rescue-root-composition.py'))
+COMPOSITION = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(COMPOSITION)
+effective_root_mounts = COMPOSITION.effective_root_mounts
 
 
 def sha_file(path, *, metrics=None):
@@ -317,6 +322,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--root-image", type=Path,
                         help="RO retained Arch ext4: two exact-systemd/SSH cases instead of public-runtime matrix")
+    parser.add_argument('--root-upper-image',type=Path,
+                        help='complete retained deployed ext4 upper; both layers stay read-only')
     parser.add_argument('--wifi-rollback', action='store_true',
                         help='two fresh Arch guests: core ACK plus healthy/stale Wi-Fi timer rearm')
     parser.add_argument('--c02', action='store_true',
@@ -324,6 +331,8 @@ def main():
     args = parser.parse_args()
     if (args.wifi_rollback or args.c02) and not args.root_image:
         parser.error('--wifi-rollback/--c02 requires --root-image')
+    if args.root_upper_image and not args.root_image:
+        parser.error('--root-upper-image requires --root-image')
     if args.wifi_rollback and args.c02:
         parser.error('--c02 selects coverage automatically; omit --wifi-rollback')
     c02_deadline = None
@@ -345,6 +354,9 @@ def main():
         target_blob = args.target_archive.read_bytes()
         target = archive["entries"](gzip.decompress(target_blob))
         watchdog_source = watchdog_functions(target)
+        if args.c02 and b'expected_persistent_overlay_mode=1\n' in target['init'][1] and not args.root_upper_image:
+            print('BLOCKED: persistent-overlay release requires the complete retained upper image')
+            return 77
         if args.c02:
             args.wifi_rollback = any(name == 'rog5-native-wifi' or name.startswith('rog5-native-wifi/')
                                      for name in target)
@@ -357,6 +369,20 @@ def main():
     root_image = args.root_image
     root_hash = None
     root_hash_metrics = {}
+    upper_image=args.root_upper_image
+    upper_hash=None;upper_hash_metrics={};upper_before=None
+    def identity(path):
+        s=path.lstat()
+        return (s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid,s.st_nlink,
+                s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+    layered_mounts=None
+    if upper_image:
+        if not upper_image.is_absolute() or upper_image.is_symlink() or not upper_image.is_file():
+            parser.error('upper image must be an absolute ordinary retained file')
+        upper_before=identity(upper_image)
+        upper_hash_metrics['before']={}
+        upper_hash=sha_file(upper_image,metrics=upper_hash_metrics['before'])
+        layered_mounts=effective_root_mounts(root_image,upper_image,root_mount='/lower',state_mount='/upper')
     ssh_units = {}
     if root_image:
         if not root_image.is_absolute() or root_image.is_symlink() or not root_image.is_file():
@@ -365,6 +391,8 @@ def main():
         root_hash_metrics['before'] = {}
         root_hash = sha_file(root_image, metrics=root_hash_metrics['before'])
     source_revision = subprocess.check_output(['git', '-C', str(REPO), 'rev-parse', 'HEAD'], text=True).strip()
+    source_identity=COMPOSITION.ACCEPTANCE.source_identity()
+    composition_runner_hash=sha_file(Path(COMPOSITION.__file__))
     args.output.mkdir(mode=0o700)  # Never replace an earlier experiment.
     output = args.output.resolve()
     runtime = REPO / "artifacts/qemu-systemd-arm64-v1/runtime.cpio.gz"
@@ -528,7 +556,7 @@ recovery_timeout=8
         if root_image:
             init = init.replace('mount -t tmpfs tmpfs /run\n',
                                 'mount -t tmpfs -o mode=0755 tmpfs /run\n')
-            init = init.replace('mount -t tmpfs tmpfs /newroot\n', '''
+            init = init.replace('mount -t tmpfs tmpfs /newroot\n', (layered_mounts or '''
 mkdir -p /lower /upper
 for attempt in 1 2 3 4 5; do
     [ -b /dev/vda ] && break
@@ -539,6 +567,9 @@ mount -t ext4 -o ro,noload /dev/vda /lower
 mount -t tmpfs -o size=256m tmpfs /upper
 mkdir /upper/upper /upper/work
 mount -t overlay -o lowerdir=/lower,upperdir=/upper/upper,workdir=/upper/work overlay /newroot
+''')+'''# Hide retained host keys before installing loopback-only fixture policy.
+test -d /newroot/etc/ssh; test ! -L /newroot/etc/ssh
+mount -t tmpfs -o mode=0700 tmpfs /newroot/etc/ssh
 echo ARCH_ROOT_READ_ONLY_OVERLAY
 ''').replace('recovery_timeout=8\n', 'recovery_timeout=20\n')
         if mode == "fd-open-failure":
@@ -583,6 +614,10 @@ echo HANDOFF_SWITCH_ROOT
             command[command.index(image):command.index(image)] = ['-v', str(root_image)+':/arch.ext4:ro']
             command += ['-drive', 'file=/arch.ext4,format=raw,if=none,id=root,readonly=on',
                         '-device', 'virtio-blk-device,drive=root']
+        if upper_image:
+            command[command.index(image):command.index(image)]=['-v',str(upper_image)+':/upper.ext4:ro']
+            command+=['-drive','file=/upper.ext4,format=raw,if=none,id=upper,readonly=on',
+                      '-device','virtio-blk-device,drive=upper']
         if args.wifi_rollback:
             command[command.index('-append')+1] += ' rog5.bundle=c02-fixture'
         guest_cases.append((mode, command, output/(mode+'.log')))
@@ -617,6 +652,8 @@ echo HANDOFF_SWITCH_ROOT
             passed = False
         if root_image:
             passed = passed and 'ARCH_ROOT_READ_ONLY_OVERLAY' in log and 'ARCH_SSH_INITIAL_PASS' in log
+            if upper_image:
+                passed=passed and log.splitlines().count('EFFECTIVE_DEPLOYED_UPPER_READ_ONLY')==1
             if mode == 'systemd-ack':
                 passed = passed and 'ARCH_SSH_RESTART_PASS' in log and "Restarting system" not in log
             elif 'ARCH_SSH_RESTART_PASS' in log:
@@ -639,6 +676,7 @@ echo HANDOFF_SWITCH_ROOT
                   target_archive_sha256=hashlib.sha256(target_blob).hexdigest(),
                   container=image, cases=results)
     record.update(source_revision=source_revision, runner_sha256=runner_hash)
+    record.update(source=source_identity,composition_runner_sha256=composition_runner_hash)
     if args.wifi_rollback:
         record.update(wifi_rollback_sha256={name: hashlib.sha256(data).hexdigest()
                                            for name, data in wifi_members.items()},
@@ -658,8 +696,20 @@ echo HANDOFF_SWITCH_ROOT
                             '20-second test timer, not physical storage or whole-release qualification')
         if not unchanged:
             results.append(dict(mode='root-unchanged', passed=False))
+        record['root_scope']='retained-base-and-upper' if upper_image else 'retained-base-only'
+    if upper_image:
+        upper_hash_metrics['after']={}
+        unchanged=(sha_file(upper_image,metrics=upper_hash_metrics['after'])==upper_hash
+                   and identity(upper_image)==upper_before)
+        record.update(root_upper_sha256=upper_hash,root_upper_unchanged=unchanged,
+                      root_upper_hash_metrics=upper_hash_metrics)
+        if not unchanged:
+            results.append(dict(mode='upper-unchanged',passed=False))
     if sha_file(Path(__file__)) != runner_hash:
         results.append(dict(mode='runner-unchanged', passed=False))
+    if (sha_file(Path(COMPOSITION.__file__))!=composition_runner_hash
+            or COMPOSITION.ACCEPTANCE.source_identity()!=source_identity):
+        results.append(dict(mode='source-unchanged',passed=False))
     record.update(status='PASS' if all(case['passed'] for case in results) else 'FAIL',
                   duration_seconds=time.monotonic()-all_started)
     if args.c02:
