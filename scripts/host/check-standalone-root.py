@@ -33,9 +33,15 @@ loops={p.parent.parent.name:read(p) for p in Path('/sys/class/block').glob('loop
 units={name:subprocess.check_output(['systemctl','show',name,'-p','ActiveState','--value'],text=True,timeout=2).strip()
  for name in ('rog5-persistent-state.service','rog5-persistent-ssh-identity.service','rog5-early-sshd.service','rog5-healthd.service')}
 power={name:read('/sys/class/power_supply/qcom-battmgr-bat/'+name,128)
- for name in ('health','temp','voltage_now','current_now','status','capacity')}
+ for name in ('health','temp','voltage_now')}
+def optional_power(name):
+ try: return dict(status='present',value=read('/sys/class/power_supply/qcom-battmgr-bat/'+name,128))
+ except FileNotFoundError: return dict(status='absent')
+ except OSError: return dict(status='error')
+power_optional={name:optional_power(name) for name in ('current_now','status','capacity')}
 value=dict(identity=request,mountinfo=read('/proc/self/mountinfo'),blocks=blocks,geometry=geometry,
- loops=loops,units=units,power=power,usb_online=read('/sys/class/power_supply/qcom-battmgr-usb/online'),
+ loops=loops,units=units,power=power,power_optional=power_optional,
+ usb_online=read('/sys/class/power_supply/qcom-battmgr-usb/online'),
  root_device=str(Path('/dev/disk/by-partlabel/arch_root_a').resolve(strict=True)))
 if identity()!=expected: raise ValueError('boot changed')
 print(json.dumps(value))
@@ -124,7 +130,8 @@ def main():
         require(actual.returncode==0 and len(actual.stdout)<=1048576,'target observation failed/bound')
         value=json.loads(actual.stdout);validate(value,identity);D.host_gate(identity)
         require(report['source']==D.CAPTURE.ACCEPTANCE.source_identity(),'source changed')
-        report.update(status='PASS',power=value['power'],stdout_sha256=hashlib.sha256(actual.stdout).hexdigest())
+        report.update(status='PASS',power=value['power'],power_optional=value['power_optional'],
+            stdout_sha256=hashlib.sha256(actual.stdout).hexdigest())
     except (OSError,ValueError,KeyError,subprocess.SubprocessError) as error:report['reason']=str(error)
     report['seconds']=time.monotonic()-started
     (args.output/'result.json').write_text(json.dumps(report,indent=2)+'\n')

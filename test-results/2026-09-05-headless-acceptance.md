@@ -4554,3 +4554,36 @@ ROG5 boot serving; no service was stopped or port policy weakened. The old
 NFS-track host doctor is not the native-server lifecycle. This distinction
 must be retained in the next S01 host observation rather than shutting down
 unrelated SteamOS functionality or inferring boot dependence from a port alone.
+
+Full local CI on clean **`5a8f91c2034daf03a305b83fc345522a46b9f230` PASS
+501.142 s**, versus the prior 500.163 s. Exact receipt and log remain in
+`recovery-reuse-r1/local-root-ci-r1`; log SHA-256
+`194ea98ecf2d98fcf2862221a220d2572b4679d56c8ff41e9abc09e35b441f25`.
+The source was frozen throughout that run. After it finished, a targeted
+observer correction addressed optional current/status/capacity reads raising
+errors and failing a root check. The real collector with fake missing/denied
+sysfs reads first reproduced all six failures (retained
+`optional-fields-before.log`). It now records present/absent/error separately,
+while required health/temp/voltage/input still fail closed. Ten focused tests
+PASS **0.122 s** normally and **0.124 s** optimized. This observer-only delta
+receives focused/active coverage, not a repeated full suite for unchanged shared
+lifecycle/trust inputs. No target or kernel bytes changed.
+
+The new installed boot logged watchdog P2/SSH acknowledgement at **902.538 s**;
+pinned same-boot inspection at uptime **947.64 s** retained that exact line in
+`watchdog-deadline-r1`. This is healthy-startup evidence, not crash/rollback R01.
+The original observer then ended normally: receiver **1380.750 s**, code 0;
+supervisor **1397.416 s**. All four cleanup items (route, firewall, profile,
+address) passed. Final unauthenticated frame was same-boot switch-root PASS;
+startup SSH frame was active/running. Frame journal observation `error` remains
+an optional error, not fabricated journal/crash evidence. Authenticated
+post-cleanup root/readiness PASS **0.985 s** with source `5a8f91c2` plus dirty
+digest `2bd30c0004125fb2727080e00cc4741a4f01a9a160a600a6ddf79a8720b21486`.
+Raw SHA-256 `77002e66781f2d8578f6a923b8e07d93a72b4a26fc0f4d659299fc6ed5ae3cfd`;
+Full/100%, Good, 29.9°C, 8.575 V, −10 mA. No reboot/flash/claim was issued by
+this continuation. S01 remains incomplete until its ordinary-boot evidence is
+bound, and the remaining mandatory release/recovery tests are still outstanding.
+
+Final focused observer/entry-point active tier PASS **23.879 s**; clean diff
+check passed. Publication includes the frozen full-CI base plus the reviewed
+optional-observation/test/documentation delta, without relabeling the base run.

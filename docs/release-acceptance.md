@@ -266,6 +266,9 @@ host services were absent during an earlier boot. Ordinary-boot timing,
 installed-artifact and completed-capture evidence remain required separately.
 Do not disable unrelated host services merely because they share a historical
 project port; identify their actual unit/configuration and endpoint first.
+Optional current/status/capacity fields record `present`, `absent` or `error`;
+their absence does not fail a root check. Health, voltage, temperature and
+external-input evidence remain required. This does not qualify H03 regulation.
 
 Every row's environment, prerequisites, runner, deadline, outcome, mutation,
 cleanup and evidence contract is in the JSON. Empty command lists carry explicit
