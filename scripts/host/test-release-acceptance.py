@@ -21,8 +21,24 @@ SPEC.loader.exec_module(M)
 
 class AcceptanceTest(unittest.TestCase):
 
+    def test_r01_missing_inputs_and_zero_exit_cannot_qualify_recovery(self):
+        test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='R01'))
+        with tempfile.TemporaryDirectory() as temporary:
+            output=Path(temporary);release=dict(candidate_id='fixture',artifact_paths=dict(kernel='/k',initramfs='/i'))
+            with mock.patch.object(M.subprocess,'Popen',side_effect=AssertionError('must not run')):
+                self.assertEqual(M.run_one(test,output,release)['status'],'BLOCKED')
+            test['commands']=[[sys.executable,'-c','pass']]
+            self.assertEqual(M.run_one(test,output,release)['status'],'FAIL')
+
+    def test_r01_cli_requires_evidence_path_and_pin_together(self):
+        for argument in ('--isolated-recovery-inputs','--isolated-recovery-inputs-sha256'):
+            command=[sys.executable,str(SOURCE),'release',argument,'fixture']
+            run=subprocess.run(command,capture_output=True,text=True,timeout=5)
+            self.assertEqual(run.returncode,2)
+            self.assertIn('isolated recovery evidence path and SHA-256 are required together',run.stderr)
+
     def test_layered_hash_reaches_all_runtime_evidence_consumers(self):
-        for kind in ('F02','S01','S02','S03','S04','S05','S07'):
+        for kind in ('F02','S01','S02','S03','S04','S05','S07','R01'):
             for mutation in ('none','missing-upper','altered-upper'):
                 with self.subTest(kind=kind,mutation=mutation),tempfile.TemporaryDirectory() as tmp:
                     root=Path(tmp);(root/kind).mkdir()
@@ -34,6 +50,7 @@ class AcceptanceTest(unittest.TestCase):
                     test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']==kind))
                     test['commands']=[[sys.executable,'-c','import sys; print(sys.argv[1])','{artifact_hashes}']]
                     runner=('check-wifi-restart-evidence.py' if kind=='F02' else
+                            'check-isolated-recovery.py' if kind=='R01' else
                             'check-standalone-boot.py' if kind=='S01' else 'check-server-runtime-evidence.py')
                     proof=dict(status='PASS',source=M.source_identity(),candidate='fixture',
                                artifact_hashes=dict(hashes),inputs_sha256=pin,original_source=dict(revision='b'*40),
@@ -43,6 +60,7 @@ class AcceptanceTest(unittest.TestCase):
                     if mutation=='altered-upper':proof['artifact_hashes']['root_upper']='d'*64
                     (root/kind/'result.json').write_text(json.dumps(proof))
                     kw=({'wifi_restart_inputs':(inputs,pin)} if kind=='F02' else
+                        {'isolated_recovery_inputs':(inputs,pin)} if kind=='R01' else
                         {'standalone_boot_inputs':(inputs,pin)} if kind=='S01' else
                         {'runtime_inputs':{kind:(inputs,pin)}})
                     row=M.run_one(test,root,release,**kw)

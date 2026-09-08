@@ -584,6 +584,16 @@ satisfy its own genuine current-boot health gate. The state-operation components
 V11 sealed-shell restorer because V11 lacks Python. The complete controller,
 two-boot observer and physical result are not yet qualified.
 
+Completed R01 evidence now has an offline matrix consumer. Use
+`rog5-dev accept release --test-id R01 --release RECEIPT
+--isolated-recovery-inputs PRIVATE_INPUTS
+--isolated-recovery-inputs-sha256 SHA256 --output PRIVATE_NEW_DIRECTORY`.
+The input envelope pins the admission and every file in the closed controller
+directory, including raw commands, journal, capture/cleanup and ordinary-boot
+restoration. It also binds all six primary artifact hashes and replays the
+original full S01 prerequisite. Changed or contradictory evidence fails;
+missing inputs remain blocked. Replay cannot start a phone operation or claim.
+
 R01's initial outer ceiling is 1320 s; the actual receiver lifetime must exceed
 the exact deployed target watchdog + recovery + cleanup lattice. The ceiling
 does not prove any watchdog survives handover. Independent reset/ramoops

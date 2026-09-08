@@ -5,14 +5,20 @@ The physical recovery deadline, complete receiver lifetime and subsequent
 ordinary restoration are separate intervals. Component flags alone are never
 accepted in place of the pinned commands, journal and capture events.
 """
+import argparse
 import hashlib
 import importlib.util
 import json
 import math
 import os
+import pwd
 from pathlib import Path
 import re
 import stat
+import subprocess
+import sys
+import time
+import types
 
 R=Path(__file__).resolve().parents[2]
 
@@ -25,6 +31,7 @@ def load(name,file):
 
 CAP=load('r01_replay_capture','capture-isolated-recovery.py')
 OBS=load('r01_replay_negative','isolated-recovery-observation.py')
+DIAG=load('r01_replay_diagnostics','isolated-recovery-diagnostics.py')
 SMOKE=load('r01_replay_ordinary','ordinary-boot-smoke.py')
 ROOT=SMOKE.B.ROOT
 need=OBS.need
@@ -32,6 +39,9 @@ PRIMARY='headless-server-selector-v8'
 FALLBACK='persistent-native-root-v11'
 PHASES=('preflight','arm','transition','capture','execute','observe','close_capture',
         'rescue_guard','restore','ordinary_verify')
+PRIVATE_SOURCES=frozenset(('r01-live-driver-r1.py','r01-controller-core-r1.py','r01-source-actions-r1.py',
+                         'r01-trial-state-operation-r1.py','r01-rollback-stream-r1.py','r01-restore-shell-r1.py',
+                         's05-health-usb-link-r1.py','s05-preflight-usb-link-r1.py'))
 HASH=re.compile('[0-9a-f]{64}')
 JOB_START='7d4958e842da4a758f6c1cdc7b36dcc5'
 JOB_SUCCESS='39f53479d3a045ac8e11786248231fbf'
@@ -69,6 +79,40 @@ def read(path,pin=None):
 
 def canonical(profile):
     return OBS.unique(line.split('=',1) for line in CAP.CLAIMS.expected_record(profile).decode().splitlines())
+
+
+def verify_claim(profile,lifecycle_uid):
+    """Read the existing lifecycle account's claims, including from root capture."""
+    need(type(lifecycle_uid) is int and lifecycle_uid>0 and os.geteuid() in (0,lifecycle_uid),
+         'wrong lifecycle account for claim verification')
+    canonical(profile)
+    if os.geteuid()==lifecycle_uid:
+        CAP.CLAIMS.verify_entered(profile);return
+    account=pwd.getpwuid(lifecycle_uid)
+    source='import importlib.util\n'
+    source+='s=importlib.util.spec_from_file_location("r01_read_claim",'+repr(str(R/'scripts/host/consume-exact-boot-claim.py'))+')\n'
+    source+='m=importlib.util.module_from_spec(s);s.loader.exec_module(m)\nm.verify_entered('+repr(profile)+')\nprint("CLAIM_VERIFIED")\n'
+    result=subprocess.run(['runuser','-u',account.pw_name,'--',sys.executable,'-I','-B','-c',source],
+                          stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
+    need(result.returncode==0 and result.stdout==b'CLAIM_VERIFIED\n' and not result.stderr,
+         'lifecycle account claim is absent, changed or unreadable')
+
+
+def source_closure():
+    """Pin the loaded repository producer/validator modules and data contracts."""
+    pending=[CAP,OBS,DIAG,SMOKE,ROOT];seen=set();paths={Path(__file__).resolve(),
+        R/'scripts/host/verified-fastboot-boot.py',R/'scripts/host/check-wifi-restart-evidence.py',
+        R/'configs/release-acceptance.json',R/'configs/storage/rog5-dedicated-linux-v1.json'}
+    while pending:
+        module=pending.pop()
+        if id(module) in seen:continue
+        seen.add(id(module));file=getattr(module,'__file__',None)
+        if file is None:continue
+        path=Path(file).resolve()
+        if not path.is_relative_to(R):continue
+        paths.add(path)
+        pending.extend(value for value in vars(module).values() if isinstance(value,types.ModuleType))
+    return {str(path.relative_to(R)):digest(pinned(path)) for path in sorted(paths)}
 
 
 def journal(raw,identity):
@@ -218,18 +262,27 @@ def ordinary_health(raw):
                 files={role:value['files'][OBS.MARKERS[role]] for role in ('descriptor','healthy','ssh')})
 
 
-def check_controller(admission_path,admission_sha256,directory):
+def check_controller(admission_path,admission_sha256,directory,*,retained=False):
     """Validate retained raw results while the sole driver's qualify phase runs."""
     directory=Path(directory);admission_path=Path(admission_path)
     c=read(admission_path,admission_sha256);profile=c['candidate'];record=canonical(profile);primary=canonical(PRIMARY)
     need(c['format']=='rog5-r01-live-admission-v1' and record.get('qualification')=='isolated-failure-r01'
          and record['execution']=='fastboot-boot-ram-bundle','not the admitted isolated failure candidate')
-    need(c['source']==CAP.ACCEPTANCE.source_identity() and c['source']['clean'],'changed/unfrozen R01 source')
+    verify_claim(profile,c['lifecycle_uid'])  # Read-only proof of permanent consumption.
+    source=c['source'];current=CAP.ACCEPTANCE.source_identity()
+    need(source['clean'] is True and current['clean'] is True
+         and re.fullmatch('[0-9a-f]{40}',source['revision'])
+         and re.fullmatch('[0-9a-f]{64}',source['worktree_digest']),'unfrozen R01 source')
+    need(retained or source==current,'changed live R01 source')
+    need(c['public_sources']==source_closure(),'changed R01 producer/validator closure')
     need(c['checker']['path']==str(Path(__file__).resolve())
          and c['checker']['sha256']==digest(pinned(Path(__file__).resolve())),'changed R01 consumer')
+    need(set(c['private_sources'])==PRIVATE_SOURCES,'incomplete private producer inventory')
     for name,pin in c['private_sources'].items():
         need(Path(name).name==name and name.endswith('.py'),'private producer name')
         pinned(admission_path.parent/name,pin)
+    need(set(c['external_sources'])=={'fastboot_identity'},'incomplete external producer inventory')
+    for item in c['external_sources'].values():pinned(item['path'],item['sha256'])
     checked=read(c['controller_checks']['path'],c['controller_checks']['sha256'])
     need(checked['status']=='PASS' and checked.get('complete_driver_bindings') is True
          and checked['private_sources']==c['private_sources'],
@@ -243,7 +296,7 @@ def check_controller(admission_path,admission_sha256,directory):
              and number(intent['monotonic'])>=previous and result['status'] in ('PASS','COMPONENT_PASS'),
              'missing, repeated or out-of-order controller phase')
         previous=intent['monotonic'];results[phase]=result
-    expected={'source-deployed','source-ready','source-root','source-state','source-installed','arm-state',
+    expected={'source-reset','rescue-reset','source-deployed','source-ready','source-root','source-state','source-installed','arm-state',
               'source-fastboot','execute','negative-root','return-guard','rescue-fresh-ready',
               'rescue-fresh-guard','restore-fresh-guard','restore-directory','restore-helper','restore-state',
               'restore-cleanup','ordinary-source-guard','ordinary-reboot','ordinary-root',
@@ -263,6 +316,8 @@ def check_controller(admission_path,admission_sha256,directory):
          and source['release']==ordinary['release']==negative['release']
          and negative['bundle']==profile and rescue['bundle']==FALLBACK
          and rescue['release']=='7.1.4-g359318de534f','mixed release/return identities')
+    for label,identity in (('source-reset',source),('rescue-reset',rescue)):
+        DIAG.replay(command(directory,label),identity)
     boots=[identity['boot_id'] for identity in (source,negative,rescue,ordinary)]
     need(len(set(boots))==4 and all(CAP.STAGES.BOOT_ID.fullmatch(boot) for boot in boots),'fresh boot identities missing')
     installed={key:primary[key] for key in ('trial_id','fallback_bundle','fallback_manifest_sha256')}
@@ -361,6 +416,8 @@ def check_controller(admission_path,admission_sha256,directory):
          and ROOT.D.parse_readiness(command(directory,sequences['ordinary-ready'][-1]))==smoke['context']['readiness']
          and ordinary_health(command(directory,sequences['ordinary-health'][-1]))==smoke['context']['health'],
          'ordinary health/root/readiness flags differ from raw authenticated output')
+    need(SMOKE.health(smoke['context']['health'],smoke['context']['identity'])['trial_id']==primary['trial_id'],
+         'ordinary health belongs to a different installed primary trial')
     for name in sequences['ordinary-health'][:-1]:
         pending=ordinary_health(command(directory,name))
         need(pending['identity']==smoke['context']['identity'] and pending['unit']['Result']=='success'
@@ -371,10 +428,90 @@ def check_controller(admission_path,admission_sha256,directory):
     need(original.endswith(b'\n') and [OBS.decode(line) for line in original.splitlines()]==smoke['closure']['events'],
          'ordinary closure differs from original capture')
     need(SMOKE.closed(baseline,smoke['context'],smoke['closure'])==smoke['proof'],'ordinary closure replay differs')
+    need(c['public_sources']==source_closure() and current==CAP.ACCEPTANCE.source_identity(),'sources changed during replay')
     return dict(status='COMPONENT_PASS',r01_qualified=True,release_qualified=False,candidate=PRIMARY,
                 negative_candidate=profile,source=c['source'],admission_sha256=admission_sha256,
                 identity=ordinary,negative_identity=negative,rescue_identity=rescue,**evidence)
 
 
-if __name__=='__main__':
-    raise SystemExit('Offline library; completed R01 input-envelope/dispatcher integration is required')
+def inventory(directory):
+    directory=Path(directory)
+    need(directory.is_absolute() and directory.resolve()==directory and not directory.is_relative_to(R)
+         and directory.is_dir(),'private canonical controller directory required')
+    result={}
+    for path in sorted(directory.rglob('*')):
+        metadata=path.lstat()
+        if stat.S_ISDIR(metadata.st_mode):continue
+        result[str(path.relative_to(directory))]=digest(pinned(path))
+    need(result and len(result)<=6000,'controller evidence inventory bound')
+    return result
+
+
+def make_inputs(admission_path,admission_sha256,directory,primary_artifacts):
+    """Snapshot a completed controller; this function grants no qualification."""
+    c=read(admission_path,admission_sha256);finished=read(Path(directory)/'result.json')
+    need(finished['status']=='COMPONENT_PASS' and finished['selection_restored'] is True
+         and finished['errors']==[] and finished['release_qualified'] is False,'controller not completed successfully')
+    return dict(format='rog5-isolated-recovery-inputs-v1',
+                admission=dict(path=str(admission_path),sha256=admission_sha256),
+                controller=str(directory),files=inventory(directory),primary_artifacts=primary_artifacts,
+                original_source=c['source'])
+
+
+def evaluate(inputs,pin,candidate,artifact_hashes):
+    envelope=read(inputs,pin)
+    need(set(envelope)=={'format','admission','controller','files','primary_artifacts','original_source'}
+         and envelope['format']=='rog5-isolated-recovery-inputs-v1','R01 input envelope fields')
+    need(candidate==PRIMARY and envelope['primary_artifacts']==artifact_hashes
+         and set(artifact_hashes)=={'kernel','dtb','initramfs','rootfs','root_upper','boot_bundle'}
+         and all(type(value) is str and HASH.fullmatch(value) for value in artifact_hashes.values())
+         and artifact_hashes['boot_bundle']==canonical(PRIMARY)['boot_image_sha256'],'different accepted primary artifacts')
+    directory=Path(envelope['controller']);before=inventory(directory)
+    need(envelope['files']==before,'changed, missing or extra controller evidence')
+    admitted=envelope['admission'];c=read(admitted['path'],admitted['sha256'])
+    baseline=read(c['ordinary_baseline']['path'],c['ordinary_baseline']['sha256'])
+    need(baseline['artifact_hashes']==artifact_hashes and c['source']==envelope['original_source'],
+         'different admitted release or source')
+    original=c['ordinary_baseline_inputs']
+    replayed=SMOKE.B.evaluate(Path(original['path']),original['sha256'],PRIMARY,artifact_hashes)
+    need(all(baseline.get(key)==value for key,value in replayed.items()),'full ordinary baseline does not replay')
+    proof=check_controller(admitted['path'],admitted['sha256'],directory,retained=True)
+    finished=read(directory/'result.json')
+    need(finished['status']=='COMPONENT_PASS' and finished['phases']==[*PHASES,'qualify']
+         and finished['errors']==[] and finished['retry_permitted'] is False
+         and finished['selection_restored'] is True and finished['release_qualified'] is False
+         and finished['qualification']==proof,'controller result differs from independent replay')
+    need(before==inventory(directory) and read(inputs,pin)==envelope,'evidence changed during replay')
+    return dict(status='PASS',r01_qualified=True,release_qualified=False,candidate=PRIMARY,
+                artifact_hashes=artifact_hashes,original_source=c['source'],identity=proof['identity'],
+                negative_identity=proof['negative_identity'],rescue_identity=proof['rescue_identity'],
+                physical_recovery_seconds=proof['physical_recovery_seconds'],capture_seconds=proof['capture_seconds'],
+                evidence_sha256=before)
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    for name in ('inputs','output'):parser.add_argument('--'+name,type=Path,required=True)
+    for name in ('inputs-sha256','candidate','artifact-hashes'):parser.add_argument('--'+name,required=True)
+    args=parser.parse_args();started=time.monotonic();os.umask(0o077)
+    need(args.output.is_absolute() and args.output.resolve()==args.output and not args.output.is_relative_to(R),
+         'new canonical private output required')
+    args.output.mkdir(mode=0o700)
+    source=CAP.ACCEPTANCE.source_identity()
+    result=dict(status='FAIL',r01_qualified=False,release_qualified=False,evidence_reused=True,
+                source=source,inputs_sha256=args.inputs_sha256,runner_sha256=digest(pinned(Path(__file__).resolve())))
+    try:
+        hashes=OBS.unique(item.split('=',1) for item in args.artifact_hashes.split(','))
+        result.update(evaluate(args.inputs,args.inputs_sha256,args.candidate,hashes))
+    except FileNotFoundError as error:result.update(status='BLOCKED',error='missing completed evidence: '+str(error))
+    except (OSError,ValueError,KeyError,TypeError,RuntimeError,subprocess.SubprocessError) as error:
+        result.update(status='FAIL',error=str(error))
+    if source!=CAP.ACCEPTANCE.source_identity():result.update(status='FAIL',r01_qualified=False,error='assessment source changed')
+    result.update(duration_seconds=time.monotonic()-started,assessment_python=sys.version)
+    if result['status']!='PASS':result['r01_qualified']=False
+    (args.output/'result.json').write_text(json.dumps(result,indent=2)+'\n')
+    print(json.dumps(dict(status=result['status'],seconds=result['duration_seconds'],error=result.get('error'))))
+    return {'PASS':0,'FAIL':1,'BLOCKED':3}[result['status']]
+
+
+if __name__=='__main__':raise SystemExit(main())

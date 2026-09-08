@@ -758,7 +758,11 @@
         "reviewed rollback/authority",
         "receiver"
       ],
-      "commands": [],
+      "commands": [
+        ["python3", "scripts/host/check-isolated-recovery.py",
+         "--inputs", "{isolated_recovery_inputs}", "--inputs-sha256", "{isolated_recovery_inputs_sha256}",
+         "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]
+      ],
       "deadline_seconds": 1320,
       "pass_condition": "One isolated failed test boot returns authenticated expected rescue within deployed watchdog+recovery budget; no installed corruption or power interruption.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -771,7 +775,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Separate physical recovery experiment required; QEMU is not physical evidence."
+      "blocker": "Supply pinned completed physical R01 controller evidence and its fully replayable ordinary baseline. Replay initiates no boot, state restoration or retry; QEMU is not physical evidence."
     }
   ]
 }
