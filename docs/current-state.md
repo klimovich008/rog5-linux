@@ -2,7 +2,8 @@
 
 Updated 2026-09-08: R01 failed at the early storage gate; its RAM claim is consumed.
 Installed V11 authenticated on its diagnostic address; the exact V8 selection is healthy again.
-The ordinary V8 check hit a host route-preparation gap; service verification and final qualification remain incomplete.
+A fresh ordinary V8 boot reached switch-root, but its smoke observation failed.
+Host teardown correction and same-boot service verification are pending; final qualification remains incomplete.
 
 ## Goal and authority
 
@@ -25,8 +26,11 @@ Private credentials, packages and raw evidence remain outside Git.
 Last accepted bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
 ordinary installed boot `af66d09d-f512-4954-a036-0904616e17af`. The current
 installed recovery emitted boot `96c3e790-a422-4723-b9ca-a5039da2a14a`; its
-diagnostic SSH authenticated and exact selection restoration passed. A later
-ordinary reboot connection failed before reaching SSH; its full capture is closing.
+diagnostic SSH authenticated and exact selection restoration passed. After the
+closed connection failure, a fresh ordinary request succeeded and V8 boot
+`5a980548-a759-41d2-a566-58b7541e256b` reached switch-root. Its smoke check failed
+on a source NetworkManager teardown race and early SSH timeout; full capture
+is still active. Current V8 service state has not yet been authenticated.
 Signed primary manifest:
 `27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`.
 Other primary identities derive from the canonical expected record.
@@ -341,8 +345,21 @@ Ordinary capture now prepares the diagnostic route before declaring the source
 ready. It still rejects source stage frames and requires an observed disconnect
 before accepting a new target. All **35** focused receiver/network tests pass,
 including pending route convergence and permanent route failure. Full CI for
-this added correction remains pending. Kernel, root/upper images, signed boot
-payloads and claims are unchanged.
+that correction passed **492.129 s** on `9d4cd138`, and all four GitHub jobs
+passed in **34276164597**. A fresh ordinary reboot was then acknowledged and
+V8 reached switch-root. During source teardown, repeated source route setup
+raced `nmcli -g`; capture retained a permanent failure. The first normal-address
+SSH probe then timed out, so the smoke controller is keeping its full lifetime.
+
+The receiver now retains successful source-route preparation until an observed
+disconnect instead of repeating NetworkManager setup during source shutdown.
+Initial route failures remain fatal, source stages remain inadmissible, and new
+target routing still runs after disconnect. A retained-event fixture reproduced
+21 setup calls and the failure before the fix; all **36** receiver/network tests
+pass after it. This final correction requires full integration CI. Current
+service verification must use a fresh read after the failed controller closes,
+without another reboot. Kernel, root/upper images, signed payloads and claims
+remain unchanged.
 
 ## Mandatory results
 
@@ -379,7 +396,7 @@ Detailed V6/V7 failures, V8 staging/runtime proof, fixture fixes, original
 timings and exact retention procedures are in the
 [existing dated report](../test-results/2026-09-05-headless-acceptance.md).
 
-Home has about 9.6 GB free with the isolated observer checkout; preserve the 3 GiB reserve. V5's lossless reverse
+Home has about 6.6 GB free with the two isolated observer checkouts; preserve the 3 GiB reserve. V5's lossless reverse
 delta and durable V7 base must stay together. Unique archives still occupy RAM:
 no host reboot until retained safely. Never remove failed-soak scratch, accepted
 payloads, private evidence or claims. Leave unrelated SteamOS CEF port 8081 alone.

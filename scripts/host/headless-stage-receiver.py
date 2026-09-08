@@ -64,9 +64,12 @@ def update_transport(receiver, serial, ensure_route, *, deadline=None):
         mode, interface = usb_mode(serial)
         source = receiver.is_source(mode)
         phase = 'network-setup'
-        if mode == 'target' and not ensure_route():
-            mode, interface = 'enumerating', None
-        elif source:
+        if mode == 'target' and not (source and receiver.source_route_ready):
+            if not ensure_route():
+                mode, interface = 'enumerating', None
+            elif source:
+                receiver.source_route_ready = True
+        if source and mode == 'target':
             # The authenticated source may use the diagnostic SSH address.
             # Prepare its route without accepting it as the rebooted target.
             mode, interface = 'source', None
@@ -157,6 +160,9 @@ class Receiver:
             raise ValueError('invalid ordinary-reboot source boot')
         self.source_boot_id = source_boot_id
         self.source_disconnected = False
+        # Once routed, source shutdown needs USB discovery only. Repeating
+        # NetworkManager setup can race its expected interface removal.
+        self.source_route_ready = False
         self.release, self.emit, self.peer = release, emit, peer
         self.client_seconds = client_seconds
         self.listener = socket.socket()

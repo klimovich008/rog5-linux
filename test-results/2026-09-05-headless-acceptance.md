@@ -7677,3 +7677,41 @@ terminal marker present and source unchanged. Earlier attempts failed at
 Android boot tools and canonical boot template. Exact retained copies were
 hash-verified, and their failing component suites passed before full CI reran.
 The new source-route correction still requires its own integration CI.
+
+
+## Ordinary V8 handover and source teardown race (2026-09-08)
+
+Source `9d4cd13875c2cf5dc9025b650663364d3e150afa` passed full local CI in
+**492.129149 s**, with unchanged source and terminal completion. GitHub run
+**34276164597** passed exact head, merge compatibility, candidate publication
+and full-system QEMU. No signed artifact changed.
+
+The prior failed ordinary connection capture closed after **1,380.489793 s**
+without source disconnect or target stages. Its three owned resources—firewall,
+profile and address—were cleaned; no diagnostic route had been created. All
+53 service-controller evidence files were handed off unchanged. Exact replay
+required the retained CRLF SSH connection-error bytes and this no-route cleanup
+case. Two local fixture/admission refusals are preserved; neither contacted the
+phone. The final private preparation passed in **1.051474 s**, fixed launcher
+cases in **0.011562 s**, and actual closed-evidence/CI assembly in **0.401608 s**.
+
+A separate ordinary check reused the unchanged, previously exercised ordinary
+Driver method and installed artifact admission while binding the corrected
+receiver to `9d4cd138`. It verified the same V11 healthy record and installed
+files, started its receiver, and received a successful normal reboot reply.
+V8 boot `5a980548-a759-41d2-a566-58b7541e256b` reached switch-root PASS.
+The capture had already recorded `transport-check-failed`, phase
+`network-setup`, reason `host operation failed: nmcli -g`, followed by positive
+absence during expected source teardown. Its first normal-address SSH readiness
+probe later timed out. That smoke check is failed and retaining its full window;
+no further phone request is made during it.
+
+The route setup was being repeated after the source route was already ready.
+A portable fixture made the later NetworkManager lookup fail at teardown and
+reproduced 21 setup calls instead of one. The correction records successful
+source-route preparation, polls only USB discovery during the remaining source
+phase, and resumes normal route setup after observed disconnect. It neither
+accepts source frames nor clears an initial route or identity failure. The
+36 receiver/network tests passed **0.279 s**; ordinary-smoke and isolated-capture
+regressions also pass. Full CI for this additional correction remains pending.
+The earlier failed capture retains its original receiver/source and failure.

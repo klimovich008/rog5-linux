@@ -110,6 +110,33 @@ class ReceiverTest(unittest.TestCase):
             self.assertEqual(receiver.last.boot_id,other)
             self.assertFalse(receiver.failed)
 
+    def test_prepared_source_route_is_not_reprobed_during_expected_teardown(self):
+        fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/ordinary-source-nmcli-teardown.json').read_text())
+        self.assertEqual(fixture['original_capture_result'],'FAIL')
+        self.assertEqual(fixture['phase'],'network-setup')
+        with M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0,source_boot_id=BOOT) as receiver:
+            route=unittest.mock.Mock(return_value=True)
+            with patch.object(M,'usb_mode',return_value=('target',None)):
+                M.update_transport(receiver,'fixture',route)
+            route.assert_called_once()
+            # The source is already routed. A later NetworkManager lookup can
+            # race its orderly disconnect, so no setup call belongs here.
+            route.side_effect=RuntimeError(fixture['reason'])
+            with patch.object(M,'usb_mode',return_value=('target',None)):
+                for _ in range(20):M.update_transport(receiver,'fixture',route)
+            self.assertEqual(route.call_count,1)
+            self.assertEqual(receiver.mode,'source')
+            self.assertFalse(receiver.failed or receiver.target_seen or receiver.source_disconnected)
+            with patch.object(M,'usb_mode',return_value=(fixture['observed_mode'],None)):
+                M.update_transport(receiver,'fixture',route)
+            self.assertTrue(receiver.source_disconnected)
+            self.assertFalse(receiver.failed)
+            route.side_effect=None
+            with patch.object(M,'usb_mode',return_value=('target',None)):
+                M.update_transport(receiver,'fixture',route)
+            self.assertEqual(route.call_count,2)
+            self.assertTrue(receiver.target_seen)
+
     def test_ordinary_source_route_pending_never_admits_source_or_disconnect(self):
         with M.Receiver('7.1.4-g359318de534f',lambda e:None,host='127.0.0.1',port=0,
                         peer='127.0.0.1',source_boot_id=BOOT) as receiver:
