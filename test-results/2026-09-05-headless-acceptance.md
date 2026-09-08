@@ -7493,3 +7493,35 @@ filename; its failure remains in r1. No phone contact or real lifecycle claim
 was created. Exact A01/C01/C02, full integration CI, final live admission and
 physical R01 are still required; S06 still needs an available power-button
 operator.
+
+
+### R01 A01 deadline diagnosis and existing sparse-hash reuse — 2026-09-08
+
+`r01-composition-r1/a01` on clean `52c038c9` completed wrapper/signature,
+archive, firmware, module loading, exact Arch runtime and transport checks,
+with unchanged root and upper. It nevertheless failed the fixed 120 s contract
+at **146.581732 s**; `a01_qualified=false` remains correct. Runtime completed
+28.813 s, and output timestamps place roughly 50 s between VM completion and
+final result, where the final full retained-root checksum runs. No C02/C01 or
+phone operation followed the failed A01.
+
+The discriminating read-only probe `r01-a01-sparse-probe-r1.json` used C02's
+existing logical-byte hasher. It reproduced the exact accepted root SHA in
+**20.902918 s**, reading **4,190,035,968 bytes** and hashing **30,169,681,920**
+filesystem-declared hole bytes as zeros. File metadata stayed unchanged.
+A01 now imports this existing implementation for both independent before/after
+root and upper hashes. Its original pathname/metadata checks and deadline
+remain. Metrics expose logical size, read volume, zero bytes and duration.
+The shared acceptance hasher and earlier C01/C02 producer bytes are unchanged.
+Forty composition tests passed in **0.515 s**, including parallel preflight
+hashing and joining the worker after preflight failure. Full corrected artifact
+qualification is pending; the failed evidence is preserved.
+
+The focused/active checkpoint `r01-a01-hash-tests-r2` passed **55.595210 s**,
+including active **55.429637 s**, with source copies unchanged. Active log SHA:
+`d8b0e01f0346bdc1b248c0af4dcd8472f8d09bb3126d018c8fbf8d82cebb8fb1`.
+It retains the prior passing 40-case optimized composition and 25-case normal
+watchdog artifact suite, plus the five optimized sparse-hash cases (0.164 s).
+The attempted whole optimized watchdog suite refused its assertion-dependent
+archive parser; that deliberately unsupported mode remains failed in r1.
+No archive/parser or earlier watchdog producer was changed to bypass refusal.

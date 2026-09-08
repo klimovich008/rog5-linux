@@ -27,6 +27,8 @@ C = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(C)
 CLAIMS = C.load('composition_claim_records', 'scripts/host/consume-exact-boot-claim.py')
 RECEIVER = C.load('composition_receiver', 'scripts/host/headless-stage-receiver.py')
+# Reuse C02's exact logical-byte hasher; old acceptance producers stay unchanged.
+ROOT_HASH = C.load('composition_root_hash', 'scripts/host/test-qemu-watchdog-handoff.py')
 
 
 class Blocked(Exception):
@@ -290,14 +292,16 @@ def main():
         # wrapper/module checks. Join before any VM execution; retain the
         # separate post-VM full hash and original pathname/metadata checks.
         root_pool=ThreadPoolExecutor(max_workers=1,thread_name_prefix='a01-root-hash')
-        root_hash_result=root_pool.submit(C.ACCEPTANCE.sha_file,args.root_image)
+        report['root_hashes']={'before':{},'after':{}}
+        root_hash_result=root_pool.submit(ROOT_HASH.sha_file,args.root_image,metrics=report['root_hashes']['before'])
         upper_before=None;upper_hash=None
         if args.root_upper_image:
             if (args.root_upper_image.is_symlink() or not args.root_upper_image.is_absolute()
                     or not args.root_upper_image.is_file()):
                 raise Blocked('missing exact retained upper image')
             upper_before=root_identity(args.root_upper_image)
-            upper_hash=C.ACCEPTANCE.sha_file(args.root_upper_image)
+            report['upper_hashes']={'before':{},'after':{}}
+            upper_hash=ROOT_HASH.sha_file(args.root_upper_image,metrics=report['upper_hashes']['before'])
         report.update(inspect(args,checks))
         if report['profile']=='server-runtime' and args.root_upper_image is None:
             raise Blocked('persistent-overlay release requires the complete retained upper image')
@@ -341,10 +345,10 @@ def main():
                                      recovery_timeout=report['timing']['rollback_seconds'],
                                      command_line=report['plan']['cmdline'],refusals=refusals,
                                      activation_fixture=activation_fixture,upper_image=args.root_upper_image)
-        if C.ACCEPTANCE.sha_file(args.root_image)!=root_hash or root_identity(args.root_image)!=root_before:
+        if ROOT_HASH.sha_file(args.root_image,metrics=report['root_hashes']['after'])!=root_hash or root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed')
         if args.root_upper_image:
-            if (C.ACCEPTANCE.sha_file(args.root_upper_image)!=upper_hash
+            if (ROOT_HASH.sha_file(args.root_upper_image,metrics=report['upper_hashes']['after'])!=upper_hash
                     or root_identity(args.root_upper_image)!=upper_before):
                 raise ValueError('retained upper image changed')
             report['root_upper_unchanged']=True

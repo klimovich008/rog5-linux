@@ -124,7 +124,7 @@ with full local CI: a measured C02 deadline failure passed when run separately.
 Overlap remote CI and bounded independent preparation instead. Keep the failed
 run and original deadline; a successful isolated rerun does not erase it.
 
-C02's sparse-root checksum still hashes every logical byte. Filesystem-reported
+A01 and C02's sparse-root checksum still hashes every logical byte. Filesystem-reported
 holes contribute their exact zero bytes without reading them from disk; unsupported
 sparse seeking falls back to a full read. Invalid extents, I/O errors and changed
 inputs are refused. Results record both checksums' read volume and duration;
