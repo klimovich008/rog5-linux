@@ -1,8 +1,8 @@
 # ROG5 current state
 
 Updated 2026-09-08: R01 failed at the early storage gate; its RAM claim is consumed.
-An assisted installed V11 boot reached switch-root, but normal-address SSH timed out.
-Service restoration and final qualification remain incomplete; prior V8 results are retained.
+Installed V11 authenticated on its diagnostic address; the exact V8 selection is healthy again.
+The ordinary V8 check hit a host route-preparation gap; service verification and final qualification remain incomplete.
 
 ## Goal and authority
 
@@ -25,7 +25,8 @@ Private credentials, packages and raw evidence remain outside Git.
 Last accepted bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
 ordinary installed boot `af66d09d-f512-4954-a036-0904616e17af`. The current
 installed recovery emitted boot `96c3e790-a422-4723-b9ca-a5039da2a14a`; its
-normal-address SSH has not authenticated, and no state restoration occurred.
+diagnostic SSH authenticated and exact selection restoration passed. A later
+ordinary reboot connection failed before reaching SSH; its full capture is closing.
 Signed primary manifest:
 `27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`.
 Other primary identities derive from the canonical expected record.
@@ -46,8 +47,8 @@ Wi-Fi, Tailscale and persistent-state services started. The full-hour load resul
 
 V8's experimental claim is permanently consumed, as are V6 and V7.
 Do not retry their RAM execution or issue replacement claims. R01 armed the
-accepted V8 record as pending; restoring its exact healthy state requires fresh
-authenticated V11 guards. The normal installed path is separate from a RAM
+accepted V8 record as pending; its exact healthy state was restored only after
+fresh authenticated V11 and installed-file guards passed. The normal installed path is separate from a RAM
 claim and does not constitute full release acceptance. V7's pending failure record and old
 selector were archived during staged V8 installation. V5 accepted payloads,
 prior claims, V11 fallback and the failed-soak scratch remain preserved.
@@ -313,18 +314,35 @@ exception; it does not identify the filesystem or prove corruption/causality.
 R01 is **FAIL**, with no autonomous V11 return and no experimental retry.
 
 A separate normal installed boot reached V11 switch-root, but SSH to `10.77.0.2`
-timed out. Its controller made no pending-to-healthy change and is preserving
-its full capture. Diagnose access to this same boot after that controller closes;
-assisted restoration cannot convert R01 to PASS.
+timed out. Its full capture closed with all cleanup checks passing. A pinned
+read-only probe of `169.254.77.2` authenticated the same V11 boot and observed
+the exact pending record, protected partitions read-only and safe power.
+Fresh readiness, all twelve installed hashes and sealed storage/power guards
+then passed. The existing helper restored V8 selection to its exact healthy
+record and was removed. Assisted restoration cannot convert R01 to PASS.
+
+The later ordinary reboot check could not connect to diagnostic SSH: the passive
+receiver classified V11 as the source and skipped preparing its diagnostic
+route. No reboot command reached the phone; the failed controller retains its
+full observation window. A separately gated ordinary service check must first
+verify closed evidence, unchanged source-boot continuity and healthy selection.
 
 The repository observer duplicated the same `8:23`/`2071` assumption. Its
 correction binds the runtime allocation to the exact userdata partition and
 geometry, then matches mount and pending-record device IDs. A second observer
 fix records terminal transport failures once per transition instead of flooding
 the log on every poll. Both preserve strict failure classification and the full
-capture lifetime. Focused observation/capture and whole R01 replay tests pass;
-full integration of these repository corrections remains pending. Kernel,
-root/upper images and signed boot payloads are unchanged.
+capture lifetime. Full local CI for those two fixes passed **498.013 s** on
+`91ff9e24`, with terminal completion and unchanged source. Two earlier checkout
+setup failures are preserved; the pinned boot tools and canonical 12 KiB template
+were restored from verified retained inputs.
+
+Ordinary capture now prepares the diagnostic route before declaring the source
+ready. It still rejects source stage frames and requires an observed disconnect
+before accepting a new target. All **35** focused receiver/network tests pass,
+including pending route convergence and permanent route failure. Full CI for
+this added correction remains pending. Kernel, root/upper images, signed boot
+payloads and claims are unchanged.
 
 ## Mandatory results
 

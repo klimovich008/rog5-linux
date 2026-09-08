@@ -94,7 +94,7 @@ class ReceiverTest(unittest.TestCase):
             route=unittest.mock.Mock(return_value=True)
             with patch.object(M,'usb_mode',return_value=('target',None)):
                 M.update_transport(receiver,'fixture',route)
-            route.assert_not_called()
+            route.assert_called_once()
             self.assertEqual(receiver.mode,'source')
             self.assertFalse(receiver.target_seen)
             receiver.record(frame(),'127.0.0.1')
@@ -104,11 +104,43 @@ class ReceiverTest(unittest.TestCase):
             self.assertTrue(receiver.source_disconnected)
             with patch.object(M,'usb_mode',return_value=('target',None)):
                 M.update_transport(receiver,'fixture',route)
-            route.assert_called_once()
+            self.assertEqual(route.call_count,2)
             other='87654321-4321-4abc-8def-1234567890ab'
             receiver.record(frame(1,other),'127.0.0.1')
             self.assertEqual(receiver.last.boot_id,other)
             self.assertFalse(receiver.failed)
+
+    def test_ordinary_source_route_pending_never_admits_source_or_disconnect(self):
+        with M.Receiver('7.1.4-g359318de534f',lambda e:None,host='127.0.0.1',port=0,
+                        peer='127.0.0.1',source_boot_id=BOOT) as receiver:
+            route=unittest.mock.Mock(side_effect=[False,True])
+            with patch.object(M,'usb_mode',return_value=('target',None)):
+                M.update_transport(receiver,'fixture',route)
+                self.assertEqual(receiver.mode,'enumerating')
+                self.assertFalse(receiver.target_seen or receiver.source_disconnected or receiver.failed)
+                M.update_transport(receiver,'fixture',route)
+            self.assertEqual(route.call_count,2)
+            self.assertEqual(receiver.mode,'source')
+            receiver.record(frame(),'127.0.0.1')
+            self.assertIsNone(receiver.last)
+            self.assertFalse(receiver.target_seen or receiver.source_disconnected or receiver.failed)
+
+    def test_ordinary_source_route_failure_is_permanent_and_single_attempt(self):
+        for following in ('target','mismatch'):
+            with self.subTest(following=following), M.Receiver('fixture',lambda e:None,
+                    host='127.0.0.1',port=0,source_boot_id=BOOT) as receiver:
+                route=unittest.mock.Mock(side_effect=RuntimeError('fixture route failure'))
+                with patch.object(M,'usb_mode',side_effect=[('target',None),(following,None)]):
+                    M.update_transport(receiver,'fixture',route)
+                route.assert_called_once()
+                self.assertTrue(receiver.failed)
+                self.assertFalse(receiver.target_seen or receiver.source_disconnected)
+                self.assertEqual(receiver.mode,'enumerating' if following=='target' else 'mismatch')
+                if following=='target':
+                    with patch.object(M,'usb_mode',return_value=('target',None)):
+                        M.update_transport(receiver,'fixture',lambda:True)
+                    self.assertEqual(receiver.mode,'source')
+                    self.assertTrue(receiver.failed)
 
     def test_ordinary_reboot_cannot_accept_old_boot_after_disconnect(self):
         with M.Receiver('7.1.4-g359318de534f',lambda e:None,host='127.0.0.1',port=0,

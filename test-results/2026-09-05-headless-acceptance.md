@@ -7628,3 +7628,52 @@ new transitions, permanent failure status and the unchanged full deadline.
 Repeated terminal polling and post-return disconnect tests pass, as do full R01
 replays. Full integration CI for these two public observer corrections remains
 pending. No kernel, Arch image, signed payload or canonical claim was changed.
+
+
+## V11 selection restored; ordinary source route corrected (2026-09-08)
+
+The first assisted V11 controller closed FAIL in **1,381.577543 s**, before any
+selection operation. Its full receiver lifetime and route/firewall/profile/
+address cleanup passed; all sixteen evidence files were handed off unchanged.
+The read-only diagnostic initially stopped locally because a root caller used
+a deck-owned credential check incorrectly. That failed preflight made no phone
+connection. The corrected caller retained the existing deck-owned credential
+and strict host-key policy.
+
+Pinned SSH on `169.254.77.2` authenticated V11 boot
+`96c3e790-a422-4723-b9ca-a5039da2a14a` in **2.460020 s**. The record remained
+exactly pending on userdata `259:58`; P24 was read-only without replay and only
+sda/sda23 were writable among 117 physical nodes. Battery health was Good,
+30.0°C, 8.673 V, with USB online. Its current kernel storage observations showed
+normal mounts; they do not identify the earlier negative boot's journal match.
+All four temporary host-network cleanup steps passed.
+
+The separate diagnostic-address restoration adapter passed six tests in both
+Python modes and six fixed-launcher cases. Its underlying Driver restoration,
+V11 BusyBox and ARM64 state helper exactly matched the previously tested files.
+Fresh V11 readiness, reset observations, twelve installed-file hashes and
+power/storage guards passed. One pending-to-healthy helper call restored SHA
+`a255c48583618b45caff4ab85dbd2f6e99523f09e9fba04ac0410f7884b91e2e`.
+The owned helper and directory were then removed, and network cleanup passed.
+
+The later ordinary-source guard also passed. However, its SSH reboot request
+failed to connect to `169.254.77.2` (255, empty stdout, connection-timeout stderr).
+The receiver remained in source mode without a disconnect or target stage.
+It had prepared the address and firewall but omitted the source diagnostic
+route. The controller preserves its original full capture before any subsequent
+phone action. Selection restoration is complete; return to V8 service remains
+unverified. These assisted operations do not qualify R01 or permit RAM retry.
+
+The public receiver correction prepares the route while identifying the source
+separately from the next target. Source frames remain rejected, a physical
+absence is still mandatory, pending network convergence cannot imply readiness,
+and route errors remain permanent failures. Thirty-five receiver/network tests
+passed in **0.265 s**, with real local sockets and explicit USB/network fixtures.
+
+The preceding userdata-identity and repeated-transport fixes passed complete CI
+on `91ff9e24422cb266c9b8c7ce985ac381bb838383` in **498.013024 s**, exit 0,
+terminal marker present and source unchanged. Earlier attempts failed at
+**68.862844 / 356.741426 s** because the isolated checkout lacked the pinned
+Android boot tools and canonical boot template. Exact retained copies were
+hash-verified, and their failing component suites passed before full CI reran.
+The new source-route correction still requires its own integration CI.

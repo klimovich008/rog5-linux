@@ -62,11 +62,14 @@ def update_transport(receiver, serial, ensure_route, *, deadline=None):
     phase = 'usb-discovery'
     try:
         mode, interface = usb_mode(serial)
-        if receiver.is_source(mode):
-            mode, interface = 'source', None
+        source = receiver.is_source(mode)
         phase = 'network-setup'
         if mode == 'target' and not ensure_route():
             mode, interface = 'enumerating', None
+        elif source:
+            # The authenticated source may use the diagnostic SSH address.
+            # Prepare its route without accepting it as the rebooted target.
+            mode, interface = 'source', None
         phase = 'listener-bind'
         receiver.transport(mode, interface)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
