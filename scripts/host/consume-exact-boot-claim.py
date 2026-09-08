@@ -13,6 +13,31 @@ import sys
 # This is the repository-owned lookup. A caller selects a reviewed identifier;
 # it cannot supply a pathname, candidate, manifest, or expected record bytes.
 CLAIMS = {
+    'headless-recovery-negative-v1': (
+        b'format=rog5-temporary-boot-consumption-v1\n'
+        b'recovery_profile=headless-recovery-negative-v1\n'
+        b'candidate=headless-recovery-negative-v1\n'
+        b'target_bundle=headless-recovery-negative-v1\n'
+        b'manifest_sha256=061c19c7f725ceb05ea6efda498c6c67f4a126d7c3ebad1ee4d162ad67c1a8bb\n'
+        b'boot_image_sha256=a6f40b7d07a4dc2546e6989f847214fbad27d2648b4289149ef10a62c183eb24\n'
+        b'recovery_initramfs_sha256=50957a34031e7136c14a94ba831a9f8240a1ec5215367948989fa82e967688aa\n'
+        b'ram_boot_image_size=134217728\n'
+        b'trial_id=f216e4c5f961439eaa6f4bd81bc797aab461cda759500b33f572b877451d5d8f\n'
+        b'fallback_bundle=persistent-native-root-v11\n'
+        b'fallback_manifest_sha256=a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2\n'
+        b'verification_source_commit=02726ac34c036343081821e66441f53f1b7918f7\n'
+        b'serial=M5AIKN00F0353YH\n'
+        b'product=lahaina\n'
+        b'usb_path=1-1.2\n'
+        b'expected_slot=b\n'
+        b'recovery_storage=read-only\n'
+        b'target_storage=accepted-v10-root-overlay-and-v11-service-state\n'
+        b'qualification=isolated-failure-r01\n'
+        b'flash=forbidden\n'
+        b'execution=fastboot-boot-ram-bundle\n'
+        b'attempt_limit=1\n'
+        b'state=BOOT_CLAIMED\n'
+    ),
     'headless-server-selector-v8': (
         b'format=rog5-temporary-boot-consumption-v1\n'
         b'recovery_profile=headless-server-selector-v8\n'

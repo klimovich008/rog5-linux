@@ -7461,3 +7461,35 @@ retained copies. The earlier 96 MiB binding assessment is explicitly invalidated
 These are offline prerequisites. Signed twin composition, canonical registration,
 full integration CI/publication and fresh physical gates remain required. No
 phone operation or real claim consumption occurred; R01 and S06 remain NOT RUN.
+
+
+### R01 signed twin packaging and canonical registration — 2026-09-08
+
+Frozen `02726ac34c036343081821e66441f53f1b7918f7` produced signed twins in
+**24.181632 s** (`r01-negative-package-r1`). Bundle directories, recovery
+archives, raw images and padded AVB images are byte-identical. The sealed ARM64
+verifier authenticated the new embedded bundle. The unchanged ASUS kernel,
+native kernel, DTB, negative archive and canonical trust key were checked
+before packaging; no kernel rebuild or device operation occurred.
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| Signed manifest | Derived from actual inputs | `061c19c7f725ceb05ea6efda498c6c67f4a126d7c3ebad1ee4d162ad67c1a8bb` |
+| Recovery archive | 77,011,442 | `50957a34031e7136c14a94ba831a9f8240a1ec5215367948989fa82e967688aa` |
+| Raw boot image | 127,516,672 | `f579ded9e0145aba1a785c64029e2b8a15838279683e77f0beeadfbeabcc53f0` |
+| Padded RAM image | 134,217,728 | `a6f40b7d07a4dc2546e6989f847214fbad27d2648b4289149ef10a62c183eb24` |
+
+The canonical `headless-recovery-negative-v1` record derives these identities
+from the packaging receipt. It binds exact 128 MiB size, the distinct negative
+trial, signed V11 fallback, read-only recovery, accepted target-state scope,
+no flash and one attempt. A new regression rejects altered size, qualification,
+trial ID and fallback hash before consumption; the genuine disposable record
+can enter once and cannot be retried. Existing record bytes are unchanged.
+
+Registration, isolated boot, deployed-server and capture tests passed in normal
+and optimized Python in **3.274566 s** (`r01-registration-tests-r2`), with source
+copies and raw logs retained. The first runner stopped on an incorrect test
+filename; its failure remains in r1. No phone contact or real lifecycle claim
+was created. Exact A01/C01/C02, full integration CI, final live admission and
+physical R01 are still required; S06 still needs an available power-button
+operator.
