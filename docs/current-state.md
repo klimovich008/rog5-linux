@@ -201,6 +201,14 @@ It preserves teardown/poweroff and is separate from the unchanged negative
 target shutdown. The first namespace fixture failure remains recorded; no live
 transition, state arming, candidate execution or new claim has occurred.
 
+The private controller ordering engine passed nine fault-injection cases per
+Python mode. It fsyncs exclusive phase intents before callbacks, refuses phase
+re-entry, preserves full capture after ambiguous execution, and requires a fresh
+independent V11 guard before restoration plus a distinct healthy ordinary V8
+boot afterward. User interruption permits cleanup without later mutations.
+The source-side arming and RAM-transition scripts are generated/syntax-checked;
+namespace execution tests and the concrete admission/device driver remain.
+
 ## Mandatory results
 
 Do not combine incompatible releases or simulation and physical evidence.
