@@ -7921,4 +7921,17 @@ only in a fresh network namespace. The real netcat command delivered the exact
 bounded receipt from its expected source address. No host route or phone
 interface was exposed. The eight receipt tests passed in normal and optimized
 Python; all 36 receiver, 23 ordinary-smoke and 27 baseline tests also passed.
-Full integration CI is pending. R01 remains FAIL; S06 remains NOT RUN.
+Full local CI on `193e133408e160a736102f143a48314d796e030b` passed in
+**548.623433 s**, exit 0, terminal marker and unchanged source. Its log SHA-256 is
+`ea210107a1f49a27fa2744bec304d4e2ee75d60718220123ed6a9119c31295f1`.
+The acceptance dispatcher also passed all 51 focused tests. GitHub verification
+of the published checkpoint is separate. R01 remains FAIL; S06 remains NOT RUN.
+
+Read-only inspection of the exact accepted archive confirmed init SHA-256
+`45afa6ee41544e446b11a2b7ddb42f77094463367aac5d3aaa888bec5a91b6b3`:
+startup brings `usb0` up, assigns `169.254.77.2/30`, binds the gadget and marks
+that interface unmanaged by NetworkManager. This supports preserving the
+existing network setup; it does not prove USB survives system shutdown. The
+`source-teardown-transport-inspection-r1` result took **0.523101 s**, with no phone
+contact. The sealed replay-to-commit binding verifies unchanged tested shell
+bytes without relabelling the development replay's source revision.
