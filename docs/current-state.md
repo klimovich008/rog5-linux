@@ -280,6 +280,16 @@ final admission assembly, full integration CI/publication and physical R01
 remain outstanding.
 No new phone action, state transition or real claim consumption occurred.
 
+The first exact negative A01 ran every functional check successfully but failed
+its unchanged 120 s deadline at **146.582 s**. Root/upper hashes remained exact.
+A read-only sparse-hash probe reproduced the entire accepted 34.36 GB logical
+root digest in **20.903 s**, reading 4.19 GB and hashing 30.17 GB of holes as
+zeros. A01 now reuses the already-tested C02 hasher for both root/upper checks
+and records timings. The original failure is retained; the corrected exact
+A01/C02/C01 run and full integration CI are still required. Focused and active
+validation passed **55.595 s** (active **55.430 s**), with source inputs unchanged.
+
+
 ## Mandatory results
 
 Do not combine incompatible releases or simulation and physical evidence.

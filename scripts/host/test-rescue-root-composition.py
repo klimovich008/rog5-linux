@@ -121,16 +121,16 @@ class CompositionTest(unittest.TestCase):
     def test_a01_overlaps_initial_hash_and_joins_on_preflight_failure(self):
         final=M.load('parallel_root_composition_test','scripts/host/check-release-composition.py')
         started=threading.Event();release=threading.Event();finished=threading.Event()
-        real_hash=final.C.ACCEPTANCE.sha_file
+        real_hash=final.ROOT_HASH.sha_file
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)/'root.ext4';root.write_bytes(b'exact retained image')
             output=Path(tmp)/'result'
-            def digest(path):
-                if path!=root:return real_hash(path)
+            def digest(path, **kwargs):
+                if path!=root:return real_hash(path, **kwargs)
                 started.set()
                 try:
                     if not release.wait(2):raise ValueError('hash was serialized')
-                    return real_hash(path)
+                    return real_hash(path, **kwargs)
                 finally:finished.set()
             def inspect(args,checks):
                 overlap=started.wait(1)
@@ -143,7 +143,7 @@ class CompositionTest(unittest.TestCase):
             old_mask=os.umask(0o022)
             try:
                 with patch.object(sys,'argv',argv),patch.object(final.shutil,'which',return_value='/fixture/tool'), \
-                        patch.object(final.C.ACCEPTANCE,'sha_file',side_effect=digest), \
+                        patch.object(final.ROOT_HASH,'sha_file',side_effect=digest), \
                         patch.object(final,'inspect',side_effect=inspect), \
                         patch('builtins.print'):
                     self.assertEqual(final.main(),1)
