@@ -580,8 +580,9 @@ core rescue running does not prove this recovery outcome. Host-issued reboot
 or fastboot recovery after the negative target starts cannot qualify R01.
 Restoring prior primary-selection eligibility is a separate recovery step,
 never a new health observation: a subsequent ordinary V8 boot must rearm and
-satisfy its own genuine current-boot health gate. No such controller or physical
-result is yet qualified.
+satisfy its own genuine current-boot health gate. The state-operation components have offline coverage, including a separate
+V11 sealed-shell restorer because V11 lacks Python. The complete controller,
+two-boot observer and physical result are not yet qualified.
 
 R01's initial outer ceiling is 1320 s; the actual receiver lifetime must exceed
 the exact deployed target watchdog + recovery + cleanup lattice. The ceiling
