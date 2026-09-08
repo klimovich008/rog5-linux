@@ -275,9 +275,10 @@ Signed twin packaging passed **24.182 s** with byte-identical outputs and sealed
 signature verification. The recovery archive is 77,011,442 bytes; the padded
 RAM boot image is exactly 134,217,728 bytes. Its canonical record now binds the
 actual image, distinct negative trial and unchanged V11 fallback. Registration
-consumer tests passed in both Python modes in **3.275 s**. Exact A01/C01/C02,
-final admission assembly, full integration CI/publication and physical R01
-remain outstanding.
+consumer tests passed in both Python modes in **3.275 s**. Exact negative A01/C02/C01 subsequently passed
+**77.695 / 96.128 / 134.995 s** on `b00a1b81`, retaining unchanged root/upper
+bytes. Final admission assembly, full integration CI/publication and physical
+R01 remain outstanding.
 No new phone action, state transition or real claim consumption occurred.
 
 The first exact negative A01 ran every functional check successfully but failed
@@ -286,7 +287,7 @@ A read-only sparse-hash probe reproduced the entire accepted 34.36 GB logical
 root digest in **20.903 s**, reading 4.19 GB and hashing 30.17 GB of holes as
 zeros. A01 now reuses the already-tested C02 hasher for both root/upper checks
 and records timings. The original failure is retained; the corrected exact
-A01/C02/C01 run and full integration CI are still required. Focused and active
+A01/C02/C01 run passed. Full integration CI remains required. Focused and active
 validation passed **55.595 s** (active **55.430 s**), with source inputs unchanged.
 
 
