@@ -191,6 +191,16 @@ The combined active tier passed **45.383 s**; both focused suites also passed
 optimized, with all recorded runtime/producer inputs unchanged. Full integration
 CI and publication remain pending with the controller/evidence work.
 
+Private rollback journal replay now checks the retained Arch catalog's fixed
+service-job identifiers, the exact boot, PID 1, job ID, execution ordering and
+callback deadline. Eight replay tests per mode and five shell cases passed;
+the shell used the unsigned negative target's actual BusyBox timeout under
+QEMU with explicit host/synthetic fixtures. The V8 source-to-fastboot RAM
+shutdown delta also passed exact sealed-shell syntax and reversible byte checks.
+It preserves teardown/poweroff and is separate from the unchanged negative
+target shutdown. The first namespace fixture failure remains recorded; no live
+transition, state arming, candidate execution or new claim has occurred.
+
 ## Mandatory results
 
 Do not combine incompatible releases or simulation and physical evidence.

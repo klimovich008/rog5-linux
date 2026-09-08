@@ -7198,3 +7198,40 @@ Integrated active log SHA-256:
 `288ad34e4ba09f1e7c1ee7484e439444a96cc634f8b5a6536068e5085df1fe13`.
 Full integration CI/publication remain pending with controller/evidence work;
 no previous CI result is relabeled for these additions.
+
+
+Private journal and transition preparation followed the local observer commit
+`db558d11f8a29e95ac1e9ee71177bab84ca9bcdd`. Read-only inspection of the retained
+Arch image's systemd catalog confirmed fixed job-start/success/failure IDs;
+catalog SHA-256 is
+`e9b0346a9d70a8592962fbf7a698c1f0ce0c251d8bc655ced08b7f18771b47ae`.
+Eight journal replay fixtures passed normally and optimized in **0.228958 s**;
+wrong boot/unit/PID/job, incomplete or late callbacks and duplicate data fail.
+A trailing partial record remains explicitly reported and cannot supply the
+required callback proof; final physical replay must handle it conservatively.
+These are components, not evidence of an actual autonomous reboot.
+
+Five shell cases passed in **0.108370 s**, using the unsigned negative target's
+actual ARM64 BusyBox timeout via QEMU. The initial shell/coreutils were host
+programs; kernel/proc/journal observations were explicit fixtures. Wrong boot,
+late start, altered BusyBox and unsafe loader mode refused before the journal
+reader. Receipts/source are in `r01-journal-protocol-tests-r1` and
+`r01-stream-shell-tests-r1`. BusyBox SHA-256 is
+`97d52efa149563c8d886e3670e2496d4140d3c54138017afd3a105e0397fae2e`;
+loader SHA-256 is
+`32377e6d71725bb019e9ff6d5e9f16b4d5156d6f2c36504191c2d6a7c4d4a44d`.
+
+The current V8 shutdown intentionally requests ordinary reboot. Its separate
+RAM-only source-to-fastboot action delta retains every storage-teardown byte
+and the poweroff branch, and reverses exactly to the original. Sealed-shell
+syntax passed in **0.482240 s** overall preparation. Original shutdown SHA-256:
+`1cd007ea25d9a694c7fff25c7e7a7ee005b28f4767d94bf5682f17fe7e6303cd`;
+prepared action-delta SHA-256:
+`631795c05acfe0d56ed6838695185d37b2c3e13a6dfecf3c93a8bbaf7e05fe6a`.
+The first fixture lacked `/dev` and QEMU mount targets under its read-only root;
+that infrastructure failure/source is preserved in `r01-v8-exitrd-preparation-r1`.
+Corrected preparation is in `r01-v8-exitrd-preparation-r2`. No script was installed
+on the phone. Live use still requires exact current-boot files, tmpfs, bound
+nvmem reboot-mode provider, full boot/power/storage/fallback gates and durable
+one-use intent. The negative target must keep its original ordinary-reboot
+shutdown; this preparatory delta is not part of its signed payload.
