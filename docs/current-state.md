@@ -2,7 +2,10 @@
 
 Updated 2026-09-08: V8 service is restored and authenticated on its current ordinary boot.
 Current health, readiness, storage scope and all twelve installed-file hashes passed readback.
-The observer corrections passed full local and GitHub CI. R01 remains FAIL and S06 remains NOT RUN.
+The observer corrections passed full local and GitHub CI. S06 now has an offline
+powered-off-start evidence runner; focused tests passed and integration CI is
+pending. Its retained S01/S05 prerequisite replay currently refuses the changed
+receiver dependency. R01 remains FAIL and S06 remains NOT RUN.
 
 ## Goal and authority
 

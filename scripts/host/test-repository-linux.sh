@@ -179,6 +179,7 @@ active_tests=(
 	scripts/host/test-check-standalone-root.py
 	scripts/host/test-check-standalone-boot.py
 	scripts/host/test-ordinary-boot-smoke.py
+	scripts/host/test-powered-off-start-evidence.py
 	scripts/host/test-repeated-boot-evidence.py
 	scripts/host/test-soak-observation.py
 	scripts/host/test-soak-evidence-rules.py

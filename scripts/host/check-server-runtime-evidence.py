@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline S02–S05/S07 replay: no phone connection, mutation or execution claim."""
+"""Offline S02–S07 replay: no phone connection, mutation or execution claim."""
 import argparse
 import ast
 import importlib.util
@@ -142,6 +142,8 @@ def validate(kind,record,logs,identity,hashes,expected_digest=T.expected_digest)
         require(all(c['after'] in observed for c in cases),'missing raw post-restart evidence')
 
 def evaluate(args):
+    if args.kind=='S06':
+        return load('powered_off_start_evidence',Path(__file__).with_name('powered-off-start-evidence.py')).evaluate(args,B)
     if args.kind=='S07':
         return load('server_soak_evidence',Path(__file__).with_name('soak-runtime-evidence.py')).evaluate(args,B)
     if args.kind=='S05':
@@ -205,7 +207,7 @@ def evaluate(args):
         observed_seconds=record['seconds'],evidence_sha256={k:B.sha(v) for k,v in data.items()})
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--kind',choices=('S02','S03','S04','S05','S07'),required=True)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--kind',choices=('S02','S03','S04','S05','S06','S07'),required=True)
     p.add_argument('--inputs',type=Path,required=True);p.add_argument('--inputs-sha256',required=True)
     p.add_argument('--candidate',required=True);p.add_argument('--artifact-hashes',required=True)
     p.add_argument('--output',type=Path,required=True);a=p.parse_args()

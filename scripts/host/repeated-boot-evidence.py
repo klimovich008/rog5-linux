@@ -11,8 +11,12 @@ PER_BOOT=('entry','preflight','receiver','receiver_check','root','root_raw','rea
 ROLES={'run','baseline','baseline_proof','coordinator_source','preflight_source','health_source','manifest'}|{
     f'{n}.{role}' for n in range(1,4) for role in PER_BOOT}
 
-def bind_boot(boot,d,raw,baseline,canonical,producers,probe,B,M):
+def bind_boot(boot,d,raw,baseline,canonical,producers,probe,B,M,*,kind='S05'):
     require=B.require;c=boot['context'];end=boot['closure'];source=c['source'];identity=c['identity']
+    require(kind in ('S05','S06'),'unsupported boot observation')
+    operation=('ordinary installed release reboot; no RAM claim retry' if kind=='S05' else
+        'installed release power-off and one operator start; no reboot substitution')
+    action='reboot' if kind=='S05' else 'poweroff'
     require(c['record']==canonical,'different canonical boot record')
     pre=d['preflight'];entry=d['entry'];receipt=d['receiver'];root=d['root'];health=d['health'];ready=d['readiness']
     require(all(v['source']==source for v in (pre,entry,receipt,root,health,ready)),'mixed producer sources')
@@ -21,7 +25,7 @@ def bind_boot(boot,d,raw,baseline,canonical,producers,probe,B,M):
         and pre['installed_boot_b_sha256']==canonical['boot_image_sha256']
         and pre['manifest_sha256']==canonical['manifest_sha256']
         and pre['observer_sha256']==producers['preflight'],'different installed preflight')
-    require(entry['operation']=='ordinary installed release reboot; no RAM claim retry'
+    require(entry['operation']==operation
         and entry['source_boot_id']==c['source_boot_id'] and entry['monotonic']==c['entry_monotonic']
         and entry['artifact']==canonical['boot_image_sha256']
         and entry['preflight_sha256']==B.sha(raw['preflight'])
@@ -71,9 +75,9 @@ def bind_boot(boot,d,raw,baseline,canonical,producers,probe,B,M):
     require(len(ended)==1 and all(ended[0].get(key)==value for key,value in d['capture_result'].items()),
         'capture result changed')
     require(pre['shutdown_sha256']==producers['shutdown'],'shutdown changed')
-    command='set -eu; test "$(cat /proc/sys/kernel/random/boot_id)" = '+c['source_boot_id']+'; test "$(sha256sum /run/initramfs/shutdown | cut -d " " -f 1)" = '+pre['shutdown_sha256']+'; systemctl reboot --no-block'
-    require(type(d['reboot']['returncode']) is int
-        and d['reboot']==dict(returncode=0,script_sha256=B.sha(command.encode())),'wrong/ambiguous reboot command')
+    command='set -eu; test "$(cat /proc/sys/kernel/random/boot_id)" = '+c['source_boot_id']+'; test "$(sha256sum /run/initramfs/shutdown | cut -d " " -f 1)" = '+pre['shutdown_sha256']+'; systemctl '+action+' --no-block'
+    require(type(d[action]['returncode']) is int
+        and d[action]==dict(returncode=0,script_sha256=B.sha(command.encode())),'wrong/ambiguous boot command')
     times=[B.host(d[name]) for name in ('host-before','host-at-entry','host-after-startup','host-after-capture')]
     require(boot['preflight_monotonic']<=times[0]<times[1]<c['entry_monotonic']<times[2]
         <=c['observed_monotonic']<ended[0]['monotonic']<times[3]<=end['finished_monotonic'],
