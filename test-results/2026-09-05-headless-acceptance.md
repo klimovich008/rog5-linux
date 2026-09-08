@@ -7093,3 +7093,64 @@ a uniquely identified isolated target and a bounded observer proving the
 negative health refusal followed by autonomous authenticated V11 recovery.
 The real capture and recovery bounds remain unchanged. The production release
 flag remains false; S06 and physical R01 are still outstanding.
+
+
+### R01 unsigned target and guarded state components — 2026-09-08
+
+Regression checkpoint `a1f9a10c634d6e142f3de4867d6f889cc71370d1` passed full
+local CI in **545.760557 s**, exit 0, terminal marker present, source unchanged.
+Log SHA-256:
+`7e0008c112654e5f4743ec4396cb209fabcd8c76935bf6e7cbba09eb6bca7253`.
+[GitHub run 34232752925](https://github.com/klimovich008/rog5-linux/actions/runs/34232752925)
+passed all four jobs. Private receipts are in `r01-trial-full-r1`.
+
+The unsigned `headless-recovery-negative-v1` target twins matched in
+**8.225255 s**, each **55,320,609 bytes**, SHA-256
+`271d3658faad83684cfc536953ae0763c2f2ec8e73532af7370860b9f8f69dea`.
+Only `rog5-native-wifi/trial-descriptor` and `boot-files.sha256` actually changed
+from V8. The composer also checked retained radio/probe members, but their bytes
+were unchanged. The new trial ID is
+`f216e4c5f961439eaa6f4bd81bc797aab461cda759500b33f572b877451d5d8f`.
+The private plan, twins and recipe are in `r01-negative-target-r1`. No signing,
+registration, claim or phone action is implied by this local composition.
+
+Implemented a private import-only V8 arming primitive. It requires the exact
+original healthy V8 record and canonical helper, checks current boot/kernel/
+bundle, power, 117-node storage scope and the mounted p23 state root, then
+uses the unchanged helper once. Its child creates a private mount namespace
+and binds the already mounted state to the helper's fixed path. It mounts no
+block device. Wrong state, unsafe file metadata, failed or ambiguous helper
+replies cannot trigger retries or repairs.
+
+Six isolated integration cases passed normally and optimized in **0.432 s**
+using the actual ARM64 helper. The original namespace and mount inventory were
+unchanged after the child exited. Additional six-test synthetic guard suites
+passed normally and optimized, covering wrong boot/privilege, unsafe power,
+extra writable storage, ambiguous mounts and partial publication. The current
+primitive SHA-256 is
+`3d0d120a10b100f94fed981946d000294b37fe79e0736c3ef19ece5cf033758e`;
+private integration receipts and preserved source are in
+`r01-state-operation-tests-r2`. The earlier prototype/source and its passing
+receipts remain in `r01-state-operation-tests-r1`.
+
+Inspection of the exact V11 archive confirmed that Python is absent and that
+its state service mounts the same `/.rog5/userdata-rw` filesystem. Therefore
+the Python primitive explicitly refuses restoration; the separate shell
+restorer checks V11 identity, power, mounts, state and helper before invoking
+the canonical static helper. It restores prior selection eligibility only;
+the following ordinary V8 boot still must rearm and prove its own health.
+
+Six restorer cases passed in **12.267993 s** with actual V11 BusyBox/loader
+bytes and the canonical ARM64 helper: success plus wrong boot, unsafe power,
+wrong record, symlink record and wrong helper refusals. Kernel identity, sysfs
+and mount observations were explicit fixtures; there was no physical device.
+Private generated scripts, raw output and hashes are in
+`r01-restore-shell-tests-r1`. The generated shell remains byte-identical after
+narrowing the Python primitive to V8 arming only.
+
+Still required before any physical R01: one-shot outer controller, two-boot
+receiver/observer and independent evidence replay; signed wrapper and full
+canonical admission; fresh non-consuming host/device/storage/power/fallback
+preflight; one physical failure/recovery observation with the full capture;
+and exact restoration plus an ordinary current-boot V8 health check. S06 also
+remains outstanding. No release qualification is claimed by these components.

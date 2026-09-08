@@ -156,10 +156,21 @@ V11 selected at the next loader entry. The new regression passed on the host
 and exact ARM64 helper, normally and optimized; all four 17-test suites passed
 in **8.978 s** (one ARM-only test skipped in each host run). Retained V8 helper,
 health and rollback bytes match current source; its outer timer is 900 seconds.
-This is offline preparation only. No phone state was changed and no negative
-candidate was built, signed, registered or executed. The arming/restoration
-controller, isolated candidate, bounded two-boot observer and their admission
-checks remain to be implemented before a physical R01 attempt.
+On `a1f9a10c`, full local CI passed **545.761 s**, and all four GitHub jobs
+passed in **34232752925**. Unsigned `headless-recovery-negative-v1` target twins
+then matched after **8.225 s**; only the trial descriptor and its checksum
+manifest differ from accepted V8. Kernel, root, services and rollback are reused.
+No signing, candidate registration, new claim or phone action has occurred.
+
+The private V8 arming primitive passed six isolated ARM64 integration cases
+normally and optimized, including namespace containment and lost-reply handling;
+six synthetic guard tests per mode cover boot, power and storage refusals.
+V11 has no Python, so restoration uses a separate sealed-shell generator.
+Its six cases passed in **12.268 s** with the actual V11 BusyBox and canonical
+ARM64 helper; kernel, sysfs and mount observations were explicit fixtures.
+These are component tests only. The one-shot controller, bounded two-boot
+receiver/observer and complete R01 evidence replay still need integration,
+followed by signed packaging, admission and fresh physical preflight.
 
 ## Mandatory results
 
