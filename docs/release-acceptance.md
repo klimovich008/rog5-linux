@@ -444,7 +444,9 @@ that USB observation measures electrical power state.
 The existing 420-second ceiling contains 30 seconds of preflight, at most 60
 seconds for shutdown/operator transition, 300 seconds from the start request
 to authenticated healthy startup, and 30 seconds for successful cleanup. The
-start request precedes the button press, so this clock is conservative. Arm the
+start request precedes the button press, so this clock is conservative. Kernel
+uptime must also fit within that window; delayed USB enumeration cannot hide
+an earlier boot. Arm the
 full failure receiver with the extra transition allowance before power-off;
 a failed startup retains that longer capture even after the success deadline.
 Component eligibility alone grants no power-off, start, receiver-stop or

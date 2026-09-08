@@ -91,6 +91,10 @@ class PhysicalTests(unittest.TestCase):
         self.reject(lambda b,*rest:b['context']['events'][-1]['stage'].update(state='FAIL'))
         self.reject(lambda b,*rest:b['context']['health']['unit'].update(Result='exit-code'))
         self.reject(lambda b,*rest:b['context']['root']['blocks'].update(sda24='0'))
+    def test_delayed_usb_cannot_hide_a_boot_before_the_start_request(self):
+        v=fixture();c=v[0]['context'];c['health']['uptime']='75.0'
+        with self.assertRaisesRegex(ValueError,'kernel boot predates'):
+            P.eligibility(v[3],c)
     def test_failed_and_incomplete_capture_cleanup(self):
         self.reject(lambda b,*rest:b['closure']['events'][-1].update(status='FAIL'))
         self.reject(lambda b,*rest:b['closure']['events'].pop())

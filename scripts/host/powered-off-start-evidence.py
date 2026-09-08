@@ -92,6 +92,8 @@ def eligibility(baseline,c):
     require(B.ROOT.D.validate_readiness(c['readiness'],identity,record['execution'])['marker_boot_bound'],
         'missing current-boot readiness')
     committed=M.health(c['health'],identity)
+    require(committed['observed_uptime_seconds']<=p['boot_to_health_seconds'],
+        'kernel boot predates the requested physical start')
     events=c['events'];times=[B.number(e['monotonic']) for e in events]
     require(events and times==sorted(times) and times[-1]<=c['observed_monotonic'],'capture ordering')
     prepared=[e for e in events if e['event'] in B.READ.PREPARED]
