@@ -168,9 +168,28 @@ six synthetic guard tests per mode cover boot, power and storage refusals.
 V11 has no Python, so restoration uses a separate sealed-shell generator.
 Its six cases passed in **12.268 s** with the actual V11 BusyBox and canonical
 ARM64 helper; kernel, sysfs and mount observations were explicit fixtures.
-These are component tests only. The one-shot controller, bounded two-boot
-receiver/observer and complete R01 evidence replay still need integration,
-followed by signed packaging, admission and fresh physical preflight.
+These are component tests only. A separate passive two-boot receiver now
+preserves the original receiver's exact bytes and prior evidence bindings.
+It requires an explicit canonical R01 fallback, a completed initial root
+handover and positive USB absence before accepting one distinct rescue boot.
+Premature/third-boot loss, wrong identity, unclassified teardown, networking
+errors and earlier failures remain fatal; the capture lattice is unchanged.
+Its 15 portable tests passed normally and optimized, and the original receiver's
+33 tests passed. The receiver-only active checkpoint passed **47.789 s**.
+
+The read-only negative-health observer requires the exact helper-refusal journal
+sequence within the failed unit's execution, the unchanged installed pending
+record, current-boot SSH/core readiness, sealed health/rollback bytes, an armed
+900-second timer, and safe power/storage. Its nine focused tests include actual
+bounded file reads and pathname replacement; malformed or unrelated failure
+cannot qualify. Raw SSH output is retained before post-read topology checks,
+including partial output on timeout. The one-shot controller, autonomous timer
+stream and complete R01 evidence replay still need integration, followed by
+signed packaging, admission and fresh physical preflight. No new phone action,
+claim or full release qualification is implied by these observer components.
+The combined active tier passed **45.383 s**; both focused suites also passed
+optimized, with all recorded runtime/producer inputs unchanged. Full integration
+CI and publication remain pending with the controller/evidence work.
 
 ## Mandatory results
 
