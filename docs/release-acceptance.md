@@ -556,6 +556,33 @@ Soak is 3600 s plus 300 s collection margin. No unexplained boot-ID changes,
 oops, new UFS errors, emergency RO or unsafe power are tolerated. Missing log
 continuity fails rather than proving absence of faults.
 
+R01 preparation uses the existing persistent trial state machine. An exact
+healthy-to-pending `decide` transition durably arms the installed fallback;
+a different isolated target must fail to acknowledge that record, and the
+next installed loader entry must select the signed V11. The ARM64 helper
+regression verifies this sequence in disposable mounts. It is not physical
+recovery evidence or authorization to alter a live record.
+
+Before applying that sequence, the dedicated controller must bind the current
+accepted trial record, installed selector, primary and fallback hashes, running
+boot, helper bytes, power and writable storage scope. Any temporary alias for
+the helper's fixed path must bind the already mounted service-state filesystem
+inside a private mount namespace; never mount a live upper as an inactive image
+or open another block-device write window. Preserve the original record and
+record its durable transition. An ambiguous arming reply cannot be retried as a
+new primary decision. Target execution still requires its separate unique signed
+candidate and unconsumed claim.
+
+The observer must prove the intended isolated health refusal, unchanged armed
+record, active 900-second target rollback, autonomous disconnect/reboot and a
+new authenticated V11 boot within the bound. A radio-refusal branch that keeps
+core rescue running does not prove this recovery outcome. Host-issued reboot
+or fastboot recovery after the negative target starts cannot qualify R01.
+Restoring prior primary-selection eligibility is a separate recovery step,
+never a new health observation: a subsequent ordinary V8 boot must rearm and
+satisfy its own genuine current-boot health gate. No such controller or physical
+result is yet qualified.
+
 R01's initial outer ceiling is 1320 s; the actual receiver lifetime must exceed
 the exact deployed target watchdog + recovery + cleanup lattice. The ceiling
 does not prove any watchdog survives handover. Independent reset/ramoops

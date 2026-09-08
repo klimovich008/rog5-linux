@@ -187,6 +187,32 @@ class PersistentTrialState(unittest.TestCase):
         self.assertEqual(self.command().stdout, PRIMARY + "\n")
         self.assertEqual(self.command().stdout, FALLBACK + "\n")
 
+    def test_failed_isolated_health_preserves_armed_fallback(self):
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        self.assertEqual(self.command("healthy").stdout, "healthy\n")
+        accepted = self.record.read_bytes()
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        pending = self.record.read_bytes()
+        self.assertNotEqual(pending, accepted)
+        # An isolated target has its own identity; it must not acknowledge
+        # the installed primary's armed trial or prevent its next fallback.
+        refused = self.command("healthy", trial="e" * 64,
+                               primary="isolated-failure-fixture", check=False)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(refused.stdout, "")
+        self.assertIn("running trial identity does not match pending state",
+                      refused.stderr)
+        self.assertEqual(self.record.read_bytes(), pending)
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+        self.assertEqual(self.record.read_bytes(), pending)
+        # Restoring prior selection eligibility is separate from observing a
+        # new healthy boot. The next primary decision must rearm the watchdog.
+        self.assertEqual(self.command("healthy").stdout, "healthy\n")
+        self.assertEqual(self.record.read_bytes(), accepted)
+        self.assertEqual(self.command().stdout, PRIMARY + "\n")
+        self.assertEqual(self.record.read_bytes(), pending)
+        self.assertEqual(self.command().stdout, FALLBACK + "\n")
+
     def test_concurrent_rearm_selects_primary_at_most_once(self):
         self.command()
         self.command("healthy")

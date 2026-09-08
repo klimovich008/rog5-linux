@@ -7059,3 +7059,37 @@ confirmed that a simple negative RAM target followed by ordinary watchdog reboot
 would select the installed healthy V8; it cannot be presented as V11 recovery.
 No negative candidate, signing, registration, claim or phone operation occurred.
 The separate preparation receipt is `r01-recovery-path-inspection-r1`.
+
+
+### R01 trial-state preparation — 2026-09-08
+
+The previous inspection correctly ruled out an unarmed RAM failure as proof
+of V11 recovery. Further inspection found the existing helper's durable
+healthy-to-pending rearm path. A negative target with its own trial identity
+cannot acknowledge the installed primary's pending record; the next installed
+loader decision therefore selects the signed fallback. This uses the existing
+state machine, not a changed selector, kernel or protected partition.
+
+Added `test_failed_isolated_health_preserves_armed_fallback` to the existing
+persistent-trial suite. It checks accepted state, durable rearm, mismatched
+health refusal with no record mutation, fallback selection, exact restoration
+of prior eligibility, and mandatory rearm at the next primary decision.
+The complete 17-test suite passed in four modes: host normal/optimized
+**3.472 / 3.472 s**, exact ARM64 normal/optimized **1.017 / 1.016 s**;
+**8.978 s** total. Each host run skipped only the existing ARM-only legacy
+helper compatibility test. Both ARM64 runs executed all 17 tests. The original
+ambiguous-reply test continues to prove pending state survives a lost reply.
+Private logs and checksums are in `r01-trial-focused-r1`.
+
+Read-only archive inspection pinned V8 initramfs
+`26a093275bd0fe910d5f3c439e58f801096ff89f13778627bafa8627cc92a842`.
+Its trial helper, health and rollback runtime exactly match current source;
+its sealed outer timer remains 900 seconds. The private inspection is
+`r01-accepted-runtime-inspection-r1`. No phone connection or state write,
+archive construction, signing, candidate registration or claim occurred.
+
+Before physical R01, implement and test the exact arming/restoration controller,
+a uniquely identified isolated target and a bounded observer proving the
+negative health refusal followed by autonomous authenticated V11 recovery.
+The real capture and recovery bounds remain unchanged. The production release
+flag remains false; S06 and physical R01 are still outstanding.
