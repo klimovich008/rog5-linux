@@ -137,8 +137,21 @@ the primary's exact kernel and base-root files. Completed H01/H02/H03 replay
 checks original producer versions, full capture/cleanup, paired composition,
 raw samples and original boot/source identities. It grants no boot authority.
 Portable and actual retained-data regressions passed; the integrated focused
-suite passed **138 tests per mode in 20.793 s**. Fresh full local/remote CI and
-actual paired dispatcher qualification remain pending for this new code.
+suite passed **138 tests per mode in 20.793 s**.
+
+On `be0a8d2e`, full local CI passed **533.795 s**, and all four GitHub jobs
+passed in **34229955565**. One explicit paired receipt then passed H01/H02/H03,
+S01–S05, S07 and F02 in **153.915 s**. Final source/artifact revalidation passed;
+the original producer revisions and distinct rescue/server boots remain intact.
+The rescue rows took **1.568 / 1.518 / 1.518 s**; S07 replay took **68.672 s**.
+These are offline replay times, not fresh physical observations. Full release
+qualification remains false; powered-off startup and controlled failed-boot
+recovery remain outstanding.
+
+R01 preparation confirmed that an ordinary watchdog reboot after a RAM-only
+failure would still select healthy V8. That alone does not prove return to V11.
+No negative candidate was built, registered or executed. The next recovery
+experiment must first establish an isolated autonomous path offline.
 
 ## Mandatory results
 
@@ -147,8 +160,8 @@ Do not combine incompatible releases or simulation and physical evidence.
 | Outcome | Current result / next action |
 |---|---|
 | A01 / C01 / C02 | V8 offline PASS; A01/C02 include complete retained upper |
-| H01 / H02 | Explicit paired rescue replay implemented; fresh CI and dispatcher binding pending |
-| H03 regulation | Original rescue interval revalidated; final paired dispatcher binding pending |
+| H01 / H02 | Explicit paired rescue replay PASS on `be0a8d2e`; original rescue boot retained |
+| H03 regulation | Paired dispatcher PASS on `be0a8d2e`; all 61 original raw samples revalidated |
 | S01 local startup | Fresh V8 full ordinary capture PASS on `f0a3420b`; latest 93.850 s to SSH |
 | S02 transfers | Fresh V8 PASS on `f0a3420b`, four 256 MiB directions in 303.671 s |
 | S03 service recovery | Fresh V8 PASS on `f0a3420b`, 35.081 s; earlier failures retained |
