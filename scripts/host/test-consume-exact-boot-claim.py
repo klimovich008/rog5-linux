@@ -1422,6 +1422,35 @@ PROFILES.update({profile: record for profile, record in CLAIMS.CLAIMS.items()
 
 
 class ExactClaimConsumerTest(unittest.TestCase):
+    def test_isolated_recovery_ram_record_keeps_exact_size_and_failure_scope(self):
+        profile = 'headless-recovery-negative-v1'
+        payload = CLAIMS.expected_record(profile)
+        fields = dict(line.split('=', 1) for line in payload.decode().splitlines())
+        self.assertEqual(len(fields), len(payload.splitlines()))
+        self.assertEqual(fields['ram_boot_image_size'], '134217728')
+        self.assertEqual(fields['qualification'], 'isolated-failure-r01')
+        self.assertEqual(fields['fallback_bundle'], 'persistent-native-root-v11')
+        self.assertEqual(fields['execution'], 'fastboot-boot-ram-bundle')
+        primary = dict(line.split('=', 1) for line in
+                       CLAIMS.expected_record('headless-server-selector-v8').decode().splitlines())
+        self.assertNotEqual(fields['trial_id'], primary['trial_id'])
+        self.assertEqual(fields['fallback_manifest_sha256'], primary['fallback_manifest_sha256'])
+        for name, replacement in (('ram_boot_image_size', '100663296'),
+                                  ('qualification', 'ordinary'), ('trial_id', primary['trial_id']),
+                                  ('fallback_manifest_sha256', '0'*64)):
+            with self.subTest(field=name):
+                changed = payload.replace((name+'='+fields[name]+'\n').encode(),
+                                          (name+'='+replacement+'\n').encode())
+                self.write_record(profile, changed)
+                with self.assertRaises(CLAIMS.ClaimError):
+                    CLAIMS.consume(profile, self.root)
+        self.write_record(profile)
+        CLAIMS.consume(profile, self.root)
+        CLAIMS.verify_entered(profile, self.root)
+        self.write_record(profile)
+        with self.assertRaises(CLAIMS.ClaimError):
+            CLAIMS.consume(profile, self.root)
+
     def test_selector_trials_bind_state_scope_and_remain_one_use(self):
         records = {name: record for name, record in PROFILES.items()
                    if b'\nexecution=fastboot-boot-selector-trial\n' in record}

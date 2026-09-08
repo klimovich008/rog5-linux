@@ -271,8 +271,13 @@ passed in **60.939 s** (active **55.566 s**). The actual 128 MiB execution child
 passed five cases in **1.704 s**; six current lifecycle simulations passed
 **6.976 s**. These use disposable claims and simulated transport, not a phone.
 
-Twin signed packaging, final admission assembly, full integration CI/publication,
-signed canonical negative admission and physical R01 remain outstanding.
+Signed twin packaging passed **24.182 s** with byte-identical outputs and sealed
+signature verification. The recovery archive is 77,011,442 bytes; the padded
+RAM boot image is exactly 134,217,728 bytes. Its canonical record now binds the
+actual image, distinct negative trial and unchanged V11 fallback. Registration
+consumer tests passed in both Python modes in **3.275 s**. Exact A01/C01/C02,
+final admission assembly, full integration CI/publication and physical R01
+remain outstanding.
 No new phone action, state transition or real claim consumption occurred.
 
 ## Mandatory results
