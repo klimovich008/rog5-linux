@@ -7262,3 +7262,33 @@ R01 replay, integrated full CI/publication and signed canonical admission remain
 required. No phone control, state arming, reboot, new claim or qualification
 occurred during this controller work. Host free space was **5,931,253,760 bytes**;
 no active receiver or repository test process was found at the initial check.
+
+
+### R01 generated source actions in namespaces — 2026-09-08
+
+The generated arm and transition scripts passed eight actual execution cases
+in **0.639538 s**. The fixture used a disposable tmpfs/user/mount/PID namespace,
+the unchanged canonical ARM64 trial helper, and the exact V8 BusyBox/loader.
+Only physical guard observations were mocked, helper/chroot ISA was adapted to
+QEMU, and `systemctl reboot --no-block` was replaced by a harmless request file.
+File reads, metadata/alias refusals, exclusive writes, backup preservation,
+RAM replacement, actual chroot syntax checking and helper namespace isolation
+were exercised by the generated code.
+
+Cases: successful arming, wrong arming record, successful RAM transition, wrong
+pending record, changed shutdown source, symlink shutdown, existing backup and
+failed reboot reply. The successful arm produced the exact pending record and
+left its parent's namespace/mount inventory unchanged. Successful transition
+preserved that record and issued exactly one recorded request. Failed request
+returned failure with one request and retained exact old/new RAM bytes; no retry
+or implicit repair occurred. Precondition refusals issued zero requests.
+
+The original generated script hashes remain
+`29700a65e1289721ada6af7bc2c07c6d835c7794d8be365af0ad205a8ffad9d9`
+(arm) and
+`1a3a0074b40b9337d8d98e77da3dea03e91a563d999ec05727f74f341705a87d`
+(transition). Private `r01-generated-action-tests-r1` contains each raw stdout/
+stderr, exact original and adapted scripts, source copies and the test receipt.
+This does not prove physical guards, actual reboot behavior or R01 recovery.
+The full concrete driver and independent raw-evidence consumer remain required
+before full integration CI, signed admission and any phone action.

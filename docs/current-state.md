@@ -206,8 +206,14 @@ Python mode. It fsyncs exclusive phase intents before callbacks, refuses phase
 re-entry, preserves full capture after ambiguous execution, and requires a fresh
 independent V11 guard before restoration plus a distinct healthy ordinary V8
 boot afterward. User interruption permits cleanup without later mutations.
-The source-side arming and RAM-transition scripts are generated/syntax-checked;
-namespace execution tests and the concrete admission/device driver remain.
+The generated source-side arming and RAM-transition scripts then passed eight
+namespace execution cases in **0.640 s**, using the real ARM64 trial helper and
+sealed BusyBox. Physical guard observations were explicit fixtures; a harmless
+recorder replaced reboot. Genuine file metadata, exclusive publication, RAM
+replacement, chroot syntax and mount-namespace containment were exercised.
+Wrong state/source, symlinks, existing backup state and failed reboot replies
+were handled without retry or changes to the original synthetic trial state.
+The concrete admission/device driver and complete R01 replay remain to be bound.
 
 ## Mandatory results
 
