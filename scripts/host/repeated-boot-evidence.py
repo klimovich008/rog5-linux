@@ -94,8 +94,9 @@ def evaluate(args,B):
     hashes=B.READ.unique([part.split('=',1) for part in args.artifact_hashes.split(',')])
     baseline=B.evaluate(Path(spec['files']['baseline']['path']),B.sha(raw['baseline']),args.candidate,hashes)
     proof=d['baseline_proof'];run=d['run'];source=run['source']
-    require(proof['inputs_sha256']==B.sha(raw['baseline']) and proof['runner_sha256']==B.sha(Path(B.__file__).read_bytes())
+    require(proof['inputs_sha256']==B.sha(raw['baseline'])
         and proof['source']==source,'wrong full-baseline producer')
+    B.original_bytes(proof['source'],'scripts/host/check-standalone-boot.py',proof['runner_sha256'])
     require(all(proof[key]==baseline[key] for key in ('status','s01_qualified','identity','candidate',
         'artifact_hashes','original_source','evidence_sha256')),'full baseline changed')
     require(run['status']=='SEQUENCE_COMPONENT_PASS' and 'reason' not in run
@@ -105,8 +106,9 @@ def evaluate(args,B):
         'scripts/host/headless-stage-receiver.py','scripts/host/ordinary-boot-smoke.py',
         'initramfs/persistent-root-shutdown-standalone')
     for path in dependencies:
-        require(subprocess.check_output(['git','-C',str(B.R),'show',revision+':'+path],timeout=5)==
-            (B.R/path).read_bytes(),'changed observed dependency: '+path)
+        original=B.original_bytes(source,path)
+        if path not in ('scripts/host/headless-stage-receiver.py','scripts/host/ordinary-boot-smoke.py'):
+            require(original==(B.R/path).read_bytes(),'changed observed dependency: '+path)
     old=json.loads(subprocess.check_output(['git','-C',str(B.R),'show',revision+':configs/release-acceptance.json'],timeout=5))
     current=B.ROOT.D.CAPTURE.ACCEPTANCE.load_contract()
     require(all(old['defaults'][key]==current['defaults'][key] for key in ('ordinary_smoke','rescue_capture'))
@@ -123,7 +125,7 @@ def evaluate(args,B):
     require(len(probes)==1 and isinstance(probes[0],str),'exact health probe missing')
     producers={key:B.sha(raw[key+'_source']) for key in ('coordinator','preflight','health')}
     producers.update(baseline_proof=B.sha(raw['baseline_proof']),
-        receiver=B.sha((B.R/dependencies[2]).read_bytes()),deployed=B.sha((B.R/dependencies[0]).read_bytes()),
+        receiver=B.sha(B.original_bytes(source,dependencies[2])),deployed=B.sha((B.R/dependencies[0]).read_bytes()),
         shutdown=B.sha((B.R/dependencies[4]).read_bytes()))
     M=B.load('repeated_boot_rules',B.R/'scripts/host/ordinary-boot-smoke.py')
     require(len(run['boots'])==3,'three boots required')

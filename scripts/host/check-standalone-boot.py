@@ -124,6 +124,16 @@ ROLES={'entry','receipt','preflight','receiver_check','startup','supervision',
  'host-0','host-1','host-2','host-3','supervisor_source','preflight_source'}
 HEX=re.compile('[0-9a-f]{64}')
 def sha(raw):return hashlib.sha256(raw).hexdigest()
+def original_bytes(source,path,pin=None):
+ """Authenticate original observer bytes as data; never import historical code."""
+ require(type(source) is dict and source.get('clean') is True
+  and type(source.get('revision')) is str and re.fullmatch('[0-9a-f]{40}',source['revision'])
+  and source.get('worktree_digest')==sha(source['revision'].encode()),'unbound clean historical source')
+ raw=subprocess.check_output(['git','-C',str(R),'show',source['revision']+':'+path],timeout=5)
+ require(pin is None or (type(pin) is str and HEX.fullmatch(pin) and sha(raw)==pin),
+  'original observer hash mismatch: '+path)
+ return raw
+
 def pinned(path,pin):
  require(isinstance(pin,str) and HEX.fullmatch(pin),'invalid evidence pin')
  raw=READ.read_bytes(path,9*1024**2)
@@ -151,15 +161,17 @@ def evaluate(inputs,pin,candidate,artifact_hashes):
  require(record['boot_image_sha256']==artifact_hashes['boot_bundle'],'different installed release')
  for name in ('kernel','dtb','initramfs'):
   require(d['manifest'][name+'_sha256']==artifact_hashes[name],'different target artifact')
- source=d['receipt']['source']['revision']
- require(re.fullmatch('[0-9a-f]{40}',source),'source revision')
+ source=d['receipt']['source']
  dependencies=('scripts/host/check-standalone-root.py','scripts/host/check-deployed-server.py',
-  'scripts/host/headless-stage-receiver.py','configs/storage/rog5-dedicated-linux-v1.json')
+  'configs/storage/rog5-dedicated-linux-v1.json')
  for path in dependencies:
-  historical=subprocess.check_output(['git','-C',str(R),'show',source+':'+path],timeout=5)
+  historical=original_bytes(source,path)
   require(historical==(R/path).read_bytes(),'changed qualification dependency: '+path)
+ # Receiver implementation may change while the completed capture remains valid.
+ # Pin its original producer, then replay every event/command with current rules.
+ receiver=original_bytes(source,'scripts/host/headless-stage-receiver.py',d['receipt']['receiver_sha256'])
  producers=dict(supervisor=sha(payload['supervisor_source']),preflight=sha(payload['preflight_source']),
-  receiver=sha((R/'scripts/host/headless-stage-receiver.py').read_bytes()),
+  receiver=sha(receiver),
   deployed=sha((R/'scripts/host/check-deployed-server.py').read_bytes()))
  result=qualify(d,record,{k:sha(v) for k,v in payload.items()},producers)
  # Revalidate every pinned input after evaluation, not just the outer receipt.

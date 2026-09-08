@@ -162,8 +162,8 @@ def evaluate(args):
     record=B.READ.decode(data['result']);s01=B.READ.decode(data['s01'])
     F.composition_matches(B.READ.decode(data['composition']),args.candidate,hashes)
     require(s01['status']=='PASS' and s01['s01_qualified'] is True and s01['candidate']==args.candidate
-            and s01['artifact_hashes']==hashes
-            and s01['runner_sha256']==B.sha(Path(B.__file__).read_bytes()),'missing compatible S01')
+            and s01['artifact_hashes']==hashes,'missing compatible S01')
+    B.original_bytes(s01['source'],'scripts/host/check-standalone-boot.py',s01['runner_sha256'])
     identity=s01['identity']
     canonical=dict(x.split('=',1) for x in B.ROOT.D.CAPTURE.CLAIMS.expected_record(args.candidate).decode().splitlines())
     B.ROOT.D.CAPTURE.CLAIMS.verify_entered(args.candidate)
