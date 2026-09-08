@@ -39,7 +39,7 @@ RETURN=dict(bundle=BACK['bundle'],release=BACK['release'],manifest_sha256=PRIMAR
 BEFORE=dict(boot_id='33333333-3333-4333-8333-333333333333',bundle=M.PRIMARY,release=NEG['release'])
 AFTER=dict(boot_id='44444444-4444-4444-8444-444444444444',bundle=M.PRIMARY,release=NEG['release'])
 CANONICAL=dict(candidate=NEG['bundle'],target_bundle=NEG['bundle'],qualification='isolated-failure-r01',
-               execution='fastboot-boot-ram-bundle',fallback_bundle=M.FALLBACK,
+               execution='fastboot-boot-ram-bundle',ram_boot_image_size=str(M.RAM.IMAGE_SIZE),fallback_bundle=M.FALLBACK,
                fallback_manifest_sha256=PRIMARY['fallback_manifest_sha256'])
 DEPLOYED=dict(runtime=dict(status='present',path='/run/rog5-native-wifi/runtime',size=10,
                            sha256='a'*64,mode=0o755,uid=0,gid=0,nlink=1))
@@ -102,6 +102,9 @@ def fixture(directory):
     capture_raw=F.raw(cycle['events']);(directory/'capture/events.jsonl').write_bytes(capture_raw)
     results={name:dict(status='PASS') for name in M.PHASES}
     results['execute'].update(canonical_record=CANONICAL,entry_monotonic=cycle['entry'])
+    for phase in ('transition','execute'):
+        results[phase]['device']=dict(download_capacity=dict(max_download_size=536870912,returncode=0,stdout_hex='',
+            stderr_hex=b'(bootloader) max-download-size: 536870912\n'.hex()))
     results['close_capture'].update(events_sha256=M.digest(capture_raw),receiver_returncode=0,full_lifetime=True)
     results['ordinary_verify'].update(identity=AFTER)
     observe=results['observe'];observe.update(negative_identity=NEG,identity=BACK,
@@ -246,7 +249,7 @@ class ControllerReplayTests(unittest.TestCase):
 
     def test_raw_evidence_contradictions_and_failure_cannot_be_hidden(self):
         for change in ('extra-command','source-storage','ordinary-summary','fake-return-time','phase-failure',
-                       'component-only','changed-producer','missing-sample','ordinary-capture','wrong-primary-trial'):
+                       'component-only','changed-producer','missing-sample','ordinary-capture','wrong-primary-trial','missing-capacity','changed-capacity'):
             with self.subTest(change=change),tempfile.TemporaryDirectory() as temporary:
                 directory=Path(temporary)/'cycle';admission=fixture(directory)
                 if change=='extra-command':save_command(directory,'unexpected-reboot')
@@ -258,6 +261,11 @@ class ControllerReplayTests(unittest.TestCase):
                 if change=='fake-return-time':
                     file=directory/'observe-result.json';value=M.read(file);value['physical_return_monotonic']=2011;dump(file,value)
                 if change=='phase-failure':dump(directory/'observe-failure.json',dict(status='FAIL'))
+                if change in ('missing-capacity','changed-capacity'):
+                    file=directory/'execute-result.json';value=M.read(file)
+                    if change=='missing-capacity':del value['device']['download_capacity']
+                    else:value['device']['download_capacity']['max_download_size']=805306368
+                    dump(file,value)
                 if change=='component-only':
                     file=Path(admission['path']);c=M.read(file);checks=M.read(c['controller_checks']['path'])
                     checks['complete_driver_bindings']=False;c['controller_checks']=dump(Path(c['controller_checks']['path']),checks);admission=dump(file,c)

@@ -7410,3 +7410,54 @@ four optimized whole-controller replays and the active suite. Active log SHA-256
 All recorded inputs remained unchanged. Exact source copies and logs are
 retained. The receipt keeps `complete_driver_bindings=false` pending the final
 entrypoint/admission assessment; it does not imply new physical evidence.
+
+
+### R01 fixed entrypoint, actual payload bindings and RAM size — 2026-09-08
+
+The fixed entrypoint requires root and an explicit once-only argument, refuses
+an existing output directory, and closes all owned producers before evidence
+handoff. All nine private source files are pinned. Descriptor-relative checks
+validate every file before ownership transfer, preserve hashes and refuse
+links, unknown subdirectories, unsafe modes or oversized evidence. Three tests
+passed per Python mode (0.012/0.011 s); real same-owner `fchown` was exercised,
+not a claimed root-to-desktop transfer. Six current complete entrypoint/Driver/
+Core simulations passed **6.976111 s** (`r01-driver-lifecycle-tests-r5`).
+
+`r01-artifact-bindings-r1` passed **1.107225 s** using actual retained primary
+and V11 manifests, signature companions and sealed trust key. Both Ed25519
+signatures verified. Fallback files were read from the accepted root with
+read-only debugfs; root metadata stayed unchanged. The receipt derives all
+twelve installed file pins, six negative sealed hashes and exact V8/V11 tools.
+Twenty-seven current local-admission cases passed **0.658873 s**. No signing,
+phone contact or canonical negative registration occurred in those checks.
+
+Packaging arithmetic showed that the 55,320,609-byte negative archive cannot
+fit with the unchanged 50,498,048-byte ASUS kernel, native kernel and tools in
+96 MiB. The scoped solution is a separate exact **134,217,728-byte RAM image**.
+No kernel compression/rebuild, installed-image change or partition resize is
+involved. Android's [fastboot protocol](https://android.googlesource.com/platform/system/core/+/refs/heads/main/fastboot/README.md)
+distinguishes downloading/booting a RAM buffer from flashing a partition.
+Historical device output reports larger download capacities, but contains two
+values and is not admissible fresh evidence. The new helper requires exactly
+one bounded successful response before claim consumption; missing, conflicting,
+changed, insufficient or malformed capacity evidence refuses. Actual ASUS boot
+compatibility with the larger image remains unproven.
+
+The original 96 MiB helper is byte-identical. Seven new helper tests exercise
+capacity parsing/replay, canonical scope/claim validation, actual 128 MiB
+sealed-memory snapshots, file metadata and single dispatch. Five current actual
+execution-child cases passed **1.704097 s** (`r01-driver-execution-tests-r4`),
+with real disposable claims and a harmless fastboot sink. Twelve driver
+boundary cases now include capacity failure before the consuming child.
+
+`r01-ram-bindings-checkpoint-r1` passed **60.939250 s**, including active
+**55.565730 s**, with all source inputs unchanged. Active log SHA-256:
+`2a9eaa1268c799a608b41b19b557766d590a0f40b038db31829b3aa41a38fea7`.
+The complete current assessment `r01-controller-bindings-r2` passed
+**0.102517 s**. Earlier restoration callbacks remain AST-identical to their
+actual namespace tests; current execution/lifecycle/admission sources match
+retained copies. The earlier 96 MiB binding assessment is explicitly invalidated.
+
+These are offline prerequisites. Signed twin composition, canonical registration,
+full integration CI/publication and fresh physical gates remain required. No
+phone operation or real claim consumption occurred; R01 and S06 remain NOT RUN.

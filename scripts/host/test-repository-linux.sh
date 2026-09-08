@@ -171,6 +171,7 @@ active_tests=(
 	scripts/host/test-check-isolated-recovery.py
 	scripts/host/test-r01-controller-replay.py
 	scripts/host/test-isolated-recovery-diagnostics.py
+	scripts/host/test-verified-isolated-recovery-boot.py
 	scripts/host/test-release-acceptance.py
 	scripts/host/test-network-transfer-stream.py
 	scripts/host/test-wifi-restart-evidence.py

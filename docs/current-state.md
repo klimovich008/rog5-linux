@@ -254,8 +254,24 @@ The latest combined checkpoint includes the reset-log binding and passed
 actual phase simulations passed again against the current producers; no real
 transport, receiver process or claim was used.
 
-These remain offline component/integration results. The consolidated complete
-binding receipt, final admission assembly, full integration CI/publication,
+The fixed root entrypoint now binds all nine private sources and hands closed
+evidence to the desktop account only after every owned producer exits. Exact
+primary/fallback manifests and signatures were verified from retained artifacts;
+27 admission cases passed in **0.659 s**. The complete binding assessment
+`r01-controller-bindings-r2` passed **0.103 s**, retaining compatible earlier
+restoration coverage and the current full entrypoint simulations.
+
+The full negative target cannot fit beside the unchanged ASUS kernel in the
+existing 96 MiB RAM image. A separate R01-only helper requires an exact
+**128 MiB** image, its canonical hash and consumed claim, plus a fresh single
+unambiguous bootloader download-capacity response before consumption. Existing
+96 MiB boot helpers and partition sizes remain unchanged. Seven helper tests,
+twelve driver boundary tests, raw replay contradictions and the active suite
+passed in **60.939 s** (active **55.566 s**). The actual 128 MiB execution child
+passed five cases in **1.704 s**; six current lifecycle simulations passed
+**6.976 s**. These use disposable claims and simulated transport, not a phone.
+
+Twin signed packaging, final admission assembly, full integration CI/publication,
 signed canonical negative admission and physical R01 remain outstanding.
 No new phone action, state transition or real claim consumption occurred.
 
@@ -294,7 +310,7 @@ Detailed V6/V7 failures, V8 staging/runtime proof, fixture fixes, original
 timings and exact retention procedures are in the
 [existing dated report](../test-results/2026-09-05-headless-acceptance.md).
 
-Home has about 6.07 GB free; preserve the 3 GiB reserve. V5's lossless reverse
+Home has about 13.81 GB free at this checkpoint; preserve the 3 GiB reserve. V5's lossless reverse
 delta and durable V7 base must stay together. Unique archives still occupy RAM:
 no host reboot until retained safely. Never remove failed-soak scratch, accepted
 payloads, private evidence or claims. Leave unrelated SteamOS CEF port 8081 alone.

@@ -32,6 +32,7 @@ def load(name,file):
 CAP=load('r01_replay_capture','capture-isolated-recovery.py')
 OBS=load('r01_replay_negative','isolated-recovery-observation.py')
 DIAG=load('r01_replay_diagnostics','isolated-recovery-diagnostics.py')
+RAM=load('r01_replay_ram_boot','verified-isolated-recovery-boot.py')
 SMOKE=load('r01_replay_ordinary','ordinary-boot-smoke.py')
 ROOT=SMOKE.B.ROOT
 need=OBS.need
@@ -39,7 +40,7 @@ PRIMARY='headless-server-selector-v8'
 FALLBACK='persistent-native-root-v11'
 PHASES=('preflight','arm','transition','capture','execute','observe','close_capture',
         'rescue_guard','restore','ordinary_verify')
-PRIVATE_SOURCES=frozenset(('r01-live-driver-r1.py','r01-controller-core-r1.py','r01-source-actions-r1.py',
+PRIVATE_SOURCES=frozenset(('r01-live-driver-r1.py','r01-live-entrypoint-r1.py','r01-controller-core-r1.py','r01-source-actions-r1.py',
                          'r01-trial-state-operation-r1.py','r01-rollback-stream-r1.py','r01-restore-shell-r1.py',
                          's05-health-usb-link-r1.py','s05-preflight-usb-link-r1.py'))
 HASH=re.compile('[0-9a-f]{64}')
@@ -100,7 +101,7 @@ def verify_claim(profile,lifecycle_uid):
 
 def source_closure():
     """Pin the loaded repository producer/validator modules and data contracts."""
-    pending=[CAP,OBS,DIAG,SMOKE,ROOT];seen=set();paths={Path(__file__).resolve(),
+    pending=[CAP,OBS,DIAG,RAM,SMOKE,ROOT];seen=set();paths={Path(__file__).resolve(),
         R/'scripts/host/verified-fastboot-boot.py',R/'scripts/host/check-wifi-restart-evidence.py',
         R/'configs/release-acceptance.json',R/'configs/storage/rog5-dedicated-linux-v1.json'}
     while pending:
@@ -267,7 +268,8 @@ def check_controller(admission_path,admission_sha256,directory,*,retained=False)
     directory=Path(directory);admission_path=Path(admission_path)
     c=read(admission_path,admission_sha256);profile=c['candidate'];record=canonical(profile);primary=canonical(PRIMARY)
     need(c['format']=='rog5-r01-live-admission-v1' and record.get('qualification')=='isolated-failure-r01'
-         and record['execution']=='fastboot-boot-ram-bundle','not the admitted isolated failure candidate')
+         and record['execution']=='fastboot-boot-ram-bundle' and record.get('ram_boot_image_size')==str(RAM.IMAGE_SIZE),
+         'not the admitted isolated failure candidate')
     verify_claim(profile,c['lifecycle_uid'])  # Read-only proof of permanent consumption.
     source=c['source'];current=CAP.ACCEPTANCE.source_identity()
     need(source['clean'] is True and current['clean'] is True
@@ -342,6 +344,7 @@ def check_controller(admission_path,admission_sha256,directory,*,retained=False)
     need(command(directory,'execute').splitlines()==[b'CLAIM_CONSUMED',b'FASTBOOT_ACCEPTED'],
          'experimental command not acknowledged once')
     need(results['execute']['canonical_record']==record,'different executed image claim')
+    for phase in ('transition','execute'):RAM.replay_capacity(results[phase]['device']['download_capacity'])
     transition=[OBS.decode(line) for line in command(directory,'source-fastboot').splitlines()]
     need(len(transition)==2 and transition[0]['event']=='transition-ready'
          and transition[0]['pending_sha256']==context['pending_sha256']
