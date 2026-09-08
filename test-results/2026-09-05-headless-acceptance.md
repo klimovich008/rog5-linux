@@ -7332,3 +7332,81 @@ that separate complete-binding gate. The complete controller evidence replay,
 input-envelope/dispatcher, full CI/publication and signed negative admission
 remain required. No physical action, state transition or claim consumption
 occurred, and no R01 or full release result is claimed.
+
+### R01 completed-input replay, admission and actual driver integration — 2026-09-08
+
+The public checker now exposes a completed-input CLI and the R01 dispatcher
+requires its pinned envelope plus the exact six primary artifact hashes.
+Full replay checks original S01 evidence, every retained file, exact raw command
+inventory, canonical lifecycle account, source closure and genuine ordinary
+primary health. A synthetic whole-controller regression demonstrated that a
+consistent wrong primary trial could previously pass; both driver and consumer
+now compare it with the accepted canonical trial. The dispatcher has 51 tests;
+raw replay has eight and whole-controller replay has four, with contradiction
+subcases. `r01-integrated-replay-tests-r1/result.json` passed **60.500438 s**,
+including active **48.501912 s**, with sources unchanged. Active log SHA-256:
+`6dda0ca4eff7a6bd0ca58a3d4c49765f043e451177d1ce3035b6821e4431827b`.
+
+Actual `Driver.restore` and its generated SSH commands passed five disposable
+namespace cases in **43.914625 s** (`r01-driver-restoration-tests-r1`). Exact V11
+BusyBox/loader and the canonical ARM64 helper ran under QEMU, while physical
+facts and transport were explicit fixtures. Successful staging/restoration
+removed only the owned helper; wrong record/power refused first. Lost replies
+after successful staging or state restoration stayed failed, retained the
+actual helper/state, and were never retried. Installed and unrelated fixture
+bytes were unchanged in all cases.
+
+Actual generated execution-child code passed five cases in **1.217463 s**
+(`r01-driver-execution-tests-r3`), with real disposable claim publication,
+consumption/verification and sealed-memory snapshot creation. A harmless sink
+replaced fastboot. Failed execution or image-size validation after consumption
+kept the fixture claim consumed. Prior setup and deliberately undersized-fixture
+failures remain recorded; no real claim was written. A separate read-only check
+of the real V8 lifecycle claim confirmed identical content and metadata.
+
+The actual Driver/Core phase sequence then passed six cases in **6.581404 s**
+(`r01-driver-lifecycle-tests-r2`). All phase methods, generated command receipt
+writers and public replay validators ran against synthetic transport, receiver
+processes, clock and canonical admission. Cases cover success, lost arm reply,
+lost execution reply, unsafe negative power, lost restoration reply and wrong
+ordinary trial. Ambiguous arming stopped before transition; failed experiments
+kept full capture and could restore a freshly observed fallback without becoming
+PASS. The initial harness omitted the actual arm result's component status;
+that fixture error is preserved separately. This checkpoint precedes the new
+reset-log binding and does not grant live authority.
+
+The installed inventory now derives all twelve exact file hashes from canonical
+primary/fallback manifests and pinned signature companions. Admission requires
+exactly six artifact roles, the canonical helper and exactly four distinct
+successful CI jobs. Eleven driver boundary tests pass. Twenty-two actual local
+admission cases passed in **0.651181 s** (`r01-local-admission-tests-r1`), using
+synthetic canonical/CI records with real source closure, primitive compilation,
+file/hash metadata and inventory validation. Missing or changed bindings,
+wrong account/source, altered artifacts/inventory, wrong helper, incomplete CI,
+duplicate jobs and changed consumer results all refuse before phone access.
+
+Bounded reset diagnostics now read command-line reset hints and only already
+mounted pstore locations. No mount, unlink, clear or enable operation is issued.
+Raw binary records are retained with explicit truncation/overflow/read errors;
+absent or empty pstore is inconclusive. Twenty cases passed against both V8 and
+V11 sealed BusyBox binaries in **6.347291 s** (`r01-diagnostics-shell-tests-r2`),
+using read-only namespace fixtures and QEMU. They caught a real generator bug:
+`set -f` disabled the glob used to enumerate records. Removing it restored
+record capture; original failed output remains in r1. Five public protocol tests
+also pass. No fixture bytes changed.
+
+All receipts remain component/integration evidence with no phone action or
+release acceptance. Consolidated current bindings, final admission assembly,
+full integration CI/publication, signed negative registration and physical R01
+are still required. S06 still needs a real powered-off start with an available
+operator; the phone has not been powered off.
+
+The consolidated current-source checkpoint `r01-final-bindings-checkpoint-r1`
+passed **66.838217 s**, including active **55.014346 s**. It includes the six
+actual lifecycle simulations with both reset observations, eleven driver tests
+in normal and optimized Python, five optimized diagnostics protocol tests,
+four optimized whole-controller replays and the active suite. Active log SHA-256:
+`6f14dd7f17f0e73b108e77f30f668f1c14801ca69a0533679fada3b7daf8df34`.
+All recorded inputs remained unchanged. Exact source copies and logs are
+retained. The receipt keeps `complete_driver_bindings=false` pending the final
+entrypoint/admission assessment; it does not imply new physical evidence.

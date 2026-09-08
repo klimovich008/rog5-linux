@@ -213,26 +213,51 @@ recorder replaced reboot. Genuine file metadata, exclusive publication, RAM
 replacement, chroot syntax and mount-namespace containment were exercised.
 Wrong state/source, symlinks, existing backup state and failed reboot replies
 were handled without retry or changes to the original synthetic trial state.
-The concrete private driver now implements every controller phase, including
-the two-boot observer, sealed V11 restoration and subsequent ordinary V8 health
-check. It remains import-only. Nine driver boundary tests passed normally and
-optimized; these are not complete controller-binding qualification. They caught
-and corrected a missing private import path, a reboot/post-read USB race and an
-incorrect assumption that parsed stage dictionaries contain the kernel release.
+The import-only private driver now implements every controller phase. Eleven
+boundary tests cover raw reply retention, timeout/no-retry behavior, claim-account
+selection, exact fastboot fields and the twelve-file installed inventory. The
+inventory derives payload hashes from canonical primary/fallback manifests and
+pins their signature companions. Local admission additionally requires the
+exact six artifact roles, canonical restoration helper, unchanged producer
+closure and exactly four successful CI jobs. Twenty-two admission cases passed
+in **0.651 s**, using explicitly synthetic canonical/CI records and real file
+pins, source hashes, primitive compilation and inventory derivation.
 
-The independent R01 replay library validates raw command receipts, the specific
-negative-health snapshots, complete PID 1 rollback journal, physical return,
-full capture cleanup and ordinary restoration evidence. Seven replay boundary
-tests use actual loopback receiver parsing; complete controller replay and the
-completed-input envelope/dispatcher are still required. The health observer
-now permits only a bounded read-only wait for a genuinely pending unit, while
-checking actual identity, armed state, sealed files, power and storage. Its ten
-tests passed. No expected failure fields are synthesized to permit that wait.
-The combined checkpoint passed in **53.391 s**, including active **51.780 s**,
-with tested sources unchanged. Its receipt explicitly records
-`complete_driver_bindings=false`, which both admission and replay refuse as
-live qualification. Full integration CI, publication, signed canonical admission
-and physical R01 remain outstanding; no new phone action or claim occurred.
+Actual driver restoration passed five namespace cases in **43.915 s**, using
+the V11 BusyBox and ARM64 helper under QEMU. Lost staging/restoration replies
+were not retried; exact fixture state and helper leftovers were retained. Five
+execution-child cases passed in **1.217 s** with real disposable claim handling
+and sealed-memory snapshots, while a harmless sink replaced fastboot. Failures
+after consumption kept those fixture claims consumed. The real V8 claim was
+checked read-only under its existing lifecycle account and stayed unchanged.
+
+The offline R01 consumer and matrix dispatcher now accept a pinned completed
+input envelope. They independently replay the full ordinary S01 prerequisite,
+all raw controller commands, negative state/journal, two-boot capture and later
+ordinary health. A regression caught consistent but wrong primary trial IDs;
+those now refuse. The integrated checkpoint passed **60.500 s**, including
+active **48.502 s**, with all inputs unchanged. Six subsequent tests exercised
+the actual Driver/Core phase sequence and public replay with synthetic
+transport/clock/admission in **6.581 s**; restoration never converted a failed
+experiment into PASS. That checkpoint predates the reset-log binding.
+
+Bounded reset diagnostics read only already-mounted pstore locations before
+arming and after full capture on V11. Absence, unsupported mounts, read errors,
+truncation and overflow are explicit; empty pstore never proves reset cause.
+Twenty cases passed with both actual sealed BusyBox binaries in **6.347 s**.
+They caught and corrected disabled glob expansion that had skipped present
+records. The original failure and raw logs remain private; fixture bytes were
+unchanged. Five public protocol tests cover malformed/stale/ambiguous evidence.
+
+The latest combined checkpoint includes the reset-log binding and passed
+**66.838 s**, including active **55.014 s**, with sources unchanged. All six
+actual phase simulations passed again against the current producers; no real
+transport, receiver process or claim was used.
+
+These remain offline component/integration results. The consolidated complete
+binding receipt, final admission assembly, full integration CI/publication,
+signed canonical negative admission and physical R01 remain outstanding.
+No new phone action, state transition or real claim consumption occurred.
 
 ## Mandatory results
 

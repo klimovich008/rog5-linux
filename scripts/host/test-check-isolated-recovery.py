@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 SPEC=importlib.util.spec_from_file_location('r01_checker_tests',Path(__file__).with_name('check-isolated-recovery.py'))
 M=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(M)
@@ -54,6 +56,21 @@ def fixture():
 
 
 class ReplayTest(unittest.TestCase):
+    def test_claim_lookup_uses_the_existing_lifecycle_account(self):
+        with patch.object(M,'canonical'),patch.object(M.os,'geteuid',return_value=1000),patch.object(M.CAP.CLAIMS,'verify_entered') as verify:
+            M.verify_claim('fixture',1000);verify.assert_called_once_with('fixture')
+        success=SimpleNamespace(returncode=0,stdout=b'CLAIM_VERIFIED\n',stderr=b'')
+        with patch.object(M,'canonical'),patch.object(M.os,'geteuid',return_value=0),\
+             patch.object(M.pwd,'getpwuid',return_value=SimpleNamespace(pw_name='fixture-user')),\
+             patch.object(M.subprocess,'run',return_value=success) as run:
+            M.verify_claim('fixture',1000)
+            self.assertEqual(run.call_args.args[0][:4],['runuser','-u','fixture-user','--'])
+            self.assertIn("m.verify_entered('fixture')",run.call_args.args[0][-1])
+            self.assertNotIn('m.consume(',run.call_args.args[0][-1])
+        with patch.object(M.os,'geteuid',return_value=1001),patch.object(M.subprocess,'run') as run:
+            with self.assertRaises(ValueError):M.verify_claim('fixture',1000)
+            run.assert_not_called()
+
     def test_real_receiver_frames_have_no_release_field(self):
         value=fixture()
         self.assertTrue(all('release' not in event['stage'] for event in value['events'] if event['event']=='stage'))

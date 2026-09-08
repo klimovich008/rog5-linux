@@ -181,7 +181,7 @@ def qualification_hashes(release):
     return hashes
 
 
-def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None, wifi_restart_inputs=None, standalone_boot_inputs=None, runtime_inputs=None, rescue_runtime_inputs=None):
+def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None, wifi_restart_inputs=None, standalone_boot_inputs=None, runtime_inputs=None, rescue_runtime_inputs=None, isolated_recovery_inputs=None):
     row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
            'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
            'next_action': test['blocker'], 'commands': test['commands'], 'test_versions': {}}
@@ -253,6 +253,16 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                 row.update(status='FAIL',next_action='invalid ordinary-boot evidence input pin')
                 return row
             bindings.update({'{standalone_boot_inputs}':str(path),'{standalone_boot_inputs_sha256}':pin,
+                             '{artifact_hashes}':','.join(k+'='+v for k,v in sorted(qualification_hashes(release).items()))})
+        if test['id']=='R01':
+            if isolated_recovery_inputs is None:
+                row['next_action']='supply pinned --isolated-recovery-inputs; replay never initiates a failed boot or restoration'
+                return row
+            path,pin=isolated_recovery_inputs
+            if not path.is_absolute() or type(pin) is not str or not re.fullmatch('[0-9a-f]{64}',pin):
+                row.update(status='FAIL',next_action='invalid isolated recovery evidence pin')
+                return row
+            bindings.update({'{isolated_recovery_inputs}':str(path),'{isolated_recovery_inputs_sha256}':pin,
                              '{artifact_hashes}':','.join(k+'='+v for k,v in sorted(qualification_hashes(release).items()))})
         if test['id']=='F02':
             if wifi_restart_inputs is None:
@@ -380,7 +390,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             row['next_action'] = 'Proceed to the next mandatory test; offline composition grants no boot authority'
         except (OSError,KeyError,TypeError,ValueError) as error:
             row.update(status='FAIL', next_action='missing complete A01 proof: '+str(error))
-    if row['status']=='PASS' and (test['id'] in ('F02','S01','S02','S03','S04','S05','S07') or retained_rescue):
+    if row['status']=='PASS' and (test['id'] in ('F02','S01','S02','S03','S04','S05','S07','R01') or retained_rescue):
         try:
             test_id=test['id']
             inputs=wifi_restart_inputs if test_id=='F02' else standalone_boot_inputs
@@ -391,6 +401,9 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             if retained_rescue:
                 inputs=rescue_runtime_inputs
                 runner='rescue-runtime-evidence.py'
+            if test_id=='R01':
+                inputs=isolated_recovery_inputs
+                runner='check-isolated-recovery.py'
             proof_path=output/test_id/'result.json';proof=json.loads(proof_path.read_text())
             if (proof['status']!='PASS' or proof[test_id.lower()+'_qualified'] is not True or
                     proof['source']!=source_identity() or proof['candidate']!=release['candidate_id'] or
@@ -495,6 +508,8 @@ def main():
     parser.add_argument('--wifi-restart-inputs-sha256',help='reviewed SHA-256 of the restart evidence input file')
     parser.add_argument('--standalone-boot-inputs',type=Path,help='pinned completed ordinary-boot evidence; offline replay only')
     parser.add_argument('--standalone-boot-inputs-sha256',help='reviewed SHA-256 of the ordinary-boot evidence input file')
+    parser.add_argument('--isolated-recovery-inputs',type=Path,help='completed physical recovery evidence; offline replay only')
+    parser.add_argument('--isolated-recovery-inputs-sha256',help='reviewed SHA-256 of the isolated recovery input envelope')
     parser.add_argument('--runtime-inputs',action='append',default=[],metavar='S02|S03|S04|S05|S07=PATH,SHA256',
                         help='pinned completed transfer/restart/durability/repeated-boot/soak evidence; each outcome once')
     args = parser.parse_args()
@@ -511,6 +526,8 @@ def main():
         parser.error('Wi-Fi evidence path and SHA-256 are required together')
     if bool(args.standalone_boot_inputs)!=bool(args.standalone_boot_inputs_sha256):
         parser.error('ordinary-boot evidence path and SHA-256 are required together')
+    if bool(args.isolated_recovery_inputs)!=bool(args.isolated_recovery_inputs_sha256):
+        parser.error('isolated recovery evidence path and SHA-256 are required together')
     if bool(args.rescue_runtime_inputs)!=bool(args.rescue_runtime_inputs_sha256):
         parser.error('completed rescue evidence path and SHA-256 are required together')
     if args.rescue_runtime_inputs and (args.capture or args.rescue_inputs):
@@ -560,7 +577,8 @@ def main():
                           (args.wifi_restart_inputs,args.wifi_restart_inputs_sha256) if args.wifi_restart_inputs else None,
                           (args.standalone_boot_inputs,args.standalone_boot_inputs_sha256) if args.standalone_boot_inputs else None,
                           runtime_inputs,
-                          (args.rescue_runtime_inputs,args.rescue_runtime_inputs_sha256) if args.rescue_runtime_inputs else None)
+                          (args.rescue_runtime_inputs,args.rescue_runtime_inputs_sha256) if args.rescue_runtime_inputs else None,
+                          (args.isolated_recovery_inputs,args.isolated_recovery_inputs_sha256) if args.isolated_recovery_inputs else None)
             print(f'{row["id"]}: {row["status"]} ({row["duration_seconds"]:.3f}s)', flush=True)
         report['tests'].append(row)
     after = source_identity()
