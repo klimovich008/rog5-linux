@@ -144,8 +144,8 @@ def evaluate(args,base):
     hashes=base.READ.unique([part.split('=',1) for part in args.artifact_hashes.split(',')])
     baseline=base.evaluate(Path(spec['files']['baseline']['path']),base.sha(raw['baseline']),args.candidate,hashes)
     proof=d['baseline_proof'];run=d['run'];source=run['source']
-    require(proof['inputs_sha256']==base.sha(raw['baseline']) and proof['source']==source
-        and proof['runner_sha256']==base.sha(Path(base.__file__).read_bytes()),'wrong full baseline producer')
+    require(proof['inputs_sha256']==base.sha(raw['baseline']) and proof['source']==source,'wrong full baseline producer')
+    base.original_bytes(proof['source'],'scripts/host/check-standalone-boot.py',proof['runner_sha256'])
     require(all(proof[key]==baseline[key] for key in ('status','s01_qualified','identity','candidate',
         'artifact_hashes','original_source','evidence_sha256')),'full baseline changed')
     runtime=base.load('off_start_prerequisite',HERE/'check-server-runtime-evidence.py')

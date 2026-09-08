@@ -7816,3 +7816,31 @@ All fifteen focused tests pass in normal and optimized Python. This assertion
 and its regression are a separate observer follow-up to the completed full
 integration, with source validation tracked separately. S06 is still NOT RUN,
 R01 is still FAIL, and no phone controller or boot was started.
+
+
+## Historical observer compatibility for retained boots (2026-09-09)
+
+The preceding source-byte refusal was isolated to observer implementation
+changes. S01 now authenticates the original receiver hash against the original
+clean Git revision, then applies the current raw command, root/readiness,
+transport, capture-duration and cleanup checks. S05 also authenticates the
+original S01 evaluator and preserves the original receiver/smoke revision while
+rechecking each early-close decision, completed component and full three-boot
+sequence. Original observer code is data only; no historical or private code is
+executed. Source cleanliness includes the revision-derived worktree digest.
+Root/readiness collectors, storage geometry and installed shutdown bytes still
+require exact equality. Failed captures and incompatible artifacts cannot pass.
+
+The public S05 replay passed in **0.136400 s**, retaining source `f0a3420b`
+and all original boot identities. Regression replay of the unchanged S02/S03/
+S04/S07 inputs passed in **3.379925 / 0.031427 / 0.288538 / 69.188361 s**,
+respectively; the enclosing read-only run took **72.915923 s**. These development
+replays made no phone contact and are separate from the pending frozen matrix
+assessment. The old refusal and diagnostic evidence remain preserved.
+
+New tests cover a different original receiver treated only as data, a forged
+observer hash, dirty or unbound historical source, changed root/readiness/
+storage dependencies and a failed capture. The 27 baseline tests passed in
+both Python modes. Existing repeated-boot, powered-off, runtime, durability,
+soak and acceptance regressions also pass. Full integration CI and clean-source
+matrix assessment are pending. R01 remains FAIL and S06 remains NOT RUN.

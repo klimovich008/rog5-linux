@@ -124,6 +124,7 @@ class EnvelopeTests(unittest.TestCase):
                     baseline.assert_not_called()
     def test_complete_envelope_replays_all_raw_bindings(self):
         v=fixture();boot,d,raw,baseline,record,producers,probe=v
+        boot['context']['source']['worktree_digest']=B.sha(boot['context']['source']['revision'].encode())
         manifest=b'kernel_sha256='+b'a'*64+b'\ndtb_sha256='+b'b'*64+b'\ninitramfs_sha256='+b'e'*64+b'\n'
         record['manifest_sha256']=B.sha(manifest)
         d['preflight']['manifest_sha256']=d['root']['manifest_sha256']=record['manifest_sha256']

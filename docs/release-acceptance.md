@@ -59,8 +59,15 @@ the complete sequence stays within 1080 s. Full failure observation is armed
 before each request. An owned capture may close early only after a fresh,
 verified healthy commit; failure/ambiguity retains full observation and forbids
 another action. Smoke evidence is not full watchdog/R01 or release qualification.
-Replay preserves the actual observed source revision and checks unchanged
-producer dependencies; it neither reboots nor retries any experimental claim.
+Replay preserves the actual observed source revision. The receiver and smoke
+observer may differ from today's implementation: their original clean Git
+revision authenticates the producer, and the current predicates recheck every
+command, event, healthy-close decision and completed component. Historical
+observer code is read as data and never executed. The root, readiness, storage
+geometry and target shutdown dependencies still require identical bytes.
+Stored S01 proof hashes bind their original evaluator revision; a current
+replay must independently agree with that proof's original source, artifact,
+identity and raw-evidence hashes. This neither reboots nor retries a claim.
 
 S07's predeclared method uses `defaults.server_soak`. After at most 60 s of
 preflight and 60 s of warm-up, measure 3600 s with concurrent authenticated
@@ -455,8 +462,9 @@ installed-byte and fallback guards, sole phone ownership and a ready operator.
 
 Use `--runtime-inputs S06=ABSOLUTE_PATH,SHA256` with the existing release matrix.
 Missing inputs are BLOCKED; contradictory evidence fails. S06 remains NOT RUN
-until physical evidence passes replay. Existing S01/S05 dependency checks also
-remain strict: an older receiver cannot silently become current-source proof.
+until physical evidence passes replay. S01/S05 authenticate older observer revisions explicitly and replay current
+behavior checks; target/storage/readiness dependencies remain byte-identical.
+Original observation sources never become current-source observations.
 
 Every row's environment, prerequisites, runner, deadline, outcome, mutation,
 cleanup and evidence contract is in the JSON. Empty command lists carry explicit

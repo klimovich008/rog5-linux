@@ -105,8 +105,9 @@ class Tests(unittest.TestCase):
   self.assertNotIn('--reboot',p.stdout);self.assertNotIn('--identity-file',p.stdout)
 
 class PinnedReplayTests(unittest.TestCase):
- def prepare(self,path):
+ def prepare(self,path,receiver_source=None):
   d,record,_,_=fixture()
+  d['receipt']['source']['worktree_digest']=M.sha(d['receipt']['source']['revision'].encode())
   hashes={k:'a'*64 for k in ('kernel','dtb','initramfs','rootfs','boot_bundle')}
   hashes['boot_bundle']=record['boot_image_sha256']
   d['manifest'].update({k+'_sha256':hashes[k] for k in ('kernel','dtb','initramfs')})
@@ -114,7 +115,7 @@ class PinnedReplayTests(unittest.TestCase):
   record['manifest_sha256']=M.sha(manifest)
   d['preflight']['manifest_sha256']=d['root']['manifest_sha256']=M.sha(manifest)
   d['entry']['supervisor_sha256']=d['preflight']['observer_sha256']=M.sha(b'reviewed fixture source')
-  d['receipt']['receiver_sha256']=M.sha((M.R/'scripts/host/headless-stage-receiver.py').read_bytes())
+  d['receipt']['receiver_sha256']=M.sha(receiver_source if receiver_source is not None else (M.R/'scripts/host/headless-stage-receiver.py').read_bytes())
   d['readiness']['runner_sha256']=M.sha((M.R/'scripts/host/check-deployed-server.py').read_bytes())
   payload={k:json.dumps(v).encode() for k,v in d.items() if k not in ('events','hosts','manifest')}
   d['root']['stdout_sha256']=M.sha(payload['root_raw'])
@@ -151,6 +152,48 @@ class PinnedReplayTests(unittest.TestCase):
       result=M.evaluate(inputs,pin,'fixture',hashes);self.assertTrue(result['s01_qualified']);claim.assert_called_once_with('fixture')
      else:
       with self.assertRaises((ValueError,OSError)):M.evaluate(inputs,pin,'fixture',hashes)
+ def test_original_receiver_is_data_and_never_overrides_current_guards(self):
+  original=b'raise RuntimeError("historical observer must never execute")\n'
+  for mutation in ('none','forged-pin','changed-root','changed-readiness','changed-storage','failed-capture','dirty-source'):
+   with self.subTest(mutation=mutation),tempfile.TemporaryDirectory() as tmp:
+    root=Path(tmp);inputs,pin,record,hashes=self.prepare(root,original if mutation!='forged-pin' else b'wrong observer')
+    envelope=json.loads(inputs.read_text())
+    def replace(role,value):
+     raw=json.dumps(value).encode();(root/role).write_bytes(raw);envelope['files'][role]['sha256']=M.sha(raw)
+    if mutation=='failed-capture':
+     events=[json.loads(line) for line in (root/'events').read_bytes().splitlines()]
+     next(e for e in events if e['event']=='capture-ended')['status']='FAIL'
+     raw=b''.join(json.dumps(e).encode()+b'\n' for e in events);(root/'events').write_bytes(raw)
+     envelope['files']['events']['sha256']=M.sha(raw)
+    if mutation=='dirty-source':
+     receipt=json.loads((root/'receipt').read_text());receipt['source']['clean']=False;replace('receipt',receipt)
+    inputs.write_text(json.dumps(envelope));pin=M.sha(inputs.read_bytes())
+    changed={'changed-root':'scripts/host/check-standalone-root.py',
+     'changed-readiness':'scripts/host/check-deployed-server.py','changed-storage':'configs/storage/rog5-dedicated-linux-v1.json'}.get(mutation)
+    def historical(args,**kw):
+     name=args[-1].split(':',1)[1]
+     if name=='scripts/host/headless-stage-receiver.py':return original
+     if name==changed:return b'changed protected dependency'
+     return (M.R/name).read_bytes()
+    canonical=''.join(k+'='+v+'\n' for k,v in record.items()).encode()
+    with mock.patch.object(M.ROOT.D.CAPTURE.CLAIMS,'expected_record',return_value=canonical), \
+         mock.patch.object(M.ROOT.D.CAPTURE.CLAIMS,'verify_entered'), \
+         mock.patch.object(M.subprocess,'check_output',side_effect=historical):
+     if mutation=='none':
+      result=M.evaluate(inputs,pin,'fixture',hashes)
+      self.assertTrue(result['s01_qualified']);self.assertFalse(result['release_qualified'])
+      self.assertEqual(result['original_source']['revision'],'a'*40)
+     else:
+      with self.assertRaises(ValueError):M.evaluate(inputs,pin,'fixture',hashes)
+ def test_original_observer_requires_clean_commit_and_matching_pin(self):
+  source=dict(clean=True,revision='a'*40,worktree_digest=M.sha(('a'*40).encode()))
+  for change in ({'clean':False},{'clean':1},{'revision':'main'},{'worktree_digest':'b'*64}):
+   with mock.patch.object(M.subprocess,'check_output') as git:
+    with self.assertRaises(ValueError):M.original_bytes(dict(source,**change),'scripts/host/headless-stage-receiver.py')
+    git.assert_not_called()
+  with mock.patch.object(M.subprocess,'check_output',return_value=b'original'):
+   for pin in ('0'*64,False,'invalid'):
+    with self.assertRaises(ValueError):M.original_bytes(source,'scripts/host/headless-stage-receiver.py',pin)
  def test_cli_missing_completed_evidence_is_blocked_under_both_interpreters(self):
   for optimized in ([],['-O']):
    with tempfile.TemporaryDirectory() as tmp:
