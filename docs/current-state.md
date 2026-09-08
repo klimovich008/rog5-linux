@@ -5,7 +5,8 @@ The last retained health, readiness, storage and twelve-file readback passed.
 The optional RAM-only source observer now requires positively bound clean teardown
 evidence. Sealed BusyBox tests cover refusals, bounded fallback and isolated TCP;
 physical shutdown transport and controller admission integration remain unproven.
-Full integration CI for this change is pending.
+Full local CI for `193e1334` passed in **548.623 seconds**, with unchanged source.
+Physical R01 remains FAIL; S06 remains NOT RUN.
 The observer corrections passed full local and GitHub CI. S06 now has an offline
 powered-off-start evidence runner; its shared integration passed full local CI
 in 539.516 seconds. The final earlier-boot assertion passed fifteen focused tests
