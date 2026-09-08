@@ -727,7 +727,7 @@
         "safe sustained power",
         "authorized scratch scope"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-server-runtime-evidence.py", "--kind", "S07", "--inputs", "{runtime_inputs}", "--inputs-sha256", "{runtime_inputs_sha256}", "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 3900,
       "pass_condition": "3600s combined bounded storage and network activity; no reset/oops/new UFS errors/emergency RO or unsafe power; full log continuity.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -740,7 +740,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Implement supervised soak with predeclared counters and independent host timing."
+      "blocker": "Supply one pinned completed 3600s combined soak with exact S02/S04/S05 prerequisites, continuous raw kernel logs, backing-device I/O counters, authenticated transfer receipts and bounded scratch cleanup. Replay initiates no live load."
     },
     {
       "id": "R01",

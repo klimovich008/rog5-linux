@@ -6868,3 +6868,67 @@ Focused receiver, ordinary startup, smoke and rescue replay suites passed all
 100 tests in both normal and optimized Python, **10.210 s** total. Logs and
 tested patch are retained in `usb-link-focused-r1`. Full local/remote CI follows
 on frozen source; this offline correction does not turn S04 into PASS.
+
+
+## 2026-09-08 — fresh V8 durability and repeated boots; S07 evidence integration
+
+All physical observations below used frozen source `f0a3420bcb880e275073a7aa781759c1a1e099e2`.
+Full local CI passed **520.115 s**, log SHA-256
+`7cc02d28b6ff75858cb15529acbb796c08b0ffcc1d492326bab83abb953a2ee2`;
+all four jobs passed in GitHub run **34214045938**. No kernel, DTB, accepted
+archive, boot-B loader, selector, signed V11 fallback or protected storage changed.
+
+Fresh S01 passed **93.193 s** to pinned SSH and **1,380.504 s** full capture.
+Fresh S02 passed four 256 MiB directions **303.671 s**; fresh S03 recovered
+healthd, SSH, WPA/DHCP and DHCP **35.081 s**, all on the same boot. Their
+independent result hashes are respectively:
+
+- S01: `e115689390c07e9157ed7bbe7b5b8f0d892d327166dda697c52676fc15c98c2d`
+- S02: `6b1025dbd70c3031cd759156c7492ce23c764450dd139e06347d13e5a734279e`
+- S03: `2c340933bc4ebba66a58895d3dbb22dd116c347add350b02cf51542cac015ae3`
+
+Fresh S04 passed one 64 MiB prepare/fsync/reboot/readback/cleanup cycle in
+**102.744 s**. Pinned SSH returned **93.850 s** on boot
+`8ae5cdf4-679c-4fc8-8e5a-b144be97e7a5`. Its complete **1,380.582 s** receiver
+had no failed diagnostics; all four host cleanup actions passed. Independent
+S01 and S04 replay passed; S04 result SHA-256:
+`038ec74f2aa59e67d546e0eb473e7de2eaec2c309bc9c70d5126ec7d4d006f7a`.
+The original failed S04 remains FAIL and its evidence is retained.
+
+S05 then passed three consecutive ordinary boots in **330.639 s**, with
+closed per-boot observations **103.910 / 102.807 / 103.412 s**. Boot identities:
+`c4ae13df-e673-42d7-babb-6b35f16b41cf`,
+`efbb0faa-ec5e-4ce6-b5c1-e7b4c2eb1f50`,
+`af66d09d-f512-4954-a036-0904616e17af`.
+Each full failure receiver was armed before its single ordinary reboot;
+successful early closure required the full S04 baseline, exact current healthy
+commit, durable intent and owned-process identity. Independent S05 replay
+passed, result SHA-256:
+`2c8fe3749fa246406571907d80fe4568dbfa69cecdb5636b4f0ecd2176c32568`.
+All coordinators and receivers were terminal before source editing resumed.
+
+S07 integration adds offline replay of the declared hour-long combined load:
+pinned prerequisites and sources, paired raw commands, uninterrupted ten-second
+heartbeats, complete kernel-log sequence, corresponding loop1/sda23 I/O,
+64 MiB file identity and cleanup, and all four authenticated transfer directions
+with bounded child stderr and terminal receipts. Private producers are never
+executed by the checker. The dispatcher requires a complete S07 proof even
+when the command exits zero. No timing, scratch-volume or safety gate is relaxed.
+
+The severity regression reproduced **15 failures** against the old log filter:
+warning-or-higher messages without recognized error words escaped detection.
+The corrected low-three-bit severity check rejects those records while retaining
+the existing text checks, including failure text logged at informational level.
+The [kernel kmsg ABI](https://www.kernel.org/doc/Documentation/ABI/testing/dev-kmsg)
+defines that priority encoding. All **31** staged tests passed normally and
+optimized, and **7** private routing/assembly tests passed in both modes.
+Fresh repository validation remains required before the physical hour begins.
+No S07 load or release qualification is claimed by these offline tests.
+
+Integrated validation passed **127 focused tests in each Python mode in
+22.448 s**, including dispatcher, runtime replay and test-tier selection.
+A final memory-bound improvement limits all raw evidence files together to
+128 MiB before replay; all seven evaluator tests pass in each mode, including
+the new oversized-index refusal. Exact retained S02/S03/S04/S05 evidence also
+replays successfully with the new consumer (**3.7 s**) and keeps its actual
+`f0a3420b` producer identities. Full CI remains the next gate before live load.

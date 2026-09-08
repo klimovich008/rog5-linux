@@ -22,7 +22,7 @@ Private credentials, packages and raw evidence remain outside Git.
 ## Running release and recovery
 
 Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary installed boot `d903328e-fa57-4625-bb88-7419e04d57b1`.
+ordinary installed boot `af66d09d-f512-4954-a036-0904616e17af`.
 Signed primary manifest:
 `27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`.
 Other primary identities derive from the canonical expected record.
@@ -70,48 +70,55 @@ all PASS. No further phone execution was requested during that observation.
 
 ## Current checkpoint and next mandatory outcome
 
-One coordinator owns this phone. S04's full observation has ended and all owned
-host route/firewall/profile/address cleanup passed. No phone coordinator or
-reboot is pending. The prepared S05 sequence has **not** been launched.
+One coordinator owns this phone. The full S04 observation and all three S05
+boots are complete; their independent evidence checks passed. Every owned
+receiver is stopped and its route/firewall/profile/address cleanup passed.
+No reboot or phone coordinator is pending. Keep the source frozen during the
+next physical run; never repeat a consumed experimental claim.
 
-On `35bd1e6d`, full local CI passed **540.372 s** and all four jobs passed in
-GitHub run **34209378375**: exact head, merge compatibility, publication and QEMU.
-The preceding interrupted/invalidated and failed CI receipts remain preserved.
-The native publication fixture deadline and runner signal-exit fixes are pushed.
+On `f0a3420b`, full local CI passed **520.115 s** and all four jobs passed in
+GitHub run **34214045938**: exact head, merge compatibility, publication and QEMU.
+The original failed CI and USB-teardown capture remain preserved. The receiver
+fix permits only precisely tagged ENOENT/ENODEV followed by positive absence
+before target observation, within the existing 150 ms check. Identity mismatch,
+permission errors, unresolved discovery and post-target loss still fail.
 
-S03 r3 passed fresh preflight **4.619 s**, all service recoveries **30.705 s**,
-and independent evidence replay. Per-service durations: healthd **2.020 s**,
-SSH **2.558 s**, WPA including DHCP **16.498 s**, DHCP **7.546 s**. The radio
-unit remained unchanged; recovery stayed within the existing 40-second limits.
-R1/r2 remain FAIL. This is physical V8 evidence on the preceding boot.
+Fresh S01 reached authenticated local-root SSH in **93.193 s** and completed
+its full **1,380.504 s** capture. Fresh S02 passed four 256 MiB USB/Wi-Fi transfer
+directions in **303.671 s**; fresh S03 recovered all four services in **35.081 s**.
+Both independent replay checks passed on that same boot. Earlier S03 r1/r2
+remain FAIL; r3 and its actual producer revision are retained.
 
-S04 wrote/fsynced one 64 MiB file, requested one ordinary installed reboot,
-reached pinned SSH in **96.095 s**, verified the file and cleaned its exact
-owned directory. Its file component passed **105.293 s**. The existing parent
-namespace and old failed-soak scratch remain intact.
+Fresh S04 passed **102.744 s**: one 64 MiB file was written/fsynced, survived
+one ordinary reboot, read back with the expected hash and was cleaned by exact
+file identity. SSH returned in **93.850 s**. The complete **1,380.582 s** capture
+had no failed diagnostics, and its independent S01/S04 checks passed. The
+original failed S04 capture is not relabeled. Its old scratch, the existing
+acceptance namespace and unrelated files remain preserved.
 
-**S04 remains FAIL.** The full **1,380.774 s** capture recorded a host discovery
-error before target observation: the anchored network interface's `driver`
-symlink vanished during USB teardown. The immediate recheck was enumerating;
-positive USB absence followed **100.313 ms** later. Later successful startup
-and file readback cannot erase this failed diagnostic channel.
+S05 passed three distinct ordinary boots in **330.639 s**. Per-boot closed
+observations took **103.910 / 102.807 / 103.412 s**; healthy-state observations
+took **102.849 / 101.872 / 102.368 s**. Each started a full failure receiver
+before one reboot request. Successful capture closure used the qualified full
+S04 baseline plus the new exact healthy record; no failed boot was retried.
+The independent three-boot checker passed. Kernel, DTB, signed archives,
+installed boot B, selector and V11 fallback are unchanged.
 
-A filesystem regression reproduces the original failure. The host-only fix
-classifies anchored USB/device/driver resolution failures as precisely as
-USB descriptor reads. Only ENOENT/ENODEV followed by positive absence before
-target observation can use the existing bounded 150 ms removal check.
-Unresolved discovery, permission errors, identity mismatch, network failures
-and post-target loss still fail; the original capture deadline is unchanged.
-Receiver, rescue replay, ordinary startup and smoke replay share the same
-explicit operation names. The 100 focused tests pass in both normal and optimized Python (**10.210 s**).
-One full local/remote CI checkpoint must pass before a new ordinary-boot
-baseline and remaining V8 qualification.
-Retain original S01/S02/S03 receipts with their actual producer revision;
-changed observer dependencies require fresh validation, not relabeling.
+S07 now has an offline evidence checker and dispatcher entry. It binds exact
+S02/S04/S05 prerequisites, executed scripts and raw outputs, the full measured
+hour, continuous logs, UFS backing activity, scoped file cleanup and completed
+USB/Wi-Fi payload transfers. Private producer files are parsed as data only.
+A new regression found that warning severity without failure keywords escaped
+the earlier log filter. The check now rejects warning-or-higher severity as
+well as recognized failure text; all 15 severity regression cases pass.
 
-S07's one-hour worker integration is being prepared privately and offline.
-It has not run and does not qualify S07. No kernel, DTB, signed archive,
-installed boot image, rollback timer or target service has changed.
+The 31 staged tests passed in normal and optimized Python, and seven private
+routing/assembly checks passed in both modes. The integrated focused suite passed **127 tests per mode in 22.448 s**;
+a further seven evaluator tests per mode cover the aggregate raw-file memory
+bound. Exact retained S02–S05 replay also passes with the new consumer. Fresh
+full local/remote CI must pass before physical S07 starts. The one-hour load
+has **not** run. Its existing 3600 s observation, 10 s cadence, bounded scratch
+volume, safe power gates and 3900 s total deadline are unchanged.
 
 ## Mandatory results
 
@@ -122,13 +129,13 @@ Do not combine incompatible releases or simulation and physical evidence.
 | A01 / C01 / C02 | V8 offline PASS; A01/C02 include complete retained upper |
 | H01 / H02 | Same-release radio-inactive rescue not qualified |
 | H03 regulation | NOT RUN for final release; use defined firmware-Full method |
-| S01 local startup | V8 ordinary installed local boot PASS, 91.585 s to SSH |
-| S02 transfers | V8 PASS, four 256 MiB USB/Wi-Fi hash-verified directions |
-| S03 service recovery | V8 r3 PASS on `35bd1e6d`; preserve exact original evidence |
-| S04 durability | V8 file component PASS; full capture FAIL on host driver-link teardown race |
-| S05 repeated boots | V5 three boots passed; V8 sequence NOT RUN |
+| S01 local startup | Fresh V8 full ordinary capture PASS on `f0a3420b`; latest 93.850 s to SSH |
+| S02 transfers | Fresh V8 PASS on `f0a3420b`, four 256 MiB directions in 303.671 s |
+| S03 service recovery | Fresh V8 PASS on `f0a3420b`, 35.081 s; earlier failures retained |
+| S04 durability | Fresh V8 file and full capture PASS; original failed capture retained |
+| S05 repeated boots | V8 three-boot sequence and independent replay PASS, 330.639 s |
 | S06 powered-off start | NOT RUN |
-| S07 combined load | NOT RUN for V8; prior capped 600 s diagnostic is not one-hour PASS |
+| S07 combined load | V8 NOT RUN; integrated replay requires fresh CI before the full hour |
 | F01 / F02 | Retained offline passes; reuse only with exact dependency evidence |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 

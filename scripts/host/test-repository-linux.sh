@@ -175,6 +175,9 @@ active_tests=(
 	scripts/host/test-ordinary-boot-smoke.py
 	scripts/host/test-repeated-boot-evidence.py
 	scripts/host/test-soak-observation.py
+	scripts/host/test-soak-evidence-rules.py
+	scripts/host/test-soak-workload-evidence.py
+	scripts/host/test-soak-runtime-evidence.py
 	scripts/device/test-soak-file-window.py
 	scripts/device/test-cpu-frequency-cap.py
 	scripts/device/test-headless-cpu-policy.py
