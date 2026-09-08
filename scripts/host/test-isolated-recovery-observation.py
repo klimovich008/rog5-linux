@@ -36,7 +36,7 @@ def fixture():
     files=dict(descriptor=file_record(dict(format='rog5-persistent-wifi-health-v1',trial_id=TRIAL,
                    primary_bundle=IDENTITY['bundle'],mode='try-once')),
                healthy={'status':'absent'},radio_refused={'status':'absent'},
-               pending=file_record(dict(format='rog5-persistent-wifi-trial-v1',**INSTALLED,state='pending'),0o600,2071),
+               pending=file_record(dict(format='rog5-persistent-wifi-trial-v1',**INSTALLED,state='pending'),0o600,os.makedev(259,58)),
                ready=file_record(dict(status='PASS',attested_boot_id=IDENTITY['boot_id'],
                    kernel=IDENTITY['release'],ssh='strict-key-only')),
                ssh=file_record(dict(format='rog5-persistent-ssh-identity-v1',mode='load',
@@ -52,11 +52,45 @@ def fixture():
                 journal=command(''.join(json.dumps(row)+'\n' for row in journal)),
                 power=dict(health='Good',temp='299',voltage_now='8590000',usb_online='1'),
                 thermal={'thermal_zone0':40000},blocks=dict(sda='0',sda23='0',**{f'fixture{x}':'1' for x in range(115)}),
-                userdata_device='8:23',mountinfo='123 1 8:23 / /.rog5/userdata-rw rw,nosuid,nodev,noexec - ext4 /dev/sda23 rw\n')
+                userdata_device='259:58',userdata_partition=dict(M.USERDATA_GEOMETRY,
+                    uevent='MAJOR=259\nMINOR=58\nDEVNAME=sda23\nDEVTYPE=partition\nDISKSEQ=10\nPARTN=23\nPARTNAME=userdata\nPARTUUID='+M.USERDATA_PARTUUID),mountinfo='123 1 259:58 / /.rog5/userdata-rw rw,nosuid,nodev,noexec - ext4 /dev/sda23 rw\n')
 
 
 class NegativeTest(unittest.TestCase):
     def evaluate(self,value):return M.negative(value,IDENTITY,TRIAL,INSTALLED,SEALED)
+
+    def test_runtime_allocation_is_bound_to_partition_mount_and_record(self):
+        for major,minor in ((8,23),(259,58),(259,4096),(4095,1048575)):
+            with self.subTest(device=(major,minor)):
+                value=fixture();device=f'{major}:{minor}'
+                value['userdata_device']=device
+                value['mountinfo']=value['mountinfo'].replace('259:58',device)
+                value['userdata_partition']['uevent']=value['userdata_partition']['uevent'].replace(
+                    'MAJOR=259',f'MAJOR={major}').replace('MINOR=58',f'MINOR={minor}')
+                value['files']['pending']['dev']=os.makedev(major,minor)
+                self.assertEqual(self.evaluate(value)['status'],'COMPONENT_PASS')
+                value['files']['pending']['dev']+=1
+                with self.assertRaises(ValueError):self.evaluate(value)
+
+    def test_unbound_partition_or_malformed_device_is_refused(self):
+        for device in (None,True,'','0:58','259:058','0259:58','4096:58','259:1048576','259:58\n','259:58:1'):
+            value=fixture();value['userdata_device']=device
+            with self.subTest(device=device),self.assertRaises(ValueError):self.evaluate(value)
+        for field,changed in (('partition','24'),('start','0'),('size','1'),('uevent','bad'),
+                              ('uevent',fixture()['userdata_partition']['uevent']+'\nMINOR=58')):
+            value=fixture();value['userdata_partition'][field]=changed
+            with self.subTest(field=field),self.assertRaises(ValueError):self.evaluate(value)
+        for key in ('MAJOR','MINOR','DEVNAME','DEVTYPE','PARTN','PARTNAME','PARTUUID'):
+            value=fixture();rows=value['userdata_partition']['uevent'].splitlines()
+            value['userdata_partition']['uevent']='\n'.join(
+                key+'=changed' if line.startswith(key+'=') else line for line in rows)
+            with self.subTest(event=key),self.assertRaises(ValueError):self.evaluate(value)
+        for change in ('missing-partition','extra-field','missing-mount-binding'):
+            value=fixture()
+            if change=='missing-partition':del value['userdata_partition']
+            elif change=='extra-field':value['userdata_partition']['unexpected']='value'
+            else:value['mountinfo']=value['mountinfo'].replace('259:58','259:59')
+            with self.subTest(change=change),self.assertRaises(ValueError):self.evaluate(value)
 
     def test_pending_health_wait_validates_actual_safety_without_inventing_failure(self):
         value=fixture()

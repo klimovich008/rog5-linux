@@ -7556,3 +7556,75 @@ admission, refusal before repeated entry and retained closed-child evidence.
 
 Physical R01 and S06 remain NOT RUN. Full local/remote integration CI and final
 admission are still required. No phone state or real lifecycle claim changed.
+
+
+## R01 physical failure and observer corrections (2026-09-08)
+
+Exact source `c0025810329f0e6a44ad20efea62f65fd66a8af0` passed full local CI
+**532.691736 s**, with its terminal marker and unchanged source. All four jobs
+passed in GitHub run **34266500765**. PR1 was updated and remains draft.
+Signed negative A01/C02/C01, kernel and complete root/upper artifacts were reused.
+
+The original private controller failed read-only preflight in **2.657453 s**:
+userdata was incorrectly assumed to be device `8:23`. Actual authenticated
+sysfs, mount and inode evidence agreed on `259:58` / `66362`, partition 23,
+start 18,821,440 and size 408,997,568 sectors, with the retained userdata GUID.
+No arm, reboot, capture or negative claim occurred. Root-to-desktop handoff
+preserved all 21 files and their hashes.
+
+Both private state guards now bind runtime device allocation to exact partition
+identity/geometry, mount and inode. Sixteen actual V11 BusyBox/helper namespace
+cases passed **42.942579 s**; five Driver restoration cases passed **46.209879 s**,
+including lost stage/restore replies. Eight generated-operation cases passed
+**0.596429 s**. Six full entrypoint simulations passed **9.706105 s**; 27 admission
+cases passed **0.759266 s**. The focused/active checkpoint passed **52.380230 s**
+(active **49.552889 s**) with unchanged source. Fresh physical read-only checks
+passed **2.669551 s**, including all twelve installed boot-file hashes, the exact
+healthy trial state and original RAM shutdown prerequisites.
+
+A fixed continuation required all original closed preflight evidence hashes,
+no prior mutation, and absence of every negative claim/entered marker. It did
+not reset or replace an execution claim. Its admission and all consumer/binding
+checks passed before the sole physical negative execution.
+
+The bootloader accepted the exact 134,217,728-byte RAM image. Native boot
+`8f739c2f-c755-4ec7-8fc0-2f346d0fae1f` reached `final-storage FAIL` with
+`ufs-q0-s0-j1-e0`, before switch-root and authenticated negative-health refusal.
+It returned to fastboot. No autonomous V11 return was observed. The full
+**1,380.488097 s** capture and four cleanup steps completed; all 60 evidence files
+were handed off unchanged. The overall controller ended FAIL in **1,398.522786 s**.
+Independent replay refused it in **0.038780 s** with
+`failed or ambiguous controller phase cannot qualify`.
+
+Private receipts: `r01-live-negative-v2`, `r01-supervision-launch-r2`,
+`r01-live-negative-v2-handoff.json`, and `r01-failed-independent-replay-r1.json`
+under the existing current-work directory. The consumed negative claim is
+permanent. Do not retry it, shorten its evidence, or infer release qualification.
+
+Exact target init/BusyBox replay passed six log-classification cases in
+**1.573220 s**. One expected-overlay recovery is accepted; userdata or another
+loop's recovery is refused. The compact physical detail proves one unallowed
+journal-recovery match with zero counted blocked UFS query/SCSI and UFS-error
+matches. It does not identify the filesystem, establish source teardown
+causality, or prove filesystem corruption. No storage guard was relaxed.
+
+A separately prepared ordinary installed recovery passed its ordering, prior
+closed-evidence/consumed-claim, exact-command and lost-reply fixtures, reusing the
+unchanged tested Driver restoration methods. One normal installed boot emitted
+V11 switch-root PASS for `96c3e790-a422-4723-b9ca-a5039da2a14a`; normal-address
+SSH timed out. Its controller stopped before restoring state and is retaining
+its complete capture. This is assisted service recovery, not R01 qualification.
+
+The public negative observer had the same hardcoded device assumption. A
+synthetic negative-health fixture supplied with the retained real userdata
+mount/inode facts reproduced its erroneous `pending installed fallback changed`
+refusal. The correction collects partition sysfs identity/geometry and binds the
+runtime device number to the mount and pending inode. Real allocation `259:58`,
+legacy `8:23`, extended minors and contradictory identities are tested.
+
+The failed capture also repeatedly emitted the same terminal fastboot error on
+every poll. The receiver now classifies transport transitions once, retaining
+new transitions, permanent failure status and the unchanged full deadline.
+Repeated terminal polling and post-return disconnect tests pass, as do full R01
+replays. Full integration CI for these two public observer corrections remains
+pending. No kernel, Arch image, signed payload or canonical claim was changed.
