@@ -186,7 +186,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                     '{initramfs}': release['artifact_paths']['initramfs'],
                     '{test_output}': str(output/test['id'])}
         bindings['{candidate}'] = release.get('candidate_id', '')
-        if test['id'] in ('S02','S03','S04','S05'):
+        if test['id'] in ('S02','S03','S04','S05','S07'):
             if runtime_inputs is None or test['id'] not in runtime_inputs:
                 row['next_action']='supply pinned --runtime-inputs '+test['id']+'=PATH,SHA256; no live operation is initiated'
                 return row
@@ -332,12 +332,12 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             row['next_action'] = 'Proceed to the next mandatory test; offline composition grants no boot authority'
         except (OSError,KeyError,TypeError,ValueError) as error:
             row.update(status='FAIL', next_action='missing complete A01 proof: '+str(error))
-    if row['status']=='PASS' and test['id'] in ('F02','S01','S02','S03','S04','S05'):
+    if row['status']=='PASS' and test['id'] in ('F02','S01','S02','S03','S04','S05','S07'):
         try:
             test_id=test['id']
             inputs=wifi_restart_inputs if test_id=='F02' else standalone_boot_inputs
             runner='check-wifi-restart-evidence.py' if test_id=='F02' else 'check-standalone-boot.py'
-            if test_id in ('S02','S03','S04','S05'):
+            if test_id in ('S02','S03','S04','S05','S07'):
                 inputs=runtime_inputs[test_id] if runtime_inputs else None
                 runner='check-server-runtime-evidence.py'
             proof_path=output/test_id/'result.json';proof=json.loads(proof_path.read_text())
@@ -442,18 +442,18 @@ def main():
     parser.add_argument('--wifi-restart-inputs-sha256',help='reviewed SHA-256 of the restart evidence input file')
     parser.add_argument('--standalone-boot-inputs',type=Path,help='pinned completed ordinary-boot evidence; offline replay only')
     parser.add_argument('--standalone-boot-inputs-sha256',help='reviewed SHA-256 of the ordinary-boot evidence input file')
-    parser.add_argument('--runtime-inputs',action='append',default=[],metavar='S02|S03|S04|S05=PATH,SHA256',
-                        help='pinned completed transfer/restart/durability/repeated-boot evidence; each outcome once')
+    parser.add_argument('--runtime-inputs',action='append',default=[],metavar='S02|S03|S04|S05|S07=PATH,SHA256',
+                        help='pinned completed transfer/restart/durability/repeated-boot/soak evidence; each outcome once')
     args = parser.parse_args()
     runtime_inputs={}
     for raw in args.runtime_inputs:
         try:
             kind,value=raw.split('=',1);path,pin=value.rsplit(',',1)
-            if kind not in ('S02','S03','S04','S05') or kind in runtime_inputs or not Path(path).is_absolute() or not re.fullmatch('[0-9a-f]{64}',pin):
+            if kind not in ('S02','S03','S04','S05','S07') or kind in runtime_inputs or not Path(path).is_absolute() or not re.fullmatch('[0-9a-f]{64}',pin):
                 raise ValueError('invalid or duplicate runtime input')
             runtime_inputs[kind]=(Path(path),pin)
         except ValueError:
-            parser.error('runtime evidence requires unique S02|S03|S04|S05=ABSOLUTE_PATH,SHA256')
+            parser.error('runtime evidence requires unique S02|S03|S04|S05|S07=ABSOLUTE_PATH,SHA256')
     if bool(args.wifi_restart_inputs)!=bool(args.wifi_restart_inputs_sha256):
         parser.error('Wi-Fi evidence path and SHA-256 are required together')
     if bool(args.standalone_boot_inputs)!=bool(args.standalone_boot_inputs_sha256):

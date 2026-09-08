@@ -1,11 +1,11 @@
 """Offline tests for a proposed soak monitor, never physical S07 PASS."""
-import copy,importlib.util,json,unittest
+import copy,importlib.util,json,os,unittest
 from pathlib import Path
 s=importlib.util.spec_from_file_location('observe',Path(__file__).with_name('soak-observation.py'))
 M=importlib.util.module_from_spec(s);s.loader.exec_module(M)
 class Tests(unittest.TestCase):
  def test_timing_contract_rejects_shortening_or_overcommit(self):
-  c=json.loads((Path(__file__).resolve().parents[2]/'configs/release-acceptance.json').read_text());M.timing(c)
+  c=json.loads((Path(os.environ.get('ROG5_TEST_REPO',str(Path(__file__).resolve().parents[2])))/'configs/release-acceptance.json').read_text());M.timing(c)
   for key,value in (('observation_seconds',3599),('warmup_seconds',61),('heartbeat_seconds',True),('max_file_windows',129),('cleanup_seconds',100)):
    changed=copy.deepcopy(c);changed['defaults']['server_soak'][key]=value
    with self.assertRaises(ValueError):M.timing(changed)
@@ -16,7 +16,14 @@ class Tests(unittest.TestCase):
    'Kernel panic - not syncing','sda: I/O error','EXT4-fs error (device loop1)',
    'EXT4-fs (sda23): Remounting filesystem read-only','ufshcd: command failed','UFS fatal error',
    'watchdog: soft lockup','task blocked for more than 120 seconds'):
-   with self.subTest(text=text),self.assertRaises(ValueError):M.kmsg(['4,726,1000,-;'+text+'\n'],725)
+   with self.subTest(text=text),self.assertRaises(ValueError):M.kmsg(['6,726,1000,-;'+text+'\n'],725)
+ def test_warning_severity_without_failure_keywords_is_rejected(self):
+  for facility in (0,1,23):
+   for level in range(5):
+    with self.subTest(facility=facility,level=level),self.assertRaises(ValueError):
+     M.kmsg([f'{facility*8+level},726,1000,-;device status changed\n'],725)
+   for level in (5,6,7):
+    self.assertEqual(M.kmsg([f'{facility*8+level},726,1000,-;ordinary progress\n'],725),726)
  def test_log_loss_replay_or_truncation(self):
   for raw in ('6,727,1,-;gap\n','6,725,1,-;replay\n','6,726,1,-;truncated','6,726,1,-;'+('x'*8193)+'\n'):
    with self.assertRaises(ValueError):M.kmsg([raw],725)

@@ -21,6 +21,9 @@ def kmsg(records,cursor):
   require(len(fields)==4 and all(re.fullmatch('[0-9]+',v) for v in fields[:3]),'kernel record header')
   priority,sequence,stamp=map(int,fields[:3])
   require(priority<=191 and fields[3] in ('-','c') and sequence==cursor+1,'kernel log gap/replay')
+  # /dev/kmsg encodes severity in the low three syslog-priority bits.
+  # https://www.kernel.org/doc/Documentation/ABI/testing/dev-kmsg
+  require((priority & 7)>4,'new warning-or-higher kernel log record')
   require(not ERROR.search(message),'new kernel failure record')
   cursor=sequence
  return cursor
