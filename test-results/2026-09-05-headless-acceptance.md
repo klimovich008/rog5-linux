@@ -7844,3 +7844,49 @@ storage dependencies and a failed capture. The 27 baseline tests passed in
 both Python modes. Existing repeated-boot, powered-off, runtime, durability,
 soak and acceptance regressions also pass. Full integration CI and clean-source
 matrix assessment are pending. R01 remains FAIL and S06 remains NOT RUN.
+
+
+### Frozen compatibility assessment and refreshed rescue proof
+
+Integration `43d4f86437265b29e5f365fe5e529af75de67add` passed full local CI
+in **534.517518 s**, exit 0, terminal marker and unchanged source. Log SHA-256:
+`3b7e7c89674932b060e49891a4b30e85f3cf318a9224e5d7cfd3aff4fc53ed30`.
+All four jobs passed in GitHub run **34284666459**. The preceding uptime guard
+`41f8de6d` also completed all four jobs in run **34283644867**.
+
+The first clean-source ten-row assessment closed FAIL in **200.471407 s**.
+F02, S01, S02, S03, S04, S05 and S07 passed with their original source, boot and
+artifact identities. H01–H03 refused a changed composition producer. Inspection
+isolated the difference to A01's previously published root-image hash
+implementation and metrics; C02's producer was unchanged. These refusals remain
+in `server-source-compatibility-matrix-r1`, with its original envelope preserved.
+
+The same rescue artifacts were checked by the current A01 evaluator in
+**56.150186 s**. Composition passed, every artifact hash matched the earlier
+receipt, and the root image remained unchanged. A new pinned envelope changes
+only the composition proof. The rescue-only reassessment then passed H01–H03
+in **81.353148 s**, under the same frozen `43d4f864` source and paired-release
+identities. The seven successful server rows were not rerun. These are separate
+assessments; no results were merged into a qualified release, and both report
+`release_qualified=false`. No phone command, boot, flash or storage write occurred.
+
+### R01 source and target failure-path evidence
+
+Static inspection of the exact consumed target init
+`45afa6ee41544e446b11a2b7ddb42f77094463367aac5d3aaa888bec5a91b6b3`
+binds the observed `final-storage FAIL ufs-q0-s0-j1-e0` branch to
+`fail_local_stage`, `force_rollback` and `/usr/libexec/rog5-reboot-bootloader`.
+That early refusal explicitly requests a bootloader restart. The observed
+fastboot return is consistent with this path; static inspection cannot prove
+the helper physically executed or identify the recovered filesystem.
+
+The consumed source shutdown
+`631795c05acfe0d56ed6838695185d37b2c3e13a6dfecf3c93a8bbaf7e05fe6a`
+can mark teardown unclean, lazily detach residual mounts, and still execute its
+patched final bootloader request. Its clean flag gates native kexec but does not
+gate that final action. Fastboot arrival alone therefore cannot prove clean
+source unmount before negative RAM execution. No retained source trace proves
+that this error branch actually occurred; it remains an admission gap, not an
+established cause of the journal event. Future preparation needs positively
+bound source teardown completion. The consumed controller, claim and failed
+capture remain immutable. R01 stays FAIL; S06 stays NOT RUN.

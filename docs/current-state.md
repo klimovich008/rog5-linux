@@ -1,15 +1,17 @@
 # ROG5 current state
 
-Updated 2026-09-09: V8 remains on its last authenticated ordinary boot; no new phone action.
+Updated 2026-09-09: retained server and rescue evidence requalified; no new phone action.
 Current health, readiness, storage scope and all twelve installed-file hashes passed readback.
 The observer corrections passed full local and GitHub CI. S06 now has an offline
 powered-off-start evidence runner; its shared integration passed full local CI
 in 539.516 seconds. The final earlier-boot assertion passed fifteen focused tests
 in both Python modes. The observer compatibility correction now replays the preserved S01/S05 evidence
 with its original producer hashes and current behavior checks. Transfer, restart,
-durability and soak regression replays also pass. Frozen matrix assessment and
-integration CI are pending. Physical off/start setup remains unprepared;
-R01 remains FAIL and S06 remains NOT RUN.
+durability and soak replays pass in the clean-source assessment. Seven server
+rows passed; three rescue rows passed a separate reassessment after refreshing
+the exact rescue composition proof. The first assessment remains FAIL. Full local
+CI and all four GitHub jobs passed on `43d4f864`. Physical off/start setup remains
+unprepared; R01 remains FAIL and S06 remains NOT RUN.
 
 ## Goal and authority
 
