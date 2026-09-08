@@ -150,8 +150,16 @@ recovery remain outstanding.
 
 R01 preparation confirmed that an ordinary watchdog reboot after a RAM-only
 failure would still select healthy V8. That alone does not prove return to V11.
-No negative candidate was built, registered or executed. The next recovery
-experiment must first establish an isolated autonomous path offline.
+The existing trial helper offers a narrower preparation route: healthy-to-pending
+rearming followed by a different trial's rejected health acknowledgment leaves
+V11 selected at the next loader entry. The new regression passed on the host
+and exact ARM64 helper, normally and optimized; all four 17-test suites passed
+in **8.978 s** (one ARM-only test skipped in each host run). Retained V8 helper,
+health and rollback bytes match current source; its outer timer is 900 seconds.
+This is offline preparation only. No phone state was changed and no negative
+candidate was built, signed, registered or executed. The arming/restoration
+controller, isolated candidate, bounded two-boot observer and their admission
+checks remain to be implemented before a physical R01 attempt.
 
 ## Mandatory results
 
