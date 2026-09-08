@@ -6703,3 +6703,43 @@ This caught the acceptance mistake before spending the next physical cycle.
 Full local and exact-head/merge CI follow at one frozen integration checkpoint;
 no kernel, DT, module, recovery, threshold or signed payload changes are needed.
 Private evidence remains in `rog5-cpu-startup-20260908.kjE4IqCf`.
+
+### 2026-09-08 — Ordinary V8 qualification and fresh-session checkpoint
+
+Complete-upper correction is committed/pushed as
+`cdfe00572b81fca619231bdba26702bf8982667d`. Full local CI passed **533.553 s**;
+GitHub run **34172685138** passed head-exact, merge-compat, candidate publication
+and QEMU. No payload or kernel changed. Historical results retain original SHAs.
+
+S01 ordinary installed boot passed: current boot
+`7ea69356-4512-45bf-9e13-28268dc3f3c9`, local root/SSH in **91.585 s** with no
+host NFS/bundle service. Capture lasted **1,380.706 s**, then route, firewall,
+profile and address cleanup all passed. The capture alone deliberately reports
+NOT RUN for qualification; `ordinary-boot-r1-evidence/result.json` supplies the
+independent authenticated S01 PASS.
+
+S02's interrupted r1 is preserved, not relabelled. Read-only checks proved its
+RAM/pipe endpoints and coordinator exited. Fresh `s02-transfer-live-r2` passed
+four independent 256 MiB transfers: USB upload/download **10.577/7.626 s**,
+Wi-Fi **166.856/107.359 s**, total **300.770 s**. Canonical evaluator
+`s02-evidence-r1/result.json` passed **3.345 s**. Preserve its exact pinned files.
+
+S03 r1 failed **5.715 s** after healthd and SSH restart acknowledgements. The
+next observer sampled the normal SSH Requires timer/healthy-unit transition.
+Journal: timer started 2802.502 s, guarded rollback exited successfully without
+reboot at 2802.555 s, healthy writer stopped timer at 2803.025 s, healthy unit
+finished 2803.045 s. Same boot and SSH remained reachable; WPA/DHCP not tried.
+This is an observer timing failure, not demonstrated kernel instability.
+New private r2 adds a five-second maximum read-only settling window only after
+an acknowledged restart. Strict final timer, artifact, power and storage gates
+remain. 13 normal-mode tests passed; optimized/preflight/live r2 remain NOT RUN.
+The old S03 binder must not be reused unchanged. No release qualification claim.
+
+At the user's requested stopping point, `handoff-readonly-check-r1/result.json`
+passed **2.869 s** against the unchanged source and boot: deployed bytes,
+readiness, expected services, transport, storage and inactive timers verified.
+Battery Good/Full 99%, 30.1°C, 8.585 V, raw current -5,000 µA; not H03 PASS.
+No coordinator remains active. Nothing was deleted, rebuilt, flashed or rebooted
+for this handoff. Private raw evidence and prepared r2 work remain in the same
+checkpoint directory. Next owner finishes r2 validation, then S03, under the
+unchanged headless mandatory matrix. The old session performs no further tests.
