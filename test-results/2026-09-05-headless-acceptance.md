@@ -6785,3 +6785,37 @@ state confirmation. Unexpected errors, partial output, repeated actions,
 missing confirmation and changed probes remain rejected. New test failed before
 the correction. Full local CI is required for this changed consumer; no
 kernel/DT/module/archive/wrapper rebuild or phone mutation is involved.
+
+## 2026-09-08: supervised CI and qualification infrastructure
+
+The sole app-task controller verified clean `9edd75cd` in the authoritative
+checkout and retained the incomplete `s03-r3-full-ci-r2` and invalidated first
+run. No phone action occurred during transfer or CI diagnosis.
+
+Fresh `s03-r3-full-ci-r3` passed in **539.242 s**, return code 0, with the exact
+terminal completion marker and unchanged source. Its log SHA-256 is
+`c11dbb341b5bf5f318efb15a6833554bf86a92cd72a9fe01897999a9059e0dad`.
+The source was pushed to the existing draft PR. Remote run **34180600020**
+passed `head-exact` and `candidate-publication`; `merge-compat` failed and
+`qemu-system` was skipped. That run is retained as FAIL, never release proof.
+
+The merge failure was `test_publication_crash_points_are_contained`, at
+`after-parent-validation`: timeout 46 instead of intentional crash 99.
+The generic fixture budget was 700 ms. An isolated 800 ms reply reproduces
+that result; a 3-second publication-fixture budget reaches crash 99 while
+leaving the final bundle absent. The regression retains the delay and all
+crash/recovery checks; dedicated transport expiry tests keep their original
+short deadlines. No production fetch timeout or signed artifact changed.
+
+A second isolated reproduction proved the runner's common signal/EXIT trap
+returned success on SIGTERM. HUP/INT/TERM now exit 129/130/143 and then enter
+the existing cleanup path. The regression checks all three signals, ordinary
+exit statuses, owned-scratch removal and preservation of unrelated fixtures.
+Focused runner contract and all 35 native fetch tests pass; crash/transport
+coverage also passes under Python optimization. Evidence is retained in
+`ci-reliability-focused-r1` under the existing private work directory.
+
+Freeze these host-only corrections for one full local/remote checkpoint.
+S03 r3 preflight/live/binding remain NOT RUN; S04 adapters are preparation
+only and require current CI/runtime bindings. Device, boot, topology, power,
+storage, fallback and permanent claim guards remain unchanged.

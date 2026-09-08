@@ -250,4 +250,39 @@ group_signal_line=$(sed -n '/^terminate_parallel_group() {/,/^}/p' "$runner" |
 	exit 1
 }
 
+# Execute the runner's real cleanup and signal traps without starting suites.
+# Signal handling must preserve failure even when the preceding command passed.
+python3 - "$runner" <<'PY'
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+import tempfile
+
+source = Path(sys.argv[1]).read_text()
+start = source.index("cleanup_parallel_tests() {\n")
+end = source.index("set -m\nfor test_path", start)
+cleanup_and_traps = source[start:end]
+for action, expected in (("exit 0", 0), ("exit 23", 23),
+                         ('/bin/kill -HUP "$$"', 129),
+                         ('/bin/kill -INT "$$"', 130),
+                         ('/bin/kill -TERM "$$"', 143)):
+    with tempfile.TemporaryDirectory(prefix="rog5-runner-signal-") as tmp:
+        parent = Path(tmp)
+        (parent / "keep").write_text("unrelated fixture")
+        script = ("set -euo pipefail\nparallel_pids=()\nparallel_root="
+                  + shlex.quote(str(parent / "parallel")) + "\ntest_tmp_root="
+                  + shlex.quote(str(parent / "tests"))
+                  + '\nmkdir "$parallel_root" "$test_tmp_root"\n'
+                  + cleanup_and_traps + "\ntrue\n" + action
+                  + "\necho UNEXPECTED_CONTINUATION\n")
+        result = subprocess.run(["bash", "-c", script], capture_output=True,
+                                text=True, timeout=5)
+        if result.returncode != expected or result.stdout or result.stderr:
+            raise SystemExit(f"runner {action}: expected {expected}, got {result}")
+        if {p.name for p in parent.iterdir()} != {"keep"}:
+            raise SystemExit(f"runner {action}: incomplete or excessive cleanup")
+print("PASS runner signals fail closed, preserve exit status and clean owned scratch")
+PY
+
 echo 'PASS repository runner defines shared tests once, times each suite, and isolates parallel work explicitly'

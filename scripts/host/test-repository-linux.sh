@@ -612,7 +612,10 @@ cleanup_parallel_tests() {
 	[[ -z ${test_tmp_root:-} ]] || rm -rf -- "$test_tmp_root"
 	exit "$cleanup_status"
 }
-trap cleanup_parallel_tests EXIT HUP INT TERM
+trap cleanup_parallel_tests EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 set -m
 for test_path in "${isolated_tests[@]}"; do
 	selected_test "$test_path" || continue

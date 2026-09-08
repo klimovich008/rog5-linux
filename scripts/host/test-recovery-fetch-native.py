@@ -60,6 +60,9 @@ from tools.recovery_control import host_bundle_server as HOST_SERVER  # noqa: E4
 BUNDLE = "arch-test-v1"
 OTHER_BUNDLE = "debian-test-v1"
 CONFLICT_EXIT = 42
+# Publication fault injection needs scheduling margin to reach the requested
+# boundary. Dedicated transport timeout tests retain their short deadlines.
+PUBLICATION_TEST_TIMEOUT_MS = 3_000
 HEADER_MAX = 1024
 MANIFEST_MAX = 4096
 KERNEL_MAX = 128 * 1024 * 1024
@@ -1457,10 +1460,20 @@ int fsync(int fd) {
         for index, point in enumerate(crash_points):
             with self.subTest(point=point):
                 root = self.new_root(f"crash-{index}-{point}")
-                with RawFetchServer(reply_handler(self.payload)) as server:
+                reply = reply_handler(self.payload)
+
+                def publication_reply(connection, server):
+                    # Reproduce a reply arriving after the generic 700 ms
+                    # fixture budget; this test must still reach its crash.
+                    if point == "after-parent-validation":
+                        time.sleep(0.8)
+                    reply(connection, server)
+
+                with RawFetchServer(publication_reply) as server:
                     crashed = self.invoke(
                         root,
                         server.port,
+                        timeout_ms=PUBLICATION_TEST_TIMEOUT_MS,
                         extra=("--crash-at", point),
                     )
                 self.assertEqual(
@@ -1471,7 +1484,11 @@ int fsync(int fd) {
                 if point in published_points:
                     self.assert_published(root)
                     with RawFetchServer(None) as retry_server:
-                        retry = self.invoke(root, retry_server.port)
+                        retry = self.invoke(
+                            root,
+                            retry_server.port,
+                            timeout_ms=PUBLICATION_TEST_TIMEOUT_MS,
+                        )
                         self.assertFalse(retry_server.accepted.is_set())
                     self.assertEqual(retry.returncode, CONFLICT_EXIT)
                 else:
@@ -1481,7 +1498,11 @@ int fsync(int fd) {
                     with RawFetchServer(
                         reply_handler(self.payload)
                     ) as retry_server:
-                        retry = self.invoke(root, retry_server.port)
+                        retry = self.invoke(
+                            root,
+                            retry_server.port,
+                            timeout_ms=PUBLICATION_TEST_TIMEOUT_MS,
+                        )
                     self.assert_success(retry)
                 self.assert_published(root)
 

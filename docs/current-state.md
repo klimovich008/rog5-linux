@@ -100,6 +100,22 @@ boundary, reject the preceding action or missing confirmation. Focused checks
 and one full local CI precede a fresh preflight/live r3. No kernel, wrapper,
 accepted service, timer, or signed payload change is needed. R1/r2 remain FAIL.
 
+The app-task transfer found the earlier full CI r2 incomplete: no surviving
+workers, result or terminal marker. Its replacement passed **539.242 s** on
+`9edd75cd`, which is published. GitHub run **34180600020** passed exact head
+and publication, but merge failed in the native fetch crash fixture before
+its intended crash: the worker exceeded the fixture-only 700 ms budget.
+QEMU was skipped, so this is not a qualifying remote result.
+
+An isolated 800 ms reply reproduced timeout 46; a publication-only 3-second
+fixture budget reached the intended crash 99 with no final bundle published.
+The dedicated short transport-timeout tests are unchanged. Separately, the
+repository runner now maps HUP/INT/TERM to 129/130/143 before ordinary EXIT
+cleanup; the original SIGTERM path incorrectly exited 0. Focused runner and
+native fetch tests pass, including normal/optimized crash and timeout cases.
+One new full local/remote checkpoint is required for these host-only changes
+before live S03 r3. All interrupted, invalidated and failed receipts remain.
+
 ## Mandatory results
 
 Do not combine incompatible releases or simulation and physical evidence.
