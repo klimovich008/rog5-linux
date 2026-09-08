@@ -1,0 +1,10 @@
+{
+  "original_capture_result": "FAIL",
+  "source_revision": "9d4cd13875c2cf5dc9025b650663364d3e150afa",
+  "event": "transport-check-failed",
+  "phase": "network-setup",
+  "reason": "host operation failed: nmcli -g",
+  "observed_mode": "absent",
+  "target_seen": false,
+  "source_route_previously_prepared": true
+}
