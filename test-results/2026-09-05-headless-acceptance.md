@@ -7781,7 +7781,10 @@ part of replay. Tests cover complete raw-envelope replay, ambiguous command
 status, reboot substitution, stale operator messages, absent-sampling gaps,
 automatic early return, unsafe root state, failed health and incomplete cleanup.
 Fourteen focused tests passed in both Python modes; the existing ordinary,
-repeated-boot and acceptance suites passed. Full integration CI is pending.
+repeated-boot and acceptance suites passed. Full local integration CI passed on
+`76efa7c94a646d661dc92c4c1dcf95b2a567dab4` in **539.515602 s**, exit 0, with
+its terminal marker and unchanged source. The retained log SHA-256 is
+`7acd95060bb13ad4b301e7b68af2f850cc63dc0ab785512bd652d9363d716f73`.
 
 The prerequisite-only probe `s06-prerequisite-preflight-r1` refused the retained
 S05 chain in **0.064704 s** with `changed qualification dependency:
@@ -7791,3 +7794,25 @@ The old PASS evidence remains preserved with its original source. No guard was
 relaxed, physical S06 was not run, and R01 remains FAIL. Current V8 was left
 running; all phone controllers remain closed. The preceding documentation head
 `28b99094` independently completed all four GitHub jobs in run **34280794479**.
+
+
+The diagnostic `s06-prerequisite-compatibility-analysis-r1` completed in
+**0.137675 s**: the current baseline and three-boot behavior predicates accept
+the unchanged evidence with authenticated original producer hashes. Only the
+receiver and shared ordinary-smoke source bytes differ. This diagnosis grants
+no acceptance status and does not bypass the public dependency gate. A narrow
+compatibility implementation remains necessary before live preparation.
+
+The historical V10 report records automatic startup under connected USB power.
+That is setup evidence, not proof that current V8 will remain off for the
+required interval. The operator-controlled setup must be resolved before any
+power-off; no operator readiness or physical off state has been assumed.
+
+A final host-only assertion rejects a kernel uptime older than the elapsed
+window since the physical-start request. A synthetic 75-second uptime inside a
+74-second request window reproduced the missing check on `76efa7c9`; the fixed
+predicate refuses it with `kernel boot predates the requested physical start`.
+All fifteen focused tests pass in normal and optimized Python. This assertion
+and its regression are a separate observer follow-up to the completed full
+integration, with source validation tracked separately. S06 is still NOT RUN,
+R01 is still FAIL, and no phone controller or boot was started.

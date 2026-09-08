@@ -3,9 +3,10 @@
 Updated 2026-09-08: V8 service is restored and authenticated on its current ordinary boot.
 Current health, readiness, storage scope and all twelve installed-file hashes passed readback.
 The observer corrections passed full local and GitHub CI. S06 now has an offline
-powered-off-start evidence runner; focused tests passed and integration CI is
-pending. Its retained S01/S05 prerequisite replay currently refuses the changed
-receiver dependency. R01 remains FAIL and S06 remains NOT RUN.
+powered-off-start evidence runner; its shared integration passed full local CI
+in 539.516 seconds. The final earlier-boot assertion passed fifteen focused tests
+in both Python modes. Retained S01/S05 replay still refuses the changed receiver
+dependency; the physical off/start setup also remains unprepared. R01 remains FAIL and S06 remains NOT RUN.
 
 ## Goal and authority
 
