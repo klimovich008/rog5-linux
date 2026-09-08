@@ -1,160 +1,128 @@
 # ROG5 current state
 
-Updated 2026-09-08: V8 signed preparation; verified V11 fallback is running.
-V6 and V7 are permanently consumed. Never retry, restage or flash them.
+Updated 2026-09-08: V8 runs local Arch with authenticated SSH and Wi-Fi.
+Startup CPU limiting passed. Final standalone qualification remains incomplete.
 
 ## Goal and authority
 
 Qualify one reliable unattended headless Arch server under the existing
 [acceptance contract](release-acceptance.md) and
 [mandatory matrix](../configs/release-acceptance.json). Display is optional.
-Missing prerequisites/evidence remain BLOCKED or NOT RUN, never PASS.
-No new architecture review or goal; unrelated work remains in the backlog.
+Missing prerequisites/evidence are BLOCKED or NOT RUN, never PASS.
+No architecture rewrite or competing goal; unrelated work stays in the backlog.
 
 Exact phone: `M5AIKN00F0353YH`, product `lahaina`, side USB anchor `1-1.2`.
 Preserve official WW33 slot A (`33.0210.0210.200`) as charging/rescue.
-Stock charging restoration is complete; no super or stock restoration work.
-Keep identity/slot/topology, signatures, battery/thermal, scoped storage/backups,
+Stock charging restoration is complete; do not repeat super/stock restoration.
+Keep identity/slot/topology, signatures, battery/thermal, storage scope/backups,
 independent fallback and permanent experimental one-use protections.
 No new flash, GPT or protected-data operation. Destructive scope is separate.
-Private credentials, packages, raw journals and evidence remain outside Git.
+Private credentials, packages and raw evidence remain outside Git.
 
-## Current phone and installed artifacts
+## Running release and recovery
 
-The installed boot-B loader is unchanged:
+Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
+boot `5b3cbfec-7cca-4ed2-bcbb-6dd84bea8f2a`.
+Signed primary manifest:
+`27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`.
+Other primary identities derive from the canonical expected record.
+
+Installed boot-B loader unchanged:
 `dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
 Retained previous boot B:
 `340f639276d9df3dfc073b8614a72f82507ea18c622c9df5d1e60f2c1622ccad`.
-Signed V11 fallback manifest:
+Signed V11 fallback manifest unchanged:
 `a684bad14f84251ba342a87bde07da1f7b9aea412275ad124f7000716e94bbe2`.
 
-Running bundle `persistent-native-root-v11`, kernel `7.1.4-g359318de534f`,
-boot `b4dca8ff-bcb6-4b48-abf1-8f45d661634e`.
-Authenticated USB SSH `10.77.0.2`, pinned alias `169.254.77.2`, fingerprint
+Pinned USB SSH is `10.77.0.2`, alias `169.254.77.2`, fingerprint
 `SHA256:WSn4LikLHGYMmnIhkgP/D3Q42/40SW99Mh1CuOHYkhQ`.
-Read-only fallback proof PASS: exact manifest, 117 physical block nodes,
-only sda/sda23 writable, P24 RO; battery Good, below 40°C, USB online.
-The 16 GiB persistent upper is unmounted in fallback. Do not mount it just
-to inspect logs; bounded read-only debugfs acquisition is already proven.
+V8 reached authenticated readiness in **98.215 s**. Local-root component PASS:
+P24 RO/no replay, expected persistent overlay, 117 physical nodes, only
+sda/sda23 writable, exact deployed userspace and current-boot readiness.
+Wi-Fi, Tailscale and persistent-state services started. Endurance is not proven.
 
-The failed V7 selector/trial intentionally selects fallback, not another V7
-execution. V5 accepted bundle/rollback selector/archived healthy record,
-V6 failure records, V11 and all one-use claims remain preserved.
-V5's previous healthy boot `660c70d5-f01f-4eda-82fe-4e1d6c9a4a08` ended.
-Do not execute a previous restoration or transition script unchanged.
+V8's experimental claim is permanently consumed, as are V6 and V7.
+Do not retry their RAM execution or issue replacement claims. V8's signed
+healthy trial record permits the separately verified ordinary installed-boot
+path; it is not full release acceptance. V7's pending failure record and old
+selector were archived during staged V8 installation. V5 accepted payloads,
+prior claims, V11 fallback and the failed-soak scratch remain preserved.
 
-## Current blocker and exact next action
+## Proven startup correction
 
-**S01: apply the existing conservative CPU policy early enough at startup.**
-V7 boot `c591ab27-9079-4261-9806-80f61e1e04d7` reached local root/systemd.
-The persistent journal proves:
-- tmpfiles finished at 21.924 s; CPU policy started at 21.926 s;
-- at 22.338 s, `thermal_zone13=62400 mC; required <60000 mC`;
-- core.run's initial guard refused before its snapshot or CPU cap writes;
-- the failure service requested orderly reboot at 24.745 s.
+V7's CPU guard refused 62.4°C before applying any cap. Its CPU unit had waited
+for tmpfiles because `PrivateTmp=yes` added an implicit dependency.
+V8 uses `PrivateTmp=disconnected` plus inaccessible `/var/tmp`; all existing
+power/storage guards and the 60°C thermal threshold remain unchanged.
 
-This is an actual thermal refusal, not missing optional telemetry or a host
-SSH/parser error. The exact failing-boot zone type and earlier temperature
-series were not retained. Do not infer V6's unknown zone/value from V7.
-The new diagnostic message worked; it was not itself a thermal fix.
+Physical journal: CPU unit started at **20.654 s**, before tmpfiles at
+**21.485 s**; policy application completed successfully. Verified maxima:
+policy0 **1,209,600 kHz**, policy4/policy7 **1,555,200 kHz**.
+Later read-only observation: all zones below 60°C, maximum **35.8°C**;
+battery Full 100%, Good 29.8°C, 8.593 V, USB online, current 0.
+This answers the startup question, not H03 regulation or a 60-minute load soak.
 
-**R2/R4 correction:** `PrivateTmp=yes` adds an implicit tmpfiles dependency.
-The two-line unit change uses `PrivateTmp=disconnected` and blocks `/var/tmp`.
-It retains P2 ordering, private /tmp, the remaining sandbox and all safety gates.
-The deployed systemd 261 manager/client/shared-library bytes reproduced the
-old graph and verified its removal in QEMU: **12.843 s**. A separate RAM-only
-namespace/ordering test passed in **12.492 s** while tmpfiles remained pending.
-This proves the dependency/sandbox behavior, not reduced physical temperature.
-No kernel, DT, module, threshold, cap order or watchdog change is proposed.
+The cycle reused the existing kernel/DT/modules and boot wrapper. No flash.
+Staging **2.126 s**, independent postcheck **0.747 s**, orderly V11-to-fastboot
+transition **9.327 s**, exact fastboot battery 8.606 V / SOC gate yes.
+Full capture completed **1,380.863 s**; route/firewall/profile/address cleanup
+all PASS. No further phone execution was requested during that observation.
 
-Correction `4b03207d30f1b1e238fc3fdf3bf1bd4c5125b752` passed full local CI
-**548.467 s** and all four remote jobs in **34164958369**. V8 target twins match
-(8.325 s); wrapper reuse passed (0.426 s), then signed twins/sealed verification
-passed (4.673 s). Its canonical record derives from that exact package; no
-claim, staging or physical execution yet. V8 A01/C01/C02 now pass in
-**88.128/131.751/104.415 s**. Full local and all four remote checks pass at
-`c389e0dfb2cc01be02e46a590f2b3a07a98bb2b9`. Next: prepare/test the scoped staging
-transaction from the running V11 fallback, preserving V7's exact `pending`
-record as consumed evidence. The old healthy-V5 source transaction is not valid
-unchanged. Then test whether earlier CPU capping passes the unchanged thermal
-guard. V7 cannot be reused; offline PASS does not itself grant execution.
+## Next mandatory outcome
 
-## Evidence and qualification limits
+**S01: qualify one ordinary installed-release boot without host boot services.**
+Before requesting it, finish qualification and publication of the bounded
+complete-upper acceptance-consumer correction. Older consumers expected five
+hashes; V8's A01 correctly includes the retained upper as a sixth composition
+input. The correction propagates that exact hash through F02/S01–S05 and
+rejects missing/altered upper records; it changes no phone payload or policy.
 
-V7 signed manifest:
-`4eaeb9f8859f7fa9c64b5e40b3764452da504d0ce5438afd20760305bc23e7b9`.
-Other artifact identities derive from its canonical expected record.
-Historical base-only passes did not cover deployed systemd 261/OpenSSH 10.5.
-Final persistent-overlay qualification now requires the complete matching upper;
-a missing matching input stays BLOCKED. Historical timings/identities remain
-in the dated report, not a combined green release.
+Proposed normal/optimized focused checks passed **18.252 s** in an isolated
+filesystem view while the real repository/capture inputs remained frozen.
+Run one full local CI plus required exact-head/merge checks at the integration
+checkpoint. Rebind ordinary-boot preparation to that tested source; do not
+execute the old-source adapter unchanged or relabel historical CI.
+Keep the existing one-coordinator capture, healthy/installed/fallback/power
+checks and ordinary-reboot semantics. No new experimental candidate is needed.
 
-The complete inactive 16 GiB upper is now retained read-only, SHA256
-`dff8988f3c2f4c5204d2e827114f63e54068acc530a75010dd2d522de3795388`.
-V8 A01 checks both full image hashes before/after execution. Its offline failures
-identified missing fixture copy-up of existing systemd markers and SSH keyword
-case mismatch. Corrected fixture preserves marker bytes and retained SSH keys;
-policy still rejects missing, duplicate or unsafe values. Signed payloads were
-unchanged. V8 C02 uses the same complete upper; V7 C02 is historical evidence only.
+## Mandatory results
 
-V7 staging PASS **2.024 s**, no flash; P24 relocked and fallback hashes verified.
-One execution only. Startup readiness FAIL at **301.118 s**.
-Full capture **1380.703 s**, all route/firewall/profile/address cleanups PASS.
-Last target transport stage: switch-root PASS; independent journal identified
-the later CPU guard failure. Unplanned fallback is not controlled R01 proof.
-Private work/evidence: `rog5-boot-cpu-diag-20260907.cnXiH8My`.
-
-## Mandatory outcomes
-
-Do not combine incompatible releases into one green result.
+Do not combine incompatible releases or simulation and physical evidence.
 
 | Outcome | Current result / next action |
 |---|---|
-| A01 / C01 / C02 | V8 offline PASS; A01/C02 include complete upper; not physical acceptance |
-| H01 / H02 | V11 fallback SSH/power proof; same-release radio-inactive rescue not qualified |
-| H03 regulation | NOT RUN for V7; defined firmware-Full method, not absent-field success |
-| S01 local startup | V7 FAIL; test corrected CPU startup ordering |
-| S02 transfers | V5 PASS only; qualify final release and Wi-Fi margin |
-| S03 restart recovery | V5 PASS only; qualify final release |
-| S04 durability | V5 PASS only; prior failed-soak scratch preserved |
-| S05 repeated boots | V5 three ordinary boots PASS, 313.102 s; not V7 evidence |
+| A01 / C01 / C02 | V8 offline PASS; A01/C02 include complete retained upper |
+| H01 / H02 | Same-release radio-inactive rescue not qualified |
+| H03 regulation | NOT RUN for final release; use defined firmware-Full method |
+| S01 local startup | V8 startup/root component PASS; ordinary installed boot still required |
+| S02 / S03 | Transfers/restart recovery were V5-only; qualify V8 |
+| S04 durability | V5-only; preserve prior failed-soak scratch and qualify V8 |
+| S05 repeated boots | V5 three boots passed; V8 sequence NOT RUN |
 | S06 powered-off start | NOT RUN |
-| S07 combined load | V5 uncapped FAIL; capped 600.496 s diagnostic is not 60-minute PASS |
-| F01 / F02 | Retained offline recovery/Wi-Fi-restart passes; exact-input reuse only |
-| R01 recovery | Controlled isolated failed-boot qualification still outstanding |
+| S07 combined load | NOT RUN for V8; prior capped 600 s diagnostic is not one-hour PASS |
+| F01 / F02 | Retained offline passes; reuse only with exact dependency evidence |
+| R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
-## Fast loop and retention
+## Evidence, fast loop and retention
 
-Use [development](development.md): impact/dependency selection, exact-target
-checks, frozen integration checkpoints and separate development/release results.
-Unknown/critical changes stay broad. Documentation/eligible experiments need
-not repeat unrelated CI; actual artifacts and safety dependencies still bind.
-V7 target twins **9.095 s**, wrapper reuse **0.446 s**, signed packaging **4.828 s**.
-Registry CI, root preview and A01/C01/C02 overlapped; no kernel/wrapper rebuild.
-Private preparation may overlap pending CI; staging/execution still require
-completed exact remote checks. It is not a live-admission waiver.
+Use [development](development.md) for impact-based selection and cache reuse.
+Full V8 A01/C01/C02 took **88.128/131.751/104.415 s**. Full local CI at
+`c389e0dfb2cc01be02e46a590f2b3a07a98bb2b9` passed **560.697 s**; all four remote
+jobs passed in 34169434998. Docs-only execution checkpoint
+`1a934b08dee27e800807563b7742ad7b0b1a6935` passed all four jobs in 34170256521.
+These are their original source identities, not proof of newer code.
 
-Preserve the 3 GiB home reserve. Retained preview restoration identities,
-archived V4/V6 roots, released duplicate wrapper intermediates, historical
-V5/V6 narratives and detailed results are in the
+Preserve the complete inactive upper snapshot used for composition:
+`dff8988f3c2f4c5204d2e827114f63e54068acc530a75010dd2d522de3795388`.
+Normal persistent state may change after boot; do not relabel the snapshot.
+Private current work: `rog5-cpu-startup-20260908.kjE4IqCf`.
+Detailed V6/V7 failures, V8 staging/runtime proof, fixture fixes, original
+timings and exact retention procedures are in the
 [existing dated report](../test-results/2026-09-05-headless-acceptance.md).
-Some retained artifacts/archives remain in volatile RAM: no host reboot yet.
-Full local CI at `66adf616` passed in 544.355 s; all four remote jobs passed in
-34167400408. Focused checks took 14.283 s. Do not repeat unchanged full local CI
-for the literal V8 record: check every affected admission consumer; remote
-exact-head/merge and final artifact checks remain required before execution.
-Disposable QEMU compression now takes **2.634 s**, versus **22.786 s**, with
-identical decompressed content; signed archives/build settings are unchanged.
-Focused plus active checks passed **55.274 s** before the final SSH-case fix;
-changed composition tests then passed normal/optimized. Frozen full local CI
-passed **560.697 s**; all four remote jobs passed in **34169434998**. A01's exact
-tested fixture bytes are bound to that commit without relabelling its original
-source. C02 with concurrent local CI exceeded its 120 s deadline (**148.159 s**);
-running it separately passed **104.415 s**. Keep heavy local checks separate on
-this memory-constrained host; remote CI may overlap. No deadline was relaxed.
-Home has about 3.26 GB free. The V5 raw preview is losslessly delta-archived
-against a hash-verified durable V7 base; 4.10 GB of duplicate RAM allocation
-was released. Preserve the delta + base together. Current private work and
-relocation receipts: `rog5-cpu-startup-20260908.kjE4IqCf`.
-Never remove the failed-soak scratch, accepted payloads or archived claims.
-Host port 8081 is unrelated SteamOS CEF; leave it untouched.
+
+Home has about 3.26 GB free; preserve the 3 GiB reserve. V5's lossless reverse
+delta and durable V7 base must stay together. Unique archives still occupy RAM:
+no host reboot until retained safely. Never remove failed-soak scratch, accepted
+payloads, private evidence or claims. Leave unrelated SteamOS CEF port 8081 alone.
+Schedule heavy A01/C02 separately from full local CI; remote checks and bounded
+independent preparation may overlap. No test deadline or release gate is reduced.

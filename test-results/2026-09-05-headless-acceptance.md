@@ -6624,3 +6624,82 @@ it is consumed evidence, not healthy/retry authority. V8's claim and both entere
 paths are absent. Next action is the scoped V11/pending-V7 staging adaptation
 and exact preflight, not execution of the old healthy-source transaction.
 No phone write/reboot occurred. Offline qualification is not final server PASS.
+
+### 2026-09-08 — V8 startup CPU policy passed; no kernel rebuild
+
+Frozen execution source `1a934b08dee27e800807563b7742ad7b0b1a6935` retained
+the qualified c389e0df runtime and passed all four remote jobs in 34170256521.
+The staged V8 manifest is
+`27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`;
+its target archive remains
+`26a093275bd0fe910d5f3c439e58f801096ff89f13778627bafa8627cc92a842`.
+Kernel/DT/modules, signed V11 fallback and installed boot B were reused.
+
+The exact V11 fallback source had V7's consumed **pending**, not healthy,
+record. The bounded staging adaptation retained no-follow/inode/hash/flock
+checks and required the fallback's healthy writer to be absent and rollback
+timers inactive. Eight cases passed on the actual fallback tools in disposable
+RAM: valid pending, wrong healthy state, busy lock, symlink, loaded writer,
+active timer, changed bytes and replaced pathname. Persistent state was unchanged
+by these tests. V11 has no Python; the original read-only inventory attempt
+failed before mutation and was replaced with a native shell/tool test.
+Its exact `/lib` interpreter alias was verified, not generalized arbitrarily.
+
+Full coordinator replay passed normal/optimized (0.008/0.008 s), including
+early failure, late gate failure and irreversible entry after ambiguous staging.
+Non-mutating preflight passed **0.961 s**. Staging ran once, **2.126 s**:
+signed V8 files/selector installed, V7 selector and pending record archived,
+P24 relocked RO, V11 unchanged. Independent postcheck passed **0.747 s**.
+
+The running V11 exitrd/helper and bound reboot-mode provider matched retained
+bytes. Only its final restart destination changed in RAM; its storage teardown
+was unchanged. Orderly fastboot transition passed **9.327 s**, exact slot B,
+8.606 V and SOC gate yes. No flash, slot change, GPT or protected-data write.
+The assembled live-adapter replays passed normal/optimized **2.462 s**.
+
+V8's experimental claim was consumed exactly once. Fastboot transfer/execution
+completed **12.801 s**; authenticated readiness arrived **98.215 s** after
+coordinator start. Target boot `5b3cbfec-7cca-4ed2-bcbb-6dd84bea8f2a`, kernel
+`7.1.4-gf17befd4ef17`. Local-root/userspace/readiness component passed **1.055 s**.
+Wi-Fi, Tailscale and persistent-state services started. This is not full S01,
+H03, ordinary-boot or endurance qualification. The full capture subsequently
+completed **1,380.863 s**, last stage switch-root PASS for that same target boot;
+route, firewall, profile and address cleanup all passed. This is not controlled
+failure/recovery qualification. No second physical coordinator overlapped it.
+
+The physical journal proves CPU policy started at **20.654 s**, before
+tmpfiles at **21.485 s**, and successfully applied the intended 1,209,600 kHz
+policy0 / 1,555,200 kHz policy4+7 maxima. V7 had started after tmpfiles and
+refused 62.4°C before writing caps. V8 retains the same 60°C guard and all
+power/storage checks. Later verified thermal maximum was **35.8°C**; battery
+Full 100%, Good 29.8°C, 8.593 V, current 0. This is startup evidence, not a
+substitute for the defined charging or combined-load windows.
+
+A read-only follow-up observer initially assumed the unit lived under `/etc`.
+The sealed installer actually uses `/run/systemd/system`; the corrected observer
+preserves absent/error observations and passed **0.459 s**. The failed receipt
+remains. No target change, new candidate or reboot was needed for this R3 fix.
+
+### 2026-09-08 — Complete-upper acceptance consumer closure
+
+Before an ordinary boot, replaying actual successful V8 A01 against the next
+acceptance consumer reproduced `ValueError: artifact roles`. A01 now binds the
+complete retained upper, but F02/S01–S05 still transported only five hashes.
+This R2 producer/consumer mismatch is a host qualification defect, not a kernel
+or phone-startup failure. It must not be fixed by dropping the upper binding.
+
+The bounded correction accepts the exact five-role legacy set or complete
+six-role set, requires literal `root_upper_unchanged=true` for layered proof,
+and propagates the independently verified upper hash from the existing release
+receipt through every affected dispatcher branch and result comparison.
+Unknown, missing and altered records remain rejected in both Python modes.
+Legacy evidence stays labelled historical; upper state is not relabelled as a
+new filesystem after normal persistent writes.
+
+New regressions failed before the fix. All four focused suites passed in normal
+and optimized Python, **18.252 s**, against filesystem-shadowed proposed files.
+The real repository and active capture inputs remained unchanged throughout.
+This caught the acceptance mistake before spending the next physical cycle.
+Full local and exact-head/merge CI follow at one frozen integration checkpoint;
+no kernel, DT, module, recovery, threshold or signed payload changes are needed.
+Private evidence remains in `rog5-cpu-startup-20260908.kjE4IqCf`.

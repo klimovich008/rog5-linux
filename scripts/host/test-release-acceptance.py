@@ -20,6 +20,35 @@ SPEC.loader.exec_module(M)
 
 
 class AcceptanceTest(unittest.TestCase):
+
+    def test_layered_hash_reaches_all_runtime_evidence_consumers(self):
+        for kind in ('F02','S01','S02','S03','S04','S05'):
+            for mutation in ('none','missing-upper','altered-upper'):
+                with self.subTest(kind=kind,mutation=mutation),tempfile.TemporaryDirectory() as tmp:
+                    root=Path(tmp);(root/kind).mkdir()
+                    inputs=root/'inputs.json';inputs.write_text('{}');pin=M.sha_file(inputs)
+                    hashes=dict.fromkeys(M.ARTIFACT_ROLES,'a'*64);hashes['root_upper']='c'*64
+                    release=dict(candidate_id='fixture',artifact_paths=dict(kernel='/k',initramfs='/i'),
+                                 artifacts={k:dict(sha256=v) for k,v in hashes.items() if k!='root_upper'},
+                                 root_upper=dict(path='/retained/upper',sha256='c'*64))
+                    test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']==kind))
+                    test['commands']=[[sys.executable,'-c','import sys; print(sys.argv[1])','{artifact_hashes}']]
+                    runner=('check-wifi-restart-evidence.py' if kind=='F02' else
+                            'check-standalone-boot.py' if kind=='S01' else 'check-server-runtime-evidence.py')
+                    proof=dict(status='PASS',source=M.source_identity(),candidate='fixture',
+                               artifact_hashes=dict(hashes),inputs_sha256=pin,original_source=dict(revision='b'*40),
+                               runner_sha256=M.sha_file(M.REPO/'scripts/host'/runner))
+                    proof[kind.lower()+'_qualified']=True
+                    if mutation=='missing-upper':proof['artifact_hashes'].pop('root_upper')
+                    if mutation=='altered-upper':proof['artifact_hashes']['root_upper']='d'*64
+                    (root/kind/'result.json').write_text(json.dumps(proof))
+                    kw=({'wifi_restart_inputs':(inputs,pin)} if kind=='F02' else
+                        {'standalone_boot_inputs':(inputs,pin)} if kind=='S01' else
+                        {'runtime_inputs':{kind:(inputs,pin)}})
+                    row=M.run_one(test,root,release,**kw)
+                    self.assertEqual(row['status'],'PASS' if mutation=='none' else 'FAIL',row)
+                    self.assertIn('root_upper='+'c'*64,(root/(kind+'.log')).read_text())
+
     def test_h03_exact_proof_and_required_evidence(self):
         test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']=='H03'))
         test['commands']=[[sys.executable,'-c','pass']]

@@ -48,10 +48,13 @@ def elapsed(value,limit):
     require(type(value) in (int,float) and math.isfinite(value) and 0<value<=limit,'invalid duration/deadline')
 
 def composition_matches(composition,candidate,hashes):
-    require(set(hashes)=={'kernel','dtb','initramfs','rootfs','boot_bundle'} and
+    roles={'kernel','dtb','initramfs','rootfs','boot_bundle'}
+    require(set(hashes) in (roles,roles|{'root_upper'}) and
             all(isinstance(v,str) and HEX.fullmatch(v) for v in hashes.values()),'artifact roles')
     require(composition['status']=='PASS' and composition['a01_qualified'] is True and
             composition['candidate']==candidate and composition['artifact_hashes']==hashes,'incompatible composition')
+    if 'root_upper' in hashes:
+        require(composition.get('root_upper_unchanged') is True,'unverified retained upper')
 
 def validate(record,logs,identity,archive_sha):
     require(record['status']=='PASS' and record['release_qualified'] is False,'not completed component')
