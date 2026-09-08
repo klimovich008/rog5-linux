@@ -7015,3 +7015,47 @@ All private work remains in `rog5-cpu-startup-20260908.kjE4IqCf`; the original
 rescue evidence remains in `rog5-rescue-h03-20260906.CayoqOsI`. No phone process
 is active. S06 still needs a genuine powered-off start; R01 still needs its
 separate controlled signed failure experiment and authenticated recovery.
+
+
+### Paired rescue/server integration checkpoint — 2026-09-08
+
+Implementation `be0a8d2e76749b73535aef8258e04504c4d807d7` passed full local
+CI in **533.794565 s**, exit 0, terminal completion marker present, source
+unchanged. CI log SHA-256:
+`ef9bbcf8d5a01c1bbe62b442b210ca9fa57d46df329a08b4ce44e9b92cdcf971`.
+[GitHub run 34229955565](https://github.com/klimovich008/rog5-linux/actions/runs/34229955565)
+passed head-exact, merge-compat, candidate-publication and qemu-system.
+
+The actual acceptance dispatcher passed ten selected rows in **153.915184 s**
+under one receipt: primary `headless-server-selector-v8`, explicit companion
+`headless-acceptance-rescue-v8`, same exact kernel and base Arch image. The
+complete retained upper belongs only to the primary. Final artifact and source
+revalidation passed. This is retained-evidence replay; no phone action occurred.
+
+| Row | Result | Dispatcher seconds |
+|---|---|---:|
+| H01 | PASS, explicit rescue companion | 1.568 |
+| H02 | PASS, explicit rescue companion | 1.518 |
+| H03 | PASS, explicit rescue companion | 1.518 |
+| S01 | PASS, original V8 ordinary boot | 0.215 |
+| S02 | PASS, four original transfers | 3.473 |
+| S03 | PASS, original service sequence | 0.215 |
+| S04 | PASS, original durable file/reboot | 0.465 |
+| S05 | PASS, three original boots | 0.265 |
+| S07 | PASS, original full-hour load | 68.672 |
+| F02 | PASS, original Wi-Fi restarts | 0.766 |
+
+Private receipts are `paired-rescue-full-r1`,
+`paired-rescue-qualification-launch-r1` and `paired-rescue-qualification-r1`
+under the existing CPU-startup evidence directory. The rescue observations
+retain source `d23304c04bc201c7ffb25fbac49b86b187969b31` and boot
+`015153cc-86f0-440c-b49f-95a1733316b9`; server observations retain their own
+original sources and boots. No consumed claim is reused or replaced.
+
+The aggregate release flag stays false. S06 requires a real confirmed powered-off
+interval and operator startup. R01 still needs an isolated signed failed-boot
+experiment proving autonomous authenticated rescue. Read-only code inspection
+confirmed that a simple negative RAM target followed by ordinary watchdog reboot
+would select the installed healthy V8; it cannot be presented as V11 recovery.
+No negative candidate, signing, registration, claim or phone operation occurred.
+The separate preparation receipt is `r01-recovery-path-inspection-r1`.
