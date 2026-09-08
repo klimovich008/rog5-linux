@@ -7890,3 +7890,35 @@ that this error branch actually occurred; it remains an admission gap, not an
 established cause of the journal event. Future preparation needs positively
 bound source teardown completion. The consumed controller, claim and failed
 capture remain immutable. R01 stays FAIL; S06 stays NOT RUN.
+
+
+### Positive source teardown observer preparation
+
+The accepted standalone shutdown stays byte-identical. A deterministic RAM-only
+preparer adds one bounded observation before API teardown and the existing
+bootloader helper at final restart. The receipt pins source boot, nonce and
+staged script hashes. Physical/overlay mounts, loop mappings, incomplete clean
+teardown, unmatched device nodes or any writable physical node suppress it.
+The optional passive receiver keeps source receipts separate from target stages,
+fsyncs the receipt event and permanently rejects missing/late/duplicate/invalid
+observations. Its sixty-second window is fixed at arming. No live controller
+has adopted this mode and no new phone action occurred.
+
+The first sealed replay exposed excessive subprocess cost under emulation:
+clean observation took 8.435 seconds and the assembled five-second hook emitted
+no receipt. That failed `source-teardown-sealed-r2` result is preserved. Built-in
+shell reads reduced the clean case to **1.540733 s**. All **27** synthetic cases
+passed in `source-teardown-sealed-r3`, including complete generated shutdown:
+clean receipt **1.625827 s**, unclean teardown fallback **0.138931 s**, network
+failure fallback **1.705886 s**, and forced sender timeout fallback **5.098458 s**.
+The fixture intercepts reboot, mount operations, kernel identity and device
+ioctls; it cannot prove hardware behavior. The initial fixture compile refusal
+is retained in the earlier r1 directory.
+
+A separate new `real-netcat` case passed in **1.572010 s** against the unchanged
+sealed AArch64 BusyBox. Both diagnostic addresses and the TCP server existed
+only in a fresh network namespace. The real netcat command delivered the exact
+bounded receipt from its expected source address. No host route or phone
+interface was exposed. The eight receipt tests passed in normal and optimized
+Python; all 36 receiver, 23 ordinary-smoke and 27 baseline tests also passed.
+Full integration CI is pending. R01 remains FAIL; S06 remains NOT RUN.
