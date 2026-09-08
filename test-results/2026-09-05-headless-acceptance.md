@@ -7154,3 +7154,47 @@ canonical admission; fresh non-consuming host/device/storage/power/fallback
 preflight; one physical failure/recovery observation with the full capture;
 and exact restoration plus an ordinary current-boot V8 health check. S06 also
 remains outstanding. No release qualification is claimed by these components.
+
+
+### R01 passive capture and negative-health observer — 2026-09-08
+
+Added a separate `capture-isolated-recovery.py` so the historical S01–S07
+producer `headless-stage-receiver.py` stays byte-identical. Its SHA-256 remains
+`309a320874f453e4393a361d3a6f082ebd2dc6d77365a2e81ff14b6551fe1338`.
+The new receipt binds both files, the explicit canonical fallback, the live
+process challenge and the existing capture lattice. Positive absence after
+initial switch-root PASS permits one distinct rescue boot; it grants no boot
+or physical-recovery authority. Early/third-boot disconnects and malformed or
+unclassified transport observations remain failures. No earlier failure clears.
+
+Fifteen new tests passed normally and optimized, plus all 33 unchanged receiver
+and host-network regressions. The receiver-only active run passed **47.788639 s**
+with its recorded inputs unchanged; private receipt `r01-capture-active-r1`
+retains the exact tested file hashes. Log SHA-256:
+`277d6b4b5a56c8be9ec37d95c4ae6bb82e345eb58b1ddafe0a16568e822e12a6`.
+This precedes the subsequently added observer and is not its integrated result.
+
+Added `isolated-recovery-observation.py`, a read-only negative-health component.
+It checks the exact trial-state helper refusal and health-script failure in the
+same boot/unit execution window, the still-pending installed fallback record,
+absent healthy/radio-refusal markers, boot-bound core/SSH readiness, all six
+sealed health/rollback files, and an active 900-second rollback timer. It also
+retains power, thermal, 117-node storage and p23 mount checks. Completed and
+partial SSH output is preserved before a post-read topology failure can throw.
+Nine focused tests cover these negative cases and exercise the actual embedded
+reader on regular files, missing files, links, bounds and pathname replacement.
+
+Both suites are in the active tier. These are observer components only; R01
+still has no completed physical evidence or dispatcher PASS. The autonomous
+rollback stream, one-shot controller, raw replay, signed isolated package,
+canonical admission and fresh non-consuming physical guards remain required.
+The installed phone state and all consumed claims are unchanged by this work.
+
+The combined observer checkpoint then passed the active tier in **45.382820 s**,
+plus both focused optimized suites, **45.763266 s** overall. Exit codes were 0;
+all eight recorded runtime/producer input hashes were unchanged. Private
+`r01-observers-active-r1` contains the result, raw logs and exact source copies.
+Integrated active log SHA-256:
+`288ad34e4ba09f1e7c1ee7484e439444a96cc634f8b5a6536068e5085df1fe13`.
+Full integration CI/publication remain pending with controller/evidence work;
+no previous CI result is relabeled for these additions.

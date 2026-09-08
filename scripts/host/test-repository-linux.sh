@@ -166,6 +166,8 @@ active_tests=(
 	scripts/device/test-startup-observer.py
 	"scripts/device/test-persistent-ssh-key-files.py"
 	scripts/host/test-headless-stage-receiver.py
+	scripts/host/test-capture-isolated-recovery.py
+	scripts/host/test-isolated-recovery-observation.py
 	scripts/host/test-release-acceptance.py
 	scripts/host/test-network-transfer-stream.py
 	scripts/host/test-wifi-restart-evidence.py
