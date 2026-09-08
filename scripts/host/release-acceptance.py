@@ -148,6 +148,14 @@ def rescue_bindings(path):
     return {'{rescue_'+key+'}': value for key,value in values.items()}
 
 
+def qualification_hashes(release):
+    """Retained upper is a composition input, kept separate in the release receipt."""
+    hashes={k:v['sha256'] for k,v in release['artifacts'].items()}
+    if 'root_upper' in release:
+        hashes['root_upper']=release['root_upper']['sha256']
+    return hashes
+
+
 def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None, wifi_restart_inputs=None, standalone_boot_inputs=None, runtime_inputs=None):
     row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
            'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
@@ -187,7 +195,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                 row.update(status='FAIL',next_action='invalid runtime evidence pin')
                 return row
             bindings.update({'{runtime_inputs}':str(path),'{runtime_inputs_sha256}':pin,
-                             '{artifact_hashes}':','.join(k+'='+v['sha256'] for k,v in sorted(release['artifacts'].items()))})
+                             '{artifact_hashes}':','.join(k+'='+v for k,v in sorted(qualification_hashes(release).items()))})
         if test['id']=='S01':
             if standalone_boot_inputs is None:
                 row['next_action']='supply pinned --standalone-boot-inputs; replay never boots or retries the phone'
@@ -197,7 +205,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                 row.update(status='FAIL',next_action='invalid ordinary-boot evidence input pin')
                 return row
             bindings.update({'{standalone_boot_inputs}':str(path),'{standalone_boot_inputs_sha256}':pin,
-                             '{artifact_hashes}':','.join(k+'='+v['sha256'] for k,v in sorted(release['artifacts'].items()))})
+                             '{artifact_hashes}':','.join(k+'='+v for k,v in sorted(qualification_hashes(release).items()))})
         if test['id']=='F02':
             if wifi_restart_inputs is None:
                 row['next_action']='supply reviewed --wifi-restart-inputs and its SHA-256; never repeat the device test implicitly'
@@ -207,7 +215,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                 row.update(status='FAIL',next_action='invalid Wi-Fi evidence input pin')
                 return row
             bindings.update({'{wifi_restart_inputs}':str(path),'{wifi_restart_inputs_sha256}':pin,
-                             '{artifact_hashes}':','.join(k+'='+v['sha256'] for k,v in sorted(release['artifacts'].items()))})
+                             '{artifact_hashes}':','.join(k+'='+v for k,v in sorted(qualification_hashes(release).items()))})
         if 'dtb' in release['artifact_paths']:
             bindings['{dtb}'] = release['artifact_paths']['dtb']
         if 'boot_bundle' in release['artifact_paths']:
@@ -335,7 +343,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             proof_path=output/test_id/'result.json';proof=json.loads(proof_path.read_text())
             if (proof['status']!='PASS' or proof[test_id.lower()+'_qualified'] is not True or
                     proof['source']!=source_identity() or proof['candidate']!=release['candidate_id'] or
-                    proof['artifact_hashes']!={k:v['sha256'] for k,v in release['artifacts'].items()} or
+                    proof['artifact_hashes']!=qualification_hashes(release) or
                     proof['inputs_sha256']!=inputs[1] or
                     sha_file(inputs[0])!=inputs[1] or
                     proof['runner_sha256']!=sha_file(REPO/'scripts/host'/runner)):

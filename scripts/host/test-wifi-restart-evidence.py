@@ -91,4 +91,20 @@ class Tests(unittest.TestCase):
                 r=json.loads((output/'result.json').read_text())
                 self.assertEqual(r['status'],'FAIL');self.assertFalse(r['f02_qualified'])
 
+
+    def test_complete_upper_is_bound_for_layered_composition(self):
+        hashes=dict.fromkeys(('kernel','dtb','initramfs','rootfs','boot_bundle'),'a'*64)
+        hashes['root_upper']='b'*64
+        proof=dict(status='PASS',a01_qualified=True,candidate='fixture',
+                   artifact_hashes=hashes,root_upper_unchanged=True)
+        M.composition_matches(proof,'fixture',hashes)
+        for changed in (dict(hashes,root_upper='c'*64),
+                        {k:v for k,v in hashes.items() if k!='root_upper'},
+                        dict(hashes,unknown='d'*64)):
+            with self.subTest(changed=changed),self.assertRaises(ValueError):
+                M.composition_matches(proof,'fixture',changed)
+        for changed in (False,None,1):
+            with self.subTest(unchanged=changed),self.assertRaises(ValueError):
+                M.composition_matches(dict(proof,root_upper_unchanged=changed),'fixture',hashes)
+
 if __name__=='__main__':unittest.main()
