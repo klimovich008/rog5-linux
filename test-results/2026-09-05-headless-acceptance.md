@@ -7235,3 +7235,30 @@ on the phone. Live use still requires exact current-boot files, tmpfs, bound
 nvmem reboot-mode provider, full boot/power/storage/fallback gates and durable
 one-use intent. The negative target must keep its original ordinary-reboot
 shutdown; this preparatory delta is not part of its signed payload.
+
+
+### R01 durable controller ordering — 2026-09-08
+
+A private import-only controller engine now writes and fsyncs exclusive phase
+intents before actions, rejects a previously used candidate directory or phase,
+and never repeats an arming, transition or experimental boot after ambiguity.
+Full capture closure remains independent of failed observation/source gates.
+Fresh rescue identity and the original pending-record hash precede restoration;
+exact restored bytes and a distinct, healthy ordinary primary boot follow it.
+Failure remains failure even when returning the phone to accepted state succeeds.
+An interruption runs cleanup and propagates without subsequent mutation.
+
+Nine fault-injection tests passed normally (**0.029 s**) and optimized
+(**0.035 s**), using real private receipt files and synthetic driver callbacks.
+Private `r01-controller-ordering-tests-r1` retains source hashes/copies and an
+explicit reference to recorded tool output; it is not physical driver evidence.
+Source-side scripts now embed the unchanged tested arming primitive and exact
+V8 RAM exitrd delta. Their fixture-identity syntax checks passed; the arm script
+is 7,912 bytes and transition script 20,687 bytes. Generated originals are in
+`r01-source-action-scripts-r1`. They have not been sent to the phone.
+
+The concrete live driver, namespace tests of generated actions, independent
+R01 replay, integrated full CI/publication and signed canonical admission remain
+required. No phone control, state arming, reboot, new claim or qualification
+occurred during this controller work. Host free space was **5,931,253,760 bytes**;
+no active receiver or repository test process was found at the initial check.
