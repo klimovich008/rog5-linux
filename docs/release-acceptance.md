@@ -422,6 +422,40 @@ stdout/stderr roles are checked by the runner. Missing inputs are BLOCKED,
 altered/incomplete evidence FAIL. Evaluator source is distinct from the
 original observed source; replay cannot qualify a different artifact set.
 
+`rog5-dev check-server-runtime --kind S06` replays a completed powered-off
+start. Its `rog5-powered-off-start-evidence-v1` envelope pins the roles in
+`powered-off-start-evidence.py`, including replayable S01 and S05 prerequisites,
+one boot component, the exact installed-file preflight and power-off command,
+operator statements, continuous USB samples and complete receiver cleanup.
+Private producer sources are hashed data and are never executed by replay.
+
+The supported physical conditions are side USB connected to the host throughout,
+no other cables, and one physical power-button press. The coordinator records a
+fresh nonce and same-host monotonic timestamps for direct operator statements:
+`READY NONCE`, `OFF NONCE`, then its `PRESS POWER ONCE NONCE` request and the
+operator's `STARTED NONCE` reply. The operator must actually confirm off; loss
+of USB or SSH alone cannot establish power state. Keep a confirmed off interval
+of at least ten seconds, covered by same-device USB-absent samples no more than
+two seconds apart. A return before the start request, an unknown USB state,
+missing operator input, changed cable conditions or a reboot command fails.
+This qualification explicitly includes operator attestation; it does not claim
+that USB observation measures electrical power state.
+
+The existing 420-second ceiling contains 30 seconds of preflight, at most 60
+seconds for shutdown/operator transition, 300 seconds from the start request
+to authenticated healthy startup, and 30 seconds for successful cleanup. The
+start request precedes the button press, so this clock is conservative. Arm the
+full failure receiver with the extra transition allowance before power-off;
+a failed startup retains that longer capture even after the success deadline.
+Component eligibility alone grants no power-off, start, receiver-stop or
+qualification authority. The live coordinator still needs current preflight,
+installed-byte and fallback guards, sole phone ownership and a ready operator.
+
+Use `--runtime-inputs S06=ABSOLUTE_PATH,SHA256` with the existing release matrix.
+Missing inputs are BLOCKED; contradictory evidence fails. S06 remains NOT RUN
+until physical evidence passes replay. Existing S01/S05 dependency checks also
+remain strict: an older receiver cannot silently become current-source proof.
+
 Every row's environment, prerequisites, runner, deadline, outcome, mutation,
 cleanup and evidence contract is in the JSON. Empty command lists carry explicit
 implementation blockers; they are not placeholders that return success.

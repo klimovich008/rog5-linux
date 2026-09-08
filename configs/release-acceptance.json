@@ -36,6 +36,10 @@
       "network_bytes": 67108864,
       "network_deadline_seconds": 90
     },
+    "powered_off_start": {
+      "minimum_off_seconds": 10,
+      "maximum_sample_gap_seconds": 2
+    },
     "ordinary_smoke": {
       "startup_seconds": 300,
       "preflight_seconds": 30,
@@ -130,6 +134,8 @@
         ["python3", "-O", "scripts/host/test-check-standalone-boot.py"],
         ["python3", "scripts/host/test-ordinary-boot-smoke.py"],
         ["python3", "-O", "scripts/host/test-ordinary-boot-smoke.py"],
+        ["python3", "scripts/host/test-powered-off-start-evidence.py"],
+        ["python3", "-O", "scripts/host/test-powered-off-start-evidence.py"],
         ["python3", "scripts/host/test-repeated-boot-evidence.py"],
         ["python3", "-O", "scripts/host/test-repeated-boot-evidence.py"],
         ["python3", "scripts/host/test-server-runtime-evidence.py"],
@@ -705,7 +711,7 @@
         "S05 PASS",
         "physical power-off/start conditions"
       ],
-      "commands": [],
+      "commands": [["python3", "scripts/host/check-server-runtime-evidence.py", "--kind", "S06", "--inputs", "{runtime_inputs}", "--inputs-sha256", "{runtime_inputs_sha256}", "--candidate", "{candidate}", "--artifact-hashes", "{artifact_hashes}", "--output", "{test_output}"]],
       "deadline_seconds": 420,
       "pass_condition": "After confirmed off interval, one start <=300s reaches exact release and pinned SSH; cable/power conditions recorded.",
       "fail_condition": "Any incorrect identity, failed assertion/command, deadline expiry, unexpected mutation or transport loss during an executing test. Missing prerequisites are BLOCKED.",
@@ -718,7 +724,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Physical start may require operator action; never substitute ordinary reboot."
+      "blocker": "Supply pinned completed S06 evidence, replayable S01/S05, direct operator off/start statements and continuous USB absence. Replay never powers off or starts the phone; an ordinary reboot cannot qualify."
     },
     {
       "id": "S07",

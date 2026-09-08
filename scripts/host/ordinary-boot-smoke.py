@@ -128,11 +128,18 @@ def closed(baseline,context,closure):
     Hash/command/process binding belongs to the existing coordinator and its
     pinned evidence consumer. This function validates their observed behavior.
     """
-    decision=eligibility(baseline,context);c=closure;t=timing()
+    decision=eligibility(baseline,context)
+    return close_capture(context,closure,decision,operation='ordinary-boot-smoke',
+        action_key='reboot_returncode',finish_deadline=context['entry_monotonic']+timing()['startup_seconds']+timing()['close_seconds'],
+        scope='one closed ordinary smoke component; not full watchdog/recovery or three-boot qualification')
+
+def close_capture(context,closure,decision,*,operation,action_key,finish_deadline,scope):
+    """Shared closure only. Each caller must first validate its complete startup."""
+    c=closure;t=timing()
     require(c['source']==context['source'] and c['identity']==context['identity'],
         'mixed close source/identity')
-    require(c['operation']=='ordinary-boot-smoke' and type(c['reboot_returncode']) is int
-        and c['reboot_returncode']==0 and type(c['receiver_returncode']) is int
+    require(c['operation']==operation and type(c[action_key]) is int
+        and c[action_key]==0 and type(c['receiver_returncode']) is int
         and c['receiver_returncode']==0,'failed/ambiguous boot or capture')
     requested=B.number(c['close_requested_monotonic']);events=c['events']
     require(context['observed_monotonic']<=requested<=context['observed_monotonic']+t['decision_seconds'],
@@ -162,13 +169,13 @@ def closed(baseline,context,closure):
         and all(e['status']=='PASS' and ended[0]['monotonic']<e['monotonic']<=requested+t['close_seconds']
                 for e in cleanup),'host cleanup incomplete/late')
     finish=B.number(c['finished_monotonic'])
-    require(times[-1]<=finish<=context['entry_monotonic']+t['startup_seconds']+t['close_seconds'],
+    require(times[-1]<=finish<=finish_deadline,
         'ordinary smoke close deadline')
     return dict(status='PASS',smoke_component=True,s01_qualified=False,s05_qualified=False,
         release_qualified=False,identity=context['identity'],source=context['source'],
         source_boot_id=context['source_boot_id'],started_monotonic=context['entry_monotonic'],
         finished_monotonic=finish,boot_to_health_seconds=decision['boot_to_health_seconds'],
-        scope='one closed ordinary smoke component; not full watchdog/recovery or three-boot qualification')
+        scope=scope)
 
 def sequence(baseline,run):
     """Three distinct consecutive ordinary boots, with no failed boot discarded."""

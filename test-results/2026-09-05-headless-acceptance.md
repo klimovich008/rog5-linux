@@ -7759,3 +7759,35 @@ Current service is restored. `r01-v8-service-readback-completion-r1` reports
 `HEALTHY_V8_OBSERVED`, with phone mutation, R01 qualification, ordinary-smoke
 qualification and release qualification all false. No phone controller remains
 active. The mandatory matrix retains R01 FAIL and S06 NOT RUN.
+
+
+## Powered-off start evidence preparation (2026-09-08)
+
+S06 previously had no matrix command. Its new offline runner binds one exact
+installed-release power-off/start component to fully replayed S01/S05, signed
+artifacts, preflight and authenticated startup observations. Direct operator
+readiness/off/start statements carry a fresh nonce and same-host timestamps.
+At least ten confirmed-off seconds require continuous exact-device USB absence;
+two-second observation gaps are the maximum. USB absence alone is never off
+proof. The supported conditions keep side USB and host power connected, with no
+other cables and one physical power-button start.
+
+The 420-second success ceiling remains unchanged: 30-second preflight,
+60-second shutdown/operator transition, 300-second startup and 30-second close.
+The full failure receiver additionally covers the operator transition. Shared
+successful receiver closure checks preserve the ordinary path's command, timing,
+identity and cleanup assertions. No experimental claim or phone operation is
+part of replay. Tests cover complete raw-envelope replay, ambiguous command
+status, reboot substitution, stale operator messages, absent-sampling gaps,
+automatic early return, unsafe root state, failed health and incomplete cleanup.
+Fourteen focused tests passed in both Python modes; the existing ordinary,
+repeated-boot and acceptance suites passed. Full integration CI is pending.
+
+The prerequisite-only probe `s06-prerequisite-preflight-r1` refused the retained
+S05 chain in **0.064704 s** with `changed qualification dependency:
+scripts/host/headless-stage-receiver.py`. This is an assessment compatibility
+gap after the published receiver corrections, not a new physical boot failure.
+The old PASS evidence remains preserved with its original source. No guard was
+relaxed, physical S06 was not run, and R01 remains FAIL. Current V8 was left
+running; all phone controllers remain closed. The preceding documentation head
+`28b99094` independently completed all four GitHub jobs in run **34280794479**.

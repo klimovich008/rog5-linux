@@ -38,7 +38,7 @@ class AcceptanceTest(unittest.TestCase):
             self.assertIn('isolated recovery evidence path and SHA-256 are required together',run.stderr)
 
     def test_layered_hash_reaches_all_runtime_evidence_consumers(self):
-        for kind in ('F02','S01','S02','S03','S04','S05','S07','R01'):
+        for kind in ('F02','S01','S02','S03','S04','S05','S06','S07','R01'):
             for mutation in ('none','missing-upper','altered-upper'):
                 with self.subTest(kind=kind,mutation=mutation),tempfile.TemporaryDirectory() as tmp:
                     root=Path(tmp);(root/kind).mkdir()
@@ -195,7 +195,7 @@ class AcceptanceTest(unittest.TestCase):
             self.assertNotEqual(run.returncode,0)
 
     def test_runtime_evidence_missing_and_zero_exit_are_not_success(self):
-        for kind in ('S02','S03','S04','S05','S07'):
+        for kind in ('S02','S03','S04','S05','S06','S07'):
             test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']==kind))
             self.assertTrue(test['commands'])
             with tempfile.TemporaryDirectory() as tmp:
@@ -207,14 +207,14 @@ class AcceptanceTest(unittest.TestCase):
                 self.assertEqual(M.run_one(test,Path(tmp),release)['status'],'FAIL')
 
     def test_runtime_input_cli_rejects_duplicate_unknown_relative_and_missing_pin(self):
-        for values in (['S06=/tmp/input,'+'a'*64],['S02=relative,'+'a'*64],
+        for values in (['S08=/tmp/input,'+'a'*64],['S02=relative,'+'a'*64],
                        ['S02=/tmp/input'],['S02=/tmp/input,'+'a'*64]*2):
             args=[token for value in values for token in ('--runtime-inputs',value)]
             p=subprocess.run([sys.executable,str(SOURCE),'release','--list',*args],capture_output=True,text=True,timeout=5)
             self.assertNotEqual(p.returncode,0)
 
     def test_runtime_proof_requires_exact_pinned_input_and_artifacts(self):
-        for kind in ('S02','S03','S04','S05','S07'):
+        for kind in ('S02','S03','S04','S05','S06','S07'):
             test=copy.deepcopy(next(t for t in self.contract['tests'] if t['id']==kind))
             test['commands']=[[sys.executable,'-c','pass']]
             for mutation in ('none','pin','source','artifact','qualified'):
