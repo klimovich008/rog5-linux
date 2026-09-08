@@ -7935,3 +7935,42 @@ existing network setup; it does not prove USB survives system shutdown. The
 `source-teardown-transport-inspection-r1` result took **0.523101 s**, with no phone
 contact. The sealed replay-to-commit binding verifies unchanged tested shell
 bytes without relabelling the development replay's source revision.
+
+
+### Source staging transaction and fresh source prerequisites
+
+All four GitHub jobs passed for `b8040b3cf1aeefc6b42d97c645ab724547b39bc1`
+in run **34289812239**: exact head, merge compatibility, publication and QEMU.
+The earlier full local integration remains bound to `193e1334`; no code was
+changed or retested merely to refresh that result.
+
+Private source actions now separate staging, restoration and one reboot request.
+An ownership record precedes RAM writes; exact original shutdown bytes remain
+available for restoration before any reboot intent. All 21 namespace scenarios
+passed in **1.762479 s**, and optimized Python passed in **1.677076 s**. These
+cover each partial write boundary, failure after shutdown publication, existing
+or changed files, symlinked roots, changed backups and ambiguous reboot replies.
+Staging and restoration never changed the healthy selection record or requested
+a reboot. A recorded transition prevented both retry and restoration. Hardware
+identity/power/storage checks and the reboot command were mocked; file metadata,
+no-follow traversal, tmpfs operations and sealed BusyBox syntax were exercised.
+
+The private receipt binder passed 26 cases in **0.692477 s** and **0.684233 s**
+under normal and optimized Python. It checks staged bytes/metadata, original
+healthy state, capture provenance and lifetime, raw intent/receipt consistency,
+source-only transport, ordering, disconnect and one clean receipt. An initial
+private import failed before testing because the repository's host-module path
+was absent; the corrected import uses that explicit trusted path. These are
+components, not a complete or admitted live coordinator.
+
+A fresh read-only source snapshot passed in **1.602571 s** on the same V8 boot
+`5a980548-a759-41d2-a566-58b7541e256b`, at **9,660.610 s** uptime. Health remained
+committed at **64.057078 s**. Battery was Good, **30.2°C / 8.643 V**, USB online;
+maximum thermal zone **37.1°C**. Root/storage guards checked 117 physical nodes,
+all twelve installed hashes matched, and the exact healthy selection was
+unchanged. The original shutdown hash matched, `/run/initramfs` was tmpfs, the
+restart provider was bound and no observer staging existed. The existing idle
+ADB server was identified separately; no active phone controller or capture
+listener was present. No file was staged and no reboot was requested. R01 stays
+FAIL; S06 stays NOT RUN. Next work is the sole host coordinator's complete
+assembly and replay, followed by fresh live admission before physical observation.
