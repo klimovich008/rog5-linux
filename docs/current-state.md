@@ -22,7 +22,7 @@ Private credentials, packages and raw evidence remain outside Git.
 ## Running release and recovery
 
 Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary installed boot `7ea69356-4512-45bf-9e13-28268dc3f3c9`.
+ordinary installed boot `d903328e-fa57-4625-bb88-7419e04d57b1`.
 Signed primary manifest:
 `27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`.
 Other primary identities derive from the canonical expected record.
@@ -68,53 +68,50 @@ transition **9.327 s**, exact fastboot battery 8.606 V / SOC gate yes.
 Full capture completed **1,380.863 s**; route/firewall/profile/address cleanup
 all PASS. No further phone execution was requested during that observation.
 
-## Safe handoff and next mandatory outcome
+## Current checkpoint and next mandatory outcome
 
-At 2026-09-08 03:28 +02:00, all test coordinators have exited. Ordinary capture
-completed **1,380.706 s**; route/firewall/profile/address cleanup passed.
-Final authenticated read-only check passed **2.869 s**, same boot, both rollback
-timers inactive, expected deployed bytes and service readiness intact.
-Battery Good, Full 99%, **30.1°C**, **8.585 V**, raw current **-5,000 µA**.
-This instantaneous reading is not H03 charging/regulation qualification.
-The previous session relinquishes phone control; only the fresh handoff session
-may continue. No pending reboot, transfer or service experiment was left running.
+One coordinator owns this phone. S04's full observation has ended and all owned
+host route/firewall/profile/address cleanup passed. No phone coordinator or
+reboot is pending. The prepared S05 sequence has **not** been launched.
 
-**S03: validate the lease-aware observer and evidence binding, then qualify V8.**
-S01 passed ordinary local boot/SSH in **91.585 s** without host boot services.
-S02 passed all four 256 MiB USB/Wi-Fi transfers in **300.770 s**, independently
-evaluated. Preserve its pinned runner/observer and all failed evidence.
+On `35bd1e6d`, full local CI passed **540.372 s** and all four jobs passed in
+GitHub run **34209378375**: exact head, merge compatibility, publication and QEMU.
+The preceding interrupted/invalidated and failed CI receipts remain preserved.
+The native publication fixture deadline and runner signal-exit fixes are pushed.
 
-The sole new coordinator completed r2 preflight in **3.848 s** on the same boot.
-R2 then failed **13.631 s**: healthd and SSH recovery passed; acknowledged WPA
-restart reached the observer's five-second healthy-settling deadline. DHCP was
-not attempted. Read-only journal evidence proves normal WPA/lease recovery and
-healthy completion after **17.106 s**, same boot, both rollback timers inactive.
-The five-second observer had incorrectly included lease acquisition.
+S03 r3 passed fresh preflight **4.619 s**, all service recoveries **30.705 s**,
+and independent evidence replay. Per-service durations: healthd **2.020 s**,
+SSH **2.558 s**, WPA including DHCP **16.498 s**, DHCP **7.546 s**. The radio
+unit remained unchanged; recovery stayed within the existing 40-second limits.
+R1/r2 remain FAIL. This is physical V8 evidence on the preceding boot.
 
-Private r3 keeps the existing 35-second lease / 40-second restart limits and
-five-second timer/healthy settling, checking healthy completion after a lease
-exists. Sixteen normal/optimized tests pass, including the real r2 timeline.
-The canonical evidence checker also needs the reproduced SSH refusal binding
-correction: bind it to the exact successful post-restart observer at the SSH
-boundary, reject the preceding action or missing confirmation. Focused checks
-and one full local CI precede a fresh preflight/live r3. No kernel, wrapper,
-accepted service, timer, or signed payload change is needed. R1/r2 remain FAIL.
+S04 wrote/fsynced one 64 MiB file, requested one ordinary installed reboot,
+reached pinned SSH in **96.095 s**, verified the file and cleaned its exact
+owned directory. Its file component passed **105.293 s**. The existing parent
+namespace and old failed-soak scratch remain intact.
 
-The app-task transfer found the earlier full CI r2 incomplete: no surviving
-workers, result or terminal marker. Its replacement passed **539.242 s** on
-`9edd75cd`, which is published. GitHub run **34180600020** passed exact head
-and publication, but merge failed in the native fetch crash fixture before
-its intended crash: the worker exceeded the fixture-only 700 ms budget.
-QEMU was skipped, so this is not a qualifying remote result.
+**S04 remains FAIL.** The full **1,380.774 s** capture recorded a host discovery
+error before target observation: the anchored network interface's `driver`
+symlink vanished during USB teardown. The immediate recheck was enumerating;
+positive USB absence followed **100.313 ms** later. Later successful startup
+and file readback cannot erase this failed diagnostic channel.
 
-An isolated 800 ms reply reproduced timeout 46; a publication-only 3-second
-fixture budget reached the intended crash 99 with no final bundle published.
-The dedicated short transport-timeout tests are unchanged. Separately, the
-repository runner now maps HUP/INT/TERM to 129/130/143 before ordinary EXIT
-cleanup; the original SIGTERM path incorrectly exited 0. Focused runner and
-native fetch tests pass, including normal/optimized crash and timeout cases.
-One new full local/remote checkpoint is required for these host-only changes
-before live S03 r3. All interrupted, invalidated and failed receipts remain.
+A filesystem regression reproduces the original failure. The host-only fix
+classifies anchored USB/device/driver resolution failures as precisely as
+USB descriptor reads. Only ENOENT/ENODEV followed by positive absence before
+target observation can use the existing bounded 150 ms removal check.
+Unresolved discovery, permission errors, identity mismatch, network failures
+and post-target loss still fail; the original capture deadline is unchanged.
+Receiver, rescue replay, ordinary startup and smoke replay share the same
+explicit operation names. The 100 focused tests pass in both normal and optimized Python (**10.210 s**).
+One full local/remote CI checkpoint must pass before a new ordinary-boot
+baseline and remaining V8 qualification.
+Retain original S01/S02/S03 receipts with their actual producer revision;
+changed observer dependencies require fresh validation, not relabeling.
+
+S07's one-hour worker integration is being prepared privately and offline.
+It has not run and does not qualify S07. No kernel, DTB, signed archive,
+installed boot image, rollback timer or target service has changed.
 
 ## Mandatory results
 
@@ -127,8 +124,8 @@ Do not combine incompatible releases or simulation and physical evidence.
 | H03 regulation | NOT RUN for final release; use defined firmware-Full method |
 | S01 local startup | V8 ordinary installed local boot PASS, 91.585 s to SSH |
 | S02 transfers | V8 PASS, four 256 MiB USB/Wi-Fi hash-verified directions |
-| S03 service recovery | FAIL: r2 lease/settling coupling; r3 offline correction under validation |
-| S04 durability | V5-only; preserve prior failed-soak scratch and qualify V8 |
+| S03 service recovery | V8 r3 PASS on `35bd1e6d`; preserve exact original evidence |
+| S04 durability | V8 file component PASS; full capture FAIL on host driver-link teardown race |
 | S05 repeated boots | V5 three boots passed; V8 sequence NOT RUN |
 | S06 powered-off start | NOT RUN |
 | S07 combined load | NOT RUN for V8; prior capped 600 s diagnostic is not one-hour PASS |

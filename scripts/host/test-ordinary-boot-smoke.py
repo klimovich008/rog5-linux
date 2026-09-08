@@ -104,6 +104,15 @@ class CloseTests(unittest.TestCase):
         self.reject(lambda b,c:c['events'].insert(-1,dict(event='usb-discovery-interrupted',
             monotonic=130,target_seen=False,phase='usb-discovery',errno=19,operation='product',
             observed_mode='absent',last_stage=None,last_startup=None)))
+    def test_link_discovery_shares_receiver_classification(self):
+        for operation in ('usb-anchor','net-device','net-driver'):
+            b,c=fixture()
+            c['events'].insert(-2,dict(event='usb-discovery-interrupted',monotonic=110,
+                target_seen=False,phase='usb-discovery',errno=2,operation=operation,
+                observed_mode='absent',last_stage=None,last_startup=None))
+            self.assertTrue(M.eligibility(b,c)['eligible'])
+            c['events'][-3]['observed_mode']='enumerating'
+            with self.assertRaises(ValueError):M.eligibility(b,c)
     def test_missing_execution_family_and_wrong_stage(self):
         self.reject(lambda b,c:c['record'].pop('execution'))
         self.reject(lambda b,c:c['events'][-1]['stage'].update(boot_id=c['source_boot_id']))

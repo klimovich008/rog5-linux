@@ -23,6 +23,70 @@ def frame(sequence=1, boot=BOOT):
 
 
 class ReceiverTest(unittest.TestCase):
+    def test_driver_symlink_disappearance_waits_for_actual_device_removal(self):
+        # S04: cdc_ncm's driver link vanished before the USB parent. The
+        # original untagged resolve error failed capture; absence followed
+        # 100 ms later. Reproduce the actual filesystem operation here.
+        fixture=json.loads((M.REPO/'tests/fixtures/persistent-root/s04-usb-driver-teardown.json').read_text())
+        self.assertEqual(fixture['original_capture_result'],'FAIL')
+        self.assertEqual(fixture['immediate_recheck'],'enumerating')
+        self.assertEqual(fixture['errno'],errno.ENOENT)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);device=root/'device';device.mkdir()
+            usb=root/'usb';usb.symlink_to(device,target_is_directory=True)
+            for name,value in (('idVendor','1d6b'),('idProduct','0104'),
+                               ('product','ROG5 persistent root')):
+                (device/name).write_text(value)
+            interface=device/'1-1.2:1.0';interface.mkdir()
+            driver=root/'cdc_ncm';driver.mkdir()
+            (interface/'driver').symlink_to(driver,target_is_directory=True)
+            net=root/'net'/M.INTERFACE;net.mkdir(parents=True)
+            (net/'device').symlink_to(interface,target_is_directory=True)
+            original_path=M.Path;original_resolve=Path.resolve;removed=False
+            def mapped_path(value):
+                return root/'net' if value=='/sys/class/net' else original_path(value)
+            def disappearing(path,*args,**kwargs):
+                nonlocal removed
+                if path==net/'device/driver' and not removed:
+                    (interface/'driver').unlink();removed=True
+                return original_resolve(path,*args,**kwargs)
+            def finish_removal(_seconds):
+                if usb.is_symlink():usb.unlink()
+            events=[]
+            with M.Receiver('fixture',events.append,host='127.0.0.1',port=0,
+                            source_boot_id=BOOT) as receiver:
+                receiver.transport('source',None)
+                route=unittest.mock.Mock(return_value=True)
+                with patch.object(M,'USB',usb),patch.object(M,'ANCHOR',str(device)), \
+                     patch.object(M,'Path',mapped_path),patch.object(Path,'resolve',disappearing), \
+                     patch.object(M.time,'sleep',finish_removal):
+                    M.update_transport(receiver,'fixture',route)
+                self.assertFalse(receiver.failed)
+                self.assertTrue(receiver.source_disconnected)
+                self.assertEqual(receiver.mode,'absent')
+                event=next(e for e in events if e['event']=='usb-discovery-interrupted')
+                self.assertEqual(event['operation'],'net-driver')
+                self.assertEqual(event['errno'],errno.ENOENT)
+                self.assertEqual(event['removal_rechecks'],1)
+                route.assert_not_called()
+
+    def test_link_removal_classification_never_admits_unresolved_or_lost_target(self):
+        for operation in ('usb-anchor','net-device','net-driver'):
+            for seen,number,following in ((False,errno.ENOENT,'absent'),
+                    (False,errno.ENODEV,'absent'),(True,errno.ENOENT,'absent'),
+                    (False,errno.EACCES,'absent'),(False,errno.ENOENT,'enumerating'),
+                    (False,errno.ENOENT,'mismatch'),(False,errno.ENOENT,'target')):
+                with self.subTest(operation=operation,seen=seen,number=number,following=following), \
+                     M.Receiver('fixture',lambda e:None,host='127.0.0.1',port=0) as receiver:
+                    if seen:receiver.transport('target',None)
+                    error=M.UsbReadDisappeared(OSError(number,'fixture'),operation)
+                    with patch.object(M,'usb_mode',side_effect=[error]+[(following,None)]*5), \
+                         patch.object(M.time,'sleep'):
+                        M.update_transport(receiver,'fixture',lambda:True)
+                    self.assertEqual(receiver.failed,seen or number==errno.EACCES or following!='absent')
+                    self.assertFalse(receiver.target_seen and not seen)
+
+
     def test_ordinary_reboot_ignores_source_until_observed_disconnect(self):
         events=[]
         with M.Receiver('7.1.4-g359318de534f',events.append,host='127.0.0.1',port=0,

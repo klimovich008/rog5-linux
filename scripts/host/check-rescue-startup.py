@@ -121,7 +121,7 @@ def validate(record, identity, execution, receipt, receipt_hash, events, attempt
         if event['event'] == 'usb-discovery-interrupted':
             require(not target_seen and event.get('target_seen') is False
                     and event.get('phase') == 'usb-discovery' and event.get('errno') in (2, 19)
-                    and event.get('operation') in {'idVendor', 'idProduct', 'product', 'serial'}
+                    and event.get('operation') in D.CAPTURE.USB_READ_OPERATIONS
                     and event.get('observed_mode') == 'absent'
                     and 'last_stage' in event and event['last_stage'] is None
                     and 'last_startup' in event and event['last_startup'] is None,

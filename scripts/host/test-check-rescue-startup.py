@@ -121,6 +121,10 @@ class Tests(unittest.TestCase):
                    unix=1010,monotonic=110)
         self.events.insert(-1,event)
         self.assertFalse(self.check()['h02_qualified'])
+        for operation in ('usb-anchor','net-device','net-driver'):
+            event['operation']=operation
+            self.assertFalse(self.check()['h02_qualified'])
+        event['operation']='idVendor'
         for field,bad in [('phase','network-setup'),('errno',13),
                           ('observed_mode','mismatch'),('target_seen',True),
                           ('operation','unknown'),('last_stage',{'stage':'runtime'})]:

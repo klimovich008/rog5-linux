@@ -74,6 +74,17 @@ class Tests(unittest.TestCase):
   self.d['hosts'][0]['listeners']=self.d['hosts'][0]['listeners'].replace('steamwebhelper','server');self.reject()
  def test_failed_cleanup(self):self.d['events'][-1]['status']='FAIL';self.reject()
  def test_failed_capture(self):self.d['capture_result']['status']='FAIL';self.reject()
+ def test_link_discovery_requires_positive_absence_before_target(self):
+  original=copy.deepcopy(self.d['events'])
+  for operation in ('usb-anchor','net-device','net-driver'):
+   event=dict(event='usb-discovery-interrupted',monotonic=100.5,phase='usb-discovery',
+    errno=2,operation=operation,observed_mode='absent',target_seen=False,last_stage=None,last_startup=None)
+   for patch,valid in (({},True),({'operation':None},False),({'observed_mode':'enumerating'},False),
+                       ({'errno':13},False),({'target_seen':True},False),({'monotonic':130},False)):
+    with self.subTest(operation=operation,patch=patch):
+     self.d['events']=sorted([*copy.deepcopy(original),dict(event,**patch)],key=lambda e:e['monotonic'])
+     if valid:self.assertTrue(self.run_case()['s01_qualified'])
+     else:self.reject()
  def test_missing_disconnect(self):self.d['events']=[e for e in self.d['events'] if e['event']!='source-disconnected'];self.reject()
  def test_post_target_transport_loss(self):
   self.d['events'].insert(7,dict(event='transport',mode='absent',monotonic=self.d['entry']['monotonic']+50));self.reject()
