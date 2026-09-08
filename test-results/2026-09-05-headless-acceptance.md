@@ -6743,3 +6743,45 @@ No coordinator remains active. Nothing was deleted, rebuilt, flashed or rebooted
 for this handoff. Private raw evidence and prepared r2 work remain in the same
 checkpoint directory. Next owner finishes r2 validation, then S03, under the
 unchanged headless mandatory matrix. The old session performs no further tests.
+
+
+### 2026-09-08 — Sole-controller S03 r2 and discriminating observer correction
+
+Takeover verified the requested checkout/branch and `cdfe0057`, preserved both
+handoff documents, and found no active phone coordinator. Home retained
+6.34 GB free. The 13 prepared tests passed in normal and optimized Python;
+active tier passed **50.046 s**. The intentional handoff documents were committed
+as `b66ad1ff0d5dec5b7cb42b923625b5ab3a61d228` to retain the existing clean-source
+guard. Prior full/remote CI remains attributed to `cdfe0057`.
+
+New `bind-s03-evidence-r2.py` targets only r2 and its corrected observer; S02's
+pinned inputs and the old binder are unchanged. Exact-target non-mutating
+preflight passed **3.848 s** on boot `7ea69356-4512-45bf-9e13-28268dc3f3c9`:
+deployed bytes/readiness, both transports, storage, power and inactive timers.
+Battery Good/Full 99%, 30.1°C, 8.586 V, current 0; not H03 regulation evidence.
+
+`s03-services-live-r2` failed **13.631 s**. Healthd and SSH recovery passed
+**2.601/2.452 s**; one exact SSH connection refusal was recovered read-only.
+WPA restart was acknowledged, then the five-second observer expired waiting
+for healthy completion. DHCP was not attempted; no action was resumed/retried.
+Read-only `s03-timer-observation-r3` shows WPA and DHCP restarting at
+4539.365/4539.441 s, association at 4549.384 s, lease at 4556.007 s and healthy
+completion at 4556.550 s. Both rollback timers are inactive and the same boot
+survived. This distinguishes normal ~17-second network recovery from the short
+SSH/timer transition; it does not qualify the failed sequence.
+
+Private `wifi-restart-lease-snapshot-r3.py` permits lease acquisition under the
+unchanged host 35/40-second bounds, then requires healthy completion within the
+original five-second settling budget. Its 16 tests in both Python modes replay
+the recorded timeline, persistent-timer/missing-healthy failure and unchanged
+S02 safety predicates. The r2 files and all private logs remain intact.
+
+A second offline reproduction found the canonical consumer required a refused
+post-restart command to hash identically to the initial strict observer. R2's
+explicit settling flag correctly changes that command. The bounded correction
+binds a refusal to the exact following successful USB observer at the SSH case
+boundary, distinct from the preceding acknowledged action, with before/after
+state confirmation. Unexpected errors, partial output, repeated actions,
+missing confirmation and changed probes remain rejected. New test failed before
+the correction. Full local CI is required for this changed consumer; no
+kernel/DT/module/archive/wrapper rebuild or phone mutation is involved.

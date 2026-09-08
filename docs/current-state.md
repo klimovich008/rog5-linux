@@ -79,20 +79,26 @@ This instantaneous reading is not H03 charging/regulation qualification.
 The previous session relinquishes phone control; only the fresh handoff session
 may continue. No pending reboot, transfer or service experiment was left running.
 
-**S03: finish bounded service-restart readiness settling, then qualify V8.**
+**S03: validate the lease-aware observer and evidence binding, then qualify V8.**
 S01 passed ordinary local boot/SSH in **91.585 s** without host boot services.
 S02 passed all four 256 MiB USB/Wi-Fi transfers in **300.770 s**, independently
-evaluated. S03 stopped after acknowledged healthd/SSH restarts: the observer
-sampled a valid ~0.54 s timer/healthy-unit transition. Journal proves the existing
-healthy guard suppressed rollback; no phone reboot occurred. WPA/DHCP not tried.
-Preserve failed evidence; do not resume/relabel that run.
+evaluated. Preserve its pinned runner/observer and all failed evidence.
 
-Private `s03-service-cycle-r2.py` and `wifi-restart-settled-snapshot.py` add only
-a bounded read-only settle after acknowledged restarts, retaining final strict
-timer checks. `test-s03-settling.py`: 13 normal-mode tests pass; optimized tests,
-exact-target preflight and live r2 remain NOT RUN. Finish these and make a new
-S03 evidence binding: the old binder still points to failed r1. Do not modify
-S02's pinned observer/runner. No kernel, wrapper, admission or timer change needed.
+The sole new coordinator completed r2 preflight in **3.848 s** on the same boot.
+R2 then failed **13.631 s**: healthd and SSH recovery passed; acknowledged WPA
+restart reached the observer's five-second healthy-settling deadline. DHCP was
+not attempted. Read-only journal evidence proves normal WPA/lease recovery and
+healthy completion after **17.106 s**, same boot, both rollback timers inactive.
+The five-second observer had incorrectly included lease acquisition.
+
+Private r3 keeps the existing 35-second lease / 40-second restart limits and
+five-second timer/healthy settling, checking healthy completion after a lease
+exists. Sixteen normal/optimized tests pass, including the real r2 timeline.
+The canonical evidence checker also needs the reproduced SSH refusal binding
+correction: bind it to the exact successful post-restart observer at the SSH
+boundary, reject the preceding action or missing confirmation. Focused checks
+and one full local CI precede a fresh preflight/live r3. No kernel, wrapper,
+accepted service, timer, or signed payload change is needed. R1/r2 remain FAIL.
 
 ## Mandatory results
 
@@ -105,7 +111,7 @@ Do not combine incompatible releases or simulation and physical evidence.
 | H03 regulation | NOT RUN for final release; use defined firmware-Full method |
 | S01 local startup | V8 ordinary installed local boot PASS, 91.585 s to SSH |
 | S02 transfers | V8 PASS, four 256 MiB USB/Wi-Fi hash-verified directions |
-| S03 service recovery | FAIL: observer settling race; corrected private r2 not yet qualified |
+| S03 service recovery | FAIL: r2 lease/settling coupling; r3 offline correction under validation |
 | S04 durability | V5-only; preserve prior failed-soak scratch and qualify V8 |
 | S05 repeated boots | V5 three boots passed; V8 sequence NOT RUN |
 | S06 powered-off start | NOT RUN |
