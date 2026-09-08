@@ -1,9 +1,8 @@
 # ROG5 current state
 
-Updated 2026-09-08: R01 failed at the early storage gate; its RAM claim is consumed.
-Installed V11 authenticated on its diagnostic address; the exact V8 selection is healthy again.
-A fresh ordinary V8 boot reached switch-root, but its smoke observation failed.
-Host teardown correction and same-boot service verification are pending; final qualification remains incomplete.
+Updated 2026-09-08: V8 service is restored and authenticated on its current ordinary boot.
+Current health, readiness, storage scope and all twelve installed-file hashes passed readback.
+The observer corrections passed full local and GitHub CI. R01 remains FAIL and S06 remains NOT RUN.
 
 ## Goal and authority
 
@@ -23,14 +22,18 @@ Private credentials, packages and raw evidence remain outside Git.
 
 ## Running release and recovery
 
-Last accepted bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary installed boot `af66d09d-f512-4954-a036-0904616e17af`. The current
-installed recovery emitted boot `96c3e790-a422-4723-b9ca-a5039da2a14a`; its
-diagnostic SSH authenticated and exact selection restoration passed. After the
-closed connection failure, a fresh ordinary request succeeded and V8 boot
-`5a980548-a759-41d2-a566-58b7541e256b` reached switch-root. Its smoke check failed
-on a source NetworkManager teardown race and early SSH timeout; full capture
-is still active. Current V8 service state has not yet been authenticated.
+Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
+ordinary boot `5a980548-a759-41d2-a566-58b7541e256b`. Pinned SSH on `10.77.0.2`,
+current-boot readiness/health, exact healthy selection, protected storage and all
+twelve installed-file hashes passed a fresh read-only check. Health committed
+at **64.057 s**; the retained current-service observation was at **1,420.530 s**.
+Battery was Good, **30.1°C / 8.656 V**, USB online. All controllers are closed.
+
+V11 boot `96c3e790-a422-4723-b9ca-a5039da2a14a` provided the separately guarded
+selection restoration. The later ordinary smoke remains FAIL because capture
+hit a source NetworkManager teardown race and its first SSH probe timed out.
+The readback confirms current service, not that failed smoke or autonomous R01
+recovery. The prior S05 result keeps boot `af66d09d-f512-4954-a036-0904616e17af`.
 Signed primary manifest:
 `27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`.
 Other primary identities derive from the canonical expected record.
@@ -349,17 +352,24 @@ that correction passed **492.129 s** on `9d4cd138`, and all four GitHub jobs
 passed in **34276164597**. A fresh ordinary reboot was then acknowledged and
 V8 reached switch-root. During source teardown, repeated source route setup
 raced `nmcli -g`; capture retained a permanent failure. The first normal-address
-SSH probe then timed out, so the smoke controller is keeping its full lifetime.
+SSH probe then timed out. The smoke controller closed FAIL in **1,384.354 s**
+after its full capture, with all four owned network cleanup steps passing.
 
 The receiver now retains successful source-route preparation until an observed
 disconnect instead of repeating NetworkManager setup during source shutdown.
 Initial route failures remain fatal, source stages remain inadmissible, and new
 target routing still runs after disconnect. A retained-event fixture reproduced
 21 setup calls and the failure before the fix; all **36** receiver/network tests
-pass after it. This final correction requires full integration CI. Current
-service verification must use a fresh read after the failed controller closes,
-without another reboot. Kernel, root/upper images, signed payloads and claims
-remain unchanged.
+pass after it. Full local CI passed **499.610 s** on `95cbc09d`, with its
+completion marker and unchanged source; all four GitHub jobs passed in
+**34278168035**. After full capture closure, fresh pinned SSH verified the same
+V8 boot, readiness, local root, healthy selection and all twelve installed hashes.
+An optional reset collector initially refused an extra serial field locally;
+its corrected three-field call and final same-boot storage/state guard passed
+in **0.640 s**, preserving and independently replaying the required reads.
+Pstore remained present but empty, so reset cause is still unproven. No further
+reboot or selection change occurred. Kernel, root/upper images, signed payloads
+and claims remain unchanged.
 
 ## Mandatory results
 

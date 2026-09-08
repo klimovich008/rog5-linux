@@ -7715,3 +7715,47 @@ accepts source frames nor clears an initial route or identity failure. The
 36 receiver/network tests passed **0.279 s**; ordinary-smoke and isolated-capture
 regressions also pass. Full CI for this additional correction remains pending.
 The earlier failed capture retains its original receiver/source and failure.
+
+
+The source teardown correction was frozen and published as
+`95cbc09d52b3e05f983b7756255ba94f69059693`. Full local CI passed in
+**499.610190 s**, exit 0, terminal completion and unchanged source. All four jobs
+passed in GitHub run **34278168035**. The failed phone smoke continues to retain
+its original `9d4cd138` producer and full capture; the new offline correction
+cannot relabel it. A separately prepared current-boot readback passed five
+validator tests in both Python modes and six fixed-launcher tests. It permits
+no reboot or selection operation and waits for closed failed evidence.
+
+
+## Current V8 service authenticated after failed smoke (2026-09-08)
+
+The ordinary controller closed FAIL in **1,384.354133 s**; its launcher closed
+in **1,385.341969 s**. The full receiver completed with its original failure
+retained, and all four owned route/firewall/profile/address cleanup steps passed.
+All 21 evidence files were handed off and hash-verified. No ordinary reboot was
+repeated. The failed R01 claim, original capture and earlier service failures
+remain unchanged.
+
+After closure, pinned normal-address SSH authenticated the same V8 boot
+`5a980548-a759-41d2-a566-58b7541e256b`, kernel `7.1.4-gf17befd4ef17`.
+Readiness, local-root/protected-storage guards, the healthy selection record
+and all twelve installed-file hashes passed. Its current-boot health latch
+matched the accepted trial and pinned SSH identity; the healthy unit completed
+at **64.057078 s**, observed at **1,420.530 s** uptime. Battery health was Good,
+**30.1°C**, **8.656 V**, USB online. These are current-service observations and
+do not qualify startup timing, the failed smoke or autonomous recovery.
+
+The first readback wrapper stopped locally in **2.655273 s** because its optional
+reset collector requires exactly boot/bundle/release and received a serial field
+as well. Its five required successful command outputs and all 22 evidence files
+were preserved. Independent replay revalidated readiness, root, health, installed
+state and files. A separate read-only completion supplied the exact three-field
+identity, collected bounded reset diagnostics and rechecked the same boot's
+power/storage/healthy state in **0.640066 s**. All ten completion evidence files
+were handed off and hash-verified. Pstore was present with zero records; this
+remains inconclusive about the earlier reset cause.
+
+Current service is restored. `r01-v8-service-readback-completion-r1` reports
+`HEALTHY_V8_OBSERVED`, with phone mutation, R01 qualification, ordinary-smoke
+qualification and release qualification all false. No phone controller remains
+active. The mandatory matrix retains R01 FAIL and S06 NOT RUN.
