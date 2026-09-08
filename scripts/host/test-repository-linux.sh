@@ -183,6 +183,8 @@ active_tests=(
 	scripts/device/test-headless-cpu-policy.py
 	scripts/host/test-server-runtime-evidence.py
 	scripts/host/test-check-rescue-startup.py
+	scripts/host/test-rescue-runtime-evidence.py
+	scripts/host/test-release-rescue-companion.py
 	scripts/host/test-check-charging-regulation.py
 	scripts/host/test-rescue-root-composition.py
 	scripts/host/test-a01-fixture.py

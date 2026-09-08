@@ -1,7 +1,7 @@
 # ROG5 current state
 
 Updated 2026-09-08: V8 runs local Arch with authenticated SSH and Wi-Fi.
-Startup CPU limiting passed. Final standalone qualification remains incomplete.
+Startup CPU limiting and the full-hour combined soak passed. Final qualification remains incomplete.
 
 ## Goal and authority
 
@@ -39,7 +39,7 @@ Pinned USB SSH is `10.77.0.2`, alias `169.254.77.2`, fingerprint
 V8 reached authenticated readiness in **98.215 s**. Local-root component PASS:
 P24 RO/no replay, expected persistent overlay, 117 physical nodes, only
 sda/sda23 writable, exact deployed userspace and current-boot readiness.
-Wi-Fi, Tailscale and persistent-state services started. Endurance is not proven.
+Wi-Fi, Tailscale and persistent-state services started. The full-hour load result is recorded below.
 
 V8's experimental claim is permanently consumed, as are V6 and V7.
 Do not retry their RAM execution or issue replacement claims. V8's signed
@@ -73,8 +73,8 @@ all PASS. No further phone execution was requested during that observation.
 One coordinator owns this phone. The full S04 observation and all three S05
 boots are complete; their independent evidence checks passed. Every owned
 receiver is stopped and its route/firewall/profile/address cleanup passed.
-No reboot or phone coordinator is pending. Keep the source frozen during the
-next physical run; never repeat a consumed experimental claim.
+The full S07 soak and F02 restart sequence are also closed and independently
+qualified. No phone coordinator is pending. Never repeat a consumed claim.
 
 On `f0a3420b`, full local CI passed **520.115 s** and all four jobs passed in
 GitHub run **34214045938**: exact head, merge compatibility, publication and QEMU.
@@ -104,21 +104,41 @@ S04 baseline plus the new exact healthy record; no failed boot was retried.
 The independent three-boot checker passed. Kernel, DTB, signed archives,
 installed boot B, selector and V11 fallback are unchanged.
 
-S07 now has an offline evidence checker and dispatcher entry. It binds exact
-S02/S04/S05 prerequisites, executed scripts and raw outputs, the full measured
-hour, continuous logs, UFS backing activity, scoped file cleanup and completed
-USB/Wi-Fi payload transfers. Private producer files are parsed as data only.
-A new regression found that warning severity without failure keywords escaped
-the earlier log filter. The check now rejects warning-or-higher severity as
-well as recognized failure text; all 15 severity regression cases pass.
+On `af960758`, full local CI passed **526.883 s** and all four GitHub jobs
+passed in **34221548267**. S07 then measured **3600.030 s** of combined load;
+its full run completed **113 storage windows and 188 transfers**, each 64 MiB.
+All workers stopped and exact scratch cleanup passed in **3666.628 s** overall.
+The independent S07 checker passed in **68.277 s**. Old failed-soak scratch and
+receipts remain preserved; this successful run has fresh identities throughout.
 
-The 31 staged tests passed in normal and optimized Python, and seven private
-routing/assembly checks passed in both modes. The integrated focused suite passed **127 tests per mode in 22.448 s**;
-a further seven evaluator tests per mode cover the aggregate raw-file memory
-bound. Exact retained S02–S05 replay also passes with the new consumer. Fresh
-full local/remote CI must pass before physical S07 starts. The one-hour load
-has **not** run. Its existing 3600 s observation, 10 s cadence, bounded scratch
-volume, safe power gates and 3900 s total deadline are unchanged.
+Across 367 heartbeat samples, maximum thermal-zone temperature was **51.4°C**,
+battery temperature at most **30.8°C**, minimum pack voltage **8.413 V**.
+Final power was Good, 30.8°C, 8.436 V. No new kernel messages appeared during
+the measured load; ext4 error counters for loop1, sda23 and sda24 stayed zero.
+Backing-device I/O and log continuity passed the original strict criteria.
+This is endurance evidence; H03 retains its separate radio-free charging method.
+
+Exact V8 F01 passed **85.412 s** using disposable networkless QEMU disks;
+interrupted-update recovery succeeded and genuine corruption was rejected.
+The original kernel/archive/root and protected fixture stayed unchanged.
+F02 passed WPA/DHCP recovery in **29.141 s**, with three authenticated Wi-Fi
+endpoint checks and unchanged radio/core service identities. Independent replay
+passed; the sole coordinator closed in **30.104 s**.
+
+The existing `headless-acceptance-rescue-v8` uses the same kernel and base Arch
+root as the server. Its sealed runtime still matches all eight historical
+runtime files. Fresh paired-root A01/C02 passed **66.261 / 76.473 s**. Its
+September-6 original boot, capture, watchdog and 61 charging samples are retained;
+the 600.265 s firmware-Full interval reproduces its original result offline.
+That rescue claim remains consumed; signed V11 remains the independent fallback.
+
+The dispatcher now supports an explicit `rescue_companion` receipt sharing
+the primary's exact kernel and base-root files. Completed H01/H02/H03 replay
+checks original producer versions, full capture/cleanup, paired composition,
+raw samples and original boot/source identities. It grants no boot authority.
+Portable and actual retained-data regressions passed; the integrated focused
+suite passed **138 tests per mode in 20.793 s**. Fresh full local/remote CI and
+actual paired dispatcher qualification remain pending for this new code.
 
 ## Mandatory results
 
@@ -127,16 +147,16 @@ Do not combine incompatible releases or simulation and physical evidence.
 | Outcome | Current result / next action |
 |---|---|
 | A01 / C01 / C02 | V8 offline PASS; A01/C02 include complete retained upper |
-| H01 / H02 | Same-release radio-inactive rescue not qualified |
-| H03 regulation | NOT RUN for final release; use defined firmware-Full method |
+| H01 / H02 | Explicit paired rescue replay implemented; fresh CI and dispatcher binding pending |
+| H03 regulation | Original rescue interval revalidated; final paired dispatcher binding pending |
 | S01 local startup | Fresh V8 full ordinary capture PASS on `f0a3420b`; latest 93.850 s to SSH |
 | S02 transfers | Fresh V8 PASS on `f0a3420b`, four 256 MiB directions in 303.671 s |
 | S03 service recovery | Fresh V8 PASS on `f0a3420b`, 35.081 s; earlier failures retained |
 | S04 durability | Fresh V8 file and full capture PASS; original failed capture retained |
 | S05 repeated boots | V8 three-boot sequence and independent replay PASS, 330.639 s |
 | S06 powered-off start | NOT RUN |
-| S07 combined load | V8 NOT RUN; integrated replay requires fresh CI before the full hour |
-| F01 / F02 | Retained offline passes; reuse only with exact dependency evidence |
+| S07 combined load | V8 full 3600.030 s observation and independent replay PASS on `af960758` |
+| F01 / F02 | Exact V8 F01 PASS 85.412 s; fresh F02 plus independent replay PASS, 29.141 s |
 | R01 recovery | Controlled isolated failed-boot qualification outstanding |
 
 ## Evidence, fast loop and retention
@@ -145,8 +165,7 @@ Use [development](development.md) for impact-based selection and cache reuse.
 Full V8 A01/C01/C02 took **88.128/131.751/104.415 s**; unchanged artifacts reused.
 Complete-upper correction `cdfe00572b81fca619231bdba26702bf8982667d` is pushed:
 focused **18.252 s**, full local **533.553 s**, all four GitHub jobs PASS in
-34172685138 (including exact-head/merge). Do not rerun for this docs-only handoff
-or relabel those results as testing later changed code.
+34172685138 (including exact-head/merge). Retain those original results; do not relabel them as testing later changed code.
 
 Preserve the complete inactive upper snapshot used for composition:
 `dff8988f3c2f4c5204d2e827114f63e54068acc530a75010dd2d522de3795388`.
@@ -156,7 +175,7 @@ Detailed V6/V7 failures, V8 staging/runtime proof, fixture fixes, original
 timings and exact retention procedures are in the
 [existing dated report](../test-results/2026-09-05-headless-acceptance.md).
 
-Home has about 6.34 GB free; preserve the 3 GiB reserve. V5's lossless reverse
+Home has about 6.07 GB free; preserve the 3 GiB reserve. V5's lossless reverse
 delta and durable V7 base must stay together. Unique archives still occupy RAM:
 no host reboot until retained safely. Never remove failed-soak scratch, accepted
 payloads, private evidence or claims. Leave unrelated SteamOS CEF port 8081 alone.

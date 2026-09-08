@@ -111,7 +111,32 @@ def verify_release(path, *, required_roles=None):
     if 'root_upper' in record:
         result['root_upper']=dict(verify_artifact('root_upper',record['root_upper']),
                                   path=record['root_upper']['path'])
+    if 'rescue_companion' in record:
+        result['rescue_companion']=verify_rescue_companion(record['rescue_companion'],result,verify_artifact)
     return result
+
+
+def verify_rescue_companion(record,primary,verify_artifact):
+    """Explicit paired profile: same verified kernel/base root, radio-free proof required separately."""
+    if (type(record) is not dict or set(record)!={'format','candidate_id','source_revision','artifacts'}
+            or record['format']!='rog5-release-inputs-v1'
+            or not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,127}',record.get('candidate_id',''))
+            or record['candidate_id']==primary['candidate_id']
+            or record['source_revision']!=primary['source_revision']
+            or set(record['artifacts'])!=ARTIFACT_ROLES or set(primary['artifacts'])!=ARTIFACT_ROLES):
+        raise ValueError('invalid explicit rescue companion')
+    identities={}
+    for role,artifact in record['artifacts'].items():
+        if role in ('kernel','rootfs'):
+            expected=dict(primary['artifacts'][role],path=primary['artifact_paths'][role])
+            if artifact!=expected or type(artifact.get('size')) is not int:
+                raise ValueError('rescue companion must share the verified kernel and base root')
+            identities[role]=dict(primary['artifacts'][role])
+        else:
+            identities[role]=verify_artifact('rescue_companion.'+role,artifact)
+    return dict(candidate_id=record['candidate_id'],source_revision=record['source_revision'],
+                artifact_paths={k:a['path'] for k,a in record['artifacts'].items()},artifacts=identities,
+                receipt_sha256=primary['receipt_sha256'])
 
 
 def utc():
@@ -156,13 +181,29 @@ def qualification_hashes(release):
     return hashes
 
 
-def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None, wifi_restart_inputs=None, standalone_boot_inputs=None, runtime_inputs=None):
+def run_one(test, output, release=None, capture=None, rescue_inputs=None, activation_fixture_build=None, wifi_restart_inputs=None, standalone_boot_inputs=None, runtime_inputs=None, rescue_runtime_inputs=None):
     row = {'id': test['id'], 'mandatory': test['mandatory'], 'outcome': test['outcome'],
            'status': 'BLOCKED', 'duration_seconds': 0, 'started_at': utc(),
            'next_action': test['blocker'], 'commands': test['commands'], 'test_versions': {}}
+    retained_rescue=test['id'] in ('H01','H02','H03') and rescue_runtime_inputs is not None
+    if test['id'] in ('H01','H02','H03') and release and 'rescue_companion' in release:
+        if not retained_rescue:
+            row['next_action']='supply pinned --rescue-runtime-inputs for the explicit paired rescue; no phone contact'
+            return row
+        release=release['rescue_companion']
+        row.update(release_role='rescue_companion',candidate_id=release['candidate_id'])
+    if retained_rescue and (capture is not None or rescue_inputs is not None):
+        row.update(status='FAIL',next_action='choose completed rescue replay or live rescue inputs')
+        return row
     if not test['commands']:
         return row
     commands = test['commands']
+    if retained_rescue:
+        commands=[['python3','scripts/host/rescue-runtime-evidence.py','--kind',test['id'],
+                   '--inputs','{retained_inputs}','--inputs-sha256','{retained_inputs_sha256}',
+                   '--candidate','{candidate}','--target-archive','{initramfs}',
+                   '--boot-image','{boot_bundle}','--artifact-hashes','{artifact_hashes}',
+                   '--output','{test_output}']]
     if test['id'] in ('A01','C02') and release and 'root_upper' in release:
         commands=[[*command,'--root-upper-image',release['root_upper']['path']] for command in commands]
     if test['id']=='A01' and activation_fixture_build is not None:
@@ -186,6 +227,13 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                     '{initramfs}': release['artifact_paths']['initramfs'],
                     '{test_output}': str(output/test['id'])}
         bindings['{candidate}'] = release.get('candidate_id', '')
+        if retained_rescue:
+            path,pin=rescue_runtime_inputs
+            if not path.is_absolute() or type(pin) is not str or not re.fullmatch('[0-9a-f]{64}',pin):
+                row.update(status='FAIL',next_action='invalid retained rescue evidence pin')
+                return row
+            bindings.update({'{retained_inputs}':str(path),'{retained_inputs_sha256}':pin,
+                             '{artifact_hashes}':','.join(k+'='+v for k,v in sorted(qualification_hashes(release).items()))})
         if test['id'] in ('S02','S03','S04','S05','S07'):
             if runtime_inputs is None or test['id'] not in runtime_inputs:
                 row['next_action']='supply pinned --runtime-inputs '+test['id']+'=PATH,SHA256; no live operation is initiated'
@@ -332,7 +380,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             row['next_action'] = 'Proceed to the next mandatory test; offline composition grants no boot authority'
         except (OSError,KeyError,TypeError,ValueError) as error:
             row.update(status='FAIL', next_action='missing complete A01 proof: '+str(error))
-    if row['status']=='PASS' and test['id'] in ('F02','S01','S02','S03','S04','S05','S07'):
+    if row['status']=='PASS' and (test['id'] in ('F02','S01','S02','S03','S04','S05','S07') or retained_rescue):
         try:
             test_id=test['id']
             inputs=wifi_restart_inputs if test_id=='F02' else standalone_boot_inputs
@@ -340,6 +388,9 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             if test_id in ('S02','S03','S04','S05','S07'):
                 inputs=runtime_inputs[test_id] if runtime_inputs else None
                 runner='check-server-runtime-evidence.py'
+            if retained_rescue:
+                inputs=rescue_runtime_inputs
+                runner='rescue-runtime-evidence.py'
             proof_path=output/test_id/'result.json';proof=json.loads(proof_path.read_text())
             if (proof['status']!='PASS' or proof[test_id.lower()+'_qualified'] is not True or
                     proof['source']!=source_identity() or proof['candidate']!=release['candidate_id'] or
@@ -353,7 +404,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
                        next_action='Proceed to the next mandatory outcome; retained replay grants no boot authority')
         except (OSError,ValueError,KeyError,TypeError) as error:
             row.update(status='FAIL',next_action='missing complete '+test['id']+' proof: '+str(error))
-    if row['status'] == 'PASS' and test['id'] == 'H02':
+    if row['status'] == 'PASS' and test['id'] == 'H02' and not retained_rescue:
         try:
             proof = json.loads((output/'H02/result.json').read_text())
             if (proof['status'] != 'PASS' or proof['h02_qualified'] is not True
@@ -364,7 +415,7 @@ def run_one(test, output, release=None, capture=None, rescue_inputs=None, activa
             row['proof_sha256'] = sha_file(output/'H02/result.json')
         except (OSError, KeyError, TypeError, ValueError) as error:
             row.update(status='FAIL', next_action='missing complete H02 proof: '+str(error))
-    if row['status'] == 'PASS' and test['id'] == 'H03':
+    if row['status'] == 'PASS' and test['id'] == 'H03' and not retained_rescue:
         try:
             proof_path=output/'H03/result.json'
             proof=json.loads(proof_path.read_text())
@@ -437,6 +488,8 @@ def main():
     parser.add_argument('--release', type=Path, help='exact artifact receipt; no implied admission')
     parser.add_argument('--capture', type=Path, help='currently running private receiver directory; H01 only')
     parser.add_argument('--rescue-inputs', type=Path, help='explicit original cycle and same-boot SSH arguments; never execution authority')
+    parser.add_argument('--rescue-runtime-inputs',type=Path,help='pinned completed radio-free rescue evidence; offline only')
+    parser.add_argument('--rescue-runtime-inputs-sha256',help='reviewed SHA-256 of completed rescue inputs')
     parser.add_argument('--activation-fixture-build',type=Path,help='existing exact-kernel QEMU-only link fixture build for A01')
     parser.add_argument('--wifi-restart-inputs',type=Path,help='pinned retained live restart evidence; offline replay only')
     parser.add_argument('--wifi-restart-inputs-sha256',help='reviewed SHA-256 of the restart evidence input file')
@@ -458,6 +511,10 @@ def main():
         parser.error('Wi-Fi evidence path and SHA-256 are required together')
     if bool(args.standalone_boot_inputs)!=bool(args.standalone_boot_inputs_sha256):
         parser.error('ordinary-boot evidence path and SHA-256 are required together')
+    if bool(args.rescue_runtime_inputs)!=bool(args.rescue_runtime_inputs_sha256):
+        parser.error('completed rescue evidence path and SHA-256 are required together')
+    if args.rescue_runtime_inputs and (args.capture or args.rescue_inputs):
+        parser.error('choose completed rescue replay or live rescue inputs')
     if args.capture and args.rescue_inputs:
         parser.error('choose live --capture or explicit completed-cycle --rescue-inputs, not both')
     contract = load_contract()
@@ -502,7 +559,8 @@ def main():
             row = run_one(test, output, report['release'], args.capture, args.rescue_inputs,args.activation_fixture_build,
                           (args.wifi_restart_inputs,args.wifi_restart_inputs_sha256) if args.wifi_restart_inputs else None,
                           (args.standalone_boot_inputs,args.standalone_boot_inputs_sha256) if args.standalone_boot_inputs else None,
-                          runtime_inputs)
+                          runtime_inputs,
+                          (args.rescue_runtime_inputs,args.rescue_runtime_inputs_sha256) if args.rescue_runtime_inputs else None)
             print(f'{row["id"]}: {row["status"]} ({row["duration_seconds"]:.3f}s)', flush=True)
         report['tests'].append(row)
     after = source_identity()
@@ -514,6 +572,12 @@ def main():
                 error = 'rescue inputs changed during run'
         except OSError as exc:
             error = 'rescue input revalidation failed: '+str(exc)
+    if args.rescue_runtime_inputs:
+        try:
+            if sha_file(args.rescue_runtime_inputs)!=args.rescue_runtime_inputs_sha256:
+                error='completed rescue inputs changed during run'
+        except OSError as exc:
+            error='completed rescue input revalidation failed: '+str(exc)
     if before != after:
         error = 'source changed during run; results are not a frozen checkpoint'
     if args.release and report['release']:

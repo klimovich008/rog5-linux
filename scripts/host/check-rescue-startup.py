@@ -85,7 +85,7 @@ def number(value):
     return value
 
 
-def validate(record, identity, execution, receipt, receipt_hash, events, attempts, smoke, readiness, deadline):
+def validate(record, identity, execution, receipt, receipt_hash, events, attempts, smoke, readiness, deadline, *, observed_producers=None):
     require(receipt['format'] == 'rog5-headless-capture-v1'
             and receipt['profile'] == record['candidate'], 'wrong capture profile')
     for value in (execution, receipt, readiness):
@@ -96,8 +96,15 @@ def validate(record, identity, execution, receipt, receipt_hash, events, attempt
             and re.fullmatch(r'[0-9a-f]{64}', source['worktree_digest'])
             and source == readiness['source'] and execution['source_revision'] == source['revision'],
             'incoherent historical source')
-    require(receipt['receiver_sha256'] == digest(D.CAPTURE.__file__)
-            and readiness['runner_sha256'] == digest(D.__file__), 'changed evidence producer; review before reuse')
+    # Default live replay requires current producers. An offline caller must first
+    # authenticate these original producer versions and revalidate their raw data.
+    versions = observed_producers if observed_producers is not None else dict(
+        receiver=digest(D.CAPTURE.__file__), readiness=digest(D.__file__))
+    require(type(versions) is dict and set(versions) == {'receiver', 'readiness'}
+            and all(type(v) is str and re.fullmatch('[0-9a-f]{64}', v) for v in versions.values()),
+            'invalid observed producer versions')
+    require(receipt['receiver_sha256'] == versions['receiver']
+            and readiness['runner_sha256'] == versions['readiness'], 'changed evidence producer; review before reuse')
     capture = execution['capture']
     require(capture['status'] == 'PASS' and capture['test'] == 'H01-receiver'
             and capture['profile'] == record['candidate'] and capture['receipt_sha256'] == receipt_hash,
