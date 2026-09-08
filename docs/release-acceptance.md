@@ -636,6 +636,35 @@ checks its raw bytes. The existing 96 MiB helper and installed partition sizes
 are unchanged. Protocol support for downloading a buffer does not prove the
 phone boots this larger image; that remains a physical prerequisite/outcome.
 
+Future source-transition preparation can use the optional
+`headless-stage-receiver.py --source-boot-id BOOT --source-teardown-intent FILE
+--source-teardown-sha256 SHA256` mode. The controller must first authenticate the
+installed source identity and stage/read back the exact RAM-only derivative
+returned by `source-teardown-observation.py:prepare`. This helper performs no
+staging, transition, claim consumption or admission itself. Keep the installed
+shutdown and accepted target archive unchanged. Stage `shutdown` as root-owned
+0755 and the three `rog5-source-teardown*` files as root-owned 0444, all regular
+single-link files. The source shutdown bytes must exactly match the reviewed
+standalone shutdown before preparation.
+
+The inserted observer runs after clean storage teardown and before API mounts
+are detached, with a five-second whole-process timeout. It checks source boot
+and kernel, staged hashes, absence of physical/overlay mounts and attached loops,
+and sysfs plus ioctl read-only state for all 117 matching physical device nodes.
+It sends one bounded TCP receipt. The host accepts it only on the still-connected
+source within sixty seconds of receiver arming; a missing, malformed, late,
+duplicate or wrong-peer receipt makes capture fail permanently. The receipt is
+flushed and fsynced separately from target stages. Ordinary captures opt out by
+default. No receipt or sender failure may block fallback indefinitely.
+
+This is observer preparation, with synthetic sealed-BusyBox and isolated TCP
+coverage. Physical source USB availability, the complete staged shutdown and
+controller admission integration remain unproven. A future controller must bind
+this durable receipt to its exact source, files, nonce, receiver process/host
+boot, USB anchor and transition before any RAM admission. Fastboot arrival and
+netcat exit status alone are insufficient. The existing failed R01 claim remains
+consumed and unusable; these tools issue no replacement claim.
+
 Completed R01 evidence now has an offline matrix consumer. Use
 `rog5-dev accept release --test-id R01 --release RECEIPT
 --isolated-recovery-inputs PRIVATE_INPUTS

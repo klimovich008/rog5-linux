@@ -36,6 +36,10 @@
       "network_bytes": 67108864,
       "network_deadline_seconds": 90
     },
+    "source_teardown": {
+      "observer_seconds": 5,
+      "receipt_seconds": 60
+    },
     "powered_off_start": {
       "minimum_off_seconds": 10,
       "maximum_sample_gap_seconds": 2

@@ -1,7 +1,11 @@
 # ROG5 current state
 
-Updated 2026-09-09: retained server and rescue evidence requalified; no new phone action.
-Current health, readiness, storage scope and all twelve installed-file hashes passed readback.
+Updated 2026-09-09: source teardown receipt prepared and tested offline; no new phone action.
+The last retained health, readiness, storage and twelve-file readback passed.
+The optional RAM-only source observer now requires positively bound clean teardown
+evidence. Sealed BusyBox tests cover refusals, bounded fallback and isolated TCP;
+physical shutdown transport and controller admission integration remain unproven.
+Full integration CI for this change is pending.
 The observer corrections passed full local and GitHub CI. S06 now has an offline
 powered-off-start evidence runner; its shared integration passed full local CI
 in 539.516 seconds. The final earlier-boot assertion passed fifteen focused tests
@@ -93,8 +97,9 @@ all PASS. No further phone execution was requested during that observation.
 
 One coordinator owns this phone. S01–S05, S07 and F02 retain their completed
 independent evidence. The failed R01 capture closed its full lifetime and all
-host cleanup passed. A separate installed recovery capture is now running after
-normal-address SSH timed out; its controller stopped before changing state.
+host cleanup passed. The separate installed recovery capture after
+normal-address SSH timed out has also closed; the later authenticated V8 readback
+is recorded above. No phone controller is running.
 Do not retry the consumed negative candidate or run a second phone controller.
 
 On `f0a3420b`, full local CI passed **520.115 s** and all four jobs passed in

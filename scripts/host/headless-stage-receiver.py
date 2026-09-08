@@ -32,6 +32,7 @@ STAGES = load('headless_stage_parser', 'scripts/host/run-persistent-root-storage
 CLAIMS = load('headless_capture_claims', 'scripts/host/consume-exact-boot-claim.py')
 NETWORK = load('headless_capture_network', 'scripts/host/rescue-capture-network.py')
 ACCEPTANCE = load('headless_capture_acceptance', 'scripts/host/release-acceptance.py')
+TEARDOWN = load('headless_source_teardown', 'scripts/host/source-teardown-observation.py')
 ADDRESS, PEER, PORT = NETWORK.ADDRESS, '169.254.77.2', 8079
 INTERFACE, PROFILE = NETWORK.INTERFACE, NETWORK.PROFILE
 USB = Path('/sys/bus/usb/devices/1-1.2')
@@ -155,10 +156,13 @@ def parse_startup_observation(payload, release):
 
 class Receiver:
     def __init__(self, release, emit, *, host=ADDRESS, port=PORT, peer=PEER, client_seconds=2,
-                 source_boot_id=None):
+                 source_boot_id=None, source_teardown=None):
         if source_boot_id is not None and not STAGES.BOOT_ID.fullmatch(source_boot_id):
             raise ValueError('invalid ordinary-reboot source boot')
         self.source_boot_id = source_boot_id
+        self.teardown = (TEARDOWN.Observation(source_teardown, source_boot_id, time.monotonic())
+                         if source_teardown is not None else None)
+        self.teardown_expired = False
         self.source_disconnected = False
         # Once routed, source shutdown needs USB discovery only. Repeating
         # NetworkManager setup can race its expected interface removal.
@@ -192,6 +196,8 @@ class Receiver:
     def transport(self, mode, interface):
         if self.source_boot_id is not None and not self.source_disconnected:
             if mode == 'absent':
+                if self.teardown is not None and self.teardown.receipt is None:
+                    self.invalid_teardown('source disconnected without clean teardown receipt')
                 self.source_disconnected = True
                 self.emit(dict(event='source-disconnected', source_boot_id=self.source_boot_id))
             elif mode not in {'source', 'enumerating'}:
@@ -213,7 +219,23 @@ class Receiver:
         self.emit(dict(event='transport', mode=mode, interface=interface,
                        last_stage=stage_dict(self.last), last_startup=self.startup))
 
+    def invalid_teardown(self, reason, payload=b''):
+        self.failed = True
+        self.emit(dict(event='invalid-stage', reason=reason, raw_hex=payload[:513].hex()))
+
     def record(self, payload, peer):
+        if (payload.startswith(b'format=rog5-source-teardown')
+                or (self.teardown is not None and self.mode == 'source')):
+            try:
+                TEARDOWN.require(self.teardown is not None, 'unrequested source teardown receipt')
+                TEARDOWN.require(peer == self.peer and self.mode == 'source'
+                    and not self.source_disconnected and not self.target_seen and not self.failed,
+                    'source teardown peer/transport or prior failure')
+                receipt = self.teardown.observe(payload, time.monotonic())
+                self.emit(dict(event='source-teardown', receipt=receipt, authenticated=False, authority='none'))
+            except ValueError as error:
+                self.invalid_teardown(str(error), payload)
+            return
         if peer != self.peer or self.mode != 'target':
             self.emit(dict(event='rejected-peer-or-transport', peer=peer, mode=self.mode))
             return
@@ -247,6 +269,10 @@ class Receiver:
     def poll(self, seconds=.1):
         readable, _, _ = select.select([self.listener, *self.clients], [], [], seconds)
         now = time.monotonic()
+        if (self.teardown is not None and self.teardown.receipt is None and not self.teardown_expired
+                and now > self.teardown.deadline):
+            self.teardown_expired = True
+            self.invalid_teardown('source teardown receipt deadline expired')
         if self.listener in readable:
             client, peer = self.listener.accept()
             client.setblocking(False)
@@ -313,9 +339,14 @@ def check_capture_mode(receipt, source_boot_id):
         raise ValueError('capture mode/source boot mismatch')
 
 
-def check_receiver(output, profile, *, source_boot_id=None):
+def check_receiver(output, profile, *, source_boot_id=None, source_teardown_sha256=None):
     receipt = json.loads((output/'receipt.json').read_text())
     check_capture_mode(receipt, source_boot_id)
+    if receipt.get('source_teardown_sha256') != source_teardown_sha256:
+        raise ValueError('source teardown capture mode mismatch')
+    if source_teardown_sha256 is not None and receipt.get('source_teardown_observer_sha256') != \
+            hashlib.sha256(Path(TEARDOWN.__file__).read_bytes()).hexdigest():
+        raise ValueError('changed source teardown observer')
     canonical = dict(line.split('=',1) for line in CLAIMS.expected_record(profile).decode().splitlines())
     if (receipt['canonical_record'] != canonical or receipt['profile'] != profile
             or receipt['source'] != ACCEPTANCE.source_identity()
@@ -341,6 +372,7 @@ def check_receiver(output, profile, *, source_boot_id=None):
             or live.get('pid') != receipt['pid']
             or live.get('required_seconds') != receipt['required_seconds']
             or live.get('source_boot_id') != source_boot_id
+            or live.get('source_teardown_sha256') != source_teardown_sha256
             or not lifetime_ready(receipt['deadline_monotonic'], time.monotonic(), receipt['required_seconds'])):
         raise ValueError('receiver not ready or remaining lifetime insufficient')
     return dict(status='PASS', test='H01-receiver', profile=profile,
@@ -394,13 +426,26 @@ def main():
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--source-boot-id',
                         help='passive ordinary-reboot capture; caller must authenticate this installed source boot; grants no reboot authority')
+    parser.add_argument('--source-teardown-intent', type=Path,
+                        help='optional pinned RAM-only source observation intent; grants no execution authority')
+    parser.add_argument('--source-teardown-sha256')
     args = parser.parse_args()
+    if (args.source_teardown_intent is None) != (args.source_teardown_sha256 is None):
+        raise ValueError('source teardown requires both intent and digest')
+    teardown = None
+    if args.source_teardown_intent is not None:
+        teardown = TEARDOWN.read_intent(args.source_teardown_intent, args.source_teardown_sha256)
+        if teardown['identity']['boot_id'] != args.source_boot_id:
+            raise ValueError('source teardown requires its authenticated source boot')
     if args.check:
-        print(json.dumps(check_receiver(args.output, args.profile, source_boot_id=args.source_boot_id)))
+        print(json.dumps(check_receiver(args.output, args.profile, source_boot_id=args.source_boot_id,
+                                       source_teardown_sha256=args.source_teardown_sha256)))
         return 0
     if args.manifest is None or os.geteuid() != 0:
         raise ValueError('receiver needs an exact manifest and scoped host-network privileges')
     record = dict(line.split('=', 1) for line in CLAIMS.expected_record(args.profile).decode().splitlines())
+    if teardown is not None and teardown['identity']['serial'] != record['serial']:
+        raise ValueError('source teardown serial differs from capture device')
     if record.get('execution') not in {'fastboot-boot-fallback-only', 'fastboot-boot-ram-bundle',
                                        'fastboot-boot-selector-trial'}:
         raise ValueError('not a supported headless rescue record')
@@ -456,8 +501,10 @@ def main():
                 log_full = True
                 return
             log.write(json.dumps(event, sort_keys=True)+'\n'); log.flush()
+            if event['event'] == 'source-teardown':
+                os.fsync(log.fileno())
         with NETWORK.prepared(lifetime, emit, lambda: usb_mode(record['serial'])[0]=='target') as network, Receiver(
-                release, emit, source_boot_id=args.source_boot_id) as receiver:
+                release, emit, source_boot_id=args.source_boot_id, source_teardown=teardown) as receiver:
             deadline, ensure_route = network
             host_ready()
             receiver.probe = ('PROBE '+os.urandom(24).hex()+'\n').encode()
@@ -467,11 +514,16 @@ def main():
                     mode_ready = (receiver.mode == 'source' and not receiver.source_disconnected
                                   if args.source_boot_id is not None else receiver.mode == 'fastboot')
                     valid = not stopping and not receiver.failed and mode_ready
+                    if receiver.teardown is not None:
+                        valid &= time.monotonic() <= receiver.teardown.deadline
                 except (ValueError, OSError, subprocess.SubprocessError):
                     valid = False
-                return dict(ready=valid and lifetime_ready(deadline, time.monotonic(), required),
+                response = dict(ready=valid and lifetime_ready(deadline, time.monotonic(), required),
                             remaining_seconds=deadline-time.monotonic(), required_seconds=required,
                             candidate=record['candidate'], pid=os.getpid(), source_boot_id=args.source_boot_id)
+                if teardown is not None:
+                    response['source_teardown_sha256'] = args.source_teardown_sha256
+                return response
             receiver.probe_response = readiness
             receipt = dict(format='rog5-headless-capture-v1', profile=args.profile, canonical_record=record,
                            source=ACCEPTANCE.source_identity(),
@@ -481,12 +533,18 @@ def main():
                            probe=receiver.probe.decode(), started_monotonic=started, timing=timing)
             if args.source_boot_id is not None:
                 receipt['source_boot_id'] = args.source_boot_id
+            if teardown is not None:
+                receipt.update(source_teardown_sha256=args.source_teardown_sha256,
+                               source_teardown_intent=teardown, source_teardown_armed_monotonic=receiver.teardown.armed,
+                               source_teardown_observer_sha256=hashlib.sha256(Path(TEARDOWN.__file__).read_bytes()).hexdigest())
             (args.output/'receipt.json').write_text(json.dumps(receipt, indent=2)+'\n')
             emit(dict(event='listener-started', address=ADDRESS, port=PORT, authority='none'))
             while not stopping and time.monotonic() < deadline:
                 if not update_transport(receiver, record['serial'], ensure_route, deadline=deadline):
                     stopping = True
                 receiver.poll()
+            if receiver.teardown is not None and receiver.teardown.receipt is None:
+                receiver.invalid_teardown('capture closed without clean source teardown receipt')
             result = dict(status='FAIL' if receiver.failed or log_full else 'NOT RUN',
                           reason='capture is evidence, not authenticated device qualification',
                           last_stage=stage_dict(receiver.last), last_startup=receiver.startup,
