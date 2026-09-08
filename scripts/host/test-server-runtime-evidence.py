@@ -24,11 +24,11 @@ def fixture(kind):
         source=dict(clean=True,revision='a'*40,worktree_digest='b'*64),identity=identity,artifact_hashes=hashes,
         before=base,cases=[],commands=[],seconds=30,deadline_seconds=720 if kind=='S02' else 300)
     logs={}
-    def command(value,link=None,code=0,error=b''):
+    def command(value,link=None,code=0,error=b'',script='c'*64):
         n=len(record['commands'])+1
         fields=dict(sequence=n,returncode=code)
         if kind=='S02':fields['sha256']='c'*64
-        else:fields.update(script_sha256='c'*64,link=link)
+        else:fields.update(script_sha256=script,link=link)
         record['commands'].append(fields)
         logs[f'{n:02d}.stdout']=json.dumps(value).encode() if value is not None else b''
         logs[f'{n:02d}.stderr']=error
@@ -42,7 +42,7 @@ def fixture(kind):
     else:
         record['per_restart_seconds']=40;prior=base
         for n,action in enumerate(M.ACTIONS):
-            command(prior);after=copy.deepcopy(prior)
+            command(prior,script='d'*64);after=copy.deepcopy(prior)
             after['units'][action]['InvocationID']=f'{n+1:032x}'
             if action=='rog5-wifi-wpa':after['units']['rog5-wifi-dhcp']['InvocationID']='e'*32
             if action=='rog5-early-sshd':
@@ -92,6 +92,27 @@ class Tests(unittest.TestCase):
         def bad_error(r,l,*unused):
             c=next(c for c in r['commands'] if c['returncode']);l[f"{c['sequence']:02d}.stderr"]=b'Host key verification failed'
         self.reject('S03',bad_error)
+    def test_settled_observer_refusal_matches_successful_post_restart_probe(self):
+        data=fixture('S03');r,l,identity,hashes=data
+        refused=next(c for c in r['commands'] if c['returncode'])
+        refused['script_sha256']='e'*64
+        r['commands'][refused['sequence']]['script_sha256']='e'*64
+        previous=f"{refused['sequence']-1:02d}.stdout"
+        value=json.loads(l[previous]);value['power']['temp']='301'
+        l[previous]=json.dumps(value).encode()
+        self.check('S03',*data)
+    def test_refused_action_or_unconfirmed_probe_is_rejected(self):
+        for mode in ('action','wifi','partial','last','boundary'):
+            data=fixture('S03');r,l,identity,hashes=data
+            c=next(c for c in r['commands'] if c['returncode'])
+            following=r['commands'][c['sequence']]
+            if mode=='action':
+                c['script_sha256']='d'*64;following['script_sha256']='d'*64
+            elif mode=='wifi':following['link']=r['commands'][-1]['link']
+            elif mode=='partial':l[f"{c['sequence']:02d}.stdout"]=b'{}'
+            elif mode=='last':del r['commands'][c['sequence']:]
+            else:l[f"{following['sequence']:02d}.stdout"]=json.dumps(r['before']).encode()
+            with self.subTest(mode=mode),self.assertRaises(ValueError):self.check('S03',*data)
     def test_missing_final_wifi_and_unsafe_power(self):
         self.reject('S03',lambda r,*unused:r['commands'][-1].update(link=None))
         for kind in ('S02','S03'):

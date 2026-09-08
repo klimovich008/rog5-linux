@@ -106,8 +106,21 @@ def validate(kind,record,logs,identity,hashes,expected_digest=T.expected_digest)
             # Captured restart race: only the same read-only observer can wait.
             # No changed key, partial output, action failure or Wi-Fi error is a retry.
             require(kind=='S03' and code==255 and command['link'] is None and not logs[output]
-                    and logs[error].strip()==REFUSED and n>1
-                    and command[script_key]==commands[0][script_key],'failed action or unexpected reconnect')
+                    and logs[error].strip()==REFUSED and n>1 and wifi_count==1,
+                    'failed action or unexpected reconnect')
+            previous=next((c for c in reversed(commands[:n-1]) if c['returncode']==0),None)
+            following=next((c for c in commands[n:] if c['returncode']==0),None)
+            # The post-restart observer can differ from the initial strict probe.
+            # Bind refusal to that exact successful observer at the SSH boundary,
+            # never to the preceding acknowledged restart command.
+            require(previous is not None and following is not None
+                    and previous['link'] is None and following['link'] is None
+                    and command[script_key]!=previous[script_key]
+                    and command[script_key]==following[script_key]
+                    and all(B.READ.decode(logs[f"{previous['sequence']:02d}.stdout"])[key]==cases[0]['after'][key]
+                            for key in ('identity','units','interface','addresses','carrier','default_route'))
+                    and B.READ.decode(logs[f"{following['sequence']:02d}.stdout"])==cases[1]['after'],
+                    'unconfirmed post-restart observer or repeated action')
             refused_count+=1;require(refused_count<=24,'unbounded reconnect')
             continue
         refused_count=0;require(not logs[error],'unexpected stderr')
