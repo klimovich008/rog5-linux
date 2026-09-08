@@ -584,6 +584,14 @@ satisfy its own genuine current-boot health gate. The state-operation components
 V11 sealed-shell restorer because V11 lacks Python. The complete controller,
 two-boot observer and physical result are not yet qualified.
 
+The isolated RAM wrapper uses its own exact 134217728-byte image admission.
+`verified-isolated-recovery-boot.py` permits only the canonical R01 profile,
+exact hash and consumed claim. The controller requires a fresh, single,
+unambiguous `max-download-size` response before consuming the claim; replay
+checks its raw bytes. The existing 96 MiB helper and installed partition sizes
+are unchanged. Protocol support for downloading a buffer does not prove the
+phone boots this larger image; that remains a physical prerequisite/outcome.
+
 Completed R01 evidence now has an offline matrix consumer. Use
 `rog5-dev accept release --test-id R01 --release RECEIPT
 --isolated-recovery-inputs PRIVATE_INPUTS
