@@ -7525,3 +7525,34 @@ watchdog artifact suite, plus the five optimized sparse-hash cases (0.164 s).
 The attempted whole optimized watchdog suite refused its assertion-dependent
 archive parser; that deliberately unsupported mode remains failed in r1.
 No archive/parser or earlier watchdog producer was changed to bypass refusal.
+
+
+### R01 exact image qualification completed — 2026-09-08
+
+On frozen `b00a1b81fc6eb646a1d678e146d9afd6153b130e`, serial
+`r01-composition-r2` passed **309.465699 s** with unchanged source:
+
+- A01: **77.694886 s** internally, **77.935814 s** including its driver. All
+  wrapper/AVB, signed target, archive, root runtime, firmware, module and timing
+  checks passed. Root and complete retained upper remained unchanged.
+- C02: **96.127712 s** internally, **96.287251 s** including its driver. Exact
+  retained Arch/systemd and health/rollback coverage passed with both images
+  unchanged.
+- C01: all nine watchdog handoff cases passed, **135.145670 s** including its
+  driver. Each used the exact signed negative archive and accepted kernel.
+
+A01's independent full logical root hashes took **22.472 / 21.973 s**, each
+reading 4,190,035,968 bytes and hashing 30,169,681,920 zero-hole bytes. Upper
+hashes took **11.487 / 10.976 s**, each reading 1,184,108,544 bytes and hashing
+15,995,760,640 zero-hole bytes. Both full before/after hashes and metadata
+checks remain mandatory; no deadline or evidence requirement changed.
+
+The real original full S01 baseline also replayed under current consumers in
+**0.039947 s** (`r01-real-baseline-replay-r1.json`), retaining its original boot
+and producer revision. Six fixed privilege-launcher tests passed **0.013202 s**
+with disposable credentials and a harmless child; no real credential or sudo
+operation was used. They verify the fixed entrypoint/argument, hash-bound
+admission, refusal before repeated entry and retained closed-child evidence.
+
+Physical R01 and S06 remain NOT RUN. Full local/remote integration CI and final
+admission are still required. No phone state or real lifecycle claim changed.
