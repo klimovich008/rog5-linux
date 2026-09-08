@@ -7292,3 +7292,43 @@ stderr, exact original and adapted scripts, source copies and the test receipt.
 This does not prove physical guards, actual reboot behavior or R01 recovery.
 The full concrete driver and independent raw-evidence consumer remain required
 before full integration CI, signed admission and any phone action.
+
+### R01 concrete driver and raw replay boundaries — 2026-09-08
+
+The private import-only driver now supplies admission, arming, source transition,
+capture, one-use execution, negative observation, capture closure, fresh V11
+guards, exact selection restoration, ordinary V8 verification and replay hooks.
+The recovery result must return authenticated V11 within 1,200 seconds of
+experimental entry. Its full 1,380-second capture and later ordinary restoration
+are separately checked; neither can extend that physical-return deadline.
+
+Nine boundary tests passed in normal and optimized Python. They exercise a real
+owned-process timeout with partial stdout retained, SSH output retention before
+a failing post-read guard, reboot-specific guard ordering, explicit connection
+refusal versus ambiguous SSH failures, actual parsed stage shapes, incomplete
+rollback streams and the read-only restoration guard boundary. The initial
+private import failed before tests or phone access because the shared host
+module path was missing; adding that path corrected it. The source transition
+now checks fresh fastboot identity after reboot rather than requiring the old
+USB network to survive. Stage events supply only tentative boot IDs before
+independent pinned SSH verifies kernel and bundle.
+
+The new offline R01 replay library has seven boundary tests using the actual
+loopback receiver and wire parser. They reject late physical return, insufficient
+capture lifetime, failed/partial cleanup, mixed boot IDs, monitoring gaps, clock
+inconsistency, unrelated discovery errors and incomplete or unmatched PID 1
+rollback jobs. The negative-health observer additionally tests a bounded pending
+health wait against actual safety/state fields; no synthetic failed-unit values
+are substituted. Its ten focused tests pass. All new suites passed optimized;
+the public suites also ran normally in the active tier.
+
+Private `r01-driver-replay-tests-r1/result.json` records PASS **53.391242 s**,
+including active **51.780458 s**, raw logs and exact public/private source copies.
+Active log SHA-256:
+`7edda49fb451d915a245740ff1c8934c6e6898265e1c74f8e722f2f37d2d34eb`.
+All tested inputs stayed unchanged. This is boundary/component coverage,
+explicitly `complete_driver_bindings=false`; both admission and replay require
+that separate complete-binding gate. The complete controller evidence replay,
+input-envelope/dispatcher, full CI/publication and signed negative admission
+remain required. No physical action, state transition or claim consumption
+occurred, and no R01 or full release result is claimed.

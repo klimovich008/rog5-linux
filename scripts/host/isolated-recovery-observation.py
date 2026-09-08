@@ -75,8 +75,8 @@ def command(value):
     return value['stdout']
 
 
-def negative(actual,identity,trial,installed,sealed,rollback_seconds=900):
-    """Validate one raw pre-expiry snapshot; never label capture or release PASS."""
+def environment(actual,identity,trial,installed,sealed,rollback_seconds=900):
+    """Validate actual identity, sealed state, power and storage before classifying health."""
     need(type(trial) is str and re.fullmatch('[0-9a-f]{64}',trial),'negative trial identity')
     need(set(installed)=={'trial_id','primary_bundle','primary_manifest_sha256','fallback_bundle',
                          'fallback_manifest_sha256'},'installed trial fields')
@@ -121,33 +121,10 @@ def negative(actual,identity,trial,installed,sealed,rollback_seconds=900):
     health=units['health'];timer=units['timer'];rollback=units['rollback']
     need(set(health)==set(SERVICE_PROPERTIES) and set(rollback)==set(SERVICE_PROPERTIES)
          and set(timer)==set(TIMER_PROPERTIES),'unit observation fields')
-    need(tuple(health[k] for k in SERVICE_PROPERTIES[:5])==('loaded','failed','failed','exit-code','1'),
-         'health did not fail with the expected exit')
-    health_times=[]
-    for key in SERVICE_PROPERTIES[-2:]:
-        value=health[key]
-        need(re.fullmatch('[1-9][0-9]{0,15}',value),'health execution timestamp')
-        health_times.append(int(value))
-    start,end=health_times
-    need(0<start<=end<=uptime*1000000,'health execution outside this observation')
     need(timer==dict(LoadState='loaded',ActiveState='active',SubState='waiting',Result='success',
                      Unit=UNITS['rollback']),'rollback timer is not armed')
     need(tuple(rollback[k] for k in SERVICE_PROPERTIES)==('loaded','inactive','dead','success','0','0','0'),
          'rollback already executed or failed')
-    journal=[decode(line.encode()) for line in command(actual['journal']).splitlines()]
-    need(0<len(journal)<=80,'health journal missing or truncated beyond bound')
-    matches=[]
-    for entry in journal:
-        need(type(entry) is dict and entry.get('_BOOT_ID')==identity['boot_id'].replace('-',''),
-             'journal belongs to another boot')
-        if entry.get('MESSAGE') in MESSAGES:
-            need(entry.get('_SYSTEMD_UNIT')==UNITS['health'],'refusal came from another unit')
-            stamp=entry.get('__MONOTONIC_TIMESTAMP')
-            need(type(stamp) is str and re.fullmatch('[1-9][0-9]{0,15}',stamp),'journal timestamp')
-            need(start<=int(stamp)<=end,'refusal outside health execution')
-            matches.append((entry['MESSAGE'],int(stamp)))
-    need([message for message,_ in matches]==list(MESSAGES)
-         and matches[0][1]<=matches[1][1],'specific helper refusal sequence absent or ambiguous')
     power=actual['power']
     need(power['health']=='Good' and power['usb_online']=='1'
          and 0<=int(power['temp'])<400 and 8400000<=int(power['voltage_now'])<=8800000,'unsafe power')
@@ -163,6 +140,53 @@ def negative(actual,identity,trial,installed,sealed,rollback_seconds=900):
     row=mounted[0];need(row.count('-')==1,'mount framing');cut=row.index('-')
     need(row[2:4]==['8:23','/'] and 'rw' in row[5].split(',') and 'ro' not in row[5].split(',')
          and row[cut+1:cut+3]==['ext4','/dev/sda23'],'userdata mount differs')
+    return units
+
+
+def pending(actual,identity,trial,installed,sealed):
+    """Allow a bounded read-only wait only for a still-running healthy unit."""
+    health=environment(actual,identity,trial,installed,sealed)['health']
+    if health['ActiveState']=='failed':return False
+    need((health['LoadState'],health['ActiveState'],health['SubState'],health['Result'],health['ExecMainStatus'])
+         in {('loaded','inactive','dead','success','0'),('loaded','activating','start','success','0'),
+             ('loaded','activating','start-post','success','0')},'unexpected pending health state')
+    for key in SERVICE_PROPERTIES[-2:]:
+        value=health[key]
+        need(type(value) is str and re.fullmatch('0|[1-9][0-9]{0,15}',value)
+             and int(value)<=actual['uptime']*1000000,'pending health timestamp')
+    rows=[decode(line.encode()) for line in command(actual['journal']).splitlines()]
+    need(len(rows)<=80 and all(row.get('_BOOT_ID')==identity['boot_id'].replace('-','') for row in rows),
+         'pending health journal identity/bound')
+    return True
+
+
+def negative(actual,identity,trial,installed,sealed,rollback_seconds=900):
+    """Validate the completed specific refusal; never qualify physical return."""
+    health=environment(actual,identity,trial,installed,sealed,rollback_seconds)['health']
+    uptime=actual['uptime']
+    need(tuple(health[k] for k in SERVICE_PROPERTIES[:5])==('loaded','failed','failed','exit-code','1'),
+         'health did not fail with the expected exit')
+    health_times=[]
+    for key in SERVICE_PROPERTIES[-2:]:
+        value=health[key]
+        need(re.fullmatch('[1-9][0-9]{0,15}',value),'health execution timestamp')
+        health_times.append(int(value))
+    start,end=health_times
+    need(0<start<=end<=uptime*1000000,'health execution outside this observation')
+    journal=[decode(line.encode()) for line in command(actual['journal']).splitlines()]
+    need(0<len(journal)<=80,'health journal missing or truncated beyond bound')
+    matches=[]
+    for entry in journal:
+        need(type(entry) is dict and entry.get('_BOOT_ID')==identity['boot_id'].replace('-',''),
+             'journal belongs to another boot')
+        if entry.get('MESSAGE') in MESSAGES:
+            need(entry.get('_SYSTEMD_UNIT')==UNITS['health'],'refusal came from another unit')
+            stamp=entry.get('__MONOTONIC_TIMESTAMP')
+            need(type(stamp) is str and re.fullmatch('[1-9][0-9]{0,15}',stamp),'journal timestamp')
+            need(start<=int(stamp)<=end,'refusal outside health execution')
+            matches.append((entry['MESSAGE'],int(stamp)))
+    need([message for message,_ in matches]==list(MESSAGES)
+         and matches[0][1]<=matches[1][1],'specific helper refusal sequence absent or ambiguous')
     return dict(status='COMPONENT_PASS',identity=identity,negative_trial_id=trial,
                 health_refusal_uptime_seconds=end/1000000,observed_uptime_seconds=uptime,
                 timer_armed=True,autonomous_recovery_proven=False,release_qualified=False)

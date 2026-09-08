@@ -58,6 +58,24 @@ def fixture():
 class NegativeTest(unittest.TestCase):
     def evaluate(self,value):return M.negative(value,IDENTITY,TRIAL,INSTALLED,SEALED)
 
+    def test_pending_health_wait_validates_actual_safety_without_inventing_failure(self):
+        value=fixture()
+        value['units']['health']=command(dict(zip(M.SERVICE_PROPERTIES,
+            ('loaded','activating','start','success','0','50000000','0'))))
+        value['journal']=command('')
+        self.assertTrue(M.pending(value,IDENTITY,TRIAL,INSTALLED,SEALED))
+        with self.assertRaises(ValueError):self.evaluate(value)
+        self.assertFalse(M.pending(fixture(),IDENTITY,TRIAL,INSTALLED,SEALED))
+        for change in ('power','state','timer','healthy','unexpected-state'):
+            with self.subTest(change=change):
+                changed=copy.deepcopy(value)
+                if change=='power':changed['power']['temp']='401'
+                if change=='state':changed['blocks']['sda24']='0'
+                if change=='timer':changed['units']['timer']['stdout']=changed['units']['timer']['stdout'].replace('waiting','dead')
+                if change=='healthy':changed['files']['healthy']={'status':'present'}
+                if change=='unexpected-state':changed['units']['health']['stdout']=changed['units']['health']['stdout'].replace('activating','active')
+                with self.assertRaises(ValueError):M.pending(changed,IDENTITY,TRIAL,INSTALLED,SEALED)
+
     def test_specific_refusal_with_armed_fallback_is_only_a_component(self):
         value=fixture();before=copy.deepcopy(value)
         result=self.evaluate(M.decode(json.dumps(value).encode()))

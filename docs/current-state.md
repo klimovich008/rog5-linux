@@ -213,7 +213,26 @@ recorder replaced reboot. Genuine file metadata, exclusive publication, RAM
 replacement, chroot syntax and mount-namespace containment were exercised.
 Wrong state/source, symlinks, existing backup state and failed reboot replies
 were handled without retry or changes to the original synthetic trial state.
-The concrete admission/device driver and complete R01 replay remain to be bound.
+The concrete private driver now implements every controller phase, including
+the two-boot observer, sealed V11 restoration and subsequent ordinary V8 health
+check. It remains import-only. Nine driver boundary tests passed normally and
+optimized; these are not complete controller-binding qualification. They caught
+and corrected a missing private import path, a reboot/post-read USB race and an
+incorrect assumption that parsed stage dictionaries contain the kernel release.
+
+The independent R01 replay library validates raw command receipts, the specific
+negative-health snapshots, complete PID 1 rollback journal, physical return,
+full capture cleanup and ordinary restoration evidence. Seven replay boundary
+tests use actual loopback receiver parsing; complete controller replay and the
+completed-input envelope/dispatcher are still required. The health observer
+now permits only a bounded read-only wait for a genuinely pending unit, while
+checking actual identity, armed state, sealed files, power and storage. Its ten
+tests passed. No expected failure fields are synthesized to permit that wait.
+The combined checkpoint passed in **53.391 s**, including active **51.780 s**,
+with tested sources unchanged. Its receipt explicitly records
+`complete_driver_bindings=false`, which both admission and replay refuse as
+live qualification. Full integration CI, publication, signed canonical admission
+and physical R01 remain outstanding; no new phone action or claim occurred.
 
 ## Mandatory results
 
