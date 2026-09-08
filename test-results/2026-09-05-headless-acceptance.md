@@ -6932,3 +6932,86 @@ A final memory-bound improvement limits all raw evidence files together to
 the new oversized-index refusal. Exact retained S02/S03/S04/S05 evidence also
 replays successfully with the new consumer (**3.7 s**) and keeps its actual
 `f0a3420b` producer identities. Full CI remains the next gate before live load.
+
+
+### V8 full-hour S07, exact F01/F02 and paired rescue evidence (2026-09-08)
+
+Frozen `af960758a1dede37592dde94bfe8d74f2237a095` passed full local CI
+**526.883 s**, log `52bbcbc3…6a624`, and all four remote jobs in
+**34221548267**. Existing draft PR #1 was updated. Source and active private
+producers stayed frozen through the original S07 coordinator and subsequent F02.
+No kernel/archive rebuild, flash, host reboot or claim retry occurred.
+
+S07 read-only preparation passed, then the sole coordinator measured
+**3600.030 s** of concurrent scratch I/O and authenticated USB/Wi-Fi streams.
+Full run: **113 fresh 64 MiB storage windows, 188 completed 64 MiB transfers**,
+zero worker failures, all workers stopped, and exact owned scratch cleanup.
+The load component closed in **3666.628 s**. The canonical independent checker
+passed **68.277 s**; outer supervision completed **3737.233 s** including
+preparation and binding. Every original deadline and failed-scratch guard stayed
+unchanged. The raw COMPONENT_PASS alone was not treated as S07 qualification.
+
+Across 367 heartbeat samples: maximum zone **51.4°C**, maximum battery
+**30.8°C**, minimum pack **8.413 V**; final Good / 30.8°C / 8.436 V.
+Kernel cursor remained at 725, with no new records during the load. All three
+ext4 counters stayed zero; exact loop1/sda23 backing I/O and continuous logs
+passed the independent replay. Old cached-read and thermal-failure evidence
+remain preserved. The final boot is still
+`af66d09d-f512-4954-a036-0904616e17af`.
+
+Private `s07-evidence-usb-link-r1/result.json` SHA-256:
+`49a3b21d9ed01814c34b955881ad16c5335fa1e58cb37c9dfd0e88a58bcdcb95`.
+
+While S07 owned the phone, exact V8 F01 ran offline against its actual retained
+kernel/archive/base-root inputs: dispatcher row **PASS 85.412 s**, complete
+receipt verification and dispatch **217.227 s**. Disposable prepare/recover/
+corrupt guests passed **3.497 / 12.916 / 2.841 s**. Original artifacts and the
+protected fixture stayed unchanged; read-only e2fsck passed after recovery.
+This is the defined offline interruption test, not physical R01 recovery.
+
+After actual S07 coordinator exit, F02 ran once. WPA and DHCP restarts passed
+**29.141 s** with three pinned Wi-Fi SSH endpoint observations, unchanged
+radio/core service identities, exact sealed CPU unit/drop-in checks and all
+power/storage guards. Independent F02 binding passed; outer **30.104 s**.
+Seven private adapter/indexer/routing tests passed in normal and optimized
+Python before launch. Source remained frozen and no second coordinator overlapped.
+Private `f02-evidence-usb-link-r1/result.json` SHA-256:
+`e7d126dd4f17b87b3ff66408800b1926378fed50514a2f8ca6c7dc3c34a64981`.
+
+The remaining rescue work found reusable exact artifacts. Old signed V11 still
+has legacy identity/watchdog helpers, so its readiness component was not promoted
+to current H02. The already-tested `headless-acceptance-rescue-v8` instead passes
+current sealed-runtime validation with all eight historical runtime files
+unchanged. Its kernel equals the server's `ece47c7d…bc74e`. Fresh composition
+against the server's retained base root `607ec5c0…610cb6b0` passed A01
+**66.261 s** and C02 **76.473 s**. Existing artifacts were reused; no new rescue
+was built, signed, admitted or executed, and V11 remains preserved independently.
+
+The original September-6 rescue boot/source remain
+`015153cc-86f0-440c-b49f-95a1733316b9` /
+`d23304c04bc201c7ffb25fbac49b86b187969b31`. Replaying all 61 raw charging
+samples reproduced its **600.265 s** firmware-Full interval, zero mean current
+and unchanged counter. This is historical radio-free evidence, not a new
+server charging observation. Current paired-release qualification is pending.
+
+The host dispatcher now accepts an explicit rescue companion sharing exactly
+the server's kernel and base-root paths/hashes, with separately verified DTB,
+archive and boot bundle. Completed rescue replay authenticates original producer
+versions, original preboot/capture/cleanup and H02 runtime/watchdog evidence,
+paired A01/C02, firmware and every charging sample. It preserves original source
+and boot identity. Default live producer gates, every mandatory row, deadlines,
+radio inactivity and one-use authority remain intact.
+
+Private staging had two harness-only import issues: the first direct replay
+lacked the repository PYTHONPATH; existing dispatcher tests also needed adjacent
+byte-identical H03/F01 modules copied into the staging directory. Original errors
+are retained, and their focused follow-ups passed. These did not affect the
+frozen repository or phone. Actual retained-data and portable regressions passed
+in both interpreters. After integration, **138 focused tests per mode passed
+in 20.793 s**, with source unchanged during testing. Fresh full local/remote CI
+and actual paired dispatcher execution are the next gates, not already PASS.
+
+All private work remains in `rog5-cpu-startup-20260908.kjE4IqCf`; the original
+rescue evidence remains in `rog5-rescue-h03-20260906.CayoqOsI`. No phone process
+is active. S06 still needs a genuine powered-off start; R01 still needs its
+separate controlled signed failure experiment and authenticated recovery.

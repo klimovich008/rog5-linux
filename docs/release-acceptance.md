@@ -18,8 +18,9 @@ required test → PASS/FAIL/BLOCKED/NOT RUN → evidence → next action.
 Nonzero exit means failure or blocked selected checks. A quick PASS is **not**
 a qualified release. Missing prerequisites, unimplemented runners, mandatory
 skips and transport loss never count as success. There is no historical-results
-import or cross-release merge. Explicit rescue-cycle replay below revalidates
-raw evidence and authenticates the same live boot; reused evidence is labelled.
+import or incompatible-release merge. Live rescue-cycle replay below revalidates
+raw evidence and authenticates the same live boot. Explicit completed-rescue
+replay preserves the original boot/source and verifies all archived raw evidence.
 Source changes during execution invalidate the run.
 
 S04 preparation uses `rog5-dev durability-phase --help`: one explicit `probe`,
@@ -256,6 +257,38 @@ cycle records; the release receipt's `source_revision` identifies the current
 qualification checkpoint, not a claim that reused kernels were rebuilt there.
 The resulting matrix explicitly labels reuse and leaves all missing mandatory
 rows BLOCKED/NOT RUN. This is not an automatic retry or an imported green run.
+
+A server receipt may explicitly include `rescue_companion` with its own
+`format=rog5-release-inputs-v1`, `candidate_id`, `source_revision` and all five
+`artifacts`. The qualification revision must match the primary; the candidate
+must differ. The companion shares the primary's exact kernel and base-root
+paths, sizes and hashes, already verified once. Its DTB, initramfs and signed
+boot bundle are separately hashed. Nested companions and a rescue persistent
+upper are rejected. The server keeps its own complete upper binding.
+
+Supply `--rescue-runtime-inputs PRIVATE_JSON` and
+`--rescue-runtime-inputs-sha256 SHA256` to revalidate a completed rescue.
+These arguments select offline H01/H02/H03 replay; they cannot be combined
+with live `--capture` or `--rescue-inputs`. With an explicit companion, those
+three rows record `release_role=rescue_companion`. Other rows keep the primary
+profile. A companion without completed replay inputs leaves its rows BLOCKED.
+
+The `rog5-rescue-runtime-evidence-v1` input pins original capture, execution,
+readiness, H02/H03 reports, all 61 raw samples and paired A01/C02 proofs. The
+reader verifies original producer bytes from Git and unchanged charging/runtime
+observation implementations, then applies current predicates to the raw data.
+The original capture must cover the full recovery/watchdog/cleanup budget plus
+preflight, end successfully and restore all four owned host items. Raw sample
+values, 10 s cadence, freshness, 600 s span, firmware/runtime hashes and original
+watchdog acknowledgement must agree. Missing, altered or partial evidence fails.
+The default live startup checker still requires current producer versions.
+
+The result records current checker source and original observation source
+separately, with the historical boot identity. It neither authenticates a new
+live boot nor grants another execution claim. Paired A01/C02 must bind the same
+kernel and retained base root as the server; radio-free H03 remains the defined
+firmware-Full method. Installed fallback identity and the separate R01 physical
+recovery requirement remain mandatory.
 
 C01 now runs nine QEMU cases, including P2 success without persistent identity
 and stale identity. Its 500 s offline allowance covers nine 50 s subprocess

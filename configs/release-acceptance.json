@@ -124,6 +124,8 @@
           "python3",
           "scripts/host/test-check-rescue-startup.py"
         ],
+        ["python3", "scripts/host/test-rescue-runtime-evidence.py"],
+        ["python3", "-O", "scripts/host/test-rescue-runtime-evidence.py"],
         ["python3", "scripts/host/test-check-standalone-boot.py"],
         ["python3", "-O", "scripts/host/test-check-standalone-boot.py"],
         ["python3", "scripts/host/test-ordinary-boot-smoke.py"],
@@ -455,7 +457,9 @@
         [
           "python3",
           "scripts/host/test-release-acceptance.py"
-        ]
+        ],
+        ["python3", "scripts/host/test-release-rescue-companion.py"],
+        ["python3", "-O", "scripts/host/test-release-rescue-companion.py"]
       ],
       "deadline_seconds": 30,
       "pass_condition": "Test statuses, tier inclusion, deadline, revision drift and hash validation; no skipped mandatory PASS or cross-release evidence merge.",
@@ -492,7 +496,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Start the exact receiver before claim consumption; supply matching --release and --capture. H01 grants no boot authority."
+      "blocker": "Start the exact receiver before claim consumption; supply matching --release and --capture, or explicit pinned --rescue-runtime-inputs for completed original capture. H01 grants no boot authority."
     },
     {
       "id": "H02",
@@ -524,7 +528,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Supply exact release and private rescue inputs for an already consumed coherent rescue whose same boot is still reachable; no execution or retry is initiated."
+      "blocker": "Supply exact live rescue inputs, or pinned completed --rescue-runtime-inputs for the explicitly paired radio-free companion. Kernel and retained base root must match the server; original source/boot and all raw evidence are revalidated. No execution or retry is initiated."
     },
     {
       "id": "H03",
@@ -561,7 +565,7 @@
         "power, interface and connection state",
         "last completed stage"
       ],
-      "blocker": "Supply the matching consumed radio-inactive rescue and H02 evidence, then run the predeclared 600s firmware-Full observation. No boot or retry is initiated. Sub-full/mixed-state protocols are not implemented; absent charge-limit controls alone do not block."
+      "blocker": "Supply the matching consumed radio-inactive rescue for the predeclared 600s firmware-Full observation, or explicit completed --rescue-runtime-inputs with all 61 raw samples and paired H02. No boot or retry is initiated. Sub-full/mixed-state protocols are not implemented; absent charge-limit controls alone do not block."
     },
     {
       "id": "S01",
