@@ -36,6 +36,8 @@ ADDRESS, PEER, PORT = NETWORK.ADDRESS, '169.254.77.2', 8079
 INTERFACE, PROFILE = NETWORK.INTERFACE, NETWORK.PROFILE
 USB = Path('/sys/bus/usb/devices/1-1.2')
 ANCHOR = '/sys/devices/pci0000:00/0000:00:08.1/0000:04:00.3/usb1/1-1/1-1.2'
+USB_READ_OPERATIONS = frozenset({'idVendor', 'idProduct', 'product', 'serial',
+                                 'usb-anchor', 'net-device', 'net-driver'})
 
 
 def lifetime_ready(deadline, now, required):
@@ -71,7 +73,7 @@ def update_transport(receiver, serial, ensure_route, *, deadline=None):
         def removal_read(exc):
             return (isinstance(exc, UsbReadDisappeared)
                     and exc.errno in (errno.ENOENT, errno.ENODEV)
-                    and exc.operation in {'idVendor', 'idProduct', 'product', 'serial'})
+                    and exc.operation in USB_READ_OPERATIONS)
         eligible = (phase == 'usb-discovery' and removal_read(error)
                     and not receiver.target_seen and receiver.mode != 'mismatch')
         started = time.monotonic()
@@ -338,9 +340,16 @@ def check_receiver(output, profile, *, source_boot_id=None):
 
 
 def usb_mode(serial):
+    def resolved(path, operation):
+        try:
+            return path.resolve(strict=True)
+        except OSError as error:
+            if error.errno in (errno.ENOENT, errno.ENODEV):
+                raise UsbReadDisappeared(error, operation) from error
+            raise
     if not USB.exists():
         return 'absent', None
-    if str(USB.resolve(strict=True)) != ANCHOR:
+    if str(resolved(USB, 'usb-anchor')) != ANCHOR:
         return 'mismatch', None
     def field(name):
         try:
@@ -361,9 +370,9 @@ def usb_mode(serial):
     net = Path('/sys/class/net')/INTERFACE
     if not net.exists():
         return 'enumerating', None
-    if net.joinpath('device').resolve(strict=True).parent != USB.resolve(strict=True):
+    if resolved(net/'device', 'net-device').parent != resolved(USB, 'usb-anchor'):
         return 'mismatch', None
-    if net.joinpath('device/driver').resolve(strict=True).name != 'cdc_ncm':
+    if resolved(net/'device/driver', 'net-driver').name != 'cdc_ncm':
         return 'mismatch', None
     return 'target', INTERFACE
 

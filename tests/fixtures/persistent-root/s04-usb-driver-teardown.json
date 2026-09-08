@@ -1,0 +1,14 @@
+{
+  "format": "rog5-usb-driver-teardown-fixture-v1",
+  "original_capture_result": "FAIL",
+  "errno": 2,
+  "operation": "untagged Path.resolve(device/driver)",
+  "previous_mode": "source",
+  "immediate_recheck": "enumerating",
+  "immediate_followup_errno": null,
+  "positively_absent_after_seconds": 0.10031260293908417,
+  "target_seen": false,
+  "last_stage": null,
+  "last_startup": null,
+  "interpretation": "Reproduction only. The failed capture remains FAIL; later readiness and file readback do not erase it."
+}

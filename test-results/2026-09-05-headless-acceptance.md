@@ -6819,3 +6819,52 @@ Freeze these host-only corrections for one full local/remote checkpoint.
 S03 r3 preflight/live/binding remain NOT RUN; S04 adapters are preparation
 only and require current CI/runtime bindings. Device, boot, topology, power,
 storage, fallback and permanent claim guards remain unchanged.
+
+
+### 2026-09-08: CI reliability, S03 PASS and S04 host-discovery failure
+
+Source `35bd1e6dc8500ab9b270f29a13155fe6c214a5c5` completed full local CI
+in **540.372 s**, exit 0 with the terminal marker and unchanged clean source.
+Log SHA-256: `b4146031a235a8b70cffc08f7de17152078a705c479a5d1a2af2fc5c5242f0d8`.
+GitHub run **34209378375** passed exact-head, merge-compat, candidate-publication
+and qemu-system. Existing draft PR 1 includes the host runner signal-exit and
+publication-fixture timing fixes. Older failed and incomplete receipts remain.
+
+S03 r3 independently qualified on V8 boot
+`7ea69356-4512-45bf-9e13-28268dc3f3c9`. Fresh read-only preflight **4.619 s**;
+service sequence **30.705 s** (healthd 2.020, SSH 2.558, WPA/lease 16.498,
+DHCP 7.546 s), within all original deadlines, with exact expected unit changes
+and both authenticated transports. Evidence SHA-256:
+`ed77860bc3f758b54665142260273fafa293eadaa17d41b73008fa192e18d408`.
+Private receipts: `s03-services-live-r3`, `s03-evidence-r3`, and
+`s03-r3-supervision-r1` under the current private work directory. R1/r2 remain FAIL.
+
+S04's one scoped file cycle reached a new V8 boot
+`d903328e-fa57-4625-bb88-7419e04d57b1` in **96.095 s**. Prepare/verify/exact
+cleanup passed; the 64 MiB file survived an ordinary installed reboot, total
+file cycle **105.293 s**. Existing namespace inode 8194 and failed-soak data
+were preserved. The standalone preflight and deployed tmpfs fixture also passed.
+
+The full capture ran **1,380.774 s** but returned 1. At USB teardown,
+`Path.resolve(device/driver)` raised untagged ENOENT. Immediate discovery saw
+enumeration; positive absence followed **100.313 ms** later. The capture stayed
+armed and recorded subsequent successful local startup, then restored all four
+owned host network changes. The outer supervisor's exit 0 is only process
+completion; it is not S04 qualification. The original capture and S04 remain
+FAIL, preserved in `s04-ordinary-boot-r1` and `s04-failed-evaluation-r1`.
+Prepared S05 adapters were not executed because the full baseline did not pass.
+
+A sanitized `s04-usb-driver-teardown.json` fixture and real filesystem regression
+reproduce the missing-driver failure. The correction tags the three anchored
+resolve operations and shares their classification with all evidence consumers.
+It reuses the existing <=150 ms positive-absence check only before target
+observation. No timeout, identity, post-target transport or failure-retention
+rule is relaxed. Permission/unknown errors and unresolved/mismatched discovery
+remain failures. This changes host observation only and reuses all exact kernel,
+DTB, Arch, signed primary/fallback and installed wrapper artifacts.
+Focused and full validation of this correction precede further physical work.
+
+Focused receiver, ordinary startup, smoke and rescue replay suites passed all
+100 tests in both normal and optimized Python, **10.210 s** total. Logs and
+tested patch are retained in `usb-link-focused-r1`. Full local/remote CI follows
+on frozen source; this offline correction does not turn S04 into PASS.

@@ -88,7 +88,7 @@ def qualify(d,record,hashes,producers,deadline=300):
   if event['event']=='usb-discovery-interrupted':
    require(not target_seen and event.get('target_seen') is False
     and event.get('phase')=='usb-discovery' and event.get('errno') in (2,19)
-    and event.get('operation') in {'idVendor','idProduct','product','serial'}
+    and event.get('operation') in ROOT.D.CAPTURE.USB_READ_OPERATIONS
     and event.get('observed_mode')=='absent' and event.get('last_stage') is None
     and event.get('last_startup') is None,'unproven USB read interruption')
  disconnect=[e for e in events if e['event']=='source-disconnected']
