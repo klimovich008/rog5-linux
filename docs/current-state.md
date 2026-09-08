@@ -1,10 +1,13 @@
 # ROG5 current state
 
-Updated 2026-09-09: source teardown receipt prepared and tested offline; no new phone action.
+Updated 2026-09-09: RAM staging components rehearsed; source rechecked without mutation.
 The last retained health, readiness, storage and twelve-file readback passed.
 The optional RAM-only source observer now requires positively bound clean teardown
 evidence. Sealed BusyBox tests cover refusals, bounded fallback and isolated TCP;
 physical shutdown transport and controller admission integration remain unproven.
+Private staging/restore actions passed 21 namespace scenarios; receipt bindings
+passed 26 cases, each in both Python modes. The host coordinator is not assembled.
+All four GitHub jobs passed for `b8040b3c` in run **34289812239**.
 Full local CI for `193e1334` passed in **548.623 seconds**, with unchanged source.
 Physical R01 remains FAIL; S06 remains NOT RUN.
 The observer corrections passed full local and GitHub CI. S06 now has an offline
@@ -40,8 +43,11 @@ Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
 ordinary boot `5a980548-a759-41d2-a566-58b7541e256b`. Pinned SSH on `10.77.0.2`,
 current-boot readiness/health, exact healthy selection, protected storage and all
 twelve installed-file hashes passed a fresh read-only check. Health committed
-at **64.057 s**; the retained current-service observation was at **1,420.530 s**.
-Battery was Good, **30.1°C / 8.656 V**, USB online. All controllers are closed.
+at **64.057 s**; the fresh read-only source observation was at **9,660.610 s**.
+Battery was Good, **30.2°C / 8.643 V**, USB online; thermal maximum 37.1°C.
+All twelve installed hashes, 117-node storage scope, healthy selection and the
+original shutdown file passed. The exitrd is tmpfs, the restart provider is bound,
+and no source observer has been staged. All controllers are closed.
 
 V11 boot `96c3e790-a422-4723-b9ca-a5039da2a14a` provided the separately guarded
 selection restoration. The later ordinary smoke remains FAIL because capture
