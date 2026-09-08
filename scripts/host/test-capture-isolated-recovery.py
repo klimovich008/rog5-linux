@@ -93,6 +93,34 @@ class CaptureTest(unittest.TestCase):
                 self.assertTrue(receiver.failed)
                 self.assertFalse(receiver.return_pending)
 
+    def test_terminal_transport_polling_does_not_flood_retained_evidence(self):
+        for mode,event in (('absent','premature-target-disconnect'),
+                           ('fastboot','missing-recovery-disconnect'),
+                           ('recovery','missing-recovery-disconnect')):
+            events=[]
+            with self.subTest(mode=mode),self.receiver(events) as receiver:
+                receiver.transport('target',None)
+                receiver.record(frame(stage='final-storage',state='FAIL'),'127.0.0.1')
+                for _ in range(2000):receiver.transport(mode,None)
+                self.assertTrue(receiver.failed)
+                self.assertFalse(receiver.return_pending)
+                self.assertEqual(sum(row['event']==event for row in events),1)
+                self.assertEqual(sum(row['event']=='transport' for row in events),2)
+                # A new transition remains new evidence, even after failure.
+                receiver.transport('enumerating',None)
+                receiver.transport(mode,None)
+                self.assertEqual(sum(row['event']==event for row in events),2)
+
+    def test_repeated_post_return_absence_keeps_one_terminal_failure(self):
+        events=[]
+        with self.receiver(events) as receiver:
+            self.returning(receiver)
+            receiver.record(frame(RETURN_BOOT,RETURN['release'],2),'127.0.0.1')
+            for _ in range(2000):receiver.transport('absent',None)
+            self.assertTrue(receiver.failed)
+            self.assertTrue(receiver.return_seen)
+            self.assertEqual(sum(row['event']=='unexpected-post-return-disconnect' for row in events),1)
+
     def test_same_boot_wrong_kernel_and_malformed_return_refused(self):
         for payload in (frame(BOOT,RETURN['release']),frame(RETURN_BOOT,INITIAL),b'bad\n'):
             with self.subTest(payload=payload),self.receiver() as receiver:

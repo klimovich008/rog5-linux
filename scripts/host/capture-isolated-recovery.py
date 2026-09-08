@@ -48,6 +48,10 @@ class Receiver(BASE.Receiver):
                     and self.last and self.last.stage=='switch-root' and self.last.state=='PASS')
 
     def transport(self,mode,interface):
+        # Classify each transport transition once. A failed phone may remain
+        # in fastboot for the full capture; polling must not flood its evidence.
+        if (mode,interface)==(self.mode,self.interface):
+            return super().transport(mode,interface)
         if mode=='absent':
             if self.return_seen:
                 self.failed=True

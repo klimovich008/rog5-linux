@@ -1,7 +1,8 @@
 # ROG5 current state
 
-Updated 2026-09-08: V8 runs local Arch with authenticated SSH and Wi-Fi.
-Startup CPU limiting and the full-hour combined soak passed. Final qualification remains incomplete.
+Updated 2026-09-08: R01 failed at the early storage gate; its RAM claim is consumed.
+An assisted installed V11 boot reached switch-root, but normal-address SSH timed out.
+Service restoration and final qualification remain incomplete; prior V8 results are retained.
 
 ## Goal and authority
 
@@ -21,8 +22,10 @@ Private credentials, packages and raw evidence remain outside Git.
 
 ## Running release and recovery
 
-Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary installed boot `af66d09d-f512-4954-a036-0904616e17af`.
+Last accepted bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
+ordinary installed boot `af66d09d-f512-4954-a036-0904616e17af`. The current
+installed recovery emitted boot `96c3e790-a422-4723-b9ca-a5039da2a14a`; its
+normal-address SSH has not authenticated, and no state restoration occurred.
 Signed primary manifest:
 `27f18d68cf2f7aaa791efb14de3ccc728506dca6b772b5ef006c890b3a787334`.
 Other primary identities derive from the canonical expected record.
@@ -42,9 +45,10 @@ sda/sda23 writable, exact deployed userspace and current-boot readiness.
 Wi-Fi, Tailscale and persistent-state services started. The full-hour load result is recorded below.
 
 V8's experimental claim is permanently consumed, as are V6 and V7.
-Do not retry their RAM execution or issue replacement claims. V8's signed
-healthy trial record permits the separately verified ordinary installed-boot
-path; it is not full release acceptance. V7's pending failure record and old
+Do not retry their RAM execution or issue replacement claims. R01 armed the
+accepted V8 record as pending; restoring its exact healthy state requires fresh
+authenticated V11 guards. The normal installed path is separate from a RAM
+claim and does not constitute full release acceptance. V7's pending failure record and old
 selector were archived during staged V8 installation. V5 accepted payloads,
 prior claims, V11 fallback and the failed-soak scratch remain preserved.
 
@@ -70,11 +74,11 @@ all PASS. No further phone execution was requested during that observation.
 
 ## Current checkpoint and next mandatory outcome
 
-One coordinator owns this phone. The full S04 observation and all three S05
-boots are complete; their independent evidence checks passed. Every owned
-receiver is stopped and its route/firewall/profile/address cleanup passed.
-The full S07 soak and F02 restart sequence are also closed and independently
-qualified. No phone coordinator is pending. Never repeat a consumed claim.
+One coordinator owns this phone. S01–S05, S07 and F02 retain their completed
+independent evidence. The failed R01 capture closed its full lifetime and all
+host cleanup passed. A separate installed recovery capture is now running after
+normal-address SSH timed out; its controller stopped before changing state.
+Do not retry the consumed negative candidate or run a second phone controller.
 
 On `f0a3420b`, full local CI passed **520.115 s** and all four jobs passed in
 GitHub run **34214045938**: exact head, merge compatibility, publication and QEMU.
@@ -277,9 +281,7 @@ RAM boot image is exactly 134,217,728 bytes. Its canonical record now binds the
 actual image, distinct negative trial and unchanged V11 fallback. Registration
 consumer tests passed in both Python modes in **3.275 s**. Exact negative A01/C02/C01 subsequently passed
 **77.695 / 96.128 / 134.995 s** on `b00a1b81`, retaining unchanged root/upper
-bytes. Final admission assembly, full integration CI/publication and physical
-R01 remain outstanding.
-No new phone action, state transition or real claim consumption occurred.
+bytes. Subsequent full integration CI and the physical result are recorded below.
 
 The first exact negative A01 ran every functional check successfully but failed
 its unchanged 120 s deadline at **146.582 s**. Root/upper hashes remained exact.
@@ -287,9 +289,42 @@ A read-only sparse-hash probe reproduced the entire accepted 34.36 GB logical
 root digest in **20.903 s**, reading 4.19 GB and hashing 30.17 GB of holes as
 zeros. A01 now reuses the already-tested C02 hasher for both root/upper checks
 and records timings. The original failure is retained; the corrected exact
-A01/C02/C01 run passed. Full integration CI remains required. Focused and active
+A01/C02/C01 run passed. Focused and active
 validation passed **55.595 s** (active **55.430 s**), with source inputs unchanged.
 
+
+
+Full integration on `c0025810` passed **532.692 s** locally and all four GitHub
+jobs in **34266500765**; PR1 remains draft. The first controller stopped during
+read-only preflight because its private userdata guard assumed `8:23`. Actual
+userdata is `259:58`, with matching partition identity, geometry, mount and
+inode. It made no state change or claim. Corrected private guards passed sealed
+V11 shell/helper tests, full lifecycle simulations and connected read-only
+preflight. All original failed evidence was preserved.
+
+A fixed continuation then consumed the negative RAM claim once. The bootloader
+accepted the exact 128 MiB image, but boot
+`8f739c2f-c755-4ec7-8fc0-2f346d0fae1f` reported `final-storage FAIL` with
+`ufs-q0-s0-j1-e0` before switch-root. It returned to fastboot. Full capture
+closed at **1,380.488 s**, all four cleanup steps passed, and 60 files transferred
+unchanged to the desktop reader. Independent replay refused qualification.
+The journal count identifies one recovery match outside the allowed overlay
+exception; it does not identify the filesystem or prove corruption/causality.
+R01 is **FAIL**, with no autonomous V11 return and no experimental retry.
+
+A separate normal installed boot reached V11 switch-root, but SSH to `10.77.0.2`
+timed out. Its controller made no pending-to-healthy change and is preserving
+its full capture. Diagnose access to this same boot after that controller closes;
+assisted restoration cannot convert R01 to PASS.
+
+The repository observer duplicated the same `8:23`/`2071` assumption. Its
+correction binds the runtime allocation to the exact userdata partition and
+geometry, then matches mount and pending-record device IDs. A second observer
+fix records terminal transport failures once per transition instead of flooding
+the log on every poll. Both preserve strict failure classification and the full
+capture lifetime. Focused observation/capture and whole R01 replay tests pass;
+full integration of these repository corrections remains pending. Kernel,
+root/upper images and signed boot payloads are unchanged.
 
 ## Mandatory results
 
@@ -308,7 +343,7 @@ Do not combine incompatible releases or simulation and physical evidence.
 | S06 powered-off start | NOT RUN |
 | S07 combined load | V8 full 3600.030 s observation and independent replay PASS on `af960758` |
 | F01 / F02 | Exact V8 F01 PASS 85.412 s; fresh F02 plus independent replay PASS, 29.141 s |
-| R01 recovery | Controlled isolated failed-boot qualification outstanding |
+| R01 recovery | FAIL: early final-storage gate; negative claim consumed, full capture retained |
 
 ## Evidence, fast loop and retention
 
@@ -326,7 +361,7 @@ Detailed V6/V7 failures, V8 staging/runtime proof, fixture fixes, original
 timings and exact retention procedures are in the
 [existing dated report](../test-results/2026-09-05-headless-acceptance.md).
 
-Home has about 13.81 GB free at this checkpoint; preserve the 3 GiB reserve. V5's lossless reverse
+Home has about 9.6 GB free with the isolated observer checkout; preserve the 3 GiB reserve. V5's lossless reverse
 delta and durable V7 base must stay together. Unique archives still occupy RAM:
 no host reboot until retained safely. Never remove failed-soak scratch, accepted
 payloads, private evidence or claims. Leave unrelated SteamOS CEF port 8081 alone.

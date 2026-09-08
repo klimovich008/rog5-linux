@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
 from pathlib import Path
 import re
 import shlex
@@ -16,6 +17,10 @@ import subprocess
 SPEC=importlib.util.spec_from_file_location('negative_deployed',Path(__file__).with_name('check-deployed-server.py'))
 D=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(D)
 ROOT='/run/rog5-native-wifi/'
+# Accepted userdata partition; sysfs geometry uses 512-byte sectors. Linux may
+# allocate an extended device minor, independently of partition number 23.
+USERDATA_GEOMETRY=dict(partition='23',start='18821440',size='408997568')
+USERDATA_PARTUUID='8d82ef11-4d42-60e9-24e8-4d6ebf20491b'
 MARKERS={
     'descriptor':ROOT+'trial-descriptor',
     'healthy':ROOT+'healthy.record',
@@ -75,6 +80,29 @@ def command(value):
     return value['stdout']
 
 
+
+def userdata_device(actual):
+    device=actual.get('userdata_device')
+    need(type(device) is str,'missing userdata device')
+    match=re.fullmatch(r'([1-9][0-9]{0,3}):(0|[1-9][0-9]{0,6})',device)
+    need(match is not None,'userdata device framing')
+    major,minor=map(int,match.groups())
+    need(major<=4095 and minor<=1048575,'userdata device bounds')
+    partition=actual.get('userdata_partition')
+    need(type(partition) is dict and set(partition)=={*USERDATA_GEOMETRY,'uevent'},
+         'userdata partition observation fields')
+    need(all(partition[name]==value for name,value in USERDATA_GEOMETRY.items()),
+         'userdata geometry differs')
+    raw=partition['uevent']
+    need(type(raw) is str and len(raw)<=4096,'userdata partition identity bound')
+    events=unique(line.split('=',1) for line in raw.splitlines())
+    expected=dict(MAJOR=str(major),MINOR=str(minor),DEVNAME='sda23',DEVTYPE='partition',
+                  PARTN='23',PARTNAME='userdata',PARTUUID=USERDATA_PARTUUID)
+    need(all(events.get(name)==value for name,value in expected.items()),
+         'userdata partition identity differs')
+    return os.makedev(major,minor)
+
+
 def environment(actual,identity,trial,installed,sealed,rollback_seconds=900):
     """Validate actual identity, sealed state, power and storage before classifying health."""
     need(type(trial) is str and re.fullmatch('[0-9a-f]{64}',trial),'negative trial identity')
@@ -95,9 +123,10 @@ def environment(actual,identity,trial,installed,sealed,rollback_seconds=900):
                          primary_bundle=identity['bundle'],mode='try-once'),'negative descriptor differs')
     for role in ('healthy','radio_refused'):
         need(files[role]=={'status':'absent'},'healthy or radio-refusal branch is not this failure')
+    device_number=userdata_device(actual)
     pending=record(files['pending'],0o600)
     need(pending==dict(format='rog5-persistent-wifi-trial-v1',**installed,state='pending')
-         and files['pending']['dev']==2071,'pending installed fallback changed')
+         and files['pending']['dev']==device_number,'pending installed fallback changed')
     ready=record(files['ready'],0o444)
     need(ready.get('status')=='PASS' and ready.get('attested_boot_id')==identity['boot_id']
          and ready.get('kernel')==identity['release'] and ready.get('ssh')=='strict-key-only',
@@ -133,12 +162,11 @@ def environment(actual,identity,trial,installed,sealed,rollback_seconds=900):
     blocks=actual['blocks']
     need(len(blocks)==117 and set(blocks.values())<={'0','1'}
          and {key for key,value in blocks.items() if value=='0'}=={'sda','sda23'},'storage scope')
-    need(actual['userdata_device']=='8:23','userdata device differs')
     rows=[line.split() for line in actual['mountinfo'].splitlines()]
     mounted=[row for row in rows if len(row)>6 and row[4]=='/.rog5/userdata-rw']
     need(len(mounted)==1,'missing or stacked userdata mount')
     row=mounted[0];need(row.count('-')==1,'mount framing');cut=row.index('-')
-    need(row[2:4]==['8:23','/'] and 'rw' in row[5].split(',') and 'ro' not in row[5].split(',')
+    need(row[2:4]==[actual['userdata_device'],'/'] and 'rw' in row[5].split(',') and 'ro' not in row[5].split(',')
          and row[cut+1:cut+3]==['ext4','/dev/sda23'],'userdata mount differs')
     return units
 
@@ -250,6 +278,8 @@ actual['power']['usb_online']=small('/sys/class/power_supply/qcom-battmgr-usb/on
 actual['thermal']={p.parent.name:int(small(p,32)) for p in Path('/sys/class/thermal').glob('thermal_zone*/temp')}
 actual['blocks']={p.parent.name:small(p,16) for p in Path('/sys/class/block').glob('sd*/ro')}
 actual['userdata_device']=small('/sys/class/block/sda23/dev',32)
+actual['userdata_partition']={name:small('/sys/class/block/sda23/'+name,4096 if name=='uevent' else 64)
+                              for name in ('partition','start','size','uevent')}
 actual['mountinfo']=small('/proc/self/mountinfo',65536)
 actual['uptime']=float(small('/proc/uptime',128).split()[0])
 identity()
