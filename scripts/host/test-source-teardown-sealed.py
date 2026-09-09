@@ -42,6 +42,14 @@ STATEFUL=('stateful-clean','stateful-stopped-state','stateful-move-fail','statef
           'stateful-order-loop0','stateful-order-loop1','stateful-order-relock','stateful-order-root',
           'stateful-order-state','stateful-order-userdata','stateful-journal-entry',
           'stateful-order-overlay-reference')
+RELOCATED=('stateful-relocated-userdata','stateful-relocated-duplicate',
+           'stateful-relocated-wrong-path','stateful-relocated-umount-fail',
+           'stateful-relocated-umount-lies','stateful-relocated-foreign-stack',
+           'stateful-relocated-covered','stateful-relocated-subdir','stateful-relocated-filesystem',
+           'stateful-relocated-read-error','stateful-relocated-wrong-node')
+STATEFUL+=RELOCATED
+CLEAN_STATEFUL=('stateful-clean','stateful-stopped-state','stateful-journal-entry',
+                'stateful-relocated-userdata')
 ORDER_REFUSALS={
     'stateful-order-loop0':['losetup','-d','/oldsys/dev/loop0'],
     'stateful-order-loop1':['losetup','-d','/oldsys/dev/loop1'],
@@ -57,17 +65,19 @@ def stateful_inputs(root,case):
     for path in ('.rog5/root-ro','.rog5/userdata-ro','.rog5/userdata-rw','.rog5/state',
                  'sys','proc','run','dev','persist'):(root/'oldroot'/path).mkdir(parents=True,exist_ok=True)
     run=root/'oldsys/run';run.mkdir()
+    if case in RELOCATED:(run/'shutdown/mounts/0123456789abcdef').mkdir(parents=True)
     record=('format=rog5-persistent-root-overlay-runtime-v1\n'+f'boot_id={BOOT}\n'+
             'disk=/dev/sda\nuserdata=/dev/sda23\nloop=/dev/loop0\n'+
             'image=rog5/root/root-overlay-v1.ext4\nmount=/mnt/state\nuserdata_mount=/mnt/userdata\n')
     (run/'rog5-persistent-overlay.runtime').write_text(record)
-    state_stopped=case=='stateful-stopped-state' or case in JOURNAL_ENTRY
+    state_stopped=case=='stateful-stopped-state' or case in JOURNAL_ENTRY or case in RELOCATED
     if not state_stopped:
         (run/'rog5-persistent-state.runtime').write_text(
             'format=rog5-persistent-service-state-runtime-v1\n'+f'boot_id={BOOT}\n'+
             'disk=/dev/sda\nuserdata=/dev/sda23\nloop=/dev/loop1\n'+
             'image=rog5/state/server-state-v1.ext4\nmount=/persist\nuserdata_owner=overlay\n')
-    for p in run.iterdir():p.chmod(0o400)
+    for p in run.iterdir():
+        if p.is_file():p.chmod(0o400)
     nodes=[]
     for i in range(2):
         (root/f'oldsys/dev/loop{i}').touch();nodes.append(f'/oldsys/dev/loop{i}')
@@ -85,11 +95,27 @@ def stateful_inputs(root,case):
 def stateful_result(root,case,diagnostics):
     operations=(root/'operations').read_text().splitlines()
     final=struct.unpack('20i',(root/'mount-state').read_bytes())
-    clean=case in ('stateful-clean','stateful-stopped-state','stateful-journal-entry')
+    clean=case in CLEAN_STATEFUL
     valid=True
     if case in ORDER_REFUSALS:
-        initial=([0,0,1,0,1,1,1,1]+[0]*8+[1,0,1,0]) if case in JOURNAL_ENTRY else [1]*8+[0]*8+[1]*4
+        initial=([0,0,1,0,1,1,1,1]+[0]*8+[1,0,1,0]) if case in JOURNAL_ENTRY else [1,0,1,1,1,1,1,1]+[0]*8+[1]*4
         valid=list(final)==initial and operations==[' '.join(ORDER_REFUSALS[case])]
+    elif case in RELOCATED:
+        path='/oldsys/run/shutdown/mounts/0123456789abcdef'
+        if clean:
+            ordered=['umount /oldroot','losetup /oldsys/dev/loop0','umount '+path,
+                     'blockdev --setro /oldsys/dev/sda']
+            positions=[operations.index(v) for v in ordered]
+            valid=positions==sorted(positions) and not any(final[:8]+final[16:])
+            valid &= len([v for v in operations if v.startswith('blockdev --setro ')])==117
+        else:
+            valid=not any(v.startswith('blockdev --setro ') for v in operations)
+            if case in ('stateful-relocated-duplicate','stateful-relocated-wrong-path',
+                        'stateful-relocated-foreign-stack','stateful-relocated-covered',
+                        'stateful-relocated-subdir','stateful-relocated-filesystem',
+                        'stateful-relocated-read-error','stateful-relocated-wrong-node'):
+                valid &= not any(v.startswith('umount /oldsys/run/shutdown/mounts/') for v in operations)
+            else:valid &= 'umount '+path in operations
     elif clean:
         ordered=['umount /oldroot','umount /oldsys/state','losetup -d /oldsys/dev/loop0',
                  'umount /oldsys/userdata-rw','blockdev --setro /oldsys/dev/sda']
@@ -100,7 +126,7 @@ def stateful_result(root,case,diagnostics):
         relocks=[line for line in operations if line.startswith('blockdev --setro ')]
         expected={'blockdev --setro /oldsys/dev/sda'+(str(i) if i else '') for i in range(117)}
         valid=positions==sorted(positions) and len(relocks)==117 and set(relocks)==expected
-        moved=[0,0,1,0,1,1,1,1] if case in JOURNAL_ENTRY else [1]*8
+        moved=[0,0,1,0,1,1,1,1] if case in JOURNAL_ENTRY else [1,0,1,1,1,1,1,1]
         valid &= not any(final[:8]+final[16:]) and list(final[8:16])==moved
         if case in JOURNAL_ENTRY:
             valid &= not any(v in operations for v in ('umount /oldsys/state','umount /oldsys/root-ro',
@@ -124,7 +150,7 @@ def stateful_result(root,case,diagnostics):
         valid &= [v for v in operations if v.startswith('timeout ')]==[wanted]
     return dict(valid=bool(valid),operation_count=len(operations),
                 operations_sha256=M.sha((root/'operations').read_bytes()),
-                final_mount_state=list(final),scope='synthetic mount/loop/ioctl state; unchanged shell')
+                final_mount_state=list(final),scope='synthetic mount/loop/ioctl state; complete staged shutdown shell')
 
 def run(args):
     out=args.output;out.mkdir(mode=0o700);started=time.monotonic()
@@ -241,8 +267,7 @@ def run(args):
         done=subprocess.run(command,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=25)
         seconds=time.monotonic()-begin;(root/'stdout').write_bytes(done.stdout);(root/'stderr').write_bytes(done.stderr)
         receipt=(root/'receipt').read_bytes() if (root/'receipt').exists() else None
-        wants_receipt=case in ('clean','assembled-clean','real-netcat','hugetlbfs','assembled-hugetlbfs',
-                              'stateful-clean','stateful-stopped-state','stateful-journal-entry')
+        wants_receipt=case in ('clean','assembled-clean','real-netcat','hugetlbfs','assembled-hugetlbfs',*CLEAN_STATEFUL)
         wants_receipt |= case=='assembled-receiver-poll'
         valid=(receipt is not None)==wants_receipt
         if receipt is not None:M.parse(receipt,expected)
@@ -257,7 +282,7 @@ def run(args):
             if receipt is not None:observation.observe(receipt,len(observations)+1)
             phase=None
             if case in ('unclean-flag','assembled-unclean-shutdown') or (stateful and
-                case not in ORDER_REFUSALS and case not in ('stateful-clean','stateful-stopped-state','stateful-journal-entry')):
+                case not in ORDER_REFUSALS and case not in CLEAN_STATEFUL):
                 phase='teardown'
             elif case in MOUNT_FAILURES:phase='mounts'
             elif case in ('attached-loop','dangling-loop'):phase='loops'

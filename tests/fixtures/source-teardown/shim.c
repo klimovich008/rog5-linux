@@ -77,7 +77,7 @@ int main(int argc,char **argv) {
     }
     if(argc<2)return 91;
     if(!strcmp(argv[1],"awk") && !strcmp(argv[argc-1],"/oldsys/proc/self/mountinfo")) {
-        if(scenario("mount-awk-error")){fputs("fixture input error\n",stderr);return 2;}
+        if(scenario("mount-awk-error") || scenario("stateful-relocated-read-error")){fputs("fixture input error\n",stderr);return 2;}
         if(scenario("mount-awk-output")){puts("unexpected fixture output");return 0;}
         if(scenario("mount-awk-end-error")) {
             fputs("fixture input error\n",stderr);puts("mount-missing:root");return 1;
@@ -93,11 +93,16 @@ int main(int argc,char **argv) {
        !strcmp(argv[1],"umount") || !strcmp(argv[1],"losetup") || !strcmp(argv[1],"blockdev")))
         return fixture_endpoint(argc,argv);
     if(!strcmp(argv[1],"uname")){puts("7.1.4-fixture");return 0;}
+    if(stateful() && !strcmp(argv[1],"stat") && argc==5 && !strcmp(argv[2],"-c") && !strcmp(argv[3],"%d")) {
+        struct fixture_state s;fixture_load(&s);
+        if(fixture_mount_index(&s,argv[4])!=2)return 92;
+        printf("%d\n",259*256+(scenario("stateful-relocated-covered")?24:23));return 0;
+    }
     if(!strcmp(argv[1],"stat") && argc==5 && !strncmp(argv[4],"/oldsys/dev/sda",15)) {
         if(access(argv[4],F_OK))return 92;
         if(strcmp(argv[2],"-c") || strcmp(argv[3],"%F:%t:%T"))return 92;
         char *end;long minor=strtol(argv[4]+15,&end,10);if(*end)return 93;
-        printf("block special file:%x:%lx\n",scenario("wrong-node")?8:259,minor);return 0;
+        printf("block special file:%x:%lx\n",scenario("wrong-node") || scenario("stateful-relocated-wrong-node")?8:259,minor);return 0;
     }
     if(!strcmp(argv[1],"blockdev")) {
         if(argc!=4 || strcmp(argv[2],"--getro") || strncmp(argv[3],"/oldsys/dev/sda",15))return 94;

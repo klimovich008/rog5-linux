@@ -1,46 +1,37 @@
 # ROG5 current state
 
-Updated 2026-09-09: diagnostic source observation failed at its mount check;
-installed V8 returned healthy. The observer delivered `teardown begin (clean=1)`,
-`mounts begin`, then `mounts fail` before USB disconnect. It received no clean
-receipt and did not reach its loop or physical-node phases. The exact failing
-mount row or command error remains unknown; this does not establish corruption
-or the cause of R01. The earlier missing-receipt observation remains failed.
+Updated 2026-09-09: the source observer identified residual userdata ext4
+(`259:58`, mapped to `/dev/sda23`) after shutdown reported `clean=1`.
+It refused the mount and produced no clean receipt. The exact final mount
+path and the cause of R01 remain unproven. The full **1380.589 s** capture
+closed with route/firewall/profile/address cleanup PASS. Installed V8 returned
+healthy as `545c66d9-35d7-47d9-9432-b54aaffbfcac`; health committed at
+**68.113736 s**. Final authenticated readback passed
+all twelve installed hashes, 117-node storage guards and absence of staging.
+The independent terminal audit confirmed the source failure and healthy return.
+All phone controllers are closed. R01 remains FAIL with its claim consumed;
+S06 remains NOT RUN. One coherent release is not yet qualified.
 
-The full **1,380.837 s** diagnostic capture closed with all four host cleanup
-checks passing. The guarded installed return reached authenticated readiness
-after ten bounded probes and committed health at **64.169742 s**. The final authenticated readback passed
-all twelve installed hashes, healthy selection and 117-node storage guards.
-The independent terminal audit confirmed the failed source result and healthy
-return. All phone controllers and passive readers are closed. R01 remains FAIL
-with its experimental claim consumed; S06 remains NOT RUN.
+This observation used source `a7cfc4df`, full local CI **568.022 s**, and all four
+GitHub jobs PASS in run **34304492120**. Its private admission passed 57 cases
+in both Python modes; component checks remained bound to the exact source.
 
-The admitted diagnostic controller passed 28 lifecycle, 39 admission and 11
-launcher cases in both Python modes. Its staging and receipt components passed
-21 and 36 cases respectively in both modes. Full local CI for `030eea80` passed
-in **568.566 s**; all four GitHub jobs passed in run **34301218432**.
+A real namespace reproduction found a compatibility defect: systemd v261.2 can
+move a busy userdata mount to `/run/shutdown/mounts/<16 lowercase hex>`. The
+previous fixed-path helpers skip it after `/run` moves into exitrd. RAM mounts,
+real pivot/move syscalls and sealed BusyBox reproduced the skip. The physical
+diagnostic does not prove that final path or loop autoclear on the phone.
 
-A mount-only review found no additional parser defect: the exact sealed BusyBox
-accepted the retained mount table transformed through the successful teardown
-model and rejected eight negative controls. Fresh host namespaces preserved
-root/API mount witnesses through real pivot and forced bind/move/chroot paths
-with exitrd as a tmpfs subdirectory. These use tmpfs substitutes and do not
-reconstruct the phone's final mount table. No allowlist relaxation is justified.
-
-Opt-in diagnostic version 2 now reports bounded mount failure categories:
-read/command failure, malformed row, filesystem/device rejection, or missing
-root/API witness. It preserves the mount allowlist, zero-major check, required
-witnesses, separate clean receipt and original five-second bound. Default and
-diagnostic sealed regressions passed **60 / 61 cases** in **61.604 / 71.173 s**;
-protocol tests passed in both Python modes. Command-fault fixtures distinguish
-stderr alongside misleading END output and retain bounded fallback on a hang.
-This diagnostic version has not been admitted or deployed.
-
-The earlier `hugetlbfs` allowlist correction remains a separately reproduced
-parser fix. Its relation to the original physical missing receipt is unproven.
-Stateful replay still executes the unchanged accepted shutdown across clean,
-already-stopped and injected-failure layouts, including 117-node relocking.
-These synthetic models do not qualify a physical release.
+The source correction resolves only the recorded userdata device, checks its
+node/sysfs identity, and accepts one root ext4 mount at the canonical or exact
+systemd relocation path. It rejects duplicates and covered/foreign mounts,
+strictly unmounts, verifies disappearance, then relocks storage. Existing loop
+backing-path checks and observer refusal remain mandatory. Sealed regression
+passed **71 default / 72 diagnostic cases** in **72.118 / 86.585 s**;
+overlay and native-kexec checks passed. Integration full CI is pending.
+The correction is not deployed: the accepted installed shutdown, kernel,
+root images and consumed claims remain unchanged. A later corrected RAM-only
+source observation needs new explicit producer/baseline bindings and admission.
 
 ## Goal and authority
 
@@ -61,18 +52,17 @@ Private credentials, packages and raw evidence remain outside Git.
 ## Running release and recovery
 
 Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary boot `5b2d6bc3-53c2-4349-a7b8-7586654b21f9`. Pinned SSH on `10.77.0.2`,
-current-boot health, exact healthy selection, protected storage and all twelve
-installed-file hashes passed after the diagnostic capture closed. Health
-committed at **64.169742 s**; final readback was at **1,337.110 s** uptime.
-Battery was Good, **30.0°C / 8.646 V**, Full 100%, USB online. All 117-node storage
-guards passed. The original shutdown is restored, exitrd is tmpfs, the restart
+ordinary boot `545c66d9-35d7-47d9-9432-b54aaffbfcac`. Pinned SSH, current-boot
+health, exact healthy selection, protected storage and all twelve installed
+hashes passed after the source capture closed. Health committed at
+**68.113736 s**; final readback was at **1336.770 s** uptime.
+The original installed shutdown is restored, exitrd is tmpfs, the restart
 provider is bound and no source observer staging remains.
 
-The diagnostic source boot was `8e761c2b-5d7c-4e98-9015-f6b8335e99d2`; it
-reached fastboot **11.495 s** after the single source request. One guarded
-ordinary fastboot reboot returned the installed system. The failed source
-observation and healthy installed return remain distinct outcomes.
+Source boot `5b2d6bc3-53c2-4349-a7b8-7586654b21f9` delivered the userdata ext4
+refusal with `clean=1` and reached fastboot **11.659 s** after the
+single source request. One guarded ordinary fastboot reboot returned installed
+V8. Its healthy return does not repair the failed source result or qualify R01.
 
 V11 boot `96c3e790-a422-4723-b9ca-a5039da2a14a` provided the separately guarded
 selection restoration. The later ordinary smoke remains FAIL because capture

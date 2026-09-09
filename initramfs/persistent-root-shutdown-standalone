@@ -26,6 +26,64 @@ unmount_mount() {
 	"$bb" umount "$1" || return 1
 }
 
+userdata_mount_path() {
+	# systemd can move a busy leaf mount under /run/shutdown/mounts before
+	# entering this exitrd. Resolve only the recorded userdata device, never
+	# an arbitrary mount merely because it is below that directory.
+	"$bb" awk -v device="$userdata_mount_device" '
+	 function refuse() { failed=1; exit 1 }
+	 { separator=0; for (i=7;i<=NF;i++) if ($i=="-") { separator=i; break }
+	   if (!separator || separator+3!=NF) refuse()
+	   paths[$5]++
+	   if ($5=="/") root=1
+	   if ($5=="/oldsys/proc" && $(separator+1)=="proc") proc=1
+	   if ($3!=device) {
+	     if ($5=="/oldsys/userdata-rw") refuse()
+	     next }
+	   if ($4!="/" || $(separator+1)!="ext4" || ++count>1) refuse()
+	   path=$5
+	   if (path!="/oldsys/userdata-rw") {
+	     prefix="/oldsys/run/shutdown/mounts/"
+	     suffix=substr(path,length(prefix)+1)
+	     if (index(path,prefix)!=1 || length(suffix)!=16 || suffix ~ /[^0-9a-f]/) refuse() }
+	 }
+	 END {
+	   if (failed || !root || !proc) exit 1
+	   if (count==1) {
+	     if (paths[path]!=1) exit 1
+	     print path } }
+	' /oldsys/proc/self/mountinfo
+}
+
+unmount_userdata() {
+	case $1 in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	userdata_mount_node=/oldsys/dev/${1##*/}
+	userdata_mount_sys=/oldsys/sys/class/block/${1##*/}/dev
+	[ -b "$userdata_mount_node" ] && [ ! -L "$userdata_mount_node" ] || return 1
+	[ -f "$userdata_mount_sys" ] && [ ! -L "$userdata_mount_sys" ] || return 1
+	IFS= read -r userdata_mount_device <"$userdata_mount_sys" || return 1
+	userdata_mount_major=${userdata_mount_device%:*}
+	userdata_mount_minor=${userdata_mount_device#*:}
+	case $userdata_mount_major in ''|*[!0-9]*) return 1 ;; esac
+	case $userdata_mount_minor in ''|*[!0-9]*) return 1 ;; esac
+	case $userdata_mount_major:$userdata_mount_minor in 0[0-9]*:*|*:0[0-9]*) return 1 ;; esac
+	[ "${#userdata_mount_major}" -le 4 ] && [ "$userdata_mount_major" -le 4095 ] &&
+		[ "${#userdata_mount_minor}" -le 7 ] && [ "$userdata_mount_minor" -le 1048575 ] || return 1
+	[ "$userdata_mount_device" = "$userdata_mount_major:$userdata_mount_minor" ] || return 1
+	userdata_mount_metadata=$(printf 'block special file:%x:%x' "$userdata_mount_major" "$userdata_mount_minor") || return 1
+	[ "$("$bb" stat -c '%F:%t:%T' "$userdata_mount_node")" = "$userdata_mount_metadata" ] || return 1
+	userdata_mount_target=$(userdata_mount_path) || return 1
+	[ -n "$userdata_mount_target" ] || return 0
+	# Compare Linux's encoded device number at the reachable mount path too:
+	# a covering mount must never cause an unmount of another filesystem.
+	userdata_mount_number=$((userdata_mount_major * 256 + userdata_mount_minor % 256 + userdata_mount_minor / 256 * 1048576))
+	[ -d "$userdata_mount_target" ] && [ ! -L "$userdata_mount_target" ] || return 1
+	[ "$("$bb" stat -c '%d' "$userdata_mount_target")" = "$userdata_mount_number" ] || return 1
+	"$bb" umount "$userdata_mount_target" || return 1
+	userdata_mount_target=$(userdata_mount_path) || return 1
+	[ -z "$userdata_mount_target" ]
+}
+
 detach_exact_loop() {
 	loop_device=$1
 	shift
@@ -63,8 +121,12 @@ detach_persistent_state() {
 	loop_device=$($bb sed -n 's/^loop=//p' "$record") || return 1
 	userdata_owner=$($bb sed -n 's/^userdata_owner=//p' "$record") || return 1
 	state_image=$($bb sed -n 's/^image=//p' "$record") || return 1
+	userdata=$($bb sed -n 's/^userdata=//p' "$record") || return 1
+	disk=$($bb sed -n 's/^disk=//p' "$record") || return 1
 	case $userdata_owner in state|overlay) ;; *) return 1 ;; esac
 	case $loop_device in /dev/loop[0-9]*) ;; *) return 1 ;; esac
+	case $userdata in /dev/sd[a-z]23) ;; *) return 1 ;; esac
+	[ "$disk" = "${userdata%23}" ] || return 1
 	[ "$state_image" = rog5/state/server-state-v1.ext4 ] || return 1
 	loop_device=/oldsys/dev/${loop_device#/dev/}
 	unmount_mount /oldroot/persist || return 1
@@ -72,7 +134,7 @@ detach_persistent_state() {
 		"/.rog5/userdata-rw/$state_image" \
 		".rog5/userdata-rw/$state_image" || return 1
 	[ "$userdata_owner" = overlay ] && return 0
-	unmount_mount /oldsys/userdata-rw || return 1
+	unmount_userdata "$userdata" || return 1
 	relock_storage
 }
 
@@ -104,7 +166,7 @@ detach_persistent_overlay() {
 	detach_exact_loop "$loop_device" \
 		"/mnt/userdata/$image" "mnt/userdata/$image" \
 		"/.rog5/userdata-rw/$image" ".rog5/userdata-rw/$image" || return 1
-	unmount_mount /oldsys/userdata-rw || return 1
+	unmount_userdata "$userdata" || return 1
 	relock_storage
 }
 

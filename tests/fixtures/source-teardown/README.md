@@ -23,7 +23,9 @@ qualification authority.
 The optional `stateful-*` cases execute the same generated shutdown and sealed
 BusyBox with a stateful synthetic kernel in `stateful.h`. Runtime records match
 the installed overlay/state layout with a fixture boot ID. The fixture starts
-with eight mounts, a mounted old root, two attached loops and writable sda/sda23.
+with seven mounts, a mounted old root, two attached loops and writable sda/sda23.
+Writable overlay mode has no separate userdata-ro mount. Synthetic mount device
+numbers agree with the fixture's sysfs and stat results.
 It models the service-state stop variant separately. A journal-derived case
 also starts with root-ro/state absent and loop0 attached: the retained source
 journal reports those unmounts succeeded before exitrd. The already-absent
@@ -33,7 +35,8 @@ This inferred entry layout is not a captured exitrd namespace.
 Mountinfo, backing-file
 entries and read-only flags change as operations succeed. It refuses loop
 detachment before unmount, userdata unmount while a loop is attached, and
-storage relocking before the writable mounts and loops are gone. Seven direct
+storage relocking while root/overlay or loop references remain. Setting a block
+device read-only does not itself prove userdata was unmounted. Seven direct
 refusal cases check these model constraints independently of the shutdown.
 They require exit status 1; fixture errors do not count as a correct refusal.
 
@@ -53,6 +56,20 @@ simulated. File contents are already at their destination paths; this model
 does not validate Linux mount propagation, actual syscalls, systemd execution,
 UFS quiescence or physical transport. Each run retains the operation log,
 final state and exact source/artifact hashes without qualification authority.
+
+The `stateful-relocated-*` cases model systemd v261.2 moving a busy userdata
+mount beneath `/run/shutdown/mounts/<16 lowercase hex>` and loop0 autoclearing
+when the old root releases it. The complete shutdown must find that exact
+recorded device after `/run` moves, unmount it strictly, verify disappearance,
+and only then relock. The model also rejects duplicate mounts, an unexpected
+path, another filesystem, a subdirectory bind, wrong node metadata, mount-table
+read failure, failed/false-success unmounts, a foreign stacked mount and a
+covered target. Rejected targets must not be unmounted or relocked by this
+resolver. Existing loop backing-path checks remain strict.
+
+These are conditional synthetic layouts. The physical diagnostic identifies
+residual userdata ext4 but does not capture its final path or establish loop
+autoclear. The model does not prove those events happened on the phone.
 
 
 ## Optional phase diagnostics

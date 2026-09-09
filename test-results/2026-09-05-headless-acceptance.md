@@ -8190,3 +8190,52 @@ Private evidence: `source-diagnostic-terminal-assessment-r1`,
 `source-mount-namespace-review-r1`, `source-mount-detail-tests-r1`, and
 `source-mount-detail-comment-binding-r1`. R01 remains FAIL with its claim consumed;
 S06 remains NOT RUN. These observations do not qualify one coherent release.
+
+
+## Residual userdata identified and systemd relocation correction — 2026-09-09
+
+Source `a7cfc4df194615cf2bdfea45c082ad7cca508e0d` passed full local CI in
+568.022 s and all four GitHub jobs in run 34304492120. The fixed controller
+passed 57 admission cases in normal and optimized Python before one RAM-only
+source observation on `5b2d6bc3-53c2-4349-a7b8-7586654b21f9`. It received
+teardown begin, mounts begin, then mounts fail with
+`reason=mount-filesystem:ext4:259:58` and `clean=1`. Same-boot mount evidence maps
+that number to `/dev/sda23` userdata. No clean receipt arrived; loop and physical
+observer phases were not reached. Fastboot appeared at 11.659 s.
+
+One guarded installed reboot returned `545c66d9-35d7-47d9-9432-b54aaffbfcac`.
+Health committed at 68.113736 s. The full 1380.589 s capture closed
+with all four host cleanup checks passing. Final pinned readback at
+1336.770 s uptime verified all twelve installed files, selection, 117-node
+storage guards, original shutdown and absent staging. Independent terminal
+audit retained source FAIL separately from the healthy installed return.
+
+Offline review reproduced systemd v261.2 moving an EBUSY RAM mount beneath
+`/run/shutdown/mounts/<16 lowercase hex>` before a real pivot into exitrd.
+The unchanged sealed-BusyBox path helpers reported clean while the relocated
+mount remained. This proves a conditional compatibility defect; the physical
+final path and loop-autoclear state were not captured. It does not establish
+the filesystem behind R01's earlier journal counter or prove corruption.
+
+The correction binds the recorded userdata node to sysfs major/minor, resolves
+one exact root ext4 mount at the canonical or systemd relocation path, checks
+the reachable target device, strictly unmounts, verifies disappearance and
+then relocks. Review caught and corrected a foreign stacked/covered mount risk.
+Unknown paths, duplicates, wrong roots/filesystems/nodes, read errors and
+failed/false-success unmounts refuse before relock; the resolver does not
+unmount foreign targets. Existing loop backing checks remain strict.
+
+Sealed full regression passed 71 default cases in 72.118 s and 72 diagnostic
+cases in 86.585 s. Overlay and native-kexec checks passed; total focused
+validation was 161.851 s. The initial replay exposed an inconsistent synthetic
+userdata-ro duplicate alongside writable userdata. That failed fixture is
+preserved; the corrected model matches the retained writable layout. Device
+metadata, loop autoclear, mount operations and ioctls remain synthetic in the
+full shell matrix. None of these tests qualify physical shutdown.
+
+The accepted installed shutdown remains unchanged. This source fix is not
+deployed; full integration CI and fresh source/baseline admission are pending.
+Private evidence: `source-mount-detail-terminal-assessment-r1`,
+`source-mount-detail-observation-live-r1`,
+`source-systemd-relocated-userdata-review-r1`, and `source-relocated-matrices-r1`.
+R01 remains FAIL with its claim consumed; S06 remains NOT RUN.

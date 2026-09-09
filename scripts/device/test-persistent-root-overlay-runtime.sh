@@ -82,7 +82,7 @@ for contract in \
 	'detach_persistent_overlay() {' \
 	'rog5-persistent-root-overlay-runtime-v1' \
 	'unmount_mount /oldsys/state' \
-	'unmount_mount /oldsys/userdata-rw' \
+	'unmount_userdata "$userdata"' \
 	'relock_storage'; do
 	grep -Fq "$contract" "$shutdown" || fail "missing shutdown contract: $contract"
 done
@@ -90,7 +90,7 @@ done
 root_unmount=$(grep -n '^unmount_mount /oldroot ' "$shutdown" | cut -d: -f1)
 overlay_detach=$(grep -n '^detach_persistent_overlay ||' "$shutdown" | cut -d: -f1)
 overlay_unmount=$(grep -n '^[[:space:]]*unmount_mount /oldsys/state' "$shutdown" | head -n 1 | cut -d: -f1)
-userdata_unmount=$(grep -n '^[[:space:]]*unmount_mount /oldsys/userdata-rw' "$shutdown" | tail -n 1 | cut -d: -f1)
+userdata_unmount=$(grep -n '^[[:space:]]*unmount_userdata "\$userdata"' "$shutdown" | tail -n 1 | cut -d: -f1)
 [ "$root_unmount" -lt "$overlay_detach" ] || fail 'overlay detach precedes merged root unmount'
 [ "$overlay_unmount" -lt "$userdata_unmount" ] || fail 'p23 unmount precedes overlay image unmount'
 
