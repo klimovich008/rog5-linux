@@ -481,6 +481,97 @@ class ReceiverTest(unittest.TestCase):
                 self.assertEqual(len(receiver.clients),0)
                 self.assertTrue(receiver.failed)  # Partial/lost diagnostic frame is not a green run.
 
+    def test_powered_off_window_preserves_transition_and_full_failure_capture(self):
+        contract=M.ACCEPTANCE.load_contract()
+        normal=M.capture_lifetime(contract)
+        physical=M.capture_lifetime(contract,powered_off_start=True)
+        self.assertEqual(normal,1380)
+        self.assertEqual(physical,1440)
+        # A live check/entry 30 seconds after arming cannot meet S06 with the
+        # original lifetime; the scoped allowance retains the full 1380.
+        self.assertFalse(M.lifetime_ready(normal,30,1380))
+        self.assertTrue(M.lifetime_ready(physical,30,1380))
+        self.assertFalse(M.lifetime_ready(physical,61,1380))
+        changed=json.loads(json.dumps(contract))
+        next(row for row in changed['tests'] if row['id']=='S06')['deadline_seconds']=410
+        self.assertEqual(M.capture_lifetime(changed,powered_off_start=True),1430)
+        next(row for row in changed['tests'] if row['id']=='S06')['deadline_seconds']=421
+        with self.assertRaises(ValueError):M.capture_lifetime(changed,powered_off_start=True)
+
+    def test_powered_off_mode_cannot_be_forged_or_used_for_ram_capture(self):
+        M.check_capture_mode({'source_boot_id':BOOT,'powered_off_start':True},BOOT,powered_off_start=True)
+        for receipt,boot,requested in (
+            ({'source_boot_id':BOOT},BOOT,True),
+            ({'source_boot_id':BOOT,'powered_off_start':True},BOOT,False),
+            ({'powered_off_start':True},None,True),
+            ({'source_boot_id':BOOT,'powered_off_start':1},BOOT,True),
+            ({'source_boot_id':BOOT,'powered_off_start':True,'source_teardown_sha256':'a'*64},BOOT,True)):
+            with self.subTest(receipt=receipt,requested=requested),self.assertRaisesRegex(ValueError,'capture mode'):
+                M.check_capture_mode(receipt,boot,powered_off_start=requested)
+
+    def test_powered_off_cli_rejects_missing_source_and_experimental_intent_before_io(self):
+        for extra in ([],['--source-boot-id','invalid'],
+                      ['--source-boot-id',BOOT,'--source-teardown-intent','/never-read'],
+                      ['--source-boot-id',BOOT,'--source-teardown-sha256','a'*64]):
+            with self.subTest(extra=extra),patch.object(M.sys,'argv',[
+                'receiver','--profile','fixture','--output','/never-created','--powered-off-start',*extra]), \
+                 patch.object(M,'host_ready') as host,self.assertRaisesRegex(ValueError,'capture mode'):
+                M.main()
+            host.assert_not_called()
+
+    def test_powered_off_start_keeps_installed_selector_and_topology_gates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest=Path(tmp)/'manifest';raw=b'target_release=fixture\nrollback_timeout=900\n';manifest.write_bytes(raw)
+            for family,mode,error in (
+                    ('fastboot-boot-selector-trial',('target',M.INTERFACE),'absolute output'),
+                    ('fastboot-boot-selector-trial',('mismatch',None),'ordinary capture'),
+                    ('fastboot-boot-ram-bundle',('target',M.INTERFACE),'ordinary capture'),
+                    ('fastboot-boot-fallback-only',('target',M.INTERFACE),'ordinary capture')):
+                record=f'execution={family}\nmanifest_sha256={hashlib.sha256(raw).hexdigest()}\nserial=fixture\n'.encode()
+                with self.subTest(family=family,mode=mode),patch.object(M.sys,'argv',[
+                    'receiver','--profile','fixture','--manifest',str(manifest),'--source-boot-id',BOOT,
+                    '--powered-off-start','--output','relative-capture']),patch.object(M.os,'geteuid',return_value=0), \
+                     patch.object(M.CLAIMS,'expected_record',return_value=record), \
+                     patch.object(M,'usb_mode',return_value=mode),self.assertRaisesRegex(ValueError,error):
+                    M.main()
+
+    def test_powered_off_cli_check_dispatch_binds_mode(self):
+        with patch.object(M.sys,'argv',['receiver','--profile','fixture','--output','/fixture',
+                '--source-boot-id',BOOT,'--powered-off-start','--check']), \
+             patch.object(M,'check_receiver',return_value={}) as check,patch('builtins.print'):
+            self.assertEqual(M.main(),0)
+            check.assert_called_once_with(Path('/fixture'),'fixture',source_boot_id=BOOT,
+                source_teardown_sha256=None,powered_off_start=True)
+
+    def test_live_check_requires_matching_physical_mode_and_original_remaining_gate(self):
+        canonical=dict(candidate='fixture',execution='fastboot-boot-selector-trial')
+        source={'fixture':'frozen'}
+        for mode in (False,True):
+            for live_mode,remaining in ((mode,1390),(not mode,1390),(1,1390),(mode,1319)):
+                receipt=dict(source_boot_id=BOOT,canonical_record=canonical,profile='fixture',source=source,
+                    receiver_sha256=hashlib.sha256(Path(M.__file__).read_bytes()).hexdigest(),
+                    host_boot_id=Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+                    process_start='fixture',pid=123,probe='PROBE fixture',required_seconds=1320,
+                    deadline_monotonic=100+remaining)
+                live=dict(ready=True,candidate='fixture',pid=123,required_seconds=1320,
+                    source_boot_id=BOOT,remaining_seconds=remaining)
+                if mode:receipt['powered_off_start']=True
+                if live_mode is not False:live['powered_off_start']=live_mode
+                with self.subTest(mode=mode,live_mode=live_mode,remaining=remaining),tempfile.TemporaryDirectory() as tmp:
+                    output=Path(tmp);(output/'receipt.json').write_text(json.dumps(receipt))
+                    client=unittest.mock.MagicMock();client.__enter__.return_value=client
+                    client.recv.side_effect=[json.dumps(live).encode(),b'']
+                    with patch.object(M.CLAIMS,'expected_record',return_value=''.join(k+'='+v+'\n' for k,v in canonical.items()).encode()), \
+                         patch.object(M.ACCEPTANCE,'source_identity',return_value=source), \
+                         patch.object(M,'process_start',return_value='fixture'),patch.object(M,'host_ready'), \
+                         patch.object(M.socket,'socket',return_value=client),patch.object(M.time,'monotonic',return_value=100):
+                        if live_mode is mode and remaining>=1320:
+                            self.assertEqual(M.check_receiver(output,'fixture',source_boot_id=BOOT,
+                                powered_off_start=mode)['status'],'PASS')
+                        else:
+                            with self.assertRaisesRegex(ValueError,'not ready'):
+                                M.check_receiver(output,'fixture',source_boot_id=BOOT,powered_off_start=mode)
+
     def test_remaining_lifetime_is_a_live_gate_not_a_stale_ready_file(self):
         self.assertTrue(M.lifetime_ready(100, 30, 60))
         self.assertFalse(M.lifetime_ready(100, 41, 60))

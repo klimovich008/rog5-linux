@@ -45,6 +45,26 @@ def lifetime_ready(deadline, now, required):
     return required > 0 and deadline - now >= required
 
 
+def capture_lifetime(contract, *, powered_off_start=False):
+    """A passive physical-start allowance; never an arbitrary duration override."""
+    timing = contract['defaults']['rescue_capture']
+    lifetime = sum(timing[key] for key in ('recovery_seconds', 'target_rollback_seconds',
+                                         'cleanup_seconds', 'preflight_seconds'))
+    if powered_off_start:
+        ordinary = contract['defaults']['ordinary_smoke']
+        off = contract['defaults']['powered_off_start']
+        total = next(row['deadline_seconds'] for row in contract['tests'] if row['id'] == 'S06')
+        values = [total, *ordinary.values(), *off.values()]
+        if not all(type(value) is int and value > 0 for value in values):
+            raise ValueError('invalid powered-off capture timing')
+        transition = total - sum(ordinary[key] for key in ('preflight_seconds', 'startup_seconds', 'close_seconds'))
+        if not (off['maximum_sample_gap_seconds'] < off['minimum_off_seconds'] < transition
+                and ordinary['startup_seconds'] <= 300 and total <= 420):
+            raise ValueError('invalid powered-off capture timing')
+        lifetime += transition
+    return lifetime
+
+
 def stage_dict(stage):
     if stage is None:
         return None
@@ -339,21 +359,26 @@ def process_start(pid):
     return Path(f'/proc/{pid}/stat').read_text().rpartition(') ')[2].split()[19]
 
 
-def check_capture_mode(receipt, source_boot_id):
+def check_capture_mode(receipt, source_boot_id, *, powered_off_start=False):
     if (receipt.get('source_boot_id') != source_boot_id or
-            (source_boot_id is not None and not STAGES.BOOT_ID.fullmatch(source_boot_id))):
+            (source_boot_id is not None and not STAGES.BOOT_ID.fullmatch(source_boot_id)) or
+            receipt.get('powered_off_start', False) is not powered_off_start or
+            (powered_off_start and (source_boot_id is None or receipt.get('source_teardown_sha256') is not None))):
         raise ValueError('capture mode/source boot mismatch')
 
 
-def check_receiver(output, profile, *, source_boot_id=None, source_teardown_sha256=None):
+def check_receiver(output, profile, *, source_boot_id=None, source_teardown_sha256=None,
+                   powered_off_start=False):
     receipt = json.loads((output/'receipt.json').read_text())
-    check_capture_mode(receipt, source_boot_id)
+    check_capture_mode(receipt, source_boot_id, powered_off_start=powered_off_start)
     if receipt.get('source_teardown_sha256') != source_teardown_sha256:
         raise ValueError('source teardown capture mode mismatch')
     if source_teardown_sha256 is not None and receipt.get('source_teardown_observer_sha256') != \
             hashlib.sha256(Path(TEARDOWN.__file__).read_bytes()).hexdigest():
         raise ValueError('changed source teardown observer')
     canonical = dict(line.split('=',1) for line in CLAIMS.expected_record(profile).decode().splitlines())
+    if powered_off_start and canonical.get('execution') != 'fastboot-boot-selector-trial':
+        raise ValueError('powered-off capture mode requires installed selector family')
     if (receipt['canonical_record'] != canonical or receipt['profile'] != profile
             or receipt['source'] != ACCEPTANCE.source_identity()
             or receipt['receiver_sha256'] != hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
@@ -379,6 +404,7 @@ def check_receiver(output, profile, *, source_boot_id=None, source_teardown_sha2
             or live.get('required_seconds') != receipt['required_seconds']
             or live.get('source_boot_id') != source_boot_id
             or live.get('source_teardown_sha256') != source_teardown_sha256
+            or live.get('powered_off_start', False) is not powered_off_start
             or not lifetime_ready(receipt['deadline_monotonic'], time.monotonic(), receipt['required_seconds'])):
         raise ValueError('receiver not ready or remaining lifetime insufficient')
     return dict(status='PASS', test='H01-receiver', profile=profile,
@@ -432,10 +458,18 @@ def main():
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--source-boot-id',
                         help='passive ordinary-reboot capture; caller must authenticate this installed source boot; grants no reboot authority')
+    parser.add_argument('--powered-off-start', action='store_true',
+                        help='reserve the contract physical-start interval for an installed source; grants no power or RAM authority')
     parser.add_argument('--source-teardown-intent', type=Path,
                         help='optional pinned RAM-only source observation intent; grants no execution authority')
     parser.add_argument('--source-teardown-sha256')
     args = parser.parse_args()
+    if args.powered_off_start:
+        check_capture_mode(dict(source_boot_id=args.source_boot_id, powered_off_start=True,
+                                source_teardown_sha256=args.source_teardown_sha256),
+                           args.source_boot_id, powered_off_start=True)
+    if args.powered_off_start and args.source_teardown_intent is not None:
+        raise ValueError('powered-off capture mode excludes source teardown intent')
     if (args.source_teardown_intent is None) != (args.source_teardown_sha256 is None):
         raise ValueError('source teardown requires both intent and digest')
     teardown = None
@@ -445,7 +479,8 @@ def main():
             raise ValueError('source teardown requires its authenticated source boot')
     if args.check:
         print(json.dumps(check_receiver(args.output, args.profile, source_boot_id=args.source_boot_id,
-                                       source_teardown_sha256=args.source_teardown_sha256)))
+                                       source_teardown_sha256=args.source_teardown_sha256,
+                                       powered_off_start=args.powered_off_start)))
         return 0
     if args.manifest is None or os.geteuid() != 0:
         raise ValueError('receiver needs an exact manifest and scoped host-network privileges')
@@ -462,12 +497,13 @@ def main():
     release = fields['target_release']
     if not re.fullmatch(r'[A-Za-z0-9_.+-]{1,96}', release):
         raise ValueError('invalid target release')
-    timing = json.loads((REPO/'configs/release-acceptance.json').read_text())['defaults']['rescue_capture']
+    contract = json.loads((REPO/'configs/release-acceptance.json').read_text())
+    timing = contract['defaults']['rescue_capture']
     rollback = int(fields['rollback_timeout'])
     if rollback != timing['target_rollback_seconds']:
         raise ValueError('review capture lattice for different target rollback')
     required = timing['recovery_seconds']+rollback+timing['cleanup_seconds']
-    lifetime = required+timing['preflight_seconds']
+    lifetime = capture_lifetime(contract, powered_off_start=args.powered_off_start)
     if args.source_boot_id is not None:
         if (not STAGES.BOOT_ID.fullmatch(args.source_boot_id)
                 or record['execution'] != 'fastboot-boot-selector-trial'
@@ -529,6 +565,8 @@ def main():
                             candidate=record['candidate'], pid=os.getpid(), source_boot_id=args.source_boot_id)
                 if teardown is not None:
                     response['source_teardown_sha256'] = args.source_teardown_sha256
+                if args.powered_off_start:
+                    response['powered_off_start'] = True
                 return response
             receiver.probe_response = readiness
             receipt = dict(format='rog5-headless-capture-v1', profile=args.profile, canonical_record=record,
@@ -539,6 +577,8 @@ def main():
                            probe=receiver.probe.decode(), started_monotonic=started, timing=timing)
             if args.source_boot_id is not None:
                 receipt['source_boot_id'] = args.source_boot_id
+            if args.powered_off_start:
+                receipt['powered_off_start'] = True
             if teardown is not None:
                 receipt.update(source_teardown_sha256=args.source_teardown_sha256,
                                source_teardown_intent=teardown, source_teardown_armed_monotonic=receiver.teardown.armed,

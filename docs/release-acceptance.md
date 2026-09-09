@@ -454,7 +454,9 @@ to authenticated healthy startup, and 30 seconds for successful cleanup. The
 start request precedes the button press, so this clock is conservative. Kernel
 uptime must also fit within that window; delayed USB enumeration cannot hide
 an earlier boot. Arm the
-full failure receiver with the extra transition allowance before power-off;
+full failure receiver with `--powered-off-start` and `--source-boot-id`
+before power-off, and pass the same flags to `--check`. This mode reserves
+the contract-derived transition allowance and binds it in the receiver receipt;
 a failed startup retains that longer capture even after the success deadline.
 Component eligibility alone grants no power-off, start, receiver-stop or
 qualification authority. The live coordinator still needs current preflight,
