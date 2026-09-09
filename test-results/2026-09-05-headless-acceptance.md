@@ -8105,3 +8105,37 @@ The production shutdown and observer bytes did not change in this fixture
 update. The modeled filesystem contents already occupy destination paths;
 actual Linux mount propagation, loop syscalls, UFS and shutdown USB/IP survival
 remain outside its proof. R01 remains FAIL and S06 NOT RUN.
+
+
+### Bounded source diagnostic progress
+
+The preparer has an explicit diagnostic opt-in, bound into the generated
+shutdown digest and host intent. The target validates metadata, checksums and
+source identity before transmitting. It sends ordered begin records for
+teardown, mounts, loops, physical checks and receipt send; normal refusals emit
+a failure for the current phase. Clean=0 remains a teardown failure. A failed
+diagnostic send disables later diagnostics. The existing five-second outer
+bound still covers every check, send and exit trap, followed by fallback.
+
+The receiver binds source identity, nonce, both hashes, phase order, clean flag
+and finite deadline. It durably logs diagnostic events separately from target
+stages and clean receipts. Opted-in observations require all five begin records
+and the independently validated clean receipt. Diagnostic failures and malformed
+or reordered messages permanently fail capture. Thirteen protocol tests cover
+these rules and legacy default behavior. A valid last begin record can localize
+an interruption; absent completion still cannot distinguish timeout from lost
+transport. No message before identity validation remains an explicit unknown.
+
+Sealed regression passed **48 default cases in 46.938067 s** and **49 diagnostic
+cases in 56.362994 s**. The latter includes an intentional second-send hang:
+the first diagnostic is retained, no clean receipt appears, and fallback remains
+bounded. Send counts also verify that failed diagnostics are not repeated.
+Independent review requested exact sender/Receiver.poll integration under the
+assembled timeout. Its first fixture lacked the host-module import path; its
+second hid the fallback stub under the read-only Python `/usr` mount. Both
+failures remain private. Corrected isolation passed the complete six-message
+exchange, per-event fsyncs and fallback in **1.856493 s** (outer case **1.963417 s**).
+This exercises isolated loopback and synthetic kernel data, not physical USB.
+The accepted installed shutdown, kernel, root images and consumed claims remain
+unchanged. New private controller integration and fresh admission are still
+required before another source observation. R01 remains FAIL; S06 NOT RUN.

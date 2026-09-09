@@ -36,6 +36,15 @@ the model's ordering constraints; six injected failures preserve clean=0 and
 fallback. This is synthetic kernel state, not physical R01 or transport evidence.
 All four GitHub jobs for `f0f7f463` passed in run **34297118247**.
 
+Opt-in phase diagnostics now report verified observer progress and normal
+refusals without granting teardown authority. The unchanged five-second bound
+covers every send and failure trap. Default and diagnostic sealed regressions
+passed 48 and 49 cases; the added exact sender/Receiver.poll integration passed
+in **1.856 s**, including all six messages, event fsyncs and fallback. Protocol
+coverage rejects missing, stale, unordered and failed progress. No diagnostic
+mode has been deployed or admitted. Absent messages can still mean timeout or
+transport loss; they never establish a clean source teardown.
+
 ## Goal and authority
 
 Qualify one reliable unattended headless Arch server under the existing

@@ -231,8 +231,14 @@ class Receiver:
                 TEARDOWN.require(peer == self.peer and self.mode == 'source'
                     and not self.source_disconnected and not self.target_seen and not self.failed,
                     'source teardown peer/transport or prior failure')
-                receipt = self.teardown.observe(payload, time.monotonic())
-                self.emit(dict(event='source-teardown', receipt=receipt, authenticated=False, authority='none'))
+                if payload.startswith(('format='+TEARDOWN.DIAGNOSTIC_FORMAT+'\n').encode()):
+                    diagnostic = self.teardown.diagnose(payload, time.monotonic())
+                    self.emit(dict(event='source-teardown-diagnostic', diagnostic=diagnostic,
+                                   authenticated=False, authority='none'))
+                    self.failed |= self.teardown.failed
+                else:
+                    receipt = self.teardown.observe(payload, time.monotonic())
+                    self.emit(dict(event='source-teardown', receipt=receipt, authenticated=False, authority='none'))
             except ValueError as error:
                 self.invalid_teardown(str(error), payload)
             return
@@ -501,7 +507,7 @@ def main():
                 log_full = True
                 return
             log.write(json.dumps(event, sort_keys=True)+'\n'); log.flush()
-            if event['event'] == 'source-teardown':
+            if event['event'] in ('source-teardown','source-teardown-diagnostic'):
                 os.fsync(log.fileno())
         with NETWORK.prepared(lifetime, emit, lambda: usb_mode(record['serial'])[0]=='target') as network, Receiver(
                 release, emit, source_boot_id=args.source_boot_id, source_teardown=teardown) as receiver:
