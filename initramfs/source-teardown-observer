@@ -3,7 +3,15 @@
 # Absence/failure of its receipt denies later RAM admission; never delays fallback.
 set -eu
 bb=/bin/busybox
-[ "$#" -eq 2 ] && [ "$1" = 1 ] && [ "$2" = reboot ] || exit 1
+diagnostics=0
+case $# in
+	2) ;;
+	3) [ "$3" = --diagnostics ] || exit 1; diagnostics=1 ;;
+	*) exit 1 ;;
+esac
+[ "$2" = reboot ] || exit 1
+case $1 in 1) ;; 0) [ "$diagnostics" = 1 ] || exit 1 ;; *) exit 1 ;; esac
+clean=$1
 cd /
 for path in shutdown rog5-source-teardown rog5-source-teardown.intent rog5-source-teardown.sha256; do
 	[ -f "$path" ] && [ ! -L "$path" ] || exit 1
@@ -42,6 +50,25 @@ observer_sha256=$(field observer_sha256)
 [ "$("$bb" uname -r)" = "$release" ] || exit 1
 [ "$("$bb" sha256sum /shutdown | "$bb" cut -d ' ' -f 1)" = "$shutdown_sha256" ] || exit 1
 [ "$("$bb" sha256sum /rog5-source-teardown | "$bb" cut -d ' ' -f 1)" = "$observer_sha256" ] || exit 1
+# Diagnostics start only after validating the staged bytes and source identity.
+# Each phase is sent once. A failed diagnostic send disables later diagnostics,
+# while the enclosing five-second timeout still bounds this entire observer.
+diagnostic() {
+	[ "$diagnostics" = 1 ] || return 0
+	printf '%s\n' 'format=rog5-source-teardown-diagnostic-v1' "boot_id=$boot_id" \
+		"nonce=$nonce" "shutdown_sha256=$shutdown_sha256" "observer_sha256=$observer_sha256" \
+		"phase=$phase" "clean=$clean" "state=$1" |
+		"$bb" nc -n -w 1 -s 169.254.77.2 169.254.77.1 8079 >/dev/null 2>&1 || diagnostics=0
+	return 0
+}
+phase=teardown
+diagnostic begin
+if [ "$diagnostics" = 1 ]; then
+	trap 'status=$?; if [ "$status" -ne 0 ]; then diagnostic fail; fi' EXIT
+fi
+[ "$clean" = 1 ] || exit 1
+phase=mounts
+diagnostic begin
 # After exact teardown only RAM/API mounts may remain. Unknown filesystems refuse.
 "$bb" awk '
  BEGIN { allowed["rootfs"]; allowed["tmpfs"]; allowed["ramfs"]; allowed["devtmpfs"];
@@ -57,9 +84,13 @@ observer_sha256=$(field observer_sha256)
    if ($5=="/" && $(separator+1) ~ /^(rootfs|tmpfs|ramfs)$/) seen_root=1 }
  END { if (!seen_proc || !seen_sys || !seen_dev || !seen_root) exit 1 }
 ' /oldsys/proc/self/mountinfo || exit 1
+phase=loops
+diagnostic begin
 for path in /oldsys/sys/class/block/loop*/loop; do
 	[ ! -e "$path" ] && [ ! -L "$path" ] || exit 1
 done
+phase=physical
+diagnostic begin
 count=0
 for path in /oldsys/sys/class/block/sd*; do
 	[ -e "$path/dev" ] || continue
@@ -79,6 +110,8 @@ for path in /oldsys/sys/class/block/sd*; do
 	count=$((count + 1))
 done
 [ "$count" -eq 117 ] || exit 1
+phase=receipt
+diagnostic begin
 # One transmission only. A zero netcat exit is not evidence of host receipt.
 printf '%s\n' 'format=rog5-source-teardown-v1' "boot_id=$boot_id" "nonce=$nonce" \
 	"shutdown_sha256=$shutdown_sha256" "observer_sha256=$observer_sha256" \

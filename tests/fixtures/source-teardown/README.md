@@ -53,3 +53,32 @@ simulated. File contents are already at their destination paths; this model
 does not validate Linux mount propagation, actual syscalls, systemd execution,
 UFS quiescence or physical transport. Each run retains the operation log,
 final state and exact source/artifact hashes without qualification authority.
+
+
+## Optional phase diagnostics
+
+`--diagnostics` asks the preparer to bind the third observer argument into the
+shutdown digest and the opt-in into the host intent. Metadata, checksums and
+source identity are verified before the first diagnostic. Five ordered begin
+messages identify teardown, mounts, loops, physical RO checks and receipt send.
+A normal refusal emits a fail message for the current phase. Clean=0 can only
+report the teardown phase; it cannot progress or produce a clean receipt.
+A failed diagnostic transmission disables subsequent diagnostic transmissions.
+All work, including network sends and the failure trap, remains inside the
+original five-second timeout. Diagnostics do not extend it or delay fallback.
+
+The receiver validates the fixed source identity, nonce, hashes, phase order,
+clean flag and deadline, and fsyncs diagnostic events separately. Diagnostics
+never populate the clean receipt or target stage. In opted-in mode, all five
+begin records and a separate valid clean receipt are required. Invalid, missing,
+duplicate, stale or failed progress cannot be repaired by a later receipt.
+A last begin record with no final outcome can localize an interruption, but
+cannot distinguish timeout from transport loss. No messages before identity
+validation, or no delivered messages at all, leaves the cause unknown.
+
+`assembled-receiver-poll` runs the exact sender and generated five-second hook
+against the actual `Receiver.poll()` on isolated loopback, with per-event fsyncs.
+The fixture retains raw frames, receiver events, child status and source hashes.
+It simulates USB discovery and kernel data; it is not a physical capture.
+`assembled-diagnostic-hang` delivers one begin frame and hangs the second send;
+it must preserve that partial observation and still fall back at the bound.

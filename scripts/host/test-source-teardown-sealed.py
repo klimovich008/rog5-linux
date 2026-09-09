@@ -69,7 +69,7 @@ def stateful_inputs(root,case):
         (root/f'oldsys/sys/class/block/{node}/ro').write_text('0\n' if i in (0,23) else '1\n')
     return nodes
 
-def stateful_result(root,case):
+def stateful_result(root,case,diagnostics):
     operations=(root/'operations').read_text().splitlines()
     final=struct.unpack('20i',(root/'mount-state').read_bytes())
     clean=case in ('stateful-clean','stateful-stopped-state','stateful-journal-entry')
@@ -107,6 +107,7 @@ def stateful_result(root,case):
     if case not in ORDER_REFUSALS:
         # Observe the actual shutdown argument, not merely the missing receipt.
         wanted=f'timeout -s KILL 5 /bin/busybox sh /rog5-source-teardown {int(clean)} reboot'
+        if diagnostics:wanted+=' --diagnostics'
         valid &= [v for v in operations if v.startswith('timeout ')]==[wanted]
     return dict(valid=bool(valid),operation_count=len(operations),
                 operations_sha256=M.sha((root/'operations').read_bytes()),
@@ -120,13 +121,16 @@ def run(args):
     subprocess.run(['cc','-static','-O2','-Wall','-Wextra','-Werror',str(R/'tests/fixtures/source-teardown/shim.c'),'-o',str(shim)],check=True,timeout=30)
     original=(R/'initramfs/persistent-root-shutdown-standalone').read_bytes()
     expected,files=M.prepare(original,M.sha(original),dict(boot_id=BOOT,serial='FIXTURE123',
-                            bundle='headless-server-fixture',release='7.1.4-fixture'),'a'*64)
+                            bundle='headless-server-fixture',release='7.1.4-fixture'),'a'*64,
+                            diagnostics=args.diagnostics)
     cases=('clean','unclean-flag','wrong-action','wrong-boot','wrong-release','wrong-hash','file-writable',
        'file-symlink','checksum-extra','intent-extra','physical-mount','unknown-mount','missing-proc',
        'bad-mount-device','attached-loop','dangling-loop','sysfs-writable','ioctl-writable','wrong-node',
        'missing-node','missing-physical','extra-physical','network-fail','assembled-clean',
        'assembled-unclean-shutdown','assembled-network-fail','assembled-network-hang','real-netcat',
-       'hugetlbfs','hugetlbfs-physical-device','hugetlbfs-with-physical-mount','assembled-hugetlbfs')
+       'hugetlbfs','hugetlbfs-physical-device','hugetlbfs-with-physical-mount','assembled-hugetlbfs',
+       'assembled-receiver-poll')
+    if args.diagnostics:cases+=('assembled-diagnostic-hang',)
     if args.inert_block_node:
         node=args.inert_block_node
         metadata=node.lstat()
@@ -196,25 +200,65 @@ def run(args):
           '--clearenv']
         for node in nodes:command+=['--ro-bind',str(args.inert_block_node),node]
         assembled=case.startswith('assembled-') or (stateful and case not in ORDER_REFUSALS)
-        if case in ORDER_REFUSALS:command+=['/bin/busybox',*ORDER_REFUSALS[case]]
+        if case=='assembled-receiver-poll':
+            (root/'expected.json').write_text(json.dumps(expected))
+            command+=['--ro-bind','/usr','/usr','--ro-bind','/usr/lib','/lib64',
+                      '--tmpfs','/usr/libexec','--ro-bind',str(shim),'/usr/libexec/rog5-reboot-bootloader',
+                      '--ro-bind',str(R),'/repo','/usr/bin/python3','-B',
+                      '/repo/tests/fixtures/source-teardown/receiver-poll.py']
+        elif case in ORDER_REFUSALS:command+=['/bin/busybox',*ORDER_REFUSALS[case]]
         else:
             command+=['/qemu','/lib/ld-musl-aarch64.so.1','/sealed/busybox','sh']
             command+=['/shutdown','reboot'] if assembled else ['/rog5-source-teardown','0' if case=='unclean-flag' else '1','poweroff' if case=='wrong-action' else 'reboot']
+            if args.diagnostics and not assembled:command+=['--diagnostics']
         begin=time.monotonic()
         done=subprocess.run(command,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=25)
         seconds=time.monotonic()-begin;(root/'stdout').write_bytes(done.stdout);(root/'stderr').write_bytes(done.stderr)
         receipt=(root/'receipt').read_bytes() if (root/'receipt').exists() else None
         wants_receipt=case in ('clean','assembled-clean','real-netcat','hugetlbfs','assembled-hugetlbfs',
                               'stateful-clean','stateful-stopped-state','stateful-journal-entry')
+        wants_receipt |= case=='assembled-receiver-poll'
         valid=(receipt is not None)==wants_receipt
         if receipt is not None:M.parse(receipt,expected)
         if not assembled:valid &= (done.returncode==0)==wants_receipt
-        else:valid &= (root/'fallback').read_text()=='requested\n' and seconds<8
+        else:valid &= (root/'fallback').is_file() and (root/'fallback').read_text()=='requested\n' and seconds<8
         if case in ORDER_REFUSALS:valid &= done.returncode==1
-        state=stateful_result(root,case) if stateful else None
+        observations=[]
+        if args.diagnostics:
+            observation=M.Observation(expected,BOOT,0)
+            for i,p in enumerate(sorted(root.glob('diagnostic-*'))):
+                observations.append(observation.diagnose(p.read_bytes(),i+1))
+            if receipt is not None:observation.observe(receipt,len(observations)+1)
+            phase=None
+            if case in ('unclean-flag','assembled-unclean-shutdown') or (stateful and
+                case not in ORDER_REFUSALS and case not in ('stateful-clean','stateful-stopped-state','stateful-journal-entry')):
+                phase='teardown'
+            elif case in ('physical-mount','unknown-mount','missing-proc','bad-mount-device',
+                          'hugetlbfs-physical-device','hugetlbfs-with-physical-mount'):phase='mounts'
+            elif case in ('attached-loop','dangling-loop'):phase='loops'
+            elif case in ('sysfs-writable','ioctl-writable','wrong-node','missing-node',
+                          'missing-physical','extra-physical'):phase='physical'
+            if phase:
+                valid &= bool(observations) and observations[-1]['record']['phase']==phase
+                valid &= bool(observations) and observations[-1]['record']['state']=='fail' and observation.failed
+            elif case=='assembled-diagnostic-hang':
+                valid &= len(observations)==1 and observations[0]['record']['phase']=='teardown'
+                valid &= not observation.failed and 5<=seconds<8
+            elif not wants_receipt:valid &= not observations
+        else:valid &= not list(root.glob('diagnostic-*'))
+        attempts=len((root/'nc-attempts').read_text().splitlines()) if (root/'nc-attempts').exists() else 0
+        if case in ('network-fail','assembled-network-fail'):valid &= attempts==(2 if args.diagnostics else 1)
+        if case=='assembled-network-hang':valid &= attempts==1
+        if case=='assembled-diagnostic-hang':valid &= attempts==2
+        if case=='assembled-receiver-poll':
+            p=root/'receiver-poll.json'
+            integrated=json.loads(p.read_text()) if p.is_file() else {}
+            valid &= done.returncode==0 and integrated.get('status')=='PASS' and integrated.get('seconds',99)<8
+        state=stateful_result(root,case,args.diagnostics) if stateful else None
         if state:valid &= state['valid']
         results.append(dict(case=case,status='PASS' if valid else 'FAIL',returncode=done.returncode,
-                            receipt=receipt is not None,seconds=seconds,stateful=state))
+                            receipt=receipt is not None,seconds=seconds,stateful=state,
+                            diagnostic_records=[v['record'] for v in observations],send_attempts=attempts))
         print(json.dumps(results[-1]),flush=True)
         if not valid:break
     result=dict(status='PASS' if len(results)==len(cases) and all(v['status']=='PASS' for v in results) else 'FAIL',
@@ -223,9 +267,11 @@ def run(args):
        replay_sha256=M.sha(Path(__file__).read_bytes()),shim_source_sha256=M.sha((R/'tests/fixtures/source-teardown/shim.c').read_bytes()),
        hugetlbfs_fixture_sha256=M.sha((R/'tests/fixtures/source-teardown/hugetlbfs.mountinfo').read_bytes()),
        stateful_source_sha256=M.sha((R/'tests/fixtures/source-teardown/stateful.h').read_bytes()),
+       receiver_fixture_sha256=M.sha((R/'tests/fixtures/source-teardown/receiver-poll.py').read_bytes()),
        loader_sha256=M.sha(args.loader.read_bytes()),qemu_sha256=M.sha(args.qemu.read_bytes()),
        synthetic=['kernel identity','mountinfo','sysfs','device metadata','blockdev ioctl','network sender','mount operations','reboot helper'],
        phone_action=False,qualification_authority='none')
+    result['diagnostics']=args.diagnostics
     (out/'result.json').write_text(json.dumps(result,indent=2)+'\n');return result['status']!='PASS'
 
 if __name__=='__main__':
@@ -233,4 +279,5 @@ if __name__=='__main__':
     for key in ('busybox','loader','qemu','output'):p.add_argument('--'+key,type=Path,required=True)
     p.add_argument('--case',action='append',help='run only named changed/new scenarios')
     p.add_argument('--inert-block-node',type=Path,help='optional existing inert 0:0 node for stateful shell cases; never opened')
+    p.add_argument('--diagnostics',action='store_true',help='exercise opt-in bounded phase diagnostics')
     raise SystemExit(run(p.parse_args()))

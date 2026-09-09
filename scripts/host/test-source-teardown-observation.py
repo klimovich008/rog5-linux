@@ -15,16 +15,100 @@ R=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(R);M=R.TEARDOWN
 BOOT='12345678-1234-4abc-8def-1234567890ab'
 IDENTITY=dict(boot_id=BOOT,serial='FIXTURE123',bundle='headless-server-fixture',release='7.1.4-fixture')
 
-def prepared():
+def prepared(*,diagnostics=False):
     raw=(M.REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes()
-    return M.prepare(raw,M.sha(raw),IDENTITY,'a'*64)
+    return M.prepare(raw,M.sha(raw),IDENTITY,'a'*64,diagnostics=diagnostics)
 
 def frame(spec):
     values=dict(format=M.FORMAT,boot_id=BOOT,nonce=spec['nonce'],shutdown_sha256=spec['shutdown_sha256'],
         observer_sha256=spec['observer_sha256'],physical_nodes='117',mounts='clear',loops='clear',physical_ro='all',result='PASS')
     return ''.join(k+'='+v+'\n' for k,v in values.items()).encode()
 
+def diagnostic(spec,phase='teardown',clean='1',state='begin'):
+    values=dict(format=M.DIAGNOSTIC_FORMAT,boot_id=BOOT,nonce=spec['nonce'],
+        shutdown_sha256=spec['shutdown_sha256'],observer_sha256=spec['observer_sha256'],
+        phase=phase,clean=clean,state=state)
+    return ''.join(k+'='+v+'\n' for k,v in values.items()).encode()
+
 class TeardownTest(unittest.TestCase):
+    def test_diagnostics_are_opt_in_bound_and_do_not_change_timeout(self):
+        plain,base=prepared();spec,files=prepared(diagnostics=True)
+        self.assertNotIn('diagnostics',plain);self.assertIs(spec['diagnostics'],True)
+        self.assertNotEqual(spec['shutdown_sha256'],plain['shutdown_sha256'])
+        self.assertEqual(files['shutdown'].replace(b' --diagnostics',b''),base['shutdown'])
+        self.assertIn(b'timeout -s KILL 5',files['shutdown'])
+        self.assertEqual((spec,files),prepared(diagnostics=True))
+        for bad in (False,1,'true',None):
+            changed=copy.deepcopy(spec);changed['diagnostics']=bad
+            with self.subTest(bad=bad),self.assertRaises(ValueError):M.intent(changed)
+        with self.assertRaises(ValueError):M.parse_diagnostic(diagnostic(spec),plain)
+
+    def test_diagnostic_parser_requires_exact_identity_order_and_values(self):
+        spec,_=prepared(diagnostics=True);raw=diagnostic(spec)
+        self.assertEqual(M.parse_diagnostic(raw,spec)['phase'],'teardown')
+        for row in raw.splitlines(keepends=True):
+            with self.subTest(row=row),self.assertRaises(ValueError):
+                M.parse_diagnostic(raw.replace(row,row[:-1]+b'x\n'),spec)
+        for bad in (raw[:-1],raw+b'\n',raw.replace(b'\n',b'\r\n'),raw+b'x'*513,
+                    raw.replace(b'state=begin',b'state=PASS'),diagnostic(spec,'physical','0'),
+                    b'\n'.join(reversed(raw.splitlines()))+b'\n'):
+            with self.subTest(bad=bad[:40]),self.assertRaises(ValueError):M.parse_diagnostic(bad,spec)
+
+    def test_diagnostics_require_order_and_never_substitute_for_receipt(self):
+        spec,_=prepared(diagnostics=True);obs=M.Observation(spec,BOOT,100)
+        for i,phase in enumerate(M.PHASES):
+            record=obs.diagnose(diagnostic(spec,phase),101+i)
+            self.assertEqual(record['payload_sha256'],M.sha(diagnostic(spec,phase)))
+            self.assertIsNone(obs.receipt)
+        self.assertEqual(obs.observe(frame(spec),106)['record']['result'],'PASS')
+        with self.assertRaises(ValueError):obs.diagnose(diagnostic(spec,'receipt','1','fail'),107)
+        for case in ('missing','reordered','duplicate','fail-first','backwards','expired','nan','bool','early-receipt'):
+            obs=M.Observation(spec,BOOT,100)
+            with self.subTest(case=case),self.assertRaises(ValueError):
+                if case=='missing':obs.observe(frame(spec),101)
+                elif case=='reordered':obs.diagnose(diagnostic(spec,'physical'),101)
+                elif case=='fail-first':obs.diagnose(diagnostic(spec,state='fail'),101)
+                elif case in ('expired','nan','bool'):
+                    obs.diagnose(diagnostic(spec),{'expired':161,'nan':float('nan'),'bool':True}[case])
+                elif case=='early-receipt':
+                    for i,phase in enumerate(M.PHASES):obs.diagnose(diagnostic(spec,phase),101+i)
+                    obs.observe(frame(spec),104)
+                else:
+                    obs.diagnose(diagnostic(spec),102)
+                    obs.diagnose(diagnostic(spec,'teardown' if case=='duplicate' else 'mounts'),101 if case=='backwards' else 103)
+
+    def test_diagnostic_failure_is_permanent_and_keeps_clean_receipt_absent(self):
+        spec,_=prepared(diagnostics=True)
+        for phase in M.PHASES:
+            obs=M.Observation(spec,BOOT,100)
+            for current in M.PHASES[:M.PHASES.index(phase)+1]:obs.diagnose(diagnostic(spec,current),101)
+            self.assertEqual(obs.diagnose(diagnostic(spec,phase,state='fail'),102)['record']['state'],'fail')
+            self.assertTrue(obs.failed);self.assertIsNone(obs.receipt)
+            with self.assertRaises(ValueError):obs.observe(frame(spec),103)
+        obs=M.Observation(spec,BOOT,100)
+        obs.diagnose(diagnostic(spec,clean='0'),101)
+        obs.diagnose(diagnostic(spec,clean='0',state='fail'),102)
+        self.assertTrue(obs.failed)
+
+    def test_receiver_keeps_diagnostics_separate_and_rejects_failed_or_missing_progress(self):
+        spec,_=prepared(diagnostics=True)
+        for case in ('success','failure','missing','wrong-peer','disconnect'):
+            events=[]
+            with self.subTest(case=case),self.receiver(spec,events) as receiver:
+                receiver.transport('source',None)
+                if case!='missing':
+                    for phase in M.PHASES:
+                        receiver.record(diagnostic(spec,phase),'127.0.0.2' if case=='wrong-peer' else '127.0.0.1')
+                self.assertIsNone(receiver.teardown.receipt);self.assertIsNone(receiver.last)
+                if case=='failure':receiver.record(diagnostic(spec,'receipt',state='fail'),'127.0.0.1')
+                if case=='disconnect':receiver.transport('absent',None)
+                receiver.record(frame(spec),'127.0.0.1')
+                self.assertEqual(receiver.failed,case!='success')
+                self.assertEqual(receiver.teardown.receipt is not None,case=='success')
+                for event in events:
+                    if event['event']=='source-teardown-diagnostic':
+                        self.assertFalse(event['authenticated']);self.assertEqual(event['authority'],'none')
+
     def test_preparation_is_deterministic_and_preserves_accepted_teardown(self):
         spec,files=prepared();self.assertEqual((spec,files),prepared())
         original=(M.REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes()

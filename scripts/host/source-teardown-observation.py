@@ -9,6 +9,9 @@ import stat
 
 FORMAT='rog5-source-teardown-v1'
 INTENT_FORMAT='rog5-source-teardown-intent-v1'
+DIAGNOSTIC_FORMAT='rog5-source-teardown-diagnostic-v1'
+PHASES=('teardown','mounts','loops','physical','receipt')
+DIAGNOSTIC_KEYS=('format','boot_id','nonce','shutdown_sha256','observer_sha256','phase','clean','state')
 HEX=re.compile('[0-9a-f]{64}')
 BOOT=re.compile('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}')
 KEYS=('format','boot_id','nonce','shutdown_sha256','observer_sha256',
@@ -37,13 +40,32 @@ def identity(value):
     return value
 
 def intent(value):
-    require(type(value) is dict and set(value)=={'format','identity','nonce','shutdown_sha256',
-        'observer_sha256','physical_nodes'},'source teardown intent fields')
+    fields={'format','identity','nonce','shutdown_sha256','observer_sha256','physical_nodes'}
+    require(type(value) is dict and set(value) in (fields,fields|{'diagnostics'}),'source teardown intent fields')
+    require('diagnostics' not in value or value['diagnostics'] is True,'source diagnostic opt-in')
     require(value['format']==INTENT_FORMAT,'source teardown intent format')
     identity(value['identity'])
     require(all(type(value[k]) is str and HEX.fullmatch(value[k]) for k in
         ('nonce','shutdown_sha256','observer_sha256')),'source teardown intent hashes')
     require(type(value['physical_nodes']) is int and value['physical_nodes']==117,'source physical scope')
+    return value
+
+def parse_diagnostic(raw,expected):
+    expected=intent(expected)
+    require(expected.get('diagnostics') is True,'unrequested source diagnostic')
+    require(type(raw) is bytes and 0<len(raw)<=512 and raw.endswith(b'\n') and b'\r' not in raw,
+            'source diagnostic size/framing')
+    try:rows=[line.split('=',1) for line in raw.decode('ascii').split('\n')[:-1]]
+    except UnicodeDecodeError as error:raise ValueError('source diagnostic ASCII') from error
+    require(len(rows)==len(DIAGNOSTIC_KEYS) and all(len(row)==2 for row in rows)
+        and tuple(row[0] for row in rows)==DIAGNOSTIC_KEYS,'source diagnostic fields/order')
+    value=dict(rows)
+    require(value['format']==DIAGNOSTIC_FORMAT and value['boot_id']==expected['identity']['boot_id']
+        and all(value[k]==expected[k] for k in ('nonce','shutdown_sha256','observer_sha256')),
+        'source diagnostic identity mismatch')
+    require(value['phase'] in PHASES and value['clean'] in ('0','1') and value['state'] in ('begin','fail'),
+        'source diagnostic values')
+    require(value['clean']=='1' or value['phase']=='teardown','unclean source diagnostic phase')
     return value
 
 def read_intent(path,pin):
@@ -87,8 +109,36 @@ class Observation:
         require(type(armed_monotonic) in (int,float) and math.isfinite(armed_monotonic)
             and armed_monotonic>=0,'source arm time')
         self.armed=armed_monotonic;self.deadline=self.armed+timing()['receipt_seconds'];self.receipt=None
+        self.diagnostics=[];self.failed=False
+    def diagnose(self,raw,now):
+        import math
+        try:
+            require(not self.failed and self.receipt is None,'closed source diagnostic observation')
+            previous=self.diagnostics[-1]['monotonic'] if self.diagnostics else self.armed
+            require(type(now) in (int,float) and math.isfinite(now) and previous<=now<=self.deadline,
+                    'stale source diagnostic')
+            value=parse_diagnostic(raw,self.expected)
+            if value['state']=='begin':
+                require(len(self.diagnostics)<len(PHASES) and value['phase']==PHASES[len(self.diagnostics)]
+                    and all(v['record']['clean']=='1' for v in self.diagnostics),'source diagnostic phase order')
+            else:
+                require(bool(self.diagnostics) and all(value[k]==self.diagnostics[-1]['record'][k]
+                    for k in ('phase','clean')),'source diagnostic failure without matching phase')
+                self.failed=True
+            record=dict(record=value,monotonic=now,payload_sha256=sha(raw))
+            self.diagnostics.append(record)
+            return record
+        except ValueError:
+            self.failed=True
+            raise
     def observe(self,raw,now):
         import math
+        require(not self.failed,'failed source diagnostic observation')
+        if self.expected.get('diagnostics'):
+            require(len(self.diagnostics)==len(PHASES) and all(v['record']['clean']=='1'
+                and v['record']['state']=='begin' for v in self.diagnostics),'incomplete source diagnostics')
+            require(type(now) in (int,float) and now>=self.diagnostics[-1]['monotonic'],
+                    'source receipt precedes diagnostics')
         require(self.receipt is None,'repeated source teardown receipt')
         require(type(now) in (int,float) and math.isfinite(now)
             and self.armed<=now<=self.deadline,'stale source teardown receipt')
@@ -96,9 +146,10 @@ class Observation:
         self.receipt=dict(record=value,monotonic=now,payload_sha256=sha(raw))
         return self.receipt
 
-def prepare(source_shutdown,source_sha256,source_identity,nonce):
+def prepare(source_shutdown,source_sha256,source_identity,nonce,*,diagnostics=False):
     """Deterministic RAM-only derivative; accepted source and target stay unchanged."""
     source_identity=copy.deepcopy(identity(source_identity))
+    require(type(diagnostics) is bool,'source diagnostic mode')
     require(type(nonce) is str and HEX.fullmatch(nonce),'source intent nonce')
     original=(REPO/'initramfs/persistent-root-shutdown-standalone').read_bytes()
     require(type(source_shutdown) is bytes and source_shutdown==original
@@ -108,11 +159,13 @@ def prepare(source_shutdown,source_sha256,source_identity,nonce):
     require(text.count(anchor)==text.count(reboot)==1,'source shutdown injection anchors')
     hook=('if [ -f /rog5-source-teardown ] && [ ! -L /rog5-source-teardown ]; then\n'
         '\t"$bb" timeout -s KILL '+str(timing()['observer_seconds'])+
-        ' "$bb" sh /rog5-source-teardown "$clean" "${1:-reboot}" || true\nfi\n')
+        ' "$bb" sh /rog5-source-teardown "$clean" "${1:-reboot}"'+
+        (' --diagnostics' if diagnostics else '')+' || true\nfi\n')
     shutdown=text.replace(anchor,hook+anchor).replace(reboot,'/usr/libexec/rog5-reboot-bootloader || true').encode()
     observer=(REPO/'initramfs/source-teardown-observer').read_bytes()
     spec=dict(format=INTENT_FORMAT,identity=source_identity,nonce=nonce,
         shutdown_sha256=sha(shutdown),observer_sha256=sha(observer),physical_nodes=117)
+    if diagnostics:spec['diagnostics']=True
     intent(spec)
     fields=dict(boot_id=source_identity['boot_id'],release=source_identity['release'],nonce=nonce,
         shutdown_sha256=spec['shutdown_sha256'],observer_sha256=spec['observer_sha256'],physical_nodes='117')
