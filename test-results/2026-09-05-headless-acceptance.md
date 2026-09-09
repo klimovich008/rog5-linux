@@ -8239,3 +8239,9 @@ Private evidence: `source-mount-detail-terminal-assessment-r1`,
 `source-mount-detail-observation-live-r1`,
 `source-systemd-relocated-userdata-review-r1`, and `source-relocated-matrices-r1`.
 R01 remains FAIL with its claim consumed; S06 remains NOT RUN.
+
+The first full integration run stopped after 262.542 s on an unrelated host-key
+test fixture: inherited umask 0077 changed its requested 0755 directory to 0700,
+so the expected loose-parent refusal was not exercised. The fixture now sets
+0755 explicitly. The failed CI log remains retained; the next run uses the
+same 0022 child-process mask as the prior successful CI environment.

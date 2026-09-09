@@ -702,6 +702,7 @@ class HostKeyBootstrapTest(unittest.TestCase):
             MODULE.safe_new_output(existing)
         loose = self.fixture.root / "loose"
         loose.mkdir(mode=0o755)
+        loose.chmod(0o755)
         with self.assertRaisesRegex(MODULE.BootstrapError, "mode 0700"):
             MODULE.safe_new_output(loose / "output")
 
