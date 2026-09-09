@@ -82,3 +82,19 @@ The fixture retains raw frames, receiver events, child status and source hashes.
 It simulates USB discovery and kernel data; it is not a physical capture.
 `assembled-diagnostic-hang` delivers one begin frame and hangs the second send;
 it must preserve that partial observation and still fall back at the bound.
+
+## Mount failure categories
+
+Opt-in diagnostic version 2 adds a bounded `reason` field. Begin records always
+carry `none`; failure records distinguish mount-table access, command failure,
+malformed row number, rejected filesystem/device number, and missing root/API
+witness. It does not transmit mount paths, sources or options. The allowlist,
+zero-major check, required witnesses and separate clean receipt remain required.
+
+The fixture checks each refusal category using the exact sealed observer and
+BusyBox. Four explicit applet-fault cases synthesize an error status, unexpected
+successful output, stderr alongside misleading END output, or a hang at the
+mount-table awk invocation. They do not prove the deployed applet's error cause.
+The assembled hang retains only the preceding phase records and must reach
+fallback under the unchanged five-second observer timeout. A failure reason
+cannot replace the clean receipt or grant execution authority.
