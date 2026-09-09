@@ -7974,3 +7974,68 @@ ADB server was identified separately; no active phone controller or capture
 listener was present. No file was staged and no reboot was requested. R01 stays
 FAIL; S06 stays NOT RUN. Next work is the sole host coordinator's complete
 assembly and replay, followed by fresh live admission before physical observation.
+
+
+### Physical source observation and installed return
+
+All four GitHub jobs passed on `7eabe293686d343036e33398f5e0db5a45c76951`
+in run **34291767561**. The frozen private coordinator passed 21 synthetic
+lifecycle cases in **6.561191 s** and **6.518301 s**, including lost replies,
+failed receiver checks, absent/duplicate receipts, unsafe return conditions,
+startup failure and cleanup failure. Its real admission predicates and fixed
+entrypoint passed 34 cases in both Python modes; the fixed privilege launcher
+passed 11 cases in both modes with a disposable credential and harmless child.
+An unprivileged host inspection correctly refused an unattributed root-owned
+listener; the actual coordinator's root preflight passed. Timeout summaries
+were bounded while complete command evidence remained private.
+
+Admission SHA-256:
+`f5c8a5f68c18276a07e0ae54273ef40832c00f86c3cb0a7020f31e5efc297aa5`.
+Controller SHA-256:
+`ea023e2c21aa5b0f232a7038d7c89a55d7854a77c490aaf165552120e9bdcd80`.
+The scope was one RAM-only source observation and one guarded installed return.
+It contained no RAM execution, experimental claim operation or flash. The fresh
+source preflight passed at **11,766.370 s** on boot
+`5a980548-a759-41d2-a566-58b7541e256b` before staging and one reboot request.
+The source disconnected after **7.090846 s** and fastboot was positively observed
+after **11.953467 s**. No source-teardown receipt arrived. The exact guard admitted
+one ordinary installed fastboot reboot; no command was retried.
+
+Installed boot `8e761c2b-5d7c-4e98-9015-f6b8335e99d2` reached `switch-root`, but
+its first SSH attempt returned 255 with no stdout and a connection timeout.
+The coordinator preserved that failure and the missing source receipt. Capture
+ran **1,380.566774 s** and route, firewall, profile and address cleanup all passed.
+Overall controller duration was **1,383.135526 s**. Result SHA-256:
+`0a1706345e7278fec89bf8df81a9462d8b9a6dff4d783d108259b3cf9435c747`.
+Capture events SHA-256:
+`10979633371dc90f2d6b3ac9889958142c4d880c7ce5ba7b81110bb9ca700864`.
+An independent replay rejected the source receipt proof, confirmed the complete
+capture and preserved the physical FAIL. This admission and output are closed.
+
+After the sole controller exited, a separately authenticated read-only check
+passed in **1.322741 s**. The installed V8 kernel, healthy selection, all twelve
+installed hashes and 117-node storage scope passed. Health committed at
+**67.835089 s**; observed uptime was **1,337.280 s**. Battery was Good,
+**30.1°C / 8.647 V**, USB online, with thermal maximum **35.8°C**. The installed
+boot supplied the original shutdown bytes; no observer staging remained.
+This establishes current service health, not the failed startup observation.
+
+Read-only service diagnostics showed persistent state completed at **55.769641 s**,
+SSH identity at **56.382390 s**, and Tailscale started at **56.556253 s**.
+The verified Tailscale runtime adds `10.77.0.2/30` during preparation, so the
+controller's `switch-root` signal alone does not establish management-address
+readiness. A private pending-connection classifier passed fourteen normal and
+optimized cases, including the exact retained pre-connection timeout. Process
+timeouts, partial output, authentication errors and remote failures remain
+refusals. It has not been integrated into a new admitted controller. An initial
+fixture correctly rejected newline-normalized bytes; the corrected fixture
+requires unique reconstruction matching the original retained stderr hash.
+
+A bounded journal read matched every selected record to the exact source boot.
+It records a busy `/.rog5/userdata-rw` unmount at **11,771.753125 s**, followed by
+successful persistent-state stop at **11,774.128066 s**. The journal ends before
+exitrd observation and pstore is empty. These records do not establish the
+final teardown outcome or explain the missing receipt: observer refusal,
+whole-hook timeout and transport loss remain possible. The next source work
+must distinguish those outcomes before another admission; the consumed R01
+attempt remains immutable. R01 remains FAIL and S06 remains NOT RUN.
