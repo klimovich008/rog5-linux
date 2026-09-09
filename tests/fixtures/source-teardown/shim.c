@@ -45,11 +45,20 @@ static int scenario(const char *s) {
     char value[80]={0}; FILE *f=fopen("/scenario","r");
     if(f){fgets(value,sizeof(value),f);fclose(f);} return !strcmp(value,s);
 }
+#include "stateful.h"
+static int stateful(void) {
+    char value[80]={0};FILE *f=fopen("/scenario","r");
+    if(f){fgets(value,sizeof(value),f);fclose(f);}return !strncmp(value,"stateful-",9);
+}
 int main(int argc,char **argv) {
     if(strstr(argv[0],"rog5-reboot-bootloader")) {
         FILE *f=fopen("/fallback","w");if(!f)return 90;fputs("requested\n",f);fclose(f);return 0;
     }
     if(argc<2)return 91;
+    if(stateful() && !strcmp(argv[1],"timeout"))fixture_log(argc,argv);
+    if(stateful() && (!strcmp(argv[1],"mountpoint") || !strcmp(argv[1],"mount") ||
+       !strcmp(argv[1],"umount") || !strcmp(argv[1],"losetup") || !strcmp(argv[1],"blockdev")))
+        return fixture_endpoint(argc,argv);
     if(!strcmp(argv[1],"uname")){puts("7.1.4-fixture");return 0;}
     if(!strcmp(argv[1],"stat") && argc==5 && !strncmp(argv[4],"/oldsys/dev/sda",15)) {
         if(access(argv[4],F_OK))return 92;

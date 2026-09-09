@@ -23,8 +23,18 @@ filesystem while retaining the zero-major device check and all storage guards.
 All 32 exact sealed BusyBox cases passed, including physical-mount refusals and
 the generated shutdown hook. This does not establish the physical failure's
 cause. The fixture documents its simulated mount/loop operations and loopback
-network limitations; stateful teardown and physical transport remain unproven.
+network limitations. Stateful shell coverage is now recorded below; actual
+shutdown syscalls and physical transport remain unproven.
 No new phone transition or observer deployment accompanied this correction.
+
+The shutdown replay now includes 16 stateful cases alongside the original 32;
+all 48 passed in **50.455 s**. The unchanged shell moves modeled mounts,
+detaches loops, relocks 117 nodes and passes the exact clean flag to the observer.
+A journal-derived entry case covers already-unmounted root/state filesystems
+with the overlay loop still attached. Seven independent refusal cases validate
+the model's ordering constraints; six injected failures preserve clean=0 and
+fallback. This is synthetic kernel state, not physical R01 or transport evidence.
+All four GitHub jobs for `f0f7f463` passed in run **34297118247**.
 
 ## Goal and authority
 
