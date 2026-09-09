@@ -1,0 +1,3 @@
+44 4 0:35 / /oldsys/dev/hugepages rw,nosuid,nodev,relatime - hugetlbfs hugetlbfs rw,pagesize=2M
+80 1 0:4 / /dev rw - devtmpfs devtmpfs rw
+81 80 0:35 / /dev/hugepages rw,nosuid,nodev,relatime - hugetlbfs hugetlbfs rw,pagesize=2M

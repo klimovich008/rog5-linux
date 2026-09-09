@@ -47,7 +47,8 @@ observer_sha256=$(field observer_sha256)
  BEGIN { allowed["rootfs"]; allowed["tmpfs"]; allowed["ramfs"]; allowed["devtmpfs"];
  allowed["proc"]; allowed["sysfs"]; allowed["devpts"]; allowed["configfs"];
  allowed["securityfs"]; allowed["cgroup2"]; allowed["pstore"]; allowed["debugfs"];
- allowed["tracefs"]; allowed["bpf"]; allowed["mqueue"]; allowed["fusectl"]; allowed["binfmt_misc"] }
+ allowed["tracefs"]; allowed["bpf"]; allowed["mqueue"]; allowed["fusectl"]; allowed["binfmt_misc"];
+ allowed["hugetlbfs"] }
  { separator=0; for (i=7;i<=NF;i++) if ($i=="-") { separator=i; break }
    if (!separator || separator+3!=NF || !($(separator+1) in allowed) || $3 !~ /^0:[0-9]+$/) exit 1
    if ($5=="/oldsys/proc" && $(separator+1)=="proc") seen_proc=1

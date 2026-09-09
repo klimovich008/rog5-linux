@@ -8039,3 +8039,33 @@ final teardown outcome or explain the missing receipt: observer refusal,
 whole-hook timeout and transport loss remain possible. The next source work
 must distinguish those outcomes before another admission; the consumed R01
 attempt remains immutable. R01 remains FAIL and S06 remains NOT RUN.
+
+
+### Conditional source mount parser correction
+
+A bounded independent offline review reproduced rejection of the retained
+phone's `hugetlbfs` row with the exact sealed BusyBox. Authenticated read-only
+inspection of the same installed boot identified systemd **261.2-1-arch** and
+bound its shutdown binary and both runtime records. Matching upstream source
+skips mounts below API filesystems during shutdown and recursively binds
+`/dev` into the exitrd. The new fixture models the possible transferred copies;
+it is not captured late-shutdown mountinfo. The physical missing receipt's
+cause remains unresolved.
+
+The complete observer reproduced the failure before the correction in
+**0.464951 s**, with no receipt. Adding `hugetlbfs` to the RAM/API allowlist
+preserves the zero-major check, unknown-filesystem refusal, attached-loop
+refusal and all 117 physical-node read-only checks. All **32** sealed cases
+passed in **28.435656 s**. The new cases cover ordinary and assembled
+hugetlbfs acceptance, a nonzero device-major refusal and a separate remaining
+physical mount. Existing network-failure and five-second observer-timeout
+fallback cases still pass. The original failed replay is retained privately.
+
+The test README now explicitly records two review findings: assembled cases
+simulate mountpoints as absent, so they do not prove moves, loop detachment or
+relocking; the real-netcat case creates addresses on isolated loopback, so it
+does not prove shutdown USB/IP survival. These limitations require a stateful
+teardown reproduction before a further physical source admission. The accepted
+shutdown, installed image, kernel and claims are unchanged. R01 remains FAIL;
+S06 remains NOT RUN. All four jobs for the preceding documentation checkpoint
+`163b627a` passed in GitHub run **34296025795**.

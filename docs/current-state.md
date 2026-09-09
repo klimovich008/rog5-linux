@@ -12,10 +12,19 @@ cause remains unresolved. No R01 RAM retry occurred; R01 stays FAIL and S06 NOT 
 
 The private coordinator passed 21 lifecycle cases, 34 admission cases and 11
 launcher cases in normal and optimized Python before entry. All four GitHub
-jobs passed for `7eabe293` in run **34291767561**. Full local CI for `193e1334`
-passed in **548.623 s**; the subsequent repository changes are status documentation.
+jobs passed for `163b627a` in run **34296025795**. Full local CI for `193e1334`
+passed in **548.623 s**; changes through `163b627a` were status documentation.
 Seven server rows and three separately reassessed rescue rows remain passing;
 these are not one qualified release. All phone controllers are closed.
+
+The offline source review reproduced a separate parser defect: the observer
+rejected the phone's RAM-backed `hugetlbfs` mount. The allowlist now accepts that
+filesystem while retaining the zero-major device check and all storage guards.
+All 32 exact sealed BusyBox cases passed, including physical-mount refusals and
+the generated shutdown hook. This does not establish the physical failure's
+cause. The fixture documents its simulated mount/loop operations and loopback
+network limitations; stateful teardown and physical transport remain unproven.
+No new phone transition or observer deployment accompanied this correction.
 
 ## Goal and authority
 

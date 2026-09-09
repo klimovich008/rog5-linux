@@ -36,7 +36,8 @@ def run(args):
        'file-symlink','checksum-extra','intent-extra','physical-mount','unknown-mount','missing-proc',
        'bad-mount-device','attached-loop','dangling-loop','sysfs-writable','ioctl-writable','wrong-node',
        'missing-node','missing-physical','extra-physical','network-fail','assembled-clean',
-       'assembled-unclean-shutdown','assembled-network-fail','assembled-network-hang','real-netcat')
+       'assembled-unclean-shutdown','assembled-network-fail','assembled-network-hang','real-netcat',
+       'hugetlbfs','hugetlbfs-physical-device','hugetlbfs-with-physical-mount','assembled-hugetlbfs')
     if args.case:
         if any(case not in cases for case in args.case):raise ValueError('unknown replay case')
         cases=tuple(args.case)
@@ -49,6 +50,13 @@ def run(args):
                           'oldsys/sys/class/block','oldsys/dev','usr/libexec'):(root/directory).mkdir(parents=True,exist_ok=True)
         (root/'oldsys/proc/sys/kernel/random/boot_id').write_text(BOOT+'\n')
         (root/'oldsys/proc/self/mountinfo').write_text(MOUNTS)
+        if 'hugetlbfs' in case:
+            p=root/'oldsys/proc/self/mountinfo'
+            raw=(R/'tests/fixtures/source-teardown/hugetlbfs.mountinfo').read_text()
+            if case=='hugetlbfs-physical-device':raw=raw.replace('0:35','259:58')
+            if case=='hugetlbfs-with-physical-mount':
+                raw+='90 1 259:58 / /residual rw - ext4 /dev/sda23 rw\n'
+            p.write_text(MOUNTS+raw)
         (root/'scenario').write_text(case.removeprefix('assembled-'))
         for i in range(117):
             node='sda'+(str(i) if i else '')
@@ -95,7 +103,7 @@ def run(args):
         done=subprocess.run(command,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=25)
         seconds=time.monotonic()-begin;(root/'stdout').write_bytes(done.stdout);(root/'stderr').write_bytes(done.stderr)
         receipt=(root/'receipt').read_bytes() if (root/'receipt').exists() else None
-        wants_receipt=case in ('clean','assembled-clean','real-netcat')
+        wants_receipt=case in ('clean','assembled-clean','real-netcat','hugetlbfs','assembled-hugetlbfs')
         valid=(receipt is not None)==wants_receipt
         if receipt is not None:M.parse(receipt,expected)
         if not assembled:valid &= (done.returncode==0)==wants_receipt
@@ -108,6 +116,7 @@ def run(args):
        seconds=time.monotonic()-started,cases=results,source_shutdown_sha256=M.sha(original),observer_sha256=expected['observer_sha256'],
        generated_shutdown_sha256=expected['shutdown_sha256'],busybox_sha256=M.sha(args.busybox.read_bytes()),
        replay_sha256=M.sha(Path(__file__).read_bytes()),shim_source_sha256=M.sha((R/'tests/fixtures/source-teardown/shim.c').read_bytes()),
+       hugetlbfs_fixture_sha256=M.sha((R/'tests/fixtures/source-teardown/hugetlbfs.mountinfo').read_bytes()),
        loader_sha256=M.sha(args.loader.read_bytes()),qemu_sha256=M.sha(args.qemu.read_bytes()),
        synthetic=['kernel identity','mountinfo','sysfs','device metadata','blockdev ioctl','network sender','mount operations','reboot helper'],
        phone_action=False,qualification_authority='none')
