@@ -24,13 +24,37 @@ def frame(spec):
         observer_sha256=spec['observer_sha256'],physical_nodes='117',mounts='clear',loops='clear',physical_ro='all',result='PASS')
     return ''.join(k+'='+v+'\n' for k,v in values.items()).encode()
 
-def diagnostic(spec,phase='teardown',clean='1',state='begin'):
+def diagnostic(spec,phase='teardown',clean='1',state='begin',reason=None):
     values=dict(format=M.DIAGNOSTIC_FORMAT,boot_id=BOOT,nonce=spec['nonce'],
         shutdown_sha256=spec['shutdown_sha256'],observer_sha256=spec['observer_sha256'],
-        phase=phase,clean=clean,state=state)
+        phase=phase,clean=clean,state=state,
+        reason=reason if reason is not None else ('none' if state=='begin' else 'check-failed'))
     return ''.join(k+'='+v+'\n' for k,v in values.items()).encode()
 
 class TeardownTest(unittest.TestCase):
+    def test_failure_categories_are_bounded_phase_specific_and_never_clean(self):
+        spec,_=prepared(diagnostics=True)
+        reasons=('mount-read','mount-command','mount-command:1','mount-command:2',
+            'mount-row:5','mount-filesystem:ext4:259:58','mount-filesystem:overlay:0:8',
+            'mount-filesystem:unknown:invalid','mount-device:259:58','mount-device:invalid',
+            'mount-missing:root','mount-missing:proc','mount-missing:sys','mount-missing:dev')
+        for reason in reasons:
+            raw=diagnostic(spec,'mounts',state='fail',reason=reason)
+            with self.subTest(reason=reason):
+                self.assertLessEqual(len(raw),512)
+                self.assertEqual(M.parse_diagnostic(raw,spec)['reason'],reason)
+                obs=M.Observation(spec,BOOT,100)
+                obs.diagnose(diagnostic(spec),101);obs.diagnose(diagnostic(spec,'mounts'),102)
+                obs.diagnose(raw,103)
+                with self.assertRaises(ValueError):obs.observe(frame(spec),104)
+                with self.assertRaises(ValueError):M.parse_diagnostic(diagnostic(spec,'loops',state='fail',reason=reason),spec)
+        for reason in ('none','mount-row:0','mount-command:0','mount-missing:other',
+                       'mount-filesystem:/private/path:259:58','mount-device:259:58\nextra=secret',
+                       'mount-filesystem:'+('x'*33)+':0:1'):
+            with self.subTest(reason=reason),self.assertRaises(ValueError):
+                M.parse_diagnostic(diagnostic(spec,'mounts',state='fail',reason=reason),spec)
+        with self.assertRaises(ValueError):M.parse_diagnostic(diagnostic(spec,'mounts',reason='mount-read'),spec)
+
     def test_diagnostics_are_opt_in_bound_and_do_not_change_timeout(self):
         plain,base=prepared();spec,files=prepared(diagnostics=True)
         self.assertNotIn('diagnostics',plain);self.assertIs(spec['diagnostics'],True)

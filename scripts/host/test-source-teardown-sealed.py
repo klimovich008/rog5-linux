@@ -24,6 +24,19 @@ MOUNTS=('1 0 0:1 / / rw - tmpfs tmpfs rw\n'
  '2 1 0:2 / /oldsys/proc rw - proc proc rw\n'
  '3 1 0:3 / /oldsys/sys rw - sysfs sysfs rw\n'
  '4 1 0:4 / /oldsys/dev rw - devtmpfs devtmpfs rw\n')
+MOUNT_FAILURES={
+    'physical-mount':'mount-filesystem:ext4:259:58',
+    'unknown-mount':'mount-filesystem:overlay:0:8',
+    'bad-mount-device':'mount-device:259:58',
+    'hugetlbfs-physical-device':'mount-device:259:58',
+    'hugetlbfs-with-physical-mount':'mount-filesystem:ext4:259:58',
+    'missing-root':'mount-missing:root','missing-proc':'mount-missing:proc',
+    'missing-sys':'mount-missing:sys','missing-dev':'mount-missing:dev',
+    'malformed-mount':'mount-row:5','mountinfo-missing':'mount-read',
+    'mountinfo-directory':'mount-read','mount-device-invalid':'mount-device:invalid',
+    'mount-awk-error':'mount-command:2','mount-awk-output':'mount-command',
+    'mount-awk-end-error':'mount-command:1',
+}
 STATEFUL=('stateful-clean','stateful-stopped-state','stateful-move-fail','stateful-root-busy',
           'stateful-detach-fail','stateful-detach-lies','stateful-wrong-backing','stateful-relock-fail',
           'stateful-order-loop0','stateful-order-loop1','stateful-order-relock','stateful-order-root',
@@ -131,6 +144,8 @@ def run(args):
        'hugetlbfs','hugetlbfs-physical-device','hugetlbfs-with-physical-mount','assembled-hugetlbfs',
        'assembled-receiver-poll')
     if args.diagnostics:cases+=('assembled-diagnostic-hang',)
+    cases+=tuple(case for case in MOUNT_FAILURES if case not in cases)
+    cases+=('assembled-mount-awk-hang',)
     if args.inert_block_node:
         node=args.inert_block_node
         metadata=node.lstat()
@@ -182,6 +197,17 @@ def run(args):
             if case=='bad-mount-device':raw=raw.replace('0:4','259:58')
             if case=='missing-proc':raw=''.join(line+'\n' for line in raw.splitlines() if '/oldsys/proc ' not in line)
             p.write_text(raw)
+        if case in ('missing-root','missing-sys','missing-dev','malformed-mount','mount-device-invalid'):
+            p=root/'oldsys/proc/self/mountinfo';raw=p.read_text()
+            if case.startswith('missing-'):
+                missing={'missing-root':'/','missing-sys':'/oldsys/sys','missing-dev':'/oldsys/dev'}[case]
+                raw=''.join(line+'\n' for line in raw.splitlines() if line.split()[4]!=missing)
+            elif case=='malformed-mount':raw+='5 1 malformed\n'
+            else:raw=raw.replace('0:4','invalid')
+            p.write_text(raw)
+        if case in ('mountinfo-missing','mountinfo-directory'):
+            p=root/'oldsys/proc/self/mountinfo';p.unlink()
+            if case=='mountinfo-directory':p.mkdir()
         if case in ('attached-loop','dangling-loop'):
             p=root/'oldsys/sys/class/block/loop0';p.mkdir()
             if case=='attached-loop':(p/'loop').mkdir()
@@ -233,16 +259,19 @@ def run(args):
             if case in ('unclean-flag','assembled-unclean-shutdown') or (stateful and
                 case not in ORDER_REFUSALS and case not in ('stateful-clean','stateful-stopped-state','stateful-journal-entry')):
                 phase='teardown'
-            elif case in ('physical-mount','unknown-mount','missing-proc','bad-mount-device',
-                          'hugetlbfs-physical-device','hugetlbfs-with-physical-mount'):phase='mounts'
+            elif case in MOUNT_FAILURES:phase='mounts'
             elif case in ('attached-loop','dangling-loop'):phase='loops'
             elif case in ('sysfs-writable','ioctl-writable','wrong-node','missing-node',
                           'missing-physical','extra-physical'):phase='physical'
             if phase:
                 valid &= bool(observations) and observations[-1]['record']['phase']==phase
                 valid &= bool(observations) and observations[-1]['record']['state']=='fail' and observation.failed
+                if case in MOUNT_FAILURES:valid &= observations[-1]['record']['reason']==MOUNT_FAILURES[case]
             elif case=='assembled-diagnostic-hang':
                 valid &= len(observations)==1 and observations[0]['record']['phase']=='teardown'
+                valid &= not observation.failed and 5<=seconds<8
+            elif case=='assembled-mount-awk-hang':
+                valid &= [v['record']['phase'] for v in observations]==['teardown','mounts']
                 valid &= not observation.failed and 5<=seconds<8
             elif not wants_receipt:valid &= not observations
         else:valid &= not list(root.glob('diagnostic-*'))

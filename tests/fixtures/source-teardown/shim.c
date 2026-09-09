@@ -1,6 +1,7 @@
 /* Synthetic kernel/device/network endpoints for the sealed BusyBox replay.
  * No physical devices, host proc, host networking or real reboot are exposed.
- * All parsing/file applets execute the supplied, unchanged AArch64 BusyBox. */
+ * Normal parsing/file applets execute the supplied, unchanged AArch64 BusyBox.
+ * Explicit mount-awk fault cases replace only that invocation's outcome. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,7 @@
 #include <net/if.h>
 static int save_frame(const char *buffer,int length) {
     char path[64]="/receipt";
-    const char *prefix="format=rog5-source-teardown-diagnostic-v1\n";
+    const char *prefix="format=rog5-source-teardown-diagnostic-v2\n";
     if(length>=(int)strlen(prefix) && !memcmp(buffer,prefix,strlen(prefix))) {
         int i;for(i=0;i<6;i++) {
             snprintf(path,sizeof(path),"/diagnostic-%d",i);
@@ -75,6 +76,14 @@ int main(int argc,char **argv) {
         FILE *f=fopen("/fallback","w");if(!f)return 90;fputs("requested\n",f);fclose(f);return 0;
     }
     if(argc<2)return 91;
+    if(!strcmp(argv[1],"awk") && !strcmp(argv[argc-1],"/oldsys/proc/self/mountinfo")) {
+        if(scenario("mount-awk-error")){fputs("fixture input error\n",stderr);return 2;}
+        if(scenario("mount-awk-output")){puts("unexpected fixture output");return 0;}
+        if(scenario("mount-awk-end-error")) {
+            fputs("fixture input error\n",stderr);puts("mount-missing:root");return 1;
+        }
+        if(scenario("mount-awk-hang")){sleep(20);return 1;}
+    }
     if(!strcmp(argv[1],"fixture-network") && scenario("receiver-poll")) {
         int s=socket(AF_INET,SOCK_STREAM,0);if(s<0)return 102;
         int result=setup_network(s);close(s);return result;

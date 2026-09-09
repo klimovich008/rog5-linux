@@ -1,49 +1,46 @@
 # ROG5 current state
 
-Updated 2026-09-09: source observation failed; installed service is healthy.
-One admitted RAM-only source observation received no clean-teardown receipt.
-It retained **1,380.567 s** of capture and passed all four host cleanup checks.
-A separately authenticated readback passed on the installed V8 return, including
-all twelve installed hashes, storage guards and health committed at **67.835 s**.
-The source failure and its early SSH connection timeout remain immutable.
-The exact source journal records an early busy userdata unmount, then successful
-persistent-state stop; it ends before exitrd observation. The missing receipt's
-cause remains unresolved. No R01 RAM retry occurred; R01 stays FAIL and S06 NOT RUN.
+Updated 2026-09-09: diagnostic source observation failed at its mount check;
+installed V8 returned healthy. The observer delivered `teardown begin (clean=1)`,
+`mounts begin`, then `mounts fail` before USB disconnect. It received no clean
+receipt and did not reach its loop or physical-node phases. The exact failing
+mount row or command error remains unknown; this does not establish corruption
+or the cause of R01. The earlier missing-receipt observation remains failed.
 
-The private coordinator passed 21 lifecycle cases, 34 admission cases and 11
-launcher cases in normal and optimized Python before entry. All four GitHub
-jobs passed for `163b627a` in run **34296025795**. Full local CI for `193e1334`
-passed in **548.623 s**; changes through `163b627a` were status documentation.
-Seven server rows and three separately reassessed rescue rows remain passing;
-these are not one qualified release. All phone controllers are closed.
+The full **1,380.837 s** diagnostic capture closed with all four host cleanup
+checks passing. The guarded installed return reached authenticated readiness
+after ten bounded probes and committed health at **64.169742 s**. The final authenticated readback passed
+all twelve installed hashes, healthy selection and 117-node storage guards.
+The independent terminal audit confirmed the failed source result and healthy
+return. All phone controllers and passive readers are closed. R01 remains FAIL
+with its experimental claim consumed; S06 remains NOT RUN.
 
-The offline source review reproduced a separate parser defect: the observer
-rejected the phone's RAM-backed `hugetlbfs` mount. The allowlist now accepts that
-filesystem while retaining the zero-major device check and all storage guards.
-All 32 exact sealed BusyBox cases passed, including physical-mount refusals and
-the generated shutdown hook. This does not establish the physical failure's
-cause. The fixture documents its simulated mount/loop operations and loopback
-network limitations. Stateful shell coverage is now recorded below; actual
-shutdown syscalls and physical transport remain unproven.
-No new phone transition or observer deployment accompanied this correction.
+The admitted diagnostic controller passed 28 lifecycle, 39 admission and 11
+launcher cases in both Python modes. Its staging and receipt components passed
+21 and 36 cases respectively in both modes. Full local CI for `030eea80` passed
+in **568.566 s**; all four GitHub jobs passed in run **34301218432**.
 
-The shutdown replay now includes 16 stateful cases alongside the original 32;
-all 48 passed in **50.455 s**. The unchanged shell moves modeled mounts,
-detaches loops, relocks 117 nodes and passes the exact clean flag to the observer.
-A journal-derived entry case covers already-unmounted root/state filesystems
-with the overlay loop still attached. Seven independent refusal cases validate
-the model's ordering constraints; six injected failures preserve clean=0 and
-fallback. This is synthetic kernel state, not physical R01 or transport evidence.
-All four GitHub jobs for `f0f7f463` passed in run **34297118247**.
+A mount-only review found no additional parser defect: the exact sealed BusyBox
+accepted the retained mount table transformed through the successful teardown
+model and rejected eight negative controls. Fresh host namespaces preserved
+root/API mount witnesses through real pivot and forced bind/move/chroot paths
+with exitrd as a tmpfs subdirectory. These use tmpfs substitutes and do not
+reconstruct the phone's final mount table. No allowlist relaxation is justified.
 
-Opt-in phase diagnostics now report verified observer progress and normal
-refusals without granting teardown authority. The unchanged five-second bound
-covers every send and failure trap. Default and diagnostic sealed regressions
-passed 48 and 49 cases; the added exact sender/Receiver.poll integration passed
-in **1.856 s**, including all six messages, event fsyncs and fallback. Protocol
-coverage rejects missing, stale, unordered and failed progress. No diagnostic
-mode has been deployed or admitted. Absent messages can still mean timeout or
-transport loss; they never establish a clean source teardown.
+Opt-in diagnostic version 2 now reports bounded mount failure categories:
+read/command failure, malformed row, filesystem/device rejection, or missing
+root/API witness. It preserves the mount allowlist, zero-major check, required
+witnesses, separate clean receipt and original five-second bound. Default and
+diagnostic sealed regressions passed **60 / 61 cases** in **61.604 / 71.173 s**;
+protocol tests passed in both Python modes. Command-fault fixtures distinguish
+stderr alongside misleading END output and retain bounded fallback on a hang.
+This diagnostic version has not been admitted or deployed.
+
+The earlier `hugetlbfs` allowlist correction remains a separately reproduced
+parser fix. Its relation to the original physical missing receipt is unproven.
+Stateful replay still executes the unchanged accepted shutdown across clean,
+already-stopped and injected-failure layouts, including 117-node relocking.
+These synthetic models do not qualify a physical release.
 
 ## Goal and authority
 
@@ -64,17 +61,18 @@ Private credentials, packages and raw evidence remain outside Git.
 ## Running release and recovery
 
 Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary boot `8e761c2b-5d7c-4e98-9015-f6b8335e99d2`. Pinned SSH on `10.77.0.2`,
+ordinary boot `5b2d6bc3-53c2-4349-a7b8-7586654b21f9`. Pinned SSH on `10.77.0.2`,
 current-boot health, exact healthy selection, protected storage and all twelve
-installed-file hashes passed after the source capture closed. Health
-committed at **67.835089 s**; the read-only observation was at **1,337.280 s**.
-Battery was Good, **30.1°C / 8.647 V**, USB online; thermal maximum **35.8°C**.
-All 117-node storage guards passed. The original shutdown file is restored by
-the installed boot, exitrd is tmpfs, the restart provider is bound and no source
-observer staging remains. The failed source boot was
-`5a980548-a759-41d2-a566-58b7541e256b`; it reached fastboot after **11.953 s**.
-One guarded ordinary fastboot reboot returned the installed system. The late
-readback establishes current health without relabelling the failed observation.
+installed-file hashes passed after the diagnostic capture closed. Health
+committed at **64.169742 s**; final readback was at **1,337.110 s** uptime.
+Battery was Good, **30.0°C / 8.646 V**, Full 100%, USB online. All 117-node storage
+guards passed. The original shutdown is restored, exitrd is tmpfs, the restart
+provider is bound and no source observer staging remains.
+
+The diagnostic source boot was `8e761c2b-5d7c-4e98-9015-f6b8335e99d2`; it
+reached fastboot **11.495 s** after the single source request. One guarded
+ordinary fastboot reboot returned the installed system. The failed source
+observation and healthy installed return remain distinct outcomes.
 
 V11 boot `96c3e790-a422-4723-b9ca-a5039da2a14a` provided the separately guarded
 selection restoration. The later ordinary smoke remains FAIL because capture

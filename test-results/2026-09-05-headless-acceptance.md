@@ -8139,3 +8139,54 @@ This exercises isolated loopback and synthetic kernel data, not physical USB.
 The accepted installed shutdown, kernel, root images and consumed claims remain
 unchanged. New private controller integration and fresh admission are still
 required before another source observation. R01 remains FAIL; S06 NOT RUN.
+
+
+## Diagnostic source observation and bounded mount failure categories — 2026-09-09
+
+Source `030eea807af50eda4a8afae3c3a0d39ab2abbc9c` passed full local CI in
+568.566 s and all four GitHub jobs in run 34301218432. The private diagnostic
+controller passed 28 lifecycle, 39 admission and 11 launcher cases in normal
+and optimized Python; staging and receipt checks passed 21 and 36 respectively.
+One admitted RAM-only source observer was staged on installed V8 boot
+`8e761c2b-5d7c-4e98-9015-f6b8335e99d2`, without executing a RAM trial.
+
+The source delivered `teardown begin (clean=1)` at 6.068 s, `mounts begin` at
+6.081 s and `mounts fail` at 6.093 s after entry. No clean receipt arrived.
+This proves a mount-phase command refusal, not the exact row/error or corruption;
+the loop and physical-node observer phases were not reached. Fastboot appeared
+after 11.495 s. One guarded ordinary reboot returned V8 boot
+`5b2d6bc3-53c2-4349-a7b8-7586654b21f9`. Ten bounded readiness probes led to
+authenticated readiness; health committed at 64.169742 s. The full 1,380.837 s
+capture and all route/firewall/profile/address cleanup checks completed. Final
+readback at 1,337.110 s uptime passed installed bytes, healthy selection,
+117-node storage guards, original shutdown and absent staging. Battery was
+Good, Full 100%, 30.0°C / 8.646 V, USB online. The independent terminal audit
+confirmed the source FAIL and healthy installed return. All controllers closed.
+
+A bounded offline review found no new defect in the mount predicate: a transformed
+retained table passed exact BusyBox, while eight negative controls refused.
+Host-only syscall probes with exitrd as a tmpfs subdirectory preserved root/API
+witnesses through real pivot and forced bind/move/chroot fallback. Tmpfs stands
+in for device/sysfs/old-root mounts; this is not the deployed systemd/kernel
+execution or the unknown final phone mount table. The initial namespace fixture
+CAP_SYS_CHROOT omission was preserved before its corrected replay. No allowlist
+weakening follows from these results.
+
+Diagnostic v2 adds a bounded failure reason, including filesystem/device numbers
+or the missing required witness, without sending paths or mount options. The
+same allowlist, zero-major guard, required mounts and separate clean receipt
+remain mandatory. Exact sealed regressions passed 60 default cases in 61.604 s
+and 61 diagnostic cases in 71.173 s; 14 protocol tests passed in each Python
+mode. Fault cases cover missing/directory mountinfo, malformed rows, missing
+witnesses, command status/output, stderr plus misleading END output, and an
+assembled mount-applet hang. The hang retains preceding phase records and still
+reaches fallback within the original five-second observer bound. A subsequent
+fixture-comment clarification rebuilt to exactly the same tested executable.
+The accepted installed shutdown and kernel/archive artifacts are unchanged.
+Diagnostic v2 has not been admitted or deployed.
+
+Private evidence: `source-diagnostic-terminal-assessment-r1`,
+`source-diagnostic-observation-live-r1`, `source-mount-predicate-review-r1`,
+`source-mount-namespace-review-r1`, `source-mount-detail-tests-r1`, and
+`source-mount-detail-comment-binding-r1`. R01 remains FAIL with its claim consumed;
+S06 remains NOT RUN. These observations do not qualify one coherent release.

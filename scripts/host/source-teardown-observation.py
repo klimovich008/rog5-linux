@@ -9,9 +9,12 @@ import stat
 
 FORMAT='rog5-source-teardown-v1'
 INTENT_FORMAT='rog5-source-teardown-intent-v1'
-DIAGNOSTIC_FORMAT='rog5-source-teardown-diagnostic-v1'
+DIAGNOSTIC_FORMAT='rog5-source-teardown-diagnostic-v2'
 PHASES=('teardown','mounts','loops','physical','receipt')
-DIAGNOSTIC_KEYS=('format','boot_id','nonce','shutdown_sha256','observer_sha256','phase','clean','state')
+DIAGNOSTIC_KEYS=('format','boot_id','nonce','shutdown_sha256','observer_sha256','phase','clean','state','reason')
+MOUNT_REASON=re.compile(r'mount-(?:read|row:[1-9][0-9]{0,8}|command(?::[1-9][0-9]{0,2})?|'
+    r'filesystem:[A-Za-z0-9_.-]{1,32}:(?:[0-9]{1,10}:[0-9]{1,10}|invalid)|'
+    r'device:(?:[0-9]{1,10}:[0-9]{1,10}|invalid)|missing:(?:root|proc|sys|dev))')
 HEX=re.compile('[0-9a-f]{64}')
 BOOT=re.compile('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}')
 KEYS=('format','boot_id','nonce','shutdown_sha256','observer_sha256',
@@ -66,6 +69,13 @@ def parse_diagnostic(raw,expected):
     require(value['phase'] in PHASES and value['clean'] in ('0','1') and value['state'] in ('begin','fail'),
         'source diagnostic values')
     require(value['clean']=='1' or value['phase']=='teardown','unclean source diagnostic phase')
+    if value['state']=='begin':
+        require(value['reason']=='none','source begin diagnostic claims a failure')
+    else:
+        require(value['reason']=='check-failed' or
+            (value['phase']=='teardown' and value['clean']=='0' and value['reason']=='unclean') or
+            (value['phase']=='mounts' and MOUNT_REASON.fullmatch(value['reason'])),
+            'source diagnostic failure reason')
     return value
 
 def read_intent(path,pin):
