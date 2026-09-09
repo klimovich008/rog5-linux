@@ -8069,3 +8069,39 @@ teardown reproduction before a further physical source admission. The accepted
 shutdown, installed image, kernel and claims are unchanged. R01 remains FAIL;
 S06 remains NOT RUN. All four jobs for the preceding documentation checkpoint
 `163b627a` passed in GitHub run **34296025795**.
+
+
+### Stateful shutdown shell replay
+
+The optional replay now binds only an inert mode-000 block node with major/minor
+0:0 for the unchanged shell's block-device metadata checks. Synthetic handlers
+intercept mount, loop and blockdev operations without opening the node or
+issuing storage ioctls. The unprivileged namespace could not create the inode;
+a fixed, host-bound local setup created it separately. An interrupted setup
+had no surviving process or inode; both that observation and the completed
+setup are retained. No phone controller or storage device was involved.
+
+Three successful entry layouts execute the exact accepted shutdown through the
+bounded observer and fallback: all modeled mounts present, service state
+already stopped, and the journal-derived layout. The retained source journal
+records root-ro unmounted at **11,771.762760 s**, state at **11,771.774647 s**,
+and persist at **11,771.777345 s**, while userdata-rw was busy. The journal-derived
+model leaves loop0 attached until the overlay root releases its reference.
+It is an inferred entry layout, not captured exitrd mountinfo.
+
+The fixture tracks each operation, updates mountinfo, backing files and RO flags,
+and checks unmount/detach/relock ordering, exactly 117 relocks and final state.
+Six injected failures cover move, old-root unmount, wrong backing file, failed
+loop detach, false detach success and failed relocking. Every case verifies the
+actual clean=0 observer argument, absent receipt and fallback. Seven direct
+ordering violations must return the intended refusal status 1 without changing
+state; fixture errors cannot count as refusals.
+
+Independent review identified the missing journal-derived shape and loose
+nonzero-status acceptance; both were corrected. All **48** original and new
+cases passed in **50.454520 s**. Clean stateful cases took **4.475029 s**,
+**4.484646 s** and **4.561105 s**. Original intermediate results remain private.
+The production shutdown and observer bytes did not change in this fixture
+update. The modeled filesystem contents already occupy destination paths;
+actual Linux mount propagation, loop syscalls, UFS and shutdown USB/IP survival
+remain outside its proof. R01 remains FAIL and S06 NOT RUN.
