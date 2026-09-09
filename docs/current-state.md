@@ -1,25 +1,21 @@
 # ROG5 current state
 
-Updated 2026-09-09: RAM staging components rehearsed; source rechecked without mutation.
-The last retained health, readiness, storage and twelve-file readback passed.
-The optional RAM-only source observer now requires positively bound clean teardown
-evidence. Sealed BusyBox tests cover refusals, bounded fallback and isolated TCP;
-physical shutdown transport and controller admission integration remain unproven.
-Private staging/restore actions passed 21 namespace scenarios; receipt bindings
-passed 26 cases, each in both Python modes. The host coordinator is not assembled.
-All four GitHub jobs passed for `b8040b3c` in run **34289812239**.
-Full local CI for `193e1334` passed in **548.623 seconds**, with unchanged source.
-Physical R01 remains FAIL; S06 remains NOT RUN.
-The observer corrections passed full local and GitHub CI. S06 now has an offline
-powered-off-start evidence runner; its shared integration passed full local CI
-in 539.516 seconds. The final earlier-boot assertion passed fifteen focused tests
-in both Python modes. The observer compatibility correction now replays the preserved S01/S05 evidence
-with its original producer hashes and current behavior checks. Transfer, restart,
-durability and soak replays pass in the clean-source assessment. Seven server
-rows passed; three rescue rows passed a separate reassessment after refreshing
-the exact rescue composition proof. The first assessment remains FAIL. Full local
-CI and all four GitHub jobs passed on `43d4f864`. Physical off/start setup remains
-unprepared; R01 remains FAIL and S06 remains NOT RUN.
+Updated 2026-09-09: source observation failed; installed service is healthy.
+One admitted RAM-only source observation received no clean-teardown receipt.
+It retained **1,380.567 s** of capture and passed all four host cleanup checks.
+A separately authenticated readback passed on the installed V8 return, including
+all twelve installed hashes, storage guards and health committed at **67.835 s**.
+The source failure and its early SSH connection timeout remain immutable.
+The exact source journal records an early busy userdata unmount, then successful
+persistent-state stop; it ends before exitrd observation. The missing receipt's
+cause remains unresolved. No R01 RAM retry occurred; R01 stays FAIL and S06 NOT RUN.
+
+The private coordinator passed 21 lifecycle cases, 34 admission cases and 11
+launcher cases in normal and optimized Python before entry. All four GitHub
+jobs passed for `7eabe293` in run **34291767561**. Full local CI for `193e1334`
+passed in **548.623 s**; the subsequent repository changes are status documentation.
+Seven server rows and three separately reassessed rescue rows remain passing;
+these are not one qualified release. All phone controllers are closed.
 
 ## Goal and authority
 
@@ -40,14 +36,17 @@ Private credentials, packages and raw evidence remain outside Git.
 ## Running release and recovery
 
 Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary boot `5a980548-a759-41d2-a566-58b7541e256b`. Pinned SSH on `10.77.0.2`,
-current-boot readiness/health, exact healthy selection, protected storage and all
-twelve installed-file hashes passed a fresh read-only check. Health committed
-at **64.057 s**; the fresh read-only source observation was at **9,660.610 s**.
-Battery was Good, **30.2°C / 8.643 V**, USB online; thermal maximum 37.1°C.
-All twelve installed hashes, 117-node storage scope, healthy selection and the
-original shutdown file passed. The exitrd is tmpfs, the restart provider is bound,
-and no source observer has been staged. All controllers are closed.
+ordinary boot `8e761c2b-5d7c-4e98-9015-f6b8335e99d2`. Pinned SSH on `10.77.0.2`,
+current-boot health, exact healthy selection, protected storage and all twelve
+installed-file hashes passed after the source capture closed. Health
+committed at **67.835089 s**; the read-only observation was at **1,337.280 s**.
+Battery was Good, **30.1°C / 8.647 V**, USB online; thermal maximum **35.8°C**.
+All 117-node storage guards passed. The original shutdown file is restored by
+the installed boot, exitrd is tmpfs, the restart provider is bound and no source
+observer staging remains. The failed source boot was
+`5a980548-a759-41d2-a566-58b7541e256b`; it reached fastboot after **11.953 s**.
+One guarded ordinary fastboot reboot returned the installed system. The late
+readback establishes current health without relabelling the failed observation.
 
 V11 boot `96c3e790-a422-4723-b9ca-a5039da2a14a` provided the separately guarded
 selection restoration. The later ordinary smoke remains FAIL because capture
