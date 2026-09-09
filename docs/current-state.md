@@ -1,37 +1,43 @@
 # ROG5 current state
 
-Updated 2026-09-09: the source observer identified residual userdata ext4
-(`259:58`, mapped to `/dev/sda23`) after shutdown reported `clean=1`.
-It refused the mount and produced no clean receipt. The exact final mount
-path and the cause of R01 remain unproven. The full **1380.589 s** capture
-closed with route/firewall/profile/address cleanup PASS. Installed V8 returned
-healthy as `545c66d9-35d7-47d9-9432-b54aaffbfcac`; health committed at
-**68.113736 s**. Final authenticated readback passed
-all twelve installed hashes, 117-node storage guards and absence of staging.
-The independent terminal audit confirmed the source failure and healthy return.
+Updated 2026-09-09: the corrected RAM-only shutdown passed its physical source
+component. Its clean receipt reported mounts and loops clear, with all **117**
+physical block nodes read-only. Fastboot followed in **11.801 s**.
+One guarded ordinary reboot returned installed V8 as `a60a8d6d-5dda-4e15-9ab3-d46fb015ecf2`;
+health committed at **65.542382 s**. The complete **1380.848 s**
+capture and route/firewall/profile/address cleanup passed. Final authenticated
+readback passed installed bytes, healthy selection, storage guards and absence
+of staging at **1336.860 s** uptime. Independent terminal replay passed.
 All phone controllers are closed. R01 remains FAIL with its claim consumed;
 S06 remains NOT RUN. One coherent release is not yet qualified.
 
-This observation used source `a7cfc4df`, full local CI **568.022 s**, and all four
-GitHub jobs PASS in run **34304492120**. Its private admission passed 57 cases
-in both Python modes; component checks remained bound to the exact source.
+This observation used frozen source `6e7402e2`: full local CI **582.141 s**,
+all four GitHub jobs PASS in run **34307973735**, 64 admission cases and nine
+assembly cases in both Python modes. Private action/receipt/controller/launcher
+checks passed 22/36/28/11 cases per mode. The clean source receipt is component
+evidence; it does not establish the original R01 cause or autonomous fallback.
 
-A real namespace reproduction found a compatibility defect: systemd v261.2 can
-move a busy userdata mount to `/run/shutdown/mounts/<16 lowercase hex>`. The
-previous fixed-path helpers skip it after `/run` moves into exitrd. RAM mounts,
-real pivot/move syscalls and sealed BusyBox reproduced the skip. The physical
-diagnostic does not prove that final path or loop autoclear on the phone.
+The preceding diagnostic refused residual userdata ext4 (`259:58`, `/dev/sda23`)
+after the old shutdown reported clean. A real namespace reproduction showed
+that systemd's relocation of a busy mount could bypass fixed-path cleanup.
+The correction accepts only one recorded root ext4 userdata mount at its
+canonical or exact systemd relocation path, verifies node and reachable-device
+identity, strictly unmounts, verifies disappearance, then relocks storage.
+Sealed regression passed **71 default / 72 diagnostic cases**. The corrected
+shutdown is in source and was tested from RAM; installed shutdown, kernel,
+root images, signed fallback and consumed experimental claims remain unchanged.
 
-The source correction resolves only the recorded userdata device, checks its
-node/sysfs identity, and accepts one root ext4 mount at the canonical or exact
-systemd relocation path. It rejects duplicates and covered/foreign mounts,
-strictly unmounts, verifies disappearance, then relocks storage. Existing loop
-backing-path checks and observer refusal remain mandatory. Sealed regression
-passed **71 default / 72 diagnostic cases** in **72.118 / 86.585 s**;
-overlay and native-kexec checks passed. Integration full CI is pending.
-The correction is not deployed: the accepted installed shutdown, kernel,
-root images and consumed claims remain unchanged. A later corrected RAM-only
-source observation needs new explicit producer/baseline bindings and admission.
+S06 preparation also exposed two host-side defects. S05/S06 replay now derives
+executed shutdown identity from the canonical installed release while keeping
+observer-source provenance separate. A scoped `--powered-off-start` receiver
+mode reserves the contract's extra 60-second operator transition: 1440-second
+capture lifetime, unchanged 1320-second recovery requirement and 1380-second
+S06 remaining/deadline gates. The mode is bound on start and check and excludes
+experimental source-teardown captures. S05/S06/receiver tests passed 11/19/42
+cases in both modes; ordinary smoke passed 23. Retained real S05 replay passed
+in 0.711 s with its original input index unchanged. Integration full CI is pending.
+No powered-off cycle is admitted; direct operator input and a reviewed live
+controller are still required.
 
 ## Goal and authority
 
@@ -52,17 +58,16 @@ Private credentials, packages and raw evidence remain outside Git.
 ## Running release and recovery
 
 Running bundle `headless-server-selector-v8`, kernel `7.1.4-gf17befd4ef17`,
-ordinary boot `545c66d9-35d7-47d9-9432-b54aaffbfcac`. Pinned SSH, current-boot
-health, exact healthy selection, protected storage and all twelve installed
-hashes passed after the source capture closed. Health committed at
-**68.113736 s**; final readback was at **1336.770 s** uptime.
-The original installed shutdown is restored, exitrd is tmpfs, the restart
-provider is bound and no source observer staging remains.
+ordinary boot `a60a8d6d-5dda-4e15-9ab3-d46fb015ecf2`. Pinned SSH, current-boot health,
+healthy selection, protected storage and all twelve installed hashes passed
+again after full capture closure. Health committed at **65.542382 s**;
+final readback was at **1336.860 s** uptime. The original installed shutdown
+is present, exitrd is tmpfs, the restart provider is bound and staging is absent.
 
-Source boot `5b2d6bc3-53c2-4349-a7b8-7586654b21f9` delivered the userdata ext4
-refusal with `clean=1` and reached fastboot **11.659 s** after the
-single source request. One guarded ordinary fastboot reboot returned installed
-V8. Its healthy return does not repair the failed source result or qualify R01.
+Source boot `545c66d9-35d7-47d9-9432-b54aaffbfcac` produced one clean
+source teardown receipt using the corrected RAM shutdown and reached fastboot
+in **11.801 s**. The subsequent installed return and full capture
+passed independently. This does not qualify R01 or retry a consumed RAM claim.
 
 V11 boot `96c3e790-a422-4723-b9ca-a5039da2a14a` provided the separately guarded
 selection restoration. The later ordinary smoke remains FAIL because capture

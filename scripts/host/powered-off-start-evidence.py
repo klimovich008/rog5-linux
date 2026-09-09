@@ -160,8 +160,11 @@ def evaluate(args,base):
         'initramfs/persistent-root-shutdown-standalone','scripts/host/powered-off-start-evidence.py',
         'scripts/host/repeated-boot-evidence.py')
     for path in dependencies:
-        require(subprocess.check_output(['git','-C',str(base.R),'show',revision+':'+path],timeout=5)==
-            (base.R/path).read_bytes(),'changed observed dependency: '+path)
+        original=base.original_bytes(source,path)
+        # Observer provenance remains frozen. Executed shutdown bytes belong to
+        # the canonical installed release, independently of development HEAD.
+        if path!='initramfs/persistent-root-shutdown-standalone':
+            require(original==(base.R/path).read_bytes(),'changed observed dependency: '+path)
     old=json.loads(subprocess.check_output(['git','-C',str(base.R),'show',revision+':configs/release-acceptance.json'],timeout=5))
     current=base.ROOT.D.CAPTURE.ACCEPTANCE.load_contract()
     require(all(old['defaults'][key]==current['defaults'][key] for key in ('ordinary_smoke','rescue_capture','powered_off_start'))
@@ -177,13 +180,15 @@ def evaluate(args,base):
     require(len(probes)==1 and isinstance(probes[0],str),'exact health probe missing')
     producers={key:base.sha(raw[key+'_source']) for key in ('coordinator','preflight','health')}
     producers.update(baseline_proof=base.sha(raw['baseline_proof']),receiver=base.sha((base.R/dependencies[2]).read_bytes()),
-        deployed=base.sha((base.R/dependencies[0]).read_bytes()),shutdown=base.sha((base.R/dependencies[4]).read_bytes()))
+        deployed=base.sha((base.R/dependencies[0]).read_bytes()),
+        shutdown=base.ROOT.D.expected_files(args.candidate)['shutdown']['sha256'])
     boot=run['boot'];c=boot['context'];physical_data=c['physical']
     require(c['source']==source and physical_data['operator']==d['operator'] and physical_data['samples']==d['off_samples']
         and physical_data['host_boot_id']==d['receiver']['host_boot_id'],'unbound physical observations')
     capture=current['defaults']['rescue_capture']
     full_window=sum(capture[key] for key in ('recovery_seconds','target_rollback_seconds','cleanup_seconds'))
-    require(base.number(d['receiver']['deadline_monotonic'])>=
+    require(d['receiver'].get('powered_off_start') is True
+        and base.number(d['receiver']['deadline_monotonic'])>=
         c['entry_monotonic']+timing()['transition_seconds']+full_window
         and base.number(d['receiver_check']['remaining_seconds'])>=full_window+timing()['transition_seconds'],
         'failure capture does not cover the operator transition and full recovery window')

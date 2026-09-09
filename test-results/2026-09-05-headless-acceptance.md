@@ -8245,3 +8245,45 @@ test fixture: inherited umask 0077 changed its requested 0755 directory to 0700,
 so the expected loose-parent refusal was not exercised. The fixture now sets
 0755 explicitly. The failed CI log remains retained; the next run uses the
 same 0022 child-process mask as the prior successful CI environment.
+
+
+## 2026-09-09 corrected source shutdown and S06 prerequisites
+
+Frozen `6e7402e230cc9731b9fcb56d78dbbabd415b9c7c` passed full local CI in
+582.141 s with unchanged source and the terminal marker, then all four GitHub
+jobs in run 34307973735. Corrected RAM staging retained the accepted installed
+shutdown as its independent backup/restore baseline. Action/receipt/controller/
+launcher cases passed 22/36/28/11 in both Python modes; admission passed 64 and
+assembly passed nine. Review closed stale test-proof binding and diagnostic
+transport gaps before the one-use observation.
+
+Source boot `545c66d9-35d7-47d9-9432-b54aaffbfcac` emitted the complete teardown,
+mounts, loops, physical and receipt diagnostic sequence, then one clean receipt:
+mounts clear, loops clear, all 117 physical nodes read-only. Fastboot arrived
+11.801 s after the single source request. One guarded ordinary
+fastboot reboot returned `a60a8d6d-5dda-4e15-9ab3-d46fb015ecf2`; authenticated readiness used
+10 bounded probes and health committed at 65.542382 s.
+The full capture lasted 1380.848 s and all four host cleanup
+checks passed. Final readback at 1336.860 s uptime verified all twelve installed
+hashes, healthy selection, 117-node storage guards, original shutdown and no
+staging. The independent terminal audit reproduced the component receipt and
+healthy installed return. Controller and capture are closed.
+
+This demonstrates the corrected source teardown component on hardware. It does
+not prove the old physical mount path or the original R01 cause. Exact extraction
+of the preserved negative target's init matched the current template after its
+six original substitutions. Its final-storage refusal preceded switch_root and
+the intended health-identity rollback test; the journal count alone identifies
+neither a filesystem nor corruption. R01 remains FAIL and its claim consumed.
+
+S06 preparation reproduced two host-side blockers: development shutdown bytes
+were substituted for canonical installed identity, and the original 1380-second
+receiver could not retain 1380 seconds at a later check. The scoped correction
+binds canonical installed shutdown separately from observer provenance and adds
+the contract-derived 60-second powered-off transition allowance. Start and check
+bind the opt-in mode; ordinary/RAM modes cannot silently reuse it. Recovery and
+S06 remaining/deadline checks remain unchanged. Focused S05/S06/receiver suites
+passed 11/19/42 cases in normal and optimized Python; ordinary smoke passed 23.
+Retained real S05 replay passed in 0.711 s using its unchanged pinned input index.
+No kernel rebuild, archive replacement or powered-off operation occurred.
+Integration full CI is pending; S06 still needs its physical controller/operator.

@@ -33,9 +33,10 @@ def fixture():
     end.update(operation='powered-off-start-smoke',poweroff_returncode=end.pop('reboot_returncode'))
     def add(key,value):d[key]=value;raw[key]=json.dumps(value).encode()
     add('operator',operator);add('off_samples',samples)
-    add('receiver',dict(d['receiver'],host_boot_id=host,deadline_monotonic=d['receiver']['deadline_monotonic']+90))
+    add('receiver',dict(d['receiver'],host_boot_id=host,powered_off_start=True,
+        deadline_monotonic=d['receiver']['deadline_monotonic']+P.timing()['transition_seconds']))
     add('receiver_check',dict(d['receiver_check'],receipt_sha256=B.sha(raw['receiver']),
-        remaining_seconds=d['receiver_check']['remaining_seconds']+90))
+        remaining_seconds=d['receiver_check']['remaining_seconds']+P.timing()['transition_seconds']))
     add('entry',dict(d['entry'],operation='installed release power-off and one operator start; no reboot substitution',
         receiver_receipt_sha256=B.sha(raw['receiver'])))
     add('close_intent',dict(d['close_intent'],context=c,decision=P.eligibility(base,c),
@@ -122,8 +123,12 @@ class EnvelopeTests(unittest.TestCase):
                 with patch.object(B,'evaluate') as baseline:
                     with self.assertRaises(ValueError):P.evaluate(args,B)
                     baseline.assert_not_called()
-    def test_complete_envelope_replays_all_raw_bindings(self):
+    def complete_envelope(self, shutdown=None, changed_observer=False, capture_change=None,
+                          historical_shutdown=False):
         v=fixture();boot,d,raw,baseline,record,producers,probe=v
+        if capture_change=='mode':d['receiver']['powered_off_start']=False
+        if capture_change=='remaining':d['receiver_check']['remaining_seconds']=1379
+        if capture_change=='deadline':d['receiver']['deadline_monotonic']=boot['context']['entry_monotonic']+1379
         boot['context']['source']['worktree_digest']=B.sha(boot['context']['source']['revision'].encode())
         manifest=b'kernel_sha256='+b'a'*64+b'\ndtb_sha256='+b'b'*64+b'\ninitramfs_sha256='+b'e'*64+b'\n'
         record['manifest_sha256']=B.sha(manifest)
@@ -133,7 +138,7 @@ class EnvelopeTests(unittest.TestCase):
         producers.update({key:B.sha(value) for key,value in sources.items()})
         producers.update(receiver=B.sha((HERE/'headless-stage-receiver.py').read_bytes()),
             deployed=B.sha((HERE/'check-deployed-server.py').read_bytes()),
-            shutdown=B.sha((B.R/'initramfs/persistent-root-shutdown-standalone').read_bytes()))
+            shutdown=shutdown or B.sha(b'canonical installed shutdown'))
         d['preflight'].update(observer_sha256=producers['preflight'],shutdown_sha256=producers['shutdown'])
         d['receiver']['receiver_sha256']=producers['receiver'];d['readiness']['runner_sha256']=producers['deployed']
         d['health']['runner_sha256']=producers['health'];d['entry']['supervisor_sha256']=producers['coordinator']
@@ -159,7 +164,12 @@ class EnvelopeTests(unittest.TestCase):
         s05=dict(status='PASS',s05_qualified=True,identity=baseline['identity'])
         raw['run']=json.dumps(dict(source=boot['context']['source'],status='POWERED_OFF_COMPONENT_PASS',
             s06_qualified=False,release_qualified=False,s05=s05,boot=boot,started_monotonic=80,finished_monotonic=198)).encode()
-        def original(command,**kwargs):return (B.R/command[-1].split(':',1)[1]).read_bytes()
+        def original(command,**kwargs):
+            path=command[-1].split(':',1)[1]
+            if changed_observer and path=='scripts/host/check-deployed-server.py':return b'changed observer'
+            if historical_shutdown and path=='initramfs/persistent-root-shutdown-standalone':
+                return b'historical development shutdown'
+            return (B.R/path).read_bytes()
         canonical=''.join(k+'='+value+'\n' for k,value in record.items()).encode()
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);files={}
@@ -171,12 +181,28 @@ class EnvelopeTests(unittest.TestCase):
                 artifact_hashes=','.join(k+'='+value for k,value in hashes.items()))
             with patch.object(B,'evaluate',return_value=baseline), patch.object(B,'load',return_value=SimpleNamespace(evaluate=lambda a:s05)), \
                  patch.object(P.subprocess,'check_output',side_effect=original), \
-                 patch.object(B.ROOT.D.CAPTURE.CLAIMS,'expected_record',return_value=canonical):
+                 patch.object(B.ROOT.D.CAPTURE.CLAIMS,'expected_record',return_value=canonical), \
+                 patch.object(B.ROOT.D,'expected_files',return_value={'shutdown':{'sha256':B.sha(b'canonical installed shutdown')}}):
                 result=P.evaluate(args,B)
                 self.assertTrue(result['s06_qualified']);self.assertFalse(result['release_qualified'])
                 self.assertEqual(result['observed_seconds'],118)
                 self.assertEqual(result['physical']['off_seconds'],12)
                 self.assertEqual(set(result['evidence_sha256']),P.ROLES)
+    def test_complete_envelope_replays_canonical_installed_shutdown(self):
+        self.complete_envelope()
+    def test_historical_shutdown_source_keeps_canonical_installed_binding(self):
+        self.complete_envelope(historical_shutdown=True)
+    def test_current_or_arbitrary_shutdown_cannot_replace_installed_identity(self):
+        for shutdown in (B.sha((B.R/'initramfs/persistent-root-shutdown-standalone').read_bytes()), '0'*64):
+            with self.subTest(shutdown=shutdown), self.assertRaisesRegex(ValueError,'shutdown changed'):
+                self.complete_envelope(shutdown)
+    def test_changed_observer_still_refused(self):
+        with self.assertRaisesRegex(ValueError,'changed observed dependency: scripts/host/check-deployed-server.py'):
+            self.complete_envelope(changed_observer=True)
+    def test_opt_in_and_both_full_failure_window_gates_remain_required(self):
+        for change in ('mode','remaining','deadline'):
+            with self.subTest(change=change),self.assertRaisesRegex(ValueError,'failure capture'):
+                self.complete_envelope(capture_change=change)
     def test_runtime_dispatch_uses_off_validator(self):
         runtime=load('cold_runtime_dispatch',HERE/'check-server-runtime-evidence.py')
         with patch.object(runtime,'load',return_value=SimpleNamespace(evaluate=lambda a,b:'off replay')) as loader:
