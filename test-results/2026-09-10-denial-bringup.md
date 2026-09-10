@@ -5,6 +5,39 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## One-use RAM transfer callback
+
+Private evidence: `successor-live-driver-r1/boot-qualification-r1.json` and
+`boot-tests-r1.stdout`/`boot-tests-r1.stderr`. The final controller phase,
+`boot_once`, now reuses the existing exact 05941 claim and sealed snapshot
+primitives. It does not register a claim or modify those producers. The actual
+unregistered registry refuses before snapshot preparation or device queries.
+
+After the snapshot, nine bounded device/getvar reads verify serial, USB path,
+product, slot, bootloader, battery and download capacity. The callback requires
+installed-route evidence and rechecks source and entered claim, then verifies
+live target capture with at least 1,320 seconds remaining immediately before
+transfer. Target boot cannot use fallback capture evidence. The fixed command
+passes only the sealed descriptor to one owned fastboot child; output is bounded
+and retained before success interpretation. Timeout closes the owned process
+group and reaps the child. Both failure and success close the snapshot.
+Exclusive durable intents and an in-memory used flag forbid another attempt
+after an uncertain transfer reply. Transfer completion proves no phone health.
+
+**17 tests PASS in 3.696 s.** Thirteen callback cases use real receipt files and
+explicit USB, snapshot, admission, capture and transport fixtures. Four process
+boundary cases use a four-byte memfd and a synthetic executable: actual sealed
+FD inheritance, failed-child output, timeout/kill/reap and unsealed-FD refusal.
+No full production image was copied or hashed, and no phone command was sent.
+All twenty-two phases now have component implementations; concrete bridge/route
+verification, combined-driver qualification and admission remain incomplete.
+
+Review: readiness after preparation prevents snapshot and device-query time
+from silently consuming the required recording window. A tiny real sealed-FD
+fixture checks execution behavior without repeating full-image or kernel builds.
+These timings establish focused preparation cost, not physical boot performance.
+No full CI, physical capture, claim consumption or Ready request ran.
+
 ## Capture supervisor and four controller lifecycle bindings
 
 Private evidence: `successor-live-driver-r1/capture-supervisor-qualification-r2.json`

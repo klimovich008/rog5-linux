@@ -10,8 +10,8 @@ the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
 Current coordinator handoff: the successor kernel, module and boot-package
-builds are complete; do not restart them. Twenty-one controller phases now have
-component implementations, including the four capture lifecycle bindings.
+builds are complete; do not restart them. All twenty-two controller phases now have
+component implementations, including capture lifecycle and the one RAM transfer.
 The capture supervisor passes **20 tests in 11.244 s**, using actual child
 processes, process groups, pipes and loopback TCP. Two tests run the real
 controller through target success and a separate fallback recording after late
@@ -21,9 +21,13 @@ The supervisor verifies process ownership and the local readiness challenge,
 preserves the original deadline, and checks cleanup records before accepting
 closure. It distinguishes proven prelaunch absence from an uncertain launch.
 The earlier passive worker's 19 isolated tests and bounded host source reader
-remain qualified for their recorded inputs. Next: implement the one RAM boot,
-connect the installed-route verifier and scoped privileged transport bridge,
-then complete driver admission. The complete live controller remains pending.
+remain qualified for their recorded inputs. The RAM-boot callback passes 17
+focused tests in 3.696 s, including real sealed-FD child success/failure/timeout
+checks with a four-byte fixture. It checks live capture after image preparation
+and device queries, retains failed transfer output, and forbids a second attempt.
+No production image snapshot or phone boot ran. Next: connect the concrete
+installed-route verifier and scoped privileged transport bridge, then complete
+combined driver qualification and admission. The complete live controller remains pending.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 

@@ -591,6 +591,12 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   callback fixtures as complete preparation. Virtual deadlines qualify protocol
   handling, not elapsed physical recording time.
 
+- Verify remaining recorder lifetime after snapshot creation and device queries,
+  immediately before transfer. A readiness proof obtained before preparation
+  cannot establish the same remaining window afterward. Use a tiny actual
+  sealed descriptor and child process to test FD inheritance, timeout and output
+  retention; keep full-image identity qualification separate and unchanged.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
