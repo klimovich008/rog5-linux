@@ -29,6 +29,12 @@ passed in 464.094 seconds under the same 3 GiB limit. Both resulting binaries
 pass isolated ELF/help/version checks; no engine or phone session was run.
 Static closure against the retained Arch layers passes for `denialctl`.
 `deniald` still needs GBM, libseat, libinput and xkbcommon libraries there.
+The isolated Flutter engine builder is now provisioned, and its exact Flutter
+and bootstrap depot_tools checkouts passed verification in 22.003 seconds.
+Dependency sync has started under a 3 GiB memory limit with no additional swap,
+a 10 GiB free-disk floor and a two-hour deadline. This is an in-progress download,
+not a completed dependency closure or engine build. Resume the existing private
+`engine-build-r1` job and inspect its terminal receipt before starting hooks.
 The public mobile shell is available, while the reference
 build helpers use x86-64 paths and checksums. See the
 [bring-up record](../test-results/2026-09-10-denial-bringup.md) for next actions.
