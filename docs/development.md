@@ -44,6 +44,10 @@ into a weaker acceptance gate. Carry larger justified changes into the existing
 roadmap, and add a development lesson only when it prevents a reusable failure.
 No-change reviews need no new file or repetitive user update. Keep this review
 proportional so it improves the next run without delaying hardware work.
+Before accepting a mocked boundary test as preparation, run a cheap check of
+the actual entrypoint and target tool availability. Record the cause, change
+and relevant result together in the existing run record; measured improvements
+apply only to the work actually measured.
 
 ## Commands and tests
 
