@@ -134,6 +134,16 @@ build the missing module twins, verify full closure and run the successor VM.
 Retained private recipes are `successor-kit-prep-r1`,
 `successor-kit-completion-r1`, and `successor-module-plan-r1`.
 
+The bounded module runner is now reviewed and prepared in private
+`successor-module-build-r1`; eighteen mocked tests pass in both modes. Separate
+host outputs use the same container path for strict cache reuse. All 57 current
+static inputs match, and the live-kernel guard correctly refuses overlap. No
+real module invocation or completed-kit admission has occurred. The prepared
+ten-module guest in `successor-components-vm-r1` adds GPUCC to indicator,
+display and touch registration checks; eleven focused fixtures pass. It checks
+actual procfs contents and retains GPI until guest poweroff. Actual guest loads
+and full 54-module export/dependency qualification remain pending.
+
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside
 that tree. Historical REFGEN and dormant display scripts remain preserved.
