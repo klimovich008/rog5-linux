@@ -4,6 +4,8 @@ Start with `docs/current-state.md`, `git status --short` and `git rev-parse HEAD
 Read its short current coordinator handoff and the latest private checkpoint
 first; open older milestone sections only for the relevant evidence. Avoid
 re-reading the full historical log or large generated manifests each turn.
+Discover private evidence paths with a shallow search first, then inspect the
+specific directory. Do not recursively enumerate copied worktrees and fixtures.
 Read the latest relevant evidence and the matching sections of
 `docs/development-lessons.md` only when the task needs them.
 `docs/active-context.md` is a compatibility pointer, not another state ledger.
