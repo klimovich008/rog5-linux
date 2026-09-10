@@ -106,6 +106,27 @@ reservation. SCM authentication, GPU initialization and submission remain
 unproven. The first DRM open initializes hardware; it is not a read-only health
 check. Use a small explicit DRM test before Mesa or Denial.
 
+Unsigned GPU DT proposals now reproduce on both V9 and display-V9 bases:
+exactly four status properties plus the ZAP firmware name change, with all
+other property bytes, boot CPU and reservations preserved. Eight focused
+test groups pass in ordinary and optimized Python; no phone activation ran.
+The private Rust open/query helper passes fourteen native tests per build mode
+and exact ARM64 UAPI compile assertions. It permits one operational open and
+three scalar queries, preserves primary and close errors separately, and has
+no submit or retry path. Its ARM64 binary build and real device execution remain
+pending. A cooperative timer cannot bound an uninterruptible kernel ioctl.
+
+Successor module inventory is now explicit: 54 unique outputs, including
+29 beyond the running 25-target kernel build. The reviewed recipe preserves
+the current Wi-Fi selector patch, diagnostic provider replacements, indicator
+dependencies and packaged PDR BTF exception. The generated-header/tool kit
+deriver passes 23 fixtures in both modes; a separate additive kit-completion
+recipe passes seven. Both await successful kernel twins and have not created
+a real kit. After the existing build finishes: derive/complete/seal the kit,
+build the missing module twins, verify full closure and run the successor VM.
+Retained private recipes are `successor-kit-prep-r1`,
+`successor-kit-completion-r1`, and `successor-module-plan-r1`.
+
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside
 that tree. Historical REFGEN and dormant display scripts remain preserved.

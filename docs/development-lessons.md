@@ -424,6 +424,12 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   old build tree. Describe twins using that cache as cache-assisted byte
   comparisons; they are not independent uncached compilations. Record cache
   statistics and elapsed times before claiming a speed improvement.
+- Check raw syscall flags, ioctl numbers and FFI layouts against the actual
+  target UAPI, even in Rust. The GPU helper's ARM64 compile assertion caught
+  an x86-derived `O_NOFOLLOW` value, repeating the earlier helper's architecture
+  mistake before device execution. Retain that assertion with the source;
+  host-only tests cannot establish a target ABI. Report the original operation
+  error separately from a later cleanup error so neither cause is lost.
 
 For each successor candidate, the main chat should report only:
 
