@@ -56,13 +56,34 @@ The current Image, Arch root and recovery wrapper were not rebuilt. The DTB
 preserves the accepted current base except four added nodes and seven changed
 properties. The corrected package passed the sealed signature/selector and
 current-source startup pairing checks; strict power/UFS module classification
-then refused the extra inert modules. Both refusals remain preserved. A narrow
-classification must verify the entire payload before separating its deferred
-hardware-load evidence from the existing power/UFS checks.
+then refused the extra inert modules. Both refusals remain preserved. The
+corrected classification verifies the entire exact payload before separating
+its deferred hardware-load evidence from the existing power/UFS checks. All
+44 rescue-root composition tests passed in normal and optimized Python
+(2.34 and 2.06 seconds), including rejection of partial or altered payloads.
+
+Read-only package re-verification at clean source `458cb42a3fd500445de86f061f11701f3999f64a`
+passed in 6.13 seconds. It reused the existing signed twins without signing
+again, verified them with the sealed recovery verifier, reproduced the selector,
+checked current shutdown/startup pairing and passed strict core module closure.
+The three indicator hardware-load rows remain explicitly NOT RUN. Private
+evidence is retained in `buttons-package-verify-r3/result.json` alongside the
+earlier failed receipts.
+
+```text
+manifest_sha256=5e1b9e7f2413e00a1e85d9a131fa4ab80c3e16bf62dc9d138298487508dd78cf
+selector_sha256=a9b6b3ed9e3808147cc8082049fc244c826e1cc7d64bdcf361f077296de46723
+```
 
 Full root/runtime composition, canonical registration and runtime admission
 remain pending. Offline PASS does not establish physical
 key events, visible LED color, brightness cleanup or successful probe.
+
+The follow-up active-tier run passed its documentation link/context check but
+was interrupted with exit 130 when available host disk space fell below the
+3 GiB reserve (2,870,116,352 bytes observed after termination). Its retained
+log is `buttons-roadmap-active-check-r1.log`; it is not an active-tier PASS.
+No new build or hardware action should begin until the reserve is restored.
 
 ## Hub automation observation
 
@@ -74,7 +95,7 @@ establish the electrical conditions of an unplugged shutdown test.
 
 ## Next evidence
 
-Finish package composition and current local-root runtime bindings, then use
+Finish full root/runtime composition and current local-root runtime bindings, then use
 one controlled button/LED trial with the exact current power-key inhibitor,
 storage/power guards and recovery observation. The old physical-key gate's
 read-only-NFS assumptions are incompatible with the current local-UFS server.

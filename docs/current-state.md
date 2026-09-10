@@ -4,8 +4,10 @@ Updated 2026-09-10: the user clarified the destination as a native touch-first
 Arch Linux phone inspired by Denial, with cellular excluded. Display, touch
 and GPU are central next milestones in the [roadmap](../ROADMAP.md). Buttons
 and a default-off status LED are the current bounded step, not final product
-completion. The [inert target composer and unsigned twin archives](../test-results/2026-09-10-mobile-input-preparation.md)
-pass focused tests; no new candidate has been admitted or booted.
+completion. The [signed input package and module composition](../test-results/2026-09-10-mobile-input-preparation.md)
+passed offline verification at source `458cb42a` in 6.13 seconds. Full
+root/runtime composition and physical input/LED evidence remain pending;
+no new candidate has been admitted or booted.
 
 After the unplugged startup investigation, installed V8 returned as boot
 `159aa8ca-a7d5-425c-87c8-481e9484ff22`; the final authenticated readback passed

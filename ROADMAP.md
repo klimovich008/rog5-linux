@@ -19,7 +19,9 @@ software and have its own tests; it is not established by that demonstration.
    guards; historical NFS test scripts are not current admission.
 2. Bring up the OLED display path, FocalTech touch and accelerated Adreno
    rendering through separate, specific hardware questions. Reuse historical
-   evidence where inputs match. Prove scanout, touch coordinates and hardware
+   evidence where inputs match, including the [60 Hz status-screen result](test-results/2026-09-02-display-status-screen-development.md)
+   on the separate display kernel. That result does not establish display on
+   the current server kernel. Prove scanout, touch coordinates and hardware
    rendering before attempting a full mobile shell.
 3. Run an ARM64 Wayland mobile session with launcher, touch navigation,
    on-screen keyboard, settings, screen lock and practical Linux applications.
