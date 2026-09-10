@@ -5,6 +5,63 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Passive capture worker and bounded source observation
+
+Private evidence: `successor-live-driver-r1/capture-qualification-r3.json`,
+`capture-worker-tests-r1` through `capture-worker-tests-r3`, the two bounded
+traceback directories, `capture-git-trace-r1` and `capture-source-probe-r1.json`.
+The import-only root capture core reuses pinned `Receiver` stage parsing and
+temporary network ownership. It issues no boot, claim or phone command. Its
+request requires the fixed source/owner, role, clean host source and complete
+outer admission before acquiring the existing exclusive coordinator lock.
+
+The original lifetime remains **1,380 seconds**, with **1,320 seconds** required
+at readiness. The worker streams process/group/start/host/source identity,
+original deadline, a local probe challenge, stage events and a final result to
+its supervisor. It preserves the 8 MiB output bound with reserved cleanup/result
+capacity. Target and fallback roles use their respective releases. Final capture
+PASS requires a full recording interval, successful switch-root observation,
+no receiver/source errors and completed owned cleanup; it is explicitly neither
+authenticated phone health nor release qualification.
+
+Recording end is measured before cleanup. Cancellation, stream loss or an early
+transport failure cannot acquire full-lifetime status merely because cleanup
+finishes after the deadline. Cleanup still runs when output disappears, and a
+missing supervisor before preparation prevents network setup. Git source checks
+now run in a ten-second bounded process group as the repository owner. Final
+source failure is retained without discarding already-completed cleanup evidence.
+The actual isolated source reader **PASS in 0.140 s** as deck, matching clean
+`0f722bdef80bcb81aabbccdcb32978568053378c`; the privileged runuser handoff remains
+part of the pending real bridge integration.
+
+The first namespace test timed out after **60 seconds**, before recording, in
+Git status. Five/eight-second traceback probes reproduced it; disabling fsmonitor
+did not help. A bounded syscall trace showed Git reopening retained Images and
+initramfs archives. The index records UID/GID 1000:1000, while the same file
+appears as 0:0 inside the mapped namespace. Host source identity is now captured
+before entry and revalidated after exit, with its namespace use explicitly a
+fixture. The initial runner/diagnostic processes and descendants exited; failed
+logs and sources remain retained. No source comparison was relaxed in production.
+
+With that fixture boundary, **17 tests PASS in 0.293 s**. After adding bounded
+source execution and two supervisor/source-failure cases, **19 tests PASS in
+0.388 s** including host revalidation (**0.059 s** test body). They use a real
+UID-0 user/PID/network namespace, actual file ownership and advisory lock, and
+real loopback TCP with the existing Receiver/parser. Time, source identity and
+USB/network setup are explicit fixtures; no 23-minute physical capture occurred.
+Cases cover both roles, malformed/failed stages, lock exclusion/metadata,
+deadlines, delayed or failed cleanup, cancellation, broken/full output, missing
+supervisor, source drift/timeouts and rejected admission/USB/privilege/timing.
+
+Review: this removes an observed large-artifact rescan from the fixture path and
+bounds the production source subprocess. It also closes a potential false
+full-duration result caused by counting cleanup time as recording time. No
+kernel/module/root/ARM64 build or full CI was repeated. The controller still has
+seventeen phase implementations: connecting this worker to the four
+capture phases, implementing the one RAM boot and completing the privileged
+bridge/route verification remain next. No phone or host network action, claim,
+receiver launch on the phone connection or Ready request occurred this turn.
+
 ## Fastboot transition, fallback location and installed reboot bindings
 
 Private evidence: `successor-live-driver-r1/fastboot-tests-result-r3.json`,

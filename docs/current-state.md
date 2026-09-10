@@ -21,7 +21,11 @@ verification has not run. The four new health bindings pass 23 boundary tests
 read-only discovery probe passes on unchanged V9 in 0.333 s. Fastboot/location
 qualification covers 28 cases with a retained receipt-collision failure and
 passing targeted fix; three health-engine rechecks pass. No physical fastboot
-command ran. Next: implement the four capture lifecycle phases and one RAM boot,
+command ran. A passive capture worker now passes 19 isolated lock/TCP/parser/
+deadline/cleanup tests in 0.388 s; its bounded source reader passes on the host
+in 0.140 s. Time, USB/network and source identity inside those tests are explicit
+fixtures. No physical capture or root handoff was exercised. Next: bind this
+worker to the four capture lifecycle phases and implement one RAM boot,
 connect concrete installed-route/capture verifiers and a scoped privileged
 transport bridge. New routes/full capture need host sudo authentication, while
 normal USB SSH works as deck. No receiver or Ready request is pending.
