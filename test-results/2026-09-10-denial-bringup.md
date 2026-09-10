@@ -5,6 +5,53 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## V11 runtime correction and bounded SSH worker
+
+Private evidence: `successor-live-driver-r1`. The earlier Python `stage-v11`
+proposal cannot run on V11, where Python is absent, and was never executed on
+that phone runtime. `fallback-stage.py` replaces it with the exact sealed
+BusyBox/loader and existing static ARM64 Rust helper. Source-side Python staging
+on V9 remains valid and completed; preserve its owner and do not repeat it.
+
+Five actual ARM64 namespace cases pass in **33.006 s**: stage/restore from
+pending and healthy, wrong-boot refusal, partial-transfer refusal and duplicate
+stage refusal. The empty root contains no Python or shared runtime libraries;
+`/run` is actual tmpfs. Physical kernel/storage telemetry remains synthetic.
+`fallback-tests-r1` failed in 2.387 s on a manually misencoded fixture device
+number. Deriving it with `os.makedev` from the fixture's actual sysfs major/minor
+fixed the fixture only; the production stager was unchanged. Both runs remain.
+
+The host SSH worker limits each output to 1 MiB using disk-backed files and a
+child file-size limit, owns and reaps its command group, preserves nonzero/lost
+replies and never retries a command. Existing routes are borrowed without setup
+or cleanup ownership. New link-local setup requires root before any network
+resource creation and uses the existing four-step owned cleanup. Transport
+completion alone never certifies remote-command success.
+
+`live-worker-r1` stopped before execution in **0.034 s** because `sudo -n`
+requires authentication. This is a host privilege prerequisite, not an approval
+review rejection or a phone failure. The worker was adjusted to run as deck over
+existing routes. `live-worker-r2` then stopped locally in **0.074 s** because an
+isolated import could not find a generated repository sibling. The fixed loader
+adds only the fixed producer directory while importing and restores the search
+path. A real isolated-child import regression now complements the mocked network
+boundaries. All **13 cases** pass in normal/optimized modes (**0.530/0.569 s**),
+including real process timeout/reaping and enforced disk output limits.
+
+`live-worker-r3` passed actual normal USB SSH in **0.611 s** as deck. Exact
+boot `7c945aa5-80d0-4af2-aa76-113d68e23ac5` and kernel
+`7.1.4-gf17befd4ef17` matched, command status was zero with exact output and no
+stderr, and no host network resources were claimed or changed. Host producer
+source was clean `d66b0dedddd5fb18d9b9173747e58ef5749d6987`. This was a read-only
+continuity probe; no new full power/storage health or successor boot is claimed.
+
+Review: runtime assumptions and mocked-only launch coverage caused avoidable
+local failures. Both now have cheap actual-runtime checks; no kernel, module or
+root-image rebuild was needed. Keep the remaining work on concrete controller
+integration, capture privileges, admission and recovery preparation before any
+reboot trial. No user Ready or physical action is pending. The complete concrete
+driver remains unimplemented and unadmitted; these are qualified pieces only.
+
 ## Successor controller ordering and installed fallback route
 
 Private evidence: `successor-controller-r1/result.json`. The one-use ordering
@@ -64,7 +111,7 @@ fastboot variant `0ee47fb5` differs by one final dispatch command only; its
 corrected storage cleanup and fallback suffix remain unchanged. The reboot
 helper still matches `68d6a69e`, and the nvmem restart provider is bound.
 
-The new private Python primitives perform exclusive RAM staging for source and
+The original private Python primitives proposed exclusive RAM staging for source and
 V11, source exitrd installation, one-use reboot request, and exact pre-reboot
 exitrd restoration. Source exitrd operations require the completed Rust state
 exchange, both old-record backups, inactive rollback timers, the exited old

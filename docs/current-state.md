@@ -250,8 +250,9 @@ optimized Python (0.750/0.749 seconds). They separate RAM staging, exitrd
 installation, one-use reboot request and pre-reboot exitrd restoration. A lost
 reboot reply permanently refuses retry and automatic source restoration; an
 interrupted exitrd installation can restore the exact old script before the
-reboot intent exists. New V11 helper staging accepts only the successor's exact
-pending or healthy record. Full controller admission remains pending.
+reboot intent exists. The original Python V11 staging proposal is unusable on
+V11, which has no Python; it was never executed there. Use the qualified
+BusyBox replacement below. Full controller admission remains pending.
 
 Fresh physical inspection confirmed V9 already has corrected shutdown bytes
 `fc1ce027`; the old R01 source shutdown differs. Reuse the previously qualified
@@ -282,6 +283,24 @@ Physical installed `boot_b` readback passes in 0.545 seconds, matching the retai
 96 MiB wrapper `dcc487f1`, with protected storage read-only and V9 state unchanged.
 Storage preparation/cleanup in the selector test is synthetic, so these results
 do not establish a physical fallback boot. Evidence: `successor-controller-r1`.
+
+The V11 RAM stager now uses its exact sealed BusyBox/loader and static ARM64
+Rust helper. Five actual ARM64 namespace cases pass in 33.006 seconds in an
+empty root without Python: pending/healthy restoration, wrong boot, partial
+transfer and duplicate staging. Kernel/storage telemetry is synthetic. A bad
+fixture device-number encoding was corrected from the fixture's actual sysfs
+major/minor; the original failed run remains retained. No V11 phone action ran.
+
+The bounded SSH worker now runs over an existing USB route as deck. Thirteen
+focused tests pass in ordinary/optimized Python (0.530/0.569 seconds), including
+an actual isolated-process repository import. The first privileged launch failed
+before execution because sudo requires a password; a later local probe exposed
+a missing sibling import, now fixed and covered. Actual read-only normal USB
+SSH then passed in 0.611 seconds, authenticating the same V9 boot and kernel
+without host network changes. This is transport continuity, not a new full
+hardware health qualification. Evidence: `successor-live-driver-r1`.
+New network setup and full capture still require host privileges. These worker
+and staging pieces do not yet constitute the complete concrete driver.
 
 Next: implement and qualify the concrete driver for the tested controller using
 the staged source artifacts and exact one-use boot admission. The embedded RAM wrapper

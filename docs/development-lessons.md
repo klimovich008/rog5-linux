@@ -505,6 +505,17 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   actual operation in a root without shared libraries. Keep both failed and
   corrected artifacts. Check a first binary before investing in its twin.
 
+- Verify the recovery environment's available tools before generating recovery
+  actions. V11 has no Python; host-only tests of a Python stager cannot qualify
+  it. Exercise the exact sealed ARM64 tools in an empty root without Python.
+  Derive fixture device numbers with `os.makedev` from fixture sysfs major/minor
+  values instead of copying manually encoded integers.
+- Mocked transport tests do not cover production imports. Launch an isolated
+  child using the actual fixed repository dependencies before a live probe;
+  adding the correct producer directory must not depend on the parent shell's
+  Python path. Keep ordinary authenticated SSH usable over an existing route
+  without sudo; require privilege before creating any host network resources.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
