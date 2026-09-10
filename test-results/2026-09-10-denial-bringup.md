@@ -7,6 +7,38 @@ accepted server/recovery artifacts remain preserved.
 
 ## Current phone and display preparation
 
+Kernel-first followup produced an initial external FTS3658U driver in private
+`touch-driver-r1`. It accepts only normal ID0x5652, preserves native fractional
+coordinates, and performs no firmware upgrade or boot-ROM fallback. Review
+removed the alternate3518 ID from this first component and stopped treating
+unused UP coordinates as active position data. Optimized and UBSan host runs
+each pass24,324 checks; six disabled-DT tests pass. Exact current-kernel module
+twins pass in9.062 seconds:373416 bytes, SHA-256
+`fc94acd0bc6cd6ce4900e5ccb62c3edb6ca6c17ae332cefdb0ed31d6624bbb60`.
+Receipt:`touch-modules-r1/result.json`. No module registration/probe on the phone
+is established. GENI I2C and GPI DMA are modular in this kernel and their exact
+provider closure is still needed. Suspend/resume is explicitly unsupported in
+this first component. Final source review and physical behavior remain pending.
+
+The configured display autoload audit expanded to2,453 root nodes, selected
+effective unit/rule/helper text, the final archive catalog and radio manifest.
+Udev's kmod loading is real, but its current-release module index is absent.
+Historical7a5 REFGEN remains in the old module tree; dormant display scripts
+have no enabled units. Four isolated host-kmod dry-run name/alias lookups refuse
+the new modules even when the inert payload is present. These are static
+configured-path results, not execution of the actual Arch coldplug path.
+Receipt:`display-root-autoload-r1/result.json`, SHA-256
+`26a8daf76c0323230867cc3f17c6fb079d3c5bfda703e2b9d59f38324a76f049`.
+
+Packaging review identified a supported embedded signed RAM target route that
+keeps the paired root images unchanged, plus concrete remaining integration
+work. The target's healthy service still needs a matching pending userdata
+trial record; embedded recovery does not create that record. A fresh guarded
+operation and backup/readback qualification are required. The wrapper needs
+fresh canonical registration and an exact-size admitted boot controller;128MiB
+is expected from the comparable retained wrapper, but the new actual size has
+not been measured. Do not reuse R01 authority or claim autonomous V11 recovery.
+
 Fresh read-only full health passed in 1.252 seconds on V9 boot
 `7c945aa5-80d0-4af2-aa76-113d68e23ac5`, kernel `7.1.4-gf17befd4ef17`.
 A separate 0.244-second inventory opened no device nodes and changed no hardware.

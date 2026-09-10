@@ -7,6 +7,8 @@ OLED scanout, front touch, Adreno with minimal DRM/EGL tests, and power manageme
 Track Wi-Fi, audio, Bluetooth, sensors and cameras explicitly; do not call the
 kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
+After each run and goal turn, review priorities, repeated failures and measured
+bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
 Fresh read-only health passes on the same V9 boot in 1.252 seconds. The runtime
 has no DRM card/render nodes, framebuffer or backlight, and only the three
 qualified key inputs. MDSS, DSI, GPU and GMU are disabled in its device tree.
@@ -62,6 +64,21 @@ Approximately 82 GiB was free before temporary full-CI fixtures.
 The hash-verified stock DTBO now corroborates the ASUS MP2 front-touch
 controller, GPIO22/23/131, L3C/L8C consumers and final 1080x2448 extents.
 This is offline board-data evidence; no touch probe or driver activation ran.
+The private first FTS3658U driver now builds against the unchanged current kernel.
+Twins match in 9.062 seconds; 24,324 parser/ID/transfer checks pass in optimized
+and UBSan runs, and six disabled-DT checks pass. Module SHA-256 is
+`fc94acd0bc6cd6ce4900e5ccb62c3edb6ca6c17ae332cefdb0ed31d6624bbb60`.
+Review, GENI I2C/GPI provider closure and physical probe remain pending. The
+component intentionally leaves suspend/resume unqualified and cannot yet serve
+as a complete touch implementation. No module was loaded on the phone.
+
+The expanded display autoload audit passes for configured root paths: udev
+loading uses the absent current-release index, while the new payload is outside
+that tree. Historical REFGEN and dormant display scripts remain preserved.
+Final wrapper/generated-runtime checks and actual coldplug are still pending.
+The next display boot also needs fresh embedded-bundle admission, a matching
+guarded userdata trial record, and measured boot-image size/controller binding;
+unchanged paired root bytes alone do not satisfy those requirements.
 Checkpoint read-only phone health passed again in 1.357 seconds on the same V9
 boot after all offline work. No phone module insertion, signing or reboot occurred.
 
