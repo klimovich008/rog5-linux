@@ -16,9 +16,73 @@ each pass24,324 checks; six disabled-DT tests pass. Exact current-kernel module
 twins pass in9.062 seconds:373416 bytes, SHA-256
 `fc94acd0bc6cd6ce4900e5ccb62c3edb6ca6c17ae332cefdb0ed31d6624bbb60`.
 Receipt:`touch-modules-r1/result.json`. No module registration/probe on the phone
-is established. GENI I2C and GPI DMA are modular in this kernel and their exact
-provider closure is still needed. Suspend/resume is explicitly unsupported in
-this first component. Final source review and physical behavior remain pending.
+is established. Final source review passes; suspend/resume remains explicitly
+unsupported in this first component.
+
+Repository integration `e8cebfcd` now carries the identical reviewed C/header,
+external Makefile, shared C fixtures and disabled overlay. The portable
+`scripts/device/test-rog5-front-touch.py` is linked in the README and wired into
+the existing repository runner. Actual integration-tree runs pass eight tests
+and 24,324 checks per C build mode under ordinary and optimized Python in
+0.573/0.520 seconds. Shell syntax and diff checks pass. Full integration CI
+has not run while the kernel compiler is active; the earlier full CI remains
+evidence for its own source, not this new driver integration.
+
+The exact f17 GENI I2C/GPI provider builds now pass with identical twins in
+16.832 seconds. GPI is SHA-256
+`2d80d8a82dd3c8a106fc658f43e5d263603ea144ee2253becc6f6fcbf69b4132`;
+GENI I2C is `e02c93504574ca5fb6191359048a7767af1405fb4e29c34e62c694a349256fdf`.
+Both have matching vermagic/BTF and built-in symbol providers. The three-module
+stack passes exact-V9 guest registration in 2.687 seconds. Touch and I2C unload;
+GPI refuses ordinary unload and remains `[permanent]` until guest shutdown, as
+its source has no module exit. Receipts: `touch-bus-modules-r1/result.json` and
+`touch-stack-vm-r1/result.json`. The VM supplies no phone I2C, DMA or rail proof.
+
+Actual touch DT composition against both V9 and the display candidate preserves
+unrelated properties, boot CPU and reservations; twelve hostile-delta cases
+pass. Disabled variants add only four nodes and three symbol properties.
+Enabled proposals change five statuses, preserve disabled SPI4 and make L8C's
+always-on vote effective. Touch unbind releases only its own vote, so it cannot
+restore the pre-probe physical rail state. Receipt:
+`touch-dt-composition-r1/result.json`, SHA-256
+`21ca1f657ca43ad9e77b86e66ec8c54297e3fe2b2400ed2719d1f1b648281812`.
+
+The GPU audit identified one required built-in fix: propagate GMU power-level
+probe failure before later initialization. Existing patch 0012 applies directly;
+eight extracted actual-source fault-injection cases pass while the baseline
+fails. Fixes 0026/0035 are already present; no duplicate or diagnostic patch was
+added. Clean successor source `05941d04803f54208da1e9920a81874edc540ca1`
+contains only 0012 over f17. Its source/config/compiler/release preflight passed
+in 21.955 seconds; the unchanged configuration produces expected release
+`7.1.4-g05941d04803f`. Kernel and 25 scoped module builds are **RUNNING** under
+private `kernel-hardware-build-r1`; no completed successor is claimed yet.
+Separate output directories share the existing verified compiler cache.
+The build uses two CPUs, 6 GiB with no additional swap and a 4 GiB disk cache,
+with bounded runtime and disk/memory-reserve monitoring. Await the owned runner
+and its `twins-result.json`; do not restart it or reuse f17 module evidence as
+successor qualification.
+
+Three exact firmware files (1,153,192 bytes total) were recovered from official
+linux-firmware 20260622 commit `b2722d241309a1872446c1d00c2e812bad055f89`.
+All existing manifest sizes/hashes match; licenses, WHENCE and provenance are
+retained. The sm8350 ZAP path is materialized from the upstream qcm6490 link.
+Fresh parsing/readelf finds one relocatable 1976-byte segment at file offset
+0x101000, physical address 0x1000, needing 4096 bytes within the unchanged
+8192-byte reservation. This corrects the earlier audit prose that confused
+physical address with file offset. Three malformed-layout fixtures refuse.
+Receipt: `gpu-firmware-r1/result.json`, SHA-256
+`427bda95710514d1d7060574a66dd969ebe7afae6919f9db11893359d19f54d1`.
+There is no SCM authentication, hardware initialization or command-submission
+proof. First DRM open initializes the GPU and must be an explicit bounded test.
+
+The after-run improvement is concrete: use the already supported compiler cache
+without bypassing exact-output state checks, and stop an owned build container
+even if its launcher exits first. Nine cleanup fixtures pass in normal and
+isolated modes, including stop/kill, ownership rejection, corrupt CID and
+inspection failures. Receipt: `kernel-build-runner-review-r1/result.json`,
+SHA-256 `81afd8c5b036815f9f061dd42990b95acd0a6e5d4bf9633fceb52ee39ab1d16f`.
+Cache timing/benefit remains to be measured; the preflight and regression
+passes do not constitute a full kernel-build result.
 
 The configured display autoload audit expanded to2,453 root nodes, selected
 effective unit/rule/helper text, the final archive catalog and radio manifest.

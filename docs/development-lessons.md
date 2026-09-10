@@ -414,6 +414,16 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
 - Reuse exact-input build/test evidence and poll an existing live job. Restart
   only after its authoritative terminal result or missing handle is established,
   and after the reason for retrying has changed. Keep useful caches on disk.
+- Treat the build container and its launcher as separate lifetimes. A launcher
+  exit does not prove the container stopped. Bind cleanup to a fresh ownership
+  label and exact inspected container ID, stop/kill it independently of client
+  state, and collect cleanup failures without skipping terminal evidence or
+  client reaping. Nine injected cases now cover the successor kernel runner.
+- Changed kernel source requires fresh output state. The existing compiler-cache
+  wrapper can reuse matching compilation without importing or relabelling an
+  old build tree. Describe twins using that cache as cache-assisted byte
+  comparisons; they are not independent uncached compilations. Record cache
+  statistics and elapsed times before claiming a speed improvement.
 
 For each successor candidate, the main chat should report only:
 

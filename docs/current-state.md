@@ -68,9 +68,43 @@ The private first FTS3658U driver now builds against the unchanged current kerne
 Twins match in 9.062 seconds; 24,324 parser/ID/transfer checks pass in optimized
 and UBSan runs, and six disabled-DT checks pass. Module SHA-256 is
 `fc94acd0bc6cd6ce4900e5ccb62c3edb6ca6c17ae332cefdb0ed31d6624bbb60`.
-Review, GENI I2C/GPI provider closure and physical probe remain pending. The
+Driver review passes. GENI I2C/GPI provider twins now pass in 16.832 seconds;
+the three-module stack registers under the exact V9 Image in QEMU in 2.687
+seconds. Touch and I2C unload cleanly there; GPI has no unload implementation
+and remains until guest reboot. This does not prove real bus, IRQ or rail behavior.
+The disabled touch overlay now composes against both V9 and display DTs with
+unrelated properties and boot metadata preserved; twelve hostile-delta tests
+pass. The enabled proposal makes five status changes, leaves SPI4 disabled and
+retains L8C always-on. Touch unbind cannot undo that rail's always-on vote.
+The physical probe remains pending. The
 component intentionally leaves suspend/resume unqualified and cannot yet serve
 as a complete touch implementation. No module was loaded on the phone.
+
+The reviewed source, disabled overlay and portable test are now integrated at
+`e8cebfcd`; C/header bytes match the private build inputs. The test passes eight
+cases and 24,324 decoder checks per C build mode in both ordinary and optimized
+Python (0.573/0.520 seconds). It is wired into the repository runner. Full CI
+for this new integration is pending; the earlier 752742fc result remains scoped
+to its own source. See [front-touch prototype](front-touch-prototype.md).
+
+The current-kernel GPU audit found that GMU power-level setup errors were
+ignored. Existing patch 0012 fixes that exact path; eight actual-source
+fault-injection cases pass and the unpatched baseline fails. Clock and RPMh
+fixes 0026/0035 are already present. The clean successor kernel source is
+`05941d04803f54208da1e9920a81874edc540ca1`, containing only 0012 over f17.
+Its unchanged-config/compiler/release preflight passed in 21.955 seconds.
+Cache-assisted builds from separate output directories are now **RUNNING** in
+private `kernel-hardware-build-r1`, using a 6 GiB/no-extra-swap limit, two CPUs
+and a 4 GiB disk compiler cache. Do not restart the existing runner; inspect its
+`twins-result.json` or live owner first. No completed successor Image or module
+qualification is claimed yet. All successor payload modules must match its kit.
+
+All three pinned A660 firmware files have been recovered from official
+linux-firmware 20260622 into private `gpu-firmware-r1`, with matching sizes/hashes
+and retained licenses. Fresh ZAP parsing needs 4 KiB within the existing 8 KiB
+reservation. SCM authentication, GPU initialization and submission remain
+unproven. The first DRM open initializes hardware; it is not a read-only health
+check. Use a small explicit DRM test before Mesa or Denial.
 
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside
