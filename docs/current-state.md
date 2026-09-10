@@ -82,8 +82,23 @@ is prepared in the same controller process as the detached probes. No password
 dialog has been opened. Request fresh availability for this host dialog; on that
 reply run the prepared `run-privilege-probe.py --authenticate --run-id r2`.
 It performs no phone, network, claim or live-capture action. After actual handoff
-qualification, finish the one-use launcher/claim wiring. No physical Ready
+qualification, finish exact claim registration and final qualification. No physical Ready
 request or phone recording session is pending.
+The import-only one-use launcher is now prepared: **15 focused tests PASS in
+0.806 s**, plus **48 affected regression cases PASS in 36.646 s** including
+launch overhead. Authentication and the first noninteractive credential refresh
+precede claim consumption; the admitted record precedes controller execution.
+A bounded refresher keeps the same controller's sudo credentials available
+during long recordings. Failures block new phases; cleanup stops the refresher
+and owned recordings. A recording requiring emergency cancellation cannot turn
+the launcher result into success. Actual sudo refresh remains unverified.
+The remaining RAM-transfer `preexec_fn` was replaced with fixed `prlimit` before
+introducing the thread. A real four-byte sealed-FD child verifies both limits
+and inherited data while another thread is alive. Admission now binds launcher
+identity, and the input lock includes the credential helper. The prepared host
+password probe and its root-boundary dependencies are unchanged and remain ready
+for the pending availability reply. No trial directory, claim or phone action
+was created by this work.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 

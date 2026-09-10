@@ -5,6 +5,54 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## One-use launcher and credential lifetime
+
+Private evidence: `successor-live-driver-r1/launcher-qualification-r1.json`,
+`launcher-tests-r1.stderr`, `launcher-tests-r2.stderr`,
+`launcher-regression-r1/result.json`, `launcher-baseline-r1` and
+`launcher-review-r1`. While the host password-dialog availability reply remains
+pending, the separate kernel trial launcher is now implemented and tested.
+It is import-only and cannot register or create a claim. Missing qualification
+refuses before creating a trial directory or opening authentication.
+
+The launcher binds the final clean source, qualification and exact registered
+claim. Authentication and a first successful noninteractive sudo refresh happen
+before consuming the claim. It then assembles the concrete driver, creates the
+one-use controller, writes its digest-bound admission record, and runs the trial.
+Admission now includes the launcher digest; the input lock includes the new
+credential helper. The original source bytes and lock are retained.
+
+The credential helper schedules fixed `sudo -n -v` refreshes every 45 seconds,
+bounded by 5400 seconds and the controller context. It uses the same parent as
+the detached root launchers, retains bounded subprocess output and fails new
+phase gates if credentials expire or the refresh thread dies. It never prompts
+for a password. This is prepared behavior: actual sudo refresh is unverified.
+The prepared graphical probe remains unchanged and can start immediately after
+the user's fresh availability reply.
+
+The new thread made the remaining RAM-transfer Python `preexec_fn` unsuitable.
+That transfer now applies its unchanged core/file limits through fixed prlimit.
+The driver update is hash-only. A real child reads a four-byte sealed descriptor
+and reports zero core limit and one-MiB file limit while another thread is alive.
+No production image transfer or phone operation ran.
+
+**14 initial launcher/credential tests PASS in 0.852 s; 15 final tests PASS in
+0.806 s.** Fixtures cover authentication loss, initial refusal before claim,
+partial claim failure without retry, admission written before run, process and
+thread cleanup, and source drift. Review tightened unfinished-recording cleanup:
+requiring cancellation always keeps the launcher result failed. Actual controller
+construction and admission serialization are used; claim/sudo/phone execution
+is explicitly simulated. An actual preparation check refuses the missing final
+qualification without creating an attempt.
+
+Affected regressions pass **48 cases in 36.646 s** including launch overhead:
+17 RAM callback/process cases, 24 admission boundaries, three admission-driver
+cases and four complete assembled flows. No kernel/module/root/image build or
+full CI was repeated. Host password/root probe source hashes remain unchanged.
+No dialog, live ADMITTED record, new claim, trial directory or phone action exists.
+Actual host authentication, root handoff and final registered-claim qualification
+remain prerequisites; the goal is still active.
+
 ## Complete assembled flows and read-only privilege probe
 
 Private evidence: `successor-live-driver-r1/full-flow-qualification-r1.json`,
