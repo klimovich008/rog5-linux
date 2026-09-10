@@ -20,10 +20,25 @@ focused tests pass in normal and optimized Python. The package remains unsigned
 and unactivated; current-source integration/admission checks are still pending.
 
 Denial source, engine source dependencies and Rust toolchain are pinned in the
-[source lock](../configs/denial/source-lock-v1.json). ARM64 engine/native outputs
-remain to be built. The public mobile shell is available, while the reference
+[source lock](../configs/denial/source-lock-v1.json). The isolated Rust 1.98
+builder is provisioned. The ARM64 control client built offline in 22.010 seconds
+and passed emulated help/version checks. Full ARM64 compositor compilation also
+passed in 464.094 seconds under the same 3 GiB limit. Both resulting binaries
+pass isolated ELF/help/version checks; no engine or phone session was run.
+The public mobile shell is available, while the reference
 build helpers use x86-64 paths and checksums. See the
 [bring-up record](../test-results/2026-09-10-denial-bringup.md) for next actions.
+
+The new unsigned display composer preserves the corrected buttons payload and
+adds two inert module files with a fresh descriptor/catalog. Focused composition,
+module closure and runtime installer checks pass. Complete artifact composition,
+paired-root autoload absence and physical display behavior remain unqualified.
+The new DT permits built-in display probing before userspace.
+
+Reviewed cleanup removed 67.218 GiB of generated compiler intermediates from
+completed historical builds. All 15,559 protected outputs remained unchanged;
+sources, final images, recovery data and current module kits were retained.
+Approximately 82 GiB was free before temporary full-CI fixtures.
 
 ## Preserved buttons/LED milestone
 
