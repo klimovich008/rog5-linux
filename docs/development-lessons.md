@@ -605,6 +605,12 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   before phone execution. Reuse an observation already obtained by a combined
   preflight instead of issuing another identical source-health query.
 
+- Retain a launched process before writing its request, and use a stable process
+  handle for cancellation. Monitor both the original controller and intermediate
+  privilege launcher: either can disappear independently. Bound output writes
+  so a stalled reader cannot block cleanup. A forced process exit is failure
+  evidence, never proof that owned network cleanup completed.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.

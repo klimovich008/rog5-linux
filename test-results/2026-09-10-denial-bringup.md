@@ -5,6 +5,50 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Owned sudo capture bridge and controller-lifetime monitor
+
+Private evidence: `successor-live-driver-r1/bridge-qualification-r1.json`,
+`bridge-tests-r1.stdout`/`stderr`, and `bridge-supervisor-tests-r1.stdout`/`stderr`.
+The import-only capture bridge launches only fixed `sudo -n` and the pinned
+root capture entrypoint. It sends a bounded envelope over stdin containing the
+exact request, host boot and original controller/launcher process identities.
+It stores the actual process handle before fallible request I/O and retains
+ownership even when the launcher exits early. Each role is one-use; another
+role refuses while the prior launcher is live. Cancellation uses an owned pidfd,
+and final bridge closure requires terminal children before releasing handles.
+
+The root entrypoint checks actual UID, ancestry, process starts and both pidfds,
+then requires the fixed execution admission bytes and their pinned
+`live-admission.py` verifier. That verifier is not yet implemented: no live
+admission is conferred by this entrypoint. The existing worker still performs
+its source/USB checks and owns the coordinator lock and temporary network.
+The monitor handles loss of either controller or launcher. Parent loss requests
+worker cleanup; unresponsive cleanup is bounded by a forced failed exit. Output
+writes have a five-second bound, allowing the worker's existing broken-stream
+path to complete cleanup. A forced exit proves no cleanup or full capture.
+
+**16 tests PASS in 7.354 s**, with actual child sessions, pipes, pidfds and
+controller/launcher exit events. Cases include early launcher failure, unknown
+process signaling refusal, one-use roles, missing admission, oversized request,
+parent loss before work, worker cancellation, full output pipe and forced
+cleanup timeout without a success record. The actual root entrypoint refuses
+an unprivileged invocation. Root validation/UID transition and real network
+cleanup are not qualified by these process fixtures.
+
+**Three combined tests PASS in 2.625 s**, running the real bridge with existing
+supervisor/callback/worker-parser fixtures: target capture, separate fallback
+capture, and controller late-failure recovery through both processes. Sudo/root,
+network and recording time remain explicit fixtures. The process bridge is
+implemented; actual sudo handoff, the root admission verifier, fresh fallback
+SSH route transport and full live-driver qualification remain outstanding.
+
+Review: retaining ownership before input delivery prevents a failed launch
+reply from becoming an untracked child. Watching both controller and launcher
+covers the case where sudo exits while the controller remains alive. The focused
+combined cases reuse qualified protocol fixtures without rerunning unchanged
+builds or a phone cycle. No sudo call, phone action, live receiver, claim or
+Ready request occurred this turn.
+
 ## Assembled twenty-two-phase driver and source-abort integration
 
 Private evidence: `successor-live-driver-r1/driver-qualification-r1.json`,
