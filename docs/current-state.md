@@ -232,9 +232,22 @@ ARM64 startup/operation checks qualify the working artifact; failed images and
 receipts remain retained. Rust fmt/clippy are absent from the pinned builder;
 the attempted lint run is preserved, not labelled PASS.
 
-Next: wrap the retained static helper in the source/V11 identity, sealed-tools,
-power, storage, custody and one-use controller guards, then qualify the complete
-controller. The embedded RAM wrapper bypasses the installed selector, so its
+Source/V11 shell guards now wrap the retained static helper, with exact boot,
+sealed tools, power, storage, custody and exclusive operation-entry checks.
+All 28 namespace cases passed across two runs with the actual ARM64 tools and
+explicit synthetic telemetry. The first run remains FAIL: fixture setup stopped
+after 19 passing cases. The corrected harness records each result durably and
+completed only the remaining nine in 15.572 seconds. Retained outputs and final
+fixture states were replayed without repeating ARM64 operations. Seven host
+custody tests pass in normal and optimized Python. A fresh real-phone health
+check passed in 1.206 seconds; the new guard's read-only subset then passed on
+the same V9 boot in 0.972 seconds. The exact old selection record is now retained
+in durable host custody. Evidence: `successor-state-guards-r1/result.json`.
+No helper was uploaded, selection changed or successor boot attempted.
+
+Next: integrate and qualify the complete capture/recovery controller, including
+guarded RAM staging and exact one-use boot admission. The embedded RAM wrapper
+bypasses the installed selector, so its
 recovery phase stays read-only and requires a separate authenticated V11 return
 path. Keep the ordinary full capture and failed-target result separate from
 successful assisted recovery. No phone action or Ready request is pending.

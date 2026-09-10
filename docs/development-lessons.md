@@ -414,6 +414,13 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
 - Reuse exact-input build/test evidence and poll an existing live job. Restart
   only after its authoritative terminal result or missing handle is established,
   and after the reason for retrying has changed. Keep useful caches on disk.
+- Record each completed matrix case durably, including raw-output identities,
+  before preparing the next fixture. The state-guard harness failed while
+  tampering with a read-only custody fixture after 19 passing cases. Fixing
+  fixture permissions, recording terminal exceptions and continuing only the
+  nine unrun cases completed coverage in another 15.572 seconds. Preserve the
+  original failed run and qualify aggregate coverage against unchanged generator
+  bytes; continuation must not relabel a partial run as a full PASS.
 - Treat the build container and its launcher as separate lifetimes. A launcher
   exit does not prove the container stopped. Bind cleanup to a fresh ownership
   label and exact inspected container ID, stop/kill it independently of client
