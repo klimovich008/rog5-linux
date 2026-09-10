@@ -9,11 +9,18 @@ kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
-Execution is blocked pending the user's availability for the prepared host sudo
-password dialog. The same blocker was observed in checkpoints r32, r33 and r34;
-independent launcher preparation is now complete. The probe and its dependencies
-are unchanged, no relevant child process is running, and no dialog has started.
-Resume immediately on a fresh Ready reply using the prepared command below.
+The fresh host Ready was used immediately for privilege probe r2 on 2026-09-11.
+Authentication failed in 2.328 seconds before either root probe: the password
+window received SIGXFSZ under the inherited 8-KiB file limit. The user confirmed
+no window appeared. This was a launcher defect, not a missed user response.
+The corrected authentication path gives GUI buffers a bounded 64-MiB file limit
+and independently caps stderr at 8 KiB through a pipe. Core dumps stay disabled;
+the 120-second timeout, owned termination and reaping remain enforced.
+Ten probe tests pass in 0.726 seconds and fifteen launcher tests in 0.902 seconds.
+An actual Wayland message window survives with mapped graphics buffers and is
+stopped/reaped after 2.010 seconds. This is GUI preparation, not authentication.
+Next host availability must launch `run-privilege-probe.py --authenticate --run-id r3`
+immediately. Never reuse r2 or interpret this host Ready as phone availability.
 The full Denial/hardware goal remains incomplete; no phone test passed by inference.
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have
@@ -82,11 +89,9 @@ policy, parent fallback transport and recording subprocesses, with explicit
 USB/SSH, privilege, RAM transfer and elapsed-time fixtures. They prove host
 integration behavior, not phone operation.
 The read-only privilege probe passes **nine preparation tests in 0.691 s**.
-An actual attempt stopped in **0.045 s**, before root execution, because sudo
-requires a password. A graphical authentication path using installed ksshaskpass
-is prepared in the same controller process as the detached probes. No password
-dialog has been opened. Request fresh availability for this host dialog; on that
-reply run the prepared `run-privilege-probe.py --authenticate --run-id r2`.
+The first actual attempt stopped before root execution because sudo required a
+password. The second attempt's GUI failure and corrected r3 preparation are
+recorded above; r2 is terminal and must not be reused.
 It performs no phone, network, claim or live-capture action. After actual handoff
 qualification, finish exact claim registration and final qualification. No physical Ready
 request or phone recording session is pending.
@@ -101,9 +106,8 @@ the launcher result into success. Actual sudo refresh remains unverified.
 The remaining RAM-transfer `preexec_fn` was replaced with fixed `prlimit` before
 introducing the thread. A real four-byte sealed-FD child verifies both limits
 and inherited data while another thread is alive. Admission now binds launcher
-identity, and the input lock includes the credential helper. The prepared host
-password probe and its root-boundary dependencies are unchanged and remain ready
-for the pending availability reply. No trial directory, claim or phone action
+identity, and the input lock includes the credential helper. The root-boundary probe is unchanged; authentication and the launcher source
+pin now include the GUI-limit correction and are prepared for a fresh reply. No trial directory, claim or phone action
 was created by this work.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.

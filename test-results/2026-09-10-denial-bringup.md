@@ -1746,3 +1746,24 @@ Final read-only phone health passed in 1.357 seconds on the same V9 boot
 `7c945aa5-80d0-4af2-aa76-113d68e23ac5`. Installed identities, power/storage
 guards and healthy selection remain valid. No phone module insertion, signing,
 reboot or display/touch activation occurred during this checkpoint.
+
+### 2026-09-11: host password dialog failure and prepared correction (r35)
+
+Fresh Ready started read-only privilege probe r2 immediately. It failed after
+2.328 seconds with no password supplied, zero root rows and no phone/network/
+claim action. The user saw no password window. Journal evidence identifies
+ksshaskpass SIGXFSZ and an inherited 8192-byte RLIMIT_FSIZE; core dumping was off.
+The exact failing syscall was not traced. Root boundaries remain unqualified.
+
+Authentication now allows 64-MiB GUI files while independently limiting stderr
+via a pipe to 8 KiB; overflow refuses authentication and reaps the owned process.
+Ten probe cases PASS (0.726 s), including a real 1-MiB memfd and diagnostic flood;
+fifteen launcher cases PASS (0.902 s). A real Wayland window remained alive with
+three mapped graphics buffers and was stopped/reaped after 2.010 s. An initial
+FD-only buffer check failed; retained mappings explain its missing observation.
+The noninteractive popup check alone was insufficient to prove buffer creation.
+Prior source and evidence are retained in private `auth-gui-fix-r1`.
+
+Only the authentication implementation, focused test and launcher dependency pin
+changed. Kernel/images and root-boundary code were not rebuilt. The prepared
+next attempt is r3 and requires fresh host availability. No phone Ready is pending.
