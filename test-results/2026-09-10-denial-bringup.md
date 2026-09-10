@@ -5,6 +5,55 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Complete assembled flows and read-only privilege probe
+
+Private evidence: `successor-live-driver-r1/full-flow-qualification-r1.json`,
+`full-flow-tests-r1` through `full-flow-tests-r4`,
+`privilege-probe-tests-r1.stderr`, `privilege-probe-tests-r2.stderr` and
+`privilege-probe-r1`. The whole-flow harness uses the real controller, callbacks,
+source/health/state generators and validators, admission phase/command policy,
+parent fallback transport adapter, and actual recording processes/pipes/loopback
+TCP. Common artifact/claim admission, USB/SSH, root networking, RAM transfer and
+recording time are explicit fixtures. Production recording deadlines remain
+1380 seconds; an explicit clock file advances them in the test.
+
+Four scenarios pass on the final harness: target success through full capture
+and post-capture health (**5.399 s**), plus early fallback, late fallback and
+source abort (**17.454 s** together). Early V11 recovery needs no target
+switch-root event or second recording. Late failure closes the target recording,
+starts a separate full fallback recording, performs one ordinary reboot and
+restores the previously healthy selection state. Pre-reboot refusal restores
+both the installed shutdown variant and selection state through actual mutation
+callbacks. Successful restoration keeps failed trials FAIL. Child processes are
+reaped; no fixture can dispatch an actual phone command.
+
+The first harness run failed at a wrong generator marker (**8.718 s**); the next
+passed target success but misclassified inert restore text inside a health
+script (**10.739 s**). Both failed receipts and harness versions are retained.
+Reply dispatch now uses the admitted phase. Fail-fast execution and targeted
+reruns avoid repeating already proven scenarios during fixture repair. Existing
+production controller, admission, kernel and image bytes remain unchanged.
+
+The fixed read-only privilege probe reuses the actual controller/launcher pidfd
+monitor under both capture and SSH lifetime profiles, then checks a fixed
+runuser child as deck and a clean source query. It performs no network, phone,
+claim or capture operation. The parent retains process identities and raw output
+and requires the original root process to exit. Seven initial preparation tests
+pass in **0.629 s**. The actual sudo attempt fails before root execution in
+**0.045 s**, with retained `sudo: a password is required`; this is not a kernel
+failure or a qualified privilege handoff.
+
+The installed graphical helper is `/usr/bin/ksshaskpass`. The prepared
+`--authenticate` option invokes sudo askpass from the same parent as the detached
+probes; password input stays between askpass and sudo. This follows sudo's
+[parent-process timestamp matching](https://raw.githubusercontent.com/sudo-project/sudo/main/plugins/sudoers/timestamp.c).
+Nine final tests pass in **0.691 s**, including authentication failure, ownership,
+output retention, exact scope and actual unprivileged root-entry refusal.
+Authentication success and real root handoff remain unverified. No dialog has
+been opened; request fresh availability before launching it with run ID `r2`.
+The phone is unchanged. No live qualification/admission record or boot claim was
+created, and no build/full CI was repeated.
+
 ## Shared admission verifier and concrete factory
 
 Private evidence: `successor-live-driver-r1/admission-qualification-r1.json`,
