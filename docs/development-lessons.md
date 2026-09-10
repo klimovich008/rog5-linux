@@ -452,6 +452,13 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   and verify loaded segments and ABI data before using the smaller copy. File
   size reduction alone does not establish faster transfer or runtime behavior.
 
+- Bound suite concurrency by CPU affinity and inherited cgroup quotas, not
+  only host CPU count. Full CI hit an unchanged five-second fixture deadline
+  under a two-CPU quota while launching every isolated suite at once; memory
+  peaked at 638.8 MiB without swap. Preserve the failure and deadlines, test
+  the bounded queue and cleanup, then rerun on frozen corrected source. Drain
+  all ready outcomes before refilling so success cannot hide a queued failure.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.

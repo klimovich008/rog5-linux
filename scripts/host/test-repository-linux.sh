@@ -558,6 +558,10 @@ selected_test() {
 	done
 	return 1
 }
+parallel_workers=$(python3 "$repo/scripts/host/repository-test-workers.py") ||
+	fail 'cannot determine bounded isolated test worker count'
+echo "ISOLATED_WORKERS $parallel_workers"
+parallel_running=0
 # An unset override preserves HOME; an explicitly empty override is invalid.
 test_tmp_parent=${ROG5_TEST_TMP_PARENT-${HOME:-}}
 [[ $test_tmp_parent == /* && -d $test_tmp_parent &&
@@ -617,6 +621,55 @@ terminate_parallel_group() {
 	/bin/kill -0 "$group_pid" 2>/dev/null || return 1
 	/bin/kill -KILL -- "-$group_pid" 2>/dev/null
 }
+finish_parallel_test() {
+	local index=$1
+	local log pid status_file wait_status had_descendants
+	log=$parallel_root/$((index + 1)).log
+	pid=${parallel_pids[$index]}
+	status_file=${parallel_status_files[$index]}
+	read -r wait_status <"$status_file"
+	[[ $wait_status =~ ^[0-9]+$ ]] ||
+		fail "isolated offline test returned an invalid status: ${parallel_paths[$index]}"
+	had_descendants=false
+	parallel_group_has_other_members "$pid" && had_descendants=true
+	terminate_parallel_group "$pid" ||
+		fail "isolated offline test supervisor identity was lost: ${parallel_paths[$index]}"
+	wait "$pid" 2>/dev/null || true
+	parallel_pids[$index]=
+	if [[ $wait_status == 0 ]]; then
+		if $had_descendants; then
+			fail "isolated offline test left background descendants: ${parallel_paths[$index]}"
+		fi
+		cat "$log"
+	else
+		cat "$log" >&2
+		fail "isolated offline test failed: ${parallel_paths[$index]}"
+	fi
+	parallel_running=$((parallel_running - 1))
+}
+reap_parallel_test() {
+	local index pid reaped
+	while :; do
+		reaped=false
+		for index in "${!parallel_pids[@]}"; do
+			pid=${parallel_pids[$index]}
+			[[ -n $pid ]] || continue
+			if [[ -s ${parallel_status_files[$index]} ]]; then
+				finish_parallel_test "$index"
+				reaped=true
+				continue
+			fi
+			/bin/kill -0 "$pid" 2>/dev/null || {
+				wait "$pid" 2>/dev/null || true
+				parallel_pids[$index]=
+				fail "isolated offline test supervisor exited early: ${parallel_paths[$index]}"
+			}
+		done
+		# Observe every already-ready failure before permitting a refill.
+		$reaped && return
+		sleep 0.01
+	done
+}
 cleanup_parallel_tests() {
 	cleanup_status=$?
 	trap - EXIT HUP INT TERM
@@ -637,6 +690,9 @@ trap 'exit 143' TERM
 set -m
 for test_path in "${isolated_tests[@]}"; do
 	selected_test "$test_path" || continue
+	while [[ $parallel_running -ge $parallel_workers ]]; do
+		reap_parallel_test
+	done
 	parallel_paths+=("$test_path")
 	status_file=$parallel_root/${#parallel_paths[@]}.status
 	hold_fifo=$parallel_root/${#parallel_paths[@]}.hold
@@ -655,38 +711,11 @@ for test_path in "${isolated_tests[@]}"; do
 		done
 	) >"$parallel_root/${#parallel_paths[@]}.log" 2>&1 &
 	parallel_pids+=("$!")
+	parallel_running=$((parallel_running + 1))
 done
 set +m
-for index in "${!parallel_pids[@]}"; do
-	log=$parallel_root/$((index + 1)).log
-	pid=${parallel_pids[$index]}
-	status_file=${parallel_status_files[$index]}
-	while [[ ! -s $status_file ]]; do
-		/bin/kill -0 "$pid" 2>/dev/null || {
-			wait "$pid" 2>/dev/null || true
-			parallel_pids[$index]=
-			fail "isolated offline test supervisor exited early: ${parallel_paths[$index]}"
-		}
-		sleep 0.01
-	done
-	read -r wait_status <"$status_file"
-	[[ $wait_status =~ ^[0-9]+$ ]] ||
-		fail "isolated offline test returned an invalid status: ${parallel_paths[$index]}"
-	had_descendants=false
-	parallel_group_has_other_members "$pid" && had_descendants=true
-	terminate_parallel_group "$pid" ||
-		fail "isolated offline test supervisor identity was lost: ${parallel_paths[$index]}"
-	wait "$pid" 2>/dev/null || true
-	parallel_pids[$index]=
-	if [[ $wait_status == 0 ]]; then
-		if $had_descendants; then
-			fail "isolated offline test left background descendants: ${parallel_paths[$index]}"
-		fi
-		cat "$log"
-	else
-		cat "$log" >&2
-		fail "isolated offline test failed: ${parallel_paths[$index]}"
-	fi
+while [[ $parallel_running -gt 0 ]]; do
+	reap_parallel_test
 done
 
 for test_path in "${tests[@]}"; do

@@ -5,6 +5,48 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Remaining module guest and CI follow-up
+
+The separately rebuilt QEMU-only S12 shim twins passed in 4.432/4.027 seconds,
+11.957 seconds including source/kit verification. Both 252504-byte objects match
+`fe2ec84d7b3b0d3fc0d3b859b4dc9f51047bc12f66a343ef94867b1fb1658d9c`.
+They remain outside all production module selections and phone payloads.
+Receipt `successor-baseline-vm-r1/shim-run-r1/result.json` is
+`fa971df9bf1b72a190f6710abf327023aa8d84effbfe130e3bb769b8a43fdba6`.
+
+The remaining 44-module guest passed in 8.096 seconds, peaking at 232.7 MiB in
+its 512 MiB/no-swap controller. It streamed only three small retained archive
+members and the bounded guest archive; no Arch root image was read. All 41
+ordinary modules loaded and remained live until poweroff. PMIC observer and
+real S12 each refused the virtual board with one finit_module call/ENODEV;
+activation refused through the accepted test-only shim with counters 1/0/0
+(BTF COMING/consumer LIVE/validator calls), then the shim unloaded. Packaged PDR
+alone lacked BTF by design. Both source/kernel/module identities and terminal
+container cleanup passed. This is loader/refusal evidence, not physical
+initialization, a successful real S12 pair or raw-PDR BTF acceptance.
+Receipt `successor-baseline-vm-r1/run-r1/result.json` is
+`37814bb0ca751e8da1b1ea7e4ff466c875166cbb21457b0acf80e4e813a6db0a`;
+console SHA is `71a32e81d3f7e9cbe060ee472cd14be803683bdebf3b99c7080d7730ece9f99a`.
+
+Full CI on exact f74 stopped after 84.809 seconds in
+`test_already_healthy_fresh_boot_creates_record_after_timer_stop`: its unchanged
+five-second subprocess deadline expired. The run had 3 GiB memory/no swap and
+CPUQuota200%; peak memory was 638.8 MiB. The subsequent Killed messages belong
+to the test runner's process-group cleanup, not an established OOM. The runner
+launched all isolated suites without a worker cap; CPU contention is a likely
+cause requiring focused verification. Original source and failure are retained
+in `source-ci-r4/result.json`, SHA
+`f73055743771612da9669148d73b60ceeda1c693e68255f772c7185191711e20`.
+The correction must bound scheduling and preserve the existing test deadlines,
+failure checks and descendant cleanup before a fresh full-CI run.
+
+The bounded scheduler correction passed its actual queue contract in 7.616
+seconds; the unchanged 12-test healthy suite passed in 3.688 seconds. A barrier
+fixture detects the old early-refill behavior, and a real 150% CPU quota clamps
+an explicit request for 32 workers to one. Peer review is clear. Receipt
+`ci-worker-fix-r1/result.json` is
+`f2038c9b088a8898e5da86b722d3575eadecc0c082f7b27d7cd32133421dc0a1`.
+
 ## Successor kernel and module execution
 
 The following results supersede the pending build statements in the retained

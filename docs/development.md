@@ -69,8 +69,12 @@ scripts/host/rog5-dev check-target --help
   `test ci` on the frozen tree. Historical matrices run `test nightly`.
 
 Do not rerun full local tests without changed code or a new failure. The runner
-prints per-suite duration. It parallelizes only explicitly isolated suites;
-shared-state tests remain sequential. CI uses this same runner. PR head and
+prints per-suite duration. It runs at most two explicitly isolated suites by
+default, further limited by CPU affinity and inherited CPU quotas.
+`ROG5_TEST_WORKERS=1` serializes those suites; values 1–32 request another cap
+without exceeding detected CPU capacity. Unknown quota hierarchies serialize
+conservatively. Completed suite logs print as slots are reclaimed, and any ready
+failure is handled before refilling the queue. Shared-state tests remain sequential. CI uses this same runner. PR head and
 merge validation remain separate; main pushes now select from before/head.
 Unknown or unavailable diffs broaden validation. Scheduled/manual validation
 runs nightly and QEMU. Required job names are retained, with explicit skipped
