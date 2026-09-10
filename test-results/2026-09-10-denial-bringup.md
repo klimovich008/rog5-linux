@@ -5,6 +5,40 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Guarded state exchange and host custody
+
+Private evidence: `successor-state-guards-r1/result.json`. The source-stage,
+source-abort and V11-restoration generators use the retained physical guards
+and exact static Rust helper. Six positive, twenty refusal and two post-operation
+fault cases pass across two runs using sealed ARM64 BusyBox/loader and the
+actual helper, with explicitly synthetic kernel/device telemetry. Failed helper
+status or unsafe post-operation power preserves the helper logs and remains
+FAIL even after a successful state exchange.
+
+The first service took 57.384 seconds and stopped during fixture setup after
+19 passing cases: the negative fixture tried to overwrite its mode0400 custody
+file. Its original FAIL receipt remains. The scoped fixture fix also adds
+fsynced per-case rows and terminal exception results. Only the remaining nine
+cases ran again, passing in 15.572 seconds. A separate replay verifies all 28
+retained scripts, raw outputs and final fixture states against the unchanged
+generator; it does not reconstruct missing first-run process receipts.
+
+Seven durable-host-custody tests pass in normal and optimized Python, including
+duplicate keys, source drift, symlinks, reused ownership and partial fsync
+failure. Fresh read-only V9 health passes in 1.206 seconds, binding the actual
+old selection hash and all eleven installed artifact hashes. Host custody owner
+`5ff5ab2bf15642c7a07e788a73caefa2` retains the exact old record and its source
+evidence in exclusive, synced files. The new shell guard's read-only subset
+passes on the actual phone in 0.972 seconds, on unchanged boot
+`7c945aa5-80d0-4af2-aa76-113d68e23ac5`. No state helper was uploaded or executed
+on the phone. Controller admission, live state exchange, fallback restoration
+and successor boot remain unqualified. No human availability is pending.
+
+After-run review: partial matrix progress should survive fixture errors; keep
+raw failures and resume only unrun cases when production inputs are unchanged.
+The next hardware dependency is the complete recovery controller. No kernel,
+module, paired-root A01 or full CI rerun was justified by this private work.
+
 ## Exact059 state exchange prototype
 
 Full source CI for the exact boot helper passes on clean `63a0c1a1` in
