@@ -42,7 +42,7 @@ pipe/pidfd tests in **7.354 s** and three bridge/supervisor integration cases in
 **2.625 s**. The monitor watches both controller and launcher loss; bounded output
 writes permit cleanup after reader failure. These tests explicitly substitute
 sudo/root/network and recording duration. The actual privileged handoff remains
-unverified, and the complete root admission verifier is not yet present.
+unverified. The shared admission verifier is now implemented as described below.
 The fallback-route worker now passes nineteen component/process tests. It
 borrows an exact existing route or cleans up its own temporary route, while
 running SSH as deck. The shared child runner now uses `prlimit`, avoiding a
@@ -56,8 +56,19 @@ regression cases in **50.460 s** including launch overhead. Actual child session
 pidfds and durable output files are exercised; sudo/root/network are fixtures.
 Raw root output is bounded separately on disk, preserving diagnostics larger
 than the older four-MiB receipt limit. Failed or uncertain mutations cannot retry.
-Next: complete root admission, then qualify the full target/fallback flow and
-actual privileged handoff. Neither live admission nor physical execution exists.
+The shared admission verifier and concrete driver factory now pass **24 boundary
+tests in 0.451 s** and **three source-abort/assembly tests in 4.835 s**. They bind
+the exact input lock, current controller/host boot, qualification evidence,
+one-use claim, phase history and generated command bytes. Both root entrypoints
+use the same policy. The factory connects the capture and transport authorizers
+before returning a driver. Full target/fallback integration and actual privileged
+handoff are still unqualified; their required receipt is absent.
+An actual 29-file input check passes in **0.105 s**, with an unchanged check in
+**0.005 s**. Hashing streams the 128-MiB boot image; changed metadata invalidates
+the cache. An actual entrypoint check refuses both the unregistered claim and
+missing qualification in **0.339 s**. No admission record or physical execution
+directory has been created. Next: qualify the full target/fallback flow, prepare
+the real privilege-boundary probe, then finish the one-use launcher/claim wiring.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 

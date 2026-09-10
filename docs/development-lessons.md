@@ -624,6 +624,14 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   Reuse the same transport hook in nested recovery readers, and test that wiring
   explicitly before relying on the assembled driver.
 
+- When reusing an account-relative verifier across a privilege boundary, inspect
+  how it chooses its home and ownership checks. The temporary-boot claim verifier
+  must execute as deck even when called by a root helper; looking under root's
+  home would test a different lifecycle. Keep the command fixed and bounded.
+  For immutable artifact checks repeated per phase, stream the initial digest
+  and reuse it only while inode, ownership, mode, size and timestamps still match;
+  test same-size replacement before claiming the cache is safe.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
