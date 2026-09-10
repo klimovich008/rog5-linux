@@ -403,6 +403,18 @@ Successor prerequisites:
 
 ## Working agreement for the main chat
 
+The 2026-09-10 kernel-first correction adds three prevention rules to the
+[feedback loop](development.md#feedback-after-each-run):
+
+- Before starting an expensive build, name the current hardware dependency it
+  resolves. Denial compilation must not displace unqualified display, touch,
+  GPU or power/recovery work just because a host build is easier to complete.
+- A deliberately stopped process can exit137. Bind the explicit stop receipt
+  when classifying it; exit137 alone does not prove an OOM or a build defect.
+- Reuse exact-input build/test evidence and poll an existing live job. Restart
+  only after its authoritative terminal result or missing handle is established,
+  and after the reason for retrying has changed. Keep useful caches on disk.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.

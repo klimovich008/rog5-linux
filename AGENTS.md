@@ -10,6 +10,15 @@ Prefer the smallest artifact and relevant tests. Freeze source before expensive
 builds/CI; do not repeat completed checks on unchanged inputs. A hardware trial
 must answer one specific question that offline tests cannot answer.
 
+Standing user instruction: kernel and non-cellular hardware bring-up precede
+further Denial/Flutter builds. Follow the current priority in current-state.md.
+After each run and before ending each goal turn, briefly review repeated errors,
+slow stages, unnecessary work and priority alignment. Use results/timings to
+choose a justified scoped improvement, implement it when feasible, and verify
+the relevant behavior. Record only reusable lessons in development-lessons.md;
+keep immediate next actions in current state. Follow the feedback loop in
+docs/development.md. Do not weaken guards or substitute process work for progress.
+
 Preserve user changes, private evidence and the accepted server/rescue baseline.
 Existing standing authorization applies to routine scoped work; destructive
 storage remains separately reviewed. Keep exact identity, signing, storage,

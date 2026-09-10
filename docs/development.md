@@ -28,6 +28,23 @@ failed attempts trigger hypothesis reassessment, not an architecture verdict.
 Bounded experiments and labelled mitigations are permitted while an original
 cause is unknown. An unrelated incident need not block a separately proven fix.
 
+## Feedback after each run
+
+Standing user instruction, 2026-09-10: reserve a brief review after each run and
+at the end of every goal turn. Check whether the run advanced the current
+priority, what failed repeatedly, and where measured time or resources were
+spent without useful new evidence. A successful build can still be the wrong
+next task: kernel and hardware qualification currently precede Denial builds.
+
+When a repeated error or bottleneck has an actionable cause, implement one
+scoped improvement and verify it with the smallest relevant check. If the cause
+is uncertain, choose a bounded measurement that distinguishes hypotheses before
+retrying. Preserve failed receipts and original deadlines; do not turn a fix
+into a weaker acceptance gate. Carry larger justified changes into the existing
+roadmap, and add a development lesson only when it prevents a reusable failure.
+No-change reviews need no new file or repetitive user update. Keep this review
+proportional so it improves the next run without delaying hardware work.
+
 ## Commands and tests
 
 Run these from the repository; `scripts/host/rog5-dev` also works from another
