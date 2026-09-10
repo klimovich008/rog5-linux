@@ -638,6 +638,14 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   this twice before phone execution. Stop at the first failed scenario while
   repairing the fixture, retain its receipts, then rerun affected paths.
 
+- Authentication lifetime must cover later recovery commands as well as initial
+  startup. Prepare bounded noninteractive refresh from the same controller
+  process, test loss of credentials and shutdown of the refresher, and complete
+  its first successful refresh before consuming a one-use claim. Introducing a
+  refresh thread requires auditing every subprocess path, including the final
+  sealed-image transfer. Keep an already prepared human-assisted probe stable
+  while making independent changes to the later trial launcher.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
