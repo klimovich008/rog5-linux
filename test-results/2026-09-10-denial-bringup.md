@@ -84,6 +84,63 @@ SHA-256 `81afd8c5b036815f9f061dd42990b95acd0a6e5d4bf9633fceb52ee39ab1d16f`.
 Cache timing/benefit remains to be measured; the preflight and regression
 passes do not constitute a full kernel-build result.
 
+While the same kernel build remains active, unsigned GPU DT twins now pass on
+both exact base variants. V9+GPU is 107916 bytes, SHA-256
+`f6e651c680beb4f222fdcf4aadc0834ddaf28fb6a95ef0808fd5027020b3d6f7`;
+display-V9+GPU is 109468 bytes,
+`5ce36eecfe49601034e89cb3d98536e3d558b1399d2576004f5eb1aba713b89b`.
+The five-property delta preserves all other properties and boot metadata,
+including the 8 KiB ZAP region. Eight test groups pass normally and optimized;
+the parent independently rechecked all four recorded output files. Receipt:
+`gpu-dt-composition-r1/result.json`, SHA-256
+`cad40592b18ed03b233a9c4d8e7e1fc12513aa60b859cdb5032bd67ede937c83`.
+
+The new private Rust GPU query helper is ready for ARM64 build preparation.
+Fourteen native mock tests pass in both debug and optimized builds, warnings
+denied; ARM64 C assertions check the exact UAPI structures, syscall flags and
+ioctl encodings. The check caught and corrected the x86 `O_NOFOLLOW` value
+before a target build. The helper pins a metadata-only O_PATH handle, then
+performs one operational open, VERSION identification and three scalar
+GET_PARAM queries with one close. It preserves primary and close failures
+independently. The operational open can initialize GPU hardware; the helper
+has no admission authority, submission or retries. Stable boot/device binding
+and an external deadline remain controller responsibilities. Tests use mocked
+ioctls and ordinary-file metadata fixtures; no helper main/device execution or
+ARM64 binary build ran. Final reviewed receipt:
+`gpu-query-helper-r1/result.json`, SHA-256
+`4ede7e7c94f546028babf5077eeee1f036a5cd9e758796198b9f0c03081c14a7`.
+
+The complete successor package needs 54 distinct modules: the current 25
+targets, 22 radio outputs and seven additional hardware/helper modules. Four
+radio outputs are retained package extras outside the loaded root closure;
+they are preserved. The recipe keeps the WCN6851 selector patch and replaces
+the two generic power providers with the accepted diagnostic variants. It
+forwards matching ccache compiler commands to the unchanged radio builders.
+Seven focused tests and review pass; no module build has run. Receipt:
+`successor-module-plan-r1/result.json`, SHA-256
+`75cdd6078f70f1a46b8d73f5fe0574675e9c2fdd64e8d7db1d98641040502b84`.
+
+The new kit deriver waits for successful kernel twins, verifies exact recipes
+and artifacts, and compares generated headers/config markers and executable
+tools across completed A/B outputs before and after copying. The accepted
+older resolve_btfids twins differ in debug paths/build IDs; only that exact
+tool may use the explicitly recorded debug/build-ID normalization on disposable
+copies. Raw kit/build bytes remain intact and command metadata is inventoried
+separately. Twenty-three fixtures pass normally and isolated, including header,
+tool, mode, normalization and copy-time drift. Receipt:
+`successor-kit-prep-r1/review-fixtures/result-r2.json`, SHA-256
+`d9a914b8355c671c9859974f553433f1dcb1e3409afbb81bcc6f7739c44de41c`.
+
+A separately reviewed completion recipe adds only new-release build metadata
+and the 15-module power tree, verifies the packaged-copy-only PDR BTF exception,
+runs depmod and seals the complete kit externally. Seven fixtures pass in both
+Python modes, including the actual retained old PDR pair and a changed code
+section refusal. Receipt: `successor-kit-completion-r1/validation-r1.json`,
+SHA-256 `de5c2a93a9ca3ce4efd18cd85e2059dd491fcf79e594a471849968acd7e56f33`.
+Neither deriver nor completion has run on a real successor kit. The direct base
+metadata is f17; existing external builders therefore use that base's timestamp,
+with matching twins, rather than copying the older ancestor metadata.
+
 The configured display autoload audit expanded to2,453 root nodes, selected
 effective unit/rule/helper text, the final archive catalog and radio manifest.
 Udev's kmod loading is real, but its current-release module index is absent.
