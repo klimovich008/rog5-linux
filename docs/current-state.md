@@ -159,15 +159,25 @@ qualified as metadata file14. The original inventory refusal is preserved.
 Corrected runtime, indicator, shutdown, firmware and other unrelated bytes
 remain unchanged. The reserved unsigned bundle is
 `kernel-hw-05941-a607a2bb249c918b`, using the retained headless V9 DT.
-The matching boot wrapper, paired-root qualification, full source CI and
-physical kernel trial remain pending. Full CI on frozen f74 stopped after 84.809
-seconds on a five-second host-test timeout under a two-CPU quota; memory peaked
-at 638.8 MiB with no swap. The isolated-suite launcher had no concurrency cap.
-The reviewed scheduler now defaults to two workers, capped by CPU affinity
-and inherited quota. Focused queue tests pass in 7.616 seconds; the unchanged
-healthy suite passes in 3.688 seconds. Full CI on the corrected source remains
-pending; test deadlines and assertions remain unchanged. No physical claim,
-signature or phone operation has been issued for this successor.
+Signed headless boot-package twins now pass in `successor-boot-package-r2`
+(89.009 seconds, 512 MiB/no swap). The 129,966,080-byte raw image requires the
+128 MiB AVB envelope; both final wrappers match
+`d21405d94a9eabc4b6b8e1b7990bf7c9f2aef1da0795a39e94761a5a09ab3fa6`.
+Both AVB checks, nested authenticated runtime plan and signed bundle comparisons
+pass. The first packaging failure is preserved: AVB resolves partition `boot`
+as sibling `boot.img`, requiring an exact canonical verification copy. Local
+signing has occurred; release qualification, admission and phone execution have
+not. Paired-root content/runtime checks, exact059 A01 recognition, a matching
+128 MiB controller and guarded pending trial-state preparation remain required.
+
+Full CI on frozen f74 stopped after 84.809 seconds on an unchanged five-second
+host-test timeout under a two-CPU quota. The reviewed scheduler now defaults to
+two workers, capped by affinity and inherited quota. CI on corrected cc53c3ec
+passed that 12-test suite, then stopped after 255.505 seconds at UFS inventory
+sorting: the desktop service inherits en_US.UTF-8, unlike the shell's C.UTF-8.
+The production verifier now pins C locale; exact inventory/profile refusals
+remain unchanged. A fresh full CI on the combined correction remains pending.
+
 
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside

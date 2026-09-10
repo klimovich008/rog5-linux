@@ -107,6 +107,50 @@ chmod 0755 "$work/shims/modinfo" "$work/shims/readelf" "$work/shims/strings"
 	exercise_profiles "$work/synthetic-read-only" "$work/synthetic-local-write"
 )
 
+
+# Exercise the production verifier under a caller locale that differs from its
+# contract. The controlled sort refuses non-C even on hosts lacking en_US, so a
+# runner-wide locale setting cannot hide a missing verifier-local override.
+real_sort=$(command -v sort)
+cat >"$work/shims/sort" <<'EOF'
+#!/bin/sh
+set -eu
+[ "${LC_ALL-}" = C ] || {
+	echo 'FAIL UFS verifier did not pin sort locale' >&2
+	exit 79
+}
+printf '%s\n' "$LC_ALL" >>"$UFS_TEST_SORT_LOG"
+exec "$UFS_TEST_REAL_SORT" "$@"
+EOF
+chmod 0755 "$work/shims/sort"
+(
+	PATH=$work/shims:$PATH
+	LC_ALL=en_US.UTF-8
+	UFS_TEST_REAL_SORT=$real_sort
+	UFS_TEST_SORT_LOG=$work/sort-locale.log
+	export PATH LC_ALL UFS_TEST_REAL_SORT UFS_TEST_SORT_LOG
+	exercise_profiles "$work/synthetic-read-only" "$work/synthetic-local-write"
+	: >"$work/synthetic-read-only/extra.ko"
+	if "$verifier" "$work/synthetic-read-only" "$release" read-only \
+		>"$work/out" 2>"$work/err"; then
+		fail 'fixed-locale inventory accepted an extra module'
+	fi
+	grep -Fxq 'FAIL deferred UFS module inventory changed' "$work/err"
+	rm "$work/synthetic-read-only/extra.ko"
+	mv "$work/synthetic-read-only/phy-qcom-qmp-ufs.ko" "$work/saved-module"
+	if "$verifier" "$work/synthetic-read-only" "$release" read-only \
+		>"$work/out" 2>"$work/err"; then
+		fail 'fixed-locale inventory accepted a missing module'
+	fi
+	grep -Fxq 'FAIL deferred UFS module inventory changed' "$work/err"
+	mv "$work/saved-module" "$work/synthetic-read-only/phy-qcom-qmp-ufs.ko"
+)
+[ "$(wc -l <"$work/sort-locale.log")" -eq 6 ] ||
+	fail 'controlled locale fixture did not exercise all inventory paths'
+[ "$(sort -u "$work/sort-locale.log")" = C ] ||
+	fail 'production UFS verifier inherited caller collation'
+echo 'PASS UFS inventory and ELF checks pin C locale independently of the runner'
+
 for path in "$read_only_archive" "$local_write_archive"; do
 	if [ -e "$path" ] || [ -L "$path" ]; then
 		[ -f "$path" ] && [ ! -L "$path" ] ||
