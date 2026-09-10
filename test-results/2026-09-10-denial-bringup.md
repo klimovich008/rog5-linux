@@ -5,6 +5,55 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Shared admission verifier and concrete factory
+
+Private evidence: `successor-live-driver-r1/admission-qualification-r1.json`,
+`admission-tests-r1.stderr`, `admission-tests-r2.stderr`,
+`admission-driver-tests-r1.stderr`, `admission-input-probe-r1.json` and
+`admission-actual-entry-r1.json`. The new `live-admission.py` is import-only and
+does not register or consume a claim. Its fixed input lock covers 29 existing
+sources/artifacts; dependency pin checks also cover their existing producers.
+The signed boot image is streamed, while retained build/A01 receipts preserve
+their prior qualification. No kernel, root, image or full CI build was repeated.
+
+Admission binds exact record/context bytes, original controller PID/start/UID,
+host boot, clean source, a bounded lifetime, current verifier/input identities,
+full-flow qualification evidence and the exact consumed claim. The lifecycle
+claim verifier is account-relative; root invokes its fixed bounded check as
+deck. The new policy checks phase prerequisites, prior durable receipts, source
+abort ordering and target/fallback capture closure. It regenerates mutation and
+health scripts, derives health boot identity from retained discovery, and checks
+per-command intent. Root transport independently checks the durable attempt and
+forbids nonzero mutation indices. Root and parent capture checks share a policy.
+
+**24 initial boundary tests PASS in 0.441 s; the final 24 PASS in 0.451 s** after
+adding concrete assembly and strengthening root attempt/discovery binding.
+These use real files and controller process identities, with explicit fixtures
+for artifacts, qualification, claim, root UID and source observations. They
+exercise stale identities, altered evidence, exact command refusal, phase skips,
+ambiguous reboot refusal, capture closure and early fallback handling. The claim
+subprocess command is inspected through a fixture; actual root execution is not
+proven. **Three controller/source-abort/factory tests PASS in 4.835 s.** The real
+controller and callbacks restore selection after partial staging, using the new
+phase/command policy with simulated phone replies. The real factory connects
+all authorizers and creates no execution directory or receiver.
+
+The actual input check passes in **0.105 s**, then **0.005 s** with unchanged
+metadata. A same-size replacement test invalidates the digest cache. Actual
+entrypoint checks on clean source `b4412fb27e685def77f52767537e1f8e5b1d5fb8`
+refuse the unregistered claim and absent `live-qualification.json` in **0.339 s**.
+Existing source hashes remain unchanged. No live ADMITTED record, claim, sudo
+operation, host network change, phone action, receiver or Ready request exists.
+
+Next qualification must cover target success, source abort, early and late
+fallback, plus the actual privilege boundaries. A read-only probe of the shared
+controller/launcher monitor and runuser boundary can establish privileged
+handoff without admitting a live capture or consuming the phone trial. Full
+simulated flows must retain their simulated-device scope. Only after that
+preparation should the one-use launcher and exact claim be enabled. Keep final
+qualification inputs frozen through execution; progress documentation commits
+must not be confused with evidence for a different admitted source revision.
+
 ## Guarded fallback transport and callback connection
 
 Private evidence: `successor-live-driver-r1/transport-qualification-r1.json`,
