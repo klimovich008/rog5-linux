@@ -424,6 +424,13 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   old build tree. Describe twins using that cache as cache-assisted byte
   comparisons; they are not independent uncached compilations. Record cache
   statistics and elapsed times before claiming a speed improvement.
+- A configured cache can still miss identical work. The successor's second
+  build showed low reuse; a four-compile experiment reproduced CWD hashing
+  despite fixed debug compilation paths. Distinct container CWDs missed twice;
+  separate host outputs mounted at the same container path produced a direct
+  hit and identical objects. Use stable container paths for future twins while
+  preserving separate output state and strict cache checks. Do not alter a live
+  build's frozen recipe or claim full-build savings from this small fixture.
 - Check raw syscall flags, ioctl numbers and FFI layouts against the actual
   target UAPI, even in Rust. The GPU helper's ARM64 compile assertion caught
   an x86-derived `O_NOFOLLOW` value, repeating the earlier helper's architecture

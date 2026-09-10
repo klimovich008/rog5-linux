@@ -28,6 +28,25 @@ measured. Private receipts: `gpu-query-arm64-r1/result.json`,
 operation ran. The existing kernel build remains active; module qualification
 must wait for its actual successful twin result.
 
+The first successor kernel/25-module build completed in 2729.501 seconds with
+successful container cleanup. Its second output build is running. Low cache
+reuse prompted a separate 1.645-second experiment with the same compiler/debug
+flags: two different working directories produced misses, while separate host
+outputs at one stable container path produced a direct hit. All four objects
+were byte-identical. Debug logs identify CWD hashing as the fixture's cause.
+Evidence: `cache-path-probe-r1/analysis.json`. This supports stable container
+paths for the next module runner; it does not measure full-kernel speedup or
+justify changing the live kernel build.
+
+An early QEMU virt boot of completed build A passed in 2.633 seconds, using
+Image SHA-256 `d9a55229f2e0c67e1b856d13c40715b3ec4e3a6fee2594aaa3947d99639e3fb8`.
+The guest reached the exact successor release with zero taint and powered off;
+its log contains no checked panic, BUG, Oops or warning markers. Container
+cleanup passed. This check loaded no test modules and used no phone DT, disk
+or network. The incidental procfs file-size check does not prove an empty
+module inventory; no such claim is made. Combined module registration and
+physical boot remain pending. Receipt: `kernel-a-boot-smoke-r1/result.json`.
+
 ## Current phone and display preparation
 
 Kernel-first followup produced an initial external FTS3658U driver in private
