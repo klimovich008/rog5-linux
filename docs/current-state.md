@@ -7,7 +7,10 @@ and a default-off status LED are the current bounded step, not final product
 completion. The [signed input package and module composition](../test-results/2026-09-10-mobile-input-preparation.md)
 passed offline verification at source `458cb42a` in 6.13 seconds. Full
 root/runtime composition and physical input/LED evidence remain pending;
-no new candidate has been admitted or booted.
+V9 is now registered against those exact signed bytes, with all prior records
+unchanged. It has not been admitted or booted. Sparse checkout of two completed
+review worktrees recovered 5.93 GB while retaining their Git objects and evidence;
+the host reserve is restored. Full integration validation is next.
 
 After the unplugged startup investigation, installed V8 returned as boot
 `159aa8ca-a7d5-425c-87c8-481e9484ff22`; the final authenticated readback passed
