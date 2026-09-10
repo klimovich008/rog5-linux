@@ -25,6 +25,8 @@ builder is provisioned. The ARM64 control client built offline in 22.010 seconds
 and passed emulated help/version checks. Full ARM64 compositor compilation also
 passed in 464.094 seconds under the same 3 GiB limit. Both resulting binaries
 pass isolated ELF/help/version checks; no engine or phone session was run.
+Static closure against the retained Arch layers passes for `denialctl`.
+`deniald` still needs GBM, libseat, libinput and xkbcommon libraries there.
 The public mobile shell is available, while the reference
 build helpers use x86-64 paths and checksums. See the
 [bring-up record](../test-results/2026-09-10-denial-bringup.md) for next actions.
@@ -39,6 +41,10 @@ Reviewed cleanup removed 67.218 GiB of generated compiler intermediates from
 completed historical builds. All 15,559 protected outputs remained unchanged;
 sources, final images, recovery data and current module kits were retained.
 Approximately 82 GiB was free before temporary full-CI fixtures.
+
+The hash-verified stock DTBO now corroborates the ASUS MP2 front-touch
+controller, GPIO22/23/131, L3C/L8C consumers and final 1080x2448 extents.
+This is offline board-data evidence; no touch probe or driver activation ran.
 
 ## Preserved buttons/LED milestone
 
