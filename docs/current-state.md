@@ -10,15 +10,19 @@ the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
 Current coordinator handoff: the successor kernel, module and boot-package
-builds are complete; do not restart them. Seven mutation, three source-read and
-four target/fallback health callbacks are qualified as components. The complete
+builds are complete; do not restart them. Seventeen controller phases now have
+component implementations: the previous fourteen source/mutation/health bindings
+plus fastboot wait, fallback location and ordinary installed reboot. The complete
 live controller and admission are still pending. The V11 no-Python observation/restoration component
 passes 11 ARM64 fixture cases (45.476 s) and 33 host parser replays (0.005 s).
 Installed-image contents and physical telemetry were synthetic; V11 physical
 verification has not run. The four new health bindings pass 23 boundary tests
 (6.679 s) and three controller integration cases (2.601 s). Their actual
-read-only discovery probe passes on unchanged V9 in 0.333 s. Next: complete
-fallback location, capture/fastboot ownership and a scoped privileged
+read-only discovery probe passes on unchanged V9 in 0.333 s. Fastboot/location
+qualification covers 28 cases with a retained receipt-collision failure and
+passing targeted fix; three health-engine rechecks pass. No physical fastboot
+command ran. Next: implement the four capture lifecycle phases and one RAM boot,
+connect concrete installed-route/capture verifiers and a scoped privileged
 transport bridge. New routes/full capture need host sudo authentication, while
 normal USB SSH works as deck. No receiver or Ready request is pending.
 
