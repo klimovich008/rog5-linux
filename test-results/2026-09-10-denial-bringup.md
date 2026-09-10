@@ -5,6 +5,29 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## ARM64 GPU probe preparation
+
+The small Rust query helper now compiles twice in the retained offline builder
+under 512 MiB/no additional swap and one CPU. Both 4,650,408-byte files match
+`64f8075dc9b511c85d0b49d7e42c3f2b0f556e19ef73b3e0f28b4bd3418341cc`;
+compile/container cleanup took 1.683 and 1.271 seconds. Static closure against
+the retained Arch libc, libgcc and loader passes in 0.403 seconds: all 109 strong
+imports across the helper and its dependencies resolve with their required
+versions. Ten refusal/closure fixtures pass. Root metadata remains unchanged;
+existing full-root hash evidence was reused, while small providers were hashed.
+
+The after-run review found 4,103,239 bytes in debug sections. Separate
+`--strip-debug` deployment twins are 542,016 bytes, SHA-256
+`9f7bf87f99987cb96030489e1dd995e1eaba13c532731bb24c6229d94387fbb6`.
+Packaging and verification took 0.063 seconds. Program headers, described
+segment bytes and allocated section payloads are preserved, except the ELF
+header's section-table location/count/index. Originals remain retained.
+This is an 88.3% reduction in uncompressed binary size; transfer speed was not
+measured. Private receipts: `gpu-query-arm64-r1/result.json`,
+`package-result.json` and `abi-review/result.json`. No target binary or GPU
+operation ran. The existing kernel build remains active; module qualification
+must wait for its actual successful twin result.
+
 ## Current phone and display preparation
 
 Kernel-first followup produced an initial external FTS3658U driver in private
