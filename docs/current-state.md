@@ -167,8 +167,9 @@ Both AVB checks, nested authenticated runtime plan and signed bundle comparisons
 pass. The first packaging failure is preserved: AVB resolves partition `boot`
 as sibling `boot.img`, requiring an exact canonical verification copy. Local
 signing has occurred; release qualification, admission and phone execution have
-not. Paired-root content/runtime checks, exact059 A01 recognition, a matching
-128 MiB controller and guarded pending trial-state preparation remain required.
+not. Paired-root content/runtime checks and exact059 A01 now pass as recorded
+below. A complete 128 MiB controller and guarded pending trial-state preparation
+remain required.
 
 Full CI on frozen f74 stopped after 84.809 seconds on an unchanged five-second
 host-test timeout under a two-CPU quota. The reviewed scheduler now defaults to
@@ -192,7 +193,32 @@ The integrated VM now pins the qualified QEMU image and records owned-container
 creation, terminal state, removal and process-group cleanup. Console parsing is
 bounded. Focused profile, fixture, lifecycle and wiring tests pass, including
 missing/duplicate runtime markers, stale identities and incomplete cleanup.
-Actual full A01 and source CI on this new integration are still pending.
+Actual full A01 passes on `f316fe58` in 80.308 seconds: all seven composition
+checks, 51 ordinary module loads, two expected board refusals and the separate
+activation boundary. Root and upper hashes stayed unchanged. The owned VM
+closed cleanly without OOM and was removed. Full source CI on that same clean
+commit passes in 596.538 seconds (`source-ci-r7/result.json`). These results
+establish offline qualification, not physical hardware behavior.
+
+The exact059 import-only 128 MiB boot primitive is now implemented. It binds
+the immutable composition profile, trial, wrapper, fallback and A01 evidence;
+requires the successor's own entered claim; and reuses the existing sealed
+snapshot/capacity primitives without changing either historical boot path.
+The successor remains absent from the claim registry and therefore cannot boot.
+Nine new tests plus the existing seven R01 and four ordinary helper tests pass
+in both Python modes. The actual wrapper snapshot seals and closes in 0.184
+seconds; focused service runtime is 2.450 seconds, peak 281.8 MiB/no swap.
+Evidence: `successor-boot-helper-r2/result.json`. Full integration CI for this
+new helper is pending; the f316 result above does not cover later source edits.
+
+Next: prepare the complete controller and exact trial-state replacement/restore
+operation. The helper's `decide` rejects a different existing identity; archive
+and retain the old healthy V9 record before using the absent-record creation
+branch. Restoration must restore those exact old bytes, not call `healthy`
+with the new identity. The embedded RAM wrapper bypasses the installed selector,
+so its recovery phase stays read-only and requires a separate authenticated V11
+return path. Keep the ordinary full capture and failed-target result separate
+from successful assisted recovery. No phone action or Ready request is pending.
 
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside
