@@ -95,7 +95,10 @@ fixes 0026/0035 are already present. The clean successor kernel source is
 Its unchanged-config/compiler/release preflight passed in 21.955 seconds.
 Cache-assisted builds from separate output directories are now **RUNNING** in
 private `kernel-hardware-build-r1`, using a 6 GiB/no-extra-swap limit, two CPUs
-and a 4 GiB disk compiler cache. Do not restart the existing runner; inspect its
+and a 4 GiB disk compiler cache. Build A passed in 2729.501 seconds and its
+Image booted in QEMU in 2.633 seconds; build B and final comparison remain
+pending. The early boot check does not establish module or phone behavior.
+Do not restart the existing runner; inspect its
 `twins-result.json` or live owner first. No completed successor Image or module
 qualification is claimed yet. All successor payload modules must match its kit.
 
