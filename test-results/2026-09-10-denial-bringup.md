@@ -5,6 +5,60 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Concrete target and fallback health callbacks
+
+Private evidence: `successor-live-driver-r1/health-read-tests-result-r1.json`,
+`health-read-tests-r1.stderr`, `health-engine-tests-r1.stderr` and
+`live-health-discovery-r1/result.json`. The new import-only bindings implement
+`observe_target`, `post_capture_health`, `observe_fallback` and
+`verify_fallback_restoration` using the qualified health/restore observers.
+Fourteen concrete callbacks now exist; the full driver/admission remains pending.
+
+Each binding verifies the clean producer, outer admission, durable context,
+exact read-only phase intent and prior result receipts. Initial discovery may
+poll USB enumeration and SSH readiness within a 300-second observation window;
+it records each attempt, refuses an unexpected identity and never retries a
+health/restoration operation. Later checks require the previously recorded boot
+and readiness immediately. The target's healthy commit must still precede
+300 seconds uptime, including when observed after the full capture. No capture
+lifetime is shortened by this component.
+
+Raw transport output is saved before command/health validation. The callback
+adds authenticated status only after the pinned SSH worker and matching
+discovery/full-observation identity succeed. Target collection uses Python;
+V11 uses the sealed BusyBox shell and reports its legacy readiness limitation.
+The current worker runs as deck with an existing route; it does not solve the
+still-pending privileged fallback network/capture boundary.
+
+The actual isolated entrypoint imports and all producer pins passed.
+**23 boundary tests PASS in 6.679 s** with real receipts/generators/validators
+and explicit synthetic transport and health. Cases cover all four callbacks,
+delayed USB/SSH, expired discovery, rejected admission, wrong mutation flags,
+repeated commands, changed boots, incomplete capture, failed health, unverified
+restoration, altered raw hashes/source/receipts and unreaped commands.
+
+Three added tests then ran through the real controller engine in **2.601 s**:
+target success invokes both health callbacks; a late target failure reaches
+fallback restoration while retaining trial FAIL; pending selection readback
+prevents a restoration claim. Capture, mutation and admission remain explicit
+fixtures. The unchanged 23-case subset was not rerun for these added cases.
+
+The actual discovery script also **PASS in 0.333 s** over existing pinned USB
+SSH on V9 boot `7c945aa5-80d0-4af2-aa76-113d68e23ac5`, bundle V9 and kernel
+`7.1.4-gf17befd4ef17`, with readiness present. Host producer source was clean
+`7699e26577195e3f821da876404f18775739e52a`. Script, request, raw target output
+and transport are retained. This qualifies discovery on the existing phone;
+it does not qualify a physical successor or fallback boot. No phone write,
+reboot, claim, receiver or Ready request occurred.
+
+Review: inexpensive actual-entrypoint and phone discovery checks complemented
+synthetic integration tests without repeating kernel/module/root builds or full
+CI. No recurring new failure was found. The initial/later observation distinction
+is now implemented and tested, preventing readiness retries from accepting a
+different boot after capture. Next are fallback location, capture/fastboot
+ownership and the scoped privileged transport bridge, with kernel/non-cellular
+hardware still ahead of Denial/Flutter builds.
+
 ## V11 observation and restoration component
 
 Private evidence: `successor-live-driver-r1/fallback-observation-tests-r1`,
