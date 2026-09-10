@@ -571,6 +571,18 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   receipt overwrite. Test dispatch should name its intended callback subset so
   adding a production phase does not silently expand a synthetic fixture's scope.
 
+- A UID-remapped namespace changes file owners relative to Git's cached stat
+  metadata. A source check there timed out while Git reopened retained Images
+  and initramfs archives: indexed UID/GID 1000:1000 appeared as 0:0. Capture and
+  revalidate source identity on the host, then mark it explicitly as fixture
+  input inside the namespace. Keep production checks real, run them as the
+  repository owner and bound their subprocess group. Do not solve this by
+  weakening source comparison or repeatedly scanning large artifacts.
+- Record when observation stops separately from when cleanup finishes. A slow
+  cleanup must not make an early-ended recorder appear to have covered its full
+  deadline. Emit the terminal result after owned cleanup, reserve log capacity
+  for that result, and finish cleanup even if the supervising output pipe closes.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
