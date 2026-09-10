@@ -9,6 +9,12 @@ kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
+Execution is blocked pending the user's availability for the prepared host sudo
+password dialog. The same blocker was observed in checkpoints r32, r33 and r34;
+independent launcher preparation is now complete. The probe and its dependencies
+are unchanged, no relevant child process is running, and no dialog has started.
+Resume immediately on a fresh Ready reply using the prepared command below.
+The full Denial/hardware goal remains incomplete; no phone test passed by inference.
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have
 component implementations, including capture lifecycle and the one RAM transfer.
