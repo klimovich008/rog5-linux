@@ -523,6 +523,16 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   Validate JSON proof types explicitly: Python equality accepts `0 == False`
   and `1 == True`, which should not qualify a boolean protocol assertion.
 
+- Test root-owned target file operations in an isolated user namespace mapped
+  to UID 0 when host sudo is unavailable. Keep the host filesystem read-only
+  except the private disposable fixture directory and isolate networking. This
+  exercises real metadata and lock checks without weakening target guards or
+  creating privileged host fixtures; physical telemetry remains synthetic.
+- Reconcile interrupted operations from current record, exchange backup and
+  intent/completion bytes together. A missing command reply is insufficient.
+  Permit only explicitly recoverable combinations, hold/check record identity
+  through the snapshot, and retain unknown partial states for reconciliation.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
