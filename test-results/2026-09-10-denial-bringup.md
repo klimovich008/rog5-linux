@@ -5,6 +5,78 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Successor kernel and module execution
+
+The following results supersede the pending build statements in the retained
+chronological preparation notes below. Production source remains clean at
+`f74e719c287e0e3ad998cba2f0caf40f72093e94` in private `worktree`; progress docs
+use the separate `progress-docs-r1` checkout to preserve that sealed input.
+
+Kernel `05941d04803f54208da1e9920a81874edc540ca1` twins passed in
+2729.501/2698.331 seconds. All 30 declared artifacts match, including the exact
+Image `d9a55229f2e0c67e1b856d13c40715b3ec4e3a6fee2594aaa3947d99639e3fb8`.
+Final receipt `kernel-hardware-build-r1/twins-result.json` is
+`0304a906b9a8d8e65394297205f9c5d46b914b248a76250cfa54c9a175010ef5`.
+Both stages exited0 without OOM or cleanup errors. Final cache totals showed
+only161 hits among6445 cacheable calls; the live recipe was not changed.
+
+The matching kit derivation copied3378 files/435221596 bytes in9.701 seconds,
+with fresh twin header/tool checks. Completion preserved those original bytes
+and added the15 power/USB modules, metadata and complete seal in a2.582-second
+service run. Packaged PDR is
+`7fef279c8a6a1976746211dac2438439e73c3a933ac33deb43945577c2d67253`;
+its raw BTF-bearing twin remains retained. Complete kit manifest SHA is
+`ec718e80f70344c95bab8726184a967fac4c4e7f8cdc99a3dc01281cf2dc7388`.
+
+Actual module twins passed216.131/38.580 seconds under2GiB/no extra swap and
+two CPUs. They preserve the Wi-Fi selector and explicit diagnostic replacements.
+All31 raw outputs match; selecting29 alongside the kernel25 gives54 unique
+modules. Receipt `successor-module-build-r1/result.json` is
+`78225ad1c57cb152e5b1515d99cd78982ea3e13f49a971771c83cd020e26cfa4`.
+The stable-path cached comparison took82.1% less time than the first run.
+
+The full selected54 static check passed in a6.253-second service run, peaking
+at101.3MiB with zero swap. It binds13278 actual vmlinux exports, selected ELF
+exports, namespaces, GPL compatibility, dependencies and the typed S12 edge.
+Receipt `successor-module-closure-r1/verification-r1/result.json` is
+`f24622708dde534847ef714be9fdad29a8f5919b88c9e32d6a4d845cb9cc9ae0`.
+Review corrected kernel-style hyphen/underscore matching for module namespaces;
+23 synthetic cases and an actual25-module parser check pass. Full54 BTF and
+generic ABI/hardware qualification remain outside this static result.
+
+The ten-component QEMU guest passed in3.797 seconds with exact new Image and
+module twins: ten loads, expected registrations, nine successful unloads and
+permanent GPI retained until poweroff. Its complete log SHA is
+`fcdaf5f600cbb0583d59978c89e0bbaa3f1b8887653eac828622bbe05f08119c`;
+receipt is `successor-components-vm-r1/run-r1/result.json`. No phone DT, disk,
+Arch root images or physical hardware probes were used. Cleanup passed.
+
+The initial unsigned refresh attempt is retained as FAIL in
+`successor-payload-refresh-r1/composition-a/result.json`: kmod34.2 generated
+an additional `modules.weakdep` metadata file, causing the exact old inventory
+check to refuse after2.897 seconds. Its55 bytes contain only the tool's comment,
+with no dependency entries. This is a host packaging-policy mismatch, not a
+kernel/module failure. The reviewed successor must explicitly qualify that
+delta while preserving37 nested module identities and all unrelated payload
+bytes. No signature, physical claim, module insertion or phone reboot occurred.
+
+The narrow r2 correction explicitly accepts only the observed55-byte
+comment-only weakdep file, keeps37 nested modules and rejects unknown metadata
+or dependency records. Fourteen fixtures pass in both modes and independent
+review found no blocker. Actual unsigned twins then passed in10.216/14.215
+seconds under512MiB/zero swap. Each archive is57774555 bytes, SHA-256
+`c7d757727bc6e9295087b02d207e90d44e43d9ac2f1ccb345a4923c04365e058`.
+Receipt `successor-payload-refresh-r2/twins-result.json` is
+`a1102e1335f38b3fca09983d251cb18cc7b8fa9b0b628ed0609f2a2699fde0b8`.
+All65 old module copies were refreshed; four new inert hardware copies bring
+the payload to32 loose plus37 nested files representing54 modules. Corrected
+indicator/runtime/shutdown and other unrelated archive bytes remain unchanged.
+The previously reserved descriptor remains unsigned and unconsumed:
+bundle `kernel-hw-05941-a607a2bb249c918b`, trial
+`288d38241fb98dcb2dbc73a9b237dda45f4c5525f356e1770c667d2d7ff35ef6`.
+The retained headless DT is the only admitted composition basis. Wrapper,
+paired-root and physical qualification remain separate outstanding work.
+
 ## ARM64 GPU probe preparation
 
 The small Rust query helper now compiles twice in the retained offline builder
