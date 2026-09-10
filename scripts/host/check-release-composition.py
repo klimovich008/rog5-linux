@@ -29,6 +29,7 @@ CLAIMS = C.load('composition_claim_records', 'scripts/host/consume-exact-boot-cl
 RECEIVER = C.load('composition_receiver', 'scripts/host/headless-stage-receiver.py')
 # Reuse C02's exact logical-byte hasher; old acceptance producers stay unchanged.
 ROOT_HASH = C.load('composition_root_hash', 'scripts/host/test-qemu-watchdog-handoff.py')
+PROFILES = C.load('composition_profiles', 'scripts/host/rog5_composition_profile.py')
 
 
 class Blocked(Exception):
@@ -197,11 +198,20 @@ def read_artifact(path, limit=256*1024*1024):
     return data
 
 
-def inspect(args, checks):
+def composition_record(candidate):
+    """Resolve offline artifact identity without creating or entering a boot claim."""
     try:
-        record = dict(line.split('=',1) for line in CLAIMS.expected_record(args.candidate).decode().splitlines())
+        return dict(line.split('=', 1) for line in
+                    CLAIMS.expected_record(candidate).decode().splitlines())
     except CLAIMS.ClaimError as error:
-        raise Blocked('missing repository-owned wrapper identity: '+str(error)) from error
+        record = PROFILES.candidate_record(candidate)
+        if record is None:
+            raise Blocked('missing repository-owned wrapper identity: '+str(error)) from error
+        return dict(record)
+
+
+def inspect(args, checks):
+    record = composition_record(args.candidate)
     boot = read_artifact(args.boot_image)
     if hashlib.sha256(boot).hexdigest() != record.get('boot_image_sha256'):
         raise ValueError('canonical boot image mismatch')
@@ -248,11 +258,14 @@ def inspect(args, checks):
     values=C.archive_parameters(target,profile=profile)
     if values['KERNEL_RELEASE']!=plan['target_release']:
         raise ValueError('target archive/verified-plan release mismatch')
+    module_profile=PROFILES.select_profile(hashes['kernel'],hashes['dtb'],
+                                           hashes['initramfs'],plan['target_release'])
     checks['archive']='PASS'
     manifest=dict(line.split('=',1) for line in members[prefix+'/manifest'][1].decode().splitlines())
     timing=timing_contract(manifest,plan,wrapper,target)
     return dict(wrapper=wrapper,plan=plan,artifact_hashes=hashes,profile=profile,timing=timing,
-                external_bundles=external)
+                external_bundles=external,
+                composition_profile=PROFILES.summary(module_profile) if module_profile else None)
 
 
 def target_members(blob):
@@ -317,11 +330,15 @@ def main():
         report['firmware']=C.firmware_composition(target,digests[0],int(counts[0]))
         if report['profile']=='server-runtime':
             report['radio_firmware']=C.radio_firmware_composition(target)
-        core,pending=C.core_module_members(target,report['profile'])
+        module_profile=PROFILES.select_profile(report['artifact_hashes']['kernel'],
+            report['artifact_hashes']['dtb'],report['artifact_hashes']['initramfs'],
+            report['plan']['target_release'])
+        sealed_target=target
+        core,pending=C.core_module_members(sealed_target,report['profile'],module_profile=module_profile)
         modules=C.module_closure(core,report['plan']['target_release'])
         refusals=[];activation_fixture=None
         if pending:
-            target,modules,report['radio_modules']=C.radio_module_composition(target,modules,report['plan']['target_release'])
+            target,modules,report['radio_modules']=C.radio_module_composition(target,modules,report['plan']['target_release'],module_profile=module_profile)
             refusals=C.board_helper_refusals(target,modules[0]['vermagic'])
             pending=[row for row in pending if row['path'].endswith('.ko')]
             edge=C.load('a01_edge','scripts/host/rog5_module_edge.py')
@@ -332,8 +349,9 @@ def main():
                     args.activation_fixture_build,report['artifact_hashes']['kernel'],modules[0]['vermagic'])
             except (edge.EdgeUnavailable,fixture.FixtureUnavailable) as error:
                 raise Blocked(str(error)) from error
-        modules,indicator_rows=C.indicator_module_composition(target,modules,report['plan']['target_release'])
-        modules,display_rows=C.display_module_composition(target,modules,report['plan']['target_release'])
+        modules,indicator_rows=C.indicator_module_composition(sealed_target,modules,report['plan']['target_release'],module_profile=module_profile)
+        modules,display_rows=C.display_module_composition(sealed_target,modules,report['plan']['target_release'],module_profile=module_profile)
+        modules,hardware_rows=C.hardware_module_composition(sealed_target,modules,report['plan']['target_release'],module_profile=module_profile)
         root_hash=root_hash_result.result()
         if root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed during preflight')
@@ -346,7 +364,8 @@ def main():
                                      args.output,profile=report['profile'],firmware=True,
                                      recovery_timeout=report['timing']['rollback_seconds'],
                                      command_line=report['plan']['cmdline'],refusals=refusals,
-                                     activation_fixture=activation_fixture,upper_image=args.root_upper_image)
+                                     activation_fixture=activation_fixture,upper_image=args.root_upper_image,
+                                     expected_image=module_profile['vm_image_sha256'] if module_profile else None)
         if ROOT_HASH.sha_file(args.root_image,metrics=report['root_hashes']['after'])!=root_hash or root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed')
         if args.root_upper_image:
@@ -377,6 +396,7 @@ def main():
         # row in order. Only after that exact-kernel proof may these be cleared.
         proven.update(row['path'] for row in indicator_rows)
         proven.update(row['path'] for row in display_rows)
+        proven.update(row['path'] for row in hardware_rows)
         report['indicator_modules']={
             'software_load':'PASS' if indicator_rows else 'NOT RUN',
             'modules':indicator_rows,
@@ -387,6 +407,11 @@ def main():
             'modules':display_rows,
             'physical_probe':'NOT RUN', 'scanout':'NOT RUN', 'blank_cleanup':'NOT RUN',
             'scope':'exact-kernel VM driver registration only; no physical display'}
+        report['hardware_modules']={
+            'software_load':'PASS' if hardware_rows else 'NOT RUN',
+            'modules':hardware_rows, 'physical_probe':'NOT RUN',
+            'touch_input':'NOT RUN', 'gpu_initialization':'NOT RUN',
+            'scope':'exact-kernel VM registration only; no ASUS GPU/DMA/I2C/touch hardware'}
         if activation_fixture is not None:
             if report['runtime']['activation_split']!='PASS':
                 raise ValueError('missing exact consumer BTF/refusal evidence')

@@ -93,4 +93,86 @@ class FixtureTest(unittest.TestCase):
                 self.assertEqual(b'COMPOSITION_ACTIVATION_SPLIT_PASS' in result.stdout,not fault)
 
 
+
+class ReferenceFixtureTest(unittest.TestCase):
+    def fixture(self, root):
+        F=C.load('fixture_reference','scripts/host/rog5_a01_fixture.py')
+        kit=root/'kit';kit.mkdir();run=root/'shim';run.mkdir()
+        elf=bytearray(64);elf[:6]=b'\x7fELF\x02\x01';elf[16:20]=b'\x01\x00\xb7\x00'
+        module=bytes(elf);config=b'CONFIG_DEBUG_INFO_BTF_MODULES=y\n# CONFIG_MODULE_ALLOW_BTF_MISMATCH is not set\n'
+        for name,data in (('.config',config),('Module.symvers',b'symbols'),('vmlinux',b'vmlinux')):(kit/name).write_bytes(data)
+        source=root/'shim.c';source.write_bytes(F.SOURCE.read_bytes())
+        commit='a'*40;release='7.1.4-g'+commit[:12];magic=release+' SMP preempt mod_unload aarch64'
+        hashes={n:F.digest((kit/n).read_bytes()) for n in ('.config','Module.symvers','vmlinux')}
+        def stages():return [dict(label=s,status='PASS',returncode=0,cleanup_errors=[],container_removed=True,
+            container_state=dict(Running=False,OOMKilled=False,ExitCode=0)) for s in ('a','b')]
+        refs={};records={}
+        def save(role,row):
+            path=run/'result.json' if role=='shim' else root/(role+'.json')
+            path.write_text(json.dumps(row));refs[role]={'path':str(path),'sha256':F.digest(path.read_bytes())};records[role]=row
+        save('kernel',dict(status='PASS',source=commit,stages=stages(),artifacts={**hashes,'arch/arm64/boot/Image':F.digest(b'Image')}))
+        save('derived',dict(status='PASS_DERIVED_KIT_BYTES',kernel_source=commit,release=release,
+            source_build_receipt_sha256=refs['kernel']['sha256'],kit_file_sha256=hashes))
+        save('completed',dict(status='PASS_COMPLETED_KIT_BYTES',kernel_source=commit,release=release,
+            prerequisites_sha256={refs[r]['path']:refs[r]['sha256'] for r in ('kernel','derived')},
+            complete_inventory={n:{'sha256':v} for n,v in hashes.items()}))
+        save('module',dict(status='PASS_RAW_MODULE_TWINS',source=commit,stages=stages(),twins_identical=True,
+            receipts_sha256={r:refs[r]['sha256'] for r in ('kernel','derived','completed')},
+            receipt_paths={r:refs[r]['path'] for r in ('kernel','derived','completed')}))
+        rows=stages()
+        for side,row in zip(('a','b'),rows):
+            base=run/side;(base/'module').mkdir(parents=True);(base/'module/rog5_a01_s12_shim.ko').write_bytes(module)
+            row.update(size=len(module),sha256=F.digest(module),command=[str(kit)+':/kit:ro',str(base)+':/out:rw'])
+        save('shim',dict(status='PASS_TEST_ONLY_SHIM_TWINS',source=commit,release=release,stages=rows,
+            production_module=False,kernel_receipt_sha256=refs['kernel']['sha256'],module_receipt_sha256=refs['module']['sha256'],
+            inputs_sha256={str(source):F.digest(source.read_bytes())},sha256=F.digest(module),size=len(module)))
+        record=dict(format=F.REFERENCE_FORMAT,status='REFERENCES_EXISTING_TEST_ONLY_SHIM_TWINS',source_commit=commit,
+            kernel_sha256=F.digest(b'Image'),vermagic=magic,references=refs,source_path=str(source),kit_path=str(kit))
+        (root/'result.json').write_text(json.dumps(record))
+        return F,record,records,module
+
+    def test_reference_retains_exact_image_and_metadata_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);F,r,records,module=self.fixture(root)
+            def run(args,**kwargs):
+                Path(args[-1]).write_bytes(b'Image');return subprocess.CompletedProcess(args,0)
+            def info(args,**kwargs):return {'vermagic':r['vermagic'],'name':'rog5_a01_s12_shim','depends':''}[args[2]]+'\n'
+            with patch.object(F.subprocess,'run',side_effect=run),patch.object(F.subprocess,'check_output',side_effect=info),patch.object(F.shutil,'which',side_effect=lambda x:x):
+                actual,proof=F.load_fixture(root,r['kernel_sha256'],r['vermagic'])
+                self.assertEqual(actual,module);self.assertEqual(proof['format'],F.REFERENCE_FORMAT);self.assertFalse(proof['production_provider'])
+                def wrong(args,**kwargs):Path(args[-1]).write_bytes(b'wrong');return subprocess.CompletedProcess(args,0)
+                with patch.object(F.subprocess,'run',side_effect=wrong),self.assertRaisesRegex(ValueError,'produce accepted kernel'):
+                    F.load_fixture(root,r['kernel_sha256'],r['vermagic'])
+
+    def test_reference_rejects_failed_or_unlinked_receipts(self):
+        for role,field,value in [('shim','production_module',True),('kernel','status','FAIL'),
+                ('module','twins_identical',False),('derived','source_build_receipt_sha256','0'*64),
+                ('completed','kernel_source','b'*40)]:
+            with self.subTest(role=role),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);F,r,records,module=self.fixture(root)
+                records[role][field]=value;p=Path(r['references'][role]['path']);p.write_text(json.dumps(records[role]))
+                r['references'][role]['sha256']=F.digest(p.read_bytes())
+                with self.assertRaises(ValueError):F.reference_inputs(r,r['kernel_sha256'],r['vermagic'])
+
+    def test_reference_requires_both_original_module_twins_and_paths(self):
+        for fault in ('bytes','symlink','path','completion','hash'):
+            with self.subTest(fault=fault),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);F,r,records,module=self.fixture(root)
+                target=root/'shim/b/module/rog5_a01_s12_shim.ko'
+                if fault=='bytes':target.write_bytes(b'wrong')
+                elif fault=='symlink':target.unlink();target.symlink_to(root/'shim/a/module/rog5_a01_s12_shim.ko')
+                else:
+                    if fault=='path':records['shim']['stages'][1]['command']=[]
+                    elif fault=='completion':records['shim']['stages'][1]['container_removed']=False
+                    else:records['shim']['sha256']='0'*64
+                    path=Path(r['references']['shim']['path']);path.write_text(json.dumps(records['shim']));r['references']['shim']['sha256']=F.digest(path.read_bytes())
+                with self.assertRaises(ValueError):F.reference_inputs(r,r['kernel_sha256'],r['vermagic'])
+
+    def test_streamed_kit_snapshot_refuses_wrong_hash_or_link(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);F,r,records,module=self.fixture(root);source=root/'kit/vmlinux'
+            with self.assertRaisesRegex(ValueError,'hash mismatch'):F.verified_copy(source,root/'wrong','0'*64,1024)
+            link=root/'link';link.symlink_to(source)
+            with self.assertRaisesRegex(ValueError,'symlink'):F.verified_copy(link,root/'linked',F.digest(b'vmlinux'),1024)
+
 if __name__=='__main__':unittest.main()

@@ -35,6 +35,7 @@ SEALED = load('rescue_sealed', 'scripts/host/run-sealed-busybox.py')
 ACCEPTANCE = load('rescue_acceptance', 'scripts/host/release-acceptance.py')
 BUTTONS = load('rescue_buttons', 'scripts/device/build-buttons-indicator-trial-initramfs.py')
 DISPLAY = load('rescue_display', 'scripts/device/build-display-trial-initramfs.py')
+PROFILES = load('rescue_profiles', 'scripts/host/rog5_composition_profile.py')
 FUNCTIONS = ('verify_exact_regular', 'prepare_volatile_root_account',
              'prepare_volatile_ssh_policy', 'verify_systemd_update_marker',
              'prepare_volatile_systemd_state', 'prepare_package_keyring', 'prepare_runtime')
@@ -446,7 +447,7 @@ def radio_module_files(members, release):
     return files
 
 
-def radio_module_composition(members, core, release):
+def radio_module_composition(members, core, release, *, module_profile=None):
     """Resolve sealed software radio roots; board activation stays pending."""
     prefix='rog5-native-wifi/'
     roots=members.get(prefix+'load-roots.txt')
@@ -455,9 +456,16 @@ def radio_module_composition(members, core, release):
             or members[prefix+'probe-native-wifi.sh'][1]!=(REPO/'scripts/device/probe-native-wifi.sh').read_bytes()):
         raise ValueError('unpaired sealed radio load order')
     files=radio_module_files(members,release)
+    profile_evidence=None
+    if module_profile is not None:
+        if release != module_profile['release']:
+            raise ValueError('radio composition profile release mismatch')
+        profile_evidence=PROFILES.validate_members(members,module_profile,files)
     fixture=dict(members);rows=list(core);loaded={row['name']:row for row in core}
     order=[name for name in roots[1].decode().splitlines() if name not in ('phy-qcom-qmp-pcie','ath11k_pci')]
     order+=['phy-qcom-qmp-pcie','ath11k_pci']
+    if module_profile is not None:
+        order+=list(module_profile['radio_extra_roots'])
     deadline=time.monotonic()+15
     def read(args):
         remaining=deadline-time.monotonic()
@@ -495,9 +503,12 @@ def radio_module_composition(members, core, release):
                             'pci_pwrctrl_pwrseq':['observation_ms=250']}.get(module,[])
                 row=dict(path=target,sha256=digest,parameters=parameters,**info)
                 rows.append(row);loaded[module]=row
-    return fixture,rows,dict(roots=order,software_modules=rows[len(core):],
+    proof=dict(roots=order,software_modules=rows[len(core):],
         package_sha256=hashlib.sha256(members[prefix+'module-root-complete.tar.gz'][1]).hexdigest(),
         scope='software module closure/load only; ASUS board-only helpers remain untested')
+    if profile_evidence is not None:
+        proof['composition_profile']=profile_evidence
+    return fixture,rows,proof
 
 
 def inert_hardware_modules(members, payload_module, label):
@@ -537,21 +548,27 @@ def inert_hardware_modules(members, payload_module, label):
     return modules, pending
 
 
-def inert_indicator_modules(members):
+def inert_indicator_modules(members, *, module_profile=None):
+    if module_profile is not None:
+        return PROFILES.inert_members(members,module_profile,'indicator')
     return inert_hardware_modules(members, BUTTONS, 'indicator')
 
 
-def inert_display_modules(members):
+def inert_display_modules(members, *, module_profile=None):
+    if module_profile is not None:
+        return PROFILES.inert_members(members,module_profile,'display')
     return inert_hardware_modules(members, DISPLAY, 'display')
 
 
-def core_module_members(members, profile):
+def core_module_members(members, profile, *, module_profile=None):
     """Keep the power/UFS closure strict; radio activation is a separate test.
 
     The server-runtime profile proves service preparation only. Radio modules
     and complete pinned inert hardware payloads remain explicitly untested.
     """
     if profile == 'rescue':
+        if module_profile is not None:
+            raise ValueError('hardware composition profile requires server-runtime')
         return members, []
     if profile != 'server-runtime':
         raise ValueError('unknown composition profile')
@@ -562,10 +579,14 @@ def core_module_members(members, profile):
         raise ValueError('missing retained radio module payload')
     pending = [dict(path=name, sha256=hashlib.sha256(members[name][1]).hexdigest(),
                     status='NOT RUN', scope='radio module load/closure') for name in sorted(auxiliary)]
-    indicator, indicator_pending = inert_indicator_modules(members)
-    display, display_pending = inert_display_modules(members)
+    indicator, indicator_pending = inert_indicator_modules(members,module_profile=module_profile)
+    display, display_pending = inert_display_modules(members,module_profile=module_profile)
     auxiliary |= indicator | display
     pending += indicator_pending + display_pending
+    if module_profile is not None:
+        hardware, hardware_pending = PROFILES.inert_members(members,module_profile,'hardware')
+        auxiliary |= hardware
+        pending += hardware_pending
     return {name: member for name, member in members.items() if name not in auxiliary}, pending
 
 
@@ -641,16 +662,17 @@ INDICATOR_MODULE_ORDER = (
     'led-class-multicolor.ko', 'qcom-pbs.ko', 'leds-qcom-lpg.ko', 'qcom-pon.ko')
 
 
-def indicator_module_composition(members, core, release):
+def indicator_module_composition(members, core, release, *, module_profile=None):
     """Append the exact inert indicator payload for VM-only software loading.
 
     The VM has no ASUS PMIC/LED device. Loading proves ABI, symbols and BTF;
     physical probe, emitted light and brightness cleanup remain separate.
     """
-    paths, _ = inert_indicator_modules(members)
+    paths, _ = inert_indicator_modules(members,module_profile=module_profile)
     if not paths:
         return list(core), []
-    order = [BUTTONS.PAYLOAD_PREFIX + name for name in INDICATOR_MODULE_ORDER]
+    order = (list(module_profile['groups']['indicator']['module_order']) if module_profile is not None
+             else [BUTTONS.PAYLOAD_PREFIX + name for name in INDICATOR_MODULE_ORDER])
     if set(order) != paths:
         raise ValueError('indicator module order/inventory mismatch')
     rows = module_metadata_in_order(members, order, release, initial=core)
@@ -660,16 +682,29 @@ def indicator_module_composition(members, core, release):
 DISPLAY_MODULE_ORDER = ('qcom-refgen-regulator.ko', 'panel-asus-rog5-ams678.ko')
 
 
-def display_module_composition(members, core, release):
+def display_module_composition(members, core, release, *, module_profile=None):
     """VM driver registration only; the VM has no ROG5 regulator/DSI/panel."""
-    paths, _ = inert_display_modules(members)
+    paths, _ = inert_display_modules(members,module_profile=module_profile)
     if not paths:
         return list(core), []
-    order = [DISPLAY.PAYLOAD_PREFIX + name for name in DISPLAY_MODULE_ORDER]
+    order = (list(module_profile['groups']['display']['module_order']) if module_profile is not None
+             else [DISPLAY.PAYLOAD_PREFIX + name for name in DISPLAY_MODULE_ORDER])
     if len(order) != len(paths) or set(order) != paths:
         raise ValueError('display module order/inventory mismatch')
     rows = module_metadata_in_order(members, order, release, initial=core)
     return [*core, *rows], rows
+
+
+def hardware_module_composition(members, core, release, *, module_profile=None):
+    """Append exact059 GPUCC/GPI/GENI/touch for generic-virt registration only."""
+    if module_profile is None:
+        return list(core), []
+    paths, _ = PROFILES.inert_members(members,module_profile,'hardware')
+    order = list(module_profile['groups']['hardware']['module_order'])
+    if release != module_profile['release'] or set(order) != paths or len(order) != len(paths):
+        raise ValueError('hardware composition profile order/release mismatch')
+    rows = module_metadata_in_order(members,order,release,initial=core)
+    return [*core,*rows], rows
 
 
 def board_helper_refusals(members, vermagic):
@@ -848,7 +883,7 @@ def encode_vm_fixture(members):
 
 def vm_runtime(members, modules, kernel, root_image, output, *, profile,
                recovery_timeout=None, command_line=None, firmware=False, refusals=(),
-               activation_fixture=None, upper_image=None):
+               activation_fixture=None, upper_image=None, expected_image=None):
     """Combine exact module insertion and existing Arch preparation on QEMU virt.
 
     No phone DTB, network, hardware activation or writable block device. The
@@ -860,6 +895,8 @@ def vm_runtime(members, modules, kernel, root_image, output, *, profile,
         'localhost/rog5-qemu-gate:ubuntu-24.04'], text=True, timeout=10).strip()
     if not re.fullmatch(r'(?:sha256:)?[0-9a-f]{64}', image):
         raise ValueError('invalid resolved QEMU container identity')
+    if expected_image is not None and image.removeprefix('sha256:') != expected_image:
+        raise ValueError('A01 QEMU image differs from exact module qualification')
     fixture = dict(members)
     add = SEALED.ARCHIVE.add
     if any(name=='a01' or name.startswith('a01/') for name in members):
@@ -957,7 +994,7 @@ echo COMPOSITION_STAGE_END
     archive = output/'composition-vm.cpio.gz'
     archive.write_bytes(encode_vm_fixture(fixture))
     command = ['podman','run','--rm','--pull=never','--network=none','--cap-drop=ALL',
-        '--security-opt=no-new-privileges','--cpus=2','--memory=1g',
+        '--security-opt=no-new-privileges','--cpus=2','--memory=1g','--memory-swap=1g',
         '-v',str(kernel)+':/Image:ro','-v',str(archive)+':/initramfs:ro',
         '-v',str(root_image)+':/arch.ext4:ro',image,
         'timeout','--kill-after=2','60','qemu-system-aarch64','-M','virt','-cpu','cortex-a72',
@@ -969,13 +1006,18 @@ echo COMPOSITION_STAGE_END
         command[command.index(image):command.index(image)]=['-v',str(upper_image)+':/upper.ext4:ro']
         command+=['-drive','file=/upper.ext4,format=raw,if=none,id=upper,readonly=on',
                   '-device','virtio-blk-device,drive=upper']
-    with (output/'runtime.log').open('xb') as log:
-        try:
-            code = subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=70).returncode
-        except subprocess.TimeoutExpired:
-            code = 124
-    log = (output/'runtime.log').read_text(errors='replace')
-    passed=vm_runtime_passed(log,code,modules,firmware=firmware,
+    owned_vm=load('a01_owned_vm','scripts/host/rog5_owned_vm.py')
+    execution=owned_vm.run(command,output/'runtime.log',deadline_seconds=70)
+    code=execution['exit_code']
+    log_path=output/'runtime.log'
+    log=''; console_bounded=False
+    if execution['passed'] and log_path.is_file():
+        with log_path.open('rb') as stream:
+            raw_log=stream.read(owned_vm.LOG_LIMIT+1)
+        console_bounded=len(raw_log)<=owned_vm.LOG_LIMIT
+        if console_bounded:
+            log=raw_log.decode(errors='replace')
+    passed=execution['passed'] and console_bounded and vm_runtime_passed(log,code,modules,firmware=firmware,
                              radio=firmware and profile=='server-runtime',refusals=refusals,
                              activation=activation_fixture is not None)
     if upper_image:
@@ -990,7 +1032,8 @@ echo COMPOSITION_STAGE_END
             passed=False
     return dict(status='PASS' if passed else 'FAIL',stage_frame=frame,
         root_scope='retained-base-and-upper' if upper_image else 'retained-base-only',
-        container=image,command=command,exit_code=code,modules=modules,board_refusals=list(refusals),
+        container=image,command=command,exit_code=code,lifecycle=execution,console_bounded=console_bounded,
+        modules=modules,board_refusals=list(refusals),
         activation_split='PASS' if passed and activation_fixture is not None else 'NOT RUN',
         fixture_sha256=ACCEPTANCE.sha_file(archive),duration_seconds=time.monotonic()-started,
         limitations=['virtual hardware only','tmpfs upper, no persistent state activation',

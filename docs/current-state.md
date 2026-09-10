@@ -181,6 +181,19 @@ seconds, source unchanged, under 3 GiB/no swap and a two-CPU quota. Receipt:
 `source-ci-r6/result.json`. The previous failures remain preserved.
 
 
+The exact059 A01 integration is now implemented with one versioned artifact
+profile. It recognizes all 54 module identities, 32 loose copies, 37 nested
+copies and 14 exact metadata files. The retained payload inventory passes in
+1.332 seconds (335.5 MiB/no swap). Historical f17 recognition is unchanged.
+The profile permits offline wrapper lookup only; it creates no boot claim.
+The original test-only shim twins bind through an explicit reference envelope
+and actual vmlinux-to-Image comparison in 0.865 seconds, without rebuilding.
+The integrated VM now pins the qualified QEMU image and records owned-container
+creation, terminal state, removal and process-group cleanup. Console parsing is
+bounded. Focused profile, fixture, lifecycle and wiring tests pass, including
+missing/duplicate runtime markers, stale identities and incomplete cleanup.
+Actual full A01 and source CI on this new integration are still pending.
+
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside
 that tree. Historical REFGEN and dormant display scripts remain preserved.
@@ -189,7 +202,8 @@ The next display boot also needs fresh embedded-bundle admission, a matching
 guarded userdata trial record, and measured boot-image size/controller binding;
 unchanged paired root bytes alone do not satisfy those requirements.
 Checkpoint read-only phone health passed again in 1.357 seconds on the same V9
-boot after all offline work. No phone module insertion, signing or reboot occurred.
+boot after all offline work. That earlier health checkpoint involved no phone module insertion or reboot;
+subsequent local successor signing is recorded above.
 
 ## Preserved buttons/LED milestone
 

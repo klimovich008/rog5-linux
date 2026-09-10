@@ -469,6 +469,19 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   to test this correction before repeating signing. Keep explicit signing-event
   records so a later verification failure does not imply no signature existed.
 
+- Separate authenticated payload members from additions used only in a VM.
+  Pass original sealed members into strict inventory recognizers; pass the
+  augmented copy into the guest. Do not allow arbitrary fixture prefixes in a
+  production recognizer to compensate for mixing those inputs.
+- Container client exit is not terminal-container or descendant cleanup proof.
+  Record ownership before create, inspect before start and after exit, confirm
+  removal, and reap the client group independently. Bound the caller's log read
+  as well as the producer; a rejected oversized log must not trigger a full read.
+- Launch focused checks with the documented interpreter mode and absolute script
+  path. A systemd service does not inherit the shell working directory, and
+  Python -I removes sibling-import behavior relied on by existing scripts. Fix
+  the harness invocation before treating such launch failures as source bugs.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
