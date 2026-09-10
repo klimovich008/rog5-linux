@@ -37,8 +37,14 @@ and controller receipt flow with explicit simulated phone replies. Preflight use
 one combined source/route query; both boot paths use the same concrete route
 verifier and distinct owned target/fallback capture checks. The driver checks
 nested evidence paths and bridge interfaces before any source mutation.
-Next: implement the scoped privileged transport bridge and complete target/
-fallback integration and admission. The assembled driver is not admitted live.
+The fixed sudo capture bridge and process monitor now pass sixteen real process/
+pipe/pidfd tests in **7.354 s** and three bridge/supervisor integration cases in
+**2.625 s**. The monitor watches both controller and launcher loss; bounded output
+writes permit cleanup after reader failure. These tests explicitly substitute
+sudo/root/network and recording duration. The actual privileged handoff remains
+unverified, and the complete root admission verifier is not yet present.
+Next: complete the root admission verifier, fresh fallback SSH route transport,
+and full target/fallback integration before admitting the assembled driver live.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 
