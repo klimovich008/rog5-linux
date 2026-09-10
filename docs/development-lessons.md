@@ -555,6 +555,13 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   100,000 output tokens; a depth-two search found the relevant V11 receipts.
   This avoids excessive discovery output; it is not a measured build speedup.
 
+- Separate bounded initial USB/SSH readiness polling from later health checks.
+  A post-capture or post-restoration observation must remain on its recorded
+  boot and must not silently become a new boot observation. Preserve discovery
+  failures individually, poll only reads, and require one complete health proof
+  after discovery. Test actual controller receipt flow as well as isolated
+  callbacks; a successful fallback restoration must leave a failed trial failed.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
