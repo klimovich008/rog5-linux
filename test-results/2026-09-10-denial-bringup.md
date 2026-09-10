@@ -5,6 +5,49 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Source transition primitives and physical RAM staging
+
+Evidence: private `successor-source-actions-r1/result.json`. Read-only source
+inspection passed in 0.343 seconds and confirmed that the running V9 shutdown
+matches corrected source `fc1ce027`, not the old R01/V8 input. The retained
+fastboot variant `0ee47fb5` differs by one final dispatch command only; its
+corrected storage cleanup and fallback suffix remain unchanged. The reboot
+helper still matches `68d6a69e`, and the nvmem restart provider is bound.
+
+The new private Python primitives perform exclusive RAM staging for source and
+V11, source exitrd installation, one-use reboot request, and exact pre-reboot
+exitrd restoration. Source exitrd operations require the completed Rust state
+exchange, both old-record backups, inactive rollback timers, the exited old
+healthy writer, sealed tools, physical guards and custody. Directory and record
+locks, no-follow path descent, bounded file reads, fsync and path revalidation
+protect publication. Reboot intent precedes the single systemctl request; a lost
+reply refuses both retry and automatic source restoration. An incomplete install
+after publication may restore the old exitrd only if no reboot intent exists.
+Partial staging remains visible and refuses same-owner retry.
+
+All sixteen focused tests pass in normal/optimized Python in 0.750/0.749 seconds.
+They exercise actual file operations and locks with synthetic telemetry,
+systemctl and syntax-command boundaries. They cover lost replies, installation
+failure after publication, fsync failure, record/directory replacement, tampered
+payload/custody, symlinks, partial state exchange and V11 pending/healthy staging.
+The existing exact ARM64 shutdown syntax qualification is reused; no kernel,
+module, artifact rebuild or unchanged full-CI run occurred.
+
+The exact generated **staging-only** script then ran on the real phone in
+1.368 seconds. All four RAM files are retained in the custody owner's directory
+`/run/rog5-kernel-hw-5ff5ab2bf15642c7a07e788a73caefa2`. A separate read-only
+program verified their actual hashes/metadata in 0.258 seconds and confirmed the
+same V9 boot, original active shutdown, exact healthy V9 state, and absence of
+the state transaction directory. No state helper execution, active exitrd
+replacement, reboot, protected-storage write or claim consumption occurred.
+This qualifies physical RAM staging only. The complete controller, successor
+boot and actual source/fallback restoration remain unqualified.
+
+After-run review: inspect the running source before adapting a historical
+transition. This inspection prevented importing the obsolete V8 shutdown input;
+the already qualified corrected dispatch copy could be reused without another
+build. Keep completed RAM staging and its owner across the next goal turn.
+
 ## Guarded state exchange and host custody
 
 Private evidence: `successor-state-guards-r1/result.json`. The source-stage,

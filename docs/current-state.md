@@ -243,10 +243,30 @@ custody tests pass in normal and optimized Python. A fresh real-phone health
 check passed in 1.206 seconds; the new guard's read-only subset then passed on
 the same V9 boot in 0.972 seconds. The exact old selection record is now retained
 in durable host custody. Evidence: `successor-state-guards-r1/result.json`.
-No helper was uploaded, selection changed or successor boot attempted.
+That guard run did not upload a helper or change selection.
 
-Next: integrate and qualify the complete capture/recovery controller, including
-guarded RAM staging and exact one-use boot admission. The embedded RAM wrapper
+The source transition primitives now pass sixteen focused tests in normal and
+optimized Python (0.750/0.749 seconds). They separate RAM staging, exitrd
+installation, one-use reboot request and pre-reboot exitrd restoration. A lost
+reboot reply permanently refuses retry and automatic source restoration; an
+interrupted exitrd installation can restore the exact old script before the
+reboot intent exists. New V11 helper staging accepts only the successor's exact
+pending or healthy record. Full controller admission remains pending.
+
+Fresh physical inspection confirmed V9 already has corrected shutdown bytes
+`fc1ce027`; the old R01 source shutdown differs. Reuse the previously qualified
+`0ee47fb5` fastboot dispatch variant, preserving all corrected cleanup code.
+Source RAM staging now **PASS** in 1.368 seconds, followed by independent
+readback in 0.258 seconds. Four files are retained under
+`/run/rog5-kernel-hw-5ff5ab2bf15642c7a07e788a73caefa2` on the unchanged V9 boot:
+the exact Rust helper, custody, inactive fastboot shutdown copy and completed
+staging token. The active shutdown and healthy selection record are unchanged;
+the state transaction directory is absent. No helper execution, reboot or
+persistent write occurred. Do not repeat the completed staging action. Evidence:
+`successor-source-actions-r1/result.json`.
+
+Next: integrate and qualify the complete capture/recovery controller using the
+staged source artifacts and exact one-use boot admission. The embedded RAM wrapper
 bypasses the installed selector, so its
 recovery phase stays read-only and requires a separate authenticated V11 return
 path. Keep the ordinary full capture and failed-target result separate from
