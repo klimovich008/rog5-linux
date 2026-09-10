@@ -286,3 +286,163 @@ print("PASS runner signals fail closed, preserve exit status and clean owned scr
 PY
 
 echo 'PASS repository runner defines shared tests once, times each suite, and isolates parallel work explicitly'
+
+
+# Exercise the actual bounded launcher with tiny child fixtures, not repository
+# suites. Events use a locked file so cap/ordering checks do not rely on timing.
+python3 - "$runner" "$repo/scripts/host/repository-test-workers.py" <<'PYTEST'
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shlex
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+
+spec = importlib.util.spec_from_file_location('worker_limit', sys.argv[2])
+workers = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(workers)
+for affinity, quotas, override, expected in (
+        (8, ['max 100000'], None, 2), (1, ['max 100000'], None, 1),
+        (8, ['max 100000', '200000 100000'], None, 2),
+        (8, ['150000 100000'], '32', 1), (8, ['50000 100000'], None, 1),
+        (8, ['400000 100000'], '3', 3), (8, ['200000 100000'], '32', 2),
+        (8, ['max 100000'], '1', 1)):
+    assert workers.worker_count(affinity, quotas, override) == expected
+for invalid in ('', '0', '-1', '33', '1.5', '02', '999999999999'):
+    try:
+        workers.worker_count(8, [], invalid)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit('accepted invalid worker limit ' + repr(invalid))
+with tempfile.TemporaryDirectory(prefix='rog5-quota-') as tmp:
+    root = Path(tmp); (root/'parent/child').mkdir(parents=True)
+    (root/'cgroup').write_text('0::/parent/child\n')
+    (root/'parent/cpu.max').write_text('150000 100000')
+    (root/'parent/child/cpu.max').write_text('max 100000')
+    assert workers.worker_count(8, workers.quotas_for_process(root/'cgroup', root)) == 1
+    (root/'parent/child/cpu.max').write_text('2 0')
+    try:
+        workers.worker_count(8, workers.quotas_for_process(root/'cgroup', root))
+    except ValueError:
+        pass
+    else:
+        raise SystemExit('accepted invalid discovered quota')
+    (root/'cgroup').write_text('2:cpu:/legacy\n')
+    assert workers.worker_count(8, workers.quotas_for_process(root/'cgroup', root)) == 1
+print('PASS worker limits honor affinity, inherited/fractional quota and explicit cap')
+
+source = Path(sys.argv[1]).read_text()
+start = source.index('parallel_root=$(mktemp -d)\n')
+end = source.index('for test_path in "${tests[@]}"; do', start)
+queue = source[start:end]
+fixture = r"""
+import fcntl, json, os, pathlib, subprocess, sys, time
+root=pathlib.Path(sys.argv[1]); name=sys.argv[2]; mode=sys.argv[3]
+def event(kind):
+    with (root/'events').open('a') as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.write(json.dumps([kind,name,os.getpgrp()])+'\n');f.flush()
+event('start')
+(root/(name+'-started')).touch()
+if mode=='backfill' and name=='first':
+    deadline=time.monotonic()+4
+    while not (root/'third-started').exists():
+        if time.monotonic()>deadline:raise SystemExit(91)
+        time.sleep(.01)
+elif mode=='backfill' and name=='second':
+    deadline=time.monotonic()+4
+    while not (root/'first-started').exists():
+        if time.monotonic()>deadline:raise SystemExit(93)
+        time.sleep(.01)
+elif mode=='backfill' and name=='third':
+    (root/'third-started').touch()
+elif mode=='fail' and name=='first':
+    deadline=time.monotonic()+4
+    while not (root/'second-started').exists():
+        if time.monotonic()>deadline:raise SystemExit(92)
+        time.sleep(.01)
+    event('end');raise SystemExit(7)
+elif mode=='fail' and name=='second':
+    (root/'second-started').touch();time.sleep(30)
+elif mode=='ready-failure' and name=='second':
+    event('end');raise SystemExit(7)
+elif mode=='descendant' and name=='first':
+    subprocess.Popen(['sleep','30'])
+event('end')
+print('FIXTURE '+name)
+"""
+for mode, cap, expected in (('serial',1,0),('backfill',2,0),('fail',2,1),('descendant',1,1),('ready-failure',2,1)):
+    with tempfile.TemporaryDirectory(prefix='rog5-worker-queue-') as tmp:
+        root=Path(tmp); script=root/'fixture.py';script.write_text(fixture)
+        (root/'scratch').mkdir()
+        preamble=("set -euo pipefail\nfail() { echo \"FAIL $*\" >&2; exit 1; }\n"
+                  "selected_test() { [[ $1 != skipped ]]; }\n"
+                  "isolated_tests=(first second third skipped)\nparallel_running=0\n"
+                  +f"parallel_workers={cap}\n"
+                  +"test_tmp_root="+shlex.quote(str(root/'scratch'))+"\n"
+                  +"export TMPDIR=$test_tmp_root\n"
+                  +"run_test() { python3 "+shlex.quote(str(script))+" "+shlex.quote(str(root))
+                  +' "$1" '+shlex.quote(mode)+"; }\n")
+        # Observe enqueue itself, even if cleanup beats the new child's first instruction.
+        preamble += ('mkfifo() { [[ ${!#} != */3.hold ]] || touch '
+                     +shlex.quote(str(root/'third-enqueued'))+'; command mkfifo "$@"; }\n')
+        exercised_queue=queue
+        if mode=='ready-failure':
+            # Publish both outcomes before entering the unchanged real reaper body.
+            exercised_queue=queue.replace('reap_parallel_test() {','actual_reap_parallel_test() {')
+            wrapper='''reap_parallel_test() {
+ for ((attempt=0; attempt<400; attempt++)); do
+  [[ ! -s $parallel_root/1.status || ! -s $parallel_root/2.status ]] || break
+  sleep .01
+ done
+ [[ -s $parallel_root/1.status && -s $parallel_root/2.status ]] || exit 94
+ actual_reap_parallel_test
+}
+'''
+            exercised_queue=exercised_queue.replace('set -m\nfor test_path',wrapper+'set -m\nfor test_path')
+        result=subprocess.run(['bash','-c',preamble+exercised_queue],capture_output=True,text=True,timeout=8)
+        events=[json.loads(line)for line in (root/'events').read_text().splitlines()]
+        groups={row[2]for row in events}
+        try:
+            if result.returncode != expected:
+                raise SystemExit(f'{mode}: expected {expected}, got {result}')
+            starts=[name for kind,name,_ in events if kind=='start']
+            assert 'skipped' not in starts
+            if expected==0:
+                live=set();peak=0
+                for kind,name,_ in events:
+                    if kind=='start':live.add(name);peak=max(peak,len(live))
+                    else:live.remove(name)
+                assert not live and peak<=cap and sorted(starts)==['first','second','third']
+                if mode=='serial':assert starts==['first','second','third']
+                assert all('FIXTURE '+name in result.stdout for name in starts)
+                if mode=='backfill':
+                    assert peak==2
+                    assert next(i for i,e in enumerate(events)if e[:2]==['start','third']) < next(i for i,e in enumerate(events)if e[:2]==['end','first'])
+            else:
+                assert 'third' not in starts
+                assert not (root/'third-enqueued').exists()
+                if mode=='ready-failure':assert 'isolated offline test failed: second' in result.stderr
+                elif mode=='fail':assert 'isolated offline test failed: first' in result.stderr
+                else:assert 'left background descendants: first' in result.stderr
+            assert not (root/'scratch').exists()
+            deadline=time.monotonic()+2
+            while True:
+                live=[]
+                for group in groups:
+                    try:os.killpg(group,0);live.append(group)
+                    except ProcessLookupError:pass
+                if not live:break
+                if time.monotonic()>deadline:raise SystemExit('fixture groups survived cleanup')
+                time.sleep(.01)
+        finally:
+            for group in groups:
+                try:os.killpg(group,signal.SIGKILL)
+                except ProcessLookupError:pass
+print('PASS actual queue caps concurrency, backfills, preserves selection/logs and cleans failure/descendants')
+PYTEST

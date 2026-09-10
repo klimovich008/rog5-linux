@@ -138,12 +138,16 @@ defined symbols do not count as exports. The typed S12 provider/consumer edge
 also passes. This static check does not prove full module ABI/BTF compatibility.
 The actual ten-module guest passed in 3.797 seconds: indicator, GPUCC, REFGEN,
 panel, GPI/GENI and touch loaded and registered; nine unloaded and permanent
-GPI remained until poweroff. Physical probes did not run. The remaining 44
-modules still need their applicable loader/BTF or board-refusal guest checks,
-including a separately rebuilt test-only S12 shim and the packaged PDR exception.
+GPI remained until poweroff. Physical probes did not run. The remaining 44-module
+guest now passes in 8.096 seconds: 41 ordinary loads with runtime BTF checks and
+three exact one-call ENODEV board refusals. Its test-only S12 shim was rebuilt
+twice against 05941, with identical outputs and clean cleanup in 11.957 seconds
+total. The shim observed the activation consumer's BTF COMING, zero LIVE and
+zero validator calls, then unloaded. Packaged PDR alone omits BTF as explicitly
+qualified; no raw-PDR BTF or successful physical S12 hold is claimed.
 Private receipts are in `successor-module-build-r1`,
 `successor-module-closure-r1/verification-r1` and
-`successor-components-vm-r1/run-r1`.
+`successor-components-vm-r1/run-r1` and `successor-baseline-vm-r1/run-r1`.
 
 Unsigned successor payload twins now pass in `successor-payload-refresh-r2`:
 57,774,555 bytes each, SHA-256
@@ -155,8 +159,14 @@ qualified as metadata file14. The original inventory refusal is preserved.
 Corrected runtime, indicator, shutdown, firmware and other unrelated bytes
 remain unchanged. The reserved unsigned bundle is
 `kernel-hw-05941-a607a2bb249c918b`, using the retained headless V9 DT.
-The matching boot wrapper, paired-root qualification, remaining44-module guest,
-new source CI and physical kernel trial remain pending. No physical claim,
+The matching boot wrapper, paired-root qualification, full source CI and
+physical kernel trial remain pending. Full CI on frozen f74 stopped after 84.809
+seconds on a five-second host-test timeout under a two-CPU quota; memory peaked
+at 638.8 MiB with no swap. The isolated-suite launcher had no concurrency cap.
+The reviewed scheduler now defaults to two workers, capped by CPU affinity
+and inherited quota. Focused queue tests pass in 7.616 seconds; the unchanged
+healthy suite passes in 3.688 seconds. Full CI on the corrected source remains
+pending; test deadlines and assertions remain unchanged. No physical claim,
 signature or phone operation has been issued for this successor.
 
 The expanded display autoload audit passes for configured root paths: udev
