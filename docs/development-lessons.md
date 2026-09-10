@@ -437,6 +437,11 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   mistake before device execution. Retain that assertion with the source;
   host-only tests cannot establish a target ABI. Report the original operation
   error separately from a later cleanup error so neither cause is lost.
+  The state-exchange prototype repeated this mistake with both `O_DIRECTORY`
+  and `O_NOFOLLOW`. Its target-header assertions now derive their expected
+  values from the Rust source and reject the previous host values. Include
+  that compiler check before building any new raw-FFI helper, rather than
+  waiting for an ARM64 operation to report EINVAL.
 - The stable-path module runner now has actual timing evidence: 216.131 seconds
   for its first build and 38.580 for the cached comparison, with all 31 raw
   objects identical. Keep that 82.1% elapsed reduction scoped to this run;
@@ -486,6 +491,12 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   to its own artifact/trial identity. Check the wrapper's actual control flow:
   an embedded RAM bundle bypasses installed selector fallback, so selector
   recovery evidence alone does not qualify recovery from that RAM boot.
+- An ELF DYN header alone does not qualify a static-PIE executable. The pinned
+  GNU Rust target supplied `-static -no-pie`; appending `-static-pie` produced
+  an image that faulted before its first syscall. Remove only the verified
+  conflicting defaults in the pinned linker adapter and test startup and the
+  actual operation in a root without shared libraries. Keep both failed and
+  corrected artifacts. Check a first binary before investing in its twin.
 
 For each successor candidate, the main chat should report only:
 

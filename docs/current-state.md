@@ -209,16 +209,35 @@ Nine new tests plus the existing seven R01 and four ordinary helper tests pass
 in both Python modes. The actual wrapper snapshot seals and closes in 0.184
 seconds; focused service runtime is 2.450 seconds, peak 281.8 MiB/no swap.
 Evidence: `successor-boot-helper-r2/result.json`. Full integration CI for this
-new helper is pending; the f316 result above does not cover later source edits.
+helper now passes on clean `63a0c1a1` in 602.727 seconds
+(`source-ci-r8/result.json`). The service is terminal; do not restart it.
 
-Next: prepare the complete controller and exact trial-state replacement/restore
-operation. The helper's `decide` rejects a different existing identity; archive
-and retain the old healthy V9 record before using the absent-record creation
-branch. Restoration must restore those exact old bytes, not call `healthy`
-with the new identity. The embedded RAM wrapper bypasses the installed selector,
-so its recovery phase stays read-only and requires a separate authenticated V11
-return path. Keep the ordinary full capture and failed-target result separate
-from successful assisted recovery. No phone action or Ready request is pending.
+The private Rust trial-state exchange primitive now passes offline qualification
+in `successor-state-exchange-r1/result.json`. It writes and syncs a backup and
+new pending record, then atomically exchanges the two names while holding file
+locks. This supersedes the proposed absent-record creation interval. Restoration
+exchanges the original V9 inode back and retains both records and one-use intent
+files. Eleven native test groups cover interruption, locks, tampering, pathname
+replacement and retry refusal. Corrected static-PIE ARM64 twins match after
+1.071/1.119 seconds. Six isolated ARM64 cases (17 process calls) pass in 0.582
+seconds, including real v1/v2 target-helper health acknowledgment and exact
+old-record restoration, in an empty root without shared libraries. This does
+not establish phone-filesystem power-loss durability or physical authorization.
+
+The ARM64 replay caught a repeated host/target open-flag mistake; target-header
+compiler assertions now bind the Rust constants and reject the old values.
+An earlier DYN-labelled image crashed before its first syscall because rustc
+passed contradictory static/no-PIE options. The corrected linker and actual
+ARM64 startup/operation checks qualify the working artifact; failed images and
+receipts remain retained. Rust fmt/clippy are absent from the pinned builder;
+the attempted lint run is preserved, not labelled PASS.
+
+Next: wrap the retained static helper in the source/V11 identity, sealed-tools,
+power, storage, custody and one-use controller guards, then qualify the complete
+controller. The embedded RAM wrapper bypasses the installed selector, so its
+recovery phase stays read-only and requires a separate authenticated V11 return
+path. Keep the ordinary full capture and failed-target result separate from
+successful assisted recovery. No phone action or Ready request is pending.
 
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside

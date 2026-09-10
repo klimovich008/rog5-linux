@@ -5,6 +5,59 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Exact059 state exchange prototype
+
+Full source CI for the exact boot helper passes on clean `63a0c1a1` in
+602.727 seconds. `source-ci-r8/result.json` binds log SHA
+`2c7952545484298c2bb2844038489aed23ff796cb5ec172170df2dc9c4d1f260`.
+The compiled payload source remains frozen at f74; later work below is private
+and is not claimed to have passed that repository CI.
+
+`successor-state-exchange-r1/result.json` records the Rust primitive's offline
+qualification. It keeps the trial record continuously present: sync a separate
+old backup and new pending file, atomically exchange the pending file with the
+locked original, then sync both directories. Restoration exchanges the exact
+old inode back. Exclusive transaction/intent files refuse repeated operations;
+failed or interrupted operations retain their records for reconciliation.
+The existing trial helper's record format and installed selector are unchanged.
+
+Eleven native test groups pass, including interrupted stage/restore, lost
+completion marker, matching new healthy state, symlinks/hardlinks, record and
+directory replacement, concurrent locks and prior partial publication. The
+test-first placeholder fails five positive groups as expected; that receipt
+is retained. ARM64 constants compile against target headers, while the old
+host flag values fail the same compiler check.
+
+Static-PIE ARM64 twins match SHA
+`9ec0d969eb17dcb18f14a1698dc2c2daa2af256baf337bcd9f1868ac2e97a8c4`
+(1,253,144 bytes; builds 1.071/1.119 seconds, each 512 MiB/no extra swap).
+Six actual ARM64 namespace cases make 17 process calls in 0.582 seconds;
+service runtime is 0.689 seconds, peak 16.2 MiB/no swap. Both retained v1 and v2
+helpers accept the new pending identity and mark it healthy; the new primitive
+then restores the original V9 bytes/inode. Other cases cover pending restoration,
+wrong state, missing controller environment and a lost stage reply. The root
+contains no shared libraries. Static glibc retains NSS symbols; these results
+qualify the exercised paths, not every linked glibc function.
+
+Failures remain explicit: the first namespace launch referenced an absent
+optional repository QEMU path and executed no target. The first PIE build
+segfaulted before any syscall due to contradictory compiler/linker options;
+its core is retained beside the failed image. A symbol-only shared-library
+check was too broad and was replaced by the empty-root operational proof,
+with the NSS presence still recorded. The next ARM64 operation refused before
+writes because two open flags used host values. Architecture-specific constants
+and generated target-header assertions fix that recurring error. The first
+lint attempt could not run because the minimal pinned builder lacks cargo-fmt;
+fmt/clippy remain unqualified. No physical action occurred.
+
+After-run review: native success missed the target flag error; make the target
+compiler assertion part of the build, and run one actual ARM64 operation before
+the comparison build. Atomic exchange removes the proposed absent-record window
+and provides direct restoration without changing the accepted selector helper.
+Physical guards, host custody, controller admission and phone-filesystem
+power-loss qualification remain pending. Do not deploy this private primitive
+as an independently admitted storage operation.
+
 ## Exact059 boot primitive preparation
 
 The import-only `verified-kernel-hardware-boot.py` now binds the one exact 05941
@@ -27,12 +80,12 @@ claim's recovery-storage field to read-only: embedded RAM boot bypasses trial
 selection. The first focused receipt remains retained.
 
 Source review confirms `decide` only creates a new identity when the record is
-absent; `healthy` refuses identity replacement. The controller must durably
-retain and archive healthy V9 state before creating successor pending state,
-then provide exact old-record restoration with existing device, mount, power
-and relock guards. The old R01 restoration helper cannot perform that migration.
+absent; `healthy` refuses identity replacement. The atomic exchange prototype
+above supersedes the initial archive-then-create proposal. It still needs exact
+old-record retention and the existing device, mount, power and storage guards.
+The old R01 restoration helper cannot perform that identity migration.
 No state write, claim registration/consumption, fastboot or phone action occurred.
-Full CI for the new helper remains pending.
+Full CI for the new helper subsequently passed as recorded above.
 
 After-run review: reuse the verified 128 MiB primitives without mutable size
 overrides; keep admission identity separate from offline recognition. This
