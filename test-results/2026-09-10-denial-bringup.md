@@ -5,6 +5,45 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Concrete mutation callback integration
+
+Private evidence: `successor-live-driver-r1/callback-tests-r1/result.json`.
+`action-callbacks.py` implements the seven mutation callbacks: arm the selection,
+install/request/restore the source exitrd transition, restore source selection,
+stage the fallback helper and restore fallback selection. Each requires an
+outer admission callback, exact existing source/owner, clean host producer,
+fixed producer hashes, durable custody and the controller's exact saved context
+and entered receipt. A separate exclusive command intent prevents callback retry
+even if a caller repeats the same outer receipt. No live CLI is provided.
+
+Source Python actions and sealed shell state operations are generated from
+qualified producers. V11 uses only the BusyBox stager and shell wrapper.
+Completed state results require exact before/after hashes, boot, operation and
+helper output hashes. Reboot requires both its entered event and final result;
+a missing/nonzero/timed-out reply cannot become success. All transport evidence
+is retained before semantic parsing, including complete failed command streams.
+The adapter currently invokes the worker as deck over an existing route. The
+privileged bridge needed for a newly prepared fallback route remains a concrete
+integration prerequisite; no privilege workaround was introduced.
+
+All **27 tests** pass in normal/optimized Python (**7.304/7.890 s**). Twenty-two
+boundary cases exercise actual generators, existing durable custody, real
+exclusive/fsynced host receipts and retained ARM64 replies (with explicit fixture
+identity adaptation where needed). Five more run the actual controller engine
+and these callbacks through success, lost arm reply/source restoration, lost
+reboot reply/V11 restoration, target observation failure and capture cleanup
+failure. Transport, admission, physical health and capture remain synthetic.
+No target script was sent, no phone state changed and no boot claim was used.
+
+Review found two scoped issues before qualification: the generic 1 MiB receipt
+limit could discard two valid 1 MiB streams after base64 expansion, and ordinary
+Python equality could accept numeric values in boolean proof fields. The adapter
+now uses a distinct 4 MiB transport receipt bound and type-sensitive JSON
+comparison; full dual-stream failure retention and numeric-boolean rejection
+are included in the passing tests. No kernel/module/root-image rebuild or
+unchanged full CI was repeated. Continue with actual read-only reconciliation,
+capture/fastboot/health bindings, scoped privilege handling and final admission.
+
 ## V11 runtime correction and bounded SSH worker
 
 Private evidence: `successor-live-driver-r1`. The earlier Python `stage-v11`
