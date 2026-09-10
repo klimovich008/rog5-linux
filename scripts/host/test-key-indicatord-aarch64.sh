@@ -5,11 +5,11 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 image=${ROG5_AARCH64_BUILD_IMAGE:-localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1}
 expected_image_id=a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e
 expected_image_digest=sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa
-expected_source_size=20530
-expected_source_sha256=3d597f919d71a76f2aef0ae2aa269e219ffe7c0bdca0e9b73481d52dff686939
+expected_source_size=23566
+expected_source_sha256=d921b5bfd1fe8c0370c2ff6dc0a19a3041249288f3f49e84d9a1510fbec42096
 expected_binary_size=67520
-expected_binary_sha256=3792745382a390ebeef37a081e532884aae07bbcd73fd9f0da1c94e67bdabbc8
-artifact=$repo/artifacts/headless-indicator-v1/rog5-key-indicatord
+expected_binary_sha256=410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3
+artifact=$repo/artifacts/headless-indicator-v2/rog5-key-indicatord
 
 fail() {
 	echo "FAIL $*" >&2
@@ -72,8 +72,19 @@ podman run --rm --network=none --platform linux/arm64 \
 	/workspace/tools/key-indicator/rog5-key-indicatord.c \
 	-o /out/rog5-key-indicatord-fixture
 
+podman run --rm --network=none --platform linux/arm64 \
+	-v "$repo:/workspace:ro,Z" \
+	-v "$work:/out:Z" \
+	"$image" \
+	cc -std=c11 -O2 -static -fPIE -pie -fstack-protector-strong \
+	-Wall -Wextra -Werror \
+	-Wl,-z,relro,-z,now,-z,noexecstack,--build-id=none \
+	/workspace/tools/key-indicator/test-led-fd-identity.c \
+	-o /out/rog5-key-indicatord-fd-fixture
+
 ROG5_INDICATOR_PRODUCTION_BINARY=$work/rog5-key-indicatord-a \
 ROG5_INDICATOR_FIXTURE_BINARY=$work/rog5-key-indicatord-fixture \
+ROG5_INDICATOR_FD_FIXTURE_BINARY=$work/rog5-key-indicatord-fd-fixture \
 ROG5_INDICATOR_TEST_RUNNER=$(command -v qemu-aarch64-static) \
 	"$repo/scripts/host/test-key-indicatord.sh"
 

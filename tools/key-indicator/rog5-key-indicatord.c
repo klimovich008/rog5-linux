@@ -27,6 +27,9 @@
 #define LED_DRIVER_NAME "qcom-spmi-lpg"
 #define LED_OF_NODE_SUFFIX \
 	"/soc@0/spmi@c440000/pmic@2/pwm/led@2"
+#define LED_PARENT_OF_NODE_SUFFIX \
+	"/soc@0/spmi@c440000/pmic@2/pwm"
+#define LED_PARENT_COMPATIBLE "qcom,pm8350c-pwm"
 #define LED_MAX_BRIGHTNESS 511U
 #define LED_PULSE_MILLISECONDS 180U
 #define EVENT_BATCH_COUNT 16U
@@ -61,6 +64,7 @@ struct led_device {
 	char brightness_path[PATH_MAX];
 	char of_node[PATH_MAX];
 	char driver[PATH_MAX];
+	struct stat brightness_identity;
 	char trigger[TEXT_MAX];
 	unsigned int max_brightness;
 	unsigned int initial_brightness;
@@ -179,11 +183,40 @@ static int resolve_required_link(const char *path, char *resolved,
 	return 0;
 }
 
+/* A LED fwnode supplies OF uevent fields without a leaf of_node link. */
+static int require_uevent_field(const char *directory, const char *field,
+				const char *expected)
+{
+	char path[PATH_MAX];
+	char text[TEXT_MAX];
+	char *line;
+	char *save = NULL;
+	unsigned int matches = 0U;
+	size_t length = strlen(field);
+
+	if (join_path(path, sizeof(path), directory, "uevent") < 0 ||
+	    read_text_file(path, text, sizeof(text)) < 0)
+		return contract_error("led.uevent_read", errno);
+	for (line = strtok_r(text, "\n", &save); line;
+	     line = strtok_r(NULL, "\n", &save)) {
+		if (strncmp(line, field, length) != 0 || line[length] != '=')
+			continue;
+		matches++;
+		if (strcmp(line + length + 1U, expected) != 0)
+			return contract_error("led.uevent_field", ENODEV);
+	}
+	if (matches != 1U)
+		return contract_error("led.uevent_count", ENODEV);
+	return 0;
+}
+
 static int validate_led_device(const char *directory,
 			       struct led_device *led,
 			       bool require_initially_off)
 {
 	char path[PATH_MAX];
+	char parent[PATH_MAX];
+	char parent_of_node[PATH_MAX];
 	struct stat status;
 
 	if (strlen(directory) >= sizeof(led->directory)) {
@@ -192,12 +225,31 @@ static int validate_led_device(const char *directory,
 	}
 	strcpy(led->directory, directory);
 
-	if (join_path(path, sizeof(path), directory, "of_node") < 0 ||
+	if (require_uevent_field(directory, "OF_NAME", "led") < 0 ||
+	    require_uevent_field(directory, "OF_FULLNAME", LED_OF_NODE_SUFFIX) < 0 ||
+	    require_uevent_field(directory, "OF_COMPATIBLE_N", "0") < 0)
+		return -1;
+	if (join_path(parent, sizeof(parent), directory, "device") < 0 ||
+	    require_uevent_field(parent, "DRIVER", LED_DRIVER_NAME) < 0 ||
+	    require_uevent_field(parent, "OF_NAME", "pwm") < 0 ||
+	    require_uevent_field(parent, "OF_FULLNAME",
+				 LED_PARENT_OF_NODE_SUFFIX) < 0 ||
+	    require_uevent_field(parent, "OF_COMPATIBLE_0",
+				 LED_PARENT_COMPATIBLE) < 0 ||
+	    require_uevent_field(parent, "OF_COMPATIBLE_N", "1") < 0)
+		return -1;
+	if (join_path(path, sizeof(path), parent, "of_node") < 0 ||
+	    resolve_required_link(path, parent_of_node,
+				  sizeof(parent_of_node)) < 0)
+		return contract_error("led.parent_of_node_resolve", errno);
+	if (!has_path_suffix(parent_of_node, LED_PARENT_OF_NODE_SUFFIX))
+		return contract_error("led.parent_of_node", ENODEV);
+	if (join_path(path, sizeof(path), parent_of_node, "led@2") < 0 ||
 	    resolve_required_link(path, led->of_node, sizeof(led->of_node)) < 0)
 		return contract_error("led.of_node_resolve", errno);
-	if (!has_path_suffix(led->of_node, LED_OF_NODE_SUFFIX)) {
+	if (strcmp(path, led->of_node) != 0 ||
+	    !has_path_suffix(led->of_node, LED_OF_NODE_SUFFIX))
 		return contract_error("led.of_node", ENODEV);
-	}
 
 	if (join_path(path, sizeof(path), directory, "device/driver") < 0 ||
 	    resolve_required_link(path, led->driver, sizeof(led->driver)) < 0)
@@ -225,6 +277,7 @@ static int validate_led_device(const char *directory,
 		return contract_error("led.initial_brightness", EBUSY);
 	}
 	strcpy(led->brightness_path, path);
+	led->brightness_identity = status;
 
 	if (join_path(path, sizeof(path), directory, "trigger") < 0 ||
 	    read_text_file(path, led->trigger, sizeof(led->trigger)) < 0)
@@ -237,6 +290,40 @@ static int validate_led_device(const char *directory,
 	if (led->pulse_brightness == 0U)
 		led->pulse_brightness = 1U;
 	return 0;
+}
+
+static int open_led_brightness(const struct led_device *led,
+			       bool require_initially_off)
+{
+	struct led_device current;
+	struct stat status;
+	int descriptor;
+	int saved_errno;
+
+	descriptor = open(led->brightness_path,
+			  O_WRONLY | O_CLOEXEC | O_NOFOLLOW);
+	if (descriptor < 0)
+		return -1;
+	if (validate_led_device(led->directory, &current,
+				require_initially_off) < 0 ||
+	    fstat(descriptor, &status) < 0)
+		goto fail;
+	if (!S_ISREG(status.st_mode) ||
+	    status.st_dev != led->brightness_identity.st_dev ||
+	    status.st_ino != led->brightness_identity.st_ino ||
+	    status.st_dev != current.brightness_identity.st_dev ||
+	    status.st_ino != current.brightness_identity.st_ino ||
+	    strcmp(led->of_node, current.of_node) != 0 ||
+	    strcmp(led->driver, current.driver) != 0) {
+		contract_error("led.brightness_identity", ENODEV);
+		goto fail;
+	}
+	return descriptor;
+fail:
+	saved_errno = errno;
+	close(descriptor);
+	errno = saved_errno;
+	return -1;
 }
 
 static bool is_event_directory_name(const char *name)
@@ -489,8 +576,7 @@ static int run_event_loop(int input_descriptor,
 				     SFD_CLOEXEC | SFD_NONBLOCK);
 	if (signal_descriptor < 0)
 		goto out;
-	brightness_descriptor = open(led->brightness_path,
-				     O_WRONLY | O_CLOEXEC | O_NOFOLLOW);
+	brightness_descriptor = open_led_brightness(led, true);
 	if (brightness_descriptor < 0)
 		goto out;
 	timer_descriptor = timerfd_create(CLOCK_BOOTTIME,
@@ -693,8 +779,7 @@ static int turn_led_off_at(const char *directory)
 
 	if (validate_led_device(directory, &led, false) < 0)
 		return -1;
-	descriptor = open(led.brightness_path,
-			  O_WRONLY | O_CLOEXEC | O_NOFOLLOW);
+	descriptor = open_led_brightness(&led, false);
 	if (descriptor < 0)
 		return -1;
 	result = force_led_off(descriptor);

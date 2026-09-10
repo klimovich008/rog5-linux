@@ -72,6 +72,27 @@ No repeated full CI for unchanged inputs. While remote checks run, do useful
 independent work without modifying their frozen inputs or starting a second
 device coordinator. This policy changes iteration cadence, not release gates.
 
+### Human-assisted hardware sessions
+
+Complete the builds, focused tests, review, staging and no-press runtime checks
+before asking the user to be available. The
+[local-root physical-key reader](../scripts/device/observe-local-root-physical-key.sh)
+supports `--preflight`: it checks the actual input FD, driver, device tree and
+inhibitor, then exits without a READY prompt or event reads. Run the relevant
+key preflights before the handoff; keep the existing NFS-specific gate separate.
+
+Prepare the full launch and cleanup recipe in advance. Wait for a fresh explicit
+Ready before starting any operator countdown. After the reply, perform only the
+brief current-state guards and runtime arming, then immediately present the
+actual reader READY prompt. Ask for one short press/release at a time and collect
+events automatically; the user should not have to type terminal commands.
+
+If preparation fails or availability expires, close the session and resolve the
+problem independently before asking again. Keep partial valid component evidence
+and every raw failure; avoid repeating a completed physical step solely because
+a later independent validator failed. Explicitly distinguish a strict test-case
+FAIL from separately verified component behavior.
+
 ### Development-only fast eligibility
 
 `select --development BASE HEAD` emits a JSON **NOT RUN** decision, the exact

@@ -748,7 +748,7 @@ class CompositionTest(unittest.TestCase):
         expected = {M.BUTTONS.PAYLOAD_PREFIX+name for name in pins if name.endswith('.ko')}
         indicator = [row for row in pending if row['scope'] == 'indicator hardware module load']
         self.assertEqual({row['path'] for row in indicator}, expected)
-        self.assertEqual(len(indicator), 3)
+        self.assertEqual(len(indicator), 4)
         self.assertTrue(all(row['status'] == 'NOT RUN' and row['sha256'] ==
                             M.BUTTONS.sha(members[row['path']][1]) for row in indicator))
         self.assertFalse(expected & core.keys())
@@ -788,13 +788,21 @@ class CompositionTest(unittest.TestCase):
                 patch.object(M.subprocess, 'check_output', side_effect=metadata):
             rows, extra = M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
             self.assertEqual([r['name'] for r in extra],
-                             ['led_class_multicolor', 'qcom_pbs', 'leds_qcom_lpg'])
+                             ['led_class_multicolor', 'qcom_pbs', 'leds_qcom_lpg', 'qcom_pon'])
             self.assertEqual(rows, core + extra)
             self.assertEqual(members, original)
             for fault in ('shadow', 'dependency', 'abi'):
                 with self.subTest(fault=fault), self.assertRaises(ValueError):
                     M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
             fault = ''
+            # A complete inventory still fails if LPG precedes either provider.
+            with patch.object(M, 'INDICATOR_MODULE_ORDER', M.INDICATOR_MODULE_ORDER[::-1]), \
+                    self.assertRaisesRegex(ValueError, 'dependency absent or loaded too late'):
+                M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
+            # The former LED-only plan may not silently omit the PON parent.
+            with patch.object(M, 'INDICATOR_MODULE_ORDER', M.INDICATOR_MODULE_ORDER[:-1]), \
+                    self.assertRaisesRegex(ValueError, 'order/inventory'):
+                M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
             with patch.object(M.time, 'monotonic', side_effect=[0, 11]), \
                     self.assertRaisesRegex(ValueError, 'deadline'):
                 M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
@@ -804,7 +812,7 @@ class CompositionTest(unittest.TestCase):
 
     def test_indicator_vm_requires_every_successful_load_in_order(self):
         rows = [{'name': name} for name in
-                ('led_class_multicolor', 'qcom_pbs', 'leds_qcom_lpg')]
+                ('led_class_multicolor', 'qcom_pbs', 'leds_qcom_lpg', 'qcom_pon')]
         loaded = ['COMPOSITION_MODULE_' + row['name'] for row in rows]
         other = ['COMPOSITION_' + name + '_PASS' for name in M.MARKERS]
         def log(events):

@@ -7,8 +7,8 @@ build_script=$repo/scripts/device/build-key-indicatord.sh
 aarch64_test=$repo/scripts/host/test-key-indicatord-aarch64.sh
 unit=$repo/packaging/arch/rog5-key-indicator.service
 modules_conf=$repo/packaging/arch/rog5-status-led.modules.conf
-expected_source_size=20530
-expected_source_sha256=3d597f919d71a76f2aef0ae2aa269e219ffe7c0bdca0e9b73481d52dff686939
+expected_source_size=23566
+expected_source_sha256=d921b5bfd1fe8c0370c2ff6dc0a19a3041249288f3f49e84d9a1510fbec42096
 
 fail() {
 	echo "FAIL $*" >&2
@@ -52,6 +52,7 @@ work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
 production=${ROG5_INDICATOR_PRODUCTION_BINARY:-$work/rog5-key-indicatord}
 fixture_binary=${ROG5_INDICATOR_FIXTURE_BINARY:-$work/rog5-key-indicatord-fixture}
+fd_fixture=${ROG5_INDICATOR_FD_FIXTURE_BINARY:-$work/key-indicator-fd-fixture}
 runner=()
 if [[ -n ${ROG5_INDICATOR_TEST_RUNNER:-} ]]; then
 	[[ -x $ROG5_INDICATOR_TEST_RUNNER ]] ||
@@ -69,12 +70,16 @@ if [[ -z ${ROG5_INDICATOR_PRODUCTION_BINARY:-} &&
 	gcc "${common_flags[@]}" "$source_file" -o "$production"
 	gcc "${common_flags[@]}" -DROG5_INDICATOR_TESTING=1 \
 		"$source_file" -o "$fixture_binary"
+	gcc "${common_flags[@]}" "$repo/tools/key-indicator/test-led-fd-identity.c" \
+		-o "$fd_fixture"
 elif [[ -z ${ROG5_INDICATOR_PRODUCTION_BINARY:-} ||
 	-z ${ROG5_INDICATOR_FIXTURE_BINARY:-} ]]; then
 	fail 'both external key-indicator binaries must be provided together'
 fi
 [[ -f $production && ! -L $production && -x $production ]]
 [[ -f $fixture_binary && ! -L $fixture_binary && -x $fixture_binary ]]
+[[ -f $fd_fixture && ! -L $fd_fixture && -x $fd_fixture ]] || \
+	fail 'missing FD identity fixture binary'
 
 for marker in \
 	'INPUT_DEVICE_NAME "pmic_pwrkey"' \
@@ -137,7 +142,9 @@ make_led_fixture() {
 	local driver=$root/drivers/qcom-spmi-lpg
 
 	mkdir -p "$led/device" "$of_node" "$driver"
-	ln -s "$of_node" "$led/of_node"
+	ln -s "$(dirname "$of_node")" "$led/device/of_node"
+	printf 'OF_NAME=led\nOF_FULLNAME=/soc@0/spmi@c440000/pmic@2/pwm/led@2\nOF_COMPATIBLE_N=0\n' >"$led/uevent"
+	printf 'DRIVER=qcom-spmi-lpg\nOF_NAME=pwm\nOF_FULLNAME=/soc@0/spmi@c440000/pmic@2/pwm\nOF_COMPATIBLE_0=qcom,pm8350c-pwm\nOF_COMPATIBLE_N=1\n' >"$led/device/uevent"
 	ln -s "$driver" "$led/device/driver"
 	printf '511\n' >"$led/max_brightness"
 	printf '0000000000\n' >"$led/brightness"
@@ -269,16 +276,14 @@ fi
 grep -Fq 'contract_error=led.trigger' "$work/triggered.log"
 
 wrong_node_led=$(make_led_fixture "$work/wrong-node")
-unlink "$wrong_node_led/of_node"
-mkdir -p "$work/wrong-node/device-tree/led@1"
-ln -s "$work/wrong-node/device-tree/led@1" "$wrong_node_led/of_node"
+sed -i 's/led@2/led@1/' "$wrong_node_led/uevent"
 if "${runner[@]}" "$fixture_binary" --fixture "$work/ignored" \
 	"$wrong_node_led" 0 20 \
 	>"$work/wrong-node.log" 2>&1
 then
 	fail 'wrong LED OF node was accepted'
 fi
-grep -Fq 'contract_error=led.of_node' "$work/wrong-node.log"
+grep -Fq 'contract_error=led.uevent_field' "$work/wrong-node.log"
 
 wrong_driver_led=$(make_led_fixture "$work/wrong-driver")
 unlink "$wrong_driver_led/device/driver"
@@ -306,7 +311,7 @@ fi
 grep -Fq 'contract_error=led.brightness_type' "$work/linked.log"
 
 missing_node_led=$(make_led_fixture "$work/missing-node")
-unlink "$missing_node_led/of_node"
+rmdir "$missing_node_led/device/of_node/led@2"
 if "${runner[@]}" "$fixture_binary" --fixture "$work/ignored" \
 	"$missing_node_led" 0 20 >"$work/missing-node.log" 2>&1
 then
@@ -322,5 +327,11 @@ then
 	fail 'missing LED driver link was accepted'
 fi
 grep -Fq 'contract_error=led.driver_resolve' "$work/missing-driver.log"
+
+
+ROG5_INDICATOR_FIXTURE_BINARY=$fixture_binary \
+ROG5_INDICATOR_FD_FIXTURE_BINARY=$fd_fixture \
+ROG5_INDICATOR_TEST_RUNNER=${ROG5_INDICATOR_TEST_RUNNER:-} \
+	python3 -I -B "$repo/scripts/host/test-key-indicator-led-contract.py"
 
 echo 'PASS native key indicator is identity-bound, press-only, bounded, default-off, signal-safe, and fixture-tested'

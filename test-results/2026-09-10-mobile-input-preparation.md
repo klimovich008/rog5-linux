@@ -135,3 +135,58 @@ one controlled button/LED trial with the exact current power-key inhibitor,
 storage/power guards and recovery observation. The old physical-key gate's
 read-only-NFS assumptions are incompatible with the current local-UFS server.
 Display/touch/GPU work follows the clarified mobile roadmap.
+
+
+## Live component result, 2026-09-10
+
+Current V9 boot `7c945aa5-80d0-4af2-aa76-113d68e23ac5` stayed healthy throughout
+the component sessions. The exact frozen source was `4bd1a817`; its complete
+boot observation closed at 1380.892 seconds with route, firewall, profile and
+address cleanup verified. The raw passive capture remains NOT RUN; the separate
+source-bound closure verifier supplies its completed-observation PASS.
+
+| Physical input | Linux code | Recorded pairs | IRQ delta | Result |
+|---|---:|---:|---:|---|
+| Power | 116 | 1 | 2 | PASS |
+| Volume-down | 114 | 1 | 2 | PASS |
+| Volume-up | 115 | 1 | 2 | PASS |
+
+The power session's LED journal recorded three natural on/off cycles at 31/511,
+with on-to-off journal intervals of 180.143, 179.916 and 180.127 ms. The user
+explicitly saw green and confirmed several power presses. This is visible LED
+and natural-off component evidence, not an optical timing measurement. The
+strict single-pulse validator remains FAIL because it expected only one cycle.
+The later volume-only session passed without repeating power, starting an LED
+service or modifying modules. Final brightness readback was zero, full health
+passed in 1.093 seconds, and its monitor finished, removed its socket and exited.
+
+The aggregate `buttons-hardware-result-r1/result.json` has status
+`BUTTONS_AND_LED_COMPONENT_PASS` and SHA-256
+`0c7b0deeda132598b0c50eeffbe7971a97e6f1764d3c10c06fc44684fd4db557`. It pins the
+raw sessions, explicit user replies, final health/off readbacks and completed
+monitor evidence. Original failed receipts remain unchanged.
+
+Three separately proven preparation defects were corrected before acceptance:
+
+* V9 omitted modular `qcom_pon`, which creates the built-in PM8941 key children.
+  The unchanged parent source produced identical exact-kernel modules in
+  8.633 seconds; a signed-V9-Image VM load/unload check passed in 2.597 seconds.
+* This kernel identifies the LED child through its uevent and parent firmware
+  node; the original daemon required a nonexistent leaf `of_node` symlink. The
+  corrected daemon preserves exact parent/child/driver checks and permits
+  input-independent forced-off cleanup. Qualified ARM twins are identical.
+* ARM64 `O_LARGEFILE` is octal `0400000`. The local reader's generic architecture
+  mask rejected its valid read-only FD. Its corrected mask is `02400000`, and
+  the added no-press preflight passed all three real keys in 1.873 seconds with
+  zero event bytes and no physical prompt.
+
+An earlier correctly armed recording expired without operator input. Its FAIL
+and successful cleanup remain recorded. The replacement workflow waits for a
+fresh explicit Ready before any countdown, reuses prepared code and artifacts,
+and prompts only at actual reader readiness. Builds, review and no-press checks
+finish before the user is asked to be available.
+
+These runtime additions are not a persistent installation. The signed V9
+payload and accepted server/rescue baseline were not rewritten. A future image
+needs the complete PON/LED closure and an explicit activation path; no release,
+shutdown or autonomous fallback qualification is inferred. S06/R01 stay failed.

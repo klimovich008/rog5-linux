@@ -627,6 +627,10 @@ def module_metadata_in_order(members, order, release, *, initial=()):
     return rows
 
 
+INDICATOR_MODULE_ORDER = (
+    'led-class-multicolor.ko', 'qcom-pbs.ko', 'leds-qcom-lpg.ko', 'qcom-pon.ko')
+
+
 def indicator_module_composition(members, core, release):
     """Append the exact inert indicator payload for VM-only software loading.
 
@@ -636,8 +640,7 @@ def indicator_module_composition(members, core, release):
     paths, _ = inert_indicator_modules(members)
     if not paths:
         return list(core), []
-    order = [BUTTONS.PAYLOAD_PREFIX + name for name in
-             ('led-class-multicolor.ko', 'qcom-pbs.ko', 'leds-qcom-lpg.ko')]
+    order = [BUTTONS.PAYLOAD_PREFIX + name for name in INDICATOR_MODULE_ORDER]
     if set(order) != paths:
         raise ValueError('indicator module order/inventory mismatch')
     rows = module_metadata_in_order(members, order, release, initial=core)

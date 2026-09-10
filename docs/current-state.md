@@ -1,5 +1,37 @@
 # ROG5 current state
 
+Updated 2026-09-10: **buttons and visible green indicator have passed component
+verification on the current V9 Arch boot**. Power (116), volume-down (114) and
+volume-up (115) each supplied one complete press/release and an IRQ delta of two.
+The user saw the green light. Three natural pulses at brightness 31/511 returned
+to zero after approximately 180 ms; the user confirmed several power presses.
+The strict one-pulse session remains FAIL for that extra activity. Its valid
+power event and visible-light evidence are retained separately from the later
+volume-only COMPONENT_PASS. Final LED readback is zero, full server health
+passes, and all component monitors and controllers have closed.
+
+The combined private receipt is `buttons-hardware-result-r1/result.json`, SHA-256
+`0c7b0deeda132598b0c50eeffbe7971a97e6f1764d3c10c06fc44684fd4db557`, under the retained
+`rog5-cpu-startup-20260908.kjE4IqCf` evidence root. The
+[dated report](../test-results/2026-09-10-mobile-input-preparation.md) records the
+separate component and strict-case outcomes. The full original V9 boot
+observation lasted 1380.892 seconds and its host cleanup passed. S06 and R01
+remain failed; this work does not qualify shutdown or autonomous recovery.
+
+The live fixes are RAM additions on kernel `7.1.4-gf17befd4ef17`: the missing
+`qcom_pon` parent, the corrected LED firmware-node lookup and the local reader's
+ARM64 read-only FD mask. The accepted signed V9 image still contains its original
+inert payload. Persistent activation and a promoted successor image remain
+unqualified; component success must not be described as an installed release.
+Repository integration carries the corrected artifacts and complete module
+closure forward without changing the accepted boot image or consumed claims.
+
+Human-assisted sessions must be fully prepared before asking for Ready. A fresh
+reply starts only the brief current checks and recording setup, followed by the
+actual key prompt. No operator timer runs while awaiting availability.
+
+## Previous preparation checkpoint
+
 Updated 2026-09-10: the user clarified the destination as a native touch-first
 Arch Linux phone inspired by Denial, with cellular excluded. Display, touch
 and GPU are central next milestones in the [roadmap](../ROADMAP.md). Buttons

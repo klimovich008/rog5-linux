@@ -7,13 +7,13 @@ fail() {
 }
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v1.json
+profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v2.json
 runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 sealed_runner=$repo/scripts/host/run-sealed-arm64-binfmt.py
 extractor=$repo/scripts/host/extract-qualified-qemu-aarch64-static.sh
 manifest_script=$repo/scripts/host/kernel-builder-rootfs-manifest.sh
 qemu=$repo/artifacts/host-tools/qemu-aarch64-static
-expected_profile=5987588650f5665546bdaa0b335524df2739e47e9edf3aa3e4d173d233ef313d
+expected_profile=8420b6494db2b7748668916828fb446770f6c917c552be6e09adc3e2c20d6cac
 expected_runner=b3b3faab43f9fbaf710b467a82b41a992affba0bfc7d1c19bf20675e6ac3e119
 expected_sealed_runner=354ea9b62a7ec9f19501858e3e0d2c4f848faa93e639dccc36bb23f5a016c301
 expected_extractor=5b0e991cb1112b21f5c40c8e1504020d8638ac6bff611964c96059d658cd6ecd
