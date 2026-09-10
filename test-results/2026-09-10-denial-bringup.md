@@ -5,6 +5,17 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Authentication blocker revalidated
+
+Checkpoint r34 confirms the prepared password probe and five relevant source
+hashes are unchanged. The actual r1 attempt remains terminal with
+`sudo: a password is required`; no r2 attempt, trial directory, execution
+directory or live qualification exists, and no relevant child process is live.
+The blocker has recurred across r32–r34. Independent launcher preparation was
+completed in r33; repeating its passing tests would add no evidence. Mark the
+goal blocked until the user supplies fresh availability for the local password
+dialog. No authentication prompt, phone action or new claim was started.
+
 ## One-use launcher and credential lifetime
 
 Private evidence: `successor-live-driver-r1/launcher-qualification-r1.json`,
