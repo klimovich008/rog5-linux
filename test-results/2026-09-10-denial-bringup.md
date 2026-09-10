@@ -5,6 +5,56 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Successor controller ordering and installed fallback route
+
+Private evidence: `successor-controller-r1/result.json`. The one-use ordering
+engine now covers source preflight, state arm, exitrd installation, source reboot,
+fastboot, capture, one RAM boot, target observation, full capture closure and
+fresh post-capture health. Only that complete successful path retains the healthy
+successor for hardware tests. Every failure remains FAIL after restoration.
+Before any reboot intent, fresh source reconciliation can restore an authenticated
+exitrd patch before restoring the old selection. After reboot intent, no automatic
+source abort or repeated reboot request is permitted.
+
+V11 recovery no longer depends on a successful target switch-root event. It
+requires exact fresh authenticated V11 identity, physical guards, successor
+pending/healthy bytes, staged restoration helper and independent restored-state
+verification. If the phone is in fastboot after closed target capture, the engine
+requires the verified installed fallback route, a separately owned full fallback
+capture and one ordinary reboot of the installed selector. It has no second RAM
+boot or flash path. Failed or shortened capture/cleanup prevents state restoration.
+
+All 25 ordering/failure cases pass in normal/optimized Python in 13.156/6.148
+seconds. Driver observations and capture lifetimes are synthetic; receipt writes,
+exclusive execution directories and fsync are real. The first exploratory run
+took 1.566 seconds; the variation's cause was not measured, so no optimization or
+Python-mode speedup is claimed. The concrete live driver and admission remain
+unimplemented; these tests do not qualify live transport or complete recovery.
+
+The installed selector was extracted from retained recovery archive `4ba0fccd`.
+Its loader is `de5e7e78`, and its helper is actual v2 `c1aab57b`. The complete
+selector function runs with that ARM64 helper and sealed BusyBox under QEMU;
+only the ISA invocation and explicit storage-preparation/cleanup fixtures differ.
+Three cases pass in 0.342 seconds: successor pending and healthy choose V11 with
+unchanged records, while restored V9 healthy chooses V9 and publishes fresh
+pending `958a2fc8`. This confirms the decision path, not a physical boot.
+The first test retains FAIL/0.112 seconds because its expected diagnostic used
+hyphens where the actual helper prints spaces. Correcting that exact fixture
+string preserved all record, cleanup and decision assertions; production bytes
+and the generated selector script were unchanged.
+
+Physical read-only installed-boot verification passes in 0.545 seconds on the
+unchanged V9 boot. `/dev/sde35`, runtime device `259:19`, is read-only and exactly
+100,663,296 bytes with wrapper SHA-256 `dcc487f1`. The old healthy selection is
+unchanged and the state-exchange directory is absent. No reboot, state operation
+or additional RAM staging ran this turn.
+
+After-run review: bind recovery decisions to the actual installed wrapper and
+helper, not whichever loader happens to be in the working checkout. Preserve
+the failed diagnostic fixture and the measured timing variation. The next
+dependency is concrete driver integration; no kernel/module/A01/full-CI repeat
+is justified by this private ordering work.
+
 ## Source transition primitives and physical RAM staging
 
 Evidence: private `successor-source-actions-r1/result.json`. Read-only source

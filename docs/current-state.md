@@ -265,8 +265,26 @@ the state transaction directory is absent. No helper execution, reboot or
 persistent write occurred. Do not repeat the completed staging action. Evidence:
 `successor-source-actions-r1/result.json`.
 
-Next: integrate and qualify the complete capture/recovery controller using the
-staged source artifacts and exact one-use boot admission. The embedded RAM wrapper
+The private successor controller ordering now passes 25 failure-injection cases
+in normal/optimized Python (13.156/6.148 seconds), with real durable host receipts
+and explicitly synthetic driver/capture observations. It preserves full capture
+after failed or ambiguous execution, requires fresh post-capture target health,
+and keeps successful V11 restoration separate from trial failure. An early target
+failure can authenticate V11 without a preceding switch-root event. A fastboot
+return requires a separate full fallback capture before one ordinary reboot of
+the installed selector. This is ordering qualification; the concrete SSH,
+fastboot, capture and admission driver is not implemented or admitted yet.
+
+The exact installed selector function and ARM64 helper now pass three namespace
+cases in 0.342 seconds: successor pending/healthy records both select signed V11
+without changing those records; restored V9 healthy selects V9 and rearms pending.
+Physical installed `boot_b` readback passes in 0.545 seconds, matching the retained
+96 MiB wrapper `dcc487f1`, with protected storage read-only and V9 state unchanged.
+Storage preparation/cleanup in the selector test is synthetic, so these results
+do not establish a physical fallback boot. Evidence: `successor-controller-r1`.
+
+Next: implement and qualify the concrete driver for the tested controller using
+the staged source artifacts and exact one-use boot admission. The embedded RAM wrapper
 bypasses the installed selector, so its
 recovery phase stays read-only and requires a separate authenticated V11 return
 path. Keep the ordinary full capture and failed-target result separate from
