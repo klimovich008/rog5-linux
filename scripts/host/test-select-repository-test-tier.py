@@ -398,12 +398,17 @@ class WorkflowSelectionTest(unittest.TestCase):
             self.assertEqual(git('rev-parse','HEAD'),event,
                 'mutable merge ref does not prove the event merge SHA')
 
-    def test_only_active_skips_bootstrap_after_selection(self) -> None:
+    def test_active_has_unpacker_but_skips_unused_boot_template(self) -> None:
         for job_name in ("head-exact", "merge-compat"):
             job = self.jobs[job_name]
             steps = dict(re.findall(
                 r"      - name: ([^\n]+)\n(.*?)(?=      - |\Z)", job, re.S))
-            for name in ("Bootstrap pinned Android boot tools", "Build canonical boot-v3 template"):
+            # The active composition suite invokes the hash-pinned unpacker.
+            # A clean checkout must supply it even without a boot template.
+            self.assertNotIn("        if:", steps["Bootstrap pinned Android boot tools"])
+            self.assertIn("scripts/host/fetch-android-boot-tools.sh",
+                          steps["Bootstrap pinned Android boot tools"])
+            for name in ("Build canonical boot-v3 template",):
                 with self.subTest(job=job_name, step=name):
                     match = re.search(r"^        if: (.+)$", steps[name], re.M)
                     self.assertIsNotNone(match, "bootstrap must be gated by the selected tier")

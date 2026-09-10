@@ -67,7 +67,6 @@ jobs:
             python3-pyelftools \
             pkg-config
       - name: Bootstrap pinned Android boot tools
-        if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/fetch-android-boot-tools.sh
       - name: Build canonical boot-v3 template
         if: steps.select-tier.outputs.test_tier != 'active'
@@ -123,7 +122,6 @@ jobs:
             python3-pyelftools \
             pkg-config
       - name: Bootstrap pinned Android boot tools
-        if: steps.select-tier.outputs.test_tier != 'active'
         run: scripts/host/fetch-android-boot-tools.sh
       - name: Build canonical boot-v3 template
         if: steps.select-tier.outputs.test_tier != 'active'
