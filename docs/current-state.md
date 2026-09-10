@@ -93,14 +93,14 @@ fault-injection cases pass and the unpatched baseline fails. Clock and RPMh
 fixes 0026/0035 are already present. The clean successor kernel source is
 `05941d04803f54208da1e9920a81874edc540ca1`, containing only 0012 over f17.
 Its unchanged-config/compiler/release preflight passed in 21.955 seconds.
-Cache-assisted builds from separate output directories are now **RUNNING** in
-private `kernel-hardware-build-r1`, using a 6 GiB/no-extra-swap limit, two CPUs
-and a 4 GiB disk compiler cache. Build A passed in 2729.501 seconds and its
-Image booted in QEMU in 2.633 seconds; build B and final comparison remain
-pending. The early boot check does not establish module or phone behavior.
-Do not restart the existing runner; inspect its
-`twins-result.json` or live owner first. No completed successor Image or module
-qualification is claimed yet. All successor payload modules must match its kit.
+Cache-assisted kernel twins now **PASS**: 2729.501 and 2698.331 seconds,
+with identical Image, Image.gz, vmlinux, Module.symvers, configuration and all
+25 scoped modules. Both containers exited without OOM and were removed.
+Do not restart the completed runner. The exact Image also passed the earlier
+2.633-second generic QEMU boot; physical successor boot remains pending.
+The compiled integration source stays frozen at `f74e719c` in private
+`worktree`; current progress documentation is maintained in `progress-docs-r1`
+so downstream verification can still authenticate the original clean source.
 
 All three pinned A660 firmware files have been recovered from official
 linux-firmware 20260622 into private `gpu-firmware-r1`, with matching sizes/hashes
@@ -123,26 +123,41 @@ bytes, 88.3% smaller, with loaded code/data preserved and originals retained.
 No target executable or phone GPU operation ran. A cooperative timer cannot
 bound an uninterruptible kernel ioctl. Evidence: private `gpu-query-arm64-r1`.
 
-Successor module inventory is now explicit: 54 unique outputs, including
-29 beyond the running 25-target kernel build. The reviewed recipe preserves
-the current Wi-Fi selector patch, diagnostic provider replacements, indicator
-dependencies and packaged PDR BTF exception. The generated-header/tool kit
-deriver passes 23 fixtures in both modes; a separate additive kit-completion
-recipe passes seven. Both await successful kernel twins and have not created
-a real kit. After the existing build finishes: derive/complete/seal the kit,
-build the missing module twins, verify full closure and run the successor VM.
-Retained private recipes are `successor-kit-prep-r1`,
-`successor-kit-completion-r1`, and `successor-module-plan-r1`.
+The matching 3,378-file kernel kit was derived in 9.701 seconds and additively
+completed in a 2.582-second service run. Original files remain unchanged;
+packaged PDR alone retains the accepted BTF-removal exception. External module
+twins now **PASS** in 216.131 and 38.580 seconds, with all 31 raw outputs
+identical and clean container cleanup. Selecting the two diagnostic provider
+replacements yields 54 unique production modules across both build groups.
+The cached comparison took 82.1% less elapsed time than the first module build;
+this measures this module run, not a full-kernel or future-build guarantee.
 
-The bounded module runner is now reviewed and prepared in private
-`successor-module-build-r1`; eighteen mocked tests pass in both modes. Separate
-host outputs use the same container path for strict cache reuse. All 57 current
-static inputs match, and the live-kernel guard correctly refuses overlap. No
-real module invocation or completed-kit admission has occurred. The prepared
-ten-module guest in `successor-components-vm-r1` adds GPUCC to indicator,
-display and touch registration checks; eleven focused fixtures pass. It checks
-actual procfs contents and retains GPI until guest poweroff. Actual guest loads
-and full 54-module export/dependency qualification remain pending.
+All 54 selected raw modules pass exact export/dependency, namespace and GPL
+checks against the successor kernel in a 6.253-second service run. Ordinary
+defined symbols do not count as exports. The typed S12 provider/consumer edge
+also passes. This static check does not prove full module ABI/BTF compatibility.
+The actual ten-module guest passed in 3.797 seconds: indicator, GPUCC, REFGEN,
+panel, GPI/GENI and touch loaded and registered; nine unloaded and permanent
+GPI remained until poweroff. Physical probes did not run. The remaining 44
+modules still need their applicable loader/BTF or board-refusal guest checks,
+including a separately rebuilt test-only S12 shim and the packaged PDR exception.
+Private receipts are in `successor-module-build-r1`,
+`successor-module-closure-r1/verification-r1` and
+`successor-components-vm-r1/run-r1`.
+
+Unsigned successor payload twins now pass in `successor-payload-refresh-r2`:
+57,774,555 bytes each, SHA-256
+`c7d757727bc6e9295087b02d207e90d44e43d9ac2f1ccb345a4923c04365e058`.
+All65 previous module copies were refreshed and four hardware modules added
+outside the automatic module search tree. Nested membership stays37 modules;
+the new host depmod's exact comment-only `modules.weakdep` is explicitly
+qualified as metadata file14. The original inventory refusal is preserved.
+Corrected runtime, indicator, shutdown, firmware and other unrelated bytes
+remain unchanged. The reserved unsigned bundle is
+`kernel-hw-05941-a607a2bb249c918b`, using the retained headless V9 DT.
+The matching boot wrapper, paired-root qualification, remaining44-module guest,
+new source CI and physical kernel trial remain pending. No physical claim,
+signature or phone operation has been issued for this successor.
 
 The expanded display autoload audit passes for configured root paths: udev
 loading uses the absent current-release index, while the new payload is outside

@@ -437,6 +437,15 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   mistake before device execution. Retain that assertion with the source;
   host-only tests cannot establish a target ABI. Report the original operation
   error separately from a later cleanup error so neither cause is lost.
+- The stable-path module runner now has actual timing evidence: 216.131 seconds
+  for its first build and 38.580 for the cached comparison, with all 31 raw
+  objects identical. Keep that 82.1% elapsed reduction scoped to this run;
+  neither the old full-kernel twins nor a future build inherits that speedup.
+- Regenerated metadata depends on the exact packaging tool as well as module
+  inputs. The first successor composition correctly refused kmod34.2's extra
+  `modules.weakdep` file. Preserve the failed output, inspect the actual delta,
+  and qualify its exact names/content with a regression before retrying.
+  Do not broadly accept arbitrary extra metadata or silently drop new records.
 - Inspect the deployment artifact after a small successful build. The Rust GPU
   helper carried 4.1 MB of debug sections; deriving a separate debug-stripped
   copy reduced uncompressed size by 88.3% in 0.063 seconds. Preserve the original
