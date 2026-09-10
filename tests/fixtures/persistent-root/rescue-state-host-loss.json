@@ -1,0 +1,21 @@
+{
+  "description": "Sanitized v2 live observations, 2026-09-05; diagnostics are not authenticated acceptance.",
+  "target_release": "7.1.4-g359318de534f",
+  "boot_id": "910d80ee-51ec-4629-a6bc-debd52803606",
+  "last_stage": {"sequence": 25, "stage": "switch-root", "state": "PASS", "detail": "none"},
+  "services": {
+    "p2": {"active": "active", "sub": "exited", "result": "success", "exit": "0"},
+    "state": {"active": "failed", "sub": "failed", "result": "exit-code", "exit": "1"},
+    "identity": {"active": "inactive", "sub": "dead", "result": "success", "exit": "0"},
+    "sshd": {"active": "active", "sub": "running", "result": "success", "exit": "0"}
+  },
+  "journal": "error",
+  "failure_hex": "none",
+  "host_disconnect": [
+    "usb 1-1: USB disconnect, device number 21",
+    "usb 1-1.1: USB disconnect, device number 22",
+    "usb 1-1.2: USB disconnect, device number 76"
+  ],
+  "receiver_error": "host operation failed: nmcli -g",
+  "interpretation": "State setup failed before persistent SSH identity. Subsequent hub-level USB loss does not establish a target reset."
+}

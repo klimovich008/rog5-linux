@@ -3,6 +3,12 @@ set -eu
 
 build_a=${1:?usage: compare-mainline-builds.sh BUILD_A BUILD_B}
 build_b=${2:?missing second build directory}
+[ -d "$build_a" ] || { echo "FAIL missing build A directory" >&2; exit 1; }
+[ -d "$build_b" ] || { echo "FAIL missing build B directory" >&2; exit 1; }
+[ "$(stat -Lc '%d:%i' "$build_a")" != "$(stat -Lc '%d:%i' "$build_b")" ] || {
+	echo 'FAIL build directories must be distinct' >&2
+	exit 1
+}
 
 files='
 .config

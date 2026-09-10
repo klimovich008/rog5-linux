@@ -1,0 +1,561 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
+output_root=${1:-}
+base_profile=${ROG5_RECOVERY_BASE_PROFILE:-historical-v18}
+case $base_profile in
+	historical-v18)
+		base=$repo/artifacts/recovery-stage-v18/rog5-recovery-initramfs.cpio.gz
+		expected_base=852b02a2cbcb2dfd43598269ff1b2b10cb1542e90ab7a7aa32d1a26c7cc645fc
+		;;
+	reconstructed-v18r-v1)
+		base=$repo/artifacts/recovery-inputs-v18r/rog5-recovery-base-v18r.cpio.gz
+		expected_base=da573d089cd617e088624b6d6bf711e193a4df5367843293e2e5ba543556e51d
+		;;
+	*)
+		fail "unsupported recovery base profile: $base_profile"
+		;;
+esac
+export ROG5_RECOVERY_BASE_PROFILE=$base_profile
+wrapper_config=$repo/artifacts/recovery-stage-v18/config-5.4.210-kexec-stage-builtin-recovery
+kexec_apk=$repo/artifacts/recovery-inputs/kexec-tools-2.0.32-r2.apk
+xz_apk=$repo/artifacts/recovery-inputs/xz-libs-5.8.3-r0.apk
+zstd_apk=$repo/artifacts/recovery-inputs/zstd-libs-1.5.7-r2.apk
+base_image=localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1
+verifier_image=localhost/rog5-recovery-bundle-verifier:alpine-3.24-openssl-3.5.7-deck-v1
+arm64_runner=$repo/scripts/host/run-private-arm64-binfmt.sh
+supplied_public_key=${RECOVERY_TEST_PUBLIC_KEY:-}
+public_key_source=generated
+
+for command in chmod cmp cp cpio cut find findmnt git grep gzip head id locale \
+	mkdir mktemp openssl podman python3 realpath rm sed sha256sum sort stat tail touch; do
+	command -v "$command" >/dev/null ||
+		fail "missing stable-recovery test command: $command"
+done
+[[ -f $arm64_runner && ! -L $arm64_runner && -x $arm64_runner ]] ||
+	fail 'missing sealed private ARM64 runner'
+for input in "$base" "$wrapper_config" "$kexec_apk" "$xz_apk" "$zstd_apk"; do
+	[[ -f $input && ! -L $input ]] ||
+		fail "missing regular ignored recovery input: $input"
+done
+[[ $(sha256sum "$base" | cut -d ' ' -f 1) == "$expected_base" ]] ||
+	fail "unexpected recovery-base hash for profile: $base_profile"
+[[ $(sha256sum "$wrapper_config" | cut -d ' ' -f 1) == \
+	df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f ]] ||
+	fail 'unexpected accepted v18 wrapper-config hash'
+for setting in \
+	CONFIG_KEXEC=y \
+	CONFIG_MEMFD_CREATE=y \
+	CONFIG_NAMESPACES=y \
+	CONFIG_NET_NS=y \
+	CONFIG_SECCOMP=y \
+	CONFIG_SECCOMP_FILTER=y \
+	CONFIG_TMPFS=y \
+	CONFIG_USB_CONFIGFS=y \
+	CONFIG_USB_F_ACM=y \
+	CONFIG_USB_F_NCM=y
+do
+	grep -qx "$setting" "$wrapper_config" ||
+		fail "wrapper kernel lacks fixed-control prerequisite: $setting"
+done
+grep -qx '# CONFIG_SCSI_SCAN_ASYNC is not set' "$wrapper_config" ||
+	fail 'wrapper SCSI scan policy changed from the reviewed contract'
+for setting in CONFIG_SCSI_UFSHCD=y CONFIG_SCSI_UFS_QCOM=y; do
+	grep -qx "$setting" "$wrapper_config" ||
+		fail "wrapper kernel lacks measured UFS topology prerequisite: $setting"
+done
+
+for image in "$base_image" "$verifier_image"; do
+	podman image exists "$image" ||
+		fail "missing pinned local AArch64 image: $image"
+	[[ $(podman image inspect "$image" --format '{{.Architecture}}') == arm64 ]] ||
+		fail "build image is not arm64: $image"
+done
+[[ $(podman image inspect "$base_image" --format '{{.Id}}') == \
+	a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e ]] ||
+	fail 'unexpected base AArch64 builder image ID'
+[[ $(podman image inspect "$base_image" --format '{{.Digest}}') == \
+	sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa ]] ||
+	fail 'unexpected base AArch64 builder digest'
+[[ $(podman image inspect "$verifier_image" --format '{{.Id}}') == \
+	13d758cd4c708ddb798dd539d1b6c4e3546ea5ef9129ed309c74bd8f4e620689 ]] ||
+	fail 'unexpected verifier AArch64 builder image ID'
+[[ $(podman image inspect "$verifier_image" --format '{{.Digest}}') == \
+	sha256:75f5179fe0164ffefa2f9bc5dba5a47eac47674d347311602256476aa2ee7a01 ]] ||
+	fail 'unexpected verifier AArch64 builder digest'
+locale -a | grep -qx 'en_US.utf8' ||
+	fail 'cross-locale reproducibility test requires en_US.utf8'
+if [[ -n $output_root ]]; then
+	output_root=$(realpath -m "$output_root")
+	case $output_root in
+		"$repo"/build/*) ;;
+		*) fail 'retained output root must be below the ignored build directory' ;;
+	esac
+	git -C "$repo" check-ignore -q "$output_root" ||
+		fail 'retained output root is not ignored by Git'
+	[[ ! -d $output_root ||
+		-z $(find "$output_root" -mindepth 1 -maxdepth 1 -print -quit) ]] ||
+		fail 'refusing nonempty retained output root'
+fi
+
+test_tmp=$(mktemp -d)
+trap 'rm -rf -- "$test_tmp"' EXIT HUP INT TERM
+
+build_static() {
+	image=$1
+	build_script=$2
+	source_file=$3
+	output=$4
+	runner=("$arm64_runner")
+	if [[ -n ${ROG5_PRIVATE_BINFMT_GUARD:-} ]]; then
+		[[ $ROG5_PRIVATE_BINFMT_GUARD =~ ^[0-9a-f]{64}$ &&
+			$(id -u) == 0 &&
+			-r /proc/sys/fs/binfmt_misc/qemu-aarch64 ]] ||
+			fail 'inherited private ARM64 namespace identity is invalid'
+		read -r inside_id outside_id map_length _ </proc/self/uid_map ||
+			fail 'cannot inspect inherited ARM64 namespace mapping'
+		[[ $inside_id == 0 && $outside_id != 0 && $map_length -gt 0 ]] ||
+			fail 'inherited ARM64 namespace is not rootless'
+		case $(findmnt -n -o PROPAGATION /) in
+			private|private,*) ;;
+			*) fail 'inherited ARM64 namespace mount propagation is unsafe' ;;
+		esac
+		runner=()
+	fi
+	"${runner[@]}" podman run --rm --pull=never --network=none \
+		--platform linux/arm64 --security-opt label=disable \
+		-v "$repo:/workspace:ro" \
+		-v "$test_tmp:/out" \
+		"$image" \
+		"/workspace/$build_script" \
+		"/workspace/$source_file" "/out/$output"
+}
+
+for suffix in a b; do
+	build_static "$base_image" \
+		scripts/device/build-recovery-control.sh \
+		tools/recovery_control/rog5-recovery-control.c \
+		"rog5-recovery-control-$suffix"
+	build_static "$base_image" \
+		scripts/device/build-recovery-bundle-fetcher.sh \
+		tools/recovery_control/rog5-bundle-fetch.c \
+		"rog5-bundle-fetch-$suffix"
+	build_static "$verifier_image" \
+		scripts/device/build-recovery-bundle-verifier.sh \
+		tools/recovery_control/rog5-bundle-verify.c \
+		"rog5-bundle-verify-$suffix"
+done
+for binary in rog5-recovery-control rog5-bundle-fetch rog5-bundle-verify; do
+	cmp "$test_tmp/$binary-a" "$test_tmp/$binary-b"
+done
+python3 "$repo/scripts/host/test-recovery-control-build-record.py" \
+	--binary "$test_tmp/rog5-recovery-control-a"
+
+if [[ -n $supplied_public_key ]]; then
+	public_key_source=supplied
+	[[ -f $supplied_public_key && ! -L $supplied_public_key ]] ||
+		fail 'supplied ephemeral public key is not a regular file'
+	supplied_public_key=$(realpath -e "$supplied_public_key")
+	[[ $(stat -c %u "$supplied_public_key") == "$(id -u)" &&
+		$(stat -c %s "$supplied_public_key") == 32 &&
+		$((8#$(stat -c %a "$supplied_public_key") & 8#077)) == 0 ]] ||
+		fail 'supplied ephemeral public key metadata is unsafe'
+	cp --reflink=never -- "$supplied_public_key" \
+		"$test_tmp/ephemeral-public.raw"
+else
+	# The ephemeral private key exists only in the pipeline and is never written.
+	openssl genpkey -algorithm ED25519 2>/dev/null |
+		openssl pkey -pubout -outform DER 2>/dev/null |
+		tail -c 32 >"$test_tmp/ephemeral-public.raw"
+fi
+chmod 0600 "$test_tmp/ephemeral-public.raw"
+[[ $(stat -c %s "$test_tmp/ephemeral-public.raw") == 32 ]]
+
+cp "$test_tmp/rog5-bundle-fetch-a" "$test_tmp/stale-profile-fetcher"
+python3 -B - "$test_tmp/stale-profile-fetcher" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+current = b"stock-charging-recovery-v1"
+stale = b"stale-charging-recovery-v1"
+payload = path.read_bytes()
+if len(current) != len(stale) or payload.count(current) != 1:
+    raise SystemExit("FAIL cannot create one exact stale-profile fixture")
+path.write_bytes(payload.replace(current, stale))
+PY
+chmod 0755 "$test_tmp/stale-profile-fetcher"
+if "$repo/scripts/device/build-stable-recovery-initramfs.sh" \
+	"$base" "$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/stale-profile-fetcher" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$kexec_apk" "$xz_apk" "$zstd_apk" \
+	"$test_tmp/ephemeral-public.raw" \
+	"$test_tmp/should-not-build-stale-profile.cpio.gz" \
+	>"$test_tmp/stale-profile.log" 2>&1
+then
+	fail 'stale-profile bundle fetcher passed the recovery builder'
+fi
+grep -Fqx \
+	'FAIL bundle fetcher lacks supported profile: stock-charging-recovery-v1' \
+	"$test_tmp/stale-profile.log"
+
+for suffix in a b; do
+	case $suffix in
+		a) build_locale=C; build_timezone=UTC ;;
+		b) build_locale=en_US.utf8; build_timezone=Pacific/Kiritimati ;;
+	esac
+	LC_ALL=$build_locale TZ=$build_timezone \
+		"$repo/scripts/device/build-stable-recovery-initramfs.sh" \
+			"$base" "$repo/initramfs/recovery-init" \
+			"$test_tmp/rog5-recovery-control-a" \
+			"$test_tmp/rog5-bundle-fetch-a" \
+			"$test_tmp/rog5-bundle-verify-a" \
+			"$kexec_apk" "$xz_apk" "$zstd_apk" \
+			"$test_tmp/ephemeral-public.raw" \
+			"$test_tmp/stable-recovery-$suffix.cpio.gz"
+	"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+		"$test_tmp/stable-recovery-$suffix.cpio.gz" \
+		"$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" \
+		"$test_tmp/rog5-bundle-fetch-a" \
+		"$test_tmp/rog5-bundle-verify-a" \
+		"$test_tmp/ephemeral-public.raw" exact-a600000-v1 -
+done
+cmp "$test_tmp/stable-recovery-a.cpio.gz" \
+	"$test_tmp/stable-recovery-b.cpio.gz"
+current_archive_sha256=$(
+	sha256sum "$test_tmp/stable-recovery-a.cpio.gz" | cut -d ' ' -f 1
+)
+"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" - \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" exact-a600000-pinned-v1 \
+	"$current_archive_sha256"
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" - \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" exact-a600000-pinned-v1 \
+	0000000000000000000000000000000000000000000000000000000000000001 \
+	>"$test_tmp/pinned-exact-wrong-hash.log" 2>&1
+then
+	fail 'wrong archive identity passed the pinned exact-UDC contract'
+fi
+grep -Fqx 'FAIL pinned recovery archive identity mismatch' \
+	"$test_tmp/pinned-exact-wrong-hash.log"
+for suffix in a b; do
+	case $suffix in
+		a) build_locale=C; build_timezone=UTC ;;
+		b) build_locale=en_US.utf8; build_timezone=Pacific/Kiritimati ;;
+	esac
+	LC_ALL=$build_locale TZ=$build_timezone \
+		"$repo/scripts/device/build-observation-recovery-initramfs.sh" \
+		"$test_tmp/stable-recovery-$suffix.cpio.gz" \
+		"$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" \
+		"$test_tmp/rog5-bundle-fetch-a" \
+		"$test_tmp/rog5-bundle-verify-a" \
+		"$test_tmp/ephemeral-public.raw" \
+		"$test_tmp/observation-recovery-$suffix.cpio.gz"
+	"$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+		"$test_tmp/observation-recovery-$suffix.cpio.gz" \
+		"$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" - - - \
+		observation-only-a600000-v1 -
+done
+cmp "$test_tmp/observation-recovery-a.cpio.gz" \
+	"$test_tmp/observation-recovery-b.cpio.gz"
+
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" \
+	"$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" - - - \
+	observation-only-a600000-v1 - \
+	>"$test_tmp/full-as-observation.log" 2>&1
+then
+	fail 'full recovery archive passed the observation-only contract'
+fi
+grep -Fqx \
+	'FAIL observation-only recovery retains mutating path: usr/libexec/rog5-bundle-fetch' \
+	"$test_tmp/full-as-observation.log"
+
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" - \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" historical-pinned-v1 \
+	"$current_archive_sha256" \
+	>"$test_tmp/current-as-historical.log" 2>&1
+then
+	fail 'current exact-UDC archive passed the historical contract'
+fi
+grep -Fqx \
+	'FAIL historical recovery lacks its pinned responder start shape' \
+	"$test_tmp/current-as-historical.log"
+
+if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+	"$test_tmp/stable-recovery-a.cpio.gz" \
+	"$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/ephemeral-public.raw" unsupported-v1 - \
+	>"$test_tmp/unsupported-contract.log" 2>&1
+then
+	fail 'unsupported stable-recovery init contract passed verification'
+fi
+grep -Fqx \
+	'FAIL unsupported stable-recovery init contract: unsupported-v1' \
+	"$test_tmp/unsupported-contract.log"
+
+expect_init_rejection() {
+	name=$1
+	init=$2
+	expected=$3
+	if "$repo/scripts/device/build-stable-recovery-initramfs.sh" \
+		"$base" "$init" \
+		"$test_tmp/rog5-recovery-control-a" \
+		"$test_tmp/rog5-bundle-fetch-a" \
+		"$test_tmp/rog5-bundle-verify-a" \
+		"$kexec_apk" "$xz_apk" "$zstd_apk" \
+		"$test_tmp/ephemeral-public.raw" \
+		"$test_tmp/should-not-build-$name.cpio.gz" \
+		>"$test_tmp/$name.log" 2>&1
+	then
+		fail "unsafe recovery init passed the builder: $name"
+	fi
+	grep -Fqx "$expected" "$test_tmp/$name.log"
+}
+
+cp -p "$repo/initramfs/recovery-init" "$test_tmp/shell-init"
+printf '%s\n' "setsid sh -c 'exec sh -i </dev/ttyGS0 >/dev/ttyGS0 2>&1'" \
+	>>"$test_tmp/shell-init"
+expect_init_rejection shell "$test_tmp/shell-init" \
+	'FAIL recovery init contains a legacy shell, credential, SSH, or network override'
+
+cp -p "$repo/initramfs/recovery-init" "$test_tmp/dhcp-init"
+printf '%s\n' 'udhcpc -i usb0' >>"$test_tmp/dhcp-init"
+expect_init_rejection dhcp "$test_tmp/dhcp-init" \
+	'FAIL recovery init contains a legacy shell, credential, SSH, or network override'
+
+sed '\|/usr/libexec/rog5-recovery-control --mode "$recovery_mode" &|d' \
+	"$repo/initramfs/recovery-init" >"$test_tmp/no-control-init"
+chmod 0755 "$test_tmp/no-control-init"
+expect_init_rejection no-control "$test_tmp/no-control-init" \
+	'FAIL recovery init does not start the fixed responder'
+
+sed '\|ip address add 169.254.77.2/30 dev usb0|d' \
+	"$repo/initramfs/recovery-init" >"$test_tmp/no-address-init"
+chmod 0755 "$test_tmp/no-address-init"
+expect_init_rejection no-address "$test_tmp/no-address-init" \
+	'FAIL recovery init lacks the fixed device address'
+
+sed '\|^bundle_root=/run/rog5-bundles$|d' \
+	"$repo/initramfs/recovery-init" >"$test_tmp/no-bundle-root-init"
+chmod 0755 "$test_tmp/no-bundle-root-init"
+expect_init_rejection no-bundle-root "$test_tmp/no-bundle-root-init" \
+	'FAIL recovery init lacks the exact volatile bundle root'
+
+head -c 31 "$test_tmp/ephemeral-public.raw" >"$test_tmp/short-public.raw"
+if "$repo/scripts/device/build-stable-recovery-initramfs.sh" \
+	"$base" "$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$kexec_apk" "$xz_apk" "$zstd_apk" \
+	"$test_tmp/short-public.raw" \
+	"$test_tmp/should-not-build.cpio.gz" \
+	>"$test_tmp/short-key.log" 2>&1
+then
+	fail '31-byte public key passed the stable recovery builder'
+fi
+grep -qx 'FAIL Ed25519 public key must contain exactly 32 raw bytes' \
+	"$test_tmp/short-key.log"
+
+head -c 32 /dev/zero >"$test_tmp/zero-public.raw"
+if "$repo/scripts/device/build-stable-recovery-initramfs.sh" \
+	"$base" "$repo/initramfs/recovery-init" \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$kexec_apk" "$xz_apk" "$zstd_apk" \
+	"$test_tmp/zero-public.raw" \
+	"$test_tmp/should-not-build-zero.cpio.gz" \
+	>"$test_tmp/zero-key.log" 2>&1
+then
+	fail 'all-zero public key passed the stable recovery builder'
+fi
+grep -qx 'FAIL Ed25519 public key must not be all zero' \
+	"$test_tmp/zero-key.log"
+
+repack_fixture() {
+	stage=$1
+	output=$2
+	find "$stage" -exec touch -h -d '@1681862400' {} +
+	(
+		cd "$stage"
+		find . -mindepth 1 -print0 | LC_ALL=C sort -z |
+			cpio --null -o --quiet --format=newc --owner=0:0 \
+				--reproducible
+	) | gzip -n >"$output"
+}
+
+expect_archive_rejection() {
+	name=$1
+	archive=$2
+	expected=$3
+	if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+		"$archive" "$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" \
+		"$test_tmp/rog5-bundle-fetch-a" \
+		"$test_tmp/rog5-bundle-verify-a" \
+		"$test_tmp/ephemeral-public.raw" exact-a600000-v1 - \
+		>"$test_tmp/$name.log" 2>&1
+	then
+		fail "unsafe stable-recovery archive passed verification: $name"
+	fi
+	grep -Fqx "$expected" "$test_tmp/$name.log"
+}
+
+expect_observation_archive_rejection() {
+	name=$1
+	archive=$2
+	expected=$3
+	if "$repo/scripts/device/verify-stable-recovery-initramfs.sh" \
+		"$archive" "$repo/initramfs/recovery-init" \
+		"$test_tmp/rog5-recovery-control-a" - - - \
+		observation-only-a600000-v1 - \
+		>"$test_tmp/$name.log" 2>&1
+	then
+		fail "unsafe observation-recovery archive passed: $name"
+	fi
+	grep -Fqx "$expected" "$test_tmp/$name.log"
+}
+
+observer_mode_stage=$test_tmp/observer-mode-stage
+mkdir "$observer_mode_stage"
+gzip -dc "$test_tmp/observation-recovery-a.cpio.gz" |
+	(cd "$observer_mode_stage" && cpio -idm --quiet --no-absolute-filenames)
+chmod 0600 "$observer_mode_stage/etc/rog5/recovery-mode"
+printf '%s\n' full-v1 >"$observer_mode_stage/etc/rog5/recovery-mode"
+chmod 0444 "$observer_mode_stage/etc/rog5/recovery-mode"
+repack_fixture "$observer_mode_stage" "$test_tmp/observer-wrong-mode.cpio.gz"
+expect_observation_archive_rejection observer-wrong-mode \
+	"$test_tmp/observer-wrong-mode.cpio.gz" \
+	'FAIL observation-only recovery mode identity mismatch'
+
+observer_kexec_stage=$test_tmp/observer-kexec-stage
+mkdir "$observer_kexec_stage"
+gzip -dc "$test_tmp/observation-recovery-a.cpio.gz" |
+	(cd "$observer_kexec_stage" && cpio -idm --quiet --no-absolute-filenames)
+cp "$observer_kexec_stage/bin/busybox" \
+	"$observer_kexec_stage/usr/sbin/kexec"
+chmod 0755 "$observer_kexec_stage/usr/sbin/kexec"
+repack_fixture "$observer_kexec_stage" "$test_tmp/observer-kexec.cpio.gz"
+expect_observation_archive_rejection observer-kexec \
+	"$test_tmp/observer-kexec.cpio.gz" \
+	'FAIL observation-only recovery retains mutating path: usr/sbin/kexec'
+
+credential_stage=$test_tmp/credential-stage
+mkdir "$credential_stage"
+gzip -dc "$test_tmp/stable-recovery-a.cpio.gz" |
+	(cd "$credential_stage" && cpio -idm --quiet --no-absolute-filenames)
+mkdir -p "$credential_stage/root/.ssh"
+printf '%s\n' 'test-only-forbidden-authorized-key' \
+	>"$credential_stage/root/.ssh/authorized_keys"
+chmod 0600 "$credential_stage/root/.ssh/authorized_keys"
+repack_fixture "$credential_stage" "$test_tmp/credential.cpio.gz"
+expect_archive_rejection credential "$test_tmp/credential.cpio.gz" \
+	'FAIL legacy access or credential path exists in stable recovery'
+
+setid_stage=$test_tmp/setid-stage
+mkdir "$setid_stage"
+gzip -dc "$test_tmp/stable-recovery-a.cpio.gz" |
+	(cd "$setid_stage" && cpio -idm --quiet --no-absolute-filenames)
+cp "$setid_stage/bin/busybox" "$setid_stage/usr/bin/rog5-setid-fixture"
+chmod 4755 "$setid_stage/usr/bin/rog5-setid-fixture"
+repack_fixture "$setid_stage" "$test_tmp/setid.cpio.gz"
+expect_archive_rejection setid "$test_tmp/setid.cpio.gz" \
+	'FAIL set-ID file exists in stable recovery'
+
+unlocked_stage=$test_tmp/unlocked-stage
+mkdir "$unlocked_stage"
+gzip -dc "$test_tmp/stable-recovery-a.cpio.gz" |
+	(cd "$unlocked_stage" && cpio -idm --quiet --no-absolute-filenames)
+sed -i 's/^root:[^:]*/root:/' "$unlocked_stage/etc/shadow"
+repack_fixture "$unlocked_stage" "$test_tmp/unlocked.cpio.gz"
+expect_archive_rejection unlocked "$test_tmp/unlocked.cpio.gz" \
+	'FAIL stable recovery root account is not locked'
+
+legacy_stage=$test_tmp/legacy-stage
+mkdir "$legacy_stage"
+gzip -dc "$test_tmp/stable-recovery-a.cpio.gz" |
+	(cd "$legacy_stage" && cpio -idm --quiet --no-absolute-filenames)
+mkdir -p "$legacy_stage/opt/legacy/bin"
+cp "$legacy_stage/bin/busybox" "$legacy_stage/opt/legacy/bin/login"
+chmod 0755 "$legacy_stage/opt/legacy/bin/login"
+repack_fixture "$legacy_stage" "$test_tmp/legacy.cpio.gz"
+expect_archive_rejection legacy "$test_tmp/legacy.cpio.gz" \
+	'FAIL legacy login or DHCP entry point exists in stable recovery'
+
+shadow_mode_stage=$test_tmp/shadow-mode-stage
+mkdir "$shadow_mode_stage"
+gzip -dc "$test_tmp/stable-recovery-a.cpio.gz" |
+	(cd "$shadow_mode_stage" && cpio -idm --quiet --no-absolute-filenames)
+chmod 0644 "$shadow_mode_stage/etc/shadow"
+repack_fixture "$shadow_mode_stage" "$test_tmp/shadow-mode.cpio.gz"
+expect_archive_rejection shadow-mode "$test_tmp/shadow-mode.cpio.gz" \
+	'FAIL stable recovery shadow database has an unsafe mode'
+
+sha256sum \
+	"$test_tmp/rog5-recovery-control-a" \
+	"$test_tmp/rog5-bundle-fetch-a" \
+	"$test_tmp/rog5-bundle-verify-a" \
+	"$test_tmp/stable-recovery-a.cpio.gz" \
+	"$test_tmp/stable-recovery-b.cpio.gz" \
+	"$test_tmp/observation-recovery-a.cpio.gz" \
+	"$test_tmp/observation-recovery-b.cpio.gz"
+if [[ -n $output_root ]]; then
+	mkdir -p "$output_root/components" \
+		"$output_root/initramfs-a" "$output_root/initramfs-b" \
+		"$output_root/observer-a" "$output_root/observer-b"
+	for binary in \
+		rog5-recovery-control rog5-bundle-fetch rog5-bundle-verify; do
+		cp "$test_tmp/$binary-a" "$output_root/components/$binary"
+		chmod 0755 "$output_root/components/$binary"
+	done
+	cp "$test_tmp/stable-recovery-a.cpio.gz" \
+		"$output_root/initramfs-a/rog5-stable-recovery.cpio.gz"
+	cp "$test_tmp/stable-recovery-b.cpio.gz" \
+		"$output_root/initramfs-b/rog5-stable-recovery.cpio.gz"
+	cp "$test_tmp/observation-recovery-a.cpio.gz" \
+		"$output_root/observer-a/rog5-observation-recovery.cpio.gz"
+	cp "$test_tmp/observation-recovery-b.cpio.gz" \
+		"$output_root/observer-b/rog5-observation-recovery.cpio.gz"
+	cp "$test_tmp/ephemeral-public.raw" \
+		"$output_root/ephemeral-public.raw"
+	chmod 0600 "$output_root/ephemeral-public.raw"
+	sha256sum \
+		"$output_root/components/rog5-recovery-control" \
+		"$output_root/components/rog5-bundle-fetch" \
+		"$output_root/components/rog5-bundle-verify" \
+		"$output_root/initramfs-a/rog5-stable-recovery.cpio.gz" \
+		"$output_root/initramfs-b/rog5-stable-recovery.cpio.gz" \
+		"$output_root/observer-a/rog5-observation-recovery.cpio.gz" \
+		"$output_root/observer-b/rog5-observation-recovery.cpio.gz" \
+		"$output_root/ephemeral-public.raw"
+fi
+printf 'PASS reproducible full and observation-only recovery integration with ephemeral public-key test boundary; base_profile=%s; trust_root=%s\n' \
+	"$base_profile" "$public_key_source"

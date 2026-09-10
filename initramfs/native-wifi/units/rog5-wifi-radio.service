@@ -1,0 +1,18 @@
+[Unit]
+Description=Qualify the local signed Wi-Fi radio before writable service state
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+Requires=rog5-p2-ready.service
+After=rog5-p2-ready.service
+Before=rog5-persistent-state.service basic.target
+OnFailure=rog5-wifi-failure.service
+
+[Service]
+Type=oneshot
+ExecStart=/run/rog5-native-wifi/runtime radio
+SuccessExitStatus=77
+TimeoutStartSec=@OUTER_SECONDS@s
+TimeoutStopSec=5s
+RemainAfterExit=yes
+Restart=no

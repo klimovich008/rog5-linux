@@ -1,0 +1,327 @@
+{
+  "format": "rog5-vcnl36866-port-contract-v1",
+  "state": "port-required",
+  "authority": "none",
+  "accepted_upstream": {
+    "commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+    "tree": "2ea2be38c5e4dc9aafffbbc0db5aae0f6513a1d9",
+    "release": "7.1.4"
+  },
+  "board": {
+    "revision_chain": [
+      "ZS673KS-EVB-overlay.dts",
+      "ZS673KS-EVB2-overlay.dts",
+      "ZS673KS-SR1-overlay.dts",
+      "ZS673KS-ER1-overlay.dts",
+      "ZS673KS-ER2-overlay.dts",
+      "ZS673KS-PR1-overlay.dts",
+      "ZS673KS-MP-overlay.dts",
+      "ZS673KS-MP3-overlay.dts",
+      "ZS673KS-MP4-overlay.dts",
+      "ZS673KS-MP5-overlay.dts"
+    ],
+    "controller_label": "qupv3_se0_i2c",
+    "controller_address": "0x980000",
+    "upstream_controller_path": "/soc@0/geniqup@9c0000/i2c@980000",
+    "i2c_address": "0x60",
+    "vendor_compatible": "qcom,vcnl36866",
+    "candidate_compatible": "vishay,vcnl36866",
+    "irq_gpio": 89,
+    "irq_trigger": "low",
+    "supply": "pm8350c_l7",
+    "supply_microvolt": 3300000
+  },
+  "protocol": {
+    "chip_id_register": "0xf6",
+    "chip_id": "0x62",
+    "als_data_register": "0xf1",
+    "proximity_data_register": "0xf4",
+    "register_width_bits": 8,
+    "value_width_bits": 16,
+    "value_endianness": "little",
+    "raw_min": 0,
+    "raw_max": 65535
+  },
+  "vendor_sources": [
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-EVB-overlay.dts",
+      "size": 39244,
+      "sha256": "6570ebc9c6a5b603ab040f78e1adf5bfb86fb75fab40420f5fbbda645a957b8f",
+      "required_markers": [
+        "#include \"lahaina-mtp.dtsi\"",
+        "&qupv3_se0_i2c {",
+        "vcnl36866@60 {",
+        "compatible = \"qcom,vcnl36866\";",
+        "reg = <0x60>;",
+        "qcom,alsps-gpio = <&tlmm 89 0x0>;",
+        "vcc_psensor-supply = <&pm8350c_l7>;",
+        "pins = \"gpio89\";",
+        "pm8350c_l7: regulator-pm8350c-l7 {",
+        "regulator-min-microvolt = <3300000>;",
+        "regulator-max-microvolt = <3300000>;"
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-EVB2-overlay.dts",
+      "size": 4767,
+      "sha256": "9ff242c2d87ebfb3298d8de9868fad572591c7d5ae92c1ab3d8d2374a8a61038",
+      "required_markers": [
+        "#include \"ZS673KS-EVB-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-SR1-overlay.dts",
+      "size": 16383,
+      "sha256": "a038dd0713d6973f509a3e70f2790d2d07f8eab48b8b29e9077623fd5617dfc0",
+      "required_markers": [
+        "#include \"ZS673KS-EVB2-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-ER1-overlay.dts",
+      "size": 9339,
+      "sha256": "3aa191728345dbc98707d672467e6fd9a2c6a0efa2452c02cea8a7aba053eff1",
+      "required_markers": [
+        "#include \"ZS673KS-SR1-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-ER2-overlay.dts",
+      "size": 4910,
+      "sha256": "06494a1c13b353e49cb8820a3b506cb33ebfd583e769341b93f088c70b1ad02e",
+      "required_markers": [
+        "#include \"ZS673KS-ER1-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-PR1-overlay.dts",
+      "size": 5276,
+      "sha256": "27b7d53f228d1448d4bf1826bb007e3ab940fe54114653fdfca7d1f338a31b2d",
+      "required_markers": [
+        "#include \"ZS673KS-ER2-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-MP-overlay.dts",
+      "size": 4768,
+      "sha256": "1ffc4bf3041943e04fc814f6bbb725cb549726874a16beec449f0387942e783a",
+      "required_markers": [
+        "#include \"ZS673KS-PR1-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-MP3-overlay.dts",
+      "size": 4767,
+      "sha256": "a08f3a0168b6fb831ca58a4fa92638570653beed3388d05af76de2aa49abf02e",
+      "required_markers": [
+        "#include \"ZS673KS-MP-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-MP4-overlay.dts",
+      "size": 4768,
+      "sha256": "09eaa3629b9d14d4d11a19dc14531ee45b13b37556919977884e504257df7469",
+      "required_markers": [
+        "#include \"ZS673KS-MP3-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/ZS673KS-MP5-overlay.dts",
+      "size": 4768,
+      "sha256": "28a50082bb91ad7eee96235922dd801a593ca58f5927e37c99e370a682bb777c",
+      "required_markers": [
+        "#include \"ZS673KS-MP4-overlay.dts\""
+      ]
+    },
+    {
+      "path": "arch/arm64/boot/dts/vendor/qcom/lahaina-qupv3.dtsi",
+      "size": 33640,
+      "sha256": "2f63d0969bd7ced6f23c975057e708bfe91df3b80cab41cd148202af01faf063",
+      "required_markers": [
+        "qupv3_se0_i2c: i2c@980000 {",
+        "reg = <0x980000 0x4000>;",
+        "interrupts = <GIC_SPI 601 IRQ_TYPE_LEVEL_HIGH>;"
+      ]
+    },
+    {
+      "path": "drivers/sensors/ASH/ASH_Hardware/ALSPSsensor_Hardware/vcnl36866/vcnl36866.h",
+      "size": 8248,
+      "sha256": "177cc6e641cf2488cc196a262501bfebf772985a38f50e739a97dd4da20e59a9",
+      "required_markers": [
+        "#define VCNL36866_SLAVE_ADDR 0x60",
+        "#define VCNL36866_ID 0x62",
+        "#define ALS_DATA 0xF1",
+        "#define PS_DATA 0xF4",
+        "#define ID_REG 0xF6"
+      ]
+    },
+    {
+      "path": "drivers/sensors/ASH/ASH_Hardware/ALSPSsensor_Hardware/vcnl36866/vcnl36866.c",
+      "size": 47983,
+      "sha256": "851b6c602c91e7302f4a9d8a675c9e3f7f42e48994ed993ddbe9e238611e24cc",
+      "required_markers": [
+        "i2c_read_reg_u16(g_i2c_client, ID_REG, data_buf);",
+        "data_buf[0] != VCNL36866_ID",
+        "i2c_read_reg_u16(g_i2c_client, ALS_DATA, adc_buf);",
+        "i2c_read_reg_u16(g_i2c_client, PS_DATA, adc_buf);",
+        ".vendor = \"Capella\"",
+        ".module_number = \"vcnl36866\""
+      ]
+    },
+    {
+      "path": "drivers/sensors/ASH/ASH_Hardware/ASH_Hardware.c",
+      "size": 3739,
+      "sha256": "214bc9ff6916fce4b5768a9122d2dd621e2f10ebf383b6def108c9890698395c",
+      "required_markers": [
+        "int i2c_read_reg_u16(struct i2c_client* client, u8 reg, uint8_t* data)",
+        ".flags = I2C_M_RD",
+        ".len = 2",
+        ".buf = data",
+        "memcpy(buf + 1, &data[0], sizeof(data[0]));",
+        "memcpy(buf + 2, &data[1], sizeof(data[1]));"
+      ]
+    },
+    {
+      "path": "drivers/sensors/ASH/ASH_Hardware/ALSPSsensor_Hardware/ALSPSsensor_Hardware.c",
+      "size": 7635,
+      "sha256": "3c82b6f54ccb357e38f847e60f0e5fb8e80a87fdc90fd18be151717f2774db34",
+      "required_markers": [
+        "{ .compatible = \"qcom,vcnl36866\",}",
+        "{\"vcnl36866\", 0}"
+      ]
+    },
+    {
+      "path": "drivers/sensors/ASH/ASH_GPIO/ALSPSsensor_GPIO.c",
+      "size": 4661,
+      "sha256": "43d062fa4e6c949b61268e7d3ab9e19ce5443304edcded44872256cec4f6b26f",
+      "required_markers": [
+        "#define ALSPS_QCOM_NAME \"qcom,alsps-gpio\"",
+        "IRQF_TRIGGER_LOW | IRQF_ONESHOT",
+        "of_get_named_gpio(client->dev.of_node, ALSPS_QCOM_NAME, 0)"
+      ]
+    }
+  ],
+  "upstream_gap_sources": [
+    {
+      "path": "drivers/iio/light/Kconfig",
+      "size": 22385,
+      "sha256": "c630fa3d49b4f672b77fffdb4e4748217dadba4f4eb7973e28aa12cbe8143d05",
+      "required_gap_markers": [
+        "config VCNL4000",
+        "VCNL4000/4010/4020/4200 combined ALS and proximity sensor"
+      ]
+    },
+    {
+      "path": "drivers/iio/light/Makefile",
+      "size": 2766,
+      "sha256": "07d6ad873d4cc2dc98989c3d3fa2fdedc8e7c290db6c087d58932e51bfaaa537",
+      "required_gap_markers": [
+        "obj-$(CONFIG_VCNL4000) += vcnl4000.o"
+      ]
+    },
+    {
+      "path": "drivers/iio/light/vcnl4000.c",
+      "size": 54554,
+      "sha256": "eb29103ff348a8cdd1babc8d4132a0af8966f231c5768eb2a901889a22d46e98",
+      "required_gap_markers": [
+        ".compatible = \"vishay,vcnl4040\"",
+        ".compatible = \"vishay,vcnl4200\""
+      ]
+    },
+    {
+      "path": "Documentation/devicetree/bindings/iio/light/vishay,vcnl4000.yaml",
+      "size": 1606,
+      "sha256": "23cdfa6d5ae74aee2b9621df1d66c2f0a684d5560b5db83403d7f1401901d2b9",
+      "required_gap_markers": [
+        "- vishay,vcnl4040",
+        "- vishay,vcnl4200"
+      ]
+    }
+  ],
+  "candidate_sources": [
+    {
+      "path": "drivers/iio/light/Kconfig",
+      "required_markers": [
+        "config VCNL36866",
+        "depends on I2C",
+        "select REGMAP_I2C"
+      ]
+    },
+    {
+      "path": "drivers/iio/light/Makefile",
+      "required_markers": [
+        "obj-$(CONFIG_VCNL36866) += vcnl36866.o"
+      ]
+    },
+    {
+      "path": "drivers/iio/light/vcnl36866.c",
+      "required_markers": [
+        "#define VCNL36866_REG_ALS_DATA 0xf1",
+        "#define VCNL36866_REG_PS_DATA 0xf4",
+        "#define VCNL36866_REG_ID 0xf6",
+        "#define VCNL36866_CHIP_ID 0x62",
+        ".val_format_endian = REGMAP_ENDIAN_LITTLE",
+        ".type = IIO_LIGHT",
+        ".type = IIO_PROXIMITY",
+        ".info_mask_separate = BIT(IIO_CHAN_INFO_RAW)",
+        "pm_runtime_resume_and_get(dev)",
+        "pm_runtime_put_autosuspend(dev)",
+        "pm_runtime_set_autosuspend_delay(dev",
+        "pm_runtime_use_autosuspend(dev)",
+        "DEFINE_RUNTIME_DEV_PM_OPS",
+        "devm_regulator_get(dev, \"vdd\")",
+        "regulator_enable(",
+        "regulator_disable(",
+        "regmap_read(",
+        "regmap_update_bits(",
+        "devm_iio_device_register(dev, indio_dev)",
+        ".compatible = \"vishay,vcnl36866\"",
+        "MODULE_DEVICE_TABLE(of, vcnl36866_of_match)"
+      ]
+    },
+    {
+      "path": "Documentation/devicetree/bindings/iio/light/vishay,vcnl36866.yaml",
+      "required_markers": [
+        "$id: http://devicetree.org/schemas/iio/light/vishay,vcnl36866.yaml#",
+        "const: vishay,vcnl36866",
+        "vdd-supply:",
+        "additionalProperties: false"
+      ]
+    },
+    {
+      "path": "dts/qcom/sm8350-asus-rog-phone5-vcnl36866.dtso",
+      "required_markers": [
+        "/plugin/;",
+        "target-path = \"/soc@0/rsc@18200000/regulators-1\";",
+        "regulator-min-microvolt = <3300000>;",
+        "regulator-max-microvolt = <3300000>;",
+        "target-path = \"/soc@0/geniqup@9c0000/i2c@980000\";",
+        "sensor@60",
+        "compatible = \"vishay,vcnl36866\";",
+        "reg = <0x60>;",
+        "vdd-supply = <&vreg_l7c_3p3>;",
+        "status = \"okay\";"
+      ]
+    }
+  ],
+  "candidate_forbidden_markers": [
+    ".write_raw",
+    "DEVICE_ATTR",
+    "debugfs",
+    "miscdevice",
+    "input_register_device",
+    "IIO_EV_",
+    "interrupts =",
+    "qcom,vcnl36866"
+  ],
+  "runtime": {
+    "format": "rog5-vcnl36866-readonly-runtime-v1",
+    "status": "observed-not-hardware-accepted",
+    "data_surface_modes": {
+      "in_illuminance_raw": "0444",
+      "in_proximity_raw": "0444"
+    },
+    "phone_storage_access": "none",
+    "authority": "none"
+  }
+}

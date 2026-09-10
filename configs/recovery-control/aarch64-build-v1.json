@@ -1,0 +1,26 @@
+{
+  "format": "rog5-recovery-control-build-v1",
+  "source": {
+    "path": "tools/recovery_control/rog5-recovery-control.c",
+    "size": 125530,
+    "sha256": "def377547e9b38bfc60315c6acfc38e6783b6ec5f682cff98ec588a97e662c4a",
+    "mode": "0644"
+  },
+  "builder": {
+    "script_path": "scripts/device/build-recovery-control.sh",
+    "script_size": 2998,
+    "script_sha256": "818384e2b974b9e6f517bf71f9cc1877cd22158de70e8af8deb4dba888e2e745",
+    "script_mode": "0755",
+    "image": "localhost/rog5-persistent-root-verifier:alpine-3.24-deck-v1",
+    "image_id": "a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e",
+    "image_digest": "sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa",
+    "architecture": "arm64",
+    "compiler_version": "15.2.0",
+    "source_date_epoch": 1681862400
+  },
+  "output": {
+    "size": 132896,
+    "sha256": "9d4cc5a001b16c367a98ce5104bca28dfe29212ce47df6a08e0f5b11532a1093",
+    "mode": "0755"
+  }
+}

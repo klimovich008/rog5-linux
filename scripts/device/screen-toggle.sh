@@ -6,6 +6,7 @@ state_file=${STATE_FILE:-/run/rog5-screen-state}
 brightness_file=${BRIGHTNESS_FILE:-/run/rog5-screen-brightness}
 backlight_dir=${BACKLIGHT_DIR:-}
 display_profile=${DISPLAY_PROFILE:-/usr/local/bin/rog5-display-profile.sh}
+status_screen=${STATUS_SCREEN:-/usr/local/libexec/rog5-status-screen}
 
 case $action in
     off|on|toggle) ;;
@@ -39,8 +40,10 @@ mkdir -p "$(dirname "$state_file")" "$(dirname "$brightness_file")"
 
 case $action in
     off)
-        [ "$current" -eq 0 ] || printf '%s\n' "$current" > "$brightness_file"
-        printf '0\n' > "$backlight"
+        if [ "$current" -ne 0 ]; then
+            printf '%s\n' "$current" > "$brightness_file"
+            printf '0\n' > "$backlight"
+        fi
         [ ! -x "$display_profile" ] ||
             "$display_profile" dpms-off >/dev/null 2>&1 || true
         printf 'off\n' > "$state_file"
@@ -56,6 +59,8 @@ case $action in
         [ "$brightness" -le "$maximum" ] || brightness=$maximum
         printf '%s\n' "$brightness" > "$backlight"
         printf 'on\n' > "$state_file"
+        [ ! -x "$status_screen" ] ||
+            "$status_screen" render >/dev/null 2>&1 || true
         echo 'Screen on'
         ;;
 esac

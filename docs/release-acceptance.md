@@ -1,0 +1,718 @@
+# Headless server release acceptance
+
+The existing goal ends when **one coherent release passes every mandatory row**
+in [the executable contract](../configs/release-acceptance.json). Display,
+buttons, GPU, audio and other optional features are not completion criteria.
+This is a qualification contract, not new boot or storage authority.
+
+## Commands and evidence
+
+Use `scripts/host/rog5-dev accept quick|offline|device-smoke|release` with
+`--output /absolute/new/private-directory`; add `--list` to inspect without
+executing. Quick checks run first in offline/release; broadening cannot omit
+them. Device smoke never silently initiates a boot. Physical checks are blocked
+until connected to the existing admitted, single-coordinator execution path.
+
+Each run writes `results.json`, per-test logs and **one `matrix.md`**:
+required test → PASS/FAIL/BLOCKED/NOT RUN → evidence → next action.
+Nonzero exit means failure or blocked selected checks. A quick PASS is **not**
+a qualified release. Missing prerequisites, unimplemented runners, mandatory
+skips and transport loss never count as success. There is no historical-results
+import or incompatible-release merge. Live rescue-cycle replay below revalidates
+raw evidence and authenticates the same live boot. Explicit completed-rescue
+replay preserves the original boot/source and verifies all archived raw evidence.
+Source changes during execution invalidate the run.
+
+S04 preparation uses `rog5-dev durability-phase --help`: one explicit `probe`,
+`prepare`, `verify` or `cleanup` operation, never a reboot or automatic retry.
+The private `rog5-s04-file-plan-v1` binds the canonical candidate, artifact
+hashes, pinned S01 inputs, pinned read-only scope inventory and a random nonce.
+Only `/persist/rog5-release-acceptance/s04-<nonce-prefix>/scratch.bin` is used,
+bounded to 64 MiB. Verify requires a different authenticated boot; cleanup
+requires the exact successful verification and unchanged source/input hashes.
+The read-only scope may explicitly identify an existing root-owned 0700 scratch
+namespace by inode. It is opened descriptor-relative/no-follow on the same
+filesystem and revalidated during the operation. Only a fresh exclusive
+`s04-<nonce-prefix>` child may be created; cleanup removes only that verified
+child and preserves the existing namespace and all other evidence. Missing,
+changed or unpinned existing namespaces still refuse before file creation.
+The soak worker uses the same namespace handling. No failed child is reused.
+The coordinator must qualify the storage-test code, establish capture, perform
+the separately supervised ordinary reboot and enforce S04's overall deadline.
+A phase PASS does **not** qualify S04. Supply the completed sequence with
+`--runtime-inputs S04=ABSOLUTE_PATH,SHA256` to `rog5-dev accept release`.
+The `rog5-storage-durability-evidence-v1` input binds all three phase reports,
+raw target/root evidence, plan/scope, entry and complete before/after S01 inputs.
+The existing runtime runner replays both S01 captures, checks the exact observed
+file-operation source, independently derives the 64 MiB payload hash and verifies
+phase order, the 660-second file-cycle bound and exact cleanup. Independent
+capture must still finish its full window; file success cannot hide capture loss.
+Replay performs no phone contact or storage action. Exact-target fixtures may
+use an owned `/run` tmpfs directory, never the service-state image.
+
+S05 uses `--runtime-inputs S05=ABSOLUTE_PATH,SHA256` with one completed
+`rog5-repeated-boot-evidence-v1` sequence. The existing runtime replay validates
+three consecutive ordinary installed boots against a full same-release S01
+baseline, pinned preflights/commands, raw root/readiness/healthy records and
+complete capture cleanup. Each boot must reach healthy startup within 300 s;
+the complete sequence stays within 1080 s. Full failure observation is armed
+before each request. An owned capture may close early only after a fresh,
+verified healthy commit; failure/ambiguity retains full observation and forbids
+another action. Smoke evidence is not full watchdog/R01 or release qualification.
+Replay preserves the actual observed source revision. The receiver and smoke
+observer may differ from today's implementation: their original clean Git
+revision authenticates the producer, and the current predicates recheck every
+command, event, healthy-close decision and completed component. Historical
+observer code is read as data and never executed. The root, readiness, storage
+geometry and target shutdown dependencies still require identical bytes.
+Stored S01 proof hashes bind their original evaluator revision; a current
+replay must independently agree with that proof's original source, artifact,
+identity and raw-evidence hashes. This neither reboots nor retries a claim.
+
+S07's predeclared method uses `defaults.server_soak`. After at most 60 s of
+preflight and 60 s of warm-up, measure 3600 s with concurrent authenticated
+USB/Wi-Fi pipe traffic and scratch I/O. Alternate both directions with 64 MiB
+nonrepeating payloads; each transfer has a 90 s ceiling. The storage worker
+reuses the tested S04 file/guard primitives: one fresh 64 MiB file in the owned
+`/persist/rog5-release-acceptance` namespace, write/fsync, repeated cache-dropped
+verified reads for 30 s, then exact cleanup. Never exceed 128 windows / 8 GiB
+written or retry a failed window; failed/partial files remain for inspection.
+Buffered loop1 has a second page cache: also advise its exact 4 GiB service-state
+backing file with DONTNEED before each readback, opened read-only through fixed
+no-follow directory descriptors with owner/mode/device/geometry checks. This
+does not reconfigure loop1 or drop global caches. Advice is not guaranteed;
+backing-device read/write counters must advance after the first completed window
+and throughout the run, not only at the final checkpoint. The failed cached-read
+run remains FAIL, and the original 3600/3900-second criteria remain unchanged.
+This uses the existing `s04-<nonce>` library namespace with fresh nonces, not
+earlier S04 evidence. No service, charging-control, mount or boot operation runs.
+
+Every 10 s, retain current-boot power/thermal/storage state, kernel-log sequence,
+ext4 error counters and backing-device I/O statistics. New failure records,
+missing/reset counters, log gaps, unsafe power, lost identity/transport or
+missed/stale heartbeats fail the test. The retained old boot warning is baseline
+data, never a blanket exception for a new warning. Both loop1 and sda23 must
+show corresponding read/write sectors for the actual file-window count; cached
+success messages alone are insufficient. Stop scheduling after the measured
+hour, finish owned workers, prove cleanup/services and inspect final logs within
+the unchanged 3900 s total deadline. These components do not independently
+qualify S07; the mandatory row remains NOT RUN until completed live evidence
+passes its acceptance consumer. A short simulated interval is never an hour.
+
+`--release` accepts private `rog5-release-inputs-v1` JSON with `candidate_id`,
+`source_revision` and `artifacts`: `kernel`, `dtb`, `initramfs`, `rootfs`,
+`boot_bundle`. Each artifact has an absolute `path`, `size`, and `sha256`.
+All bytes are hashed; metadata is not itself an admission or compatibility
+proof. Exact source/dirty-tree digest, contract/runner/test versions, artifact
+identities, times, durations and log hashes are retained. Qualification also
+requires clean frozen source and every mandatory row passing for these inputs.
+Private paths, credentials, dumps and raw logs remain outside Git.
+
+A01 now dispatches `rog5-dev check-composition`'s underlying runner with all five
+artifact roles. It authenticates the retained wrapper and embedded signed target,
+then uses the exact kernel, sealed modules and Arch image in network-isolated
+QEMU. The virtual disk is read-only and mounted `ro,noload`; runtime writes use
+tmpfs OverlayFS. No host loop mount or physical-device passthrough is required
+by this combined path. Firmware inventory is bound to the existing builder's
+digest and staged with sealed BusyBox; generated units use the signed timeout.
+
+For a deployed persistent overlay, the receipt additionally binds `root_upper`
+as `{path, size, sha256}` for the complete inactive ext4 upper snapshot. A01 and
+C02 receive `--root-upper-image`; their persistent-overlay qualification refuses
+a missing upper. Both retained disks stay read-only, identified by distinct
+filesystem UUIDs and sizes, with journal replay disabled. The upper is a middle
+OverlayFS lower layer, preserving whiteouts and opaque directories; only the
+guest's new tmpfs upper is writable. Full before/after hashes bind both inputs.
+C02 masks retained `/etc/ssh` with guest tmpfs before generating disposable
+loopback-only keys. It neither uses nor overwrites retained host keys. The base
+five artifact roles for other acceptance rows are unchanged. Evidence from a
+base-only run cannot qualify the deployed overlay or a newer source snapshot.
+
+The real shell's stage record must pass the current host parser and its sender
+endpoint must match the receiver. These are offline composition checks, not
+physical firmware/USB or watchdog-expiry qualification. Missing checks return
+BLOCKED, not a partial PASS; external selector bundles and server radio extras
+still require their own integrated proof.
+The server firmware check now verifies the complete sealed radio hash manifest
+and exact six-file WCN6855/regulatory inventory, with metadata/path/content
+refusals. The same VM checks the actual files with sealed BusyBox; missing or
+duplicate firmware result markers cannot pass. This does not establish radio
+activation or firmware behavior on physical hardware. Untested radio modules
+still leave the overall A01 result BLOCKED independently of firmware PASS.
+The server's board-only helpers use split offline evidence: the real S12
+provider's GPL export/namespace/function type must match the exact activator's
+dependency/relocation/declaration, and both real PMIC/S12 helpers must reject
+QEMU with ENODEV through the sealed one-call loader. For the activator only,
+`--activation-fixture-build PRIVATE_BUILD_DIRECTORY` supplies an existing
+QEMU-only link fixture. Its source, module and retained kit hashes are checked;
+the kit's actual vmlinux must reproduce the accepted Image. The unchanged
+consumer must pass kernel BTF checking and refuse the board, with zero validator
+calls, one post-BTF COMING event, no LIVE event, and complete fixture removal.
+This proves neither dynamic binding to an initialized real provider nor rail
+hold lifetime, changeset application or physical radio probing. Those remain
+mandatory live server tests. The fixture never enters a phone target/recovery
+archive and does not grant execution authority. Missing fixture/tools block A01;
+wrong hashes, counters, types or exports fail. `rog5-dev accept` forwards the
+same optional fixture argument only to A01. Existing builds are reused; wrapper
+or production-module rebuilds are unnecessary for this test harness change.
+For a canonical selector-trial record, the checker now reads both named bundles
+only from `/boot/rog5-linux/bundles/` inside the paired retained root. It first
+checks the exact selector hash, then bounded no-follow metadata/inventory reads
+and both signatures with the verifier authenticated in the recovery archive.
+It accepts no separate host bundle directory. Changed roots, mixed embedded
+payloads, extra entries or an invalid fallback fail; unsupported external
+families remain BLOCKED. Tests and a real retained-bundle component pass do not
+replace the still-required current-root/server-radio integrated result.
+The `required_checks` in the manifest is the single complete-proof checklist.
+
+Supporting A01 component check: `rog5-dev check-rescue-root --inputs RECEIPT
+--root PRIVATE_RO_LOOP_MOUNT --output PRIVATE_NEW_DIRECTORY`. It runs the exact
+archive's preparation functions, Arch systemd/sshd and generated-unit validation
+with a disposable tmpfs upper. The caller provides/cleans a dedicated host-only
+`ro,noload,nodev,nosuid` ext4 loop mount. This checker permits a four-artifact
+receipt before wrapper packaging; full release still requires all five roles.
+It does **not** qualify the final wrapper, module loading, hardware or A01 alone.
+The sealed shutdown helper must match the reviewed source and file metadata.
+After runtime preparation, the checker parses it from the actual Arch root
+through `/usr/bin/chroot /run/initramfs /bin/sh -n /shutdown`. If Arch lacks
+musl, it also reproduces the failed direct absolute-path BusyBox invocation;
+an executable path alone does not relocate the ELF interpreter. Neither check
+executes shutdown or reboots any system.
+It also checks all sealed power/UFS module names, regular-file metadata,
+AArch64 relocatable headers, consistent vermagic and dependency order within
+a ten-second metadata budget. This is not BTF/symbol-resolution or hardware
+load proof; those remain separate from metadata agreement.
+
+Supporting deployed-userspace check: `rog5-dev check-deployed-server --profile
+CLAIM_PROFILE --manifest EXACT_MANIFEST --boot-id BOOT_ID --identity-file KEY
+--known-hosts PINNED_HOSTS --output PRIVATE_NEW_DIRECTORY`. Use an already
+admitted persistent selector trial and its existing SSH credential. The host
+checks the canonical consumed record and manifest, exact NCM topology/driver
+and route before credential use, then pinned SSH verifies the requested boot,
+bundle and kernel. The target uses isolated Python without bytecode writes to
+read six repository-owned runtime/helper/healthd/unit/exitrd paths. Descriptor-
+relative no-follow access, file metadata, content hashes, bounded reads and
+before/after identity checks reject stale or changing deployed files. Sizes and
+hashes come from one source inventory, not manually copied constants.
+It requests no phone mutation, reboot or service restart; ordinary read/atime
+semantics apply. A failed read or missing file fails this required composition
+component. The 15-second SSH deadline does not extend any boot watchdog.
+`result.json` binds observed/expected bytes, source, canonical manifest and boot.
+This is not whole A01, installed-recovery, charging or standalone qualification.
+A02 includes its stale-overlay and strict metadata regressions in both Python
+modes; the active tier retains them when broadening to full CI.
+
+For failed server startup, `check-deployed-server --startup-diagnostics` uses
+the same consumed selector record, manifest, exact boot/kernel/bundle and pinned
+SSH identity, but explicitly connects over the existing diagnostic address
+`169.254.77.2`. Both USB topology and its source route are checked before keys.
+It collects bounded core/radio unit status, the fixed radio-failure record,
+activation markers, addresses, power observations and kernel messages within
+20 seconds. Optional observations report present/absent/error. No service,
+radio, mount, reboot or acceptance action is requested. A collection PASS is
+not readiness, charging, safety or release qualification. Wrong identity,
+transport loss and malformed framing fail. Normal readiness still uses
+`10.77.0.2`; there is no implicit alternate-address acceptance or boot retry.
+
+Add `--readiness-only` for an already admitted target's bounded SSH/readiness
+component instead of the six-file inventory. This uses shell/coreutils, not
+target Python, with the same canonical consumed-record, manifest, pinned SSH
+and host topology/route gates. It checks the exact expected boot before/after,
+kernel/bundle, stable root-owned 0444 single-link regular marker on tmpfs and
+active persistent SSH identity service. Current server families require a
+matching `attested_boot_id`; only the canonical fallback-only family may use
+the observed older marker without that field. Such results explicitly say
+`legacy fallback SSH/readiness component`, `marker_boot_bound=false` and
+`release_qualified=false`. They do not qualify H02, R01, the watchdog, power,
+or installed recovery, and never overwrite an earlier failed smoke result.
+Future supervisors should call this observer instead of copying a marker grep;
+do not change a running supervisor or reuse its execution claim to repair an
+observer. The 15-second read-only call does not extend boot/rollback deadlines.
+
+`rog5-dev check-rescue-startup --cycle PRIVATE_CYCLE --execution-record
+EXACT_RECORD --profile CLAIM_PROFILE --manifest EXACT_MANIFEST --output
+PRIVATE_NEW_DIRECTORY` replays the original supervised startup without phone
+contact. It binds the canonical consumed record, manifest, original receiver
+receipt, pre-execution host preparation and original 300-second SSH timeline.
+The captured readiness fields are revalidated rather than trusting their PASS
+label. Changed producer versions, mismatched boot/source, duplicate JSON,
+symlinked/oversized/mutating files, late setup and ambiguous execution fail.
+Evidence reuse is explicit and hashes are recorded. This does not restart a
+dead receiver or execute a target. Default replay reports `h02_qualified=false`.
+Add `--qualify-current --archive EXACT_ARCHIVE --boot-image EXACT_BOOT
+--identity-file KEY --known-hosts PINNED_HOSTS` to qualify H02 on the same
+still-running boot. The canonical record binds artifact hashes; archive checks
+pair the actual watchdog with startup/identity producers and exclude the radio
+payload. Pinned SSH checks eight deployed files, cmdline timeout, absent radio,
+Good health/USB online, 0–39.9°C and 8.4–9.0 V pack voltage. The original startup
+must meet 300 s; later watchdog evidence must show one arm and one current-boot
+ACK after the signed timeout (up to 5 s scheduling margin). The checker never
+waits out or extends that timeout and cannot qualify a not-yet-observed ACK.
+Power safety at Full is not H03 charging regulation. The exact sealed BusyBox
+script is exercised with disposable hardware/mount fixtures; live collection
+then checks actual paths. Normal/optimized tests run in A02 and active/full CI.
+
+For integrated H01/H02 use `rog5-dev accept device-smoke --release RECEIPT
+--rescue-inputs PRIVATE_JSON --output PRIVATE_NEW_DIRECTORY`. The private JSON
+contains only `profile`, `cycle`, `execution_record`, `manifest`, `identity_file`
+and `known_hosts`; all paths are absolute. It names arguments, never a command.
+Do not combine it with live `--capture`. H01 revalidates the original preboot
+receipt; H02 additionally requires fresh exact same-boot evidence and complete
+qualification output, not just exit zero. Both bind the release candidate and
+boot image. Artifact source/previous physical source remains in canonical and
+cycle records; the release receipt's `source_revision` identifies the current
+qualification checkpoint, not a claim that reused kernels were rebuilt there.
+The resulting matrix explicitly labels reuse and leaves all missing mandatory
+rows BLOCKED/NOT RUN. This is not an automatic retry or an imported green run.
+
+A server receipt may explicitly include `rescue_companion` with its own
+`format=rog5-release-inputs-v1`, `candidate_id`, `source_revision` and all five
+`artifacts`. The qualification revision must match the primary; the candidate
+must differ. The companion shares the primary's exact kernel and base-root
+paths, sizes and hashes, already verified once. Its DTB, initramfs and signed
+boot bundle are separately hashed. Nested companions and a rescue persistent
+upper are rejected. The server keeps its own complete upper binding.
+
+Supply `--rescue-runtime-inputs PRIVATE_JSON` and
+`--rescue-runtime-inputs-sha256 SHA256` to revalidate a completed rescue.
+These arguments select offline H01/H02/H03 replay; they cannot be combined
+with live `--capture` or `--rescue-inputs`. With an explicit companion, those
+three rows record `release_role=rescue_companion`. Other rows keep the primary
+profile. A companion without completed replay inputs leaves its rows BLOCKED.
+
+The `rog5-rescue-runtime-evidence-v1` input pins original capture, execution,
+readiness, H02/H03 reports, all 61 raw samples and paired A01/C02 proofs. The
+reader verifies original producer bytes from Git and unchanged charging/runtime
+observation implementations, then applies current predicates to the raw data.
+The original capture must cover the full recovery/watchdog/cleanup budget plus
+preflight, end successfully and restore all four owned host items. Raw sample
+values, 10 s cadence, freshness, 600 s span, firmware/runtime hashes and original
+watchdog acknowledgement must agree. Missing, altered or partial evidence fails.
+The default live startup checker still requires current producer versions.
+
+The result records current checker source and original observation source
+separately, with the historical boot identity. It neither authenticates a new
+live boot nor grants another execution claim. Paired A01/C02 must bind the same
+kernel and retained base root as the server; radio-free H03 remains the defined
+firmware-Full method. Installed fallback identity and the separate R01 physical
+recovery requirement remain mandatory.
+
+C01 now runs nine QEMU cases, including P2 success without persistent identity
+and stale identity. Its 500 s offline allowance covers nine 50 s subprocess
+bounds plus 50 s setup/collection margin; the executable harness test verifies
+that lattice. Phone deadlines are unchanged. A latched identity record proves
+local initial setup, not authenticated host-side SSH; C02 separately covers
+actual service restart behavior.
+
+Supporting C02 check: `rog5-dev check-ssh-rollback --target-archive EXACT_ARCHIVE
+--output PRIVATE_NEW_DIRECTORY`. Requires a user systemd manager, sshd,
+ssh-keygen/keyscan, bwrap and qemu-aarch64-static. Within 120 s it runs real
+loopback-only SSH restarts and the production timer/dependency relationship;
+rollback uses sealed BusyBox with fixture identity/acceptance and a reboot
+recorder. A healthy ACK must prevent reboot after the original deadline; a
+stale ACK must not. Only uniquely named runtime user units and private fixtures
+are created, then stopped/removed; no login, phone or host reboot occurs.
+The result records source, archive hash, commands, PID changes and timings.
+This host-systemd component is not exact target/deployed-unit qualification.
+The existing `scripts/host/test-qemu-watchdog-handoff.py` now also accepts
+`--root-image RETAINED_EXT4` with its `--kernel`, `--target-archive` and `--output`
+arguments. That mode runs two network-isolated guests using the actual Arch
+systemd/sshd, sealed normal SSH/key-generation units, read-only ext4 and a RAM
+overlay. Guest-only key/config/ACK fixtures prove authenticated initial SSH,
+current-boot watchdog exit, a different SSH PID and authenticated access after
+restart; stale identity must reset instead. The 20-second fixture watchdog and
+40-second per-VM ceiling do not alter phone deadlines. Actual account records
+are retained, and `/run` is 0755 for strict key-path checks. The retained image
+is hashed before/after; no root copy, phone key, host mount or service is used.
+Add `--wifi-rollback` for the server archive containing the optional Wi-Fi
+runtime, timer, rollback service and SSH drop-in. All four are copied from the
+archive, not repository source. A VM-only drop-in shortens `OnBootSec` to 15 s;
+two fresh VMs test healthy and stale acceptance after core watchdog ACK.
+Healthy SSH restart must invoke the elapsed timer's service successfully and
+retain authenticated access; stale acceptance must instead reboot, not panic
+or reach the core watchdog's bootloader-reset path. No radio is activated.
+The healthy case waits for service completion, not an extra fixed sleep.
+The supporting component passed in 118.564 s including both retained-root hashes.
+The C02 dispatcher now invokes `--c02` instead of accepting supporting-component
+results. It automatically selects Wi-Fi cases when that archive carries a
+Wi-Fi payload (partial payloads fail); otherwise it selects core ACK/stale
+identity cases. It enforces the unchanged 120 s contract and requires an exact
+complete result bound to source, runner, kernel, archive and unchanged root.
+Missing QEMU prerequisites are BLOCKED. Missing/partial/mismatched proof fails,
+even if a command exits zero. No other release's component pass is imported.
+Only C02 overlaps its two explicitly isolated guests (two workers, each bounded
+to two CPUs/1 GiB, with unique archives/logs and RAM overlays). Shared inputs
+remain read-only; both full root hashes still surround guest execution. Other
+watchdog cases stay sequential. Per-guest 40/50 s and row 120 s deadlines are
+unchanged; no timeout retry or partial result acceptance is added.
+The integrated retained-server row passed in **118.811 s**; whole-release
+qualification remains false. Timing headroom is narrow, not grounds to relax
+the deadline. Artifact bytes are verified as artifacts, not additionally
+rehashed as repository test source inside the timed row.
+
+F01 uses `rog5-dev check-overlay-recovery --kernel EXACT_IMAGE --target-archive
+EXACT_ARCHIVE --root-image RETAINED_EXT4 --output PRIVATE_NEW_DIRECTORY`.
+It runs three networkless QEMU guests with the supplied release kernel, sealed
+BusyBox and archive functions. A real OverlayFS deletion followed by a VM-only
+reset leaves a journal-pending disposable 64 MiB ext4 disk. Recovery must replay
+the journal, admit only the kernel's cached whiteout, reject unrelated entries,
+preserve independent interrupted-update markers and pass read-only fsck.
+A separate corrupted copy must fail mounting. The protected virtual disk and
+all input hashes remain unchanged. The 240 s row allowance covers three 45 s
+guest bounds plus hashing/setup/cleanup. No physical crash is injected; this
+does not prove UFS hardware, whole-systemd startup or R01. No prerequisite or
+older component result is silently treated as a final-release PASS.
+
+## Required outcomes
+
+| IDs | Outcome | Current coverage / next step |
+|---|---|---|
+| A01–A02 | Exact final archive/root composition; strict normal/optimized Python | Wire exact composition; test actual composer hashes/metadata in both modes |
+| B01 | Every canonical family reaches admission, including fallback-only | Existing registry/consumer regressions; no duplicated candidate IDs |
+| C01–C02 | Real BusyBox root handover, hangs/panic, current readiness; no late SSH rollback | Reuse QEMU handover, but consume assembled watchdog; add actual systemd restart transaction |
+| D01–D02 | Verified fallback, next-boot primary demotion, interrupted updates | Existing selector and state-helper behavior tests |
+| E01–E02 | Safe radio refusal and optional display absence preserve headless mode | E02 executes runtime/attestor with sealed BusyBox and fake hardware; E01 still pending, never lower the 8.4 V gate |
+| F01–F03 | Filesystem recovery, repeatable WPA/DHCP, concurrent health requests | Disposable-image and restart tests; slow-client regression |
+| G01–G02 | Coverage and revision selection; honest result accounting | Existing selector/Git DAG tests plus acceptance-runner regressions |
+| H01–H03 | Capture ready before boot, exact headless rescue/SSH, sustained safe charging | First live milestone; coherent rescue composition and supervised capture first |
+| S01–S07 | Local Arch, USB/Wi-Fi, service restarts, durable scratch, 3 boots, off-start, 60 min soak | Subsequent final-release qualification; no historical mixed-build PASS |
+| R01 | Real recovery after one controlled failed isolated boot | Separate physical experiment; never corrupt installed payloads or interrupt storage power |
+
+`rog5-dev check-standalone-root` is the bounded read-only S01 root component.
+It reuses canonical admission/manifest, exact USB, pinned SSH, six deployed-file
+and boot-bound readiness checks. It validates physical P24 geometry, local
+read-only/norecovery lower, persistent loop upper, write scope, core services
+and safe power; network mounts fail. It never reboots or grants execution and
+always reports `s01_qualified=false`: a current snapshot cannot prove which
+host services were absent during an earlier boot. Ordinary-boot timing,
+installed-artifact and completed-capture evidence remain required separately.
+Do not disable unrelated host services merely because they share a historical
+project port; identify their actual unit/configuration and endpoint first.
+Optional current/status/capacity fields record `present`, `absent` or `error`;
+their absence does not fail a root check. Health, voltage, temperature and
+external-input evidence remain required. This does not qualify H03 regulation.
+
+`rog5-dev check-standalone-boot` qualifies **one** completed ordinary local
+boot by offline replay, not by issuing another reboot. Supply a private pinned
+`rog5-standalone-boot-evidence-v1` input file with the fixed roles declared in
+the runner. Each file has an absolute path and SHA-256; reviewed coordinator
+sources are hashed data, never executed. The evidence must include prestarted
+capture, the exact installed artifact/manifest, original clean source, matching
+A01 five-role composition, current-boot authenticated readiness/local root,
+host boot-service absence, the full capture window and successful cleanup.
+The original SSH/root deadline remains 300 seconds; replay does not shorten
+the longer watchdog observation. Missing closure is BLOCKED, contradictory
+or altered evidence FAIL. No new claim is consumed.
+
+Use `rog5-dev accept release --test-id S01 --release RECEIPT
+--standalone-boot-inputs INPUTS --standalone-boot-inputs-sha256 SHA256
+--output PRIVATE_NEW_DIRECTORY` for the existing matrix. Original device-run
+source and current assessment source remain separate; no relabeling old tests.
+Artifact bytes and relevant producer dependencies must still match. Other
+mandatory outcomes remain NOT RUN, including repeated boots and recovery.
+
+`rog5-dev check-server-runtime --kind S02|S03` replays completed transfer or
+restart evidence. It uses the same pinned-file convention, adds matching
+five-role A01/S01 evidence, and never executes retained private coordinator
+source. S02 recomputes all four 256 MiB nonce-derived hashes and checks raw
+before/after service snapshots and exact link identities. S03 validates
+restart propagation, unchanged radio/core identities and four authenticated
+Wi-Fi confirmations. Only the captured immediate SSH connection refusal is
+accepted as a bounded read-only reconnect, never an action retry or host-key
+failure. Original 180-second transfer and 40-second restart bounds remain.
+
+The existing dispatcher takes `--runtime-inputs S02=ABSOLUTE_PATH,SHA256`
+and/or `--runtime-inputs S03=ABSOLUTE_PATH,SHA256`, with `--release` and
+selected `--test-id` values. Inputs use format
+`rog5-server-runtime-evidence-v1`; fixed evidence roles and bounded numbered
+stdout/stderr roles are checked by the runner. Missing inputs are BLOCKED,
+altered/incomplete evidence FAIL. Evaluator source is distinct from the
+original observed source; replay cannot qualify a different artifact set.
+
+`rog5-dev check-server-runtime --kind S06` replays a completed powered-off
+start. Its `rog5-powered-off-start-evidence-v1` envelope pins the roles in
+`powered-off-start-evidence.py`, including replayable S01 and S05 prerequisites,
+one boot component, the exact installed-file preflight and power-off command,
+operator statements, continuous USB samples and complete receiver cleanup.
+Private producer sources are hashed data and are never executed by replay.
+
+The supported physical conditions are side USB connected to the host throughout,
+no other cables, and one physical power-button press. The coordinator records a
+fresh nonce and same-host monotonic timestamps for direct operator statements:
+`READY NONCE`, `OFF NONCE`, then its `PRESS POWER ONCE NONCE` request and the
+operator's `STARTED NONCE` reply. The operator must actually confirm off; loss
+of USB or SSH alone cannot establish power state. Keep a confirmed off interval
+of at least ten seconds, covered by same-device USB-absent samples no more than
+two seconds apart. A return before the start request, an unknown USB state,
+missing operator input, changed cable conditions or a reboot command fails.
+This qualification explicitly includes operator attestation; it does not claim
+that USB observation measures electrical power state.
+
+The existing 420-second ceiling contains 30 seconds of preflight, at most 60
+seconds for shutdown/operator transition, 300 seconds from the start request
+to authenticated healthy startup, and 30 seconds for successful cleanup. The
+start request precedes the button press, so this clock is conservative. Kernel
+uptime must also fit within that window; delayed USB enumeration cannot hide
+an earlier boot. Arm the
+full failure receiver with `--powered-off-start` and `--source-boot-id`
+before power-off, and pass the same flags to `--check`. This mode reserves
+the contract-derived transition allowance and binds it in the receiver receipt;
+a failed startup retains that longer capture even after the success deadline.
+Component eligibility alone grants no power-off, start, receiver-stop or
+qualification authority. The live coordinator still needs current preflight,
+installed-byte and fallback guards, sole phone ownership and a ready operator.
+
+Use `--runtime-inputs S06=ABSOLUTE_PATH,SHA256` with the existing release matrix.
+Missing inputs are BLOCKED; contradictory evidence fails. S06 remains NOT RUN
+until physical evidence passes replay. S01/S05 authenticate older observer revisions explicitly and replay current
+behavior checks; target/storage/readiness dependencies remain byte-identical.
+Original observation sources never become current-source observations.
+
+Every row's environment, prerequisites, runner, deadline, outcome, mutation,
+cleanup and evidence contract is in the JSON. Empty command lists carry explicit
+implementation blockers; they are not placeholders that return success.
+Mandatory **E02** qualifies isolation, not display functionality.
+
+## Hardware bounds fixed before execution
+
+Initial conservative boot deadline: **300 s** to authenticated SSH. The retained
+[ordinary/off-start observations](../test-results/2026-09-03-unattended-reboot-v10.md)
+were 101.273/96.697 s, not a measured p95. Three-boot allowance is 1080 s
+(3×300 plus 180 supervision margin); powered-off start 420 s includes an
+operator/power-state allowance. These are qualification bounds, not altered
+kernel watchdog deadlines. A rescue with a longer verified staging budget must
+have its separate timing lattice documented before admission, not after failure.
+
+### F02 retained live restart evidence
+
+`rog5-dev accept offline --test-id F02 --release RECEIPT --output NEW_DIRECTORY`
+also requires `--wifi-restart-inputs INPUTS --wifi-restart-inputs-sha256 HASH`.
+The input file pins the reviewed original result, observer source, composition,
+signed manifest and each stdout/stderr file. It contains no credentials and
+grants no execution authority. Replay never contacts the phone or repeats a
+restart. Missing inputs are BLOCKED, incompatible artifacts or altered evidence
+are FAIL. Original source/boot identity is retained and reuse is explicit.
+All five release artifact identities must match; new recovery/root/kernel bytes
+cannot silently inherit the old result. The original live observation must
+prove both WPA/DHCP restart propagation, unchanged radio/core identities, lease
+and pinned Wi-Fi SSH recovery within its predeclared 40 s/120 s limits.
+`--test-id` selects only within the requested tier; all omitted mandatory rows
+remain NOT RUN and cannot produce final-release qualification.
+
+### S02 implementation boundary
+
+`scripts/host/network-transfer-stream.py` provides bounded, hash-checked local
+pipe streaming and send/receive endpoints without payload files or retries.
+Its subprocess regression suite is in the active tier. It explicitly returns
+`s02_qualified=false`: endpoint authentication, USB/Wi-Fi interface binding,
+same-release/boot checks and S01 prerequisites remain the live runner's work.
+Do not invoke it against the phone as a substitute for that runner. Python
+availability and these exact endpoint bytes must be verified before deployment.
+
+### H03: firmware-managed charging outcome
+
+Observe **600 s**, every **10 s** (61 samples including both endpoints), within
+the existing **660 s** deadline. Freeze the measurement branch and exact
+kernel/module/firmware identity before collecting; H02 must pass for that
+release/boot. A same-boot diagnostic series without H02 is component evidence,
+not H03 qualification. Wi-Fi stays inactive; no charging-control writes.
+
+For this SM8350 interface, writable charge-limit attributes are **not required**.
+The exact `qcom_battmgr.c` SM8350 descriptor has no setter; each supported
+property read requests firmware data. STATUS, CURRENT_NOW and CHARGE_COUNTER
+are direct firmware results; capacity divides firmware hundredths by 100.
+Source pin `f17befd4ef172cfb0ecbffd9e0af87122cfa66bc` preserves these semantics.
+[Earlier sub-full observations](../test-results/2026-08-21-power-usb-v26-subfull-net-positive.md)
+support positive = charging; bind unchanged protocol/firmware before reusing
+that interpretation, not the old release's PASS.
+
+Linux distinguishes Full status and relative charge count from programmable
+constant-charge voltage/current. `voltage_max` is **not** proof of a configured
+termination setpoint. See the [power-supply ABI](https://docs.kernel.org/power/power_supply_class.html).
+For the firmware-default full-state branch, equivalent evidence is firmware
+Full/100% corroborated by input supply, battery current and relative charge
+trend over the entire window. This qualifies observed full-state maintenance,
+not an adjustable SOC cap, internal CC/CV settings or all charger protections.
+
+Predeclared criteria for the first executable observation:
+
+- Every sample: exact same boot/release, fresh bounded property reads, Good
+  health, USB online/device-sink, valid positive input voltage/current and
+  reported input limit. Input current must not exceed that limit. Retain raw
+  values, units, read times and errors; no forward-filled missing samples.
+- Preserve stricter admission gates: for the current full-state rescue,
+  0–39.9°C and 8.4–9.0 V pack. Also refuse voltage above a valid reported
+  maximum; do not infer cell voltages or change the hardware limit.
+- **Firmware Full branch:** Full and 100% throughout. Battery current must
+  remain within ±25 mA, its time-weighted mean must be nonnegative, and the
+  final charge counter must not be below the initial one (zero drift tolerance).
+  The ±25 mA band is an operational discrimination bound from the retained
+  battery-series verifier, not a claim of calibrated sensor accuracy. The
+  separate counter/no-negative-mean checks prevent it excusing net discharge.
+  Counter increase also cannot exceed the current-band integral over the window
+  (25 mA × span / 3600 in µAh); implausible jumps are not regulation evidence.
+- **Sub-full branch:** only with an independently established effective policy
+  for that exact firmware, no user SOC cap, and applicable safe-voltage gates.
+  All samples below full report Charging; median current exceeds +25 mA, at
+  least 90% of samples exceed +25 mA, time-weighted current is positive and
+  charge counter increases. A transition to Full needs a separately declared
+  mixed-state protocol; do not fit one after seeing a failed run.
+- Record monotonic sampling times; every interval 8–12 s, total span at least
+  600 s. Missing prerequisites are BLOCKED before execution. Missing samples,
+  unsafe power, contradictory states, counter decrease, transport/identity
+  loss or exceeded deadlines during execution are FAIL, not optional fields.
+
+The [V8 rescue observation](../test-results/2026-09-05-headless-acceptance.md#v8-live-rescue-and-h03-full-maintenance-qualified)
+subsequently qualified the firmware-Full branch. A new release still needs its
+same-release timestamped current/charge-counter/input series, supervised
+evaluation and H02 prerequisite—not another charge-limit sysfs inventory.
+Reuse the existing pinned observer/acceptance path; the historical
+battery collector is candidate-specific and is not directly usable here.
+The small `scripts/host/h03-regulation.py` Full-branch evaluator is exercised
+by A02, including missing data, implausible counters and net discharge. It
+performs no device action and always reports `h03_qualified=false`: outcome
+math is not boot/firmware identity, H02 or supervised collection proof.
+The executable `scripts/host/check-charging-regulation.py` now supplies H03 via
+`rog5-dev accept device-smoke` with the existing release/rescue input
+bindings. It revalidates H02 before collection; binds the exact archive, running
+runtime and 29-file charging firmware; collects one read-only sample per interval;
+and rechecks runtime/identity after the window. No boot/admission/retry occurs.
+Each required field reports present/absent/error; raw failed replies are retained
+privately. Missing prerequisites are BLOCKED, whereas loss or unsafe data during
+observation is FAIL. Partial samples are counted accurately, never qualified.
+The dispatcher requires complete, hash-bound H03/H02 evidence for the same
+source and artifacts; exit zero alone is insufficient. The Full-only runner does
+not silently substitute a sub-full or mixed-state protocol.
+Focused replay is `python3 -B scripts/host/test-check-charging-regulation.py`.
+Set `ROG5_H03_TEST_ARCHIVE` to the exact sealed core archive to additionally run
+its ARM64 BusyBox against simulated sysfs in an isolated root. That explicit
+offline check needs bubblewrap/static QEMU and does not contact the phone.
+If current polarity or counter updates cannot be established on the selected
+firmware, obtain a bounded sub-full charge/current comparison through the same
+read-only PMIC interface; use independent current instrumentation if firmware
+cannot supply it. Do not discharge or reconfigure the phone just to force PASS.
+Capacity-unit patch 0038 is separate and does not itself prove regulation.
+
+Transfers: 256 MiB each way on each intended interface, ≤180 s/direction,
+matching hashes, using the scope established by the
+[NCM qualification](../test-results/2026-08-29-persistent-ncm-two-hour-pass.md).
+Scratch is at most 64 MiB in an **explicitly authorized** directory: fsync,
+readback and post-reboot hash; remove only that exact test-owned file.
+Soak is 3600 s plus 300 s collection margin. No unexplained boot-ID changes,
+oops, new UFS errors, emergency RO or unsafe power are tolerated. Missing log
+continuity fails rather than proving absence of faults.
+
+R01 preparation uses the existing persistent trial state machine. An exact
+healthy-to-pending `decide` transition durably arms the installed fallback;
+a different isolated target must fail to acknowledge that record, and the
+next installed loader entry must select the signed V11. The ARM64 helper
+regression verifies this sequence in disposable mounts. It is not physical
+recovery evidence or authorization to alter a live record.
+
+Before applying that sequence, the dedicated controller must bind the current
+accepted trial record, installed selector, primary and fallback hashes, running
+boot, helper bytes, power and writable storage scope. Any temporary alias for
+the helper's fixed path must bind the already mounted service-state filesystem
+inside a private mount namespace; never mount a live upper as an inactive image
+or open another block-device write window. Preserve the original record and
+record its durable transition. An ambiguous arming reply cannot be retried as a
+new primary decision. Target execution still requires its separate unique signed
+candidate and unconsumed claim.
+
+The observer must prove the intended isolated health refusal, unchanged armed
+record, active 900-second target rollback, autonomous disconnect/reboot and a
+new authenticated V11 boot within the bound. A radio-refusal branch that keeps
+core rescue running does not prove this recovery outcome. Host-issued reboot
+or fastboot recovery after the negative target starts cannot qualify R01.
+Restoring prior primary-selection eligibility is a separate recovery step,
+never a new health observation: a subsequent ordinary V8 boot must rearm and
+satisfy its own genuine current-boot health gate. The state-operation components have offline coverage, including a separate
+V11 sealed-shell restorer because V11 lacks Python. The complete controller,
+two-boot observer and physical result are not yet qualified.
+
+The isolated RAM wrapper uses its own exact 134217728-byte image admission.
+`verified-isolated-recovery-boot.py` permits only the canonical R01 profile,
+exact hash and consumed claim. The controller requires a fresh, single,
+unambiguous `max-download-size` response before consuming the claim; replay
+checks its raw bytes. The existing 96 MiB helper and installed partition sizes
+are unchanged. Protocol support for downloading a buffer does not prove the
+phone boots this larger image; that remains a physical prerequisite/outcome.
+
+Future source-transition preparation can use the optional
+`headless-stage-receiver.py --source-boot-id BOOT --source-teardown-intent FILE
+--source-teardown-sha256 SHA256` mode. The controller must first authenticate the
+installed source identity and stage/read back the exact RAM-only derivative
+returned by `source-teardown-observation.py:prepare`. This helper performs no
+staging, transition, claim consumption or admission itself. Keep the installed
+shutdown and accepted target archive unchanged. Stage `shutdown` as root-owned
+0755 and the three `rog5-source-teardown*` files as root-owned 0444, all regular
+single-link files. The source shutdown bytes must exactly match the reviewed
+standalone shutdown before preparation.
+
+The inserted observer runs after clean storage teardown and before API mounts
+are detached, with a five-second whole-process timeout. It checks source boot
+and kernel, staged hashes, absence of physical/overlay mounts and attached loops,
+and sysfs plus ioctl read-only state for all 117 matching physical device nodes.
+It sends one bounded TCP receipt. The host accepts it only on the still-connected
+source within sixty seconds of receiver arming; a missing, malformed, late,
+duplicate or wrong-peer receipt makes capture fail permanently. The receipt is
+flushed and fsynced separately from target stages. Ordinary captures opt out by
+default. No receipt or sender failure may block fallback indefinitely.
+
+This is observer preparation, with synthetic sealed-BusyBox and isolated TCP
+coverage. Physical source USB availability, the complete staged shutdown and
+controller admission integration remain unproven. A future controller must bind
+this durable receipt to its exact source, files, nonce, receiver process/host
+boot, USB anchor and transition before any RAM admission. Fastboot arrival and
+netcat exit status alone are insufficient. The existing failed R01 claim remains
+consumed and unusable; these tools issue no replacement claim.
+
+Completed R01 evidence now has an offline matrix consumer. Use
+`rog5-dev accept release --test-id R01 --release RECEIPT
+--isolated-recovery-inputs PRIVATE_INPUTS
+--isolated-recovery-inputs-sha256 SHA256 --output PRIVATE_NEW_DIRECTORY`.
+The input envelope pins the admission and every file in the closed controller
+directory, including raw commands, journal, capture/cleanup and ordinary-boot
+restoration. It also binds all six primary artifact hashes and replays the
+original full S01 prerequisite. Changed or contradictory evidence fails;
+missing inputs remain blocked. Replay cannot start a phone operation or claim.
+
+R01's initial outer ceiling is 1320 s; the actual receiver lifetime must exceed
+the exact deployed target watchdog + recovery + cleanup lattice. The ceiling
+does not prove any watchdog survives handover. Independent reset/ramoops
+evidence is captured when available; empty pstore remains inconclusive.
+
+For this rescue, the capture lattice is **300 s recovery preparation + 900 s
+target rollback + 120 s cleanup = 1320 s**, plus **60 s preflight**, giving a
+**1380 s** receiver/firewall lifetime. The manifest owns these values. The live
+readiness check refuses execution when less than 1320 s remains. This is a
+capture budget, not a longer SSH acceptance deadline or watchdog guarantee.
+
+Run `rog5-dev capture-rescue --profile CLAIM_PROFILE --manifest EXACT_MANIFEST
+--output PRIVATE_NEW_DIRECTORY` with scoped host-network privileges while the
+exact phone is in fastboot. It does not boot or consume a claim. Its `--check`
+mode verifies source, canonical artifacts, process/host identity and an actual
+TCP readiness response. Pass the same directory with `rog5-dev accept
+device-smoke --capture PRIVATE_DIRECTORY --release RECEIPT --output NEW_OUTPUT`.
+H01 refuses another candidate/image or stale receiver. Diagnostic stage frames
+are unauthenticated transport evidence; pinned SSH remains a separate test.
+The shared profile retains its single normal address. A temporary loopback
+diagnostic address and exact USB direct route serve the early reporter; the
+receiver binds to the verified NCM interface on enumeration. All owned host
+changes are restored; external changes are preserved and cleanup failure is
+reported. No NFS service is needed for this local-root rescue.
+
+## Current order and restrictions
+
+Registry checkpoint → final rescue composition → receiver/address/log readiness
+→ one admitted headless rescue → charging and pinned SSH → remaining offline
+fixes and final server qualification. Reuse the accepted kernel for userspace
+changes. No new feature expansion, experimental flashing, destructive storage
+or consumed/ambiguous retry. Preserve stock A, accepted signed fallback,
+exact device/slot/topology, artifact verification and storage/thermal guards.
+
+Recovery is not delayed until every later test exists. Conversely, old source
+tests cannot qualify old signed bytes: the prepared V11-based rescue lacks the
+current post-handover watchdog and early health predicate. Keep it preserved,
+not silently promoted. A real physical-recovery blocker names the missing
+operation; simulations cannot replace it. Optional work is reported separately.

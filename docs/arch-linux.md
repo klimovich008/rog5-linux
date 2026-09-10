@@ -1,6 +1,13 @@
 # Arch Linux ARM userspace
 
-The target userspace is the official generic AArch64 Arch Linux ARM root filesystem with this project's kernel, ASUS DTB, modules, firmware, and initramfs. Its UI is a minimal Plasma Desktop Wayland session; GNOME, Plasma Mobile, Discover, and a second display manager are deliberately outside the target. The generic rootfs explicitly expects developers to provide board-specific boot support, so its bundled generic kernel and DTBs are not used for this phone.
+The active userspace is the official generic AArch64 Arch Linux ARM root
+filesystem with this project's kernel modules and a minimal SSH-only server
+policy. It has no desktop, display manager, browser, Vulkan stack, GPU
+firmware, Wi-Fi, hotspot, VPN, or automation account. The historical
+Plasma/KRDP roots remain evidence and fallback development artifacts; they are
+not copied into the active profile. The generic rootfs expects developers to
+provide board-specific boot support, so its bundled generic kernel and DTBs
+are not used for this phone.
 
 ## Image contract
 
@@ -14,29 +21,270 @@ The target userspace is the official generic AArch64 Arch Linux ARM root filesys
 
 Fetch and verify the generic rootfs into the ignored local artifact cache:
 
+```sh
+scripts/host/get-arch-rootfs.sh
+```
+
+On Windows, the equivalent wrapper is:
+
 ```powershell
 powershell -NoProfile -File scripts/host/Get-ArchRootfs.ps1
 ```
 
 The script pins the official Arch Linux ARM keyring repository commit and expected full signing-key fingerprint. It accepts the mutable `latest` download only after its detached signature, archive paths, and required base files pass. The resulting size and SHA-256 become the immutable project input recorded in `manifests/artifacts.tsv`; the rootfs itself remains outside Git.
 
-The current verified snapshot is 818,293,654 bytes with SHA-256 `3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`. Do not disable pacman signature checking to work around keyring errors; a signed package-update smoke test is a mandatory staging gate.
+The current verified snapshot is 818,293,654 bytes with SHA-256
+`3cf5764fb6fec7bffdff98787e52ccd15d5d6390a2496c7028d7c4950404c56a`.
+Do not disable Pacman signature checking or synchronize this snapshot during
+minimal-root staging. A package not already present in this exact base input
+is a source-input change, not an implicit network update.
+
+## Minimal headless profile
+
+Build the key-bound profile on Linux with an external Ed25519 public key:
+
+```sh
+ARCH_ROOTFS_GENERATION=headless-ssh-v2 \
+  scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
+```
+
+The builder requires a clean source commit, AArch64 binfmt, rootless Podman,
+the manifest-pinned signed base rootfs, and the exact module archive. On a
+host without a global registration, wrap the same command with
+`scripts/host/run-private-arm64-binfmt.sh`; it uses the hash-pinned static
+emulator in a private rootless mount namespace and leaves the host table
+unchanged. Unlike the historical desktop generations, this path does not
+require or mount the A660 firmware directory.
+
+The stage requires `attr`, `diffutils`, and `openssh` in the manifest-pinned
+Arch base and runs with networking disabled. It initializes no Pacman keyring
+and performs no database sync or system update. It removes `linux-aarch64`
+and every installed `linux-firmware*`
+package, deletes the published `alarm` account, locks root to public-key SSH,
+enables the sleep inhibitor, disables systemd-networkd, and uses
+`multi-user.target`. SSH host keys and `/etc/machine-id` remain empty in the
+archive so the deployed root creates unique identities.
+
+The verifier rejects regular login accounts, reusable host identity,
+physical-device `fstab` entries, extra module releases, generic firmware,
+NetworkManager, Plasma/KWin/GNOME components, Chromium, Vulkan/Mesa, Node/npm,
+Wi-Fi, WireGuard, ttyd, the automation-agent surface, and any retained entry
+under `/etc/pacman.d/gnupg`. It evaluates the
+effective OpenSSH policy with a temporary key and configuration under
+`/run`. `headless-ssh-v2` accepts only one Ed25519 key, installs a canonical
+two-field line without options or comments, records its SHA-256 fingerprint,
+and fixes `AuthorizedKeysFile` to `/root/.ssh/authorized_keys`. The host then
+extracts the final archive into a second clean volume and runs the verifier
+again.
+
+The deferred-package denylist is only a readable secondary check. Release
+verification also compares the complete, sorted `pacman -Q` output against
+`packaging/arch/headless-package-closure.txt`. The accepted `headless-ssh-v2`
+source and sealed network root both contain exactly 152 package/version rows
+with SHA-256
+`135862912935df91bb3305302e959498f9d5cf240a0ee74283abbf0bfa251f8b`.
+Any added, removed, upgraded, downgraded, reordered, duplicate, malformed, or
+linked inventory fails staging. This prevents a desktop, browser, GPU stack,
+or unrelated dependency from entering under an unlisted package name.
+
+Historical offline result (not currently deployable):
+
+```text
+source commit: eb61a45938c851b1b02a2f3151db5265ab9213e7
+kernel:        7.1.4-g7a5cef0db479
+packages:      150
+size:          535093875
+sha256:        4e472f2fa3f21fd3a5cf6de9eaf96810104083758039e8cdeefc4e03ec4e6427
+```
+
+The checked-in `configs/ssh/rog5-headless-build-fixture.pub` is a public-only
+offline test fixture; its private half was destroyed and it must not be used
+as deployment access. A real deployment supplies its own public key outside
+Git.
+
+The original recipe is not an accepted reproduction path. A 2026-07-30
+rebuild produced different bytes and embedded a generated Pacman private key
+and revocation state. The output was rejected. The corrected recipe uses
+only pinned local inputs, removes all Pacman trust state, fixes output
+timestamps, and sorts archive members. The final v2 gate passes from commit
+`9739abe`: two fresh outputs are byte-identical at 536,750,378 bytes with
+SHA-256
+`2abe8c533179da598c37939ff8ebb4667a243bd8140c2d497237e41fbea72e6a`.
+Both in-root and clean-extraction verification pass. This result uses the
+public-only fixture key and is not live authority. See the
+[hardening report](../test-results/2026-07-30-headless-root-credential-reproducibility-hardening.md).
+
+Seal the v2 source archive without package-network access:
+
+```sh
+HEADLESS_NETWORK_ROOT_PROFILE=headless-ssh-v2 \
+  scripts/host/prepare-headless-network-root.sh
+```
+
+The rootless Podman packager installs a canonical `workload=none` command
+manifest, seals all 37,735 entries, writes a sorted pax-restricted transport
+archive, extracts it into a second clean volume, and recomputes the complete
+seal. Sorted, non-recursive member enumeration is required because the v1
+tree seal includes directory allocation size. The tracked v3 identity is
+`configs/network-roots/headless-ssh-network-root-v3.package`; changed key,
+fingerprint, bytes, metadata, xattrs, command policy, or seal are rejected.
+The fixed-contract run produced:
+
+```text
+path:   artifacts/arch/rog5-arch-headless-ssh-v2-network-root-7.1.4/root.tar.gz
+size:   536747283
+sha256: 60fed48c8714a3f3b2082f95a04e913f32dfc74ed4c262e5b3d6e924a39a9c3b
+manifest size:   731
+manifest sha256: 1173f96851e8e2df01fdc02e68fcc805ab3a2e7a8141ca0a76eda9954619cd98
+```
+
+Format v3 retains the verified `network-root-v1` wire profile while adding
+`build_profile=headless-ssh-v2` and `authorized_key_fingerprint`. Historical
+v1/v2 parsers remain exact. The future live-credential gate must reject the
+fixture fingerprint; no private key was read or stored during these builds.
+See the
+[key-bound package report](../test-results/2026-07-30-headless-ssh-v2-key-bound-package.md).
+
+The corresponding authority-free candidate uses the UFS-disabled network
+kernel, accepted GPU/RMTFS-isolated v3 recovery DTB, and a dedicated
+credential-free initramfs carrying the exact static AArch64 whole-tree
+verifier. Packaging with a disposable key passes the native signed-bundle
+verifier.
+
+The first signed live bundle used the historical v1 DTB by mistake. It reached
+target NCM, then returned to fallback before SSH at the same roughly
+16-second boundary documented for v1. The candidate now pins the accepted v3
+DTB and a regression test requires its exact hash. This correction remains
+`status=offline`, `authority=none`, has no live trust key, and has not been
+booted. See the
+[runtime result](../test-results/2026-07-29-headless-runtime-integration-offline.md)
+and [live rejection](../test-results/2026-07-29-headless-stable-recovery-live.md).
+
+## Historical desktop profiles
 
 Stage a server rootfs with an external public SSH key:
+
+```sh
+scripts/host/stage-arch-rootfs.sh /path/to/rog5_ed25519.pub
+```
+
+To build the separately versioned power-button development root without
+changing the v2 default:
+
+```sh
+scripts/host/stage-arch-successor-v3-rootfs.sh /path/to/rog5_ed25519.pub
+```
+
+On Windows, the equivalent wrapper is:
 
 ```powershell
 powershell -NoProfile -File scripts/host/Stage-ArchRootfs.ps1 -AuthorizedKey C:\path\to\rog5_ed25519.pub
 ```
 
-Staging runs the AArch64 userspace under Docker emulation, keeps pacman signature enforcement, removes the generic Arch kernel, installs the server/VPN packages and minimal Plasma target, adds the matching custom modules, locks published password accounts, removes reusable host identity, and enables key-only SSH. It does not include VPN/Wi-Fi/KRDP credentials, enable the hotspot, or alter the phone. Extraction, staging, archival, and verification use Linux Docker volumes plus libarchive ACL/xattr support; the output is re-extracted and checked so ownership, modes, and extended attributes survive the round trip.
+Staging runs the AArch64 userspace under Podman/Docker emulation, keeps pacman
+signature enforcement, removes the generic Arch kernel, installs the
+server/VPN packages and minimal Plasma target, adds the exact manifest-pinned
+network-root modules, locks published password accounts, removes reusable host
+identity, enables key-only SSH, and creates the locked `rog5-agent` automation
+account. It does not include VPN/Wi-Fi/KRDP/model/email credentials, enable
+the hotspot, connect an external account, or alter the phone. Extraction,
+staging, archival, and verification use Linux volumes plus libarchive
+ACL/xattr support; the output is re-extracted and checked so ownership, modes,
+and extended attributes survive the round trip.
 
-The earlier staged server-only rootfs is 1,028,140,049 bytes with SHA-256 `d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c`. The staged Plasma image is 2,022,113,204 bytes with SHA-256 `31e7d341ec97197e0d315cdb6822a98fe9bf3df6b50bf8606125fc694f62d0f9`. Both pass their historical offline suites, but they contain the previous Linux 7.1.4 module set. Restage the Plasma image with the final reproducible kernel modules before any first boot; neither archive is a current boot candidate.
+The earlier staged server-only rootfs is 1,028,140,049 bytes with SHA-256
+`d2df10d8b198bc5656de4232b2153786a5e943050d3391277170b512cab6dd2c`.
+The historical Plasma image is 2,022,113,204 bytes with SHA-256
+`31e7d341ec97197e0d315cdb6822a98fe9bf3df6b50bf8606125fc694f62d0f9`.
+Both contain the previous Linux 7.1.4 module set and remain non-candidates.
+
+The current network-root Plasma archive is 2,007,186,653 bytes with SHA-256
+`8711b34cf454a3f3eef04f12650ef0622ee575d80942e418e1c61f45679aa717`.
+It was staged from the authenticated base on Nobara Linux, contains only the
+exact `7.1.4-g7a5cef0db479` module tree, and passed a clean archive
+re-extraction plus the complete rootfs verifier. It contains the selected
+public SSH key but no private key, reusable host identity, network secret,
+remote-desktop credential, or user data. Preparing the PC-backed export
+creates one deployment-local Ed25519 server host key outside Git and pins
+`sshd` to it. The restricted NFS host gate and two normal-coldplug phone boots
+now pass, including persistent client authorization and server identity.
+
+A newer resource-bounded, agent-isolated development archive is
+2,007,027,068 bytes with
+SHA-256
+`5863cacf23a9c0cb972b37e3c71f801df77ccb708a277c0f2787d3afd9ac51e4`.
+It was staged from source commit
+`5292f3caf4acba7e548505a004f55e6c3276661e`, passed the complete verifier
+before archival and again after extraction into a clean volume, and passed an
+independent gzip/hash check. It adds a locked `rog5-agent` account, an empty
+mode-`0700` private-data boundary, and a hardened loopback-only Chromium
+service without changing the desktop user. The service is capped at two CPUs,
+1.5/2 GiB memory high/max, 512 MiB swap, and 256 tasks, and its restarts are
+rate-limited. It also stages `rog5-collect-baseline.sh`, a redacted one-shot
+runtime metrics helper. This development artifact remains outside Git and has
+not replaced the manifest-pinned live root, been exported over NFS, or booted
+on the phone.
+
+The later
+[userspace readiness audit](../test-results/2026-07-27-arch-userspace-readiness-offline.md)
+keeps every sealed diagnostic root unchanged, confirms its full
+Plasma/KRDP/server package set and secret-free headless policy, and
+fail-first fixes a systemd ordering cycle in future hotspot packaging.
+Current staging now verifies both the hardened Chromium and hotspot units.
+The resulting
+[successor archive](../test-results/2026-07-27-arch-successor-rootfs-offline.md)
+is 2,006,999,039 bytes with SHA-256
+`88c2d671a26f577aef963212cda17bc61baa888d77d0c1aaf1ca25c6fb3ad62a`.
+It contains 655 current packages and passes the complete verifier before
+archival and after clean extraction. The later
+[protected-export result](../test-results/2026-07-27-arch-successor-protected-export-offline.md)
+pins that identity in the manifest and verifies a 181,239-entry,
+root-owned, read-only Btrfs subvolume plus three tamper cases. The
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v1-prelive-hold.md)
+adds one explicit-token, verifier-first NFS case and a strict-SSH first-boot
+runner covering coldplug, sysusers/tmpfiles, agent isolation, headless
+screen-off state, volatile machine identity, watchdog handoff, and normal
+reboot. It has not been booted and no live cycle is authorized.
+
+The newer
+[successor-v2 archive](../test-results/2026-07-27-arch-successor-v2-rootfs-offline.md)
+is 2,007,001,876 bytes with SHA-256
+`0da5f1dbc05588fcda444b6ba6d8a66db8fa9749691b1f7e37132de9e8a88078`.
+It retains all 655 packages and accepted v1 evidence while adding
+kill-switch-first hotspot transitions, partial-failure rollback, and
+AP-before-firewall cleanup. Its separate
+[protected export](../test-results/2026-07-27-arch-successor-v2-protected-export-offline.md)
+passes complete recursive verification and four mutation cases. Its
+[pre-live HOLD](../test-results/2026-07-27-arch-successor-v2-prelive-hold.md)
+adds dedicated verifier-first NFS, screen-off first-boot, strict-SSH,
+watchdog-handoff, and one-reboot controls. The unarmed host check passed; no
+NFS window or boot ran, and the root remains HOLD.
+
+The later
+[successor-v3 development archive](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+is 2,007,033,670 bytes with SHA-256
+`a7c286491d2fde97e17024b36f514d595196975da1988c986f70819c964eb8d7`.
+It keeps all 655 packages, reruns the byte-exact v2 verifier, then installs
+and enables a confined `pmic_pwrkey` press handler for the existing
+DPMS/backlight toggle. Both staged and clean-extracted roots pass the v3
+verifier, and an independent archive contract rejects unsafe paths and
+runtime credentials. Its separate
+[protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+adds a root-owned read-only Btrfs export, four rejected COW mutations, an
+exact-root verifier-first NFS control, a power-input-aware first-boot gate,
+and a strict no-retry runner. The unarmed server preserves byte-identical
+host state. V3 remains unserved and unbooted with no physical-button/display
+acceptance; GPU diagnostic v10 remains the selected next live candidate.
 
 `packaging/arch/packages.txt` is the single requested-package list. It contains OpenSSH, nftables, WireGuard tools, dnsmasq, NetworkManager, wpa_supplicant, wireless-regdb, UPower, Plasma Desktop, Plasma-NM, KScreen, greetd, KRDP, PipeWire/WirePlumber, ttyd/tmux, Chromium, Git, Node/npm, Python/pip, Mesa, and Freedreno Vulkan. Mesa/Freedreno is staged for mainline validation but is not accepted as working until the DRM/MSM GPU tier passes.
 
 ## Boot and session model
 
-The target defaults to `multi-user.target`: SSH, networking, VPN, hotspot support, ttyd, and headless Chromium can run without a compositor. `greetd` owns the physical login path and starts the packaged Plasma Wayland session only through `graphical.target`.
+The target defaults to `multi-user.target`: SSH, networking, VPN, hotspot
+support, ttyd, and on-demand headless Chromium can run without a compositor.
+Chromium runs as `rog5-agent`, not the interactive desktop user. `greetd` owns
+the physical login path and starts the packaged Plasma Wayland session only
+through `graphical.target`.
 
 ```sh
 systemctl isolate graphical.target   # request the local/remote Plasma session
@@ -51,11 +299,19 @@ set a local-only password with `passwd rog5`, then enter
 remains disabled. Unattended graphical login stays opt-in until storage
 encryption and the email/CV credential policy are decided.
 
-This is still a staging contract, not a live result. Rejected recovery v6
-enumerated ACM/NCM and exposed the SSH port, but it did not pass ACM data,
-RAM-only, storage, or rollback gates. The rebuilt recovery must pass first;
-then the restaged Arch rootfs, systemd targets, NetworkManager, greetd, Plasma,
-KRDP, and Mesa must all pass first-boot tests before being called usable.
+This rootfs is now a live native-Arch result for the headless tier:
+credential-free recovery, attended Linux 7.1 kexec, read-only UFS discovery,
+host NFS isolation, normal systemd coldplug, key-only SSH, and zero-storage
+boots pass. NetworkManager's USB exclusion is accepted, but Wi-Fi, greetd,
+Plasma, KRDP, and Mesa still require their separate hardware gates before the
+device is called usable. The
+[read-only vendor Wi-Fi contract](../test-results/2026-07-27-arch-wifi-vendor-contract-hold.md)
+proves the exact `17cb:1103`/`17cb:0108` PCI endpoint and matching staged
+ath11k inputs. The later
+[offline WCN6855/PCIe acceptance](../test-results/2026-07-27-wcn6855-pcie-offline.md)
+adds the schema-checked board graph and reproducible matching kernel/modules,
+but remains deferred pending a packaged RAM-only client-only probe admitted
+under the central standing authorization and core-first roadmap.
 
 ## VPN hotspot
 
@@ -87,10 +343,41 @@ dhcp-option=option:dns-server,VPN_DNS_ADDRESS
 
 VPN configuration and keys live only under `/etc/wireguard/` on the device. They are never built into an image or stored in this repository. Override `AP_IF` or `VPN_IF` in `/etc/rog5/vpn-hotspot.env` when interface names differ; a non-default WireGuard unit also needs a matching systemd override. Before using simultaneous Wi-Fi client and AP interfaces, verify the radio's valid interface combinations with `iw phy`.
 
-Run the routing regression test in the builder container before packaging:
+Run both routing regressions in a privileged, network-disabled builder
+container before packaging:
 
-```powershell
-docker run --rm --privileged --network none --mount "type=bind,source=$PWD,target=/workspace/repo,readonly" rog5-kernel-builder:ubuntu-24.04 sh /workspace/repo/scripts/device/test-vpn-hotspot.sh
+```sh
+podman run --rm --privileged --network none \
+  --mount "type=bind,source=$PWD,target=/workspace/repo,readonly" \
+  rog5-kernel-builder:ubuntu-24.04 \
+  sh /workspace/repo/scripts/device/test-vpn-hotspot.sh
+podman run --rm --privileged --network none \
+  --mount "type=bind,source=$PWD,target=/workspace/repo,readonly" \
+  rog5-kernel-builder:ubuntu-24.04 \
+  sh /workspace/repo/scripts/device/test-vpn-hotspot-wireguard.sh
 ```
 
-That test proves rule generation, isolation, cleanup, and service ordering with dummy links. A real client still must pass DHCP, VPN DNS, endpoint reachability, VPN-loss fail-closed, recovery, and AP-to-phone isolation on hardware.
+The first test sends IPv4/IPv6 and UDP/TCP DNS-port traffic across isolated
+client, simulated-VPN, and ordinary-uplink namespaces. It proves the VPN path
+works, packets never reach the ordinary uplink, unsolicited VPN-side traffic
+cannot enter the AP client, VPN-interface loss stays closed, recreating it
+restores DNS traffic, and teardown restores nftables and forwarding sysctls.
+Receipt-marker mutation testing detects one-way UDP datagrams and TCP SYNs
+even when replies are dropped. See the historical
+[offline packet report](../test-results/2026-07-26-vpn-hotspot-packet-offline.md).
+The
+[real-WireGuard offline gate](../test-results/2026-07-27-vpn-hotspot-wireguard-offline.md)
+adds a credential-free kernel handshake over a local TEST-NET veth underlay
+and sends one hotspot-client packet through the unchanged production
+kill-switch. It requires nonzero handshake and encrypted transfer counters,
+refuses a network-connected container, erases its disposable mode-`0600`
+keys, and repeats with exact cleanup. The
+[v2 DNS/recovery gate](../test-results/2026-07-27-vpn-hotspot-v2-dns-recovery-offline.md)
+then makes v2 the default, carries valid DNS framing over UDP and TCP,
+requires endpoint loss to remain closed, restores both protocols after
+recovery, and mutation-tests one-way DNS leakage. A real client still must
+pass ath11k AP capability, DHCP/provider DNS, an on-phone/provider handshake,
+radio coexistence, throughput, thermals, charging, and battery tests.
+Neither Wi-Fi checkpoint authorizes radio activation. The isolated mainline
+candidate now encodes the source-backed WCN6855 PMU graph, but it has not been
+packaged or booted and provides no radio-runtime evidence.

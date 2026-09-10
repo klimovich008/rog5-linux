@@ -1,0 +1,21 @@
+{
+  "kernel": "7.1.4-g359318de534f",
+  "radio_activated": false,
+  "source": "passive trace of normal V11 UFS runtime power requests",
+  "sync": [
+    "11627.220957: enter_rpmh_write: (rpmh_write+0x0/0x140) state=2 count=1 address=0x41a04 value=0x1 command_wait=0",
+    "11627.220967: rpmh_send_msg: apps_rsc: tcs(m): 0 [active] cmd(n): 0 msgid: 0x10108 addr: 0x41a04 data: 0x1 complete: 0",
+    "11627.220970: return_rpmh_rsc_send_data: (__rpmh_write+0x188/0x1ec <- rpmh_rsc_send_data) result=0",
+    "11627.220988: rpmh_tx_done: apps_rsc: ack: tcs-m: 0 addr: 0x41a04 data: 0x1",
+    "11627.221005: return_rpmh_write: (rpmh_regulator_set_enable_state+0xe4/0x148 <- rpmh_write) result=0"
+  ],
+  "async": [
+    "11627.378358: enter_rpmh_write_async: (rpmh_write_async+0x0/0xc0) state=2 count=1 address=0x41a04 value=0x0 command_wait=0",
+    "11627.378391: rpmh_send_msg: apps_rsc: tcs(m): 0 [active] cmd(n): 0 msgid: 0x10008 addr: 0x41a04 data: 0x0 complete: 0",
+    "11627.378397: return_rpmh_rsc_send_data: (__rpmh_write+0x188/0x1ec <- rpmh_rsc_send_data) result=0",
+    "11627.378401: return_rpmh_write_async: (rpmh_regulator_set_enable_state+0x130/0x148 <- rpmh_write_async) result=0",
+    "11627.378407: rpmh_tx_done: apps_rsc: ack: tcs-m: 0 addr: 0x41a04 data: 0x0"
+  ],
+  "host_marker_roundtrip_seconds": [0.152420209, 0.167142831, 0.160797418],
+  "previous_trace_loss_explained": false
+}

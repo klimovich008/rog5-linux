@@ -1,0 +1,116 @@
+diff --git a/drivers/power/sequencing/pwrseq-qcom-wcn.c b/drivers/power/sequencing/pwrseq-qcom-wcn.c
+index b55b431..392f4ce 100644
+--- a/drivers/power/sequencing/pwrseq-qcom-wcn.c
++++ b/drivers/power/sequencing/pwrseq-qcom-wcn.c
+@@ -41,6 +41,59 @@ struct pwrseq_qcom_wcn_ctx {
+ 	unsigned long last_gpio_enable_jf;
+ };
+ 
++/* Diagnostic-only: preserve the supply list, voltage and mode requests. */
++static unsigned int serial_observation_ms;
++module_param(serial_observation_ms, uint, 0400);
++MODULE_PARM_DESC(serial_observation_ms, "Serial WCN6855 observation, 0..1000 ms");
++
++static void pwrseq_qcom_wcn_observe(const char *stage, int ret)
++{
++	if (!serial_observation_ms)
++		return;
++	pr_info("ROG5_WCN_OBSERVE stage=%s result=%d pause_ms=%u\n",
++		stage, ret, serial_observation_ms);
++	msleep(serial_observation_ms);
++}
++
++static void pwrseq_qcom_wcn_observe_rail(struct pwrseq_qcom_wcn_ctx *ctx,
++				      unsigned int index, const char *stage, int ret)
++{
++	struct regulator *reg = ctx->regs[index].consumer;
++	int voltage = regulator_get_voltage(reg);
++	int mode = (int)regulator_get_mode(reg);
++	int enabled = regulator_is_enabled(reg);
++
++	/* RPMh getters may report cached/unknown state, not physical telemetry. */
++	pr_info("ROG5_WCN_RAIL index=%u supply=%s stage=%s result=%d "
++		"cached_uv=%d voltage_state=%s mode=%d mode_state=%s "
++		"enabled=%d enabled_state=%s\n",
++		index, ctx->regs[index].supply, stage, ret,
++		voltage, voltage < 0 ? "error" : "present",
++		mode, mode < 0 ? "error" : mode ? "present" : "absent",
++		enabled, enabled < 0 ? "error" : "present");
++	msleep(serial_observation_ms);
++}
++
++static int pwrseq_qcom_wcn_enable_serial(struct pwrseq_qcom_wcn_ctx *ctx)
++{
++	unsigned int i;
++	int ret, cleanup;
++
++	for (i = 0; i < ctx->pdata->num_vregs; i++) {
++		pwrseq_qcom_wcn_observe_rail(ctx, i, "enter", 0);
++		ret = regulator_enable(ctx->regs[i].consumer);
++		pwrseq_qcom_wcn_observe_rail(ctx, i, "return", ret);
++		if (ret) {
++			/* Only release references this invocation successfully took. */
++			cleanup = i ? regulator_bulk_disable(i, ctx->regs) : 0;
++			pr_info("ROG5_WCN_RAIL rollback_count=%u result=%d\n",
++				i, cleanup);
++			return ret;
++		}
++	}
++	return 0;
++}
++
+ static void pwrseq_qcom_wcn_ensure_gpio_delay(struct pwrseq_qcom_wcn_ctx *ctx)
+ {
+ 	unsigned long diff_jiffies;
+@@ -80,6 +133,8 @@ static int pwrseq_qcom_wcn_vregs_enable(struct pwrseq_device *pwrseq)
+ {
+ 	struct pwrseq_qcom_wcn_ctx *ctx = pwrseq_device_get_drvdata(pwrseq);
+ 
++	if (serial_observation_ms)
++		return pwrseq_qcom_wcn_enable_serial(ctx);
+ 	return regulator_bulk_enable(ctx->pdata->num_vregs, ctx->regs);
+ }
+ 
+@@ -99,8 +154,12 @@ static const struct pwrseq_unit_data pwrseq_qcom_wcn_vregs_unit_data = {
+ static int pwrseq_qcom_wcn_clk_enable(struct pwrseq_device *pwrseq)
+ {
+ 	struct pwrseq_qcom_wcn_ctx *ctx = pwrseq_device_get_drvdata(pwrseq);
++	int ret;
+ 
+-	return clk_prepare_enable(ctx->clk);
++	pwrseq_qcom_wcn_observe("clock-enter", 0);
++	ret = clk_prepare_enable(ctx->clk);
++	pwrseq_qcom_wcn_observe("clock-return", ret);
++	return ret;
+ }
+ 
+ static int pwrseq_qcom_wcn_clk_disable(struct pwrseq_device *pwrseq)
+@@ -203,8 +262,10 @@ static int pwrseq_qcom_wcn_wlan_enable(struct pwrseq_device *pwrseq)
+ 	struct pwrseq_qcom_wcn_ctx *ctx = pwrseq_device_get_drvdata(pwrseq);
+ 
+ 	pwrseq_qcom_wcn_ensure_gpio_delay(ctx);
++	pwrseq_qcom_wcn_observe("wlan-gpio-enter", 0);
+ 	gpiod_set_value_cansleep(ctx->wlan_gpio, 1);
+ 	ctx->last_gpio_enable_jf = jiffies;
++	pwrseq_qcom_wcn_observe("wlan-gpio-return", 0);
+ 
+ 	return 0;
+ }
+@@ -462,6 +523,8 @@ static int pwrseq_qcom_wcn_probe(struct platform_device *pdev)
+ 	struct pwrseq_config config;
+ 	int i, ret;
+ 
++	if (serial_observation_ms > 1000)
++		return -EINVAL;
+ 	ctx = devm_kzalloc(dev, sizeof(*ctx), GFP_KERNEL);
+ 	if (!ctx)
+ 		return -ENOMEM;
+@@ -472,6 +535,8 @@ static int pwrseq_qcom_wcn_probe(struct platform_device *pdev)
+ 	if (!ctx->pdata)
+ 		return dev_err_probe(dev, -ENODEV,
+ 				     "Failed to obtain platform data\n");
++	if (serial_observation_ms && ctx->pdata != &pwrseq_wcn6855_of_data)
++		return -EINVAL;
+ 
+ 	ctx->regs = devm_kcalloc(dev, ctx->pdata->num_vregs,
+ 				 sizeof(*ctx->regs), GFP_KERNEL);

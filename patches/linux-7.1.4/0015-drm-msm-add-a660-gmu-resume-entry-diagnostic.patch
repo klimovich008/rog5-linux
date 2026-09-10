@@ -1,0 +1,173 @@
+From a631251192e4d27c3f6ed2b322bddee90650bef7 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux maintainers <rog5-linux@invalid>
+Date: Sun, 26 Jul 2026 22:13:34 +0200
+Subject: [PATCH 15/15] drm/msm: add A660 GMU resume-entry diagnostic
+
+Add a default-off, read-only, exact-A660.1 diagnostic that follows
+the normal first-open firmware and ucode path into a6xx_gmu_resume(),
+then returns EUCLEAN before gmu->hung, inner runtime PM, clocks,
+secure setup, MMIO, IRQs, firmware start, or HFI.
+
+Propagate the failed resume through the existing outer runtime-PM
+rollback, reject every later attempt atomically, and reuse the
+accepted ucode/firmware cleanup before rejecting the DRM open. Keep
+the earlier diagnostics mutually exclusive.
+
+Signed-off-by: ROG5 Linux maintainers <rog5-linux@invalid>
+---
+ drivers/gpu/drm/msm/adreno/a6xx_gmu.c      | 12 ++++++
+ drivers/gpu/drm/msm/adreno/adreno_device.c | 27 ++++++++++++
+ drivers/gpu/drm/msm/msm_drv.c              | 49 +++++++++++++++++++++-
+ drivers/gpu/drm/msm/msm_gpu.h              |  4 ++
+ 4 files changed, 91 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+index 8221b75ef..197a9ac3e 100644
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1261,6 +1261,18 @@ int a6xx_gmu_resume(struct a6xx_gpu *a6xx_gpu)
+ 	if (WARN(!gmu->initialized, "The GMU is not set up yet\n"))
+ 		return -EINVAL;
+ 
++	if (msm_a660_gmu_resume_entry_only_enabled()) {
++		if (adreno_gpu->chip_id != 0x06060001)
++			return -ENODEV;
++
++		if (!msm_a660_gmu_resume_entry_only_mark_hit())
++			return -EALREADY;
++
++		DRM_DEV_INFO(gmu->dev,
++			     "A660 GMU resume entry reached before resource activation; reject resume\n");
++		return -EUCLEAN;
++	}
++
+ 	gmu->hung = false;
+ 
+ 	/* Turn on the resources */
+diff --git a/drivers/gpu/drm/msm/adreno/adreno_device.c b/drivers/gpu/drm/msm/adreno/adreno_device.c
+index e3e612062..4c8a89c2a 100644
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -159,6 +159,33 @@ int adreno_load_ucode_only(struct drm_device *dev)
+ 	return ret;
+ }
+ 
++int adreno_rollback_gpu_load_only(struct drm_device *dev)
++{
++	struct msm_drm_private *priv = dev->dev_private;
++	struct platform_device *pdev = priv->gpu_pdev;
++	struct msm_gpu *gpu;
++	struct adreno_gpu *adreno_gpu;
++
++	if (!pdev)
++		return -ENODEV;
++
++	gpu = dev_to_gpu(&pdev->dev);
++	if (!gpu)
++		return -ENODEV;
++
++	adreno_gpu = to_adreno_gpu(gpu);
++	if (adreno_gpu->chip_id != 0x06060001)
++		return -ENODEV;
++
++	if (pm_runtime_enabled(&pdev->dev))
++		return -EBUSY;
++
++	a6xx_ucode_unload(gpu);
++	adreno_release_diagnostic_fw(adreno_gpu);
++
++	return 0;
++}
++
+ struct msm_gpu *adreno_load_gpu(struct drm_device *dev)
+ {
+ 	struct msm_drm_private *priv = dev->dev_private;
+diff --git a/drivers/gpu/drm/msm/msm_drv.c b/drivers/gpu/drm/msm/msm_drv.c
+index 544356355..475e2663e 100644
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -71,6 +71,28 @@ module_param(ucode_allocation_only, bool, 0400);
+ 
+ static atomic_t ucode_allocation_only_consumed = ATOMIC_INIT(0);
+ 
++static bool gmu_resume_entry_only;
++MODULE_PARM_DESC(gmu_resume_entry_only, "Stop one exact A660 open at GMU resume entry before resource activation");
++module_param(gmu_resume_entry_only, bool, 0400);
++
++static atomic_t gmu_resume_entry_only_open_consumed = ATOMIC_INIT(0);
++static atomic_t gmu_resume_entry_only_hit = ATOMIC_INIT(0);
++
++bool msm_a660_gmu_resume_entry_only_enabled(void)
++{
++	return gmu_resume_entry_only;
++}
++
++bool msm_a660_gmu_resume_entry_only_mark_hit(void)
++{
++	return atomic_cmpxchg(&gmu_resume_entry_only_hit, 0, 1) == 0;
++}
++
++bool msm_a660_gmu_resume_entry_only_was_hit(void)
++{
++	return atomic_read(&gmu_resume_entry_only_hit) != 0;
++}
++
+ DECLARE_FAULT_ATTR(fail_gem_alloc);
+ DECLARE_FAULT_ATTR(fail_gem_iova);
+ 
+@@ -278,11 +300,36 @@ static int context_init(struct drm_device *dev, struct drm_file *file)
+ 
+ static int msm_open(struct drm_device *dev, struct drm_file *file)
+ {
++	struct msm_drm_private *priv = dev->dev_private;
++	bool hit;
+ 	int ret;
+ 
+-	if (firmware_request_only && ucode_allocation_only)
++	if (firmware_request_only + ucode_allocation_only +
++	    gmu_resume_entry_only > 1)
+ 		return -EINVAL;
+ 
++	if (gmu_resume_entry_only) {
++		if (atomic_cmpxchg(&gmu_resume_entry_only_open_consumed, 0, 1))
++			return -EALREADY;
++
++		load_gpu(dev);
++		hit = msm_a660_gmu_resume_entry_only_was_hit();
++
++		if (priv->gpu)
++			return -EPROTO;
++
++		ret = adreno_rollback_gpu_load_only(dev);
++		if (ret)
++			return ret;
++
++		if (!hit)
++			return -EPROTO;
++
++		DRM_DEV_INFO(dev->dev,
++			     "A660 GMU resume entry passed and rolled back; reject open\n");
++		return -EUCLEAN;
++	}
++
+ 	if (ucode_allocation_only) {
+ 		if (atomic_cmpxchg(&ucode_allocation_only_consumed, 0, 1))
+ 			return -EALREADY;
+diff --git a/drivers/gpu/drm/msm/msm_gpu.h b/drivers/gpu/drm/msm/msm_gpu.h
+index 8ed48ec4a..173c19605 100644
+--- a/drivers/gpu/drm/msm/msm_gpu.h
++++ b/drivers/gpu/drm/msm/msm_gpu.h
+@@ -710,6 +710,10 @@ void msm_gpu_cleanup(struct msm_gpu *gpu);
+ struct msm_gpu *adreno_load_gpu(struct drm_device *dev);
+ int adreno_load_fw_only(struct drm_device *dev);
+ int adreno_load_ucode_only(struct drm_device *dev);
++int adreno_rollback_gpu_load_only(struct drm_device *dev);
++bool msm_a660_gmu_resume_entry_only_enabled(void);
++bool msm_a660_gmu_resume_entry_only_mark_hit(void);
++bool msm_a660_gmu_resume_entry_only_was_hit(void);
+ bool adreno_has_gpu(struct device_node *node);
+ void __init adreno_register(void);
+ void __exit adreno_unregister(void);
+-- 
+2.55.0
+

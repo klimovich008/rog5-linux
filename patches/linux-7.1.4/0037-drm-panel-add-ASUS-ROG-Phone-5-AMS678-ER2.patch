@@ -1,0 +1,582 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: klimovich008 <klimovich008@gmail.com>
+Date: Tue, 1 Sep 2026 14:05:16 +0200
+Subject: [PATCH] drm/panel: add ASUS ROG Phone 5 AMS678 ER2
+
+---
+ .../display/panel/asus,rog5-ams678.yaml       |  73 +++
+ drivers/gpu/drm/panel/Kconfig                 |  12 +
+ drivers/gpu/drm/panel/Makefile                |   1 +
+ .../gpu/drm/panel/panel-asus-rog5-ams678.c    | 448 ++++++++++++++++++
+ 4 files changed, 534 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml
+ create mode 100644 drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
+
+diff --git a/Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml b/Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml
+new file mode 100644
+index 000000000..7445e270b
+--- /dev/null
++++ b/Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml
+@@ -0,0 +1,73 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/display/panel/asus,rog5-ams678.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: ASUS ROG Phone 5 Samsung AMS678 ER2 OLED panel
++
++maintainers:
++  - ROG5 Linux contributors <klimovich008@gmail.com>
++
++description: |
++  The Samsung AMS678 ER2 is a 1080x2448 command-mode MIPI-DSI OLED panel
++  connected through a Pixelworks Iris6 processor. This binding requires the
++  Iris6 one-wire analog-bypass and ready GPIOs so the panel driver can prove a
++  transparent path before transmitting panel commands.
++
++allOf:
++  - $ref: panel-common.yaml#
++
++properties:
++  compatible:
++    const: asus,rog5-ams678-er2
++
++  reg:
++    maxItems: 1
++
++  reset-gpios:
++    maxItems: 1
++
++  iris-wakeup-gpios:
++    maxItems: 1
++    description: Pixelworks Iris6 one-wire command input.
++
++  iris-bypass-ready-gpios:
++    maxItems: 1
++    description: High when Pixelworks Iris6 analog bypass is active.
++
++  vddio-supply:
++    description: 1.8 V panel I/O supply.
++
++  vdd-supply:
++    description: 3.0 V panel core supply.
++
++required:
++  - compatible
++  - reg
++  - reset-gpios
++  - iris-wakeup-gpios
++  - iris-bypass-ready-gpios
++  - vddio-supply
++  - vdd-supply
++
++unevaluatedProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/gpio/gpio.h>
++
++    dsi {
++        #address-cells = <1>;
++        #size-cells = <0>;
++
++        panel@0 {
++            compatible = "asus,rog5-ams678-er2";
++            reg = <0>;
++            reset-gpios = <&tlmm 24 GPIO_ACTIVE_LOW>;
++            iris-wakeup-gpios = <&tlmm 92 GPIO_ACTIVE_HIGH>;
++            iris-bypass-ready-gpios = <&tlmm 84 GPIO_ACTIVE_HIGH>;
++            vddio-supply = <&vreg_l12c_1p8>;
++            vdd-supply = <&vreg_l13c_3p0>;
++        };
++    };
+diff --git a/drivers/gpu/drm/panel/Kconfig b/drivers/gpu/drm/panel/Kconfig
+index d592f4f4b..6b3cb78ee 100644
+--- a/drivers/gpu/drm/panel/Kconfig
++++ b/drivers/gpu/drm/panel/Kconfig
+@@ -37,6 +37,18 @@ config DRM_PANEL_ASUS_Z00T_TM5P5_NT35596
+ 	  NT35596 1080x1920 video mode panel as found in some Asus
+ 	  Zenfone 2 Laser Z00T devices.
+ 
++config DRM_PANEL_ASUS_ROG5_AMS678
++	tristate "ASUS ROG Phone 5 Samsung AMS678 ER2 panel"
++	depends on GPIOLIB && OF
++	depends on DRM_MIPI_DSI
++	depends on BACKLIGHT_CLASS_DEVICE
++	select DRM_DISPLAY_DSC_HELPER
++	help
++	  Say Y here to enable the 1080x2448 command-mode DSC OLED panel
++	  found in the ASUS ROG Phone 5. The initial implementation exposes
++	  only 60 Hz and requires the Pixelworks Iris6 processor to enter
++	  verified analog-bypass mode before panel commands are sent.
++
+ config DRM_PANEL_AUO_A030JTN01
+ 	tristate "AUO A030JTN01"
+ 	depends on SPI
+diff --git a/drivers/gpu/drm/panel/Makefile b/drivers/gpu/drm/panel/Makefile
+index a4291dc39..40fc8ec5c 100644
+--- a/drivers/gpu/drm/panel/Makefile
++++ b/drivers/gpu/drm/panel/Makefile
+@@ -2,6 +2,7 @@
+ obj-$(CONFIG_DRM_PANEL_ABT_Y030XX067A) += panel-abt-y030xx067a.o
+ obj-$(CONFIG_DRM_PANEL_ARM_VERSATILE) += panel-arm-versatile.o
+ obj-$(CONFIG_DRM_PANEL_ASUS_Z00T_TM5P5_NT35596) += panel-asus-z00t-tm5p5-n35596.o
++obj-$(CONFIG_DRM_PANEL_ASUS_ROG5_AMS678) += panel-asus-rog5-ams678.o
+ obj-$(CONFIG_DRM_PANEL_AUO_A030JTN01) += panel-auo-a030jtn01.o
+ obj-$(CONFIG_DRM_PANEL_BOE_BF060Y8M_AJ0) += panel-boe-bf060y8m-aj0.o
+ obj-$(CONFIG_DRM_PANEL_BOE_HIMAX8279D) += panel-boe-himax8279d.o
+diff --git a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
+new file mode 100644
+index 000000000..64e6fa96f
+--- /dev/null
++++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
+@@ -0,0 +1,448 @@
++// SPDX-License-Identifier: GPL-2.0-only
++// Copyright (c) 2026 ROG5 Linux contributors
++// Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
++//   Copyright (c) 2013, The Linux Foundation. All rights reserved. (FIXME)
++
++#include <linux/backlight.h>
++#include <linux/delay.h>
++#include <linux/gpio/consumer.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/regulator/consumer.h>
++
++#include <drm/display/drm_dsc.h>
++#include <drm/display/drm_dsc_helper.h>
++#include <drm/drm_mipi_dsi.h>
++#include <drm/drm_modes.h>
++#include <drm/drm_panel.h>
++#include <drm/drm_probe_helper.h>
++
++#include <video/mipi_display.h>
++
++struct ams678_er2_plus_dsc {
++	struct drm_panel panel;
++	struct mipi_dsi_device *dsi;
++	struct drm_dsc_config dsc;
++	struct gpio_desc *reset_gpio;
++	struct gpio_desc *iris_wakeup_gpio;
++	struct gpio_desc *iris_bypass_ready_gpio;
++	struct regulator_bulk_data *supplies;
++};
++
++static const struct regulator_bulk_data ams678_er2_plus_dsc_supplies[] = {
++	{ .supply = "vddio" },
++	{ .supply = "vdd" },
++};
++
++static inline
++struct ams678_er2_plus_dsc *to_ams678_er2_plus_dsc(struct drm_panel *panel)
++{
++	return container_of_const(panel, struct ams678_er2_plus_dsc, panel);
++}
++
++static void ams678_er2_plus_dsc_reset(struct ams678_er2_plus_dsc *ctx)
++{
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	usleep_range(1000, 2000);
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	usleep_range(1000, 2000);
++	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
++	usleep_range(10000, 11000);
++}
++
++static int ams678_er2_plus_dsc_enter_iris_bypass(
++		struct ams678_er2_plus_dsc *ctx)
++{
++	struct device *dev = &ctx->dsi->dev;
++	int ready;
++	int i;
++
++	ready = gpiod_get_value_cansleep(ctx->iris_bypass_ready_gpio);
++	if (ready < 0)
++		return ready;
++	if (ready)
++		return 0;
++
++	/* Pixelworks Iris6 one-wire ENTER_ANALOG_BYPASS command: two pulses. */
++	for (i = 0; i < 2; i++) {
++		gpiod_set_value_cansleep(ctx->iris_wakeup_gpio, 1);
++		usleep_range(56, 70);
++		gpiod_set_value_cansleep(ctx->iris_wakeup_gpio, 0);
++		usleep_range(56, 70);
++	}
++	usleep_range(237, 300);
++
++	for (i = 0; i < 50; i++) {
++		usleep_range(3000, 3100);
++		ready = gpiod_get_value_cansleep(ctx->iris_bypass_ready_gpio);
++		if (ready < 0)
++			return ready;
++		if (ready)
++			return 0;
++	}
++
++	dev_err(dev, "Iris6 analog bypass did not become ready\n");
++	return -ETIMEDOUT;
++}
++
++static int ams678_er2_plus_dsc_on(struct ams678_er2_plus_dsc *ctx)
++{
++	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
++
++	ctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
++
++	mipi_dsi_dcs_exit_sleep_mode_multi(&dsi_ctx);
++	mipi_dsi_usleep_range(&dsi_ctx, 10000, 11000);
++	mipi_dsi_dcs_set_tear_on_multi(&dsi_ctx, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
++	mipi_dsi_dcs_set_tear_scanline_multi(&dsi_ctx, 0x0980);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0x5a, 0x5a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xfc, 0x5a, 0x5a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x13);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd1, 0x6b);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x17);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd1, 0x2e);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0xa5, 0xa5);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xfc, 0xa5, 0xa5);
++	mipi_dsi_dcs_set_column_address_multi(&dsi_ctx, 0x0000, 0x0437);
++	mipi_dsi_dcs_set_page_address_multi(&dsi_ctx, 0x0000, 0x098f);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0x5a, 0x5a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x0a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd5, 0x05);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0xa5, 0xa5);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0x5a, 0x5a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x02);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xec, 0x00, 0xc2, 0xc2, 0x42);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x0d);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xec, 0x19);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x06);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xe4, 0x10);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0xa5, 0xa5);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9d, 0x01);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9e,
++				     0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x09,
++				     0x90, 0x04, 0x38, 0x00, 0x30, 0x02, 0x1c,
++				     0x02, 0x1c, 0x02, 0x00, 0x02, 0x0e, 0x00,
++				     0x20, 0x04, 0xa6, 0x00, 0x07, 0x00, 0x0c,
++				     0x02, 0x0b, 0x02, 0x1f, 0x18, 0x00, 0x10,
++				     0xf0, 0x03, 0x0c, 0x20, 0x00, 0x06, 0x0b,
++				     0x0b, 0x33, 0x0e, 0x1c, 0x2a, 0x38, 0x46,
++				     0x54, 0x62, 0x69, 0x70, 0x77, 0x79, 0x7b,
++				     0x7d, 0x7e, 0x01, 0x02, 0x01, 0x00, 0x09,
++				     0x40, 0x09, 0xbe, 0x19, 0xfc, 0x19, 0xfa,
++				     0x19, 0xf8, 0x1a, 0x38, 0x1a, 0x78, 0x1a,
++				     0xb6, 0x2a, 0xf6, 0x2b, 0x34, 0x2b, 0x74,
++				     0x3b, 0x74, 0x6b, 0xf4, 0x00, 0x00, 0x00,
++				     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++				     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++				     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++				     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++				     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++				     0x00, 0x00);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0x5a, 0x5a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xfc, 0x5a, 0x5a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x17);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd1, 0x2e);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x2a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd3, 0x0b);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x2e);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd3, 0x0b);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0xaf);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd3, 0x0b);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0xb3);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xd3, 0x0b);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf7, 0x03);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x60, 0x00);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xfc, 0xa5, 0xa5);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0xa5, 0xa5);
++
++	return dsi_ctx.accum_err;
++}
++
++static int ams678_er2_plus_dsc_off(struct ams678_er2_plus_dsc *ctx)
++{
++	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
++
++	ctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
++
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0x5a, 0x5a);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb0, 0x02);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xec, 0x00, 0x00, 0x00, 0x00);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0xa5, 0xa5);
++	mipi_dsi_dcs_set_display_off_multi(&dsi_ctx);
++	mipi_dsi_msleep(&dsi_ctx, 20);
++	mipi_dsi_dcs_enter_sleep_mode_multi(&dsi_ctx);
++	mipi_dsi_msleep(&dsi_ctx, 120);
++
++	return dsi_ctx.accum_err;
++}
++
++static int ams678_er2_plus_dsc_prepare(struct drm_panel *panel)
++{
++	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
++	struct device *dev = &ctx->dsi->dev;
++	struct drm_dsc_picture_parameter_set pps;
++	int ret;
++
++	ret = regulator_bulk_enable(ARRAY_SIZE(ams678_er2_plus_dsc_supplies),
++				    ctx->supplies);
++	if (ret < 0)
++		return ret;
++
++	usleep_range(10000, 11000);
++	ret = ams678_er2_plus_dsc_enter_iris_bypass(ctx);
++	if (ret < 0)
++		goto err_disable_regulators;
++
++	ams678_er2_plus_dsc_reset(ctx);
++
++	ret = ams678_er2_plus_dsc_on(ctx);
++	if (ret < 0) {
++		dev_err(dev, "Failed to initialize panel: %d\n", ret);
++		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++		goto err_disable_regulators;
++	}
++
++	drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
++
++	ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
++	if (ret < 0) {
++		dev_err(panel->dev, "failed to transmit PPS: %d\n", ret);
++		goto err_off;
++	}
++
++	ret = mipi_dsi_compression_mode(ctx->dsi, true);
++	if (ret < 0) {
++		dev_err(dev, "failed to enable compression mode: %d\n", ret);
++		goto err_off;
++	}
++
++	msleep(28); /* TODO: Is this panel-dependent? */
++
++	return 0;
++
++err_off:
++	ams678_er2_plus_dsc_off(ctx);
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++err_disable_regulators:
++	regulator_bulk_disable(ARRAY_SIZE(ams678_er2_plus_dsc_supplies),
++			       ctx->supplies);
++	return ret;
++}
++
++static int ams678_er2_plus_dsc_enable(struct drm_panel *panel)
++{
++	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
++	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
++
++	ctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x51, 0x00, 0x00);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x53, 0x20);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x55, 0x00);
++	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
++
++	return dsi_ctx.accum_err;
++}
++
++static int ams678_er2_plus_dsc_unprepare(struct drm_panel *panel)
++{
++	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
++	struct device *dev = &ctx->dsi->dev;
++	int disable_ret;
++	int ret;
++
++	ret = ams678_er2_plus_dsc_off(ctx);
++	if (ret < 0)
++		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
++
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	disable_ret = regulator_bulk_disable(
++		ARRAY_SIZE(ams678_er2_plus_dsc_supplies), ctx->supplies);
++
++	return ret < 0 ? ret : disable_ret;
++}
++
++static const struct drm_display_mode ams678_er2_plus_dsc_mode = {
++	.clock = (1080 + 30 + 4 + 14) * (2448 + 2 + 1 + 12) * 60 / 1000,
++	.hdisplay = 1080,
++	.hsync_start = 1080 + 30,
++	.hsync_end = 1080 + 30 + 4,
++	.htotal = 1080 + 30 + 4 + 14,
++	.vdisplay = 2448,
++	.vsync_start = 2448 + 2,
++	.vsync_end = 2448 + 2 + 1,
++	.vtotal = 2448 + 2 + 1 + 12,
++	.width_mm = 69,
++	.height_mm = 157,
++	.type = DRM_MODE_TYPE_DRIVER,
++};
++
++static int ams678_er2_plus_dsc_get_modes(struct drm_panel *panel,
++					 struct drm_connector *connector)
++{
++	return drm_connector_helper_get_modes_fixed(connector, &ams678_er2_plus_dsc_mode);
++}
++
++static const struct drm_panel_funcs ams678_er2_plus_dsc_panel_funcs = {
++	.prepare = ams678_er2_plus_dsc_prepare,
++	.enable = ams678_er2_plus_dsc_enable,
++	.unprepare = ams678_er2_plus_dsc_unprepare,
++	.get_modes = ams678_er2_plus_dsc_get_modes,
++};
++
++static int ams678_er2_plus_dsc_bl_update_status(struct backlight_device *bl)
++{
++	struct mipi_dsi_device *dsi = bl_get_data(bl);
++	u16 brightness = backlight_get_brightness(bl);
++	u8 payload[] = {
++		MIPI_DCS_SET_DISPLAY_BRIGHTNESS,
++		brightness & 0xff,
++		brightness >> 8,
++	};
++	unsigned long mode_flags = dsi->mode_flags;
++	int ret;
++
++	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
++
++	ret = mipi_dsi_dcs_write_buffer(dsi, payload, sizeof(payload));
++	dsi->mode_flags = mode_flags;
++
++	return ret < 0 ? ret : 0;
++}
++
++static const struct backlight_ops ams678_er2_plus_dsc_bl_ops = {
++	.options = BL_CORE_SUSPENDRESUME,
++	.update_status = ams678_er2_plus_dsc_bl_update_status,
++};
++
++static struct backlight_device *
++ams678_er2_plus_dsc_create_backlight(struct mipi_dsi_device *dsi)
++{
++	struct device *dev = &dsi->dev;
++	const struct backlight_properties props = {
++		.type = BACKLIGHT_RAW,
++		.brightness = 1023,
++		.max_brightness = 1023,
++	};
++
++	return devm_backlight_device_register(dev, dev_name(dev), dev, dsi,
++					      &ams678_er2_plus_dsc_bl_ops, &props);
++}
++
++static int ams678_er2_plus_dsc_probe(struct mipi_dsi_device *dsi)
++{
++	struct device *dev = &dsi->dev;
++	struct ams678_er2_plus_dsc *ctx;
++	int ret;
++
++	ctx = devm_drm_panel_alloc(dev, struct ams678_er2_plus_dsc, panel,
++				   &ams678_er2_plus_dsc_panel_funcs,
++				   DRM_MODE_CONNECTOR_DSI);
++	if (IS_ERR(ctx))
++		return PTR_ERR(ctx);
++
++	ret = devm_regulator_bulk_get_const(
++		dev, ARRAY_SIZE(ams678_er2_plus_dsc_supplies),
++		ams678_er2_plus_dsc_supplies, &ctx->supplies);
++	if (ret < 0)
++		return dev_err_probe(dev, ret, "Failed to get regulators\n");
++
++	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
++	if (IS_ERR(ctx->reset_gpio))
++		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
++				     "Failed to get reset-gpios\n");
++
++	ctx->iris_wakeup_gpio = devm_gpiod_get(dev, "iris-wakeup",
++						 GPIOD_OUT_LOW);
++	if (IS_ERR(ctx->iris_wakeup_gpio))
++		return dev_err_probe(dev, PTR_ERR(ctx->iris_wakeup_gpio),
++				     "Failed to get Iris wakeup GPIO\n");
++
++	ctx->iris_bypass_ready_gpio = devm_gpiod_get(
++		dev, "iris-bypass-ready", GPIOD_IN);
++	if (IS_ERR(ctx->iris_bypass_ready_gpio))
++		return dev_err_probe(dev, PTR_ERR(ctx->iris_bypass_ready_gpio),
++				     "Failed to get Iris bypass-ready GPIO\n");
++
++	ctx->dsi = dsi;
++	mipi_dsi_set_drvdata(dsi, ctx);
++
++	dsi->lanes = 4;
++	dsi->format = MIPI_DSI_FMT_RGB888;
++	dsi->mode_flags = MIPI_DSI_MODE_NO_EOT_PACKET |
++			  MIPI_DSI_CLOCK_NON_CONTINUOUS;
++
++	ctx->panel.prepare_prev_first = true;
++
++	ret = drm_panel_of_backlight(&ctx->panel);
++	if (ret)
++		return dev_err_probe(dev, ret, "Failed to get backlight\n");
++
++	/* Fallback to DCS backlight if no backlight is defined in DT */
++	if (!ctx->panel.backlight) {
++		ctx->panel.backlight = ams678_er2_plus_dsc_create_backlight(dsi);
++		if (IS_ERR(ctx->panel.backlight))
++			return dev_err_probe(dev, PTR_ERR(ctx->panel.backlight),
++					     "Failed to create backlight\n");
++	}
++
++	drm_panel_add(&ctx->panel);
++
++	/* This panel only supports DSC; unconditionally enable it */
++	dsi->dsc = &ctx->dsc;
++
++	ctx->dsc.dsc_version_major = 1;
++	ctx->dsc.dsc_version_minor = 1;
++
++	/* TODO: Pass slice_per_pkt = 1 */
++	ctx->dsc.slice_height = 48;
++	ctx->dsc.slice_width = 540;
++	/*
++	 * TODO: hdisplay should be read from the selected mode once
++	 * it is passed back to drm_panel (in prepare?)
++	 */
++	WARN_ON(1080 % ctx->dsc.slice_width);
++	ctx->dsc.slice_count = 1080 / ctx->dsc.slice_width;
++	ctx->dsc.bits_per_component = 8;
++	ctx->dsc.bits_per_pixel = 8 << 4; /* 4 fractional bits */
++	ctx->dsc.block_pred_enable = true;
++
++	ret = mipi_dsi_attach(dsi);
++	if (ret < 0) {
++		drm_panel_remove(&ctx->panel);
++		return dev_err_probe(dev, ret, "Failed to attach to DSI host\n");
++	}
++
++	return 0;
++}
++
++static void ams678_er2_plus_dsc_remove(struct mipi_dsi_device *dsi)
++{
++	struct ams678_er2_plus_dsc *ctx = mipi_dsi_get_drvdata(dsi);
++	int ret;
++
++	ret = mipi_dsi_detach(dsi);
++	if (ret < 0)
++		dev_err(&dsi->dev, "Failed to detach from DSI host: %d\n", ret);
++
++	drm_panel_remove(&ctx->panel);
++}
++
++static const struct of_device_id ams678_er2_plus_dsc_of_match[] = {
++	{ .compatible = "asus,rog5-ams678-er2" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, ams678_er2_plus_dsc_of_match);
++
++static struct mipi_dsi_driver ams678_er2_plus_dsc_driver = {
++	.probe = ams678_er2_plus_dsc_probe,
++	.remove = ams678_er2_plus_dsc_remove,
++	.driver = {
++		.name = "panel-ams678-er2-plus-dsc",
++		.of_match_table = ams678_er2_plus_dsc_of_match,
++	},
++};
++module_mipi_dsi_driver(ams678_er2_plus_dsc_driver);
++
++MODULE_AUTHOR("ROG5 Linux contributors");
++MODULE_DESCRIPTION("DRM driver for ASUS ams678 er2 cmd mode dsc fhd plus panel");
++MODULE_LICENSE("GPL");

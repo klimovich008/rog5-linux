@@ -39,6 +39,15 @@ memory=/memory@80000000
 	'0 9b800000 0 400000' ]
 [ "$(fdtget -t x "$dtb" /reserved-memory/memory@d8800000 reg)" = \
 	'0 d8800000 0 a800000' ]
+[ "$(fdtget -t x "$dtb" /reserved-memory/memory@cbc00000 reg)" = \
+	'0 cbc00000 0 4400000' ]
+[ "$(fdtget -t x "$dtb" /reserved-memory/memory@d8000000 reg)" = \
+	'0 d8000000 0 800000' ]
+[ "$(fdtget -t x "$dtb" /reserved-memory/memory@edc00000 reg)" = \
+	'0 edc00000 0 12000000' ]
+! fdtget "$dtb" /reserved-memory/memory@cbc00000 no-map >/dev/null 2>&1
+fdtget "$dtb" /reserved-memory/memory@d8000000 no-map >/dev/null
+! fdtget "$dtb" /reserved-memory/memory@edc00000 no-map >/dev/null 2>&1
 for node in /reserved-memory/memory@e5000000 /reserved-memory/memory@e7400000; do
 	fdtget "$dtb" "$node" no-map >/dev/null
 done

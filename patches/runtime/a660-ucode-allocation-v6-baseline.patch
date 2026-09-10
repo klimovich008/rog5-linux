@@ -1,0 +1,52 @@
+--- a/check-network-root-a660-ucode-allocation-baseline.sh
++++ b/check-network-root-a660-ucode-allocation-v6-baseline.sh
+@@ -10,8 +10,8 @@
+ lower=/.rog5/root-ro
+ module_root=$lower/usr/lib/modules/$release
+ firmware_root=$lower/usr/lib/firmware
+-helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-open
+-seal=$lower/etc/rog5/a660-ucode-allocation-export
++helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-v6-open
++seal=$lower/etc/rog5/a660-ucode-allocation-v6-export
+ acceptance=$lower/etc/rog5/a660-registration-v3-live.accepted
+ 
+ for command in awk basename cat cut dmesg find findmnt grep id ip modinfo \
+@@ -86,12 +86,18 @@
+ 	fail 'ucode-allocation export seal is absent'
+ [ "$(stat -c '%u:%g:%a' "$seal")" = 0:0:444 ] ||
+ 	fail 'ucode-allocation export seal metadata is not exact'
+-grep -qx 'diagnostic_generation=v5' "$seal"
++grep -qx 'diagnostic_generation=v6' "$seal"
++grep -qx 'predecessor=v5_live_rejected_consumed' "$seal"
++grep -qx \
++	'predecessor_report_sha256=0c65c98cc03a49d9e5c8a15b391dbe2b6014b5e791a8659c06cd7c2d0bf52fb9' \
++	"$seal"
+ grep -qx 'registration_acceptance=ACCEPTED_A660_REGISTRATION_V3' "$seal"
+ grep -qx 'firmware_policy=SQE_GMU_ONLY_ZAP_ABSENT' "$seal"
+ grep -qx 'open_policy=EXACTLY_ONE_EUCLEAN' "$seal"
+-grep -qx 'trace_policy=PID_FILTERED_EXACT_BALANCE' "$seal"
++grep -qx 'compiler_policy=PINNED_MSM_RELOCATIONS' "$seal"
++grep -qx 'trace_policy=PID_FILTERED_LOGICAL_VMAP_BALANCE' "$seal"
+ grep -qx 'state_policy=PRE_POST_GEM_SNAPSHOT_EQUAL' "$seal"
++grep -qx 'v5_reuse=FORBIDDEN' "$seal"
+ 
+ [ -f "$acceptance" ] && [ ! -L "$acceptance" ] ||
+ 	fail 'registration-v3 live acceptance marker is absent'
+@@ -214,8 +220,8 @@
+ if [ "$(findmnt -n -o FSTYPE "$trace_root" 2>/dev/null || true)" = tracefs ]; then
+ 	[ ! -s "$trace_root/kprobe_events" ] ||
+ 		fail 'an unrelated kprobe event already exists'
+-	[ ! -d "$trace_root/events/rog5_ucode" ] ||
+-		fail 'stale ucode-allocation trace events exist'
++	[ ! -d "$trace_root/events/rog5_ucode_v6" ] ||
++		fail 'stale ucode-allocation v6 trace events exist'
+ fi
+ for symbol in request_firmware_direct release_firmware \
+ 	qcom_scm_pas_auth_and_reset qcom_scm_set_gpu_smmu_aperture; do
+@@ -258,5 +264,5 @@
+ 	fail 'kernel log regressed during quiet baseline'
+ fi
+ 
+-printf 'PASS A660-ucode-allocation baseline storage=0 mounts=0 firmware_files=2 firmware_requests=0 firmware_releases=0 zap=absent render=0 drm_fds=0 maps=0 unmaps=0 closes=0 gem_frees=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=7 helper=exact watchdog=armed\n' \
++printf 'PASS A660-ucode-allocation-v6 baseline storage=0 mounts=0 firmware_files=2 firmware_requests=0 firmware_releases=0 zap=absent render=0 drm_fds=0 maps=0 unmaps=0 closes=0 gem_frees=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=7 helper=exact compiler=relocations watchdog=armed\n' \
+ 	"$thermal_count" "$thermal_max"

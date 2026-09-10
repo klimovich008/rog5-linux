@@ -1,0 +1,51 @@
+{
+  "format": "rog5-userdata-ext4-reset-v1",
+  "status": "confirmed-by-owner-2026-08-22",
+  "device": {
+    "serial": "M5AIKN00F0353YH",
+    "product": "lahaina",
+    "usb_location": "1-1.2"
+  },
+  "target": {
+    "disk_size_bytes": 253403070464,
+    "disk_logical_block_bytes": 4096,
+    "partition_number": 23,
+    "partition_name": "userdata",
+    "first_lba": 2352680,
+    "last_lba": 61865978,
+    "size_bytes": 243766472704,
+    "gpt_change": false
+  },
+  "current_content": {
+    "raw_type": "metadata-encrypted",
+    "plaintext_filesystem": "f2fs",
+    "mapping": "dm-default-key",
+    "disposition": "destroy-entire-android-data-volume"
+  },
+  "new_filesystem": {
+    "type": "ext4",
+    "label": "rog5-linux",
+    "uuid": "0892bacf-3e02-41b0-84a4-5f05c2df7ce5",
+    "block_size": 4096,
+    "reserved_percent": 0,
+    "disabled_features": ["casefold", "encrypt", "verity", "quota", "project"]
+  },
+  "commands_after_exact_runtime_resolution": [
+    ["blockdev", "--setrw", "$RESOLVED_MAIN_UFS_DISK"],
+    ["blockdev", "--setrw", "$RESOLVED_USERDATA"],
+    ["mkfs.ext4", "-F", "-b", "4096", "-L", "rog5-linux", "-U", "0892bacf-3e02-41b0-84a4-5f05c2df7ce5", "-m", "0", "-O", "^casefold,^encrypt,^verity,^quota,^project", "-E", "lazy_itable_init=0,lazy_journal_init=0", "$RESOLVED_USERDATA"],
+    ["e2fsck", "-fn", "$RESOLVED_USERDATA"],
+    ["blockdev", "--setro", "$RESOLVED_USERDATA"],
+    ["blockdev", "--setro", "$RESOLVED_MAIN_UFS_DISK"]
+  ],
+  "post_format_phase": "create-and-verify-one-16GiB-Arch-image-inside-new-ext4-before-native-root",
+  "abort_conditions": [
+    "identity-or-topology-mismatch",
+    "battery-soc-not-ok-or-unsafe-temperature",
+    "fresh-gpt-backup-not-fsynced-and-hash-verified",
+    "any-target-other-than-exact-userdata-partition-23",
+    "unexpected-geometry-or-filesystem-write",
+    "loss-of-stock-slot-a-or-ram-recovery"
+  ],
+  "rollback_limits": "Existing encrypted Android userdata is not backed up and cannot be recovered after mkfs; GPT and all other partitions remain unchanged. Stock recovery may reformat userdata back to encrypted F2FS, destroying Linux data."
+}

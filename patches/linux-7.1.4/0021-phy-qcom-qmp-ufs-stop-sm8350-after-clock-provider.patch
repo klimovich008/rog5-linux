@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Wed, 12 Aug 2026 00:00:00 +0000
+Subject: [PATCH] phy: qcom: qmp-ufs: advance SM8350 diagnostic through clocks
+
+Generation 36 proved that the SM8350 QMP-UFS probe may select its DT binding
+and map the PHY MMIO resources without disrupting USB NCM.  Advance the
+RAM-only discriminator through fixed-rate symbol-clock and OF clock-provider
+registration, then stop before PHY creation or PHY-provider registration.
+
+The UFS host stack remains absent, so this diagnostic cannot enumerate or
+access storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2233,18 +2233,18 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		goto err_node_put;
+ 
+-	if (of_device_is_compatible(dev->of_node,
+-				    "qcom,sm8350-qmp-ufs-phy")) {
+-		dev_notice(dev,
+-			   "ROG5 QMP-UFS diagnostic: MMIO parse stage complete\n");
+-		of_node_put(np);
+-		return 0;
+-	}
+-
+ 	ret = qmp_ufs_register_clocks(qmp, np);
+ 	if (ret)
+ 		goto err_node_put;
+ 
++	if (of_device_is_compatible(dev->of_node,
++				    "qcom,sm8350-qmp-ufs-phy")) {
++		dev_notice(dev,
++			   "ROG5 QMP-UFS diagnostic: clock provider stage complete\n");
++		of_node_put(np);
++		return 0;
++	}
++
+ 	qmp->phy = devm_phy_create(dev, np, &qcom_qmp_ufs_phy_ops);
+ 	if (IS_ERR(qmp->phy)) {
+ 		ret = PTR_ERR(qmp->phy);
+-- 
+2.51.0

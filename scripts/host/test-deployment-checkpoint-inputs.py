@@ -1,0 +1,380 @@
+#!/usr/bin/env -S -i /usr/bin/python3 -I -S
+"""Hostile tests for immutable ignored inputs in deployment worktrees."""
+
+from __future__ import annotations
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import os
+from pathlib import Path
+import stat
+import subprocess
+import tempfile
+import unittest
+
+
+REPO = Path(__file__).resolve().parents[2]
+LAUNCHERS = (
+    REPO / "scripts/host/build-headless-ssh-deployment-candidate.sh",
+    REPO / "scripts/host/build-early-target-diagnostic-deployment-candidate.sh",
+)
+
+
+def load_launcher(path: Path):
+    name = f"rog5_checkpoint_input_{path.stem.replace('-', '_')}"
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    specification = importlib.util.spec_from_loader(name, loader)
+    if specification is None:
+        raise RuntimeError("cannot load deployment launcher")
+    module = importlib.util.module_from_spec(specification)
+    loader.exec_module(module)
+    return module
+
+
+class CheckpointInputTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        self.repository = self.root / "repository"
+        self.snapshot = self.root / "snapshot"
+        self.repository.mkdir(mode=0o700)
+        self.snapshot.mkdir(mode=0o700)
+        (self.snapshot / ".gitignore").write_text("artifacts/*\n", encoding="ascii")
+        subprocess.run(
+            ["/usr/bin/git", "init", "-q", str(self.snapshot)], check=True
+        )
+        subprocess.run(
+            [
+                "/usr/bin/git",
+                "-C",
+                str(self.snapshot),
+                "-c",
+                "user.name=ROG5 Test",
+                "-c",
+                "user.email=rog5-test@example.invalid",
+                "add",
+                ".gitignore",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "/usr/bin/git",
+                "-C",
+                str(self.snapshot),
+                "-c",
+                "user.name=ROG5 Test",
+                "-c",
+                "user.email=rog5-test@example.invalid",
+                "commit",
+                "-q",
+                "-m",
+                "fixture",
+            ],
+            check=True,
+        )
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def contract(self, relative: str, payload: bytes, mode: int = 0o644):
+        return (
+            relative,
+            len(payload),
+            mode,
+            hashlib.sha256(payload).hexdigest(),
+        )
+
+    def source(self, relative: str, payload: bytes, mode: int = 0o644) -> Path:
+        path = self.repository / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+        path.chmod(mode)
+        return path
+
+    def test_exact_regular_input_is_copied_without_aliasing(self) -> None:
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                payload = b"reviewed ignored release input\n"
+                relative = "artifacts/fixture/release.bin"
+                source = self.source(relative, payload)
+                module.stage_checkpoint_inputs(
+                    self.repository,
+                    self.snapshot,
+                    (self.contract(relative, payload),),
+                )
+                destination = self.snapshot / relative
+                self.assertEqual(destination.read_bytes(), payload)
+                self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o644)
+                self.assertNotEqual(source.stat().st_ino, destination.stat().st_ino)
+                destination.unlink()
+
+    def test_exact_tracked_input_is_verified_in_place(self) -> None:
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                payload = b"reviewed tracked release input\n"
+                relative = f"artifacts/fixture/{launcher.stem}.dtb"
+                self.source(relative, payload)
+                destination = self.snapshot / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(payload)
+                destination.chmod(0o644)
+                subprocess.run(
+                    [
+                        "/usr/bin/git",
+                        "-C",
+                        str(self.snapshot),
+                        "-c",
+                        "user.name=ROG5 Test",
+                        "-c",
+                        "user.email=rog5-test@example.invalid",
+                        "add",
+                        "-f",
+                        relative,
+                    ],
+                    check=True,
+                )
+                subprocess.run(
+                    [
+                        "/usr/bin/git",
+                        "-C",
+                        str(self.snapshot),
+                        "-c",
+                        "user.name=ROG5 Test",
+                        "-c",
+                        "user.email=rog5-test@example.invalid",
+                        "commit",
+                        "-q",
+                        "-m",
+                        "tracked fixture",
+                    ],
+                    check=True,
+                )
+                inode = destination.stat().st_ino
+                module.stage_checkpoint_inputs(
+                    self.repository,
+                    self.snapshot,
+                    (self.contract(relative, payload),),
+                )
+                self.assertEqual(destination.stat().st_ino, inode)
+                self.assertEqual(destination.read_bytes(), payload)
+                destination.write_bytes(b"wrong tracked bytes\n")
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository,
+                        self.snapshot,
+                        (self.contract(relative, payload),),
+                    )
+                subprocess.run(
+                    [
+                        "/usr/bin/git",
+                        "-C",
+                        str(self.snapshot),
+                        "checkout",
+                        "--",
+                        relative,
+                    ],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+    def test_missing_symlink_wrong_mode_hash_and_occupied_output_fail(self) -> None:
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                payload = b"exact\n"
+                relative = "artifacts/fixture/input.bin"
+                contract = (self.contract(relative, payload),)
+                source_path = self.repository / relative
+                destination_path = self.snapshot / relative
+                for path in (source_path, destination_path):
+                    try:
+                        path.unlink()
+                    except FileNotFoundError:
+                        pass
+
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository, self.snapshot, contract
+                    )
+
+                source = self.source(relative, payload, 0o600)
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository, self.snapshot, contract
+                    )
+                source.chmod(0o644)
+
+                wrong_hash = (
+                    relative,
+                    len(payload),
+                    0o644,
+                    "0" * 64,
+                )
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository, self.snapshot, (wrong_hash,)
+                    )
+
+                source.unlink()
+                source.symlink_to("missing-target")
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository, self.snapshot, contract
+                    )
+                source.unlink()
+                self.source(relative, payload)
+
+                destination = self.snapshot / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(b"occupied")
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository, self.snapshot, contract
+                    )
+                self.assertEqual(destination.read_bytes(), b"occupied")
+                destination.unlink()
+
+    def test_absolute_parent_alias_and_duplicate_contracts_fail(self) -> None:
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                payload = b"exact\n"
+                relative = "artifacts/fixture/input.bin"
+                contract = self.contract(relative, payload)
+                self.source(relative, payload)
+                for hostile in (
+                    ((str(self.repository / relative), *contract[1:]),),
+                    (("artifacts/../fixture/input.bin", *contract[1:]),),
+                    (contract, contract),
+                ):
+                    with self.assertRaises(SystemExit):
+                        module.stage_checkpoint_inputs(
+                            self.repository, self.snapshot, hostile
+                        )
+
+    def test_source_and_destination_parent_symlinks_fail(self) -> None:
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                payload = b"exact\n"
+                relative = "artifacts/aliased/input.bin"
+                contract = (self.contract(relative, payload),)
+                outside = self.root / f"outside-{launcher.stem}"
+                outside.mkdir()
+
+                source_parent = self.repository / "artifacts/aliased"
+                if source_parent.is_symlink():
+                    source_parent.unlink()
+                elif source_parent.is_dir():
+                    source_parent.rmdir()
+                source_parent.parent.mkdir(parents=True, exist_ok=True)
+                source_parent.symlink_to(outside, target_is_directory=True)
+                (outside / "input.bin").write_bytes(payload)
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository, self.snapshot, contract
+                    )
+                source_parent.unlink()
+                (outside / "input.bin").unlink()
+
+                self.source(relative, payload)
+                destination_parent = self.snapshot / "artifacts/aliased"
+                destination_parent.parent.mkdir(parents=True, exist_ok=True)
+                destination_parent.symlink_to(outside, target_is_directory=True)
+                with self.assertRaises(SystemExit):
+                    module.stage_checkpoint_inputs(
+                        self.repository, self.snapshot, contract
+                    )
+                self.assertFalse((outside / "input.bin").exists())
+                destination_parent.unlink()
+                (self.repository / relative).unlink()
+                source_parent.rmdir()
+
+    def test_source_change_during_copy_fails_and_removes_output(self) -> None:
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                relative = "artifacts/fixture/changing.bin"
+                payload = b"A" * (1024 * 1024 + 1)
+                source = self.source(relative, payload)
+                contract = (self.contract(relative, payload),)
+                original_read = module.os.read
+                changed = False
+
+                def hostile_read(descriptor: int, count: int) -> bytes:
+                    nonlocal changed
+                    block = original_read(descriptor, count)
+                    if block and not changed:
+                        changed = True
+                        with source.open("r+b") as stream:
+                            stream.seek(-1, os.SEEK_END)
+                            stream.write(b"B")
+                            stream.flush()
+                            os.fsync(stream.fileno())
+                    return block
+
+                module.os.read = hostile_read
+                try:
+                    with self.assertRaises(SystemExit):
+                        module.stage_checkpoint_inputs(
+                            self.repository, self.snapshot, contract
+                        )
+                finally:
+                    module.os.read = original_read
+                self.assertTrue(changed)
+                self.assertFalse((self.snapshot / relative).exists())
+                source.unlink()
+
+    def test_mkbootimg_runtime_dependency_is_in_each_fixed_profile(self) -> None:
+        expected = (
+            3082,
+            0o755,
+            "367858be999c3013d44450a91bde0067f0530857b5a95fbf5858c62477bcaf36",
+        )
+        for launcher in LAUNCHERS:
+            with self.subTest(launcher=launcher.name):
+                module = load_launcher(launcher)
+                fixed = getattr(
+                    module,
+                    "STATIC_CHECKPOINT_INPUTS",
+                    getattr(module, "CHECKPOINT_INPUTS", ()),
+                )
+                contracts = {
+                    relative: (size, mode, digest)
+                    for relative, size, mode, digest in fixed
+                }
+                self.assertEqual(
+                    contracts.get(
+                        "artifacts/android-boot-tools-v1/gki/generate_gki_certificate.py"
+                    ),
+                    expected,
+                )
+
+    def test_power_usb_inputs_come_from_the_canonical_source(self) -> None:
+        module = load_launcher(LAUNCHERS[0])
+        contracts = module.power_usb_checkpoint_inputs(REPO)
+        value = __import__("json").loads(
+            (REPO / "configs/recovery-candidates/power-usb-active.json").read_text(
+                encoding="ascii"
+            )
+        )
+        artifacts = value["record"]["artifacts"]
+        expected = tuple(
+            (
+                artifacts[name]["path"],
+                artifacts[name]["size"],
+                0o644,
+                artifacts[name]["sha256"],
+            )
+            for name in ("Image", "board.dtb", "initramfs.cpio.gz")
+        )
+        self.assertEqual(contracts[:3], expected)
+
+
+if __name__ == "__main__":
+    unittest.main()

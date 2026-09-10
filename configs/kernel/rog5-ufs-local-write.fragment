@@ -1,0 +1,5 @@
+# Retain the accepted UFS device-query, link-power and runtime-PM containment,
+# while allowing the sealed initramfs to open one exact userdata block-data
+# write window. All physical nodes are locked read-only before this is used.
+CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y
+CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y

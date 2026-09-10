@@ -1,0 +1,161 @@
+From b2059b161861d6d7d1aeb9b7d93ad86b13d85048 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Sat, 25 Jul 2026 03:00:00 +0000
+Subject: [PATCH] clk: trace attended CCF orphan reparenting
+
+Bound diagnostic markers to the first four orphan clocks while an exact
+SM8350 GPUCC registration is active.
+
+Bracket parent lookup, topology migration, accuracy and rate recalculation
+without adding or removing an existing operation.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/clk/clk.c | 86 ++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 82 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/clk/clk.c b/drivers/clk/clk.c
+index e2085ad2a..61968bc72 100644
+--- a/drivers/clk/clk.c
++++ b/drivers/clk/clk.c
+@@ -58,6 +58,8 @@ static void clk_rog5_register_trace(struct device *dev,
+ 	msleep(100);
+ }
+ 
++#define ROG5_CCF_ORPHAN_TRACE_LIMIT 4
++
+ static struct task_struct *prepare_owner;
+ static struct task_struct *enable_owner;
+ 
+@@ -3854,17 +3856,48 @@ static inline void clk_debug_unregister(struct clk_core *core)
+ }
+ #endif
+ 
+-static void clk_core_reparent_orphans_nolock(void)
++static void clk_rog5_orphan_trace(const struct clk_core *trigger,
++				  const struct clk_core *clock,
++				  const char *phase, int state)
++{
++	clk_rog5_register_trace(trigger->dev, trigger->of_node, clock->name,
++				phase, state);
++}
++
++static void
++clk_core_reparent_orphans_nolock(const struct clk_core *rog5_trigger)
+ {
+ 	struct clk_core *orphan;
+ 	struct hlist_node *tmp2;
++	unsigned int rog5_trace_count = 0;
++	bool rog5_trace;
++
++	rog5_trace = clk_rog5_register_trace_enabled(rog5_trigger ?
++						     rog5_trigger->of_node :
++						     NULL);
+ 
+ 	/*
+ 	 * walk the list of orphan clocks and reparent any that newly finds a
+ 	 * parent.
+ 	 */
+ 	hlist_for_each_entry_safe(orphan, tmp2, &clk_orphan_list, child_node) {
+-		struct clk_core *parent = __clk_init_parent(orphan);
++		bool rog5_trace_this = rog5_trace &&
++			rog5_trace_count < ROG5_CCF_ORPHAN_TRACE_LIMIT;
++		struct clk_core *parent;
++
++		if (rog5_trace_this) {
++			clk_rog5_orphan_trace(rog5_trigger, orphan,
++					      "orphan-scan-entry",
++					      rog5_trace_count);
++			clk_rog5_orphan_trace(rog5_trigger, orphan,
++					      "orphan-parent-lookup-begin",
++					      0);
++		}
++		parent = __clk_init_parent(orphan);
++		if (rog5_trace_this)
++			clk_rog5_orphan_trace(rog5_trigger, orphan,
++					      "orphan-parent-lookup-complete",
++					      parent ? 1 : 0);
+ 
+ 		/*
+ 		 * We need to use __clk_set_parent_before() and _after() to
+@@ -3874,10 +3907,46 @@ static void clk_core_reparent_orphans_nolock(void)
+ 		 */
+ 		if (parent) {
+ 			/* update the clk tree topology */
++			if (rog5_trace_this) {
++				clk_rog5_orphan_trace(rog5_trigger, parent,
++						      "orphan-parent-resolved",
++						      0);
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-set-parent-before-begin",
++						      0);
++			}
+ 			__clk_set_parent_before(orphan, parent);
++			if (rog5_trace_this) {
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-set-parent-before-complete",
++						      0);
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-set-parent-after-begin",
++						      0);
++			}
+ 			__clk_set_parent_after(orphan, parent, NULL);
++			if (rog5_trace_this) {
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-set-parent-after-complete",
++						      0);
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-accuracy-begin",
++						      0);
++			}
+ 			__clk_recalc_accuracies(orphan);
++			if (rog5_trace_this) {
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-accuracy-complete",
++						      0);
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-rates-begin",
++						      0);
++			}
+ 			__clk_recalc_rates(orphan, true, 0);
++			if (rog5_trace_this)
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-rates-complete",
++						      0);
+ 
+ 			/*
+ 			 * __clk_init_parent() will set the initial req_rate to
+@@ -3891,6 +3960,15 @@ static void clk_core_reparent_orphans_nolock(void)
+ 			 * clk_set_rate_range() doesn't drop the frequency.
+ 			 */
+ 			orphan->req_rate = orphan->rate;
++			if (rog5_trace_this)
++				clk_rog5_orphan_trace(rog5_trigger, orphan,
++						      "orphan-req-rate-complete",
++						      0);
++		}
++		if (rog5_trace_this) {
++			clk_rog5_orphan_trace(rog5_trigger, orphan,
++					      "orphan-scan-complete", 0);
++			rog5_trace_count++;
+ 		}
+ 	}
+ }
+@@ -4143,7 +4221,7 @@ static int __clk_core_init(struct clk_core *core)
+ 
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"orphan-reparent-begin", 0);
+-	clk_core_reparent_orphans_nolock();
++	clk_core_reparent_orphans_nolock(core);
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"orphan-reparent-complete", 0);
+ out:
+@@ -5053,7 +5131,7 @@ EXPORT_SYMBOL_GPL(devm_clk_notifier_register);
+ static void clk_core_reparent_orphans(void)
+ {
+ 	clk_prepare_lock();
+-	clk_core_reparent_orphans_nolock();
++	clk_core_reparent_orphans_nolock(NULL);
+ 	clk_prepare_unlock();
+ }
+ 

@@ -1,0 +1,16 @@
+{
+  "format": "rog5-native-wifi-trace-evidence-v1",
+  "source_commit": "8b08c151245053a919d949c095aab50cea295345",
+  "readonly_ufs_nodes": 117,
+  "completed_calls": [
+    {"name": "qcom_pcie_init_2_7_0", "time": 174.523870, "result": 0},
+    {"name": "phy_power_on", "time": 174.526138, "result": 0}
+  ],
+  "last_delivered_event": {"name": "pci_pwrctrl_create_devices", "kind": "entry", "time": 174.526142},
+  "subsequent_reset_and_v11_return": "verified",
+  "lost_final_trace_records_possible": true,
+  "proven_fault_site": null,
+  "qemu_creation_binding_dummy_power_cycle": "pass",
+  "qemu_emulates_asus_electrical_behavior": false,
+  "safe_to_retry_consumed_target": false
+}

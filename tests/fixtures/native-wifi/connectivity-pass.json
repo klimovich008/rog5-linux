@@ -1,0 +1,17 @@
+{
+  "candidate_consumed": true,
+  "interface": "wlp1s0",
+  "wpa_state": "COMPLETED",
+  "pairwise_cipher": "CCMP",
+  "group_cipher": "CCMP",
+  "dhcp_succeeded": true,
+  "host_route_device": "wlan0",
+  "host_source_address_bound": true,
+  "strict_host_key_verified": true,
+  "expected_boot_id_verified": true,
+  "ssh_stdout": "WIFI_SSH_PASS\n",
+  "fallback_verified": true,
+  "persistent_wifi": false,
+  "host_free_boot": false,
+  "private_addresses_and_credentials_omitted": true
+}

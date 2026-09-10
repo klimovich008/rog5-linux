@@ -1,0 +1,112 @@
+From d9ac316489f4258d389d6298659d5e9c22183400 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Sat, 25 Jul 2026 12:00:00 +0000
+Subject: [PATCH] clk: guard orphan reparenting with runtime PM
+
+Resume registered runtime-PM clock providers before taking the CCF
+prepare lock, then release the references after unlocking.
+
+Apply the same ordering to both OF provider orphan-reparent paths.
+This is an experimental partial backport of the March 2025 RFC.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+
+diff --git a/drivers/clk/clk.c b/drivers/clk/clk.c
+index f3067f06f9876fd2fe93e5dc917fff85471b761a..ed30a89d960e8a2517669352d23295c4dfdbe377 100644
+--- a/drivers/clk/clk.c
++++ b/drivers/clk/clk.c
+@@ -4042,6 +4042,17 @@ static int __clk_core_init(struct clk_core *core)
+ 
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"core-init-entry", 0);
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-get-all-begin", 0);
++	ret = clk_pm_runtime_get_all();
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-get-all-complete", ret);
++	if (ret) {
++		clk_rog5_register_trace(core->dev, core->of_node, core->name,
++					"core-init-exit", ret);
++		return ret;
++	}
++
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"prepare-lock-begin", 0);
+ 	clk_prepare_lock();
+@@ -4058,14 +4069,6 @@ static int __clk_core_init(struct clk_core *core)
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"hw-core-link-complete", 0);
+ 
+-	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+-				"runtime-get-begin", 0);
+-	ret = clk_pm_runtime_get(core);
+-	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+-				"runtime-get-complete", ret);
+-	if (ret)
+-		goto unlock;
+-
+ 	/* check to see if a clock with this name is already registered */
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"duplicate-lookup-begin", 0);
+@@ -4279,12 +4282,6 @@ static int __clk_core_init(struct clk_core *core)
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"orphan-reparent-complete", 0);
+ out:
+-	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+-				"runtime-put-begin", ret);
+-	clk_pm_runtime_put(core);
+-	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+-				"runtime-put-complete", ret);
+-unlock:
+ 	if (ret) {
+ 		hash_del(&core->hashtable_node);
+ 		hlist_del_init(&core->child_node);
+@@ -4297,6 +4294,12 @@ static int __clk_core_init(struct clk_core *core)
+ 	clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 				"prepare-unlock-complete", ret);
+ 
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-put-all-begin", ret);
++	clk_pm_runtime_put_all();
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-put-all-complete", ret);
++
+ 	if (!ret) {
+ 		clk_rog5_register_trace(core->dev, core->of_node, core->name,
+ 					"debug-register-begin", 0);
+@@ -5289,8 +5292,16 @@ int of_clk_add_provider(struct device_node *np,
+ 	mutex_unlock(&of_clk_mutex);
+ 	pr_debug("Added clock from %pOF\n", np);
+ 
++	ret = clk_pm_runtime_get_all();
++	if (ret) {
++		of_clk_del_provider(np);
++		return ret;
++	}
++
+ 	clk_core_reparent_orphans();
+ 
++	clk_pm_runtime_put_all();
++
+ 	ret = of_clk_set_defaults(np, true);
+ 	if (ret < 0)
+ 		of_clk_del_provider(np);
+@@ -5331,8 +5342,16 @@ int of_clk_add_hw_provider(struct device_node *np,
+ 	mutex_unlock(&of_clk_mutex);
+ 	pr_debug("Added clk_hw provider from %pOF\n", np);
+ 
++	ret = clk_pm_runtime_get_all();
++	if (ret) {
++		of_clk_del_provider(np);
++		return ret;
++	}
++
+ 	clk_core_reparent_orphans();
+ 
++	clk_pm_runtime_put_all();
++
+ 	ret = of_clk_set_defaults(np, true);
+ 	if (ret < 0)
+ 		of_clk_del_provider(np);
+-- 
+2.55.0

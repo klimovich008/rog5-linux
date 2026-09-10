@@ -1,0 +1,10 @@
+[Unit]
+Description=Independent deadline for this automatic Wi-Fi RAM trial
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Timer]
+OnBootSec=@OUTER_SECONDS@s
+AccuracySec=1s
+Unit=rog5-wifi-boot-rollback.service

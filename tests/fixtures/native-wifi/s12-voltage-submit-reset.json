@@ -1,0 +1,43 @@
+{
+  "source_commit": "22e659189593c1b792e309a08ccb63f5454acc01",
+  "source_boot": "0e1f7746-de4a-4f38-8dce-39769e379ee3",
+  "target_boot": "4cf83ed0-ca9b-411e-b596-7e70512f4dbe",
+  "fallback_boot": "1cf9d2b4-addf-4281-8bea-cfc2870ad8f6",
+  "source_gates_passed": true,
+  "target_ssh_proven": true,
+  "pon_unchanged_across_handoff": true,
+  "readonly_ufs_nodes": 117,
+  "pause_ms": 250,
+  "kmsg": [
+    "[44.711287] ROG5_WCN_RAIL index=0 supply=vddio stage=enter result=0 cached_uv=1800000 voltage_state=present mode=0 mode_state=absent enabled=-22 enabled_state=error",
+    "[44.999426] ROG5_WCN_RAIL index=0 supply=vddio stage=return result=0 cached_uv=1800000 voltage_state=present mode=0 mode_state=absent enabled=1 enabled_state=present",
+    "[45.287282] ROG5_WCN_RAIL index=1 supply=vddaon stage=enter result=0 cached_uv=1016000 voltage_state=present mode=0 mode_state=absent enabled=1 enabled_state=present",
+    "[45.575324] ROG5_WCN_RAIL index=1 supply=vddaon stage=return result=0 cached_uv=1016000 voltage_state=present mode=0 mode_state=absent enabled=1 enabled_state=present",
+    "[45.867273] ROG5_WCN_RAIL index=2 supply=vddpmu stage=enter result=0 cached_uv=1352000 voltage_state=present mode=8 mode_state=present enabled=-22 enabled_state=error"
+  ],
+  "trace": [
+    "46.151284: regulator_enable: name=vreg_s12b_1p35",
+    "46.151295: enter_rpmh_write: state=2 count=1 address=0x40100 value=0x548 command_wait=0",
+    "46.151306: enter_rpmh_rsc_send_data",
+    "46.151308: rpmh_send_msg: apps_rsc: tcs(m): 0 [active] cmd(n): 0 msgid: 0x10108 addr: 0x40100 data: 0x548 complete: 0",
+    "46.151313: return_rpmh_rsc_send_data: result=0"
+  ],
+  "voltage_request_mv": 1352,
+  "voltage_submission_proven": true,
+  "voltage_call_return_observed": false,
+  "ack_observed": false,
+  "enable_request_observed": false,
+  "absence_proves_ack_never_happened": false,
+  "paired_pon": {
+    "push_before": 118,
+    "push_after": 138,
+    "ring_bytes": 117,
+    "new_bytes": 20,
+    "new_reset_trigger": "PS_HOLD",
+    "new_reset_type": "WARM_RESET",
+    "warm_reset_count_before": 6,
+    "warm_reset_count_after": 7
+  },
+  "proven_faulting_rail_or_gpio": null,
+  "safe_to_retry_consumed_target": false
+}

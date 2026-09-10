@@ -1,0 +1,259 @@
+From 49ebf7580a8878f934f8b80d85fe3d17a35d28cd Mon Sep 17 00:00:00 2001
+From: ROG5 Linux maintainers <rog5-linux@invalid>
+Date: Mon, 27 Jul 2026 22:00:00 +0200
+Subject: [PATCH] drm/msm: add A660 GMU clock preparation diagnostic
+
+Add a default-off exact-A660.1 diagnostic that balances the existing
+GMU/CX and GX runtime-PM references. Set and verify the two normal GMU
+rates, prepare and enable all seven SM8350 GMU clocks, then disable them
+and restore every rate and power-domain state before secure initialization,
+MMIO, interrupts, or firmware start.
+
+Keep the existing one-open GPU allocation rollback and return EUCLEAN only
+after the complete clock and runtime-PM rollback is verified.
+
+Signed-off-by: ROG5 Linux maintainers <rog5-linux@invalid>
+---
+ drivers/gpu/drm/msm/adreno/a6xx_gmu.c | 126 ++++++++++++++++++++++++++
+ drivers/gpu/drm/msm/msm_drv.c         |  54 ++++++++++-
+ drivers/gpu/drm/msm/msm_gpu.h         |   4 +
+ 3 files changed, 183 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+index 004bb31..9e34455 100644
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1251,6 +1251,129 @@ static int a6xx_gmu_secure_init(struct a6xx_gpu *a6xx_gpu)
+ }
+ 
+ 
++static int a6xx_gmu_clock_preparation_only(struct a6xx_gpu *a6xx_gpu)
++{
++	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
++	struct a6xx_gmu *gmu = &a6xx_gpu->gmu;
++	unsigned long core_rate, hub_rate;
++	bool core_changed = false;
++	bool hub_changed = false;
++	bool clocks_enabled = false;
++	bool gmu_active = false;
++	bool gx_active = false;
++	int cleanup_ret;
++	int ret;
++
++	if (adreno_gpu->chip_id != 0x06060001)
++		return -ENODEV;
++
++	if (gmu->nr_clocks != 7 ||
++	    IS_ERR_OR_NULL(gmu->core_clk) ||
++	    IS_ERR_OR_NULL(gmu->hub_clk) ||
++	    IS_ERR_OR_NULL(gmu->cxpd) ||
++	    IS_ERR_OR_NULL(gmu->gxpd))
++		return -ENODEV;
++
++	if (!pm_runtime_suspended(gmu->dev) ||
++	    !pm_runtime_suspended(gmu->cxpd) ||
++	    !pm_runtime_suspended(gmu->gxpd))
++		return -EBUSY;
++
++	if (!msm_a660_gmu_clock_preparation_only_mark_attempt())
++		return -EALREADY;
++
++	ret = pm_runtime_get_sync(gmu->dev);
++	if (ret < 0) {
++		pm_runtime_put_noidle(gmu->dev);
++		return ret;
++	}
++	gmu_active = true;
++
++	ret = pm_runtime_get_sync(gmu->gxpd);
++	if (ret < 0) {
++		pm_runtime_put_noidle(gmu->gxpd);
++		goto out;
++	}
++	gx_active = true;
++
++	core_rate = clk_get_rate(gmu->core_clk);
++	hub_rate = clk_get_rate(gmu->hub_clk);
++
++	ret = clk_set_rate(gmu->core_clk, 200000000);
++	if (ret)
++		goto out;
++	core_changed = true;
++
++	ret = clk_set_rate(gmu->hub_clk, 150000000);
++	if (ret)
++		goto out;
++	hub_changed = true;
++
++	if (clk_get_rate(gmu->core_clk) != 200000000 ||
++	    clk_get_rate(gmu->hub_clk) != 150000000) {
++		ret = -ERANGE;
++		goto out;
++	}
++
++	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
++	if (ret)
++		goto out;
++	clocks_enabled = true;
++
++out:
++	if (clocks_enabled)
++		clk_bulk_disable_unprepare(gmu->nr_clocks, gmu->clocks);
++
++	if (hub_changed) {
++		cleanup_ret = clk_set_rate(gmu->hub_clk, hub_rate);
++		if (!ret && cleanup_ret)
++			ret = cleanup_ret;
++	}
++
++	if (core_changed) {
++		cleanup_ret = clk_set_rate(gmu->core_clk, core_rate);
++		if (!ret && cleanup_ret)
++			ret = cleanup_ret;
++	}
++
++	if (!ret &&
++	    (clk_get_rate(gmu->core_clk) != core_rate ||
++	     clk_get_rate(gmu->hub_clk) != hub_rate))
++		ret = -ERANGE;
++
++	if (gx_active) {
++		cleanup_ret = pm_runtime_put_sync_suspend(gmu->gxpd);
++		if (!ret && cleanup_ret < 0)
++			ret = cleanup_ret;
++	}
++
++	if (gmu_active) {
++		cleanup_ret = pm_runtime_put_sync_suspend(gmu->dev);
++		if (!ret && cleanup_ret < 0)
++			ret = cleanup_ret;
++
++		cleanup_ret = pm_runtime_suspend(gmu->cxpd);
++		if (!ret && cleanup_ret < 0)
++			ret = cleanup_ret;
++	}
++
++	if (!ret &&
++	    (!pm_runtime_suspended(gmu->gxpd) ||
++	     !pm_runtime_suspended(gmu->dev) ||
++	     !pm_runtime_suspended(gmu->cxpd)))
++		ret = -EBUSY;
++
++	if (ret)
++		return ret;
++
++	if (!msm_a660_gmu_clock_preparation_only_mark_passed())
++		return -EALREADY;
++
++	DRM_DEV_INFO(gmu->dev,
++		     "A660 GMU GX bookkeeping and seven-clock preparation synchronously rolled back; reject resume\n");
++	return -EUCLEAN;
++}
++
+ int a6xx_gmu_resume(struct a6xx_gpu *a6xx_gpu)
+ {
+ 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+@@ -1306,6 +1429,9 @@ int a6xx_gmu_resume(struct a6xx_gpu *a6xx_gpu)
+ 		return -EUCLEAN;
+ 	}
+ 
++	if (msm_a660_gmu_clock_preparation_only_enabled())
++		return a6xx_gmu_clock_preparation_only(a6xx_gpu);
++
+ 	gmu->hung = false;
+ 
+ 	/* Turn on the resources */
+diff --git a/drivers/gpu/drm/msm/msm_drv.c b/drivers/gpu/drm/msm/msm_drv.c
+index 6a86ad2..df33d9d 100644
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -121,6 +121,34 @@ bool msm_a660_gmu_cx_runtime_pm_only_was_passed(void)
+ 	return atomic_read(&gmu_cx_runtime_pm_only_state) == 2;
+ }
+ 
++static bool gmu_clock_preparation_only;
++MODULE_PARM_DESC(gmu_clock_preparation_only,
++		 "Prepare and synchronously roll back exact A660 GMU clocks once before secure init");
++module_param(gmu_clock_preparation_only, bool, 0400);
++
++static atomic_t gmu_clock_preparation_only_open_consumed = ATOMIC_INIT(0);
++static atomic_t gmu_clock_preparation_only_state = ATOMIC_INIT(0);
++
++bool msm_a660_gmu_clock_preparation_only_enabled(void)
++{
++	return gmu_clock_preparation_only;
++}
++
++bool msm_a660_gmu_clock_preparation_only_mark_attempt(void)
++{
++	return atomic_cmpxchg(&gmu_clock_preparation_only_state, 0, 1) == 0;
++}
++
++bool msm_a660_gmu_clock_preparation_only_mark_passed(void)
++{
++	return atomic_cmpxchg(&gmu_clock_preparation_only_state, 1, 2) == 1;
++}
++
++bool msm_a660_gmu_clock_preparation_only_was_passed(void)
++{
++	return atomic_read(&gmu_clock_preparation_only_state) == 2;
++}
++
+ DECLARE_FAULT_ATTR(fail_gem_alloc);
+ DECLARE_FAULT_ATTR(fail_gem_iova);
+ 
+@@ -334,7 +362,8 @@ static int msm_open(struct drm_device *dev, struct drm_file *file)
+ 	int ret;
+ 
+ 	if (firmware_request_only + ucode_allocation_only +
+-	    gmu_resume_entry_only + gmu_cx_runtime_pm_only > 1)
++	    gmu_resume_entry_only + gmu_cx_runtime_pm_only +
++	    gmu_clock_preparation_only > 1)
+ 		return -EINVAL;
+ 
+ 	if (gmu_resume_entry_only) {
+@@ -381,6 +410,29 @@ static int msm_open(struct drm_device *dev, struct drm_file *file)
+ 		return -EUCLEAN;
+ 	}
+ 
++	if (gmu_clock_preparation_only) {
++		if (atomic_cmpxchg(&gmu_clock_preparation_only_open_consumed,
++				   0, 1))
++			return -EALREADY;
++
++		load_gpu(dev);
++		passed = msm_a660_gmu_clock_preparation_only_was_passed();
++
++		if (priv->gpu)
++			return -EPROTO;
++
++		ret = adreno_rollback_gpu_load_only(dev);
++		if (ret)
++			return ret;
++
++		if (!passed)
++			return -EPROTO;
++
++		DRM_DEV_INFO(dev->dev,
++			     "A660 GMU clock preparation passed and GPU load rolled back; reject open\n");
++		return -EUCLEAN;
++	}
++
+ 	if (ucode_allocation_only) {
+ 		if (atomic_cmpxchg(&ucode_allocation_only_consumed, 0, 1))
+ 			return -EALREADY;
+diff --git a/drivers/gpu/drm/msm/msm_gpu.h b/drivers/gpu/drm/msm/msm_gpu.h
+index ad68a13..a66a1b6 100644
+--- a/drivers/gpu/drm/msm/msm_gpu.h
++++ b/drivers/gpu/drm/msm/msm_gpu.h
+@@ -718,6 +718,10 @@ bool msm_a660_gmu_cx_runtime_pm_only_enabled(void);
+ bool msm_a660_gmu_cx_runtime_pm_only_mark_attempt(void);
+ bool msm_a660_gmu_cx_runtime_pm_only_mark_passed(void);
+ bool msm_a660_gmu_cx_runtime_pm_only_was_passed(void);
++bool msm_a660_gmu_clock_preparation_only_enabled(void);
++bool msm_a660_gmu_clock_preparation_only_mark_attempt(void);
++bool msm_a660_gmu_clock_preparation_only_mark_passed(void);
++bool msm_a660_gmu_clock_preparation_only_was_passed(void);
+ bool adreno_has_gpu(struct device_node *node);
+ void __init adreno_register(void);
+ void __exit adreno_unregister(void);

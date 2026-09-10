@@ -1,0 +1,28 @@
+[Unit]
+Description=Apply qualified headless ROG5 CPU maxima
+DefaultDependencies=no
+Conflicts=shutdown.target
+Requires=rog5-p2-ready.service
+After=rog5-p2-ready.service
+Before=rog5-wifi-radio.service basic.target shutdown.target
+OnFailure=rog5-wifi-failure.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I -B /run/rog5-native-wifi/headless-cpu-policy.py
+TimeoutStartSec=15s
+TimeoutStopSec=5s
+RemainAfterExit=yes
+Restart=no
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=disconnected
+InaccessiblePaths=/var/tmp
+ProtectHome=yes
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ReadWritePaths=/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq
+ReadWritePaths=/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq
+ReadWritePaths=/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX

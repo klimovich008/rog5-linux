@@ -149,7 +149,7 @@ try {
         '--mount', 'type=bind,source=/proc,target=/stage/proc',
         '--mount', 'type=bind,source=/sys,target=/stage/sys', '--tmpfs', '/stage/run',
         '--env', "TARGET_KERNEL_RELEASE=$kernelRelease", $baseTag,
-        'chroot', '/stage', '/bin/bash', '/workspace/repo/scripts/device/verify-staged-arch-rootfs.sh'
+        'chroot', '/stage', '/bin/bash', '/workspace/repo/scripts/device/verify-staged-arch-rootfs-v2.sh'
     )
     Move-Item -LiteralPath $gzipPart -Destination $Output
     $succeeded = $true

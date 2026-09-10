@@ -13,12 +13,18 @@ cat > "$stage/display-profile" <<EOF
 printf '%s\n' "\$1" >> "$stage/display.log"
 EOF
 chmod +x "$stage/display-profile"
+cat > "$stage/status-screen" <<EOF
+#!/bin/sh
+printf '%s\n' "\$1" >> "$stage/status.log"
+EOF
+chmod +x "$stage/status-screen"
 
 run_toggle() {
     STATE_FILE=$stage/run/state \
         BRIGHTNESS_FILE=$stage/run/brightness \
         BACKLIGHT_DIR=$stage/backlight \
         DISPLAY_PROFILE=$stage/display-profile \
+        STATUS_SCREEN=$stage/status-screen \
         "$target" "$1" >/dev/null 2>&1
 }
 
@@ -37,6 +43,7 @@ run_toggle toggle
 grep -qx 200 "$stage/backlight/brightness"
 test "$(grep -c '^dpms-off$' "$stage/display.log")" -eq 3
 test "$(grep -c '^dpms-on$' "$stage/display.log")" -eq 2
+test "$(grep -c '^render$' "$stage/status.log")" -eq 2
 
 set +e
 run_toggle invalid

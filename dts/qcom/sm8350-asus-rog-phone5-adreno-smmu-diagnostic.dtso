@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+};
+
+/*
+ * Register the already-confirmed SM8350 GPU clock controller and its smallest
+ * consumer, the Adreno SMMU.  GPU and GMU remain disabled, so this tier has no
+ * DRM master, render node, GPU firmware request, or executable GPU workload.
+ */
+&gpucc {
+	status = "okay";
+};
+
+&adreno_smmu {
+	status = "okay";
+};

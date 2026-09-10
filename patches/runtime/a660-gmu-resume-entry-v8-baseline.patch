@@ -1,0 +1,128 @@
+--- baseline-v7
++++ baseline-v8
+@@ -10,8 +10,8 @@
+ lower=/.rog5/root-ro
+ module_root=$lower/usr/lib/modules/$release
+ firmware_root=$lower/usr/lib/firmware
+-helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-v7-open
+-seal=$lower/etc/rog5/a660-ucode-allocation-v7-export
++helper=$lower/usr/local/libexec/rog5-a660-gmu-resume-entry-v8-open
++seal=$lower/etc/rog5/a660-gmu-resume-entry-v8-export
+ acceptance=$lower/etc/rog5/a660-registration-v3-live.accepted
+ 
+ for command in awk basename cat cut dmesg find findmnt grep id ip modinfo \
+@@ -83,29 +83,36 @@
+ done
+ 
+ [ -f "$seal" ] && [ ! -L "$seal" ] ||
+-	fail 'ucode-allocation export seal is absent'
++	fail 'GMU resume-entry v8 export seal is absent'
+ [ "$(stat -c '%u:%g:%a' "$seal")" = 0:0:444 ] ||
+-	fail 'ucode-allocation export seal metadata is not exact'
+-grep -qx 'diagnostic_generation=v7' "$seal"
+-grep -qx 'predecessor=v6_live_rejected_consumed' "$seal"
++	fail 'GMU resume-entry v8 export seal metadata is not exact'
++grep -qx 'diagnostic_generation=v8' "$seal"
++grep -qx 'predecessor=v7_live_accepted_consumed' "$seal"
+ grep -qx \
+-	'predecessor_report_sha256=cfdd0837e6da7d06ba74e0557c6abeea396f12f02e345d9ab87ba1a47ade89e6' \
++	'predecessor_report_sha256=ea4a4a87a264728be3bfcd86a2f12888496dd51c7421cbee166ad19afdb5ee6a' \
+ 	"$seal"
+-grep -qx 'predecessor_consumption_commit=664fd09' "$seal"
++grep -qx 'predecessor_consumption_commit=12ad39c' "$seal"
+ grep -qx \
+-	'source_boundary_report_sha256=a17847d18c21d5b2c039df4353a899abce37159ec0009b5afaa0dda6067d146f' \
++	'source_boundary_report_sha256=41c06dcd895fcc873638ddf40dce0b0d5dd5bbf9e148f5d3abd5521b072c320d' \
++	"$seal"
++grep -qx \
++	'kernel_build_report_sha256=6c50a822d30368bba4564daa77633b6e22ae1e167cd3486670b786e430153b7c' \
++	"$seal"
++grep -qx \
++	'gmu_entry_patch_sha256=a179ff9e31792238a3bd254297008d805e6a37b5d08125712c0151b1f39b3051' \
+ 	"$seal"
+ grep -qx 'registration_acceptance=ACCEPTED_A660_REGISTRATION_V3' "$seal"
+ grep -qx 'firmware_policy=SQE_GMU_ONLY_ZAP_ABSENT' "$seal"
+ grep -qx 'open_policy=EXACTLY_ONE_EUCLEAN' "$seal"
+-grep -qx 'compiler_policy=PINNED_MSM_RELOCATIONS' "$seal"
++grep -qx 'compiler_policy=PINNED_V8_MSM_RELOCATIONS' "$seal"
+ grep -qx 'size_policy=RAW_KERNEL_NEW_ENTRY_ARGUMENTS' "$seal"
+ grep -qx 'raw_size_contract=4,4096,43288' "$seal"
+ grep -qx 'object_size_policy=SOURCE_PINNED_PAGE_ALIGN' "$seal"
+ grep -qx 'object_size_contract=4096,4096,45056' "$seal"
+-grep -qx 'trace_policy=PID_FILTERED_LOGICAL_VMAP_BALANCE' "$seal"
++grep -qx 'trace_policy=PID_FILTERED_GMU_ENTRY_AND_LOGICAL_VMAP' "$seal"
+ grep -qx 'state_policy=PRE_POST_GEM_SNAPSHOT_EQUAL' "$seal"
+-grep -qx 'v6_reuse=FORBIDDEN' "$seal"
++grep -qx 'gmu_entry_parameter_mode=0400' "$seal"
++grep -qx 'v7_reuse=FORBIDDEN' "$seal"
+ 
+ [ -f "$acceptance" ] && [ ! -L "$acceptance" ] ||
+ 	fail 'registration-v3 live acceptance marker is absent'
+@@ -149,19 +156,23 @@
+ 	d3303a04182625606e0dfc343205f677a80fcf55ab6928de53fad82852863bae \
+ 	'one-open helper'
+ [ "$(find "$module_root" -type f -name '*.ko' | wc -l)" -eq 7 ] ||
+-	fail 'ucode-allocation module set is not exact'
++	fail 'GMU resume-entry module set is not exact'
+ check_root_file \
+ 	"$module_root/kernel/drivers/clk/qcom/gpucc-sm8350.ko" 644 \
+ 	c4ec64279bc72ac9d524717512c94a8f5c47eba6a4cf7cadbfbc620012dac563 \
+ 	'GPUCC module'
+ msm_module=$module_root/kernel/drivers/gpu/drm/msm/msm.ko
+ check_root_file "$msm_module" 644 \
+-	fe5d59675e4f7d490c38cc7e9c02cadb7bbf89047ceb8056aa0a3e13353bcc45 \
+-	'ucode-allocation MSM module'
++	b485e8719d6ddf80542a5dc2fdf5bba795d40c69fa220b44571323a8a1d7d861 \
++	'GMU resume-entry MSM module'
++modinfo -p "$msm_module" |
++	grep -Fxq \
++	'gmu_resume_entry_only:Stop one exact A660 open at GMU resume entry before resource activation (bool)' ||
++	fail 'MSM module lacks the GMU resume-entry parameter'
+ modinfo -p "$msm_module" |
+ 	grep -Fxq \
+ 	'ucode_allocation_only:Allocate and roll back exact A660 ucode once before GPU power (bool)' ||
+-	fail 'MSM module lacks the ucode-allocation parameter'
++	fail 'MSM module lacks the predecessor ucode-allocation parameter'
+ modinfo -p "$msm_module" |
+ 	grep -Fxq \
+ 	'firmware_request_only:Request exact A660 firmware once and reject DRM open before GPU power (bool)' ||
+@@ -228,21 +239,24 @@
+ if [ "$(findmnt -n -o FSTYPE "$trace_root" 2>/dev/null || true)" = tracefs ]; then
+ 	[ ! -s "$trace_root/kprobe_events" ] ||
+ 		fail 'an unrelated kprobe event already exists'
+-	[ ! -d "$trace_root/events/rog5_ucode_v7" ] ||
+-		fail 'stale ucode-allocation v7 trace events exist'
++	[ ! -d "$trace_root/events/rog5_gmu_v8" ] ||
++		fail 'stale GMU resume-entry v8 trace events exist'
+ fi
+-for symbol in request_firmware_direct release_firmware \
+-	qcom_scm_pas_auth_and_reset qcom_scm_set_gpu_smmu_aperture; do
++for symbol in __pm_runtime_resume clk_set_rate enable_irq \
++	request_firmware_direct release_firmware qcom_scm_is_available \
++	qcom_scm_gpu_init_regs qcom_scm_pas_auth_and_reset \
++	qcom_scm_set_gpu_smmu_aperture
++do
+ 	[ "$(grep -Ec "[[:space:]]$symbol$" /proc/kallsyms)" -eq 1 ] ||
+ 		fail "required core trace symbol is not unique: $symbol"
+ done
+ 
+ firmware_pattern='a660_sqe.fw|a660_gmu.bin|a660_zap.mbn'
+-success_marker='A660 ucode-allocation-only passed and rolled back; reject open'
+-failure_marker='A660 ucode-allocation-only failed:'
+-for pattern in "$firmware_pattern" "$success_marker" "$failure_marker"; do
++entry_marker='A660 GMU resume entry reached before resource activation; reject resume'
++rollback_marker='A660 GMU resume entry passed and rolled back; reject open'
++for pattern in "$firmware_pattern" "$entry_marker" "$rollback_marker"; do
+ 	[ "$(dmesg | grep -Ec "$pattern" || true)" -eq 0 ] ||
+-		fail "ucode-allocation evidence exists before probe: $pattern"
++		fail "GMU resume-entry evidence exists before probe: $pattern"
+ done
+ fatal='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+ fault='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
+@@ -272,5 +286,5 @@
+ 	fail 'kernel log regressed during quiet baseline'
+ fi
+ 
+-printf 'PASS A660-ucode-allocation-v7 baseline storage=0 mounts=0 firmware_files=2 firmware_requests=0 firmware_releases=0 zap=absent render=0 drm_fds=0 maps=0 unmaps=0 closes=0 gem_frees=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=7 helper=exact compiler=relocations watchdog=armed\n' \
++printf 'PASS A660-gmu-resume-entry-v8 baseline storage=0 mounts=0 firmware_files=2 firmware_requests=0 firmware_releases=0 zap=absent render=0 drm_fds=0 maps=0 unmaps=0 closes=0 gem_frees=0 runtime_resume=0 gmu_resume=0 inner_runtime_pm=0 clocks=0 irq=0 hfi=0 hw_init=0 scm=0 failed_units=0 thermal_zones=%s thermal_max_mC=%s module_files=7 helper=exact compiler=v8-relocations watchdog=armed\n' \
+ 	"$thermal_count" "$thermal_max"

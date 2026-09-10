@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v22
+predecessor=headless-power-usb-observer-v21
+purpose=accept-diagnostic-token-and-bind-evidence-candidate

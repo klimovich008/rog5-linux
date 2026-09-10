@@ -1,0 +1,80 @@
+From 29e945a19cef9b19393823a59778d19e3923f3c5 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Fri, 24 Jul 2026 00:00:01 +0000
+Subject: [PATCH] ufs: tighten read-only discovery command gates
+
+Reject host-to-device and bidirectional SCSI payloads independently of
+their opcode, and remove START STOP UNIT from the discovery whitelist.
+The only accepted UFS write query remains the mandatory fDeviceInit
+handshake, now constrained to index and selector zero.
+
+---
+ drivers/ufs/core/ufshcd.c | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+index 40ad49efc..62deb3328 100644
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -155,7 +155,8 @@ module_param_cb(dev_cmd_timeout, &dev_cmd_timeout_ops, &dev_cmd_timeout, 0644);
+ MODULE_PARM_DESC(dev_cmd_timeout,
+ 		 "UFS Device command timeout in milliseconds. Defaults to 1.5s. Supported values range from 1ms to 30 seconds inclusively");
+ 
+-static bool ufshcd_discovery_query_allowed(u8 opcode, u8 idn)
++static bool ufshcd_discovery_query_allowed(u8 opcode, u8 idn, u8 index,
++					   u8 selector)
+ {
+ 	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
+ 		return true;
+@@ -166,7 +167,7 @@ static bool ufshcd_discovery_query_allowed(u8 opcode, u8 idn)
+ 	case UPIU_QUERY_OPCODE_READ_FLAG:
+ 		return true;
+ 	case UPIU_QUERY_OPCODE_SET_FLAG:
+-		return idn == QUERY_FLAG_IDN_FDEVICEINIT;
++		return idn == QUERY_FLAG_IDN_FDEVICEINIT && !index && !selector;
+ 	default:
+ 		return false;
+ 	}
+@@ -177,6 +178,10 @@ static bool ufshcd_discovery_scsi_allowed(const struct scsi_cmnd *cmd)
+ 	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
+ 		return true;
+ 
++	if (cmd->sc_data_direction == DMA_TO_DEVICE ||
++	    cmd->sc_data_direction == DMA_BIDIRECTIONAL)
++		return false;
++
+ 	switch (cmd->cmnd[0]) {
+ 	case TEST_UNIT_READY:
+ 	case REQUEST_SENSE:
+@@ -192,7 +197,6 @@ static bool ufshcd_discovery_scsi_allowed(const struct scsi_cmnd *cmd)
+ 	case REPORT_LUNS:
+ 	case SECURITY_PROTOCOL_IN:
+ 	case LOG_SENSE:
+-	case START_STOP:
+ 		return true;
+ 	case SERVICE_ACTION_IN_16:
+ 		return (cmd->cmnd[1] & 0x1f) == SAI_READ_CAPACITY_16;
+@@ -3434,7 +3438,9 @@ static int ufshcd_exec_dev_cmd(struct ufs_hba *hba,
+ 	if (cmd_type == DEV_CMD_TYPE_QUERY &&
+ 	    !ufshcd_discovery_query_allowed(
+ 		    hba->dev_cmd.query.request.upiu_req.opcode,
+-		    hba->dev_cmd.query.request.upiu_req.idn)) {
++		    hba->dev_cmd.query.request.upiu_req.idn,
++		    hba->dev_cmd.query.request.upiu_req.index,
++		    hba->dev_cmd.query.request.upiu_req.selector)) {
+ 		dev_warn_ratelimited(hba->dev,
+ 			"ROG5 UFS discovery: blocked device query opcode 0x%02x idn 0x%02x\n",
+ 			hba->dev_cmd.query.request.upiu_req.opcode,
+@@ -7632,7 +7638,9 @@ static int ufshcd_issue_devman_upiu_cmd(struct ufs_hba *hba,
+ 
+ 	if (cmd_type == DEV_CMD_TYPE_QUERY &&
+ 	    !ufshcd_discovery_query_allowed(req_upiu->qr.opcode,
+-					     req_upiu->qr.idn)) {
++					     req_upiu->qr.idn,
++					     req_upiu->qr.index,
++					     req_upiu->qr.selector)) {
+ 		dev_warn_ratelimited(hba->dev,
+ 			"ROG5 UFS discovery: blocked device query opcode 0x%02x idn 0x%02x\n",
+ 			req_upiu->qr.opcode, req_upiu->qr.idn);
+-- 
+2.55.0

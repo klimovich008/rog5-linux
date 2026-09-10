@@ -1,0 +1,214 @@
+#!/bin/sh
+set -eu
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+expected_release=5.4.210-qgki-perf-gc89cd02a7dfe
+expected_udc=a600000.dwc3
+expected_modem_uuid=00BC-614E
+rollback_seconds=30
+kmsg=/dev/kmsg
+
+log() {
+	echo "rog5-charging-rescue: $*" >"$kmsg" 2>/dev/null || true
+}
+
+fail() {
+	log "FAIL $*; rollback remains armed"
+	while :; do sleep 3600; done
+}
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t tmpfs -o mode=0755,nosuid tmpfs /dev
+mkdir -p /dev/pts /run /var/log /sys/kernel/config
+rm -f /dev/null
+mknod -m 0666 /dev/null c 1 3
+mknod -m 0666 /dev/zero c 1 5
+mknod -m 0666 /dev/full c 1 7
+mknod -m 0666 /dev/random c 1 8
+mknod -m 0666 /dev/urandom c 1 9
+mknod -m 0666 /dev/tty c 5 0
+mount -t devpts devpts /dev/pts
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+mkdir -p /run/sshd
+
+rescue_tokens=$(tr ' ' '\n' </proc/cmdline |
+	grep -Fxc 'rog5.charging_rescue=1' || true)
+slot_suffix_tokens=$(tr ' ' '\n' </proc/cmdline |
+	grep -Fxc 'androidboot.slot_suffix=_b' || true)
+(
+	sleep "$rollback_seconds"
+	log 'rollback deadline reached; rebooting to unchanged active slot'
+	echo b >/proc/sysrq-trigger
+) &
+rollback_pid=$!
+printf '%s\n' "$rollback_pid" >/run/rog5-charging-rescue-watchdog.pid
+log "rollback armed for ${rollback_seconds}s"
+[ "$rescue_tokens" -eq 1 ] || fail 'missing unique charging-rescue token'
+[ "$slot_suffix_tokens" -eq 1 ] || fail 'expected unique active slot-B suffix'
+[ "$(uname -r)" = "$expected_release" ] ||
+	fail "unexpected kernel release $(uname -r)"
+[ -r /libexec/rog5-charging-firmware.sh ] ||
+	fail 'missing charging firmware resolver'
+. /libexec/rog5-charging-firmware.sh
+
+echo /sbin/mdev >/proc/sys/kernel/hotplug
+mdev -s
+
+usb_mode=/sys/bus/platform/devices/a600000.ssusb/mode
+i=0
+while [ "$i" -lt 100 ] && [ ! -e "$usb_mode" ]; do
+	i=$((i + 1))
+	sleep 0.1
+done
+[ -e "$usb_mode" ] || fail 'USB peripheral mode control did not appear'
+echo peripheral >"$usb_mode"
+
+mount -t configfs configfs /sys/kernel/config
+gadget=/sys/kernel/config/usb_gadget/rog5-charging-rescue
+mkdir -p "$gadget/strings/0x409" "$gadget/configs/c.1/strings/0x409"
+echo 0x1d6b >"$gadget/idVendor"
+echo 0x0104 >"$gadget/idProduct"
+echo 0xef >"$gadget/bDeviceClass"
+echo 0x02 >"$gadget/bDeviceSubClass"
+echo 0x01 >"$gadget/bDeviceProtocol"
+echo ROG5CHARGING >"$gadget/strings/0x409/serialnumber"
+echo Alpine >"$gadget/strings/0x409/manufacturer"
+echo 'ROG5 RAM-only charging rescue' >"$gadget/strings/0x409/product"
+echo 'NCM and ACM diagnostics' >"$gadget/configs/c.1/strings/0x409/configuration"
+mkdir -p "$gadget/functions/ncm.usb0" "$gadget/functions/acm.usb0"
+echo 02:00:00:00:00:01 >"$gadget/functions/ncm.usb0/dev_addr"
+echo 02:00:00:00:00:02 >"$gadget/functions/ncm.usb0/host_addr"
+ln -s "$gadget/functions/ncm.usb0" "$gadget/configs/c.1/ncm.usb0"
+ln -s "$gadget/functions/acm.usb0" "$gadget/configs/c.1/acm.usb0"
+
+i=0
+while [ "$i" -lt 100 ] && [ ! -e "/sys/class/udc/$expected_udc" ]; do
+	i=$((i + 1))
+	sleep 0.1
+done
+set -- /sys/class/udc/*
+[ "$#" -eq 1 ] && [ -e "$1" ] && [ "$(basename "$1")" = "$expected_udc" ] ||
+	fail 'expected sole a600000 DWC3 UDC is not stable'
+echo "$expected_udc" >"$gadget/UDC"
+
+i=0
+while [ "$i" -lt 100 ] && [ ! -e /sys/class/net/usb0 ]; do
+	i=$((i + 1))
+	sleep 0.1
+done
+[ -e /sys/class/net/usb0 ] || fail 'usb0 did not appear'
+ip link set usb0 up
+ip addr add 169.254.77.2/30 dev usb0
+
+i=0
+while [ "$i" -lt 100 ] && [ ! -e /dev/ttyGS0 ]; do
+	i=$((i + 1))
+	sleep 0.1
+done
+[ -e /dev/ttyGS0 ] &&
+	setsid sh -c 'exec sh -i </dev/ttyGS0 >/dev/ttyGS0 2>&1' &
+
+ssh-keygen -A
+/usr/sbin/sshd -E /var/log/sshd.log
+log 'RAM-only diagnostic transport ready; SSH 169.254.77.2/30'
+
+modem_device=
+i=0
+while [ "$i" -lt 100 ]; do
+	if modem_device=$(rog5_resolve_exact_partition /sys/class/block /dev modem_b 1704888 450560); then
+		break
+	fi
+	i=$((i + 1))
+	mdev -s
+	sleep 0.1
+done
+[ -n "$modem_device" ] && [ -b "$modem_device" ] ||
+	fail 'exact modem_b partition did not appear'
+[ "$(blkid -s TYPE -o value "$modem_device")" = vfat ] ||
+	fail 'modem_b is not the expected vfat filesystem'
+[ "$(blkid -s UUID -o value "$modem_device")" = "$expected_modem_uuid" ] ||
+	fail 'modem_b filesystem UUID mismatch'
+mkdir -p /vendor/firmware_mnt
+mount -t vfat -o ro,nodev,nosuid,noexec,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337 \
+	"$modem_device" /vendor/firmware_mnt ||
+	fail 'read-only modem_b firmware mount failed'
+mount_matches=$(awk -v source="$modem_device" '
+	$1 == source && $2 == "/vendor/firmware_mnt" && $3 == "vfat" {
+		n = split($4, option, ",")
+		for (i = 1; i <= n; i++) if (option[i] == "ro") ro = 1
+		if (ro) count++
+	}
+	END { print count + 0 }
+' /proc/mounts)
+[ "$mount_matches" -eq 1 ] || fail 'modem_b mount is not uniquely read-only'
+[ ! -e /firmware ] && [ ! -L /firmware ] ||
+	fail 'firmware path already exists'
+ln -s /vendor/firmware_mnt /firmware
+[ "$(readlink /firmware)" = /vendor/firmware_mnt ] ||
+	fail 'firmware link verification failed'
+log 'exact modem_b firmware mounted read-only'
+
+extra_modules=/lib/modules/$expected_release/extra
+load_extra() {
+	name=$1
+	file=$2
+	grep -qw "$name" /proc/modules && return 0
+	[ -f "$extra_modules/$file" ] || fail "missing charger module $file"
+	insmod "$extra_modules/$file" || fail "cannot load charger module $file"
+}
+
+load_extra q6_pdr_dlkm q6_pdr_dlkm.ko
+load_extra q6_notifier_dlkm q6_notifier_dlkm.ko
+load_extra snd_event_dlkm snd_event_dlkm.ko
+load_extra apr_dlkm apr_dlkm.ko
+load_extra adsp_loader_dlkm adsp_loader_dlkm.ko
+
+i=0
+while [ "$i" -lt 100 ] && [ ! -e /sys/kernel/boot_adsp/boot ]; do
+	i=$((i + 1))
+	sleep 0.1
+done
+[ -e /sys/kernel/boot_adsp/boot ] || fail 'ADSP boot control did not appear'
+echo 1 >/sys/kernel/boot_adsp/boot
+sleep 2
+mdev -s
+
+i=0
+while [ "$i" -lt 100 ] && [ ! -d /sys/class/power_supply/battery ]; do
+	i=$((i + 1))
+	sleep 0.1
+done
+[ -d /sys/class/power_supply/battery ] ||
+	fail 'battery power-supply did not appear'
+log 'battery power-supply ready'
+
+sample_battery() {
+	stamp=$(cut -d ' ' -f 1 </proc/uptime)
+	printf 'sample uptime=%s' "$stamp"
+	for supply in battery usb dc wireless; do
+		[ -d "/sys/class/power_supply/$supply" ] || continue
+		for property in present online status health capacity voltage_now \
+			current_now current_max voltage_max temp usb_type; do
+			path=/sys/class/power_supply/$supply/$property
+			if [ -r "$path" ]; then
+				value=$(tr -d '\r\n' <"$path")
+				printf ' %s.%s=%s' "$supply" "$property" "$value"
+			fi
+		done
+	done
+	printf '\n'
+}
+
+(
+	while :; do
+		sample_battery >>/run/rog5-charging-rescue.samples
+		sleep 5
+	done
+) &
+
+sample_battery >/run/rog5-charging-rescue.status
+log 'RAM-only charging rescue ready; battery telemetry active'
+
+while :; do sleep 3600; done

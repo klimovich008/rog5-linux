@@ -1,0 +1,105 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Thu, 13 Aug 2026 00:00:00 +0000
+Subject: [PATCH] clk: resume providers around orphan walks
+
+Clock registration and OF provider publication can walk every CCF orphan
+and invoke callbacks belonging to unrelated providers. Resuming only the
+newly registered clock's provider under prepare_lock leaves those unrelated
+providers suspended and also permits an ABBA dependency between runtime PM
+and prepare_lock.
+
+Use the existing all-provider helper before taking prepare_lock and release
+the balanced references after unlocking.  Apply the same ordering to both
+OF provider publication paths. This is a minimal port of the March 2025 CCF
+runtime-PM RFC already exercised by the ROG5 GPUCC isolation work.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/clk/clk.c | 33 +++++++++++++++++++++++++++------
+ 1 file changed, 27 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/clk/clk.c b/drivers/clk/clk.c
+--- a/drivers/clk/clk.c
++++ b/drivers/clk/clk.c
+@@ -3881,6 +3881,15 @@ static int __clk_core_init(struct clk_core *core)
+ 	unsigned long rate;
+ 	int phase;
+ 
++	/*
++	 * Orphan reparenting can invoke callbacks from any registered clock
++	 * provider.  Resume them before prepare_lock so those callbacks cannot
++	 * touch a suspended provider or invert runtime-PM and clock locks.
++	 */
++	ret = clk_pm_runtime_get_all();
++	if (ret)
++		return ret;
++
+ 	clk_prepare_lock();
+ 
+ 	/*
+@@ -3891,10 +3899,6 @@ static int __clk_core_init(struct clk_core *core)
+ 	 */
+ 	core->hw->core = core;
+ 
+-	ret = clk_pm_runtime_get(core);
+-	if (ret)
+-		goto unlock;
+-
+ 	/* check to see if a clock with this name is already registered */
+ 	if (clk_core_lookup(core->name)) {
+ 		pr_debug("%s: clk %s already initialized\n",
+@@ -4060,8 +4064,6 @@ static int __clk_core_init(struct clk_core *core)
+ 
+ 	clk_core_reparent_orphans_nolock();
+ out:
+-	clk_pm_runtime_put(core);
+-unlock:
+ 	if (ret) {
+ 		hash_del(&core->hashtable_node);
+ 		hlist_del_init(&core->child_node);
+@@ -4070,6 +4072,8 @@ static int __clk_core_init(struct clk_core *core)
+ 
+ 	clk_prepare_unlock();
+ 
++	clk_pm_runtime_put_all();
++
+ 	if (!ret)
+ 		clk_debug_register(core);
+ 
+@@ -4987,8 +4991,16 @@ int of_clk_add_provider(struct device_node *np,
+ 	mutex_unlock(&of_clk_mutex);
+ 	pr_debug("Added clock from %pOF\n", np);
+ 
++	ret = clk_pm_runtime_get_all();
++	if (ret) {
++		of_clk_del_provider(np);
++		return ret;
++	}
++
+ 	clk_core_reparent_orphans();
+ 
++	clk_pm_runtime_put_all();
++
+ 	ret = of_clk_set_defaults(np, true);
+ 	if (ret < 0)
+ 		of_clk_del_provider(np);
+@@ -5032,8 +5043,16 @@ int of_clk_add_hw_provider(struct device_node *np,
+ 	mutex_unlock(&of_clk_mutex);
+ 	pr_debug("Added clk_hw provider from %pOF\n", np);
+ 
++	ret = clk_pm_runtime_get_all();
++	if (ret) {
++		of_clk_del_provider(np);
++		return ret;
++	}
++
+ 	clk_core_reparent_orphans();
+ 
++	clk_pm_runtime_put_all();
++
+ 	ret = of_clk_set_defaults(np, true);
+ 	if (ret < 0)
+ 		of_clk_del_provider(np);
+-- 
+2.50.1

@@ -42,12 +42,20 @@ stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 gzip -dc "$base" | (cd "$stage" && cpio -idm --quiet --no-absolute-filenames)
 install -m 0755 "$init" "$stage/init"
-rm -f "$stage"/etc/ssh/ssh_host_* "$stage/etc/machine-id" "$stage/var/lib/dbus/machine-id"
+rm -f "$stage"/etc/ssh/ssh_host_* "$stage/etc/machine-id" \
+	"$stage/var/lib/dbus/machine-id" "$stage/root/.ssh/authorized_keys"
 if [ -n "$authorized_key" ]; then
-	[ -r "$authorized_key" ] &&
-		grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' "$authorized_key" &&
-		awk 'NF { count++ } END { exit count != 1 }' "$authorized_key"
+	[ -r "$authorized_key" ] ||
+		{ echo 'FAIL authorized key is not readable' >&2; exit 1; }
+	grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) ' "$authorized_key" ||
+		{ echo 'FAIL invalid authorized key format' >&2; exit 1; }
+	awk 'NF { count++ } END { exit count != 1 }' "$authorized_key" ||
+		{ echo 'FAIL expected exactly one authorized key' >&2; exit 1; }
 	install -D -m 0600 "$authorized_key" "$stage/root/.ssh/authorized_keys"
+	[ -s "$stage/root/.ssh/authorized_keys" ]
+	! grep -q 'BEGIN .*PRIVATE KEY' "$stage/root/.ssh/authorized_keys"
+else
+	[ ! -e "$stage/root/.ssh/authorized_keys" ]
 fi
 
 tar --warning=no-unknown-keyword -xf "$kexec_apk" -C "$stage" usr/sbin/kexec usr/sbin/vmcore-dmesg
@@ -76,4 +84,4 @@ mkdir -p "$(dirname "$output")"
 mv "$output.tmp" "$output"
 gzip -t "$output"
 sha256sum "$output"
-echo 'PASS self-contained kexec staging initramfs; no storage-mount logic included'
+echo "PASS self-contained kexec staging initramfs; no storage mounts; $([ -n "$authorized_key" ] && echo SSH || echo no credentials)"

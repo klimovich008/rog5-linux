@@ -1,0 +1,32 @@
+{
+  "source_commit": "dd76b962e976cd98be743987a4059afc423d6291",
+  "source_boot": "1b24ebf0-e4a1-466c-8197-13904886f5cf",
+  "claim_consumed_epoch": 1788133455.352283,
+  "dispatch_return_epoch": 1788133458.051729,
+  "dispatch_return_code": 0,
+  "dispatch_is_target_execution_proof": false,
+  "target_stage_records": [],
+  "target_ssh_seen": false,
+  "radio_probe_started": false,
+  "usb_host_monotonic": [
+    {"event": "source_remove", "seconds": 144770.483744, "product": "1d6b/104/701"},
+    {"event": "recovery_add", "seconds": 144799.623897, "product": "1d6b/104/504"},
+    {"event": "recovery_remove", "seconds": 144806.836336, "product": "1d6b/104/504"},
+    {"event": "fallback_add", "seconds": 144809.352752, "product": "1d6b/104/701"}
+  ],
+  "fallback_boot": "0e1f7746-de4a-4f38-8dce-39769e379ee3",
+  "fallback_bundle": "persistent-native-root-v11",
+  "fallback_first_stage_epoch": 1788133512.064,
+  "fallback_ssh_pinned": true,
+  "paired_pon": {
+    "push_before": 98,
+    "push_after": 118,
+    "new_bytes": 20,
+    "new_reset_trigger": "PS_HOLD",
+    "new_reset_type": "WARM_RESET",
+    "warm_reset_count_before": 5,
+    "warm_reset_count_after": 6
+  },
+  "root_cause": "unknown: exitrd refusal, syscall return, source handoff failure or early target crash",
+  "safe_to_retry_consumed_target": false
+}

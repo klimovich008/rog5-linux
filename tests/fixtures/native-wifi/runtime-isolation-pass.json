@@ -1,0 +1,20 @@
+{
+  "source": "V19 exact-phone runtime qualification",
+  "consumed": true,
+  "usb_data_isolation_seconds": 180.089,
+  "wifi_ssh_before_cut": true,
+  "same_instance_usb_restored": true,
+  "reassociation_requests": 1,
+  "traffic_bytes": 67108864,
+  "complete_safety_samples": 115,
+  "carrier_zero_samples": 114,
+  "battery_current_sample_mean_ua": -21973.684,
+  "battery_temp_max_decic": 303,
+  "thermal_max_mc": 42800,
+  "usb_current_limit_ua": 500000,
+  "fallback_restored": true,
+  "boot_without_usb_data_proven": false,
+  "sustained_net_positive_charging_proven": false,
+  "managed_tailscale_ssh_authenticated": false,
+  "udp_discovery_matched_ssh_verified_lan_endpoint": true
+}

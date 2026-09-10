@@ -1,0 +1,27 @@
+#!/sbin/openrc-run
+# shellcheck disable=SC2034
+
+name='ROG Phone 5 screen-button daemon'
+description='Toggle the fallback display on physical power-button presses'
+supervisor=supervise-daemon
+command=/usr/local/sbin/rog5-screen-button-daemon.sh
+command_user=root
+respawn_delay=2
+respawn_max=0
+
+depend() {
+need localmount
+after modules
+}
+
+start_pre() {
+	[ -x "$command" ] || {
+		eerror "missing executable: $command"
+		return 1
+	}
+	[ -x /usr/local/bin/rog5-screen-toggle.sh ] || {
+		eerror 'missing executable: /usr/local/bin/rog5-screen-toggle.sh'
+		return 1
+	}
+/usr/local/bin/rog5-screen-toggle.sh off
+}

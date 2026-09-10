@@ -1,0 +1,3971 @@
+#!/usr/bin/env python3
+"""Hardware-free tests for the pinned Alpine fallback ACM controller."""
+
+from __future__ import annotations
+
+import ast
+import base64
+from collections import OrderedDict
+import ctypes
+import errno
+import hashlib
+import io
+import importlib.util
+import os
+from pathlib import Path
+import pty
+import shlex
+import stat
+import subprocess
+import sys
+import tempfile
+import threading
+import unittest
+from unittest import mock
+
+
+sys.dont_write_bytecode = True
+SOURCE = Path(__file__).with_name("fallback-acm-control.py")
+SPEC = importlib.util.spec_from_file_location("fallback_acm_control", SOURCE)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+
+def record(
+    nonce: str,
+    action: str = "preflight",
+    **updates: str,
+) -> tuple[OrderedDict[str, str], bytes]:
+    values = OrderedDict(
+        (
+            ("format", MODULE.FORMAT),
+            ("nonce", nonce),
+            ("action", action),
+            ("kernel_release", MODULE.FALLBACK_KERNEL),
+            ("init", "/bin/busybox"),
+            ("compatible", "qcom,lahaina-mtp"),
+            ("root_fstype", "ext4"),
+            ("modules_checked", "1"),
+            ("project_modules", "0"),
+            ("pstore_checked", "1"),
+            ("pstore_records", "0"),
+            ("dmesg_checked", "1"),
+            ("fatal_lines", "0"),
+            ("thermal_samples", "3"),
+            ("thermal_zones", "96"),
+            ("thermal_max", "38800"),
+            ("python_major", "3"),
+            ("boot_id", "11111111-2222-4333-8444-555555555555"),
+            ("result", "PASS"),
+        )
+    )
+    values.update(updates)
+    payload = "".join(
+        f"{key}={value}\n" for key, value in values.items()
+    ).encode("ascii")
+    return values, payload
+
+
+def frame(nonce: str, action: str = "preflight") -> bytes:
+    _, payload = record(nonce, action)
+    output = (
+        b"\x1b[6nnoisy prompt\r\n"
+        + f"ROG5_FALLBACK_ACM_BEGIN {nonce}\r\n".encode()
+        + base64.b64encode(payload)
+        + b"\r\n"
+        + base64.b64encode(b"synthetic-signature")
+        + b"\r\n"
+        + f"ROG5_FALLBACK_ACM_END {nonce} PREPARED\r\n".encode()
+    )
+    if action != "reboot":
+        output += b"~ # \x1b[6n"
+    return output
+
+
+POSTMORTEM_CANDIDATE = "headless-netroot-early-diag-v1"
+POSTMORTEM_TARGET_BOOT_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+
+
+def postmortem_record(
+    challenge_nonce: str,
+    **updates: str,
+) -> tuple[OrderedDict[str, str], bytes]:
+    values = OrderedDict(
+        (
+            ("format", MODULE.POSTMORTEM_FORMAT),
+            ("nonce", challenge_nonce),
+            ("action", "postmortem"),
+            ("kernel_release", MODULE.FALLBACK_KERNEL),
+            ("init", "/bin/busybox"),
+            ("compatible", "qcom,lahaina-mtp"),
+            ("root_fstype", "ext4"),
+            ("pstore_state", "EMPTY"),
+            ("pstore_records", "0"),
+            ("pstore_bytes", "0"),
+            ("pstore_sha256", MODULE.EMPTY_SHA256),
+            ("pmic_pon_state", "INCONCLUSIVE"),
+            ("pmic_pon_records", "0"),
+            ("pmic_pon_sha256", MODULE.EMPTY_SHA256),
+            ("pmic_cycle_entries", "0"),
+            ("pmic_reset_trigger", "NONE"),
+            ("pmic_reset_type", "NONE"),
+            ("pmic_watchdog_signal", "INCONCLUSIVE"),
+            ("expected_candidate", POSTMORTEM_CANDIDATE),
+            ("expected_boot_id", POSTMORTEM_TARGET_BOOT_ID),
+            ("lineage_matches", "0"),
+            ("lineage_records", "0"),
+            ("fatal_tokens_total", "0"),
+            ("fatal_after_lineage", "0"),
+            ("boot_id", "11111111-2222-4333-8444-555555555555"),
+            ("result", "PASS"),
+        )
+    )
+    values.update(updates)
+    payload = "".join(
+        f"{key}={value}\n" for key, value in values.items()
+    ).encode("ascii")
+    return values, payload
+
+
+def postmortem_frame(nonce: str, **updates: str) -> bytes:
+    _, payload = postmortem_record(nonce, **updates)
+    return (
+        f"ROG5_FALLBACK_POSTMORTEM_BEGIN {nonce}\r\n".encode()
+        + base64.b64encode(payload)
+        + b"\r\n"
+        + base64.b64encode(b"synthetic-postmortem-signature")
+        + b"\r\n"
+        + (
+            f"ROG5_FALLBACK_POSTMORTEM_END {nonce} PREPARED\r\n"
+        ).encode()
+    )
+
+
+def read_line(descriptor: int) -> bytes:
+    output = bytearray()
+    while not output.endswith(b"\n"):
+        output.extend(os.read(descriptor, 1))
+    return bytes(output)
+
+
+class FrameTest(unittest.TestCase):
+    def test_exact_correlated_frame_passes(self) -> None:
+        nonce = "a" * 32
+        values, payload, signature = MODULE.parse_frame(
+            frame(nonce),
+            nonce,
+            "preflight",
+        )
+        self.assertEqual(values["result"], "PASS")
+        self.assertEqual(payload, record(nonce)[1])
+        self.assertEqual(signature, b"synthetic-signature")
+
+    def test_echo_cannot_satisfy_a_frame(self) -> None:
+        nonce = "b" * 32
+        launcher, chunks = MODULE.remote_transport(nonce, "preflight")
+        wire = launcher + b"".join(chunks)
+        self.assertNotIn(b"ROG5_FALLBACK_LOADER_READY", launcher)
+        self.assertNotIn(b"ROG5_FALLBACK_ACM_BEGIN", wire)
+        self.assertNotIn(b"ROG5_FALLBACK_ACM_END", wire)
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.parse_frame(wire, nonce, "preflight")
+
+    def test_truncated_duplicate_and_wrong_nonce_frames_fail(self) -> None:
+        nonce = "c" * 32
+        valid = frame(nonce)
+        cases = (
+            valid.split(b"ROG5_FALLBACK_ACM_END", 1)[0],
+            valid + valid,
+            valid.replace(nonce.encode(), b"d" * 32),
+            valid.replace(b"PREPARED", b"PASS"),
+        )
+        for candidate in cases:
+            with self.subTest(candidate=candidate[-80:]):
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_frame(candidate, nonce, "preflight")
+
+    def test_every_signed_health_mutation_fails(self) -> None:
+        nonce = "e" * 32
+        mutations = {
+            "kernel_release": "wrong",
+            "init": "/sbin/init",
+            "compatible": "qcom,lahaina",
+            "root_fstype": "tmpfs",
+            "modules_checked": "0",
+            "project_modules": "1",
+            "pstore_checked": "0",
+            "pstore_records": "1",
+            "dmesg_checked": "0",
+            "fatal_lines": "1",
+            "thermal_samples": "2",
+            "thermal_zones": "0",
+            "thermal_max": "60001",
+            "python_major": "2",
+            "boot_id": "not-a-boot-id",
+            "result": "FAIL",
+        }
+        for field, value in mutations.items():
+            with self.subTest(field=field):
+                _, payload = record(nonce, **{field: value})
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_record(payload, nonce, "preflight")
+
+    def test_record_rejects_reordering_and_trailing_fields(self) -> None:
+        nonce = "f" * 32
+        _, payload = record(nonce)
+        lines = payload.splitlines(keepends=True)
+        for candidate in (
+            b"".join((lines[1], lines[0], *lines[2:])),
+            payload + b"unexpected=value\n",
+            payload[:-1],
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.parse_record(candidate, nonce, "preflight")
+
+    def test_return_classification_has_a_separate_hard_thermal_ceiling(
+        self,
+    ) -> None:
+        nonce = "f" * 32
+        _, warm_return = record(
+            nonce,
+            "classify",
+            thermal_max="61400",
+        )
+        values = MODULE.parse_record(warm_return, nonce, "classify")
+        self.assertEqual(values["thermal_max"], "61400")
+        _, warm_preflight = record(
+            nonce,
+            "preflight",
+            thermal_max="61400",
+        )
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.parse_record(warm_preflight, nonce, "preflight")
+        _, unsafe_return = record(
+            nonce,
+            "classify",
+            thermal_max="80001",
+        )
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.parse_record(unsafe_return, nonce, "classify")
+
+
+class PostmortemFrameTest(unittest.TestCase):
+    def test_all_canonical_classifications_pass(self) -> None:
+        nonce = "7" * 32
+        cases = (
+            (
+                {
+                    "pstore_state": "UNAVAILABLE",
+                    "pstore_sha256": MODULE.ZERO_SHA256,
+                },
+                ("UNAVAILABLE", "UNCORRELATED"),
+            ),
+            ({}, ("NO_RECORDS", "UNCORRELATED")),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "0",
+                    "pstore_sha256": "4" * 64,
+                },
+                ("NO_LINEAGE", "UNCORRELATED"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "12",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                },
+                ("MATCH", "NO_FATAL_TOKEN_OBSERVED"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "1",
+                    "pstore_bytes": "12",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                    "fatal_tokens_total": "2",
+                    "fatal_after_lineage": "2",
+                },
+                ("MATCH", "FATAL_TOKEN_AFTER_LINEAGE"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "2",
+                    "pstore_bytes": "24",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "1",
+                    "lineage_records": "1",
+                    "fatal_tokens_total": "1",
+                },
+                ("MATCH", "FATAL_TOKEN_PRESENT_ORDER_UNKNOWN"),
+            ),
+            (
+                {
+                    "pstore_state": "PRESENT",
+                    "pstore_records": "2",
+                    "pstore_bytes": "24",
+                    "pstore_sha256": "4" * 64,
+                    "lineage_matches": "2",
+                    "lineage_records": "2",
+                },
+                ("MATCH_MULTIPLE", "NO_FATAL_TOKEN_OBSERVED"),
+            ),
+        )
+        for updates, expected in cases:
+            with self.subTest(expected=expected):
+                _, payload = postmortem_record(nonce, **updates)
+                values = MODULE.parse_postmortem_payload(
+                    payload,
+                    nonce,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+                self.assertEqual(
+                    MODULE.postmortem_classification(values),
+                    expected,
+                )
+
+    def test_hostile_payload_mutations_fail_closed(self) -> None:
+        nonce = "8" * 32
+        mutations = (
+            {"format": "wrong"},
+            {"nonce": "9" * 32},
+            {"action": "classify"},
+            {"kernel_release": "wrong"},
+            {"init": "/sbin/init"},
+            {"compatible": "qcom,lahaina"},
+            {"root_fstype": "tmpfs"},
+            {"pstore_state": "UNKNOWN"},
+            {"pstore_records": "01"},
+            {"pstore_records": "65"},
+            {"pstore_bytes": "4194305"},
+            {"pstore_sha256": "g" * 64},
+            {"pmic_pon_state": "PRESENT"},
+            {"pmic_pon_records": "65"},
+            {"pmic_pon_sha256": "g" * 64},
+            {"pmic_cycle_entries": "30"},
+            {"pmic_reset_trigger": "user-controlled"},
+            {"pmic_reset_type": "REBOOT"},
+            {"pmic_watchdog_signal": "NO"},
+            {"expected_candidate": "other"},
+            {"expected_boot_id": "not-a-boot-id"},
+            {"lineage_matches": "01"},
+            {"lineage_records": "65"},
+            {"fatal_tokens_total": "1000001"},
+            {"fatal_after_lineage": "1000001"},
+            {"boot_id": "not-a-boot-id"},
+            {"result": "FAIL"},
+            {
+                "pstore_state": "PRESENT",
+                "pstore_records": "0",
+                "pstore_bytes": "0",
+                "pstore_sha256": MODULE.ZERO_SHA256,
+            },
+            {"lineage_matches": "1"},
+            {"fatal_after_lineage": "1"},
+            {
+                "pstore_state": "PRESENT",
+                "pstore_records": "1",
+                "pstore_bytes": "12",
+                "pstore_sha256": "4" * 64,
+                "lineage_matches": "1",
+                "lineage_records": "1",
+                "fatal_after_lineage": "1",
+            },
+            {
+                "pmic_pon_state": "UNAVAILABLE",
+                "pmic_pon_sha256": MODULE.EMPTY_SHA256,
+            },
+            {
+                "pmic_pon_state": "EXACT",
+                "pmic_pon_records": "6",
+                "pmic_pon_sha256": "5" * 64,
+                "pmic_cycle_entries": "5",
+                "pmic_reset_trigger": "PMIC_WATCHDOG_S2",
+                "pmic_reset_type": "WARM_RESET",
+                "pmic_watchdog_signal": "ABSENT",
+            },
+            {
+                "pmic_pon_state": "EXACT",
+                "pmic_pon_records": "6",
+                "pmic_pon_sha256": "5" * 64,
+                "pmic_cycle_entries": "5",
+                "pmic_reset_trigger": "UNKNOWN",
+                "pmic_reset_type": "UNKNOWN",
+                "pmic_watchdog_signal": "ABSENT",
+            },
+        )
+        for updates in mutations:
+            with self.subTest(updates=updates):
+                _, payload = postmortem_record(nonce, **updates)
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_postmortem_payload(
+                        payload,
+                        nonce,
+                        POSTMORTEM_CANDIDATE,
+                        POSTMORTEM_TARGET_BOOT_ID,
+                    )
+
+    def test_field_order_count_and_frame_structure_are_exact(self) -> None:
+        nonce = "9" * 32
+        _, payload = postmortem_record(nonce)
+        lines = payload.splitlines(keepends=True)
+        for candidate in (
+            b"".join((lines[1], lines[0], *lines[2:])),
+            payload + b"extra=value\n",
+            payload[:-1],
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.parse_postmortem_payload(
+                    candidate,
+                    nonce,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+        valid = postmortem_frame(nonce)
+        values, parsed, signature = MODULE.parse_postmortem_frame(
+            valid,
+            nonce,
+            POSTMORTEM_CANDIDATE,
+            POSTMORTEM_TARGET_BOOT_ID,
+        )
+        self.assertEqual(values["result"], "PASS")
+        self.assertEqual(parsed, payload)
+        self.assertEqual(signature, b"synthetic-postmortem-signature")
+        for candidate in (
+            valid + valid,
+            valid.replace(b"PREPARED", b"PASS"),
+            valid.replace(base64.b64encode(payload), b"not-base64"),
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.parse_postmortem_frame(
+                    candidate,
+                    nonce,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+
+    def test_private_evidence_contains_only_bounded_summary(self) -> None:
+        nonce = "a" * 32
+        values, payload = postmortem_record(
+            nonce,
+            pstore_state="PRESENT",
+            pstore_records="1",
+            pstore_bytes="123",
+            pstore_sha256="4" * 64,
+            lineage_matches="1",
+            lineage_records="1",
+            fatal_tokens_total="1",
+            fatal_after_lineage="1",
+        )
+        proof = OrderedDict(
+            (
+                ("nonce", nonce),
+                ("usb_location", "pci/usb1/1-1/1-1.2"),
+                ("record_sha256", hashlib.sha256(payload).hexdigest()),
+                ("signature_sha256", "5" * 64),
+                ("host_pin_sha256", "6" * 64),
+            )
+        )
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-postmortem-evidence-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            output = root / "postmortem.record"
+            MODULE.write_postmortem_evidence(output, values, proof)
+            evidence = output.read_text(encoding="ascii")
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            self.assertIn(
+                f"format={MODULE.POSTMORTEM_EVIDENCE_FORMAT}\n",
+                evidence,
+            )
+            self.assertIn("correlation=MATCH\n", evidence)
+            self.assertIn(
+                "fatal_state=FATAL_TOKEN_AFTER_LINEAGE\n",
+                evidence,
+            )
+            self.assertIn("pmic_pon_state=INCONCLUSIVE\n", evidence)
+            self.assertIn("pmic_watchdog_signal=INCONCLUSIVE\n", evidence)
+            self.assertIn("result=PASS\n", evidence)
+            self.assertNotIn("Kernel panic", evidence)
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.write_postmortem_evidence(output, values, proof)
+
+
+class PmicPonSnapshotTest(unittest.TestCase):
+    def setUp(self) -> None:
+        tree = ast.parse(MODULE.POSTMORTEM_REMOTE_SOURCE)
+        names = {
+            "MAX_DMESG_BYTES",
+            "PMIC_DMESG_TIMEOUT_SECONDS",
+            "MAX_PMIC_PON_RECORDS",
+            "MAX_PMIC_PON_MESSAGE_BYTES",
+            "PMIC_PON_PREFIX",
+            "PMIC_RESET_TRIGGERS",
+            "PMIC_RESET_TYPES",
+            "PMIC_WATCHDOG_TOKEN",
+            "ZERO_SHA256",
+            "EMPTY_SHA256",
+        }
+        body = [
+            node
+            for node in tree.body
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in names
+            )
+            or (
+                isinstance(node, ast.FunctionDef)
+                and node.name
+                in {"classify_pmic_pon", "pmic_pon_snapshot"}
+            )
+        ]
+        self.namespace: dict[str, object] = {
+            "hashlib": hashlib,
+            "select": __import__("select"),
+            "re": __import__("re"),
+            "subprocess": subprocess,
+            "time": __import__("time"),
+            "os": os,
+        }
+        exec(
+            compile(
+                ast.Module(body=body, type_ignores=[]),
+                "fallback-pmic-pon-snapshot.py",
+                "exec",
+            ),
+            self.namespace,
+        )
+        self.classify = self.namespace["classify_pmic_pon"]
+
+    @staticmethod
+    def dmesg(*messages: str) -> bytes:
+        return b"".join(
+            f"[    0.{index:06d}] PMIC PON log: {message}\n".encode()
+            for index, message in enumerate(messages, start=1)
+        )
+
+    def test_last_complete_cycle_is_selected_and_hashed(self) -> None:
+        output = self.dmesg(
+            "Reset Trigger: SW_RESET",
+            "Reset Type: WARM_RESET",
+            "PON Trigger: PS_HOLD",
+            "PON Successful",
+            "Reset Trigger: PMIC_WATCHDOG_S2",
+            "FAULT_REASON2=FAULT_WATCHDOG",
+            "Reset Type: HARD_RESET",
+            "Begin PON Sequence",
+            "PON Trigger: PS_HOLD",
+            "PON Successful",
+        )
+        state = self.classify(output)
+        self.assertEqual(
+            state[:2],
+            ("EXACT", 10),
+        )
+        self.assertEqual(state[3:], (6, "PMIC_WATCHDOG_S2", "HARD_RESET", "PRESENT"))
+        self.assertEqual(
+            state[2],
+            hashlib.sha256(
+                b"".join(
+                    f"PMIC PON log: {message}\n".encode()
+                    for message in (
+                        "Reset Trigger: SW_RESET",
+                        "Reset Type: WARM_RESET",
+                        "PON Trigger: PS_HOLD",
+                        "PON Successful",
+                        "Reset Trigger: PMIC_WATCHDOG_S2",
+                        "FAULT_REASON2=FAULT_WATCHDOG",
+                        "Reset Type: HARD_RESET",
+                        "Begin PON Sequence",
+                        "PON Trigger: PS_HOLD",
+                        "PON Successful",
+                    )
+                )
+            ).hexdigest(),
+        )
+
+    def test_exact_nonwatchdog_cycle_reports_only_absence_of_pmic_token(
+        self,
+    ) -> None:
+        state = self.classify(
+            self.dmesg(
+                "PON Successful",
+                "Reset Trigger: SW_RESET",
+                "Reset Type: WARM_RESET",
+                "PON Trigger: PS_HOLD",
+                "PON Successful",
+            )
+        )
+        self.assertEqual(
+            state[3:],
+            (4, "SW_RESET", "WARM_RESET", "ABSENT"),
+        )
+
+    def test_missing_delimiters_ambiguous_fields_and_unknown_values(
+        self,
+    ) -> None:
+        inconclusive = (
+            "INCONCLUSIVE",
+            2,
+            mock.ANY,
+            0,
+            "NONE",
+            "NONE",
+            "INCONCLUSIVE",
+        )
+        self.assertEqual(
+            self.classify(
+                self.dmesg("Reset Trigger: SW_RESET", "PON Successful")
+            ),
+            inconclusive,
+        )
+        self.assertEqual(
+            self.classify(
+                self.dmesg(
+                    "PON Successful",
+                    "Reset Trigger: SW_RESET",
+                    "Reset Trigger: PS_HOLD",
+                    "Reset Type: WARM_RESET",
+                    "PON Successful",
+                )
+            )[0],
+            "INCONCLUSIVE",
+        )
+        unknown = self.classify(
+            self.dmesg(
+                "PON Successful",
+                "Reset Trigger: SID=0x9, PID=0x99, IRQ=0x7",
+                "Reset Type: UNKNOWN (3)",
+                "PON Successful",
+            )
+        )
+        self.assertEqual(unknown[0], "INCONCLUSIVE")
+        self.assertEqual(
+            unknown[3:],
+            (0, "NONE", "NONE", "INCONCLUSIVE"),
+        )
+
+    def test_empty_malformed_and_oversized_input_is_bounded(self) -> None:
+        self.assertEqual(
+            self.classify(b"unrelated kernel log\n"),
+            (
+                "INCONCLUSIVE",
+                0,
+                MODULE.EMPTY_SHA256,
+                0,
+                "NONE",
+                "NONE",
+                "INCONCLUSIVE",
+            ),
+        )
+        with self.assertRaisesRegex(RuntimeError, "pmic-format"):
+            self.classify(b"PMIC PON log: bad\x00message\n")
+        with self.assertRaisesRegex(RuntimeError, "pmic-bound"):
+            self.classify(
+                self.dmesg(
+                    *("PON Successful" for _ in range(65))
+                )
+            )
+        with self.assertRaisesRegex(RuntimeError, "dmesg-bound"):
+            self.classify(b"x" * (4 * 1024 * 1024 + 1))
+
+    def test_command_failure_and_timeout_are_unavailable(self) -> None:
+        unavailable = (
+            "UNAVAILABLE",
+            0,
+            MODULE.ZERO_SHA256,
+            0,
+            "NONE",
+            "NONE",
+            "INCONCLUSIVE",
+        )
+        snapshot = self.namespace["pmic_pon_snapshot"]
+        with mock.patch.object(
+            subprocess,
+            "Popen",
+            side_effect=OSError("missing"),
+        ):
+            self.assertEqual(snapshot(), unavailable)
+
+        class HangingProcess:
+            def __init__(self) -> None:
+                self.stdout = tempfile.TemporaryFile()
+                self.killed = False
+
+            def poll(self):
+                return -9 if self.killed else None
+
+            def kill(self) -> None:
+                self.killed = True
+
+            def wait(self, timeout):
+                if self.killed:
+                    return -9
+                raise subprocess.TimeoutExpired(["/bin/dmesg"], timeout)
+
+        hanging = HangingProcess()
+        with mock.patch.object(
+            subprocess,
+            "Popen",
+            return_value=hanging,
+        ):
+            self.assertEqual(snapshot(), unavailable)
+        self.assertTrue(hanging.killed)
+
+        class UnreapableProcess(HangingProcess):
+            def wait(self, timeout):
+                raise subprocess.TimeoutExpired(["/bin/dmesg"], timeout)
+
+        unreapable = UnreapableProcess()
+        with (
+            mock.patch.object(
+                subprocess,
+                "Popen",
+                return_value=unreapable,
+            ),
+            self.assertRaisesRegex(RuntimeError, "dmesg-reap"),
+        ):
+            snapshot()
+        self.assertTrue(unreapable.killed)
+
+    def test_stream_capture_refuses_before_storing_past_bound(self) -> None:
+        class OversizedProcess:
+            def __init__(self) -> None:
+                self.stdout = tempfile.TemporaryFile()
+                self.stdout.write(b"x" * (4 * 1024 * 1024 + 1))
+                self.stdout.seek(0)
+                self.killed = False
+
+            def poll(self):
+                return -9 if self.killed else None
+
+            def kill(self) -> None:
+                self.killed = True
+
+            def wait(self, timeout):
+                return -9 if self.killed else 0
+
+        process = OversizedProcess()
+        with (
+            mock.patch.object(
+                subprocess,
+                "Popen",
+                return_value=process,
+            ),
+            self.assertRaisesRegex(RuntimeError, "dmesg-bound"),
+        ):
+            self.namespace["pmic_pon_snapshot"]()
+        self.assertTrue(process.killed)
+
+
+class PostmortemRemoteSnapshotTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix="rog5-postmortem-snapshot-"
+        )
+        self.root = Path(self.temporary.name)
+        self.sys_pstore = self.root / "sys-pstore"
+        self.mnt_pstore = self.root / "mnt-pstore"
+        self.sys_pstore.mkdir()
+        self.mnt_pstore.mkdir()
+        self.mounts = self.root / "mounts"
+        self.mounts.write_text(
+            f"none {self.sys_pstore} pstore ro 0 0\n"
+            f"none {self.mnt_pstore} pstore ro 0 0\n",
+            encoding="ascii",
+        )
+        tree = ast.parse(MODULE.POSTMORTEM_REMOTE_SOURCE)
+        names = {
+            "MAX_RECORDS",
+            "MAX_BYTES",
+            "ZERO_SHA256",
+            "EMPTY_SHA256",
+            "RECORD_NAME",
+            "FATAL",
+        }
+        body = [
+            node
+            for node in tree.body
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in names
+            )
+            or (
+                isinstance(node, ast.FunctionDef)
+                and node.name in {"read_record", "pstore_mounts", "snapshot"}
+            )
+        ]
+
+        def mapped_path(value: str) -> Path:
+            if value == "/sys/fs/pstore":
+                return self.sys_pstore
+            if value == "/mnt/pstore":
+                return self.mnt_pstore
+            if value == "/proc/mounts":
+                return self.mounts
+            return Path(value)
+
+        self.namespace: dict[str, object] = {
+            "hashlib": hashlib,
+            "os": os,
+            "Path": mapped_path,
+            "re": __import__("re"),
+            "stat": stat,
+        }
+        exec(
+            compile(
+                ast.Module(body=body, type_ignores=[]),
+                "fallback-postmortem-snapshot.py",
+                "exec",
+            ),
+            self.namespace,
+        )
+        self.snapshot = self.namespace["snapshot"]
+        self.marker = (
+            "rog5-network-root: lineage format=rog5-target-lineage-v1 "
+            f"candidate={POSTMORTEM_CANDIDATE} "
+            f"boot_id={POSTMORTEM_TARGET_BOOT_ID}"
+        ).encode()
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def test_unavailable_empty_and_deduplicated_records(self) -> None:
+        original_sys = self.sys_pstore
+        original_mnt = self.mnt_pstore
+        self.sys_pstore = self.root / "absent-sys"
+        self.mnt_pstore = self.root / "absent-mnt"
+        self.mounts.write_text("", encoding="ascii")
+        self.assertEqual(
+            self.snapshot(self.marker),
+            ("UNAVAILABLE", 0, 0, MODULE.ZERO_SHA256, 0, 0, 0, 0),
+        )
+        self.sys_pstore = original_sys
+        self.mnt_pstore = original_mnt
+        self.assertEqual(
+            self.snapshot(self.marker),
+            ("UNAVAILABLE", 0, 0, MODULE.ZERO_SHA256, 0, 0, 0, 0),
+        )
+        self.mounts.write_text(
+            f"none {self.sys_pstore} pstore ro 0 0\n"
+            f"none {self.mnt_pstore} pstore ro 0 0\n",
+            encoding="ascii",
+        )
+        self.assertEqual(
+            self.snapshot(self.marker),
+            ("EMPTY", 0, 0, MODULE.EMPTY_SHA256, 0, 0, 0, 0),
+        )
+        payload = b"record without lineage"
+        (self.sys_pstore / "dmesg-ramoops-0").write_bytes(payload)
+        values = self.snapshot(self.marker)
+        self.assertEqual(values[:3], ("PRESENT", 1, len(payload)))
+        self.assertEqual(values[4:], (0, 0, 0, 0))
+        self.assertNotIn(values[3], {MODULE.ZERO_SHA256, MODULE.EMPTY_SHA256})
+        self.mnt_pstore = original_mnt
+        os.link(
+            self.sys_pstore / "dmesg-ramoops-0",
+            self.mnt_pstore / "dmesg-ramoops-duplicate",
+        )
+        self.assertEqual(self.snapshot(self.marker), values)
+
+    def test_lineage_and_only_subsequent_fatal_tokens_are_counted(self) -> None:
+        payload = (
+            b"Kernel panic before lineage\n"
+            + self.marker
+            + b"\nnormal\nOops: after lineage\nwatchdog-bite\n"
+            + self.marker
+        )
+        (self.sys_pstore / "console-ramoops-0").write_bytes(payload)
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[0:3], ("PRESENT", 1, len(payload)))
+        self.assertEqual(state[4:], (2, 1, 3, 2))
+
+    def test_cross_record_fatal_is_present_with_unknown_order(self) -> None:
+        (self.sys_pstore / "console-ramoops-0").write_bytes(self.marker)
+        (self.sys_pstore / "dmesg-ramoops-0").write_bytes(
+            b"Kernel panic in a separate backend record"
+        )
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[4:], (1, 1, 1, 0))
+
+    def test_fatal_token_boundaries_are_nonconsuming_and_offset_exact(
+        self,
+    ) -> None:
+        payload = self.marker + b" BUG: Oops: end"
+        (self.sys_pstore / "console-ramoops-0").write_bytes(payload)
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[4:], (1, 1, 2, 2))
+        (self.sys_pstore / "console-ramoops-0").write_bytes(
+            self.marker + b"BUG: is not token-delimited"
+        )
+        state = self.snapshot(self.marker)
+        self.assertEqual(state[4:], (1, 1, 0, 0))
+
+    def test_pstore_mount_change_during_snapshot_fails_closed(self) -> None:
+        (self.sys_pstore / "console-ramoops-0").write_bytes(self.marker)
+        mounted = {str(self.sys_pstore), str(self.mnt_pstore)}
+        observations = iter((mounted, mounted, set()))
+        self.namespace["pstore_mounts"] = lambda: next(observations)
+        with self.assertRaisesRegex(RuntimeError, "mount-race"):
+            self.snapshot(self.marker)
+
+    def test_unknown_mount_probe_error_and_late_mount_fail_closed(
+        self,
+    ) -> None:
+        self.mounts.write_text(
+            f"none {self.sys_pstore} pstore ro 0 0\n"
+            f"none {self.mnt_pstore} pstore ro 0 0\n"
+            "none /run/pstore pstore ro 0 0\n",
+            encoding="ascii",
+        )
+        with self.assertRaisesRegex(RuntimeError, "pstore-location"):
+            self.snapshot(self.marker)
+
+        inaccessible = mock.Mock()
+        inaccessible.lstat.side_effect = PermissionError("denied")
+        self.sys_pstore = inaccessible
+        self.mnt_pstore = self.root / "absent-mnt"
+        self.mounts.write_text("", encoding="ascii")
+        with self.assertRaisesRegex(RuntimeError, "pstore-root"):
+            self.snapshot(self.marker)
+
+        self.sys_pstore = self.root / "absent-sys"
+        observations = iter((set(), {"/run/pstore"}))
+        self.namespace["pstore_mounts"] = lambda: next(observations)
+        with self.assertRaisesRegex(RuntimeError, "mount-race"):
+            self.snapshot(self.marker)
+
+    def test_symlinks_bad_names_and_bounds_fail_closed(
+        self,
+    ) -> None:
+        outside = self.root / "outside"
+        outside.write_bytes(b"not a pstore record")
+        (self.sys_pstore / "dmesg-ramoops-0").symlink_to(outside)
+        with self.assertRaisesRegex(RuntimeError, "record-type"):
+            self.snapshot(self.marker)
+        (self.sys_pstore / "dmesg-ramoops-0").unlink()
+        (self.sys_pstore / "empty").touch()
+        empty = self.snapshot(self.marker)
+        self.assertEqual(empty[:3], ("PRESENT", 1, 0))
+        self.assertNotIn(
+            empty[3],
+            {MODULE.ZERO_SHA256, MODULE.EMPTY_SHA256},
+        )
+        self.assertEqual(empty[4:], (0, 0, 0, 0))
+        (self.sys_pstore / "empty").unlink()
+        (self.sys_pstore / "bad name").write_bytes(b"x")
+        with self.assertRaisesRegex(RuntimeError, "record-name"):
+            self.snapshot(self.marker)
+        (self.sys_pstore / "bad name").unlink()
+        (self.sys_pstore / "one").write_bytes(b"x")
+        (self.sys_pstore / "two").write_bytes(b"y")
+        self.namespace["MAX_RECORDS"] = 1
+        with self.assertRaisesRegex(RuntimeError, "snapshot-bound"):
+            self.snapshot(self.marker)
+
+    def test_post_open_record_path_replacement_fails_closed(self) -> None:
+        record = self.sys_pstore / "console-ramoops-0"
+        displaced = self.root / "displaced-record"
+        record.write_bytes(self.marker)
+        real_read = os.read
+        replaced = False
+
+        def replace_after_open(descriptor: int, size: int) -> bytes:
+            nonlocal replaced
+            if not replaced:
+                replaced = True
+                record.rename(displaced)
+                record.write_bytes(b"replacement")
+            return real_read(descriptor, size)
+
+        with (
+            mock.patch.object(
+                self.namespace["os"],
+                "read",
+                side_effect=replace_after_open,
+            ),
+            self.assertRaisesRegex(RuntimeError, "record-race"),
+        ):
+            self.snapshot(self.marker)
+
+
+class SignatureTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-signature-"
+        )
+        self.root = Path(self.temporary.name)
+        self.key = self.root / "host-key"
+        subprocess.run(
+            [
+                str(MODULE.SSH_KEYGEN),
+                "-q",
+                "-t",
+                "ed25519",
+                "-N",
+                "",
+                "-f",
+                str(self.key),
+            ],
+            check=True,
+        )
+        fields = self.key.with_suffix(".pub").read_text().split()
+        self.known_hosts = self.root / "known-hosts"
+        self.known_hosts.write_text(
+            f"{MODULE.HOST_ALIAS} {fields[0]} {fields[1]}\n",
+            encoding="ascii",
+        )
+        self.known_hosts.chmod(0o600)
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def signature(self, payload: bytes) -> bytes:
+        result = subprocess.run(
+            [
+                str(MODULE.SSH_KEYGEN),
+                "-Y",
+                "sign",
+                "-f",
+                str(self.key),
+                "-n",
+                MODULE.SIGN_NAMESPACE,
+                "-",
+            ],
+            input=payload,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        return result.stdout
+
+    def test_real_host_key_signature_passes(self) -> None:
+        payload = record("1" * 32)[1]
+        MODULE.verify_signature(
+            MODULE.verify_known_hosts(self.known_hosts),
+            payload,
+            self.signature(payload),
+        )
+
+    def test_payload_signature_and_pin_mutations_fail(self) -> None:
+        payload = record("2" * 32)[1]
+        signature = self.signature(payload)
+        pin = MODULE.verify_known_hosts(self.known_hosts)
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.verify_signature(
+                pin,
+                payload + b"x",
+                signature,
+            )
+        other = self.root / "other"
+        subprocess.run(
+            [
+                str(MODULE.SSH_KEYGEN),
+                "-q",
+                "-t",
+                "ed25519",
+                "-N",
+                "",
+                "-f",
+                str(other),
+            ],
+            check=True,
+        )
+        fields = other.with_suffix(".pub").read_text().split()
+        wrong_pin = self.root / "wrong-pin"
+        wrong_pin.write_text(
+            f"{MODULE.HOST_ALIAS} {fields[0]} {fields[1]}\n",
+            encoding="ascii",
+        )
+        wrong_pin.chmod(0o600)
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.verify_signature(
+                MODULE.verify_known_hosts(wrong_pin),
+                payload,
+                signature,
+            )
+
+    def test_pin_requires_one_exact_private_record(self) -> None:
+        self.assertEqual(
+            MODULE.verify_known_hosts(self.known_hosts),
+            self.known_hosts.read_bytes(),
+        )
+        for payload in (
+            "",
+            "wrong ssh-ed25519 AAAA\n",
+            self.known_hosts.read_text() * 2,
+        ):
+            path = self.root / hashlib_name(payload)
+            path.write_text(payload, encoding="ascii")
+            path.chmod(0o600)
+            with self.subTest(payload=payload):
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.verify_known_hosts(path)
+        loose = self.root / "loose"
+        loose.mkdir(mode=0o755)
+        loose_pin = loose / "pin"
+        loose_pin.write_bytes(self.known_hosts.read_bytes())
+        loose_pin.chmod(0o600)
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.verify_known_hosts(loose_pin)
+        with (
+            mock.patch.object(MODULE, "REPO", self.root),
+            self.assertRaises(MODULE.FallbackError),
+        ):
+            MODULE.verify_known_hosts(self.known_hosts)
+
+    def test_verification_uses_the_inspected_pin_snapshot(self) -> None:
+        payload = record("4" * 32)[1]
+        pin = MODULE.verify_known_hosts(self.known_hosts)
+        self.known_hosts.unlink()
+        self.known_hosts.write_text(
+            (
+                f"{MODULE.HOST_ALIAS} ssh-ed25519 "
+                "AAAAC3NzaC1lZDI1NTE5AAAAIAAAAAAAAAAAAAAAAAAAAAAAAA"
+                "AAAAAAAAAAAAAA\n"
+            ),
+            encoding="ascii",
+        )
+        self.known_hosts.chmod(0o600)
+        MODULE.verify_signature(pin, payload, self.signature(payload))
+
+
+def hashlib_name(value: str) -> str:
+    return "pin-" + hashlib.sha256(value.encode()).hexdigest()
+
+
+class UsbFixture:
+    def __init__(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-usb-"
+        )
+        self.root = Path(self.temporary.name)
+        self.devices = self.root / "devices"
+        self.bus = self.root / "bus"
+        self.tty = self.root / "tty"
+        self.net = self.root / "net"
+        self.drivers = self.root / "drivers"
+        self.raw = self.devices / "pci/usb1/1-1/1-1.2"
+        self.interface = self.raw / "1-1.2:1.2"
+        self.ncm_interface = self.raw / "1-1.2:1.0"
+        (self.interface / "tty/ttyACM7").mkdir(parents=True)
+        ncm_leaf = self.ncm_interface / "net/usbtest0"
+        ncm_leaf.mkdir(parents=True)
+        self.bus.mkdir()
+        self.tty.mkdir()
+        self.net.mkdir()
+        (self.drivers / MODULE.USB_NCM_DRIVER).mkdir(parents=True)
+        (self.raw / "idVendor").write_text(MODULE.USB_VENDOR)
+        (self.raw / "idProduct").write_text(MODULE.USB_PRODUCT)
+        (self.raw / "product").write_text(MODULE.USB_PRODUCT_NAME)
+        (self.bus / "1-1.2").symlink_to(self.raw)
+        (self.tty / "ttyACM7").symlink_to(
+            self.interface / "tty/ttyACM7"
+        )
+        (self.net / "usbtest0").symlink_to(ncm_leaf)
+        (ncm_leaf / "device").symlink_to(self.ncm_interface)
+        (self.ncm_interface / "driver").symlink_to(
+            self.drivers / MODULE.USB_NCM_DRIVER
+        )
+        self.location = self.raw.relative_to(self.devices).as_posix()
+
+    def close(self) -> None:
+        self.temporary.cleanup()
+
+    @staticmethod
+    def properties() -> dict[str, str]:
+        return {
+            "ID_VENDOR_ID": MODULE.USB_VENDOR,
+            "ID_MODEL_ID": MODULE.USB_PRODUCT,
+            "ID_MODEL": MODULE.USB_MODEL,
+            "ID_USB_DRIVER": MODULE.USB_DRIVER,
+            "ID_USB_INTERFACE_NUM": MODULE.USB_INTERFACE,
+        }
+
+    @staticmethod
+    def ncm_properties() -> dict[str, str]:
+        return {
+            "ID_VENDOR_ID": MODULE.USB_VENDOR,
+            "ID_MODEL_ID": MODULE.USB_PRODUCT,
+            "ID_MODEL": MODULE.USB_MODEL,
+            "ID_USB_DRIVER": MODULE.USB_NCM_DRIVER,
+            "ID_USB_INTERFACE_NUM": MODULE.USB_NCM_INTERFACE,
+        }
+
+
+class UsbIdentityTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = UsbFixture()
+        self.patches = (
+            mock.patch.object(MODULE, "SYS_DEVICES", self.fixture.devices),
+            mock.patch.object(MODULE, "SYS_BUS_USB", self.fixture.bus),
+            mock.patch.object(MODULE, "SYS_CLASS_TTY", self.fixture.tty),
+            mock.patch.object(
+                MODULE.glob,
+                "glob",
+                return_value=["/dev/ttyACM7"],
+            ),
+            mock.patch.object(
+                MODULE,
+                "udev_properties",
+                return_value=self.fixture.properties(),
+            ),
+            mock.patch.object(MODULE.os, "access", return_value=True),
+        )
+        for patch in self.patches:
+            patch.start()
+        real_stat = os.stat
+
+        def fake_stat(path: object, *, follow_symlinks: bool = True):
+            if str(path) in {"/dev/ttyACM7", "/dev/ttyACM8"}:
+                return mock.Mock(st_mode=stat.S_IFCHR | 0o660, st_rdev=16647)
+            return real_stat(path, follow_symlinks=follow_symlinks)
+
+        self.stat = mock.patch.object(MODULE.os, "stat", side_effect=fake_stat)
+        self.stat.start()
+
+    def tearDown(self) -> None:
+        self.stat.stop()
+        for patch in reversed(self.patches):
+            patch.stop()
+        self.fixture.close()
+
+    def test_exact_usb_product_interface_and_location_pass(self) -> None:
+        self.assertEqual(
+            MODULE.find_fallback_acm(self.fixture.location),
+            ("/dev/ttyACM7", self.fixture.location, 16647),
+        )
+        MODULE.udev_properties.reset_mock()
+        MODULE.revalidate_fallback_acm(
+            "/dev/ttyACM7",
+            self.fixture.location,
+            16647,
+        )
+        MODULE.udev_properties.assert_called_once_with("/dev/ttyACM7")
+
+    def test_wrong_expected_port_and_wrong_interface_fail(self) -> None:
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.find_fallback_acm("pci/usb1/1-1/1-1.9")
+        with (
+            mock.patch.object(
+                MODULE,
+                "udev_properties",
+                return_value={
+                    **self.fixture.properties(),
+                    "ID_USB_INTERFACE_NUM": "03",
+                },
+            ),
+            self.assertRaises(MODULE.FallbackError),
+        ):
+            MODULE.find_fallback_acm()
+
+    def test_duplicate_product_and_duplicate_acm_fail(self) -> None:
+        duplicate = self.fixture.devices / "pci/usb1/1-1/1-1.3"
+        duplicate.mkdir(parents=True)
+        (duplicate / "idVendor").write_text(MODULE.USB_VENDOR)
+        (duplicate / "idProduct").write_text(MODULE.USB_PRODUCT)
+        (duplicate / "product").write_text(MODULE.USB_PRODUCT_NAME)
+        (self.fixture.bus / "1-1.3").symlink_to(duplicate)
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.find_fallback_acm()
+        (self.fixture.bus / "1-1.3").unlink()
+        (self.fixture.tty / "ttyACM8").symlink_to(
+            self.fixture.interface / "tty/ttyACM7"
+        )
+        with (
+            mock.patch.object(
+                MODULE.glob,
+                "glob",
+                return_value=["/dev/ttyACM7", "/dev/ttyACM8"],
+            ),
+            self.assertRaises(MODULE.FallbackError),
+        ):
+            MODULE.find_fallback_acm()
+
+
+class NcmIdentityTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.fixture = UsbFixture()
+        self.patches = (
+            mock.patch.object(MODULE, "SYS_DEVICES", self.fixture.devices),
+            mock.patch.object(MODULE, "SYS_BUS_USB", self.fixture.bus),
+            mock.patch.object(MODULE, "SYS_CLASS_NET", self.fixture.net),
+        )
+        for patch in self.patches:
+            patch.start()
+
+    def tearDown(self) -> None:
+        for patch in reversed(self.patches):
+            patch.stop()
+        self.fixture.close()
+
+    def udev_result(
+        self,
+        properties: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        values = properties or self.fixture.ncm_properties()
+        return subprocess.CompletedProcess(
+            [],
+            0,
+            "".join(f"{name}={value}\n" for name, value in values.items()),
+            "",
+        )
+
+    def test_exact_ncm_product_driver_and_location_pass(self) -> None:
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(),
+        ):
+            self.assertEqual(
+                MODULE.fallback_ncm_identity(),
+                ("usbtest0", self.fixture.location),
+            )
+
+    def test_ncm_rejects_wrong_driver_and_physical_location(self) -> None:
+        properties = {
+            **self.fixture.ncm_properties(),
+            "ID_USB_DRIVER": "rndis_host",
+        }
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(properties),
+        ):
+            self.assertIsNone(MODULE.fallback_ncm_identity())
+        with (
+            mock.patch.object(
+                MODULE,
+                "fallback_ncm_identity",
+                return_value=("usbtest0", self.fixture.location),
+            ),
+            self.assertRaises(MODULE.FallbackError),
+        ):
+            MODULE.wait_fallback_ncm("pci/usb1/1-1/1-1.9", 600)
+
+    def test_ncm_rejects_duplicate_product_and_interface(self) -> None:
+        duplicate = self.fixture.devices / "pci/usb1/1-1/1-1.3"
+        duplicate.mkdir(parents=True)
+        (duplicate / "idVendor").write_text(MODULE.USB_VENDOR)
+        (duplicate / "idProduct").write_text(MODULE.USB_PRODUCT)
+        (duplicate / "product").write_text(MODULE.USB_PRODUCT_NAME)
+        (self.fixture.bus / "1-1.3").symlink_to(duplicate)
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(),
+        ):
+            self.assertIsNone(MODULE.fallback_ncm_identity())
+        (self.fixture.bus / "1-1.3").unlink()
+        (self.fixture.net / "usbtest1").symlink_to(
+            self.fixture.ncm_interface / "net/usbtest0"
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=self.udev_result(),
+        ):
+            self.assertIsNone(MODULE.fallback_ncm_identity())
+
+
+class SerialTest(unittest.TestCase):
+    def run_probe(
+        self,
+        action: str,
+        *,
+        duplicate_shell_ready: bool = False,
+    ) -> tuple[OrderedDict[str, str] | None, bytes]:
+        master, slave = pty.openpty()
+        path = os.ttyname(slave)
+        device_number = os.stat(path).st_rdev
+        nonce = "3" * 32
+        observed = bytearray()
+        commit_consumed = threading.Event()
+        read_until = MODULE.FallbackSerial.read_until
+
+        def emulate() -> None:
+            reset, sync_command, shell_ready = MODULE.shell_sync_transport(
+                nonce
+            )
+            actual_reset = read_line(master)
+            self.assertEqual(actual_reset, reset)
+            observed.extend(actual_reset)
+            actual_sync = read_line(master)
+            self.assertEqual(actual_sync, sync_command)
+            observed.extend(actual_sync)
+            os.write(master, f"{shell_ready}\r\n".encode())
+            launcher = read_line(master)
+            observed.extend(launcher)
+            if duplicate_shell_ready:
+                os.write(master, f"{shell_ready}\r\n".encode())
+            os.write(
+                master,
+                f"ROG5_FALLBACK_LOADER_READY {nonce}\r\n".encode(),
+            )
+            _, source_chunks = MODULE.remote_transport(nonce, action)
+            for expected_chunk in source_chunks:
+                actual_chunk = read_line(master)
+                self.assertEqual(actual_chunk, expected_chunk)
+                observed.extend(actual_chunk)
+            os.write(master, frame(nonce, action))
+            if action == "reboot":
+                acknowledgement = read_line(master)
+                expected = (
+                    "ROG5_FALLBACK_REBOOT_ACK "
+                    f"{nonce} 11111111-2222-4333-8444-555555555555\n"
+                ).encode()
+                self.assertEqual(acknowledgement, expected)
+                os.write(
+                    master,
+                    (
+                        "ROG5_FALLBACK_ACM_COMMIT "
+                        f"{nonce} 11111111-2222-4333-8444-555555555555\r\n"
+                    ).encode(),
+                )
+                self.assertTrue(commit_consumed.wait(timeout=5))
+                os.close(master)
+
+        def tracked_read(
+            serial: MODULE.FallbackSerial,
+            expected_line: str,
+            timeout_seconds: float,
+            remote_nonce: str | None = None,
+            stage: str = "result",
+        ) -> None:
+            read_until(
+                serial,
+                expected_line,
+                timeout_seconds,
+                remote_nonce,
+                stage,
+            )
+            if expected_line.startswith("ROG5_FALLBACK_ACM_COMMIT"):
+                commit_consumed.set()
+
+        thread = threading.Thread(target=emulate)
+        thread.start()
+        try:
+            with (
+                mock.patch.object(
+                    MODULE,
+                    "wait_fallback_acm",
+                    return_value=(
+                        path,
+                        "pci/usb1/1-1/1-1.2",
+                        device_number,
+                    ),
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "revalidate_fallback_acm",
+                ),
+                mock.patch.object(MODULE.os, "urandom", return_value=b"3" * 16),
+                mock.patch.object(MODULE, "verify_signature") as verify,
+                mock.patch.object(
+                    MODULE.FallbackSerial,
+                    "read_until",
+                    tracked_read,
+                ),
+            ):
+                if duplicate_shell_ready:
+                    with self.assertRaisesRegex(
+                        MODULE.FallbackError,
+                        "shell readiness marker is absent or ambiguous",
+                    ):
+                        MODULE.probe(
+                            b"synthetic-allowed-signers\n",
+                            action=action,
+                        )
+                    values = None
+                else:
+                    values, _, _ = MODULE.probe(
+                        b"synthetic-allowed-signers\n",
+                        action=action,
+                    )
+            if duplicate_shell_ready:
+                verify.assert_not_called()
+            else:
+                verify.assert_called_once()
+        finally:
+            os.close(slave)
+            if action != "reboot":
+                os.close(master)
+            thread.join(timeout=5)
+        self.assertFalse(thread.is_alive())
+        return values, bytes(observed)
+
+    def test_preflight_is_one_bounded_nonce_framed_exchange(self) -> None:
+        values, wire = self.run_probe("preflight")
+        assert values is not None
+        self.assertEqual(values["result"], "PASS")
+        reset, sync_command, marker = MODULE.shell_sync_transport("3" * 32)
+        launcher, chunks = MODULE.remote_transport("3" * 32, "preflight")
+        self.assertEqual(
+            wire,
+            reset + sync_command + launcher + b"".join(chunks),
+        )
+        self.assertNotIn(marker.encode(), reset + sync_command)
+        self.assertNotIn(b"ROG5_FALLBACK_ACM_BEGIN", wire)
+        self.assertNotIn(b"ROG5_FALLBACK_LOADER_READY", launcher)
+        self.assertLessEqual(
+            len(launcher),
+            MODULE.MAX_LAUNCHER_LINE_BYTES,
+        )
+        self.assertLess(
+            MODULE.MAX_LAUNCHER_LINE_BYTES,
+            MODULE.BUSYBOX_EDITING_MAX_LEN,
+        )
+        self.assertTrue(
+            all(
+                len(chunk) <= MODULE.SOURCE_CHUNK_BYTES + 1
+                for chunk in chunks
+            )
+        )
+        self.assertLessEqual(len(chunks), MODULE.MAX_SOURCE_CHUNKS)
+        self.assertIn(b"/usr/bin/python3 -I -S -B -c", launcher)
+        synthetic_source = (
+            "import sys\n"
+            "print('SYNTHETIC_LOADER_EXECUTED', *sys.argv[1:])\n"
+        )
+        with mock.patch.object(
+            MODULE,
+            "REMOTE_SOURCE",
+            synthetic_source,
+        ):
+            synthetic_launcher, synthetic_chunks = MODULE.remote_transport(
+                "4" * 32,
+                "preflight",
+            )
+        arguments = shlex.split(synthetic_launcher.decode("ascii"))
+        python_index = arguments.index("/usr/bin/python3")
+        result = subprocess.run(
+            [sys.executable, *arguments[python_index + 1 :]],
+            input=b"".join(synthetic_chunks),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=5,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout.decode("ascii").splitlines(),
+            [
+                f"ROG5_FALLBACK_LOADER_READY {'4' * 32}",
+                f"SYNTHETIC_LOADER_EXECUTED {'4' * 32} preflight",
+            ],
+        )
+        with (
+            mock.patch.object(
+                MODULE,
+                "REMOTE_SOURCE",
+                synthetic_source,
+            ),
+            mock.patch.object(
+                MODULE,
+                "LOADER_RECEIVE_TIMEOUT_SECONDS",
+                1,
+            ),
+        ):
+            stalled_launcher, stalled_chunks = MODULE.remote_transport(
+                "5" * 32,
+                "preflight",
+            )
+        stalled_arguments = shlex.split(stalled_launcher.decode("ascii"))
+        stalled_python = stalled_arguments.index("/usr/bin/python3")
+        for partial in (b"", stalled_chunks[0][:-1]):
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    *stalled_arguments[stalled_python + 1 :],
+                ],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            assert process.stdin is not None
+            assert process.stdout is not None
+            assert process.stderr is not None
+            ready = process.stdout.readline().decode("ascii").strip()
+            self.assertEqual(
+                ready,
+                f"ROG5_FALLBACK_LOADER_READY {'5' * 32}",
+            )
+            if partial:
+                process.stdin.write(partial)
+                process.stdin.flush()
+            self.assertNotEqual(process.wait(timeout=3), 0)
+            process.stdin.close()
+            self.assertNotIn(
+                b"SYNTHETIC_LOADER_EXECUTED",
+                process.stdout.read(),
+            )
+            process.stdout.close()
+            process.stderr.close()
+
+    def test_delayed_duplicate_shell_ready_fails_before_signature(self) -> None:
+        values, _ = self.run_probe(
+            "preflight",
+            duplicate_shell_ready=True,
+        )
+        self.assertIsNone(values)
+
+    def test_classify_is_read_only_and_returns_without_reboot_ack(self) -> None:
+        values, _ = self.run_probe("classify")
+        assert values is not None
+        self.assertEqual(values["action"], "classify")
+
+    def test_reboot_waits_for_verified_ack_then_disconnects(self) -> None:
+        values, _ = self.run_probe("reboot")
+        assert values is not None
+        self.assertEqual(values["action"], "reboot")
+
+    def test_exclusive_tty_refuses_a_second_controller(self) -> None:
+        master, slave = pty.openpty()
+        path = os.ttyname(slave)
+        device_number = os.stat(path).st_rdev
+        try:
+            with MODULE.FallbackSerial(path, "location", device_number):
+                with self.assertRaises(OSError):
+                    with MODULE.FallbackSerial(
+                        path,
+                        "location",
+                        device_number,
+                    ):
+                        pass
+        finally:
+            os.close(master)
+            os.close(slave)
+
+    def test_opened_tty_must_match_discovered_device_number(self) -> None:
+        master, slave = pty.openpty()
+        path = os.ttyname(slave)
+        try:
+            with self.assertRaises(MODULE.FallbackError):
+                with MODULE.FallbackSerial(
+                    path,
+                    "location",
+                    os.stat(path).st_rdev + 1,
+                ):
+                    pass
+        finally:
+            os.close(master)
+            os.close(slave)
+
+    def test_preexisting_tty_holder_is_rejected(self) -> None:
+        master, slave = pty.openpty()
+        path = os.ttyname(slave)
+        device_number = os.stat(path).st_rdev
+        holder = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import os,sys,time;"
+                    "fd=os.open(sys.argv[1],os.O_RDWR|os.O_NOCTTY);"
+                    "print('ready',flush=True);time.sleep(10)"
+                ),
+                path,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            self.assertEqual(holder.stdout.readline().strip(), "ready")
+            with self.assertRaises(MODULE.FallbackError):
+                with MODULE.FallbackSerial(
+                    path,
+                    "location",
+                    device_number,
+                ):
+                    pass
+        finally:
+            holder.terminate()
+            holder.wait(timeout=5)
+            holder.stdout.close()
+            holder.stderr.close()
+            os.close(master)
+            os.close(slave)
+
+    def test_serial_output_bound_and_timeout_fail_closed(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([17], [], []),
+            ),
+            mock.patch.object(
+                MODULE.os,
+                "read",
+                return_value=b"x" * (MODULE.MAX_SERIAL_OUTPUT + 1),
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "output exceeds",
+            ),
+        ):
+            serial.read_until("never", 1)
+        nonce = "a" * 32
+        serial.output = bytearray(
+            f"ROG5_FALLBACK_ACM_ERROR {nonce} host-key-sign\r\n".encode()
+        )
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "remote probe failed: host-key-sign",
+            ),
+        ):
+            serial.read_until("never", 1, remote_nonce=nonce)
+        serial.output.clear()
+        final_error = (
+            f"ROG5_FALLBACK_ACM_ERROR {nonce} health\r\n".encode()
+        )
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0, 2.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([17], [], []),
+            ),
+            mock.patch.object(
+                MODULE.os,
+                "read",
+                return_value=final_error,
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "remote probe failed: health",
+            ),
+        ):
+            serial.read_until("never", 1, remote_nonce=nonce)
+        serial.output.clear()
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0, 2.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([17], [], []),
+            ),
+            mock.patch.object(
+                MODULE.os,
+                "read",
+                return_value=final_error,
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "remote probe failed: health",
+            ),
+        ):
+            serial.wait_disconnect(1, remote_nonce=nonce)
+        serial.output = bytearray(
+            f"ROG5_FALLBACK_ACM_ERROR {nonce} post-ack-timeout\r\n".encode()
+        )
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "remote probe failed: post-ack-timeout",
+            ),
+        ):
+            serial.wait_disconnect(1, remote_nonce=nonce)
+        serial.output = bytearray(
+            f"ROG5_FALLBACK_ACM_ERROR {nonce} unknown\r\n".encode()
+        )
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "malformed or ambiguous",
+            ),
+        ):
+            serial.read_until("never", 1, remote_nonce=nonce)
+        serial.output.clear()
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0, 2.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([], [], []),
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "result timed out",
+            ),
+        ):
+            serial.read_until("never", 1)
+        serial.output = bytearray(b"echoed")
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 2.0],
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "shell-ready result timed out after 6 total bytes and 0 new bytes",
+            ),
+        ):
+            serial.read_until("never", 1, stage="shell-ready")
+        with self.assertRaisesRegex(
+            MODULE.FallbackError, "read stage is invalid"
+        ):
+            serial.read_until("never", 1, stage="INVALID")
+
+    def test_serial_write_timeout_fails_closed(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([], [], []),
+            ),
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "payload write timed out after 0/1 bytes",
+            ),
+        ):
+            serial.write(b"x", timeout_seconds=1)
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0, 0.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([], [17], []),
+            ),
+            mock.patch.object(
+                MODULE.os,
+                "write",
+                side_effect=[
+                    BlockingIOError(errno.EAGAIN, "retry"),
+                    1,
+                ],
+            ) as write,
+        ):
+            serial.write(b"x", timeout_seconds=1)
+        self.assertEqual(write.call_count, 2)
+
+    def test_serial_write_drains_echo_backpressure(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([17], [17], []),
+            ) as selected,
+            mock.patch.object(
+                MODULE.os,
+                "read",
+                return_value=b"echoed launcher",
+            ) as read,
+            mock.patch.object(
+                MODULE.os,
+                "write",
+                return_value=1,
+            ) as write,
+        ):
+            serial.write(b"x", timeout_seconds=1)
+        selected.assert_called_once_with([17], [17], [], 1.0)
+        read.assert_called_once_with(17, 4096)
+        write.assert_called_once()
+        self.assertEqual(serial.output, b"echoed launcher")
+
+    def test_serial_write_bounds_drained_echo(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        serial.output.extend(b"x" * MODULE.MAX_SERIAL_OUTPUT)
+        with (
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=[0.0, 0.0],
+            ),
+            mock.patch.object(
+                MODULE.select,
+                "select",
+                return_value=([17], [17], []),
+            ),
+            mock.patch.object(
+                MODULE.os,
+                "read",
+                return_value=b"x",
+            ),
+            mock.patch.object(MODULE.os, "write") as write,
+            self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "output exceeds its bound",
+            ),
+        ):
+            serial.write(b"x", timeout_seconds=1)
+        write.assert_not_called()
+
+    def test_serial_write_stage_is_canonical(self) -> None:
+        serial = MODULE.FallbackSerial("/unused", "location", 1)
+        serial.fd = 17
+        for stage in ("", "UPPER", "space value", "x" * 33):
+            with (
+                self.subTest(stage=stage),
+                self.assertRaisesRegex(
+                    MODULE.FallbackError,
+                    "write stage is invalid",
+                ),
+            ):
+                serial.write(b"x", stage=stage)
+
+
+class SshTransportTest(unittest.TestCase):
+    def test_ssh_option_paths_reject_expansion_tokens(self) -> None:
+        for prefix, filename in (
+            ("rog5 fallback pin ", "known hosts"),
+            ("rog5-fallback-pin-%h-", "known-hosts"),
+        ):
+            with (
+                self.subTest(prefix=prefix),
+                tempfile.TemporaryDirectory(prefix=prefix) as temporary,
+            ):
+                root = Path(temporary)
+                root.chmod(0o700)
+                pin = root / filename
+                pin.write_bytes(b"offline\n")
+                pin.chmod(0o600)
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.verify_known_hosts(pin)
+
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-key-%d-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            key = root / "deployment-key"
+            key.write_bytes(b"x" * 64)
+            key.chmod(0o600)
+            with self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "percent tokens",
+            ):
+                MODULE.verify_ssh_key(key, "1" * 64)
+
+    def test_strict_ssh_probe_is_nonce_correlated_and_usb_revalidated(
+        self,
+    ) -> None:
+        nonce = "ab" * 16
+        location = "pci/usb1/1-1/1-1.2"
+        interface = "usbtest0"
+        temporary = tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-ssh-"
+        )
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        root.chmod(0o700)
+        ssh_key = root / "deployment-key"
+        subprocess.run(
+            [
+                str(MODULE.SSH_KEYGEN),
+                "-q",
+                "-t",
+                "ed25519",
+                "-N",
+                "",
+                "-f",
+                str(ssh_key),
+            ],
+            check=True,
+        )
+        fields = ssh_key.with_suffix(".pub").read_text().split()
+        known_hosts = root / "fallback-known-hosts"
+        allowed_signers = (
+            f"{MODULE.HOST_ALIAS} {fields[0]} {fields[1]}\n"
+        ).encode("ascii")
+        expected_public_sha256 = hashlib.sha256(
+            b" ".join(field.encode("ascii") for field in fields[:2])
+            + b"\n"
+        ).hexdigest()
+        known_hosts.write_bytes(allowed_signers)
+        known_hosts.chmod(0o600)
+        self.assertEqual(
+            MODULE.verify_ssh_key(ssh_key, expected_public_sha256),
+            ssh_key,
+        )
+        with self.assertRaises(MODULE.FallbackError):
+            MODULE.verify_ssh_key(ssh_key, "f" * 64)
+        result = subprocess.CompletedProcess(
+            [],
+            0,
+            frame(nonce, "classify"),
+            b"",
+        )
+        with (
+            mock.patch.object(MODULE, "read_anchor", return_value=location),
+            mock.patch.object(
+                MODULE,
+                "wait_fallback_ncm",
+                return_value=(interface, location),
+            ),
+            mock.patch.object(MODULE, "exact_fallback_route") as route,
+            mock.patch.object(MODULE, "verify_network_profile"),
+            mock.patch.object(MODULE.os, "urandom", return_value=b"\xab" * 16),
+            mock.patch.object(
+                MODULE.subprocess,
+                "run",
+                return_value=result,
+            ) as run,
+            mock.patch.object(MODULE, "verify_signature") as verify,
+            mock.patch.object(
+                MODULE,
+                "verify_ssh_key",
+                return_value=ssh_key,
+            ),
+            mock.patch.object(
+                MODULE,
+                "fallback_ncm_identity",
+                return_value=(interface, location),
+            ),
+        ):
+            values, proof = MODULE.ssh_probe(
+                known_hosts,
+                allowed_signers,
+                ssh_key,
+                expected_public_sha256,
+                Path("/private/recovery.anchor"),
+                750,
+            )
+        arguments = run.call_args.args[0]
+        self.assertIn("StrictHostKeyChecking=yes", arguments)
+        self.assertIn("IdentitiesOnly=yes", arguments)
+        self.assertIn("BatchMode=yes", arguments)
+        self.assertIn("HostKeyAlias=rog5-fallback", arguments)
+        self.assertIn("GlobalKnownHostsFile=/dev/null", arguments)
+        self.assertIn("ConnectionAttempts=1", arguments)
+        self.assertEqual(arguments[-2:], [nonce, "classify"])
+        self.assertEqual(
+            run.call_args.kwargs["input"],
+            MODULE.REMOTE_SOURCE.encode("utf-8"),
+        )
+        self.assertEqual(run.call_args.kwargs["stderr"], subprocess.PIPE)
+        self.assertNotIn("pass_fds", run.call_args.kwargs)
+        self.assertEqual(values["boot_id"], record(nonce)[0]["boot_id"])
+        self.assertEqual(proof["usb_location"], location)
+        self.assertEqual(route.call_args_list, [mock.call(interface)] * 2)
+        verify.assert_called_once()
+
+    def test_postmortem_probe_is_strict_bounded_and_usb_revalidated(
+        self,
+    ) -> None:
+        nonce = "cd" * 16
+        location = "pci/usb1/1-1/1-1.2"
+        interface = "usbtest0"
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-postmortem-ssh-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            ssh_key = root / "deployment-key"
+            known_hosts = root / "fallback-known-hosts"
+            ssh_key.write_bytes(b"k" * 64)
+            ssh_key.chmod(0o600)
+            known_hosts.write_bytes(b"synthetic-allowed-signers\n")
+            known_hosts.chmod(0o600)
+            allowed_signers = known_hosts.read_bytes()
+            result = subprocess.CompletedProcess(
+                [],
+                0,
+                postmortem_frame(
+                    nonce,
+                    pstore_state="PRESENT",
+                    pstore_records="1",
+                    pstore_bytes="12",
+                    pstore_sha256="4" * 64,
+                    lineage_matches="1",
+                    lineage_records="1",
+                ),
+                b"",
+            )
+            with (
+                mock.patch.object(MODULE, "read_anchor", return_value=location),
+                mock.patch.object(
+                    MODULE,
+                    "wait_fallback_ncm",
+                    return_value=(interface, location),
+                ),
+                mock.patch.object(MODULE, "exact_fallback_route") as route,
+                mock.patch.object(MODULE, "verify_network_profile"),
+                mock.patch.object(
+                    MODULE.os,
+                    "urandom",
+                    return_value=b"\xcd" * 16,
+                ),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    return_value=result,
+                ) as run,
+                mock.patch.object(MODULE, "verify_signature") as verify,
+                mock.patch.object(
+                    MODULE,
+                    "verify_ssh_key",
+                    return_value=ssh_key,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "verify_known_hosts",
+                    return_value=allowed_signers,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "fallback_ncm_identity",
+                    return_value=(interface, location),
+                ),
+            ):
+                values, proof = MODULE.ssh_postmortem_probe(
+                    known_hosts,
+                    allowed_signers,
+                    ssh_key,
+                    "1" * 64,
+                    Path("/private/recovery.anchor"),
+                    60,
+                    POSTMORTEM_CANDIDATE,
+                    POSTMORTEM_TARGET_BOOT_ID,
+                )
+        arguments = run.call_args.args[0]
+        self.assertIn("StrictHostKeyChecking=yes", arguments)
+        self.assertIn("BatchMode=yes", arguments)
+        self.assertEqual(
+            arguments[-4:],
+            [
+                nonce,
+                "postmortem",
+                POSTMORTEM_CANDIDATE,
+                POSTMORTEM_TARGET_BOOT_ID,
+            ],
+        )
+        self.assertEqual(
+            run.call_args.kwargs["input"],
+            MODULE.POSTMORTEM_REMOTE_SOURCE.encode("utf-8"),
+        )
+        self.assertEqual(
+            run.call_args.kwargs["timeout"],
+            MODULE.POSTMORTEM_SSH_TIMEOUT_SECONDS,
+        )
+        self.assertEqual(values["lineage_matches"], "1")
+        self.assertEqual(proof["usb_location"], location)
+        self.assertEqual(route.call_args_list, [mock.call(interface)] * 2)
+        verify.assert_called_once()
+
+    def test_network_profile_is_exact_and_interface_bound(self) -> None:
+        exact = subprocess.CompletedProcess(
+            [],
+            0,
+            "\n".join(
+                (
+                    MODULE.FALLBACK_NETWORK_PROFILE,
+                    "802-3-ethernet",
+                    "usbtest0",
+                    "yes",
+                    "100",
+                    "manual",
+                    MODULE.HOST_CIDR,
+                    "",
+                    "",
+                    "yes",
+                    "disabled",
+                    "",
+                )
+            ),
+            "",
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=exact,
+        ):
+            self.assertEqual(
+                MODULE.verify_network_profile("usbtest0"),
+                "usbtest0",
+            )
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.verify_network_profile("other0")
+        routed = subprocess.CompletedProcess(
+            [],
+            0,
+            exact.stdout.replace("\nyes\ndisabled\n", "\nno\ndisabled\n"),
+            "",
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=routed,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.verify_network_profile()
+
+    def test_exact_fallback_route_rejects_noncanonical_address(self) -> None:
+        accepted = (
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "2: usbtest0 inet 169.254.77.1/30 scope link "
+                    "usbtest0\n"
+                ),
+                "",
+            ),
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "169.254.77.2 dev usbtest0 src 169.254.77.1 "
+                    "uid 1000\n    cache\n"
+                ),
+                "",
+            ),
+            subprocess.CompletedProcess([], 0, "", ""),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=accepted,
+        ):
+            MODULE.exact_fallback_route("usbtest0")
+        rejected = subprocess.CompletedProcess(
+            [],
+            0,
+            "2: usbtest0 inet 169.254.77.1/16 scope link usbtest0\n",
+            "",
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            return_value=rejected,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
+        policy_route = (
+            accepted[0],
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "169.254.77.2 dev usbtest0 table 100 "
+                    "src 169.254.77.1 uid 1000\n    cache\n"
+                ),
+                "",
+            ),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=policy_route,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
+        reordered_cache = (
+            accepted[0],
+            subprocess.CompletedProcess(
+                [],
+                0,
+                (
+                    "    cache\n169.254.77.2 dev usbtest0 "
+                    "src 169.254.77.1 uid 1000\n"
+                ),
+                "",
+            ),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=reordered_cache,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
+        default_route = (
+            accepted[0],
+            accepted[1],
+            subprocess.CompletedProcess(
+                [],
+                0,
+                "default via 169.254.77.2 dev usbtest0\n",
+                "",
+            ),
+        )
+        with mock.patch.object(
+            MODULE.subprocess,
+            "run",
+            side_effect=default_route,
+        ):
+            with self.assertRaises(MODULE.FallbackError):
+                MODULE.exact_fallback_route("usbtest0")
+
+
+class PolicyTest(unittest.TestCase):
+    def test_wait_timeout_policy_allows_the_shared_deadline_tail(self) -> None:
+        self.assertEqual(MODULE.parse_wait_timeout("600"), 600)
+        self.assertEqual(MODULE.parse_wait_timeout("900"), 900)
+        for value in ("0", "599", "901", "+600", " 600"):
+            with self.subTest(standalone=value):
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_wait_timeout(value)
+
+        for value in ("1", "599", "900"):
+            with self.subTest(shared_deadline=value):
+                self.assertEqual(
+                    MODULE.parse_wait_timeout(value, minimum=1),
+                    int(value),
+                )
+        for value in ("0", "901"):
+            with self.subTest(invalid_shared_deadline=value):
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.parse_wait_timeout(value, minimum=1)
+
+    def test_embedded_thermal_policy_matches_host_verifier(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        names = {
+            "MIN_THERMAL_ZONES",
+            "MAX_THERMAL_ZONES",
+            "MIN_VALID_THERMAL_READINGS",
+            "REQUIRED_THERMAL_TYPES",
+            "INACTIVE_THERMAL_VALUES",
+            "UNAVAILABLE_THERMAL_TYPES",
+        }
+        assignments = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id in names
+        ]
+        namespace = {}
+        exec(
+            compile(
+                ast.Module(body=assignments, type_ignores=[]),
+                "embedded-thermal-policy.py",
+                "exec",
+            ),
+            namespace,
+        )
+        self.assertEqual(
+            {name: namespace[name] for name in names},
+            {
+                name: (
+                    set(getattr(MODULE, name))
+                    if name in {
+                        "REQUIRED_THERMAL_TYPES",
+                        "INACTIVE_THERMAL_VALUES",
+                        "UNAVAILABLE_THERMAL_TYPES",
+                    }
+                    else getattr(MODULE, name)
+                )
+                for name in names
+            },
+        )
+
+    def test_guards_fail_before_pin_or_device_access(self) -> None:
+        environment = os.environ.copy()
+        environment.pop("ALLOW_FALLBACK_ACM_CONTROL", None)
+        environment.pop("ALLOW_PHONE_CREDENTIAL_USE", None)
+        environment.pop("ALLOW_FALLBACK_ACM_STORAGE_WRITE", None)
+        environment.pop("ALLOW_FALLBACK_BOOTLOADER_REBOOT", None)
+        result = subprocess.run(
+            [sys.executable, SOURCE, "reboot", "/absent/pin"],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=environment,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ALLOW_FALLBACK_ACM_CONTROL", result.stderr)
+        environment["ALLOW_FALLBACK_ACM_CONTROL"] = "1"
+        result = subprocess.run(
+            [sys.executable, SOURCE, "reboot", "/absent/pin"],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=environment,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ALLOW_PHONE_CREDENTIAL_USE", result.stderr)
+        self.assertNotIn("pin", result.stderr.lower())
+        environment["ALLOW_PHONE_CREDENTIAL_USE"] = "1"
+        result = subprocess.run(
+            [sys.executable, SOURCE, "reboot", "/absent/pin"],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=environment,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ALLOW_FALLBACK_ACM_STORAGE_WRITE", result.stderr)
+        self.assertNotIn("pin", result.stderr.lower())
+        environment["ALLOW_FALLBACK_ACM_STORAGE_WRITE"] = "1"
+        result = subprocess.run(
+            [sys.executable, SOURCE, "reboot", "/absent/pin"],
+            check=False,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=environment,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("ALLOW_FALLBACK_BOOTLOADER_REBOOT", result.stderr)
+        self.assertNotIn("pin", result.stderr.lower())
+        with mock.patch.dict(
+            MODULE.os.environ,
+            {
+                "ALLOW_FALLBACK_ACM_CONTROL": "1",
+                "ALLOW_PHONE_CREDENTIAL_USE": "1",
+            },
+            clear=True,
+        ):
+            MODULE.require_guards("host-preflight")
+        with mock.patch.dict(
+            MODULE.os.environ,
+            {
+                "ALLOW_FALLBACK_SSH_CONTROL": "1",
+                "ALLOW_PHONE_CREDENTIAL_USE": "1",
+            },
+            clear=True,
+        ):
+            MODULE.require_guards("ssh-host-preflight")
+            with self.assertRaisesRegex(
+                MODULE.FallbackError,
+                "ALLOW_FALLBACK_SSH_ATIME_EFFECTS",
+            ):
+                MODULE.require_guards("wait-ssh-preflight")
+            MODULE.os.environ["ALLOW_FALLBACK_SSH_ATIME_EFFECTS"] = "1"
+            MODULE.require_guards("wait-ssh-preflight")
+            MODULE.require_guards("capture-ssh-postmortem")
+
+    def test_remote_payload_is_fixed_read_only_except_restart2(self) -> None:
+        source = MODULE.REMOTE_SOURCE
+        compile(source, "fallback-remote.py", "exec")
+        for required in (
+            "ssh_host_ed25519_key",
+            '"-Y"',
+            '"sign"',
+            "ROG5_FALLBACK_REBOOT_ACK",
+            "REBOOT_ACK_TIMEOUT_SECONDS = 30",
+            "POST_ACK_DEADLINE_SECONDS = 25",
+            "ctypes.c_uint(0xFEE1DEAD)",
+            "ctypes.c_uint(0xA1B2C3D4)",
+            'ctypes.c_char_p(b"bootloader")',
+            "range(3)",
+            "pstore_checked",
+            "dmesg_checked",
+        ):
+            self.assertIn(required, source)
+        for forbidden in (
+            "fastboot boot",
+            "fastboot flash",
+            "authorized_keys",
+            "open(\"/dev/",
+            "sysrq-trigger",
+            "mount(",
+            "os.sync()",
+            "os.open(",
+            ".write_text(",
+            ".write_bytes(",
+        ):
+            self.assertNotIn(forbidden, source)
+        launcher, chunks = MODULE.remote_transport(
+            "9" * 32,
+            "preflight",
+        )
+        self.assertIn(b"/bin/busybox env -i", launcher)
+        self.assertNotIn(b"exec /bin/busybox env -i", launcher)
+        self.assertNotIn(b"HISTFILE=", launcher)
+        self.assertIn(b"PYTHONDONTWRITEBYTECODE=1", launcher)
+        self.assertIn(b"/usr/bin/python3 -I -S -B -c", launcher)
+        self.assertNotIn(b" env python3 ", launcher)
+        self.assertTrue(chunks)
+
+    def test_postmortem_remote_is_bounded_read_only_and_noninteractive(
+        self,
+    ) -> None:
+        source = MODULE.POSTMORTEM_REMOTE_SOURCE
+        compile(source, "fallback-postmortem-remote.py", "exec")
+        for required in (
+            "MAX_RECORDS = 64",
+            "MAX_BYTES = 4 * 1024 * 1024",
+            "os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW",
+            "entry.lstat()",
+            "expected_identity",
+            'Path("/proc/mounts")',
+            'fields[2] == "pstore"',
+            'RuntimeError("mount-race")',
+            "lineage_matches",
+            "fatal_tokens_total",
+            "fatal_after_lineage",
+            "MAX_DMESG_BYTES = 4 * 1024 * 1024",
+            "MAX_PMIC_PON_RECORDS = 64",
+            'PMIC_PON_PREFIX = b"PMIC PON log: "',
+            "subprocess.Popen(",
+            "os.read(",
+            "MAX_DMESG_BYTES + 1 - len(output)",
+            "pmic_watchdog_signal",
+            "ssh_host_ed25519_key",
+            '"-Y"',
+            '"sign"',
+        ):
+            self.assertIn(required, source)
+        for forbidden in (
+            "fastboot",
+            "authorized_keys",
+            "O_WRONLY",
+            "O_RDWR",
+            "O_CREAT",
+            "O_TRUNC",
+            "unlink(",
+            "remove(",
+            "rmdir(",
+            "rename(",
+            "replace(",
+            "truncate(",
+            "chmod(",
+            "chown(",
+            "write_text(",
+            "write_bytes(",
+            "mount(",
+            "reboot",
+            "restart2",
+            "shutil",
+            "sysrq-trigger",
+            "input(",
+            'subprocess.run(\n            ["/bin/dmesg"]',
+        ):
+            self.assertNotIn(forbidden, source)
+
+    def test_frame_and_commit_waits_cover_remote_health_and_signing_bounds(
+        self,
+    ) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        timeouts: dict[str, int] = {}
+        constants: dict[str, int] = {}
+        thermal_sleep_total = 0.0
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, int)
+            ):
+                constants[node.targets[0].id] = node.value.value
+            if not isinstance(node, ast.Call):
+                continue
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "run"
+            ):
+                command = next(
+                    (
+                        argument
+                        for argument in node.args
+                        if isinstance(argument, ast.List)
+                    ),
+                    None,
+                )
+                timeout = next(
+                    (
+                        keyword.value.value
+                        for keyword in node.keywords
+                        if keyword.arg == "timeout"
+                        and isinstance(keyword.value, ast.Constant)
+                        and isinstance(keyword.value.value, int)
+                    ),
+                    None,
+                )
+                if command is not None and timeout is not None:
+                    literals = {
+                        item.value
+                        for item in command.elts
+                        if isinstance(item, ast.Constant)
+                        and isinstance(item.value, str)
+                    }
+                    if "/bin/dmesg" in literals:
+                        timeouts["dmesg"] = timeout
+                    if "/usr/bin/ssh-keygen" in literals:
+                        timeouts["ssh-keygen"] = timeout
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "sleep"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, (int, float))
+            ):
+                thermal_sleep_total += float(node.args[0].value)
+        self.assertEqual(timeouts, {"dmesg": 10, "ssh-keygen": 10})
+        self.assertEqual(thermal_sleep_total, 0.5)
+        remote_bound = (
+            timeouts["dmesg"]
+            + 2 * thermal_sleep_total
+            + timeouts["ssh-keygen"]
+        )
+        self.assertGreater(
+            MODULE.REBOOT_COMMIT_TIMEOUT_SECONDS,
+            remote_bound,
+        )
+        self.assertGreater(
+            MODULE.PREPARED_FRAME_TIMEOUT_SECONDS,
+            remote_bound,
+        )
+        self.assertGreater(
+            constants["REBOOT_ACK_TIMEOUT_SECONDS"],
+            timeouts["ssh-keygen"] + 5,
+        )
+
+        postmortem_tree = ast.parse(MODULE.POSTMORTEM_REMOTE_SOURCE)
+        postmortem_timeouts = []
+        postmortem_constants = {}
+        for node in ast.walk(postmortem_tree):
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, int)
+            ):
+                postmortem_constants[node.targets[0].id] = node.value.value
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "run"
+            ):
+                continue
+            for keyword in node.keywords:
+                if (
+                    keyword.arg == "timeout"
+                    and isinstance(keyword.value, ast.Constant)
+                    and isinstance(keyword.value.value, int)
+                ):
+                    postmortem_timeouts.append(keyword.value.value)
+        self.assertEqual(postmortem_timeouts, [10])
+        self.assertEqual(
+            postmortem_constants["PMIC_DMESG_TIMEOUT_SECONDS"],
+            10,
+        )
+        self.assertGreaterEqual(
+            MODULE.POSTMORTEM_SSH_TIMEOUT_SECONDS,
+            8
+            + postmortem_constants["PMIC_DMESG_TIMEOUT_SECONDS"]
+            + sum(postmortem_timeouts)
+            + 5,
+        )
+        self.assertLess(
+            constants["POST_ACK_DEADLINE_SECONDS"],
+            MODULE.REBOOT_COMMIT_TIMEOUT_SECONDS,
+        )
+
+    def test_exact_recovery_oracle_config_builds_pmic_pon_reader(
+        self,
+    ) -> None:
+        config = (
+            MODULE.REPO
+            / "artifacts/recovery-stage-v18/"
+            "config-5.4.210-kexec-stage-builtin-recovery"
+        ).read_bytes()
+        self.assertEqual(
+            hashlib.sha256(config).hexdigest(),
+            "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f",
+        )
+        for required in (
+            b"CONFIG_QTI_PMIC_PON_LOG=y\n",
+            b"CONFIG_INPUT_QPNP_POWER_ON=y\n",
+        ):
+            self.assertIn(required, config)
+
+    def test_retained_asus_source_separates_pon_history_from_reboot_writer(
+        self,
+    ) -> None:
+        source_root = Path(
+            os.environ.get(
+                "ROG5_ASUS_5_4_SOURCE",
+                "/home/deck/.local/share/containers/storage/volumes/"
+                "rog5-asus-v12a-source/_data/msm-5.4",
+            )
+        )
+        if not source_root.is_dir():
+            self.skipTest("retained ASUS 5.4 source is unavailable")
+        expected = {
+            "drivers/soc/qcom/pmic-pon-log.c": (
+                "3faf7c24591bd1df471c8f5a7d6c799b0f9256c4e25b897d843fe29fce341944"
+            ),
+            "drivers/power/reset/qcom-reboot-reason.c": (
+                "7305a60660a03bd1df2cdcb540c14dbae58c4237f85c594c6ee918f4a1487db6"
+            ),
+            "arch/arm64/boot/dts/vendor/qcom/lahaina-pmic-overlay.dtsi": (
+                "7c2884033f2f9888e3786155510bb4ac2d824cfc3ae3afce5fe79a3ba72ded32"
+            ),
+            "arch/arm64/boot/dts/vendor/qcom/pmk8350.dtsi": (
+                "8ca3a07d90ced1269ce04ca1832a1bc3f212e99967a123911de18770c75e1d2c"
+            ),
+        }
+        sources = {}
+        for relative, digest in expected.items():
+            payload = (source_root / relative).read_bytes()
+            self.assertEqual(hashlib.sha256(payload).hexdigest(), digest)
+            sources[relative] = payload.decode("utf-8")
+        pon = sources["drivers/soc/qcom/pmic-pon-log.c"]
+        for required in (
+            "#define REG_PUSH_PTR",
+            "#define REG_FIFO_DATA_START",
+            "#define REG_FIFO_DATA_END",
+            "#define FIFO_MAX_ENTRY_COUNT",
+            '{0x0083, "PMIC_WATCHDOG_S2"}',
+            '"FAULT_WATCHDOG"',
+            '"PON Successful"',
+            'pr_info("PMIC PON log: %s\\n", buf)',
+            "nvmem_device_read(",
+        ):
+            self.assertIn(required, pon)
+        self.assertNotIn("nvmem_device_write(", pon)
+        reboot = sources["drivers/power/reset/qcom-reboot-reason.c"]
+        self.assertIn("register_reboot_notifier(", reboot)
+        self.assertIn("nvmem_cell_write(", reboot)
+        self.assertNotIn("nvmem_cell_read(", reboot)
+        overlay = sources[
+            "arch/arm64/boot/dts/vendor/qcom/lahaina-pmic-overlay.dtsi"
+        ]
+        self.assertIn('compatible = "qcom,pmic-pon-log";', overlay)
+        self.assertIn("nvmem = <&pmk8350_sdam_5>;", overlay)
+        self.assertIn('nvmem-names = "pon_log";', overlay)
+        self.assertIn('compatible = "qcom,reboot-reason";', overlay)
+        self.assertNotIn(
+            "qcom,reboot-reason",
+            MODULE.POSTMORTEM_REMOTE_SOURCE,
+        )
+        self.assertNotIn("restart_reason", MODULE.POSTMORTEM_REMOTE_SOURCE)
+
+    def test_embedded_restart2_marshalling_preserves_unsigned_magics(
+        self,
+    ) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "restart_bootloader"
+        )
+        namespace = {"ctypes": ctypes}
+        exec(
+            compile(
+                ast.Module(body=[function], type_ignores=[]),
+                "embedded-restart2.py",
+                "exec",
+            ),
+            namespace,
+        )
+        captured: list[object] = []
+
+        def syscall(*arguments: object) -> int:
+            captured.extend(arguments)
+            return -1
+
+        libc = mock.Mock()
+        libc.syscall = syscall
+        with (
+            mock.patch.object(ctypes, "CDLL", return_value=libc),
+            mock.patch.object(ctypes, "get_errno", return_value=22),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "reboot-returned--1-22",
+            ),
+        ):
+            namespace["restart_bootloader"]()
+        self.assertEqual(
+            [argument.value for argument in captured[:4]],
+            [142, 0xFEE1DEAD, 672274793, 0xA1B2C3D4],
+        )
+        self.assertEqual(captured[4].value, b"bootloader")
+
+    def test_embedded_reboot_quiesces_exact_userdata_before_commit(self) -> None:
+        source = MODULE.REMOTE_SOURCE
+        self.assertIn("def quiesce_root_read_only(nonce):", source)
+        self.assertIn("def quiesce_root_writers(nonce):", source)
+        self.assertIn('["/bin/sync"]', source)
+        self.assertIn(
+            '["/bin/mount", "-o", "remount,ro", "/"]',
+            source,
+        )
+        self.assertIn(
+            '["/usr/sbin/dumpe2fs", "-h", "/dev/sda23"]',
+            source,
+        )
+        self.assertIn("needs_recovery", source)
+        self.assertIn("orphan_present", source)
+        quiesce = source[
+            source.index("def quiesce_root_read_only(nonce):") :
+            source.index("def pstore_count():")
+        ]
+        self.assertEqual(quiesce.count("quiesce_root_writers(nonce)"), 1)
+        self.assertLess(
+            quiesce.index("quiesce_root_writers(nonce)"),
+            quiesce.index('["/bin/sync"]'),
+        )
+        main = source[source.index("def main():") : source.index("def restart_bootloader():")]
+        self.assertEqual(main.count("quiesce_root_read_only(nonce)"), 1)
+        self.assertLess(
+            main.index("quiesce_root_read_only(nonce)"),
+            main.index('"ROG5_FALLBACK_ACM_COMMIT"'),
+        )
+        self.assertLess(
+            main.index('"ROG5_FALLBACK_ACM_COMMIT"'),
+            main.index("restart_bootloader()"),
+        )
+
+    def test_embedded_root_quiesce_rejects_dirty_or_changed_storage(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        functions = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name in {"root_mount_fields", "quiesce_root_read_only"}
+        ]
+        rw = "/dev/sda23 / ext4 rw,relatime 0 0\n"
+        ro = "/dev/sda23 / ext4 ro,relatime 0 0\n"
+        clean = (
+            b"Filesystem features: has_journal extent 64bit metadata_csum\n"
+            b"Filesystem state: clean\n"
+        )
+
+        def run_case(
+            mounts: list[str],
+            results: list[subprocess.CompletedProcess[bytes]],
+        ) -> tuple[object, mock.Mock]:
+            reads = iter(mounts)
+
+            class FakePath:
+                def __init__(self, _value: str):
+                    pass
+
+                def read_text(self) -> str:
+                    return next(reads)
+
+            runner = mock.Mock(side_effect=results)
+            embedded_subprocess = mock.Mock(
+                DEVNULL=subprocess.DEVNULL,
+                PIPE=subprocess.PIPE,
+            )
+            embedded_subprocess.run = runner
+
+            def stop(_nonce: str, code: str) -> None:
+                raise RuntimeError(code)
+
+            namespace = {
+                "Path": FakePath,
+                "subprocess": embedded_subprocess,
+                "stop": stop,
+                "quiesce_root_writers": mock.Mock(),
+            }
+            exec(
+                compile(
+                    ast.Module(body=functions, type_ignores=[]),
+                    "embedded-root-quiesce.py",
+                    "exec",
+                ),
+                namespace,
+            )
+            return namespace["quiesce_root_read_only"], runner
+
+        success = [
+            subprocess.CompletedProcess([], 0, b"", b""),
+            subprocess.CompletedProcess([], 0, b"", b""),
+            subprocess.CompletedProcess([], 0, clean, b""),
+        ]
+        quiesce, runner = run_case([rw, ro], success)
+        quiesce("a" * 32)
+        self.assertEqual(runner.call_count, 3)
+
+        quiesce, runner = run_case([rw], [
+            subprocess.CompletedProcess([], 1, b"", b"injected")
+        ])
+        with self.assertRaisesRegex(RuntimeError, "root-remount"):
+            quiesce("b" * 32)
+        self.assertEqual(runner.call_count, 1)
+
+        dirty = clean.replace(
+            b"metadata_csum\n",
+            b"metadata_csum needs_recovery orphan_present\n",
+        )
+        quiesce, runner = run_case(
+            [rw, ro],
+            [
+                subprocess.CompletedProcess([], 0, b"", b""),
+                subprocess.CompletedProcess([], 0, b"", b""),
+                subprocess.CompletedProcess([], 0, dirty, b""),
+            ],
+        )
+        with self.assertRaisesRegex(RuntimeError, "root-recovery-pending"):
+            quiesce("c" * 32)
+        self.assertEqual(runner.call_count, 3)
+
+        quiesce, runner = run_case([rw, rw], success)
+        with self.assertRaisesRegex(RuntimeError, "root-mount-after"):
+            quiesce("d" * 32)
+        self.assertEqual(runner.call_count, 2)
+
+    def test_root_quiesce_errors_are_exact_host_classifications(self) -> None:
+        nonce = "e" * 32
+        codes = {
+            "root-mount-after",
+            "root-mount-before",
+            "root-recovery-pending",
+            "root-remount",
+            "root-superblock",
+            "root-writer-scan",
+            "root-writer-stop",
+            "root-writer-unexpected",
+        }
+        self.assertLessEqual(codes, MODULE.REMOTE_ERROR_CODES)
+        for code in codes:
+            frame = f"ROG5_FALLBACK_ACM_ERROR {nonce} {code}\n".encode("ascii")
+            self.assertEqual(MODULE.remote_error(frame, nonce), code)
+
+    def test_embedded_root_writer_allowlist_is_exact_and_fail_closed(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        nodes = [
+            node
+            for node in tree.body
+            if (
+                isinstance(node, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name)
+                    and target.id == "ROOT_WRITER_PAIRS"
+                    for target in node.targets
+                )
+            )
+            or (
+                isinstance(node, ast.FunctionDef)
+                and node.name == "approve_root_writer"
+            )
+        ]
+
+        def stop(_nonce: str, code: str) -> None:
+            raise RuntimeError(code)
+
+        namespace = {"stop": stop}
+        exec(
+            compile(
+                ast.Module(body=nodes, type_ignores=[]),
+                "embedded-root-writer-policy.py",
+                "exec",
+            ),
+            namespace,
+        )
+        expected = {
+            ("/usr/sbin/sshd", "/var/log/sshd.log"),
+            ("/usr/lib/ssh/sshd-session", "/var/log/sshd.log"),
+            ("/usr/bin/python3.14", "/var/log/power-indicator.log"),
+            ("/usr/bin/Xvnc", "/var/log/xvnc.log"),
+            ("/usr/bin/python3.14", "/var/log/novnc.log"),
+            ("/usr/bin/seatd", "/var/log/seatd.log"),
+        }
+        self.assertEqual(namespace["ROOT_WRITER_PAIRS"], expected)
+        for executable, target in expected:
+            namespace["approve_root_writer"]("f" * 32, executable, target)
+        with self.assertRaisesRegex(RuntimeError, "root-writer-unexpected"):
+            namespace["approve_root_writer"](
+                "f" * 32,
+                "/usr/bin/python3.14",
+                "/root/unreviewed.log",
+            )
+
+    def test_embedded_reboot_ack_wait_is_bounded(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "main"
+        )
+        nonce = "a" * 32
+        values, payload = record(nonce, "reboot")
+        restart = mock.Mock()
+
+        def stop(_nonce: str, code: str) -> None:
+            raise RuntimeError(code)
+
+        namespace = {
+            "sys": mock.Mock(argv=["probe", nonce, "reboot"]),
+            "re": __import__("re"),
+            "collect": mock.Mock(return_value=list(values.items())),
+            "encode": mock.Mock(return_value=payload),
+            "sign": mock.Mock(return_value=b"signature"),
+            "base64": base64,
+            "select": mock.Mock(),
+            "print": mock.Mock(),
+            "stop": stop,
+            "quiesce_root_read_only": mock.Mock(),
+            "restart_bootloader": restart,
+            "REBOOT_ACK_TIMEOUT_SECONDS": 30,
+            "POST_ACK_DEADLINE_SECONDS": 25,
+            "time": mock.Mock(),
+        }
+        namespace["select"].select.return_value = ([], [], [])
+        exec(
+            compile(
+                ast.Module(body=[function], type_ignores=[]),
+                "embedded-ack-timeout.py",
+                "exec",
+            ),
+            namespace,
+        )
+        with self.assertRaisesRegex(RuntimeError, "ack-timeout"):
+            namespace["main"]()
+        restart.assert_not_called()
+
+        current = list(values.items())
+        namespace["collect"].reset_mock()
+        namespace["collect"].side_effect = [
+            list(values.items()),
+            current,
+        ]
+        namespace["select"].select.return_value = ([object()], [], [])
+        namespace["sys"].stdin.readline.return_value = (
+            f"ROG5_FALLBACK_REBOOT_ACK {nonce} {values['boot_id']}\n"
+        )
+        namespace["time"].monotonic.side_effect = [0.0, 30.0]
+        with self.assertRaisesRegex(RuntimeError, "post-ack-timeout"):
+            namespace["main"]()
+        restart.assert_not_called()
+
+        namespace["collect"].reset_mock()
+        namespace["collect"].side_effect = [
+            list(values.items()),
+            current,
+        ]
+        namespace["time"].monotonic.side_effect = [0.0, 1.0, 30.0]
+        with self.assertRaisesRegex(RuntimeError, "post-ack-timeout"):
+            namespace["main"]()
+        restart.assert_not_called()
+
+    def test_modem_manager_requires_exact_inactive_status(self) -> None:
+        cases = (
+            (
+                0,
+                "LoadState=loaded\nActiveState=inactive\nSubState=dead\n",
+                True,
+            ),
+            (
+                0,
+                "LoadState=loaded\nActiveState=failed\nSubState=failed\n",
+                False,
+            ),
+            (
+                0,
+                "LoadState=not-found\nActiveState=inactive\nSubState=dead\n",
+                True,
+            ),
+            (1, "", False),
+        )
+        for status, output, accepted in cases:
+            result = subprocess.CompletedProcess([], status, output, "")
+            with (
+                self.subTest(status=status, output=output),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    return_value=result,
+                ),
+            ):
+                if accepted:
+                    MODULE.require_modem_manager_inactive()
+                else:
+                    with self.assertRaises(MODULE.FallbackError):
+                        MODULE.require_modem_manager_inactive()
+
+    def test_embedded_thermal_sampling_accepts_bounded_sparse_topology(
+        self,
+    ) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "temperatures"
+        )
+        required = sorted(MODULE.REQUIRED_THERMAL_TYPES)
+        unavailable = sorted(MODULE.UNAVAILABLE_THERMAL_TYPES)
+
+        def make_readings(zone_count: int) -> dict[str, object]:
+            result: dict[str, object] = {}
+            for index in range(zone_count):
+                root = f"/sys/class/thermal/thermal_zone{index}"
+                result[f"{root}/type"] = (
+                    required[index]
+                    if index < len(required)
+                    else f"sensor-{index}"
+                )
+                result[f"{root}/temp"] = "40000"
+            return result
+
+        readings = make_readings(96)
+        for offset, thermal_type in enumerate(unavailable, start=70):
+            readings[
+                f"/sys/class/thermal/thermal_zone{offset}/type"
+            ] = thermal_type
+        for index in range(70, 90):
+            readings[
+                f"/sys/class/thermal/thermal_zone{index}/temp"
+            ] = "error"
+        for index in range(90, 93):
+            readings[
+                f"/sys/class/thermal/thermal_zone{index}/temp"
+            ] = "-274000"
+        readings["/sys/class/thermal/thermal_zone93/temp"] = "0"
+
+        class FakePath:
+            def __init__(self, value: str):
+                self.value = value
+
+            def read_text(self) -> str:
+                value = readings[self.value]
+                if callable(value):
+                    value = value()
+                if value == "error":
+                    raise OSError("injected")
+                if not isinstance(value, str):
+                    raise AssertionError("invalid thermal fixture")
+                return value
+
+            def glob(self, _pattern: str) -> list["FakePath"]:
+                return [
+                    FakePath(name)
+                    for name in readings
+                    if name.endswith("/temp")
+                ]
+
+            def __str__(self) -> str:
+                return self.value
+
+        namespace = {
+            "MIN_THERMAL_ZONES": MODULE.MIN_THERMAL_ZONES,
+            "MAX_THERMAL_ZONES": MODULE.MAX_THERMAL_ZONES,
+            "MIN_VALID_THERMAL_READINGS": (
+                MODULE.MIN_VALID_THERMAL_READINGS
+            ),
+            "REQUIRED_THERMAL_TYPES": MODULE.REQUIRED_THERMAL_TYPES,
+            "INACTIVE_THERMAL_VALUES": MODULE.INACTIVE_THERMAL_VALUES,
+            "UNAVAILABLE_THERMAL_TYPES": (
+                MODULE.UNAVAILABLE_THERMAL_TYPES
+            ),
+            "Path": FakePath,
+            "time": mock.Mock(),
+        }
+        exec(
+            compile(
+                ast.Module(body=[function], type_ignores=[]),
+                "embedded-thermals.py",
+                "exec",
+            ),
+            namespace,
+        )
+        self.assertEqual(
+            namespace["temperatures"](),
+            (3, 96, 40000),
+        )
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "90000"
+        self.assertEqual(
+            namespace["temperatures"](),
+            (3, 96, 90000),
+        )
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "200001"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "40000"
+
+        for index, thermal_type in enumerate(required):
+            with self.subTest(required_type=thermal_type):
+                readings[
+                    f"/sys/class/thermal/thermal_zone{index}/temp"
+                ] = "error"
+                self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+                readings[
+                    f"/sys/class/thermal/thermal_zone{index}/temp"
+                ] = "40000"
+
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "error"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "malformed"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+        readings["/sys/class/thermal/thermal_zone69/temp"] = "40000"
+        readings["/sys/class/thermal/thermal_zone69/type"] = "error"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(70)
+        self.assertEqual(namespace["temperatures"](), (3, 70, 40000))
+        readings = make_readings(69)
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+        readings = make_readings(128)
+        self.assertEqual(namespace["temperatures"](), (3, 128, 40000))
+        readings = make_readings(129)
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(96)
+        del readings["/sys/class/thermal/thermal_zone50/temp"]
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(70)
+        for index in range(28, 70):
+            readings[
+                f"/sys/class/thermal/thermal_zone{index}/temp"
+            ] = "0"
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+        readings = make_readings(70)
+        changing = iter(("40000", "error", "error"))
+        readings["/sys/class/thermal/thermal_zone69/type"] = unavailable[0]
+        readings["/sys/class/thermal/thermal_zone69/temp"] = (
+            lambda: next(changing)
+        )
+        self.assertEqual(namespace["temperatures"](), (0, 0, 0))
+
+    def test_embedded_pstore_inspection_never_hides_entry_errors(self) -> None:
+        tree = ast.parse(MODULE.REMOTE_SOURCE)
+        function = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "pstore_count"
+        )
+
+        class BrokenEntry:
+            def is_file(self) -> bool:
+                raise OSError("injected")
+
+        class FakeRoot:
+            def __init__(self, value: str):
+                self.value = value
+
+            def is_dir(self) -> bool:
+                return self.value == "/sys/fs/pstore"
+
+            def iterdir(self) -> list[BrokenEntry]:
+                return [BrokenEntry()]
+
+        namespace = {"Path": FakeRoot}
+        exec(
+            compile(
+                ast.Module(body=[function], type_ignores=[]),
+                "embedded-pstore.py",
+                "exec",
+            ),
+            namespace,
+        )
+        self.assertEqual(namespace["pstore_count"](), (0, 0))
+
+    def test_reboot_requires_empty_initial_fastboot_inventory(self) -> None:
+        cases = (
+            (0, "", True),
+            (0, "device\tfastboot\n", False),
+            (0, "malformed\n", False),
+            (1, "", False),
+        )
+        for status, output, accepted in cases:
+            result = subprocess.CompletedProcess([], status, output, "")
+            with (
+                self.subTest(status=status, output=output),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    return_value=result,
+                ),
+            ):
+                if accepted:
+                    MODULE.require_fastboot_absent()
+                else:
+                    with self.assertRaises(MODULE.FallbackError):
+                        MODULE.require_fastboot_absent()
+
+    def test_anchor_time_is_canonical_and_bounded(self) -> None:
+        producer_path = SOURCE.with_name(
+            "pin-minimal-headless-host-key.py"
+        )
+        producer_spec = importlib.util.spec_from_file_location(
+            "pin_minimal_headless_host_key_contract",
+            producer_path,
+        )
+        assert producer_spec is not None and producer_spec.loader is not None
+        producer = importlib.util.module_from_spec(producer_spec)
+        producer_spec.loader.exec_module(producer)
+        self.assertEqual(tuple(producer.ANCHOR_KEYS), MODULE.ANCHOR_FIELDS)
+        self.assertEqual(
+            producer.FORMAT,
+            "rog5-minimal-headless-usb-anchor-v1",
+        )
+        self.assertEqual(
+            producer.RECOVERY_PRODUCT,
+            MODULE.RECOVERY_PRODUCT_NAME,
+        )
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-anchor-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            anchor = root / "anchor"
+            now = 2000000000
+
+            def write(created: str) -> None:
+                anchor.write_text(
+                    "\n".join(
+                        (
+                            "format=rog5-minimal-headless-usb-anchor-v1",
+                            (
+                                "host_boot_id="
+                                "11111111-2222-4333-8444-555555555555"
+                            ),
+                            f"created_unix={created}",
+                            "usb_location=pci/usb1/1-1/1-1.2",
+                            f"recovery_vendor={MODULE.USB_VENDOR}",
+                            f"recovery_product_id={MODULE.USB_PRODUCT}",
+                            (
+                                "recovery_product="
+                                f"{MODULE.RECOVERY_PRODUCT_NAME}"
+                            ),
+                            "",
+                        )
+                    ),
+                    encoding="ascii",
+                )
+                anchor.chmod(0o600)
+
+            with (
+                mock.patch.object(
+                    MODULE,
+                    "host_boot_id",
+                    return_value=(
+                        "11111111-2222-4333-8444-555555555555"
+                    ),
+                ),
+                mock.patch.object(MODULE.time, "time", return_value=now),
+            ):
+                write(str(now))
+                self.assertEqual(
+                    MODULE.read_anchor(anchor),
+                    "pci/usb1/1-1/1-1.2",
+                )
+                for created in (
+                    "0",
+                    str(now + 6),
+                    str(now - MODULE.ANCHOR_MAX_AGE_SECONDS - 1),
+                ):
+                    write(created)
+                    with self.subTest(created=created):
+                        with self.assertRaises(MODULE.FallbackError):
+                            MODULE.read_anchor(anchor)
+            write(str(now))
+            with (
+                mock.patch.object(
+                    MODULE,
+                    "host_boot_id",
+                    return_value=(
+                        "11111111-2222-4333-8444-555555555555"
+                    ),
+                ),
+                mock.patch.object(
+                    MODULE.time,
+                    "time",
+                    side_effect=[
+                        now,
+                        now + MODULE.ANCHOR_MAX_AGE_SECONDS + 1,
+                    ],
+                ),
+            ):
+                self.assertEqual(
+                    MODULE.read_anchor(anchor),
+                    "pci/usb1/1-1/1-1.2",
+                )
+                with self.assertRaises(MODULE.FallbackError):
+                    MODULE.read_anchor(anchor)
+            with (
+                mock.patch.object(
+                    MODULE,
+                    "wait_fallback_acm",
+                    return_value=(
+                        "/dev/ttyACM0",
+                        "pci/usb1/1-1/1-1.2",
+                        1,
+                    ),
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "read_anchor",
+                    side_effect=MODULE.FallbackError("stale anchor"),
+                ),
+                mock.patch.object(MODULE, "FallbackSerial") as serial,
+                self.assertRaisesRegex(MODULE.FallbackError, "stale anchor"),
+            ):
+                MODULE.probe(
+                    b"pin\n",
+                    action="classify",
+                    expected_location="pci/usb1/1-1/1-1.2",
+                    anchor_path=anchor,
+                )
+            serial.assert_not_called()
+
+    def test_identity_evidence_retains_signed_proof_metadata(self) -> None:
+        nonce = "7" * 32
+        values, _ = record(nonce, "classify")
+        proof = OrderedDict(
+            (
+                ("nonce", nonce),
+                ("usb_location", "pci/usb1/1-1/1-1.2"),
+                ("thermal_max", "61400"),
+                ("record_sha256", "8" * 64),
+                ("signature_sha256", "9" * 64),
+                ("host_pin_sha256", "a" * 64),
+            )
+        )
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-identity-"
+        ) as temporary:
+            root = Path(temporary)
+            root.chmod(0o700)
+            known_hosts = root / "known-hosts"
+            known_hosts.write_bytes(b"offline-pin\n")
+            known_hosts.chmod(0o600)
+            output = root / "identity"
+            MODULE.write_identity(output, values, proof)
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            self.assertEqual(
+                output.read_text(encoding="ascii").splitlines(),
+                [
+                    f"format={MODULE.IDENTITY_FORMAT}",
+                    f"kernel_release={MODULE.FALLBACK_KERNEL}",
+                    (
+                        "boot_id="
+                        "11111111-2222-4333-8444-555555555555"
+                    ),
+                    "usb_location=pci/usb1/1-1/1-1.2",
+                    f"nonce={nonce}",
+                    "thermal_max=61400",
+                    f"record_sha256={'8' * 64}",
+                    f"signature_sha256={'9' * 64}",
+                    f"host_pin_sha256={'a' * 64}",
+                    "result=PASS",
+                ],
+            )
+            preflight_output = root / "preflight.record"
+            with (
+                mock.patch.object(MODULE, "require_guards"),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(MODULE, "require_modem_manager_inactive"),
+                mock.patch.object(
+                    MODULE,
+                    "verify_known_hosts",
+                    return_value=b"pin\n",
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "probe",
+                    return_value=(values, "location", proof),
+                ),
+            ):
+                self.assertEqual(
+                    MODULE.main(
+                        [
+                            "preflight",
+                            str(known_hosts),
+                            str(preflight_output),
+                        ]
+                    ),
+                    0,
+                )
+            self.assertEqual(
+                preflight_output.read_bytes(),
+                output.read_bytes(),
+            )
+            with (
+                mock.patch.object(MODULE, "require_guards"),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(MODULE, "require_modem_manager_inactive"),
+                mock.patch.object(
+                    MODULE,
+                    "verify_known_hosts",
+                    return_value=b"pin\n",
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "remote_transport",
+                    return_value=(b"launcher", (b"chunk",)),
+                ) as transport,
+            ):
+                self.assertEqual(
+                    MODULE.main(
+                        [
+                            "host-preflight",
+                            str(known_hosts),
+                            "750",
+                            "3600",
+                        ]
+                    ),
+                    0,
+                )
+            transport.assert_called_once_with("1" * 32, "classify")
+
+    def test_fastboot_must_return_on_same_port_with_exact_product(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-fastboot-"
+        ) as temporary:
+            root = Path(temporary)
+            location = "pci/usb1/1-1/1-1.2"
+            raw = root / location
+            raw.mkdir(parents=True)
+            (raw / "serial").write_text("test-device")
+            (raw / "idVendor").write_text(MODULE.FASTBOOT_VENDOR)
+            (raw / "idProduct").write_text(MODULE.FASTBOOT_PRODUCT)
+            (raw / "product").write_text("Android Bootloader Interface")
+            bus = root / "bus"
+            bus.mkdir()
+            (bus / "1-1.2").symlink_to(raw)
+            devices = subprocess.CompletedProcess(
+                [], 0, "test-device\tfastboot\n", ""
+            )
+            product = subprocess.CompletedProcess(
+                [], 0, "product: lahaina\n", ""
+            )
+            with (
+                mock.patch.object(MODULE, "SYS_DEVICES", root),
+                mock.patch.object(MODULE, "SYS_BUS_USB", bus),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    side_effect=[devices, product],
+                ),
+            ):
+                self.assertEqual(
+                    MODULE.wait_fastboot(
+                        location,
+                        timeout_seconds=1,
+                        expected_serial="test-device",
+                    ),
+                    ("test-device", "0b05:4daf"),
+                )
+
+            with (
+                mock.patch.object(MODULE, "SYS_DEVICES", root),
+                mock.patch.object(MODULE, "SYS_BUS_USB", bus),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    return_value=devices,
+                ),
+                self.assertRaisesRegex(
+                    MODULE.FallbackError,
+                    "fastboot serial differs from the retention contract",
+                ),
+            ):
+                MODULE.wait_fastboot(
+                    location,
+                    timeout_seconds=1,
+                    expected_serial="other-device",
+                )
+
+    def test_reboot_emits_one_grounded_retention_result(self) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        serial = "test-device"
+        pin = b"exact-public-pin\n"
+        known_hosts = Path("/private/fallback-known-hosts")
+        environment = {
+            "ROG5_RETENTION_BOOT_RESULT": "1",
+            "ROG5_EXPECTED_USB_LOCATION": location,
+            "ROG5_EXPECTED_FASTBOOT_SERIAL": serial,
+        }
+        with (
+            mock.patch.dict(os.environ, environment, clear=True),
+            mock.patch.object(MODULE, "require_guards"),
+            mock.patch.object(MODULE, "fixed_binary"),
+            mock.patch.object(MODULE, "require_modem_manager_inactive"),
+            mock.patch.object(
+                MODULE,
+                "canonical_private_file",
+                return_value=known_hosts,
+            ),
+            mock.patch.object(
+                MODULE, "verify_known_hosts", return_value=pin
+            ),
+            mock.patch.object(MODULE, "require_fastboot_absent"),
+            mock.patch.object(
+                MODULE,
+                "probe",
+                return_value=({}, location, {}),
+            ) as probe,
+            mock.patch.object(
+                MODULE,
+                "wait_fastboot",
+                return_value=(serial, "0b05:4daf"),
+            ) as wait_fastboot,
+            mock.patch("sys.stdout", new_callable=io.StringIO) as output,
+        ):
+            self.assertEqual(
+                MODULE.main(["reboot", str(known_hosts)]),
+                0,
+            )
+        probe.assert_called_once_with(
+            pin,
+            action="reboot",
+            expected_location=location,
+        )
+        wait_fastboot.assert_called_once_with(
+            location,
+            expected_serial=serial,
+        )
+        self.assertEqual(
+            output.getvalue(),
+            "PASS pinned Alpine fallback reached exact fastboot device\n"
+            "ROG5_RETENTION_BOOT_RESULT_V1 action=fallback-reboot "
+            f"fastboot_serial={serial} "
+            f"host_pin_sha256={hashlib.sha256(pin).hexdigest()} "
+            f"product=0b05:4daf usb_location={location}\n",
+        )
+
+        for hostile in (
+            {"ROG5_RETENTION_BOOT_RESULT": "2"},
+            {
+                "ROG5_RETENTION_BOOT_RESULT": "1",
+                "ROG5_EXPECTED_USB_LOCATION": "",
+                "ROG5_EXPECTED_FASTBOOT_SERIAL": serial,
+            },
+            {
+                "ROG5_RETENTION_BOOT_RESULT": "1",
+                "ROG5_EXPECTED_USB_LOCATION": location,
+                "ROG5_EXPECTED_FASTBOOT_SERIAL": "bad serial",
+            },
+        ):
+            with (
+                self.subTest(hostile=hostile),
+                mock.patch.dict(os.environ, hostile, clear=True),
+                mock.patch.object(MODULE, "require_guards"),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(
+                    MODULE, "require_modem_manager_inactive"
+                ),
+                mock.patch.object(
+                    MODULE, "canonical_private_file"
+                ) as blocked_pin,
+                mock.patch.object(MODULE, "verify_known_hosts"),
+                mock.patch.object(
+                    MODULE, "require_fastboot_absent"
+                ) as blocked_inventory,
+                mock.patch.object(MODULE, "probe") as blocked_probe,
+                self.assertRaises(MODULE.FallbackError),
+            ):
+                MODULE.main(["reboot", str(known_hosts)])
+            blocked_pin.assert_not_called()
+            blocked_inventory.assert_not_called()
+            blocked_probe.assert_not_called()
+
+    def test_reboot_without_result_mode_preserves_existing_output(self) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        serial = "test-device"
+        pin = b"exact-public-pin\n"
+        known_hosts = Path("/private/fallback-known-hosts")
+        with (
+            mock.patch.dict(os.environ, {}, clear=True),
+            mock.patch.object(MODULE, "require_guards"),
+            mock.patch.object(MODULE, "fixed_binary"),
+            mock.patch.object(MODULE, "require_modem_manager_inactive"),
+            mock.patch.object(
+                MODULE,
+                "canonical_private_file",
+                return_value=known_hosts,
+            ),
+            mock.patch.object(
+                MODULE, "verify_known_hosts", return_value=pin
+            ),
+            mock.patch.object(MODULE, "require_fastboot_absent"),
+            mock.patch.object(
+                MODULE,
+                "probe",
+                return_value=({}, location, {}),
+            ) as probe,
+            mock.patch.object(
+                MODULE,
+                "wait_fastboot",
+                return_value=(serial, "0b05:4daf"),
+            ) as wait_fastboot,
+            mock.patch("sys.stdout", new_callable=io.StringIO) as output,
+        ):
+            self.assertEqual(
+                MODULE.main(["reboot", str(known_hosts)]),
+                0,
+            )
+        probe.assert_called_once_with(
+            pin,
+            action="reboot",
+            expected_location=None,
+        )
+        wait_fastboot.assert_called_once_with(
+            location,
+            expected_serial=None,
+        )
+        self.assertEqual(
+            output.getvalue(),
+            "PASS pinned Alpine fallback reached exact fastboot device\n",
+        )
+
+    def test_fastboot_rejects_wrong_port_product_state_and_inventory(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-fastboot-negative-"
+        ) as temporary:
+            root = Path(temporary)
+            location = "pci/usb1/1-1/1-1.2"
+            raw = root / location
+            raw.mkdir(parents=True)
+            (raw / "serial").write_text("test-device")
+            (raw / "idVendor").write_text(MODULE.FASTBOOT_VENDOR)
+            (raw / "idProduct").write_text(MODULE.FASTBOOT_PRODUCT)
+            (raw / "product").write_text("Android Bootloader Interface")
+            bus = root / "bus"
+            bus.mkdir()
+            (bus / "1-1.2").symlink_to(raw)
+            cases = (
+                (
+                    "other-device\tfastboot\n",
+                    (),
+                ),
+                (
+                    "test-device\tbootloader\n",
+                    (),
+                ),
+                (
+                    "test-device\tfastboot\n",
+                    ("product: taro\n",),
+                ),
+                (
+                    "test-device\tfastboot\nother\tfastboot\n",
+                    (),
+                ),
+                (
+                    "test-device fastboot trailing\n",
+                    (),
+                ),
+            )
+            for inventory, products in cases:
+                side_effect = [
+                    subprocess.CompletedProcess([], 0, inventory, ""),
+                    *(
+                        subprocess.CompletedProcess([], 0, product, "")
+                        for product in products
+                    ),
+                ]
+                with (
+                    self.subTest(inventory=inventory, products=products),
+                    mock.patch.object(MODULE, "SYS_DEVICES", root),
+                    mock.patch.object(MODULE, "SYS_BUS_USB", bus),
+                    mock.patch.object(MODULE, "fixed_binary"),
+                    mock.patch.object(
+                        MODULE.subprocess,
+                        "run",
+                        side_effect=side_effect,
+                    ),
+                    self.assertRaises(MODULE.FallbackError),
+                ):
+                    MODULE.wait_fastboot(location, timeout_seconds=1)
+            duplicate = root / "pci/usb1/1-1/1-1.3"
+            duplicate.mkdir(parents=True)
+            for name in ("idVendor", "idProduct", "product", "serial"):
+                (duplicate / name).write_bytes((raw / name).read_bytes())
+            (bus / "1-1.3").symlink_to(duplicate)
+            devices = subprocess.CompletedProcess(
+                [], 0, "test-device\tfastboot\n", ""
+            )
+            with (
+                mock.patch.object(MODULE, "SYS_DEVICES", root),
+                mock.patch.object(MODULE, "SYS_BUS_USB", bus),
+                mock.patch.object(MODULE, "fixed_binary"),
+                mock.patch.object(
+                    MODULE.subprocess,
+                    "run",
+                    return_value=devices,
+                ),
+                self.assertRaises(MODULE.FallbackError),
+            ):
+                MODULE.wait_fastboot(location, timeout_seconds=1)
+
+    def test_fastboot_timeout_classifies_usb_transition(self) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        fastboot = (MODULE.FASTBOOT_VENDOR, MODULE.FASTBOOT_PRODUCT)
+        cases = (
+            (
+                False,
+                set(),
+                (MODULE.USB_VENDOR, MODULE.USB_PRODUCT),
+                "fallback USB never disconnected",
+            ),
+            (
+                True,
+                set(),
+                None,
+                "no anchored-port USB re-enumeration was observed",
+            ),
+            (
+                True,
+                {("18d1", "4ee0")},
+                ("18d1", "4ee0"),
+                "non-fastboot USB mode was observed",
+            ),
+            (
+                True,
+                {fastboot},
+                fastboot,
+                "fastboot userspace discovery did not succeed",
+            ),
+        )
+        for disconnected, observed, current, message in cases:
+            with (
+                self.subTest(
+                    disconnected=disconnected,
+                    observed=observed,
+                    current=current,
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "anchored_usb_identity",
+                    return_value=current,
+                ),
+                self.assertRaisesRegex(MODULE.FallbackError, message),
+            ):
+                MODULE.fail_fastboot_timeout(
+                    location,
+                    disconnected,
+                    observed,
+                )
+
+    def test_fastboot_wait_accumulates_disconnect_and_reenumeration(
+        self,
+    ) -> None:
+        location = "pci/usb1/1-1/1-1.2"
+        fallback = (MODULE.USB_VENDOR, MODULE.USB_PRODUCT)
+        fastboot = (MODULE.FASTBOOT_VENDOR, MODULE.FASTBOOT_PRODUCT)
+        empty = subprocess.CompletedProcess([], 0, "", "")
+        with (
+            mock.patch.object(MODULE, "fixed_binary"),
+            mock.patch.object(
+                MODULE,
+                "anchored_usb_identity",
+                side_effect=(fallback, None, fastboot),
+            ),
+            mock.patch.object(
+                MODULE.time,
+                "monotonic",
+                side_effect=(0.0, 0.0, 0.0, 2.0),
+            ),
+            mock.patch.object(MODULE.time, "sleep"),
+            mock.patch.object(
+                MODULE.subprocess,
+                "run",
+                return_value=empty,
+            ),
+            mock.patch.object(
+                MODULE,
+                "fail_fastboot_timeout",
+                side_effect=MODULE.FallbackError("classified"),
+            ) as classify,
+            self.assertRaisesRegex(MODULE.FallbackError, "classified"),
+        ):
+            MODULE.wait_fastboot(location, timeout_seconds=1)
+        classify.assert_called_once_with(location, True, {fastboot})
+
+    def test_anchored_usb_identity_is_exact_and_race_tolerant(self) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="rog5-fallback-usb-transition-"
+        ) as temporary:
+            root = Path(temporary)
+            location = "pci/usb1/1-1/1-1.2"
+            raw = root / location
+            with mock.patch.object(MODULE, "SYS_DEVICES", root):
+                self.assertIsNone(MODULE.anchored_usb_identity(location))
+                raw.mkdir(parents=True)
+                (raw / "idVendor").write_text("0B05\n")
+                (raw / "idProduct").write_text("4DAF\n")
+                self.assertEqual(
+                    MODULE.anchored_usb_identity(location),
+                    ("0b05", "4daf"),
+                )
+                (raw / "idProduct").write_text("not-a-pid\n")
+                self.assertIsNone(MODULE.anchored_usb_identity(location))
+                with mock.patch.object(
+                    MODULE,
+                    "read_small",
+                    side_effect=("0b05", MODULE.FallbackError("disconnect")),
+                ):
+                    self.assertIsNone(
+                        MODULE.anchored_usb_identity(location)
+                    )
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

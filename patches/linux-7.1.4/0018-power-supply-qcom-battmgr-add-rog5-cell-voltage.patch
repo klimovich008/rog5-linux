@@ -1,0 +1,255 @@
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+index 490137a23..1a571cd52 100644
+--- a/drivers/power/supply/qcom_battmgr.c
++++ b/drivers/power/supply/qcom_battmgr.c
+@@ -19,6 +19,9 @@
+ #define BATTMGR_CHEMISTRY_LEN	4
+ #define BATTMGR_STRING_LEN	128
+ 
++#define PMIC_GLINK_OWNER_ASUS_ROG5	32782
++#define ASUS_ROG5_GET_CELL_VOLTAGE	0x3005
++
+ enum qcom_battmgr_variant {
+ 	QCOM_BATTMGR_SC8280XP,
+ 	QCOM_BATTMGR_SM8350,
+@@ -145,6 +148,16 @@ struct qcom_battmgr_charge_ctrl_request {
+ 	__le32 delta_soc;
+ };
+ 
++struct qcom_battmgr_asus_cell_voltage_request {
++	struct pmic_glink_hdr hdr;
++};
++
++struct qcom_battmgr_asus_cell_voltage_response {
++	struct pmic_glink_hdr hdr;
++	__le16 cell1_voltage;
++	__le16 cell2_voltage;
++};
++
+ struct qcom_battmgr_message {
+ 	struct pmic_glink_hdr hdr;
+ 	union {
+@@ -310,6 +323,7 @@ struct qcom_battmgr_wireless {
+ struct qcom_battmgr {
+ 	struct device *dev;
+ 	struct pmic_glink_client *client;
++	struct pmic_glink_client *oem_client;
+ 
+ 	enum qcom_battmgr_variant variant;
+ 
+@@ -322,8 +336,15 @@ struct qcom_battmgr {
+ 
+ 	int error;
+ 	struct completion ack;
++	int oem_error;
++	struct completion oem_ack;
+ 
+ 	bool service_up;
++	bool oem_service_up;
++	bool oem_request_poisoned;
++	u32 oem_service_generation;
++	u16 cell1_voltage_mv;
++	u16 cell2_voltage_mv;
+ 
+ 	struct qcom_battmgr_info info;
+ 	struct qcom_battmgr_status status;
+@@ -340,6 +361,101 @@ struct qcom_battmgr {
+ 	struct mutex lock;
+ };
+ 
++static int qcom_battmgr_request_asus_cell_voltages(struct qcom_battmgr *battmgr,
++						   u16 *cell1_mv, u16 *cell2_mv)
++{
++	struct qcom_battmgr_asus_cell_voltage_request request = {
++		.hdr.owner = cpu_to_le32(PMIC_GLINK_OWNER_ASUS_ROG5),
++		.hdr.type = cpu_to_le32(PMIC_GLINK_REQ_RESP),
++		.hdr.opcode = cpu_to_le32(ASUS_ROG5_GET_CELL_VOLTAGE),
++	};
++	unsigned long left;
++	u32 generation;
++	int ret;
++
++	if (!READ_ONCE(battmgr->oem_service_up))
++		return -EAGAIN;
++	if (READ_ONCE(battmgr->oem_request_poisoned))
++		return -EIO;
++
++	mutex_lock(&battmgr->lock);
++	if (!READ_ONCE(battmgr->oem_service_up)) {
++		ret = -EAGAIN;
++		goto out_unlock;
++	}
++	if (READ_ONCE(battmgr->oem_request_poisoned)) {
++		ret = -EIO;
++		goto out_unlock;
++	}
++
++	generation = READ_ONCE(battmgr->oem_service_generation);
++	reinit_completion(&battmgr->oem_ack);
++	battmgr->oem_error = 0;
++	if (!READ_ONCE(battmgr->oem_service_up) ||
++	    READ_ONCE(battmgr->oem_service_generation) != generation) {
++		ret = -EAGAIN;
++		goto out_unlock;
++	}
++
++	ret = pmic_glink_send(battmgr->oem_client, &request, sizeof(request));
++	if (ret < 0)
++		goto out_unlock;
++
++	left = wait_for_completion_timeout(&battmgr->oem_ack, HZ);
++	if (!left) {
++		WRITE_ONCE(battmgr->oem_request_poisoned, true);
++		ret = -ETIMEDOUT;
++		goto out_unlock;
++	}
++	if (!READ_ONCE(battmgr->oem_service_up) ||
++	    READ_ONCE(battmgr->oem_service_generation) != generation) {
++		ret = -ENOTCONN;
++		goto out_unlock;
++	}
++
++	ret = battmgr->oem_error;
++	if (!ret) {
++		*cell1_mv = battmgr->cell1_voltage_mv;
++		*cell2_mv = battmgr->cell2_voltage_mv;
++	}
++
++out_unlock:
++	mutex_unlock(&battmgr->lock);
++	return ret;
++}
++
++static ssize_t cell_voltages_show(struct device *dev,
++				  struct device_attribute *attr, char *buf)
++{
++	struct power_supply *psy = dev_get_drvdata(dev);
++	struct qcom_battmgr *battmgr = power_supply_get_drvdata(psy);
++	u16 cell1_mv;
++	u16 cell2_mv;
++	int ret;
++
++	ret = qcom_battmgr_request_asus_cell_voltages(battmgr, &cell1_mv, &cell2_mv);
++	if (ret)
++		return ret;
++
++	return sysfs_emit(buf, "cell1_voltage_mv=%u cell2_voltage_mv=%u\n",
++			  cell1_mv, cell2_mv);
++}
++static DEVICE_ATTR_RO(cell_voltages);
++
++static struct attribute *qcom_battmgr_asus_attrs[] = {
++	&dev_attr_cell_voltages.attr,
++	NULL,
++};
++
++static const struct attribute_group qcom_battmgr_asus_group = {
++	.attrs = qcom_battmgr_asus_attrs,
++};
++
++static const struct attribute_group *qcom_battmgr_asus_groups[] = {
++	&qcom_battmgr_asus_group,
++	NULL,
++};
++
+ static int qcom_battmgr_request(struct qcom_battmgr *battmgr, void *data, size_t len)
+ {
+ 	unsigned long left;
+@@ -1583,6 +1699,46 @@ static void qcom_battmgr_callback(const void *data, size_t len, void *priv)
+ 		qcom_battmgr_sm8350_callback(battmgr, data, len);
+ }
+ 
++static void qcom_battmgr_asus_callback(const void *data, size_t len, void *priv)
++{
++	const struct qcom_battmgr_asus_cell_voltage_response *resp = data;
++	struct qcom_battmgr *battmgr = priv;
++
++	if (len != sizeof(*resp)) {
++		battmgr->oem_error = -EMSGSIZE;
++		goto out_complete;
++	}
++
++	if (le32_to_cpu(resp->hdr.owner) != PMIC_GLINK_OWNER_ASUS_ROG5 ||
++	    le32_to_cpu(resp->hdr.type) != PMIC_GLINK_REQ_RESP ||
++	    le32_to_cpu(resp->hdr.opcode) != ASUS_ROG5_GET_CELL_VOLTAGE) {
++		battmgr->oem_error = -EPROTO;
++		goto out_complete;
++	}
++
++	battmgr->cell1_voltage_mv = le16_to_cpu(resp->cell1_voltage);
++	battmgr->cell2_voltage_mv = le16_to_cpu(resp->cell2_voltage);
++	battmgr->oem_error = 0;
++
++out_complete:
++	complete(&battmgr->oem_ack);
++}
++
++static void qcom_battmgr_asus_pdr_notify(void *priv, int state)
++{
++	struct qcom_battmgr *battmgr = priv;
++	bool service_up = state == SERVREG_SERVICE_STATE_UP;
++
++	WRITE_ONCE(battmgr->oem_service_generation,
++		   READ_ONCE(battmgr->oem_service_generation) + 1);
++	WRITE_ONCE(battmgr->oem_service_up, service_up);
++	WRITE_ONCE(battmgr->oem_request_poisoned, false);
++	if (!service_up) {
++		battmgr->oem_error = -ENOTCONN;
++		complete(&battmgr->oem_ack);
++	}
++}
++
+ static void qcom_battmgr_enable_worker(struct work_struct *work)
+ {
+ 	struct qcom_battmgr *battmgr = container_of(work, struct qcom_battmgr, enable_work);
+@@ -1632,6 +1788,7 @@ static int qcom_battmgr_probe(struct auxiliary_device *adev,
+ 	const struct of_device_id *match;
+ 	struct qcom_battmgr *battmgr;
+ 	struct device *dev = &adev->dev;
++	bool asus_cell_voltages;
+ 	int ret;
+ 
+ 	battmgr = devm_kzalloc(dev, sizeof(*battmgr), GFP_KERNEL);
+@@ -1651,6 +1808,7 @@ static int qcom_battmgr_probe(struct auxiliary_device *adev,
+ 	INIT_WORK(&battmgr->enable_work, qcom_battmgr_enable_worker);
+ 	mutex_init(&battmgr->lock);
+ 	init_completion(&battmgr->ack);
++	init_completion(&battmgr->oem_ack);
+ 
+ 	match = of_match_device(qcom_battmgr_of_variants, dev->parent);
+ 	if (match)
+@@ -1658,6 +1816,25 @@ static int qcom_battmgr_probe(struct auxiliary_device *adev,
+ 	else
+ 		battmgr->variant = QCOM_BATTMGR_SM8350;
+ 
++	asus_cell_voltages =
++		device_property_read_bool(dev->parent,
++					  "asus,cell-voltage-readonly");
++	if (asus_cell_voltages && battmgr->variant != QCOM_BATTMGR_SM8350)
++		return dev_err_probe(dev, -EINVAL,
++				     "ASUS cell voltages require the SM8350 protocol\n");
++	if (asus_cell_voltages) {
++		battmgr->oem_client =
++			devm_pmic_glink_client_alloc(dev,
++						     PMIC_GLINK_OWNER_ASUS_ROG5,
++						     qcom_battmgr_asus_callback,
++						     qcom_battmgr_asus_pdr_notify,
++						     battmgr);
++		if (IS_ERR(battmgr->oem_client))
++			return PTR_ERR(battmgr->oem_client);
++
++		psy_cfg.attr_grp = qcom_battmgr_asus_groups;
++	}
++
+ 	ret = qcom_battmgr_charge_control_thresholds_init(battmgr);
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret,
+@@ -1718,6 +1895,8 @@ static int qcom_battmgr_probe(struct auxiliary_device *adev,
+ 	if (IS_ERR(battmgr->client))
+ 		return PTR_ERR(battmgr->client);
+ 
++	if (asus_cell_voltages)
++		pmic_glink_client_register(battmgr->oem_client);
+ 	pmic_glink_client_register(battmgr->client);
+ 
+ 	return 0;

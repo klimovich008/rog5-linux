@@ -41,8 +41,25 @@
 	};
 };
 
-/* Board deltas from the upstream SM8350 fixed reservation map. */
+/*
+ * Board deltas from the upstream SM8350 fixed reservation map.  The three
+ * broad stock-owned spans come from the runtime ASUS FDT plus /proc/iomem.
+ * Keep the low and high spans mapped like stock; only memshare is no-map.
+ */
 &reserved_memory {
+	memory@cbc00000 {
+		reg = <0x0 0xcbc00000 0x0 0x04400000>;
+	};
+
+	memory@d8000000 {
+		reg = <0x0 0xd8000000 0x0 0x00800000>;
+		no-map;
+	};
+
+	memory@edc00000 {
+		reg = <0x0 0xedc00000 0x0 0x12000000>;
+	};
+
 	asus_splash_mem: memory@e5000000 {
 		reg = <0x0 0xe5000000 0x0 0x2300000>;
 		no-map;

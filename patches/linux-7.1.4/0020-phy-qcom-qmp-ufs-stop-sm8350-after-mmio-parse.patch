@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Wed, 12 Aug 2026 00:00:00 +0000
+Subject: [PATCH] phy: qcom: qmp-ufs: advance SM8350 diagnostic through MMIO
+
+Generation 35 proved that the SM8350 QMP-UFS probe may acquire its clock and
+regulator handles and apply the reviewed regulator loads without disrupting
+USB NCM.  Advance the RAM-only discriminator through the existing DT binding
+selection and MMIO resource mapping, then stop before clock-provider
+registration, PHY creation, or PHY-provider registration.
+
+The UFS host stack remains absent, so this diagnostic cannot enumerate or
+access storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2223,13 +2223,6 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		return ret;
+ 
+-	if (of_device_is_compatible(dev->of_node,
+-				    "qcom,sm8350-qmp-ufs-phy")) {
+-		dev_notice(dev,
+-			   "ROG5 QMP-UFS diagnostic: regulator stage complete\n");
+-		return 0;
+-	}
+-
+ 	/* Check for legacy binding with child node. */
+ 	np = of_get_next_available_child(dev->of_node, NULL);
+ 	if (np) {
+@@ -2239,6 +2232,14 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		goto err_node_put;
+ 
++	if (of_device_is_compatible(dev->of_node,
++				    "qcom,sm8350-qmp-ufs-phy")) {
++		dev_notice(dev,
++			   "ROG5 QMP-UFS diagnostic: MMIO parse stage complete\n");
++		of_node_put(np);
++		return 0;
++	}
++
+ 	ret = qmp_ufs_register_clocks(qmp, np);
+ 	if (ret)
+ 		goto err_node_put;
+-- 
+2.51.0

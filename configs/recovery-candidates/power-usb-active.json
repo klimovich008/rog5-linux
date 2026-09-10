@@ -1,0 +1,85 @@
+{
+  "format": "rog5-power-usb-candidate-source-v1",
+  "record": {
+    "format": "rog5-recovery-candidate-v1",
+    "candidate": "headless-power-usb-observer-v27",
+    "status": "offline",
+    "authority": "none",
+    "bundle": "headless-power-usb-observer-v27",
+    "profile": "network-root-v1",
+    "target_id": "headless-power-usb-observer-v27",
+    "target_release": "7.1.4-g7a5cef0db479",
+    "rollback_timeout": "900",
+    "target_timeout": "600",
+    "a660_command_manifest_sha256": "99f194b32171c9c9f09d28636e351bba4cb34751997e1aa174e3466bd758a1d2",
+    "root_generation": "arch-a",
+    "root_tree_sha256": "f4affd6d83f3af48259c7d7f650e91461465b59e045519310ac81bb5d71a0087",
+    "root_seal_sha256": "42ef8388bb771fbd0dd8141939b042a89037ea1cf1bec9288f7a3ae51455210a",
+    "root_tree_entries": "37735",
+    "root_subtree": "/",
+    "artifacts": {
+      "Image": {
+        "path": "artifacts/network-root-power-usb-observer-v1/Image",
+        "size": 40049152,
+        "sha256": "6b5697ee1c2bf289bc6f94323bba7cc01db70a657770395fdc588eb93d1b36ef"
+      },
+      "board.dtb": {
+        "path": "artifacts/network-root-power-usb-observer-v1/board.dtb",
+        "size": 103106,
+        "sha256": "e42604f9bb91762d827b8f6eeff0b801f992f264fca47af3d40b213a4cff932e"
+      },
+      "initramfs.cpio.gz": {
+        "path": "artifacts/network-root-power-usb-observer-v1/initramfs.cpio.gz",
+        "size": 19941804,
+        "sha256": "7d54558bc19f72f1c6f6b3099a102e0947216f36971c5bedea787069abd196a8"
+      }
+    }
+  },
+  "integration": {
+    "admission_profile": "power-usb-observer-live-v1",
+    "recovery_profile": "headless-power-usb-observer-v27-live-v1",
+    "runtime_profile": "power-usb-observer-v27",
+    "build_profile": "headless-ssh-v2",
+    "probe_phase": "post-ssh",
+    "output_root": "build/power-usb-observer-v27-offline-r1",
+    "marker_predecessor": "headless-power-usb-observer-v26",
+    "marker_purpose": "stage-local-image-over-proven-nfs-ssh",
+    "boot_policy_status": "none",
+    "boot_policy_basis": "one exact post-SSH side-port power plus NFS staging cycle for the bounded local Arch image; RAM-only; externally consumed exact claim required; never flash or retry after entry",
+    "artifact_role": "unbooted V27 local-image staging successor; exact live-proven post-SSH kernel, DTB, initramfs, and recovery composition with a fresh identity; one RAM-only use only; never flash"
+  },
+  "timing": {
+    "prepare_timeout_seconds": 260,
+    "host_readiness_seconds": 90,
+    "control_timeout_seconds": 360,
+    "recovery_timeout_seconds": 300,
+    "target_timeout_seconds": 600,
+    "rollback_timeout_seconds": 900,
+    "fallback_timeout_seconds": 600,
+    "cleanup_margin_seconds": 120,
+    "network_server_timeout_seconds": 1020,
+    "sampler_timeout_seconds": 960,
+    "fallback_control_margin_seconds": 120,
+    "fallback_contact_budget_seconds": 3600
+  },
+  "host": {
+    "measured_peak_build_bytes": 10000000000,
+    "minimum_free_bytes": 50000000000,
+    "minimum_free_inodes": 1000000,
+    "project_tcp_ports": [2049, 8080, 8081],
+    "networkmanager_profile": "rog5-fallback-usb-ssh",
+    "networkmanager_autoconnect": "no",
+    "usb_location": "1-1.2",
+    "fastboot_serial": "M5AIKN00F0353YH",
+    "fastboot_product": "lahaina"
+  },
+  "capability": {
+    "recovery_contract": "exact-a600000-v1",
+    "recovery_verifier": "scripts/device/verify-stable-recovery-initramfs.sh",
+    "fallback_verifier": "scripts/host/wait-stock-android-fallback.py",
+    "target_verifier": "scripts/device/verify-network-root-initramfs.sh",
+    "recovery_commands": ["busybox", "ip", "kexec", "mount", "rog5-bundle-fetch", "rog5-bundle-verify", "rog5-recovery-control"],
+    "target_commands": ["ip", "mount", "sshd", "systemd", "watchdog"],
+    "host_commands": ["fastboot", "firewall-cmd", "ip", "nmcli", "ss", "systemctl"]
+  }
+}

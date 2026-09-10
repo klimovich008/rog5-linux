@@ -1,0 +1,53 @@
+diff --git a/drivers/regulator/qcom-rpmh-regulator.c b/drivers/regulator/qcom-rpmh-regulator.c
+--- a/drivers/regulator/qcom-rpmh-regulator.c
++++ b/drivers/regulator/qcom-rpmh-regulator.c
+@@ -185,6 +185,39 @@
+ 	const struct rpmh_vreg_hw_data	*hw_data;
+ };
+ 
++/* The ASUS firmware accepts the stock CNSS 1350mV vote exactly. Preserve
++ * every existing setpoint and add only that observed interface point.
++ * This describes RPMh request granularity, not a physical voltage sensor.
++ */
++static const struct linear_range asus_rog5_s12_ranges[] = {
++	REGULATOR_LINEAR_RANGE(320000, 0, 128, 8000),
++	REGULATOR_LINEAR_RANGE(1350000, 129, 129, 0),
++	REGULATOR_LINEAR_RANGE(1352000, 130, 216, 8000),
++};
++
++static int rpmh_regulator_asus_s12_point(struct rpmh_vreg *vreg,
++				      struct device_node *node,
++				      const char *pmic_id)
++{
++	const struct linear_range *range = vreg->rdesc.linear_ranges;
++
++	if (!of_machine_is_compatible("asus,rog-phone5") ||
++	    !of_device_is_compatible(dev_of_node(vreg->dev),
++				     "qcom,pm8350-rpmh-regulators") ||
++	    strcmp(pmic_id, "b") || !of_node_name_eq(node, "smps12"))
++		return 0;
++	/* Refuse an unreviewed resource or base voltage table on this board. */
++	if (vreg->addr != 0x40100 || !range ||
++	    vreg->rdesc.n_linear_ranges != 1 || vreg->rdesc.n_voltages != 216 ||
++	    range->min != 320000 || range->min_sel || range->max_sel != 215 ||
++	    range->step != 8000)
++		return -EINVAL;
++	vreg->rdesc.linear_ranges = asus_rog5_s12_ranges;
++	vreg->rdesc.n_linear_ranges = ARRAY_SIZE(asus_rog5_s12_ranges);
++	vreg->rdesc.n_voltages = 217;
++	return 0;
++}
++
+ /**
+  * rpmh_regulator_send_request() - send the request to RPMh
+  * @vreg:		Pointer to the RPMh regulator
+@@ -499,6 +532,9 @@
+ 		vreg->rdesc.n_linear_ranges = rpmh_data->hw_data->n_linear_ranges;
+ 		vreg->rdesc.n_voltages = rpmh_data->hw_data->n_voltages;
+ 	}
++	ret = rpmh_regulator_asus_s12_point(vreg, node, pmic_id);
++	if (ret)
++		return ret;
+ 
+ 	vreg->always_wait_for_ack = of_property_read_bool(node,
+ 						"qcom,always-wait-for-ack");

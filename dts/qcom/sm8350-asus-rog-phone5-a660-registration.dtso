@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+};
+
+/*
+ * Registration-only A660 tier.  DRM/MSM and GPUCC remain manual modules, and
+ * the guarded probe must never open the DRM device.  First-open firmware,
+ * power-up, ZAP/SCM authentication, and rendering belong to later gates.
+ */
+&gpucc {
+	status = "okay";
+};
+
+&adreno_smmu {
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+};
+
+&gmu {
+	status = "okay";
+};
+
+&gpu_zap_shader {
+	firmware-name = "qcom/sm8350/a660_zap.mbn";
+};

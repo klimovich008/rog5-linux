@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v26
+predecessor=headless-power-usb-observer-v25
+purpose=subfull-positive-current-observation

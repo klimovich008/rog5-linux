@@ -44,7 +44,43 @@ rog5-screen-toggle.sh toggle
 
 It discovers the writable backlight, validates its range, preserves brightness, and changes its state record only after a successful sysfs write. `rog5-server-inhibit.service` uses systemd's native inhibitor API to block system sleep and short power-key shutdown without blocking idle display blanking; stopping that service restores explicit suspend policy. Headless logind ignores a short power press, while a long press retains the emergency power-off action. Plasma/PowerDevil power-button screen toggling still requires a live input test after the mainline input port.
 
-The same behavior is staged, not yet a hardware result, for Arch and Linux 7.1. Backlight control remains the fallback if DPMS is unavailable. Power measurements must compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
+The
+[successor-v3 offline root](../test-results/2026-07-27-arch-successor-v3-power-button-offline.md)
+now enables a small standard-library handler that requires exactly one
+`pmic_pwrkey` character device and invokes the toggle only for
+`EV_KEY/KEY_POWER` press value `1`. Release, repeat, other-key, truncated
+record, and failed-toggle cases are rejected. Its root service has no network
+or block-device access and only the identity-switch capabilities needed by
+the existing KScreen helper. This is software readiness, not physical-button
+or display acceptance. The later
+[protected pre-live HOLD](../test-results/2026-07-27-arch-successor-v3-protected-prelive-hold.md)
+pins the handler/service into a recursively sealed read-only root and requires
+one real `pmic_pwrkey` character device plus an active, zero-restart service
+before any target gate could request fallback. It still does not synthesize
+or observe a physical press.
+
+Linux 7.1 network-root v5 now registers the PMK8350 power-key path after the
+reviewed `qcom_pon` parent module is loaded. The resulting input is named
+`pmic_pwrkey`, uses the `pm8941-pwrkey` driver, advertises `KEY_POWER`, and has
+wakeup enabled. A real short press was not observed during the bounded
+attended windows, including a protected 120-second normal-mode repeat, so the
+physical switch/IRQ path is still pending. The reusable
+`monitor-network-root-pwrkey.sh` gate holds a low-level logind inhibitor and
+requires both the Linux `KEY_POWER` press and release records. This tier cannot
+yet provide a visible power-button indication because DRM, panel, backlight,
+and LEDs remain intentionally disabled. Backlight control remains the fallback
+if DPMS is unavailable once display bring-up begins. Power measurements must
+compare panel-on, backlight-zero, DPMS-off, and compositor-stopped states.
+
+The
+[headless display-isolation candidate](../test-results/2026-08-09-headless-display-isolation-offline.md)
+now closes one offline minimal-server gap: the accepted DTB disabled MDSS and
+every display link but left the separate DISPCC provider implicitly enabled.
+Its one-property overlay explicitly disables DISPCC, while a structural
+verifier rejects every other DT change. A separate runtime oracle requires no
+MDSS/DISPCC platform device, DRM node, backlight, framebuffer, or display
+device node. This is the default-off provider contract for a server-only DTB,
+not OLED/bridge, DPMS, wake, SSH-continuity, or power acceptance.
 
 ## Memory policy
 
@@ -58,7 +94,54 @@ Do not optimize an 11 GiB device by killing useful caches. Prefer:
 - cap log retention and stop duplicate supervisors;
 - measure proportional set size and idle CPU before removing packages.
 
-No Arch idle-memory result exists yet. Record headless and graphical baselines after the first successful boot before setting a numeric target.
+The staged `rog5-agent` browser unit has a 200% CPU quota, CPU/I/O weights of
+25, 1536 MiB `MemoryHigh`, 2048 MiB `MemoryMax`, 512 MiB `MemorySwapMax`,
+`TasksMax=256`, OOM stop policy, and a three-start/five-minute restart limit.
+These are safety ceilings, not measured optimums; retain or lower them only
+after an on-phone workload, thermal, latency, and battery comparison.
+
+The development Arch image stages a one-shot collector:
+
+```sh
+rog5-collect-baseline.sh
+```
+
+Capture it before and after a fixed interval for each headless, Plasma,
+KRDP, browser, panel-on, and panel-off state. It reports CPU total/idle ticks,
+memory and swap, selected Plasma PSS, agent cgroup usage, battery values,
+thermal maximum, screen/backlight/DSI state, and interface byte counters.
+Compute CPU busy percent as
+`100 * (delta_total - delta_idle) / delta_total`. It deliberately omits the
+kernel command line, addresses, MACs, SSIDs, serials, process arguments, and
+credentials. Battery-current sign is driver-defined, so evaluate it with
+reported charge status and external wall-power measurement.
+
+The first diagnostic Arch headless sample reported 11,296,876 KiB total,
+10,947,312 KiB available, about 341 MiB unavailable, 12 running services, and
+0.06 one-minute load. Network-root v2 then passed normal coldplug twice with
+about 10.4 GiB available and 33 sane thermal zones. Repeat idle CPU, service,
+temperature, and wall-power measurements over a longer interval before
+trimming services.
+
+The persistent Alpine fallback's
+[screen-off resource baseline](../test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md)
+measured about 390 MiB KDE PSS, 345 MiB Chromium PSS, and 66.7 MiB remote
+transport PSS. About 10.1 GiB remained available, swap stayed at zero, and a
+separate low-overhead 30-second sample measured 0.78% aggregate CPU with the
+panel off and brightness zero. These results justify headless-by-default
+service control, not package removal. They must be repeated on Arch with
+physical DRM/KWin, KRDP, fixed workloads, and valid battery or wall-power
+telemetry.
+
+The
+[vendor boot-log HOLD](../test-results/2026-07-27-alpine-vendor-kernel-boot-log-hold.md)
+also measured 272 KiB of `sda` writes and 56 ms of block-I/O time during one
+30-second screen-off interval. Chromium accounted for 88 KiB of attributable
+physical writes, compared with 12 KiB from the ext4 journal and 4 KiB from
+Plasma shell. The same interval added six vendor load reports and two SCSI
+cache-sync messages. Keep Chromium on demand, but do not alter ASUS debug or
+UFS runtime policy until a reversible wall-power test can distinguish log
+noise from energy-relevant wakeups.
 
 ## Battery policy
 
@@ -69,4 +152,7 @@ No Arch idle-memory result exists yet. Record headless and graphical baselines a
 - Charging limits should use a real supported driver interface; never write guessed values to undocumented ASUS nodes.
 - Record battery voltage/current/temperature and wall-power measurements for each profile.
 
-These are target policies. Linux 7.1 currently reaches recovery `/init` and configures its USB gadget internally, but Windows enumeration and target SSH remain blocked; the Arch display, session, and power behavior has not been exercised on hardware.
+These are target policies. Linux 7.1 now runs Arch/systemd and persistent
+key-only SSH over USB network root with normal headless coldplug. Display,
+session, battery, charging, and power behavior remain untested because their
+DT nodes and board wiring have not passed separate promotion gates.

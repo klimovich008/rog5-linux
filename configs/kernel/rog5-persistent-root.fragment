@@ -1,0 +1,11 @@
+CONFIG_EXT4_FS=y
+CONFIG_EXT4_FS_POSIX_ACL=y
+CONFIG_EXT4_FS_SECURITY=y
+CONFIG_OVERLAY_FS=y
+CONFIG_TMPFS=y
+CONFIG_TMPFS_XATTR=y
+
+# Pacman 7 keeps downloads under the unprivileged alpm user and uses Landlock
+# for its filesystem sandbox. The local Arch root must not require the
+# DisableSandboxFilesystem compatibility exception on future kernels.
+CONFIG_SECURITY_LANDLOCK=y

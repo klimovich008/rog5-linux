@@ -20,15 +20,32 @@ The vendor `vdd-hba` reference points at the UFS GDSC. Mainline `sm8350.dtsi` al
 
 ## Memory safety map
 
-The board DTS now records the four live memory-bank tuples, including the vendor zero-sized placeholder tuple. The upstream SM8350 fixed reserved-memory map already matches the board for the secure heaps, remote-processor regions, SMEM, command DB, and firmware spans used by the recovery tier.
+The board DTS now records the four live memory-bank tuples, including the
+vendor zero-sized placeholder tuple. The upstream SM8350 fixed map supplies
+the named secure heaps, remote-processor regions, SMEM, command DB, and
+firmware spans, but the ASUS runtime FDT and `/proc/iomem` prove three broader
+board-owned ranges that upstream does not describe.
 
-Three ASUS deltas are explicit and compile-checked:
+The ASUS deltas are explicit and compile-checked:
 
+- `0xcbc00000+68 MiB` remains mapped like stock;
+- `0xd8000000+8 MiB` is the stock `no-map` memshare span;
 - the removed-memory span at `0xd8800000` is enlarged to the vendor size;
+- `0xedc00000+288 MiB` remains mapped like stock;
 - the region at `0x9b800000` is enlarged so the whole vendor safety/debug allocation stays out of the page allocator;
 - boot splash and display-refresh data spans are added as `no-map` reservations.
 
-The `rmtfs_mem` label is retained only because disabled upstream remote-processor nodes reference its phandle. Its ASUS recovery size is deliberately conservative; modem/rmtfs enablement requires a separate dynamic-memory review and must not reuse this placeholder contract unchanged.
+The broad ranges are now live-proven. Without them, ADSP PAS metadata was
+allocated at stock-owned `0xfe400000` and secure firmware returned `-EINVAL`.
+With them, metadata moved to free `0xec000000`, both SCM layers returned zero,
+and ADSP stayed `running`. See the
+[v7 ADSP report](../test-results/2026-07-25-network-root-adsp-live.md).
+
+The `rmtfs_mem` label remains available for disabled upstream remote-processor
+references, but the recovery overlay now disables the reserved-memory node
+itself. Its span overlaps the 4 MiB ramoops reservation carried by the
+recovery command line, so normal coldplug must not remap or SCM-reassign it.
+Modem/RMTFS enablement requires a separate non-overlapping memory design.
 
 ## Early-boot hardware guards
 
@@ -63,14 +80,57 @@ The base skeleton deliberately keeps UFS and USB disabled. A separate
 wrapper and its HS PHY. It forces the DWC3 child to high-speed operation with
 only `usb2-phy` and selects the UTMI clock in place of the absent SuperSpeed
 pipe clock. The FEMTO USB2 PHY driver is built into the recovery kernel.
-Static checks require exactly two `status = "okay"` changes and keep UFS, the
-QMP/SuperSpeed PHY, and the secondary `usb_2` controller disabled.
+Static checks require exactly two `status = "okay"` changes and five explicit
+`status = "disabled"` changes. They keep UFS, the QMP/SuperSpeed PHY, the
+secondary `usb_2` controller, RMTFS, GPUCC, GPU, GMU, and the Adreno SMMU
+disabled.
+
+The builder now also parses the base and candidate FDTs and permits only the
+reviewed property-level delta. Node addition/removal and every unrelated
+property change are rejected byte-for-byte. The retained rejected v1 and
+accepted v3 artifacts differ in exactly four approved isolation properties;
+the compiled current base passes the same oracle with ten approved changes.
+The implementation, malicious fixtures, signal-abort test, and hashes are in
+the
+[corrected DTB semantic oracle](../test-results/2026-07-29-corrected-dtb-semantic-oracle-offline.md).
+
+GPUCC isolation is required because an attended live
+`gpucc_sm8350` probe stalled until the rollback watchdog reset the phone. A
+later GPUCC-only v9 trace kept every consumer disabled, completed mapping and
+both PLL configuration calls, then stalled at the common-clock registration
+boundary. V10 traced that path through reset and both GDSC steps and localized
+the stop to generic CCF registration of non-critical index-0
+`gpu_cc_ahb_clk`. Its parent has not yet registered, so the source indicates a
+normal orphan-registration path and does not prove branch-register access.
+V11 now passes offline source, mutation, duplicate-build, and package gates
+for a narrower generic CCF trace, but its 100 ms delivery settles perturb
+registration timing and it has not been booted. GPUCC therefore remains
+outside the accepted recovery DT.
 
 The USB2-only overlay passes its static gates. The v6 target/staging initramfs,
 header-v3 image, and AVB footer passed their then-current offline suite, but v6
-failed live ACM data and rollback. Current ACM/wake-lock source fixes and the
-fresh mainline kernel make those dependent artifacts stale. Rebuild and
-reverify the complete bundle before fresh live gates.
+failed live ACM data and rollback. Recovery v12 incorporated the ACM/wake-lock
+fixes but remained unbooted after a final audit found no pre-USB block-device
+lock. V13 added that fail-closed gate to both stages, and v14 limited
+`BLKROSET` to physical disks and partitions. Both returned to fallback after
+21 seconds without exact recovery USB. V15 reproduced the physical-storage
+design with bounded timing diagnostics; its 31-second live interval proved
+the wake-lock gate failed before storage isolation. V16 removes that
+unnecessary gate and reached exact USB, NCM, and rollback, but its ACM device
+node was absent. The authorized local v17 diagnostic proved the RAM/storage
+contract and restored ACM with `mdev -s`. V18 requires that rescan, the
+`ttyGS0` node, and a second storage gate before UDC binding; it reproduces
+byte-for-byte and passes the expanded offline verifier. Credential-free live
+USB, storage isolation, and rollback now pass twice, promoting the nested
+Linux 7.1 recovery to one separately attended kexec attempt. That attempt
+booted `7.1.4-g7a5cef0db479` with the recovery DTB, exposed zero physical
+block devices as required, passed ACM/NCM and watchdog checks, and rolled back
+automatically.
+
+The same overlay, with the new GPU/RMTFS isolation, is the reproducible
+network-root v2 DTB. Two normal, unmasked Linux 7.1.4 boots now pass udev
+coldplug, systemd, storage exclusion, USB/NFS, thermal, fatal-log, and watchdog
+gates. GPU remains deliberately outside this recovery tier.
 
 The historical v2 run produced staging and target logs, including Linux 7.1.4
 at `/init`, configfs, its NCM/ACM gadget, the `a600000` UDC, and `usb0`.

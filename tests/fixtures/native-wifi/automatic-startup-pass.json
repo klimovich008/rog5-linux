@@ -1,0 +1,21 @@
+{
+  "source": "V18 RAM-only automatic startup on the exact ROG5",
+  "kernel_release": "7.1.4-g1eea8970e87f",
+  "automatic_radio_before_writable_state": true,
+  "private_state_configuration_loaded": true,
+  "host_target_activation_commands": 0,
+  "wpa_state": "COMPLETED",
+  "pairwise_cipher": "CCMP",
+  "group_cipher": "CCMP",
+  "dhcp": true,
+  "ssh_host_route": "wlan0",
+  "strict_host_key_and_boot_id": true,
+  "power_trace_verified": true,
+  "claim_to_complete_wifi_evidence_seconds": 71.337,
+  "reboot_to_restored_seconds": 63.685,
+  "fallback_restored": true,
+  "consumed": true,
+  "usb_data_absent_tested": false,
+  "persistent_selector_changed": false,
+  "sustained_net_positive_charging_proven": false
+}

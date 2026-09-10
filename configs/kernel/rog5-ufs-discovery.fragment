@@ -1,0 +1,47 @@
+# Dedicated bring-up kernel: enumerate UFS, but never accept host-originated
+# storage mutation commands. This fragment is layered on rog5-mainline.fragment.
+CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y
+CONFIG_SCSI=y
+CONFIG_SCSI_UFSHCD=y
+CONFIG_SCSI_UFSHCD_PLATFORM=y
+CONFIG_SCSI_UFS_QCOM=y
+CONFIG_PHY_QCOM_QMP=y
+CONFIG_PHY_QCOM_QMP_UFS=y
+# CONFIG_PHY_QCOM_QMP_COMBO is not set
+# CONFIG_PHY_QCOM_QMP_PCIE is not set
+# CONFIG_PHY_QCOM_QMP_PCIE_8996 is not set
+# CONFIG_PHY_QCOM_QMP_USB is not set
+# CONFIG_PHY_QCOM_QMP_USB_LEGACY is not set
+CONFIG_BLK_DEV_SD=y
+CONFIG_EFI_PARTITION=y
+
+# The discovery initramfs deliberately carries no mainline modules. Keep the
+# complete UFS power, reset, interconnect, pinctrl, and PHY path built in.
+CONFIG_PINCTRL_SM8350=y
+CONFIG_REGULATOR_QCOM_RPMH=y
+CONFIG_INTERCONNECT_QCOM_SM8350=y
+CONFIG_QCOM_COMMAND_DB=y
+CONFIG_QCOM_RPMH=y
+CONFIG_RESET_QCOM_AOSS=y
+
+# USB ACM/NCM is the post-isolation recovery channel and must also be built in.
+CONFIG_USB=y
+CONFIG_USB_DWC3=y
+CONFIG_USB_DWC3_QCOM=y
+CONFIG_USB_GADGET=y
+CONFIG_USB_CONFIGFS=y
+CONFIG_USB_CONFIGFS_ACM=y
+CONFIG_USB_CONFIGFS_NCM=y
+CONFIG_PHY_QCOM_USB_SNPS_FEMTO_V2=y
+
+# Let the RAM-only initramfs attest that it received the dedicated kernel.
+CONFIG_IKCONFIG=y
+CONFIG_IKCONFIG_PROC=y
+
+# Remove raw SCSI/UFS/RPMB userspace command paths from the discovery image.
+# CONFIG_CHR_DEV_SG is not set
+# CONFIG_BLK_DEV_BSG is not set
+# CONFIG_SCSI_UFS_BSG is not set
+# CONFIG_RPMB is not set
+# CONFIG_SCSI_UFS_CRYPTO is not set
+# CONFIG_SCSI_UFS_HWMON is not set

@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Keep recovery transfer, cleanup, PREPARE, and COMMIT deadlines nested."""
+
+from __future__ import annotations
+
+from pathlib import Path
+import json
+import re
+import unittest
+
+
+REPO = Path(__file__).resolve().parents[2]
+
+
+def source(relative: str) -> str:
+    return (REPO / relative).read_text(encoding="utf-8")
+
+
+def integer_constant(payload: str, name: str) -> int:
+    patterns = (
+        rf"^#define\s+{re.escape(name)}\s+([0-9]+)$",
+        rf"^{re.escape(name)}\s*=\s*([0-9]+)$",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, payload, flags=re.MULTILINE)
+        if match is not None:
+            return int(match.group(1))
+    raise AssertionError(f"missing integer constant {name}")
+
+
+class RecoveryTimeoutLatticeTest(unittest.TestCase):
+    def test_production_deadlines_are_explicit_and_safely_nested(self) -> None:
+        fetch = source("tools/recovery_control/rog5-bundle-fetch.c")
+        control = source("tools/recovery_control/rog5-recovery-control.c")
+        server = source("tools/recovery_control/host_bundle_server.py")
+        controller = source("packaging/host/rog5-recovery-bundle-controller")
+        lifecycle = source("scripts/host/run-minimal-headless-live-cycle.py")
+        stable = source("scripts/host/stable-recovery-control.py")
+        recovery_init = source("initramfs/recovery-init")
+        template = source("scripts/host/build-canonical-boot-v3-template.sh")
+        active_timing = json.loads(
+            (REPO / "manifests/power-usb-active.lock.json").read_text(
+                encoding="ascii"
+            )
+        )["timing"]
+
+        worker_ms = integer_constant(fetch, "FETCH_TIMEOUT_MS")
+        connect_ms = integer_constant(fetch, "CONNECT_TIMEOUT_MS")
+        supervisor_ms = integer_constant(control, "FETCH_TIMEOUT_MS")
+        kexec_ms = integer_constant(control, "KEXEC_LOAD_TIMEOUT_MS")
+        transfer = integer_constant(server, "TRANSFER_TIMEOUT_SECONDS")
+        base_watchdog = integer_constant(
+            controller, "HARD_SERVER_TIMEOUT_SECONDS"
+        )
+        watchdog = integer_constant(
+            controller, "PROGRESS_HARD_SERVER_TIMEOUT_SECONDS"
+        )
+        progress = integer_constant(
+            controller, "PROGRESS_CAPTURE_TIMEOUT_SECONDS"
+        )
+        progress_ready_attempts = integer_constant(
+            controller, "PROGRESS_LISTENER_READY_ATTEMPTS"
+        )
+        progress_grace = integer_constant(
+            controller, "PROGRESS_POST_TRANSFER_GRACE_SECONDS"
+        )
+        offline_watchdog = integer_constant(
+            controller, "OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS"
+        )
+        bundle = active_timing["prepare_timeout_seconds"]
+        prepare = integer_constant(stable, "PREPARE_DEADLINE_SECONDS")
+        nfs_ready = integer_constant(stable, "NFS_READY_TIMEOUT_SECONDS")
+        control_total = active_timing["control_timeout_seconds"]
+        recovery_watchdog = integer_constant(recovery_init, "timeout")
+        template_match = re.search(
+            r"rog5\.recovery_timeout=([0-9]+)'$", template, flags=re.MULTILINE
+        )
+        self.assertIsNotNone(template_match)
+        template_watchdog = int(template_match.group(1))
+
+        self.assertEqual(worker_ms, 180_000)
+        self.assertEqual(connect_ms, 15_000)
+        self.assertLess(connect_ms, worker_ms)
+        self.assertEqual(supervisor_ms, 190_000)
+        self.assertEqual(kexec_ms, 15_000)
+        self.assertGreaterEqual(supervisor_ms - worker_ms, 10_000)
+
+        supervisor = supervisor_ms // 1000
+        kexec = kexec_ms // 1000
+        self.assertGreaterEqual(transfer, supervisor + 5)
+        self.assertGreaterEqual(base_watchdog, transfer + 10)
+        self.assertGreaterEqual(progress, transfer + 40)
+        self.assertGreaterEqual(watchdog, progress + 5)
+        self.assertGreaterEqual(progress_ready_attempts, 10)
+        self.assertLessEqual(progress_ready_attempts, 30)
+        self.assertGreaterEqual(progress_grace, 1)
+        self.assertLessEqual(progress_grace, watchdog - transfer)
+        self.assertGreaterEqual(bundle, watchdog + 10)
+        self.assertGreaterEqual(prepare, watchdog + 10)
+        self.assertGreaterEqual(prepare, supervisor + kexec + 30)
+        self.assertGreaterEqual(control_total, prepare + nfs_ready + 10)
+        self.assertLessEqual(offline_watchdog, 5)
+        # The rollback watchdog starts before PREPARE. It must not reboot the
+        # recovery while the host's bounded PREPARE transaction is still live.
+        self.assertGreaterEqual(recovery_watchdog, prepare + 30)
+        self.assertEqual(template_watchdog, recovery_watchdog)
+
+        self.assertIn(
+            "hard_server_timeout=${ROG5_TEST_HARD_SERVER_TIMEOUT:-$OFFLINE_HARD_SERVER_TIMEOUT_MAX_SECONDS}",
+            controller,
+        )
+        self.assertIn("hard_server_timeout=$HARD_SERVER_TIMEOUT_SECONDS", controller)
+        self.assertIn("self.bundle_timeout = (", lifecycle)
+        self.assertIn("else BUNDLE_TIMEOUT_SECONDS", lifecycle)
+        self.assertIn(
+            "BUNDLE_TIMEOUT_SECONDS = POWER_USB.PREPARE_TIMEOUT_SECONDS",
+            lifecycle,
+        )
+        self.assertIn("self.control_timeout = (", lifecycle)
+        self.assertIn("else CONTROL_TIMEOUT_SECONDS", lifecycle)
+        self.assertIn(
+            "CONTROL_TIMEOUT_SECONDS = POWER_USB.CONTROL_TIMEOUT_SECONDS",
+            lifecycle,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()

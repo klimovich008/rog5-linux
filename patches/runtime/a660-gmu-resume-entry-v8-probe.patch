@@ -1,0 +1,633 @@
+--- probe-v7
++++ probe-v8
+@@ -6,15 +6,15 @@
+ 	exit 1
+ }
+ 
+-[ "${ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7:-}" = 1 ] ||
+-	fail 'set ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7=1 for one attended probe'
++[ "${ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8:-}" = 1 ] ||
++	fail 'set ALLOW_MAINLINE_A660_GMU_RESUME_ENTRY_V8=1 for one attended probe'
+ [ "$(id -u)" -eq 0 ] || fail 'attended probe requires root'
+ 
+ release=7.1.4-rog5-a660reg1
+ lower=/.rog5/root-ro
+ module_root=$lower/usr/lib/modules/$release
+ firmware_root=$lower/usr/lib/firmware
+-helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-v7-open
++helper=$lower/usr/local/libexec/rog5-a660-gmu-resume-entry-v8-open
+ acceptance=$lower/etc/rog5/a660-registration-v3-live.accepted
+ acceptance_sha=8d350d51d8f35583f6ba32f005fc9b9fc035c6f24186c5b1786b2f60a90a0f6f
+ probe_timeout=${ROG5_PROBE_TIMEOUT:-110}
+@@ -58,12 +58,12 @@
+ 	fail 'NFS lower is not read-only'
+ [ "$(find /sys/class/block -mindepth 1 -maxdepth 1 -type l \
+ 	-exec test -e {}/device \; -print 2>/dev/null | wc -l)" -eq 0 ] ||
+-	fail 'physical block device is present before ucode-allocation probe'
++	fail 'physical block device is present before GMU resume-entry probe'
+ [ "$(findmnt -rn -o SOURCE |
+ 	awk '/^\/dev\// { count++ } END { print count + 0 }')" -eq 0 ] ||
+-	fail 'block-backed mount is present before ucode-allocation probe'
++	fail 'block-backed mount is present before GMU resume-entry probe'
+ [ "$(cat /sys/class/net/usb0/carrier)" = 1 ] ||
+-	fail 'USB network carrier is down before ucode-allocation probe'
++	fail 'USB network carrier is down before GMU resume-entry probe'
+ [ "$(ip -4 -o address show dev usb0 |
+ 	awk '$4 == "169.254.77.2/30" { count++ }
+ 		END { print count + 0 }')" -eq 1 ] ||
+@@ -124,8 +124,8 @@
+ 	4220552fbf17562128c956c3cfdbb8abd22e26f2c6a7f22e94422ef34b10e587 \
+ 	'UBWC module'
+ verify_file "$msm_module" 644 \
+-	fe5d59675e4f7d490c38cc7e9c02cadb7bbf89047ceb8056aa0a3e13353bcc45 \
+-	'ucode-allocation MSM module'
++	b485e8719d6ddf80542a5dc2fdf5bba795d40c69fa220b44571323a8a1d7d861 \
++	'GMU resume-entry MSM module'
+ verify_file "$helper" 755 \
+ 	d3303a04182625606e0dfc343205f677a80fcf55ab6928de53fad82852863bae \
+ 	'one-open helper'
+@@ -136,7 +136,7 @@
+ 	8acab7b417d9ebde89a1de9ae1e2c261d352fcab122e31ecd580cec9fe2ae5e7 \
+ 	'GMU firmware'
+ [ ! -e "$firmware_root/qcom/sm8350/a660_zap.mbn" ] ||
+-	fail 'ZAP firmware exists in ucode-allocation root'
++	fail 'ZAP firmware exists in GMU resume-entry root'
+ [ "$(find "$lower" -xdev -type f \
+ 	\( -name a660_sqe.fw -o -name a660_gmu.bin -o -name a660_zap.mbn \) |
+ 	wc -l)" -eq 2 ] ||
+@@ -147,11 +147,15 @@
+ modinfo -p "$msm_module" |
+ 	grep -Fxq \
+ 	'ucode_allocation_only:Allocate and roll back exact A660 ucode once before GPU power (bool)' ||
+-	fail 'MSM module lacks ucode-allocation parameter'
++	fail 'MSM module lacks predecessor ucode-allocation parameter'
+ modinfo -p "$msm_module" |
+ 	grep -Fxq \
+ 	'firmware_request_only:Request exact A660 firmware once and reject DRM open before GPU power (bool)' ||
+ 	fail 'MSM module lacks request-only parameter'
++modinfo -p "$msm_module" |
++	grep -Fxq \
++	'gmu_resume_entry_only:Stop one exact A660 open at GMU resume entry before resource activation (bool)' ||
++	fail 'MSM module lacks GMU resume-entry parameter'
+ modinfo -p "$msm_module" | grep -Fxq 'separate_gpu_kms: (bool)' ||
+ 	fail 'MSM module lacks separate GPU parameter'
+ for module in gpucc_sm8350 msm drm_exec drm_gpuvm gpu_sched mdt_loader \
+@@ -228,13 +232,13 @@
+ check_no_drm_fds || fail 'a process holds a DRM descriptor before module load'
+ 
+ firmware_pattern='a660_sqe.fw|a660_gmu.bin|a660_zap.mbn'
+-success_marker='A660 ucode-allocation-only passed and rolled back; reject open'
+-failure_marker='A660 ucode-allocation-only failed:'
++entry_marker='A660 GMU resume entry reached before resource activation; reject resume'
++rollback_marker='A660 GMU resume entry passed and rolled back; reject open'
+ fatal_pattern='Kernel panic|Oops:|BUG:|Unable to handle kernel|Synchronous External Abort|watchdog.*bite'
+ fault_pattern='(IOMMU|arm-smmu).*[^[:alnum:]_]fault([^[:alnum:]_]|$)|(context|global)[[:space:]]+fault([^[:alnum:]_]|$)'
+-for pattern in "$firmware_pattern" "$success_marker" "$failure_marker"; do
++for pattern in "$firmware_pattern" "$entry_marker" "$rollback_marker"; do
+ 	[ "$(dmesg | grep -Ec "$pattern" || true)" -eq 0 ] ||
+-		fail "ucode-allocation evidence exists before probe: $pattern"
++		fail "GMU resume-entry evidence exists before probe: $pattern"
+ done
+ [ "$(dmesg | grep -Ec "$fatal_pattern" || true)" -eq 0 ] ||
+ 	fail 'fatal kernel signature exists before probe'
+@@ -250,31 +254,48 @@
+ trace_active=0
+ trace_root=/sys/kernel/tracing
+ trace_snapshot=
+-trace_events='rog5_ucode_diag
+-rog5_ucode_diag_ret
+-rog5_ucode_vma_map
+-rog5_ucode_vma_map_ret
+-rog5_ucode_vma_unmap
+-rog5_ucode_vma_close
+-rog5_ucode_gem_unpin
+-rog5_ucode_gem_free
+-rog5_ucode_kernel_new
+-rog5_ucode_kernel_new_ret
+-rog5_ucode_get_vaddr
+-rog5_ucode_put_vaddr
+-rog5_ucode_kernel_put
+-rog5_ucode_unload
+-rog5_ucode_fw_request
+-rog5_ucode_fw_release
+-rog5_ucode_pm_resume
+-rog5_ucode_runtime_resume
+-rog5_ucode_a6xx_pm_resume
+-rog5_ucode_gmu_resume
+-rog5_ucode_hw_init
+-rog5_ucode_a6xx_hw_init
+-rog5_ucode_zap_init
+-rog5_ucode_scm_pas
+-rog5_ucode_scm_aperture'
++trace_events='rog5_gmu_v8_load_gpu
++rog5_gmu_v8_load_gpu_ret
++rog5_gmu_v8_runtime_resume
++rog5_gmu_v8_runtime_resume_ret
++rog5_gmu_v8_pm_resume
++rog5_gmu_v8_pm_resume_ret
++rog5_gmu_v8_resume
++rog5_gmu_v8_resume_ret
++rog5_gmu_v8_mark_hit
++rog5_gmu_v8_mark_hit_ret
++rog5_gmu_v8_rollback
++rog5_gmu_v8_rollback_ret
++rog5_gmu_v8_vma_map
++rog5_gmu_v8_vma_map_ret
++rog5_gmu_v8_vma_unmap
++rog5_gmu_v8_vma_close
++rog5_gmu_v8_gem_unpin
++rog5_gmu_v8_gem_free
++rog5_gmu_v8_kernel_new
++rog5_gmu_v8_kernel_new_ret
++rog5_gmu_v8_get_vaddr
++rog5_gmu_v8_put_vaddr
++rog5_gmu_v8_kernel_put
++rog5_gmu_v8_ucode_unload
++rog5_gmu_v8_fw_request
++rog5_gmu_v8_fw_release
++rog5_gmu_v8_runtime_pm
++rog5_gmu_v8_clk_rate
++rog5_gmu_v8_enable_irq
++rog5_gmu_v8_msm_pm_resume
++rog5_gmu_v8_a6xx_pm_resume
++rog5_gmu_v8_hfi_start
++rog5_gmu_v8_devfreq_resume
++rog5_gmu_v8_llc_activate
++rog5_gmu_v8_initial_freq
++rog5_gmu_v8_hw_init
++rog5_gmu_v8_a6xx_hw_init
++rog5_gmu_v8_zap_init
++rog5_gmu_v8_scm_available
++rog5_gmu_v8_scm_gpu_init
++rog5_gmu_v8_scm_pas
++rog5_gmu_v8_scm_aperture'
+ 
+ stop_trace() {
+ 	trace_status=0
+@@ -284,15 +305,15 @@
+ 		cp "$trace_root/trace" "$trace_snapshot" || trace_status=1
+ 	fi
+ 	printf '\n' >"$trace_root/set_event_pid" || trace_status=1
+-	if [ -d "$trace_root/events/rog5_ucode_v7" ]; then
+-		printf '0\n' >"$trace_root/events/rog5_ucode_v7/enable" ||
++	if [ -d "$trace_root/events/rog5_gmu_v8" ]; then
++		printf '0\n' >"$trace_root/events/rog5_gmu_v8/enable" ||
+ 			trace_status=1
+ 	fi
+ 	for event in $trace_events; do
+-		printf '%s\n' "-:rog5_ucode_v7/$event" \
++		printf '%s\n' "-:rog5_gmu_v8/$event" \
+ 			>>"$trace_root/kprobe_events" || trace_status=1
+ 	done
+-	[ ! -d "$trace_root/events/rog5_ucode_v7" ] || trace_status=1
++	[ ! -d "$trace_root/events/rog5_gmu_v8" ] || trace_status=1
+ 	trace_active=0
+ 	set -e
+ 	[ "$trace_status" -eq 0 ]
+@@ -337,7 +358,7 @@
+ trap disarm_watchdog EXIT
+ trap 'exit 1' HUP INT TERM
+ 
+-state_dir=$(mktemp -d /run/rog5-a660-ucode-allocation-v7.XXXXXX)
++state_dir=$(mktemp -d /run/rog5-a660-gmu-resume-entry-v8.XXXXXX)
+ trace_snapshot=$state_dir/trace
+ # Positional parameters are intentionally expanded by the child shell.
+ # shellcheck disable=SC2016
+@@ -347,7 +368,7 @@
+ 	exec 9>/proc/sysrq-trigger
+ 	printf "armed\n" >"$2"
+ 	sleep "$1"
+-	echo "rog5-a660-ucode-allocation: watchdog expired" >&8
++	echo "rog5-a660-gmu-resume-entry-v8: watchdog expired" >&8
+ 	echo b >&9
+ ' sh "$probe_timeout" "$state_dir/armed" \
+ 	</dev/null >/dev/null 2>&1 &
+@@ -365,8 +386,8 @@
+ done
+ [ "$armed" -eq 1 ] || fail 'probe watchdog did not arm'
+ 
+-echo "BEGIN a660-ucode-allocation watchdog=${probe_timeout}s settle=${settle_seconds}s"
+-echo 'rog5-a660-ucode-allocation: begin' >/dev/kmsg
++echo "BEGIN a660-gmu-resume-entry-v8 watchdog=${probe_timeout}s settle=${settle_seconds}s"
++echo 'rog5-a660-gmu-resume-entry-v8: begin' >/dev/kmsg
+ dmesg --follow-new &
+ log_follower_pid=$!
+ sleep 1
+@@ -374,20 +395,20 @@
+ 
+ post_fail() {
+ 	reason=$1
+-	echo "EVIDENCE a660-ucode-allocation reason=$reason"
++	echo "EVIDENCE a660-gmu-resume-entry-v8 reason=$reason"
+ 	echo "EVIDENCE system_state=$(systemctl is-system-running 2>/dev/null ||
+ 		true)"
+ 	echo 'EVIDENCE failed_units_begin'
+ 	systemctl --failed --no-legend --plain 2>/dev/null || true
+ 	echo 'EVIDENCE failed_units_end'
+ 	if [ -s "$trace_snapshot" ]; then
+-		echo 'EVIDENCE ucode_trace_begin'
++		echo 'EVIDENCE gmu_resume_entry_trace_begin'
+ 		tail -n 260 "$trace_snapshot"
+-		echo 'EVIDENCE ucode_trace_end'
++		echo 'EVIDENCE gmu_resume_entry_trace_end'
+ 	elif [ "$trace_active" = 1 ]; then
+-		echo 'EVIDENCE live_ucode_trace_begin'
++		echo 'EVIDENCE live_gmu_resume_entry_trace_begin'
+ 		tail -n 260 "$trace_root/trace" 2>/dev/null || true
+-		echo 'EVIDENCE live_ucode_trace_end'
++		echo 'EVIDENCE live_gmu_resume_entry_trace_end'
+ 	fi
+ 	echo 'EVIDENCE new_dmesg_begin'
+ 	dmesg | tail -n +"$dmesg_start" | tail -n 300
+@@ -395,7 +416,7 @@
+ 	fail "$reason"
+ }
+ 
+-echo 'rog5-a660-ucode-allocation: GPUCC load begin' >/dev/kmsg
++echo 'rog5-a660-gmu-resume-entry-v8: GPUCC load begin' >/dev/kmsg
+ insmod "$gpucc_module" probe_trace=1 ||
+ 	post_fail 'GPUCC module load failed'
+ [ -e "$gpucc_device/driver" ] || post_fail 'GPUCC did not bind'
+@@ -408,7 +429,7 @@
+ 	sleep 1
+ done
+ if [ ! -e "$smmu_device/driver" ]; then
+-	echo 'rog5-a660-ucode-allocation: exact SMMU reprobe begin' \
++	echo 'rog5-a660-gmu-resume-entry-v8: exact SMMU reprobe begin' \
+ 		>/dev/kmsg
+ 	printf '%s\n' "$smmu_name" >"$drivers_probe" ||
+ 		post_fail 'exact Adreno SMMU reprobe failed'
+@@ -425,9 +446,9 @@
+ insmod "$gpu_sched_module" || post_fail 'gpu_sched load failed'
+ insmod "$mdt_module" || post_fail 'mdt_loader load failed'
+ insmod "$ubwc_module" || post_fail 'ubwc_config load failed'
+-echo 'rog5-a660-ucode-allocation: MSM load begin' >/dev/kmsg
+-insmod "$msm_module" separate_gpu_kms=1 ucode_allocation_only=1 ||
+-	post_fail 'ucode-allocation MSM module load failed'
++echo 'rog5-a660-gmu-resume-entry-v8: MSM load begin' >/dev/kmsg
++insmod "$msm_module" separate_gpu_kms=1 gmu_resume_entry_only=1 ||
++	post_fail 'GMU resume-entry MSM module load failed'
+ 
+ for module in gpucc_sm8350 msm drm_exec drm_gpuvm gpu_sched mdt_loader \
+ 	ubwc_config
+@@ -437,8 +458,12 @@
+ done
+ [ "$(cat /sys/module/msm/parameters/separate_gpu_kms)" = Y ] ||
+ 	post_fail 'separate_gpu_kms is not enabled'
+-[ "$(cat /sys/module/msm/parameters/ucode_allocation_only)" = Y ] ||
+-	post_fail 'ucode_allocation_only is not enabled'
++[ "$(cat /sys/module/msm/parameters/gmu_resume_entry_only)" = Y ] ||
++	post_fail 'gmu_resume_entry_only=Y is not preserved'
++[ "$(stat -c %a /sys/module/msm/parameters/gmu_resume_entry_only)" = 400 ] ||
++	post_fail 'gmu_resume_entry_only became writable'
++[ "$(cat /sys/module/msm/parameters/ucode_allocation_only)" = N ] ||
++	post_fail 'ucode_allocation_only=N is not preserved'
+ [ "$(stat -c %a /sys/module/msm/parameters/ucode_allocation_only)" = 400 ] ||
+ 	post_fail 'ucode_allocation_only became writable'
+ [ "$(cat /sys/module/msm/parameters/firmware_request_only)" = N ] ||
+@@ -491,10 +516,10 @@
+ 	post_fail 'headless registration created a display connector'
+ check_no_drm_fds ||
+ 	post_fail 'a process opened a DRM node before the helper'
+-for pattern in "$firmware_pattern" "$success_marker" "$failure_marker"; do
++for pattern in "$firmware_pattern" "$entry_marker" "$rollback_marker"; do
+ 	[ "$(dmesg | tail -n +"$dmesg_start" |
+ 		grep -Ec "$pattern" || true)" -eq 0 ] ||
+-		post_fail "premature ucode-allocation evidence appeared: $pattern"
++		post_fail "premature GMU resume-entry evidence appeared: $pattern"
+ done
+ 
+ debug_root=/sys/kernel/debug
+@@ -517,20 +542,25 @@
+ 	post_fail 'tracefs is unavailable'
+ [ ! -s "$trace_root/kprobe_events" ] ||
+ 	post_fail 'an unrelated kprobe event already exists'
+-[ ! -d "$trace_root/events/rog5_ucode_v7" ] ||
+-	post_fail 'stale ucode-allocation trace group exists'
+-for symbol in adreno_load_ucode_only msm_gem_vma_map \
++[ ! -d "$trace_root/events/rog5_gmu_v8" ] ||
++	post_fail 'stale GMU resume-entry trace group exists'
++for symbol in adreno_load_gpu adreno_runtime_resume a6xx_gmu_pm_resume \
++	a6xx_gmu_resume msm_a660_gmu_resume_entry_only_mark_hit \
++	adreno_rollback_gpu_load_only msm_gem_vma_map \
+ 	msm_gem_vma_unmap msm_gem_vma_close msm_gem_unpin_iova \
+ 	msm_gem_free_object msm_gem_kernel_new msm_gem_get_vaddr \
+-	msm_gem_put_vaddr msm_gem_kernel_put a6xx_ucode_unload msm_gpu_pm_resume \
+-	adreno_runtime_resume a6xx_pm_resume a6xx_gmu_resume adreno_hw_init \
++	msm_gem_put_vaddr msm_gem_kernel_put a6xx_ucode_unload \
++	msm_gpu_pm_resume a6xx_pm_resume a6xx_hfi_start msm_devfreq_resume \
++	a6xx_llc_activate a6xx_gmu_set_initial_freq adreno_hw_init \
+ 	a6xx_hw_init a6xx_zap_shader_init
+ do
+ 	[ "$(grep -Ec \
+ 		"[[:space:]]${symbol}[[:space:]]+\\[msm\\]$" /proc/kallsyms)" -eq 1 ] ||
+ 		post_fail "required MSM trace symbol is not unique: $symbol"
+ done
+-for symbol in request_firmware_direct release_firmware \
++for symbol in __pm_runtime_resume clk_set_rate enable_irq \
++	request_firmware_direct release_firmware qcom_scm_is_available \
++	qcom_scm_gpu_init_regs \
+ 	qcom_scm_pas_auth_and_reset qcom_scm_set_gpu_smmu_aperture
+ do
+ 	[ "$(grep -Ec "[[:space:]]$symbol$" /proc/kallsyms)" -eq 1 ] ||
+@@ -539,43 +569,60 @@
+ 
+ # shellcheck disable=SC2016
+ if ! printf '%s\n' \
+-	'p:rog5_ucode_v7/rog5_ucode_diag msm:adreno_load_ucode_only dev=$arg1:x64' \
+-	'r:rog5_ucode_v7/rog5_ucode_diag_ret msm:adreno_load_ucode_only ret=$retval:s64' \
+-	'p:rog5_ucode_v7/rog5_ucode_vma_map msm:msm_gem_vma_map vma=$arg1:x64' \
+-	'r:rog5_ucode_v7/rog5_ucode_vma_map_ret msm:msm_gem_vma_map ret=$retval:s64' \
+-	'p:rog5_ucode_v7/rog5_ucode_vma_unmap msm:msm_gem_vma_unmap vma=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_vma_close msm:msm_gem_vma_close vma=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_gem_unpin msm:msm_gem_unpin_iova obj=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_gem_free msm:msm_gem_free_object obj=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_kernel_new msm:msm_gem_kernel_new size=$arg2:u64' \
+-	'r:rog5_ucode_v7/rog5_ucode_kernel_new_ret msm:msm_gem_kernel_new ret=$retval:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_get_vaddr msm:msm_gem_get_vaddr obj=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_put_vaddr msm:msm_gem_put_vaddr obj=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_kernel_put msm:msm_gem_kernel_put obj=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_fw_request request_firmware_direct' \
+-	'p:rog5_ucode_v7/rog5_ucode_fw_release release_firmware fw=$arg1:x64' \
+-	'p:rog5_ucode_v7/rog5_ucode_pm_resume msm:msm_gpu_pm_resume' \
+-	'p:rog5_ucode_v7/rog5_ucode_runtime_resume msm:adreno_runtime_resume' \
+-	'p:rog5_ucode_v7/rog5_ucode_a6xx_pm_resume msm:a6xx_pm_resume' \
+-	'p:rog5_ucode_v7/rog5_ucode_gmu_resume msm:a6xx_gmu_resume' \
+-	'p:rog5_ucode_v7/rog5_ucode_hw_init msm:adreno_hw_init' \
+-	'p:rog5_ucode_v7/rog5_ucode_a6xx_hw_init msm:a6xx_hw_init' \
+-	'p:rog5_ucode_v7/rog5_ucode_zap_init msm:a6xx_zap_shader_init' \
+-	'p:rog5_ucode_v7/rog5_ucode_scm_pas qcom_scm_pas_auth_and_reset' \
+-	'p:rog5_ucode_v7/rog5_ucode_scm_aperture qcom_scm_set_gpu_smmu_aperture' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_load_gpu msm:adreno_load_gpu dev=$arg1:x64' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_load_gpu_ret msm:adreno_load_gpu ret=$retval:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_runtime_resume msm:adreno_runtime_resume' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_runtime_resume_ret msm:adreno_runtime_resume ret=$retval:s64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_pm_resume msm:a6xx_gmu_pm_resume' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_pm_resume_ret msm:a6xx_gmu_pm_resume ret=$retval:s64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_resume msm:a6xx_gmu_resume' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_resume_ret msm:a6xx_gmu_resume ret=$retval:s64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_mark_hit msm:msm_a660_gmu_resume_entry_only_mark_hit' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_mark_hit_ret msm:msm_a660_gmu_resume_entry_only_mark_hit ret=$retval:u64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_rollback msm:adreno_rollback_gpu_load_only dev=$arg1:x64' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_rollback_ret msm:adreno_rollback_gpu_load_only ret=$retval:s64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_vma_map msm:msm_gem_vma_map vma=$arg1:x64' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_vma_map_ret msm:msm_gem_vma_map ret=$retval:s64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_vma_unmap msm:msm_gem_vma_unmap vma=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_vma_close msm:msm_gem_vma_close vma=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_gem_unpin msm:msm_gem_unpin_iova obj=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_gem_free msm:msm_gem_free_object obj=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_kernel_new msm:msm_gem_kernel_new size=$arg2:u64' \
++	'r:rog5_gmu_v8/rog5_gmu_v8_kernel_new_ret msm:msm_gem_kernel_new ret=$retval:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_get_vaddr msm:msm_gem_get_vaddr obj=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_put_vaddr msm:msm_gem_put_vaddr obj=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_kernel_put msm:msm_gem_kernel_put obj=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_fw_request request_firmware_direct' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_fw_release release_firmware fw=$arg1:x64' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_runtime_pm __pm_runtime_resume' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_clk_rate clk_set_rate' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_enable_irq enable_irq' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_msm_pm_resume msm:msm_gpu_pm_resume' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_a6xx_pm_resume msm:a6xx_pm_resume' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_hfi_start msm:a6xx_hfi_start' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_devfreq_resume msm:msm_devfreq_resume' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_llc_activate msm:a6xx_llc_activate' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_initial_freq msm:a6xx_gmu_set_initial_freq' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_hw_init msm:adreno_hw_init' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_a6xx_hw_init msm:a6xx_hw_init' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_zap_init msm:a6xx_zap_shader_init' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_scm_available qcom_scm_is_available' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_scm_gpu_init qcom_scm_gpu_init_regs' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_scm_pas qcom_scm_pas_auth_and_reset' \
++	'p:rog5_gmu_v8/rog5_gmu_v8_scm_aperture qcom_scm_set_gpu_smmu_aperture' \
+ 	>>"$trace_root/kprobe_events"
+ then
+-	post_fail 'ucode-allocation trace registration failed'
++	post_fail 'GMU resume-entry trace registration failed'
+ fi
+-[ -d "$trace_root/events/rog5_ucode_v7" ] ||
+-	post_fail 'ucode-allocation trace group was not created'
+-printf '1\n' >"$trace_root/events/rog5_ucode_v7/enable" ||
+-	post_fail 'ucode-allocation trace enable failed'
++[ -d "$trace_root/events/rog5_gmu_v8" ] ||
++	post_fail 'GMU resume-entry trace group was not created'
++printf '1\n' >"$trace_root/events/rog5_gmu_v8/enable" ||
++	post_fail 'GMU resume-entry trace enable failed'
+ trace_active=1
+ 
+ open_dmesg_start=$(( $(dmesg | wc -l) + 1 ))
+-echo 'rog5-a660-ucode-allocation: exact one-open helper begin' >/dev/kmsg
++echo 'rog5-a660-gmu-resume-entry-v8: exact one-open helper begin' >/dev/kmsg
+ sh -c 'kill -STOP "$$"; exec "$1"' sh "$helper" \
+ 	>"$state_dir/helper.out" 2>&1 &
+ helper_pid=$!
+@@ -642,45 +689,83 @@
+ }
+ 
+ [ -s "$trace_snapshot" ] || post_fail 'PID-filtered trace is empty'
+-require_event_count rog5_ucode_diag 1 'diagnostic entry'
+-require_event_count rog5_ucode_diag_ret 1 'diagnostic return'
+-[ "$(grep -c 'rog5_ucode_diag_ret:.*ret=0' "$trace_snapshot" || true)" -eq 1 ] ||
+-	post_fail 'diagnostic return is not exactly zero'
+-require_event_count rog5_ucode_vma_map 3 'VMA map'
+-require_event_count rog5_ucode_vma_map_ret 3 'VMA map return'
+-[ "$(grep -c 'rog5_ucode_vma_map_ret:.*ret=0' \
++require_event_count rog5_gmu_v8_load_gpu 1 'adreno_load_gpu entry'
++require_event_count rog5_gmu_v8_load_gpu_ret 1 'adreno_load_gpu return'
++[ "$(grep -c 'rog5_gmu_v8_load_gpu_ret:.*ret=0' \
++	"$trace_snapshot" || true)" -eq 1 ] ||
++	post_fail 'adreno_load_gpu did not return NULL after rejected resume'
++require_event_count rog5_gmu_v8_runtime_resume 1 'Adreno runtime-resume entry'
++require_event_count rog5_gmu_v8_runtime_resume_ret 1 \
++	'Adreno runtime-resume return'
++[ "$(grep -c 'rog5_gmu_v8_runtime_resume_ret:.*ret=-117' \
++	"$trace_snapshot" || true)" -eq 1 ] ||
++	post_fail 'Adreno runtime resume did not return EUCLEAN'
++require_event_count rog5_gmu_v8_pm_resume 1 'A6xx GMU PM-resume entry'
++require_event_count rog5_gmu_v8_pm_resume_ret 1 'A6xx GMU PM-resume return'
++[ "$(grep -c 'rog5_gmu_v8_pm_resume_ret:.*ret=-117' \
++	"$trace_snapshot" || true)" -eq 1 ] ||
++	post_fail 'A6xx GMU PM resume did not return EUCLEAN'
++require_event_count rog5_gmu_v8_resume 1 'A6xx GMU-resume entry'
++require_event_count rog5_gmu_v8_resume_ret 1 'A6xx GMU-resume return'
++[ "$(grep -c 'rog5_gmu_v8_resume_ret:.*ret=-117' \
++	"$trace_snapshot" || true)" -eq 1 ] ||
++	post_fail 'A6xx GMU resume did not return EUCLEAN'
++require_event_count rog5_gmu_v8_mark_hit 1 'GMU resume-entry one-shot hit'
++require_event_count rog5_gmu_v8_mark_hit_ret 1 \
++	'GMU resume-entry one-shot result'
++[ "$(grep -c 'rog5_gmu_v8_mark_hit_ret:.*ret=1' \
++	"$trace_snapshot" || true)" -eq 1 ] ||
++	post_fail 'GMU resume-entry one-shot was already consumed'
++require_event_count rog5_gmu_v8_rollback 1 'GPU-load rollback entry'
++require_event_count rog5_gmu_v8_rollback_ret 1 'GPU-load rollback return'
++[ "$(grep -c 'rog5_gmu_v8_rollback_ret:.*ret=0' \
++	"$trace_snapshot" || true)" -eq 1 ] ||
++	post_fail 'GPU-load rollback did not return zero'
++require_event_count rog5_gmu_v8_vma_map 3 'VMA map'
++require_event_count rog5_gmu_v8_vma_map_ret 3 'VMA map return'
++[ "$(grep -c 'rog5_gmu_v8_vma_map_ret:.*ret=0' \
+ 	"$trace_snapshot" || true)" -eq 3 ] ||
+ 	post_fail 'one or more VMA maps failed'
+-require_event_count rog5_ucode_vma_unmap 3 'VMA unmap'
+-require_event_count rog5_ucode_vma_close 3 'VMA close'
+-require_event_count rog5_ucode_gem_unpin 3 'GEM unpin'
+-require_event_count rog5_ucode_gem_free 3 'GEM free'
+-require_event_count rog5_ucode_kernel_new 3 'kernel GEM new'
+-require_event_count rog5_ucode_kernel_new_ret 3 'kernel GEM new return'
+-require_event_count rog5_ucode_get_vaddr 1 'public CPU vmap wrapper'
+-require_event_count rog5_ucode_put_vaddr 2 'public CPU vunmap wrapper'
+-require_event_count rog5_ucode_kernel_put 2 'kernel GEM put'
+-require_event_count rog5_ucode_unload 1 'ucode unload'
+-require_event_count rog5_ucode_fw_request 2 'firmware request'
+-require_event_count rog5_ucode_fw_release 2 'firmware release'
+-for forbidden_event in rog5_ucode_pm_resume rog5_ucode_runtime_resume \
+-	rog5_ucode_a6xx_pm_resume rog5_ucode_gmu_resume rog5_ucode_hw_init \
+-	rog5_ucode_a6xx_hw_init rog5_ucode_zap_init rog5_ucode_scm_pas \
+-	rog5_ucode_scm_aperture
++require_event_count rog5_gmu_v8_vma_unmap 3 'VMA unmap'
++require_event_count rog5_gmu_v8_vma_close 3 'VMA close'
++require_event_count rog5_gmu_v8_gem_unpin 3 'GEM unpin'
++require_event_count rog5_gmu_v8_gem_free 3 'GEM free'
++require_event_count rog5_gmu_v8_kernel_new 3 'kernel GEM new'
++require_event_count rog5_gmu_v8_kernel_new_ret 3 'kernel GEM new return'
++require_event_count rog5_gmu_v8_get_vaddr 1 'public CPU vmap wrapper'
++require_event_count rog5_gmu_v8_put_vaddr 2 'public CPU vunmap wrapper'
++require_event_count rog5_gmu_v8_kernel_put 2 'kernel GEM put'
++require_event_count rog5_gmu_v8_ucode_unload 1 'ucode unload'
++require_event_count rog5_gmu_v8_fw_request 2 'firmware request'
++require_event_count rog5_gmu_v8_fw_release 2 'firmware release'
++# v8 retained accepted v7 allocation and rollback state; only the bounded
++# resume-entry path and its zero-work oracles are new.
++require_event_count rog5_gmu_v8_runtime_pm 1 \
++	'outer GPU runtime-PM resume with zero inner resumes'
++require_event_count rog5_gmu_v8_clk_rate 0 'clock-rate activation'
++require_event_count rog5_gmu_v8_enable_irq 0 'IRQ activation'
++for forbidden_event in rog5_gmu_v8_msm_pm_resume \
++	rog5_gmu_v8_a6xx_pm_resume rog5_gmu_v8_hfi_start \
++	rog5_gmu_v8_devfreq_resume rog5_gmu_v8_llc_activate \
++	rog5_gmu_v8_initial_freq rog5_gmu_v8_hw_init \
++	rog5_gmu_v8_a6xx_hw_init rog5_gmu_v8_zap_init \
++	rog5_gmu_v8_scm_available rog5_gmu_v8_scm_gpu_init \
++	rog5_gmu_v8_scm_pas rog5_gmu_v8_scm_aperture
+ do
+-	require_event_count "$forbidden_event" 0 'forbidden power/HFI/ZAP/SCM'
++	require_event_count "$forbidden_event" 0 \
++		'forbidden PM/clock/HFI/hardware/ZAP/SCM work'
+ done
+ 
+-extract_field rog5_ucode_vma_map vma >"$state_dir/maps"
+-extract_field rog5_ucode_vma_unmap vma >"$state_dir/unmaps"
+-extract_field rog5_ucode_vma_close vma >"$state_dir/closes"
+-extract_field rog5_ucode_gem_unpin obj >"$state_dir/unpins"
+-extract_field rog5_ucode_gem_free obj >"$state_dir/frees"
+-extract_field rog5_ucode_get_vaddr obj >"$state_dir/vmaps"
+-extract_field rog5_ucode_put_vaddr obj >"$state_dir/vunmaps"
+-extract_field rog5_ucode_kernel_new size >"$state_dir/kernel-new-sizes"
+-extract_field rog5_ucode_kernel_new_ret ret >"$state_dir/kernel-new-rets"
+-extract_field rog5_ucode_kernel_put obj >"$state_dir/kernel-puts"
++extract_field rog5_gmu_v8_vma_map vma >"$state_dir/maps"
++extract_field rog5_gmu_v8_vma_unmap vma >"$state_dir/unmaps"
++extract_field rog5_gmu_v8_vma_close vma >"$state_dir/closes"
++extract_field rog5_gmu_v8_gem_unpin obj >"$state_dir/unpins"
++extract_field rog5_gmu_v8_gem_free obj >"$state_dir/frees"
++extract_field rog5_gmu_v8_get_vaddr obj >"$state_dir/vmaps"
++extract_field rog5_gmu_v8_put_vaddr obj >"$state_dir/vunmaps"
++extract_field rog5_gmu_v8_kernel_new size >"$state_dir/kernel-new-sizes"
++extract_field rog5_gmu_v8_kernel_new_ret ret >"$state_dir/kernel-new-rets"
++extract_field rog5_gmu_v8_kernel_put obj >"$state_dir/kernel-puts"
+ for exact in maps unmaps closes unpins frees; do
+ 	[ "$(wc -l <"$state_dir/$exact")" -eq 3 ] ||
+ 		post_fail "$exact pointer count is not three"
+@@ -727,25 +812,28 @@
+ 	post_fail 'unpinned and freed GEM pointer sets differ'
+ cmp "$state_dir/logical-objects" "$state_dir/unpins" ||
+ 	post_fail 'logical rollback and unpinned GEM object sets differ'
+-logical_gets=$(( $(event_count rog5_ucode_kernel_new) +
+-	$(event_count rog5_ucode_get_vaddr) ))
+-logical_puts=$(( $(event_count rog5_ucode_kernel_put) +
+-	$(event_count rog5_ucode_put_vaddr) ))
++logical_gets=$(( $(event_count rog5_gmu_v8_kernel_new) +
++	$(event_count rog5_gmu_v8_get_vaddr) ))
++logical_puts=$(( $(event_count rog5_gmu_v8_kernel_put) +
++	$(event_count rog5_gmu_v8_put_vaddr) ))
+ [ "$logical_gets" -eq 4 ] && [ "$logical_puts" -eq 4 ] ||
+ 	post_fail 'logical CPU vmap balance is not four/four'
+ 
+ open_log=$(dmesg | tail -n +"$open_dmesg_start")
+-[ "$(printf '%s\n' "$open_log" | grep -Fc "$success_marker")" -eq 1 ] ||
+-	post_fail 'ucode-allocation success marker count is not one'
+-[ "$(printf '%s\n' "$open_log" | grep -Fc "$failure_marker")" -eq 0 ] ||
+-	post_fail 'ucode-allocation failure marker appeared'
++[ "$(printf '%s\n' "$open_log" | grep -Fc "$entry_marker")" -eq 1 ] ||
++	post_fail 'GMU resume-entry marker count is not one'
++[ "$(printf '%s\n' "$open_log" | grep -Fc "$rollback_marker")" -eq 1 ] ||
++	post_fail 'GMU resume-entry rollback marker count is not one'
++[ "$(printf '%s\n' "$open_log" |
++	grep -Fc "Couldn't power up the GPU: -117")" -eq 1 ] ||
++	post_fail 'outer GPU runtime-PM EUCLEAN marker count is not one'
+ [ "$(printf '%s\n' "$open_log" | grep -Fc a660_sqe.fw)" -eq 1 ] ||
+ 	post_fail 'SQE firmware request count is not one'
+ [ "$(printf '%s\n' "$open_log" | grep -Fc a660_gmu.bin)" -eq 1 ] ||
+ 	post_fail 'GMU firmware request count is not one'
+-forbidden_open='a660_zap[.]mbn|qcom_scm|pas_auth|zap.shader|HFI|a6xx_gmu_start|GPU hardware init|GPU fault|RBBM|CP_SQE'
++forbidden_open='a660_zap[.]mbn|A660 ucode-allocation-only|qcom_scm|pas_auth|zap.shader|HFI|a6xx_gmu_start|GPU hardware init|GPU fault|RBBM|CP_SQE'
+ if printf '%s\n' "$open_log" | grep -Ei "$forbidden_open"; then
+-	post_fail 'open crossed the ucode-allocation hardware boundary'
++	post_fail 'open crossed the GMU resume-entry hardware boundary'
+ fi
+ check_no_drm_fds ||
+ 	post_fail 'a DRM descriptor survived the failed open'
+@@ -757,13 +845,16 @@
+ 	post_fail 'pre/post GEM snapshots differ'
+ settled_log=$(dmesg | tail -n +"$open_dmesg_start")
+ [ "$(printf '%s\n' "$settled_log" |
+-	grep -Fc "$success_marker")" -eq 1 ] ||
+-	post_fail 'ucode-allocation success marker changed during settling'
++	grep -Fc "$entry_marker")" -eq 1 ] ||
++	post_fail 'GMU resume-entry marker changed during settling'
++[ "$(printf '%s\n' "$settled_log" |
++	grep -Fc "$rollback_marker")" -eq 1 ] ||
++	post_fail 'GMU resume-entry rollback marker changed during settling'
+ [ "$(printf '%s\n' "$settled_log" |
+-	grep -Fc "$failure_marker")" -eq 0 ] ||
+-	post_fail 'ucode-allocation failure marker appeared during settling'
++	grep -Fc "Couldn't power up the GPU: -117")" -eq 1 ] ||
++	post_fail 'outer runtime-PM EUCLEAN marker changed during settling'
+ if printf '%s\n' "$settled_log" | grep -Ei "$forbidden_open"; then
+-	post_fail 'later work crossed the ucode-allocation hardware boundary'
++	post_fail 'later work crossed the GMU resume-entry hardware boundary'
+ fi
+ check_no_drm_fds ||
+ 	post_fail 'a DRM descriptor appeared during settling'
+@@ -775,10 +866,10 @@
+ done
+ 
+ [ "$(systemctl is-system-running 2>/dev/null || true)" = running ] ||
+-	post_fail 'systemd regressed after ucode-allocation open'
++	post_fail 'systemd regressed after GMU resume-entry open'
+ [ "$(systemctl --failed --no-legend --plain 2>/dev/null |
+ 	awk 'NF { count++ } END { print count + 0 }')" -eq 0 ] ||
+-	post_fail 'a systemd unit failed after ucode-allocation open'
++	post_fail 'a systemd unit failed after GMU resume-entry open'
+ [ "$(find /sys/class/block -mindepth 1 -maxdepth 1 -type l \
+ 	-exec test -e {}/device \; -print 2>/dev/null | wc -l)" -eq 0 ] ||
+ 	post_fail 'physical block device appeared'
+@@ -798,7 +889,7 @@
+ 	[ "$value" -le "$thermal_max" ] || thermal_max=$value
+ done
+ [ "$thermal_count" -ge 20 ] && [ "$thermal_max" -lt 50000 ] ||
+-	post_fail 'thermal state is not safe after ucode-allocation open'
++	post_fail 'thermal state is not safe after GMU resume-entry open'
+ [ "$(dmesg | grep -Ec "$fatal_pattern" || true)" -eq 0 ] ||
+ 	post_fail 'fatal kernel signature appeared'
+ [ "$(dmesg | tail -n +"$dmesg_start" |
+@@ -809,6 +900,6 @@
+ probe_safe=1
+ disarm_watchdog
+ trap - EXIT HUP INT TERM
+-printf 'PASS A660 ucode-allocation-v7 open_invocations=1 open_errno=117 firmware_requests=2 firmware_releases=2 success_markers=1 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent power=0 hfi=0 scm=0 drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
++printf 'PASS A660 gmu-resume-entry-v8 open_invocations=1 open_errno=117 gmu_resume_entry_only=Y firmware_request_only=N ucode_allocation_only=N firmware_requests=2 firmware_releases=2 entry_markers=1 rollback_markers=1 adreno_load_gpu=1 runtime_resume=1 gmu_pm_resume=1 gmu_resume=1 rollback=1 outer_runtime_pm=1 inner_runtime_pm=0 clocks=0 irq=0 hfi=0 devfreq=0 llc=0 hw_init=0 scm=0 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
+ 	"$thermal_count" "$thermal_max" "$reprobe_attempted" \
+ 	"$driver_override_state"

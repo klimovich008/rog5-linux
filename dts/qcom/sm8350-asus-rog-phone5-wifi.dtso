@@ -1,0 +1,203 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/*
+ * Opt-in WCN6855 board description for the accepted network-root v8 DTB.
+ *
+ * GPIOs, host rails, and voltage constraints come from the ASUS runtime DT
+ * and vendor source. The PMU and PCI endpoint topology follows the Linux
+ * qcom,wcn6855-pmu and pci17cb,1103 bindings. This overlay remains an offline
+ * candidate until a separately authorized RAM-only boot validates it.
+ */
+&{/} {
+	wcn6855_pmu: wcn6855-pmu {
+		compatible = "qcom,wcn6855-pmu";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&wlan_en_default>, <&bt_en_default>,
+			    <&wlan_antenna_default>;
+
+		wlan-enable-gpios = <&tlmm 64 0>;
+		bt-enable-gpios = <&tlmm 65 0>;
+		swctrl-gpios = <&tlmm 153 0>;
+
+		vddio-supply = <&vreg_s10b_1p8>;
+		vddaon-supply = <&vreg_s11b_0p95>;
+		vddpmu-supply = <&vreg_s12b_1p35>;
+		vddpmumx-supply = <&vreg_s2e_0p976>;
+		vddpmucx-supply = <&vreg_s11b_0p95>;
+		vddrfa0p95-supply = <&vreg_s11b_0p95>;
+		vddrfa1p3-supply = <&vreg_s12b_1p35>;
+		vddrfa1p9-supply = <&vreg_s1c_1p86>;
+		vddpcie1p3-supply = <&vreg_s12b_1p35>;
+		vddpcie1p9-supply = <&vreg_s1c_1p86>;
+
+		regulators {
+			pmu_ldo0: ldo0 {
+				regulator-name = "vreg_pmu_rfa_cmn_0p8";
+			};
+
+			pmu_ldo1: ldo1 {
+				regulator-name = "vreg_pmu_aon_0p8";
+			};
+
+			pmu_ldo2: ldo2 {
+				regulator-name = "vreg_pmu_wlcx_0p8";
+			};
+
+			pmu_ldo3: ldo3 {
+				regulator-name = "vreg_pmu_wlmx_0p8";
+			};
+
+			pmu_ldo4: ldo4 {
+				regulator-name = "vreg_pmu_btcmx_0p8";
+			};
+
+			pmu_ldo5: ldo5 {
+				regulator-name = "vreg_pmu_pcie_1p8";
+			};
+
+			pmu_ldo6: ldo6 {
+				regulator-name = "vreg_pmu_pcie_0p9";
+			};
+
+			pmu_ldo7: ldo7 {
+				regulator-name = "vreg_pmu_rfa_0p8";
+			};
+
+			pmu_ldo8: ldo8 {
+				regulator-name = "vreg_pmu_rfa_1p2";
+			};
+
+			pmu_ldo9: ldo9 {
+				regulator-name = "vreg_pmu_rfa_1p7";
+			};
+		};
+	};
+};
+
+&apps_rsc {
+	regulators-0 {
+		vdd-s10-supply = <&vph_pwr>;
+		vdd-s12-supply = <&vph_pwr>;
+
+		vreg_s10b_1p8: smps10 {
+			regulator-name = "vreg_s10b_1p8";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+		};
+
+		vreg_s12b_1p35: smps12 {
+			regulator-name = "vreg_s12b_1p35";
+			regulator-min-microvolt = <1350000>;
+			regulator-max-microvolt = <1350000>;
+		};
+	};
+
+	regulators-2 {
+		compatible = "qcom,pmr735a-rpmh-regulators";
+		qcom,pmic-id = "e";
+
+		vdd-s2-supply = <&vph_pwr>;
+
+		vreg_s2e_0p976: smps2 {
+			regulator-name = "vreg_s2e_0p976";
+			regulator-min-microvolt = <976000>;
+			regulator-max-microvolt = <976000>;
+		};
+	};
+};
+
+&vreg_s11b_0p95 {
+	regulator-min-microvolt = <952000>;
+	regulator-max-microvolt = <952000>;
+};
+
+&vreg_s1c_1p86 {
+	regulator-min-microvolt = <1880000>;
+	regulator-max-microvolt = <1880000>;
+};
+
+&tlmm {
+	wlan_en_default: wlan-en-state {
+		pins = "gpio64";
+		function = "gpio";
+		drive-strength = <16>;
+		output-low;
+		bias-pull-down;
+	};
+
+	bt_en_default: bt-en-state {
+		pins = "gpio65";
+		function = "gpio";
+		drive-strength = <16>;
+		output-low;
+		bias-pull-down;
+	};
+
+	wlan_antenna_default: wlan-antenna-state {
+		pins = "gpio141", "gpio142", "gpio144";
+		function = "gpio";
+		drive-strength = <2>;
+		output-high;
+		bias-pull-up;
+	};
+
+	pcie0_default_state: pcie0-default-state {
+		perst-pins {
+			pins = "gpio94";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		clkreq-pins {
+			pins = "gpio95";
+			function = "pcie0_clkreqn";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+
+		wake-pins {
+			pins = "gpio96";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+	};
+};
+
+&pcie0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie0_default_state>;
+
+	perst-gpios = <&tlmm 94 1>;
+	wake-gpios = <&tlmm 96 0>;
+
+	status = "okay";
+
+	pcie@0 {
+		wifi@0 {
+			compatible = "pci17cb,1103";
+			reg = <0x10000 0x0 0x0 0x0 0x0>;
+
+			vddrfacmn-supply = <&pmu_ldo0>;
+			vddaon-supply = <&pmu_ldo1>;
+			vddwlcx-supply = <&pmu_ldo2>;
+			vddwlmx-supply = <&pmu_ldo3>;
+			vddpcie1p8-supply = <&pmu_ldo5>;
+			vddpcie0p9-supply = <&pmu_ldo6>;
+			vddrfa0p8-supply = <&pmu_ldo7>;
+			vddrfa1p2-supply = <&pmu_ldo8>;
+			vddrfa1p8-supply = <&pmu_ldo9>;
+		};
+	};
+};
+
+&pcie0_phy {
+	vdda-phy-supply = <&vreg_l5b_0p88>;
+	vdda-pll-supply = <&vreg_l6b_1p2>;
+
+	status = "okay";
+};

@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Wed, 12 Aug 2026 00:00:00 +0000
+Subject: [PATCH] phy: qcom: qmp-ufs: isolate first symbol clock
+
+Generation 38 reproduced target USB loss after entering fixed-rate symbol-clock
+registration. Advance the RAM-only SM8350 discriminator through allocation and
+only the first fixed-rate clock registration, then stop before the second and
+third registrations or OF provider publication.
+
+The UFS core and host remain absent, so this diagnostic cannot enumerate or
+access storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+index 0b8ecd336..d724975de 100644
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2095,6 +2095,10 @@ static int qmp_ufs_register_clocks(struct qmp_ufs *qmp, struct device_node *np)
+ 
+ 	clk_data->hws[0] = hw;
+ 
++	if (of_device_is_compatible(qmp->dev->of_node,
++				    "qcom,sm8350-qmp-ufs-phy"))
++		return 0;
++
+ 	snprintf(name, sizeof(name), "%s::rx_symbol_1", dev_name(qmp->dev));
+ 	hw = devm_clk_hw_register_fixed_rate(qmp->dev, name, NULL, 0, 0);
+ 	if (IS_ERR(hw))
+@@ -2109,10 +2113,6 @@ static int qmp_ufs_register_clocks(struct qmp_ufs *qmp, struct device_node *np)
+ 
+ 	clk_data->hws[2] = hw;
+ 
+-	if (of_device_is_compatible(qmp->dev->of_node,
+-				    "qcom,sm8350-qmp-ufs-phy"))
+-		return 0;
+-
+ 	ret = of_clk_add_hw_provider(np, of_clk_hw_onecell_get, clk_data);
+ 	if (ret)
+ 		return ret;
+@@ -2244,7 +2244,7 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (of_device_is_compatible(dev->of_node,
+ 				    "qcom,sm8350-qmp-ufs-phy")) {
+ 		dev_notice(dev,
+-			   "ROG5 QMP-UFS diagnostic: fixed-rate symbol clocks stage complete\n");
++			   "ROG5 QMP-UFS diagnostic: first fixed-rate symbol clock stage complete\n");
+ 		of_node_put(np);
+ 		return 0;
+ 	}
+-- 
+2.50.1
+

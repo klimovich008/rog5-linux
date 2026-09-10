@@ -1,0 +1,21 @@
+# Expose /sys/power/pm_test so a devices-level suspend/resume callback pass can
+# return before platform/CPU/PSCI entry. This does not authorize real suspend.
+CONFIG_PM_DEBUG=y
+
+# Bound a device callback hang. A panic may leave pstore evidence, but absent
+# pstore lineage must never be interpreted as proof that no crash occurred.
+# EXPERT is the exact upstream dependency needed to expose DPM_WATCHDOG; the
+# candidate verifier refuses every additional resolved config change.
+CONFIG_EXPERT=y
+CONFIG_DPM_WATCHDOG=y
+CONFIG_DPM_WATCHDOG_TIMEOUT=30
+CONFIG_DPM_WATCHDOG_WARNING_TIMEOUT=15
+
+# Enabling EXPERT would otherwise make a stale inherited RESET_SIMPLE request
+# effective on this non-matching Qualcomm target. Preserve the accepted state.
+# CONFIG_RESET_SIMPLE is not set
+
+# Do not expose unrelated low-level device attributes or the boot-time test
+# that writes an RTC wake alarm and enters suspend during kernel startup.
+# CONFIG_PM_ADVANCED_DEBUG is not set
+# CONFIG_PM_TEST_SUSPEND is not set

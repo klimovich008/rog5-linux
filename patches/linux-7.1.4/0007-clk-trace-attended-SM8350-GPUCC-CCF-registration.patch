@@ -1,0 +1,492 @@
+From 6eef0ab56609f5a5ee6d2de9807178daf1065fa7 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Sat, 25 Jul 2026 02:00:00 +0000
+Subject: [PATCH] clk: trace attended SM8350 GPUCC CCF registration
+
+Add a read-only, default-off trace around the Qualcomm regmap
+wrapper and generic CCF registration path. Gate every marker to the
+SM8350 GPU clock controller.
+
+Record allocation, lock, runtime-PM, parent/orphan, callback, debug,
+and managed-resource boundaries. Add no clock, register, power,
+storage, or persistent-state operation.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/clk/clk.c             | 153 +++++++++++++++++++++++++++++++++-
+ drivers/clk/qcom/clk-regmap.c |  21 ++++-
+ drivers/clk/qcom/common.c     |   6 +-
+ drivers/clk/qcom/common.h     |   2 +
+ 4 files changed, 173 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/clk/clk.c b/drivers/clk/clk.c
+index 048adfa86..e2085ad2a 100644
+--- a/drivers/clk/clk.c
++++ b/drivers/clk/clk.c
+@@ -10,6 +10,7 @@
+ #include <linux/clkdev.h>
+ #include <linux/clk.h>
+ #include <linux/clk-provider.h>
++#include <linux/delay.h>
+ #include <linux/device.h>
+ #include <linux/err.h>
+ #include <linux/hashtable.h>
+@@ -30,6 +31,33 @@
+ static DEFINE_SPINLOCK(enable_lock);
+ static DEFINE_MUTEX(prepare_lock);
+ 
++static bool rog5_ccf_register_trace;
++core_param(rog5_ccf_register_trace, rog5_ccf_register_trace, bool, 0400);
++
++static bool clk_rog5_register_trace_enabled(struct device_node *np)
++{
++	return rog5_ccf_register_trace && np &&
++	       of_device_is_compatible(np, "qcom,sm8350-gpucc");
++}
++
++static void clk_rog5_register_trace(struct device *dev,
++				    struct device_node *np,
++				    const char *clock, const char *phase,
++				    int ret)
++{
++	if (!clk_rog5_register_trace_enabled(np))
++		return;
++
++	if (dev)
++		dev_notice(dev,
++			   "ROG5 CCF diagnostic: phase=%s clock=%s ret=%d\n",
++			   phase, clock, ret);
++	else
++		pr_notice("ROG5 CCF diagnostic: phase=%s clock=%s ret=%d\n",
++			  phase, clock, ret);
++	msleep(100);
++}
++
+ static struct task_struct *prepare_owner;
+ static struct task_struct *enable_owner;
+ 
+@@ -3881,7 +3909,13 @@ static int __clk_core_init(struct clk_core *core)
+ 	unsigned long rate;
+ 	int phase;
+ 
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"core-init-entry", 0);
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"prepare-lock-begin", 0);
+ 	clk_prepare_lock();
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"prepare-lock-complete", 0);
+ 
+ 	/*
+ 	 * Set hw->core after grabbing the prepare_lock to synchronize with
+@@ -3890,20 +3924,34 @@ static int __clk_core_init(struct clk_core *core)
+ 	 * that clks aren't parented until their parent is fully registered.
+ 	 */
+ 	core->hw->core = core;
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"hw-core-link-complete", 0);
+ 
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-get-begin", 0);
+ 	ret = clk_pm_runtime_get(core);
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-get-complete", ret);
+ 	if (ret)
+ 		goto unlock;
+ 
+ 	/* check to see if a clock with this name is already registered */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"duplicate-lookup-begin", 0);
+ 	if (clk_core_lookup(core->name)) {
++		clk_rog5_register_trace(core->dev, core->of_node, core->name,
++					"duplicate-lookup-complete", -EEXIST);
+ 		pr_debug("%s: clk %s already initialized\n",
+ 				__func__, core->name);
+ 		ret = -EEXIST;
+ 		goto out;
+ 	}
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"duplicate-lookup-complete", 0);
+ 
+ 	/* check that clk_ops are sane.  See Documentation/driver-api/clk.rst */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"ops-validation-begin", 0);
+ 	if (core->ops->set_rate && !core->ops->determine_rate &&
+ 	      core->ops->recalc_rate) {
+ 		pr_err("%s: %s must implement .determine_rate in addition to .recalc_rate\n",
+@@ -3940,6 +3988,8 @@ static int __clk_core_init(struct clk_core *core)
+ 		ret = -EINVAL;
+ 		goto out;
+ 	}
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"ops-validation-complete", 0);
+ 
+ 	/*
+ 	 * optional platform-specific magic
+@@ -3955,13 +4005,24 @@ static int __clk_core_init(struct clk_core *core)
+ 	 * If it exist, this callback should called before any other callback of
+ 	 * the clock
+ 	 */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"driver-init-begin", 0);
+ 	if (core->ops->init) {
+ 		ret = core->ops->init(core->hw);
++		clk_rog5_register_trace(core->dev, core->of_node, core->name,
++					"driver-init-complete", ret);
+ 		if (ret)
+ 			goto out;
++	} else {
++		clk_rog5_register_trace(core->dev, core->of_node, core->name,
++					"driver-init-complete", 0);
+ 	}
+ 
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"parent-init-begin", 0);
+ 	parent = core->parent = __clk_init_parent(core);
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"parent-init-complete", parent ? 1 : 0);
+ 
+ 	/*
+ 	 * Populate core->parent if parent has already been clk_core_init'd. If
+@@ -3973,6 +4034,8 @@ static int __clk_core_init(struct clk_core *core)
+ 	 * clocks and re-parent any that are children of the clock currently
+ 	 * being clk_init'd.
+ 	 */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"topology-insert-begin", 0);
+ 	if (parent) {
+ 		hlist_add_head(&core->child_node, &parent->children);
+ 		core->orphan = parent->orphan;
+@@ -3985,6 +4048,8 @@ static int __clk_core_init(struct clk_core *core)
+ 	}
+ 	hash_add(clk_hashtable, &core->hashtable_node,
+ 		 full_name_hash(NULL, core->name, strlen(core->name)));
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"topology-insert-complete", core->orphan);
+ 
+ 	/*
+ 	 * Set clk's accuracy.  The preferred method is to use
+@@ -3993,6 +4058,8 @@ static int __clk_core_init(struct clk_core *core)
+ 	 * parent (or is orphaned) then accuracy is set to zero (perfect
+ 	 * clock).
+ 	 */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"accuracy-begin", 0);
+ 	if (core->ops->recalc_accuracy)
+ 		core->accuracy = core->ops->recalc_accuracy(core->hw,
+ 					clk_core_get_accuracy_no_lock(parent));
+@@ -4000,13 +4067,19 @@ static int __clk_core_init(struct clk_core *core)
+ 		core->accuracy = parent->accuracy;
+ 	else
+ 		core->accuracy = 0;
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"accuracy-complete", 0);
+ 
+ 	/*
+ 	 * Set clk's phase by clk_core_get_phase() caching the phase.
+ 	 * Since a phase is by definition relative to its parent, just
+ 	 * query the current clock phase, or just assume it's in phase.
+ 	 */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"phase-begin", 0);
+ 	phase = clk_core_get_phase(core);
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"phase-complete", phase);
+ 	if (phase < 0) {
+ 		ret = phase;
+ 		pr_warn("%s: Failed to get phase for clk '%s'\n", __func__,
+@@ -4017,7 +4090,11 @@ static int __clk_core_init(struct clk_core *core)
+ 	/*
+ 	 * Set clk's duty cycle.
+ 	 */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"duty-begin", 0);
+ 	clk_core_update_duty_cycle_nolock(core);
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"duty-complete", 0);
+ 
+ 	/*
+ 	 * Set clk's rate.  The preferred method is to use .recalc_rate.  For
+@@ -4025,6 +4102,8 @@ static int __clk_core_init(struct clk_core *core)
+ 	 * parent's rate.  If a clock doesn't have a parent (or is orphaned)
+ 	 * then rate is set to zero.
+ 	 */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"rate-begin", 0);
+ 	if (core->ops->recalc_rate)
+ 		rate = core->ops->recalc_rate(core->hw,
+ 				clk_core_get_rate_nolock(parent));
+@@ -4033,12 +4112,16 @@ static int __clk_core_init(struct clk_core *core)
+ 	else
+ 		rate = 0;
+ 	core->rate = core->req_rate = rate;
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"rate-complete", 0);
+ 
+ 	/*
+ 	 * Enable CLK_IS_CRITICAL clocks so newly added critical clocks
+ 	 * don't get accidentally disabled when walking the orphan tree and
+ 	 * reparenting clocks
+ 	 */
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"critical-begin", 0);
+ 	if (core->flags & CLK_IS_CRITICAL) {
+ 		ret = clk_core_prepare(core);
+ 		if (ret) {
+@@ -4055,10 +4138,20 @@ static int __clk_core_init(struct clk_core *core)
+ 			goto out;
+ 		}
+ 	}
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"critical-complete", 0);
+ 
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"orphan-reparent-begin", 0);
+ 	clk_core_reparent_orphans_nolock();
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"orphan-reparent-complete", 0);
+ out:
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-put-begin", ret);
+ 	clk_pm_runtime_put(core);
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"runtime-put-complete", ret);
+ unlock:
+ 	if (ret) {
+ 		hash_del(&core->hashtable_node);
+@@ -4066,11 +4159,22 @@ static int __clk_core_init(struct clk_core *core)
+ 		core->hw->core = NULL;
+ 	}
+ 
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"prepare-unlock-begin", ret);
+ 	clk_prepare_unlock();
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"prepare-unlock-complete", ret);
+ 
+-	if (!ret)
++	if (!ret) {
++		clk_rog5_register_trace(core->dev, core->of_node, core->name,
++					"debug-register-begin", 0);
+ 		clk_debug_register(core);
++		clk_rog5_register_trace(core->dev, core->of_node, core->name,
++					"debug-register-complete", 0);
++	}
+ 
++	clk_rog5_register_trace(core->dev, core->of_node, core->name,
++				"core-init-exit", ret);
+ 	return ret;
+ }
+ 
+@@ -4308,6 +4412,9 @@ __clk_register(struct device *dev, struct device_node *np, struct clk_hw *hw)
+ 	int ret;
+ 	struct clk_core *core;
+ 	const struct clk_init_data *init = hw->init;
++	const char *name = init->name;
++
++	clk_rog5_register_trace(dev, np, name, "register-entry", 0);
+ 
+ 	/*
+ 	 * The init data is not supposed to be used outside of registration path.
+@@ -4315,20 +4422,28 @@ __clk_register(struct device *dev, struct device_node *np, struct clk_hw *hw)
+ 	 * we catch use of hw->init early on in the core.
+ 	 */
+ 	hw->init = NULL;
++	clk_rog5_register_trace(dev, np, name, "init-detach-complete", 0);
+ 
++	clk_rog5_register_trace(dev, np, name, "core-allocation-begin", 0);
+ 	core = kzalloc_obj(*core);
+ 	if (!core) {
+ 		ret = -ENOMEM;
++		clk_rog5_register_trace(dev, np, name,
++					"core-allocation-complete", ret);
+ 		goto fail_out;
+ 	}
++	clk_rog5_register_trace(dev, np, name, "core-allocation-complete", 0);
+ 
+ 	kref_init(&core->ref);
+ 
++	clk_rog5_register_trace(dev, np, name, "name-copy-begin", 0);
+ 	core->name = kstrdup_const(init->name, GFP_KERNEL);
+ 	if (!core->name) {
+ 		ret = -ENOMEM;
++		clk_rog5_register_trace(dev, np, name, "name-copy-complete", ret);
+ 		goto fail_name;
+ 	}
++	clk_rog5_register_trace(dev, np, name, "name-copy-complete", 0);
+ 
+ 	if (WARN_ON(!init->ops)) {
+ 		ret = -EINVAL;
+@@ -4337,7 +4452,10 @@ __clk_register(struct device *dev, struct device_node *np, struct clk_hw *hw)
+ 	core->ops = init->ops;
+ 
+ 	core->dev = dev;
++	clk_rog5_register_trace(dev, np, name, "runtime-init-begin", 0);
+ 	clk_pm_runtime_init(core);
++	clk_rog5_register_trace(dev, np, name, "runtime-init-complete",
++				core->rpm_enabled);
+ 	core->of_node = np;
+ 	if (dev && dev->driver)
+ 		core->owner = dev->driver->owner;
+@@ -4347,7 +4465,9 @@ __clk_register(struct device *dev, struct device_node *np, struct clk_hw *hw)
+ 	core->min_rate = 0;
+ 	core->max_rate = ULONG_MAX;
+ 
++	clk_rog5_register_trace(dev, np, name, "parent-map-begin", 0);
+ 	ret = clk_core_populate_parent_map(core, init);
++	clk_rog5_register_trace(dev, np, name, "parent-map-complete", ret);
+ 	if (ret)
+ 		goto fail_parents;
+ 
+@@ -4357,17 +4477,27 @@ __clk_register(struct device *dev, struct device_node *np, struct clk_hw *hw)
+ 	 * Don't call clk_hw_create_clk() here because that would pin the
+ 	 * provider module to itself and prevent it from ever being removed.
+ 	 */
++	clk_rog5_register_trace(dev, np, name, "consumer-allocation-begin", 0);
+ 	hw->clk = alloc_clk(core, NULL, NULL);
+ 	if (IS_ERR(hw->clk)) {
+ 		ret = PTR_ERR(hw->clk);
++		clk_rog5_register_trace(dev, np, name,
++					"consumer-allocation-complete", ret);
+ 		goto fail_create_clk;
+ 	}
++	clk_rog5_register_trace(dev, np, name, "consumer-allocation-complete", 0);
+ 
++	clk_rog5_register_trace(dev, np, name, "consumer-link-begin", 0);
+ 	clk_core_link_consumer(core, hw->clk);
++	clk_rog5_register_trace(dev, np, name, "consumer-link-complete", 0);
+ 
++	clk_rog5_register_trace(dev, np, name, "core-init-begin", 0);
+ 	ret = __clk_core_init(core);
+-	if (!ret)
++	clk_rog5_register_trace(dev, np, name, "core-init-complete", ret);
++	if (!ret) {
++		clk_rog5_register_trace(dev, np, name, "register-exit", 0);
+ 		return hw->clk;
++	}
+ 
+ 	clk_prepare_lock();
+ 	clk_core_unlink_consumer(hw->clk);
+@@ -4389,6 +4519,7 @@ __clk_register(struct device *dev, struct device_node *np, struct clk_hw *hw)
+ 		pr_err("%pOF: error %pe: failed to register clk '%s' (%pS)\n",
+ 		       np, ERR_PTR(ret), init->name, hw);
+ 	}
++	clk_rog5_register_trace(dev, np, name, "register-exit", ret);
+ 	return ERR_PTR(ret);
+ }
+ 
+@@ -4662,21 +4793,37 @@ EXPORT_SYMBOL_GPL(devm_clk_register);
+  */
+ int devm_clk_hw_register(struct device *dev, struct clk_hw *hw)
+ {
++	struct device_node *np = dev_or_parent_of_node(dev);
++	const char *name = hw->init->name;
+ 	struct clk_hw **hwp;
+ 	int ret;
+ 
++	clk_rog5_register_trace(dev, np, name, "managed-entry", 0);
++	clk_rog5_register_trace(dev, np, name, "devres-allocation-begin", 0);
+ 	hwp = devres_alloc(devm_clk_hw_unregister_cb, sizeof(*hwp), GFP_KERNEL);
+-	if (!hwp)
++	if (!hwp) {
++		clk_rog5_register_trace(dev, np, name,
++					"devres-allocation-complete", -ENOMEM);
++		clk_rog5_register_trace(dev, np, name, "managed-exit", -ENOMEM);
+ 		return -ENOMEM;
++	}
++	clk_rog5_register_trace(dev, np, name, "devres-allocation-complete", 0);
+ 
++	clk_rog5_register_trace(dev, np, name, "hw-register-begin", 0);
+ 	ret = clk_hw_register(dev, hw);
++	clk_rog5_register_trace(dev, np, name, "hw-register-complete", ret);
+ 	if (!ret) {
++		clk_rog5_register_trace(dev, np, name, "devres-commit-begin", 0);
+ 		*hwp = hw;
+ 		devres_add(dev, hwp);
++		clk_rog5_register_trace(dev, np, name, "devres-commit-complete", 0);
+ 	} else {
++		clk_rog5_register_trace(dev, np, name, "devres-release-begin", ret);
+ 		devres_free(hwp);
++		clk_rog5_register_trace(dev, np, name, "devres-release-complete", ret);
+ 	}
+ 
++	clk_rog5_register_trace(dev, np, name, "managed-exit", ret);
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(devm_clk_hw_register);
+diff --git a/drivers/clk/qcom/clk-regmap.c b/drivers/clk/qcom/clk-regmap.c
+index 92ac4e0d7..46921bd3c 100644
+--- a/drivers/clk/qcom/clk-regmap.c
++++ b/drivers/clk/qcom/clk-regmap.c
+@@ -9,6 +9,7 @@
+ #include <linux/export.h>
+ 
+ #include "clk-regmap.h"
++#include "common.h"
+ 
+ /**
+  * clk_is_enabled_regmap - standard is_enabled() for regmap users
+@@ -96,11 +97,25 @@ EXPORT_SYMBOL_GPL(clk_disable_regmap);
+  */
+ int devm_clk_register_regmap(struct device *dev, struct clk_regmap *rclk)
+ {
+-	if (dev && dev_get_regmap(dev, NULL))
++	int ret;
++
++	qcom_cc_rog5_trace(dev, "regmap-device-lookup-begin", -1, 0);
++	if (dev && dev_get_regmap(dev, NULL)) {
++		qcom_cc_rog5_trace(dev, "regmap-device-lookup-complete", -1, 0);
++		qcom_cc_rog5_trace(dev, "regmap-device-assign-begin", -1, 0);
+ 		rclk->regmap = dev_get_regmap(dev, NULL);
+-	else if (dev && dev->parent)
++		qcom_cc_rog5_trace(dev, "regmap-device-assign-complete", -1, 0);
++	} else if (dev && dev->parent) {
++		qcom_cc_rog5_trace(dev, "regmap-parent-assign-begin", -1, 0);
+ 		rclk->regmap = dev_get_regmap(dev->parent, NULL);
++		qcom_cc_rog5_trace(dev, "regmap-parent-assign-complete", -1, 0);
++	}
++	qcom_cc_rog5_trace(dev, "regmap-lookup-complete", -1, 0);
++
++	qcom_cc_rog5_trace(dev, "ccf-managed-register-begin", -1, 0);
++	ret = devm_clk_hw_register(dev, &rclk->hw);
++	qcom_cc_rog5_trace(dev, "ccf-managed-register-complete", -1, ret);
+ 
+-	return devm_clk_hw_register(dev, &rclk->hw);
++	return ret;
+ }
+ EXPORT_SYMBOL_GPL(devm_clk_register_regmap);
+diff --git a/drivers/clk/qcom/common.c b/drivers/clk/qcom/common.c
+index 4e294f9f3..e3f7f2a62 100644
+--- a/drivers/clk/qcom/common.c
++++ b/drivers/clk/qcom/common.c
+@@ -34,12 +34,12 @@ core_param(rog5_qcom_cc_probe_trace, rog5_qcom_cc_probe_trace, bool, 0400);
+ 
+ static bool qcom_cc_rog5_trace_enabled(struct device *dev)
+ {
+-	return rog5_qcom_cc_probe_trace && dev->of_node &&
++	return rog5_qcom_cc_probe_trace && dev && dev->of_node &&
+ 	       of_device_is_compatible(dev->of_node, "qcom,sm8350-gpucc");
+ }
+ 
+-static void qcom_cc_rog5_trace(struct device *dev, const char *phase,
+-			       int index, int ret)
++void qcom_cc_rog5_trace(struct device *dev, const char *phase,
++			int index, int ret)
+ {
+ 	if (!qcom_cc_rog5_trace_enabled(dev))
+ 		return;
+diff --git a/drivers/clk/qcom/common.h b/drivers/clk/qcom/common.h
+index 6f2406f88..6da290334 100644
+--- a/drivers/clk/qcom/common.h
++++ b/drivers/clk/qcom/common.h
+@@ -84,6 +84,8 @@ extern struct regmap *qcom_cc_map(struct platform_device *pdev,
+ extern int qcom_cc_really_probe(struct device *dev,
+ 				const struct qcom_cc_desc *desc,
+ 				struct regmap *regmap);
++void qcom_cc_rog5_trace(struct device *dev, const char *phase,
++			int index, int ret);
+ extern int qcom_cc_probe(struct platform_device *pdev,
+ 			 const struct qcom_cc_desc *desc);
+ extern int qcom_cc_probe_by_index(struct platform_device *pdev, int index,
+-- 
+2.55.0

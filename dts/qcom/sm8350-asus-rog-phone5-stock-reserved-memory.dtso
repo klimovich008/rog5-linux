@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+};
+
+/*
+ * The stock runtime map keeps these board-specific spans away from ordinary
+ * HLOS allocations. The middle span is the vendor memshare no-map pool; the
+ * other two cover stock secure/CMA reservations that remain unavailable
+ * after kexec. This overlay reproduces the isolated v5-to-v7 promotion gate;
+ * the same live-proven ranges now also reside in the canonical board DTS.
+ */
+&reserved_memory {
+	memory@cbc00000 {
+		reg = <0x0 0xcbc00000 0x0 0x04400000>;
+	};
+
+	memory@d8000000 {
+		reg = <0x0 0xd8000000 0x0 0x00800000>;
+		no-map;
+	};
+
+	memory@edc00000 {
+		reg = <0x0 0xedc00000 0x0 0x12000000>;
+	};
+};

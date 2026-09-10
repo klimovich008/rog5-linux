@@ -1,5 +1,9 @@
 project	revision	date	note
-linux-stable	7a5cef0db4795d9d453a12e0f61b5b7634fc4d40	2026-07-18	Linux v7.1.4 research baseline
+linux-stable	7a5cef0db4795d9d453a12e0f61b5b7634fc4d40	2026-07-18	Linux v7.1.4 research baseline; annotated tag object 114456a9c542d933387517bb22561668c25a5b59; tree 2ea2be38c5e4dc9aafffbbc0db5aae0f6513a1d9
+ubuntu-noble-snapshot	20260728T000000Z	2026-07-28	x86_64 kernel-builder package source; exact 247-package closure hash 9dce7979f2b55e0f56c6dd803986d127107e5a7ead15cd69e780aebaccacc101
+fedora-ca-bootstrap	89f61a124414261868224666aa7fb8df1b78397a53623774bdfb105d1612b48b	2026-05-27	pinned amd64 image used only to bootstrap HTTPS; TLS bundle hash 00411c197b16f659945fba3c2f970a26030f56eef5d445c913cb59a089c813b9
+linux-stable-ufs-discovery	cfd385a1c754684dd28b63a4559e04baa5e902b1	2026-07-24	Linux v7.1.4 plus three deterministic read-only and power-transition containment patches; tree d2f03d2055227b8b72ab41be949847a066924c5a
+asus-zs673ks-5.4.210	3bfe58a00bfdd3839f9b626c2d34f0cc6778945458f1eef93cbfdea90bf2e5a8	2026-07-24	hash-pinned vendor wrapper source plus six reproducibility/toolchain patches
 linux-lts-6.18	e871c68dfd325de01351d6d1c009337c97ee3dcd	2026-07-18	Linux v6.18.39 deployment comparison; projected EOL Dec 2028
 godshell	4530e0fdee0dc98bea20b268273d7a3e438ceb37	2026-03-18	optional eBPF/LLM observability workload
 pmaports	29afb81ed2249d1ca0148a5dc6b4280bf0402af0	2026-07-20	no anakin package; old generic SM8350 fork archived
@@ -7,5 +11,6 @@ archlinuxarm-keyring	91e6b11698f8df66042d56aaa56fbe9c9263847d	2014-01-19	public 
 alpine-kexec-tools	2.0.32-r2	2026-01-31	signed Alpine 3.24 aarch64 recovery loader
 alpine-xz-libs	5.8.3-r0	2026-04-25	signed Alpine 3.24 aarch64 kexec runtime dependency
 alpine-zstd-libs	1.5.7-r2	2025-07-28	signed Alpine 3.24 aarch64 kexec runtime dependency
+alpine-libarchive-tools	3.8.7-r0	2026-04-15	signed Alpine 3.24 aarch64 bsdtar/bsdcpio persistent-root staging input
 android-platform-tools	37.0.0	2026-07-23	stable Windows adb/fastboot package pinned from Google's SDK repository metadata
 linux-firmware	20260622	2026-06-22	upstream A660 SQE/GMU and SM8350 zap-shader comparison inputs

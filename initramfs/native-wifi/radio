@@ -1,0 +1,181 @@
+#!/bin/sh
+# Reuse the hardware-qualified one-shot power/module sequence before p23 opens.
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+root=/run/rog5-native-wifi
+trace=/sys/kernel/tracing/instances/rog5_native_wifi
+overlay_record=/run/rog5-persistent-overlay.runtime
+. "$root/timing"
+fail() {
+	reason=$(printf '%s\n' "$*" | sed 's/ /_/g')
+	case $reason in ''|*[!A-Za-z0-9_-]*|????????????????????????????????????????????????????????????????*)
+		reason=invalid ;;
+	esac
+	if [ ! -e "$root/radio-failure" ] && [ ! -L "$root/radio-failure" ]; then
+		umask 077
+		printf '%s\n' "$reason" >"$root/radio-failure"
+		chmod 0444 "$root/radio-failure"
+	fi
+	echo "FAIL native-wifi-radio: $*" >&2
+	exit 1
+}
+resolve_storage_mode() {
+	overlay_disk=
+	overlay_userdata=
+	if [ ! -e "$overlay_record" ] && [ ! -L "$overlay_record" ]; then
+		return 0
+	fi
+	[ -f "$overlay_record" ] && [ ! -L "$overlay_record" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$overlay_record")" = 0:0:400:1 ] ||
+		fail 'overlay record'
+	[ "$(grep -c '^format=rog5-persistent-root-overlay-runtime-v1$' \
+		"$overlay_record")" = 1 ] || fail 'overlay record format'
+	overlay_disk=$(sed -n 's/^disk=//p' "$overlay_record")
+	overlay_userdata=$(sed -n 's/^userdata=//p' "$overlay_record")
+	overlay_image=$(sed -n 's/^image=//p' "$overlay_record")
+	case $overlay_userdata in /dev/sd[a-z]23) ;; *) fail 'overlay userdata' ;; esac
+	[ "$overlay_disk" = "${overlay_userdata%23}" ] &&
+		[ "$overlay_image" = rog5/root/root-overlay-v1.ext4 ] &&
+		[ -b "$overlay_disk" ] && [ -b "$overlay_userdata" ] &&
+		[ -b "${overlay_disk}24" ] || fail 'overlay relationship'
+}
+guard() {
+	[ ! -e /run/rog5-persistent-state.runtime ] || fail 'state already writable'
+	resolve_storage_mode
+	count=0
+	writable=0
+	for node in /sys/class/block/sd*; do
+		device=/dev/${node##*/}
+		expected=1
+		case $device in
+			"$overlay_disk"|"$overlay_userdata")
+				[ -n "$overlay_disk" ] || fail 'writable UFS'
+				expected=0
+				writable=$((writable + 1))
+				;;
+		esac
+		[ "$(cat "$node/ro")" = "$expected" ] || fail 'writable UFS'
+		count=$((count+1))
+	done
+	[ "$count" = 117 ] || fail 'UFS inventory'
+	if [ -n "$overlay_disk" ]; then
+		[ "$writable" = 2 ] && [ "$(cat "/sys/class/block/${overlay_disk##*/}/ro")" = 0 ] &&
+			[ "$(cat "/sys/class/block/${overlay_userdata##*/}/ro")" = 0 ] &&
+			[ "$(cat "/sys/class/block/${overlay_disk##*/}/${overlay_disk##*/}24/ro")" = 1 ] ||
+			fail 'overlay write scope'
+	else
+		[ "$writable" = 0 ] || fail 'writable UFS'
+	fi
+	if [ -n "${reader:-}" ]; then
+		kill -0 "$reader" || fail 'power trace stopped'
+		[ "$(stat -c %s "$root/power-trace.log")" -lt "$trace_byte_limit" ] || fail 'power trace overflow'
+	fi
+	[ "$(cat /sys/class/power_supply/qcom-battmgr-bat/health)" = Good ] || fail 'battery health'
+	temp=$(cat /sys/class/power_supply/qcom-battmgr-bat/temp)
+	[ "$temp" -ge 0 ] && [ "$temp" -lt 400 ] || fail 'battery temperature'
+	voltage=$(cat /sys/class/power_supply/qcom-battmgr-bat/voltage_now)
+	# The core-only interval is deliberately narrower than the power loader's
+	# absolute safety bounds. It never permits a radio power operation below
+	# the existing 8.4 V radio threshold.
+	[ "$voltage" -ge 7500000 ] && [ "$voltage" -le 8800000 ] || fail 'unsafe battery voltage'
+	[ "$(cat /sys/class/power_supply/qcom-battmgr-usb/online)" = 1 ] || fail 'USB input offline'
+	if [ "${1:-radio}" != preactivation ]; then
+		[ "$voltage" -ge 8400000 ] || fail 'battery voltage'
+	fi
+	for zone in /sys/class/thermal/thermal_zone*/temp; do
+		[ -r "$zone" ] || continue
+		value=$(cat "$zone") || { echo "OBS error $zone"; continue; }
+		case $value in ''|*[!0-9]*) echo "OBS unsupported $zone"; continue ;; esac
+		[ "$value" -lt 60000 ] || fail 'unsafe thermal zone'
+	done
+}
+
+[ "$(id -u)" = 0 ] || fail 'root required'
+[ "$(tr -d '\000' </sys/firmware/devicetree/base/model)" = 'ASUS ROG Phone 5' ] || fail 'model'
+release=$(cat "$root/kernel-release")
+[ "$(uname -r)" = "$release" ] || fail 'kernel release'
+boot=$(cat /proc/sys/kernel/random/boot_id)
+candidate=
+candidate_count=0
+set -f
+for argument in $(cat /proc/cmdline); do
+	case $argument in rog5.bundle=*)
+		candidate_count=$((candidate_count + 1))
+		candidate=${argument#rog5.bundle=} ;;
+	esac
+done
+set +f
+[ "$candidate_count" = 1 ] || fail 'duplicate or absent bundle identity'
+case $candidate in ''|*[!a-z0-9-]*) fail 'bundle identity' ;; esac
+[ "${#candidate}" -le 64 ] || fail 'bundle identity length'
+printf '%s\n' "$boot" | grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' || fail 'boot identity'
+umask 077
+mkdir "$root/radio-entered" || fail 'radio already entered; never retry'
+guard preactivation
+(cd "$root" && sha256sum -c boot-files.sha256) || fail 'boot payload integrity'
+mkdir "$root/module-root"
+tar --no-same-owner -C "$root/module-root" -xzf "$root/module-root-complete.tar.gz"
+(cd "$root/module-root" && sha256sum -c ../module-files.sha256) || fail 'module integrity'
+systemctl is-active --quiet rog5-wifi-boot-rollback.timer || fail 'rollback not armed'
+[ ! -e "$root/radio-refused" ] && [ ! -L "$root/radio-refused" ] &&
+	[ ! -e "$root/radio-activation-entered" ] && [ ! -L "$root/radio-activation-entered" ] &&
+	[ ! -d /sys/module/rog5_s12_ufs_vote ] || fail 'radio state already exists'
+# Only this branch is optional. All integrity/storage/thermal checks above
+# still fail closed, even when voltage would otherwise defer the radio.
+guard preactivation
+if [ "$voltage" -lt 8400000 ]; then
+	(set -C; printf 'format=rog5-radio-refusal-v1\nboot_id=%s\nbundle=%s\nreason=below-radio-voltage\n' \
+		"$boot" "$candidate" >"$root/radio-refused") || fail 'refusal publication'
+	chmod 0444 "$root/radio-refused" || fail 'refusal mode'
+	echo 'OBS deferred Wi-Fi: below radio voltage; no power operation entered'
+	exit 77
+fi
+mkdir "$root/radio-activation-entered" || fail 'radio already activated'
+# OnBootSec is absolute: preserve early-boot and cleanup time in this budget.
+started=0
+"$root/trace-native-wifi-pcie.sh" start "$boot" "$release"
+timeout "$((outer_seconds + cleanup_seconds))" head -c "$trace_byte_limit" "$trace/trace_pipe" >"$root/power-trace.log" &
+reader=$!
+trap 'kill "$reader" 2>/dev/null || true; wait "$reader" 2>/dev/null || true' EXIT
+for action in query mode held-oem; do
+	guard
+	case $action in query) limit=$query_seconds ;; mode) limit=$mode_seconds ;; held-oem) limit=$hold_seconds ;; esac
+	[ ! -d /sys/module/rog5_s12_ufs_vote ] || fail 'S12 already entered'
+	printf 'S12_%s_BEGIN\n' "$action" >"$trace/trace_marker"
+	timeout -k "$kill_seconds" "$limit" "$root/module-once" "$root/rog5-s12-ufs-vote.ko" "action=$action" || fail "S12 $action"
+	# Each module action checks its own fresh RPMh response and cached state;
+	# the activator independently rechecks the retained hold before any radio power.
+	if [ "$action" = held-oem ]; then
+		[ "$(cat /sys/module/rog5_s12_ufs_vote/refcnt)" = 1 ] || fail 'hold missing'
+		dmesg | grep -Fq 'ROG5_S12_OEM cache_consistent=1' || fail 'hold not qualified'
+	else
+		rmmod rog5_s12_ufs_vote
+	fi
+	printf 'S12_%s_END\n' "$action" >"$trace/trace_marker"
+done
+guard
+[ "$(readlink -f /dev/disk/by-partlabel/arch_root_a)" = /dev/sda24 ] || fail 'root partition identity'
+for offset in 0 256 512; do
+	timeout -k 2 5 dd if=/dev/sda24 of=/dev/null iflag=direct bs=4096 count=256 skip="$offset" 2>/dev/null || fail 'UFS read'
+done
+read -r now ignored </proc/uptime
+[ "$(( ${now%%.*} - started ))" -lt "$((outer_seconds - radio_seconds - cleanup_seconds))" ] || fail 'radio budget insufficient'
+radio_sha=$(sha256sum "$root/radio-files.sha256" | cut -d ' ' -f1)
+module_sha=$(sha256sum "$root/module-root-complete.tar.gz" | cut -d ' ' -f1)
+"$root/probe-native-wifi.sh" "$radio_sha" "$candidate" "$module_sha" "$release"
+guard
+pci=$(readlink -f /sys/bus/pci/devices/0000:01:00.0)
+phy=$(readlink -f /sys/class/ieee80211/phy0)
+count=0
+for path in /sys/class/net/*; do
+	if [ "$(readlink -f "$path/phy80211" 2>/dev/null)" = "$phy" ]; then
+		[ "$(readlink -f "$path/device")" = "$pci" ] || fail 'interface parent'
+		interface=${path##*/}; count=$((count+1))
+	fi
+done
+[ "$count" = 1 ] || fail 'interface ambiguous or absent'
+printf '%s\n' "$interface" >"$root/interface"
+chmod 0444 "$root/interface"
+printf 'WIFI_AUTOMATIC_RADIO_READY boot=%s interface=%s\n' "$boot" "$interface"
+# Leave both rollback timers armed for this RAM-only qualification composition.

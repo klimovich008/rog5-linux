@@ -7,8 +7,9 @@
 > QMP/SuperSpeed. Any “no storage mounted” or zero-storage conclusion below is
 > false. Nothing was flashed. The observations are retained as historical
 > evidence only. Later v6 passed its then-current offline checks but failed live
-> ACM data and rollback. Current fixes require a full rebuild; there is no boot
-> candidate.
+> ACM data and rollback. Recovery v12 later rebuilt the fixes reproducibly and
+> passes the complete credential-free offline verifier, but it has not been
+> booted.
 
 The target-handoff conclusion below is superseded by
 [the later mainline recovery result](2026-07-23-mainline-recovery-usb.md).

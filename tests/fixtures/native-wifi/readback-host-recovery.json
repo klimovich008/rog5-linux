@@ -1,0 +1,25 @@
+{
+  "format": "rog5-host-fallback-network-fixture-v1",
+  "sanitized": true,
+  "device_identity_verified": true,
+  "before": {
+    "networkmanager_state": "100 (connected (externally))",
+    "host_ipv4": ["169.254.77.1/30"],
+    "target_ipv4": ["169.254.77.2/30", "10.77.0.2/30"],
+    "management_ssh": true,
+    "shared_ssh": false
+  },
+  "repair": {
+    "action": "activate-existing-profile-on-verified-interface",
+    "profile": "rog5-standalone-shared",
+    "phone_boot_required": false,
+    "new_profile_required": false
+  },
+  "after": {
+    "host_ipv4": ["10.77.0.1/30"],
+    "shared_ssh": true,
+    "tailscale_backend": "Running",
+    "tailscale_online": true,
+    "tailscale_health": []
+  }
+}

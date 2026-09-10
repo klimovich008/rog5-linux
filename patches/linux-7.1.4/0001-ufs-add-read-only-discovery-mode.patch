@@ -1,0 +1,317 @@
+From: ROG5 Linux Project <rog5-linux@localhost>
+Subject: [PATCH] ufs: add compile-time read-only discovery mode
+
+Add a dedicated bring-up mode that can enumerate UFS topology without
+accepting host-originated storage mutations.
+
+The mode:
+
+* marks every SCSI disk read-only before it is registered;
+* keeps that policy across revalidation;
+* allows only an explicit read/discovery SCSI command set;
+* allows only read-only UFS queries plus the mandatory fDeviceInit flag;
+* skips optional WriteBooster, BKOPS, RTC, exception-event and devfreq setup;
+* blocks raw UFS query writes as a second line of defense.
+
+This is intentionally a compile-time mode. A discovery image cannot be
+turned into a writable image from its command line or userspace.
+---
+ drivers/scsi/sd.c          |  12 +++-
+ drivers/ufs/core/Kconfig   |  20 +++++++
+ drivers/ufs/core/ufshcd.c  | 130 +++++++++++++++++++++++++++++++++++++++------
+ 3 files changed, 145 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/ufs/core/Kconfig b/drivers/ufs/core/Kconfig
+--- a/drivers/ufs/core/Kconfig
++++ b/drivers/ufs/core/Kconfig
+@@ -25,7 +25,27 @@ config SCSI_UFS_BSG
+ 
+ 	  Select this if you need a bsg device node for your UFS controller.
+ 	  If unsure, say N.
+ 
++config SCSI_UFS_DISCOVERY_READ_ONLY
++	bool "UFS discovery-only read-only mode"
++	help
++	  Build a dedicated UFS bring-up kernel that enumerates logical units
++	  and permits reads, but rejects host-originated storage mutation
++	  commands. SCSI disks are marked read-only before registration and
++	  UFS device-management writes are rejected except for the mandatory
++	  fDeviceInit handshake.
++
++	  Optional device-management setup such as WriteBooster, background
++	  operations, RTC updates, exception-event writes and UFS devfreq is
++	  skipped. Raw UFS BSG and RPMB support should also be disabled in the
++	  configuration used with this option.
++
++	  This mode is for short, attended hardware discovery with a RAM-backed
++	  initramfs. It is not suitable for a normal root filesystem because it
++	  cannot be disabled at runtime.
++
++	  If unsure, say N.
++
+ config SCSI_UFS_CRYPTO
+ 	bool "UFS Crypto Engine Support"
+ 	depends on BLK_INLINE_ENCRYPTION
+diff --git a/drivers/scsi/sd.c b/drivers/scsi/sd.c
+--- a/drivers/scsi/sd.c
++++ b/drivers/scsi/sd.c
+@@ -3042,6 +3042,14 @@ sd_read_write_protect_flag(struct scsi_disk *sdkp, unsigned char *buffer)
+ 	struct scsi_mode_data data;
+ 	int old_wp = sdkp->write_prot;
+ 
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		sdkp->write_prot = 1;
++		set_disk_ro(sdkp->disk, true);
++		sd_first_printk(KERN_NOTICE, sdkp,
++			"ROG5 UFS discovery: forced read-only before registration\n");
++		return;
++	}
++
+ 	set_disk_ro(sdkp->disk, 0);
+ 	if (sdp->skip_ms_page_3f) {
+ 		sd_first_printk(KERN_NOTICE, sdkp, "Assuming Write Enabled\n");
+@@ -4077,8 +4085,10 @@ static int sd_probe(struct scsi_device *sdp)
+ 	/* defaults, until the device tells us otherwise */
+ 	sdp->sector_size = 512;
+ 	sdkp->capacity = 0;
+ 	sdkp->media_present = 1;
+-	sdkp->write_prot = 0;
++	sdkp->write_prot =
++		IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY);
++	set_disk_ro(gd, sdkp->write_prot);
+ 	sdkp->cache_override = 0;
+ 	sdkp->WCE = 0;
+ 	sdkp->RCD = 0;
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -27,5 +27,6 @@
+ #include <scsi/scsi_driver.h>
+ #include <scsi/scsi_eh.h>
++#include <scsi/scsi_proto.h>
+ #include <scsi/scsi_tcq.h>
+ #include "ufshcd-priv.h"
+ #include <ufs/ufs_quirks.h>
+@@ -133,5 +134,53 @@ MODULE_PARM_DESC(dev_cmd_timeout,
+ 		 "UFS Device command timeout in milliseconds. Defaults to 1.5s. Supported values range from 1ms to 30 seconds inclusively");
+ 
++static bool ufshcd_discovery_query_allowed(u8 opcode, u8 idn)
++{
++	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
++		return true;
++
++	switch (opcode) {
++	case UPIU_QUERY_OPCODE_READ_DESC:
++	case UPIU_QUERY_OPCODE_READ_ATTR:
++	case UPIU_QUERY_OPCODE_READ_FLAG:
++		return true;
++	case UPIU_QUERY_OPCODE_SET_FLAG:
++		return idn == QUERY_FLAG_IDN_FDEVICEINIT;
++	default:
++		return false;
++	}
++}
++
++static bool ufshcd_discovery_scsi_allowed(const struct scsi_cmnd *cmd)
++{
++	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
++		return true;
++
++	switch (cmd->cmnd[0]) {
++	case TEST_UNIT_READY:
++	case REQUEST_SENSE:
++	case INQUIRY:
++	case MODE_SENSE:
++	case MODE_SENSE_10:
++	case READ_FORMAT_CAPACITIES:
++	case READ_CAPACITY:
++	case READ_6:
++	case READ_10:
++	case READ_12:
++	case READ_16:
++	case REPORT_LUNS:
++	case SECURITY_PROTOCOL_IN:
++	case LOG_SENSE:
++	case START_STOP:
++		return true;
++	case SERVICE_ACTION_IN_16:
++		return (cmd->cmnd[1] & 0x1f) == SAI_READ_CAPACITY_16;
++	case ZBC_IN:
++		return (cmd->cmnd[1] & 0x1f) == ZI_REPORT_ZONES;
++	default:
++		return false;
++	}
++}
++
+ #define ufshcd_toggle_vreg(_dev, _vreg, _on)				\
+ 	({                                                              \
+ 		int _ret;                                               \
+@@ -3079,9 +3124,18 @@ static enum scsi_qc_status ufshcd_queuecommand(struct Scsi_Host *host,
+ {
+ 	struct ufs_hba *hba = shost_priv(host);
+ 	int tag = scsi_cmd_to_rq(cmd)->tag;
+ 	int err = 0;
+ 	struct ufs_hw_queue *hwq = NULL;
+ 
++	if (!ufshcd_discovery_scsi_allowed(cmd)) {
++		dev_warn_ratelimited(hba->dev,
++			"ROG5 UFS discovery: blocked SCSI opcode 0x%02x\n",
++			cmd->cmnd[0]);
++		set_host_byte(cmd, DID_ERROR);
++		scsi_done(cmd);
++		return 0;
++	}
++
+ 	switch (hba->ufshcd_state) {
+ 	case UFSHCD_STATE_OPERATIONAL:
+ 		break;
+@@ -3365,15 +3419,28 @@ static int ufshcd_exec_dev_cmd(struct ufs_hba *hba,
+ 		enum dev_cmd_type cmd_type, int timeout)
+ {
+-	struct scsi_cmnd *cmd = ufshcd_get_dev_mgmt_cmd(hba);
+-	struct ufshcd_lrb *lrbp = scsi_cmd_priv(cmd);
++	struct scsi_cmnd *cmd;
++	struct ufshcd_lrb *lrbp;
+ 	u32 tag;
+ 	int err;
+ 
+ 	/* Protects use of hba->dev_cmd. */
+ 	lockdep_assert_held(&hba->dev_cmd.lock);
+ 
++	if (cmd_type == DEV_CMD_TYPE_QUERY &&
++	    !ufshcd_discovery_query_allowed(
++		    hba->dev_cmd.query.request.upiu_req.opcode,
++		    hba->dev_cmd.query.request.upiu_req.idn)) {
++		dev_warn_ratelimited(hba->dev,
++			"ROG5 UFS discovery: blocked device query opcode 0x%02x idn 0x%02x\n",
++			hba->dev_cmd.query.request.upiu_req.opcode,
++			hba->dev_cmd.query.request.upiu_req.idn);
++		return -EROFS;
++	}
++
++	cmd = ufshcd_get_dev_mgmt_cmd(hba);
+ 	if (WARN_ON_ONCE(!cmd))
+ 		return -ENOMEM;
++	lrbp = scsi_cmd_priv(cmd);
+ 
+ 	tag = scsi_cmd_to_rq(cmd)->tag;
+ 
+@@ -7550,17 +7626,28 @@ static int ufshcd_issue_devman_upiu_cmd(struct ufs_hba *hba,
+ 					enum dev_cmd_type cmd_type,
+ 					enum query_opcode desc_op)
+ {
+-	struct scsi_cmnd *cmd = ufshcd_get_dev_mgmt_cmd(hba);
+-	struct ufshcd_lrb *lrbp = scsi_cmd_priv(cmd);
++	struct scsi_cmnd *cmd;
++	struct ufshcd_lrb *lrbp;
+ 	u32 tag;
+ 	int err = 0;
+ 	u8 upiu_flags;
+ 
+ 	/* Protects use of hba->dev_cmd. */
+ 	lockdep_assert_held(&hba->dev_cmd.lock);
+ 
++	if (cmd_type == DEV_CMD_TYPE_QUERY &&
++	    !ufshcd_discovery_query_allowed(req_upiu->qr.opcode,
++					     req_upiu->qr.idn)) {
++		dev_warn_ratelimited(hba->dev,
++			"ROG5 UFS discovery: blocked device query opcode 0x%02x idn 0x%02x\n",
++			req_upiu->qr.opcode, req_upiu->qr.idn);
++		return -EROFS;
++	}
++
++	cmd = ufshcd_get_dev_mgmt_cmd(hba);
+ 	if (WARN_ON_ONCE(!cmd))
+ 		return -ENOMEM;
++	lrbp = scsi_cmd_priv(cmd);
+ 
+ 	tag = scsi_cmd_to_rq(cmd)->tag;
+ 
+@@ -8818,18 +8890,20 @@ static int ufs_get_device_desc(struct ufs_hba *hba)
+ 
+ 	ufs_fixup_device_setup(hba);
+ 
+-	ufshcd_wb_probe(hba, desc_buf);
++	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		ufshcd_wb_probe(hba, desc_buf);
+ 
+-	ufshcd_temp_notif_probe(hba, desc_buf);
++		ufshcd_temp_notif_probe(hba, desc_buf);
+ 
+-	if (dev_info->wspecversion >= 0x410) {
+-		hba->critical_health_count = 0;
+-		ufshcd_enable_ee(hba, MASK_EE_HEALTH_CRITICAL);
+-	}
++		if (dev_info->wspecversion >= 0x410) {
++			hba->critical_health_count = 0;
++			ufshcd_enable_ee(hba, MASK_EE_HEALTH_CRITICAL);
++		}
+ 
+-	ufs_init_rtc(hba, desc_buf);
++		ufs_init_rtc(hba, desc_buf);
+ 
+-	ufshcd_device_lvl_exception_probe(hba, desc_buf);
++		ufshcd_device_lvl_exception_probe(hba, desc_buf);
++	}
+ 
+ 	/*
+ 	 * ufshcd_read_string_desc returns size of the string
+@@ -9087,7 +9163,8 @@ static int ufshcd_device_params_init(struct ufs_hba *hba)
+ 		goto out;
+ 	}
+ 
+-	ufshcd_set_rtt(hba);
++	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
++		ufshcd_set_rtt(hba);
+ 
+ 	ufshcd_get_ref_clk_gating_wait(hba);
+ 
+@@ -9160,7 +9237,8 @@ static int ufshcd_add_lus(struct ufs_hba *hba)
+ 		goto out;
+ 
+ 	/* Initialize devfreq after UFS device is detected */
+-	if (ufshcd_is_clkscaling_supported(hba)) {
++	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY) &&
++	    ufshcd_is_clkscaling_supported(hba)) {
+ 		memcpy(&hba->clk_scaling.saved_pwr_info,
+ 			&hba->pwr_info,
+ 			sizeof(struct ufs_pa_layer_attr));
+@@ -9179,8 +9257,9 @@ static int ufshcd_add_lus(struct ufs_hba *hba)
+ 	 * pointer and hence must only be started after the WLUN pointer has
+ 	 * been initialized by ufshcd_scsi_add_wlus().
+ 	 */
+-	schedule_delayed_work(&hba->ufs_rtc_update_work,
+-			      msecs_to_jiffies(UFS_RTC_UPDATE_INTERVAL_MS));
++	if (!IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY))
++		schedule_delayed_work(&hba->ufs_rtc_update_work,
++			msecs_to_jiffies(UFS_RTC_UPDATE_INTERVAL_MS));
+ 
+ 	ufs_bsg_probe(hba);
+ 	scsi_scan_host(hba->host);
+@@ -9294,6 +9374,12 @@ static int ufshcd_post_device_init(struct ufs_hba *hba)
+ 	if (hba->dme_qos_sysfs_handle)
+ 		sysfs_notify_dirent(hba->dme_qos_sysfs_handle);
+ 
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		dev_info(hba->dev,
++			"ROG5 UFS discovery: optional device writes and high-speed gear switch disabled\n");
++		return 0;
++	}
++
+ 	ufshcd_force_reset_auto_bkops(hba);
+ 
+ 	ufshcd_set_timestamp_attr(hba);
+@@ -9413,6 +9501,11 @@ static int ufshcd_probe_hba(struct ufs_hba *hba, bool init_dev_params)
+ 
+ 	ufshcd_print_pwr_info(hba);
+ 
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		ufshcd_configure_auto_hibern8(hba);
++		return 0;
++	}
++
+ 	/*
+ 	 * bActiveICCLevel is volatile for UFS device (as per latest v2.1 spec)
+ 	 * and for removable UFS card as well, hence always set the parameter.
+-- 
+2.51.0

@@ -1,0 +1,108 @@
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Fri, 24 Jul 2026 00:00:02 +0000
+Subject: [PATCH] ufs: pin discovery link active across PM and shutdown
+
+The first live discovery boot safely enumerated every UFS block device,
+but runtime PM subsequently tried to enable auto-BKOPS. The read-only
+query gate rejected that SET_FLAG request as designed, after which the
+UFS error handler entered a fatal recovery path and orderly reboot hung
+while trying to shut the WLUN down.
+
+Discovery mode does not need UFS low-power transitions. Retain the
+runtime reference acquired for asynchronous scan, forbid runtime PM on
+the host and device WLUN, disable auto-hibern8, and reject both WL and
+host power-transition helpers before they can issue protocol commands.
+During shutdown, leave the already read-only link active for platform
+reset instead of quiescing or changing device power state.
+
+Normal kernels are unchanged because every new branch is compile-time
+guarded by SCSI_UFS_DISCOVERY_READ_ONLY.
+---
+ drivers/ufs/core/ufshcd.c | 35 +++++++++++++++++++++++++++++++--
+ 1 file changed, 33 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -9501,7 +9501,10 @@ static int ufshcd_probe_hba(struct ufs_hba *hba, bool init_dev_params)
+ 	ufshcd_print_pwr_info(hba);
+ 
+ 	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		hba->ahit = 0;
+ 		ufshcd_configure_auto_hibern8(hba);
++		dev_info(hba->dev,
++			"ROG5 UFS discovery: auto-hibern8 disabled; link remains active\n");
+ 		return 0;
+ 	}
+ 
+@@ -9562,7 +9565,13 @@ static void ufshcd_async_scan(void *data, async_cookie_t cookie)
+ 	ret = ufshcd_add_lus(hba);
+ 
+ out:
+-	pm_runtime_put_sync(hba->dev);
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		pm_runtime_forbid(hba->dev);
++		dev_info(hba->dev,
++			"ROG5 UFS discovery: host runtime PM forbidden; active reference retained\n");
++	} else {
++		pm_runtime_put_sync(hba->dev);
++	}
+ 
+ 	if (ret)
+ 		dev_err(hba->dev, "%s failed: %d\n", __func__, ret);
+@@ -10291,6 +10301,12 @@ static int __ufshcd_wl_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
+ 	enum ufs_dev_pwr_mode req_dev_pwr_mode;
+ 	enum uic_link_state req_link_state;
+ 
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		dev_warn_once(hba->dev,
++			"ROG5 UFS discovery: WL power transition rejected\n");
++		return -EBUSY;
++	}
++
+ 	hba->pm_op_in_progress = true;
+ 	if (pm_op != UFS_SHUTDOWN_PM) {
+ 		pm_lvl = pm_op == UFS_RUNTIME_PM ?
+@@ -10670,6 +10686,12 @@ static int ufshcd_suspend(struct ufs_hba *hba)
+ {
+ 	int ret;
+ 
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		dev_warn_once(hba->dev,
++			"ROG5 UFS discovery: host power transition rejected\n");
++		return -EBUSY;
++	}
++
+ 	if (!hba->is_powered)
+ 		return 0;
+ 	/*
+@@ -10874,6 +10896,12 @@ static void ufshcd_wl_shutdown(struct scsi_device *sdev)
+ 	hba->shutting_down = true;
+ 	up(&hba->host_sem);
+ 
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		dev_info(hba->dev,
++			"ROG5 UFS discovery: shutdown power transition skipped\n");
++		return;
++	}
++
+ 	/* Turn on everything while shutting down */
+ 	ufshcd_rpm_get_sync(hba);
+ 	scsi_device_quiesce(sdev);
+@@ -11482,7 +11510,13 @@ static int ufshcd_wl_probe(struct scsi_device *sdev)
+ 
+ 	blk_pm_runtime_init(sdev->request_queue, dev);
+ 	pm_runtime_set_autosuspend_delay(dev, 0);
+-	pm_runtime_allow(dev);
++	if (IS_ENABLED(CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY)) {
++		pm_runtime_forbid(dev);
++		dev_info(dev,
++			"ROG5 UFS discovery: WLUN runtime PM forbidden\n");
++	} else {
++		pm_runtime_allow(dev);
++	}
+ 
+ 	return  0;
+ }
+-- 
+2.55.0

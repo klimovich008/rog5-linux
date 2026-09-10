@@ -1,0 +1,142 @@
+--- a/probe-network-root-a660-ucode-allocation-v6.sh
++++ b/probe-network-root-a660-ucode-allocation-v7.sh
+@@ -6,15 +6,15 @@
+ 	exit 1
+ }
+ 
+-[ "${ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6:-}" = 1 ] ||
+-	fail 'set ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V6=1 for one attended probe'
++[ "${ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7:-}" = 1 ] ||
++	fail 'set ALLOW_MAINLINE_A660_UCODE_ALLOCATION_V7=1 for one attended probe'
+ [ "$(id -u)" -eq 0 ] || fail 'attended probe requires root'
+ 
+ release=7.1.4-rog5-a660reg1
+ lower=/.rog5/root-ro
+ module_root=$lower/usr/lib/modules/$release
+ firmware_root=$lower/usr/lib/firmware
+-helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-v6-open
++helper=$lower/usr/local/libexec/rog5-a660-ucode-allocation-v7-open
+ acceptance=$lower/etc/rog5/a660-registration-v3-live.accepted
+ acceptance_sha=8d350d51d8f35583f6ba32f005fc9b9fc035c6f24186c5b1786b2f60a90a0f6f
+ probe_timeout=${ROG5_PROBE_TIMEOUT:-110}
+@@ -284,15 +284,15 @@
+ 		cp "$trace_root/trace" "$trace_snapshot" || trace_status=1
+ 	fi
+ 	printf '\n' >"$trace_root/set_event_pid" || trace_status=1
+-	if [ -d "$trace_root/events/rog5_ucode_v6" ]; then
+-		printf '0\n' >"$trace_root/events/rog5_ucode_v6/enable" ||
++	if [ -d "$trace_root/events/rog5_ucode_v7" ]; then
++		printf '0\n' >"$trace_root/events/rog5_ucode_v7/enable" ||
+ 			trace_status=1
+ 	fi
+ 	for event in $trace_events; do
+-		printf '%s\n' "-:rog5_ucode_v6/$event" \
++		printf '%s\n' "-:rog5_ucode_v7/$event" \
+ 			>>"$trace_root/kprobe_events" || trace_status=1
+ 	done
+-	[ ! -d "$trace_root/events/rog5_ucode_v6" ] || trace_status=1
++	[ ! -d "$trace_root/events/rog5_ucode_v7" ] || trace_status=1
+ 	trace_active=0
+ 	set -e
+ 	[ "$trace_status" -eq 0 ]
+@@ -337,7 +337,7 @@
+ trap disarm_watchdog EXIT
+ trap 'exit 1' HUP INT TERM
+ 
+-state_dir=$(mktemp -d /run/rog5-a660-ucode-allocation-v6.XXXXXX)
++state_dir=$(mktemp -d /run/rog5-a660-ucode-allocation-v7.XXXXXX)
+ trace_snapshot=$state_dir/trace
+ # Positional parameters are intentionally expanded by the child shell.
+ # shellcheck disable=SC2016
+@@ -517,7 +517,7 @@
+ 	post_fail 'tracefs is unavailable'
+ [ ! -s "$trace_root/kprobe_events" ] ||
+ 	post_fail 'an unrelated kprobe event already exists'
+-[ ! -d "$trace_root/events/rog5_ucode_v6" ] ||
++[ ! -d "$trace_root/events/rog5_ucode_v7" ] ||
+ 	post_fail 'stale ucode-allocation trace group exists'
+ for symbol in adreno_load_ucode_only msm_gem_vma_map \
+ 	msm_gem_vma_unmap msm_gem_vma_close msm_gem_unpin_iova \
+@@ -539,38 +539,38 @@
+ 
+ # shellcheck disable=SC2016
+ if ! printf '%s\n' \
+-	'p:rog5_ucode_v6/rog5_ucode_diag msm:adreno_load_ucode_only dev=$arg1:x64' \
+-	'r:rog5_ucode_v6/rog5_ucode_diag_ret msm:adreno_load_ucode_only ret=$retval:s64' \
+-	'p:rog5_ucode_v6/rog5_ucode_vma_map msm:msm_gem_vma_map vma=$arg1:x64' \
+-	'r:rog5_ucode_v6/rog5_ucode_vma_map_ret msm:msm_gem_vma_map ret=$retval:s64' \
+-	'p:rog5_ucode_v6/rog5_ucode_vma_unmap msm:msm_gem_vma_unmap vma=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_vma_close msm:msm_gem_vma_close vma=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_gem_unpin msm:msm_gem_unpin_iova obj=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_gem_free msm:msm_gem_free_object obj=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_kernel_new msm:msm_gem_kernel_new size=$arg2:u64' \
+-	'r:rog5_ucode_v6/rog5_ucode_kernel_new_ret msm:msm_gem_kernel_new ret=$retval:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_get_vaddr msm:msm_gem_get_vaddr obj=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_put_vaddr msm:msm_gem_put_vaddr obj=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_kernel_put msm:msm_gem_kernel_put obj=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_fw_request request_firmware_direct' \
+-	'p:rog5_ucode_v6/rog5_ucode_fw_release release_firmware fw=$arg1:x64' \
+-	'p:rog5_ucode_v6/rog5_ucode_pm_resume msm:msm_gpu_pm_resume' \
+-	'p:rog5_ucode_v6/rog5_ucode_runtime_resume msm:adreno_runtime_resume' \
+-	'p:rog5_ucode_v6/rog5_ucode_a6xx_pm_resume msm:a6xx_pm_resume' \
+-	'p:rog5_ucode_v6/rog5_ucode_gmu_resume msm:a6xx_gmu_resume' \
+-	'p:rog5_ucode_v6/rog5_ucode_hw_init msm:adreno_hw_init' \
+-	'p:rog5_ucode_v6/rog5_ucode_a6xx_hw_init msm:a6xx_hw_init' \
+-	'p:rog5_ucode_v6/rog5_ucode_zap_init msm:a6xx_zap_shader_init' \
+-	'p:rog5_ucode_v6/rog5_ucode_scm_pas qcom_scm_pas_auth_and_reset' \
+-	'p:rog5_ucode_v6/rog5_ucode_scm_aperture qcom_scm_set_gpu_smmu_aperture' \
++	'p:rog5_ucode_v7/rog5_ucode_diag msm:adreno_load_ucode_only dev=$arg1:x64' \
++	'r:rog5_ucode_v7/rog5_ucode_diag_ret msm:adreno_load_ucode_only ret=$retval:s64' \
++	'p:rog5_ucode_v7/rog5_ucode_vma_map msm:msm_gem_vma_map vma=$arg1:x64' \
++	'r:rog5_ucode_v7/rog5_ucode_vma_map_ret msm:msm_gem_vma_map ret=$retval:s64' \
++	'p:rog5_ucode_v7/rog5_ucode_vma_unmap msm:msm_gem_vma_unmap vma=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_vma_close msm:msm_gem_vma_close vma=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_gem_unpin msm:msm_gem_unpin_iova obj=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_gem_free msm:msm_gem_free_object obj=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_kernel_new msm:msm_gem_kernel_new size=$arg2:u64' \
++	'r:rog5_ucode_v7/rog5_ucode_kernel_new_ret msm:msm_gem_kernel_new ret=$retval:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_get_vaddr msm:msm_gem_get_vaddr obj=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_put_vaddr msm:msm_gem_put_vaddr obj=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_kernel_put msm:msm_gem_kernel_put obj=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_unload msm:a6xx_ucode_unload gpu=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_fw_request request_firmware_direct' \
++	'p:rog5_ucode_v7/rog5_ucode_fw_release release_firmware fw=$arg1:x64' \
++	'p:rog5_ucode_v7/rog5_ucode_pm_resume msm:msm_gpu_pm_resume' \
++	'p:rog5_ucode_v7/rog5_ucode_runtime_resume msm:adreno_runtime_resume' \
++	'p:rog5_ucode_v7/rog5_ucode_a6xx_pm_resume msm:a6xx_pm_resume' \
++	'p:rog5_ucode_v7/rog5_ucode_gmu_resume msm:a6xx_gmu_resume' \
++	'p:rog5_ucode_v7/rog5_ucode_hw_init msm:adreno_hw_init' \
++	'p:rog5_ucode_v7/rog5_ucode_a6xx_hw_init msm:a6xx_hw_init' \
++	'p:rog5_ucode_v7/rog5_ucode_zap_init msm:a6xx_zap_shader_init' \
++	'p:rog5_ucode_v7/rog5_ucode_scm_pas qcom_scm_pas_auth_and_reset' \
++	'p:rog5_ucode_v7/rog5_ucode_scm_aperture qcom_scm_set_gpu_smmu_aperture' \
+ 	>>"$trace_root/kprobe_events"
+ then
+ 	post_fail 'ucode-allocation trace registration failed'
+ fi
+-[ -d "$trace_root/events/rog5_ucode_v6" ] ||
++[ -d "$trace_root/events/rog5_ucode_v7" ] ||
+ 	post_fail 'ucode-allocation trace group was not created'
+-printf '1\n' >"$trace_root/events/rog5_ucode_v6/enable" ||
++printf '1\n' >"$trace_root/events/rog5_ucode_v7/enable" ||
+ 	post_fail 'ucode-allocation trace enable failed'
+ trace_active=1
+ 
+@@ -696,7 +696,7 @@
+ then
+ 	post_fail 'kernel GEM new returned NULL or an error pointer'
+ fi
+-printf '4096\n4096\n45056\n' >"$state_dir/kernel-new-sizes.expected"
++printf '4\n4096\n43288\n' >"$state_dir/kernel-new-sizes.expected"
+ cmp "$state_dir/kernel-new-sizes.expected" \
+ 	"$state_dir/kernel-new-sizes" ||
+ 	post_fail 'kernel GEM new sizes are not exact'
+@@ -809,6 +809,6 @@
+ probe_safe=1
+ disarm_watchdog
+ trap - EXIT HUP INT TERM
+-printf 'PASS A660 ucode-allocation-v6 open_invocations=1 open_errno=117 firmware_requests=2 firmware_releases=2 success_markers=1 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent power=0 hfi=0 scm=0 drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
++printf 'PASS A660 ucode-allocation-v7 open_invocations=1 open_errno=117 firmware_requests=2 firmware_releases=2 success_markers=1 maps=3 unmaps=3 closes=3 gem_frees=3 kernel_news=3 kernel_puts=2 wrapper_gets=1 wrapper_puts=2 logical_gets=4 logical_puts=4 gem_snapshot=equal zap=absent power=0 hfi=0 scm=0 drm_fds=0 storage=0 mounts=0 failed_units=0 iommu=2 render=1 thermal_zones=%s thermal_max_mC=%s exact_reprobe=%s driver_override=%s watchdog=disarmed\n' \
+ 	"$thermal_count" "$thermal_max" "$reprobe_attempted" \
+ 	"$driver_override_state"

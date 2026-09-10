@@ -1,0 +1,117 @@
+From: ROG5 Linux maintainers <rog5-linux@invalid>
+Date: Sun, 26 Jul 2026 00:00:00 +0000
+Subject: [PATCH] drm/msm: add one-shot A660 firmware request diagnostic
+
+Add a default-off, read-only module option for the storage-isolated A660
+bring-up environment.  When selected, consume one DRM open attempt, request
+only firmware named by the exact A660 catalog, then deliberately fail the
+open before creating a file context.
+
+Keep ucode mapping, runtime power, GPU hardware initialization, and GMU/HFI
+behind the unchanged normal path, including ZAP/SCM.  Reject every GPU
+except the exact A660.1 chip ID used by the ROG Phone 5 candidate.
+
+Signed-off-by: ROG5 Linux maintainers <rog5-linux@invalid>
+---
+ drivers/gpu/drm/msm/adreno/adreno_device.c | 23 +++++++++++++++++++++++
+ drivers/gpu/drm/msm/msm_drv.c              | 23 +++++++++++++++++++++++
+ drivers/gpu/drm/msm/msm_gpu.h              |  1 +
+ 3 files changed, 47 insertions(+)
+
+diff --git a/drivers/gpu/drm/msm/adreno/adreno_device.c b/drivers/gpu/drm/msm/adreno/adreno_device.c
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -65,6 +65,29 @@ static const struct adreno_info *adreno_info(uint32_t chip_id)
+ 	return NULL;
+ }
+ 
++int adreno_load_fw_only(struct drm_device *dev)
++{
++	struct msm_drm_private *priv = dev->dev_private;
++	struct platform_device *pdev = priv->gpu_pdev;
++	struct msm_gpu *gpu;
++	struct adreno_gpu *adreno_gpu;
++
++	if (!pdev)
++		return -ENODEV;
++
++	gpu = dev_to_gpu(&pdev->dev);
++	if (!gpu)
++		return -ENODEV;
++
++	adreno_gpu = to_adreno_gpu(gpu);
++
++	/* This diagnostic is intentionally limited to the ROG5 A660.1. */
++	if (adreno_gpu->chip_id != 0x06060001)
++		return -ENODEV;
++
++	return adreno_load_fw(adreno_gpu);
++}
++
+ struct msm_gpu *adreno_load_gpu(struct drm_device *dev)
+ {
+ 	struct msm_drm_private *priv = dev->dev_private;
+diff --git a/drivers/gpu/drm/msm/msm_drv.c b/drivers/gpu/drm/msm/msm_drv.c
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -5,6 +5,7 @@
+  * Author: Rob Clark <robdclark@gmail.com>
+  */
+ 
++#include <linux/atomic.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/fault-inject.h>
+ #include <linux/debugfs.h>
+@@ -58,6 +59,12 @@ static bool separate_gpu_kms;
+ MODULE_PARM_DESC(separate_gpu_drm, "Use separate DRM device for the GPU (0=single DRM device for both GPU and display (default), 1=two DRM devices)");
+ module_param(separate_gpu_kms, bool, 0400);
+ 
++static bool firmware_request_only;
++MODULE_PARM_DESC(firmware_request_only, "Request exact A660 firmware once and reject DRM open before GPU power");
++module_param(firmware_request_only, bool, 0400);
++
++static atomic_t firmware_request_only_consumed = ATOMIC_INIT(0);
++
+ DECLARE_FAULT_ATTR(fail_gem_alloc);
+ DECLARE_FAULT_ATTR(fail_gem_iova);
+ 
+@@ -265,10 +272,26 @@ static int context_init(struct drm_device *dev, struct drm_file *file)
+ 
+ static int msm_open(struct drm_device *dev, struct drm_file *file)
+ {
++	int ret;
++
++	if (firmware_request_only) {
++		if (atomic_cmpxchg(&firmware_request_only_consumed, 0, 1))
++			return -EALREADY;
++
++		ret = adreno_load_fw_only(dev);
++		if (ret) {
++			DRM_DEV_ERROR(dev->dev, "A660 firmware-only failed: %d\n", ret);
++			return ret;
++		}
++
++		DRM_DEV_INFO(dev->dev, "A660 firmware-only passed; reject open\n");
++		return -EUCLEAN;
++	}
++
+ 	/* For now, load gpu on open.. to avoid the requirement of having
+ 	 * firmware in the initrd.
+ 	 */
+ 	load_gpu(dev);
+ 
+ 	return context_init(dev, file);
+ }
+diff --git a/drivers/gpu/drm/msm/msm_gpu.h b/drivers/gpu/drm/msm/msm_gpu.h
+--- a/drivers/gpu/drm/msm/msm_gpu.h
++++ b/drivers/gpu/drm/msm/msm_gpu.h
+@@ -708,6 +708,7 @@ void msm_gpu_cleanup(struct msm_gpu *gpu);
+ void msm_gpu_cleanup(struct msm_gpu *gpu);
+ 
+ struct msm_gpu *adreno_load_gpu(struct drm_device *dev);
++int adreno_load_fw_only(struct drm_device *dev);
+ bool adreno_has_gpu(struct device_node *node);
+ void __init adreno_register(void);
+ void __exit adreno_unregister(void);
+-- 
+2.50.1

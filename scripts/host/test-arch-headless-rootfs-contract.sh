@@ -1,0 +1,118 @@
+#!/bin/sh
+set -eu
+
+repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
+packages=$repo/packaging/arch/headless-packages.txt
+package_closure=$repo/packaging/arch/headless-package-closure.txt
+package_closure_verifier=$repo/scripts/device/verify-exact-package-closure.sh
+stage=$repo/scripts/device/stage-arch-headless-rootfs.sh
+verify=$repo/scripts/device/verify-staged-arch-headless-rootfs.sh
+runner=$repo/scripts/device/run-arch-rootfs-stage.sh
+host=$repo/scripts/host/stage-arch-rootfs.sh
+fixture=$repo/configs/ssh/rog5-headless-build-fixture.pub
+sshd_v2=$repo/packaging/arch/10-rog5-sshd-v2.conf
+
+fail() {
+	echo "FAIL $*" >&2
+	exit 1
+}
+
+for path in "$stage" "$verify" "$host"; do
+	if [ ! -f "$path" ] || [ -L "$path" ] || [ ! -x "$path" ]; then
+		fail "missing executable headless-root source: $path"
+	fi
+	bash -n "$path"
+done
+if [ ! -f "$runner" ] || [ -L "$runner" ]; then
+	fail 'missing headless-root chroot runner'
+fi
+bash -n "$runner"
+if [ ! -f "$packages" ] || [ -L "$packages" ]; then
+	fail 'missing headless package profile'
+fi
+for path in "$package_closure" "$package_closure_verifier"; do
+	if [ ! -f "$path" ] || [ -L "$path" ]; then
+		fail "missing exact headless package-closure input: $path"
+	fi
+done
+bash -n "$package_closure_verifier"
+bash "$package_closure_verifier" "$package_closure" "$package_closure" \
+	>/dev/null
+if [ ! -f "$fixture" ] || [ -L "$fixture" ]; then
+	fail 'missing public-only headless build fixture'
+fi
+if [ ! -f "$sshd_v2" ] || [ -L "$sshd_v2" ]; then
+	fail 'missing fixed headless SSH v2 policy'
+fi
+ssh-keygen -l -f "$fixture" >/dev/null
+grep -Eq '^ssh-ed25519 [A-Za-z0-9+/]{68}([[:space:]].*)?$' \
+	"$fixture" ||
+	fail 'public-only fixture does not satisfy the SSH v2 key gate'
+
+requested=$(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' \
+	"$packages")
+[ "$requested" = "attr
+diffutils
+openssh" ] || fail 'headless package inventory changed'
+
+grep -Fq 'headless-v1)' "$host"
+grep -Fq 'headless-ssh-v2)' "$host"
+grep -Fq 'stage-arch-headless-rootfs.sh' "$host"
+grep -Fq 'verify-staged-arch-headless-rootfs.sh' "$host"
+grep -Fq "ARCH_DEVICE_STAGE=\$device_stage" "$host"
+grep -Fq 'firmware_required=0' "$host"
+grep -Fq "\"\${firmware_mount[@]}\"" "$host"
+grep -Fq 'scripts/device/stage-arch-headless-rootfs.sh' "$runner"
+grep -Fq 'systemctl enable sshd.service rog5-server-inhibit.service' "$stage"
+grep -Fq 'systemctl set-default multi-user.target' "$stage"
+grep -Fq 'systemd-networkd.service systemd-networkd.socket' "$stage"
+grep -Fq 'rm -f /etc/ssh/ssh_host_* /var/lib/dbus/machine-id' "$stage"
+grep -Fq 'HEADLESS_BUILD_PROFILE:-headless-ssh-v1' "$stage"
+grep -Fq 'profile=$headless_build_profile' "$stage"
+grep -Fq 'authorized_key_fingerprint=' "$stage"
+grep -Fq 'authorized_key_fingerprint=' "$verify"
+grep -Fq 'EXPECTED_HEADLESS_PROFILE=$headless_build_profile' "$stage"
+grep -Fq 'AuthorizedKeysFile /root/.ssh/authorized_keys' "$sshd_v2"
+grep -Fq 'authorizedkeysfile /root/.ssh/authorized_keys' "$verify"
+grep -Fq "ssh-keygen -l -f \"\$authorized_key\"" "$stage" "$host"
+grep -Fq 'pacman -Rn --noconfirm' "$stage"
+grep -Fq 'find /etc/pacman.d/gnupg -depth -mindepth 1 -delete' "$stage"
+grep -Fq 'generated Pacman trust or signing state' "$verify"
+grep -Fq 'headless-package-closure.txt' "$verify"
+grep -Fq 'verify-exact-package-closure.sh' "$verify"
+grep -Fq 'LC_ALL=C pacman -Q | LC_ALL=C sort >"$actual_packages"' "$verify"
+grep -Fq ': >/var/log/pacman.log' "$stage"
+grep -Fq 'root:root:644:0' "$verify"
+grep -Fq 'rm -f -- /var/cache/ldconfig/aux-cache' "$stage"
+grep -Fq '! -L /var/cache/ldconfig/aux-cache' "$verify"
+grep -Fq 'source_date_epoch=1681862400' "$host"
+grep -Fq 'touch -h -d "@$epoch"' "$host"
+grep -Fq 'LC_ALL=C sort -z >/tmp/root-files' "$host"
+grep -Fq -- '--format paxr' "$host"
+grep -Fq -- '--no-read-sparse' "$host"
+grep -Fq 'podman run --rm --network none' "$host"
+grep -Fq "linux-firmware(\$|-)" "$stage" "$verify"
+grep -Fq 'for command in depmod ip ss sshd systemd-analyze' "$verify"
+grep -Fq 'sshd -T -C user=root,host=localhost,addr=127.0.0.1' "$verify"
+grep -Fq 'PasswordAuthentication no' \
+	"$repo/packaging/arch/10-rog5-sshd.conf"
+
+if grep -Eqi \
+	'chromium|greetd|krdp|kwin|mesa|nodejs|npm|pipewire|plasma|ttyd|vulkan|wireguard|wpa_supplicant|a660_(gmu|sqe)|a660_zap' \
+	"$packages" "$stage"; then
+	fail 'headless root enables a deferred package or GPU firmware'
+fi
+if grep -Eq 'pacman-key|pacman[[:space:]]+-S(y|yu|u)' "$stage"; then
+	fail 'headless root staging initializes mutable package trust or network state'
+fi
+if grep -Eq 'rog5-arch-pacman-cache|target=/stage/var/cache/pacman/pkg' \
+	"$host"; then
+	fail 'headless root staging retains a mutable package cache'
+fi
+if grep -Eq \
+	'fastboot|adb|/dev/(sd|mmcblk|nvme)|mkfs|fsck' \
+	"$packages" "$stage" "$verify" "$runner" "$host"; then
+	fail 'headless root contains a credential, phone action, or storage write'
+fi
+
+echo 'PASS minimal SSH-only Arch root contract'

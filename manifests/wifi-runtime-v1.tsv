@@ -1,0 +1,17 @@
+artifact	size	sha256	role	tracked
+Image-5.4.210-network-root-stage	69372416	8d299b4e106ff536db12d5a1cc87550c3c8a06accaa0fcdc204b9fbe01ad7241	reproducible ASUS 5.4.210 temporary-boot wrapper; compile-only HOLD	no
+config-5.4.210-network-root-stage	185763	df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f	accepted wrapper config with built-in deterministic kexec stage	no
+embedded-kexec-stage-initramfs.cpio.gz	27036281	db7ea8d967366c67cd85a7ef864b1a9193de8ad1f7791eba5da20a40e9733206	credential-free embedded stage; exact copy of standalone stage	no
+build-meta-5.4.210-network-root-stage.txt	442	6c8dc5f1223e1705668b03127b54c09ffd34343e54f87350820b61c47141f264	pinned ASUS source, compiler, config, Image, and stage identities	no
+Image-7.1.4-network-root	40049152	a4edaee34dca66534cf886fd0daa6068273d4fd722b63960d517ef17699af43e	UFS-disabled Linux 7.1.4 WCN6855 target Image; unbooted HOLD	no
+Image.gz-7.1.4-network-root	14751791	53fc7f458ba203089355ad913f599dcf1505bb211e17206d17ab8e279cfce858	compressed copy of exact WCN6855 target Image	no
+config-7.1.4-network-root	239666	79ea41dd4c4e2080923ad0cf855b6d847b09736d82a857546640f0cf26fa5380	UFS-disabled config with opt-in QMP PCIe, power sequencing, MHI, and ath11k	no
+modules-7.1.4-network-root.tar.gz	300648393	e7a2eed91e20742012cc0a1fb893545fc61870ec94ca0ca4add3ee6c41e5300d	deterministic matching Linux 7.1.4 module tree	no
+build-meta-7.1.4-network-root.txt	728	7cd6e03913b9ded82870e4b7f65825db38368374a06adb7b2f3fa090769ef9f9	pinned source, compiler, fragments, config, Images, and modules	no
+sm8350-asus-rog-phone5-recovery.dtb	107038	15acdcd6fad910f105047ef53de08b47cafadbbf94827e123931408d92310d89	schema-validated WCN6855 PCIe candidate over accepted v8 base; unbooted HOLD	no
+rog5-network-root-initramfs.cpio.gz	5840728	4f3077d02c40b5d27ab602562534cacf11324554ae75b0246fd4429bced9bbac	byte-exact accepted v8 target initramfs	no
+rog5-network-root-kexec-stage-initramfs.cpio.gz	27036281	db7ea8d967366c67cd85a7ef864b1a9193de8ad1f7791eba5da20a40e9733206	deterministic credential-free stage with only Image and DTB replaced	no
+boot-5.4.210-network-root-stage.raw.img	96415744	833e6d67a56bf876746d4391c27af0d6f9a244fb9cd566b3a25cd72912ba350a	reproducible Android boot-header-v3 image; temporary boot only; never flash	no
+boot-5.4.210-network-root-stage.avb.img	100663296	1a3358d5c3f90453505c37b4637527701bccbcf0761513636368cf25db0577c4	reproducible unsigned AVB Algorithm NONE image; unbooted HOLD; never flash	no
+rog5-wifi-root-overlay.tar.gz	300650470	4e2de54fad3476c950cfc1a97ad30d38a8d03810e66665747adc85762faa6025	exact modules plus blacklist, unmanaged policy, seal, and enumeration-only probe	no
+SHA256SUMS	1515	9bc99cf80a85388aff7732a0101771c7fcdd18479ba287c62a8dc9b22bd523cd	complete fifteen-artifact candidate manifest; two builds match	no

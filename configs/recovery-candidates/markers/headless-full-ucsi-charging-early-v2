@@ -1,0 +1,4 @@
+format=rog5-target-attempt-marker-v1
+candidate=headless-full-ucsi-charging-early-v2
+predecessor=headless-full-ucsi-charging-early-v1
+purpose=listener-ready-gated-pre-systemd-full-ucsi-charging-discriminator

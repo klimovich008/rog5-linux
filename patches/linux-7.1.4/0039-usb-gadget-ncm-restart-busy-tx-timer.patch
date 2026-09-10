@@ -1,0 +1,42 @@
+Subject: [PATCH] usb: gadget: f_ncm: restart the TX timer if the TX freelist is empty
+
+Backport Cosmin Tanislav's 2026-08-17 fix:
+https://lkml.iu.edu/2608.2/02481.html
+Message-ID: 20260817192638.437798-1-cosmin-gabriel.tanislav.xa@renesas.com
+Fixes: 6d3865f9d41f ("usb: gadget: NCM: Add transmit multi-frame.")
+Driver license and existing copyright: GPL-2.0-or-later.
+
+The networking core retries normal packets on NETDEV_TX_BUSY, but the NCM
+timer calls ndo_start_xmit directly. Ignoring BUSY strands a partial NTB
+until later traffic fills it. Retry at the existing 300us interval; do not
+change successful flushes, teardown, queue sizing or SSH/watchdog policy.
+
+The local callback regression reproduces the lost flush. ROG5 live capture
+shows SYN-ACKs delayed under bulk traffic; the deployed callback's assembly
+ignores the transmit result. Full physical causality and corrected-kernel
+qualification still require a fresh reviewed release. No live hot replacement.
+
+diff --git a/drivers/usb/gadget/function/f_ncm.c b/drivers/usb/gadget/function/f_ncm.c
+--- a/drivers/usb/gadget/function/f_ncm.c
++++ b/drivers/usb/gadget/function/f_ncm.c
+@@ -1148,6 +1148,7 @@ static enum hrtimer_restart ncm_tx_timeout(struct hrtimer *data)
+ {
+ 	struct f_ncm *ncm = container_of(data, struct f_ncm, task_timer);
+ 	struct net_device *netdev = READ_ONCE(ncm->netdev);
++	netdev_tx_t ret;
+ 
+ 	if (netdev) {
+ 		/* XXX This allowance of a NULL skb argument to ndo_start_xmit
+@@ -1158,7 +1159,11 @@ static enum hrtimer_restart ncm_tx_timeout(struct hrtimer *data)
+ 		 *
+ 		 * This will call directly into u_ether's eth_start_xmit()
+ 		 */
+-		netdev->netdev_ops->ndo_start_xmit(NULL, netdev);
++		ret = netdev->netdev_ops->ndo_start_xmit(NULL, netdev);
++		if (ret == NETDEV_TX_BUSY) {
++			hrtimer_forward_now(data, TX_TIMEOUT_NSECS);
++			return HRTIMER_RESTART;
++		}
+ 	}
+ 	return HRTIMER_NORESTART;
+ }

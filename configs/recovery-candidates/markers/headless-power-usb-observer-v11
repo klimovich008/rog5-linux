@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v11
+predecessor=headless-power-usb-observer-v10
+purpose=private-firmware-complete-deferred-ssh-charging-observer

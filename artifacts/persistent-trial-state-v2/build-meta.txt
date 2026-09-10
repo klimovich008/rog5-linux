@@ -1,0 +1,8 @@
+format=rog5-persistent-trial-state-build-v1
+architecture=arm64
+compiler=Alpine-gcc-15.2.0
+source_date_epoch=1681862400
+source_sha256=29a43d0e131894840fe8aa568f3ab538e477b0988ca1deb2cebe9d39f6432f5d
+builder_sha256=ffc0d796c5cf61008a70ca851d727aed492f0f002bb8d9cc127500bf580da03e
+output_sha256=c1aab57b43d32d14714af96f3ee1feb936c363c8a86b4ac0b312ea5d08f69d0d
+output_size=67520

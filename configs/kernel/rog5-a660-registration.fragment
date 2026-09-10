@@ -1,0 +1,21 @@
+# Registration-only A660 diagnostic. Keep MSM DRM manual and GPU-only so the
+# first RSCC/PDC boundary cannot run during built-in coldplug.
+CONFIG_LOCALVERSION="-rog5-a660reg1"
+# CONFIG_LOCALVERSION_AUTO is not set
+
+CONFIG_DRM_MSM=m
+CONFIG_DRM_MSM_GPU_STATE=y
+# CONFIG_DRM_MSM_GPU_SUDO is not set
+# CONFIG_DRM_MSM_VALIDATE_XML is not set
+# CONFIG_DRM_MSM_KMS is not set
+# CONFIG_DRM_MSM_KMS_FBDEV is not set
+# CONFIG_DRM_MSM_MDSS is not set
+# CONFIG_DRM_MSM_MDP4 is not set
+# CONFIG_DRM_MSM_MDP5 is not set
+# CONFIG_DRM_MSM_DPU is not set
+# CONFIG_DRM_MSM_DP is not set
+# CONFIG_DRM_MSM_DSI is not set
+# CONFIG_DRM_MSM_HDMI is not set
+
+# GPUCC is accepted only as the manually loaded, trace-capable module.
+CONFIG_SM_GPUCC_8350=m

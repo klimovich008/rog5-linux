@@ -1,0 +1,530 @@
+{
+  "format": "rog5-core-compatibility-oracle-v1",
+  "profile": "minimal-headless-v1",
+  "status": "offline",
+  "authority": "none",
+  "artifact_manifest": "manifests/artifacts.tsv",
+  "baseline": {
+    "vendor_release": "5.4.210-qgki-perf",
+    "accepted_target_release": "7.1.4-g7a5cef0db479",
+    "accepted_target_state": "network-root-v3-live",
+    "new_root_state": "live-pending"
+  },
+  "evidence": [
+    {
+      "id": "vendor-5.4-core",
+      "path": "test-results/2026-07-22-kernel-20.md",
+      "sha256": "0ae33ecf3facaf7c93eb1308e751e54a9dc44c3a9cbd0473bad9ecdfb564c695",
+      "markers": [
+        "# Kernel 5.4.210 #20 baseline",
+        "Verified kernel, DRM card, DSI connector, panel backlight, touch",
+        "Power-button screen cycle: **PASS**",
+        "Final state: `server`, 60 Hz, `schedutil`, DPMS off."
+      ]
+    },
+    {
+      "id": "vendor-5.4-usb",
+      "path": "test-results/2026-07-23-usb-contract.md",
+      "sha256": "aab4ee9d46c80e2c105b8fab4ec13c39e193f50bebba8169f87f428263bd1ec0",
+      "markers": [
+        "Result: **PASS** for read-only connector discovery",
+        "`usb_1` was configured in device mode at high speed.",
+        "leaves `usb_2` outside the first recovery tier"
+      ]
+    },
+    {
+      "id": "mainline-7.1-v3",
+      "path": "test-results/2026-07-24-network-root-v3-live.md",
+      "sha256": "bf94cf0985af7ce93a2805dbf2faf97590bbf4820dd7010383d30468bfa7782f",
+      "markers": [
+        "Status: **PASS**. The reproducible v3 bundle",
+        "| kernel / PID 1 | exact `7.1.4-g7a5cef0db479` / systemd |",
+        "| physical block devices | 0 |",
+        "| USB | exact point-to-point address and carrier |",
+        "| thermals | 33 zones, 32–37 C |",
+        "| available memory | 10,693 MiB |",
+        "passed strict key-only SSH.",
+        "This closes the v2 orderly-reboot defect."
+      ]
+    },
+    {
+      "id": "mainline-7.1-battery-readonly",
+      "path": "test-results/2026-07-25-network-root-battery-telemetry-live.md",
+      "sha256": "6ef6f26ed8c6b165a3ede8653a8f1ea9262be2b36a4d14121e7ca1ebdee6614b",
+      "markers": [
+        "Result: **passed for read-only SM8350 battery telemetry**.",
+        "This result does not accept charging control",
+        "battery capacity, voltage, current, temperature, and status files were",
+        "Still pending:"
+      ]
+    },
+    {
+      "id": "mainline-7.1-pwrkey",
+      "path": "test-results/2026-07-24-network-root-pmic-input-live.md",
+      "sha256": "96f14dad2456fbf8060f14850a82a5830ae5a8202d1430c834dfc7ed54339c3d",
+      "markers": [
+        "power-key registration,",
+        "input name `pmic_pwrkey`",
+        "operation is recorded as **pending**, not passed.",
+        "Do not map the button to display wake"
+      ]
+    },
+    {
+      "id": "fallback-screen-off",
+      "path": "test-results/2026-07-27-alpine-screen-off-resource-baseline-live.md",
+      "sha256": "29c2beb0917a9a2e7544740a721972a48ea6e397f714102ee3c9a5da6b7cd9f2",
+      "markers": [
+        "Result: **PASS for redacted RAM attribution and a short screen-off",
+        "screen_state=off",
+        "low-overhead aggregate CPU remained below 1%",
+        "not battery-depletion, Linux 7.1"
+      ]
+    },
+    {
+      "id": "mainline-7.1-headless-display-isolation-offline",
+      "path": "test-results/2026-08-09-headless-display-isolation-offline.md",
+      "sha256": "b5dbeb4035b030087fd63abbe5d316621759b10796d80f4cc82e2eb556dd5f8e",
+      "markers": [
+        "Result: **PASS for offline headless display-provider isolation; no phone boot or power claim.**",
+        "The new overlay adds only `status = \"disabled\"` to the exact DISPCC node.",
+        "approved_changes=1",
+        "No panel, GPU, suspend, or battery behavior was tested."
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "vendor-5.4-kernel20-image",
+      "path": "rog5-alpine-5.4.210-modular.img",
+      "size": 43753472,
+      "sha256": "3873641556416473646fc0581d20860b4358f3f6329d530d26773abd6207a589"
+    },
+    {
+      "id": "vendor-5.4-wrapper-config",
+      "path": "artifacts/network-root-v3/config-5.4.210-network-root-stage",
+      "size": 185763,
+      "sha256": "df28224e6e8d2dfc825ac49dc9f6bdeb12bbcdae2dff92cbbf14a8a94177578f"
+    },
+    {
+      "id": "accepted-7.1-config",
+      "path": "artifacts/network-root-v3/config-7.1.4-network-root",
+      "size": 239677,
+      "sha256": "68fb3025f3677a7dc8607396af9fcb17c75398b3285d624f1588d564e03c513f"
+    },
+    {
+      "id": "accepted-7.1-image",
+      "path": "artifacts/network-root-v3/Image-7.1.4-network-root",
+      "size": 40049152,
+      "sha256": "349c41d660a7eaa695098ce3734d8fea584447fd34849503f9a855269b425daf"
+    },
+    {
+      "id": "candidate-7.1-image",
+      "path": "artifacts/network-root-v1/Image-7.1.4-network-root",
+      "size": 40049152,
+      "sha256": "349c41d660a7eaa695098ce3734d8fea584447fd34849503f9a855269b425daf"
+    },
+    {
+      "id": "accepted-isolated-dtb",
+      "path": "artifacts/network-root-v3/sm8350-asus-rog-phone5-recovery.dtb",
+      "size": 102870,
+      "sha256": "86e5cb81191e3de39c9527b838fa03d78744cd9b0d862336f0c1f36a9f534f46"
+    },
+    {
+      "id": "headless-initramfs",
+      "path": "artifacts/headless-network-root-v1/rog5-headless-network-root-initramfs.cpio.gz",
+      "size": 5978369,
+      "sha256": "819bdf88c920057a5d8b511cb13e3adc0f7d8d9cf1a92a7fac087697889bb9b5"
+    }
+  ],
+  "equivalence_sets": [
+    [
+      "accepted-7.1-image",
+      "candidate-7.1-image"
+    ]
+  ],
+  "candidate": {
+    "path": "configs/recovery-candidates/headless-network-root-v1.json",
+    "sha256": "b8a1f70f394e1a13831f46377c193de5f705d1a3768bc6acb6f84cdf13c17f3c",
+    "identity": {
+      "format": "rog5-recovery-candidate-v1",
+      "candidate": "headless-network-root-v1",
+      "status": "offline",
+      "authority": "none",
+      "profile": "network-root-v1",
+      "target_id": "headless-network-root",
+      "target_release": "7.1.4-g7a5cef0db479"
+    },
+    "artifact_links": {
+      "Image": "candidate-7.1-image",
+      "board.dtb": "accepted-isolated-dtb",
+      "initramfs.cpio.gz": "headless-initramfs"
+    }
+  },
+  "integration": {
+    "ci_entrypoint": "scripts/host/test-repository-linux.sh",
+    "ci_test": "scripts/host/test-core-compatibility-oracle.py",
+    "build_verifier": "scripts/device/verify-mainline-network-root-build.sh"
+  },
+  "capabilities": [
+    {
+      "id": "cpu-ram",
+      "phase": "active",
+      "candidate_status": "accepted-ancestry",
+      "baseline_evidence": [
+        "vendor-5.4-core",
+        "mainline-7.1-v3"
+      ],
+      "required_config": {
+        "CONFIG_ARM64": "y",
+        "CONFIG_ARM_QCOM_CPUFREQ_HW": "y",
+        "CONFIG_ARM_PSCI_FW": "y",
+        "CONFIG_BLK_DEV_INITRD": "y",
+        "CONFIG_CGROUPS": "y",
+        "CONFIG_CPU_FREQ": "y",
+        "CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL": "y",
+        "CONFIG_CPU_FREQ_GOV_SCHEDUTIL": "y",
+        "CONFIG_CPU_IDLE": "y",
+        "CONFIG_MEMCG": "y",
+        "CONFIG_SMP": "y"
+      },
+      "minimum_integer_config": {
+        "CONFIG_NR_CPUS": 8
+      },
+      "maximum_integer_config": {},
+      "forbidden_config": [
+        "CONFIG_ARM_PSCI_CPUIDLE_DOMAIN"
+      ],
+      "ci_gates": [
+        "scripts/host/test-qemu-system-smoke-contract.sh",
+        "scripts/device/test-recovery-candidate-dtb-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/device/test-collect-minimal-headless-runtime.sh",
+        "scripts/host/test-verify-minimal-headless-runtime.py"
+      ]
+    },
+    {
+      "id": "read-only-network-root",
+      "phase": "active",
+      "candidate_status": "accepted-ancestry",
+      "baseline_evidence": [
+        "mainline-7.1-v3"
+      ],
+      "required_config": {
+        "CONFIG_LOCKD": "y",
+        "CONFIG_NFS_FS": "y",
+        "CONFIG_NFS_V4": "y",
+        "CONFIG_NFS_V4_2": "y",
+        "CONFIG_OVERLAY_FS": "y",
+        "CONFIG_ROOT_NFS": "y",
+        "CONFIG_SUNRPC": "y",
+        "CONFIG_TMPFS": "y",
+        "CONFIG_TMPFS_XATTR": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [
+        "CONFIG_BLK_DEV_BSG",
+        "CONFIG_BLK_DEV_SD",
+        "CONFIG_CHR_DEV_SG",
+        "CONFIG_PHY_QCOM_QMP_UFS",
+        "CONFIG_RPMB",
+        "CONFIG_SCSI",
+        "CONFIG_SCSI_UFSHCD",
+        "CONFIG_SCSI_UFSHCD_PLATFORM",
+        "CONFIG_SCSI_UFS_QCOM"
+      ],
+      "ci_gates": [
+        "scripts/device/test-network-root-init.sh",
+        "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/device/test-collect-minimal-headless-runtime.sh",
+        "scripts/host/test-verify-minimal-headless-runtime.py"
+      ]
+    },
+    {
+      "id": "usb-ncm-network",
+      "phase": "active",
+      "candidate_status": "accepted-ancestry",
+      "baseline_evidence": [
+        "vendor-5.4-usb",
+        "mainline-7.1-v3"
+      ],
+      "required_config": {
+        "CONFIG_INET": "y",
+        "CONFIG_IP_PNP": "y",
+        "CONFIG_IPV6": "y",
+        "CONFIG_PHY_QCOM_USB_SNPS_FEMTO_V2": "y",
+        "CONFIG_USB_CONFIGFS": "y",
+        "CONFIG_USB_CONFIGFS_NCM": "y",
+        "CONFIG_USB_DWC3": "y",
+        "CONFIG_USB_DWC3_QCOM": "y",
+        "CONFIG_USB_F_NCM": "y",
+        "CONFIG_USB_GADGET": "y",
+        "CONFIG_USB_LIBCOMPOSITE": "y",
+        "CONFIG_USB_SUPPORT": "y",
+        "CONFIG_USB_U_ETHER": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/device/test-recovery-candidate-dtb-contract.sh",
+        "scripts/device/test-network-root-init.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/device/test-collect-minimal-headless-runtime.sh",
+        "scripts/host/test-verify-minimal-headless-runtime.py",
+        "scripts/host/test-pin-minimal-headless-host-key.py"
+      ]
+    },
+    {
+      "id": "init-key-only-ssh",
+      "phase": "active",
+      "candidate_status": "accepted-ancestry",
+      "baseline_evidence": [
+        "vendor-5.4-core",
+        "mainline-7.1-v3"
+      ],
+      "required_config": {
+        "CONFIG_DEVTMPFS": "y",
+        "CONFIG_DEVTMPFS_MOUNT": "y",
+        "CONFIG_IKCONFIG": "y",
+        "CONFIG_IKCONFIG_PROC": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/host/test-arch-headless-rootfs-contract.sh",
+        "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/device/test-collect-minimal-headless-runtime.sh",
+        "scripts/host/test-verify-minimal-headless-runtime.py",
+        "scripts/host/test-pin-minimal-headless-host-key.py",
+        "scripts/host/test-run-minimal-headless-runtime-acceptance.sh"
+      ]
+    },
+    {
+      "id": "watchdog-rollback-reboot",
+      "phase": "active",
+      "candidate_status": "accepted-ancestry",
+      "baseline_evidence": [
+        "mainline-7.1-v3"
+      ],
+      "required_config": {
+        "CONFIG_KEXEC": "y",
+        "CONFIG_MAGIC_SYSRQ": "y",
+        "CONFIG_PM": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/host/test-run-stable-recovery-live-gate.sh",
+        "scripts/host/test-corrected-successor-live-gate-offline.sh",
+        "scripts/device/test-network-root-init.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/device/test-collect-minimal-headless-runtime.sh",
+        "scripts/host/test-verify-minimal-headless-runtime.py",
+        "scripts/host/test-run-minimal-headless-runtime-acceptance.sh"
+      ]
+    },
+    {
+      "id": "thermal-readonly",
+      "phase": "active",
+      "candidate_status": "accepted-ancestry",
+      "baseline_evidence": [
+        "mainline-7.1-v3"
+      ],
+      "required_config": {
+        "CONFIG_ARM_QCOM_CPUFREQ_HW": "y",
+        "CONFIG_CPU_FREQ_THERMAL": "y",
+        "CONFIG_CPU_THERMAL": "y",
+        "CONFIG_QCOM_TSENS": "y",
+        "CONFIG_THERMAL": "y",
+        "CONFIG_THERMAL_DEFAULT_GOV_STEP_WISE": "y",
+        "CONFIG_THERMAL_GOV_STEP_WISE": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/host/test-corrected-headless-candidate-offline-contract.sh",
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/device/test-collect-minimal-headless-runtime.sh",
+        "scripts/host/test-verify-minimal-headless-runtime.py"
+      ]
+    },
+    {
+      "id": "thermal-pmic-critical-path",
+      "phase": "future",
+      "candidate_status": "pending",
+      "baseline_evidence": [],
+      "required_config": {
+        "CONFIG_QCOM_SPMI_TEMP_ALARM": "y",
+        "CONFIG_THERMAL": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/host/test-core-source-dtb-contract.py",
+        "scripts/host/test-network-root-thermal-pmic-candidate.sh"
+      ]
+    },
+    {
+      "id": "thermal-emergency-fallback",
+      "phase": "future",
+      "candidate_status": "pending",
+      "baseline_evidence": [],
+      "required_config": {
+        "CONFIG_THERMAL": "y"
+      },
+      "minimum_integer_config": {
+        "CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS": 10000
+      },
+      "maximum_integer_config": {
+        "CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS": 30000
+      },
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/host/test-core-compatibility-oracle.py"
+      ]
+    },
+    {
+      "id": "display-off-server",
+      "phase": "future",
+      "candidate_status": "baseline-diagnostic-partial",
+      "baseline_evidence": [
+        "vendor-5.4-core",
+        "fallback-screen-off",
+        "mainline-7.1-headless-display-isolation-offline"
+      ],
+      "required_config": {
+        "CONFIG_PM": "y"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/device/test-headless-display-isolation-candidate-dtb.sh",
+        "scripts/device/test-headless-display-isolation-runtime.sh"
+      ]
+    },
+    {
+      "id": "buttons-indicators",
+      "phase": "future",
+      "candidate_status": "baseline-diagnostic-partial",
+      "baseline_evidence": [
+        "vendor-5.4-core",
+        "mainline-7.1-pwrkey"
+      ],
+      "required_config": {
+        "CONFIG_OF": "y",
+        "CONFIG_INPUT": "y",
+        "CONFIG_INPUT_EVDEV": "y",
+        "CONFIG_KEYBOARD_GPIO": "y",
+        "CONFIG_INPUT_PM8941_PWRKEY": "y",
+        "CONFIG_GPIOLIB": "y",
+        "CONFIG_REGMAP_SPMI": "y",
+        "CONFIG_SPMI": "y",
+        "CONFIG_SPMI_MSM_PMIC_ARB": "y",
+        "CONFIG_PINCTRL_QCOM_SPMI_PMIC": "y",
+        "CONFIG_MFD_SPMI_PMIC": "y",
+        "CONFIG_NEW_LEDS": "y",
+        "CONFIG_LEDS_CLASS": "y",
+        "CONFIG_LEDS_QCOM_LPG": "m",
+        "CONFIG_PWM": "y",
+        "CONFIG_POWER_RESET_QCOM_PON": "m"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/device/test-buttons-indicator-candidate-dtb.sh",
+        "scripts/host/test-buttons-indicator-source-contract.py",
+        "scripts/device/test-run-network-root-physical-keys.sh"
+      ]
+    },
+    {
+      "id": "battery-charging",
+      "phase": "future",
+      "candidate_status": "baseline-diagnostic-readonly",
+      "baseline_evidence": [
+        "vendor-5.4-core",
+        "mainline-7.1-battery-readonly"
+      ],
+      "required_config": {
+        "CONFIG_BATTERY_QCOM_BATTMGR": "m",
+        "CONFIG_POWER_SUPPLY": "y",
+        "CONFIG_QCOM_PD_MAPPER": "m",
+        "CONFIG_QCOM_PMIC_GLINK": "m",
+        "CONFIG_QCOM_Q6V5_PAS": "m"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": [
+        "scripts/host/test-headless-battery-series.py",
+        "scripts/host/test-dual-cell-readonly-snapshot.py",
+        "scripts/device/test-qcom-battmgr-asus-cell-voltage-patch.sh",
+        "scripts/device/test-dual-cell-readonly-candidate-dtb.sh"
+      ]
+    },
+    {
+      "id": "suspend-resume",
+      "phase": "future",
+      "candidate_status": "pending",
+      "baseline_evidence": [],
+      "required_config": {
+        "CONFIG_DPM_WATCHDOG": "y",
+        "CONFIG_EXPERT": "y",
+        "CONFIG_PM_DEBUG": "y",
+        "CONFIG_PM_SLEEP": "y",
+        "CONFIG_PM_SLEEP_DEBUG": "y",
+        "CONFIG_SUSPEND": "y"
+      },
+      "minimum_integer_config": {
+        "CONFIG_DPM_WATCHDOG_TIMEOUT": 30,
+        "CONFIG_DPM_WATCHDOG_WARNING_TIMEOUT": 15
+      },
+      "maximum_integer_config": {
+        "CONFIG_DPM_WATCHDOG_TIMEOUT": 30,
+        "CONFIG_DPM_WATCHDOG_WARNING_TIMEOUT": 15
+      },
+      "forbidden_config": [
+        "CONFIG_PM_ADVANCED_DEBUG",
+        "CONFIG_PM_TEST_SUSPEND",
+        "CONFIG_RESET_SIMPLE"
+      ],
+      "ci_gates": [
+        "scripts/host/test-suspend-pm-test-source-contract.py",
+        "scripts/host/test-network-root-suspend-pm-test-candidate.sh",
+        "scripts/device/test-run-network-root-suspend-pm-test-devices.py"
+      ]
+    },
+    {
+      "id": "sensors",
+      "phase": "future",
+      "candidate_status": "pending",
+      "baseline_evidence": [],
+      "required_config": {},
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": []
+    },
+    {
+      "id": "audio",
+      "phase": "future",
+      "candidate_status": "pending",
+      "baseline_evidence": [],
+      "required_config": {
+        "CONFIG_SND_SOC_QCOM": "m"
+      },
+      "minimum_integer_config": {},
+      "maximum_integer_config": {},
+      "forbidden_config": [],
+      "ci_gates": []
+    }
+  ]
+}

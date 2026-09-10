@@ -1,0 +1,4 @@
+format=rog5-recovery-candidate-marker-v1
+candidate=headless-power-usb-observer-v16
+predecessor=headless-power-usb-observer-v15
+purpose=pre-switch-modprobe-policy-charging-observer

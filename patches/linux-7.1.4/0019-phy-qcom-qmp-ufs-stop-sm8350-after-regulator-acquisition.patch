@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROG5 Linux Project <rog5-linux@localhost>
+Date: Wed, 12 Aug 2026 00:00:00 +0000
+Subject: [PATCH] phy: qcom: qmp-ufs: stop SM8350 diagnostic after regulators
+
+Generation 34 proved that loading and registering the QMP-UFS driver is safe
+when its platform device cannot bind.  For the next RAM-only discriminator,
+allow the exact SM8350 device to bind, acquire its clocks and regulator
+handles, apply the existing reviewed regulator loads, then return before DT
+MMIO parsing, clock-provider registration, PHY creation, or PHY-provider
+registration.
+
+This diagnostic-only patch cannot initialize the PHY or expose UFS storage.
+
+Signed-off-by: ROG5 Linux Project <rog5-linux@localhost>
+---
+ drivers/phy/qualcomm/phy-qcom-qmp-ufs.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -2223,6 +2223,13 @@ static int qmp_ufs_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		return ret;
+ 
++	if (of_device_is_compatible(dev->of_node,
++				    "qcom,sm8350-qmp-ufs-phy")) {
++		dev_notice(dev,
++			   "ROG5 QMP-UFS diagnostic: regulator stage complete\n");
++		return 0;
++	}
++
+ 	/* Check for legacy binding with child node. */
+ 	np = of_get_next_available_child(dev->of_node, NULL);
+ 	if (np) {
+-- 
+2.51.0

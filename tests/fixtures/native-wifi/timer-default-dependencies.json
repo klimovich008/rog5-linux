@@ -1,0 +1,10 @@
+{
+  "source": "actual Arch systemd transient-unit properties; inert /usr/bin/true actions only",
+  "original_service_after": ["basic.target", "sysinit.target", "system.slice", "rog5-wifi-timer-test-old.timer", "systemd-journald.socket"],
+  "fixed_service_after": ["system.slice", "systemd-journald.socket", "rog5-wifi-timer-test-fixed.timer"],
+  "fixed_timer_after": [],
+  "fixed_before": ["shutdown.target"],
+  "fixed_conflicts": ["shutdown.target"],
+  "test_units_removed": true,
+  "phone_boot": false
+}
