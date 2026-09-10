@@ -31,9 +31,14 @@ read-only phone probe passes in **2.912 s** on the unchanged V9 boot: all eleven
 installed files, boot-partition hash, source state and storage protections match.
 It binds a fresh inventory to the controller's preflight and replays the retained
 selector decision evidence. This does not prove a physical fallback boot.
-Next: implement the scoped privileged transport bridge, assemble the concrete
-callbacks and complete combined-driver qualification and admission. The complete
-live controller remains pending.
+The twenty-two components are now assembled into an import-only driver. Twelve
+assembly/source-abort integration tests pass in **8.942 s**, using real callback
+and controller receipt flow with explicit simulated phone replies. Preflight uses
+one combined source/route query; both boot paths use the same concrete route
+verifier and distinct owned target/fallback capture checks. The driver checks
+nested evidence paths and bridge interfaces before any source mutation.
+Next: implement the scoped privileged transport bridge and complete target/
+fallback integration and admission. The assembled driver is not admitted live.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 
