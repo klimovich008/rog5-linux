@@ -10,25 +10,22 @@ the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
 Current coordinator handoff: the successor kernel, module and boot-package
-builds are complete; do not restart them. Seventeen controller phases now have
-component implementations: the previous fourteen source/mutation/health bindings
-plus fastboot wait, fallback location and ordinary installed reboot. The complete
-live controller and admission are still pending. The V11 no-Python observation/restoration component
-passes 11 ARM64 fixture cases (45.476 s) and 33 host parser replays (0.005 s).
-Installed-image contents and physical telemetry were synthetic; V11 physical
-verification has not run. The four new health bindings pass 23 boundary tests
-(6.679 s) and three controller integration cases (2.601 s). Their actual
-read-only discovery probe passes on unchanged V9 in 0.333 s. Fastboot/location
-qualification covers 28 cases with a retained receipt-collision failure and
-passing targeted fix; three health-engine rechecks pass. No physical fastboot
-command ran. A passive capture worker now passes 19 isolated lock/TCP/parser/
-deadline/cleanup tests in 0.388 s; its bounded source reader passes on the host
-in 0.140 s. Time, USB/network and source identity inside those tests are explicit
-fixtures. No physical capture or root handoff was exercised. Next: bind this
-worker to the four capture lifecycle phases and implement one RAM boot,
-connect concrete installed-route/capture verifiers and a scoped privileged
-transport bridge. New routes/full capture need host sudo authentication, while
-normal USB SSH works as deck. No receiver or Ready request is pending.
+builds are complete; do not restart them. Twenty-one controller phases now have
+component implementations, including the four capture lifecycle bindings.
+The capture supervisor passes **20 tests in 11.244 s**, using actual child
+processes, process groups, pipes and loopback TCP. Two tests run the real
+controller through target success and a separate fallback recording after late
+failure. Recording time, privilege, USB/network, admission and phone behavior
+are explicit fixtures; this does not qualify a physical capture or boot.
+The supervisor verifies process ownership and the local readiness challenge,
+preserves the original deadline, and checks cleanup records before accepting
+closure. It distinguishes proven prelaunch absence from an uncertain launch.
+The earlier passive worker's 19 isolated tests and bounded host source reader
+remain qualified for their recorded inputs. Next: implement the one RAM boot,
+connect the installed-route verifier and scoped privileged transport bridge,
+then complete driver admission. The complete live controller remains pending.
+New routes/full capture need host sudo authentication, while normal USB SSH
+works as deck. No receiver or Ready request is pending.
 
 Latest actual phone health passes in **2.083 seconds** on unchanged V9 boot
 `7c945aa5-80d0-4af2-aa76-113d68e23ac5`, observed at 50,061.14 seconds uptime.
