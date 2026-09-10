@@ -41,6 +41,39 @@ No module insertion, display activation, reboot, signing or phone write occurred
 
 ## Denial source and build order
 
+Engine preparation has now started in private `engine-build-r1`. The derived
+builder image is `237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee`.
+It reuses the pinned Rust builder and adds thirteen host-tool packages from its
+retained signed apt indexes, with no upgrades or removals. The reviewed plan
+downloads 3.536 MB and estimates 13.5 MB additional installed files; actual
+provisioning passed in 20.003 seconds with approximately 16 MB disk growth.
+The installed-package inventory SHA-256 is
+`5f1aef67d2c9a30b84b72f11efaf77df5c46e5e5008a463371bff9962bba34e2`.
+
+Exact detached Flutter `d728e61e7d835e02c453c70ae9523a40f6c03215` and
+depot_tools `580b4ff3f5cd0dcaa2eacda28cefe0f45320e8f7` checkouts passed in
+22.003 seconds, using approximately 251 MB additional disk. Their origins and
+clean tracked files were verified. The initial runner and its original hashes
+remain retained; review then added exception-safe cleanup and exact source
+checks around dependency synchronization and hook execution.
+
+At the recorded checkpoint, the single dependency-sync container is running,
+limited to 3 GiB RAM with zero additional swap, two CPUs and 512 processes.
+The watchdog admits sync above 80 GiB free, retains a 10 GiB floor, stops after
+60 GiB growth or two hours, and records terminal results. Bootstrap CIPD setup
+is quiet because the pinned upstream wrapper suppresses its output; increasing
+cache size and measured ingress confirm download progress. Twelve bootstrap
+tools have immutable instance pins in the retained manifest. This checkpoint
+does not establish a fully resolved or downloaded closure.
+
+The next continuation must resume the existing job and inspect
+`sync-result.json` and `sync-source-identities.json` before hooks. Flutter,
+Skia, Dart and both depot_tools checkouts must retain exact origins, commits,
+tracked cleanliness and the pinned root DEPS hash before hooks execute and
+afterward. GN generation, engine compilation, AOT assembly and phone deployment
+have not started. No phone action or human readiness request occurred during
+this host preparation.
+
 [Denial v0.3.1 source](https://github.com/denialwm/denial/tree/85b2303e2f09ae7b7b993641f90061a200f03d53)
 contains its mobile shell, selected with `DENIA_SHELL_PROFILE=mobile`.
 The [source lock](../configs/denial/source-lock-v1.json) pins Denial, Flutter,
