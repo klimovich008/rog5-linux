@@ -5,6 +5,34 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Capture supervisor and four controller lifecycle bindings
+
+Private evidence: `successor-live-driver-r1/capture-supervisor-qualification-r2.json`
+and `capture-supervisor-tests-r1`/`capture-supervisor-tests-r2` stdout/stderr.
+The import-only supervisor and four capture callbacks retain the launched
+process, authenticate its live process group/start identity and local challenge,
+record bounded streams, and verify the original recording deadline and ordered
+cleanup events before accepting closure. Target and fallback use separate
+processes and streams. Closing an owned recorder remains available after source
+or admission changes; it grants no new launch authority.
+
+The initial **16 tests PASS in 8.972 s**. Review added explicit handling for a
+launch rejected before any child could start, separate from a launch whose
+outcome is unknown. Missing process state after launch intent cannot establish
+absence. The extended **20 tests PASS in 11.244 s**, including real controller
+success and late-failure recovery with two separate capture children. The failed
+trial stays failed after fallback restoration. Actual processes, pipes, process
+groups, `/proc` identities and loopback challenge/stage traffic were exercised;
+clock, privilege, host network, USB, admission, phone boot and health were
+explicit fixtures. These timings do not represent a physical 1,380-second run.
+
+Review: retained entrypoint and controller tests provide evidence beyond mocked
+callback results. Atomic fixture port publication avoids exposing a partial
+port file. No expensive kernel/module/root build or full CI was repeated.
+Twenty-one phases now have component implementations; `boot_once`, the concrete
+privileged bridge, installed-route verification and full admission remain.
+No phone or host network action, live receiver, claim or Ready request occurred.
+
 ## Passive capture worker and bounded source observation
 
 Private evidence: `successor-live-driver-r1/capture-qualification-r3.json`,

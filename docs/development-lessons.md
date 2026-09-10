@@ -583,6 +583,14 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   deadline. Emit the terminal result after owned cleanup, reserve log capacity
   for that result, and finish cleanup even if the supervising output pipe closes.
 
+- Distinguish rejection before launch from losing a launch result. Only the
+  former can prove there was no child. Retain the owned process before waiting
+  for readiness; verify its exit and cleanup evidence independently of later
+  source/admission checks. Exercise real child pipes and the actual controller
+  recovery sequence, including a separate fallback recorder, before treating
+  callback fixtures as complete preparation. Virtual deadlines qualify protocol
+  handling, not elapsed physical recording time.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
