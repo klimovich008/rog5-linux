@@ -632,6 +632,12 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   and reuse it only while inode, ownership, mode, size and timestamps still match;
   test same-size replacement before claiming the cache is safe.
 
+- A generated diagnostic script can contain another operation's text as inert
+  data. Simulated replies must dispatch by the admitted phase and exact request,
+  not by a substring found anywhere in the script. The full-flow fixture exposed
+  this twice before phone execution. Stop at the first failed scenario while
+  repairing the fixture, retain its receipts, then rerun affected paths.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.

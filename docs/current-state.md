@@ -67,8 +67,23 @@ An actual 29-file input check passes in **0.105 s**, with an unchanged check in
 **0.005 s**. Hashing streams the 128-MiB boot image; changed metadata invalidates
 the cache. An actual entrypoint check refuses both the unregistered claim and
 missing qualification in **0.339 s**. No admission record or physical execution
-directory has been created. Next: qualify the full target/fallback flow, prepare
-the real privilege-boundary probe, then finish the one-use launcher/claim wiring.
+directory has been created.
+Four complete assembled flows now pass in **22.853 s**: target capture plus
+post-capture health, early V11 fallback without target switch-root, late failure
+with a separate full fallback recording, and pre-reboot restoration of both
+exitrd and selection state. These use real callbacks, admission phase/command
+policy, parent fallback transport and recording subprocesses, with explicit
+USB/SSH, privilege, RAM transfer and elapsed-time fixtures. They prove host
+integration behavior, not phone operation.
+The read-only privilege probe passes **nine preparation tests in 0.691 s**.
+An actual attempt stopped in **0.045 s**, before root execution, because sudo
+requires a password. A graphical authentication path using installed ksshaskpass
+is prepared in the same controller process as the detached probes. No password
+dialog has been opened. Request fresh availability for this host dialog; on that
+reply run the prepared `run-privilege-probe.py --authenticate --run-id r2`.
+It performs no phone, network, claim or live-capture action. After actual handoff
+qualification, finish the one-use launcher/claim wiring. No physical Ready
+request or phone recording session is pending.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 
