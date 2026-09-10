@@ -5,6 +5,52 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## V11 observation and restoration component
+
+Private evidence: `successor-live-driver-r1/fallback-observation-tests-r1`,
+`fallback-observation-tests-r2` and `fallback-parser-result-r1.json`.
+The import-only observer uses the exact sealed V11 ARM64 BusyBox/loader and
+physical guard without Python or a state-helper invocation. It snapshots the
+selection and RAM readiness marker, checks the SSH identity service and exact
+installed boot/selector/bundle inventory, and repeats physical and snapshot
+checks before replying. Restoration additionally requires the actual Rust
+transaction records, custody and helper completion output. It does not provide
+transport authentication or controller admission by itself.
+
+The retained signed V11 marker has no attested boot ID. The parser reports that
+limitation explicitly and rejects a stale ID when one is supplied. V11 uses a
+native ext4 lower with a tmpfs overlay, so the successor's persistent-loop-root
+validator is not reused. The future caller must authenticate a fresh V11 boot.
+Restored selection eligibility remains separate from release qualification.
+
+The first ARM64 case failed in **2.625 s** on readiness-file metadata. A bounded
+diagnostic reproduced mode 0444 with the default umask and mode 0400 under the
+runner's `umask 077`. Changing only fixture bootstrap to `cp -p` preserved the
+required mode. The production observer stayed unchanged; original failure,
+runner and both diagnostic outputs remain retained.
+
+**11 ARM64 cases PASS in 45.476 s**, including pending/healthy observation,
+restoration from both states, wrong boot, stale readiness, missing completion,
+wrong exchanged record, wrong installed hash, symlinked readiness and inactive
+SSH identity service. These use the actual V11 tools, a real tmpfs and actual
+Rust stage/restore operations inside isolated fixtures. Device telemetry,
+service state and installed-image contents are synthetic, with an explicit
+regular-file stand-in for the unprivileged fixture's boot block node. Selection
+bytes are unchanged by observation in every case. No phone action occurred.
+
+**33 host parser checks PASS in 0.005 s** by replaying hash-bound retained
+ARM64 outputs. They cover protocol/schema limits, state/purpose contradictions,
+false restoration, changed inventory, corrupt readiness, stale boot IDs and
+legacy/current marker binding. No ARM64 suite rerun was needed. No production
+source changed after qualification, and no physical V11 boot is claimed.
+
+Review: metadata preservation fixed a demonstrated fixture cause without
+relaxing acceptance. Shallow state-path discovery also replaced a recursive
+listing that traversed copied worktrees and emitted over 100,000 tokens; no
+build-speed improvement is inferred. The existing standing feedback loop is
+retained. Kernel/non-cellular work remains first, with complete callback,
+capture/fastboot and privilege integration still pending before a phone trial.
+
 ## Health after full capture and actual V9 reader qualification
 
 Private evidence: `successor-live-driver-r1/health-inputs-r1`,

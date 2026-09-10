@@ -544,6 +544,17 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   value. Compare actual accepted/successor archive members before inheriting a
   hash; do not relax the runtime comparison to accept a template.
 
+- Preserve fixture metadata under the production runner's umask. An ordinary
+  readiness-file copy under `umask 077` changed mode 0444 to 0400 and correctly
+  failed the target guard. Reproducing both umasks identified the fixture cause;
+  `cp -p` fixed it without weakening production metadata checks. Retain the
+  failed output, then reuse qualified raw output for host parser tests instead
+  of repeating unchanged ARM64 execution.
+- Discover retained state paths shallowly before searching a specific subtree.
+  A recursive listing crossed copied worktrees/fixtures and generated more than
+  100,000 output tokens; a depth-two search found the relevant V11 receipts.
+  This avoids excessive discovery output; it is not a measured build speedup.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
