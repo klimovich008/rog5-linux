@@ -5,6 +5,42 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Exact059 A01 integration preparation
+
+One repository-owned artifact profile binds the signed headless wrapper,
+kernel/DT/archive, all 54 modules and their destinations, exact nested metadata,
+packaged PDR exception and prior qualification receipts. Its offline candidate
+record does not extend the boot-claim consumer. The actual inventory passed in
+1.332 seconds at 335.5 MiB with no swap. Profile/helper evidence is retained in
+`a01-profile-r1/result.json` (SHA
+`166e19bd1bc6f708b9465ec06caec7499b6f13359137f04cceb553237df11b45`).
+The 56 composition tests passed normally/optimized before the later bounded-log
+correction; that changed method passed separately in both modes.
+
+The explicit fixture-reference format consumes original shim/kernel/module/kit
+receipts and both shim objects. Its actual loader passed in 0.865 seconds,
+including streamed vmlinux-to-Image equality; no rebuild or VM was needed.
+Receipt `successor-a01-fixture-r1/validation-r1.json` is
+`274c94f129d45643d47c004e6a4f3a5aa0faa1fc06e896ce4657b85d94d6d7e5`.
+Seven fixture tests pass in both modes, and legacy behavior remains unchanged.
+
+The integrated VM helper now separates create/start, persists exact ownership,
+requires terminal non-OOM state and confirmed removal, and closes the client
+process group independently of its leader. Eighteen tests pass, including a
+real surviving-child cleanup fixture without Podman. Host SIGKILL leaves
+ownership evidence unconfirmed and requires reconciliation before retry.
+Review found an unbounded failure-log read in the caller; the corrected caller
+skips failed lifecycle logs and bounds successful reads. Three A01 wiring tests
+retain the real runtime-marker predicate, including missing/duplicate hardware
+markers and failed runtime. The changed VM method and those tests pass in both
+modes in `a01-integration-focused-r1/result.json` (1.762 seconds service time).
+
+Two early focused harness launches did not run tests: systemd used the home
+working directory for a relative script, then Python -I excluded existing
+sibling imports. The canonical absolute Python -B invocation passed. No source
+check, test assertion or import policy was weakened to accommodate the harness.
+Actual integrated A01, new source CI and physical admission remain pending.
+
 ## Final source CI
 
 Full CI passed on `492d8cf22071d5aeacc2e9720440af0c883b463f` in 593.246

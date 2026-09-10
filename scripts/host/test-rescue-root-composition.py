@@ -469,18 +469,26 @@ class CompositionTest(unittest.TestCase):
         M.SEALED.ARCHIVE.add(members,'proc',b'',stat.S_IFDIR|0o755)
         original=copy.deepcopy(members)
         log=''.join('COMPOSITION_'+name+'_PASS\n' for name in M.MARKERS)+'COMPOSITION_VM_COMPLETE\n'
-        def run(command, **kwargs):
-            kwargs['stdout'].write(log.encode())
+        def run(command, path, deadline_seconds):
+            path.write_text(log if not oversized else log+'x'*1025)
+            self.assertEqual(deadline_seconds,70)
             self.assertIn('file=/arch.ext4,format=raw,if=none,id=root,readonly=on',command)
             self.assertIn('--network=none',command)
+            self.assertIn('--memory-swap=1g',command)
             self.assertNotIn('--privileged',command)
             self.assertNotIn('-dtb',command)
-            return subprocess.CompletedProcess(command,0)
-        with tempfile.TemporaryDirectory() as tmp, \
-                patch.object(M.subprocess,'check_output',return_value='a'*64+'\n'), \
-                patch.object(M.subprocess,'run',side_effect=run):
-            result=M.vm_runtime(members,[],Path(tmp)/'kernel',Path(tmp)/'root',Path(tmp),profile='rescue')
-            self.assertEqual(result['status'],'PASS')
+            return dict(exit_code=0,passed=lifecycle_passed)
+        from types import SimpleNamespace
+        for lifecycle_passed,oversized in ((True,False),(False,False),(True,True)):
+            with tempfile.TemporaryDirectory() as tmp, \
+                    patch.object(M.subprocess,'check_output',return_value='a'*64+'\n'), \
+                    patch.object(M,'load',return_value=SimpleNamespace(run=run,LOG_LIMIT=1024)):
+                result=M.vm_runtime(members,[],Path(tmp)/'kernel',Path(tmp)/'root',Path(tmp),
+                                    profile='rescue',expected_image='a'*64)
+                self.assertEqual(result['status'],'PASS' if lifecycle_passed and not oversized else 'FAIL')
+                with self.assertRaisesRegex(ValueError,'QEMU image'):
+                    M.vm_runtime(members,[],Path(tmp)/'kernel',Path(tmp)/'root',Path(tmp),
+                                 profile='rescue',expected_image='b'*64)
         self.assertEqual(members,original)
 
     def test_combined_vm_refuses_missing_duplicate_or_failed_evidence(self):
@@ -1072,6 +1080,148 @@ test "$(stat -c %a /run/rog5-persistent-state-userdata-device)" = 444
             for required in (None, set(), {'unknown'}):
                 with self.assertRaises(ValueError):
                     M.ACCEPTANCE.verify_release(receipt, required_roles=required)
+
+
+class Exact059ProfileTest(unittest.TestCase):
+    """Tiny authenticated fixture identities; no retained payload/root image reads."""
+    def fixture(self):
+        p=M.PROFILES._plain(M.PROFILES.load_profile());members={};nested={};data_by_path={}
+        elf=bytearray(64);elf[:6]=b'\x7fELF\x02\x01';elf[16:20]=b'\x01\x00\xb7\x00'
+        for canonical,row in p['modules'].items():
+            data=bytes(elf)+canonical.encode();row['sha256']=M.hashlib.sha256(data).hexdigest()
+            for dest in row['destinations']:data_by_path[dest['path']]=data
+        tables=[p['loose_members'],p['sealed_members'],*[g['members'] for g in p['groups'].values()]]
+        for table in tables:
+            for name,row in table.items():
+                data=data_by_path.get(name,b'' if stat.S_ISDIR(row['fields'][0]) else name.encode())
+                if name=='rog5-native-wifi/kernel-release':data=(p['release']+'\n').encode()
+                row.update(sha256=M.hashlib.sha256(data).hexdigest(),size=len(data));row['fields'][5]=len(data)
+                members[name]=([7,*row['fields']],data)
+        for name,row in p['nested_files'].items():
+            data=data_by_path.get(name,name.encode());nested[name]=data
+            row.update(sha256=M.hashlib.sha256(data).hexdigest(),size=len(data))
+        p['pdr_exception']['packaged_sha256']=p['modules'][p['pdr_exception']['canonical']]['sha256']
+        M.PROFILES._validate_profile(p)
+        return M.PROFILES._freeze(p),members,nested
+
+    def test_exact_artifact_selection_and_offline_candidate_record(self):
+        p=M.PROFILES.load_profile();a=p['artifacts']
+        args=[a[n]['sha256'] for n in ('kernel','dtb','initramfs')]+[p['release']]
+        self.assertEqual(M.PROFILES.select_profile(*args)['id'],p['id'])
+        for index in range(4):
+            wrong=list(args);wrong[index]='0'*64 if index<3 else '7.1.4-gf17'
+            with self.subTest(index=index),self.assertRaises(ValueError):M.PROFILES.select_profile(*wrong)
+        self.assertIsNone(M.PROFILES.select_profile('0'*64,a['dtb']['sha256'],'1'*64,'7.1.4-gf17'))
+        record=M.PROFILES.candidate_record(p['id'])
+        self.assertEqual(record['ram_boot_image_size'],134217728)
+        self.assertEqual(record['boot_image_sha256'],a['boot_bundle']['sha256'])
+        self.assertIsNone(M.PROFILES.candidate_record('unregistered'))
+        self.assertEqual(M.PROFILES.summary(p)['vm_image_sha256'],p['vm_image_sha256'])
+        with self.assertRaises(TypeError):p['artifacts']['kernel']['sha256']='0'*64
+        with self.assertRaises(TypeError):record['target_bundle']='anything'
+
+    def test_profile_schema_rejects_mapping_status_and_destination_drift(self):
+        original=M.PROFILES._plain(M.PROFILES.load_profile())
+        for fault in ('module-missing','duplicate-name','destination','nested-hash','inert-order','vm-proof','vm-image'):
+            p=copy.deepcopy(original);canonical=next(iter(p['modules']))
+            if fault=='module-missing':p['modules'].pop(canonical)
+            elif fault=='duplicate-name':p['modules'][canonical]['name']='qrtr'
+            elif fault=='destination':p['modules'][canonical]['destinations'][0]['path']='other.ko'
+            elif fault=='nested-hash':p['nested_files'][next(iter(p['nested_files']))]['sha256']='0'*64
+            elif fault=='inert-order':p['groups']['hardware']['module_order'].pop()
+            elif fault=='vm-proof':p['qualification']['baseline']['status']='PASS_PHYSICAL'
+            else:p['vm_image_sha256']='tag:latest'
+            with self.subTest(fault=fault),self.assertRaises(ValueError):M.PROFILES._validate_profile(p)
+
+    def test_complete_54_identity_inventory_and_pending_classification(self):
+        p,members,nested=self.fixture();proof=M.PROFILES.validate_members(members,p,nested)
+        self.assertEqual((proof['unique_modules'],proof['nested_modules'],proof['nested_metadata_files']),(54,37,14))
+        self.assertEqual(proof['physical_probe'],'NOT RUN')
+        core,pending=M.core_module_members(members,'server-runtime',module_profile=p)
+        self.assertEqual(len([n for n in core if n.endswith('.ko')]),19)
+        self.assertEqual(len(pending),14)
+        self.assertTrue(all(row['status']=='NOT RUN' for row in pending))
+        self.assertTrue(all('data' not in row for row in pending))
+        with self.assertRaises(ValueError):M.core_module_members(members,'rescue',module_profile=p)
+        with self.assertRaises(ValueError):M.core_module_members(members,'server-runtime')
+
+    def test_each_inert_group_refuses_missing_extra_hash_and_metadata(self):
+        p,members,_=self.fixture()
+        for group in p['groups'].values():
+            module=group['module_order'][0]
+            for fault in ('missing','extra-module','extra-file','bytes','mode','uid','mtime','link-count'):
+                changed=copy.deepcopy(members)
+                if fault=='missing':changed.pop(module)
+                elif fault.startswith('extra'):
+                    changed[group['prefix']+('extra.ko' if fault=='extra-module' else 'extra')]=changed[module]
+                elif fault=='bytes':changed[module]=(changed[module][0],b'changed')
+                else:
+                    index={'mode':1,'uid':2,'mtime':5,'link-count':4}[fault]
+                    changed[module][0][index]+=1
+                with self.subTest(group=group['prefix'],fault=fault),self.assertRaises(ValueError):
+                    M.PROFILES.validate_loose_members(changed,p)
+        changed=copy.deepcopy(members);changed['unknown-root.ko']=changed[module]
+        with self.assertRaises(ValueError):M.PROFILES.validate_loose_members(changed,p)
+
+    def test_nested_inventory_and_metadata_are_checked_beyond_archive_identity(self):
+        p,members,nested=self.fixture()
+        names=[next(n for n in nested if n.endswith('.ko')),next(n for n in nested if not n.endswith('.ko'))]
+        for name in names:
+            for fault in ('missing','extra','bytes'):
+                changed=dict(nested)
+                if fault=='missing':changed.pop(name)
+                elif fault=='extra':changed[name+'.unexpected']=b'extra'
+                else:changed[name]=b'changed'
+                with self.subTest(name=name,fault=fault),self.assertRaises(ValueError):
+                    M.PROFILES.validate_members(members,p,changed)
+        for name in p['sealed_members']:
+            changed=copy.deepcopy(members);changed[name]=(changed[name][0],b'changed')
+            with self.subTest(sealed=name),self.assertRaises(ValueError):M.PROFILES.validate_members(changed,p,nested)
+
+    def test_new_hardware_order_is_append_only_and_legacy_is_unaffected(self):
+        p,members,_=self.fixture();core=[{'name':'fixture-core'}]
+        for label,fn in [('indicator',M.indicator_module_composition),('display',M.display_module_composition),('hardware',M.hardware_module_composition)]:
+            expected=list(p['groups'][label]['module_order']);rows=[{'name':Path(n).stem} for n in expected]
+            with patch.object(M,'module_metadata_in_order',return_value=rows) as metadata:
+                combined,added=fn(members,core,p['release'],module_profile=p)
+                metadata.assert_called_once_with(members,expected,p['release'],initial=core)
+                self.assertEqual(combined,core+rows);self.assertEqual(added,rows)
+        self.assertEqual(M.hardware_module_composition(members,core,p['release']),(core,[]))
+        with self.assertRaises(ValueError):M.hardware_module_composition(members,core,'wrong',module_profile=p)
+
+    def test_radio_profile_reuses_decoded_tree_and_appends_all_four_extra_roots(self):
+        p,members,nested=self.fixture();release=p['release'];vermagic=release+' SMP preempt mod_unload aarch64'
+        for name,path in [('load-roots.txt','configs/kernel/rog5-native-wifi-module-roots'),('probe-native-wifi.sh','scripts/device/probe-native-wifi.sh')]:
+            M.SEALED.ARCHIVE.add(members,'rog5-native-wifi/'+name,(M.REPO/path).read_bytes(),stat.S_IFREG|0o644)
+        core_members,_=M.core_module_members(members,'server-runtime',module_profile=p)
+        by_name={row['name']:row for row in p['modules'].values()}
+        by_basename={Path(canonical).name:row for canonical,row in p['modules'].items()}
+        core=[dict(name=row['name'],sha256=row['sha256'],vermagic=vermagic) for row in p['modules'].values()
+              if any(d['path'] in core_members for d in row['destinations'])]
+        self.assertEqual(len(core),19)
+        def output(args,**kwargs):
+            if args[0]=='modprobe':
+                name=args[-1].replace('-','_');name='aes' if name=='crypto_aes' else name
+                root=args[args.index('-d')+1];order=[]
+                def visit(module):
+                    row=by_name[module]
+                    for dep in row['depends']:visit(dep.replace('-','_'))
+                    path=next(d['path'] for d in row['destinations'] if d['container']=='radio-tar')
+                    if path not in order:order.append(path)
+                visit(name);return ''.join('insmod '+root+'/'+path+'\n' for path in order)
+            row=by_basename[Path(args[-1]).name]
+            return {'name':row['name'],'depends':','.join(row['depends']),'vermagic':vermagic}[args[2]]+'\n'
+        with patch.object(M,'radio_module_files',return_value=nested) as decoded,patch.object(M.subprocess,'check_output',side_effect=output):
+            augmented,rows,proof=M.radio_module_composition(members,core,release,module_profile=p)
+        decoded.assert_called_once_with(members,release)
+        self.assertEqual(proof['roots'][-4:],list(p['radio_extra_roots']))
+        self.assertEqual(len(rows),41)
+        self.assertEqual(len({r['name'] for r in rows}),41)
+        self.assertEqual(proof['composition_profile']['unique_modules'],54)
+        self.assertTrue(any(n.startswith('a01-radio-modules/') for n in augmented))
+        # Original authenticated members are the input to later inert recognizers.
+        M.PROFILES.validate_loose_members(members,p)
+        with self.assertRaises(ValueError):M.PROFILES.validate_loose_members(augmented,p)
 
 
 if __name__ == '__main__':

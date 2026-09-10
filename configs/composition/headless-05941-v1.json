@@ -1,0 +1,1945 @@
+{
+  "format": "rog5-composition-profile-v1",
+  "id": "kernel-hw-05941-a607a2bb249c918b",
+  "source_revision": "05941d04803f54208da1e9920a81874edc540ca1",
+  "release": "7.1.4-g05941d04803f",
+  "bundle": "kernel-hw-05941-a607a2bb249c918b",
+  "trial_id": "288d38241fb98dcb2dbc73a9b237dda45f4c5525f356e1770c667d2d7ff35ef6",
+  "target_id": "kernel-hw-05941-a607a2bb249c918b",
+  "artifacts": {
+    "kernel": {
+      "sha256": "d9a55229f2e0c67e1b856d13c40715b3ec4e3a6fee2594aaa3947d99639e3fb8",
+      "size": 38191616
+    },
+    "dtb": {
+      "sha256": "eca5c2c343fc4cd5511490be0c17501d69f4027941e268ff3f95da4672c214f4",
+      "size": 107878
+    },
+    "initramfs": {
+      "sha256": "c7d757727bc6e9295087b02d207e90d44e43d9ac2f1ccb345a4923c04365e058",
+      "size": 57774555
+    },
+    "boot_bundle": {
+      "sha256": "d21405d94a9eabc4b6b8e1b7990bf7c9f2aef1da0795a39e94761a5a09ab3fa6",
+      "size": 134217728
+    },
+    "recovery": {
+      "sha256": "2b90620e2c23801a131c48557c120f8bed72ef590c7541676ac1aca1f86f2a6f",
+      "size": 79462144
+    }
+  },
+  "manifest_sha256": "10c3db91eb265ee9edcce8bb812dcfc26230f1396455d3c2d0258e87b23ee26f",
+  "signature_sha256": "7f85bbeecbfba3bfcf1fe7772df529acc93b393cbc87fbc58fbc6b81c882b655",
+  "groups": {
+    "indicator": {
+      "prefix": "rog5-native-wifi/buttons-indicator/",
+      "members": {
+        "rog5-native-wifi/buttons-indicator": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0,
+          "fields": [
+            16877,
+            0,
+            0,
+            2,
+            1681862400,
+            0,
+            0,
+            0,
+            0,
+            0,
+            35,
+            0
+          ]
+        },
+        "rog5-native-wifi/buttons-indicator/led-class-multicolor.ko": {
+          "sha256": "6057bc63b634bea7ba00dcdf52b0a29b9940a1192616377bfde74a3f0dbff8ff",
+          "size": 276624,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            276624,
+            0,
+            0,
+            0,
+            0,
+            59,
+            0
+          ]
+        },
+        "rog5-native-wifi/buttons-indicator/leds-qcom-lpg.ko": {
+          "sha256": "515ac728bd42e22aafae7f26bc2a989e6c86781133ba428ad6e3176bc2739c79",
+          "size": 368424,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            368424,
+            0,
+            0,
+            0,
+            0,
+            52,
+            0
+          ]
+        },
+        "rog5-native-wifi/buttons-indicator/qcom-pbs.ko": {
+          "sha256": "f21fe553977e5925880d0f4f9401d96803200bdbd42bc49dcc191e72fcb24407",
+          "size": 284304,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            284304,
+            0,
+            0,
+            0,
+            0,
+            47,
+            0
+          ]
+        },
+        "rog5-native-wifi/buttons-indicator/qcom-pon.ko": {
+          "sha256": "df60f2199a3dd0bd25fa264247448f75ac4120dd67c1b0e1b79c9a6a55b7d429",
+          "size": 273240,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            273240,
+            0,
+            0,
+            0,
+            0,
+            47,
+            0
+          ]
+        },
+        "rog5-native-wifi/buttons-indicator/rog5-key-indicatord": {
+          "sha256": "410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3",
+          "size": 67520,
+          "fields": [
+            33261,
+            0,
+            0,
+            1,
+            1681862400,
+            67520,
+            0,
+            0,
+            0,
+            0,
+            55,
+            0
+          ]
+        }
+      },
+      "module_order": [
+        "rog5-native-wifi/buttons-indicator/led-class-multicolor.ko",
+        "rog5-native-wifi/buttons-indicator/qcom-pbs.ko",
+        "rog5-native-wifi/buttons-indicator/leds-qcom-lpg.ko",
+        "rog5-native-wifi/buttons-indicator/qcom-pon.ko"
+      ]
+    },
+    "display": {
+      "prefix": "rog5-native-wifi/display-trial/",
+      "members": {
+        "rog5-native-wifi/display-trial": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0,
+          "fields": [
+            16877,
+            0,
+            0,
+            2,
+            1681862400,
+            0,
+            0,
+            0,
+            0,
+            0,
+            31,
+            0
+          ]
+        },
+        "rog5-native-wifi/display-trial/panel-asus-rog5-ams678.ko": {
+          "sha256": "c554d3f54544da2eb71495dc4eeb057f7b39d2de6baedda0316eabb88fdc9dd9",
+          "size": 395528,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            395528,
+            0,
+            0,
+            0,
+            0,
+            57,
+            0
+          ]
+        },
+        "rog5-native-wifi/display-trial/qcom-refgen-regulator.ko": {
+          "sha256": "efc31c29a2fb1e5fc8b5f2d13a82d5903d2334747271f6216fd83d10fac1607c",
+          "size": 338496,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            338496,
+            0,
+            0,
+            0,
+            0,
+            56,
+            0
+          ]
+        }
+      },
+      "module_order": [
+        "rog5-native-wifi/display-trial/qcom-refgen-regulator.ko",
+        "rog5-native-wifi/display-trial/panel-asus-rog5-ams678.ko"
+      ]
+    },
+    "hardware": {
+      "prefix": "rog5-native-wifi/hardware-inert/",
+      "members": {
+        "rog5-native-wifi/hardware-inert": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0,
+          "fields": [
+            16877,
+            0,
+            0,
+            2,
+            1681862400,
+            0,
+            0,
+            0,
+            0,
+            0,
+            32,
+            0
+          ]
+        },
+        "rog5-native-wifi/hardware-inert/gpi.ko": {
+          "sha256": "8fdb109b490cde0556151c20c42c8bd6de11c8015a00449c3babd730726f7509",
+          "size": 436160,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            436160,
+            0,
+            0,
+            0,
+            0,
+            39,
+            0
+          ]
+        },
+        "rog5-native-wifi/hardware-inert/gpucc-sm8350.ko": {
+          "sha256": "93c3a1949e1c3808f76ee69488a852d906dc37e9aecb5ef942299f99598a192f",
+          "size": 306576,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            306576,
+            0,
+            0,
+            0,
+            0,
+            48,
+            0
+          ]
+        },
+        "rog5-native-wifi/hardware-inert/i2c-qcom-geni.ko": {
+          "sha256": "064edd217641d8fa06123dc9dc80f3614a02803eade5b51b6bc59deafc94ea17",
+          "size": 448280,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            448280,
+            0,
+            0,
+            0,
+            0,
+            49,
+            0
+          ]
+        },
+        "rog5-native-wifi/hardware-inert/rog5_fts3658u.ko": {
+          "sha256": "44aaf51419a1bf3769d890193dc01f6b06f3400e6f82014a8e9a18717acb46b2",
+          "size": 373416,
+          "fields": [
+            33188,
+            0,
+            0,
+            1,
+            1681862400,
+            373416,
+            0,
+            0,
+            0,
+            0,
+            49,
+            0
+          ]
+        }
+      },
+      "module_order": [
+        "rog5-native-wifi/hardware-inert/gpucc-sm8350.ko",
+        "rog5-native-wifi/hardware-inert/gpi.ko",
+        "rog5-native-wifi/hardware-inert/i2c-qcom-geni.ko",
+        "rog5-native-wifi/hardware-inert/rog5_fts3658u.ko"
+      ]
+    }
+  },
+  "loose_members": {
+    "rog5-native-wifi/buttons-indicator/led-class-multicolor.ko": {
+      "sha256": "6057bc63b634bea7ba00dcdf52b0a29b9940a1192616377bfde74a3f0dbff8ff",
+      "size": 276624,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        276624,
+        0,
+        0,
+        0,
+        0,
+        59,
+        0
+      ]
+    },
+    "rog5-native-wifi/buttons-indicator/leds-qcom-lpg.ko": {
+      "sha256": "515ac728bd42e22aafae7f26bc2a989e6c86781133ba428ad6e3176bc2739c79",
+      "size": 368424,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        368424,
+        0,
+        0,
+        0,
+        0,
+        52,
+        0
+      ]
+    },
+    "rog5-native-wifi/buttons-indicator/qcom-pbs.ko": {
+      "sha256": "f21fe553977e5925880d0f4f9401d96803200bdbd42bc49dcc191e72fcb24407",
+      "size": 284304,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        284304,
+        0,
+        0,
+        0,
+        0,
+        47,
+        0
+      ]
+    },
+    "rog5-native-wifi/buttons-indicator/qcom-pon.ko": {
+      "sha256": "df60f2199a3dd0bd25fa264247448f75ac4120dd67c1b0e1b79c9a6a55b7d429",
+      "size": 273240,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        273240,
+        0,
+        0,
+        0,
+        0,
+        47,
+        0
+      ]
+    },
+    "rog5-native-wifi/display-trial/panel-asus-rog5-ams678.ko": {
+      "sha256": "c554d3f54544da2eb71495dc4eeb057f7b39d2de6baedda0316eabb88fdc9dd9",
+      "size": 395528,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        395528,
+        0,
+        0,
+        0,
+        0,
+        57,
+        0
+      ]
+    },
+    "rog5-native-wifi/display-trial/qcom-refgen-regulator.ko": {
+      "sha256": "efc31c29a2fb1e5fc8b5f2d13a82d5903d2334747271f6216fd83d10fac1607c",
+      "size": 338496,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        338496,
+        0,
+        0,
+        0,
+        0,
+        56,
+        0
+      ]
+    },
+    "rog5-native-wifi/hardware-inert/gpi.ko": {
+      "sha256": "8fdb109b490cde0556151c20c42c8bd6de11c8015a00449c3babd730726f7509",
+      "size": 436160,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        436160,
+        0,
+        0,
+        0,
+        0,
+        39,
+        0
+      ]
+    },
+    "rog5-native-wifi/hardware-inert/gpucc-sm8350.ko": {
+      "sha256": "93c3a1949e1c3808f76ee69488a852d906dc37e9aecb5ef942299f99598a192f",
+      "size": 306576,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        306576,
+        0,
+        0,
+        0,
+        0,
+        48,
+        0
+      ]
+    },
+    "rog5-native-wifi/hardware-inert/i2c-qcom-geni.ko": {
+      "sha256": "064edd217641d8fa06123dc9dc80f3614a02803eade5b51b6bc59deafc94ea17",
+      "size": 448280,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        448280,
+        0,
+        0,
+        0,
+        0,
+        49,
+        0
+      ]
+    },
+    "rog5-native-wifi/hardware-inert/rog5_fts3658u.ko": {
+      "sha256": "44aaf51419a1bf3769d890193dc01f6b06f3400e6f82014a8e9a18717acb46b2",
+      "size": 373416,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        373416,
+        0,
+        0,
+        0,
+        0,
+        49,
+        0
+      ]
+    },
+    "rog5-native-wifi/rog5-pmic-pon-readonly.ko": {
+      "sha256": "517356431c782185d8be43d1c976459465c16e6b2da12c21bc3dd62c178c679e",
+      "size": 268800,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        268800,
+        0,
+        0,
+        0,
+        0,
+        43,
+        0
+      ]
+    },
+    "rog5-native-wifi/rog5-s12-ufs-vote.ko": {
+      "sha256": "940dafe4107a69b039dc408655cf4ac2581e018b4348f702d9c8905ee58d833c",
+      "size": 343848,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        343848,
+        0,
+        0,
+        0,
+        0,
+        38,
+        0
+      ]
+    },
+    "rog5-native-wifi/rog5-wifi-activate.ko": {
+      "sha256": "1d3bedb63441f6c5ba0a4a350ed341d7a9f68d7bf7465a96e39a63a42fd9a461",
+      "size": 268848,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        268848,
+        0,
+        0,
+        0,
+        0,
+        39,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/pdr_interface.ko": {
+      "sha256": "7fef279c8a6a1976746211dac2438439e73c3a933ac33deb43945577c2d67253",
+      "size": 194840,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        194840,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/pmic_glink.ko": {
+      "sha256": "76d4f34460126f849da553749df2ed16b9d7e1e067c884319bee4f36a60f7ba0",
+      "size": 303032,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        303032,
+        0,
+        0,
+        0,
+        0,
+        37,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_battmgr.ko": {
+      "sha256": "1fda9014575974e49f65e15c6ff2f35b6be0ba10f1d9d7c561517821181db29c",
+      "size": 343464,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        343464,
+        0,
+        0,
+        0,
+        0,
+        39,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_common.ko": {
+      "sha256": "849d6ddabd45e9e0c2d221d2fa12801d6c75c3c3728f380c409a39f32a508357",
+      "size": 312208,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        312208,
+        0,
+        0,
+        0,
+        0,
+        38,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_glink_smem.ko": {
+      "sha256": "ad885edda9116f9bd1273df6e69210e7e0f36df5a41c0ad4e4655f8980fe2288",
+      "size": 292928,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        292928,
+        0,
+        0,
+        0,
+        0,
+        42,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_pd_mapper.ko": {
+      "sha256": "fc49457ac537a1b14b48b6d01be52be879f23ec19d13ce26e7a45cd2eabdfe65",
+      "size": 321096,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        321096,
+        0,
+        0,
+        0,
+        0,
+        41,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_pdr_msg.ko": {
+      "sha256": "b8841873261ac88c9af8e382ba6224dc424d9cb97ae0a90444462565e566132d",
+      "size": 149248,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        149248,
+        0,
+        0,
+        0,
+        0,
+        39,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_pil_info.ko": {
+      "sha256": "196b3dfa0b6ef079a76d74733de1c2b2821fd0f025c7e80b1960353144b490fb",
+      "size": 252416,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        252416,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_q6v5.ko": {
+      "sha256": "5cdf3fdc967adac5266694d99227d8e090c0aa75fc4fd7175a2452b0c6146bb8",
+      "size": 295328,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        295328,
+        0,
+        0,
+        0,
+        0,
+        36,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qcom_q6v5_pas.ko": {
+      "sha256": "3af3c27fd4f5f904c9b9e8a796f250fe0455efe8fe8619099f4ba9845fb7a336",
+      "size": 451504,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        451504,
+        0,
+        0,
+        0,
+        0,
+        40,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qrtr-smd.ko": {
+      "sha256": "c78d16162b9c32b45bff175af23655e8313155d379a4e1e719ea97381bbbf59e",
+      "size": 297232,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        297232,
+        0,
+        0,
+        0,
+        0,
+        35,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/qrtr.ko": {
+      "sha256": "952b078be293801c72dc5896d869c126ab83cbcb84b255021176390fb328a496",
+      "size": 1020336,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        1020336,
+        0,
+        0,
+        0,
+        0,
+        31,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/typec.ko": {
+      "sha256": "e2fd4225107e85dd220bb589e5e5608c3b65ee623f9c43e606d996d3428a2f6d",
+      "size": 1210504,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        1210504,
+        0,
+        0,
+        0,
+        0,
+        32,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/typec_ucsi.ko": {
+      "sha256": "bebcac04da0926c80a4dad653c24b6be2e1ff2feeb661bb80b7720a541fb3165",
+      "size": 1207256,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        1207256,
+        0,
+        0,
+        0,
+        0,
+        37,
+        0
+      ]
+    },
+    "rog5-power-usb-modules/ucsi_glink.ko": {
+      "sha256": "00c8fec120aeec661cdf4f8962d442383cc46b196193843e31debddec8a937b6",
+      "size": 324128,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        324128,
+        0,
+        0,
+        0,
+        0,
+        37,
+        0
+      ]
+    },
+    "rog5-ufs-modules/phy-qcom-qmp-ufs.ko": {
+      "sha256": "4292ea36612350a0c6290b4f3a68d6e90861f83f5fa8827b4b2cc4af96b51dcf",
+      "size": 480464,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        480464,
+        0,
+        0,
+        0,
+        0,
+        37,
+        0
+      ]
+    },
+    "rog5-ufs-modules/ufs-qcom.ko": {
+      "sha256": "0280e78e723c7b8885e46eac0d8f97b172bfb6bd1c0ba728539cb2f64f19deac",
+      "size": 597768,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        597768,
+        0,
+        0,
+        0,
+        0,
+        29,
+        0
+      ]
+    },
+    "rog5-ufs-modules/ufshcd-core.ko": {
+      "sha256": "fc9c5b2fa882454cc6586e823c3cce3a7c5846edf756ea571ae6872f8e8143d8",
+      "size": 2674064,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        2674064,
+        0,
+        0,
+        0,
+        0,
+        32,
+        0
+      ]
+    },
+    "rog5-ufs-modules/ufshcd-pltfrm.ko": {
+      "sha256": "cb53db1e206d953efde330921feedc682559c54bf1c18904b5197b24a8946602",
+      "size": 401416,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        401416,
+        0,
+        0,
+        0,
+        0,
+        34,
+        0
+      ]
+    }
+  },
+  "nested_files": {
+    "lib/modules/7.1.4-g05941d04803f/kernel/crypto/aes.ko": {
+      "sha256": "49b03edfd16c916f0c5b3f89dc13d5e439faf12e39a03de777ff6d395465a555",
+      "size": 265976
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/crypto/ccm.ko": {
+      "sha256": "88f0bf5a49e8429e508097c1e074589acdc46d7b4eef5f43d9643b56a7b237bc",
+      "size": 327520
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/crypto/cmac.ko": {
+      "sha256": "2de9beb57553311a7d9843e12082fd902d12d9d9e92180a30758215e177b9198",
+      "size": 267832
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/crypto/ctr.ko": {
+      "sha256": "90ab3ae5508ee137639ff401f43624e8c878f58a1ef8c6e9eefd2a855f270b96",
+      "size": 270848
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/crypto/gcm.ko": {
+      "sha256": "ba68cbcad71312b8e286584817cca42987120bd03fa36eef7e8254b483b86f90",
+      "size": 330504
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/crypto/sha256.ko": {
+      "sha256": "aca6716be44c7e4303ae64951cf897f84d7abefa8c311ec185ceade0369d05c0",
+      "size": 281056
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/bus/mhi/host/mhi.ko": {
+      "sha256": "849cb8db17d1750ed87f0434970ecfc81f933d553ceeb4bcad9243df2683341d",
+      "size": 1347480
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/bus/mhi/host/mhi_pci_generic.ko": {
+      "sha256": "43735c94b2123d3d639134103a1d4b7944cc21c163358798c114174e21af7f62",
+      "size": 410328
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath.ko": {
+      "sha256": "4aae0eb60261848ce912d9c91fb1f1f33292f006a364d401877536cd8bb585be",
+      "size": 1936760
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath11k/ath11k.ko": {
+      "sha256": "603f1e49d89680ec27dab86ae1f9bc423ae570c2dc4d8e6cca5fe92587b8d5b7",
+      "size": 11693712
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath11k/ath11k_ahb.ko": {
+      "sha256": "1924a2d5e68892d0e75cb67453d90370ced33993f81ff6c82472b67ea2409843",
+      "size": 768112
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath11k/ath11k_pci.ko": {
+      "sha256": "292548a9f5471e739401328678207c71ac0ba138a964c7f565244159185d666e",
+      "size": 1179112
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.ko": {
+      "sha256": "12cbc597c9a331e7b2bbbbc15e75b91582d44c357d2ef32d13a9b7ddc02a6164",
+      "size": 277160
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/phy/qualcomm/phy-qcom-qmp-pcie.ko": {
+      "sha256": "a309db3c57c5fbc61571aedb6a2dfbcba2d3fa36ad3f6018fcb04c270c74a6ef",
+      "size": 705744
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/power/sequencing/pwrseq-qcom-wcn.ko": {
+      "sha256": "c495ba6dafd5e8ebdb1445780676a77a4dae6d0c387235fd2fdc495cd2785fbd",
+      "size": 363872
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/power/supply/qcom_battmgr.ko": {
+      "sha256": "1fda9014575974e49f65e15c6ff2f35b6be0ba10f1d9d7c561517821181db29c",
+      "size": 343464
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_common.ko": {
+      "sha256": "849d6ddabd45e9e0c2d221d2fa12801d6c75c3c3728f380c409a39f32a508357",
+      "size": 312208
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_pil_info.ko": {
+      "sha256": "196b3dfa0b6ef079a76d74733de1c2b2821fd0f025c7e80b1960353144b490fb",
+      "size": 252416
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_q6v5.ko": {
+      "sha256": "5cdf3fdc967adac5266694d99227d8e090c0aa75fc4fd7175a2452b0c6146bb8",
+      "size": 295328
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_q6v5_pas.ko": {
+      "sha256": "3af3c27fd4f5f904c9b9e8a796f250fe0455efe8fe8619099f4ba9845fb7a336",
+      "size": 451504
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/rpmsg/qcom_glink_smem.ko": {
+      "sha256": "ad885edda9116f9bd1273df6e69210e7e0f36df5a41c0ad4e4655f8980fe2288",
+      "size": 292928
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/pdr_interface.ko": {
+      "sha256": "7fef279c8a6a1976746211dac2438439e73c3a933ac33deb43945577c2d67253",
+      "size": 194840
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/pmic_glink.ko": {
+      "sha256": "76d4f34460126f849da553749df2ed16b9d7e1e067c884319bee4f36a60f7ba0",
+      "size": 303032
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/qcom_pd_mapper.ko": {
+      "sha256": "fc49457ac537a1b14b48b6d01be52be879f23ec19d13ce26e7a45cd2eabdfe65",
+      "size": 321096
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/qcom_pdr_msg.ko": {
+      "sha256": "b8841873261ac88c9af8e382ba6224dc424d9cb97ae0a90444462565e566132d",
+      "size": 149248
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/usb/typec/typec.ko": {
+      "sha256": "e2fd4225107e85dd220bb589e5e5608c3b65ee623f9c43e606d996d3428a2f6d",
+      "size": 1210504
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/usb/typec/ucsi/typec_ucsi.ko": {
+      "sha256": "bebcac04da0926c80a4dad653c24b6be2e1ff2feeb661bb80b7720a541fb3165",
+      "size": 1207256
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/drivers/usb/typec/ucsi/ucsi_glink.ko": {
+      "sha256": "00c8fec120aeec661cdf4f8962d442383cc46b196193843e31debddec8a937b6",
+      "size": 324128
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/lib/crypto/libarc4.ko": {
+      "sha256": "538de927c8c0d6eb21a9f33cbb2095d5ccee6d434893604c71bfa50343eae790",
+      "size": 142672
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/lib/crypto/libgf128hash.ko": {
+      "sha256": "0ca38a7ba4c345a0b640eb11e9a431c3354441ac08f3014359716b61596e9728",
+      "size": 277632
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/net/mac80211/mac80211.ko": {
+      "sha256": "34e85ba7963283a53ce54b85bf933697c5b4ea742272f93aeab67b4131420ad1",
+      "size": 22943152
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/net/qrtr/qrtr-mhi.ko": {
+      "sha256": "ec9102fae7aeda58f7e64ee0fb35acd293deb7efd03bea4b7f166a392f5299d9",
+      "size": 521968
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/net/qrtr/qrtr-smd.ko": {
+      "sha256": "c78d16162b9c32b45bff175af23655e8313155d379a4e1e719ea97381bbbf59e",
+      "size": 297232
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/net/qrtr/qrtr.ko": {
+      "sha256": "952b078be293801c72dc5896d869c126ab83cbcb84b255021176390fb328a496",
+      "size": 1020336
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/net/rfkill/rfkill-gpio.ko": {
+      "sha256": "ec6fe0ee7b637ea75b6b14bbc7c4fe28b9c60482e2e1eeedab9f86289e31df89",
+      "size": 278432
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/net/rfkill/rfkill.ko": {
+      "sha256": "27e5d1d5fc0eae0432f546184ad75a09aee2322c76d6e6ec6740e44ed55bb773",
+      "size": 523536
+    },
+    "lib/modules/7.1.4-g05941d04803f/kernel/net/wireless/cfg80211.ko": {
+      "sha256": "14cccdceea0379d092f69a03f8537e5feb1667dca741d9405bfc39ae78de92db",
+      "size": 12190752
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.alias": {
+      "sha256": "8cd5bfc340a640fb4b0303224f947ae432af642a02c79c511defe6075ccb4e49",
+      "size": 19140
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.alias.bin": {
+      "sha256": "123ca9a019179e71f6b13040de72bc6109026d272e01c2321f65b7e69af4a71f",
+      "size": 18092
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.builtin": {
+      "sha256": "ac2f022f3621b21c468256799d9810f449194f289035a28257df0ecf6ffa8dd7",
+      "size": 26054
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.builtin.alias.bin": {
+      "sha256": "844607816ef75c9a6fc7183689915c3a6b23f71c0c249bb3e46c08fe9aaf6315",
+      "size": 221904
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.builtin.bin": {
+      "sha256": "584f41625f3cda2f3eb96a34831b07120487a8c49bc151d2e366dd98166deea8",
+      "size": 26857
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.builtin.modinfo": {
+      "sha256": "81e8f7e246daa5678afbace7c808886044596c53ad4b69a022802f5063af8651",
+      "size": 364508
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.dep": {
+      "sha256": "251ff9445d9c89374f3ebc1726a7883f31e36557b2223fd72421b809e6975f8e",
+      "size": 2960
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.dep.bin": {
+      "sha256": "7f44506c73a97c3e324351f79739112ac95d5f5d364e16ae8e8b5457a2f040eb",
+      "size": 4257
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.devname": {
+      "sha256": "7935a466d1107fb1765a2c70e4f97a6e68f94ff28b92958e1eb75b0bf3de5221",
+      "size": 74
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.order": {
+      "sha256": "cb52a7efbb32d4c02e4249471475fa87a3a59af66c316651c52b1ae445cd8b63",
+      "size": 1356
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.softdep": {
+      "sha256": "ac2de753255c506934be29e69261f1485f51ee9cf9c2bf467bcc0c4cf95f8713",
+      "size": 55
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.symbols": {
+      "sha256": "4cdb06a748713e49befb12ab74cbeb6e4b8f70799037551451ff3d12cc369616",
+      "size": 27633
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.symbols.bin": {
+      "sha256": "68349010f83e4cecdb890330aec009b1e4db8b80e097956d86d336d8e1179a8e",
+      "size": 32239
+    },
+    "lib/modules/7.1.4-g05941d04803f/modules.weakdep": {
+      "sha256": "a1fffe1059d8150b5d402b3f284f507025a8d4b5881810cb17b3fda8b8ab9304",
+      "size": 55
+    }
+  },
+  "sealed_members": {
+    "rog5-native-wifi/kernel-release": {
+      "sha256": "df8e939e8c79b516a873ea31f160617c6e6ffc7cebbb2034eb6502c73c2f2c00",
+      "size": 20,
+      "fields": [
+        33060,
+        0,
+        0,
+        1,
+        1681862400,
+        20,
+        0,
+        0,
+        0,
+        0,
+        32,
+        0
+      ]
+    },
+    "rog5-native-wifi/boot-files.sha256": {
+      "sha256": "5a22d61683e9d9a944ab09e5ac38ac8ee7a10a92d2f999d0c2decc7495f94cac",
+      "size": 6450,
+      "fields": [
+        33060,
+        0,
+        0,
+        1,
+        1681862400,
+        6450,
+        0,
+        0,
+        0,
+        0,
+        35,
+        0
+      ]
+    },
+    "rog5-native-wifi/module-files.sha256": {
+      "sha256": "339fb530a3ea69f228ecbfb5a1749c58dd1939ddd343cde325195fd87987fbca",
+      "size": 6598,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        6598,
+        0,
+        0,
+        0,
+        0,
+        37,
+        0
+      ]
+    },
+    "rog5-native-wifi/module-root-complete.tar.gz": {
+      "sha256": "b2b0a7ec7ac6b95f55569b9b20b3fe1345fb9dad2da2516b095dd1e596db1cd9",
+      "size": 22604537,
+      "fields": [
+        33188,
+        0,
+        0,
+        1,
+        1681862400,
+        22604537,
+        0,
+        0,
+        0,
+        0,
+        45,
+        0
+      ]
+    }
+  },
+  "modules": {
+    "crypto/aes.ko": {
+      "name": "aes",
+      "sha256": "49b03edfd16c916f0c5b3f89dc13d5e439faf12e39a03de777ff6d395465a555",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/crypto/aes.ko"
+        }
+      ]
+    },
+    "crypto/ccm.ko": {
+      "name": "ccm",
+      "sha256": "88f0bf5a49e8429e508097c1e074589acdc46d7b4eef5f43d9643b56a7b237bc",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/crypto/ccm.ko"
+        }
+      ]
+    },
+    "crypto/cmac.ko": {
+      "name": "cmac",
+      "sha256": "2de9beb57553311a7d9843e12082fd902d12d9d9e92180a30758215e177b9198",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/crypto/cmac.ko"
+        }
+      ]
+    },
+    "crypto/ctr.ko": {
+      "name": "ctr",
+      "sha256": "90ab3ae5508ee137639ff401f43624e8c878f58a1ef8c6e9eefd2a855f270b96",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/crypto/ctr.ko"
+        }
+      ]
+    },
+    "crypto/gcm.ko": {
+      "name": "gcm",
+      "sha256": "ba68cbcad71312b8e286584817cca42987120bd03fa36eef7e8254b483b86f90",
+      "depends": [
+        "libgf128hash"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/crypto/gcm.ko"
+        }
+      ]
+    },
+    "crypto/sha256.ko": {
+      "name": "sha256",
+      "sha256": "aca6716be44c7e4303ae64951cf897f84d7abefa8c311ec185ceade0369d05c0",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/crypto/sha256.ko"
+        }
+      ]
+    },
+    "drivers/bus/mhi/host/mhi.ko": {
+      "name": "mhi",
+      "sha256": "849cb8db17d1750ed87f0434970ecfc81f933d553ceeb4bcad9243df2683341d",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/bus/mhi/host/mhi.ko"
+        }
+      ]
+    },
+    "drivers/bus/mhi/host/mhi_pci_generic.ko": {
+      "name": "mhi_pci_generic",
+      "sha256": "43735c94b2123d3d639134103a1d4b7944cc21c163358798c114174e21af7f62",
+      "depends": [
+        "mhi"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/bus/mhi/host/mhi_pci_generic.ko"
+        }
+      ]
+    },
+    "drivers/clk/qcom/gpucc-sm8350.ko": {
+      "name": "gpucc_sm8350",
+      "sha256": "93c3a1949e1c3808f76ee69488a852d906dc37e9aecb5ef942299f99598a192f",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/hardware-inert/gpucc-sm8350.ko"
+        }
+      ]
+    },
+    "drivers/dma/qcom/gpi.ko": {
+      "name": "gpi",
+      "sha256": "8fdb109b490cde0556151c20c42c8bd6de11c8015a00449c3babd730726f7509",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/hardware-inert/gpi.ko"
+        }
+      ]
+    },
+    "drivers/gpu/drm/panel/panel-asus-rog5-ams678.ko": {
+      "name": "panel_asus_rog5_ams678",
+      "sha256": "c554d3f54544da2eb71495dc4eeb057f7b39d2de6baedda0316eabb88fdc9dd9",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/display-trial/panel-asus-rog5-ams678.ko"
+        }
+      ]
+    },
+    "drivers/i2c/busses/i2c-qcom-geni.ko": {
+      "name": "i2c_qcom_geni",
+      "sha256": "064edd217641d8fa06123dc9dc80f3614a02803eade5b51b6bc59deafc94ea17",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/hardware-inert/i2c-qcom-geni.ko"
+        }
+      ]
+    },
+    "drivers/leds/led-class-multicolor.ko": {
+      "name": "led_class_multicolor",
+      "sha256": "6057bc63b634bea7ba00dcdf52b0a29b9940a1192616377bfde74a3f0dbff8ff",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/buttons-indicator/led-class-multicolor.ko"
+        }
+      ]
+    },
+    "drivers/leds/rgb/leds-qcom-lpg.ko": {
+      "name": "leds_qcom_lpg",
+      "sha256": "515ac728bd42e22aafae7f26bc2a989e6c86781133ba428ad6e3176bc2739c79",
+      "depends": [
+        "led_class_multicolor",
+        "qcom_pbs"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/buttons-indicator/leds-qcom-lpg.ko"
+        }
+      ]
+    },
+    "drivers/net/wireless/ath/ath.ko": {
+      "name": "ath",
+      "sha256": "4aae0eb60261848ce912d9c91fb1f1f33292f006a364d401877536cd8bb585be",
+      "depends": [
+        "cfg80211"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath.ko"
+        }
+      ]
+    },
+    "drivers/net/wireless/ath/ath11k/ath11k.ko": {
+      "name": "ath11k",
+      "sha256": "603f1e49d89680ec27dab86ae1f9bc423ae570c2dc4d8e6cca5fe92587b8d5b7",
+      "depends": [
+        "cfg80211",
+        "mac80211"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath11k/ath11k.ko"
+        }
+      ]
+    },
+    "drivers/net/wireless/ath/ath11k/ath11k_ahb.ko": {
+      "name": "ath11k_ahb",
+      "sha256": "1924a2d5e68892d0e75cb67453d90370ced33993f81ff6c82472b67ea2409843",
+      "depends": [
+        "ath11k"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath11k/ath11k_ahb.ko"
+        }
+      ]
+    },
+    "drivers/net/wireless/ath/ath11k/ath11k_pci.ko": {
+      "name": "ath11k_pci",
+      "sha256": "292548a9f5471e739401328678207c71ac0ba138a964c7f565244159185d666e",
+      "depends": [
+        "ath11k",
+        "mhi"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/net/wireless/ath/ath11k/ath11k_pci.ko"
+        }
+      ]
+    },
+    "drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.ko": {
+      "name": "pci_pwrctrl_pwrseq",
+      "sha256": "12cbc597c9a331e7b2bbbbc15e75b91582d44c357d2ef32d13a9b7ddc02a6164",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/pci/pwrctrl/pci-pwrctrl-pwrseq.ko"
+        }
+      ]
+    },
+    "drivers/phy/qualcomm/phy-qcom-qmp-pcie.ko": {
+      "name": "phy_qcom_qmp_pcie",
+      "sha256": "a309db3c57c5fbc61571aedb6a2dfbcba2d3fa36ad3f6018fcb04c270c74a6ef",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/phy/qualcomm/phy-qcom-qmp-pcie.ko"
+        }
+      ]
+    },
+    "drivers/phy/qualcomm/phy-qcom-qmp-ufs.ko": {
+      "name": "phy_qcom_qmp_ufs",
+      "sha256": "4292ea36612350a0c6290b4f3a68d6e90861f83f5fa8827b4b2cc4af96b51dcf",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-ufs-modules/phy-qcom-qmp-ufs.ko"
+        }
+      ]
+    },
+    "drivers/power/reset/qcom-pon.ko": {
+      "name": "qcom_pon",
+      "sha256": "df60f2199a3dd0bd25fa264247448f75ac4120dd67c1b0e1b79c9a6a55b7d429",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/buttons-indicator/qcom-pon.ko"
+        }
+      ]
+    },
+    "drivers/power/sequencing/pwrseq-qcom-wcn.ko": {
+      "name": "pwrseq_qcom_wcn",
+      "sha256": "c495ba6dafd5e8ebdb1445780676a77a4dae6d0c387235fd2fdc495cd2785fbd",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/power/sequencing/pwrseq-qcom-wcn.ko"
+        }
+      ]
+    },
+    "drivers/power/supply/qcom_battmgr.ko": {
+      "name": "qcom_battmgr",
+      "sha256": "1fda9014575974e49f65e15c6ff2f35b6be0ba10f1d9d7c561517821181db29c",
+      "depends": [
+        "pmic_glink"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_battmgr.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/power/supply/qcom_battmgr.ko"
+        }
+      ]
+    },
+    "drivers/regulator/qcom-refgen-regulator.ko": {
+      "name": "qcom_refgen_regulator",
+      "sha256": "efc31c29a2fb1e5fc8b5f2d13a82d5903d2334747271f6216fd83d10fac1607c",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/display-trial/qcom-refgen-regulator.ko"
+        }
+      ]
+    },
+    "drivers/remoteproc/qcom_common.ko": {
+      "name": "qcom_common",
+      "sha256": "849d6ddabd45e9e0c2d221d2fa12801d6c75c3c3728f380c409a39f32a508357",
+      "depends": [
+        "qcom_glink_smem"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_common.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_common.ko"
+        }
+      ]
+    },
+    "drivers/remoteproc/qcom_pil_info.ko": {
+      "name": "qcom_pil_info",
+      "sha256": "196b3dfa0b6ef079a76d74733de1c2b2821fd0f025c7e80b1960353144b490fb",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_pil_info.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_pil_info.ko"
+        }
+      ]
+    },
+    "drivers/remoteproc/qcom_q6v5.ko": {
+      "name": "qcom_q6v5",
+      "sha256": "5cdf3fdc967adac5266694d99227d8e090c0aa75fc4fd7175a2452b0c6146bb8",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_q6v5.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_q6v5.ko"
+        }
+      ]
+    },
+    "drivers/remoteproc/qcom_q6v5_pas.ko": {
+      "name": "qcom_q6v5_pas",
+      "sha256": "3af3c27fd4f5f904c9b9e8a796f250fe0455efe8fe8619099f4ba9845fb7a336",
+      "depends": [
+        "qcom_common",
+        "qcom_pil_info",
+        "qcom_q6v5"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_q6v5_pas.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/remoteproc/qcom_q6v5_pas.ko"
+        }
+      ]
+    },
+    "drivers/rpmsg/qcom_glink_smem.ko": {
+      "name": "qcom_glink_smem",
+      "sha256": "ad885edda9116f9bd1273df6e69210e7e0f36df5a41c0ad4e4655f8980fe2288",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_glink_smem.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/rpmsg/qcom_glink_smem.ko"
+        }
+      ]
+    },
+    "drivers/soc/qcom/pdr_interface.ko": {
+      "name": "pdr_interface",
+      "sha256": "7fef279c8a6a1976746211dac2438439e73c3a933ac33deb43945577c2d67253",
+      "depends": [
+        "qcom_pdr_msg"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/pdr_interface.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/pdr_interface.ko"
+        }
+      ]
+    },
+    "drivers/soc/qcom/pmic_glink.ko": {
+      "name": "pmic_glink",
+      "sha256": "76d4f34460126f849da553749df2ed16b9d7e1e067c884319bee4f36a60f7ba0",
+      "depends": [
+        "pdr_interface"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/pmic_glink.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/pmic_glink.ko"
+        }
+      ]
+    },
+    "drivers/soc/qcom/qcom-pbs.ko": {
+      "name": "qcom_pbs",
+      "sha256": "f21fe553977e5925880d0f4f9401d96803200bdbd42bc49dcc191e72fcb24407",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/buttons-indicator/qcom-pbs.ko"
+        }
+      ]
+    },
+    "drivers/soc/qcom/qcom_pd_mapper.ko": {
+      "name": "qcom_pd_mapper",
+      "sha256": "fc49457ac537a1b14b48b6d01be52be879f23ec19d13ce26e7a45cd2eabdfe65",
+      "depends": [
+        "qcom_pdr_msg"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_pd_mapper.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/qcom_pd_mapper.ko"
+        }
+      ]
+    },
+    "drivers/soc/qcom/qcom_pdr_msg.ko": {
+      "name": "qcom_pdr_msg",
+      "sha256": "b8841873261ac88c9af8e382ba6224dc424d9cb97ae0a90444462565e566132d",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qcom_pdr_msg.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/soc/qcom/qcom_pdr_msg.ko"
+        }
+      ]
+    },
+    "drivers/ufs/core/ufshcd-core.ko": {
+      "name": "ufshcd_core",
+      "sha256": "fc9c5b2fa882454cc6586e823c3cce3a7c5846edf756ea571ae6872f8e8143d8",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-ufs-modules/ufshcd-core.ko"
+        }
+      ]
+    },
+    "drivers/ufs/host/ufs-qcom.ko": {
+      "name": "ufs_qcom",
+      "sha256": "0280e78e723c7b8885e46eac0d8f97b172bfb6bd1c0ba728539cb2f64f19deac",
+      "depends": [
+        "ufshcd_core",
+        "ufshcd_pltfrm"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-ufs-modules/ufs-qcom.ko"
+        }
+      ]
+    },
+    "drivers/ufs/host/ufshcd-pltfrm.ko": {
+      "name": "ufshcd_pltfrm",
+      "sha256": "cb53db1e206d953efde330921feedc682559c54bf1c18904b5197b24a8946602",
+      "depends": [
+        "ufshcd_core"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-ufs-modules/ufshcd-pltfrm.ko"
+        }
+      ]
+    },
+    "drivers/usb/typec/typec.ko": {
+      "name": "typec",
+      "sha256": "e2fd4225107e85dd220bb589e5e5608c3b65ee623f9c43e606d996d3428a2f6d",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/typec.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/usb/typec/typec.ko"
+        }
+      ]
+    },
+    "drivers/usb/typec/ucsi/typec_ucsi.ko": {
+      "name": "typec_ucsi",
+      "sha256": "bebcac04da0926c80a4dad653c24b6be2e1ff2feeb661bb80b7720a541fb3165",
+      "depends": [
+        "typec"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/typec_ucsi.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/usb/typec/ucsi/typec_ucsi.ko"
+        }
+      ]
+    },
+    "drivers/usb/typec/ucsi/ucsi_glink.ko": {
+      "name": "ucsi_glink",
+      "sha256": "00c8fec120aeec661cdf4f8962d442383cc46b196193843e31debddec8a937b6",
+      "depends": [
+        "pmic_glink",
+        "typec",
+        "typec_ucsi"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/ucsi_glink.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/drivers/usb/typec/ucsi/ucsi_glink.ko"
+        }
+      ]
+    },
+    "lib/crypto/libarc4.ko": {
+      "name": "libarc4",
+      "sha256": "538de927c8c0d6eb21a9f33cbb2095d5ccee6d434893604c71bfa50343eae790",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/lib/crypto/libarc4.ko"
+        }
+      ]
+    },
+    "lib/crypto/libgf128hash.ko": {
+      "name": "libgf128hash",
+      "sha256": "0ca38a7ba4c345a0b640eb11e9a431c3354441ac08f3014359716b61596e9728",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/lib/crypto/libgf128hash.ko"
+        }
+      ]
+    },
+    "net/mac80211/mac80211.ko": {
+      "name": "mac80211",
+      "sha256": "34e85ba7963283a53ce54b85bf933697c5b4ea742272f93aeab67b4131420ad1",
+      "depends": [
+        "cfg80211",
+        "libarc4"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/net/mac80211/mac80211.ko"
+        }
+      ]
+    },
+    "net/qrtr/qrtr-mhi.ko": {
+      "name": "qrtr_mhi",
+      "sha256": "ec9102fae7aeda58f7e64ee0fb35acd293deb7efd03bea4b7f166a392f5299d9",
+      "depends": [
+        "mhi",
+        "qrtr"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/net/qrtr/qrtr-mhi.ko"
+        }
+      ]
+    },
+    "net/qrtr/qrtr-smd.ko": {
+      "name": "qrtr_smd",
+      "sha256": "c78d16162b9c32b45bff175af23655e8313155d379a4e1e719ea97381bbbf59e",
+      "depends": [
+        "qrtr"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qrtr-smd.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/net/qrtr/qrtr-smd.ko"
+        }
+      ]
+    },
+    "net/qrtr/qrtr.ko": {
+      "name": "qrtr",
+      "sha256": "952b078be293801c72dc5896d869c126ab83cbcb84b255021176390fb328a496",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-power-usb-modules/qrtr.ko"
+        },
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/net/qrtr/qrtr.ko"
+        }
+      ]
+    },
+    "net/rfkill/rfkill-gpio.ko": {
+      "name": "rfkill_gpio",
+      "sha256": "ec6fe0ee7b637ea75b6b14bbc7c4fe28b9c60482e2e1eeedab9f86289e31df89",
+      "depends": [
+        "rfkill"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/net/rfkill/rfkill-gpio.ko"
+        }
+      ]
+    },
+    "net/rfkill/rfkill.ko": {
+      "name": "rfkill",
+      "sha256": "27e5d1d5fc0eae0432f546184ad75a09aee2322c76d6e6ec6740e44ed55bb773",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/net/rfkill/rfkill.ko"
+        }
+      ]
+    },
+    "net/wireless/cfg80211.ko": {
+      "name": "cfg80211",
+      "sha256": "14cccdceea0379d092f69a03f8537e5feb1667dca741d9405bfc39ae78de92db",
+      "depends": [
+        "rfkill"
+      ],
+      "destinations": [
+        {
+          "container": "radio-tar",
+          "path": "lib/modules/7.1.4-g05941d04803f/kernel/net/wireless/cfg80211.ko"
+        }
+      ]
+    },
+    "rog5-pmic-pon-readonly.ko": {
+      "name": "rog5_pmic_pon_readonly",
+      "sha256": "517356431c782185d8be43d1c976459465c16e6b2da12c21bc3dd62c178c679e",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/rog5-pmic-pon-readonly.ko"
+        }
+      ]
+    },
+    "rog5-s12-ufs-vote.ko": {
+      "name": "rog5_s12_ufs_vote",
+      "sha256": "940dafe4107a69b039dc408655cf4ac2581e018b4348f702d9c8905ee58d833c",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/rog5-s12-ufs-vote.ko"
+        }
+      ]
+    },
+    "rog5-wifi-activate.ko": {
+      "name": "rog5_wifi_activate",
+      "sha256": "1d3bedb63441f6c5ba0a4a350ed341d7a9f68d7bf7465a96e39a63a42fd9a461",
+      "depends": [
+        "rog5_s12_ufs_vote"
+      ],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/rog5-wifi-activate.ko"
+        }
+      ]
+    },
+    "rog5_fts3658u.ko": {
+      "name": "rog5_fts3658u",
+      "sha256": "44aaf51419a1bf3769d890193dc01f6b06f3400e6f82014a8e9a18717acb46b2",
+      "depends": [],
+      "destinations": [
+        {
+          "container": "newc",
+          "path": "rog5-native-wifi/hardware-inert/rog5_fts3658u.ko"
+        }
+      ]
+    }
+  },
+  "radio_extra_roots": [
+    "ath",
+    "mhi_pci_generic",
+    "ath11k_ahb",
+    "rfkill-gpio"
+  ],
+  "pdr_exception": {
+    "canonical": "drivers/soc/qcom/pdr_interface.ko",
+    "raw_sha256": "9c3479f3b0035bc90a71a2967159588314676f31c64061c77f0ba8b5afffa69c",
+    "packaged_sha256": "7fef279c8a6a1976746211dac2438439e73c3a933ac33deb43945577c2d67253",
+    "policy": "Only packaged .BTF removal; raw PDR BTF remains unqualified"
+  },
+  "qualification": {
+    "kernel": {
+      "receipt": "kernel-hardware-build-r1/twins-result.json",
+      "sha256": "0304a906b9a8d8e65394297205f9c5d46b914b248a76250cfa54c9a175010ef5",
+      "status": "PASS"
+    },
+    "modules": {
+      "receipt": "successor-module-build-r1/result.json",
+      "sha256": "78225ad1c57cb152e5b1515d99cd78982ea3e13f49a971771c83cd020e26cfa4",
+      "status": "PASS_RAW_MODULE_TWINS"
+    },
+    "closure": {
+      "receipt": "successor-module-closure-r1/verification-r1/result.json",
+      "sha256": "f24622708dde534847ef714be9fdad29a8f5919b88c9e32d6a4d845cb9cc9ae0",
+      "status": "PASS_STATIC_SELECTED54_EXPORT_CLOSURE"
+    },
+    "payload_a": {
+      "receipt": "successor-payload-refresh-r2/composition-a/result.json",
+      "sha256": "200332cfdbe1b78240b666a1c9e1a05043aae6e7be92acf84db7de2a3a8317c0",
+      "status": "PASS_UNSIGNED_EXACT059_PAYLOAD"
+    },
+    "payload_b": {
+      "receipt": "successor-payload-refresh-r2/composition-b/result.json",
+      "sha256": "b5fcf566a0e274987b2337c27ca7cbd86ede8462cb49b67c4d7104510790ee52",
+      "status": "PASS_UNSIGNED_EXACT059_PAYLOAD"
+    },
+    "components": {
+      "receipt": "successor-components-vm-r1/run-r1/result.json",
+      "sha256": "b24df7e6b5f87e72dd2b9d6e46a2a6452b6884a3cbf2299e067a54584da908e8",
+      "status": "PASS_REGISTRATION_ONLY",
+      "kernel_sha256": "d9a55229f2e0c67e1b856d13c40715b3ec4e3a6fee2594aaa3947d99639e3fb8"
+    },
+    "baseline": {
+      "receipt": "successor-baseline-vm-r1/run-r1/result.json",
+      "sha256": "37814bb0ca751e8da1b1ea7e4ff466c875166cbb21457b0acf80e4e813a6db0a",
+      "status": "PASS_BASELINE_LOADER_ONLY",
+      "kernel_sha256": "d9a55229f2e0c67e1b856d13c40715b3ec4e3a6fee2594aaa3947d99639e3fb8"
+    },
+    "packaging": {
+      "receipt": "successor-boot-package-r2/result.json",
+      "sha256": "4ad975e7568af0e44f6a43496a58c95dad71068aeb6c43f161602ad216352a09",
+      "status": "PACKAGING_TWINS_PASS"
+    }
+  },
+  "vm_image_sha256": "a7303c3bda4fb860005bc1d2a846c6b79c698c3aaaa82be8627e3185393c8717"
+}
