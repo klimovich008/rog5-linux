@@ -1,6 +1,9 @@
 # ROG5 project guidance
 
 Start with `docs/current-state.md`, `git status --short` and `git rev-parse HEAD`.
+Read its short current coordinator handoff and the latest private checkpoint
+first; open older milestone sections only for the relevant evidence. Avoid
+re-reading the full historical log or large generated manifests each turn.
 Read the latest relevant evidence and the matching sections of
 `docs/development-lessons.md` only when the task needs them.
 `docs/active-context.md` is a compatibility pointer, not another state ledger.
