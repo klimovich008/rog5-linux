@@ -1,0 +1,65 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "asus,rog-phone5", "qcom,sm8350";
+};
+
+/* Inert candidate: all probing/rail-producing additions stay disabled. */
+&apps_rsc {
+	regulators-1 {
+		rog5_touch_l3c: ldo3 {
+			regulator-name = "rog5_touch_l3c_3p008";
+			regulator-min-microvolt = <3008000>;
+			regulator-max-microvolt = <3008000>;
+			status = "disabled";
+		};
+
+		rog5_touch_l8c: ldo8 {
+			regulator-name = "rog5_touch_l8c_1p8";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-always-on;
+			status = "disabled";
+		};
+	};
+};
+
+/* Unknown upstream parent supply phandles are deliberately unspecified. */
+&tlmm {
+	rog5_front_touch_active: rog5-front-touch-active-state {
+		pins = "gpio22", "gpio23";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-pull-up;
+	};
+};
+
+&spi4 {
+	status = "disabled";
+};
+
+&i2c4 {
+	status = "disabled";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	touchscreen@38 {
+		/* Private draft binding; not an upstream/generic EDT alias. */
+		compatible = "asus,rog5-mp2-fts3658u";
+		reg = <0x38>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <23 2>; /* IRQ_TYPE_EDGE_FALLING */
+		reset-gpios = <&tlmm 22 1>; /* GPIO_ACTIVE_LOW */
+		io-enable-gpios = <&tlmm 131 0>; /* GPIO_ACTIVE_HIGH */
+		vdd-supply = <&rog5_touch_l3c>;
+		vcc_i2c-supply = <&rog5_touch_l8c>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&rog5_front_touch_active>;
+		/* Preserve the native 1/16-pixel coordinate units. */
+		touchscreen-size-x = <17280>;
+		touchscreen-size-y = <39168>;
+		status = "disabled";
+	};
+};

@@ -27,6 +27,9 @@ scripts/host/rog5-dev package --config /private/recipe.json \
 Packaging does not admit, stage or execute a candidate. Read the
 [development workflow](docs/development.md) before a trial.
 
+The [front-touch prototype](docs/front-touch-prototype.md) has a focused host
+test and a disabled DT candidate; physical behavior remains unqualified.
+
 ## Source layout
 
 | Path | Purpose |
