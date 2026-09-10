@@ -1,5 +1,32 @@
 # ROG5 current state
 
+Updated 2026-09-10: **Denial Wayland is now the active long-term destination**.
+Fresh read-only health passes on the same V9 boot in 1.252 seconds. The runtime
+has no DRM card/render nodes, framebuffer or backlight, and only the three
+qualified key inputs. MDSS, DSI, GPU and GMU are disabled in its device tree.
+The existing 60 Hz display evidence belongs to a different kernel/DT pairing.
+
+The exact historical panel source and unchanged REFGEN regulator source now
+build as external modules against the current server kernel. Both module twins
+are byte-identical; the two builds and verification took 12.967 seconds. Their
+load/unload and driver-registration checks passed under the exact V9 Image in
+QEMU in 2.199 seconds. No phone module was loaded and no display was activated.
+This establishes a smaller display preparation path without rebuilding the
+kernel; it does not establish scanout or GPU rendering on V9.
+
+The current-V9 display DT now composes identically twice and passes strict
+preservation checks: ten added nodes and fourteen changed properties. Nine
+focused tests pass in normal and optimized Python. The package remains unsigned
+and unactivated; current-source integration/admission checks are still pending.
+
+Denial source, engine source dependencies and Rust toolchain are pinned in the
+[source lock](../configs/denial/source-lock-v1.json). ARM64 engine/native outputs
+remain to be built. The public mobile shell is available, while the reference
+build helpers use x86-64 paths and checksums. See the
+[bring-up record](../test-results/2026-09-10-denial-bringup.md) for next actions.
+
+## Preserved buttons/LED milestone
+
 Updated 2026-09-10: **buttons and visible green indicator have passed component
 verification on the current V9 Arch boot**. Power (116), volume-down (114) and
 volume-up (115) each supplied one complete press/release and an IRQ delta of two.

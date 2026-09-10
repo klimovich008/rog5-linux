@@ -1,0 +1,43 @@
+{
+  "schema": "rog5-denial-source-lock-v1",
+  "status": "source-pinned-not-runtime-qualified",
+  "denial": {
+    "repository": "https://github.com/denialwm/denial.git",
+    "revision": "85b2303e2f09ae7b7b993641f90061a200f03d53"
+  },
+  "engine_sources": {
+    "schema_version": 1,
+    "flutter": {
+      "repository": "https://github.com/denialwm/flutter.git",
+      "branch": "denial/3.44.7-r1",
+      "revision": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+      "upstream_revision": "84fc5cbb223bc12f83d65b647ff8a56caf779ffd"
+    },
+    "skia": {
+      "repository": "https://github.com/denialwm/skia.git",
+      "branch": "denial/3.44.7-r1",
+      "revision": "0ee042f542b3e79f5ac49115387718c6bb3d7d34",
+      "upstream_revision": "e9ed4fc9f1544c58d8a9347c1fc9471d8dd7c465"
+    },
+    "depot_tools": {
+      "repository": "https://chromium.googlesource.com/chromium/tools/depot_tools.git",
+      "revision": "580b4ff3f5cd0dcaa2eacda28cefe0f45320e8f7"
+    }
+  },
+  "rust_toolchain": "1.98.0",
+  "rust_target": "aarch64-unknown-linux-gnu",
+  "shell_profile": "mobile",
+  "native_features": [
+    "flutter"
+  ],
+  "cargo_lock_sha256": "f82e8be777ba3f9d21308a3ac8f8cead7586c11aad06e8136d426b8403d2a481",
+  "runtime_qualified": false,
+  "reference_helper_architecture": "x86_64",
+  "build_order": [
+    "ARM64 native compositor and control client",
+    "matching ARM64 release engine and host AOT tools",
+    "mobile shell AOT bundle and ICU/assets",
+    "real-phone native session"
+  ],
+  "local_arm64_engine_qualified": false
+}
