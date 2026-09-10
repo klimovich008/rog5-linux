@@ -656,3 +656,14 @@ For each successor candidate, the main chat should report only:
 6. The regression or systemic change added before any successor.
 
 If the failure is host-only, do not redesign the kernel. If it is a new hardware observation, preserve the raw evidence and turn it into a replay fixture. If the same failure class recurs, fix the process or source of truth before issuing another candidate.
+
+### Keep GUI buffer limits separate from diagnostic log bounds
+
+On 2026-09-11, the host sudo dialog died with SIGXFSZ in 2.328 seconds because
+an 8-KiB diagnostic file limit also restricted its Wayland shared-memory files.
+The user saw no dialog. Inspect the process signal before attributing an empty
+askpass response to cancellation. Authentication now permits bounded 64-MiB GUI
+files, drains stderr through a separately capped 8-KiB pipe, and retains core=0,
+timeout and owned cleanup. Verify a real window as well as subprocess fixtures.
+Mapped buffers can outlive their closed file descriptors: the first window check
+missed them by inspecting only open FDs; `/proc/PID/maps` supplied the evidence.
