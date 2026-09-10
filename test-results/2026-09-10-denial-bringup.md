@@ -5,6 +5,42 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Assembled twenty-two-phase driver and source-abort integration
+
+Private evidence: `successor-live-driver-r1/driver-qualification-r1.json`,
+`driver-entrypoint-r1.stdout`/`stderr`, and `driver-tests-r1.stdout`/`stderr`.
+The new import-only driver connects all twenty-two exact phase implementations.
+Its preflight returns `Route.prepare` directly; source abort retains the existing
+source reader. Boot and ordinary fallback reboot share `Route.check`, and their
+live-capture callbacks bind explicitly to target and fallback roles on the same
+capture provider. Fallback location uses the fastboot locator, whose nested
+health reader remains distinct from direct fallback observation.
+
+The driver requires both before-phase and entered-intent admission callbacks
+and a complete capture-bridge interface, with no default allow behavior. It
+checks shared output paths, including nested modules, before source mutation.
+Normal phases recheck source/context/prior receipts; owned capture closure stays
+available through the controller's existing cleanup path after admission changes.
+There is no CLI, claim registration, automatic execution or privileged bridge yet.
+
+**12 tests PASS in 8.942 s.** The actual imported driver and controller exercise
+one-query preflight, arm refusal followed by source reconciliation, and install
+refusal after staged state followed by actual state-restoration callback parsing.
+The failed trial stays failed after selection restoration. These scenarios use
+real generated scripts, parsers and durable receipts, with explicit simulated
+phone transport replies. Other cases check all phase bindings, route/capture role
+connections, refusing admission, missing bridge, divergent nested evidence paths,
+cleanup after admission refusal, execution-directory reuse and unknown callbacks.
+The isolated entrypoint constructs all twenty-two bindings with refusing
+admission and bridge objects; it issues no transport.
+
+Review: the integration test verifies one combined preflight transport, avoiding
+a duplicate source query; no physical speedup was measured this turn. Checking
+nested writer paths before any mutation addresses the earlier receipt-namespace
+failure class. No phone actions, root capture, target/fallback boot integration,
+full CI or repeated kernel/module/root builds occurred. The privileged bridge
+and complete execution admission remain outstanding.
+
 ## Fresh installed-route verification and actual phone inventory
 
 Private evidence: `successor-live-driver-r1/route-qualification-r1.json`,

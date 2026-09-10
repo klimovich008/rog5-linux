@@ -568,8 +568,10 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   write. Separate the parent's location observations from the child's health
   observations, preserve the failed run, and exercise both layers together.
   Keep exclusive creation and one-use intents; never fix a collision by allowing
-  receipt overwrite. Test dispatch should name its intended callback subset so
-  adding a production phase does not silently expand a synthetic fixture's scope.
+  receipt overwrite. Validate all nested writer paths when assembling the
+  driver, before source mutation. Test dispatch should name its intended callback
+  subset so adding a production phase does not silently expand a synthetic
+  fixture's scope.
 
 - A UID-remapped namespace changes file owners relative to Git's cached stat
   metadata. A source check there timed out while Git reopened retained Images
