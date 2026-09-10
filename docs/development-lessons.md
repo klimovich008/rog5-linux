@@ -481,6 +481,11 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   path. A systemd service does not inherit the shell working directory, and
   Python -I removes sibling-import behavior relied on by existing scripts. Fix
   the harness invocation before treating such launch failures as source bugs.
+- Reuse a size-bound RAM snapshot primitive without overriding its module
+  globals or inheriting a historical experiment's claim. Bind each new caller
+  to its own artifact/trial identity. Check the wrapper's actual control flow:
+  an embedded RAM bundle bypasses installed selector fallback, so selector
+  recovery evidence alone does not qualify recovery from that RAM boot.
 
 For each successor candidate, the main chat should report only:
 

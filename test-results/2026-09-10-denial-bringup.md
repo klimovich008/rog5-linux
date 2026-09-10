@@ -5,7 +5,42 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
-## Exact059 A01 integration preparation
+## Exact059 boot primitive preparation
+
+The import-only `verified-kernel-hardware-boot.py` now binds the one exact 05941
+profile, wrapper/trial, retained V11 fallback and completed A01 result. It uses
+the already size-bound 128 MiB snapshot and capacity primitives without calling
+the R01 boot gate or changing historical globals. A separate exact entered
+claim is mandatory; the new candidate is deliberately unregistered until the
+controller and storage/recovery preparation are complete.
+
+Nine new test groups exercise every claim field, missing/duplicate/extra data,
+unregistered and unconsumed states, wrong device/image, profile drift, raw
+capacity replay, one dispatch and FD cleanup on success/failure. Together with
+the existing seven R01 and four ordinary helper tests, both Python modes pass.
+The actual retained 128 MiB wrapper was streamed into a fully sealed memfd and
+closed without transport in 0.184 seconds. `successor-boot-helper-r2/result.json`
+records final source pins; service runtime 2.450 seconds, peak 281.8 MiB/no swap.
+The first test expected the wrong exception class for the registry's correct
+refusal; only that test expectation changed. Review also corrected the proposed
+claim's recovery-storage field to read-only: embedded RAM boot bypasses trial
+selection. The first focused receipt remains retained.
+
+Source review confirms `decide` only creates a new identity when the record is
+absent; `healthy` refuses identity replacement. The controller must durably
+retain and archive healthy V9 state before creating successor pending state,
+then provide exact old-record restoration with existing device, mount, power
+and relock guards. The old R01 restoration helper cannot perform that migration.
+No state write, claim registration/consumption, fastboot or phone action occurred.
+Full CI for the new helper remains pending.
+
+After-run review: reuse the verified 128 MiB primitives without mutable size
+overrides; keep admission identity separate from offline recognition. This
+avoids duplicating the snapshot implementation. Do not repeat the completed
+kernel, module or A01 runs; the next unanswered dependency is controller and
+trial-state recovery preparation.
+
+## Exact059 A01 integration
 
 One repository-owned artifact profile binds the signed headless wrapper,
 kernel/DT/archive, all 54 modules and their destinations, exact nested metadata,
@@ -39,7 +74,18 @@ Two early focused harness launches did not run tests: systemd used the home
 working directory for a relative script, then Python -I excluded existing
 sibling imports. The canonical absolute Python -B invocation passed. No source
 check, test assertion or import policy was weakened to accommodate the harness.
-Actual integrated A01, new source CI and physical admission remain pending.
+Actual integrated A01 now passes on clean `f316fe58` in 80.308 seconds. All
+seven checks pass, including 51 ordinary loads, two real ENODEV refusals and
+the activation split. Complete lower/upper hashes match before and after;
+the actual owned VM terminated without OOM and was removed. Controller receipt
+`successor-a01-r1/result.json` SHA is
+`cdc3edcec154436199519718c0b989068a5b6ccd9081543629f450efcb2ac937`;
+A01 result SHA is
+`b65597078acd49bf47fadebbf5aff548c64892cc5538aa2aa050472eabd5ddab`.
+Full source CI on that same commit passes in 596.538 seconds with source
+unchanged; `source-ci-r7/result.json` binds log SHA
+`fc65a047e435b66deb35175af4f494d63567f3a0aca9dcbcaaefeb550fd03571`.
+Physical admission and hardware qualification remain pending.
 
 ## Final source CI
 
