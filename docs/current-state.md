@@ -49,8 +49,15 @@ running SSH as deck. The shared child runner now uses `prlimit`, avoiding a
 Python pre-execution hook inside the threaded monitor. Thirteen worker tests and
 fifty affected integration cases pass; an actual threaded source query passes
 in **0.115 s**. Fourteen dependent source-pin updates preserve prior source bytes.
-Next: connect this core to the guarded privileged transport entrypoint and
-callbacks, complete root admission, then qualify the full target/fallback flow.
+The guarded fallback transport entrypoint and parent adapter are now connected
+to action, direct health and nested fallback-locator callbacks. Sixteen transport
+tests pass in **1.068 s**, three injection tests in **3.907 s**, and 112 affected
+regression cases in **50.460 s** including launch overhead. Actual child sessions,
+pidfds and durable output files are exercised; sudo/root/network are fixtures.
+Raw root output is bounded separately on disk, preserving diagnostics larger
+than the older four-MiB receipt limit. Failed or uncertain mutations cannot retry.
+Next: complete root admission, then qualify the full target/fallback flow and
+actual privileged handoff. Neither live admission nor physical execution exists.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 

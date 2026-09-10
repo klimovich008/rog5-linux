@@ -5,6 +5,38 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Guarded fallback transport and callback connection
+
+Private evidence: `successor-live-driver-r1/transport-qualification-r1.json`,
+`transport-tests-r1.stderr`, `transport-injection-tests-r1.stderr`,
+`transport-regression-r1/result.json` and `transport-source-review-r1.json`.
+The fallback root entrypoint reuses the controller/launcher identity monitor
+with a bounded SSH lifetime. It requires the exact retained request and complete
+pinned admission verifier before invoking the existing route core. The parent
+adapter retains exclusive raw output files, waits for its child, checks original
+root-process exit and ordered cleanup, then projects the existing SSH protocol.
+Failed or uncertain mutations cannot retry, including after adapter recreation.
+Action, direct health and nested fallback-locator callbacks share this hook.
+
+**16 transport tests PASS in 1.068 s; three injection tests PASS in 3.907 s.**
+Tests use actual child sessions, pidfds, process limits and disk output, with
+explicit sudo/root/network/admission/phone fixtures. An actual invocation of the
+root entrypoint as deck correctly refuses. The source-abort integration invokes
+the hook with the exact phase intent; both fallback health paths use link-local.
+The six affected regression suites pass **112 cases in 50.460 s** including
+launch overhead: actions 27, health 26, fastboot 28, driver 12, capture bridge 16,
+bridge/supervisor 3. This is component evidence, not a physical recovery trial.
+
+Review found the outer base64-wrapped diagnostics can exceed the older four-MiB
+receipt bound. Raw root stdout now has a separate twelve-MiB disk-file bound;
+stderr is checked against 64 KiB and retained even on launcher failure. A real
+stream exceeding four MiB passes the focused test. Five existing files change
+behavior; nine others change only dependency hashes, verified by normalized
+comparison. Prior source bytes are retained in `transport-integration-baseline-r1`.
+No kernel/module/image build or full CI was repeated. Complete live admission,
+full target/fallback integration and actual privileged handoff remain pending.
+No sudo, host network change, phone action, receiver, claim or Ready request ran.
+
 ## Fallback route worker and threaded-process limit fix
 
 Private evidence: `successor-live-driver-r1/fallback-route-qualification-r2.json`,

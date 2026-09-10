@@ -617,6 +617,13 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   Preserve prior source bytes when refreshing dependency pins; separate the
   behavior change from mechanical hash updates and keep old evidence scoped.
 
+- Account for encoding expansion at each process boundary. A bounded child
+  stream can exceed an older JSON receipt limit after base64 wrapping. Keep raw
+  output in exclusive, bounded disk files and reference it from a small process
+  receipt; test a real oversized stream and failed-launch output retention.
+  Reuse the same transport hook in nested recovery readers, and test that wiring
+  explicitly before relying on the assembled driver.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
