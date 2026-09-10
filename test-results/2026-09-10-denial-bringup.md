@@ -131,7 +131,13 @@ The first active-suite run lacked the pinned Android unpacker. Restoring its
 exact bytes made all 46 composition checks pass. The workflow's active tier
 also omitted that dependency. Both GitHub test jobs now bootstrap the pinned
 tools for active checks while skipping the unused canonical boot template.
-All 37 workflow/tier tests pass. Final frozen-source integration CI is pending.
+All 37 workflow/tier tests pass. Full local CI subsequently passed at frozen
+source `752742fc2f7aeb1ce19d8389a81658399f1a28fc` in 563.196 seconds, including
+the 95 native recovery cases in 31.090 seconds. Source remained clean.
+Receipt: `source-ci-r3/result.json`; log SHA-256
+`3dc9812709d043d140ef0977a418ec76b5b9975300704536524e1c2d9704dd2e`.
+Optional private ARM64 environment replays reported skips; the actual module
+and native CLI emulation proofs above are separate completed artifact runs.
 
 The first full-CI attempt hit a Wi-Fi fixture's five-second deadline under an
 added two-CPU quota; its focused rerun passed without that quota. The second
@@ -142,7 +148,7 @@ The three cases then passed in 7.145 seconds, followed by all 95 cases in
 uninterruptible waits in `fsync`/filesystem journal paths. This supports host
 I/O latency as an explanation but does not capture or prove the original failed
 wait's cause. All failed receipts remain retained; no production guard or
-fixture timeout was relaxed. A final complete CI run remains required.
+fixture timeout was relaxed. These failures remain separate from the final CI PASS.
 
 ## Remaining hardware boundaries
 
@@ -175,8 +181,21 @@ installer inertness test pass in normal and optimized Python; six unchanged
 indicator tests also pass. The production module bytes match their pins.
 The new suite is wired beside the buttons composer in the repository runner.
 
-Real package twins and final paired-root autoload absence remain pending. The
-new DT enables built-in MDSS/DPU/DSI providers before userspace; unloaded panel
+Actual unsigned initramfs twins composed in 14.745 seconds total after the
+frozen-source CI PASS. Both are 56081476 bytes, SHA-256
+`3fcbf6d3dfa9dd45719c0ab167940961c76ee10a5500c8913bfd3e76eff294dc`.
+The exact corrected-buttons base is SHA-256
+`97de4bd3b2a47fa7c6468cbe1fe0116a7288b043279d028c73d234a3c60b33ee`.
+Their fresh descriptor/catalog and preserved-member checks pass; no claim,
+signature or activation was created. Receipt: `display-compose-run-r1/result.json`.
+Temporary full-CI fixtures were removed by restoring the original sparse
+checkout; all Git objects remain retained and approximately 81 GiB is free.
+
+Complete boot-image qualification and final paired-root autoload absence remain
+pending. Standard current-release module search paths are absent from both Arch
+layers and inspected standard autoload configuration contains no panel/REFGEN
+entries; that bounded audit does not cover arbitrary services or nonstandard
+copies. The new DT enables built-in MDSS/DPU/DSI providers before userspace; unloaded panel
 and REFGEN files do not mean all display hardware remains untouched until P24.
 A future trial must first qualify the new-DT boot, then load the two modules
 under the prepared controller. Physical scanout/blanking remains NOT RUN.
@@ -220,3 +239,8 @@ S06 shutdown and R01 autonomous recovery remain failed independently. The
 buttons/LED component result remains accepted. Human tests must be completely
 prepared before asking for a fresh Ready, with one prompt at a time and
 automatic recording.
+
+Final read-only phone health passed in 1.357 seconds on the same V9 boot
+`7c945aa5-80d0-4af2-aa76-113d68e23ac5`. Installed identities, power/storage
+guards and healthy selection remain valid. No phone module insertion, signing,
+reboot or display/touch activation occurred during this checkpoint.

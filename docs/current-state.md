@@ -17,7 +17,9 @@ kernel; it does not establish scanout or GPU rendering on V9.
 The current-V9 display DT now composes identically twice and passes strict
 preservation checks: ten added nodes and fourteen changed properties. Nine
 focused tests pass in normal and optimized Python. The package remains unsigned
-and unactivated; current-source integration/admission checks are still pending.
+and unactivated. Full local source CI passed at
+`752742fc2f7aeb1ce19d8389a81658399f1a28fc` in 563.196 seconds; physical
+admission and full paired-root qualification remain pending.
 
 Denial source, engine source dependencies and Rust toolchain are pinned in the
 [source lock](../configs/denial/source-lock-v1.json). The isolated Rust 1.98
@@ -33,7 +35,9 @@ build helpers use x86-64 paths and checksums. See the
 
 The new unsigned display composer preserves the corrected buttons payload and
 adds two inert module files with a fresh descriptor/catalog. Focused composition,
-module closure and runtime installer checks pass. Complete artifact composition,
+module closure and runtime installer checks pass. Actual unsigned initramfs twins
+match SHA-256 `3fcbf6d3dfa9dd45719c0ab167940961c76ee10a5500c8913bfd3e76eff294dc`;
+both are 56081476 bytes and composed in 14.745 seconds total. Complete boot-image composition,
 paired-root autoload absence and physical display behavior remain unqualified.
 The new DT permits built-in display probing before userspace.
 
@@ -45,6 +49,8 @@ Approximately 82 GiB was free before temporary full-CI fixtures.
 The hash-verified stock DTBO now corroborates the ASUS MP2 front-touch
 controller, GPIO22/23/131, L3C/L8C consumers and final 1080x2448 extents.
 This is offline board-data evidence; no touch probe or driver activation ran.
+Checkpoint read-only phone health passed again in 1.357 seconds on the same V9
+boot after all offline work. No phone module insertion, signing or reboot occurred.
 
 ## Preserved buttons/LED milestone
 
