@@ -516,6 +516,13 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   Python path. Keep ordinary authenticated SSH usable over an existing route
   without sudo; require privilege before creating any host network resources.
 
+- Include encoding overhead when bounding retained transport evidence. Two
+  1 MiB output streams become about 2.7 MiB in base64, exceeding the controller's
+  1 MiB receipt limit. Use a separate bounded transport receipt and test both
+  full streams on a failure path so the failure itself does not discard logs.
+  Validate JSON proof types explicitly: Python equality accepts `0 == False`
+  and `1 == True`, which should not qualify a boolean protocol assertion.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.

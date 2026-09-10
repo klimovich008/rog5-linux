@@ -302,7 +302,20 @@ hardware health qualification. Evidence: `successor-live-driver-r1`.
 New network setup and full capture still require host privileges. These worker
 and staging pieces do not yet constitute the complete concrete driver.
 
-Next: implement and qualify the concrete driver for the tested controller using
+Seven concrete mutation callbacks now bind the existing controller to the
+qualified source actions, Rust state guard and BusyBox V11 staging generator.
+They recheck durable context/intent/custody, write an exclusive command intent,
+retain the complete transport response before parsing, and reject stale,
+ambiguous, nonzero or timed-out responses without retry. All 27 tests pass in
+normal/optimized Python (7.304/7.890 seconds): 22 boundary cases and five actual
+controller sequences. Transport, capture, health and admission remain synthetic;
+real generated scripts, existing custody and disposable fsynced receipts are used.
+The complete driver and admission gate are still pending. The adapter currently
+uses deck's existing-route transport; a scoped privileged bridge for fresh
+fallback routes must be bound before live execution. Evidence:
+`successor-live-driver-r1/callback-tests-r1/result.json`. No phone action ran.
+
+Next: implement and qualify the remaining concrete driver methods using
 the staged source artifacts and exact one-use boot admission. The embedded RAM wrapper
 bypasses the installed selector, so its
 recovery phase stays read-only and requires a separate authenticated V11 return
