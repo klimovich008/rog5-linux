@@ -1767,3 +1767,28 @@ Prior source and evidence are retained in private `auth-gui-fix-r1`.
 Only the authentication implementation, focused test and launcher dependency pin
 changed. Kernel/images and root-boundary code were not rebuilt. The prepared
 next attempt is r3 and requires fresh host availability. No phone Ready is pending.
+
+### 2026-09-11: host input failure and direct-touch preparation (r36)
+
+Fresh Ready started r3 immediately. The user saw the window and opened Steam's
+keyboard, but the field stayed empty. Operator cancellation ended the run at
+100.254 s, before any root probe, phone, network or claim action. The initial
+SIGTERM to sudo launched another askpass; verified group cancellation stopped
+and reaped it. No password was received by the controller or stored.
+
+Automatic dummy keyboard tests failed for ksshaskpass and kdialog under X11.
+Window focus and an empty focused field were observed; the exact routing cause
+is unresolved. A synthetic pointer test also failed. Neither is a human input
+pass. The replacement private askpass provides a direct touch keyboard; its
+widget callback test passes Shift, symbols, backspace, empty refusal, submit,
+cancel and printable ASCII coverage. The 1040x560 layout was visually reviewed.
+Ten final probe tests and fifteen final launcher tests pass; detailed timings,
+failed input attempts and source snapshots are retained in `auth-input-fix-r1`.
+
+The helper is pinned, owned by deck, mode 0700, core-disabled and requires a
+pipe for password output. It never writes credentials to files or clipboard.
+Authentication keeps the separate 8-KiB stderr cap and 64-MiB GUI file bound;
+it allows five minutes for direct touch entry and kills its owned group on
+forced abort. Prepared r4 requires fresh host availability, immediately opening
+the touch keyboard; real input/authentication and root handoff remain unverified.
+No phone trial, claim registration or Denial build was performed.
