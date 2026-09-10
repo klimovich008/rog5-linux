@@ -47,6 +47,21 @@ or network. The incidental procfs file-size check does not prove an empty
 module inventory; no such claim is made. Combined module registration and
 physical boot remain pending. Receipt: `kernel-a-boot-smoke-r1/result.json`.
 
+Prepared next stages: `successor-module-build-r1/validation-r2.json` passes
+eighteen mocked fixtures in ordinary and optimized Python, with a clear bounded
+review. Parent inspection verifies all 57 static inputs and the live-kernel
+refusal without creating a real attempt. The runner checks completed kit
+lineage and full file inventory before and after each bounded container; it
+compares 31 raw outputs, including the two later replacement variants, rather
+than claiming the selected 54-module package is qualified.
+
+`successor-components-vm-r1/validation.json` passes eleven focused fixtures for
+the combined ten-module guest, including GPUCC driver registration. It uses
+the exact future kernel/module receipts, checks loaded module contents, unloads
+nine modules and retains permanent GPI until poweroff. Parent review found no
+material blocker for this generic-virt scope. No admission or actual guest run
+has occurred; kernel twins and module compilation still precede execution.
+
 ## Current phone and display preparation
 
 Kernel-first followup produced an initial external FTS3658U driver in private
