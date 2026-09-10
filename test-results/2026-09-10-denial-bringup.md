@@ -56,10 +56,71 @@ before the engine is available. Build that smaller part first, then the matching
 ARM64 release engine and host AOT tools, then mobile shell/assets/ICU. A JIT
 development bundle needs matching additional engine artifacts and is later work.
 
-Current disk availability is approximately 19 GiB. The private audit's estimated
-40–80 GiB engine workspace is a planning estimate, not a measured minimum.
-Resolve durable build capacity before engine dependency synchronization. Keep
-large inputs out of RAM-backed filesystems and preserve the 3 GiB host reserve.
+The isolated Rust 1.98 cross-builder is provisioned as image
+`0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d`.
+Its 280-package plan has SHA-256
+`25a81daac5d02cb6012d8b963623b64bedddfabfbf0ea6ac5cf1b8d89be59f0f`;
+installed-package and signed-repository inventories are retained privately.
+Provisioning passed in 286.036 seconds. No host packages or binfmt registration
+were changed. The failed foreign-Python installation and unsupported build CPU
+flag are retained; the corrected recipe uses native host tools and cgroup CPU
+limits. Exact Rust archives were reused after streaming hash verification.
+
+Locked Cargo fetch passed in 26.010 seconds. Offline ARM64 control-client
+compilation passed in 22.010 seconds using one job and a 3 GiB memory cap.
+Its 886880-byte binary has SHA-256
+`36128080aa4f4f530ab60960eb0d8e184285e39a6a9244662459bd3a02da8eba`.
+ELF inspection confirmed AArch64, and help/version passed under isolated QEMU.
+It identifies itself as `development`; this is not a published release or a
+compositor session. The original
+fetch attempt selected unavailable slirp4netns; the successful run uses the
+host's installed pasta network backend. Compilation runs without networking.
+
+The full `flutter` feature build of `deniald` and `denialctl` passed in
+464.094 seconds with the same one-job/3 GiB limits and unchanged upstream source.
+Both final binaries are AArch64, use `/lib/ld-linux-aarch64.so.1`, have no
+RPATH/RUNPATH, and passed help/version under network-disabled QEMU in 1.652 seconds.
+
+| Native output | Bytes | SHA-256 |
+|---|---:|---|
+| `deniald` | 15979872 | `8698b0716c0ab16ab5c33d618ae52cef0cd8c0966ad356cf2ca49d78a0ba8591` |
+| `denialctl` with full features | 886872 | `da22a0bd76e183cd25ce45ef532ae3ee533703dd5f6e00809ce2f3415b8566df` |
+
+The earlier control-only binary is retained separately. These checks prove
+linking against the prepared target libraries and terminal CLI paths only;
+they do not load Flutter, acquire a seat, render, or prove the final Arch
+runtime library closure. Private receipts are in `cargo-arm64-r2`.
+
+The engine recipe separates the ARM64 embedder graph from x64 host tools.
+ARM64 AOT needs an x64 executable generating ARM64 code from the target graph;
+the host graph's x64-targeting compiler is insufficient. Unmodified asset
+assembly needs host GTK artifacts, which stay outside the phone bundle.
+Pinned Flutter compiler/sysroots are separate from Rust's Ubuntu sysroot.
+Engine graph generation and compilation remain pending. Hot reload needs a
+matching debug/JIT engine and development assets; release AOT cannot supply it.
+
+## Durable build capacity and repository checks
+
+Reviewed cleanup removed 179337 single-link regular compiler-cache/object files
+from 31 completed historical build roots: 72174505984 allocated bytes, or
+67.218 GiB. All 15559 protected outputs passed post-cleanup checks; critical
+Image/config identities were rehashed. Sources, final images/modules, logs,
+recovery artifacts and current kits were preserved. Private manifests, deletion
+log and terminal receipt are in `capacity-audit-r1` and `capacity-reclaim-r1`.
+No visible active references were found. Privileged file descriptors/mappings
+were not globally observable; the receipt states that limitation. Only
+regenerable intermediates were eligible. Cleanup completed in 99.043 seconds
+without errors.
+
+Approximately 82 GiB was free before temporary full-CI fixtures. The estimated
+40–80 GiB engine workspace is not a measured minimum. Keep large inputs on
+durable storage and preserve the host reserve while measuring actual growth.
+
+The first active-suite run lacked the pinned Android unpacker. Restoring its
+exact bytes made all 46 composition checks pass. The workflow's active tier
+also omitted that dependency. Both GitHub test jobs now bootstrap the pinned
+tools for active checks while skipping the unused canonical boot template.
+All 37 workflow/tier tests pass. Final frozen-source integration CI is pending.
 
 ## Remaining hardware boundaries
 
@@ -82,6 +143,22 @@ requires the explicitly supplied retained base; these results are not a new full
 CI or admission result. Updated private receipt: `display-dtb-r1/result-r2.json`; the earlier, narrower
 receipt is preserved.
 
+The [display payload composer](../scripts/device/build-display-trial-initramfs.py)
+accepts the qualified corrected-buttons unsigned base, preserves its runtime,
+shutdown, radio and buttons bytes, and adds exactly two nested inert modules.
+Only the descriptor/catalog change among existing members. It rejects historical
+buttons bytes, mismatched inputs, reused identity and existing display opt-ins.
+Six composer tests, three display closure/order tests and one actual runtime
+installer inertness test pass in normal and optimized Python; six unchanged
+indicator tests also pass. The production module bytes match their pins.
+The new suite is wired beside the buttons composer in the repository runner.
+
+Real package twins and final paired-root autoload absence remain pending. The
+new DT enables built-in MDSS/DPU/DSI providers before userspace; unloaded panel
+and REFGEN files do not mean all display hardware remains untouched until P24.
+A future trial must first qualify the new-DT boot, then load the two modules
+under the prepared controller. Physical scanout/blanking remains NOT RUN.
+
 The retained ASUS front-touch source has variant-specific identification,
 power sequencing and event decoding. Generic EDT compatibility is not proven
 by the shared FocalTech name. Inspect the exact board wiring and protocol before
@@ -90,7 +167,14 @@ probe. Touch, physical display and the native Denial session remain NOT RUN.
 
 The private touch audit includes nine passing synthetic frame-decoder cases.
 They establish the source-derived parser behavior, not a real controller read.
-The exact stock DT and regulator topology remain prerequisites for a touch probe.
+Retained vendor source now matches ASUS MP2 to the ZS673KS-MP overlay chain and
+confirms I2C4 GPIO20/21, reset22, IRQ23, enable131, L3C at3.008 V and shared L8C
+at1.8 V, with1080x2448 extents. GPIO131's electrical downstream net and upstream
+regulator rails are not specified by that source. Current regulator code permits
+omitted upstream supplies through dummy-parent resolution; missing schematic
+data does not prohibit preparing a disabled candidate. Keep real L3C/L8C
+consumer phandles, do not invent upstream links, and qualify actual power/ID
+behavior separately. Raw stock-DT confirmation remains pending.
 
 S06 shutdown and R01 autonomous recovery remain failed independently. The
 buttons/LED component result remains accepted. Human tests must be completely

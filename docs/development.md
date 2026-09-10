@@ -70,6 +70,9 @@ bootstrap steps in `.github/workflows/offline-smoke.yml`, or reuse local copies
 after verifying their exact pinned hashes. These ignored dependencies are not
 created by `git worktree add`. Keep temporary checkout copies on disk, preserve
 at least 3 GiB free, and restore the sparse checkout after validation if needed.
+The active composition suite also uses the pinned Android unpacker, so active
+checks need boot-tool bootstrap or verified local copies. Only the canonical
+boot-v3 template remains unnecessary for the active tier.
 
 Batch related fixes into one frozen integration checkpoint; record the exact
 source/dirty-input identity tested. Run focused checks during edits, one full
