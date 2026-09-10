@@ -91,6 +91,17 @@ linking against the prepared target libraries and terminal CLI paths only;
 they do not load Flutter, acquire a seat, render, or prove the final Arch
 runtime library closure. Private receipts are in `cargo-arm64-r2`.
 
+A subsequent read-only audit of the retained effective Arch lower/upper layers
+passes interpreter, library, version and strong-symbol closure for `denialctl`.
+Arch glibc 2.43 satisfies the required GLIBC_2.39 floor. `deniald` is missing
+`libgbm.so.1`, `libseat.so.1`, `libinput.so.10` and `libxkbcommon.so.0`;
+its existing libc/libm/libgcc/libudev providers satisfy the inspected needs.
+The effective upper libudev overrides the lower copy. Only 4905097 bytes of
+selected ELF files were extracted under 512 MiB/zero-swap limits. Root metadata
+still matches the earlier full-hash proof; the large images were not rehashed
+or mounted. This is static closure, not target execution. Receipt:
+`arch-native-abi-r1/result-r2.json`.
+
 The engine recipe separates the ARM64 embedder graph from x64 host tools.
 ARM64 AOT needs an x64 executable generating ARM64 code from the target graph;
 the host graph's x64-targeting compiler is insufficient. Unmodified asset
@@ -121,6 +132,17 @@ exact bytes made all 46 composition checks pass. The workflow's active tier
 also omitted that dependency. Both GitHub test jobs now bootstrap the pinned
 tools for active checks while skipping the unused canonical boot template.
 All 37 workflow/tier tests pass. Final frozen-source integration CI is pending.
+
+The first full-CI attempt hit a Wi-Fi fixture's five-second deadline under an
+added two-CPU quota; its focused rerun passed without that quota. The second
+attempt progressed further but hit three native recovery fixture timeouts and
+a teardown wait error. Responder/test bytes match the earlier 95-test PASS.
+The three cases then passed in 7.145 seconds, followed by all 95 cases in
+32.321 seconds with unchanged deadlines. External process sampling observed
+uninterruptible waits in `fsync`/filesystem journal paths. This supports host
+I/O latency as an explanation but does not capture or prove the original failed
+wait's cause. All failed receipts remain retained; no production guard or
+fixture timeout was relaxed. A final complete CI run remains required.
 
 ## Remaining hardware boundaries
 
@@ -174,7 +196,25 @@ regulator rails are not specified by that source. Current regulator code permits
 omitted upstream supplies through dummy-parent resolution; missing schematic
 data does not prohibit preparing a disabled candidate. Keep real L3C/L8C
 consumer phandles, do not invent upstream links, and qualify actual power/ID
-behavior separately. Raw stock-DT confirmation remains pending.
+behavior separately.
+
+The stock firmware's full-update payload metadata and selected operation hashes
+now validate an 8 MiB DTBO image, SHA-256
+`531af0246723b15181649063fa5e2f5407eec7804e01485920694a8722e09ea0`.
+Bounded reads totaled 620184 payload bytes across inventory and reconstruction;
+no other partition or complete firmware payload was materialized. This does not
+independently authenticate the entire firmware archive. Eighteen payload-reader
+and eight table/bounded-hash fixtures passed. Actual runs stayed below 28 MiB
+RAM with no swap; source and original/corrected validation receipts are retained.
+
+Only table entry 5 matches ASUS MP2 with board selector100,0, SHA-256
+`e00aced418da0d0ad3e3e3e1572ae93468c862f451786a0a6360d8660200a2ba`.
+Ordered fragments61→83→142 confirm front address0x38, GPIO22/23/131, ten
+contacts, final1080x2448 extent and L3C/L8C consumers with L8C always-on.
+The earlier2400 extent is superseded. Base regulator voltages and bus pinctrl
+remain source-derived external properties; the DTBO supplies no missing board
+schematic. This is offline variant evidence, not a new physical-board reading.
+Receipt: `stock-touch-dt-r2/result.json`, with its scope clarification retained.
 
 S06 shutdown and R01 autonomous recovery remain failed independently. The
 buttons/LED component result remains accepted. Human tests must be completely
