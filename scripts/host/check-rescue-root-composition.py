@@ -578,7 +578,17 @@ def module_closure(members, release):
     inventory = {name for name in members if name.endswith('.ko')}
     if not order or len(order) != len(set(order)) or set(order) != inventory:
         raise ValueError('sealed module inventory/load-order mismatch')
-    rows, loaded, vermagic = [], set(), None
+    return module_metadata_in_order(members, order, release)
+
+
+def module_metadata_in_order(members, order, release, *, initial=()):
+    """Validate exact module bytes and dependencies after an already checked prefix."""
+    loaded = {row['name'] for row in initial}
+    vermagic = initial[0]['vermagic'] if initial else None
+    if (len(loaded) != len(initial) or any(row['vermagic'] != vermagic for row in initial)
+            or (vermagic is not None and (not vermagic.split() or vermagic.split()[0] != release))):
+        raise ValueError('inconsistent initial module load prefix')
+    rows = []
     deadline = time.monotonic() + 10
     with tempfile.TemporaryDirectory(prefix='rog5-module-metadata-') as temp:
         for index, name in enumerate(order):
@@ -615,6 +625,23 @@ def module_closure(members, release):
             loaded.add(module)
             rows.append(dict(path=name,sha256=hashlib.sha256(data).hexdigest(),**metadata))
     return rows
+
+
+def indicator_module_composition(members, core, release):
+    """Append the exact inert indicator payload for VM-only software loading.
+
+    The VM has no ASUS PMIC/LED device. Loading proves ABI, symbols and BTF;
+    physical probe, emitted light and brightness cleanup remain separate.
+    """
+    paths, _ = inert_indicator_modules(members)
+    if not paths:
+        return list(core), []
+    order = [BUTTONS.PAYLOAD_PREFIX + name for name in
+             ('led-class-multicolor.ko', 'qcom-pbs.ko', 'leds-qcom-lpg.ko')]
+    if set(order) != paths:
+        raise ValueError('indicator module order/inventory mismatch')
+    rows = module_metadata_in_order(members, order, release, initial=core)
+    return [*core, *rows], rows
 
 
 def board_helper_refusals(members, vermagic):

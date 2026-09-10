@@ -10,7 +10,9 @@ root/runtime composition and physical input/LED evidence remain pending;
 V9 is now registered against those exact signed bytes, with all prior records
 unchanged. It has not been admitted or booted. Sparse checkout of two completed
 review worktrees recovered 5.93 GB while retaining their Git objects and evidence;
-the host reserve is restored. Full integration validation is next.
+the host reserve is restored. A01 now prepares exact-kernel VM load checks for
+the three indicator modules while keeping physical behavior NOT RUN. Its
+46-test suite passes; paired-root VM composition and full CI remain pending.
 
 After the unplugged startup investigation, installed V8 returned as boot
 `159aa8ca-a7d5-425c-87c8-481e9484ff22`; the final authenticated readback passed

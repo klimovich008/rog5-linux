@@ -97,6 +97,29 @@ All 20 exact-claim tests passed in normal and optimized Python (0.277 and
 Registration created no claim file and performed no phone operation. Full
 frozen-source integration validation remains pending.
 
+The first full integration attempt stopped because the unprivileged artifact
+namespace remapped root-owned host tools to UID 65534; the collector correctly
+refused `fuser`. The affected 27-test suite passed on the ordinary host. A
+second attempt exposed a missing ignored boot-tool cache in the new checkout;
+restoring that cache made all 44 composition tests pass. The third attempt
+was deliberately interrupted before source changes when static review found
+that A01 could never clear the new indicator modules from its pending list.
+These runs remain failures/incomplete evidence, not integration PASS.
+
+A01 now includes all three exact indicator modules in the VM's ordered
+`insmod`/`initstate=live` checks, using the shared strict metadata and dependency
+validator. It clears their software-load rows only after the complete VM proof
+passes. Physical probe, emitted light and brightness cleanup remain explicitly
+NOT RUN. The updated 46-test composition suite passes in normal and optimized
+Python. Actual signed-payload metadata and dependency validation passes in
+0.99 seconds. Final VM composition runs before the next full integration
+checkpoint so an offline integration defect is found before repeating CI.
+
+A fresh authenticated readback still passes on V8 boot
+`159aa8ca-a7d5-425c-87c8-481e9484ff22`. Read-only D-Bus inspection also confirms
+the server inhibitor holds `sleep:handle-power-key` in block mode. Inputs and
+LED class devices are absent on that accepted DT; no physical trial occurred.
+
 ## Hub automation observation
 
 The connected `214b:7260` hub advertises ganged power switching
