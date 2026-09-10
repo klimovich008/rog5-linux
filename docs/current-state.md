@@ -176,7 +176,9 @@ two workers, capped by affinity and inherited quota. CI on corrected cc53c3ec
 passed that 12-test suite, then stopped after 255.505 seconds at UFS inventory
 sorting: the desktop service inherits en_US.UTF-8, unlike the shell's C.UTF-8.
 The production verifier now pins C locale; exact inventory/profile refusals
-remain unchanged. A fresh full CI on the combined correction remains pending.
+remain unchanged. Full CI now passes on frozen source `492d8cf2` in 593.246
+seconds, source unchanged, under 3 GiB/no swap and a two-CPU quota. Receipt:
+`source-ci-r6/result.json`. The previous failures remain preserved.
 
 
 The expanded display autoload audit passes for configured root paths: udev
