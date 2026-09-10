@@ -20,3 +20,13 @@ Project skills supplement this guidance. `rog5-fast-loop` covers project changes
 failures. Do not install extra review/planning skills or edit global skills here.
 Use bounded independent agents only when useful; one coordinator owns integration
 and device access. Record results compactly in current state and one dated report.
+
+Prepare human-assisted hardware tests before requesting availability: finish
+builds, focused checks, review, artifact staging and no-press device preflights.
+Wait for a fresh explicit Ready before starting any operator countdown. On Ready,
+start the prepared session immediately; only brief current-state guards and
+runtime arming belong afterward. Prompt one short press/release at actual reader
+READY and collect events automatically. Do not require terminal typing. If a
+prerequisite fails, resolve it independently before requesting readiness again.
+Never treat an expired reply as fresh presence, or repeat completed physical
+steps just because a later independent check failed. Preserve each raw result.

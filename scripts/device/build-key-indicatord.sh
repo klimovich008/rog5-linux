@@ -4,10 +4,10 @@ set -eu
 source_file=${1:?usage: build-key-indicatord.sh SOURCE OUTPUT}
 output=${2:?missing output}
 epoch=1681862400
-expected_source_size=20530
-expected_source_sha256=3d597f919d71a76f2aef0ae2aa269e219ffe7c0bdca0e9b73481d52dff686939
+expected_source_size=23566
+expected_source_sha256=d921b5bfd1fe8c0370c2ff6dc0a19a3041249288f3f49e84d9a1510fbec42096
 expected_output_size=67520
-expected_output_sha256=3792745382a390ebeef37a081e532884aae07bbcd73fd9f0da1c94e67bdabbc8
+expected_output_sha256=410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3
 
 [ "$(uname -m)" = aarch64 ] || {
 	echo 'FAIL key indicator must be built natively for AArch64' >&2

@@ -7,11 +7,11 @@ verify=$repo/scripts/device/verify-staged-arch-headless-core-rootfs.sh
 base_verify=$repo/scripts/device/verify-staged-arch-headless-rootfs.sh
 host=$repo/scripts/host/stage-arch-rootfs.sh
 runner=$repo/scripts/device/run-arch-rootfs-stage.sh
-binary=$repo/artifacts/headless-indicator-v1/rog5-key-indicatord
+binary=$repo/artifacts/headless-indicator-v2/rog5-key-indicatord
 unit=$repo/packaging/arch/rog5-key-indicator.service
 modules_conf=$repo/packaging/arch/rog5-status-led.modules.conf
 manifest=$repo/manifests/artifacts.tsv
-expected_hash=3792745382a390ebeef37a081e532884aae07bbcd73fd9f0da1c94e67bdabbc8
+expected_hash=410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3
 
 fail() {
 	echo "FAIL $*" >&2
@@ -48,7 +48,7 @@ if strings "$binary" | grep -q -- '--fixture'; then
 fi
 
 awk -F '\t' -v hash="$expected_hash" '
-	$1 == "artifacts/headless-indicator-v1/rog5-key-indicatord" {
+	$1 == "artifacts/headless-indicator-v2/rog5-key-indicatord" {
 		count++
 		if ($2 != 67520 || $3 != hash || $5 != "yes")
 			exit 1
@@ -64,7 +64,7 @@ grep -Fq 'verify-staged-arch-headless-core-rootfs.sh' "$host"
 grep -Fq 'indicator_required=1' "$host"
 grep -Fq 'INDICATOR_SHA256=$indicator_hash' "$host"
 grep -Fq 'target=/stage/input/rog5-key-indicatord,readonly' "$host"
-grep -Fq 'artifacts/headless-indicator-v1/rog5-key-indicatord' "$host"
+grep -Fq 'artifacts/headless-indicator-v2/rog5-key-indicatord' "$host"
 grep -Fq '/usr/local/libexec/rog5-key-indicatord' "$stage" "$verify"
 grep -Fq 'systemctl enable rog5-key-indicator.service' "$stage"
 grep -Fq 'ExecStopPost=/usr/local/libexec/rog5-key-indicatord --off' "$unit"

@@ -35,7 +35,9 @@ PAYLOAD = {
     'led-class-multicolor.ko': (276976, '562c45971e2fa51d2aea8fe8661f4dd654ab0f704b8aba04b4a63cc3d1e3ec4b', 0o644),
     'qcom-pbs.ko': (284304, '63dd1f7091a37e87cfc452fe37619027d4601f4da019893bac68d8bf56ff3d22', 0o644),
     'leds-qcom-lpg.ko': (368424, '681440a4905d930b8b4e8e138020099700390a540ebb2b443941be7f09b914c6', 0o644),
-    'rog5-key-indicatord': (67520, '3792745382a390ebeef37a081e532884aae07bbcd73fd9f0da1c94e67bdabbc8', 0o755),
+    # The PM8941 input driver is built in, but its PON platform parent is modular.
+    'qcom-pon.ko': (273336, '5e0b893338592d3d4a87b3d36459de6405313d1522f552e772f5bcda78b5aab3', 0o644),
+    'rog5-key-indicatord': (67520, '410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3', 0o755),
 }
 
 

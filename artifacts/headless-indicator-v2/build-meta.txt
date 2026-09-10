@@ -1,0 +1,13 @@
+format=rog5-headless-indicator-build-v2
+source=tools/key-indicator/rog5-key-indicatord.c
+source_size=23566
+source_sha256=d921b5bfd1fe8c0370c2ff6dc0a19a3041249288f3f49e84d9a1510fbec42096
+binary=rog5-key-indicatord
+binary_size=67520
+binary_sha256=410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3
+compiler=Alpine GCC 15.2.0
+source_date_epoch=1681862400
+build_image_id=a085070738e277a354bc22bb033f84c7c1568ae45a35ebf951ff27510fd7fd0e
+build_image_digest=sha256:ab143fea42bd7780c2b69512397f9a33251ef9218c3258e5dd2995a905abddaa
+reproducible_twins=true
+provenance=Retained qualified ARM twins; no rebuild during repository integration

@@ -13,7 +13,7 @@ generation=${ARCH_ROOTFS_GENERATION:-v2}
 source_date_epoch=1681862400
 firmware_required=1
 indicator_required=0
-indicator=$repo/artifacts/headless-indicator-v1/rog5-key-indicatord
+indicator=$repo/artifacts/headless-indicator-v2/rog5-key-indicatord
 headless_build_profile=headless-ssh-v1
 expected_headless_profile=headless-ssh-v1
 
@@ -141,7 +141,7 @@ modules_hash=$(verify_manifest_artifact \
 indicator_hash=
 if [[ $indicator_required == 1 ]]; then
 	indicator_hash=$(verify_manifest_artifact \
-		artifacts/headless-indicator-v1/rog5-key-indicatord "$indicator")
+		artifacts/headless-indicator-v2/rog5-key-indicatord "$indicator")
 	[[ $(stat -c %s "$indicator") == 67520 ]]
 	file "$indicator" |
 		grep -q 'ELF 64-bit LSB pie executable, ARM aarch64.*static-pie linked'

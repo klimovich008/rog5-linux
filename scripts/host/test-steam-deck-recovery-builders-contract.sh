@@ -7,7 +7,7 @@ fail() {
 }
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
-profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v1.json
+profile=$repo/configs/kernel-builder/steam-deck-recovery-arm64-v2.json
 verifier=$repo/scripts/host/verify-steam-deck-recovery-builders.sh
 runner=$repo/scripts/host/run-private-arm64-binfmt.sh
 responder_builder=$repo/scripts/host/build-persistent-root-verifier-image.sh
@@ -35,7 +35,7 @@ grep -Fq "\"runner_sha256\": \"$runner_sha\"" "$profile" ||
 	fail 'recovery-builder profile runner pin differs from the live runner'
 
 for token in \
-	steam-deck-recovery-arm64-v1 \
+	steam-deck-recovery-arm64-v2 \
 	'"authority": "none"' \
 	bfcd46c842441912baed36158569ac29a7fb656684ca73c1b3b2f0f3971e9bec \
 	354ea9b62a7ec9f19501858e3e0d2c4f848faa93e639dccc36bb23f5a016c301 \
@@ -67,5 +67,20 @@ if grep -Eq '\b(sudo|pkexec|fastboot|adb|ssh|scp)\b|/dev/(sd|nvme|ufs)' \
 	"$bundle_recipe"; then
 	fail 'recovery-builder profile contains privilege, phone, or storage transport'
 fi
+
+
+# Builder images remain identical; only the current indicator output advances.
+python3 - "$repo/configs/kernel-builder/steam-deck-recovery-arm64-v1.json" "$profile" <<'PYPROFILE'
+import hashlib,json,sys
+from pathlib import Path
+legacy=Path(sys.argv[1]).read_bytes()
+if hashlib.sha256(legacy).hexdigest() != '5987588650f5665546bdaa0b335524df2739e47e9edf3aa3e4d173d233ef313d':
+    raise SystemExit('FAIL historical recovery builder profile changed')
+expected=json.loads(legacy)
+expected['profile']='steam-deck-recovery-arm64-v2'
+expected['responder_builder']['outputs']['rog5-key-indicatord']='410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3'
+if json.loads(Path(sys.argv[2]).read_text()) != expected:
+    raise SystemExit('FAIL recovery v2 changed more than the indicator artifact')
+PYPROFILE
 
 echo 'PASS Steam Deck recovery builders are normalized, identity-bound, and host-only'

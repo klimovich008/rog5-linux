@@ -16,6 +16,7 @@ SPEC = importlib.util.spec_from_file_location(
 M = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(M)
 A = M.ARCHIVE
+PRODUCTION_PAYLOAD = dict(M.PAYLOAD)
 
 
 def descriptor(trial='1', bundle='fixture-primary'):
@@ -86,6 +87,27 @@ class Composition(unittest.TestCase):
                          {M.PAYLOAD_PREFIX[:-1]} | {M.PAYLOAD_PREFIX+n for n in self.payload})
         self.assertEqual(output[M.CATALOG][1], M.catalog(output))
         self.assertEqual(report['activation'], 'none; deferred to a separately guarded runtime test')
+
+    def test_current_payload_requires_parent_and_corrected_daemon(self):
+        # Regression: the old LED-only payload passed composition while neither
+        # PMIC input child could bind on the real phone.
+        self.assertEqual(set(PRODUCTION_PAYLOAD), {
+            'led-class-multicolor.ko', 'qcom-pbs.ko', 'leds-qcom-lpg.ko',
+            'qcom-pon.ko', 'rog5-key-indicatord'})
+        self.assertEqual(PRODUCTION_PAYLOAD['qcom-pon.ko'],
+                         (273336, '5e0b893338592d3d4a87b3d36459de6405313d1522f552e772f5bcda78b5aab3', 0o644))
+        self.assertEqual(PRODUCTION_PAYLOAD['rog5-key-indicatord'],
+                         (67520, '410e8936872b5fb80ef94adc6b66e7a9b0a76e7357158f6102772d235e1111c3', 0o755))
+        led_only = dict(self.payload)
+        del led_only['qcom-pon.ko']
+        with self.assertRaisesRegex(ValueError, 'payload inventory mismatch'):
+            self.run_compose(payload=led_only)
+        packed, report = self.run_compose()
+        output = A.entries(gzip.decompress(packed))
+        self.assertEqual(output[M.PAYLOAD_PREFIX+'qcom-pon.ko'][1], self.payload['qcom-pon.ko'])
+        self.assertEqual(report['authority'], 'unsigned offline composition only')
+        self.assertFalse(report['kernel_rebuilt'])
+        self.assertFalse(report['arch_root_rebuilt'])
 
     def test_wrong_outer_hash(self):
         with self.assertRaisesRegex(ValueError, 'base hash mismatch'):
