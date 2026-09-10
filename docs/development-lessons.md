@@ -667,3 +667,13 @@ files, drains stderr through a separately capped 8-KiB pipe, and retains core=0,
 timeout and owned cleanup. Verify a real window as well as subprocess fixtures.
 Mapped buffers can outlive their closed file descriptors: the first window check
 missed them by inspecting only open FDs; `/proc/PID/maps` supplied the evidence.
+
+The follow-up r3 window rendered but did not accept the Steam on-screen
+keyboard. Synthetic key injection also failed in X11 mode and a pointer test
+failed, so the precise input-routing cause is unresolved. Rendering alone does
+not qualify input. A prepared local touch keyboard calls the entry callbacks
+directly and has tested Shift/symbol/delete/cancel behavior; real touch input
+still needs the user. Do not record simulated injection as a physical pass.
+SIGTERM to `sudo -A -v` started a replacement askpass during cancellation.
+Terminate the verified owned authentication group on forced abort so the dialog
+cannot outlive cancellation; this path runs no privileged phone command.

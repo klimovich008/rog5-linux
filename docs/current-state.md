@@ -9,18 +9,26 @@ kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
-The fresh host Ready was used immediately for privilege probe r2 on 2026-09-11.
-Authentication failed in 2.328 seconds before either root probe: the password
-window received SIGXFSZ under the inherited 8-KiB file limit. The user confirmed
-no window appeared. This was a launcher defect, not a missed user response.
-The corrected authentication path gives GUI buffers a bounded 64-MiB file limit
-and independently caps stderr at 8 KiB through a pipe. Core dumps stay disabled;
-the 120-second timeout, owned termination and reaping remain enforced.
-Ten probe tests pass in 0.726 seconds and fifteen launcher tests in 0.902 seconds.
-An actual Wayland message window survives with mapped graphics buffers and is
-stopped/reaped after 2.010 seconds. This is GUI preparation, not authentication.
-Next host availability must launch `run-privilege-probe.py --authenticate --run-id r3`
-immediately. Never reuse r2 or interpret this host Ready as phone availability.
+On 2026-09-11, fresh host Ready started privilege probe r3 immediately.
+The corrected GUI opened, but the user reported that Steam's keyboard opened
+without entering text. The attempt was cancelled before either root probe;
+its terminal result is FAIL (100.254 seconds), with zero phone/network actions.
+SIGTERM to sudo caused another askpass prompt; cancellation then killed the
+verified authentication process group. No authentication process remains.
+
+The next prepared attempt is `run-privilege-probe.py --authenticate --run-id r4`.
+It uses a pinned local `touch-askpass.py` with large directly tappable keys,
+Shift, symbols, Backspace, Clear, Cancel and Unlock. Its value is masked, never
+saved or copied, and returned only through sudo's pipe; standalone file/terminal
+output is refused. Callback tests cover all printable ASCII characters and the
+layout was visually checked on the Deck. Actual human touch input is unverified.
+Automated keyboard injection failed with both KDE dialogs, including X11 mode;
+a synthetic pointer check also failed, so do not claim X11 resolved the issue.
+The prepared touchscreen path requires a fresh host Ready. Start r4 immediately
+on that reply and instruct the user to tap its own keys, then Unlock. The timeout
+is now five minutes for touch entry, with core=0, bounded GUI files, separately
+bounded stderr and owned authentication-group cleanup. Ten probe and fifteen
+launcher tests pass after the update. No physical phone availability is pending.
 The full Denial/hardware goal remains incomplete; no phone test passed by inference.
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have
@@ -90,8 +98,8 @@ USB/SSH, privilege, RAM transfer and elapsed-time fixtures. They prove host
 integration behavior, not phone operation.
 The read-only privilege probe passes **nine preparation tests in 0.691 s**.
 The first actual attempt stopped before root execution because sudo required a
-password. The second attempt's GUI failure and corrected r3 preparation are
-recorded above; r2 is terminal and must not be reused.
+password. The second attempt's GUI failure and third attempt's input failure are
+retained; r2 and r3 are terminal and must not be reused.
 It performs no phone, network, claim or live-capture action. After actual handoff
 qualification, finish exact claim registration and final qualification. No physical Ready
 request or phone recording session is pending.
