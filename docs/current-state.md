@@ -1,6 +1,12 @@
 # ROG5 current state
 
 Updated 2026-09-10: **Denial Wayland is now the active long-term destination**.
+The user has reprioritized **kernel and non-cellular hardware bring-up first**.
+Defer Denial/Flutter builds while qualifying the kernel: stable boot and recovery,
+OLED scanout, front touch, Adreno with minimal DRM/EGL tests, and power management.
+Track Wi-Fi, audio, Bluetooth, sensors and cameras explicitly; do not call the
+kernel fully working while required hardware remains unqualified. Denial remains
+the eventual application layer. Prepare hardware trials completely before Ready.
 Fresh read-only health passes on the same V9 boot in 1.252 seconds. The runtime
 has no DRM card/render nodes, framebuffer or backlight, and only the three
 qualified key inputs. MDSS, DSI, GPU and GMU are disabled in its device tree.
@@ -31,10 +37,11 @@ Static closure against the retained Arch layers passes for `denialctl`.
 `deniald` still needs GBM, libseat, libinput and xkbcommon libraries there.
 The isolated Flutter engine builder is now provisioned, and its exact Flutter
 and bootstrap depot_tools checkouts passed verification in 22.003 seconds.
-Dependency sync has started under a 3 GiB memory limit with no additional swap,
-a 10 GiB free-disk floor and a two-hour deadline. This is an in-progress download,
-not a completed dependency closure or engine build. Resume the existing private
-`engine-build-r1` job and inspect its terminal receipt before starting hooks.
+Dependency sync was deliberately stopped at the user's priority change after
+796.080 seconds. The container and runner have exited; its partial source/cache
+is retained. The raw sync receipt is FAIL/137 from the requested stop, not a
+successful dependency closure or evidence of an OOM. Do not restart it during
+the kernel-first phase. No hooks, engine compilation or shell assembly ran.
 The public mobile shell is available, while the reference
 build helpers use x86-64 paths and checksums. See the
 [bring-up record](../test-results/2026-09-10-denial-bringup.md) for next actions.

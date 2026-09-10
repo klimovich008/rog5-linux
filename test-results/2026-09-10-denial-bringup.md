@@ -41,6 +41,23 @@ No module insertion, display activation, reboot, signing or phone write occurred
 
 ## Denial source and build order
 
+**Priority correction:** the user subsequently requested kernel and hardware
+bring-up before Denial. Root stopped the exact live dependency container and
+reaped its runner after 796.080 seconds. The bounded stop returned zero;
+the raw sync result remains FAIL with exit137 after the stop grace period.
+This was a deliberate interruption, not a reported memory-exhaustion event.
+`engine-build-r1/priority-stop-entered.json` and `priority-stop-result.json`
+preserve the reason and action; cache and partial source remain intact.
+Do not follow the older running-job checkpoint below as a restart instruction.
+Engine hooks, compilation and AOT assembly remain deferred during kernel-first
+bring-up. Minimal hardware test programs remain appropriate for DRM/EGL/input
+qualification. The real-phone Denial completion requirements remain unchanged.
+
+Fresh read-only phone health passed in 0.938 seconds on the same accepted V9
+boot, with installed identities and storage/power/healthy-selection checks.
+Private receipt: `denial-engine-prep-health-r1/result.json` under the CPU-startup
+evidence root. No hardware activation or reboot accompanied this check.
+
 Engine preparation has now started in private `engine-build-r1`. The derived
 builder image is `237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee`.
 It reuses the pinned Rust builder and adds thirteen host-tool packages from its
