@@ -33,6 +33,7 @@ def load(name, filename):
 
 SEALED = load('rescue_sealed', 'scripts/host/run-sealed-busybox.py')
 ACCEPTANCE = load('rescue_acceptance', 'scripts/host/release-acceptance.py')
+BUTTONS = load('rescue_buttons', 'scripts/device/build-buttons-indicator-trial-initramfs.py')
 FUNCTIONS = ('verify_exact_regular', 'prepare_volatile_root_account',
              'prepare_volatile_ssh_policy', 'verify_systemd_update_marker',
              'prepare_volatile_systemd_state', 'prepare_package_keyring', 'prepare_runtime')
@@ -498,11 +499,48 @@ def radio_module_composition(members, core, release):
         scope='software module closure/load only; ASUS board-only helpers remain untested')
 
 
+def inert_indicator_modules(members):
+    """Recognize one complete pinned payload; this grants no load authority."""
+    prefix = BUTTONS.PAYLOAD_PREFIX
+    directory = prefix[:-1]
+    present = {name for name in members if name == directory or name.startswith(prefix)}
+    if not present:
+        return set(), []
+    expected = {directory} | {prefix+name for name in BUTTONS.PAYLOAD}
+    if present != expected:
+        raise ValueError('inert indicator payload inventory mismatch')
+    release = members.get(BUTTONS.PREFIX+'kernel-release')
+    if (release is None or release[0][1:5] != [stat.S_IFREG | 0o444, 0, 0, 1]
+            or release[1] != (BUTTONS.RELEASE+'\n').encode()):
+        raise ValueError('inert indicator kernel identity mismatch')
+    payload = {}
+    for path in sorted(expected):
+        fields, data = members[path]
+        if path == directory:
+            mode, links, size = stat.S_IFDIR | 0o755, 2, 0
+        else:
+            name = path[len(prefix):]
+            size, _, permissions = BUTTONS.PAYLOAD[name]
+            mode, links = stat.S_IFREG | permissions, 1
+            payload[name] = data
+        # Match the composer's newc metadata, excluding only its allocated inode.
+        if (fields[1:] != [mode, 0, 0, links, BUTTONS.ARCHIVE.EPOCH, size,
+                           0, 0, 0, 0, len(path.encode())+1, 0]
+                or len(data) != size):
+            raise ValueError('inert indicator payload metadata mismatch: '+path)
+    BUTTONS.validate_payload(payload)
+    modules = {prefix+name for name in BUTTONS.PAYLOAD if name.endswith('.ko')}
+    pending = [dict(path=name, sha256=hashlib.sha256(members[name][1]).hexdigest(),
+                    status='NOT RUN', scope='indicator hardware module load')
+               for name in sorted(modules)]
+    return modules, pending
+
+
 def core_module_members(members, profile):
     """Keep the power/UFS closure strict; radio activation is a separate test.
 
-    The server-runtime profile proves service preparation only. It must never
-    turn untested nested/probe radio modules into a full module-closure PASS.
+    The server-runtime profile proves service preparation only. Radio modules
+    and the complete pinned inert indicator payload remain explicitly untested.
     """
     if profile == 'rescue':
         return members, []
@@ -515,6 +553,9 @@ def core_module_members(members, profile):
         raise ValueError('missing retained radio module payload')
     pending = [dict(path=name, sha256=hashlib.sha256(members[name][1]).hexdigest(),
                     status='NOT RUN', scope='radio module load/closure') for name in sorted(auxiliary)]
+    indicator, indicator_pending = inert_indicator_modules(members)
+    auxiliary |= indicator
+    pending += indicator_pending
     return {name: member for name, member in members.items() if name not in auxiliary}, pending
 
 
@@ -948,7 +989,7 @@ def main():
         raise ValueError('expanded archive exceeds 512 MiB')
     members = SEALED.ARCHIVE.entries(payload)
     values = archive_parameters(members, profile=args.profile)
-    core_members, radio_pending = core_module_members(members, args.profile)
+    core_members, module_pending = core_module_members(members, args.profile)
     modules = module_closure(core_members, values['KERNEL_RELEASE'])
     if ('Linux version '+values['KERNEL_RELEASE']+' ').encode() not in Path(inputs['artifact_paths']['kernel']).read_bytes():
         raise ValueError('kernel banner/archive release mismatch')
@@ -997,7 +1038,10 @@ def main():
                                    'unit lifetime is a fixture, not deployed timeout verification'],
                       mount=mount, exit_code=code, duration_seconds=round(time.monotonic()-started, 3),
                       module_metadata_in_load_order=modules,
-                      radio_module_tests=radio_pending,
+                      radio_module_tests=[row for row in module_pending
+                                          if row['scope'] == 'radio module load/closure'],
+                      indicator_module_tests=[row for row in module_pending
+                                              if row['scope'] == 'indicator hardware module load'],
                       checker_sha256=ACCEPTANCE.sha_file(Path(__file__)),
                       qemu_sha256=ACCEPTANCE.sha_file(Path('/usr/bin/qemu-aarch64-static')))
         (args.output/'result.json').write_text(json.dumps(record, indent=2)+'\n')

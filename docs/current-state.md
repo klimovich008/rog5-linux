@@ -1,5 +1,21 @@
 # ROG5 current state
 
+Updated 2026-09-10: the user clarified the destination as a native touch-first
+Arch Linux phone inspired by Denial, with cellular excluded. Display, touch
+and GPU are central next milestones in the [roadmap](../ROADMAP.md). Buttons
+and a default-off status LED are the current bounded step, not final product
+completion. The [inert target composer and unsigned twin archives](../test-results/2026-09-10-mobile-input-preparation.md)
+pass focused tests; no new candidate has been admitted or booted.
+
+After the unplugged startup investigation, installed V8 returned as boot
+`159aa8ca-a7d5-425c-87c8-481e9484ff22`; the final authenticated readback passed
+installed bytes, power/thermal and local storage checks. The full capture and
+cleanup completed and all phone controllers are closed. S06 and R01 remain
+failed; the shutdown/startup issue is unresolved. Current readback supersedes
+the historical boot and S06 status in the retained checkpoint below.
+
+## Previous qualification checkpoint
+
 Updated 2026-09-09: the corrected RAM-only shutdown passed its physical source
 component. Its clean receipt reported mounts and loops clear, with all **117**
 physical block nodes read-only. Fastboot followed in **11.801 s**.
@@ -41,11 +57,12 @@ controller are still required.
 
 ## Goal and authority
 
-Qualify one reliable unattended headless Arch server under the existing
-[acceptance contract](release-acceptance.md) and
-[mandatory matrix](../configs/release-acceptance.json). Display is optional.
+Deliver the mobile Arch phone described in the [roadmap](../ROADMAP.md), with
+the buttons/status LED milestone first. Preserve the headless server and its
+existing [acceptance contract](release-acceptance.md) and
+[mandatory matrix](../configs/release-acceptance.json) as the baseline.
 Missing prerequisites/evidence are BLOCKED or NOT RUN, never PASS.
-No architecture rewrite or competing goal; unrelated work stays in the backlog.
+Use the clarified roadmap for scope; unrelated work stays in the backlog.
 
 Exact phone: `M5AIKN00F0353YH`, product `lahaina`, side USB anchor `1-1.2`.
 Preserve official WW33 slot A (`33.0210.0210.200`) as charging/rescue.

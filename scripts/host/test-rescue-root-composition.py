@@ -716,6 +716,105 @@ class CompositionTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             M.core_module_members(members, 'server-runtime')
 
+    def indicator_fixture(self):
+        members = {}
+        for name in ('rog5-pmic-pon-readonly.ko', 'rog5-s12-ufs-vote.ko',
+                     'rog5-wifi-activate.ko', 'module-root-complete.tar.gz'):
+            M.SEALED.ARCHIVE.add(members, 'rog5-native-wifi/'+name,
+                                b'retained radio', stat.S_IFREG | 0o644)
+        M.SEALED.ARCHIVE.add(members, M.BUTTONS.PREFIX+'kernel-release',
+                            (M.BUTTONS.RELEASE+'\n').encode(), stat.S_IFREG | 0o444)
+        pins = {}
+        for name, (_, _, mode) in M.BUTTONS.PAYLOAD.items():
+            data = ('fixture '+name).encode()
+            pins[name] = (len(data), M.BUTTONS.sha(data), mode)
+            M.SEALED.ARCHIVE.add(members, M.BUTTONS.PAYLOAD_PREFIX+name,
+                                data, stat.S_IFREG | mode)
+        # A minimal strict core inventory. Unknown .ko must fail before modinfo.
+        for name, data in (
+                ('init', b'if ! power_usb_failure=$(/sbin/rog5-load-persistent-power-usb); then\n'
+                         b' :\nfi\nload_deferred_ufs_modules\n'),
+                ('sbin/rog5-load-persistent-power-usb', b'load_module power.ko power power\n'),
+                ('rog5-power-usb-modules/power.ko', b'core fixture')):
+            M.SEALED.ARCHIVE.add(members, name, data, stat.S_IFREG | 0o644)
+        return members, pins
+
+    def test_complete_indicator_payload_is_only_classified_never_loaded(self):
+        members, pins = self.indicator_fixture()
+        original = copy.deepcopy(members)
+        with patch.dict(M.BUTTONS.PAYLOAD, pins, clear=True):
+            core, pending = M.core_module_members(members, 'server-runtime')
+        self.assertEqual(members, original)
+        expected = {M.BUTTONS.PAYLOAD_PREFIX+name for name in pins if name.endswith('.ko')}
+        indicator = [row for row in pending if row['scope'] == 'indicator hardware module load']
+        self.assertEqual({row['path'] for row in indicator}, expected)
+        self.assertEqual(len(indicator), 3)
+        self.assertTrue(all(row['status'] == 'NOT RUN' and row['sha256'] ==
+                            M.BUTTONS.sha(members[row['path']][1]) for row in indicator))
+        self.assertFalse(expected & core.keys())
+        self.assertEqual(core['rog5-power-usb-modules/power.ko'],
+                         members['rog5-power-usb-modules/power.ko'])
+        self.assertIn(M.BUTTONS.PAYLOAD_PREFIX+'rog5-key-indicatord', core)
+        self.assertEqual(M.core_module_members(members, 'rescue'), (members, []))
+
+    def test_indicator_partial_mutated_unexpected_inventory_refused(self):
+        members, pins = self.indicator_fixture()
+        paths = {M.BUTTONS.PAYLOAD_PREFIX+name for name in pins}
+        paths.add(M.BUTTONS.PAYLOAD_PREFIX[:-1])
+        with patch.dict(M.BUTTONS.PAYLOAD, pins, clear=True):
+            for path in paths:
+                changed = copy.deepcopy(members); del changed[path]
+                with self.subTest(missing=path), self.assertRaisesRegex(ValueError, 'inventory'):
+                    M.core_module_members(changed, 'server-runtime')
+            for name in pins:
+                path = M.BUTTONS.PAYLOAD_PREFIX+name
+                changed = copy.deepcopy(members)
+                fields, data = changed[path]
+                changed[path] = fields, bytes([data[0] ^ 1])+data[1:]
+                with self.subTest(mutated=name), self.assertRaisesRegex(ValueError, 'identity'):
+                    M.core_module_members(changed, 'server-runtime')
+            for suffix in ('extra.ko', 'unexpected.service', 'nested', 'nested/extra.ko'):
+                changed = copy.deepcopy(members)
+                M.SEALED.ARCHIVE.add(changed, M.BUTTONS.PAYLOAD_PREFIX+suffix,
+                                    b'not admitted', stat.S_IFREG | 0o644)
+                with self.subTest(extra=suffix), self.assertRaisesRegex(ValueError, 'inventory'):
+                    M.core_module_members(changed, 'server-runtime')
+
+    def test_indicator_metadata_and_kernel_marker_refused(self):
+        members, pins = self.indicator_fixture()
+        paths = [M.BUTTONS.PAYLOAD_PREFIX+name for name in pins]
+        paths.append(M.BUTTONS.PAYLOAD_PREFIX[:-1])
+        with patch.dict(M.BUTTONS.PAYLOAD, pins, clear=True):
+            for path in paths:
+                for index, value in ((1, stat.S_IFLNK | 0o777), (1, stat.S_IFREG | 0o666),
+                                     (2, 1000), (3, 1000), (4, 3), (5, 0),
+                                     (6, 999), (7, 1), (9, 1), (11, 1), (12, 1)):
+                    changed = copy.deepcopy(members); changed[path][0][index] = value
+                    with self.subTest(path=path, field=index, value=value), \
+                            self.assertRaisesRegex(ValueError, 'metadata'):
+                        M.core_module_members(changed, 'server-runtime')
+            path = M.BUTTONS.PREFIX+'kernel-release'
+            for mutation in ('missing', 'old-release', 'owner', 'mode'):
+                changed = copy.deepcopy(members)
+                if mutation == 'missing': del changed[path]
+                elif mutation == 'old-release': changed[path] = changed[path][0], b'7.1.4-g7a5cef0db479\n'
+                elif mutation == 'owner': changed[path][0][2] = 1000
+                else: changed[path][0][1] = stat.S_IFREG | 0o644
+                with self.subTest(kernel=mutation), self.assertRaisesRegex(ValueError, 'kernel identity'):
+                    M.core_module_members(changed, 'server-runtime')
+
+    def test_indicator_exclusion_never_hides_unknown_core_modules(self):
+        members, pins = self.indicator_fixture()
+        with patch.dict(M.BUTTONS.PAYLOAD, pins, clear=True):
+            for path in ('unexpected.ko', 'rog5-native-wifi/buttons-indicator.ko',
+                         'rog5-power-usb-modules/extra.ko', 'rog5-ufs-modules/extra.ko'):
+                changed = copy.deepcopy(members)
+                M.SEALED.ARCHIVE.add(changed, path, b'unknown', stat.S_IFREG | 0o644)
+                core, _ = M.core_module_members(changed, 'server-runtime')
+                self.assertIn(path, core)
+                with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'inventory/load-order'):
+                    M.module_closure(core, M.BUTTONS.RELEASE)
+
     def test_server_driver_provides_prior_overlay_stage_input(self):
         sealed = ''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS if name != 'prepare_runtime')
         sealed += '''prepare_runtime() {

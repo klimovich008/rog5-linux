@@ -8,6 +8,13 @@ regression/publication contract, not current installed-selector identity.
 
 ## Qualification-first scope
 
+The 2026-09-10 user clarification expands the product destination to a mobile
+Arch phone, excluding cellular; see [priorities](../ROADMAP.md). The current
+buttons/LED milestone and subsequent display/touch/GPU work may proceed under
+their bounded gates while unrelated baseline qualification failures remain
+open. The acceptance matrix below still defines baseline release qualification,
+and its failures must not be relabelled as success.
+
 The mandatory matrix in [release acceptance](release-acceptance.md) is the
 definition of done. Select the highest-value failing or blocked outcome, state
 one question, and work to evidence. Fix newly found defects now only if they

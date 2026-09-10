@@ -151,6 +151,8 @@ native_wifi_probe_tests=(
 	scripts/device/test-native-wifi-wpa-start.py
 	scripts/device/test-native-wifi-network-restart.py
 	scripts/device/test-native-wifi-boot.py
+	scripts/device/test-buttons-indicator-trial-initramfs.py
+	scripts/device/test-rog5-physical-key-events.py
 	scripts/device/test-optional-display-runtime.py
 	scripts/device/test-native-wifi-healthy.py
 	scripts/device/test-native-wifi-radio-refusal.py
