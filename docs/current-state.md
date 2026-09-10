@@ -315,7 +315,23 @@ uses deck's existing-route transport; a scoped privileged bridge for fresh
 fallback routes must be bound before live execution. Evidence:
 `successor-live-driver-r1/callback-tests-r1/result.json`. No phone action ran.
 
-Next: implement and qualify the remaining concrete driver methods using
+Three read-only source callbacks now implement preflight, interrupted-source
+inspection and restoration verification. Their observer accepts only recognized
+selection/exitrd transactions, checks both ends of the snapshot, and refuses
+reboot intents, partial publications, changed records and unknown owners.
+Twenty-two real file/lock namespace tests pass in normal/optimized Python
+(0.568/0.510 seconds), with physical telemetry synthetic. Twelve callback tests
+pass (2.869/3.045 seconds), replaying actual V9 proof with explicit alterations.
+
+The new observer's actual V9 preflight **PASS** in 1.694 seconds on the unchanged
+boot: physical storage/power guards, staged helper/custody, original shutdown and
+old healthy selection all match; state/exitrd transactions and reboot intent are
+absent. No source mutation or reboot occurred. Evidence:
+`successor-live-driver-r1/live-source-observation-r1/result.json`. This qualifies
+the current read-only source check, not successor hardware or full boot admission.
+
+Next: implement and qualify target/V11 health and verification, capture/fastboot
+and privileged fallback routing, then complete admission for the concrete driver using
 the staged source artifacts and exact one-use boot admission. The embedded RAM wrapper
 bypasses the installed selector, so its
 recovery phase stays read-only and requires a separate authenticated V11 return

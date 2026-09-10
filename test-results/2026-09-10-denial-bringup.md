@@ -5,6 +5,58 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Read-only source reconciliation and physical preflight
+
+Private evidence: `successor-live-driver-r1/observation-tests-r1`,
+`live-source-observation-r1` and `source-read-tests-r1`.
+The observer uses the qualified source file readers, sealed physical guard and
+existing RAM staging inventory. It reads only the source transition state; no
+state helper, exitrd writer or reboot command is invoked. It checks rollback
+units, holds a nonblocking record lock, identifies the exact transaction and
+shutdown state, then repeats guards and compares the snapshot before returning.
+
+Recognized states include untouched V9; staged selection with or without the
+stage-completion receipt; patched exitrd with or without the install-completion
+receipt; restored exitrd awaiting selection restoration; and completed selection
+restoration. Unknown members/owners, reboot intent, a partial next-file
+publication, partial restore intent, missing custody or changed record refuse.
+Completed source restoration requires the original shutdown and exact old record.
+These classifications preserve the actual Rust helper's lost-reply recovery
+semantics without treating an ambiguous operation as permission to retry.
+
+**22 tests PASS** in normal/optimized Python (**0.568/0.510 s**). They use actual
+files, root ownership, bounded inventory, no-follow readers and real advisory
+locks in an unprivileged UID-0 user namespace. The host root is read-only except
+the private fixture directory, and networking is isolated. Physical guard,
+filesystem-type and unit telemetry are explicit fixtures. Every ordinary case
+checks unchanged file inventory/content/metadata; one intentional replacement
+case verifies rejection after a record swap during observation.
+
+The actual generated preflight then ran through pinned normal USB SSH on V9 and
+**PASS** in **1.694 s**. Boot `7c945aa5-80d0-4af2-aa76-113d68e23ac5`, bundle V9
+and kernel `7.1.4-gf17befd4ef17` matched. The exact Rust helper, custody and RAM
+completion token remain intact. Physical storage/power guards passed; active
+shutdown remains `fc1ce027`, selection remains `ed3a62d1`, and state/exitrd
+transactions and reboot intent are absent. The host source was clean
+`cf617150ad719ba53b17ecb62daf4265044f0678`. Raw script, request, SSH reply and
+result are retained. No persistent write, helper operation or reboot ran.
+
+Three concrete callbacks now bind this observer to controller preflight, source
+abort inspection and source abort verification. **12 tests PASS** in
+**2.869/3.045 s**, using real saved controller intents and generated scripts with
+synthetic admission/transport. They replay the actual phone response, with
+explicit altered proofs for negative cases. Exact protocol types, snapshot
+consistency, complete restoration tokens and read-only phase intents are required.
+These callbacks do not supply the still-pending full controller admission.
+
+Review: this source-state question was resolved by a 1.694-second read-only
+phone observation; no kernel/module/root build or full boot cycle was needed.
+The user namespace enabled actual ownership/lock fixture checks despite the
+unresolved host sudo prerequisite. Keep that distinction explicit: scoped
+privileged capture and new fallback routes still need their final bridge.
+Next work remains fresh target/V11 health, capture/fastboot ownership and full
+admission. The Denial/hardware goal remains incomplete; no Ready is pending.
+
 ## Concrete mutation callback integration
 
 Private evidence: `successor-live-driver-r1/callback-tests-r1/result.json`.
