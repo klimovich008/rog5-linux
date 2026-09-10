@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+# Inventory ordering and parsed ELF diagnostics are a byte/English contract.
+export LC_ALL=C
+
 module_dir=${1:?usage: verify-persistent-ufs-module-profile.sh MODULE_DIR RELEASE MODE}
 expected_release=${2:?missing expected kernel release}
 storage_mode=${3:?missing UFS storage mode}

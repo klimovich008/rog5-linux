@@ -5,6 +5,41 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Signed wrapper twins and service-locale correction
+
+Actual `successor-boot-package-r2/result.json` is PACKAGING_TWINS_PASS,
+SHA `4ad975e7568af0e44f6a43496a58c95dad71068aeb6c43f161602ad216352a09`. Service elapsed time was 89.009 seconds with 512 MiB
+maximum memory and no swap. Both signed bundles, recovery archives and boot
+wrappers match. Raw images are 129,966,080 bytes; measured AVB capacity selects
+134,217,728 bytes. Wrapper SHA is
+`d21405d94a9eabc4b6b8e1b7990bf7c9f2aef1da0795a39e94761a5a09ab3fa6`;
+manifest SHA is
+`10c3db91eb265ee9edcce8bb812dcfc26230f1396455d3c2d0258e87b23ee26f`.
+The nested authenticated runtime plan passes; this does not replace A01,
+paired-root content/runtime qualification or physical admission.
+
+The original wrapper attempt failed at AVB partition-name resolution after
+successful side-A signing/repack. Receipt `successor-boot-package-r1/result.json`
+is `649a30f8f470db24fb2d1982deaf6ff63d63681fa1393aefd361c164c561903e`.
+Its `signed_bundle: false` field must not be read as absence of signing: the
+successful sign event and published signature establish that it occurred.
+The corrected runner keeps per-side signing records and verifies an exact,
+identity-bound copy named `boot.img`. Six focused groups pass in both modes;
+the actual retained wrapper passes that verification without repack/signing.
+
+CI `source-ci-r5` on cc53c3ec failed after 255.505 seconds, source unchanged;
+receipt SHA `10d93f4e35261da4ab3b291b52285d13575144dd67f89b179ac654aee47cff10`. Its worker cap was two, and the former failing healthy
+suite passed all 12 tests in 5.310 seconds with original operation deadlines.
+The next failure was UFS synthetic inventory sorting. Actual service locale
+is en_US.UTF-8, whereas the interactive shell uses C.UTF-8; the same four
+filenames sort differently. The production verifier now pins C for deterministic
+inventory and ELF diagnostics, with caller-locale and extra/missing-module
+regressions. No module bytes, accepted profile or timeout were changed. The focused test
+passed in 1.735 seconds; the old verifier reproduces the real locale failure,
+and the controlled regression rejects it even under an outer C locale. Receipt
+`ufs-locale-fix-r1/result.json` is
+`f295bf6e24981854a5ecdddd0a6fa3bb5c4ad4845681f5900e9339927852c6a5`.
+
 ## Remaining module guest and CI follow-up
 
 The separately rebuilt QEMU-only S12 shim twins passed in 4.432/4.027 seconds,

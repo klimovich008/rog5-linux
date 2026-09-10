@@ -459,6 +459,16 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   the bounded queue and cleanup, then rerun on frozen corrected source. Drain
   all ready outcomes before refilling so success cannot hide a queued failure.
 
+- Pin locale where production code sorts machine inventories or parses tool
+  diagnostics. A desktop service inherited en_US.UTF-8 while the shell used
+  C.UTF-8; the same four UFS filenames failed an exact comparison. Test with a
+  different caller locale so CI environment normalization cannot hide the bug.
+- Verify deployment-tool path semantics as well as bytes. AVB resolves a hash
+  descriptor's partition name to a sibling image path; side-labelled comparison
+  files need a bound canonical `boot.img` copy. Reuse a retained failed wrapper
+  to test this correction before repeating signing. Keep explicit signing-event
+  records so a later verification failure does not imply no signature existed.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
