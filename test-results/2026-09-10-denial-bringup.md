@@ -5,6 +5,22 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Final source CI
+
+Full CI passed on `492d8cf22071d5aeacc2e9720440af0c883b463f` in 593.246
+seconds, with clean unchanged source, 3 GiB memory cap, no swap and CPUQuota200%.
+Both previously failing boundaries pass; failed r4/r5 receipts remain retained.
+`source-ci-r6/result.json` SHA is `0ab45662a87e65b9f697598b91e61add9a2765ea00cbc611d099a3bf0adf98ef`;
+log SHA is `6f74382273594d8759a7f2ac054956b1fa235a91159a542c40d6a714043726c4`.
+This closes source CI for the combined scheduler/locale changes. Later notes
+updates do not relabel the tested commit or establish real-phone qualification.
+
+After-run review: bounded scheduling avoids unbounded CPU competition; the UFS
+verifier fixes its own locale; canonical AVB path verification was tested using
+the retained failed wrapper before new signing. Each correction has a focused
+regression and preserved failure evidence. Kernel/module builds were not
+repeated, and no phone action or human readiness request occurred.
+
 ## Signed wrapper twins and service-locale correction
 
 Actual `successor-boot-package-r2/result.json` is PACKAGING_TWINS_PASS,
