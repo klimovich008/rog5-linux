@@ -9,10 +9,28 @@ kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
-Fresh read-only health passes on the same V9 boot in 1.252 seconds. The runtime
-has no DRM card/render nodes, framebuffer or backlight, and only the three
-qualified key inputs. MDSS, DSI, GPU and GMU are disabled in its device tree.
-The existing 60 Hz display evidence belongs to a different kernel/DT pairing.
+Current coordinator handoff: the successor kernel, module and boot-package
+builds are complete; do not restart them. Seven mutation and three read-only
+source callbacks are qualified as components. The complete live controller and
+admission are still pending. Next: finish V11 health/restoration verification,
+health callback binding, capture/fastboot ownership and a scoped privileged
+transport bridge. New routes/full capture need host sudo authentication, while
+normal USB SSH works as deck. No receiver or Ready request is pending.
+
+Latest actual phone health passes in **2.083 seconds** on unchanged V9 boot
+`7c945aa5-80d0-4af2-aa76-113d68e23ac5`, observed at 50,061.14 seconds uptime.
+The same boot committed healthy at 64.143 seconds; pinned runtime, current-boot
+markers, services and storage/power guards pass. Battery temperature was 30.3 C.
+The prepared RAM helper/custody and original boot selection remain preserved.
+The new health predicate works after full capture without relaxing the
+300-second healthy-commit deadline. This is V9 evidence, not a successor boot.
+Use the latest `kernel-hardware-checkpoint-r*.json` in the private state directory
+for exact current sources and receipts; later sections retain earlier milestones.
+
+The last hardware inventory has no DRM card/render nodes, framebuffer or
+backlight, and only the three qualified key inputs. MDSS, DSI, GPU and GMU are
+disabled in its device tree. The existing 60 Hz display evidence belongs to a
+different kernel/DT pairing.
 
 The exact historical panel source and unchanged REFGEN regulator source now
 build as external modules against the current server kernel. Both module twins
@@ -330,7 +348,17 @@ absent. No source mutation or reboot occurred. Evidence:
 `successor-live-driver-r1/live-source-observation-r1/result.json`. This qualifies
 the current read-only source check, not successor hardware or full boot admission.
 
-Next: implement and qualify target/V11 health and verification, capture/fastboot
+The successor health component now derives seven runtime/unit members from the
+exact built payload and two healthd files from frozen source. Twenty synthetic
+proof tests pass in normal/optimized Python (0.452/0.490 seconds), including late
+observation versus late healthy commit. The same complete reader passed on V9
+in 2.083 seconds. Replaying that real observation demonstrates why the existing
+startup-only smoke predicate cannot serve as a post-capture health check; it is
+unchanged. Evidence: `successor-live-driver-r1/health-tests-r1`,
+`live-baseline-health-r1` and `health-late-replay-r1`. The successor and V11 still
+need their own physical evidence; neither boot nor full capture ran.
+
+Next: implement and qualify V11 health and verification, target health callbacks, capture/fastboot
 and privileged fallback routing, then complete admission for the concrete driver using
 the staged source artifacts and exact one-use boot admission. The embedded RAM wrapper
 bypasses the installed selector, so its

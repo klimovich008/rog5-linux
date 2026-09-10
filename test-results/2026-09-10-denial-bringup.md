@@ -5,6 +5,56 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Health after full capture and actual V9 reader qualification
+
+Private evidence: `successor-live-driver-r1/health-inputs-r1`,
+`health-baseline-inputs-r1`, `health-tests-r1`, `live-baseline-health-r1` and
+`health-late-replay-r1`. The new `successor-health.py` component keeps the
+300-second healthy-commit criterion while allowing a fresh observation after
+the full 1,380-second capture window. The original startup-only smoke predicate
+remains unchanged; its overall-uptime limit made it unsuitable for this phase.
+
+The reader verifies nine runtime files/units, boot-bound descriptor/healthy/SSH
+and readiness markers, exact healthy selection, successful healthy-unit status
+and timestamps, inactive rollback timers, required service states, local root
+composition and the existing physical storage/power guards. It uses bounded
+read-only probes, with physical guards before and after collection. A separate
+explicit baseline role can only report V9 baseline health; it cannot certify
+the successor. No state helper, reboot, DRM open or service change is performed.
+
+Streaming inspection verified the exact successor payload and extracted seven
+runtime/unit members in **0.474 s**. The two healthd files are pinned to frozen
+source and still require their physical comparison. The first baseline setup
+correctly refused an unresolved source timer template; the original source and
+failure reason are retained. Inspecting the accepted V9 archive in **0.474 s**
+proved its three packaged health/rollback units match the successor's resolved
+units, including `OnBootSec=900s`. The reader now binds those packaged bytes.
+
+**20 tests PASS** in normal/optimized Python (**0.452/0.490 s**) with explicit
+synthetic target/baseline observations and actual pinned producers. They reject
+late commits, stale boot markers, wrong SSH fingerprints/trials, pending state,
+failed units, armed timers, altered runtime bytes, unsafe storage/power, numeric
+boolean proofs and nonfinite/ambiguous uptime. Generated role/physical-guard
+identity and absence of helper invocation are checked separately.
+
+The complete reader then **PASS** on the actual V9 phone in **2.083 s**. Boot
+`7c945aa5-80d0-4af2-aa76-113d68e23ac5` was observed at **50,061.14 s** uptime;
+its healthy unit exited successfully at **64.142787 s**. All nine runtime
+comparisons, current-boot markers, service/timer states and storage/power checks
+passed. Battery health was Good, temperature **30.3 C**, voltage **8.543 V**.
+Host producer source was clean `3f2f0291f16d20266cd9c31d7db284558a4c8902`.
+Script, request, raw response and result are retained. This is baseline reader
+qualification, not a successor boot, physical graphics test or full release PASS.
+
+Replaying that same retained observation in **0.365 s** reproduced refusal by
+the old startup-only predicate and acceptance by the new later-health predicate.
+No second phone read was needed. Review: these findings prevent predictable
+post-capture false failures without changing startup deadlines or rebuilding
+kernel/root artifacts. Current-state now leads with a short coordinator handoff
+so future turns can read current evidence before opening historical milestones.
+V11 health, concrete health callbacks, capture/fastboot, privilege handling and
+full admission remain pending. No reboot, state transition or Ready occurred.
+
 ## Read-only source reconciliation and physical preflight
 
 Private evidence: `successor-live-driver-r1/observation-tests-r1`,

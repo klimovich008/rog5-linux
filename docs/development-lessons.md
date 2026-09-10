@@ -533,6 +533,17 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   Permit only explicitly recoverable combinations, hold/check record identity
   through the snapshot, and retain unknown partial states for reconciliation.
 
+- Separate a boot's healthy-commit deadline from the time of a later health
+  observation. The original startup-only predicate rejected actual healthy V9
+  at 50,061 seconds uptime although it committed at 64.143 seconds. A dedicated
+  later-health predicate retains the 300-second commit limit and fresh boot,
+  runtime, readiness, service and storage/power checks. Leave startup semantics
+  unchanged and replay the same observation through both predicates.
+- Derive runtime hashes from the packaged artifact. The rollback timer source
+  contains `@OUTER_SECONDS@`, while the deployed unit has the resolved 900-second
+  value. Compare actual accepted/successor archive members before inheriting a
+  hash; do not relax the runtime comparison to accept a template.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
