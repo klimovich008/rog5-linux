@@ -5,6 +5,49 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Fresh installed-route verification and actual phone inventory
+
+Private evidence: `successor-live-driver-r1/route-qualification-r1.json`,
+`route-tests-r1`, `route-target-tests-r1`/`route-target-tests-r2`,
+`route-entrypoint-failure-r1` and `live-route-readonly-r1`.
+The import-only route verifier combines fresh authenticated V9 source observation,
+streamed hashes of eleven installed files and the read-only boot partition,
+with retained exact installed-selector execution evidence. The latter shows V11
+selection for new pending and healthy records; it does not prove physical boot.
+
+The actual phone check **PASS in 2.912 s**, on unchanged V9 boot
+`7c945aa5-80d0-4af2-aa76-113d68e23ac5`. All eleven files and `/dev/sde35` match;
+boot-partition digest remains
+`dcc487f17d6b4926ea633cbb242c62b598019e332640a81c1100c2d91087f723`.
+Source preflight passes before and after the inventory, including unchanged
+selection/custody and storage/power guards. Hashing uses bounded streaming.
+Host source was clean `064d7d1693c024f8815736c1bf138b0d7d01be2f`.
+This isolated component probe had read-only preflight authorization; it issued
+no phone mutation, reboot, claim, receiver or complete controller admission.
+Its receipt cannot substitute for a later controller run's fresh preflight.
+
+**12 host tests PASS in 2.348 s**, covering changed boot/file/partition evidence,
+nonboolean assertions, historical-only evidence, failed transport retention,
+repeat entry, admission refusal and receipt changes. **Six namespace tests PASS
+in 0.003 s** test-body time, exercising actual UID-0 regular-file metadata,
+streaming hashes, bounds and symlink/hardlink refusal. Network and device access
+were isolated; host filesystem remained read-only except private disk scratch.
+The actual phone probe additionally exercised block geometry and digest checks.
+
+The entrypoint initially failed on expected empty stderr because the JSON
+receipt reader requires nonempty content. A separate bounded raw reader handles
+empty streams while preserving descriptor/metadata checks; JSON semantics stay
+unchanged. The first namespace runner failed before tests because its bind target
+`/fixtures` was absent under read-only root. Binding the existing private scratch
+path to itself fixed setup; both failed records are retained.
+
+Review: `Route.prepare` returns the same verified source observation with its
+route-receipt hash, so the assembled driver's preflight can use it without a
+second source transport. `Route.check` requires that exact fresh preflight and
+context; a historical PASS flag alone cannot qualify the route. All twenty-two
+phase components exist; privileged bridge, combined-driver integration and
+admission remain next. No kernel/module/root build or full CI was repeated.
+
 ## One-use RAM transfer callback
 
 Private evidence: `successor-live-driver-r1/boot-qualification-r1.json` and

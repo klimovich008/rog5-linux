@@ -597,6 +597,12 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   sealed descriptor and child process to test FD inheritance, timeout and output
   retention; keep full-image identity qualification separate and unchanged.
 
+- Distinguish raw process streams from JSON receipts: successful stderr can be
+  empty, while a JSON object cannot. Retain descriptor, ownership, link and size
+  checks for both formats. An actual entrypoint replay catches this distinction
+  before phone execution. Reuse an observation already obtained by a combined
+  preflight instead of issuing another identical source-health query.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.

@@ -25,9 +25,15 @@ remain qualified for their recorded inputs. The RAM-boot callback passes 17
 focused tests in 3.696 s, including real sealed-FD child success/failure/timeout
 checks with a four-byte fixture. It checks live capture after image preparation
 and device queries, retains failed transfer output, and forbids a second attempt.
-No production image snapshot or phone boot ran. Next: connect the concrete
-installed-route verifier and scoped privileged transport bridge, then complete
-combined driver qualification and admission. The complete live controller remains pending.
+No production image snapshot or phone boot ran. The concrete installed-route
+verifier now passes twelve host tests and six isolated file tests. Its actual
+read-only phone probe passes in **2.912 s** on the unchanged V9 boot: all eleven
+installed files, boot-partition hash, source state and storage protections match.
+It binds a fresh inventory to the controller's preflight and replays the retained
+selector decision evidence. This does not prove a physical fallback boot.
+Next: implement the scoped privileged transport bridge, assemble the concrete
+callbacks and complete combined-driver qualification and admission. The complete
+live controller remains pending.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 
