@@ -113,8 +113,12 @@ test groups pass in ordinary and optimized Python; no phone activation ran.
 The private Rust open/query helper passes fourteen native tests per build mode
 and exact ARM64 UAPI compile assertions. It permits one operational open and
 three scalar queries, preserves primary and close errors separately, and has
-no submit or retry path. Its ARM64 binary build and real device execution remain
-pending. A cooperative timer cannot bound an uninterruptible kernel ioctl.
+no submit or retry path. ARM64 binary twins now match after 1.683/1.271-second
+builds. Static library, version and strong-symbol closure passes against the
+retained Arch providers. Separate debug-stripped deployment twins are 542,016
+bytes, 88.3% smaller, with loaded code/data preserved and originals retained.
+No target executable or phone GPU operation ran. A cooperative timer cannot
+bound an uninterruptible kernel ioctl. Evidence: private `gpu-query-arm64-r1`.
 
 Successor module inventory is now explicit: 54 unique outputs, including
 29 beyond the running 25-target kernel build. The reviewed recipe preserves

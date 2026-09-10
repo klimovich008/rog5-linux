@@ -430,6 +430,11 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   mistake before device execution. Retain that assertion with the source;
   host-only tests cannot establish a target ABI. Report the original operation
   error separately from a later cleanup error so neither cause is lost.
+- Inspect the deployment artifact after a small successful build. The Rust GPU
+  helper carried 4.1 MB of debug sections; deriving a separate debug-stripped
+  copy reduced uncompressed size by 88.3% in 0.063 seconds. Preserve the original
+  and verify loaded segments and ABI data before using the smaller copy. File
+  size reduction alone does not establish faster transfer or runtime behavior.
 
 For each successor candidate, the main chat should report only:
 
