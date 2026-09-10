@@ -333,6 +333,7 @@ def main():
             except (edge.EdgeUnavailable,fixture.FixtureUnavailable) as error:
                 raise Blocked(str(error)) from error
         modules,indicator_rows=C.indicator_module_composition(target,modules,report['plan']['target_release'])
+        modules,display_rows=C.display_module_composition(target,modules,report['plan']['target_release'])
         root_hash=root_hash_result.result()
         if root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed during preflight')
@@ -375,11 +376,17 @@ def main():
         # vm_runtime requires one successful insmod/initstate marker for every
         # row in order. Only after that exact-kernel proof may these be cleared.
         proven.update(row['path'] for row in indicator_rows)
+        proven.update(row['path'] for row in display_rows)
         report['indicator_modules']={
             'software_load':'PASS' if indicator_rows else 'NOT RUN',
             'modules':indicator_rows,
             'physical_probe':'NOT RUN', 'visible_light':'NOT RUN', 'brightness_cleanup':'NOT RUN',
             'scope':'exact-kernel VM module load only; no ASUS PMIC/LED hardware'}
+        report['display_modules']={
+            'software_load':'PASS' if display_rows else 'NOT RUN',
+            'modules':display_rows,
+            'physical_probe':'NOT RUN', 'scanout':'NOT RUN', 'blank_cleanup':'NOT RUN',
+            'scope':'exact-kernel VM driver registration only; no physical display'}
         if activation_fixture is not None:
             if report['runtime']['activation_split']!='PASS':
                 raise ValueError('missing exact consumer BTF/refusal evidence')

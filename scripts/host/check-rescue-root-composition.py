@@ -34,6 +34,7 @@ def load(name, filename):
 SEALED = load('rescue_sealed', 'scripts/host/run-sealed-busybox.py')
 ACCEPTANCE = load('rescue_acceptance', 'scripts/host/release-acceptance.py')
 BUTTONS = load('rescue_buttons', 'scripts/device/build-buttons-indicator-trial-initramfs.py')
+DISPLAY = load('rescue_display', 'scripts/device/build-display-trial-initramfs.py')
 FUNCTIONS = ('verify_exact_regular', 'prepare_volatile_root_account',
              'prepare_volatile_ssh_policy', 'verify_systemd_update_marker',
              'prepare_volatile_systemd_state', 'prepare_package_keyring', 'prepare_runtime')
@@ -499,20 +500,20 @@ def radio_module_composition(members, core, release):
         scope='software module closure/load only; ASUS board-only helpers remain untested')
 
 
-def inert_indicator_modules(members):
+def inert_hardware_modules(members, payload_module, label):
     """Recognize one complete pinned payload; this grants no load authority."""
-    prefix = BUTTONS.PAYLOAD_PREFIX
+    prefix = payload_module.PAYLOAD_PREFIX
     directory = prefix[:-1]
     present = {name for name in members if name == directory or name.startswith(prefix)}
     if not present:
         return set(), []
-    expected = {directory} | {prefix+name for name in BUTTONS.PAYLOAD}
+    expected = {directory} | {prefix+name for name in payload_module.PAYLOAD}
     if present != expected:
-        raise ValueError('inert indicator payload inventory mismatch')
-    release = members.get(BUTTONS.PREFIX+'kernel-release')
+        raise ValueError(f'inert {label} payload inventory mismatch')
+    release = members.get(payload_module.PREFIX+'kernel-release')
     if (release is None or release[0][1:5] != [stat.S_IFREG | 0o444, 0, 0, 1]
-            or release[1] != (BUTTONS.RELEASE+'\n').encode()):
-        raise ValueError('inert indicator kernel identity mismatch')
+            or release[1] != (payload_module.RELEASE+'\n').encode()):
+        raise ValueError(f'inert {label} kernel identity mismatch')
     payload = {}
     for path in sorted(expected):
         fields, data = members[path]
@@ -520,27 +521,35 @@ def inert_indicator_modules(members):
             mode, links, size = stat.S_IFDIR | 0o755, 2, 0
         else:
             name = path[len(prefix):]
-            size, _, permissions = BUTTONS.PAYLOAD[name]
+            size, _, permissions = payload_module.PAYLOAD[name]
             mode, links = stat.S_IFREG | permissions, 1
             payload[name] = data
         # Match the composer's newc metadata, excluding only its allocated inode.
-        if (fields[1:] != [mode, 0, 0, links, BUTTONS.ARCHIVE.EPOCH, size,
+        if (fields[1:] != [mode, 0, 0, links, payload_module.ARCHIVE.EPOCH, size,
                            0, 0, 0, 0, len(path.encode())+1, 0]
                 or len(data) != size):
-            raise ValueError('inert indicator payload metadata mismatch: '+path)
-    BUTTONS.validate_payload(payload)
-    modules = {prefix+name for name in BUTTONS.PAYLOAD if name.endswith('.ko')}
+            raise ValueError(f'inert {label} payload metadata mismatch: '+path)
+    payload_module.validate_payload(payload)
+    modules = {prefix+name for name in payload_module.PAYLOAD if name.endswith('.ko')}
     pending = [dict(path=name, sha256=hashlib.sha256(members[name][1]).hexdigest(),
-                    status='NOT RUN', scope='indicator hardware module load')
+                    status='NOT RUN', scope=label+' hardware module load')
                for name in sorted(modules)]
     return modules, pending
+
+
+def inert_indicator_modules(members):
+    return inert_hardware_modules(members, BUTTONS, 'indicator')
+
+
+def inert_display_modules(members):
+    return inert_hardware_modules(members, DISPLAY, 'display')
 
 
 def core_module_members(members, profile):
     """Keep the power/UFS closure strict; radio activation is a separate test.
 
     The server-runtime profile proves service preparation only. Radio modules
-    and the complete pinned inert indicator payload remain explicitly untested.
+    and complete pinned inert hardware payloads remain explicitly untested.
     """
     if profile == 'rescue':
         return members, []
@@ -554,8 +563,9 @@ def core_module_members(members, profile):
     pending = [dict(path=name, sha256=hashlib.sha256(members[name][1]).hexdigest(),
                     status='NOT RUN', scope='radio module load/closure') for name in sorted(auxiliary)]
     indicator, indicator_pending = inert_indicator_modules(members)
-    auxiliary |= indicator
-    pending += indicator_pending
+    display, display_pending = inert_display_modules(members)
+    auxiliary |= indicator | display
+    pending += indicator_pending + display_pending
     return {name: member for name, member in members.items() if name not in auxiliary}, pending
 
 
@@ -643,6 +653,21 @@ def indicator_module_composition(members, core, release):
     order = [BUTTONS.PAYLOAD_PREFIX + name for name in INDICATOR_MODULE_ORDER]
     if set(order) != paths:
         raise ValueError('indicator module order/inventory mismatch')
+    rows = module_metadata_in_order(members, order, release, initial=core)
+    return [*core, *rows], rows
+
+
+DISPLAY_MODULE_ORDER = ('qcom-refgen-regulator.ko', 'panel-asus-rog5-ams678.ko')
+
+
+def display_module_composition(members, core, release):
+    """VM driver registration only; the VM has no ROG5 regulator/DSI/panel."""
+    paths, _ = inert_display_modules(members)
+    if not paths:
+        return list(core), []
+    order = [DISPLAY.PAYLOAD_PREFIX + name for name in DISPLAY_MODULE_ORDER]
+    if len(order) != len(paths) or set(order) != paths:
+        raise ValueError('display module order/inventory mismatch')
     rows = module_metadata_in_order(members, order, release, initial=core)
     return [*core, *rows], rows
 

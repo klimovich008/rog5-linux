@@ -147,6 +147,22 @@ class OptionalDisplay(unittest.TestCase):
         self.assertFalse(self.enabled('status-screen'))
         self.assertFalse(self.enabled('power-button'))
 
+    def test_nested_display_payload_remains_inert_before_ssh_and_p2(self):
+        for name in ('qcom-pon.ko', 'screen-toggle.sh', 'status-screen.sh',
+                     'power-buttond.py', 'units/rog5-status-screen.service',
+                     'units/rog5-power-button.service'):
+            (self.payload/name).unlink()
+        nested = self.payload/'display-trial'
+        nested.mkdir()
+        for name in ('qcom-refgen-regulator.ko', 'panel-asus-rog5-ams678.ko'):
+            (nested/name).write_bytes(b'inert fixture')
+            (nested/name).chmod(0o644)
+        self.assert_core(self.install())
+        self.assertFalse((self.root/'loader-called').exists())
+        self.assertFalse(self.enabled('status-screen'))
+        self.assertFalse(self.enabled('power-button'))
+        self.assertFalse((self.units/'rog5-p2-ready.service.d').exists())
+
     def test_missing_display_or_tty_skips_both_optional_units(self):
         for missing in ('backlight', 'tty'):
             with self.subTest(missing=missing):

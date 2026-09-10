@@ -881,6 +881,95 @@ class CompositionTest(unittest.TestCase):
                 with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'inventory/load-order'):
                     M.module_closure(core, M.BUTTONS.RELEASE)
 
+    def display_fixture(self):
+        members, _ = self.indicator_fixture()
+        for name in list(members):
+            if name == M.BUTTONS.PAYLOAD_PREFIX[:-1] or name.startswith(M.BUTTONS.PAYLOAD_PREFIX):
+                del members[name]
+        pins = {}
+        for name, (_, _, mode) in M.DISPLAY.PAYLOAD.items():
+            elf = bytearray(64)
+            elf[:6] = b'\x7fELF\x02\x01'
+            elf[16:20] = b'\x01\x00\xb7\x00'
+            data = bytes(elf) + name.encode()
+            pins[name] = (len(data), M.DISPLAY.sha(data), mode)
+            M.SEALED.ARCHIVE.add(members, M.DISPLAY.PAYLOAD_PREFIX+name, data, stat.S_IFREG | mode)
+        return members, pins
+
+    def test_display_payload_is_inert_and_unknown_modules_stay_strict(self):
+        members, pins = self.display_fixture()
+        original = copy.deepcopy(members)
+        with patch.dict(M.DISPLAY.PAYLOAD, pins, clear=True), patch.object(M.subprocess, 'check_output') as run:
+            core, pending = M.core_module_members(members, 'server-runtime')
+            run.assert_not_called()
+            rows = [r for r in pending if r['scope'] == 'display hardware module load']
+            self.assertEqual(len(rows), 2)
+            self.assertTrue(all(r['status'] == 'NOT RUN' for r in rows))
+            self.assertEqual(members, original)
+            for name in ('unexpected.ko', 'rog5-power-usb-modules/extra.ko', 'rog5-native-wifi/display-trial.ko'):
+                mutant = copy.deepcopy(members)
+                M.SEALED.ARCHIVE.add(mutant, name, b'unapproved', 0o100644)
+                filtered, _ = M.core_module_members(mutant, 'server-runtime')
+                self.assertIn(name, filtered)
+                with self.assertRaisesRegex(ValueError, 'inventory/load-order'):
+                    M.module_closure(filtered, M.DISPLAY.RELEASE)
+
+    def test_display_payload_missing_extra_corrupt_and_metadata_refused(self):
+        members, pins = self.display_fixture()
+        prefix = M.DISPLAY.PAYLOAD_PREFIX
+        with patch.dict(M.DISPLAY.PAYLOAD, pins, clear=True):
+            for name in [prefix[:-1], *(prefix+n for n in pins)]:
+                missing = copy.deepcopy(members); del missing[name]
+                with self.subTest(missing=name), self.assertRaisesRegex(ValueError, 'inventory'):
+                    M.inert_display_modules(missing)
+                for index, value in ((1, stat.S_IFLNK | 0o777), (2, 1000), (3, 1000), (4, 3), (5, 0), (6, 999)):
+                    bad = copy.deepcopy(members); bad[name][0][index] = value
+                    with self.subTest(path=name, field=index), self.assertRaisesRegex(ValueError, 'metadata'):
+                        M.inert_display_modules(bad)
+            for name in pins:
+                bad = copy.deepcopy(members); fields, data = bad[prefix+name]
+                bad[prefix+name] = fields, data[:-1] + bytes([data[-1] ^ 1])
+                with self.assertRaisesRegex(ValueError, 'identity'):
+                    M.inert_display_modules(bad)
+            for name in ('extra.ko', 'startup.service', 'nested/hidden.ko'):
+                bad = copy.deepcopy(members)
+                M.SEALED.ARCHIVE.add(bad, prefix+name, b'no', 0o100644)
+                with self.assertRaisesRegex(ValueError, 'inventory'):
+                    M.inert_display_modules(bad)
+            bad = copy.deepcopy(members)
+            M.SEALED.ARCHIVE.replace(bad, M.DISPLAY.PREFIX+'kernel-release', b'7.1.4-rog5-display60-v1\n')
+            with self.assertRaisesRegex(ValueError, 'kernel identity'):
+                M.inert_display_modules(bad)
+
+    def test_display_vm_metadata_and_order_require_both_exact_modules(self):
+        members, pins = self.display_fixture()
+        magic = M.DISPLAY.RELEASE + ' SMP preempt mod_unload aarch64'
+        fault = ''
+        def metadata(args, **kwargs):
+            self.assertEqual(args[0], 'modinfo')
+            name = Path(args[-1]).stem.replace('-', '_')
+            return {'name': 'wrong_name' if fault == 'name' else name,
+                    'depends': 'not_loaded' if fault == 'dependency' else '',
+                    'vermagic': 'wrong' if fault == 'abi' else magic}[args[2]] + '\n'
+        with patch.dict(M.DISPLAY.PAYLOAD, pins, clear=True), patch.object(M.subprocess, 'check_output', side_effect=metadata):
+            rows, extra = M.display_module_composition(members, [], M.DISPLAY.RELEASE)
+            self.assertEqual(rows, extra)
+            self.assertEqual([r['name'] for r in rows], ['qcom_refgen_regulator', 'panel_asus_rog5_ams678'])
+            for fault in ('name', 'dependency', 'abi'):
+                with self.subTest(fault=fault), self.assertRaises(ValueError):
+                    M.display_module_composition(members, [], M.DISPLAY.RELEASE)
+            fault = ''
+            with patch.object(M, 'DISPLAY_MODULE_ORDER', M.DISPLAY_MODULE_ORDER[:1]), self.assertRaisesRegex(ValueError, 'order/inventory'):
+                M.display_module_composition(members, [], M.DISPLAY.RELEASE)
+        with patch.object(M.subprocess, 'check_output') as run:
+            self.assertEqual(M.display_module_composition({}, [], M.DISPLAY.RELEASE), ([], []))
+            run.assert_not_called()
+        loaded = ['COMPOSITION_MODULE_' + r['name'] for r in rows]
+        suffix = ['COMPOSITION_' + n + '_PASS' for n in M.MARKERS] + ['COMPOSITION_VM_COMPLETE']
+        self.assertTrue(M.vm_runtime_passed('\n'.join(loaded + suffix), 0, rows))
+        for events in (loaded[:1], loaded[::-1], loaded + loaded[:1]):
+            self.assertFalse(M.vm_runtime_passed('\n'.join(events + suffix), 0, rows))
+
     def test_server_driver_provides_prior_overlay_stage_input(self):
         sealed = ''.join(name+'() {\n :\n}\n' for name in M.FUNCTIONS if name != 'prepare_runtime')
         sealed += '''prepare_runtime() {
