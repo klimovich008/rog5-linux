@@ -757,6 +757,64 @@ class CompositionTest(unittest.TestCase):
         self.assertIn(M.BUTTONS.PAYLOAD_PREFIX+'rog5-key-indicatord', core)
         self.assertEqual(M.core_module_members(members, 'rescue'), (members, []))
 
+    def test_indicator_vm_plan_checks_dependencies_and_exact_abi(self):
+        members, pins = self.indicator_fixture()
+        for name, (_, _, mode) in list(pins.items()):
+            if not name.endswith('.ko'):
+                continue
+            elf = bytearray(64)
+            elf[:6] = b'\x7fELF\x02\x01'
+            elf[16:20] = b'\x01\x00\xb7\x00'
+            data = bytes(elf) + name.encode()
+            path = M.BUTTONS.PAYLOAD_PREFIX + name
+            fields = list(members[path][0]); fields[6] = len(data)
+            members[path] = (fields, data)
+            pins[name] = (len(data), M.BUTTONS.sha(data), mode)
+        original = copy.deepcopy(members)
+        magic = M.BUTTONS.RELEASE + ' SMP preempt mod_unload aarch64'
+        core = [dict(name='power', path='core.ko', vermagic=magic)]
+        fault = ''
+
+        def metadata(args, **kwargs):
+            self.assertEqual(args[0], 'modinfo')  # Never load on the host.
+            self.assertLessEqual(kwargs['timeout'], 5)
+            name = Path(args[-1]).stem.replace('-', '_')
+            deps = 'led_class_multicolor,qcom_pbs' if name == 'leds_qcom_lpg' else ''
+            return {'name': 'power' if fault == 'shadow' else name,
+                    'depends': 'not_loaded' if fault == 'dependency' else deps,
+                    'vermagic': 'wrong' if fault == 'abi' else magic}[args[2]] + '\n'
+
+        with patch.dict(M.BUTTONS.PAYLOAD, pins, clear=True), \
+                patch.object(M.subprocess, 'check_output', side_effect=metadata):
+            rows, extra = M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
+            self.assertEqual([r['name'] for r in extra],
+                             ['led_class_multicolor', 'qcom_pbs', 'leds_qcom_lpg'])
+            self.assertEqual(rows, core + extra)
+            self.assertEqual(members, original)
+            for fault in ('shadow', 'dependency', 'abi'):
+                with self.subTest(fault=fault), self.assertRaises(ValueError):
+                    M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
+            fault = ''
+            with patch.object(M.time, 'monotonic', side_effect=[0, 11]), \
+                    self.assertRaisesRegex(ValueError, 'deadline'):
+                M.indicator_module_composition(members, core, M.BUTTONS.RELEASE)
+        with patch.object(M.subprocess, 'check_output') as process:
+            self.assertEqual(M.indicator_module_composition({}, core, M.BUTTONS.RELEASE), (core, []))
+            process.assert_not_called()
+
+    def test_indicator_vm_requires_every_successful_load_in_order(self):
+        rows = [{'name': name} for name in
+                ('led_class_multicolor', 'qcom_pbs', 'leds_qcom_lpg')]
+        loaded = ['COMPOSITION_MODULE_' + row['name'] for row in rows]
+        other = ['COMPOSITION_' + name + '_PASS' for name in M.MARKERS]
+        def log(events):
+            return '\n'.join(events + other + ['COMPOSITION_VM_COMPLETE'])
+        self.assertTrue(M.vm_runtime_passed(log(loaded), 0, rows))
+        for events in (loaded[:-1], loaded[::-1], loaded + [loaded[0]]):
+            self.assertFalse(M.vm_runtime_passed(log(events), 0, rows))
+        self.assertFalse(M.vm_runtime_passed(log(loaded) + '\nUnknown symbol x', 0, rows))
+        self.assertFalse(M.vm_runtime_passed(log(loaded), 1, rows))
+
     def test_indicator_partial_mutated_unexpected_inventory_refused(self):
         members, pins = self.indicator_fixture()
         paths = {M.BUTTONS.PAYLOAD_PREFIX+name for name in pins}

@@ -332,6 +332,7 @@ def main():
                     args.activation_fixture_build,report['artifact_hashes']['kernel'],modules[0]['vermagic'])
             except (edge.EdgeUnavailable,fixture.FixtureUnavailable) as error:
                 raise Blocked(str(error)) from error
+        modules,indicator_rows=C.indicator_module_composition(target,modules,report['plan']['target_release'])
         root_hash=root_hash_result.result()
         if root_identity(args.root_image)!=root_before:
             raise ValueError('retained root image changed during preflight')
@@ -371,6 +372,14 @@ def main():
         checks['timing_transport']='PASS'
         checks['firmware']='PASS'  # Core and (when present) radio inventories + exact VM readback.
         proven={row['path'] for row in refusals}
+        # vm_runtime requires one successful insmod/initstate marker for every
+        # row in order. Only after that exact-kernel proof may these be cleared.
+        proven.update(row['path'] for row in indicator_rows)
+        report['indicator_modules']={
+            'software_load':'PASS' if indicator_rows else 'NOT RUN',
+            'modules':indicator_rows,
+            'physical_probe':'NOT RUN', 'visible_light':'NOT RUN', 'brightness_cleanup':'NOT RUN',
+            'scope':'exact-kernel VM module load only; no ASUS PMIC/LED hardware'}
         if activation_fixture is not None:
             if report['runtime']['activation_split']!='PASS':
                 raise ValueError('missing exact consumer BTF/refusal evidence')
