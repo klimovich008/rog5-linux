@@ -43,8 +43,14 @@ pipe/pidfd tests in **7.354 s** and three bridge/supervisor integration cases in
 writes permit cleanup after reader failure. These tests explicitly substitute
 sudo/root/network and recording duration. The actual privileged handoff remains
 unverified, and the complete root admission verifier is not yet present.
-Next: complete the root admission verifier, fresh fallback SSH route transport,
-and full target/fallback integration before admitting the assembled driver live.
+The fallback-route worker now passes nineteen component/process tests. It
+borrows an exact existing route or cleans up its own temporary route, while
+running SSH as deck. The shared child runner now uses `prlimit`, avoiding a
+Python pre-execution hook inside the threaded monitor. Thirteen worker tests and
+fifty affected integration cases pass; an actual threaded source query passes
+in **0.115 s**. Fourteen dependent source-pin updates preserve prior source bytes.
+Next: connect this core to the guarded privileged transport entrypoint and
+callbacks, complete root admission, then qualify the full target/fallback flow.
 New routes/full capture need host sudo authentication, while normal USB SSH
 works as deck. No receiver or Ready request is pending.
 

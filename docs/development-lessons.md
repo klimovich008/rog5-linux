@@ -611,6 +611,12 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   so a stalled reader cannot block cleanup. A forced process exit is failure
   evidence, never proof that owned network cleanup completed.
 
+- A process runner reused inside a threaded guardian must avoid Python
+  `preexec_fn`. Apply resource limits through a fixed executable wrapper instead,
+  verify the actual child limits, and recheck affected process integrations.
+  Preserve prior source bytes when refreshing dependency pins; separate the
+  behavior change from mechanical hash updates and keep old evidence scoped.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.

@@ -5,6 +5,44 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Fallback route worker and threaded-process limit fix
+
+Private evidence: `successor-live-driver-r1/fallback-route-qualification-r2.json`,
+`fallback-route-tests-r1`, `prlimit-baseline-r1`, `prlimit-worker-tests-r1`,
+`prlimit-integration-r1` and `prlimit-threaded-source-r1.json`.
+The new import-only root route core accepts only the five fallback observation,
+staging and restoration phases, with exact source/custody/intent and complete
+outer admission. It rejects normal-route requests and Python on V11. An exact
+existing link-local route is borrowed; otherwise the existing network manager
+prepares and cleans an owned sixty-second route. The fixed `runuser` child runs
+the existing SSH worker as deck, preserving source and credential checks.
+
+The root core retains bounded raw child output even on failed commands, checks
+cleanup independently, and never retries a mutation. Nonzero remote command
+status remains available to the calling phase. Owned cleanup runs after an
+admission change, source drift or output/protocol failure. **19 initial tests
+PASS in 13.123 s**, including actual `prlimit` child input/output, a four-MiB
+output bound and timeout/reaping. Root privilege, network, USB, admission and
+the runuser/SSH boundary were explicit fixtures. The guarded privileged
+entrypoint and callback transport connection are still required.
+
+Review identified that the shared source-query executor used Python
+`preexec_fn`, which is unsuitable inside the new threaded root monitor. It now
+uses fixed `prlimit --core=0:0 --fsize=1048576:1048576` before its command. This
+changes process-limit setup without changing the one-MiB bound or owned process
+cleanup. All prior direct Python sources were retained; fourteen dependent files
+changed only pinned hashes, verified by normalized comparison. Existing frozen
+kernel/root sources and historical receipts were untouched.
+
+**13 shared-worker tests PASS in 0.436 s.** The changed dependency prompted
+focused rechecks: sixteen bridge cases (7.542 s), three bridge/supervisor cases
+(2.872 s), twelve assembled-driver cases (9.586 s), and nineteen fallback-route
+cases (13.210 s), all PASS including process launch overhead. An actual source
+query with a concurrent thread passes in **0.115 s**; its child reports UID1000,
+zero core limit and one-MiB file limit. This verifies the deck execution path;
+actual root handoff remains unverified. No phone, sudo or host network operation,
+physical capture, claim, kernel/module/root build or full CI ran this turn.
+
 ## Owned sudo capture bridge and controller-lifetime monitor
 
 Private evidence: `successor-live-driver-r1/bridge-qualification-r1.json`,
