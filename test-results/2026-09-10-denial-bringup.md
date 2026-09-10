@@ -5,6 +5,65 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## Fastboot transition, fallback location and installed reboot bindings
+
+Private evidence: `successor-live-driver-r1/fastboot-tests-result-r3.json`,
+`fastboot-pre-locator-r1`, `fastboot-pre-fix-r2`, the three fastboot test logs,
+`health-engine-tests-r2.stderr` and `fastboot-host-entrypoint-r1.json`.
+Three additional bindings implement `await_fastboot`, `locate_fallback` and
+`reboot_installed`. Seventeen phases have implementations; four capture lifecycle
+phases and the single RAM boot remain, together with concrete route/capture
+verifiers, privileged transport integration and complete admission.
+
+The bounded command wrapper permits device listing, eight fixed getvars and one
+ordinary installed reboot. Flash, slot changes and RAM-boot arguments are refused.
+Each command validates fixed executable ownership, source/admission, durable
+phase/prior-result receipts and USB identity; it records an exclusive intent,
+uses the existing process-group/output-bound worker and retains raw output before
+validation. Read identity is checked before and after each command. The fixed
+fields preserve product lahaina, USB 1-1.2, slot B, bootloader
+`Post-CS10-17-WW-user-AS`, usable A/B slots, battery SOC yes, 8400–8800 mV and
+128 MiB–1 GiB reviewed download capacity.
+
+Source-to-fastboot waiting is bounded at 180 seconds and never repeats the source
+reboot request. Fallback location can authenticate V11 independently of target
+switch-root using the qualified shell observer, or report fastboot only after
+installed-route verification. The ordinary reboot rechecks the route and live
+owned fallback capture after identity queries. A completed fastboot command is
+reported separately from boot success; a failed/lost reply remains one-use.
+The route and capture verifiers are required injected boundaries whose concrete
+implementations remain pending. Synthetic verifier acceptance is not live authority.
+
+The initial wait/reboot/parser suite **PASS: 23 cases, 8.349 s**. The integrated
+28-case run then had **26 passes and two errors in 21.029 s**: the parent locator
+and nested health reader both tried to create `locate_fallback-usb-000.json`.
+Exclusive receipt creation correctly stopped both early-V11 paths. Original
+sources and failures remain retained. The only subsequent production change was
+to name the parent's observations `locate_fallback-location-usb-*`; an exact
+source comparison verifies this scope. Both failed cases and the fastboot
+locator control **PASS in 1.684 s**. Other passing paths were retained without
+repeating the full suite.
+The combined evidence qualifies all 28 cases; it is not a new full-suite PASS.
+
+Adding the early-fallback health phase also required the existing health-engine
+fixture to dispatch only its intended four callbacks explicitly. Its three
+real-controller cases **PASS in 2.481 s**, preserving target success, failed-trial
+classification after restoration and rejection of unverified restored state.
+USB/SSH/fastboot transport, admission, capture and route proofs remain synthetic;
+actual generators, validators and durable receipts are exercised.
+
+Isolated imports, producer pins and the actual fixed fastboot executable's
+ownership checks pass. An actual host-only `fastboot --version` through the
+bounded worker **PASS in 0.015 s**, reporting 35.0.2-android-tools. No USB/device
+command, phone write, reboot, claim, receiver or Ready request ran this turn.
+
+Review: the combined early-fallback test found a real evidence-ownership bug
+that individual component tests missed. Separating names preserved both records
+and all exclusive-write protections. The affected paths were retested without
+repeating kernel/module/root builds, ARM64 observer execution or full CI. Next
+work is capture/RAM-boot integration and concrete route/privilege handling, with
+kernel and non-cellular hardware still ahead of Denial/Flutter builds.
+
 ## Concrete target and fallback health callbacks
 
 Private evidence: `successor-live-driver-r1/health-read-tests-result-r1.json`,

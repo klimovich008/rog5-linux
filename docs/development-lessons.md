@@ -562,6 +562,15 @@ The 2026-09-10 kernel-first correction adds three prevention rules to the
   after discovery. Test actual controller receipt flow as well as isolated
   callbacks; a successful fallback restoration must leave a failed trial failed.
 
+- Give nested callbacks distinct evidence filenames within a shared phase.
+  The fallback locator and its health reader both initially wrote the first USB
+  observation to the same path. Exclusive creation correctly refused the second
+  write. Separate the parent's location observations from the child's health
+  observations, preserve the failed run, and exercise both layers together.
+  Keep exclusive creation and one-use intents; never fix a collision by allowing
+  receipt overwrite. Test dispatch should name its intended callback subset so
+  adding a production phase does not silently expand a synthetic fixture's scope.
+
 For each successor candidate, the main chat should report only:
 
 1. The single hypothesis being tested.
