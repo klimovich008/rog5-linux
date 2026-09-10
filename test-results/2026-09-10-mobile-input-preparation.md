@@ -47,7 +47,7 @@ target_sha256=5146e22fb147134bf8f079512dd51cdecd40d8e86818ab6a3d7bfe3bbf14f9b7
 target_bytes=55701804
 prepared_dtb_sha256=eca5c2c343fc4cd5511490be0c17501d69f4027941e268ff3f95da4672c214f4
 proposed_bundle=headless-server-selector-v9
-registered=false
+registered=true
 signed=true
 booted=false
 ```
@@ -75,7 +75,7 @@ manifest_sha256=5e1b9e7f2413e00a1e85d9a131fa4ab80c3e16bf62dc9d138298487508dd78cf
 selector_sha256=a9b6b3ed9e3808147cc8082049fc244c826e1cc7d64bdcf361f077296de46723
 ```
 
-Full root/runtime composition, canonical registration and runtime admission
+Full root/runtime composition and runtime admission
 remain pending. Offline PASS does not establish physical
 key events, visible LED color, brightness cleanup or successful probe.
 
@@ -83,7 +83,19 @@ The follow-up active-tier run passed its documentation link/context check but
 was interrupted with exit 130 when available host disk space fell below the
 3 GiB reserve (2,870,116,352 bytes observed after termination). Its retained
 log is `buttons-roadmap-active-check-r1.log`; it is not an active-tier PASS.
-No new build or hardware action should begin until the reserve is restored.
+The reserve was subsequently restored by making two completed, clean review
+worktrees sparse. Their tracked artifact copies remain recoverable from the
+retained Git objects; untracked evidence was preserved. The operation recovered
+5,926,719,488 bytes, leaving 10,167,574,528 bytes available at completion.
+Private evidence is `buttons-host-reserve-restoration-r1.json`.
+
+The single canonical registry now binds V9 to the already verified manifest,
+selector, fresh trial ID, unchanged recovery wrapper and V11 fallback, with
+verification source `458cb42a`. Every pre-existing record is byte-identical.
+All 20 exact-claim tests passed in normal and optimized Python (0.277 and
+0.273 seconds), including altered-record and permanent one-use rejection.
+Registration created no claim file and performed no phone operation. Full
+frozen-source integration validation remains pending.
 
 ## Hub automation observation
 
