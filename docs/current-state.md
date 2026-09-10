@@ -26,6 +26,12 @@ unqualified; component success must not be described as an installed release.
 Repository integration carries the corrected artifacts and complete module
 closure forward without changing the accepted boot image or consumed claims.
 
+Integration commit `bc424ae6` passed full local CI in 531.274 seconds. The unsigned
+five-file payload reproduced identically in two compositions (6.949 seconds
+each); final archive metadata, four-module ABI/dependency closure, integrity
+catalog and radio preservation checks passed in 0.623 seconds. These offline
+outputs remain inert and grant no signing, activation or boot authority.
+
 Human-assisted sessions must be fully prepared before asking for Ready. A fresh
 reply starts only the brief current checks and recording setup, followed by the
 actual key prompt. No operator timer runs while awaiting availability.

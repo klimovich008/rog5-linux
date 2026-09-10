@@ -190,3 +190,29 @@ These runtime additions are not a persistent installation. The signed V9
 payload and accepted server/rescue baseline were not rewritten. A future image
 needs the complete PON/LED closure and an explicit activation path; no release,
 shutdown or autonomous fallback qualification is inferred. S06/R01 stay failed.
+
+## Final repository and offline package validation
+
+Frozen integration commit `bc424ae67ddc7ba05528a45139a3c3565eeb42b9` passed
+`scripts/host/rog5-dev test ci` in **531.274 seconds**, with a clean checkout
+before and after. The retained `buttons-validated-ci-r4/result.json` records the
+command and log SHA-256
+`4c34ac5c81145dc076b7777717c0fb28fc0de9c47d1e79e5ed9654875d5261df`.
+Optional historical-artifact skips remain visible in that log. Earlier attempts
+stopped on missing sparse-checkout fixtures or the absent pinned Android boot
+tools; their failed receipts are preserved. Restoring the tracked fixtures and
+verified cached bootstrap tools resolved those environment failures without
+changing the frozen implementation. The affected 46-test composition suite also
+passed after bootstrap.
+
+The fresh unsigned offline package contains the corrected daemon and all four
+exact-kernel modules. Two compositions took 6.949 seconds each and produced
+identical SHA-256
+`97de4bd3b2a47fa7c6468cbe1fe0116a7288b043279d028c73d234a3c60b33ee`.
+The final archive's complete payload inventory, metadata, AArch64 ELF identities,
+ordered dependencies, matching vermagic, integrity catalog and preserved radio
+composition passed in 0.623 seconds. Receipts are retained under
+`buttons-validated-composition-r1`. The existing kernel and Arch root were reused;
+no full image was rebuilt, signed, registered or installed. The artifact remains
+inert, and the physical component evidence above applies to the tested RAM
+additions on the existing V9 boot.

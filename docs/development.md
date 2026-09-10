@@ -63,6 +63,14 @@ development and CI selectors. Other `test-results` paths remain potentially
 executable inputs and select broader checks; mixed critical changes still win.
 PR merge checks continue to cover their full relevant branch delta.
 
+Before full CI in a new worktree, materialize the tracked test fixtures; a sparse
+checkout prepared for hardware observation may omit required historical inputs.
+Provide the pinned Android boot tools and canonical boot-v3 template using the
+bootstrap steps in `.github/workflows/offline-smoke.yml`, or reuse local copies
+after verifying their exact pinned hashes. These ignored dependencies are not
+created by `git worktree add`. Keep temporary checkout copies on disk, preserve
+at least 3 GiB free, and restore the sparse checkout after validation if needed.
+
 Batch related fixes into one frozen integration checkpoint; record the exact
 source/dirty-input identity tested. Run focused checks during edits, one full
 local CI for relevant shared changes, then publish with existing exact-head
