@@ -98,10 +98,20 @@ Offline progress recorded on 2026-09-10:
   Twelve composition tests passed. A separate offline enabled proposal changed
   only touch, I2C4, GPI0, L3C and L8C statuses; no phone activation occurred.
 
-The successor kernel source `05941d04803f` adds the reviewed GMU fix to f17 and
-is being prepared separately. **All modules for that successor require its
-matching kernel kit and renewed closure checks.** The f17 evidence above must
-not be relabeled as qualification of successor artifacts.
+The successor kernel `05941d04803f`, release `7.1.4-g05941d04803f`, now has
+its own matching module twins and retained registration evidence. A 2026-09-11
+read-only audit rechecked both copies of touch, GENI I2C and GPI against the
+successor guest's pinned inputs and exact vermagic in 0.022 s. Touch SHA begins
+`44aaf514`, GENI I2C `064edd21`, and GPI `8fdb109b`. Reuse these artifacts;
+the historical f17 results above remain separate.
+
+The successor component guest passed registration and consumer unload in
+3.797 s, including all three touch modules; GPI remained until guest poweroff.
+The retained static selected-module export closure also passes. Neither result
+proves physical bus operation, touch identification, interrupt delivery or power
+cleanup. The prepared OLED-only DT keeps I2C4 and GPI0 disabled and has no touch
+child or L3C/L8C nodes at the proposed touch paths. OLED boot success therefore
+cannot qualify touch. A separate exact-DT touch trial remains necessary.
 
 ## Remaining gates
 

@@ -3194,3 +3194,30 @@ or password prompt was repeated. Next fresh Deck authentication can launch the
 fully prepared one-use OLED boot and23-minute observation; this is separate from
 later fresh physical Ready after actual frame preparation. OLED/touch/GPU/Denial
 acceptance remains incomplete.
+
+## r69: immediate launch, authentication timeout and retained touch audit
+
+Latest r69, 2026-09-11: fresh Ready immediately launched the prepared OLED
+session. Authentication timed out after its 300-second limit. The Deck window
+was observed, but no user response establishes whether it was visible or usable.
+The owned authentication processes were reaped and the window is gone. Launcher
+`oled-live-driver-r1/trial-launch-r1/result.json` is terminal FAIL, with no claim
+consumption and no controller execution. No phone command or reboot occurred.
+Preserve this entered launcher directory; the old launch instruction is no
+longer executable. Do not clear it or retry the same entry. The exact pending
+OLED claim remains unchanged. Resolve the authentication interaction and prepare
+a reviewed fresh launch path before requesting availability again.
+
+The retained successor touch/GPI/GENI twins were independently checked against
+their guest receipt and exact 05941 vermagic in 0.022 s; all six copies match.
+The earlier successor guest registration/unload result remains 3.797 s, with
+GPI retained until guest poweroff. Updated the stale front-touch guide to reuse
+these artifacts and distinguish the OLED-only DT, which does not enable touch.
+This is cached artifact evidence, not physical touchscreen qualification.
+
+After-run review: the five-minute authentication wait remains the observed
+bottleneck. Window presence does not establish focus, visibility or successful
+input; no wrong-password or keyboard diagnosis is justified without the user’s
+answer. Keep the prepared artifacts and one-use protections. The scoped
+improvement corrects stale touch build guidance using existing evidence,
+avoiding an unnecessary rebuild while preserving physical qualification gates.
