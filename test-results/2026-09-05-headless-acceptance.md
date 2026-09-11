@@ -9010,3 +9010,22 @@ still required. Evidence: gpu-provider-probe-r1/completion-r123.json.
 Read-only input discovery additionally passed in0.473 s: actual helper/module
 bytes and metadata match; drivers_probe is a regular root-owned sysfs attribute,
 mode0200, with write access. This check did not write to it.
+
+## 2026-09-12 r124: live GPUCC/SMMU provider qualification
+
+PASS_GPUCC_SMMU_SESSION on boot946acb59-744e-4bbc-b291-ac6b2e05f3fe. One
+GPUCC insertion0.006830 s, one explicit SMMU reprobe0.258020 s, provider total
+0.280125 s. Actual GPUCC/SMMU/Adreno bindings verified; GMU joined IOMMU group6.
+Independent read-only cleanup and both target workers/SSH reaped; no cleanup
+errors. Full150 s authenticated kernel log PASS (10records, no forced exit);
+whole session152.990 s. Final full health PASS1.861 s, uptime4348.78 s; same
+healthy selection, power and protected-storage guards. No display/GPU opens,
+module unloads, reboot, sudo or password prompt. Host/RAM entries are consumed.
+12 current coordinator checks PASS1.976 s,80 prior unchanged component checks
+inherited. Initial fixture setup failures retained; no hardware acceptance was
+claimed from those fixtures. Session source/receipts pinned before execution.
+No render node/backlight yet; REFGEN/panel still absent and DSI unbound. GPU
+acceleration, native scanout and Denial remain unverified. Original r122 boot
+trial remains FAIL; S06/R01 and the operator-missed optical result remain open.
+Evidence: gpu-provider-probe-r1/session-r1/result.json, health-final-r124/result.json
+and post-provider-inventory-r124/result.json. Never replay this session.

@@ -1,5 +1,64 @@
 # ROG5 current state
 
+Latest r124, 2026-09-12: **GPUCC and GPU SMMU binding PASS on the real phone;
+full150-second kernel observation and final independent health PASS**. Previous
+hardware goal turn r123 was progress; the intervening password explanation made
+no hardware change. Current boot remains946acb59-744e-4bbc-b291-ac6b2e05f3fe,
+kernel7.1.4-g05941d04803f, bundle gpu-05941-52181a3157c26029. No reboot, display
+operation, GPU device open, host sudo or password prompt occurred this turn.
+
+The separately admitted gpu-provider-probe-r1/session.py is now CONSUMED at
+session-r1. Its terminal status is PASS_GPUCC_SMMU_SESSION, total152.990 s.
+Owner d3b1077910da61d6444b48535f63341b; host entry SHA
+6ff5402928fc95a44d16c02f32ce468c0f7bc4292257ea6828f49183e6251db9.
+One exact GPUCC insertion took0.006830 s. GPUCC bound but the SMMU stayed unbound;
+one explicit drivers_probe write for3da0000.iommu then succeeded in0.258020 s.
+The complete provider action took0.280125 s. GPUCC, arm-smmu and Adreno platform
+bindings were verified. Both action and independent read-only cleanup workers
+were reaped, their groups absent; SSH reaped, cleanup_errors empty.
+
+Authenticated kernel logging captured10 records: SMMUv2 configuration, stage1
+translation, coherent table walks, seven context banks, preserved zero boot
+mappings, and GMU added to IOMMU group6. No further records occurred during the
+150 s observation. Logger PASS, child reaped, no forced termination. This proves
+provider binding, not GPU initialization, command submission or acceleration.
+Final independent full health passed in1.861 s at uptime4348.78 s; protected
+storage/power guards and exact healthy selection813f108a... remain accepted.
+Post-provider inventory passed on the same boot at uptime4349.74 s. Both root
+RAM entry markers match the new owner. GPUCC loaded, REFGEN/panel absent, no DRM
+class devices, no /dev/dri nodes, no backlights. DSI remains unbound. GMU waiting
+for supplier is0; it does not require a standalone driver bind before a6xx init.
+Kernel taint remains4608. No optical result was collected.
+
+The new coordinator reuses the existing transport, module/reprobe code and kernel
+logger with corrected full health. Admission binds current boot, original closed
+capture, fixed source hashes, one-use host output, host process/lifetime, fresh
+health and a live independent logger. Failures preserve failed component evidence,
+reap owned processes and independently observe current health. No reboot/unload
+recovery is introduced; unreachable state remains FAIL_RECOVERY_UNPROVEN. Original
+r122 boot trial stays FAIL. Historical S06/R01 and unobserved optical test remain
+open; V11 fallback and ASUS slotA are untouched.
+
+12 new complete-path/failure checks pass in1.976 s, inheriting80 unchanged
+provider/transport checks. Fixtures use real staging/process/protocol/provider
+paths with explicitly substituted kernel effects and health. An initial wrong
+fixture filename prevented all12 cases from starting. The first edit command
+failed and caused one redundant0.230 s rerun; a corrected edit then passed.
+All failures are retained. No kernel build or old expensive suite was repeated.
+The shared read-only collector now always retains entered/transport/snapshot,
+providing a uniform receipt layout for subsequent checks. New source and evidence
+were frozen in session-qualification.json before the live run.
+
+Next: prepare the display/query successor around this exact provider proof and
+fresh same-boot bindings. Reuse the two existing REFGEN/panel modules and Rust
+query binary. Do not reload GPUCC, repeat the SMMU write, replay session-r1, or run
+the original all-in-one initializer (its absent-GPUCC guard must refuse now).
+Check DSI/display dependency behavior before assuming a render node will appear.
+Prepare and validate all human-dependent steps before asking Ready. No operator
+request, countdown or live process is pending. Denial/Flutter builds stay deferred.
+Evidence: gpu-provider-probe-r1/session-r1/result.json, health-final-r124/result.json,
+post-provider-inventory-r124/result.json and kernel-hardware-checkpoint-r124.json.
+
 Latest r123, 2026-09-12: **GPUCC/SMMU provider components and supervised
 transport prepared offline; no hardware mutation or reboot this turn**. Previous
 r122 was progress. Fresh corrected health PASS in1.801 s on the same GPU boot
