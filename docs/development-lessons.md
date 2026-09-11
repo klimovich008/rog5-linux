@@ -59,6 +59,16 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r58: normal health admission and zero-brightness cleanup need distinct
+ownership checks. Failure of normal work must still reach independently authorized
+blanking after entry. Queue physical prompts without blocking for a response and
+recheck time after callbacks; a pre-callback time check alone permits a late
+prompt. Keep one real-clock production-duration test alongside fast virtual-clock
+failure cases. Sysfs fixtures must return canonical newline-terminated values
+even when simulating partial write results; ordinary-file formatting errors can
+otherwise masquerade as cleanup failures. Neither stored zero nor a timed fixture
+proves physical darkness or a hard bound on stuck device operations.
+
 OLED r57: preserve partial-write evidence even if descriptor cleanup fails.
 Track acknowledged bytes separately from a syscall whose result is uncertain;
 never continue a short write or retry an entered frame. Check the exact sealed
