@@ -112,12 +112,43 @@ automatic display loader was found. This does not execute Arch coldplug or prove
 absence of early built-in MDSS probing with the display DT. Final root content,
 wrapper/controller integration and physical checks remain necessary.
 
-Next: qualify the new OLED profile and corrected controller with the exact
-signed wrapper, paired roots, restored current selection and recovery path.
-Register a fresh one-use trial only after that preparation; never reuse the
-consumed headless trial. Then prepare the controlled late REFGEN/panel load,
-endpoint discovery and blanking checks before requesting fresh Ready. No phone
-command, reboot, flash or claim consumption occurred in r47.
+The OLED state-transition components are now separately prepared and tested.
+`oled-state-exchange-r1` retains the Rust exchange algorithm, with the new signed
+manifest and a fresh `.oled-05941-transition` namespace. Old V9 record remains
+`ed3a62d1…`; OLED pending/healthy records are `e77c2e20…` / `aea03ea5…`.
+The two static ARM64 PIE builds match SHA `472dfd36…`, 1,253,144 bytes, in
+1.262/1.004 s. Fourteen Rust tests pass, including retention of all consumed kernel
+transaction records and refusal of prior-kernel states. ABI header checks and
+six real ARM64/v1/v2-helper QEMU scenarios pass (0.563 s); no phone write occurred.
+
+`oled-state-guards-r1` recognizes the actual source bundle/kernel 05941 and
+unchanged V11 fallback, and checks all six retained kernel transaction files.
+Its original physical guard is inherited unchanged; 31 actual ARM64 guard/helper
+cases pass in 87.309 s, including missing/tampered/extra prior records, unsafe
+power/storage/identity, uncertain outcomes and no retry. Physical telemetry and
+mount/device numbers are explicit offline fixtures.
+`oled-source-actions-r1` prepares the new RAM/exitrd namespace and source-abort
+observer. All 16 file-operation tests (0.644 s) and 22 read-only reconciliation
+tests (0.391 s) pass in the intended uid0 user namespace, with telemetry and
+reboot calls mocked. All eight action/observation scripts generate successfully.
+These are components, not an assembled or admitted OLED controller.
+
+The fresh authenticated source check passes in 2.094 s at **5,849.97 s uptime**:
+same 05941 boot, old selection restored, exact retained prior transaction,
+no OLED transaction or exitrd intent, original shutdown and reboot helper.
+The initial read-only probe used `/usr/libexec` outside the exitrd and failed;
+its receipt is retained. The corrected probe checks the actual helper under
+`/run/initramfs/usr/libexec`. No RAM staging, state exchange, reboot or flash
+was executed. Current-source identities remain time-bound observations.
+
+Next: assemble the corrected controller for the exact OLED wrapper and these
+new components. Bind source health to current 05941 with restored OLD selection,
+target health to the OLED descriptor/new healthy record, and fallback recovery
+to the new transaction while preserving prior records. Complete paired-root/
+effective-boot qualification, then new profile registration/admission and a fresh
+one-use lifecycle. Do not reuse the consumed headless controller or old source
+assumptions. Prepare bounded display-DT capture, controlled late REFGEN/panel
+load, endpoint discovery and blanking before requesting fresh Ready.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -126,8 +157,9 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r47 for signed OLED packaging and static autoload evidence, r46 for
-the payload and latest phone check, r45 for restoration, and r43 for the trial.
+physical display test is prepared. Use r48 for OLED transition components and latest source health, r47 for
+signed packaging/static autoload, r46 for payload, r45 for restoration, and r43
+for the original trial.
 
 Earlier coordinator milestones below retain their original scope and timings;
 statements about pending jobs or absent trials there are historical.

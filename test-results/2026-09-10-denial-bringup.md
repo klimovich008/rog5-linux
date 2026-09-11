@@ -2113,3 +2113,50 @@ artifacts; proceed to new profile/controller qualification without rebuilding
 kernel/modules or repeating the completed packaging work. The user's readiness
 was released when preparation failed; request fresh availability only after the
 entire physical session is prepared.
+
+### 2026-09-11: OLED state, source and recovery components (r48)
+
+`oled-state-exchange-r1` creates exact new records for signed OLED manifest
+`95d0748d…`, bundle `oled-05941-a2be906cd7b36636`, trial `b52ead05…`.
+Pending SHA `e77c2e20…`, healthy SHA `aea03ea5…`; original V9 SHA `ed3a62d1…`
+is unchanged. The Rust algorithm differs only in profile identifiers and fresh
+`.oled-05941-transition` names/tokens. Fourteen native Rust tests pass in 0.26 s;
+three new tests preserve all six consumed kernel transaction files and reject
+prior-kernel pending/healthy states. ARM64 ABI positive/negative compile checks
+pass. Sequential static PIE twins build in 1.262/1.004 s, SHA `472dfd36…`,
+1,253,144 bytes. Owned build containers terminate and are removed without error.
+
+Six isolated QEMU scenarios pass in 0.563 s using the actual new ARM64 helper
+and retained v1/v2 target trial-state helpers. Staging, healthy commit, pending
+restoration, wrong-state/missing-gate refusal and lost-reply no-retry paths pass.
+The old record inode is restored, and every command preserves the six prior
+kernel transaction files. ELF has no interpreter, has RELRO and no executable
+stack. Synthetic disk fixtures and QEMU do not qualify physical state exchange.
+
+`oled-state-guards-r1` inherits the exact physical shell guard and recognizes
+current 05941 source plus unchanged V11 fallback. Adds exact inventory/metadata/
+hashes for retained kernel transaction custody. Thirty-one real ARM64 BusyBox/
+loader/helper cases pass in 87.309 s, with six generator-input refusals. Power,
+mount/device identity and boot state are explicitly substituted fixtures.
+
+`oled-source-actions-r1` preserves the file/lock/publication algorithm, adapting
+only the new namespace and input pins. Sixteen action tests pass in 0.644 s;
+22 read-only reconciliation tests pass in 0.391 s, in an unprivileged uid0 user
+namespace. Telemetry and reboot are mocked. The first direct deck invocation
+failed with 13 ownership errors in 0.178 s; those logs are retained and no guard
+was weakened. All five action and three observation scripts generate and compile.
+Focused source review is retained in `oled-state-exchange-r1/component-review.json`.
+
+Two actual SSH queries were read-only. The first returned health then failed
+because its added helper probe used the root-relative `/usr/libexec` path outside
+the exitrd. The corrected query passed in 2.094 s at uptime 5849.97 s, same boot
+`de90d177-3532-49e0-9bfd-8f8c65889a8d`. Confirms restored OLD selection, exact
+retained transaction, absent new transaction/intents, original shutdown and the
+helper at `/run/initramfs/usr/libexec/rog5-reboot-bootloader`. No RAM staging,
+phone state exchange, reboot, flash, new claim or profile registration occurred.
+
+After-run review: retain the fast matching-kernel build and exchange algorithm;
+change only signed identity/namespace and test cross-trial custody explicitly.
+Carry correct user-namespace and exitrd context into the next integration run.
+The next dependency is controller assembly and admission around these components,
+not another kernel/package build. OLED/touch/GPU and Denial remain unqualified.

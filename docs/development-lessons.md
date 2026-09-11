@@ -785,3 +785,17 @@ it is evidence for this workload, not a universal prevention guarantee.
 Read the runner's enforced limits before launching: a stale README's larger
 scope caused a 0.115-second inspect refusal before any key access. Corrected
 inspection passed in 0.615 s. No kernel rebuild or unchanged broad CI was needed.
+
+A restored prior selection does not make a consumed transition reusable. The
+OLED helper uses a separate durable transaction and exact new pending/healthy
+records, while its guard verifies all six prior kernel recovery files. Native
+and actual ARM64 tests cover old-record/inode restoration, prior transaction
+preservation and rejection of mismatched old trial states. Keep the algorithm
+and verified ABI unchanged when only the signed profile changes.
+For this phone, discover the reboot helper in the exitrd at
+`/run/initramfs/usr/libexec/rog5-reboot-bootloader`; the original root-relative
+shutdown path is interpreted after changing root. A wrong host-side probe path
+caused one 2.043-second read refusal. File-operation tests require
+`unshare --user --map-root-user`: direct deck execution produced 13 ownership
+errors in 0.178 s, while the unchanged 16 cases passed there in 0.644 s.
+Carry the execution environment with test commands, not just the test filename.
