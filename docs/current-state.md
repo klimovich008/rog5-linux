@@ -285,6 +285,25 @@ known missing-tool failure. No systemwide install, compiler/kernel/package rebui
 phone action or authentication attempt occurred. The r51 authentication session
 remains prepared and unstarted; a goal continuation does not count as Ready.
 
+The r54 import-only `oled-display-component-r1/framebuffer.py` collects the
+actual-layout protocol for that Rust helper. It requires the enclosing admission,
+exact blanked endpoint/boot, sysfs 29:0 and root-owned character fb0. It first
+opens O_PATH for inode validation, then reopens that owned descriptor read-only
+through procfs. Only GET_FSCREENINFO/GET_VSCREENINFO are issued, with two equal
+samples and renewed device/blank/admission checks around them. All descriptors
+close on success or failure. No memory write, mode-set, mmap or backlight change
+is exposed. Opening fb0 itself invokes kernel driver operations, so this remains
+an admitted display action rather than a generic health query.
+
+Thirteen tests pass in 0.150 s, with real descriptor/path/replacement behavior,
+explicit character-device/ioctl fixtures, a real ENOTTY failure and actual ARM64
+Rust decoding of the collector's record. All cases check for leaked descriptors.
+Physical framebuffer open/GET ioctls are NOT RUN. The collector returns raw
+capture, not a false Rust-layout or physical-scanout pass. Same-boot frame
+creation/write, brightness session and enclosing load/health/capture/deadline
+integration remain pending. Endpoint/frame binaries and prepared authentication
+inputs remain unchanged; the user has not supplied fresh Ready.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -292,7 +311,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r53 for the Rust frame helper, r52 for the offline display endpoint component, r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 

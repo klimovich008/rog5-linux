@@ -59,6 +59,14 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r54: a read-only framebuffer open is still a driver operation. Gate it on
+the admitted blanked display state, not merely a matching filename. Verify an
+O_PATH handle's character-device identity before reopening that owned inode;
+compare device/boot/brightness and two GET-only layout samples before accepting
+a capture. Test descriptor closure on every branch, including actual ENOTTY and
+node replacement. Do not label an ioctl fixture or raw capture as physical
+layout/scanout qualification; pass its record through the separate exact decoder.
+
 OLED r53: independently compile framebuffer structure offsets against target C
 headers before releasing an ARM64 decoder. Tests built from the same hand-written
 offsets missed vmode/rotate errors; the C assertions caught them. Emit actual C
