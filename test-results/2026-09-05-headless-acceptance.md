@@ -8839,3 +8839,20 @@ boot229580f9-ac26-4b18-a0eb-ea9c05bc632f at 14754.55 s uptime, unchanged OLED
 bundle/kernel and b4d203a8...c4d selection. No state/shutdown writes, module load,
 DRM open, reboot or claim consumption. RAM staging remains consumed. No human
 test is ready; optical acceptance remains UNOBSERVED_OPERATOR_MISSED_WINDOW.
+
+### 2026-09-11 r112: GPU fallback, actions and health callback integration
+
+100 distinct offline cases passed: 11 ARM64 observer (60.968 s), 33 parser replay
+(0.064 s), 27 action/controller (7.681 s), three custody refusals (0.766 s) and
+26 health callbacks (9.986 s). New components live in gpu-live-driver-r1, indexed
+by completion-r112.json. Installed V9/V11 inventory and boot_b hash are unchanged;
+GPU state/owner/namespace and existing RAM-stage receipts drive the new bindings.
+Original one-use, custody, capture cleanup and failed-trial semantics remain.
+Fixtures use real ARM64 helpers/process/file checks with synthetic phone telemetry,
+installed-image contents and SSH; they do not prove physical fallback/GPU operation.
+
+No phone actions or builds ran; prior r110/r111 components are unchanged. The full
+live driver/admission and source-abort/transport integration remain outstanding,
+along with the bounded GPUCC/first-open session. Last actual phone health is r111.
+RAM staging stays consumed, no human test is ready, and the optical window remains
+UNOBSERVED_OPERATOR_MISSED_WINDOW. Denial remains the active end goal.

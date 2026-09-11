@@ -1,5 +1,43 @@
 # ROG5 current state
 
+Latest r112, 2026-09-11: **GPU fallback observation, state-change callbacks and
+authenticated health callbacks pass offline integration**. Previous r111 was
+progress. Components are under gpu-live-driver-r1; no live-admission.py or
+controller execution directory exists. No phone action, reboot, state/shutdown
+write, module load, DRM open or claim consumption ran. Last authenticated phone
+health remains r111, same OLED boot at 14754.55 s uptime.
+
+The fallback observer uses the GPU namespace, state records and custody while
+preserving the exact 11-file installed V9/V11 inventory and boot_b hash. Its
+catalog origin stays bound to the original installed record, independent of the
+new trial's OLD state. Eleven ARM64 BusyBox/Rust fixture cases passed in 60.968 s:
+pending/healthy observation, completed restoration from both states and negative
+boot/readiness/transaction/image/service cases. The observer left selection bytes
+unchanged. Physical telemetry and installed-image contents are explicit fixtures.
+Thirty-three parser replay cases passed in 0.064 s; legacy V11 readiness remains
+honestly unbound when its marker lacks a boot ID. This is not physical fallback.
+
+Seven action callbacks now bind the tested GPU source controls and helper. They
+verify the existing consumed RAM-stage preparation and stage receipts with their
+actual 0600 metadata, hashes and custody; no duplicate staging or custody copies.
+Twenty-seven action/controller cases passed in 7.681 s. Three added custody cases
+passed in 0.766 s, rejecting changed preparation, changed stage receipt and writable
+receipt before command intent/transport. Source restore, lost reboot reply and
+capture-before-recovery ordering retain their original one-use behavior.
+
+Authenticated target/fallback health callbacks use the qualified r111 target
+reader and new V11 observer. Twenty-six integration cases passed in 9.986 s,
+including stale boot, source mismatch, repeated calls, incomplete capture and
+restoration verification. Together: 100 distinct checks. All r110/r111 capture and
+health bytes remain unchanged. No build/A01 rerun. Evidence index:
+gpu-live-driver-r1/completion-r112.json; keep completed results and consumed claims.
+
+Next adapt the sealed-shell source-abort observer and source-read callbacks, then
+complete fastboot/boot and fallback transport routes plus the GPU live driver/
+admission. Prepare bounded GPUCC/first DRM open before boot admission. No human
+test is ready. Preserve RAM staging; prepare a longer optical window with viewing
+instructions before fresh Ready. Optical acceptance remains unobserved.
+
 Latest r111, 2026-09-11: **the GPU capture bridge and target-health component
 pass offline qualification**. Previous r110 was progress. Added capture-bridge.py
 and capture-root-entry.py under gpu-capture-r1, changing only pinned paths/hashes
