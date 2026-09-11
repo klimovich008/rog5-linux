@@ -2642,3 +2642,48 @@ OLED owner/admission, closed full-boot capture, fresh authenticated target healt
 real USB sampling and post-component blank/full-health closure into the adapter
 and display session. Physical display acceptance and the long-term goal remain
 incomplete. No new operator readiness or password request is pending.
+
+## Current-source qualification and exact registry boundary (r60, 2026-09-11)
+
+Previous r59 is progress: the OLED component transport adapter passed real
+process/socket tests. Inspection of the existing health/capture callbacks found
+the independent successor health predicate and the fixed full-capture closure
+records. Before adding another component admission, the existing boot-controller
+qualification could now be completed using actual r56 privilege evidence.
+
+The four full-controller paths were replayed at exact current Q `462cef05` in
+`oled-live-driver-r1/full-flow-tests-r4`: **4 tests PASS in 14.843 s** (15.749 s
+runner). Target COMPONENT_PASS includes full capture and post-health; early and
+late fallback and pre-reboot source-abort remain FAIL with selection eligibility
+restored in explicit fixtures. Real owned capture subprocesses are used; USB,
+SSH, target health, privilege/network/claims and time advancement are fixtures.
+No physical capture duration or fallback recovery is claimed from these replays.
+The actual r56 root capture/SSH handoff evidence is separately checked against
+all retained hashes, matching source/host boot and actual UID/deck/reap results.
+
+The real 31-file admission input reader passes in **0.162347 s**, with input lock
+SHA `d905fc12…`, source digest `d374969e…`, verifier `3786d379…` and launcher
+`f15ff5da…`. The production qualification reader now accepts
+`live-qualification.json`, SHA `a60705b5…`, containing 450 pinned evidence files.
+Result is retained at `qualification-preparation-r1/result.json`.
+
+Evidence assembly first stopped on two 1,682,152-byte stage requests, beyond the
+reader's1MiB limit. Their exact bytes are retained in four ordered private chunks
+and a pinned manifest. The initial written candidate then failed strict metadata:
+empty streams and mode0644 artifacts are not accepted as nonempty0600 receipts.
+That candidate is preserved as `unvalidated-qualification-r1.json` with its FAIL
+record. Three artifacts received byte-identical0600 archive copies and eight
+empty streams are explicitly recorded in the manifest. All final references
+passed the actual receipt reader before canonical write, and the qualification
+verifier then passed. Original evidence and runtime checks were not weakened.
+No full-flow, build or privileged check was repeated to resolve archive format.
+
+A subsequent read-only `registered_claim()` check conclusively refuses the OLED
+profile: **claim profile is not repository-owned**. The expected-field producer
+is ready, but Q's static claim registry lacks the OLED entry. No claim file was
+created or consumed. Registration/source and affected pin changes must precede
+another final qualification; preserve the present qualification with its actual
+source. No trial directory, phone query/write, password request or human Ready
+was created. After-run improvement is enforcing the full evidence-file contract
+before publication and checking this concrete registry boundary before treating
+a green software qualification as a prepared executable hardware trial.
