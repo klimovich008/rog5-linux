@@ -926,3 +926,13 @@ must also receive a zero request under independent same-boot ownership. A focuse
 regression now verifies this path, while a changed boot refuses stale cleanup.
 Insertion success still needs driver binding, endpoint and independent full health;
 a one-use load may not retry or unload after a partial or uncertain outcome.
+
+A completed capture should be consumed as closed evidence, not kept alive merely
+to authorize a later component. Bind its original deadline, raw stream hashes,
+ordered cleanup, absent original processes and independently authenticated target
+health. USB sampling alone never authenticates the gadget's boot or serial.
+Keep read-only health freshness separate from hardware one-use state: after a
+120-second health expiry, create a new bounded, numbered health receipt and bind
+its exact path/hash. Do not repeat a module insertion/display attempt or replace
+prior evidence to refresh health while waiting for the operator. The r63 checks
+exercise both expiration and refresh, with no new boot or network setup.

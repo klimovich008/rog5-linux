@@ -489,10 +489,38 @@ fixture setup failure are retained. Result `module-result-r1.json` is SHA
 `a5da3d3e…`. No real module was loaded and the phone was not queried or changed.
 The r61 boot qualification and unused pending claim remain unchanged.
 
-**Next:** integrate the OLED component monitor's production owner/admission,
-closed full-boot capture, fresh authenticated target health, real USB sampling,
-the r62 module loader and independent blank/full-health cleanup with the
-prepared display session. The boot launcher is prepared offline; the whole display
+The r63 completed-boot and fresh-health reader is now prepared at
+`oled-component-monitor-r1/provenance.py`, SHA `f4c43495…`. It binds the fixed
+actual OLED execution/launcher paths, exact consumed claim/current source,
+1380-second capture and ordered cleanup, closed original processes, exact RAM
+transfer, and the authenticated postcapture health script/raw result. Historical
+boot admission proves that completed run only and grants no component authority.
+The actual OLED claim check currently refuses `source BOOT_CLAIMED record still
+exists`, as expected: its exact pending record remains unused.
+
+Fresh component health reuses the existing read-only SSH worker and full target
+validator. Results must follow capture closure, finish within 40 seconds and be
+at most 120 seconds old. `modules`/`frame` phase directories are private; each
+`health-before-rN` or `health-after-rN` is exclusive. Stale read-only health can be
+refreshed into a new numbered receipt without consuming/repeating a hardware
+attempt or replacing old evidence. The later owner must bind the exact path/hash
+and enforce before/after role. Final 22 provenance/health checks pass in 0.505 s.
+Root UID/time/source/claim/SSH facts in those tests are explicit fixtures.
+
+The transport adapter now binds current Q `538fab85` and is SHA `7e754d20…`;
+its 12 real-process/socket checks pass in 2.450 s. The unchanged original USB
+sampler also passes an **actual host-only sample in 0.036 s**: target gadget on
+`enp4s0f3u1u2`, `cdc_ncm`, product `ROG5 persistent root`, USB anchor `1-1.2`,
+serial descriptor absent. No SSH or phone command ran. This is USB/route evidence,
+not authenticated target boot/health. The executed sampler source is preserved
+and its function matches final source. Evidence is under `source-refresh-r1`,
+result SHA `4b1d7978…`; old r59 transport source/results remain archived there.
+No actual monitor is running. The r61 boot qualification remains byte-identical.
+
+**Next:** wire the production component owner/admission and monitor launcher/finish
+callbacks to the r63 boot/health reader and actual USB sampler. Connect the r62
+module loader and prepared display session through the bounded remote backend,
+with independent blank/full-health cleanup. The boot launcher is prepared offline; the whole display
 test is not yet prepared. Preserve its unused pending claim until actual launch.
 No phone query/write, password window, recording or operator request is active.
 User availability is released; request a fresh Ready only when needed and ready.
@@ -504,7 +532,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
