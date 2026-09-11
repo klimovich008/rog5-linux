@@ -175,13 +175,47 @@ Dependency-ordered pin refresh keeps all 59 cohort source references aligned.
 Do not rerun `prepare-cohort.py` over the integrated sources. No live execution
 directory, input lock, live qualification, registration or claim was created.
 
-Next: complete OLED A01 composition/root/effective-boot qualification against the
-signed artifacts, update only its explicit boot-admission binding, then finish
-input lock, root handoff and fresh one-use lifecycle. Reuse the passing cohort
-and matching kernel/package; do not restart those jobs. Current-source health
-still refers to r48 uptime 5849.97 s and needs a brief live recheck before any
-mutation. Fully prepare display capture, late REFGEN/panel loading, endpoint
-blanking and the physical prompt before fresh Ready. No phone action ran in r49.
+The r50 OLED composition run now **PASSes all seven A01 checks** in
+**81.851 s**, including wrapper, signed target, archive, paired-root runtime,
+module load, firmware and timing/transport. Evidence is `oled-a01-r2/a01/result.json`,
+SHA `abcf577d…`, verified by clean source `30b72c12`. Both full logical root-image
+hashes match before and after the VM; their metadata is unchanged. The exact
+kernel VM exited normally, its container was removed, and its attach process
+and group were reaped/closed. Physical OLED probing, scanout, touch and GPU
+remain unqualified; virtual hardware cannot establish them.
+
+Integration source is now `462cef05` in `oled-controller-worktree-r1`. Its only
+changes after A01 are the explicit OLED boot-adapter evidence binding and tests;
+the adapter correctly retains A01 verifier revision `30b72c12`. Twelve profile
+and claim-refusal checks pass in 0.136 s. The new 31-file input lock SHA
+`d905fc12…` validates in 0.098 s and contains the OLED A01, wrapper, payload and
+DT evidence. The current dependency map is `oled-live-driver-r1/pin-refresh-r5.json`.
+Do not rerun the initial cohort transformer or substitute headless A01 evidence.
+
+Admission, privilege-fixture and launcher tests pass 24/10/21 cases in
+0.447/0.528/0.772 s. Real host processes are used with explicit sudo/root/claim
+fixtures; these do not prove privileged handoff. The actual noninteractive
+read-only privilege probe stopped in 0.043 s: `sudo: a password is required`.
+Its child was reaped, no root probe ran, and no password window opened. Preserve
+`oled-live-driver-r1/privilege-probe-r1`; any next attempt needs a fresh output.
+No phone query, write, reboot, claim registration/consumption, live qualification
+or execution directory was created in r50. The binding receipt is
+`oled-live-driver-r1/composition-binding-result-r1.json`.
+
+The first A01 attempt is retained as FAIL: 23.970 s elapsed before missing
+ignored Android boot tools stopped wrapper inspection. Five exact tools/template
+files were verified against the frozen checkout and staged into Q; bytecode
+caches were omitted. The new runner validates these prerequisites before image
+hashing. The copied touch askpass executable mode was also restored to 0700
+with unchanged bytes and a passing metadata/code preflight. These are host
+preparation fixes, not kernel or phone failures.
+
+Next: finish the prepared actual privileged handoff, remaining live qualification
+and fresh one-use lifecycle, then fully prepare display capture, late REFGEN/panel
+loading, endpoint discovery/blanking and the physical prompt before fresh Ready.
+Reuse the passing kernel, modules, payload, wrapper and A01 result. Current-source
+health remains r48 uptime 5849.97 s and requires a brief live recheck before
+mutation. No operator is being asked to wait for preparation or authenticate now.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -190,7 +224,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 

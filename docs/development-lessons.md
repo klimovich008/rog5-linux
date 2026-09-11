@@ -59,6 +59,16 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r50: a clean Git checkout can still lack required ignored inputs. The first
+A01 run spent 23.970 s before discovering missing Android boot tools. Stage only
+the five pinned tools/template files after verifying their frozen-source hashes;
+check them before scanning large roots. Do not copy cache trees. The prepared
+rerun passed in 81.851 s without kernel/package rebuild. Preserve executable
+modes as well as bytes: the copied touch askpass needed 0700, verified before
+any authentication attempt. A later adapter-only commit must retain the actual
+A01 verifier revision; record its narrow source delta instead of claiming the
+older proof was produced by the newer commit.
+
 Post-trial regression lesson (r44): retained execution directories and consumed
 global claims are normal host state after a physical trial. Import-only assembly
 tests should verify that this state stays unchanged; prerequisite tests should
