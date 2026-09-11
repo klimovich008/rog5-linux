@@ -1,5 +1,48 @@
 # ROG5 current state
 
+Latest r81, 2026-09-11: **both passive kernel-log runs passed; no Ready or
+password action is pending**. Fresh Ready immediately launched the prepared r79
+entry in PTY 44286. Authentication completed with no error and was reaped.
+The push relay captured 118 packets / 116 records over 5.018 seconds, with zero
+rejections, gaps, malformed records, send failures or truncation. Authenticated
+SSH terminal counts matched UDP. The exact RAM helper was removed, the owned
+firewall rule was removed and absence verified. This entry is consumed and must
+never run again: `kernel-log-relay-live-r1/execution-r1/result.json` is terminal
+`PASS_PASSIVE_RELAY`. Historical pending Ready instructions below are superseded.
+
+A second, separately prepared passive test proved a simpler request-based path:
+**no sudo, password prompt or firewall change**. The Deck sent four bounded UDP
+requests from port 8085; the connected phone socket accepted the exact nonce and
+returned 118 packets / the same 116 records over 5.008 seconds. Both capture and
+SSH workers were reaped, the new RAM helper was removed, and the old boot state
+and V11 boot ID remained unchanged. Rule absence was checked afterwards.
+Evidence: `kernel-log-relay-pull-live-r1/execution-r1/result.json`. This separate
+one-use entry is also consumed; preserve its scripts and execution records.
+
+Request mode is committed at `859eb86d` in `kernel-relay-startup-worktree-r1`.
+Freeze this executed source. Modes `usb-pull` / `startup-pull` use fixed port
+8085 on both ends, a three-second request deadline and a sixteen-rejection cap;
+original push modes remain available. Thirteen Rust tests, Clippy/formatting and
+five real-loopback UDP/coordinator tests pass. The static ARM64 binary SHA is
+`6fa7783cf54a6706f31e3db0f8ce9f937b5023ff64c8cde0088960d3080c5c5d`
+(1,499,608 bytes). Build/check took 2.866 s; the ARM64-only twin took 1.248 s and
+is byte-identical. No kernel/module build or reboot occurred. Qualification:
+`kernel-log-relay-pull-r1/qualification.json`.
+
+Current last authenticated phone remains V11, boot
+`ee0d166e-5e69-4db7-8bbd-6266352594ea`, old selection SHA `ed3a62d1...`.
+The records reproduce the already-known SID-5 PMIC warning; they do not establish
+the earlier OLED reset cause. UDP remains unauthenticated diagnostic evidence.
+The request method is proven on normal USB with this host firewall, not during
+an early boot or USB disconnect. The optional startup unit still uses push mode.
+
+Next: prepare startup capture/request timing and a complete exact-kernel OLED
+payload/composition in a successor checkout, preserving all executed sources.
+Account for the request wait in the outer deadline. Qualify against actual V11
+source and protected RAM parent before any fresh OLED claim. Do not repeat the
+completed passive tests merely to refresh presence. No operator step is needed
+until a fully prepared future test actually requires it.
+
 Latest r80, 2026-09-11: **r79 passive test remains fully prepared and awaits
 fresh Ready**. Automatic goal continuation did not open authentication, start
 recording or touch the phone. The complete prepared input/review hashes still

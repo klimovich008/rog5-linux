@@ -3672,3 +3672,47 @@ materializing historical artifacts; include the selected test dependencies.
 Repeat only tests affected by discovered failures. The r79 probe remains pinned,
 unexecuted and ready for immediate launch after fresh Ready. No authentication
 or phone action occurred during this automatic continuation.
+
+
+## r81 — live log transport and removal of passive-test sudo dependency
+
+Fresh Ready interrupted independent source work and immediately launched the
+already reviewed r79 entry. Authentication succeeded and reaped. The five-second
+push test PASSed: 118 packets, 116 records, no loss/rejection/truncation, matching
+SSH/UDP terminal summary, same V11 boot and restored old selection. Its exact RAM
+binary was removed and its owned firewall rule removed with absence confirmed.
+Capture span: 5.018 s. The r79 execution entry is consumed permanently.
+
+Before Ready arrived, added optional request modes to the Rust helper. Fixed
+phone/host port 8085 plus a matching host request permits responses on the
+host-originated UDP flow under the current firewall. A connected socket, exact
+nonce, three-second wait and sixteen-rejection limit bound this path. Original
+push mode is unchanged. Thirteen Rust tests (including actual UDP request,
+timeout and rejection flood), Clippy and formatting passed. Full component
+build/check took 2.866 s and independent ARM64 compilation 1.248 s; output is
+identical SHA `6fa7783cf54a6706f31e3db0f8ce9f937b5023ff64c8cde0088960d3080c5c5d`,
+1,499,608 bytes. One initial format-check failure was retained and corrected;
+no container OOM or kernel rebuild occurred. Source commit: `859eb86d`.
+
+A new one-use passive driver passed five actual loopback UDP/coordinator tests,
+including missing terminal, failed SSH, mismatched authenticated counts and
+payload/shell validation. It completed fresh health, staging and input review
+before autonomous execution. The phone then accepted the request-based run:
+four host requests, 118 packets / 116 records over 5.008 s, identical kernel
+record content to the push run. No sudo or firewall mutation occurred. Both
+threads reaped, exact new RAM binary removed, same boot/selection and empty
+stderr verified. Final firewall rule query still reports absent. This entry is
+also consumed. Evidence: `kernel-log-relay-pull-live-r1` and
+`kernel-log-relay-pull-r1/qualification.json`.
+
+The V11 logs reproduce the known SID-5 SPMI/PMIC warning; no earlier OLED crash
+is recovered by reading the current boot. Normal-USB request transport is proven;
+early-boot/disconnect behavior and a complete new OLED payload remain unqualified.
+No further Ready request is pending.
+
+After-run review: the original push design required a password only to admit
+unsolicited inbound UDP. Testing a host-initiated flow removed that dependency
+without weakening firewall policy or requesting broader sudo rights. Prefer this
+proven path for normal passive capture; retain explicit early-boot qualification
+and bounded connection setup. When Ready arrives during independent work, launch
+the already prepared entry immediately and keep experimental alternatives separate.
