@@ -1,5 +1,28 @@
 # ROG5 current state
 
+Latest r119, 2026-09-11: **GPU trial fully prepared; waiting for fresh Deck
+availability for local sudo authentication**. Previous r118 was progress.
+The exact gpu-source-05941-r1 pending claim is created and validated, not consumed.
+All341 earlier claim records remain unchanged. No phone mutation or reboot ran.
+
+Fresh read-only phone preflight passed in9.442 s on OLED boot
+229580f9-ac26-4b18-a0eb-ea9c05bc632f. It verified all11 installed route files,
+boot_b hash, original shutdown, source selection, staged custody and physical
+guards. Host has40.7 GB free. Inputs and final live qualification still match.
+The local touch askpass hash, mode and display connection pass. A single
+noninteractive sudo check requires a password; no password prompt was started.
+Do not repeat the expired-cache check unchanged or reuse an old Ready.
+
+Prepared command: gpu-launch-preparation-r119/prepared-run.json. On fresh Ready,
+execute its saved argv immediately after brief digest checks. The built-in touch
+keyboard takes the Deck password locally; tap Unlock. Leave phone USB connected,
+with no button presses. No compilation, regeneration or lengthy preflight belongs
+after Ready. The same launcher retains authentication across boot, GPU session
+and any recovery. Its fresh source-readiness-r1 receipt is intentionally absent
+until just before claim consumption. Never start a second run after a poll timeout.
+Evidence: gpu-launch-preparation-r119/completion-r119.json. This is the first turn
+waiting for fresh authentication in the resumed audit; goal remains active.
+
 Latest r118, 2026-09-11: **GPU session, launcher integration and final live
 qualification are complete offline; no GPU boot claim or phone action ran**.
 Previous r117 was progress. Qualification abdaaa3c1a0cdea5675f3bc97b2c7ccbcb25f1b0f44b2b44fc262a06730b92bb

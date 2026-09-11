@@ -8956,3 +8956,13 @@ receipt and closed both real capture processes using external hardware fixtures.
 Evidence: gpu-first-open-r1/completion-r118.json. No phone action, query or claim;
 exact GPU claim absent. Actual acceleration, optical acceptance and S06/R01 remain
 unproven. Proceed to canonical claim preparation and the autonomous live trial.
+
+### 2026-09-11 r119: prepared launch and current phone preflight
+
+Authenticated read-only preflight PASS in9.442 s: same source boot, all11 installed
+route files and boot_b, state/shutdown, custody and physical guards. Exact pending
+GPU claim validated with341 older records preserved; no consumption. Qualified
+launcher prepare and silent local touch-display setup pass. Noninteractive sudo
+requires local authentication. Saved command awaits fresh Ready; no password
+window, phone mutation, module insertion or reboot started. Evidence:
+gpu-launch-preparation-r119/completion-r119.json.

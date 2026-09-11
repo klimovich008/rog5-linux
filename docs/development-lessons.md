@@ -1647,3 +1647,13 @@ phone action. After mode correction, only those affected cases needed rechecking
 (2.169 s and2.069 s). Previous sources and failed logs are retained; final sealed
 qualification includes the corrected state. Next advance to the autonomous phone
 trial rather than extending already-qualified offline infrastructure.
+
+### r119: finish launch preparation before requesting local authentication
+
+One noninteractive sudo check confirmed the timestamp has expired. Prepare the
+exact pending claim, launcher, current physical preflight and local touch display
+before asking Ready; keep the password window closed until fresh availability.
+The prepared launcher owns both authentication and later refreshes. A timestamp
+from another process is not a substitute. All341 old claim records were verified
+unchanged, and the phone preflight passed in9.442 s without mutation. No repeat
+build, test suite or unchanged sudo attempt was needed.
