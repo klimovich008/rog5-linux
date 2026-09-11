@@ -2374,3 +2374,41 @@ Component result SHA `7638ae1d4a168c9c35abe521d9721ed67b3d5d661c553aaead4598b6e1
 Next: guarded actual ioctl collection, same-device frame write and bounded
 brightness/blank integration, alongside the already prepared authentication
 check. No phone/query/network/claim action or password window occurred in r53.
+
+## Guarded framebuffer capture component (r54, 2026-09-11)
+
+Previous r53 is progress: reproducible ARM64 frame helper, actual C/Rust ABI
+integration and pinned Rust validation tools completed. No fresh user Ready
+arrived in this automatic continuation; prepared authentication stays unchanged.
+
+`oled-display-component-r1/framebuffer.py` now reads the bounded raw-layout
+protocol from an admitted, blanked OLED framebuffer. Exact endpoint/boot checks
+precede root-owned character29:0 /dev/fb0 metadata and O_PATH inode validation.
+Operational open reuses that checked inode through an owned procfd, read-only.
+The only ioctl requests are GET_FSCREENINFO (80 bytes) and GET_VSCREENINFO
+(160 bytes); two samples must agree. Admission, zero-brightness endpoint state
+and node identity are rechecked around collection. Errors propagate and both
+descriptors close. No framebuffer write, mmap, mode-set or brightness change.
+
+Current kernel fb_chrdev.c and drm_fbdev_dma.c inspection confirms that open
+calls framebuffer driver operations; it is not an ungated routine health read.
+The import-only collector still needs the enclosing component deadline, retained
+capture, full-health/module-load gate and future frame/brightness integration.
+
+Initial 11 tests passed in 0.126 s. Review added buffer-resize and mid-ioctl node
+replacement refusals plus descriptor-leak checks for every test; final 13 pass
+in 0.150 s. Real O_PATH/open/close/symlink/inode behavior runs in a user namespace.
+Character metadata and ioctl data are explicit fixtures; an unmocked ENOTTY
+negative path is included. The collected C-produced record passes the actual
+ARM64 Rust decoder in QEMU. All permissions/blank/metadata/changed-sample/error
+cases refuse without a success claim. The unchanged Rust binary SHA is
+`ed3e8081…`; raw fixture SHA `67417ba4…` is retained independently.
+
+Receipt `oled-display-component-r1/framebuffer-result-r1.json` SHA
+`3f75e59a7bcf9d9d5a96f75687b54ca603a8b8d046c3eb2a739f196c896deb6c`.
+Physical fb0 open/GET ioctl, scanout and framebuffer writes remain NOT RUN.
+No phone/network/authentication/claim action occurred; Q and prepared L inputs
+are untouched. After-run improvement: retain the verified inode across open,
+check all descriptor exits and distinguish captured data from validated layout
+or physical evidence. Continue same-boot frame-write/brightness integration;
+no kernel/package/Denial build or repeated authentication attempt was needed.
