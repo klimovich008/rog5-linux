@@ -59,6 +59,13 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r59: reuse the pinned monitor engine with independent explicit boot/output
+contexts, retaining process/peer/socket and permanent-failure guards. Pin the
+new launch script as well as inherited modules; otherwise a live guard can miss
+a changed entry point. Reject nonempty output before core server allocation.
+Transport liveness is not target health: production admission, capture closure
+and final health/blanking need their own validated bindings, never fixture callbacks.
+
 OLED r58: normal health admission and zero-brightness cleanup need distinct
 ownership checks. Failure of normal work must still reach independently authorized
 blanking after entry. Queue physical prompts without blocking for a response and

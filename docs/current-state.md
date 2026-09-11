@@ -399,6 +399,28 @@ family, kernel/package rebuild or authentication retry is needed. Actual module
 loading, OLED scanout, touch and Adreno remain unqualified. No human request is
 pending; prepare the entire physical session before a fresh Ready.
 
+The r59 `oled-component-monitor-r1/transport.py` adapts the existing pinned
+module-monitor server/client/protocol in memory, preserving their original files.
+Each OLED phase gets a separate boot/output context; the current source label
+is Q `462cef05`. Source/current-headless/zero boots and outside namespaces refuse.
+The original 660-second lifetime, 0.5-second sampling, one-second sample freshness,
+permanent failure latch, Unix peer/socket checks and exact PID/start/argv guards
+remain intact. The reviewed production `monitor.py` must be pinned with the
+adapter and all three inherited sources. Reused output refuses before allocating
+server resources. A finish still requires the owner's cleanup/health validator.
+
+Twelve tests pass in 2.468 s with real child processes and Unix sockets, including
+disconnect/reconnect latching, changed boot/admission/launcher/journal, dead PID,
+wrong peer/socket inode, nonempty output and cleanup-gated finish. All test children
+were reaped and sockets/FDs closed. USB, admission and physical cleanup/health are
+explicit fixtures. `fixture-child.py` is test-only, not a production launcher.
+Receipt `oled-component-monitor-r1/result-r1.json` is `1db833c4…`.
+Production admission, exact closed OLED boot capture, fresh authenticated target
+health, real USB sampler and post-component blank/health closure must still be
+wired into this adapter and the r58 display session. No actual USB observation,
+phone action, monitor job or human request is active. This reuses the existing
+transport mechanism and does not create boot, recovery or target-health authority.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -406,7 +428,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 

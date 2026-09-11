@@ -2604,3 +2604,41 @@ backend/admission components were located under the retained CPU state; next is
 OLED integration with updated identity/health/capture-closure bindings. They are
 historical f17 components, not already valid for OLED. No new receiver family,
 boot claim, authentication request or physical Ready is created by this turn.
+
+## OLED component transport adapter (r59, 2026-09-11)
+
+Previous r58 is progress: the timed display session and blank cleanup passed.
+New `oled-component-monitor-r1/transport.py` loads the exact existing module
+monitor/client/protocol after verifying all three hashes, then gives server and
+client separate OLED boot/output contexts. Original files and serving/state logic
+are unchanged. The source label is Q `462cef05`; its qualification still belongs
+to the prepared owner. The adapter itself creates no phone, boot or health authority.
+
+The 660-second lifetime, 0.5-second samples, one-second freshness limit, latched
+failure, exact launcher PID/start/argv, Unix peer credentials/socket identity,
+receipt/controller/admission hashes, monotonic append-only journal checks and
+cleanup-gated finish are preserved. The caller must supply the production
+admission and validated closure/health callbacks. A reviewed `monitor.py` in a
+private OLED phase namespace is required and pinned alongside inherited sources
+and the adapter. Nonempty output refuses before allocating server resources.
+
+Initial ten tests passed in 2.316 s. Review added a required launcher-file pin,
+reused-output preflight and two regression cases. Final **12 tests pass in
+2.468 s** (2.622 s runner). Actual child processes, PID/start/argv checks, Unix
+sockets, peer credentials, source/receipt/journal checks, signal/reap and FD/socket
+cleanup are exercised. Scenarios include disconnect then reconnect (failure stays
+latched), wrong boot, changed admission/launcher/journal, wrong socket/PID, finished
+or dead process, cross-context independence, wrong namespace/old boot/direct
+launcher and finish before cleanup. The retained positive trace has a live probe
+followed by FINISHED and child exit zero. All fixture directories/children closed.
+USB sampling, admission and physical cleanup/full health are explicit fixtures;
+`fixture-child.py` must not become the production launcher. No phone/real-USB/
+authentication action ran. Result `result-r1.json` is SHA `1db833c4…`.
+
+After-run review: the inherited loop needed no rewrite or new receiver family;
+focused real-process checks completed in under three seconds. Pinning the launcher
+and rejecting reused output close concrete gaps in the adapter. Next wire actual
+OLED owner/admission, closed full-boot capture, fresh authenticated target health,
+real USB sampling and post-component blank/full-health closure into the adapter
+and display session. Physical display acceptance and the long-term goal remain
+incomplete. No new operator readiness or password request is pending.
