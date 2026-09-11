@@ -2208,3 +2208,47 @@ The dependency-ordered pin map supports corrections without rebuilding the
 kernel or package. Reuse completed scenarios when production inputs match.
 Next dependency is exact composition/root admission and privileged handoff,
 followed by fully prepared physical display testing; Denial remains deferred.
+
+## OLED composition and input binding (r50, 2026-09-11)
+
+`oled-a01-r2` passes all seven offline composition checks in 81.851 s. A01 result
+SHA `abcf577d417a2363921f156181e85161efda1fb97ce90351aef6c4ab6ed286f0`,
+verifier revision `30b72c121a93c8470ed2907de7e60ac376590698`. Both retained root
+images were hashed before and after, remain unchanged, and were read-only in
+QEMU. Exact-kernel runtime passed; owned container removal, client reap and
+attach-group closure are confirmed with no cleanup errors or VM OOM. Physical
+OLED probe/scanout, GPU and touch remain NOT RUN.
+
+The first run is terminal FAIL (23.970 s): ignored Android boot tools were absent
+from the new checkout. Five tools/template inputs were streamed/hashed against
+the original and frozen copies, then copied with modes. No bytecode caches were
+copied. The new runner checks these inputs before the expensive root hashes.
+Successful package/kernel/module outputs were reused unchanged.
+
+Q commit `462cef05402e38508bb384494ea6662b40b9f0b4` binds the exact A01 result
+and its actual verifier revision in the OLED boot adapter. Only that adapter and
+its tests changed after A01. Twelve cases pass in 0.136 s, including missing
+composition, unregistered claim and unconsumed claim refusal. The old headless
+adapter/default identity is unchanged. No registration or consumption occurred.
+
+New `oled-live-driver-r1/admission-inputs-r1.json` has 31 exact files, SHA
+`d905fc124702c195fb8f9dc706d6771fd9360998b28024ed0ff1f02a0c239b6b`;
+validation takes 0.098 s. Dependency-ordered pin refresh now ends at r5. The
+admission, privilege-fixture and launcher suites pass 24/10/21 cases in
+0.447/0.528/0.772 s. Launcher pending-claim tests explicitly simulate registration
+for the new profile; they do not alter the real registry. Production qualification
+and execution remain absent. Real privileged handoff is still pending.
+
+The touch askpass copy changed from mode 0644 to 0700; code SHA is unchanged and
+its metadata/code preflight passes. Actual `privilege-probe-r1` then refused in
+0.043 s because sudo requires a password. No authentication window opened, no
+root probe ran, its child was reaped, and no phone/network action occurred. Keep
+this attempt; prepare the remaining handoff checks before fresh availability.
+Final evidence: `oled-live-driver-r1/composition-binding-result-r1.json`.
+
+After-run review: root hashing dominates A01, so missing tool/mode prerequisites
+must be caught first. Do not repeat this successful expensive proof for an
+adapter binding whose exact source delta is recorded. Next work remains kernel
+and display bring-up through prepared root handoff, one-use lifecycle and endpoint
+blanking/discovery. Denial/Flutter builds remain deferred. Phone health was not
+queried again in r50; r48 is still the latest physical observation.
