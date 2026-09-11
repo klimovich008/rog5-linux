@@ -327,3 +327,10 @@ receipt and require current boot, owner and file identities. Keep the runtime
 verification in the observer; an unstaged phone must refuse. Do not consume a
 boot claim merely to discover missing preparatory RAM files. Failed/consumed
 experiments and their execution source remain immutable evidence.
+
+Sudo reuse preparation (2026-09-11): independent non-TTY command processes may
+not share sudo authentication. Keep one verified controlling terminal alive
+across related test launches, and verify noninteractive reuse from separate
+child processes after fresh authentication. Retain bounded refresh only during
+active work. A terminal handle or an old success is not proof of current sudo
+credentials; do not open a password window from automatic goal continuation.
