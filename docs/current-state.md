@@ -1,5 +1,42 @@
 # ROG5 current state
 
+Latest r72, 2026-09-11: the missing preparation now **PASSes on the phone**.
+The existing guarded source-staging function copied only its three exact helper/
+custody files into a fresh root-owned RAM namespace in **1.323 s**. Owner is
+`e7bb639c01a3ee395e7f6c98fd922bf5`; runtime path is
+`/run/rog5-oled-05941-e7bb639c01a3ee395e7f6c98fd922bf5`.
+No state exchange, shutdown replacement, reboot or partition write occurred.
+Preserve the one-use staging result; do not restage this namespace.
+
+The actual generated read-only source/route preflight then **PASSed in 3.011 s**,
+authenticated on the same headless 05941 boot. It verifies RAM contents/custody,
+original shutdown, absent OLED transaction, old healthy selection, physical
+storage/power guards, installed V9/V11 files and the unchanged protected boot_b.
+The script differs from the qualified reader only in the exact new owner,
+receipt and custody hashes. Evidence is `oled-staged-experiment-r1`; the full
+read-only preflight must be rechecked briefly before a future mutation.
+
+The separate integration checkout `oled-staged-controller-worktree-r1` is now
+`b0da65a7`. Its new experiment `oled-staged-source-05941-r1` binds the same exact
+OLED artifact profile, manifest, trial ID, signed wrapper and A01 as the failed
+attempt, with a separate one-use experiment identifier and an explicit staged-
+source preparation requirement. Eleven admission tests pass (0.314 s runner),
+and all 228 prior claim records remain byte-identical in the source registry.
+The old consumed claim stays consumed. No new claim file was registered or
+consumed on disk. Kernel, modules, payload, wrapper and A01 need no rebuild.
+A new isolated live controller and admission binding remain to be integrated;
+this source change alone does not authorize a boot.
+
+The user asked to reuse sudo. A noninteractive check returned password-required
+in 0.010 s, so the old authentication is not available to a new process. A live
+persistent terminal is prepared: exec session 44286, shell PID/SID 251096,
+start 2915076, pts/1, host boot e3393ab5-0cf9-43fd-8bcb-020cf78b1f1b.
+Use the same controlling terminal for future sudo-capable launches and test two
+child processes after the next fresh authentication. Cross-process reuse is
+**not yet proven**. No sudo policy was changed or password window opened in r72.
+Keep bounded credential refresh during active work; do not reuse a dead handle
+or an old Ready. The next hardware session is not yet ready for the user.
+
 Latest r71, 2026-09-11: fresh Ready immediately launched the prepared OLED
 session. **Authentication succeeded**, with no timeout or retained password.
 The launcher consumed the exact OLED claim, then stopped at its first read-only
