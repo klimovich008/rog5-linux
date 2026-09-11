@@ -1552,3 +1552,21 @@ cannot reach command intent/transport. The seven callbacks pass 27 retained case
 health integration passes 26 more. All suites passed on first execution after
 checking dependencies/fixture paths. Keep these results and move to source-abort/
 transport/driver integration instead of repeating unchanged kernel or A01 work.
+
+### r113: bind source-read transport provenance and migrate every fixture path
+
+Source-read callbacks checked raw output but lacked the normal-mode/exact-source/
+command-invocation checks already used by health reads. They now apply those
+checks before accepting evidence; nine focused cases pass in 2.219 s. Actual
+read-only source preflight passed in 1.762 s with the original shutdown, absent
+GPU transaction and intact staged custody. No live mutation or boot was needed.
+
+Two fastboot cases still referenced historical r2 fixture output. Corrected that
+single path to the completed GPU r1 observer and reran only those two cases;
+the other 26 passes and initial failure logs are preserved. Inspect all retained
+evidence paths in copied suites before execution, not just imports/top-level
+constants. No production fastboot check changed. The GPU RAM binding uses
+its own gpu_preservation nonce, not the prior startup profile field. Nineteen
+RAM-transfer cases pass in 4.677 s. Keep completed 67.488 s ARM64 reconciliation
+and other component evidence; move to route/transport/driver assembly, with no
+unchanged kernel build or A01 repeat.

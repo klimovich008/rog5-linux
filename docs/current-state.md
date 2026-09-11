@@ -1,5 +1,40 @@
 # ROG5 current state
 
+Latest r113, 2026-09-11: **GPU source-abort handling and guarded RAM-boot
+bindings pass qualification**. Previous r112 was progress. The source observer
+uses the exact current OLED action guards and GPU transaction/exitrd namespace.
+Eleven ARM64 reconciliation cases passed in 67.488 s; every RAM/storage snapshot
+remained unchanged. Cases cover pristine/pending/patched/restored state, lost
+install reply, incomplete abort, reboot intent, foreign owner and partial custody.
+Eleven host adapter cases passed in 0.114 s.
+
+The source-read callbacks now also require the exact host source, normal transport
+mode and boolean command_invoked proof before accepting a reply. Nine focused
+callback cases passed in 2.219 s. The only phone action was an authenticated
+read-only preflight, PASS in 1.762 s: same boot229580f9-ac26-4b18-a0eb-ea9c05bc632f,
+OLED bundle/kernel, b4d203a8...c4d selection, original fc1ce027...860 shutdown,
+no GPU transaction and no reboot intent. Existing RAM staging/custody was verified.
+No selection/shutdown writes, module load, DRM open or reboot occurred.
+
+Fastboot identity/wait/recovery bindings retain the qualified device/slot/power/
+capacity checks. Twenty-eight cases pass: 26 initially, then two corrected locator
+fixtures in 1.317 s. One stale fixture path pointed at historical r2 rather than
+GPU r1 evidence; initial failures are retained. Only those two cases were rerun.
+Production fastboot code did not change for that correction.
+
+The RAM-transfer binding now uses the exact GPU helper/profile/image, separately
+registered claim and GPU payload relay nonce. Nineteen cases passed in 4.677 s,
+including real sealed-FD child IO, timeout/reaping, unconsumed-claim refusal,
+repeated/ambiguous transfer refusal and capture/nonce checks. It still has no live
+admission and no controller execution directory. No durable claim was consumed.
+Total: 78 distinct offline checks. Prior r110-r112 components are unchanged;
+no build/A01 rerun. Evidence: gpu-live-driver-r1/completion-r113.json.
+
+Next adapt installed-route verification to the completed GPU selector evidence,
+finish fallback root transport and assemble the full driver/admission. Prepare
+bounded GPUCC/first-open before boot admission. Preserve consumed RAM staging and
+old claims. No human test is ready; the missed optical window remains unobserved.
+
 Latest r112, 2026-09-11: **GPU fallback observation, state-change callbacks and
 authenticated health callbacks pass offline integration**. Previous r111 was
 progress. Components are under gpu-live-driver-r1; no live-admission.py or

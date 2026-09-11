@@ -8856,3 +8856,21 @@ live driver/admission and source-abort/transport integration remain outstanding,
 along with the bounded GPUCC/first-open session. Last actual phone health is r111.
 RAM staging stays consumed, no human test is ready, and the optical window remains
 UNOBSERVED_OPERATOR_MISSED_WINDOW. Denial remains the active end goal.
+
+### 2026-09-11 r113: source abort and GPU RAM-transfer bindings
+
+78 distinct offline cases passed: 11 ARM64 source observations (67.488 s),
+11 source adapters (0.114 s), nine source callbacks (2.219 s), 28 fastboot and
+19 RAM transfer (4.677 s). Two fastboot locator tests initially used an old fixture
+path; corrected and rerun in 1.317 s, retaining the other 26 passes. Source reads
+now bind transport mode, host source and invocation provenance. RAM transfer binds
+the GPU claim/profile/image and exact diagnostic nonce; ownership, deadline,
+sealed-FD, capture and one-use checks remain. Evidence index:
+gpu-live-driver-r1/completion-r113.json. Fixtures do not prove phone boot/GPU use.
+
+Actual read-only source preflight passed in 1.762 s on the same OLED boot with
+original shutdown, unchanged healthy selection, intact RAM custody and no GPU
+transaction/reboot intent. No mutations, GPU open, reboot or claim consumption.
+Prior components and completed builds/A01 are unchanged. Installed-route and
+fallback transport/full driver admission remain; prepare bounded GPU initialization
+before live boot. No human test is ready; optical acceptance remains unobserved.
