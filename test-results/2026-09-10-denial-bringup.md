@@ -1853,3 +1853,27 @@ Final live admission/installed-route preparation remains before any hardware
 availability request. No new prompt is pending. The completed host Ready must
 not be reused as presence for a future phone test. Root handoff source facts and
 later registry source facts remain distinct; the native Denial goal is incomplete.
+
+### 2026-09-11: final temporary-kernel trial preparation (r39)
+
+Fresh actual installed-route inventory PASS in 2.890 s on the same V9 boot:
+eleven installed files and boot_b hash match, original shutdown/selection remain
+unchanged, and physical/storage checks pass before and after the streamed read.
+This remains read-only evidence, not a physical fallback boot.
+
+Found and fixed a preparation omission: profile registration did not stage the
+unconsumed source record. The exact record is now staged with exclusive creation,
+file/directory fsync and readback; neither entered guard exists and no claim was
+consumed. Launcher preparation now checks it before authentication, and repeats
+the check before consumption. All 21 focused launcher cases PASS in 0.824 s.
+Old source files and tool output are retained under `final-preparation-r1`.
+
+Final review replays four simulated controller outcomes and raw capture hashes,
+actual r5 root/deck process evidence, unchanged source pins, current input lock,
+and fresh read-only phone route evidence. PASS in 0.246 s; 26 evidence files bound.
+Target/fallback/recording durations in the flows remain explicit fixtures; the
+r5 privilege result retains its original source observation at `7bbd8f4a`.
+The final qualification binds the subsequently frozen notes revision separately.
+The prepared command requires fresh Ready, opens the working local touch keyboard
+for authentication, and then controls the single RAM boot/full capture itself.
+No current physical trial was started; no builds or full CI were repeated.

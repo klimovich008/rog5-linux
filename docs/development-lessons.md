@@ -703,3 +703,12 @@ Use whole-second values for this simulated clock so its exact-duration boundary
 is representable; keep production timing limits unchanged. All four flows then
 passed in 26.317 seconds. Source-gated tests also correctly refused the initially
 dirty checkout; freeze the small source change before those integration checks.
+
+Registration and readiness are different checks. The final r39 review found the
+exact profile in the repository registry but no unconsumed lifecycle record on
+disk. Check that record's bytes, owner, mode and both unused guards before asking
+for a password, then recheck before consumption. Six new refusal/preservation
+cases and all 21 launcher tests passed in 0.824 s. Read-only final evidence replay
+can reuse unchanged component results while retaining their original source and
+fixture scope; do not turn a documentation commit into another root prompt or
+expensive build. Bind the final qualification only after freezing progress notes.
