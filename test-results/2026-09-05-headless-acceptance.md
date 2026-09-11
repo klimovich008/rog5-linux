@@ -9029,3 +9029,21 @@ acceleration, native scanout and Denial remain unverified. Original r122 boot
 trial remains FAIL; S06/R01 and the operator-missed optical result remain open.
 Evidence: gpu-provider-probe-r1/session-r1/result.json, health-final-r124/result.json
 and post-provider-inventory-r124/result.json. Never replay this session.
+
+## 2026-09-12 r125: display/query FAIL, missing GPU IOMMU group identified
+
+Same current GPU boot. Two exact display insertions PASS (REFGEN0.016164 s,
+panel0.017981 s); DSI bound automatically. Kernel GPU initialization failed
+ENODEV and panel attachment failed. Early blank attempt EINVAL, independent blank
+FAIL; action/cleanup workers and SSH all reaped. Query never attempted.
+Full150 s kernel log PASS9records; total153.028 s. Final health PASS1.765 s at
+uptime5403.34 s. GPU iommu_group absent, GMU group6, actual GPU DT iommus present.
+No render node/backlight; panel unbound. No acceleration/scanout/physical-darkness
+acceptance. Sessions and first-open RAM entries are consumed; never replay them.
+Kernel successor 136f75ae869afd47a016b1278fae2110cc6d2229 defers Adreno until declared IOMMU attaches. Strict
+checkpatch PASS, single ARM64 object compile PASS1.882 s, pinned toolchain and
+read-only existing build. Not deployed; full image and runtime validation pending.
+14 initializer plus14 session tests PASS before live run; fixtures are explicit.
+Evidence: gpu-display-query-r1/session-r1/result.json, iommu-dt-proof-r125,
+health-final-r125 and kernel-fix-compile-r1/result.json. Original r122 FAIL and
+historical S06/R01/optical gaps remain open.
