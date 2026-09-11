@@ -3818,3 +3818,53 @@ parent, with fresh state/owner/one-use identity and the exact sealed logging
 config supplied to capture readiness. Preserve source and executed entries.
 Qualify complete boot, failure, fallback restoration and capture cleanup before
 requesting fresh Ready; source observations are not reusable availability.
+
+## r84 — V11 startup controller components and RAM staging
+
+Latest r84, 2026-09-11: **new startup state helper and V11 RAM staging
+qualified; full boot controller remains in preparation**. No phone reboot,
+boot-selection change, active shutdown replacement or state-helper execution
+occurred. No operator action is pending; request fresh Ready only after the
+complete controller and recorder are qualified.
+
+Current source is authenticated V11, release `7.1.4-g359318de534f`, boot
+`ee0d166e-5e69-4db7-8bbd-6266352594ea`. V11 has no `python3` in its normal PATH.
+Its active shutdown is 2,479 bytes, SHA `ec3c7fd2...`; the older kernel-source
+shutdown and Python source-actions assumptions do not apply. V11's Wi-Fi rollback
+timers and healthy-writer service are absent (`not-found/inactive/dead`), while
+the SSH identity service is active/exited. The legacy P2 marker has no boot ID;
+bind the boot through authenticated observation. `/run` is 1777; use the protected
+root-owned 0755 tmpfs `/run/initramfs` parent for private controller files.
+
+The fresh static ARM64 Rust state helper is SHA `49ec430e...` (1,253,208 bytes),
+with byte-identical builds. New namespace `.oled-startup-05941-transition` and
+pending/healthy records bind r83's signed `oled-log-05941-c371bcc38a6a73fe` bundle.
+Previous kernel and OLED transaction inventories and hashes remain protected.
+Qualification passed: 14 Rust tests plus ABI refusal, Clippy using pinned tools,
+6 ARM64 interoperability scenarios / 17 operations, 35 storage guard cases plus
+6 generator refusals (106.701 s), and 7 RAM staging cases (27.248 s). Tests cover
+wrong state/shutdown, unsafe parent, completed prior transactions, duplicate
+entry and partial transfer; emulated operations preserve historical records.
+
+Authenticated read-only source guards passed. The one-use RAM staging took
+1.240 s; independent readback passed in 0.569 s. Owner is
+`8799d4ece2db5fb5c322c0a24c198f97`, RAM directory
+`/run/initramfs/rog5-oled-startup-05941-8799d4ece2db5fb5c322c0a24c198f97`.
+It contains only state-exchange, custody, staging-completed and an inactive
+shutdown-to-fastboot derivative (`9423ce9f...`). Active shutdown, boot ID and old
+selection `ed3a62d1...` are unchanged; the new persistent transaction is absent.
+`oled-startup-controller-prep-r1/staging-r1` is consumed: never rerun stage-once.py.
+Use its readback script for read-only verification, not the earlier preflight
+that intentionally requires the RAM directory to be absent.
+
+Evidence and frozen preparation inputs are in `oled-startup-state-exchange-r1`,
+`oled-startup-state-guards-r1` and `oled-startup-controller-prep-r1` under the
+state directory; the latter's qualification.json binds the terminal results.
+No new boot claim is registered. r83 signed payload/A01 source `98aa9610` and
+all prior consumed entries remain unchanged. Do not rebuild unchanged hardware
+bytes or repeat completed A01.
+
+Next: implement and qualify V11 sealed-shell source exitrd installation, reboot
+request and pre-reboot restoration. Then bind the exact r83 logging config through
+a fresh live controller, capture owner and readiness, and qualify complete boot,
+failure, fallback restoration and cleanup. RAM staging alone is not boot admission.

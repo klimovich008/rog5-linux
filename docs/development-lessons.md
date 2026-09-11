@@ -1061,3 +1061,23 @@ Use the existing exact phone health observer rather than guessing systemd unit
 names: authenticated SSH and the accepted readiness service establish the actual
 running health checks. An unsolicited Ready is not permission to replay a
 consumed test; release presence when no prepared successor entry exists.
+
+### r84: carry source-runtime capabilities into the short handoff
+
+V11's missing Python was already recorded in older observations, but a new
+read-only inventory attempted it again and exited 127. The active V11 shutdown
+also differs from the prior kernel-source shutdown, and its Wi-Fi healthy-writer
+unit is absent. Keep these exact capability constraints in the latest handoff;
+derive source actions from authenticated current bytes and use the already
+verified BusyBox/loader for device scripts. Do not treat absent historical unit
+names as a current health failure or install Python to preserve stale assumptions.
+The new shell staging path passed seven ARM64 cases in 27.248 s, then staged and
+independently verified inactive RAM files on V11 in 1.240/0.569 s without reboot.
+Its source shutdown and selection checks precede any RAM directory creation.
+
+The initial lint runner also lacked cargo fmt. Reusing the existing pinned
+rust-tools directory produced a 0.975 s Clippy pass without a download or changing
+the source; formatting applied only to the disposable lint copy. Use those pinned
+tools directly for this build image. Preserve the initial failure evidence.
+The 35 guard cases cost 106.701 s and are terminal PASS: rerun relevant cases only
+when source changes justify it. Qualified r83 payload and A01 bytes were reused.
