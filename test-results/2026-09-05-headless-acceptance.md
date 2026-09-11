@@ -8447,3 +8447,26 @@ is retained in oled-startup-experiment-r1's r92 qualification, launcher, route,
 host-resource and prepared-run records. No phone mutation, reboot or actual boot
 execution occurred. Fresh physical availability is the next step; kernel startup
 logging remains the priority before further Denial builds.
+
+## r93: startup succeeds, recorder closure fails
+
+One admitted128-MiB RAM boot passed, without flashing. Authenticated target
+health passed at73.21,199.53 and534.62 s on boot229580f9, kernel05941 and the
+exact startup bundle. Its healthy selection remains; old selection eligibility
+was not restored. The consumed trial and every earlier one-use entry stay closed.
+The23-minute trial is FAIL: recorder output ends after59 events with no terminal
+or cleanup report. Independent host readback confirms diagnostic resources are
+absent and the original profile restored; it is not original closure evidence.
+
+A real-child pipe regression reproduces supervisor starvation during a blocking
+health callback. Separate continuous-drain candidate passes21 existing cases
+plus the corrected >1 MiB burst case; original code fails that case as expected
+in3.941 s and candidate passes in1.177 s. The original source graph is unchanged;
+this candidate needs separate live integration/qualification. An undersized
+initial burst assertion failure is preserved without repeating unaffected cases.
+
+Recovered authenticated dmesg shows DSI refgen deferral/PLL warnings and early
+SMMU faults. The matching REFGEN and panel modules are staged and intentionally
+unloaded; no DRM connector or module-insertion result exists. No new kernel
+build is justified from this observation alone. Next work prepares guarded
+module bring-up with reliable recording on the current healthy boot.

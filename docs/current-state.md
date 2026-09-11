@@ -1,5 +1,64 @@
 # ROG5 current state
 
+Latest r93, 2026-09-11: **new kernel boots and remains healthy; full
+startup trial FAILs on missing recorder closure**. No user action is pending;
+leave USB connected. **Never rerun `prepared-run-r92.json`, `trial-launch-r1`,
+the consumed startup claim, source readiness, or r84 staging.** The startup
+claim `oled-startup-source-05941-r1` is consumed and the launcher is terminal.
+Source `f02083f4` and the executed private source/metadata snapshot remain frozen.
+
+Fresh Ready immediately launched the prepared command. Local authentication
+passed, the same-process credential keeper refreshed successfully and stopped
+cleanly. The source state/exitrd transition and one128-MiB RAM boot passed with
+exact device/slot/image checks; no flash occurred. Target SSH health passed at
+73.21 s, then199.53 s and534.62 s uptime. Current phone is
+`oled-log-05941-c371bcc38a6a73fe`, kernel `7.1.4-g05941d04803f`, boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`, current-boot healthy record
+`b4d203a8acdd9d02a594e4725e5b2eb1f857d9f9c57639e912276e247edc0c4d`.
+Physical/storage guards pass. The diagnostic sample measured battery99%, full,
+30.1 C. **Old selection eligibility was not restored**; preserve the healthy
+experimental boot and exact selection for separately prepared next actions.
+No fallback restoration or second reboot was attempted.
+
+Capture armed before transfer but only59 events/58.636 s of event span were
+retained, including10 stage events and31 early-kernel observations. There is
+no terminal capture or cleanup event. `close_capture` correctly failed with
+`capture terminal result absent`; no full23-minute or release PASS is claimed.
+The launcher and workers are gone/reaped. Independent present-state inspection
+confirms original host profile and no diagnostic address, route, firewall rule
+or listener; this does not manufacture the missing closure receipt.
+
+The host supervisor pumped its pipe at readiness/closure but not continuously
+while the health callback waited on SSH. A real-child regression with over1 MiB
+of output reproduces the original stall (expected failure,3.941 s). Separate
+candidate `oled-capture-drain-fix-r1` adds one serialized background drainer
+between readiness and closure, with bounded stop/join and unchanged stream,
+identity, timeout and cleanup checks. It passes21 existing cases and the burst
+case (1.177 s); the initial burst fixture was only1,040,083 bytes, so its strict
+1 MiB assertion failed despite completion. Increase only its payload to160
+records and retain that failure; unchanged cases were not rerun. Candidate
+`result.json` and `drain-fix.patch` are component evidence, **not live admission**.
+Integrate/review/qualify it separately before another hardware recording.
+
+Authenticated dmesg was recovered after the recorder failure. It shows early
+SMMU faults, DSI PLL warnings and `Failed to get supply 'refgen'`; no DRM connector
+is registered. Direct inspection confirms the exact matching REFGEN/panel .ko
+files are staged and **both remain unloaded as intended**. This does not yet
+prove a missing DT supply or require a kernel rebuild. No display module/frame
+operation occurred. The current boot's survival does not establish the cause
+of the earlier r77 reboot.
+
+Evidence: `oled-startup-controller-r1/execution`,
+`oled-startup-live-driver-r1/trial-launch-r1/result.json`, and
+`oled-startup-experiment-r1/{capture-analysis-r93.json,host-cleanup-observed-r93.json,
+post-run-r93-r2,display-module-observation-r93.json,final-phone-health-r93.json}`.
+An initial read-only collector used an unsupported interpreter spelling and
+was refused locally before any phone command; corrected isolated Python reads
+are retained separately. Next: preserve this live boot, qualify continuous
+recording and prepare guarded REFGEN/panel insertion on the current kernel.
+Do not rebuild unchanged kernel/modules or continue Denial builds first. All
+r92 Ready instructions below are historical and consumed.
+
 Latest r92, 2026-09-11: **actual host privilege handoff passes; exact
 startup test is prepared for fresh phone availability**. The user's Deck Ready
 started the prepared local authentication immediately. Both UID0 guardian to
