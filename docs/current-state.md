@@ -1,5 +1,51 @@
 # ROG5 current state
 
+Latest r92, 2026-09-11: **actual host privilege handoff passes; exact
+startup test is prepared for fresh phone availability**. The user's Deck Ready
+started the prepared local authentication immediately. Both UID0 guardian to
+UID1000 deck probes passed in 9.599 s; authentication and owned children were
+reaped. No password was retained. This check made no phone/network/claim action.
+Never replay `privilege-probe-r1`.
+
+Final qualification now exists at
+`oled-startup-live-driver-r1/live-qualification.json`, SHA256
+`f92291e31d48883995c843be8d8eecd6d406d45f8df57be39ede2fe299191ef2`.
+Its459 bounded evidence files bind the unchanged final r89 software replay and
+actual r92 privilege proof to clean source `f02083f4`, digest `642669b9...`.
+All53 admission inputs and the frozen source/metadata snapshot match. Software
+flow success is still separate from physical startup/recovery acceptance.
+
+The exact pending local record `oled-startup-source-05941-r1.record` was created
+exclusively, synced and verified; SHA256 `547422f3024ef294f5058ddbb87f47b5c7c7e5a03700ddf42ab99a3deeb2eb17`.
+It is **unconsumed**. Launcher `prepare()` passes. Actual launch, execution,
+source-readiness and boot-authentication directories remain absent. All previous
+claims and consumed r84 staging remain preserved.
+
+One fresh authenticated read-only phone query passed in 6.890 s: V11/359318,
+boot `ee0d166e-5e69-4db7-8bbd-6266352594ea`, all11 installed files and boot_b
+match. Battery/thermal/storage guards pass; selector and original shutdown are
+unchanged, with no new transaction or reboot intent. No phone mutation occurred.
+Current pinned capture-network checks pass: original shared profile, exact USB
+identity, no diagnostic address/route/firewall rule/listeners, and no active
+receiver lock in the kernel lock table. Host has40.5 GiB disk free. The legacy
+host-doctor could not run because this frozen checkout lacks its old active-lock
+manifest; this is not a full legacy host-doctor PASS. An unprivileged open of the
+root-owned recorder lock correctly refused EACCES; read-only kernel lock-table
+inspection replaces that preparation observation. Runtime root lock acquisition
+remains mandatory and unchanged.
+
+Prepared command and exact hashes are in
+`oled-startup-experiment-r1/prepared-run-r92.json`; local preparation/phone/host
+results are `launcher-prepared-r92.json`, `phone-route-r92/result.json` and
+`host-resource-check-r92.json`. On fresh Ready beside the connected phone,
+execute the saved argv immediately. It invokes the unchanged qualified launcher
+with local authentication and keeps sudo alive within that same process. Leave
+USB connected; no phone-button press is needed initially. A separate password
+window may be required because the completed privilege probe had its own parent.
+Do not assume its timestamp transfers to the boot launcher. Do not recompile,
+regenerate sources or replay old one-use attempts after Ready. No operator
+countdown is active. The following r91/r89 paragraphs are historical.
+
 Latest r91, 2026-09-11: **goal blocked awaiting fresh Deck availability and
 local sudo authentication**. The same condition persisted across r89–r91;
 r90/r91 added no implementation progress. Offline preparation is complete for

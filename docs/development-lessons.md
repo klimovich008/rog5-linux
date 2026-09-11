@@ -1175,3 +1175,19 @@ Prepare the privilege probe independently of physical hardware availability.
 Its bounded read-only check and local input helper can be ready before asking
 for the Deck password window. Never infer authentication from a previous Ready
 or from a live terminal; no new window starts without fresh availability.
+
+### r92: complete the handoff without repeating authentication preparation
+
+Prepared local authentication and both real privilege probes completed in9.599 s.
+Bind this result to the final source snapshot and reuse unchanged software replay
+rather than rerunning builds. The probe's successful timestamp belongs to its
+process/session; the boot launcher must authenticate and refresh within its own
+lifetime. Save its exact invocation before requesting physical availability.
+
+A legacy host-doctor requires a manifest absent from the frozen controller tree.
+For this prepared controller, use its pinned capture-network preconditions and
+exact authenticated route proof; do not add a legacy manifest to a qualified
+source tree or label the unavailable command PASS. A UID1000 preparation check
+cannot open a root0600 recorder lock: inspect the kernel lock table read-only,
+then let the unchanged root entrypoint acquire its lock during actual arming.
+These observations add no privilege changes and do not weaken runtime admission.
