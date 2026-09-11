@@ -1,5 +1,70 @@
 # ROG5 current state
 
+Latest r86, 2026-09-11: **successor controller/recorder integration is in
+progress; selected component checks pass**. No phone command, reboot, new claim,
+readiness request or user action occurred this turn. Last authenticated phone
+observation remains r85's unchanged V11 boot. Never replay the consumed r84 RAM
+stage or earlier trial entries.
+
+New sources: `oled-startup-controller-r1`, `oled-startup-live-driver-r1` and
+`oled-startup-controller-worktree-r1`. The Git worktree is clean at `fdfe1c4c`,
+based on r83 composition source `98aa9610`. Its new import-only
+`verified-oled-startup-hardware-boot.py` describes the exact r83 image, profile,
+A01 and closed r77 predecessor result. Candidate is
+`oled-log-05941-c371bcc38a6a73fe`; proposed claim is
+`oled-startup-source-05941-r1`. Canonical admission currently refuses because
+that claim is not registered. The successor live-qualification file is absent.
+Only source files were copied; no execution, claim, launch, lock or qualification
+records were copied from prior experiments.
+
+Source action callbacks now use the qualified r85 sealed-shell generator and
+strict key-value replies, and retain command intent/transport before parsing.
+Source-read callbacks normalize the r85 observer's exact proof fields. Preflight
+uses its closed-inventory verify-source-abort script, with host validation also
+requiring an absent transaction. Fallback staging delegates to r84's generator.
+Core identity is V11/359318 as source and fallback, with distinct boot IDs; the
+new OLED bundle and pending/healthy hashes are bound to the target.
+
+The root recorder now owns the r82 startup-pull socket within its existing
+network lifetime. It binds kernel diagnostics to the observed startup boot,
+drains/stops at return transitions and closes the socket on cleanup. The exact
+r83 config (`0340516a...`) is included in owned/readiness receipts and live probe
+responses. The supervisor checks that binding; immediately before transfer, the
+boot callback compares it with the signed profile's startup-preservation fields.
+Kernel diagnostics remain separate from authenticated health and capture outcome.
+
+Passing checks: 25 controller ordering cases (1.418 s); 27 action/engine cases;
+21 recorder cases with real TCP/UDP sockets in a separate user/network namespace
+(0.415 s total); 21 supervisor cases with real child processes and live TCP probes
+(16.667 s); 11 source-adapter cases using retained ARM64 observation replies.
+The supervisor includes mismatched-config refusal and owned-child reaping.
+Its kernel transport is an explicit fixture; actual UDP ownership is tested in
+the recorder suite. These 105 component cases do not qualify the whole live
+controller or physical boot/recovery. Evidence and exact current private source
+hashes: `oled-startup-experiment-r1/integration-progress.json`.
+
+Initial action tests caught a fixture still claiming old selection during fallback
+staging; all 24 unaffected cases were preserved and the three corrected cases
+passed in 1.377 s. The recorder fixture first lacked CAP_NET_ADMIN in its isolated
+namespace (0.016 s), then used different virtual clocks for inner/outer capture
+(0.415 s); diagnostic output proves the latter failed on capture deadline. The
+fixture now grants only namespace-local network setup and injects the same clock
+into the real kernel capture. No production guard was loosened.
+
+Target runtime input inheritance compared nine unchanged members against r83's
+final CPIO inventory and exact source files. The old baseline-health branch is
+refused for V11; use its shell observer instead. `refresh-cohort.py` now derives
+63 source/input files using an explicit dependency graph, including original
+repository pins, without manual cascades. This is not live qualification.
+
+Remaining before Ready: replace `route-checks.build`/`route-target` Python route
+inventory with the V11 shell path; bind `source-preparation` to the actual closed
+r77 trial and r84 staging/readback; qualify installed-selector decisions for the
+new records and the updated fallback restoration namespace; finish health/route/
+boot/admission/root-bridge full-flow and cleanup checks. The copied legacy route
+and predecessor assumptions still refuse and must be updated before any launch.
+No unchanged kernel/module/image/A01 rebuild is needed.
+
 Latest r85, 2026-09-11: **V11 source exitrd actions and read-only abort
 reconciliation are qualified components**. The phone was only read this turn;
 no state-helper execution, active shutdown replacement, reboot or new claim.
