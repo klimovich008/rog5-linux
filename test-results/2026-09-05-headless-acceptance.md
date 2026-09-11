@@ -8687,3 +8687,19 @@ Original gpu-boot-package-r1 is preserved FAIL_SCOPED_MEMCG_OOM during repack-a;
 were verified/reused; incomplete raw temporary excluded. Source/checkpoint/evidence
 now distinguish that failure from the successful continuation. Root/activation
 composition and boot admission are still pending; no GPU hardware acceptance.
+
+### r107 GPU candidate full offline A01 composition
+
+PASS / a01_qualified=true / release_qualified=false. Source6956875b0a18dfc51eb651edbf2d4c31c38c1280
+remained clean. All seven required wrapper/target/archive/root/module/firmware/
+timing checks pass. Both retained lower/upper ext4 images unchanged before/after.
+A01 result SHA
+`d4f569761fafee855e3b404f9942e15a72fae411a2b8257bcf4594364081a193`.
+Runtime82.835 s;1.9 GiB peak under3 GiB/no-swap.78 focused cases pass after pinned
+ignored prerequisites and isolated historical-claim fixture correction.
+
+The three A660 files are verified separately from the unchanged six-file radio
+inventory. Software loading of GPUCC/GPI/GENI/touch modules passes in QEMU; no
+physical GPU/touch/DMA firmware operation is accepted. No phone action or new
+boot claim. The missed optical window remains unobserved. Evidence is indexed
+by gpu-integration-qualification-r1/completion-r107.json.

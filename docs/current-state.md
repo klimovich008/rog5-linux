@@ -1,5 +1,63 @@
 # ROG5 current state
 
+Latest r107, 2026-09-11: **the GPU candidate passed complete offline A01
+composition qualification**. Previous r106 was progress: the verified wrapper
+is now integrated with the exact Arch roots and module/runtime checks. No phone
+action ran. Optical result remains UNOBSERVED_OPERATOR_MISSED_WINDOW; no human
+test is prepared and old Ready replies/consumed launches must not be reused.
+
+Integration source is frozen at
+`6956875b0a18dfc51eb651edbf2d4c31c38c1280` in gpu-integration-worktree-r1.
+The existing operational OLED controller stays frozen separately at f02083f4.
+New composition profile: configs/composition/gpu-05941-v1.json, SHA
+`5d8dbaa7a2db9e6084ae9d9230e69496e13aea95619ca686bad00b934e0411e4`.
+It binds the r106 wrapper, r105 payload/DT, manifest/signature, module inventories,
+fresh descriptor/relay nonce and all ten added firmware/license members. Mixed
+old/new artifact tuples refuse. Physical GPU qualification remains explicitly false.
+
+The radio checker previously allowed only the six WCN6855/regulatory firmware
+files under the shared directory. It now accepts the registered GPU profile's
+three separately sealed A660 members only after exact metadata/content checks;
+all other extra firmware still refuses. The Wi-Fi manifest/inventory remains
+unchanged and strict. The same profile reaches the QEMU fixture, whose default
+radio-firmware copies still use only the six radio files. The new regression
+cases cover missing/altered GPU bytes, ownership/link changes, extras, wrong
+profile, mixed artifacts, false hardware claims and changed Wi-Fi data.
+
+78 focused cases passed:7 GPU-profile,59 rescue-composition,3 release-composition,
+9 existing OLED-profile. Initial failures are preserved: the fresh checkout had
+not yet received five ignored, pinned wrapper prerequisites, and one old fixture
+incorrectly assumed a historical profile could never have a real claim. Staged
+and verified those prerequisites; made that fixture isolate only its in-memory
+claim registry and prove the real registry is restored. Production claim checks
+remain unchanged. Added the GPU suite to the existing repository test list.
+
+Actual A01 result: gpu-a01-r1/a01/result.json, PASS with a01_qualified=true and
+release_qualified=false. All seven checks pass: wrapper, signed target, archive,
+root runtime, module load, firmware and timing transport. Result SHA
+`d4f569761fafee855e3b404f9942e15a72fae411a2b8257bcf4594364081a193`.
+The exact-kernel QEMU run completed and both retained ext4 lower/upper images
+remained identical before/after. Source remained clean and unchanged. The GPUCC,
+GPI, GENI I2C and touch modules passed software registration only; no ASUS GPU,
+DMA/I2C endpoint, touch hardware, firmware authentication or acceleration was
+simulated or accepted.
+
+A01 took82.835 s (checker82.426 s), with1.9 GiB reported peak under a3 GiB/no-swap
+limit. Sparse logical hashing still covers the entire32 GiB lower and16 GiB upper:
+lower25.266/23.227 s and upper11.268/11.076 s before/after. Existing kernel,
+modules, wrapper and VM activation fixture were reused. No expensive unchanged
+build or unrelated full test suite was repeated.
+
+Evidence index: gpu-integration-qualification-r1/completion-r107.json; focused
+results and preserved initial logs live alongside it. Runtime/complete proof is
+in gpu-a01-r1. This completes offline composition, not the per-device boot claim
+or real-phone GPU acceptance. Next prepare a distinct one-use RAM-boot admission
+and capture flow from the current healthy OLED boot, including fallback and the
+subsequent GPUCC/first-open session. Prepare a longer optical window separately,
+with viewing instructions before requesting Ready. Do not mutate either frozen
+source tree or rerun already-completed A01 without changed inputs/new evidence.
+
+
 Latest r106, 2026-09-11: **the GPU candidate now has matching recovery-wrapper
 twins with verified embedded signatures, payload bytes and AVB footers**. Previous
 r105 was progress: its exact payload/DT inputs are now packaged. No phone action
