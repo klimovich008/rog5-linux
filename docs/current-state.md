@@ -1,5 +1,39 @@
 # ROG5 current state
 
+Latest r111, 2026-09-11: **the GPU capture bridge and target-health component
+pass offline qualification**. Previous r110 was progress. Added capture-bridge.py
+and capture-root-entry.py under gpu-capture-r1, changing only pinned paths/hashes
+from the retained bridge. Ownership, pidfds, cancellation, output bounds and
+guardian deadlines remain unchanged. Sixteen bridge/guardian tests passed in
+8.343 s; three bridge-plus-supervisor integration tests passed in 4.225 s.
+Controller/launcher loss, full output pipes, forced cleanup failure, separate
+capture roles and target-to-fallback ordering were exercised with real child
+processes. Sudo/root/phone actions remain explicit fixtures.
+
+New gpu-health-r1/successor-health.py binds the GPU identity and custody, with
+12 expected runtime files: nine retained health/runtime files and all three A660
+firmware files. Exact metadata/content match the final GPU CPIO inventory or
+frozen installed-root source plus completed A01. The collector and validator
+are byte-identical to the retained implementation. Removed its unreachable
+baseline configuration branch; source/V11 health uses separate observers.
+Twenty-four health cases passed in 0.465 s, including missing/changed firmware,
+unsafe metadata, old OLED identity, stale healthy/ready records, late commit,
+unsafe power and writable protected storage. Generated guard shell syntax passes.
+These results verify software boundaries, not real GPU initialization.
+
+Fresh authenticated current-source health passed in 1.778 s on unchanged boot
+229580f9-ac26-4b18-a0eb-ea9c05bc632f, OLED bundle c371bcc38a6a73fe and
+7.1.4-g05941d04803f at 14754.55 s uptime; selection remains b4d203a8...c4d.
+This was the only phone action: no mutation, selection/shutdown change, module
+load, DRM open or reboot. No build/A01 rerun. All r110 source hashes are unchanged.
+
+Evidence: gpu-health-r1/completion-r111.json; bridge-tests-r1 in gpu-capture-r1;
+health tests-r2 and current-source-health-r111 in gpu-health-r1. The complete GPU
+live driver/admission and controller execution directory remain absent. Next wire
+source-abort/fallback controls and authenticated health callbacks, then prepare
+the bounded GPUCC/first-open session before boot admission. Preserve the consumed
+RAM staging. No human test is ready; the missed optical window stays unobserved.
+
 Latest r110, 2026-09-11: **GPU boot capture and its controller ordering pass offline
 qualification**. Reused the retained r93 continuous-drain fix, with a 1 ms yield
 between locked reads so foreground readiness can acquire the pipe lock. The GPU

@@ -8823,3 +8823,19 @@ is UNOBSERVED_OPERATOR_MISSED_WINDOW, with no human test ready. Next complete th
 scoped capture bridge, driver/recovery/target-health bindings and bounded GPUCC/
 first-open session before live admission. Frozen compiled/operational sources stay
 unchanged; the full Denial goal remains in progress.
+
+### 2026-09-11 r111: scoped GPU capture bridge and target health
+
+43 offline cases passed: 16 bridge/guardian, three actual bridge/supervisor
+integration and 24 target-health. Suite times: 8.343, 4.225 and 0.465 s. The bridge
+retains ownership/pidfd and cancellation/deadline behavior; health binds the GPU
+identity/custody and 12 exact runtime files including three A660 firmware files.
+Collector/validator bytes and all r110 sources remain unchanged. Fixture evidence
+does not prove physical GPU or fallback operation. Evidence index:
+gpu-health-r1/completion-r111.json. No full driver/admission or execution exists.
+
+The only phone action was fresh authenticated source health, PASS in 1.778 s on
+boot229580f9-ac26-4b18-a0eb-ea9c05bc632f at 14754.55 s uptime, unchanged OLED
+bundle/kernel and b4d203a8...c4d selection. No state/shutdown writes, module load,
+DRM open, reboot or claim consumption. RAM staging remains consumed. No human
+test is ready; optical acceptance remains UNOBSERVED_OPERATOR_MISSED_WINDOW.
