@@ -1248,3 +1248,30 @@ actual runtime logger liveness. The independent blanking path must remain usable
 when the logger lease fails, and a logger terminal failure must keep the overall
 result failed. All three are covered by composed tests. Preparation now reaches
 a concrete phone RAM namespace instead of another pending integration report.
+
+### 2026-09-11 r96: Read refresh from DRM, retain structured failures
+
+The module trial loaded both display drivers and registered `fb0`, then failed.
+The exact endpoint check subsequently reproduced rejection of
+`U:1080x2448p-0`. On this compiled kernel DRM fbdev setup clears pixclock, and the
+fbdev conversion consequently reports refresh0. Actual atomic DRM state records
+1080x2448 at60 Hz. A zero fbdev field must not be treated as60 or as a measured
+zero-Hz output. Require the active same-controller DSI mode and retain its source.
+The separate new endpoint checks exact identity/timing twice, passes20 existing
+endpoint and14 new mode/pipeline cases, and passes read-only on the phone in
+0.423 s. Optical scanout remains separate. No hardware retry was used.
+
+The supervisor discarded full worker error details by stringifying a structured
+payload and truncating its first2000 characters. Large blanking receipts came
+before the root cause. Keep bounded worker/component errors as structured durable
+evidence before producing a short user-facing reason. Carry this fix into the
+next controller; a successful cleanup must not hide the initiating failure.
+Original helper exit details cannot be reconstructed from the truncated result.
+
+The current composed tests ran63 directly defined cases rather than231 inherited
+case instances; parent fixtures still provide setup. The measured run took
+29.852 s including the deliberate20-second timing case. Reuse the cached ARM64
+renderer and unchanged component checks. A negative pipeline test must allow
+independent zero cleanup after entry while prohibiting frame writes/illumination.
+When embedding imported read-only source, use its own namespace: BOOT in the
+endpoint is a regex and can shadow an ad-hoc observation variable.
