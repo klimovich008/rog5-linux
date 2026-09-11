@@ -3716,3 +3716,45 @@ without weakening firewall policy or requesting broader sudo rights. Prefer this
 proven path for normal passive capture; retain explicit early-boot qualification
 and bounded connection setup. When Ready arrives during independent work, launch
 the already prepared entry immediately and keep experimental alternatives separate.
+
+
+## r82 — startup recorder integration and explicit request-mode pairing
+
+Added optional startup UDP capture and connected it to the existing R01 receiver
+lifecycle and CLI. The config is pinned in admission-time capture receipt/check;
+its nonce/binary hash/transport must match the separately paired signed payload.
+Requests pause outside the target phase, final queued packets drain before
+recovery, and collection stops when the outer receiver enters return. Kernel
+boot ID must match the independent startup stage; parser/socket failures stay
+separate from boot-health evidence. Raw records and summary remain unauthenticated.
+The owner's deadline, request/packet/rejection limits and socket cleanup are
+explicit. The optional startup unit can select startup-pull via builder input.
+
+Read actual host netfilter UDP timeouts: 30 s and 120 s for established traffic.
+Added 20-second keepalive requests because the logger itself runs for 120 s.
+This is source/offline preparation, not a live early-boot network qualification.
+The r81 normal-USB request test is inherited only for the unchanged relay binary.
+
+All 100 relevant tests pass: 18 new capture/CLI/config checks, 17 recovery capture,
+6 optional assembly/runtime, 2 standalone archive and 57 rescue composition.
+They cover boot mismatch, early queued packets, loss, rejection flood, expiry,
+request bound, incomplete disconnect, return identity, config mutation, failed
+binding and closure, and optional failure without claiming boot-health failure.
+The existing actual TCP receiver runs on loopback in the integration fixtures;
+USB transitions remain simulated. Shell syntax and whitespace checks pass.
+
+A nonbootable archive fixture using the existing 1,499,608-byte ARM64 relay
+successfully pairs builder, archive checker and host config loader in 0.226 s.
+Archive SHA: `cd457d16b73c1d2affe066490fa5e36d677f6fc870e0cb11a8634eccc1e09dbc`;
+config SHA: `f85a16dd912bfa1525279b037ef07f2eaaf88f5b5152891bc555f9ca31080a10`.
+Source commit: `b3a964e6`. Evidence: `kernel-startup-capture-r1/qualification.json`.
+No phone access, sudo, reboot, kernel/Rust build or new Ready request occurred.
+Full OLED bundle, Arch-root composition and successor controller remain pending.
+
+After-run review: the fresh sparse checkout needed explicit read-tree population;
+that completed in about 0.13 s without copying historical kernel artifacts.
+An escaped newline in a test and an ad hoc loader import path were corrected
+before final checks. Keep configuration/recorder pairing explicit, and test the
+actual timeout boundary rather than assuming a five-second UDP test proves a
+120-second startup lifetime. Preserve partial evidence instead of restarting
+collection on the fallback boot.
