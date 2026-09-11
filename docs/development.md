@@ -30,6 +30,24 @@ cause is unknown. An unrelated incident need not block a separately proven fix.
 
 ## Feedback after each run
 
+The r77 fallback had root-owned sticky `/run` mode 1777. The unchanged
+0755 staging guard correctly refused before creating its namespace. Separate
+recovery used the existing protected 0755 tmpfs `/run/initramfs` as parent,
+retaining the guard rather than chmodding global `/run`. Five ARM64 cases and
+five coordinator cases passed; actual restoration took 10.340 s. Discover the
+actual fallback RAM parent as part of preparation and qualify that exact path.
+After any early reboot, collect retained reset evidence before another boot;
+PSTORE config with no ramoops DT node does not prove a working crash-log backend.
+
+In r77, the prepared terminal entry started immediately on Ready and both
+independent sudo reuse checks passed. Keep the same verified controlling terminal
+for subsequent sudo work, with bounded refresh only while a job is active.
+Successful RAM transfer and early stage packets do not prove target health:
+read the authenticated returned bundle/release before interpreting a generic
+identity error. Preserve that distinction in the run summary, and retrieve
+retained reset evidence before another boot can replace it. A display DT may
+exercise built-in MDSS/DSI before any explicit panel-module command.
+
 A healthy overall boot does not prove all PMIC children bound. In r76, a
 0.363-second metadata-only query distinguished the SID-5 unbound PMR735B from
 five successfully bound PMICs. Trace the exact failed register and probe return

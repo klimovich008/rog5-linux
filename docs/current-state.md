@@ -1,5 +1,60 @@
 # ROG5 current state
 
+Latest r77, 2026-09-11: **OLED trial failed; V11 is running and the prior
+boot selection has been separately restored and verified**. Fresh Ready launched
+the prepared entry immediately. Authentication and both sudo reuse children
+passed; `sudo -n -v` also passed later from the same retained PTY 44286. The
+bounded credential keeper stopped with the job. No password was retained or
+sudo policy changed. Current authentication can still expire normally.
+
+The staged-source claim `oled-staged-source-05941-r1` is consumed. One 128-MiB
+RAM transfer passed in 13.472 s, without flashing. Target boot observations
+`19141e40-a435-4317-ba8b-89cc55133984` reached switch-root PASS, then USB vanished
+9.021 s later. The startup observer reported P2 activating, state/identity
+inactive and an unsuccessful SSH-service query; no explicit helper failure
+was received. These UDP records do not prove authenticated target health.
+V11 subsequently appeared. The full 23-minute recorder closed and reaped its
+worker, with route/firewall/profile/address cleanup passing.
+
+The original controller is terminal **FAIL** and must remain so. Automatic
+restoration stopped before RAM staging because `/run` is root-owned mode 1777,
+while its staging check expected 0755. The original RAM namespace was absent;
+no restoration exchange was attempted. Do not rerun the original controller,
+terminal entry, claim, or failed stage. Original evidence:
+`oled-staged-controller-r1/execution` and
+`oled-staged-experiment-r1/terminal-launch-r1`.
+
+A separate one-use recovery **PASSed in 10.340 s**. It retained the exact
+ownership, no-symlink, tmpfs, storage and helper checks, placing a fresh private
+namespace beneath existing root-owned 0755 `/run/initramfs`. No `/run` mode
+change was needed. Five actual ARM64 staging/helper cases and five coordinator
+cases passed before execution. Preflight, RAM staging, one state exchange and
+final authenticated observation passed; the old V9 healthy selection SHA
+`ed3a62d198a2e33d26093e079534315ae86ab28c91f48805463fd025c5b88b75`
+is restored. Installed V9/V11 inventory and protected boot_b remain verified.
+Evidence: `oled-fallback-restoration-r1/execution-r1/result.json`.
+This recovery is terminal and must not be rerun. Retain owner
+`40c18651355c8690fca8b8afe6b15283` and its private RAM/durable transaction records.
+
+Current phone: V11 `persistent-native-root-v11`, release
+`7.1.4-g359318de534f`, boot `ee0d166e-5e69-4db7-8bbd-6266352594ea`.
+P2, persistent-state, SSH-identity and early-SSH services were active; current
+SSH boot identity is verified. V11's legacy readiness marker itself lacks a
+boot-ID field, reported explicitly by the observer. No OLED module/frame run
+or later reboot occurred. No current user action or Ready request is pending.
+
+Next: diagnose the target reset before another OLED boot. Mounted pstore was
+empty. The exact OLED DT has no ramoops node despite built-in pstore support;
+empty logs do not establish cause. The shipped startup observer matches the
+frozen source, and built-in MDSS/DSI can run before an explicit panel-module
+load. Improve bounded startup failure evidence or verify a board-supported
+crash-log backend before proposing another experiment. Preserve all compiled
+kernel/modules/payload/signatures and both consumed OLED claims. Carry the
+verified private-RAM-parent fix into a separately qualified future controller;
+never edit executed sources or treat recovery as target success. Independent
+SID-5/thermal audit remains secondary to this startup failure. Evidence:
+`oled-startup-failure-r1`. The historical waiting paragraphs below are superseded.
+
 Latest r76, 2026-09-11: **r75 remains fully prepared and waiting for fresh
 Ready**. No password window or test was started on automatic continuation.
 The retained terminal entry hash and pending exact claim were checked unchanged;
