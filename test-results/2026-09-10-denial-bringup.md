@@ -5,6 +5,44 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## r46: reproducible OLED successor payload
+
+`oled-successor-payload-r1` composes a fresh identity over the physically
+observed 05941 archive. It reuses the pinned bounded newc parser/writer and
+independently reopens each output. Membership and every unrelated byte/metadata
+field are preserved; only `trial-descriptor` and `boot-files.sha256` may differ.
+Ten small real-newc checks pass in 0.026 s, covering forged catalogs, unrelated
+module/runtime/nested-package changes, metadata drift, reused identity, changed
+membership and truncated input. No old recognizer was widened.
+
+Both actual archive builds passed in sequential 512-MiB/no-swap scopes, with
+host wall times **4.877 and 4.625 s**. Their identical output is 57,774,563 bytes,
+SHA `d108d868df3c8ba5f4e8c30bc4da128d73a470379afff4a30be51b121e81e825`.
+Of 724 members, 722 remain unchanged, including all 32 loose module copies,
+nested radio archive, userspace, firmware and shutdown behavior. Existing
+panel `c554d3f5…` and REFGEN `efc31c29…` remain inert. No kernel/module build,
+depmod, root-image edit, signing or phone mutation was performed.
+
+The sole new identity is bundle `oled-05941-a2be906cd7b36636`, trial
+`b52ead05459f96ae5acde920c903d4ca3138a96083a7b4dbabfc941274fcb242`.
+Its profile binds the retained display-only DT `2ee1ed4b…`; the descriptor and
+`wrapper-recipe.json` agree on bundle and current release. These are unsigned,
+unregistered inputs. The working r2 headless packager must receive a separately
+reviewed OLED adaptation; its existing exact-profile refusal is correct.
+
+A **2.045-second authenticated read-only probe** verifies the unchanged phone
+boot at 4,347.54 s uptime, early healthy commit, storage/power/readiness and the
+restored old selection. Both exact display modules exist in their inert RAM
+location and remain unloaded. The current standard module search tree has no
+files for this release; there are no DRM/backlight nodes or fb0. This is current
+runtime evidence, not qualification of future display-DT early probes or the
+configured effective-root autoload paths. The screen has not been tested.
+
+Next: adapt the current successful boot wrapper's qualification to the new
+identity-only preservation receipts and display DT, retain unchanged module/VM
+and root-content evidence where applicable, build/verify signed twins, and
+finish the prepared boot/module/blank/frame controller before asking Ready.
+
 ## r45: restore selection while retaining the healthy successor boot
 
 `current-target-restore-r1` adds an exact-current-boot generator and one-use
