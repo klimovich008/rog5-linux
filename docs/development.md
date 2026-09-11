@@ -30,6 +30,15 @@ cause is unknown. An unrelated incident need not block a separately proven fix.
 
 ## Feedback after each run
 
+The r71 missing-RAM failure is now covered by the actual staging receipt and a
+fresh read-only pre-claim observation, with the same binding checked at every
+admission gate. In r73, 76 focused cases and four full-flow fixtures passed; the
+actual phone recheck took 2.883 seconds. Derivative checkouts must retain explicit
+paths to unchanged installed-file evidence: a copied selector path caused the
+first fixture failure, fixed without copying or rebuilding the selector. Keep
+fixture and actual phone results distinct, and preserve failed attempt outputs.
+
+
 Standing user instruction, 2026-09-10: reserve a brief review after each run and
 at the end of every goal turn. Check whether the run advanced the current
 priority, what failed repeatedly, and where measured time or resources were
