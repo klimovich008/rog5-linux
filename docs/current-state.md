@@ -1,5 +1,15 @@
 # ROG5 current state
 
+Latest r120, 2026-09-11: **no progress; still awaiting fresh Deck readiness
+and local sudo authentication** (second occurrence in the resumed blocker audit).
+Previous r119 was progress. Prepared launcher/qualification hashes and pending
+claim are unchanged. No launch, authentication, source-readiness, controller or
+GPU session directory exists; neither claim-consumption guard exists. There is
+no running test to wait on. No sudo retry, password window or phone action ran.
+Keep the prepared r119 command; on fresh Ready, start it immediately. Do not treat
+automatic goal continuation as operator availability. The repeated blocker needs
+user input; no further unchanged preparation is useful before that input arrives.
+
 Latest r119, 2026-09-11: **GPU trial fully prepared; waiting for fresh Deck
 availability for local sudo authentication**. Previous r118 was progress.
 The exact gpu-source-05941-r1 pending claim is created and validated, not consumed.
