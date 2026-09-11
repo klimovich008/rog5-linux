@@ -1,5 +1,32 @@
 # ROG5 current state
 
+Latest r70, 2026-09-11: the OLED launch is prepared again after the r69
+password timeout. Authentication attempts now have separate exclusive receipts
+under `oled-live-driver-r1/boot-authentication-r1`. A shared flock excludes
+concurrent launches; incomplete attempts, live prior owners and unreaped
+credentials refuse. Fresh password availability is required for every retry.
+The fixed next boot output is `trial-launch-r2`, created only after successful
+authentication. Original r1 failure files remain exact and are checked before
+preparation. The original boot execution function and claim-consumption guards
+are unchanged; no attempted boot may be retried.
+
+The revised launcher passes 34 focused cases in 0.896 s. Display provenance and
+monitor checks pass 22/19 cases in 0.436/1.698 s, and module/frame host checks pass
+17/17 cases in 1.937/3.581 s. Their runtime function bodies are unchanged;
+only the fixed launch path and dependency pins changed. The previous actual
+20-second component test is inherited without rerunning it. Integrated qualified
+frame reading passes in 0.017 s and read-only boot preparation in 0.207 s.
+No password window, claim consumption, controller execution or display action
+occurred in r70. Reuse the existing kernel, DT, modules, signed wrapper and A01.
+
+Fresh authenticated phone health passes in 1.347 s at 23,516.93 s uptime: same
+headless 05941 boot, restored old selection, boot-bound readiness and physical
+guards. The user has not yet answered whether the previous password window was
+visible/usable. Do not infer a password or keyboard diagnosis. On a fresh Ready,
+start the prepared launcher immediately; do not reuse the r69 Ready. The future
+physical display prompt still requires separate fresh availability after the
+new OLED boot, full capture, module loading and frame preparation.
+
 Latest r69, 2026-09-11: fresh Ready immediately launched the prepared OLED
 session. Authentication timed out after its 300-second limit. The Deck window
 was observed, but no user response establishes whether it was visible or usable.
