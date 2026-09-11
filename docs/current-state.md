@@ -1,5 +1,15 @@
 # ROG5 current state
 
+Latest r121, 2026-09-11: **goal marked blocked awaiting fresh Deck readiness
+and local sudo authentication**. The same blocker persisted across r119–r121;
+r120 and r121 made no progress. Prepared r119 launch and qualification hashes
+remain unchanged; the exact pending claim is unconsumed. No authentication,
+source-readiness, controller or GPU session has started. No password prompt or
+phone action ran. Do not repeat unchanged checks or open the timed window without
+fresh availability. On Ready, use the prepared r119 argv immediately with its
+local touch keyboard. Resume work from that handoff; do not rebuild or replay any
+old attempt. This is blocked, not complete; the full Denial objective is preserved.
+
 Latest r120, 2026-09-11: **no progress; still awaiting fresh Deck readiness
 and local sudo authentication** (second occurrence in the resumed blocker audit).
 Previous r119 was progress. Prepared launcher/qualification hashes and pending
