@@ -262,6 +262,15 @@ Rule: **A capability is available only if the exact booted artifact proves it; h
 
 ### R4. Timeout budgets were not maintained as a lattice
 
+OLED r66: a monitor accepting cleanup does not mean monitoring passed. The actual
+client returns a finished reply even when failure is latched. A negative assembled
+replay reproduced an incorrect coordinator PASS; require the nonfailed reply,
+zero monitor exit and matching durable FINISHED result. All17 integration cases
+then passed in1.941s. Keep transport input closure separate from force-killing SSH
+so the independent target cleanup can still report its outcome. Make namespace
+fixtures match real parent permissions: tmpfs defaults can create a world-writable
+`/run`, which the production staging guard correctly rejects.
+
 OLED r65: test the outer deadline with real blocked workers and pipes, while
 keeping phone effects explicit fixtures. Reaping the direct child alone does not
 prove its helper group is gone; retain both checks. Failed zero cleanup must keep

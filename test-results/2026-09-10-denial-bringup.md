@@ -2963,3 +2963,78 @@ r64 monitor qualification remain unchanged. The next task is authenticated host
 staging/duplex SSH and the module coordinator, followed by the frame supervisor.
 Actual OLED boot, completed capture and fresh authenticated health remain required
 before module insertion; OLED/touch/GPU/Denial hardware acceptance is incomplete.
+
+## Authenticated module host coordinator (r66, 2026-09-11)
+
+Previous r65 is progress: its bounded target module supervisor passed28 offline
+checks and remains unchanged. The missing host staging/duplex/coordinator now
+exists in `oled-module-host-r1/coordinator.py`, SHA
+`4f2e7e255ba8ff96371879fd3b7c6eca1bc11ca71dac0b65ad5082a306fb85e4`.
+It pins r64 owner/monitor qualification and r65 backend evidence, and reuses the
+existing OLED SSH worker's credentials, host-key pin, clean source, exact USB
+identity/topology and route gates. There is no new network receiver or host-root
+operation in the normal path.
+
+The generated staging script carries only the three exact backend/endpoint/loader
+sources and fixed manifest. It checks actual target boot/kernel/descriptor before
+creating its private RAM namespace, validates root ownership/parent permissions,
+writes exclusively and verifies staged context and identity again. Staging uses
+the existing35-second bounded SSH worker. Live execution then uses sequenced
+JSON records over stdin/stdout with bounded output, no buffering or command retry.
+The host module phase is reserved before spawning SSH; any uncertain start remains
+consumed. Exact helper, REFGEN and panel identities, order and limits must match
+the target entry request before a durable host acknowledgement is sent.
+
+Leases renew every0.75s only after a current monitor probe. Loss of monitor or
+protocol validity closes stdin while allowing up to14s for target action/cleanup
+closure; total normal host transport budget is78s. Direct target process reap,
+absent helper group, exact insertion records, zero/readback identity, terminal
+status, raw framing and SSH exit are independently checked. Output is retained
+with bounded files. A terminal component result uses host monotonic completion
+for later health ordering, preserving target monotonic as separate evidence.
+No cross-machine clock comparison is used.
+
+After proven target cleanup/reap, full authenticated health is collected before
+monitor finish. Review reproduced a real bug in the initial coordinator: a
+`finished=True, failed=True` cleanup reply could produce overall PASS when module
+loading itself passed. `monitor-failure-replay-r1` retains the failed assertion,
+original code and output. The corrected coordinator requires nonfailed finish,
+zero monitor process exit and a matching durable FINISHED result, including the
+component-result hash. Target component success remains recorded separately from
+an overall monitor/coordinator failure.
+
+Final `tests-r3` passes **17 cases in1.941s** (2.220s runner). The full positive
+sequence executes actual RAM staging logic and duplex target supervisor, then
+checks health-after-cleanup and monitor closure ordering. Other cases include
+monitor loss while a real child is blocked, failed modules with independently
+successful zero, changed-boot refusal, wrong intent, immutable host entry,
+transport spawn failure, stderr, tampered digest, source/USB/route gate ordering and wrong USB refusal,
+missing boot proof and exact terminal insertion/brightness validation. SSH and
+phone effects, completed boot and already-qualified monitor/health boundaries are
+explicit fixtures. Root-owned files and processes use private user/mount namespaces;
+no test authenticates or mutates the phone.
+
+The first suite had12 passes and one staging fixture error. A retained diagnostic
+proved its tmpfs `/run` defaulted to world-writable; production correctly refused
+`RAM parent`. Fixture mode755 fixed this without changing production guards. Five
+remaining/new checks then passed in0.259s. The subsequent monitor regression was
+reproduced before correction and justified the final17-case rerun. Only the
+qualification-negative test was later adjusted to an isolated directory so future
+published qualification/retained runs cannot break that fixture; its focused
+check passes in0.001s. All source snapshots and failed outputs remain retained.
+
+Current qualification `oled-module-host-r1/result.json` SHA:
+`61ec008fbe17ed3b3269d24603bec1fdc415c01d05678b8272639ba10200b911`.
+The actual qualified reader accepts it in0.006434s. It binds current coordinator,
+final evidence and unchanged prior component qualifications. The callable entry
+is `run(boot,run_id,qualification_sha256)`; direct CLI execution refuses. No real
+run namespace or module phase entry has been created. No authentication, live
+monitor, phone health query, staging, insertion, boot or claim action occurred.
+
+After-run improvement is preserving latched failure through the final assembly,
+with a regression at the real client contract. Reused kernel/DT/modules/renderer,
+boot qualification and target backend; no rebuild or unchanged full boot replay.
+The next missing component is the bounded frame backend/coordinator and prepared
+physical prompt path. Real OLED boot plus completed capture and fresh health must
+precede module execution. No physical Ready is requested until the test is ready;
+OLED/touch/GPU/Denial acceptance remains incomplete.
