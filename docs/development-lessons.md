@@ -986,3 +986,15 @@ latched. Independent verified cleanup may finish that failed monitor while the
 terminal status remains FAIL. Fixture completion times must follow actual fixture
 admission creation; inventing earlier offsets tests the timestamp guard instead
 of the intended cleanup path.
+
+
+### Startup evidence before SSH
+
+The r77 OLED attempt reached switch-root but left no explicit helper failure,
+archived pstore or prior-boot journal on V11. A built-in pstore configuration
+alone does not establish a working retained-log backend. Collect bounded kernel
+records independently of journal/service health and keep packet loss, ring
+overrun, truncation and terminal limits visible. Diagnostic delivery never
+proves boot health. The r78 Rust helper reused the retained toolchain/linker:
+2.810 seconds for focused checks/build and 1.166 seconds for a byte-identical
+ARM64-only twin. Keep this incremental path separate from frozen kernel builds.
