@@ -8340,3 +8340,46 @@ a physical launch. Evidence and current source pins are in
 unchanged. Next: finish target-health/boot/full-flow and root handoff/cleanup
 qualification, then bind final producers and prepare fresh hardware availability.
 No unchanged kernel, module, image or A01 rebuild is needed.
+
+## r88: assembled startup/recovery and privilege boundaries
+
+Latest r88, 2026-09-11: **all four assembled startup/recovery simulations
+pass; final live admission remains incomplete**. No phone command, reboot,
+new claim or operator request occurred. Last real phone observation remains
+r87's unchanged V11 boot. No live qualification, execution or readiness exists.
+
+The full-flow test found a production integration defect: source-action admission
+still required `python3`, while the qualified install/reboot/restore callbacks
+use sealed BusyBox shell. The first run stopped at install admission and restored
+its staged fixture selection (5.376 s); no transfer occurred. Admission now requires
+the exact shell generator and intent. Three focused tests cover all three actions
+(nine subcases), rejecting Python transport and altered scripts. The corrected
+full flow passed target success, early fallback, late failure with separate
+fallback capture, and source abort in 33.400 s. These use real callback/admission
+policy, receipt files and recorder processes, with explicit transport, root/network,
+claim/qualification and virtual-clock fixtures. Physical boot/recovery is unproven.
+
+Additional passing cases: target-health 20, RAM boot/owned child 19, assembled
+driver 12, health readers 26, admission 26, admission/driver 3, bridge/supervisor 3,
+root-route worker 19, capture bridge/guardian 16, fallback transport 16, launcher/
+credential lifecycle 32, and privilege-probe boundaries 10. Checks cover signed
+kernel-recorder configuration, one-use refusal, inherited sealed descriptors,
+full observation closure, parent loss, lost replies and child/route cleanup.
+The unchanged kernel, modules, signed payload and A01 were reused.
+
+The copied touch askpass helper had correct bytes but mode0644, failing its
+required0700 check. Six privilege cases passed; the four affected cases passed
+in 0.737 s after restoring the private executable mode. The original failure is
+retained. Source graph refresh now rejects this mode mismatch before publication.
+No password window was opened. The existing shell/session 44286, PID251096,
+remains available, but `sudo -n -- /usr/bin/true` returned1/password required;
+its cached authorization has expired. Do not retry noninteractive sudo unchanged.
+
+Final input inspection accepts53 pinned inputs. The mode change refreshed input
+and dependent digests after full-flow execution; final qualification must bind
+that final producer set rather than relabeling the earlier run as full admission.
+Evidence: `oled-startup-experiment-r1/integration-progress-r88.json`, including
+both failures, completed scenarios, test streams and final private-source snapshot.
+Next: finish exact boot-profile registration and final qualification binding;
+prepare actual read-only privilege probes with fresh sudo authentication, then
+fully prepare live recording/recovery before requesting hardware Ready.
