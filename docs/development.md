@@ -30,6 +30,16 @@ cause is unknown. An unrelated incident need not block a separately proven fix.
 
 ## Feedback after each run
 
+The r74 provenance fixtures now shift a running monotonic clock past their
+accelerated capture closure. A fresh 1380-second software recording must be
+replayable immediately; never wait for wall time or relax the production
+capture deadline to accommodate a fixture. When rebinding qualified components,
+preserve historical source maps explicitly and publish the current dependency
+identities separately. Eleven unchanged privilege boundaries were compared
+before inheriting actual root/deck handoff evidence, avoiding another password
+prompt for an unchanged test. Current credential reuse still needs verification.
+
+
 The r71 missing-RAM failure is now covered by the actual staging receipt and a
 fresh read-only pre-claim observation, with the same binding checked at every
 admission gate. In r73, 76 focused cases and four full-flow fixtures passed; the

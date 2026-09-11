@@ -3399,3 +3399,37 @@ need integration before requesting Ready. New paths are
 and results are preserved. Keep the kernel, modules, payload, wrapper and A01.
 The persistent sudo terminal remains available subject to a fresh identity check;
 password reuse across child processes still awaits actual authentication.
+
+## r74: privilege inheritance and new display qualification chain
+
+Latest r74, 2026-09-11: the staged boot controller and downstream display
+qualification chain now validate. Eleven privileged handoff boundary sources
+match the actually tested predecessors with only exact path/digest substitutions.
+The retained actual UID0 guardian / UID1000 handoff remains applicable; this is
+scoped inheritance, not a new authentication or current credential proof.
+Current process/admission wiring was separately replayed. Live qualification is
+`aeb2809792c10bc31d85c304003a7ade78f32846316fb11f90a66de346ddabe6`.
+
+The component monitor now reads only the new staged controller/launcher and Q2
+source. Completed boot proof also verifies the original fresh source-preparation
+receipt. Tests reject missing preparation and the consumed failed predecessor.
+The module and frame coordinators follow this new qualification chain.
+**109 additional cases pass**, including 24 provenance, 19 monitor-session,
+17 module-host and 17 frame-host cases. The unchanged real 20-second frame timer
+was inherited after verifying that frame logic changed only dependency hashes.
+No kernel, payload, selector or framebuffer helper rebuild was needed.
+
+Evidence is `oled-staged-experiment-r1/integration-result-r74.json`. Updated
+qualification hashes: monitor `93548237db2e9f7a52bdd38049515e231165b5a31ae378ae1d2c6d7ed4055456`,
+module `cef925a709308d54c1f544c2abc26e8e5c3c435b384bda706713e1ff32b51397`,
+frame `1abda57152e28ec3ebb832ca6b9812626965b77760400837f974a3aa11fb18bf`.
+Previous display sources/qualification records are retained under
+`display-bindings-before-r1`. Old executed boot source/results remain untouched.
+
+No phone action, password window, claim registration/consumption or reboot
+occurred in r74. The last actual phone observation remains the r73 preflight.
+Next: complete the fixed same-terminal launch entry and its two sudo reuse
+checks, then prepare the exact separate pending claim. Only request fresh Ready
+once the complete entry has been reviewed and can start immediately. Privileged
+handoff and downstream display binding are no longer pending; current sudo
+authorization and actual OLED hardware results are still unproven.
