@@ -1461,3 +1461,20 @@ permanently unclaimed production profile.78 focused cases and actual A01 passed.
 A01 took82.835 s, reusing unchanged builds and the VM fixture; before/after sparse
 logical hashes prove both retained roots unchanged. Preserve the frozen integration
 source and completed result for the next admission rather than repeating them.
+
+### r108: bind the source transition to the actual running kernel
+
+The old boot controller assumed V11, while fresh1.777 s health proved the phone
+is still on the OLED kernel after11842.52 s. Read and pin its actual shutdown,
+selection and helper before adapting transition code. Here the shutdown matches
+retained source exactly and the reboot helper already exists with its expected
+hash; only the final reboot dispatch needs a prepared variant. Preserve teardown
+and poweroff byte-for-byte. Do not copy V11 unit/state assumptions into this trial.
+
+Reuse the installed ARM64 selector/function fixture to test the new record bytes.
+Four cases took0.443 s and preserved both GPU records while selecting V11. This
+is useful fallback-decision evidence, not a physical recovery pass.46 focused
+cases passed, including a90 s fastboot timeout with sealed-descriptor closure.
+The expected claim registry gained one entry with all228 old entries unchanged;
+registration alone is not admission or durable consumption. Keep the next work
+on live state/capture orchestration, not unchanged builds or another A01 run.
