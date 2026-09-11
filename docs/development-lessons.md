@@ -1428,3 +1428,19 @@ That proves no screen outcome. Store the exact missed-window reply separately
 from the successful command record. Prepare a longer bounded successor and give
 viewing instructions before Ready so attention can stay on the phone. A fresh
 Ready alone must not retrigger an already-consumed session.
+
+### r106: bound dirty-file accumulation and reuse completed wrapper stages
+
+The first wrapper job hit its512 MiB cgroup ceiling after9.525 s. Kernel evidence
+showed405987328 dirty-file bytes versus110166016 anonymous bytes. Treat this as
+measured writeback pressure, not a guessed Python heap leak or system-wide OOM.
+Preserve the failed run and inspect completed artifacts before resuming. The
+signed side A bundle, recovery and canonical sizing raw were reusable after
+exact verification; its incomplete repack temporary was excluded.
+
+The continuation flushes generated regular files and releases clean pages between
+stages, while avoiding a second raw-image build. All header arguments, extracted
+payloads, signatures, footers and twin hashes still pass. It completed in48.865 s
+under the same512 MiB/no-swap limit; writeback took5.775 s. Peak still touched the
+cap, so retain bounded serial execution and do not claim universal resolution.
+Continue from the verified wrapper instead of repeating completed signing/builds.

@@ -1,5 +1,64 @@
 # ROG5 current state
 
+Latest r106, 2026-09-11: **the GPU candidate now has matching recovery-wrapper
+twins with verified embedded signatures, payload bytes and AVB footers**. Previous
+r105 was progress: its exact payload/DT inputs are now packaged. No phone action
+ran this turn. Optical outcome remains UNOBSERVED_OPERATOR_MISSED_WINDOW; no
+human test is prepared and no older Ready or consumed command may be reused.
+
+Accepted packaging output: gpu-boot-package-r2/result.json, PACKAGING_TWINS_PASS.
+Bundle gpu-05941-52181a3157c26029 contains the unchanged exact05941 kernel, the
+qualified five-property GPU DTB delta and the r105 firmware-bearing archive.
+All bundle files, signatures, recovery archives, raw images and AVB images match
+between sides. The existing sealed verifier returned SEALED_PLAN_PASS; both
+AVB checks passed. Embedded manifests use Ed25519; the outer AVB footer retains
+algorithm NONE. This is offline signature/byte composition, not boot admission,
+root-content qualification, secure-boot certification or GPU hardware acceptance.
+
+Recovery archive:80290874 bytes, SHA
+`24c5c068e9649528cf3b7ca6667f61afe400ace266df7fdcfab7659be23157ca`.
+Raw Android boot image:130797568 bytes, SHA
+`5362122fff7e85b5fcd0809589d485f04f2b8d7654d9b9a74c3f06c8e486c99f`.
+128 MiB AVB image:134217728 bytes, SHA
+`7dce52c48e23f1adfeaa719c199453a9073bb6fe6469a580469445d90697f9d6`.
+Manifest SHA:
+`2dc065be228fe4cee9a4c791d6d06abd2b17a23d4a8533beb8b70eeecfa8497a`.
+Signature SHA:
+`6d70117f1faa46bfb852c2ae0646d100610340e286f59034cf5b7ddf305ff760`.
+The96 MiB envelope was too small; measured AVB capacity admitted128 MiB.
+
+The first attempt, gpu-boot-package-r1, remains FAIL_SCOPED_MEMCG_OOM. It ended
+at9.525 s during repack-a in its512 MiB/no-swap service. Kernel evidence identifies
+110166016 anonymous bytes,414613504 file-cache bytes and405987328 dirty-file
+bytes at the limit; this was a memory-cgroup OOM, not a system-wide incident.
+The first signed bundle, recovery archive and canonical sizing raw were already
+complete. Their exact bytes were pinned and verified before reuse. The partial
+boot-a.raw.img.tmp was excluded; old failure/source artifacts remain preserved.
+
+The successor in gpu-boot-resume-r1 reuses completed side A and independently
+composes side B. It flushes generated files and releases their clean cache pages
+between tool stages, avoids rebuilding the canonical raw image a second time,
+and verifies extracted kernel/recovery bytes plus all original boot-header and
+command-line arguments. It changes no key, root selection, wrapper source or
+rollback policy. Eight wrapper-contract cases and seven continuation cases
+passed. Initial inspection passed without opening the private key. Resume took
+48.865 s; service50.120 s; file writeback accounted for5.775 s. All commands and
+cleanup checks passed under the same512 MiB/no-swap cap. Reported peak still
+reached512 MiB, so do not claim spare memory headroom or a general OOM cure.
+No unchanged kernel, module or payload build was repeated.
+
+Evidence index: gpu-boot-resume-r1/completion-r106.json. Contract/input evidence
+is in gpu-boot-package-prep-r1; failed original evidence is preserved there and
+in gpu-boot-package-r1. Successful output is exclusively gpu-boot-package-r2.
+
+Next: register the exact new composition profile in an isolated successor and
+run root/wrapper/activation composition qualification, preserving all frozen
+sources and fallback artifacts. Then prepare the GPUCC and first-open session
+with logging/recovery. The wrapper is not ready for phone boot yet. A separate
+longer optical session still needs preparation with viewing instructions before
+Ready. Retain the missed-window observation and every consumed entry.
+
+
 Latest r105, 2026-09-11: **a distinct GPU candidate now has reproducible
 unsigned initramfs payloads paired with the verified GPU DTB**. Previous r104
 was progress: its component is now consumed by actual payload composition.
