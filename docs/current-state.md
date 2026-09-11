@@ -31,12 +31,30 @@ Early child stdout/stderr are now retained in the test harness. They exposed
 floating-point roundoff in its frozen clock (1380.0000000000002 > 1380); whole-
 second test timestamps fix that without relaxing the real recording boundary.
 
-No password prompt, phone Ready, recording or live admission is pending.
-Finish the final evidence/source-bound admission review and fresh installed-route
-preparation before requesting availability for an actual temporary kernel boot.
-The prior Ready applied only to the completed host privilege check. Preserve the
-unused claim and existing phone state; no reboot or flash occurred this turn.
-The full Denial/hardware goal remains incomplete; no phone test passed by inference.
+Final preparation review now passes. Fresh read-only installed-route check r2
+PASS in 2.890 s: eleven files, the 96-MiB boot_b image and unchanged V9 state
+match, with storage protections intact. This does not prove a physical fallback.
+The exact one-use source record is staged but unconsumed. Final preparation had
+found that registration alone left that file absent; the launcher now verifies
+its exact bytes, ownership and unused guards before authentication and again
+before consumption. All 21 launcher tests PASS in 0.824 s. The four previously
+qualified controller flows and unchanged real r5 root handoff were replay-reviewed
+in 0.246 s, without repeating a build, full CI, root prompt or phone cycle.
+
+Next operator Ready is for the prepared temporary kernel trial. Use the private
+`successor-live-driver-r1/final-preparation-r1/run-prepared-trial.py --start`
+immediately, then prompt for the local touch-password window. Do not repeat
+preparation after Ready. Its `--check` mode is read-only; final source-bound
+qualification and check results belong to checkpoint r39. The launcher performs
+brief runtime guards, one RAM boot and a full 23-minute capture automatically;
+a late failure can require a separate fallback recording. Keep USB connected.
+Never reuse an earlier Ready or launch during a goal continuation without fresh
+operator presence. No trial, claim consumption, reboot or flash has happened yet.
+Preparation qualification combines explicitly simulated controller flows with
+actual read-only privilege and phone-route evidence; it is not physical kernel,
+recording, fallback or Denial acceptance. Root r5 still records source `7bbd8f4a`.
+Freeze this notes checkout while awaiting Ready so final admission stays valid.
+
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have
 component implementations, including capture lifecycle and the one RAM transfer.
