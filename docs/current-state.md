@@ -517,10 +517,46 @@ and its function matches final source. Evidence is under `source-refresh-r1`,
 result SHA `4b1d7978…`; old r59 transport source/results remain archived there.
 No actual monitor is running. The r61 boot qualification remains byte-identical.
 
-**Next:** wire the production component owner/admission and monitor launcher/finish
-callbacks to the r63 boot/health reader and actual USB sampler. Connect the r62
-module loader and prepared display session through the bounded remote backend,
-with independent blank/full-health cleanup. The boot launcher is prepared offline; the whole display
+The r64 rootless component owner and copied monitor entrypoint now pass their
+software qualification: `oled-component-monitor-r1/session.py` SHA `3c32272f…`
+and `monitor-launcher.py` SHA `f7e29311…`. `Owner` verifies the completed-boot and
+fresh-health prerequisites, takes a global lock across module/frame phases,
+copies the exact qualified entrypoint into a numbered monitor namespace, binds
+the actual controller PID/start/argv, and owns start/probe/stop/reap. An unentered
+monitor can be replaced with a new numbered monitor after closure; a durable
+hardware phase entry refuses a later attempt. Monitoring grants no module/frame
+action by itself.
+
+The live sampler checks parent identity, admission hash and owner lifetime as well
+as the inherited USB sample; failures stay latched. Finish requires the same owner/
+boot/monitor, a terminal component result with no cleanup errors, a reaped remote
+worker, exact zero-command evidence and newly collected full health after cleanup.
+Normal owner loss does not prevent verifying independent completed cleanup.
+The bounded target backend must still produce and validate these records.
+
+Final **19 checks pass in 2.155 s** (2.624 s runner). A real host child and Unix
+socket run through `Owner.start()` → live probe → gated finish → reaped exit.
+A changed admission latches failure even after its bytes are restored; cleanup
+can then finish the failed monitor without changing FAIL. Phone boot/health/USB
+and the child bootstrap are explicit test fixtures. Global phase exclusion,
+qualified source changes, old entry, stale health, wrong cleanup/health order,
+boolean brightness and real process termination are checked. No production
+monitor or phone action ran. The initial fixture used a terminal time before its
+admission and was corrected; its failure remains retained. The initially qualified
+phase-local lock was strengthened to one global lock before physical use, with
+previous qualification/source archived.
+
+`component-qualification-r1.json` is now SHA `438a0d20…`, accepted by the real
+qualification reader against 13 source files and 15 evidence references. Result:
+`session-qualification-r2/result.json`, SHA `76df5ebe…`. Existing endpoint/module/
+frame checks are inherited only for unchanged source. Q `538fab85`, the r61 boot
+qualification, and the unused OLED pending claim remain unchanged.
+
+**Next:** implement the bounded authenticated SSH backend and host coordinator for
+the prepared module/frame components, using the r64 owner/monitor and r63 health
+reader. Preserve a target-side deadline and independent zero cleanup if the SSH
+connection or normal monitor authorization fails. Produce the exclusive phase
+entry and validated terminal/blank/worker/full-health records before monitor finish. The boot launcher is prepared offline; the whole display
 test is not yet prepared. Preserve its unused pending claim until actual launch.
 No phone query/write, password window, recording or operator request is active.
 User availability is released; request a fresh Ready only when needed and ready.
@@ -532,7 +568,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 

@@ -2847,3 +2847,60 @@ validators and sampler were reused; no build, full-controller replay or privileg
 prompt was repeated. Next connect production component owner/admission, monitor
 launch/finish closure and the bounded remote module/frame backend. No physical
 Ready request is pending and real OLED/touch/GPU/Denial acceptance is incomplete.
+
+## Owned component monitor lifecycle (r64, 2026-09-11)
+
+Previous r63 is progress: completed-boot/fresh-health readers and the actual
+host USB sampler passed. The next host lifecycle now exists in
+`oled-component-monitor-r1/session.py` (SHA
+`3c32272fd0f6ec4eb98749640114f1833d5452927cd8cf4b0bb5def7334e7a20`)
+and its qualified copied `monitor-launcher.py` (SHA
+`f7e293117a9e2ecd9c83acc9f47337ded33de47ab622c693a9a9efa5bc6d3645`).
+
+`Owner(phase,boot,health_directory,run_id,qualification_sha256)` checks the exact
+current source qualification, completed boot and fresh full health, then takes a
+global device-component flock. It creates a numbered private monitor namespace,
+binds controller PID/start/argv and the exact source inventory, and owns start,
+live probe, finish and stop/reap. A closed, unentered monitor can be replaced by
+a new numbered monitor; existing hardware phase entry remains non-repeatable.
+No hardware entry or phone action is performed by this owner itself.
+
+The monitor uses the existing transport engine/sampler. Each sample also checks
+its live owner, admission hash and lifetime. Finish verifies the same owner/boot/
+monitor binding, terminal component status and cleanup, exact zero command,
+remote-worker reap and full health newly sampled after component completion.
+Cleanup verification works independently of normal owner liveness. It does not
+convert a failed monitor to PASS or claim optical darkness. The forthcoming
+bounded target backend must supply validated remote and cleanup records.
+
+Final **19 checks pass in 2.155 s** (2.624 s runner). Real host child processes,
+Unix sockets and peer PID/argv checks run through owner start/probe/finish/reap.
+One test mutates then restores admission; the live sampler latches failure, and
+verified cleanup closes it with terminal FAIL/exit1. Other checks exercise actual
+flock exclusion within/across phases, immutable entry refusal, code/launcher
+changes, stale health/launch admission, missing boot proof, parent loss, zero/
+worker/health ordering, boolean brightness and direct-template refusal. Phone
+boot/health/USB and the process bootstrap are named explicit fixtures; there is
+no production monitor or target action.
+
+The initial cleanup fixture used completion timestamps before its admission,
+causing two failures and one error in 0.903 s. The timestamp guard was correct;
+fixture ordering was fixed, and all16 cases passed. Two actual owner/monitor
+process cases then passed as part of18 tests. Review found phase-local locks
+could overlap; the final global lock and cross-phase regression passed19 cases.
+The first qualification/source snapshot is retained as historical, and the final
+production qualification reader accepts the refreshed fixed qualification file.
+
+Current `component-qualification-r1.json` SHA:
+`438a0d20d0a15ce1bd18d211ae00f2c8d1723cd9b93d9992e5ba886aed079e67`.
+It pins13 runtime source files and15 evidence references, inheriting the unchanged
+endpoint/module/frame component checks. Result `session-qualification-r2/result.json`
+is SHA `76df5ebe1171b24c15c7e94c55c740b70cd9d3fc8b05b75a853c3c5a2c598416`.
+
+After-run improvement is device-wide ownership and a real lifecycle integration
+case that proves restored bytes do not clear failure. No kernel/package build,
+full boot replay, phone health query or password prompt was repeated. Q538fab85,
+r61 boot qualification and the unused OLED claim remain unchanged. Next finish
+the bounded authenticated SSH backend/coordinator, including target-side timeout,
+independent zero cleanup and durable one-use phase records. Physical Ready stays
+unrequested until the complete test is prepared.
