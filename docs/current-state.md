@@ -1,5 +1,75 @@
 # ROG5 current state
 
+Latest r101, 2026-09-11: **the visible test is fully prepared and waiting
+for a fresh user Ready**. Previous r100 was progress: exact real-phone framebuffer
+readback passed under graphics ownership. The current turn completed the visible
+integration, 47 focused cases, protected RAM staging, actual cache/input preflight
+and health. No display session, mode transition or pixel write ran during r101
+preparation. No operator-response countdown is running.
+
+On the next fresh Ready, immediately execute the exact `argv` from
+`oled-startup-experiment-r1/prepared-visible-run-r101.json` once. Do not build,
+render, stage, generate code or debug after Ready. Only the brief current health
+check, logger arming and prepared runtime belong then. Never reuse an older Ready.
+Launch record SHA:
+`773ed0abc74d3b29f9f91878fe6b6b48446326ba0a30180844d59b67df516f7a`.
+Prepared record SHA:
+`bddf581b86b241ea55ef82cf957e42f8f4c7105e33aa5191d3d1f6c9dbbde391`.
+Host SHA:
+`38e2d2c612cc6c8516856ac316a1708a86b6e1baf03d8e3e9d04cfda38b0907b`.
+Qualification SHA:
+`867ca6f7da5be8669157c5c1df7ceadd700c5f22225303cde5f1e1eea689ad7f`.
+
+The host is `oled-startup-visible-host-r1/coordinator.py`; target assets are
+`oled-startup-visible-session-r1`. Preserve these staged/qualified sources. Local
+`show-r1` is absent. The prepared namespace is
+`/run/initramfs/rog5-oled-visible-94de6f9a33d034351e972e56a61f5e2f7c45236e5eeb5243bf583616cb6262ed`.
+The new target one-use marker is `/run/rog5-oled-visible-validation-r1-entered.json`;
+all r98/r99/r100 and older markers remain consumed and preserved.
+
+As soon as `oled-startup-visible-host-r1/show-r1/visible.json` appears, give its
+single physical observation prompt before `observe_before_monotonic`: look for
+an upright TOP arrow, colour bars, corners and centre cross. The user only watches;
+keep USB connected, with no button/password action. Save their actual reply with
+the visible receipt hash. A command/readback PASS is not optical acceptance.
+Keep the same execution handle through cleanup, 90-second kernel recording and
+final health. If the session refuses or fails before a prompt, release the user
+immediately and investigate independently; never rerun the consumed command.
+
+The corrected writer is unchanged from r100. Cache restore and display share
+the exact same Frame class. A combined durable intent binds console transition,
+frame digest/bytes and brightness32/1023 for20 seconds. Zero brightness is required
+through capture/write setup. Only the display's new begin-light callback, after
+successful pixel readback and final blank/ownership checks, permits the owned
+lighting phase. Graphics ownership remains checked while lit. The worker has a
+35-second action budget and40-second supervisor lifetime, with a three-second
+renewable host lease. Host entry must follow Ready within30 seconds; arming must
+begin within15 seconds. Independent cleanup restores original console mode then
+zero, including after action/monitor/prompt failure. Full worker failures are
+retrieved as structured evidence when present.
+
+All47 focused cases passed:12 VT/phase,6 frame-binding,16 display-sequence,
+5 Ready lifecycle,8 real-fork/duplex. Tests cover wrong/missing visibility events,
+expired Ready, consumed show, phase refusal, wrong frame/boot, uncertain brightness
+writes and cleanup failures. Direct display cases use the existing sealed-frame
+pipeline and virtual clock; unchanged inherited tests and the already-qualified
+real20-second timer were not repeated. Focused suite times were0.121,0.163,4.111,
+1.433 and3.011 seconds. The initial display fixture invocation used the wrong UID
+namespace and remains failed; correcting the invocation preserved production
+permission checks. The new `run-focused-tests.py --plan` records the correct host
+or root-mapped context per suite and its five-job plan was checked without
+rerunning unchanged tests.
+
+Actual preflight took0.276 seconds: sealed cached bytes and current framebuffer
+GET record match, tty1 remains KD_TEXT and brightness0. The frame is10653696 bytes,
+SHA `859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`.
+Final full health passed at8081.64 seconds on unchanged boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`; no phone reboot, module action or flash.
+Final local launch validation took0.004 seconds. Evidence is indexed by
+`oled-startup-experiment-r1/visible-preparation-summary-r101.json`.
+The next milestone is actual optical observation; GPU acceleration and Denial
+acceptance remain outstanding. Do not execute any older prepared command.
+
 Latest r100, 2026-09-11: **the corrected framebuffer write/readback passed
 on the phone under graphics-mode ownership**. Previous r99 was progress: its
 real-phone transition and restoration qualified this combined experiment. No

@@ -1352,3 +1352,24 @@ were reused; no build/render was needed. Ownership checks add runtime compared
 with the prior0.762-second unowned failure, but this2.062-second qualified path
 fits immediate-start preparation needs. Do not trade those checks for speed.
 Keep all further visible-session build/staging/debugging before fresh Ready.
+
+
+### r101: prepare visible sessions fully; make brightness phases explicit
+
+The fully staged visible successor reuses r100's exact cached-frame writer and
+qualified console cleanup. Setup keeps brightness0; only a callback after
+verified pixel readback opens the fixed32/1023 lighting phase. Cache restore and
+display must use the same Frame module instance. Forty-second target supervision
+bounds the20-second display; stale Ready and failed/missing prompt events refuse.
+
+All47 focused cases passed. Actual cache/layout/console preflight took0.276 s;
+local launch validation0.004 s. No live preparation window is held open for the
+operator. Stage, discover and validate before asking Ready; only brief health,
+logger arming and prepared execution follow it. Preserve every old entry.
+
+A repeated test-context mistake was caught before phone staging: the display
+fixture requires root-mapped execution, while host lifecycle tests require the
+normal user. Added a five-suite runner with an explicit namespace per suite and
+checked its --plan output. Keep production UID checks. Avoid inherited test
+repetition and rerunning the unchanged real20-second timer after only a new
+phase-entry callback. Initial failed fixture evidence remains in validation-r1.
