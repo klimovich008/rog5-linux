@@ -8671,3 +8671,19 @@ No GPU load/open, signature, boot, flash or current-runtime mutation. Bootable
 wrapper and new admission remain outstanding. The user's exact r103 reply was
 "I missed the display window": optical outcome UNOBSERVED, not PASS/black-screen
 failure. Raw r103 command evidence and all consumed entries remain unchanged.
+
+### r106 GPU recovery wrapper twins and bounded continuation
+
+PASS_GPU_RECOVERY_WRAPPER_TWINS / PACKAGING_TWINS_PASS at gpu-boot-package-r2.
+SEALED_PLAN_PASS and both AVB verifications PASS; bundle files, Ed25519 signatures,
+recovery archives, raw wrappers and AVB images identical. Outer AVB algorithm NONE.
+128 MiB wrapper SHA
+`7dce52c48e23f1adfeaa719c199453a9073bb6fe6469a580469445d90697f9d6`.
+Eight wrapper-contract and seven continuation cases passed. Resume48.865 s,
+service50.120 s,512 MiB/no-swap limit,512 MiB reported peak. No phone action.
+
+Original gpu-boot-package-r1 is preserved FAIL_SCOPED_MEMCG_OOM during repack-a;
+405987328 dirty-file bytes recorded at its512 MiB limit. Completed side A stages
+were verified/reused; incomplete raw temporary excluded. Source/checkpoint/evidence
+now distinguish that failure from the successful continuation. Root/activation
+composition and boot admission are still pending; no GPU hardware acceptance.
