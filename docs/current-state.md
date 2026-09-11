@@ -1,5 +1,68 @@
 # ROG5 current state
 
+Latest r100, 2026-09-11: **the corrected framebuffer write/readback passed
+on the phone under graphics-mode ownership**. Previous r99 was progress: its
+real-phone transition and restoration qualified this combined experiment. No
+operator availability was requested. The visible test is not yet prepared;
+there is no Ready prompt pending.
+
+The unchanged cached Rust pattern was restored into a sealed memfd without
+rendering. A distinct durable entry bound the exact VT transition and frame
+identity before either mutation. With tty1 in KD_GRAPHICS, the writer completed
+11 writes and read back all 10653696 bytes. The SHA matched exactly:
+`859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`.
+No byte/channel was ignored. Write/readback took 2.062 seconds; the exercise with
+graphics hold took 4.268 seconds; target supervision and cleanup took 4.661
+seconds. Current console ownership was checked during every write/read chunk.
+
+Independent cleanup restored KD_TEXT and brightness zero. Both workers and SSH
+were reaped. The 30-second kernel recording closed naturally with zero new
+messages. Full health passed at 7205.96 seconds on unchanged boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`. Active DRM and framebuffer layout remained
+1080x2448 at 60 Hz. No nonzero brightness request, module action, reboot or flash
+occurred. This is real framebuffer-memory write/readback acceptance; it is not
+proof of optical scanout, damage completion, vblank or GPU acceleration. Text
+restoration may redraw pixels, so do not assume the pattern remains intact.
+
+This controlled successor used the same cached pattern and framebuffer capture
+as the failed r98 text-console run. Successful all-byte readback with KD_GRAPHICS
+supports console interference as the earlier mismatch cause. The old failure
+remains FAIL and all consumed markers remain intact.
+
+Executed sources are frozen in `oled-startup-vt-frame-session-r1` and
+`oled-startup-vt-frame-host-r1`. Combined lease SHA:
+`759a08ecff4fff55957637a29142653e78b1c260128bdb5e7133e64f146d2b45`.
+VT action lease SHA:
+`c64213c7b8309808f4e92adf0c5dc073e1a13bc1d3bd05c37b0e96dbf3b1c180`.
+Host SHA:
+`3097bb49bbe0d70f8a4af1123c8ba67c9b30826599c2de4672eab1a22c8d6bed`.
+Qualification SHA:
+`fb4ed3fd4c061405aa994b741d1f09b80f0a5d45a58c207686b1172cc508f487`.
+The r100 host run and `/run/rog5-oled-vt-frame-validation-r1-entered.json` are
+consumed. Never rerun `launch-r100.json`; preserve r98/r99/r100 exact results and
+entries. Evidence and exact namespace are in
+`oled-startup-experiment-r1/vt-frame-readback-summary-r100.json`.
+
+Ten VT/action cases, seven frame-binding cases and five real-fork/duplex cases
+passed. They cover combined entry refusal, wrong cached intent/boot, mode or
+host-lease loss, writer/readback failures, independent restoration and repeated
+entry refusal. Unchanged cache, renderer, writer and console components retain
+their prior matching-source tests; no large build or rendering was repeated.
+
+Next: prepare a distinct visible session around this qualified ownership/write
+path and the fixed 20-second brightness32/1023 component. Stage and validate
+all artifacts, cache and actual IO before asking Ready. After fresh Ready only
+brief current health/logging arming and the prepared session may run. Extend the
+owned action deadline for the display interval; bind the brightness/duration
+into the durable combined intent; allow nonzero brightness only in the owned
+display phase, while preserving zero requirements during capture/write setup.
+Keep a single matching Frame class instance through cached restore and display
+writer. Queue the physical prompt immediately after the acknowledged nonzero
+readback, then restore console and zero independently. The host must retain a
+fresh Ready receipt, one-use show entry, complete kernel log and post-health.
+Do not reuse the old failed show command, rerender after Ready, or count this
+unlit success as the required human optical observation.
+
 Latest r99, 2026-09-11: **real-phone graphics-mode ownership validation,
 console restoration, kernel recording and final health all PASS**. Previous r98
 was progress: its failed readback and console diagnosis changed the next action.

@@ -1334,3 +1334,21 @@ namespace; the corrected peer imports only target code. Keep the production UID
 checks, test process boundaries, and independent restore/zero failure assertions.
 Actual r99 captures equal the retained r97 capture, so reuse cached pattern bytes
 after fresh identity/layout checks instead of rebuilding or rendering again.
+
+
+### r100: qualify the actual corrected pixel path before operator availability
+
+Under owned KD_GRAPHICS, the same cached frame now passes complete10653696-byte
+readback in2.062 seconds; console restoration/zero,30-second logging and health
+also pass. Keep the exact comparison instead of masking the128 changed bytes
+from the previous console cursor cell. This provides stronger evidence than
+geometry, ioctl success or an offline renderer test alone. It still does not
+prove optical scanout or unchanged pixels after KD_TEXT restoration.
+
+The combined durable intent reserves exact frame bytes and console transition
+before mutation. Ten VT/action, seven binding and five real-fork/duplex cases
+cover refusal and cleanup. Cached Rust bytes and unchanged low-level writer
+were reused; no build/render was needed. Ownership checks add runtime compared
+with the prior0.762-second unowned failure, but this2.062-second qualified path
+fits immediate-start preparation needs. Do not trade those checks for speed.
+Keep all further visible-session build/staging/debugging before fresh Ready.

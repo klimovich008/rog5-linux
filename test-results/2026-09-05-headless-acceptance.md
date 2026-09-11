@@ -8581,3 +8581,19 @@ Eight component and five actual-fork/duplex tests PASS, including worker failure
 host lease loss, restoration failure and consumed entry refusal. See the pinned
 r99 summary and current state. Corrected frame readback and visible acceptance
 remain outstanding; no new Ready request or visible session is prepared.
+
+
+### r100 actual cached-frame readback in graphics mode
+
+PASS_UNLIT_VT_FRAME_COORDINATOR. On the unchanged OLED startup boot, KD_GRAPHICS
+and an acknowledged combined VT/frame intent preceded11 framebuffer writes.
+All10653696 written/read bytes matched cached SHA
+`859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`.
+Write/readback2.062 s; exercise4.268 s; target including cleanup4.661 s.
+Independent KD_TEXT restoration and brightness0 PASS; workers/SSH reaped.
+Complete30-second kernel recording:0 records; health PASS at7205.96 s uptime.
+
+Focused tests:10 VT/action,7 frame-binding,5 real-fork/duplex PASS. No renderer,
+nonzero brightness, module action, reboot or flash. Optical scanout, damage
+completion, vblank and GPU acceleration remain unverified. No visible session
+is prepared yet. Preserve consumed r100 and earlier entries and results.
