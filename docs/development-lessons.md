@@ -1020,3 +1020,15 @@ when adding a unit that consumes them. Use `git worktree add --no-checkout`,
 configure sparse source paths and required test dependencies, then populate the
 checkout; full checkout needlessly copies historical kernel artifacts. A retained
 untracked tool must still satisfy its existing content pin before reuse.
+
+
+Before adding privilege reuse to a passive diagnostic, check whether the network
+flow can be initiated by its receiver. The r81 normal-USB experiment captured the
+same 116 kernel records using a bounded, nonce-matched host request and fixed UDP
+ports, with no sudo or firewall-rule change. This is measured behavior under the
+current host firewall, not a general guarantee for every zone or early boot.
+Preserve timeouts, connected-peer filtering and unauthenticated-packet labeling;
+use authenticated SSH to compare terminal counts when available. A fresh Ready
+for an already prepared test must launch that entry immediately even if an
+independent alternative is being developed; never switch the user into unfinished
+preparation or rerun the now-consumed entry afterwards.
