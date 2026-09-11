@@ -421,13 +421,13 @@ wired into this adapter and the r58 display session. No actual USB observation,
 phone action, monitor job or human request is active. This reuses the existing
 transport mechanism and does not create boot, recovery or target-health authority.
 
-The r60 current-source boot-controller qualification now passes the production
+The r60 boot-controller qualification passed the production
 `live-admission.py:qualification()` reader. All four full-flow replays pass in
 14.843 s at Q `462cef05`; target is COMPONENT_PASS, while early/late fallback and
 source-abort remain expected FAIL with restoration proved in their explicit
 fixtures. The 31-file input lock passes in 0.162 s. Actual r56 capture/SSH root
 handoff receipts match this exact source and host boot and are revalidated.
-`oled-live-driver-r1/live-qualification.json` is SHA `a60705b5…`, with 450 pinned
+The historical r60 qualification is SHA `a60705b5…`, with 450 pinned
 evidence files. It qualifies current software flows and actual host handoff only.
 No phone boot, target health, display or recovery hardware result is added.
 
@@ -439,17 +439,40 @@ under `qualification-preparation-r1`; the final production verifier passes. Futu
 assemblers must check size, nonempty content and metadata before writing the
 canonical qualification, and finish all source/pin changes before final replay.
 
-The exact next executable boundary is still absent: the repository-owned claim
-registry does not contain `oled-05941-a2be906cd7b36636`. The read-only launcher
-lookup refuses `claim profile is not repository-owned`, retained in
-`qualification-preparation-r1/registry-boundary.json`. Do not interpret the new
-qualification as boot admission. Add the exact profile from `expected_fields()`
-to Q's claim registry, review/test the fixed pending-record preparation, then
-refresh affected source pins/input lock and qualification for that final source.
-Preserve the current qualification as historical evidence if source changes.
-No pending claim, consumption, trial execution, password window or operator
-request was created. The component monitor's target-health/capture-closure and
-actual display/module backend still need integration; the phone is unchanged.
+The r61 exact OLED claim is now **registered, pending and host-qualified** at
+Q `538fab85a0cc809f0c9ff20a7ae64dd133d27b63` (clean source digest `ef59307b…`).
+The sole registry addition is generated from the verified OLED expected fields;
+all 227 previous record values are byte-identical. The 21 claim lifecycle tests
+pass in 0.233 s, including pending preparation and permanent retry refusal.
+The canonical OLED `.record` is SHA `51f8b2bf…`; its attempt remains unconsumed.
+All 627 pre-existing claim files and global guards retain their bytes/inodes/
+metadata. No OLED `.entered`, launch or controller execution directory exists.
+
+Four derivative files change only digest constants; consumer functions and
+actual privilege/authentication entrypoints are unchanged. The r60 source cohort,
+input lock and qualification remain archived under `claim-registration-r1`.
+The r56 actual root/runuser handoff is inherited with its original source identity
+explicitly retained in `handoff-inheritance.json`; no new credential validity is
+claimed. Pin map r7 and the 31-file input lock now match the final source.
+The current 17 boot, 21 launcher, 24 admission and four complete flow tests pass
+(66 cases, 21.898 s including runners). Full flows take 15.471 s internally;
+external phone/USB/SSH/privilege/network/claim/time boundaries remain fixtures.
+
+The new `live-qualification.json` is SHA `18b1717f…`, with 460 pinned evidence
+files, accepted by the production reader. Every evidence input was normalized
+and validated before publishing, without the previous archive failures.
+The real read-only `trial-launcher.py:prepare()` passes in **0.256 s**, including
+source/input/qualification/registry/pending checks. Result is
+`oled-live-driver-r1/claim-registration-r1/result.json`. This is host preparation,
+not phone admission, a boot or physical display qualification.
+
+**Next:** integrate the OLED component monitor's production owner/admission,
+closed full-boot capture, fresh authenticated target health, real USB sampling,
+late REFGEN/panel module load and independent blank/full-health cleanup with the
+prepared display session. The boot launcher is prepared offline; the whole display
+test is not yet prepared. Preserve its unused pending claim until actual launch.
+No phone query/write, password window, recording or operator request is active.
+User availability is released; request a fresh Ready only when needed and ready.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -458,7 +481,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r60 for current-source qualification/registry refusal, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 

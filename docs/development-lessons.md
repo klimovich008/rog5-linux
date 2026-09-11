@@ -903,3 +903,16 @@ target success, an absent new fallback fixture stopped the next scenario; the
 Refresh transitive source pins in dependency order from the preceding pin map,
 keeping each prior result. Do not reapply the initial namespace transformation
 over an integrated cohort or reuse its historical qualification/claims.
+
+Complete exact profile registration before final-source qualification. In r61,
+one static registry addition preserved all 227 older record values; the existing
+pending-record writer and 21 lifecycle tests avoided another helper family.
+Preparation preserved all 627 existing claim files/guards and did not consume the
+attempt. Refresh transitive digest constants and input rows only after the source
+change is final. Archive the previously qualified cohort before editing it.
+Actual privilege handoff evidence may be inherited only after an explicit source
+delta check shows the entrypoint/process bodies unchanged; retain its original
+source in the inheritance record and do not claim fresh credentials. Current
+controller replays and the actual read-only launcher preparation then passed.
+Validate evidence metadata, emptiness and size before canonical publication; this
+turn reused the reader contract and avoided r60's archive failures entirely.

@@ -2687,3 +2687,50 @@ source. No trial directory, phone query/write, password request or human Ready
 was created. After-run improvement is enforcing the full evidence-file contract
 before publication and checking this concrete registry boundary before treating
 a green software qualification as a prepared executable hardware trial.
+
+## Exact OLED claim registration and final-source preparation (r61, 2026-09-11)
+
+Q is clean at `538fab85a0cc809f0c9ff20a7ae64dd133d27b63`, source digest
+`ef59307b79a087315402c850c0b067474bf5f6ef0ddd2faa84e4fb823434beb4`.
+The registry adds only `oled-05941-a2be906cd7b36636`, generated from the verified
+expected-field producer. All 227 previous records are byte-identical. The
+consumer functions are unchanged. Claim regression tests pass **21 in 0.233 s**
+(0.358 s runner), including exact artifacts, exclusive pending creation, no early
+entry and permanent retry refusal after consumption in isolated fixtures.
+
+The actual account-relative pending record was prepared through existing strict
+root/anchor checks and the exclusive, fsynced writer in **0.022 s**. Its SHA is
+`51f8b2bfe2f398b5150881a18cce69c857b8f730ee2a3d724bb87551b907568c`.
+Before/after comparison verifies all 627 previous records/global guards unchanged
+in content, inode and metadata. The OLED attempt is not consumed. No phone action,
+launch directory or controller execution exists. Evidence lives under
+`oled-live-driver-r1/claim-registration-r1`.
+
+The r60 qualification and source cohort were archived before derivative changes.
+Only four cohort files changed, exclusively digest literals; pin map r7 and two
+input-lock code rows were refreshed. The 31-file actual input check passes.
+Existing r56 real root/runuser capture/SSH handoff is explicitly inherited for
+unchanged entrypoint/process code, with original source and all raw result hashes
+retained. This is not a new authentication or proof of current sudo credentials.
+
+Final-source checks pass: boot callbacks **17 in 2.970 s**, launcher **21 in
+0.769 s**, admission **24 in 0.447 s**, four complete controller paths **4 in
+15.471 s**. Summed runner time is 21.898 s. Target is COMPONENT_PASS; early/late
+fallback and pre-reboot abort remain expected FAIL with restoration verified in
+fixtures. Real capture subprocesses execute; external hardware/USB/SSH/privilege/
+network/claim/time inputs are explicit fixtures. Original r60 results remain
+unchanged. No hardware recovery claim follows from these replays.
+
+The production qualification reader accepts **460 pinned evidence files**, SHA
+`18b1717fee2bb1425f79565f0f4e8137faefb52756fa9e5c825a22118e578830`.
+Every input was validated or archived as exact bounded private chunks/copies;
+empty streams are explicit manifest entries. No invalid canonical candidate was
+written this turn. Actual read-only launcher `prepare()` now passes in **0.256 s**
+with the final source, qualification, registry and unused pending record.
+
+After-run review: registering before final replay avoided another stale-source
+qualification cycle. Existing exact-record and archive primitives were sufficient;
+no replacement runtime guard or hardware retry was introduced. Next integrate
+production module/monitor/display callbacks and full health/capture closure.
+Physical availability remains released until the full test is prepared. OLED,
+front touch, GPU and real Denial acceptance remain incomplete.
