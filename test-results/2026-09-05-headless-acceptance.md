@@ -8893,3 +8893,21 @@ Evidence: gpu-live-driver-r1/completion-r114.json and installed-route-live-r114.
 All prior r110-r113 components unchanged. Driver assembly exists; final admission,
 root verification, launcher integration and bounded GPUCC/first-open remain.
 The missed optical window remains unobserved. No human session prepared.
+
+### 2026-09-11 r115: GPU admission and full controller integration
+
+92 offline cases PASS: source preparation23 (2.170 s), admission26 (2.469 s),
+admission-driver3 (8.084 s), launcher/credentials32 (2.720 s), full flows4
+(27.880 s), root-entry admission4 (2.470 s). All four full flows execute real
+capture children with fixture clocks and preserve production deadlines. Phone,
+root/network, claims and RAM transfer are explicit fixtures. The prior OLED
+capture failure remains FAIL; its owners are checked absent, and the actual
+consumed GPU RAM staging is bound to the new source preparation. Input lock62
+files verified. Exact root request rechecks reject changes and completed attempts.
+
+Evidence: gpu-live-driver-r1/completion-r115.json and full-flow-tests-r1. Prior
+r110-r114 pinned sources/evidence unchanged. No phone action or build/A01 rerun.
+Last physical evidence is r114 installed-route PASS. Admission and launcher now
+exist, but live qualification/readiness/execution and GPU boot claim remain absent.
+Prepare bounded GPUCC/first-open and finish live qualification before any boot.
+No human test ready; optical result remains unobserved after the missed window.
