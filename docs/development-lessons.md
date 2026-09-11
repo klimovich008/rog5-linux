@@ -1191,3 +1191,22 @@ source tree or label the unavailable command PASS. A UID1000 preparation check
 cannot open a root0600 recorder lock: inspect the kernel lock table read-only,
 then let the unchanged root entrypoint acquire its lock during actual arming.
 These observations add no privilege changes and do not weaken runtime admission.
+
+### r93: drain passive diagnostics while synchronous health checks run
+
+The physical startup recorder armed, but the controller waited on SSH without
+pumping the recorder pipe. More verbose startup diagnostics exhausted the pipe;
+only59 events and no terminal report survived. A real-child >1 MiB burst stalls
+under the original supervisor and completes under a serialized background
+drainer. Exercise simultaneous busy callbacks and diagnostic bursts, not only
+short stage messages or final closure. Keep output bounds, process ownership,
+full-duration proof and cleanup checks unchanged. Candidate closure stops and
+joins the drainer before returning stream ownership to the final loop.
+
+Current-boot health at73/199/534 s does not convert a failed23-minute recording
+into PASS. Present-state network cleanup inspection also cannot replace the
+missing original terminal receipt. Preserve the live healthy boot and consumed
+claim while preparing the next module test. A refgen supply deferral is expected
+while its deliberately staged module remains unloaded; verify actual module
+presence/load state before treating the log as a missing DT regulator or building
+another kernel.
