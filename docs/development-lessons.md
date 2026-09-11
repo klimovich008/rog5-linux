@@ -1386,3 +1386,18 @@ archive; carry exact install paths/hashes into a separate qualified successor.
 The existing47-case visible preparation remains frozen and awaiting fresh Ready.
 Use selected JSON fields for large composition profiles and filename globs for
 board searches, avoiding broad matches on the project's own rog-prefixed path.
+
+### r103: retain immediate execution and retire consumed Ready launches
+
+The fully prepared test reached the visible receipt in 4.926 s after Ready,
+without a build, render or staging step. Frame readback took 1.453 s; the brightness
+interval was 20.008 s; total including a complete 90-second log and health was
+94.148 s. Cleanup and health passed with no new kernel messages. Keep setup ahead
+of Ready; subsequent logging needs no continued operator presence.
+
+Prominently retire a consumed launch in the latest state and checkpoint as soon
+as it finishes; older historical waiting paragraphs must not trigger another run.
+Command success and an issued observation prompt do not prove optical scanout.
+Keep the raw result immutable and attach the actual user's response by visibility
+receipt hash. Exact UI prompt delivery time was not recorded by the messaging tool;
+do not present the measured command-receipt latency as measured UI latency.
