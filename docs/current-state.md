@@ -1,5 +1,23 @@
 # ROG5 current state
 
+Latest r69, 2026-09-11: fresh Ready immediately launched the prepared OLED
+session. Authentication timed out after its 300-second limit. The Deck window
+was observed, but no user response establishes whether it was visible or usable.
+The owned authentication processes were reaped and the window is gone. Launcher
+`oled-live-driver-r1/trial-launch-r1/result.json` is terminal FAIL, with no claim
+consumption and no controller execution. No phone command or reboot occurred.
+Preserve this entered launcher directory; the old launch instruction is no
+longer executable. Do not clear it or retry the same entry. The exact pending
+OLED claim remains unchanged. Resolve the authentication interaction and prepare
+a reviewed fresh launch path before requesting availability again.
+
+The retained successor touch/GPI/GENI twins were independently checked against
+their guest receipt and exact 05941 vermagic in 0.022 s; all six copies match.
+The earlier successor guest registration/unload result remains 3.797 s, with
+GPI retained until guest poweroff. Updated the stale front-touch guide to reuse
+these artifacts and distinguish the OLED-only DT, which does not enable touch.
+This is cached artifact evidence, not physical touchscreen qualification.
+
 Updated 2026-09-10: **Denial Wayland is now the active long-term destination**.
 The user has reprioritized **kernel and non-cellular hardware bring-up first**.
 Defer Denial/Flutter builds while qualifying the kernel: stable boot and recovery,
