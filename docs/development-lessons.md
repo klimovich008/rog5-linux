@@ -1619,3 +1619,14 @@ a connector regression passes. Continue using actual input/output discovery befo
 live tests. Preserve detailed component cleanup exceptions through outer wrappers;
 the added regression passed in 0.165 s. Reuse binaries and unchanged primitives,
 then finish session supervision rather than repeating unchanged builds.
+
+### r117: test the actual GPU supervision boundary and admit mutations explicitly
+
+Reusing seven unchanged process/serialization functions reduced new supervision
+work. All 56 checks passed in 7.934 s without repeating a build or phone read.
+Two composed cases exercised the actual initializer, supervisor and host loop,
+including a real query child and ordered progress acknowledgements. Keep hardware
+fixtures explicit; a passing transport cannot establish GPU operation. The current
+boot controller has only a read-only post-capture health phase. GPU insertion/open
+must receive explicit hardware-action admission and recovery ownership, rather
+than being added as a hidden side effect of that health callback.

@@ -8929,3 +8929,15 @@ No module, DRM open, phone write, reboot or claim. Preserve both raw transports.
 Evidence: gpu-first-open-r1/completion-r116.json, input-audit-r116.json and
 source-discovery-r116{-r2}. Supervised staging/backend/coordinator, independent
 cleanup/recovery and final live qualification remain. No human session ready.
+
+### 2026-09-11 r117: GPU backend and host transport qualification
+
+56 cases PASS in 7.934 s: backend25, RAM context12, host transport17 and composed
+initializer/backend/host2. The last pair used actual initializer control flow,
+supervisor processes, host pipes, query child and independent cleanup, with
+hardware and query executable fixtures. All eight progress events crossed the
+protocol; invalid query proof remained FAIL. Private mount-namespace staging
+verified the existing ARM64 query and five source files without executing ARM64.
+Evidence: gpu-first-open-r1/completion-r117.json. Seven unchanged backend functions
+and all24 r116 evidence pins verified. No phone action or GPU claim; full target
+health/logger binding, explicit hardware admission and recovery integration remain.
