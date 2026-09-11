@@ -8486,3 +8486,17 @@ closure and reaping in15.412 s; no new kernel records arrived. This does not pro
 module operation or replace the failed startup trial's missing23-minute record.
 Full module owner/lease/cleanup/staging integration remains unqualified. No new
 operator availability, password window, claim, reboot or brightness write.
+
+## 2026-09-11 r95: Current-boot module test prepared
+
+Separate current-boot coordinator passes26 focused fixture cases and stages the
+qualified endpoint/loader/backend into protected phone RAM. Preparation3.008 s,
+final command validation0.694 s; latest healthPASS at2457.84 s on boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`. No insertion, brightness write, reboot,
+flash or new claim occurred. Actual module/scanout acceptance remains pending.
+The failed startup capture remains FAIL. Earlier Ready was released; require a
+fresh reply and immediately execute the saved `prepared-run-r95.json` argv.
+Prepared scripts, evidence, test outcomes and launch pins are recorded in the
+current-state r95 entry. The reused fixture's stale cleanup boot ID was fixed
+locally, with original failed outputs retained. Unchanged r94 component/logger
+suites were inherited by exact source digest, not rerun.
