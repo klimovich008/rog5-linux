@@ -59,6 +59,15 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r52: blank the verified backlight before waiting for unrelated framebuffer
+qualification. The panel registers default brightness 1023, so a later fb0/mode
+failure must not suppress the available zero-brightness action. Keep exact
+endpoint/boot/authorization checks and propagate failed/short writes. The driver
+has no hardware brightness reader: zero sysfs readback confirms the stored
+request, not physical darkness. Report those scopes separately and retain the
+full-health and human visual checks. Filesystem fixtures must explicitly emulate
+the sysfs store callback rather than treat an ordinary file write as hardware.
+
 OLED r50: a clean Git checkout can still lack required ignored inputs. The first
 A01 run spent 23.970 s before discovering missing Android boot tools. Stage only
 the five pinned tools/template files after verifying their frozen-source hashes;

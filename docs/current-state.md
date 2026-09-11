@@ -239,6 +239,26 @@ After this short host check, continue live OLED lifecycle/registration and
 prepared display load/discovery/blanking work. Human display availability remains
 a separate fresh request after the physical endpoints have been prepared.
 
+The r52 `oled-display-component-r1/endpoint.py` now provides an import-only
+endpoint reader, guarded zero-brightness write/readback and subsequent framebuffer
+sysfs discovery. Twenty tests pass in 0.131 s using actual files, symlinks and
+file descriptors in a user namespace, with explicit sysfs write emulation.
+No component code ran on the phone and actual sysfs layout is still unverified.
+The exact compiled panel source matches the audited source SHA `45e8bcb9…`:
+its default/max brightness is 1023 and it exposes no hardware brightness reader.
+Zero command/readback success is not an optical-darkness or full-health result.
+
+Backlight identity checks pin the OLED descriptor, expected boot/kernel, one raw
+1023-level endpoint, DSI panel driver and DT ancestry. Only zero can be written;
+missing/changed authorization, replaced/symlinked attributes, failed/short writes
+and nonzero readback refuse. The exact backlight can be blanked before requiring
+fb0, so framebuffer failure does not unnecessarily delay that cleanup action.
+Framebuffer discovery then requires zero, the same display subtree, msmdrmfb,
+1080x2448 at nominal 60 Hz and 32 bpp. It does not open /dev/fb0 or prove pixel
+layout, refresh timing, visible output or GPU acceleration. Enclosing admitted
+module-load/health/monitor/deadline and fixed-frame integration remain pending.
+The r51 prepared authentication receipt/source is unchanged and unstarted.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -246,7 +266,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r52 for the offline display endpoint component, r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
