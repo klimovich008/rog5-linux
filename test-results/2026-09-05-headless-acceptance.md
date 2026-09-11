@@ -8989,3 +8989,24 @@ GPUCC/REFGEN/panel absent and GPU SMMU/GMU unbound, while Adreno/DPU platform dr
 are bound. No acceleration, scanout, full-kernel or S06/R01 acceptance is claimed.
 No sudoers change/password retention. Evidence: gpu-health-reader-fix-r122 and
 original gpu-controller-r1/execution and gpu-live-driver-r1/trial-launch-r1.
+
+
+### 2026-09-12 r123: provider insertion/reprobe components and transport
+
+Current phone health PASS1.801 s, uptime2372.94 s on the same GPU boot. Dependency
+inventory PASS0.292 s confirms dormant sync-state-only GPUCC links. No hardware
+operation this turn. Prepared GPUCC/SMMU component caps: one exact module, one
+conditional fixed SMMU reprobe, zero GPU opens/display operations/unloads/reboots.
+Proof requires bindings and subprocess reaping. Independent cleanup is read-only.
+
+80 current cases:19 provider,8 reprobe process/proof,25 supervisor,9 private RAM
+context,19 transport including two complete real-provider/reprobe/host cases.
+The only two initial failures were stale fixture paths; their focused recheck
+passed in1.164 s, production code unchanged. All previous logs remain. Actual
+packaged helper/module bytes are used for file validation; kernel effects are
+explicit fixtures. No phone GPU/provider success or release acceptance follows
+from these results. Outer current-boot admission/logger/recovery integration is
+still required. Evidence: gpu-provider-probe-r1/completion-r123.json.
+Read-only input discovery additionally passed in0.473 s: actual helper/module
+bytes and metadata match; drivers_probe is a regular root-owned sysfs attribute,
+mode0200, with write access. This check did not write to it.
