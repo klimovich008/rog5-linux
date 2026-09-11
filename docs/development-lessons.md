@@ -1100,3 +1100,24 @@ selection-replacement refusal. Check the reason as well as a nonzero exit status
 Source action and observer hashes remained unchanged; no kernel, relay, module,
 payload or A01 rebuild was necessary. Phone preflight/reconciliation took only
 0.689/1.219 s; retain the actual V11 capability contract in the outer integration.
+
+### r86: migrate fixture clocks, capability scope and protocol identities together
+
+The new recorder fixture initially had no CAP_NET_ADMIN after user/network
+namespace creation and stopped in 0.016 s. Add that capability only inside the
+isolated namespace; do not involve host sudo or host network settings. Its next
+run stopped on `ValueError: capture deadline`: the outer virtual clock had been
+patched while the kernel capture's default clock still referred to the original
+function. Inject one explicit virtual clock into both layers. The resulting 21
+cases used real local TCP/UDP sockets and passed in 0.415 s, including closure
+and config mismatch refusal. The supervisor's separate child/probe suite passed
+21 cases in 16.667 s; its kernel transport is explicitly synthetic.
+
+The fallback callback fixture reused a source-stage reply without changing its
+old selection to the expected pending selection. Strict parsing caught it before
+acceptance. Preserve the 24 passing cases and rerun only the three corrected cases
+(1.377 s); label transport-fixture identity substitutions explicitly. They are
+not new ARM64 or live fallback evidence. Seed successor digest refresh from both
+private source history and exact prior repository files: four missing repository
+pins caused an import refusal, now covered by the dependency graph. Keep runtime
+route/predecessor conversion explicit; successful imports do not prove readiness.
