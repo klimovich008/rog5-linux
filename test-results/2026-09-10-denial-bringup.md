@@ -1792,3 +1792,31 @@ it allows five minutes for direct touch entry and kills its owned group on
 forced abort. Prepared r4 requires fresh host availability, immediately opening
 the touch keyboard; real input/authentication and root handoff remain unverified.
 No phone trial, claim registration or Denial build was performed.
+
+### 2026-09-11: successful touch authentication, sudo session fix (r37)
+
+Fresh Ready immediately started r4. Authentication returned 0, reaped, with
+zero stderr bytes and no password retained. The following capture-role sudo
+returned 1 with “a password is required”; both processes were reaped. Overall
+FAIL in 11.161 s, zero root rows/phone/network/claim actions. The host boot ID
+is now `e3393ab5-0cf9-43fd-8bcb-020cf78b1f1b`; earlier runtime evidence is historical.
+
+Sudo 1.9.17p1 lists normal wheel authorization; noninteractive validation and
+true both refuse without a matching credential. Its timestamp acceptance code
+rejects session-ID mismatches. Authentication and checks formerly each called
+setsid. Four launching components now preserve the controller SID with separate
+PGIDs: probe/auth, credential refresh, capture and fallback transport. Source
+snapshots, input lock and dependent pin changes are in `sudo-session-fix-r1`.
+Root entrypoints and phone artifacts are unchanged.
+
+Eighty-eight cases PASS across probe, launcher, bridge, fallback transport,
+bridge/supervisor, admission and four full flows. Real child fixtures assert
+same SID and distinct owned PGID; sudo/root/phone behavior remains simulated.
+The initial full-flow run refused an existing evidence directory. Old evidence
+was preserved; an upfront directory check and fresh `sudo-session-full-flow-r1`
+completed all four cases in 25.566 s. No unchanged build or full CI was repeated.
+
+The unchanged touch keyboard is prepared for r5 on fresh host availability.
+Actual post-fix sudo reuse/root handoff still requires that next run. No phone
+Ready or physical trial is pending; subsequent device setup needs fresh health
+and identity observations after the host restart.

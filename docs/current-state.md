@@ -9,26 +9,26 @@ kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
-On 2026-09-11, fresh host Ready started privilege probe r3 immediately.
-The corrected GUI opened, but the user reported that Steam's keyboard opened
-without entering text. The attempt was cancelled before either root probe;
-its terminal result is FAIL (100.254 seconds), with zero phone/network actions.
-SIGTERM to sudo caused another askpass prompt; cancellation then killed the
-verified authentication process group. No authentication process remains.
+Fresh Ready started host privilege probe r4 immediately. Touch authentication
+returned success, with no logged password or diagnostic error. The following
+noninteractive sudo command refused authentication before any root probe ran.
+The full attempt failed in 11.161 seconds; no phone/network/claim action ran.
 
-The next prepared attempt is `run-privilege-probe.py --authenticate --run-id r4`.
-It uses a pinned local `touch-askpass.py` with large directly tappable keys,
-Shift, symbols, Backspace, Clear, Cancel and Unlock. Its value is masked, never
-saved or copied, and returned only through sudo's pipe; standalone file/terminal
-output is refused. Callback tests cover all printable ASCII characters and the
-layout was visually checked on the Deck. Actual human touch input is unverified.
-Automated keyboard injection failed with both KDE dialogs, including X11 mode;
-a synthetic pointer check also failed, so do not claim X11 resolved the issue.
-The prepared touchscreen path requires a fresh host Ready. Start r4 immediately
-on that reply and instruct the user to tap its own keys, then Unlock. The timeout
-is now five minutes for touch entry, with core=0, bounded GUI files, separately
-bounded stderr and owned authentication-group cleanup. Ten probe and fifteen
-launcher tests pass after the update. No physical phone availability is pending.
+The launcher used a new session for every sudo child. Sudo separately rejects
+cached credentials whose session ID differs, even when parent PID matches.
+Authentication, both probe roles, capture/fallback launchers and credential
+refresh now preserve the controller session while each owns a separate process
+group (`process_group=0`). Existing ancestry/pidfd and cleanup guards remain.
+Eighty-eight relevant tests pass, including real SID/PGID assertions and four
+complete controller flows. Actual sudo reuse after this fix is still unverified.
+
+Next fresh host Ready must immediately run
+`run-privilege-probe.py --authenticate --run-id r5`. Use the unchanged touch
+keyboard: tap the window's keys and then Unlock. It has a five-minute input
+bound and preserves masked input, private pipe output, core=0, bounded logs
+and owned group cancellation. r4 is terminal and cannot be reused. No phone
+availability or recording session is pending. The host boot ID changed since
+r3; obtain fresh device/runtime observations before any future physical trial.
 The full Denial/hardware goal remains incomplete; no phone test passed by inference.
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have
@@ -99,7 +99,7 @@ integration behavior, not phone operation.
 The read-only privilege probe passes **nine preparation tests in 0.691 s**.
 The first actual attempt stopped before root execution because sudo required a
 password. The second attempt's GUI failure and third attempt's input failure are
-retained; r2 and r3 are terminal and must not be reused.
+retained; r2, r3 and r4 are terminal and must not be reused.
 It performs no phone, network, claim or live-capture action. After actual handoff
 qualification, finish exact claim registration and final qualification. No physical Ready
 request or phone recording session is pending.
