@@ -8639,3 +8639,17 @@ Optical acceptance PENDING actual operator reply. The observation prompt was
 submitted after the visibility receipt; UI delivery timestamp is not independently
 recorded. Command/readback results remain distinct from human observation.
 Evidence: visible-host show-r1 results and visible-run-summary-r103.json.
+
+### r104 reproducible A660 firmware component and early-root path binding
+
+PASS_REPRODUCIBLE_A660_FIRMWARE_COMPONENT: twin1658880-byte USTARs, SHA
+`83fab937d3b02b295ec42ea389fe13f189d8ac619f1c9241b4e674f7e69d1c53`.
+Three pinned firmware files and three license/provenance files included.
+PASS_FIRMWARE_COMPONENT_VALIDATION: two independent tar inventories and all file
+hashes; refusals for corrupt firmware, missing license, symlink source, existing
+output, modified metadata and trailing data. Creation0.028 s, validation0.062 s.
+PASS_EARLY_ROOT_FIRMWARE_INSTALL_MAP in0.484 s: exact726-member current archive
+has separate lib/usr/lib directories; six destination paths are absent; three
+firmware destinations mapped to lib/firmware for the kernel's search path.
+No boot composition, signing, module load, GPU initialization or phone action.
+The r103 optical reply remains pending and its display launch remains consumed.

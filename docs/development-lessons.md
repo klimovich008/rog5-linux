@@ -1401,3 +1401,14 @@ Command success and an issued observation prompt do not prove optical scanout.
 Keep the raw result immutable and attach the actual user's response by visibility
 receipt hash. Exact UI prompt delivery time was not recorded by the messaging tool;
 do not present the measured command-receipt latency as measured UI latency.
+
+### r104: firmware packages need an actual early-root lookup map
+
+Twin1.66 MB firmware components took0.028 s; independent extraction/inventory
+and six refusal cases passed in0.062 s. A0.484-second exact-archive audit found
+lib and usr/lib are separate directories in this early root. The matching kernel
+searches /lib/firmware. Preserve canonical component usr/lib paths, but explicitly
+map its three firmware files to lib/firmware during newc composition. Never infer
+an Arch-style lib symlink in a custom early root. Preserve the Wi-Fi custom path
+and use the existing standard fallback. Reuse the retained bytes, existing DT
+candidate and built GPUCC module; firmware packaging is not hardware acceptance.
