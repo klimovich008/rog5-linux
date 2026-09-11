@@ -59,6 +59,14 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r60: qualify evidence against the reader's actual metadata contract before
+creating the canonical record: mode0600, nonempty and at most1MiB per file. Retain
+larger bytes in ordered pinned chunks, normalize copies without changing original
+evidence, and represent empty streams explicitly. Check repository-owned claim
+registration before treating software qualification as executable admission.
+Complete registry/source/pin changes before final-source replays; retain older
+qualified evidence with its actual source instead of relabeling it.
+
 OLED r59: reuse the pinned monitor engine with independent explicit boot/output
 contexts, retaining process/peer/socket and permanent-failure guards. Pin the
 new launch script as well as inherited modules; otherwise a live guard can miss
