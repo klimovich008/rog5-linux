@@ -1412,3 +1412,19 @@ map its three firmware files to lib/firmware during newc composition. Never infe
 an Arch-style lib symlink in a custom early root. Preserve the Wi-Fi custom path
 and use the existing standard fallback. Reuse the retained bytes, existing DT
 candidate and built GPUCC module; firmware packaging is not hardware acceptance.
+
+### r105: firmware must survive switch_root; Ready should lead directly to viewing
+
+The r104 early-root map was insufficient for the final Arch namespace. A0.383 s
+read-only transport showed firmware_class.path=/run/rog5-native-wifi/firmware;
+standard /lib/firmware is absent after switch_root. Reuse the existing preserved
+firmware tree and its catalog, avoiding an init change or Wi-Fi path override.
+Twin composition took4.811/7.005 s, each peaking at336.1 MiB under512 MiB/no-swap
+limits. Verify generated scratch against retained archives, then reclaim it;
+this run freed420444688 bytes without deleting old project data.
+
+The user missed the20-second optical window despite the4.926 s command receipt.
+That proves no screen outcome. Store the exact missed-window reply separately
+from the successful command record. Prepare a longer bounded successor and give
+viewing instructions before Ready so attention can stay on the phone. A fresh
+Ready alone must not retrigger an already-consumed session.

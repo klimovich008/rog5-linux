@@ -1,5 +1,62 @@
 # ROG5 current state
 
+Latest r105, 2026-09-11: **a distinct GPU candidate now has reproducible
+unsigned initramfs payloads paired with the verified GPU DTB**. Previous r104
+was progress: its component is now consumed by actual payload composition.
+The user reported **"I missed the display window"** for r103. Optical outcome is
+UNOBSERVED_OPERATOR_MISSED_WINDOW, not PASS or evidence of a black screen. The
+reply is bound to the visibility receipt in show-r1/operator-observation-r105.json.
+All r103 command, cleanup and health evidence remains unchanged. The intervening
+Ready was not used to rerun the consumed launch; no new human test is prepared.
+
+The read-only phone check found the current firmware_class search path is
+/run/rog5-native-wifi/firmware. Arch has /lib -> /usr/lib, but no /lib/firmware
+currently exists. The early-root map from r104 alone would not preserve firmware
+through switch_root. Composition therefore uses the existing init source move
+/rog5-native-wifi -> /run/rog5-native-wifi and the existing Wi-Fi search-path setup.
+The three firmware files are added under rog5-native-wifi/firmware/qcom, with
+licenses under rog5-native-wifi/licenses/a660, so both remain in retained RAM.
+No init/runtime source or firmware_class setting was changed. This live-path and
+matching-source binding supersedes direct use of r104's early-root-only map.
+
+New bundle: `gpu-05941-52181a3157c26029`.
+Trial: `52181a3157c2602983ca172999a2f4edc4bb351cb30d4ec5fa9cc6d629a245d4`.
+Profile SHA: `585ea829d528dc4340c5051342cf506c76bc43139a6df699e435485a8198526c`.
+Twin initramfs size58612856 bytes; SHA
+`c253b28aa5db0382fcfe96bb5bf581f1009fff3256c5ba13c589552fc4c489f4`.
+Paired GPU DTB SHA
+`5ce36eecfe49601034e89cb3d98536e3d558b1399d2576004f5eb1aba713b89b`.
+All736 member records match between twins. Six regular files plus four directories
+were added. Only the trial descriptor, boot-file catalog and relay configuration
+changed among existing members; the descriptor and relay nonce are fresh. Exact
+metadata/content preservation and roundtrip checks passed. All32 loose module
+copies and the complete nested module archive remain unchanged. The retained DT
+validator again proves exactly four dependency status changes and the ZAP name;
+all other property bytes and boot/reservation metadata remain intact.
+
+Eight focused tests passed. Compositions took4.811 and7.005 s in separate512 MiB,
+no-swap scopes; both exited successfully with336.1 MiB reported peak memory.
+420444688 bytes of newly generated scratch were removed only after each blob
+matched content retained in the pinned original/candidate archives. Archives,
+DTBs, inventories, source files, receipts and profiles remain on disk.
+
+This is unsigned payload composition, not a bootable recovery wrapper or phone
+GPU acceptance. GPUCC remains inert for a separately supervised load; enabling
+its DT node does not load the module. Next qualify a fresh recovery wrapper and
+composition profile, then prepare GPUCC and first-open observation with recovery.
+No new kernel build, signature, boot claim, reboot or flash occurred. The only
+phone operation was an authenticated read-only path inspection on the unchanged
+boot229580f9-ac26-4b18-a0eb-ea9c05bc632f. Last full health is still r103.
+
+Evidence: gpu-successor-payload-r1/twins-result.json, both composition results,
+focused-tests.json, firmware-path-transport.json, profile.json and scratch-cleanup.json.
+After-run lessons: check firmware visibility on both sides of switch_root, not
+just the early-root archive. For the next visible test prepare a longer bounded
+window and give all viewing instructions before requesting Ready, so the user
+can watch the phone immediately. Prepare and validate that distinct session
+fully before asking again; no current readiness or old launch may be reused.
+
+
 Latest r104, 2026-09-11: **the retained A660 firmware now has a reproducible
 component package and an explicit early-root install map**. Previous r103 was
 progress: the real-phone timed command sequence, cleanup, log and health passed.
