@@ -2789,3 +2789,61 @@ gaps without altering boot qualification. No full-flow or 20-second frame test
 was repeated. About 51.9 GB disk remained free. No phone/claim/authentication
 operation or human request occurred. Next connect this component and the prepared
 frame session to the production monitor/admission and full-health closure.
+
+## Completed OLED boot provenance and fresh component health (r63, 2026-09-11)
+
+Previous r62 is progress: exact module loading/early blanking passed 17 focused
+checks. The next integration now has a concrete reader for the existing boot
+controller's actual output and a read-only health collector/verifier:
+`oled-component-monitor-r1/provenance.py`, SHA
+`f4c43495c3927e67bec4b311b27915b2330dc6f570f5815675dcb90bc78231bb`.
+
+`boot_provenance(boot)` uses fixed actual execution/launch paths and verifies the
+current source/qualification, exact consumed OLED claim, launcher/phase completion,
+128-MiB image transfer, root capture owner identity, original 1380-second lifetime,
+raw stream hashes, ordered route/firewall/profile/address cleanup and gone original
+processes. The postcapture health intent must follow closure and bind the exact
+health script; its raw SSH output runs through the existing full target validator.
+Capture events remain unauthenticated; SSH health supplies target identity.
+Historical boot admission grants no new component authority.
+
+`collect_health` makes one bounded, exact read-only SSH query into a new private
+before/after health directory, retaining entry/raw transport/result. `verify_health`
+revalidates those bytes, script, source/host boot, full target health and monotonic
+freshness (40-second query budget, maximum age120s). Each numbered output is
+exclusive; a fresh numbered health sample may replace an expired prerequisite
+without replacing evidence or consuming a hardware attempt. The production owner
+still must bind the exact result path/hash and before/after role.
+
+Final **22 provenance/health cases pass in 0.505 s** (0.964 s runner). They copy
+retained controller-flow receipts into a private fixture; root UID/time, source/
+claim admission and SSH are explicit fixtures. Checks cover incomplete/shortened
+captures, missing cleanup, changed raw streams, events after terminal, wrong boot/
+image/source, still-present original process, failed launcher, health before
+closure, changed scripts and raw health, absent physical guards, expiry, refresh,
+namespace bounds, symlinks and no silent retry after a failed query. Initial17
+and intermediate20/22-case passes remain retained; no test failure occurred.
+
+The existing transport adapter's only runtime change is source revision462cef05
+→538fab85, SHA `7e754d20ef6efcf1e55b0eae34ff524099ff66ca4ab95607c6ebfaab438a4558`.
+All **12 real-process/socket checks pass in 2.450 s** (2.579 s runner), retaining
+latched failures and process/socket/journal/cleanup checks. The r59 source and
+result are preserved in `source-refresh-r1` before the revision update.
+
+The reused original USB sampler passed an actual host-files/route-only check in
+**0.036478 s**: mode target, interface `enp4s0f3u1u2`, driver `cdc_ncm`, product
+`ROG5 persistent root`, anchor `1-1.2`, serial descriptor absent. The source that
+executed this observation is archived; its sampler function is unchanged in the
+final file. This does not authenticate the phone's boot/kernel or full health.
+No SSH, phone write, module load or monitor run occurred. The exact consumed-claim
+read-only check correctly refuses because the OLED pending record still exists.
+That record and the r61 boot qualification are unchanged.
+
+Evidence/result: `oled-component-monitor-r1/source-refresh-r1/result.json`, SHA
+`4b1d7978992623c80831d10338c93763d0a9a4b92e7155c5f968ec97ad5a779c`.
+After-run improvement separates health refresh from one-use hardware attempts,
+so readiness delays do not force repeated hardware work. Existing workers,
+validators and sampler were reused; no build, full-controller replay or privilege
+prompt was repeated. Next connect production component owner/admission, monitor
+launch/finish closure and the bounded remote module/frame backend. No physical
+Ready request is pending and real OLED/touch/GPU/Denial acceptance is incomplete.
