@@ -579,15 +579,45 @@ PID1 and failed before mounting anything; the corrected fixture captures its own
 host namespace before unshare. That failure remains retained. Only those six
 checks were rerun; the passing 22-case suite and earlier components were reused.
 
-**Next:** connect host RAM staging and authenticated duplex SSH to this fixed
-module backend using the r64 owner/monitor and r63 health reader. Validate remote
-terminal/zero/process records and create the exclusive host phase entry before
-acknowledging target entry, then collect full health before monitor finish. The
-frame target supervisor/coordinator also remains. The boot launcher is prepared
-offline; the whole display test is not yet prepared. Preserve the unused pending
-OLED claim until actual launch. Current Ready was released immediately on this
-missing prerequisite; it must not be reused for a future physical test.
-No phone query/write, password window, recording or operator request is active.
+The r66 module host coordinator is now qualified offline in
+`oled-module-host-r1/coordinator.py`, SHA `4f2e7e25…`. It uses the existing pinned
+USB route/host-key/SSH credential checks and unchanged target backend. Exact
+source files and manifest are staged only into private root-owned RAM. The host
+reserves the module phase before opening the live command, and acknowledges only
+the exact two-module intent. An uncertain transport start remains consumed.
+Sequenced leases renew only while the qualified monitor is live; failure closes
+input but retains a bounded interval to collect independent target cleanup.
+
+Target identity, exact insertion results, zero readback, direct-worker and helper
+group closure, raw output bounds and SSH exit must agree. Full authenticated
+health follows observed host-side completion, then guarded monitor finish. A real
+negative replay caught a coordinator bug: successful cleanup could mask a latched
+monitor failure. It now verifies the finish reply, zero monitor exit and durable
+monitor result before PASS. The original failed regression and source remain.
+
+Final **17 checks pass in 1.941 s** (2.220 s runner), including the full stage →
+module peer → cleanup → post-health → monitor-close sequence. Pipes, subprocesses,
+target supervisor, staging files and private root/mount namespaces are actual;
+SSH, phone identity/sysfs/insertion, boot proof and monitor/health are explicit
+fixtures. The initial staging fixture mounted world-writable `/run`; the actual
+parent permission guard refused it. Correcting the fixture to mode755 passed;
+production guards were unchanged. A qualification-negative fixture was isolated
+from future published records and its one affected test passed separately.
+
+Qualification `oled-module-host-r1/result.json` is SHA `61ec008f…`; the real
+qualification reader accepts it in **0.006434 s**, including unchanged r64 monitor
+and r65 backend evidence. No actual SSH transport to the phone, health query, RAM staging,
+module insertion or OLED boot occurred. All kernel/DT/module/renderer/boot
+artifacts remain unchanged; no full boot replay or authentication was repeated.
+
+**Next:** finish the bounded frame backend/coordinator using the prepared frame,
+write and timed-brightness components. Prepare the zero-state capture/render and
+prompt path before requesting physical availability. The qualified module host
+entry is `run(boot,run_id,qualification_sha256)`; it still requires a real completed
+OLED boot/capture and fresh full health. Do not run it on the current historical
+headless boot or treat offline qualification as hardware admission. Preserve the
+unused OLED claim for actual launch. No operator request or hardware job is
+active, and old Ready replies remain released.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -596,7 +626,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r65 for the bounded target module supervisor, r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r66 for the complete offline module host coordinator, r65 for the bounded target module supervisor, r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
