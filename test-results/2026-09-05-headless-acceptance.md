@@ -8500,3 +8500,23 @@ Prepared scripts, evidence, test outcomes and launch pins are recorded in the
 current-state r95 entry. The reused fixture's stale cleanup boot ID was fixed
 locally, with original failed outputs retained. Unchanged r94 component/logger
 suites were inherited by exact source digest, not rerun.
+
+## 2026-09-11 r96: Modules loaded; module trial FAIL; DRM timing observed
+
+Fresh Ready immediately consumed the prepared r95 module command. The exchange
+ended in1.202 s with independent zero-brightness cleanup and reaped target/SSH
+workers. Post-health passed at2739.45 s on the same boot. Nine kernel records show
+DRM/fb0 registration; read-only sysfs confirms both modules. The180-second logger
+was cancelled after the component failure and remains incomplete/FAIL. No reboot
+or flash occurred. Do not repeat this consumed module run.
+
+The initial worker exception's detailed payload was truncated. A later exact
+endpoint read reproduces the mode gate failure: fbdev reports
+`U:1080x2448p-0`, whereas active DRM records1080x2448 at60 Hz. The compiled DRM
+fbdev helper clears pixclock, explaining the unspecified fbdev refresh. A separate
+DRM-backed endpoint passes34 focused fixture cases and an actual read-only phone
+check in0.423 s. This is no physical scanout proof or retry of module admission.
+GPU/GMU DT status is disabled and platform devices are absent; acceleration is
+unqualified. Current state/evidence is in `module-run-summary-r96.json` and the
+r96 current-state entry. No operator action is pending; the next scanout session
+must be completely prepared before another Ready request.

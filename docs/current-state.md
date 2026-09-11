@@ -1,5 +1,70 @@
 # ROG5 current state
 
+Latest r96, 2026-09-11: **both display modules are now loaded; active DRM
+1080x2448 at60 Hz is confirmed; the module trial remains FAIL**. Fresh Ready
+arrived during independent offline scanout preparation and immediately launched
+the exact r95 command. That command and its host/target module entry are now
+consumed. **Never execute `prepared-run-r95.json` again or retry module insertion.**
+No physical prompt is pending; the user was released when the test stopped early.
+
+`oled-startup-module-host-r1/run-r1/result.json` is terminalFAIL. The exchange
+ended in1.202 s, independently verified zero brightness, reaped both target
+workers and SSH, and retained nine kernel messages. Before/after health passed
+in1.833/1.831 s at2735.59/2739.45 s uptime on unchanged boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`. The logger was deliberately cancelled and
+reaped after the component failure; its180-second capture is incomplete and FAIL.
+There was no reboot or partition flash. Kernel messages show DRM initialization
+and framebuffer registration. Read-only follow-up confirms REFGEN/panel modules,
+`fb0`, connected/enabled DSI, and brightness0. Physical scanout/darkness remains
+unverified. The old healthy selection was not restored.
+
+The original backend flattened a structured worker exception into a2000-character
+string beginning with a large blanking receipt. Original helper exit rows and the
+innermost error are absent from retained terminal output. Do not invent them or
+repeat insertion to recover evidence. A subsequent exact endpoint read reproduces
+`framebuffer mode changed`: actual fbdev modes is `U:1080x2448p-0`, although active
+DRM CRTC timing is60 Hz,166695 kHz, totals1128x2463. The compiled kernel's
+`drm_fb_helper.c:1649` clears `info->var.pixclock`; `fb_var_to_videomode` leaves
+refresh0 when pixclock is0; `fbsysfs.c` formats that value. This explains why the
+fbdev string does not establish refresh. The complete original worker error is
+still unavailable.
+
+Separate `oled-startup-scanout-component-r2/endpoint.py` now accepts the zero
+fbdev field only with same-controller DRM/card/DT identity, connected/enabled DSI,
+an active matching CRTC and the exact observed60 Hz timing. It reads that timing
+twice and keeps optical claims false. Missing/ambiguous/inactive/changed timing
+refuses. This check passed read-only on the actual phone in0.423 s, opening no
+framebuffer device and writing no brightness. Source SHA:
+`354c3e5465d0457890c31933f966664237d848571c2b505bd0de52a7e529926e`.
+34 focused cases pass:20 endpoint cases and14 new DRM/pipeline cases. The latter
+includes the cached ARM64 Rust renderer under QEMU, file-backed framebuffer
+writes, timed illumination/blanking fixtures and changed-mode refusal. Its first
+negative assertion wrongly prohibited independent zero cleanup; it now requires
+zero-only cleanup and no frame write. Original failed log is retained.
+
+Earlier in r96, `oled-startup-scanout-component-r1` corrected stale capture/frame/
+writer dependency hashes in a separate copy and passed63 directly defined cases
+in29.852 s, including one real20-second duration fixture. Selecting direct cases
+avoids168 inherited repetitions (231 default cases); existing endpoint cases were
+already qualified. No Rust/kernel/module/image rebuild was needed. Both scanout
+copies are component evidence, **not an admitted physical scanout session**.
+
+Actual GPU/GMU DT nodes are disabled, and their platform devices are absent. This
+accounts for the missing-device log and leaves acceleration unqualified; merely
+having a DRM render node does not prove a GPU. Preserve the display-only boot
+while preparing the first visible pattern. GPU bring-up requires a separately
+reviewed DT/runtime plan after checking firmware and power dependencies.
+
+Evidence: `oled-startup-experiment-r1/module-run-summary-r96.json`,
+`post-module-r96-r2`, `drm-state-r96`, `endpoint-drm-validation-r96`,
+`gpu-discovery-r96` and `drm-mode-fix-r96.patch`. The first read-only diagnostic
+failed before mutation because inline source shadowed its BOOT variable; preserve
+that output and use an isolated module namespace. All executed boot/module
+sources and claims remain frozen. Next: prepare a separate bounded framebuffer
+GET/layout capture and scanout owner for the already-loaded modules. Preserve
+structured worker failures in the successor. Ask fresh Ready only after the whole
+next physical session is prepared. Never relabel r93 or r96 as PASS.
+
 Latest r95, 2026-09-11: **the three-minute current-boot display-module test
 is fully prepared and awaits fresh operator availability**. The earlier Ready
 was released while integration was unfinished; do not reuse it. On the next
