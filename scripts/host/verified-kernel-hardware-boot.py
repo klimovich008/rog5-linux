@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exact 05941 RAM boot primitive; import-only and unregistered until admission.
+"""Exact 05941 RAM boot primitive; import-only with an exact registered profile.
 
 The controller must qualify staging, recovery, capacity and one-use execution.
 This module never registers or consumes a claim and never flashes a partition.
@@ -39,7 +39,7 @@ def need(value, message):
 
 
 def expected_fields():
-    """Describe the future exact claim, without adding execution authority."""
+    """Describe the exact claim; registration does not consume its one attempt."""
     profile = load_profile()
     need(profile['profile_sha256'] == PROFILE_SHA256
          and profile['artifacts']['boot_bundle']['size'] == IMAGE_SIZE
@@ -68,7 +68,7 @@ def canonical(expected_sha256, serial):
     need(serial == SERIAL and expected_sha256 == expected['boot_image_sha256'],
          'wrong kernel hardware image or device')
     # An offline composition profile is insufficient. This lookup currently
-    # refuses: registration is deferred until the complete controller is ready.
+    # requires both exact registration and durable one-use consumption.
     raw = CLAIMS.expected_record(PROFILE_ID)
     need(type(raw) is bytes and len(raw) <= 8192 and raw.endswith(b'\n'),
          'invalid kernel hardware claim encoding')
