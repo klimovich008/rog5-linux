@@ -217,6 +217,28 @@ Reuse the passing kernel, modules, payload, wrapper and A01 result. Current-sour
 health remains r48 uptime 5849.97 s and requires a brief live recheck before
 mutation. No operator is being asked to wait for preparation or authenticate now.
 
+The r51 actual handoff check is **fully prepared, awaiting fresh Ready**.
+`oled-live-driver-r1/handoff-preparation-r1/prepared.json` pins its source, host
+boot, inputs and unique output. On Ready, briefly verify those pins/source and
+that `privilege-probe-r2` is absent, then immediately run the recorded command
+with `--run-id r2 --authenticate`. Use the local touch password keys and Unlock;
+never request the password in chat. This checks actual sudo/root guardian and
+runuser-to-deck handoff for capture and SSH profiles only. No phone handling,
+network/phone action, claim, boot admission or physical countdown is involved.
+
+Preparation passes 16 guardian/bridge tests in 6.926 s, three bridge/supervisor
+integration cases in 1.959 s and 16 fallback-transport cases in 0.900 s. These
+use real subprocesses, pipes and pidfds with explicit sudo/root/phone fixtures.
+The actual root check is still NOT RUN. Tk import, executable metadata and
+graphical environment pass without opening a window; the 31-file input lock and
+clean Q source `462cef05` remain exact. Do not repeat the terminal sudo-n failure
+or these prepared tests after Ready. If a current prerequisite changes, release
+the operator and fix it independently. No hardware observer or auth job is live.
+
+After this short host check, continue live OLED lifecycle/registration and
+prepared display load/discovery/blanking work. Human display availability remains
+a separate fresh request after the physical endpoints have been prepared.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -224,7 +246,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
