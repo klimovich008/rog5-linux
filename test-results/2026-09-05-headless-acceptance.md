@@ -8428,3 +8428,22 @@ stays in the local private helper. Preserve any failed attempt; never replay it.
 Do not retry the expired cached-sudo check unchanged. Once actual handoff is proven,
 finish the exact qualification/pending-claim preparation and prepare the complete
 phone session before a separate fresh hardware Ready request.
+
+## r92: actual privilege proof and prepared startup trial
+
+The prepared Deck authentication and capture/SSH UID0-to-deck probes passed in
+9.599 s with all owned processes reaped, no retained password and no phone or
+network operation. Final qualification binds459 bounded evidence files to
+unchanged source f02083f4 and all53 pinned inputs. The exact local startup claim
+was created and synced, but remains unconsumed; launcher preparation passes.
+A new authenticated source query passed in6.890 s and confirms unchanged V11
+boot/selection/shutdown,11 installed files and boot_b, plus physical health guards.
+
+Current pinned capture-network checks pass. Legacy host-doctor was unavailable
+because its old manifest is absent in the frozen checkout; no legacy cycle PASS
+is claimed. Deck cannot open the root-owned recorder lock; the kernel lock table
+shows no active owner, and root runtime acquisition is still required. Evidence
+is retained in oled-startup-experiment-r1's r92 qualification, launcher, route,
+host-resource and prepared-run records. No phone mutation, reboot or actual boot
+execution occurred. Fresh physical availability is the next step; kernel startup
+logging remains the priority before further Denial builds.
