@@ -8539,3 +8539,29 @@ are not proven. The exact fully prepared20-second show command is saved in
 `prepared-frame-run-r97.json`; execute once only after fresh Ready. No user
 countdown runs while the closed cache preparation waits. See current state r97
 and `frame-preparation-summary-r97.json` for pins, paths and focused checks.
+
+
+### r98 cached frame show and read-only console diagnosis
+
+Latest r98, 2026-09-11: **the prepared frame test ran once and failed readback
+before illumination; cleanup and current-boot health passed**. Fresh Ready was
+used immediately; runtime arming preceded frame exchange by about2.6 seconds.
+The user was released from watching. No physical prompt is pending, and no new
+physical test is prepared. **Never execute `prepared-frame-run-r97.json` again.**
+The host `oled-startup-frame-host-r2/show-r1` and target global frame entry are
+consumed. Preserve executed r2 sources and the failed result.
+
+The writer completed11 writes totalling10653696 bytes and read the same number
+back in0.762 seconds, but the digest differed. Nonzero brightness was never
+attempted; independent cleanup confirmed0 and reaped target/SSH. Show remains
+FAIL. The90-second logger was cancelled after failure, retained one kernel
+warning and is incomplete/FAIL. No module reload, reboot or partition flash
+occurred. Full health passed at5552.97 seconds and, after read-only diagnostics,
+at5684.19 seconds on unchanged boot `229580f9-ac26-4b18-a0eb-ea9c05bc632f`.
+There is still no optical scanout or accelerated-GPU acceptance.
+
+
+Read-only diagnostics found the128-byte change in the exact cursor cell;
+KD_TEXT/fbcon remains active. Console preflight:8 focused cases PASS and actual
+known text-mode refusal PASS. No console transition or corrected physical run
+is qualified. See the r98 summary and current-state entry for hashes and limits.

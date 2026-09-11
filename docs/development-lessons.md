@@ -1297,3 +1297,23 @@ waits without an operator countdown. Ready performs short checks and restores
 sealed cached bytes, with no rendering/build/staging. Final launch validation was
 0.543 s. Physical timing starts at nonzero brightness, not while the user waits.
 This is preparation evidence; visible scanout still needs an actual observation.
+
+
+### r98: qualify virtual-console ownership before operator readiness
+
+The prepared cached-frame show failed in0.762 seconds after writing and reading
+10653696 bytes; it never attempted nonzero brightness. Streaming post-failure
+comparison took0.193 seconds and isolated128 changed bytes to the exact8x16
+cursor cell reported by vcsa1. Active tty1 remained KD_TEXT and fbcon bound;
+cursor_blink was0, so do not describe this as proven blinking. Retained full
+worker failure and kernel logs immediately identified the failed boundary.
+The warning about virtual address space alone does not prove causality.
+
+The prior preflight validated framebuffer geometry and node permissions but
+missed the console as another writer. A new read-only console preflight now
+refuses text mode, passes8 focused tests and detects this actual phone state in
+0.007 seconds. Integrate a separately bounded graphics-mode ownership and
+restoration path before any new Ready request. Keep all-byte comparison and
+never rerun the consumed show. Graphics mode alone is not ownership proof.
+Read sysfs attributes according to their access mode: rotate_all is write-only;
+the first diagnostic failed there, and its evidence remains failed.

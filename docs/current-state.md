@@ -1,5 +1,60 @@
 # ROG5 current state
 
+Latest r98, 2026-09-11: **the prepared frame test ran once and failed readback
+before illumination; cleanup and current-boot health passed**. Fresh Ready was
+used immediately; runtime arming preceded frame exchange by about2.6 seconds.
+The user was released from watching. No physical prompt is pending, and no new
+physical test is prepared. **Never execute `prepared-frame-run-r97.json` again.**
+The host `oled-startup-frame-host-r2/show-r1` and target global frame entry are
+consumed. Preserve executed r2 sources and the failed result.
+
+The writer completed11 writes totalling10653696 bytes and read the same number
+back in0.762 seconds, but the digest differed. Nonzero brightness was never
+attempted; independent cleanup confirmed0 and reaped target/SSH. Show remains
+FAIL. The90-second logger was cancelled after failure, retained one kernel
+warning and is incomplete/FAIL. No module reload, reboot or partition flash
+occurred. Full health passed at5552.97 seconds and, after read-only diagnostics,
+at5684.19 seconds on unchanged boot `229580f9-ac26-4b18-a0eb-ea9c05bc632f`.
+There is still no optical scanout or accelerated-GPU acceptance.
+
+A0.193-second read-only comparison against the pinned cached frame found exactly
+128 differing bytes: byte3 of eight pixels on each of16 rows, x104..111,
+y48..63. `/dev/vcsa1` reports cursor column13,row3 with135 columns and153 rows
+on1080x2448: the altered8x16 region exactly matches its cursor cell. Active tty1
+is `KD_TEXT`, fbcon is bound, and `cursor_blink` is0. **Console drawing is strongly
+indicated; a blinking cursor is not established.** A controlled ownership
+experiment is still needed. Preserve all bytes in the readback check rather than
+ignoring the changed channel. The expected digest is
+`859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`;
+post-failure readback is
+`a465f009aa96cc175a443845e0eff57792c90211d4a940616a64289cd7dd7cf3`.
+
+The kernel warning is `fb0: Framebuffer is not in virtual address space.` Exact
+local source shows `fb_sys_read`/`fb_sys_write` warn when FBINFO_VIRTFB is absent
+and then continue copying; the warning alone does not establish the mismatch
+cause. MSM uses those system-memory operations. `fbcon_blank` cancels cursor
+work on a mode switch, while `vt_kdsetmode` invokes blank/unblank transitions.
+Review these effects when preparing the graphics lease and restoration.
+
+Scoped improvement: `oled-startup-vt-component-r1/console.py` discovers the
+actual root:tty5,0600 tty1 node, uses only GET ioctls, checks active VT/binding
+and stable metadata, and refuses text mode before frame entry. Eight focused
+cases pass; actual phone preflight detects the known blocker in0.007 seconds.
+This is a read-only component, **not an implemented graphics lease or permission
+to rerun the frame**. The successor must prepare a bounded KD_GRAPHICS owner,
+retain its descriptor and one-use entry, monitor mode/current boot/health,
+and restore the original console mode with independent zero-brightness cleanup.
+Validate that while blank before requesting fresh Ready. Keep exact framebuffer
+readback, DRM geometry and all prior recovery protections.
+
+Evidence: `oled-startup-experiment-r1/frame-show-summary-r98.json`,
+`frame-readback-diagnostic-r98`, `console-discovery-r98-r2`,
+`console-preflight-r98`, and the closed show. The first console discovery remains
+failed because it attempted to read write-only sysfs `rotate_all`; the corrected
+read omits that irrelevant attribute. No phone mode/permission was changed.
+
+Historical r97 preparation below is superseded by the consumed r98 show.
+
 Latest r97, 2026-09-11: **actual framebuffer layout capture, ARM64 rendering,
 protected RAM cache, cleanup,90-second kernel log and final health all PASS**.
 The first visible-pattern test is completely prepared and awaits a fresh Ready.
