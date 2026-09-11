@@ -1657,3 +1657,25 @@ The prepared launcher owns both authentication and later refreshes. A timestamp
 from another process is not a substitute. All341 old claim records were verified
 unchanged, and the phone preflight passed in9.442 s without mutation. No repeat
 build, test suite or unchanged sudo attempt was needed.
+
+### r122: exercise the generated collector against the actual largest artifact
+
+The GPU trial reached authenticated SSH, then health collection failed before
+GPU initialization. The reused binary reader capped files at131072 bytes, while
+the sealed A660 ZAP firmware contains1054648 bytes. Synthetic health snapshots
+and digest-negative cases had not executed that collector against real firmware.
+The original generated reader reproduces the live failure on the packaged file.
+The separate candidate uses exact sealed sizes, a2 MiB ceiling and64 KiB streaming
+reads, preserving marker limits, no-follow traversal, metadata stability and
+digest checks. Its35 focused checks pass in0.199 s. Include real largest-artifact
+reads in collector qualification before another expensive phone cycle; errors
+should identify the path and boundary. Do not relax an executing run's pins or
+reinterpret its failure after fixing a reader.
+
+Local touch authentication succeeded and the original credential keeper refreshed
+sudo throughout capture without retaining the password. Routine SSH checks over
+an existing exact route require no host sudo. Prefer those checks and a separately
+admitted live module session on a verified surviving boot to another build/reboot.
+The user's request to reduce password prompts does not require saving a password
+in chat, project files or scripts. A future persistent privileged helper needs a
+reviewed, narrowly scoped installation; no sudoers change was made in this run.
