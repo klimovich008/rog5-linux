@@ -2443,3 +2443,57 @@ status without collecting a password. The scoped improvement is a fresh,
 fully pinned retry receipt so the next Ready again starts immediately. Kernel
 and display preparation remain the priority; physical OLED/touch/GPU and root
 handoff remain unqualified. Previous r54 remains useful offline progress.
+
+## Actual host handoff and sealed frame integration (r56, 2026-09-11)
+
+Previous r55 supplied new evidence: the prepared attempt timed out and was
+cleaned up, with a fresh unique retry prepared. This continuation began with
+independent frame work and did not reuse the expired Ready. The subsequent
+actual user Ready immediately launched prepared r3 after brief pin/source/boot
+checks. **Authentication and capture/SSH privileged profiles PASS, 13.378 s.**
+
+`oled-live-driver-r1/privilege-probe-r3` retains authentication, raw stdout/stderr,
+process envelopes and decoded results. Both real root guardians reported UIDs
+[0,0,0,0]; their runuser children reported deck UID/EUID/GID/EGID 1000. All
+process results report successful reap without forcing or errors; independent
+terminal PID/start checks found no original launcher/root/controller or deck
+child remaining. Raw results equal decoded rows and stderr is empty. The GUI
+closed. The completion receipt is
+`handoff-preparation-r2/completed.json`, SHA `b38eff45…`, bound to Q `462cef05`
+and the unchanged source digest/host boot. No phone/network/claim action or
+admission occurred. The user was immediately released from waiting. No further
+password attempt is pending, and the failed r2 remains unchanged.
+
+New import-only `oled-display-component-r1/frame.py` validates the 248-byte
+capture framing/hash, boot/bundle/kernel and source scope. It snapshots the
+existing pinned 1,252,408-byte ARM64 ELF into a sealed memfd and executes that
+owned descriptor. The two child runs have five-second deadlines, bounded stdout
+and 4-KiB stderr; exception paths kill/reap the owned helper and close pipes/FDs.
+Layout metadata is limited to 4 KiB. Frame output is streamed in chunks of at
+most 64 KiB, limited to validated stride*2448 (maximum 40,108,032 bytes), and
+must be exact length before seals are installed. No whole-frame Python buffer
+is allocated. The returned context-managed Frame owns its sealed descriptor;
+its copied receipt binds complete capture, boot, raw record, renderer and frame
+hashes. Fresh same-boot/node/layout comparison is still required before write.
+
+The actual ARM64 renderer under QEMU emitted the retained 10,653,696-byte frame
+SHA `859231da…`; describe took 0.020685 s and render 0.121756 s. Kernel/package/
+Rust binaries were reused without compilation. Initial 12 tests passed in
+0.864 s; review added closed-pipe deadline, pidfd failure and sealing-failure
+coverage, and an explicit total frame bound. Final **15 tests pass in 1.221 s**
+(1.367 s outer runner). Successful rendering, source-path replacement, seals,
+record/node/boot mutation, real Rust malformed-layout refusal, timeout, output
+limit, stderr, exit, short output and actual /dev/full failure are covered.
+Every case verifies descriptor inventory. QEMU only redirects executable launch;
+explicit sysfs/char-node/ioctl fixtures are inherited from the collector tests,
+and named Python children inject process faults. This proves no actual phone
+layout or scanout. All jobs are terminal. Result receipt:
+`oled-display-component-r1/frame-result-r1.json`, SHA `787baaa3…`.
+
+After-run review: the actual authentication success removes the known host
+handoff prerequisite without speculative GUI changes. Sealed frame preparation
+adds a fast reusable operation (about 0.142 s in QEMU), preserves all existing
+kernel/display artifacts and avoids whole-frame buffering. Guarded device write,
+bounded brightness and the existing load/health/capture/controller integration
+are next. Physical OLED/touch/Adreno remain unqualified; no phone was queried or
+changed this turn. Denial/Flutter builds remain deferred behind kernel hardware.
