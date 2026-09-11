@@ -131,7 +131,8 @@ mount/device numbers are explicit offline fixtures.
 observer. All 16 file-operation tests (0.644 s) and 22 read-only reconciliation
 tests (0.391 s) pass in the intended uid0 user namespace, with telemetry and
 reboot calls mocked. All eight action/observation scripts generate successfully.
-These are components, not an assembled or admitted OLED controller.
+The separate r49 assembly below now integrates these components; live OLED
+admission is still absent.
 
 The fresh authenticated source check passes in 2.094 s at **5,849.97 s uptime**:
 same 05941 boot, old selection restored, exact retained prior transaction,
@@ -141,14 +142,46 @@ its receipt is retained. The corrected probe checks the actual helper under
 `/run/initramfs/usr/libexec`. No RAM staging, state exchange, reboot or flash
 was executed. Current-source identities remain time-bound observations.
 
-Next: assemble the corrected controller for the exact OLED wrapper and these
-new components. Bind source health to current 05941 with restored OLD selection,
-target health to the OLED descriptor/new healthy record, and fallback recovery
-to the new transaction while preserving prior records. Complete paired-root/
-effective-boot qualification, then new profile registration/admission and a fresh
-one-use lifecycle. Do not reuse the consumed headless controller or old source
-assumptions. Prepare bounded display-DT capture, controlled late REFGEN/panel
-load, endpoint discovery and blanking before requesting fresh Ready.
+The separate `oled-live-driver-r1` / `oled-controller-r1` cohort now passes
+**all four offline assembled flows** across 22 unchanged controller phases:
+target capture plus post-health, early fallback, late failure with separate
+fallback capture, and pre-reboot exitrd/state restoration. Failure scenarios
+correctly retain controller FAIL while proving restoration. The target scenario
+passed in `full-flow-tests-r2`; only the three remaining scenarios were run in
+`full-flow-tests-r3` (17.928 s). USB/SSH/privilege, admission, RAM transfer and
+recording time are explicit fixtures; real host capture processes are reaped.
+No physical OLED boot or privileged handoff is established by these tests.
+
+The cohort uses a separate integration checkout, `oled-controller-worktree-r1`,
+commit `30b72c12`. Exact OLED composition classification is added alongside the
+unchanged default headless profile. The OLED profile SHA is `0fc132e8…`; mixed
+DT/payload tuples refuse. The new `verified-oled-hardware-boot.py` explicitly
+refuses before claim/snapshot/USB access while its composition admission is
+unprepared. Nine profile/refusal checks pass in 0.077 s. Existing recovery tools
+in the progress checkout and frozen compiled source are untouched.
+
+Installed V9/V11 inventory is inherited independently of new source custody,
+and is rechecked by the controller's live route query. Three actual installed
+ARM64 selector scenarios pass in 0.332 s. Eleven new ARM64 fallback-observation
+cases pass in 52.193 s with real tmpfs/readers/helper and explicit storage/power/
+installed-image fixtures. Twenty health cases pass in 0.035 s; the new source
+predicate also validates the retained actual r48 snapshot with restored OLD
+selection. Seventeen transfer-boundary/process cases pass in 3.675 s.
+
+New host-only custody owner `ba670e08f11d4c3f8e2f95573689619f` binds the exact
+r48 source snapshot and old record. Its receipt SHA is `db852a12…`, custody SHA
+`c6ebef80…`; it is not RAM-staged. Preserve the earlier custody separately.
+Dependency-ordered pin refresh keeps all 59 cohort source references aligned.
+Do not rerun `prepare-cohort.py` over the integrated sources. No live execution
+directory, input lock, live qualification, registration or claim was created.
+
+Next: complete OLED A01 composition/root/effective-boot qualification against the
+signed artifacts, update only its explicit boot-admission binding, then finish
+input lock, root handoff and fresh one-use lifecycle. Reuse the passing cohort
+and matching kernel/package; do not restart those jobs. Current-source health
+still refers to r48 uptime 5849.97 s and needs a brief live recheck before any
+mutation. Fully prepare display capture, late REFGEN/panel loading, endpoint
+blanking and the physical prompt before fresh Ready. No phone action ran in r49.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -157,9 +190,9 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r48 for OLED transition components and latest source health, r47 for
-signed packaging/static autoload, r46 for payload, r45 for restoration, and r43
-for the original trial.
+physical display test is prepared. Use r49 for controller integration, r48 for transition components/latest
+source health, r47 for signed packaging/static autoload, r46 for payload, r45
+for restoration, and r43 for the original trial.
 
 Earlier coordinator milestones below retain their original scope and timings;
 statements about pending jobs or absent trials there are historical.
