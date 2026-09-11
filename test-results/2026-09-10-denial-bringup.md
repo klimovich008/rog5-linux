@@ -3261,3 +3261,60 @@ empty test stdout was listed as nonempty receipt evidence; the retained fix
 removes only that direct empty-stream entry and records its empty hash. The
 real qualification readers subsequently pass. No new kernel/display build or
 unchanged long timer test was needed. Actual password usability remains unknown.
+
+## r71: authentication passes; missing source RAM staging stops preflight
+
+Latest r71, 2026-09-11: fresh Ready immediately launched the prepared OLED
+session. **Authentication succeeded**, with no timeout or retained password.
+The launcher consumed the exact OLED claim, then stopped at its first read-only
+preflight. The controller is terminal **FAIL**; only `preflight` was entered,
+no phase completed and no reboot, state exchange, exitrd change, RAM transfer or
+partition flash occurred. Preserve `oled-live-driver-r1/trial-launch-r2` and
+`oled-controller-r1/execution`. **The OLED claim is consumed and cannot be reused.**
+The r70 Ready instruction is now historical; do not launch either old entry.
+
+The exact cause is missing source RAM staging, not a USB link or password
+failure. Authenticated SSH completed in 0.734 s, but the generated observer
+raised `FileNotFoundError` for the expected `rog5-oled-05941-ba670e08…` namespace.
+The controller correctly requires staged recovery helpers before preflight.
+The host-only preparation and full-flow fixtures had not established that the
+helpers were actually staged on the phone. Do not remove `verify_runtime()` or
+weaken that predicate. The missing prerequisite belongs before live admission,
+claim consumption and the request for Ready.
+
+Independent authenticated health passes in 1.541 s at 23,822.95 s uptime on the
+same headless 05941 boot, with the old healthy selection still restored. The
+expected staging path is independently absent. Credential refresh stopped
+cleanly; the controller and transport processes are gone. The user is released
+and no password or physical-response prompt remains active.
+
+A two-case regression replays the actual staging/observer functions with real
+files in a uid0 user namespace: unstaged preflight refuses without mutations;
+staging then preflight passes while selection and shutdown bytes remain exact,
+and a second staging attempt refuses. Both pass in 0.065 s. Hardware telemetry,
+unit state and tmpfs identity remain explicit fixtures; this is not phone staging.
+All 64 executed source/evidence files are archived by `oled-preflight-failure-r1`.
+
+The retained kernel warning/error log also contains a boot-time SPMI type read
+failure on SID 5, address 0x104, at 0.143 s. The printed 0xcf08 is the arbiter
+status offset, not the PMIC register address. PMIC probing returned -EIO; this
+requires separate hardware/DT investigation and is not the cause of the missing
+RAM directory. Pstore has no records. General health PASS is not a claim of a
+warning-free or fully qualified kernel.
+
+Next: prepare a separately reviewed successor experiment with the source RAM
+staging step included. Run its exact read-only source/route preflight on the
+actual phone and retain the boot/owner/files-bound receipt **before** admission,
+claim consumption or requesting Ready. Preserve the consumed OLED profile and
+all failed results. Reuse the compiled kernel/modules and passing component
+checks wherever their inputs remain exact; determine the new experiment's
+canonical claim/identity requirements before packaging or rebuilding anything.
+
+After-run review: software checks and generic health were insufficient proof
+of actual device preparation. Require the exact generated read-only preflight
+after staging, before asking Ready or consuming a claim. The existing observer
+already enforces the correct condition, so changing it to accept an unstaged
+phone would hide the preparation failure. The initial diagnostic script suffix
+assertion and regression fixture class lookup failed locally before any phone
+query/test; corrected collection and the two-case replay are retained. No
+expensive kernel build or full unchanged test suite was repeated.
