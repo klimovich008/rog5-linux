@@ -27,8 +27,8 @@ health query encountered the still-enumerated fastboot device immediately after
 RAM transfer. It failed before waiting for the new USB gadget. Later fallback
 location hit a separate host adapter error: unpacking three values from the
 network helper's two-value return. That error preceded network ownership or any
-fallback SSH command. Old selection eligibility was **not restored**; current
-selection remains the new healthy record. The signed installed fallback was not
+fallback SSH command. Old selection eligibility was **not restored during that trial**. The separate
+r45 recovery below restores it without changing the original FAIL result. The signed installed fallback was not
 modified, but this run did not physically qualify fallback boot/restoration.
 
 The host fixes are now integrated in `successor-live-driver-r1`, with the exact
@@ -46,23 +46,44 @@ without changing production guards. The actual 30-file input lock passes in
 qualification remains byte-identical, historical and stale for the new sources.
 Do not rerun the consumed trial or treat these changes as a new admission.
 
-Fresh authenticated health passed again at **2,620.11 s uptime** on the same
-successor boot. A 1.895-second read-only recovery inventory confirms both exact
-old-selection copies, matching stage-intent/completion, no restoration intent,
-and absent reboot-lost RAM custody. Rollback timers are inactive and the healthy
-service has exited. No selection change or reboot was requested this turn.
+The separate exact-current-boot recovery now **PASSes on the phone**. In
+**7.656 s**, authenticated preflight, RAM staging, one atomic state exchange,
+read-only restoration observation and final full health all passed. The original
+V9 healthy selection SHA `ed3a62d1…` is restored; the running kernel/boot identity
+above is unchanged. Final observed uptime was **3,548.72 s**. This is restored
+next-boot eligibility, not a physical fallback boot or a repaired R01/S06 result.
 
-Next: prepare and test a separate exact-current-boot restoration guard and RAM
-custody staging using the retained atomic helper. Its old wrapper admits only
-V9/V11, so it cannot yet run against the healthy successor. Keep current Linux
-running while preparing recovery, then prepare minimal OLED scanout. The combined
-native DT proposal passed offline checks in r40; OLED/touch/GPU are still
-unqualified. Kernel work precedes Denial/Flutter builds.
+The private `current-target-restore-r1` coordinator is terminal and one-use.
+Preserve its `execution-r1`, original custody, RAM entry/completion, and durable
+`.kernel-05941-transition` records. That transaction now retains the new healthy
+record in `exchange` and the old backup in `old-backup`. Do not rerun restoration,
+remove entries or reuse the consumed kernel trial. The old V9/V11 wrapper remains
+unchanged. Subsequent read-only checks must use the separate `restored-health.py`
+predicate: the original target predicate correctly requires the now-replaced
+new selection and will refuse the restored one.
 
-No recording, password window, physical prompt or execution job remains active.
-The unsolicited Ready arrived while host preparation was incomplete; the user
-was released from waiting. Request fresh availability only after a physical test
-is prepared. Use checkpoint r44 for current sources, r43 for the terminal trial.
+Preparation passed 17 real-ARM64-helper/guard cases (194.746 s summed case times),
+11 restored-health cases and nine host ordering/output cases. Hardware telemetry,
+systemd and tmpfs are explicit offline fixtures; the final SSH results supply
+physical evidence. A fixture-only attempt to edit a read-only custody file
+stopped the first batch; its result was retained and only remaining cases resumed.
+
+Next: prepare the minimal OLED trial using the already built **05941** kernel,
+its matching REFGEN/panel modules and retained display-only DT `2ee1ed4b…`.
+Their exact bytes and module vermagic were rechecked without rebuilding.
+`display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
+sequence, but its f17 artifact identities are historical. Likewise, the old
+`display-boot-package-prep-r1` recipe pins f236e710/f17 and must not run unchanged.
+Adapt the current successor payload to a fresh coherent display identity and
+qualify its exact root/autoload/DT/package/controller inputs. The OLED overlay
+adds L12/L13 under the already-probed RPMh parent; its probe-time child scan does
+not establish live-overlay support. Prepare a new DT boot, not regulator unbind.
+
+OLED/touch/GPU remain unqualified; the combined DT proposal is offline only.
+Kernel work precedes Denial/Flutter builds. No recording, password window,
+physical prompt, build or execution job is active. Request fresh availability
+only after the physical display test is ready. Use checkpoint r45 for current
+state and recovery; r43 preserves the original terminal kernel trial.
 
 Earlier coordinator milestones below retain their original scope and timings;
 statements about pending jobs or absent trials there are historical.
