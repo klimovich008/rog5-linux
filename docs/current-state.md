@@ -1,5 +1,36 @@
 # ROG5 current state
 
+Latest r117, 2026-09-11: **GPU supervisor, RAM staging and host duplex
+transport pass 56 focused checks**. Previous r116 was progress. No phone action,
+GPU boot claim, module insertion, DRM open or reboot ran; full session admission
+is still absent.
+
+The new gpu-first-open-r1/backend.py reuses seven unchanged serialization/process
+functions. Host acknowledgement precedes the attempt; progress is durably recorded
+before the worker proceeds. A three-second renewable host lease and 60-second
+supervisor lifetime bound the action. Action helpers share a process group; a
+separate four-second cleanup worker checks boot identity and commands zero
+brightness. Cleanup/reaping failures and incomplete query evidence remain FAIL.
+
+transport.py stages five pinned Python sources and the existing 542016-byte
+ARM64 query in a private root-owned RAM directory. It checks USB/source/route,
+transport invocation and output hashes. Sources use mode0600 and the query0755;
+prior backend/initializer entries prohibit reuse. No staged ARM64 executable ran
+in these checks. The host loop retains progress and final raw transport evidence.
+
+Backend25 checks passed in 4.582 s, context12 in 0.114 s, transport17 in 2.572 s.
+Two composed initializer/backend/host cases passed in 0.666 s with real processes,
+pipes and query-child supervision; hardware/sysfs and query executable remained
+explicit fixtures. All eight initializer events traversed the protocol; a query
+failure remained failed after independent cleanup. Evidence:
+gpu-first-open-r1/completion-r117.json. All r116 evidence and binaries unchanged.
+
+Next bind full health and independent logging, then integrate initialization as
+an explicit hardware action in the boot controller's admission/recovery lifecycle.
+Its existing 22 phases currently end in a read-only health check; do not hide
+module/open mutations inside that check. Finish exact live qualification before
+booting. No human test ready; missed optical window remains unobserved.
+
 Latest r116, 2026-09-11: **GPU initialization component and kernel logger pass
 52 focused checks; the supervised session remains to be assembled**. Previous
 r115 was progress. No module insertion, DRM open, state write, reboot or boot
