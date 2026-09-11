@@ -8520,3 +8520,22 @@ GPU/GMU DT status is disabled and platform devices are absent; acceleration is
 unqualified. Current state/evidence is in `module-run-summary-r96.json` and the
 r96 current-state entry. No operator action is pending; the next scanout session
 must be completely prepared before another Ready request.
+
+## 2026-09-11 r97: Actual cached frame preparation PASS; display pending
+
+The separate first capture failed the root/group assumption for `/dev/fb0`; its
+full error, independent zero, reaping and post-health are retained. Exact observed
+root:video9830660 metadata now qualifies with unchanged character-device and
+inode guards, and a read-only metadata preflight precedes opening.
+
+Successor capture performed actual GET ioctls, Rust layout validation and cached
+ARM64 rendering:1080x2448,4352-byte stride,10653696 bytes, frame SHA
+`859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`.
+Capture/render were followed by independent zero cleanup, reaped workers,
+90-second kernel log PASS and final health PASS at5054.72 s on the same boot.
+No framebuffer pixel write, nonzero brightness, module reload, reboot or flash
+occurred. All prior failed trials remain failed. Physical scanout/GPU acceleration
+are not proven. The exact fully prepared20-second show command is saved in
+`prepared-frame-run-r97.json`; execute once only after fresh Ready. No user
+countdown runs while the closed cache preparation waits. See current state r97
+and `frame-preparation-summary-r97.json` for pins, paths and focused checks.

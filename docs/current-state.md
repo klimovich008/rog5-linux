@@ -1,5 +1,73 @@
 # ROG5 current state
 
+Latest r97, 2026-09-11: **actual framebuffer layout capture, ARM64 rendering,
+protected RAM cache, cleanup,90-second kernel log and final health all PASS**.
+The first visible-pattern test is completely prepared and awaits a fresh Ready.
+No user-response countdown is running: capture has closed and the cached frame
+persists. On fresh Ready immediately execute the exact `argv` from
+`oled-startup-experiment-r1/prepared-frame-run-r97.json` once. Do not render,
+build, stage, debug or repeat capture after Ready. The runtime only checks current
+health, arms logging, restores/seals cached bytes and revalidates the framebuffer.
+
+On actual `oled-startup-frame-host-r2/show-r1/visible.json`, promptly give its
+physical observation prompt before `observe_before_monotonic`: look for upright
+TOP arrow, colour bars, four corners and centre cross. Keep USB connected; no
+button/password action. Save the user's actual response with the visible receipt
+hash; never invent an optical result. The display pulse is20 seconds at32/1023,
+then independent zero cleanup. The kernel logger lasts90 seconds. Show has not
+entered; only a new affirmative user reply may launch it. Earlier Ready replies
+were consumed and do not apply.
+
+Prepared command SHA:
+`49b8d0ff17e169f6af51f22aa1e81c8c1360a8077f2572ef80e43db0b1843105`.
+Prepared record SHA:
+`3a770cebec6dbb660e68d5a59e4b4375e9549e31e49d1e4be23c53eab6c43e48`.
+Coordinator SHA:
+`ae7f61c9b5e9ec02b617b725687a25061abc77a1aafbb418b20db230da722793`.
+Qualification SHA:
+`96ab27b291c994eeddc329e9cab056cd187a325790b2f69c75bb016971788744`.
+The coordinator is `oled-startup-frame-host-r2/coordinator.py`; its target assets
+are in `oled-startup-frame-backend-r2`. Preserve both executed source sets.
+
+Actual capture opened only the qualified framebuffer for GET ioctls; no pixel
+or nonzero-brightness write occurred. The Rust helper validated1080x2448,32-bit
+layout with4352-byte stride and rendered10653696 bytes in0.083 s. Its frame SHA
+`859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`
+matches the retained fixture pattern. Capture exchange1.013 s; complete capture
+including90-second recording and health95.345 s; final launch validation0.543 s.
+Kernel recording closed naturally with0 new kernel records. Final health passed
+at5054.72 s uptime on unchanged boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`. Both modules remain loaded, active DRM
+is1080x2448@60, brightness0, GPU/GMU DT disabled. No reboot, module reload,
+partition flash or restored old selection is claimed. Optical scanout and GPU
+acceleration remain unverified.
+
+The first separate r97 capture in `oled-startup-frame-host-r1/capture-r1` failed
+at the framebuffer node guard. Its complete worker error, cleanup, reaping and
+post-health were saved; never reuse that attempted namespace. Actual discovery
+shows `/dev/fb0` root:video983,0660, major29/minor0, inode1598, whereas the old
+reader required group0. The corrected successor accepts only this observed
+combination or private root:root0600; other UID/GID/mode/device/link combinations
+refuse. A read-only node/sysfs preflight now precedes capture admission. No
+permission was changed on the phone. New node/ARM64 cases5, backend16 and host15
+pass; unchanged cache8 and protected-context9 results are inherited by source.
+
+The new backend separates capture/cache from display and retains complete bounded
+worker errors in a protected file before making a short root-cause summary. The
+host fetches that file by exact hash. Cached show restores sealed bytes without
+invoking the renderer; missing/changed cache or failed capture closure refuses.
+Independent zero cleanup survives lease/Ready/worker failures. This removes the
+old requirement to reply within a short live-preparation window.
+
+Evidence: `oled-startup-experiment-r1/frame-preparation-summary-r97.json`,
+`fb-node-discovery-r97`, `frame-node-correction-r97.patch`, and both new frame
+host/backend scopes. The r1 failed capture and r93/r96 failures remain FAIL.
+The r2 cached preparation is a distinct completed operation, not a retry of
+consumed module insertion or a physical display acceptance. Never run r95 again.
+The next authorized physical step is the prepared cached frame, then actual
+observation and terminal cleanup/health review. No further Ready question is
+needed until this prepared request is answered.
+
 Latest r96, 2026-09-11: **both display modules are now loaded; active DRM
 1080x2448 at60 Hz is confirmed; the module trial remains FAIL**. Fresh Ready
 arrived during independent offline scanout preparation and immediately launched
