@@ -3107,3 +3107,90 @@ repeated. The remaining step is the frame host staging/duplex/Ready/prompt
 coordinator, including completed-module provenance and after-cleanup health.
 Actual OLED boot/capture and module qualification must precede frame preparation;
 OLED/touch/GPU/Denial acceptance remains incomplete. No Ready request is pending.
+
+## Complete frame host and current source health (r68, 2026-09-11)
+
+Previous r67 is progress: prepared target frame worker qualified20 offline checks,
+unchanged here. The frame host now exists at `oled-frame-host-r1/coordinator.py`,
+SHA `b3b23b5b7eaddd46196b09c93b3a69ea4a5643e190c5bef31d085d9611666c74`.
+It reuses module-host credential/USB/source/route gates and fixed staging template,
+with checked substitutions for the eight frame files, root RAM namespace and
+bounded1.34MiB content. The generated source is deterministic and fits the existing
+3MiB SSH-worker request. Renderer and all target components remain byte-identical.
+
+Completed same-boot module evidence is checked against its actual phase result,
+raw SSH terminal, monitor admission/receipt/closure, absent old monitor process,
+source and qualification. A failed module monitor refuses frame preparation.
+The frame controller keeps its actual process, qualified monitor and SSH alive
+while the sealed target frame is prepared and awaiting availability. Host control
+records bind process/start/argv, boot, owner, monitor receipt and prepared hash.
+A fresh user reply writes one Ready token, checked again for age/hash/ownership
+before reserving the host frame-write attempt and signaling the target. No old
+reply or automatic goal continuation may invoke this API.
+
+`ready(output,prepared_sha,user_reply)` checks the live controller and monitor;
+`wait_visible(output)` returns the prompt on the nonzero-command event without
+waiting for the user's observation. `observe(output,visible_sha,user_reply)`
+records that actual report separately. The host keeps a conservative18-second
+prompt-validity interval after receipt; the target independently owns20 seconds
+of brightness. Host total transport bound is138s, allowing target120s plus cleanup,
+with14s cleanup collection after a local failure. Full health follows target/SSH
+closure, and final PASS requires a nonfailed monitor reply, zero exit and matching
+durable FINISHED result. Cancelled capture-only preparation instead verifies zero,
+reap and fresh health, closes its monitor, and preserves the unused write entry.
+New preparation requires those records; incomplete old work refuses.
+
+The new host/target flow executed the unchanged actual timed-display component
+with real process/RPC, regular-file brightness I/O and prompt delivery:
+**20.000655941s attempt-to-zero**,80 samples,20.163687451s coordinator duration.
+Framebuffer/capture/render effects, phone identity and monitor/health are explicit
+fixtures. This is software timing and control evidence, not phone scanout.
+`timer-diagnostic-r1` passed in20.166s (20.448s runner), with exact executed source
+SHA `409da91e831e16c4141ea2bdf699e4f33bbe7eb46427f1ce938a5fd981c7df39`
+retained. Every existing function/class AST is identical in final source; only
+atomic save implementation/import replaces the old save alias. The actual timer
+result is inherited within that scope; it was not rerun or relabelled as testing
+new publication code.
+
+Final `tests-r2`: **17 cases PASS in3.656s**,3.978s runner, on current source.
+They cover current Ready/prompt/transport, private RAM staging, exact module
+proof and raw-output tampering, failed module monitor, full after-health/monitor
+ordering, retained monitor failure, capture cancellation and refusal after its
+health evidence changes, no-overwrite and complete-record publication. Host/target
+processes and private root/mount file operations are actual. External SSH, phone
+hardware, completed boot and monitor/health boundaries are explicit fixtures.
+
+The first suite passed four cases, then reached its55s harness timeout while the
+timer case was still waiting for Ready. Target evidence has no Ready token, no
+write entry and brightness zero; after host death it records independent zero and
+both worker groups reaped. No exact user-thread exception survived. The fixture
+was preserved byte-for-byte under `tests-r1/interrupted-fixture` with15 file hashes.
+The harness now records thread errors and stops leases immediately on them.
+A separate deterministic blocked-writer regression then proved that the shared
+exclusive-file writer exposes a destination before data is complete. That finding
+motivates the fix, but does not prove the first timeout's cause. The frame host
+now fsyncs a private temporary and publishes by atomic rename-no-replace; focused
+positive and overwrite-refusal tests pass. Original replay and sources remain.
+
+Current qualification `oled-frame-host-r1/result.json` SHA:
+`c295ea99f852ef99b3e79b9f3c76cfe9719418afa8d6ee652a3b1e4108a2d939`.
+The actual qualification reader passes in0.015404s, including unchanged module
+host and target qualifications. It records18 unique cases including the scoped
+actual timer run. No actual frame-host run directory or frame-write entry exists.
+
+A fresh authenticated read-only source query now passes in **1.432967s** at
+**21,829.53s uptime**. Same boot `de90d177-3532-49e0-9bfd-8f8c65889a8d`,
+release `7.1.4-g05941d04803f`, bundle `kernel-hw-05941-a607a2bb249c918b`;
+old V9 selection SHA `ed3a62d198a2e33d26093e079534315ae86ab28c91f48805463fd025c5b88b75`
+is still restored. Current boot health, boot-bound readiness and physical guards
+pass. Raw transport and full snapshot are retained in `source-health-r1`. It uses
+the existing fixed restored-selection predicate; no phone write occurred.
+
+Actual read-only launcher `prepare()` passes in0.205097s with clean source
+Q538fab85, digestef59307b and live qualification18b1717f. `boot-preparation-r1`
+retains the exact result. The pending OLED claim remains unused, and no live OLED
+trial/recording exists. No kernel/module/renderer/package rebuild, full boot replay
+or password prompt was repeated. Next fresh Deck authentication can launch the
+fully prepared one-use OLED boot and23-minute observation; this is separate from
+later fresh physical Ready after actual frame preparation. OLED/touch/GPU/Denial
+acceptance remains incomplete.

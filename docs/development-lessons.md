@@ -262,6 +262,16 @@ Rule: **A capability is available only if the exact booted artifact proves it; h
 
 ### R4. Timeout budgets were not maintained as a lattice
 
+OLED r68: files used as cross-process signals must be published complete. A
+blocked-writer replay proved the shared exclusive writer exposed the destination
+before its bytes existed. The frame host now fsyncs a private temporary and uses
+atomic rename-no-replace; both visibility and no-overwrite regressions pass.
+Do not attribute an earlier lost Ready to that race without its missing thread
+error: the earlier55s test stopped while waiting, unlit, and its cause is unproven.
+Surface fixture thread failures promptly and stop leases rather than waiting out
+the entire availability window. Reuse the completed20s result for unchanged timer/
+RPC function bodies; validate the changed publication path with focused cases.
+
 OLED r67: separate acknowledged zero-state capture/render from the one-use frame
 write. Availability can expire after preparation without a frame ever being
 shown. A real process/RPC test proves no Ready leaves brightness zero and no
