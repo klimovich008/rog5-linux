@@ -610,14 +610,49 @@ and r65 backend evidence. No actual SSH transport to the phone, health query, RA
 module insertion or OLED boot occurred. All kernel/DT/module/renderer/boot
 artifacts remain unchanged; no full boot replay or authentication was repeated.
 
-**Next:** finish the bounded frame backend/coordinator using the prepared frame,
-write and timed-brightness components. Prepare the zero-state capture/render and
-prompt path before requesting physical availability. The qualified module host
-entry is `run(boot,run_id,qualification_sha256)`; it still requires a real completed
-OLED boot/capture and fresh full health. Do not run it on the current historical
-headless boot or treat offline qualification as hardware admission. Preserve the
-unused OLED claim for actual launch. No operator request or hardware job is
-active, and old Ready replies remain released.
+The r67 target frame backend is now implemented in `oled-frame-backend-r1`,
+SHA `1087ed7d…`, with **20 offline checks passing**:14 actual process/RPC/phase
+cases in1.840s and six actual source/renderer/RAM metadata cases in0.039s
+(2.136s summed runner). Capture/identity/frame/display effects and shortened phase
+timers are explicit fixtures. The unchanged real ARM64 renderer and real20-second
+display-component evidence are inherited, not repeated or relabelled.
+
+It reuses the exact module backend's framing, owned fork/reap and independent
+zero-cleanup implementation through a private imported instance, with a fixed
+frame worker. All copied component/renderer bytes match retained hashes. The
+worker obtains an acknowledged capture-only entry, collects zero-state GET data,
+prepares a sealed frame, then waits for a Ready token bound to that prepared hash.
+No frame write or nonzero command occurs before Ready. The one-use global frame
+write entry is separate from preparation; expired availability closes and blanks
+without consuming a write that never occurred.
+
+Production limits are three-second leases,15s preparation,60s waiting for Ready,
+35s active work and120s total, followed by independent four-second zero cleanup
+and bounded reap. Leases cannot extend a phase deadline. After Ready, the exact
+frame/brightness32/20-second intent must be acknowledged; the visible-command
+prompt is emitted immediately after brightness readback, without waiting for a
+human reply. Fixed20-second timing remains in the unchanged display component.
+The parent independently stops blocked work and checks direct-child and helper
+group closure. Changed boot refuses stale zero; cleanup failure stays FAIL.
+
+The checks cover waiting unlit, missing/early/wrong/repeated Ready, blocked capture
+or display, disconnect while lit, changed boot, bad intent/prompt, failed cleanup,
+prior entry and wrong capture provenance. Namespace tests validate the actual
+copied renderer and sources and reject changed bytes, symlinks, bad modes,
+changed manifest and consumed frame entry. Existing namespace lessons were
+applied immediately; both suites passed on their first run. Result SHA:
+`f310d724…`. No actual target worker, frame preparation or physical test ran.
+
+**Next:** implement the frame host staging/duplex coordinator and prepared
+Ready/prompt control using this backend and the existing qualified owner/health
+reader. Verify completed module phase before capture. Keep capture-only entry
+separate from frame-write entry; an aborted preparation needs verified zero,
+reap and fresh health before any new preparation, with its original failure kept.
+Request Ready only after the real zero-state capture/render and prompt path are
+prepared. The existing module coordinator still requires a real completed OLED
+boot/capture and fresh health. Preserve the unused OLED claim until actual launch;
+no frame/module action is admitted on the historical headless boot. No physical
+Ready, authentication request or live hardware job is active.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -626,7 +661,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r66 for the complete offline module host coordinator, r65 for the bounded target module supervisor, r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r67 for the target prepared-frame backend, r66 for the complete offline module host coordinator, r65 for the bounded target module supervisor, r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
