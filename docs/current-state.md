@@ -68,22 +68,42 @@ systemd and tmpfs are explicit offline fixtures; the final SSH results supply
 physical evidence. A fixture-only attempt to edit a read-only custody file
 stopped the first batch; its result was retained and only remaining cases resumed.
 
-Next: prepare the minimal OLED trial using the already built **05941** kernel,
-its matching REFGEN/panel modules and retained display-only DT `2ee1ed4b…`.
-Their exact bytes and module vermagic were rechecked without rebuilding.
-`display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
-sequence, but its f17 artifact identities are historical. Likewise, the old
-`display-boot-package-prep-r1` recipe pins f236e710/f17 and must not run unchanged.
-Adapt the current successor payload to a fresh coherent display identity and
-qualify its exact root/autoload/DT/package/controller inputs. The OLED overlay
-adds L12/L13 under the already-probed RPMh parent; its probe-time child scan does
-not establish live-overlay support. Prepare a new DT boot, not regulator unbind.
+The OLED successor payload is now composed as byte-identical twins under
+`oled-successor-payload-r1`: **4.877/4.625 s** in sequential 512-MiB/no-swap
+scopes. Bundle `oled-05941-a2be906cd7b36636`, trial
+`b52ead05459f96ae5acde920c903d4ca3138a96083a7b4dbabfc941274fcb242`, archive
+SHA `d108d868…`, 57,774,563 bytes. It changes only the descriptor and catalog;
+**722 of 724 members**, all 32 loose module copies and the nested radio archive
+are preserved. Ten focused real-newc preservation tests pass in 0.026 s.
+Pair with the retained display-only DT `2ee1ed4b…`; do not rebuild the kernel or
+matching REFGEN/panel modules. This payload and its wrapper recipe are unsigned
+and unregistered, with no boot admission.
 
-OLED/touch/GPU remain unqualified; the combined DT proposal is offline only.
-Kernel work precedes Denial/Flutter builds. No recording, password window,
-physical prompt, build or execution job is active. Request fresh availability
-only after the physical display test is ready. Use checkpoint r45 for current
-state and recovery; r43 preserves the original terminal kernel trial.
+Fresh read-only phone health passes at **4,347.54 s uptime** on the same boot
+with old selection still restored. The 2.045-second probe verifies both exact
+display modules under `/run/rog5-native-wifi/display-trial`, unloaded, with no
+current-release files in the standard `/usr/lib/modules` search tree, no DRM
+nodes or backlight, and no fb0. This describes the current headless runtime;
+new-DT early probing and future effective-root autoload still require checks.
+
+Next: adapt the verified **r2 successor boot packager** to this exact OLED
+identity and preservation receipts, then build/verify signed wrapper twins and
+qualify the new DT/root/controller combination. Its current constants correctly
+refuse this new profile; preserve that historical runner rather than editing its
+executed recipe. `oled-successor-payload-r1/wrapper-recipe.json` carries the new
+bundle/DT/archive and unchanged kernel/timing. Reuse existing matching-kernel
+VM/module closure evidence only for unchanged bytes. Refresh the configured
+root/autoload check for release 05941 and the new display DT.
+
+`display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
+sequence, but its f17 artifact identities are historical; the old display
+packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
+RPMh parent, whose probe-time child scan does not establish live-overlay support.
+Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
+the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
+No physical prompt or job is active. Request fresh availability only after the
+physical display test is prepared. Use r46 for the new payload and phone check,
+r45 for completed restoration, and r43 for the original kernel trial.
 
 Earlier coordinator milestones below retain their original scope and timings;
 statements about pending jobs or absent trials there are historical.

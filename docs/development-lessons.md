@@ -68,6 +68,15 @@ evidence or weakening one-use guards is not a test fix. The initially partial
 output-path substitution tripped component agreement; preserving the real
 read-only assembly paths avoided that unnecessary fixture complexity.
 
+For an unchanged-kernel hardware trial, separate identity changes from module
+rebuilds. R46 reused the physically observed 05941 payload and exact display DT;
+streaming composition changed only descriptor/catalog and proved preservation
+of the other 722 members. Twins took 9.502 s total with 512-MiB/no-swap bounds;
+no kernel, module, depmod or root-image rebuild was necessary. Reuse the current
+successful packager as the adaptation base, not the older display-specific
+recipe with stale kernel/source identities. A fresh identity still needs exact
+new-wrapper and hardware admission; preservation alone does not grant it.
+
 Recovery after a controller error need not reboot a healthy target. In r45,
 a separate exact-boot wrapper reused the proven atomic helper and old custody,
 checked quiescent writers, and restored selection in 7.656 s with final health.
