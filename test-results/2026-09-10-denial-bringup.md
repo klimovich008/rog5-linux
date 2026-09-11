@@ -3366,3 +3366,36 @@ experiment can retain existing artifact verification while preserving consumed
 claims. Do not mistake source-registry additions for runtime boot admission.
 The persistent terminal is intended to reduce repeated password prompts; record
 actual reuse evidence after authentication before claiming it works.
+
+## r73: staged-controller admission and actual source recheck
+
+Latest r73, 2026-09-11: the new staged controller imports and validates its
+32-file input lock. Preparation is now part of admission: the closed predecessor
+and actual RAM staging must match; a fresh read-only route observation must
+finish within 15 seconds before admission. Failed observation cannot consume a
+boot claim. Its attempt/output remains exclusive. The old trial stays consumed.
+
+**76 focused tests pass** (18 preparation, 32 launcher/credentials, 26 admission).
+They exercise actual receipt validators, missing/stale/changed preparation,
+process identity, cleanup and refusal before claim consumption. All **four full
+flow fixtures pass in 25.574 s**, including source abort and early/late fallback.
+Privilege, USB and boot boundaries are explicit fixtures, not hardware proof.
+The first flow run found a derivative path to absent selector files; the reader
+now uses the exact retained installed-selector inventory. No selector rebuild.
+
+The new Q2 controller's exact generated observer is byte-identical to the r72
+phone-tested script. Its actual authenticated recheck **PASSed in 2.883 s** on
+boot `de90d177-3532-49e0-9bfd-8f8c65889a8d`. It verifies staged helpers, physical
+guards, old healthy selection, original shutdown, no reboot intent, installed
+V9/V11 files and unchanged boot_b. The host source is clean `b0da65a7`, digest
+`9e8efaba23afb18d3c41649eb3700786db15fe68e44b8748de9eabe563f95725`.
+Evidence: `oled-staged-experiment-r1/integration-result-r73.json` and
+`source-preflight-recheck-r1`. This diagnostic is not live admission.
+
+No password window, new claim registration/consumption, reboot or phone write
+occurred. Privileged handoff qualification and module/frame provenance still
+need integration before requesting Ready. New paths are
+`oled-staged-live-driver-r1` and `oled-staged-controller-r1`; old executed source
+and results are preserved. Keep the kernel, modules, payload, wrapper and A01.
+The persistent sudo terminal remains available subject to a fresh identity check;
+password reuse across child processes still awaits actual authentication.
