@@ -1,5 +1,42 @@
 # ROG5 current state
 
+Latest r116, 2026-09-11: **GPU initialization component and kernel logger pass
+52 focused checks; the supervised session remains to be assembled**. Previous
+r115 was progress. No module insertion, DRM open, state write, reboot or boot
+claim ran. Existing GPU admission/launcher and binaries remain unchanged.
+
+The exact kernel defaults to shared GPU/display DRM. A corrected read-only phone
+inventory passed in 0.361 s on the same OLED boot229580f9-ac26-4b18-a0eb-ea9c05bc632f:
+separate_gpu_kms=N; card0/renderD128 belong to ae01000.display-controller and
+msm_dpu, with DT display-subsystem@ae00000/display-controller@ae01000. The first
+read-only inventory failed because connector device links point at DRM cards,
+which have no platform driver child. Retained that failure; the corrected reader
+filters card/render entries. This is current-source layout, not GPU operation.
+
+New gpu-first-open-r1/initialize.py validates exact boot/descriptor/DT, eight
+sealed payload inputs, query binary and held file identities. It reserves one
+RAM entry, inserts GPUCC, loads the qualified REFGEN/panel pair with early blank,
+then discovers the DPU render endpoint and invokes the existing Rust query once.
+Three module insertions maximum; one operational open, VERSION plus three scalar
+queries, no submits. Overall gate45 s, insertion5 s each, render discovery5 s,
+query7 s plus2 s child cleanup. The import-only caller must supply full health,
+independent live logging, cleanup and recovery authority. PASS means initialization
+only; hardware acceleration remains unverified. Display cleanup exceptions retain
+full evidence. Sources/binaries are pinned in input-audit-r116.json.
+
+Twenty-six initialization cases passed in 0.466 s; one added display-exception
+case in 0.165 s; 17 retained display-loader cases in 1.369 s. Eight logger cases
+passed in 4.079 s, including a >1 MiB burst, wrong boot, missing terminal and
+child cancellation/reaping. Root namespace/process fixtures are explicit;
+no real GPU query ran. Six file/insertion functions are byte-for-byte AST-equal
+to qualification. No module, kernel or Rust build/A01 rerun.
+
+Evidence: gpu-first-open-r1/completion-r116.json. Next assemble the supervised
+backend/coordinator, stage only after current target health, arm logging, enforce
+one-use/lifetime and independent blank cleanup, collect post-health and prepare
+recovery for a hang/lost target. Then finish live qualification before GPU boot.
+No human session ready; missed optical window stays unobserved.
+
 Latest r115, 2026-09-11: **GPU admission, root request verification and launcher
 integration pass 92 offline checks**. Previous r114 was progress. No phone action,
 claim creation/consumption, reboot, state write, module load or DRM open ran.

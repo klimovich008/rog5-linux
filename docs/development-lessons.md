@@ -1603,3 +1603,19 @@ production lifetimes. Root-entry tests exercise the actual admission policy at
 the caller boundary and reject changed/completed requests. Kernel/GPU hardware
 remains the priority: next prepare first-open supervision rather than extending
 unrelated boot process work or repeating unchanged builds/physical observations.
+
+### r116: derive GPU discovery from DRM mode and actual platform ancestry
+
+The kernel defaults to shared GPU/display DRM. Do not assume that loading GPUCC
+alone creates an independent Adreno render device. The current phone reports
+separate_gpu_kms=N and renderD128 under ae01000.display-controller/msm_dpu,
+not the display-subsystem parent. The prepared GPU test now loads GPUCC followed
+by the already-qualified REFGEN/panel pair and blanking before one GPU open.
+
+A broad read-only inventory failed on connector entries: their device link points
+to a DRM card, not its platform device. Keep that failed observation; filter exact
+card/render entries for platform ancestry. The corrected read took 0.361 s, and
+a connector regression passes. Continue using actual input/output discovery before
+live tests. Preserve detailed component cleanup exceptions through outer wrappers;
+the added regression passed in 0.165 s. Reuse binaries and unchanged primitives,
+then finish session supervision rather than repeating unchanged builds.
