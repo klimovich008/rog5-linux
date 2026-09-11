@@ -1,5 +1,34 @@
 # ROG5 current state
 
+Latest r80, 2026-09-11: **r79 passive test remains fully prepared and awaits
+fresh Ready**. Automatic goal continuation did not open authentication, start
+recording or touch the phone. The complete prepared input/review hashes still
+match and `kernel-log-relay-live-r1/execution-r1` is absent. Use the exact r79
+command in retained PTY 44286 on Ready; no build or new preflight is needed.
+
+Independent startup integration is committed at `8b20fbb3` in
+`kernel-relay-startup-worktree-r1`. The standalone builder can optionally pair
+the exact static ARM64 relay and a fresh nonce; default payloads stay without
+this helper. Existing relay inputs in a base are rejected. Runtime verifies the
+pair, claims private RAM and adds a separate sysinit service (120-second relay,
+125-second runtime ceiling, 2-second stop allowance, no restart). The service
+has no dependency on P2, service state or SSH. Composition now validates the
+pair and carries the exact selected release into unit verification.
+
+All 72 relevant offline tests pass: 5 new assembly/runtime, 2 standalone archive,
+57 rescue composition and 8 existing startup observer tests. The generated unit
+passes host systemd verification. Two explicitly nonbootable assembly fixtures
+using the actual unchanged ARM64 binary match byte-for-byte, taking 0.229 and
+0.222 s. No kernel/Rust rebuild or phone deployment occurred. Evidence:
+`kernel-relay-startup-r1/qualification.json` and `assembly.json`.
+
+This proves optional packaging and host fixture behavior only. Actual Arch-root
+composition, live V11 relay transport and a new startup packet receiver/controller
+remain unqualified. Do not turn the nonbootable fixtures into a phone payload.
+After r79 passes, pair a separately validated complete OLED payload and host
+capture with the actual V11 source and a fresh one-use claim. All prior claims,
+prepared V11 inputs and frozen executed source remain unchanged.
+
 Latest r79, 2026-09-11: **the passive V11 kernel-log relay test is fully
 prepared and awaiting fresh Ready for sudo authentication**. The Ready received
 while the prior launcher was unfinished was released explicitly; do not reuse it.

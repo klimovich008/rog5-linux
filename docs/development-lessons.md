@@ -1009,3 +1009,14 @@ prove ownership before explicit removal. A timed-out add is ambiguous, not proof
 that nothing changed; retain that uncertainty and never label it cleaned without
 an absence observation. Compare diagnostic terminal counts with authenticated
 SSH output when both are available.
+
+
+For optional startup payloads, test both absence and inherited stale inputs.
+A standalone `test ... && test ...` is not reliably made fatal by `set -e` when
+its first operand fails; attach an explicit failure branch to admission guards.
+The r80 archive fixture caught a stale relay being overwritten and now proves
+rejection. Preserve exact selected-release parameters in composition fixtures
+when adding a unit that consumes them. Use `git worktree add --no-checkout`,
+configure sparse source paths and required test dependencies, then populate the
+checkout; full checkout needlessly copies historical kernel artifacts. A retained
+untracked tool must still satisfy its existing content pin before reuse.
