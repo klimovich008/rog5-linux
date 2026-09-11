@@ -8911,3 +8911,21 @@ Last physical evidence is r114 installed-route PASS. Admission and launcher now
 exist, but live qualification/readiness/execution and GPU boot claim remain absent.
 Prepare bounded GPUCC/first-open and finish live qualification before any boot.
 No human test ready; optical result remains unobserved after the missed window.
+
+### 2026-09-11 r116: bounded GPU initialization component and logging
+
+52 offline checks PASS: initialization26 (0.466 s), display-exception1 (0.165 s),
+display-loader17 (1.369 s), logger8 (4.079 s). Real files/children and explicit
+root-namespace hardware fixtures; ARM64 module helper refusal does not insert a
+module. Existing query binary and all eight sealed payload file identities match.
+Six reused file/insertion functions retain identical ASTs. Maximum sequence is
+GPUCC, REFGEN, panel/blank, then one Rust DRM open and four query ioctls. Successful
+component proof explicitly does not claim accelerated rendering.
+
+Two actual read-only source inventories: first failed on connector platform
+ancestry; corrected card/render filter passed in 0.361 s. Same source boot,
+shared DRM mode N and renderD128/card0 on ae01000.display-controller/msm_dpu.
+No module, DRM open, phone write, reboot or claim. Preserve both raw transports.
+Evidence: gpu-first-open-r1/completion-r116.json, input-audit-r116.json and
+source-discovery-r116{-r2}. Supervised staging/backend/coordinator, independent
+cleanup/recovery and final live qualification remain. No human session ready.
