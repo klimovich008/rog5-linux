@@ -1,5 +1,56 @@
 # ROG5 current state
 
+Latest r87, 2026-09-11: **V11 installed-route and preparation components
+qualified; full controller remains in preparation**. The user's Ready was
+released immediately after checking current state. No physical step is pending.
+One authenticated read-only phone query passed in 5.806 s; the phone remains
+V11/359318 on boot `ee0d166e-5e69-4db7-8bbd-6266352594ea`. All 11 installed
+files and the 96 MiB boot_b hash matched. Selection `ed3a62d1...`, original
+shutdown `ec3c7fd2...`, prior transactions and the consumed r84 RAM staging are
+unchanged. No reboot, selection write, active shutdown replacement or new claim.
+
+The new route generator uses sealed BusyBox shell and streaming hashes, with
+metadata checks, boot block identity/geometry, and qualified source observations
+before and after the inventory. It requires the actual installed modes: 0400
+bundle members and 0600 selector. Its first local build correctly refused the
+incorrect generic 0644/0755 assumption; this was fixed before any phone call.
+Strict host parsing binds the installed inventory and normalized source proof.
+11 isolated ARM64 file/race cases and four generator refusals passed in 25.279 s;
+12 host route/receipt cases passed in 2.635 s. ARM64 block geometry and telemetry
+were explicit fixtures; the actual phone query independently checked them.
+
+The installed ARM64 selector passed three new-record cases in 0.337 s: new
+pending/healthy records select V11 without altering their bytes; old healthy
+selects V9 and transitions its fixture record to pending. This proves selector
+logic, not physical fallback boot. Fresh evidence is in
+`oled-startup-controller-r1/selector-tests-r3`.
+
+Source preparation now binds the actual closed r77 trial, closed recorder,
+stopped credential keeper, consumed prior claim, later verified V11 restoration,
+and exact consumed r84 RAM-stage/readback records. A pinned historical index
+preserves their identities independently of successor source digest refresh.
+Historical 0644 summaries and empty streams have their own exact metadata reader;
+live readiness still requires 0600/nonempty receipts. The shell route replaces
+Python transport here too. All 21 preparation tests passed in 2.191 s, including
+stale readiness, running prior owner, incomplete cleanup/restoration, ambiguous
+transport, and duplicate entry. No real one-use readiness directory was created.
+
+Fallback observation now exercises the new startup transaction and RAM namespace,
+while retaining both completed historical transactions. All 11 ARM64 cases passed
+in 56.801 s; 33 host parser cases passed in 0.004 s. The first fixture attempt
+stopped before execution because its copied fallback-tools path did not exist;
+that evidence remains. The corrected fixture checks exact retained tool hashes
+before allocating cases, uses real tmpfs and the actual new Rust helper, and
+labels physical telemetry/service/image hashes as synthetic.
+
+Admission verified all 53 exact inputs in 0.104 s. Live qualification, execution
+and one-use readiness are still absent. Selected component results do not admit
+a physical launch. Evidence and current source pins are in
+`oled-startup-experiment-r1/integration-progress-r87.json`; r86 evidence remains
+unchanged. Next: finish target-health/boot/full-flow and root handoff/cleanup
+qualification, then bind final producers and prepare fresh hardware availability.
+No unchanged kernel, module, image or A01 rebuild is needed.
+
 Latest r86, 2026-09-11: **successor controller/recorder integration is in
 progress; selected component checks pass**. No phone command, reboot, new claim,
 readiness request or user action occurred this turn. Last authenticated phone
