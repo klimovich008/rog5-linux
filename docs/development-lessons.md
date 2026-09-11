@@ -1032,3 +1032,15 @@ use authenticated SSH to compare terminal counts when available. A fresh Ready
 for an already prepared test must launch that entry immediately even if an
 independent alternative is being developed; never switch the user into unfinished
 preparation or rerun the now-consumed entry afterwards.
+
+
+A short UDP success does not prove an idle 120-second capture will retain its
+flow. r82 read the host's actual 30/120-second UDP timeouts and added bounded
+20-second keepalive requests. Drain queued target records before classifying a
+recovery transition, and bind diagnostics to the separately observed stage boot;
+a fallback must not reset the evidence accumulator or erase an incomplete run.
+Bind the exact payload's transport config in recorder receipt and live readiness.
+For a new empty `--no-checkout` worktree, sparse selection alone may leave it
+unpopulated: follow it with `git read-tree -mu HEAD` before editing. Apply that
+population step only to the newly created empty checkout, not a user's working
+tree. Direct helper imports also need the established scripts/host search path.

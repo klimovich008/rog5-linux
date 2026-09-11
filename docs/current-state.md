@@ -1,5 +1,43 @@
 # ROG5 current state
 
+Latest r82, 2026-09-11: **startup request capture is integrated and passes
+offline checks; no phone action or Ready request occurred**. Source is
+`b3a964e6` in `kernel-startup-capture-worktree-r1`, based on frozen live-qualified
+r81 source. Both r81 passive entries remain consumed and unchanged.
+
+The optional recorder binds UDP 8085 within the existing capture owner's network
+lifetime. It requests at 250 ms during target discovery, uses 20-second keepalive
+requests once ready, preserves queued packets at transitions and stops at the
+outer recovery phase. Actual host UDP timeouts are 30/120 s; the keepalive avoids
+relying on the idle flow lasting exactly the relay's 120-second run. Limits:
+960 requests, 1,040 packets, 16 rejections and 64 packets per ordinary poll.
+It matches the kernel boot ID to the separate startup-stage boot. Raw packets and
+complete/incomplete summaries stay unauthenticated diagnostics, separate from
+boot-health/recovery evidence. Socket closure follows the capture owner.
+
+The standalone builder now accepts explicit
+`KERNEL_STARTUP_RELAY_TRANSPORT=startup-pull` with the existing binary/hash/nonce
+inputs. Its config contains nonce, binary hash and transport on three lines;
+old two-line optional inputs are rejected. The R01 capture CLI accepts the exact
+config path plus its SHA-256; receipt and live readiness check bind that same
+config. The outer new experiment must prove this is the configuration in its
+signed payload. Original optional push/default-absent behavior remains available.
+
+All 100 relevant offline checks pass: 18 startup capture/CLI, 17 existing recovery
+capture, 6 relay assembly/runtime, 2 standalone archive and 57 rescue composition.
+A nonbootable fixture with the unchanged live-qualified ARM64 relay paired through
+builder, composition checker and host config loader in 0.226 s. No Rust or kernel
+rebuild was needed. Evidence: `kernel-startup-capture-r1/qualification.json` and
+`assembly.json`. This is not a complete bootable OLED bundle or actual Arch-root
+composition, and it does not qualify real USB reconnection/startup timing.
+
+Next: use this committed source and exact relay SHA `6fa7783c...` to prepare a
+complete paired OLED payload, validate against the actual Arch root, and prepare
+a successor controller for the current V11 source/protected RAM parent. Bind the
+capture's exact config and keep existing recovery/one-use guards. Do not launch
+old controllers, passive entries or consumed OLED claims. No human action is
+pending; request presence only when the full next test is ready to start.
+
 Latest r81, 2026-09-11: **both passive kernel-log runs passed; no Ready or
 password action is pending**. Fresh Ready immediately launched the prepared r79
 entry in PTY 44286. Authentication completed with no error and was reaped.
