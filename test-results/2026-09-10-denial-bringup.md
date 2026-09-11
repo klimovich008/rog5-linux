@@ -2281,3 +2281,44 @@ Use the existing corrected launcher and record its exact prepared invocation;
 avoid another wrapper, repeated authentication failures or expensive build/VM
 work. On fresh Ready only brief current checks and launch remain. Display
 load/discovery/blanking preparation follows; no Denial/Flutter build was started.
+
+## OLED endpoint and blank component (r52, 2026-09-11)
+
+Previous r51 is progress: 35 handoff preparation cases completed and the exact
+local authentication command is ready. The automatic continuation is not fresh
+Ready; no auth window, root probe, phone query or network action was started.
+The prepared receipt remains SHA `fd2cabc5…`, its output is absent and Q is clean.
+
+New independent `oled-display-component-r1/endpoint.py` leaves that prepared
+cohort untouched. It reads exact boot/kernel/descriptor identity and validates
+one raw backlight, its range, DSI parent, driver and exact panel DT ancestry.
+The import-only zero action requires the enclosing admission callback before
+opening and again around the write, verifies the opened inode against its path,
+submits only zero and requires zero readback. Failures propagate without a
+success result. Cleanup may reassert zero; it cannot illuminate, load/unload a
+module, open DRM/fb0 or trigger a reboot.
+
+The early blank is independent of framebuffer presence. Later sysfs-only fb0
+validation requires zero, the same display subtree, msmdrmfb, 1080x2448 nominal
+60 Hz and 32 bpp. This does not establish framebuffer ioctl/pixel layout or
+visible output. The compiled current module's panel source is byte-identical
+to the audited source SHA `45e8bcb9c608645e76ae888e33f3c4d2e9096338eae95d59c67b56f2f428b892`.
+It defaults to brightness 1023 and has no hardware brightness read callback;
+zero sysfs readback is therefore kept distinct from optical-darkness evidence.
+The pinned DT's panel compatible was independently read with fdtget.
+
+Initial 18 tests passed. Review then added same-display framebuffer ancestry
+and short-write refusal; final 20 tests pass in 0.131 s under
+`unshare --user --map-root-user`. Tests use actual files/symlinks/FD replacement
+and explicit sysfs-store emulation. Wrong boot/descriptor/driver/DT/parent,
+multiple backlights, malformed/range values, symlink/replaced brightness,
+authorization loss, driver errors, short writes and missing readback refuse.
+No real sysfs writes or host-root handoff occurred. Component result SHA
+`d3fce3e52e5681ffc94d3aed549b39434024cea14fe9f7a84e0176f305ba68cf`.
+
+After-run improvement: order exact-endpoint blanking before framebuffer checks
+and distinguish command success from physical darkness. Do not weaken endpoint
+checks or claim hardware behavior from fixture files. Next work is enclosing
+module-load/health/monitor/deadline and fixed-frame integration; actual endpoint
+discovery still belongs before human display readiness. Authentication remains
+prepared for the user's fresh Ready. No kernel/package rebuild or Denial build.
