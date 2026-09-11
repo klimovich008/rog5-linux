@@ -643,16 +643,59 @@ changed manifest and consumed frame entry. Existing namespace lessons were
 applied immediately; both suites passed on their first run. Result SHA:
 `f310d724…`. No actual target worker, frame preparation or physical test ran.
 
-**Next:** implement the frame host staging/duplex coordinator and prepared
-Ready/prompt control using this backend and the existing qualified owner/health
-reader. Verify completed module phase before capture. Keep capture-only entry
-separate from frame-write entry; an aborted preparation needs verified zero,
-reap and fresh health before any new preparation, with its original failure kept.
-Request Ready only after the real zero-state capture/render and prompt path are
-prepared. The existing module coordinator still requires a real completed OLED
-boot/capture and fresh health. Preserve the unused OLED claim until actual launch;
-no frame/module action is admitted on the historical headless boot. No physical
-Ready, authentication request or live hardware job is active.
+The r68 frame host coordinator and Ready/prompt controls are now implemented and
+qualified in `oled-frame-host-r1/coordinator.py`, SHA `b3b23b5b…`. It reuses the
+existing USB/source/route/credential gates, stages the exact eight target files
+within the existing3MiB request limit, verifies completed same-boot module/raw
+SSH/monitor evidence, and owns preparation, live leases, fresh Ready, prompt,
+cleanup, after-health and final nonfailed monitor closure.
+
+The actual20-second display component ran through the new host/target RPC and
+prompt flow: **20.000656s from brightness attempt to zero**,80 samples,20.164s
+coordinator duration. Framebuffer, capture/render, phone identity and monitor/
+health are explicit fixtures; brightness commands used a real root-owned regular
+file. This does not prove optical scanout. Final **17 focused cases pass in3.656s**
+(3.978s runner), covering current publication, full flow, cancellation, module
+proof, failed monitor, Ready and cleanup. The timer run is inherited from the
+immediately preceding source: all existing function/class ASTs are unchanged,
+and the sole new save implementation is separately covered by those17 cases.
+
+A deterministic blocked-writer test reproduced visible partial control records.
+The frame host now fsyncs a private temporary file and publishes atomically with
+rename-no-replace. Prepared, Ready and visible records cannot be read mid-write,
+and existing records cannot be overwritten. The first integrated suite timed out
+before Ready with no nonzero command; its exact user-thread error was not retained,
+so its cause remains unproven. That interrupted fixture was copied unchanged to
+disk. The fixture now records such errors and stops leases promptly. The separate
+20-second diagnostic passed. No unchanged20-second repeat was needed after the
+publication fix.
+
+Qualification is SHA `c295ea99…`, accepted by the actual reader in0.015404s.
+`run(boot,run_id,module_run_id,pin)` publishes `prepared.json` while keeping its
+process/monitor/SSH alive. Only a fresh human reply may call `ready(output,hash,
+reply)`; `wait_visible(output)` returns the physical prompt as soon as armed.
+`observe` retains the user's actual answer without inventing optical verification.
+Capture-only cancellation requires zero, reap and fresh health; it preserves the
+unused frame-write entry and does not fabricate a monitor finish. Any actual or
+uncertain Ready/write attempt remains consumed.
+
+Fresh authenticated source health now **PASSes in1.433s**, uptime **21,829.53s**,
+on the same `de90d177…` boot, release05941, bundle `kernel-hw-05941-a607a2bb249c918b`.
+The exact old V9 selection `ed3a62d1…` remains restored, current-boot health and
+boot-bound readiness pass, and physical guards pass. Evidence is
+`oled-frame-host-r1/source-health-r1`. This is current headless health, not OLED
+qualification. No phone write occurred. The current read-only OLED launcher
+preparation also passes in0.205s on clean Q538fab85 with qualification `18b1717f…`;
+no claim or trial directory was consumed/created.
+
+**Next:** request fresh Deck authentication availability and immediately launch
+that prepared one-use OLED trial with its working touch-password path. The trial
+includes the full23-minute observation. Then use actual OLED boot identity for
+the qualified module coordinator, followed by actual zero-state frame preparation.
+Ask for separate physical Ready only after `prepared.json` and live prompt reader
+are ready; authentication availability is not phone-observation availability.
+No old Ready may be reused. No actual OLED boot, module insertion, frame preparation
+or brightness action is running yet. Preserve the pending claim until launch.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -661,7 +704,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r67 for the target prepared-frame backend, r66 for the complete offline module host coordinator, r65 for the bounded target module supervisor, r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r68 for the complete frame host/Ready/prompt controls and latest authenticated source health, r67 for the target prepared-frame backend, r66 for the complete offline module host coordinator, r65 for the bounded target module supervisor, r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
