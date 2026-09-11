@@ -2322,3 +2322,55 @@ checks or claim hardware behavior from fixture files. Next work is enclosing
 module-load/health/monitor/deadline and fixed-frame integration; actual endpoint
 discovery still belongs before human display readiness. Authentication remains
 prepared for the user's fresh Ready. No kernel/package rebuild or Denial build.
+
+## Rust framebuffer layout and fixed-frame helper (r53, 2026-09-11)
+
+Previous r52 is progress: exact endpoint/zero-brightness component and 20 offline
+cases passed. Independent work continued while fresh Deck authentication Ready
+remains pending; Q, L and the prepared authentication receipt are unchanged.
+
+`oled-frame-r1` now contains a dependency-free Rust layout decoder and row-wise
+fixed-frame generator. It accepts only the bounded 248-byte LP64 little-endian
+record framing, exact msmdrmfb packed truecolor 1080x2448 32-bit geometry, bounded
+stride/memory, supported RGB/BGR byte orders and alpha semantics, no panning,
+interlace or rotation. It emits metadata or one fixed frame, with at most 16 KiB
+row buffering. It opens no framebuffer/DRM/backlight device and performs no ioctl.
+The caller must still bind actual ioctl data to its admitted same-boot device.
+
+Initial tests failed as expected before implementation; ten passed after it.
+Current kernel drm_fb_helper.c inspection added depth24 XRGB alpha offset zero
+coverage. Clippy found two idiom warnings, corrected without suppression. More
+importantly, ARM64 C ABI assertions rejected the initial vmode/rotate offsets;
+those are 132/136, not 136/140. The corrected target C program emits actual
+struct bytes for end-to-end parser input, avoiding a shared test-offset mistake.
+Final Rustfmt, Clippy (-D warnings), 13 release tests in 0.02 s and ARM64 ABI
+checks pass. Earlier terminal failures are retained in their own directories.
+
+The final validation/build took 2.770 s; a separate cross-build took 1.056 s.
+Both static-PIE ARM64 binaries match SHA
+`ed3e8081da90506bfc085b1fc74aeb59f56644949022dc2133fb9f7f5d4564bf`,
+1,252,408 bytes. All owned build containers were removed, no OOM/cleanup error,
+and sources stayed unchanged during their runs. The immutable Rust 1.98.0 image
+is retained; memory512MiB/no swap/network-none/one CPU limits were used.
+
+Twelve actual native/ARM64 process scenarios complete in 0.340 s. Native render
+0.031 s and QEMU ARM64 render 0.125 s produce identical 10,653,696-byte frames
+(4352-byte fixture stride), SHA
+`859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`.
+Truncation, extra bytes, bad magic, interlace, rotation, absent CLI option and
+/dev/full output failure refuse. A PNG decoded row-by-row using only standard
+Python libraries was visually reviewed: up-arrow/TOP, RGB bar, corner markers
+and border are readable and correctly oriented. This is generated output,
+not a phone image or physical scanout result.
+
+Recurring-tool improvement: the minimal compiler image lacked fmt/Clippy, as
+older receipts already recorded. Exact supplementary 1.98.0 tools are now in
+`rust-tools-r1`, verified against retained manifest SHA `3f7d139b…`; 2,484,924-byte
+Rustfmt and 5,379,668-byte Clippy archives were streamed and hash checked. The
+read-only overlay supplies only those tools; the compiler image is unchanged.
+No systemwide install or Denial/kernel/module/package rebuild was performed.
+
+Component result SHA `7638ae1d4a168c9c35abe521d9721ed67b3d5d661c553aaead4598b6e1ac54cd`.
+Next: guarded actual ioctl collection, same-device frame write and bounded
+brightness/blank integration, alongside the already prepared authentication
+check. No phone/query/network/claim action or password window occurred in r53.
