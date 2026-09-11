@@ -2073,3 +2073,43 @@ was patched during the capture, no kernel rebuild/full CI repeated, and no
 additional phone cycle or claim was created. The combined-DT notes patch was
 applied only after execution terminated. Overall automated trial remains FAIL;
 physical headless kernel/capture observations passed at their stated scope.
+
+### 2026-09-11: OLED 05941 signed wrapper twins and static autoload (r47)
+
+Private `oled-boot-package-prep-r1` adapts only OLED input/qualification checks
+from the retained successor packager. Signed/AVB/cleanup implementations and
+sealed verifier remain unchanged. Twenty-two focused checks pass in 0.389 s;
+actual input inspection passes in 0.615 s under the required 512-MiB/no-swap cap.
+The first inspection used stale larger limits and was refused before key access.
+
+`oled-boot-package-r1` was killed by its cgroup limit during second-side repack.
+Kernel evidence shows 503,865,344 dirty file-cache bytes at the 512-MiB cap.
+Both completed signature receipts, partial wrapper and unit/kernel logs remain
+retained. It has no final qualification; its output must never be reused.
+
+With unchanged source and input hash `96f0fa20…`, a fresh
+`oled-boot-package-r2` passed all 18 stages with `MemoryHigh=256M`, unchanged
+512-MiB maximum and no swap. Systemd reports about 75 seconds and 361.5 MiB peak;
+all stage return codes and cleanup checks pass. Both signatures and all five
+bundle-member twins match. Both raw images are 129,966,080 bytes; measured AVB
+capacity selects 128 MiB. Boot SHA `08922813…`, manifest `95d0748d…`, recovery
+`b9099828…`. Both AVB checks and sealed signature/plan verification pass.
+Bundle `oled-05941-a2be906cd7b36636`, trial `b52ead05…` remain unregistered with
+no boot admission. The AVB footer uses algorithm NONE; bundle trust comes from
+the verified embedded signature, not an AVB signing claim.
+
+`oled-root-autoload-r1` passes in 0.794 s. Inherits the pinned retained root
+inventory after exact metadata checks, streams the new 724-member archive and
+catalog, checks exact current init/loader source, verifies the two module hashes
+and ABI, and repeats four host kmod dry-run refusals. No configured automatic
+display loader was found. Host search-path fixtures do not execute Arch coldplug;
+retained root inventory is not a newly recomputed full-root content hash. New DT
+built-in MDSS probing, effective boot controls and physical panel behavior remain
+unqualified. No phone command, reboot, flash, partition write or new claim ran.
+
+After-run improvement: earlier memory throttling solved the observed packaging
+failure while keeping its hard limits. Preserve both attempts and successful
+artifacts; proceed to new profile/controller qualification without rebuilding
+kernel/modules or repeating the completed packaging work. The user's readiness
+was released when preparation failed; request fresh availability only after the
+entire physical session is prepared.
