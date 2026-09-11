@@ -59,6 +59,13 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r55: distinguish an authentication timeout from a demonstrated keyboard or
+password failure. Window-tree evidence proves creation only. Keep the existing
+bounded cleanup, verify dialog/probe disappearance, preserve the terminal
+attempt and prepare the next unique output before requesting another Ready.
+Reuse unchanged passing tests and pins; do not reopen a prompt on expired
+availability or change working authentication code without failure evidence.
+
 OLED r54: a read-only framebuffer open is still a driver operation. Gate it on
 the admitted blanked display state, not merely a matching filename. Verify an
 O_PATH handle's character-device identity before reopening that owned inode;

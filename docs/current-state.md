@@ -215,25 +215,30 @@ and fresh one-use lifecycle, then fully prepare display capture, late REFGEN/pan
 loading, endpoint discovery/blanking and the physical prompt before fresh Ready.
 Reuse the passing kernel, modules, payload, wrapper and A01 result. Current-source
 health remains r48 uptime 5849.97 s and requires a brief live recheck before
-mutation. No operator is being asked to wait for preparation or authenticate now.
+mutation. The r55 authentication outcome and prepared retry are recorded below.
 
-The r51 actual handoff check is **fully prepared, awaiting fresh Ready**.
-`oled-live-driver-r1/handoff-preparation-r1/prepared.json` pins its source, host
-boot, inputs and unique output. On Ready, briefly verify those pins/source and
-that `privilege-probe-r2` is absent, then immediately run the recorded command
-with `--run-id r2 --authenticate`. Use the local touch password keys and Unlock;
-never request the password in chat. This checks actual sudo/root guardian and
-runuser-to-deck handoff for capture and SSH profiles only. No phone handling,
-network/phone action, claim, boot admission or physical countdown is involved.
+The prepared host authentication check ran immediately after fresh Ready in
+r55. Attempt `oled-live-driver-r1/privilege-probe-r2` is terminal **FAIL:
+authentication timeout**, 300.014 s. The password window was observed in the
+Deck window tree at 04:56:10 UTC, but authentication did not complete. Stderr
+was empty; no user report establishes whether the window was accessible or its
+keys worked. Do not infer a wrong password or a keyboard defect from this result.
 
-Preparation passes 16 guardian/bridge tests in 6.926 s, three bridge/supervisor
-integration cases in 1.959 s and 16 fallback-transport cases in 0.900 s. These
-use real subprocesses, pipes and pidfds with explicit sudo/root/phone fixtures.
-The actual root check is still NOT RUN. Tk import, executable metadata and
-graphical environment pass without opening a window; the 31-file input lock and
-clean Q source `462cef05` remain exact. Do not repeat the terminal sudo-n failure
-or these prepared tests after Ready. If a current prerequisite changes, release
-the operator and fix it independently. No hardware observer or auth job is live.
+The bounded runner killed its owned authentication group and reaped sudo.
+Terminal inspection found no remaining dialog/probe process or password window.
+Neither capture nor SSH privileged profile ran. No phone/network/claim action,
+boot admission or phone change occurred. Preserve the attempt; never reuse r2.
+
+Fresh attempt r3 is fully prepared in
+`oled-live-driver-r1/handoff-preparation-r2/prepared.json`, SHA `99e6ff62…`.
+It retains the exact source, host boot, six file/mode pins, dependency map and
+previous 35 passing preparation tests. Tk import and graphical environment were
+checked without opening another window; Q `462cef05` remains clean. No build or
+unchanged test suite was repeated. On a new Ready, briefly verify those pins and
+absent `privilege-probe-r3`, then immediately run the receipt's command with
+`--run-id r3 --authenticate`. Use local touch keys and Unlock, never chat input.
+This checks sudo/root guardian and runuser-to-deck handoff only; actual root
+handoff is still NOT RUN. The user is released from waiting; no auth job is live.
 
 After this short host check, continue live OLED lifecycle/registration and
 prepared display load/discovery/blanking work. Human display availability remains
@@ -257,7 +262,7 @@ Framebuffer discovery then requires zero, the same display subtree, msmdrmfb,
 1080x2448 at nominal 60 Hz and 32 bpp. It does not open /dev/fb0 or prove pixel
 layout, refresh timing, visible output or GPU acceleration. Enclosing admitted
 module-load/health/monitor/deadline and fixed-frame integration remain pending.
-The r51 prepared authentication receipt/source is unchanged and unstarted.
+The r51 prepared authentication source was unchanged in r52; r55 records the later attempt.
 
 The r53 Rust fixed-frame helper is now prepared in `oled-frame-r1`. Independent
 ARM64 static-PIE builds match SHA `ed3e8081…`, 1,252,408 bytes; final validation/
@@ -282,7 +287,7 @@ The previously missing Rustfmt/Clippy 1.98.0 tools are now staged separately in
 `rust-tools-r1`, verified against the retained release manifest hashes. They
 work with the existing immutable compiler image, avoiding another repeat of the
 known missing-tool failure. No systemwide install, compiler/kernel/package rebuild,
-phone action or authentication attempt occurred. The r51 authentication session
+phone action or authentication attempt occurred in r53. The r51 authentication session
 remains prepared and unstarted; a goal continuation does not count as Ready.
 
 The r54 import-only `oled-display-component-r1/framebuffer.py` collects the
@@ -302,7 +307,7 @@ Physical framebuffer open/GET ioctls are NOT RUN. The collector returns raw
 capture, not a false Rust-layout or physical-scanout pass. Same-boot frame
 creation/write, brightness session and enclosing load/health/capture/deadline
 integration remain pending. Endpoint/frame binaries and prepared authentication
-inputs remain unchanged; the user has not supplied fresh Ready.
+inputs remained unchanged in r54. The later r55 Ready/timeout is recorded above.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -311,7 +316,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r55 for the host authentication timeout/prepared r3 retry, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
