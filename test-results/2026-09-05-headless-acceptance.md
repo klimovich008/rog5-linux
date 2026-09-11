@@ -8623,3 +8623,19 @@ bytes; no matching firmware filename exists in the exact726-member boot archive.
 Current config/GPUCC inert packaging recorded. No hardware action, build, image
 edit or GPU acceptance. Prepared visible r101 source/launch pins unchanged and
 show-r1 absent; fresh Ready remains pending.
+
+### r103 real-phone timed visible command sequence
+
+PASS_VISIBLE_COMMAND_COORDINATOR after fresh Ready. Visible command receipt at
+4.926 s; 10653696 bytes written/read exactly in 1.453 s, cached SHA
+`859231dae5b6f5c8c80361a0cfcf748cd605f662ee3e9722ab8fda0f377276a8`.
+Brightness32/1023 commanded for20.008 s; 72 state samples; component22.796 s.
+Independent KD_TEXT restoration and brightness0 PASS; workers and SSH reaped.
+Complete90-second kernel recording:0 records. Full health PASS at9081.12 s
+uptime on unchanged boot. No module action, reboot, flash or GPU activation.
+The fresh Ready launch and target entry are consumed; no retry allowed.
+
+Optical acceptance PENDING actual operator reply. The observation prompt was
+submitted after the visibility receipt; UI delivery timestamp is not independently
+recorded. Command/readback results remain distinct from human observation.
+Evidence: visible-host show-r1 results and visible-run-summary-r103.json.

@@ -1,5 +1,45 @@
 # ROG5 current state
 
+Latest r103, 2026-09-11: **the prepared visible command sequence, cleanup,
+kernel recording and final health passed after a fresh user Ready**. The actual
+screen-observation reply is still pending. Do not count command/readback success
+as optical acceptance. No further physical action or countdown is running.
+
+**The r101 launch is now consumed. Never rerun prepared-visible-run-r101.json,
+show-r1, or the target marker /run/rog5-oled-visible-validation-r1-entered.json.**
+Preserve all executed sources, old failures and one-use entries. The r101/r102
+waiting and launch instructions below are historical and superseded by r103.
+No currently unconsumed visible session is prepared.
+
+Ready-to-visible receipt took 4.926 seconds; the observation prompt was submitted
+immediately after that receipt was read. The messaging tool supplies no persisted
+delivery timestamp, so exact UI-delivery latency is not independently measured.
+All 10653696 framebuffer bytes matched the cached pattern after 11 writes in
+1.453 seconds. Brightness32/1023 was commanded for 20.008 seconds with 72 owned
+state samples. The component completed in 22.796 seconds. Independent cleanup
+restored KD_TEXT and brightness0; both target workers and SSH were reaped.
+The complete 90-second kernel log contains zero new records. Full health passed
+at 9081.12 seconds uptime on unchanged boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`. Total Ready-to-final-health: 94.148 seconds.
+No module load, reboot, flash or GPU enablement occurred.
+
+Evidence: `oled-startup-visible-host-r1/show-r1/result.json`, `visible.json`,
+`ready.json`, and `oled-startup-experiment-r1/visible-run-summary-r103.json`.
+The original frozen coordinator result correctly retains physical_scanout_verified
+false. Save the actual operator reply separately, bound to the visible receipt
+hash; retain command evidence unchanged. If the report is black/partial/wrong,
+use it to choose the next diagnostic before preparing another human test. If the
+report confirms the complete upright pattern, record that narrow optical result;
+it does not establish GPU acceleration, touch or Denial operation. The offline
+GPU input audit from r102 remains valid. The contemplated firmware packaging work
+was interrupted before any package was created so fresh Ready could run at once.
+
+After-run improvement: immediate prepared execution worked without new staging,
+rendering or builds. Keep that workflow and record its measured latency. Retire
+the consumed launch prominently in the authoritative state and checkpoint now,
+avoiding accidental reuse of the older waiting paragraphs during handoff.
+
+
 Latest r102, 2026-09-11: **offline GPU input binding advanced while the
 r101 visible test remains fully prepared and unentered**. This continuation
 was not a fresh user Ready, so no phone command or physical test ran. On an actual
