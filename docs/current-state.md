@@ -532,7 +532,8 @@ as the inherited USB sample; failures stay latched. Finish requires the same own
 boot/monitor, a terminal component result with no cleanup errors, a reaped remote
 worker, exact zero-command evidence and newly collected full health after cleanup.
 Normal owner loss does not prevent verifying independent completed cleanup.
-The bounded target backend must still produce and validate these records.
+The r65 module backend below now produces target records; the host coordinator
+still must validate and convert them into monitor closure records.
 
 Final **19 checks pass in 2.155 s** (2.624 s runner). A real host child and Unix
 socket run through `Owner.start()` → live probe → gated finish → reaped exit.
@@ -552,14 +553,41 @@ qualification reader against 13 source files and 15 evidence references. Result:
 frame checks are inherited only for unchanged source. Q `538fab85`, the r61 boot
 qualification, and the unused OLED pending claim remain unchanged.
 
-**Next:** implement the bounded authenticated SSH backend and host coordinator for
-the prepared module/frame components, using the r64 owner/monitor and r63 health
-reader. Preserve a target-side deadline and independent zero cleanup if the SSH
-connection or normal monitor authorization fails. Produce the exclusive phase
-entry and validated terminal/blank/worker/full-health records before monitor finish. The boot launcher is prepared offline; the whole display
-test is not yet prepared. Preserve its unused pending claim until actual launch.
+The r65 target module supervisor is implemented and passes **28 offline checks**:
+22 real process/socket/pipe cases in 4.009 s, plus six root-owned RAM/source
+validation cases in a private user/mount namespace in 0.008 s. Summed runner time
+is **4.243 s**. `oled-module-backend-r1/backend.py` is SHA `303e9075…`;
+its result is SHA `f14c31c0…`. Phone identity, sysfs and module effects are explicit
+fixtures. No target SSH session, module insertion or physical display test ran.
+
+The fixed backend accepts only sequenced start/lease/entry-ack/stop records bound
+to boot, owner and monitor receipt. It uses the unchanged exact module and endpoint
+sources, a global target flock, an exclusive RAM entry and host acknowledgement
+before insertion. The lease is three seconds; total normal lifetime is 60 seconds.
+Worker and helper process-group closure is checked. After entry, a separate
+same-boot zero worker runs even on EOF, expired lease, component failure or blocked
+normal worker. Cleanup has four seconds plus a two-second reap allowance. A stuck
+kernel task can prevent closure; incomplete reap or zero readback remains FAIL.
+These are command/readback checks, with no optical-darkness or scanout claim.
+
+Actual fixture cases prove refusal of duplicate starts/entries/sequences, wrong
+owner/monitor/ack, expired/missing lease, overlapping owners and retained entries.
+They exercise real worker kill/reap, closed input/output, independent failed or
+hung cleanup and changed-boot refusal. The root-file checks use the actual pinned
+component sources. Their initial namespace setup could not read protected host
+PID1 and failed before mounting anything; the corrected fixture captures its own
+host namespace before unshare. That failure remains retained. Only those six
+checks were rerun; the passing 22-case suite and earlier components were reused.
+
+**Next:** connect host RAM staging and authenticated duplex SSH to this fixed
+module backend using the r64 owner/monitor and r63 health reader. Validate remote
+terminal/zero/process records and create the exclusive host phase entry before
+acknowledging target entry, then collect full health before monitor finish. The
+frame target supervisor/coordinator also remains. The boot launcher is prepared
+offline; the whole display test is not yet prepared. Preserve the unused pending
+OLED claim until actual launch. Current Ready was released immediately on this
+missing prerequisite; it must not be reused for a future physical test.
 No phone query/write, password window, recording or operator request is active.
-User availability is released; request a fresh Ready only when needed and ready.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -568,7 +596,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r65 for the bounded target module supervisor, r64 for owner/monitor lifecycle qualification, r63 for boot/health provenance and current transport/sampler, r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
