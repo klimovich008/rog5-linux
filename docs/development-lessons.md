@@ -1210,3 +1210,22 @@ claim while preparing the next module test. A refgen supply deferral is expected
 while its deliberately staged module remains unloaded; verify actual module
 presence/load state before treating the log as a missing DT regulator or building
 another kernel.
+
+### r94: match runtime ancestry before module staging
+
+The module loader's no-writable-parent assumption rejected the actual root-owned
+sticky1777 `/run`, although both payload directories are root0755. Hold each
+no-symlink directory descriptor, accept only that literal sticky root ancestor,
+and continue rejecting writable payload descendants. Stage new workers below
+root0755 `/run/initramfs`; inspect the actual helper/modules/descriptor before
+asking for availability. The same extracted read-only input functions passed on
+the phone in0.430 s; no module operation was needed to discover this mismatch.
+
+Namespace fixtures must set modes explicitly despite umask077 and execute
+root-only backend tests in their declared root user namespace. Match `/run`
+filesystem evidence to its active device number, since a private test mount can
+obscure an older mount at the same path. Preserve those failures and rerun only
+the affected suites. For new SSH kernel logs, direct bounded disk output avoids
+coupling log delivery to synchronous controller callbacks; real-child burst,
+closure/cancellation tests and actual same-boot read-only heartbeats are separate
+proofs from a hardware module test.

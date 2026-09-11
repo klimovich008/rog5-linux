@@ -1,5 +1,61 @@
 # ROG5 current state
 
+Latest r94, 2026-09-11: **current-kernel module primitives and a rootless
+SSH kernel logger pass focused checks; the assembled module test is not ready**.
+No module insertion, brightness write, reboot, new boot claim, password prompt
+or availability request occurred. Previous r93 is progress: actual kernel boot,
+health evidence and a reproduced/fixed recorder failure changed the next action.
+All executed boot sources and consumed claims remain frozen. Never rerun r92.
+
+Current target health passed in1.792 s at685.99 s uptime on unchanged boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`, startup bundle/kernel05941 and its healthy
+selection. Read-only input discovery found the expected matching helper/module
+hashes, no prior OLED component entry, and actual root-owned `/run`1777,
+`/run/initramfs`0755 and payload directories0755. Descriptor SHA is
+`f7a4bd79bff9ca17339fb2144ba36498067c3eb92ca0caf53d7d11da573b858b`.
+
+Separate source copies: `oled-startup-display-component-r1` and
+`oled-startup-module-backend-r1`. Endpoint/fixture identities now bind the exact
+startup descriptor/bundle. Payload traversal holds no-symlink descriptors and
+requires root UID/GID; only the literal root-sticky1777 `/run` is accepted as a
+writable ancestor, while writable payload children still refuse. Replacement
+checks and held descriptors remain enforced. Backend staging now requires a
+root0755 `/run/initramfs` parent on the active `/run` tmpfs device. The old host
+coordinator still uses `/run`; do not execute it with this backend.
+
+72 focused cases pass: endpoint20, module-loader17, actual private-tmpfs
+ancestry5, backend-context8 and backend-process22. Initial backend fixtures
+failed because umask077 created the supposed0755 parent as0700, the test mounted
+an additional `/run` over the old mount, and process tests lacked their root user
+namespace. Fix explicit fixture mode/namespace; match tmpfs to the active
+`st_dev` rather than rejecting an obscured mount record. Only the affected two
+suites were rerun (0.115/4.130 s). Module/sysfs effects remain fixtures. The exact
+new endpoint and held-FD read-only input functions also passed on the ARM64 phone
+in0.430 s. They read the staged helper and two modules without inserting them.
+
+The existing module runner already drains its process pipes while polling its
+lease; it does not share the startup supervisor's synchronous drain gap. New
+`oled-startup-module-monitor-r1/kernel-log.py` instead adds authenticated live
+`/dev/kmsg` recording to bounded disk files. It requires the exact USB route,
+host key, source and current boot; produces readiness/heartbeats/terminal result;
+limits lifetime/output, owns/reaps its SSH child, and changes no host networking
+or sudo policy. Seven process/file fixtures pass in3.964 s, including a >1 MiB
+burst while the parent does not poll, wrong boot, missing terminal, stderr and
+cancellation. Actual read-only15-second phone capture passed and reaped in
+15.412 s, with same-boot heartbeats and terminal closure. No new kernel message
+arrived, so actual nonempty kmsg decoding is not claimed from that run.
+
+Evidence: `oled-startup-experiment-r1/module-components-final-r94.json`,
+`module-component-tests-r94` and `module-component-tests-r94-r2`,
+`module-input-validation-r94`, plus `oled-startup-module-monitor-r1/phone-readonly-r1`.
+The new logger and backend are **not module admission or a complete hardware
+session**. Remaining: assemble a separate current-boot provenance/owner binding,
+connect logger liveness to the module lease and independent blank cleanup,
+update and qualify protected-parent staging, and validate the full composed
+failure/cleanup path. Preserve the failed startup trial as FAIL; do not fabricate
+its missing capture closure. Prepare everything before asking fresh availability.
+No kernel/module/image rebuild or Denial build was needed.
+
 Latest r93, 2026-09-11: **new kernel boots and remains healthy; full
 startup trial FAILs on missing recorder closure**. No user action is pending;
 leave USB connected. **Never rerun `prepared-run-r92.json`, `trial-launch-r1`,

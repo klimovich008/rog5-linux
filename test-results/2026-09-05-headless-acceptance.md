@@ -8470,3 +8470,19 @@ SMMU faults. The matching REFGEN and panel modules are staged and intentionally
 unloaded; no DRM connector or module-insertion result exists. No new kernel
 build is justified from this observation alone. Next work prepares guarded
 module bring-up with reliable recording on the current healthy boot.
+
+## r94: prepare current-kernel module inputs and logging
+
+Same-boot authenticated health passes at685.99 s. Matching helper, REFGEN and
+panel files remain staged and unloaded. New endpoint/loader and backend sources
+bind the current startup descriptor and actual protected RAM ancestry.72 focused
+cases pass, with root/module/sysfs fixture scopes explicit. Actual extracted
+read-only endpoint/held-FD checks pass on ARM64 in0.430 s; no insertion occurs.
+The two initially failed backend suites were corrected and rerun independently.
+
+The separate rootless SSH kmsg logger passes7 process/file tests in3.964 s. Its
+15-second live read-only run confirms same-boot readiness, heartbeats, terminal
+closure and reaping in15.412 s; no new kernel records arrived. This does not prove
+module operation or replace the failed startup trial's missing23-minute record.
+Full module owner/lease/cleanup/staging integration remains unqualified. No new
+operator availability, password window, claim, reboot or brightness write.
