@@ -2497,3 +2497,55 @@ kernel/display artifacts and avoids whole-frame buffering. Guarded device write,
 bounded brightness and the existing load/health/capture/controller integration
 are next. Physical OLED/touch/Adreno remain unqualified; no phone was queried or
 changed this turn. Denial/Flutter builds remain deferred behind kernel hardware.
+
+## Guarded frame write/readback (r57, 2026-09-11)
+
+Previous r56 is progress: actual host authentication/root handoff passed and the
+sealed ARM64 frame component passed. No process was left running, and no Ready
+or password request is pending. This turn implements the next device-write
+component offline without querying or changing the phone.
+
+`oled-display-component-r1/write-frame.py` imports the exact frame component.
+`write_once(frame, capture, boot, authorize, enter)` requires the owner's current
+admission/full-health/monitor predicate and durable one-use entry callback. It
+verifies sealed bytes against their receipt, consumes in-process frame ownership
+before invoking entry, then requires a fresh matching framebuffer GET capture.
+It validates an O_PATH descriptor before reopening that owned inode O_RDWR;
+1-MiB positioned writes/readback renew the exact endpoint/boot/blank/node/layout
+and admission checks. Success requires exact lengths and a matching full frame
+hash. There is no brightness write, mode-set, mmap, unload or retry.
+
+Short writes retain their acknowledged count and stop. A write exception records
+an uncertain outcome without assuming zero kernel side effects. Durable-entry
+uncertainty consumes the local attempt and stops before device open. Cleanup
+closes both device and path descriptors; close errors preserve the write/readback
+counts and force FAIL. Ten-second between-syscall deadline checks supplement,
+but do not replace, the enclosing owner's bounded worker and cleanup.
+
+Exact kernel revision `05941d04803f54208da1e9920a81874edc540ca1` and five
+inspected files are unchanged against HEAD: DMA fbdev operations, fb_chrdev,
+fb_sys_fops, fb.h and fs/open.c. They establish the source paths for positioned
+read/write and deferred damage notification. They do not establish actual driver
+binding, damage completion, physical refresh timing or visible OLED output.
+
+Initial 16 tests passed in 3.131 s. Review added mid-write boot/deadline changes
+and a close-error case, and fixed cleanup to retain partial/completed-write
+evidence. Final **19 tests pass in 3.855 s** (4.022 s runner). The successful
+10,653,696-byte fixture frame writes in 11 chunks and reads back the identical
+SHA `859231da…`, in **0.096920 s**. Source/capture/entry/authorization refusal,
+node replacement, layout/brightness/boot changes, short/uncertain write, corrupt/
+short readback, closed frame, changed receipt, timeout, close errors and one-use
+refusal are covered. All cases check descriptor inventory. Actual memfds, ARM64
+renderer through QEMU, file pwrite/pread and descriptor operations are used;
+char-node/sysfs/ioctl, admission and durable entry are explicit fixtures. The
+mid-write deadline case advances a simulated clock. No physical framebuffer was
+opened. Receipts and logs remain under `oled-display-component-r1`; final result
+`write-result-r1.json` is SHA `da73f546…`.
+
+After-run review: the small writer/readback adds about 0.097 s in the file fixture;
+no unchanged build or large test was repeated. The useful scoped improvement
+was preserving known and uncertain write outcomes through cleanup failures.
+Next is bounded brightness/blanking and integration with the existing admitted
+module-load/full-health/monitor/entry controller, then complete preparation before
+fresh physical Ready. OLED/touch/Adreno remain unqualified. Authentication r3
+PASS is retained; no new password attempt, phone/network/claim action occurred.

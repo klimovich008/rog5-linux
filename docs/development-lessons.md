@@ -59,6 +59,15 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r57: preserve partial-write evidence even if descriptor cleanup fails.
+Track acknowledged bytes separately from a syscall whose result is uncertain;
+never continue a short write or retry an entered frame. Check the exact sealed
+frame against a fresh device capture, then retain zero brightness and renewed
+boot/node/layout/admission checks during both chunked writes and memory readback.
+Positioned I/O and readback support come from the exact kernel source; neither
+readback nor a between-syscall deadline proves visible scanout or bounds a stuck
+kernel call. Keep the enclosing worker deadline and final hardware observation.
+
 OLED r56: bind rendered output to the entire captured boot/node/layout record
 and execute a sealed copy of the pinned helper, so later source-path replacement
 cannot change the frame. Stream bounded output into a sealed descriptor; verify
