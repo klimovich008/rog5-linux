@@ -8966,3 +8966,26 @@ launcher prepare and silent local touch-display setup pass. Noninteractive sudo
 requires local authentication. Saved command awaits fresh Ready; no password
 window, phone mutation, module insertion or reboot started. Evidence:
 gpu-launch-preparation-r119/completion-r119.json.
+
+
+### 2026-09-12 r122: GPU boot, collector failure and independent current health
+
+Fresh Ready started prepared authentication; PASS, no retained password. One GPU
+RAM boot consumed gpu-source-05941-r1. Authenticated discovery reached boot
+946acb59-744e-4bbc-b291-ac6b2e05f3fe on gpu-05941-52181a3157c26029.
+Original health collection failed because its131072-byte binary-reader bound
+rejects the1054648-byte sealed ZAP firmware. Original generated reader reproduces
+that defect on the packaged firmware. Corrected generated reader and existing
+health validation pass35 focused checks in0.199 s, using64 KiB streaming reads,
+exact sealed sizes and unchanged identity/metadata/marker validation.
+
+Full23-minute capture PASS and cleanup complete, worker reaped;246 diagnostic
+kernel records, no gaps/malformed records. Fallback location refused the surviving
+GPU identity. Original launcher/trial remain FAIL; GPU session null, no query or
+module insertion. After launcher exit, separate corrected health PASS in1.796 s:
+same boot, health commit65.311 s/observation1359.03 s, all12 files, storage/power
+and service/timer guards passed,30.3 C. Read-only inventory PASS in0.440 s confirms
+GPUCC/REFGEN/panel absent and GPU SMMU/GMU unbound, while Adreno/DPU platform drivers
+are bound. No acceleration, scanout, full-kernel or S06/R01 acceptance is claimed.
+No sudoers change/password retention. Evidence: gpu-health-reader-fix-r122 and
+original gpu-controller-r1/execution and gpu-live-driver-r1/trial-launch-r1.

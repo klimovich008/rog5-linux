@@ -1,5 +1,59 @@
 # ROG5 current state
 
+Latest r122, 2026-09-12: **GPU candidate boot is running and independently
+healthy; original combined trial FAILED before GPU initialization**. Fresh Ready
+started the prepared local touch authentication immediately. It passed with no
+password retained. Claim gpu-source-05941-r1 is consumed; r119 prepared command
+and gpu-live-driver-r1/trial-launch-r1 are retired. Exec99419 exited normally;
+controller PID859589 is finished. Do not replay that command or its old source.
+
+The exact candidate gpu-05941-52181a3157c26029 /7.1.4-g05941d04803f reached
+authenticated SSH on boot946acb59-744e-4bbc-b291-ac6b2e05f3fe. Original health
+collection failed with `file type/size`. Full23-minute capture and all owned
+cleanup PASS; worker reaped, no launcher cleanup errors. Recovery then refused
+`wrong or reused boot identity`: the phone remained on the GPU candidate instead
+of V11. Original result remains FAIL, with selection restoration unproven by that
+controller. No second boot or forced reset occurred. GPU session never started.
+
+The actual packaged1054648-byte ZAP firmware reproduces the reader failure: the
+reused sealed-binary reader allowed only131072 bytes. Separate candidate
+ gpu-health-reader-fix-r122 streams64 KiB chunks, requires each exact sealed size,
+keeps a2 MiB absolute ceiling, and retains marker/metadata/digest checks.35 focused
+checks pass in0.199 s. The original pinned health/launcher inputs are unchanged.
+
+After original launcher exit, the corrected read-only health check PASSED in
+1.796 s. Same boot, healthy selection813f108a..., health committed at65.311 s,
+observed uptime1359.03 s, all12 runtime files verified, protected storage/power
+checks pass, Wi-Fi services active and rollback timers inactive. Battery health
+Good, temperature30.3 C. This separate result does not rewrite the failed trial.
+Read-only inventory PASS in0.440 s: GPUCC/REFGEN/panel modules remain unloaded,
+first-open markers absent, no backlight registered. Adreno and DPU platform
+drivers are bound; GMU, GPUCC, GPU SMMU and DSI are not. Binding of the Adreno
+platform driver does not prove operational GPU initialization or acceleration.
+
+Capture diagnostic transport retained246 kernel records, without gaps or
+malformed records. It reports GPU SMMU deferred timeout/-110 and Adreno dependency
+timeout; it is unauthenticated diagnostic evidence. Old OLED evidence already
+contains early apps-SMMU faults and DSI PLL warnings, so do not label those new
+regressions. Current kernel taint is4608. No optical observation was performed;
+the earlier missed20-second window remains UNOBSERVED_OPERATOR_MISSED_WINDOW.
+
+Next prioritize a separately prepared live GPUCC/dependency test on this verified
+surviving boot, with bounded logging/cleanup/recovery. Check actual GPU SMMU
+binding before admitting the first GPU open; determine whether provider binding
+requeues it, rather than assuming the timeout needs a reset. Integrate and review
+the corrected collector for that new session. Reuse existing modules/query and
+full capture evidence where applicable; no new kernel/Denial build is justified
+by the reader defect. Keep all consumed claims and original failures. No fresh
+Ready is needed until an actual human-assisted step is fully prepared.
+
+Evidence: gpu-live-driver-r1/trial-launch-r1/result.json,
+ gpu-controller-r1/execution/close_capture-result.json,
+ gpu-health-reader-fix-r122/{completion.json,phone-health,phone-inventory} and
+kernel-hardware-checkpoint-r122.json. The goal resumed and is active. Password
+prompts were answered: current sudo refreshes worked; normal existing-route SSH
+needs no host sudo. No password storage or sudoers policy change was made.
+
 Latest r121, 2026-09-11: **goal marked blocked awaiting fresh Deck readiness
 and local sudo authentication**. The same blocker persisted across r119–r121;
 r120 and r121 made no progress. Prepared r119 launch and qualification hashes
