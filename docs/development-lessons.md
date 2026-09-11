@@ -998,3 +998,14 @@ overrun, truncation and terminal limits visible. Diagnostic delivery never
 proves boot health. The r78 Rust helper reused the retained toolchain/linker:
 2.810 seconds for focused checks/build and 1.166 seconds for a byte-identical
 ARM64-only twin. Keep this incremental path separate from frozen kernel builds.
+
+
+A compiled helper is not a prepared human-assisted test: finish receiver,
+privilege entry, cleanup and actual staging before requesting availability.
+The r79 handoff arrived with unfinished host code, so the old Ready was released.
+Bind the final launcher and staged inputs in a preparation receipt with an exact
+terminal command. For temporary firewall access, use a narrow expiring rule and
+prove ownership before explicit removal. A timed-out add is ambiguous, not proof
+that nothing changed; retain that uncertainty and never label it cleaned without
+an absence observation. Compare diagnostic terminal counts with authenticated
+SSH output when both are available.
