@@ -1535,3 +1535,20 @@ still does not authenticate firmware execution or initialize the GPU. Fresh
 current-source health took 1.778 s on the same boot. Reuse completed builds/A01
 and these component results while completing the live driver and bounded GPU
 session; a new component pass alone is not a boot-admission or hardware pass.
+
+### r112: keep installed inventory provenance separate from the current trial
+
+The installed V9/V11 catalog was verified against its original healthy record.
+Do not substitute the GPU trial's OLD record into that historical inventory check.
+Keep the catalog origin pinned while adapting current transaction/owner tokens;
+comparison proves all 11 installed entries and boot_b hash unchanged. The 11 ARM64
+observer cases pass in 60.968 s; 33 parser replays take 0.064 s. Treat synthetic
+installed-image/physical data as fixtures, not physical recovery acceptance.
+
+Use the consumed GPU RAM-stage preparation and stage receipts directly. Their
+actual metadata is 0600, with exact content hashes and custody, so no new copy or
+restaging is necessary. Three new refusals prove changed or writable custody data
+cannot reach command intent/transport. The seven callbacks pass 27 retained cases;
+health integration passes 26 more. All suites passed on first execution after
+checking dependencies/fixture paths. Keep these results and move to source-abort/
+transport/driver integration instead of repeating unchanged kernel or A01 work.
