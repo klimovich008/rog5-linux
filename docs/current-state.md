@@ -1,5 +1,34 @@
 # ROG5 current state
 
+Latest r115, 2026-09-11: **GPU admission, root request verification and launcher
+integration pass 92 offline checks**. Previous r114 was progress. No phone action,
+claim creation/consumption, reboot, state write, module load or DRM open ran.
+The latest physical observation remains the r114 read-only installed-route PASS.
+
+source-preparation.py now binds the actual consumed GPU RAM staging and the
+previous OLED boot's exact capture-close failure. It checks prior owners are gone
+without inventing recorder completion. Twenty-three cases passed in 2.170 s.
+The admission input lock verifies 62 files, uses current 0600 custody receipts and
+loads the existing GPU capture bridge. Twenty-six admission cases passed in
+2.469 s, three admission/driver cases in 8.084 s and 32 launcher/credential cases
+in 2.720 s. The original credential keeper and authentication code are reused.
+
+All four complete controller flows passed in 27.880 s: target success, source
+abort, early fallback and late failure with separate fallback recording. Real
+child capture processes ran with explicit fixture clocks; phone, root/network,
+claims and RAM transfer were simulated. Four root-entry/admission integration
+cases passed in 2.470 s, rejecting changed requests, changed admission and
+completed attempts. Production capture deadlines and one-use rules are unchanged.
+All prior r110-r114 pinned evidence is unchanged; no build/A01 rerun.
+
+Evidence: gpu-live-driver-r1/completion-r115.json. live-admission.py and
+trial-launcher.py now exist, but live-qualification.json, source-readiness-r1,
+trial-launch-r1 and the GPU controller execution directory remain absent.
+Next prepare bounded GPUCC insertion and first DRM open with the existing ARM64
+query helper, exact module/firmware, recording and recovery; finish final live
+qualification before creating/consuming a boot claim. No human session ready.
+The missed optical window remains unobserved; prepare a longer next window.
+
 Latest r114, 2026-09-11: **installed-route verification, fallback transport and
 assembled GPU driver pass offline integration**. The only phone action was an
 authenticated read-only installed-route check: PASS in 7.843 s, all 11 installed

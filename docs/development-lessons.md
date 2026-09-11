@@ -1587,3 +1587,19 @@ three malformed transport envelopes before accepting a route receipt. The real
 read-only phone check took 7.843 s. All 65 new cases passed; no expensive build or
 unchanged A01 rerun. Continue kernel bring-up through admission and bounded GPU
 initialization; more offline preparation alone is not GPU hardware acceptance.
+
+### r115: bind the actual predecessor outcome without upgrading failed evidence
+
+The previous OLED trial failed at capture closure even though its RAM boot and
+current-phone health passed. GPU source preparation now pins that exact failure,
+checks controller/worker/launcher disappearance and stopped credentials, then
+verifies the actual GPU RAM-stage transport and custody. It does not require or
+fabricate a successful old recorder result. Twenty-three preparation cases pass
+in 2.170 s. Reuse the retained credential helpers and actual receipt modes.
+
+Cheap interface checks preceded integration; all 92 new cases passed first run.
+The four complete flows took 27.880 s with explicit clock fixtures while retaining
+production lifetimes. Root-entry tests exercise the actual admission policy at
+the caller boundary and reject changed/completed requests. Kernel/GPU hardware
+remains the priority: next prepare first-open supervision rather than extending
+unrelated boot process work or repeating unchanged builds/physical observations.
