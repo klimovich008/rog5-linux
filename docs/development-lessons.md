@@ -773,3 +773,15 @@ including an unmodified read-only host route lookup; all 25 route/process cases
 pass. Keep the original controller failure separate from independently successful
 kernel/capture observations. Do not repeat a consumed phone trial just to test a
 host parsing fix. Preserve executed sources and stage fixes for the next driver.
+
+Disk-backed output still consumes cgroup memory through dirty page cache.
+The OLED packager was killed at its 512-MiB limit with 503,865,344 dirty file
+bytes, while the host had about 10 GiB available. Preserve partial signer
+receipts and entered outputs; do not diagnose host exhaustion from exit 137
+alone. The unchanged runner/inputs passed in a fresh directory with an earlier
+`MemoryHigh=256M` threshold, keeping `MemoryMax=512M` and no swap. Its observed
+peak was 361.5 MiB over about 75 seconds. Carry this invocation policy forward;
+it is evidence for this workload, not a universal prevention guarantee.
+Read the runner's enforced limits before launching: a stale README's larger
+scope caused a 0.115-second inspect refusal before any key access. Corrected
+inspection passed in 0.615 s. No kernel rebuild or unchanged broad CI was needed.

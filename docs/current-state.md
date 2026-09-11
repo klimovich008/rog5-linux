@@ -76,8 +76,8 @@ SHA `d108d868…`, 57,774,563 bytes. It changes only the descriptor and catalog;
 **722 of 724 members**, all 32 loose module copies and the nested radio archive
 are preserved. Ten focused real-newc preservation tests pass in 0.026 s.
 Pair with the retained display-only DT `2ee1ed4b…`; do not rebuild the kernel or
-matching REFGEN/panel modules. This payload and its wrapper recipe are unsigned
-and unregistered, with no boot admission.
+matching REFGEN/panel modules. The signed wrapper completion below supersedes unsigned packaging status;
+the new OLED profile remains unregistered, with no boot admission.
 
 Fresh read-only phone health passes at **4,347.54 s uptime** on the same boot
 with old selection still restored. The 2.045-second probe verifies both exact
@@ -86,14 +86,38 @@ current-release files in the standard `/usr/lib/modules` search tree, no DRM
 nodes or backlight, and no fb0. This describes the current headless runtime;
 new-DT early probing and future effective-root autoload still require checks.
 
-Next: adapt the verified **r2 successor boot packager** to this exact OLED
-identity and preservation receipts, then build/verify signed wrapper twins and
-qualify the new DT/root/controller combination. Its current constants correctly
-refuse this new profile; preserve that historical runner rather than editing its
-executed recipe. `oled-successor-payload-r1/wrapper-recipe.json` carries the new
-bundle/DT/archive and unchanged kernel/timing. Reuse existing matching-kernel
-VM/module closure evidence only for unchanged bytes. Refresh the configured
-root/autoload check for release 05941 and the new display DT.
+OLED signed bundle and boot-wrapper twins now **PASS** in
+`oled-boot-package-r2`, using the exact new identity above. Both wrappers are
+134,217,728 bytes, SHA `08922813…`; raw size 129,966,080 bytes requires the
+128-MiB envelope. Bundle signature, both AVB integrity checks and the sealed
+verifier pass. Manifest SHA `95d0748d…`, recovery SHA `b9099828…`. All 18 stages
+completed without cleanup errors. These are offline artifact checks, not a boot
+admission or physical display result. Do not rebuild these successful twins.
+
+The first attempt, `oled-boot-package-r1`, is terminal **FAIL: cgroup OOM**.
+Both signature receipts survived; the second wrapper is partial. Preserve all
+entered output. Kernel evidence shows 503,865,344 dirty file-cache bytes at the
+512-MiB cap; this was a local packaging limit, not system-wide exhaustion.
+The unchanged runner and exact inputs succeeded in a fresh output with
+`MemoryHigh=256M`, unchanged `MemoryMax=512M`, and `MemorySwapMax=0`: about
+75 seconds wall time and 361.5 MiB peak per systemd. Keep this early throttling
+policy for future packaging. Twenty-two focused checks had passed in 0.389 s.
+
+The refreshed `oled-root-autoload-r1` static check passes in 0.794 s for release
+05941 and the exact new payload. It inherits the retained root inventory only
+after checking its pinned receipt and both unchanged image identities, streams
+the new 724-member archive/catalog, pairs loader/init source, and repeats four
+host kmod dry-run refusals with the new inert display modules. No configured
+automatic display loader was found. This does not execute Arch coldplug or prove
+absence of early built-in MDSS probing with the display DT. Final root content,
+wrapper/controller integration and physical checks remain necessary.
+
+Next: qualify the new OLED profile and corrected controller with the exact
+signed wrapper, paired roots, restored current selection and recovery path.
+Register a fresh one-use trial only after that preparation; never reuse the
+consumed headless trial. Then prepare the controlled late REFGEN/panel load,
+endpoint discovery and blanking checks before requesting fresh Ready. No phone
+command, reboot, flash or claim consumption occurred in r47.
 
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
@@ -102,8 +126,8 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r46 for the new payload and phone check,
-r45 for completed restoration, and r43 for the original kernel trial.
+physical display test is prepared. Use r47 for signed OLED packaging and static autoload evidence, r46 for
+the payload and latest phone check, r45 for restoration, and r43 for the trial.
 
 Earlier coordinator milestones below retain their original scope and timings;
 statements about pending jobs or absent trials there are historical.
