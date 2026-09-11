@@ -677,3 +677,16 @@ still needs the user. Do not record simulated injection as a physical pass.
 SIGTERM to `sudo -A -v` started a replacement askpass during cancellation.
 Terminate the verified owned authentication group on forced abort so the dialog
 cannot outlive cancellation; this path runs no privileged phone command.
+
+The r4 touch authentication succeeded, but its subsequent detached sudo child
+could not reuse the credential. Reading only sudo's record-match function had
+missed the later session-ID check in `timestamp_status`. Follow authentication
+through lookup and acceptance. A shared parent PID is insufficient when each
+child calls setsid. Preserve the session and create separate process groups
+with native `process_group=0`; actual-child tests now assert both properties
+for authentication, refresh, capture and fallback transport.
+
+Full-flow evidence destinations must be fresh before execution. A reused
+default destination cost 7.781 seconds before refusing the copy; the harness
+now checks destination existence before controller.run. The corrected run
+preserved earlier evidence and passed all four cases in 25.566 seconds.
