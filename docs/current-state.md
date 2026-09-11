@@ -1,5 +1,46 @@
 # ROG5 current state
 
+Latest r110, 2026-09-11: **GPU boot capture and its controller ordering pass offline
+qualification**. Reused the retained r93 continuous-drain fix, with a 1 ms yield
+between locked reads so foreground readiness can acquire the pipe lock. The GPU
+capture now binds the current OLED source, new GPU target, staged owner/boot,
+exact state records and the relay config sealed in the qualified GPU payload.
+The controller algorithm is unchanged; only five identity/record constants differ.
+Its execution directory has not been created and live boot admission remains false.
+
+72 distinct cases passed: 21 receiver tests in 0.515 s, 22 supervisor tests in
+19.355 s, 25 controller-ordering tests in 1.517 s and four GPU-binding tests in
+0.716 s. The >1 MiB burst regression passes while the foreground controller is
+busy. Real child streams and socket cleanup were exercised; phone transport,
+privilege and clocks use explicit fixtures. Receiver tests run with the relay
+address and CAP_NET_ADMIN only in a disposable user/network namespace. Success
+and late-failure integration cases prove target capture closes before separate
+fallback capture. These are not physical reboot/fallback or GPU evidence.
+
+Files: gpu-capture-r1/{capture-common,capture-worker,capture-supervisor,
+capture-callbacks,source-read-callbacks}.py and gpu-controller-r1/controller.py.
+Evidence index: gpu-capture-r1/completion-r110.json. Preserve these tested bytes.
+The worker's operational network-source identity remains frozen f02083f4;
+new GPU bindings/controller are separately hash-pinned. Source review and initial
+failed fixture logs are retained. Initial failures were incomplete common-engine
+bindings and missing namespace network setup; one timing failure preceded the
+small drain yield, but its exact cause was not established. The old-relay replay
+fixture initially used a wrong path, corrected to the retained payload config.
+
+No phone action ran in r110. Last authenticated phone health remains r109 at
+13052.51 s uptime on boot229580f9-ac26-4b18-a0eb-ea9c05bc632f. No claim was
+created/consumed, no selection or shutdown write ran, and no reboot occurred.
+The r109 RAM-stage entry remains consumed; do not restage it. Host disk had
+39 GiB free, RAM 9.2 GiB available, swap 65 MiB used. No large build was repeated.
+No human test is prepared or Ready pending. The missed display window remains
+UNOBSERVED_OPERATOR_MISSED_WINDOW.
+
+Next connect this capture component to a scoped root bridge and complete the
+GPU driver/admission using qualified source controls. Finish exact target-health
+bindings and the separately bounded GPUCC/first-open session before consuming
+any boot claim. Prepare a longer optical window with viewing instructions before
+requesting fresh Ready. The kernel and non-cellular hardware remain the priority.
+
 Latest r109, 2026-09-11: **the GPU state-exchange helper and source controls pass
 offline qualification, and their files are now staged in the phone's RAM**.
 Previous r108 was progress. Actual RAM staging plus health checks took6.220 s;
