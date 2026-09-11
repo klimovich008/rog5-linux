@@ -1,5 +1,26 @@
 # ROG5 current state
 
+Latest r76, 2026-09-11: **r75 remains fully prepared and waiting for fresh
+Ready**. No password window or test was started on automatic continuation.
+The retained terminal entry hash and pending exact claim were checked unchanged;
+its execution directory is still absent. Use the r75 Ready instructions below.
+
+Independent kernel diagnosis localized the boot warning: SID 5 is the declared
+PMR735B, and its PMIC_TYPE (0x104) revision read returns -EIO before GPIO and
+temperature-alarm children can be populated. Actual authenticated sysfs readback
+in 0.363 s confirms PMICs 0-4 bound and SID 5 unbound on the same source boot.
+The arbiter's printed 0xcf08 is a status offset. Neither chip absence nor a
+specific firmware-access cause is proven. Compare the ASUS stock inventory
+before changing this declaration; do not suppress the warning or probe registers.
+
+The exact config also has `CONFIG_QCOM_SPMI_TEMP_ALARM=m`; the metadata query
+reported no thermal-zone types beginning pm or battery. Module packaging/load
+and alarm binding need a separate audit before claiming PMIC thermal coverage.
+These are independent follow-ups, not a diagnosis of the missing staging files
+or a change to the prepared OLED trial. Evidence:
+`pmic-sid5-investigation-r1/result.json`. No phone writes, driver rebind, module
+load, kernel build, claim consumption or reboot occurred.
+
 Latest r75, 2026-09-11: **fully prepared; waiting for fresh Ready** to unlock
 sudo on the Deck. No old availability reply may start this session. The fixed
 entry is `oled-staged-experiment-r1/terminal-launch.py`, SHA
