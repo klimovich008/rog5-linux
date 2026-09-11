@@ -3433,3 +3433,43 @@ checks, then prepare the exact separate pending claim. Only request fresh Ready
 once the complete entry has been reviewed and can start immediately. Privileged
 handoff and downstream display binding are no longer pending; current sudo
 authorization and actual OLED hardware results are still unproven.
+
+## r75: prepared terminal launch and pending claim
+
+Latest r75, 2026-09-11: **fully prepared; waiting for fresh Ready** to unlock
+sudo on the Deck. No old availability reply may start this session. The fixed
+entry is `oled-staged-experiment-r1/terminal-launch.py`, SHA
+`9f3f39063cfd6827de0fc8a2f99cdef540464bc981699c5bf2cd50f850494589`.
+Run it through retained exec PTY **44286** with the command in
+`oled-staged-experiment-r1/ready-preparation-r1.json`. Terminal ownership and
+foreground/session checks passed from that actual terminal. Shell PID/SID is
+251096, start 2915076, pts/1, host boot e3393ab5-0cf9-43fd-8bcb-020cf78b1f1b.
+
+The entry performs the local touch askpass authentication, then two independent
+noninteractive sudo validation children in the same controlling terminal, and
+only then invokes the qualified trial with authentication disabled. Cached sudo
+can satisfy the initial authentication without opening a window. No password
+is stored and no sudo policy changes were made. Ten focused tests pass in
+0.298 s (2.319 s runner): auth failure, either reuse failure, changed source,
+foreign terminal, failed qualification, concurrent owner and reused entry all
+refuse before starting another trial. Actual sudo reuse is still unproven.
+
+The exact new claim `oled-staged-source-05941-r1` is registered **pending**, not
+consumed: 1393 bytes, mode 0600, SHA
+`03e8adafe37cef0a5f78e281cba5ce01df1f21e7a674431246013aa4ffade565`.
+The old OLED claim remains consumed. No old record was reset or overwritten.
+Full preparation passed in 0.271 s, and the final actual phone
+preflight passed in 2.833 s on the same de90d177 headless boot,
+with original shutdown, staged helpers, old healthy selection, installed
+V9/V11 files and protected boot_b verified. No phone write or reboot occurred.
+
+On fresh Ready, perform only brief terminal/pin checks, immediately dispatch the
+prepared command and direct the user to the local password dialog. The user
+need not wait beside the phone during the approximately 23-minute automatic
+boot recording. Keep USB connected. Do not rerun the exclusive terminal entry
+or boot claim after entry; inspect its retained result/owner. Runtime output:
+`oled-staged-experiment-r1/terminal-launch-r1`; underlying trial:
+`oled-staged-live-driver-r1/trial-launch-r1`, controller:
+`oled-staged-controller-r1/execution`. Module/frame qualification is already
+prepared; actual OLED boot proof must precede any hardware component run, and
+an illuminated frame still requires separately fresh physical readiness.

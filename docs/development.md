@@ -30,6 +30,16 @@ cause is unknown. An unrelated incident need not block a separately proven fix.
 
 ## Feedback after each run
 
+For sudo reuse, retain the actual controlling terminal and verify its shell
+PID/start, session, foreground process group and host boot. `/dev/tty` reports
+its special device number rather than the underlying pts device; compare the
+process's tty number and foreground ownership instead. The r75 live terminal
+check and ten launcher cases pass. After local authentication, two separately
+owned `sudo -n -v` children must succeed before delegating to the trial. Keep
+this wrapper outside the frozen kernel/controller so authentication preparation
+does not trigger another build or invalidate qualified controller code.
+
+
 The r74 provenance fixtures now shift a running monotonic clock past their
 accelerated capture closure. A fresh 1380-second software recording must be
 replayable immediately; never wait for wall time or relax the production
