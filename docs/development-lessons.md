@@ -1444,3 +1444,20 @@ payloads, signatures, footers and twin hashes still pass. It completed in48.865 
 under the same512 MiB/no-swap limit; writeback took5.775 s. Peak still touched the
 cap, so retain bounded serial execution and do not claim universal resolution.
 Continue from the verified wrapper instead of repeating completed signing/builds.
+
+### r107: separate exact firmware inventories; prepare ignored prerequisites first
+
+The new GPU files share the retained firmware directory with Wi-Fi. Preserve the
+six-file radio inventory and require a registered profile plus exact metadata/
+content for all three A660 files before excluding them from radio enumeration.
+Unknown extra files must still fail. Pass the same profile into the VM fixture;
+registration and file verification do not prove Qualcomm firmware execution.
+
+Fresh worktrees omit ignored boot tools/template inputs. Stage their already-known
+pins before the dependent tests, not after predictable missing-file failures.
+Historical profiles can acquire real claims; an offline-routing fixture should
+isolate its in-memory registry and assert restoration instead of assuming a
+permanently unclaimed production profile.78 focused cases and actual A01 passed.
+A01 took82.835 s, reusing unchanged builds and the VM fixture; before/after sparse
+logical hashes prove both retained roots unchanged. Preserve the frozen integration
+source and completed result for the next admission rather than repeating them.
