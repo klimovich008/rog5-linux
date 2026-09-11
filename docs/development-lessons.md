@@ -1501,3 +1501,20 @@ entry and exact namespace/custody rather than copying or staging another helper.
 No selection/shutdown exchange or reboot ran. Complete recording/recovery
 orchestration before admission; isolated fallback decisions and file-operation
 fixtures still do not prove physical GPU initialization or fallback boot.
+
+### r110: reuse the proven drain fix and validate the whole binding interface
+
+Reuse r93's retained background-drain fix instead of recreating it. The GPU
+adaptation adds a 1 ms inter-read yield and keeps the 8 MiB stream, 16 KiB line,
+65,536-byte stderr and original lifetime/cleanup bounds. The burst regression
+and complete 22-case supervisor suite pass in 19.355 s. A prior timing failure
+has no established cause; do not claim the yield proves a root-cause diagnosis.
+
+A narrow common-module shim omitted PHASES and then the full controller interface.
+Use the actual identity-adapted engine, check the complete interface cheaply, then
+run the real capture integration. Bind the new relay config to the already-sealed
+GPU profile and reject the prior OLED config. Fixtures need their own relay address
+and CAP_NET_ADMIN inside the disposable user/network namespace; host networking
+must remain untouched. A test's retained-file path also needs inspection before
+execution. All 72 cases now pass. Preserve these results and move to root bridge,
+target health and GPU initialization preparation; no unchanged kernel/A01 rebuild.

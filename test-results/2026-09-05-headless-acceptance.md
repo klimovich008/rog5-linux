@@ -8804,3 +8804,22 @@ remaining capture/boot/recovery orchestration and fresh target-health bindings,
 then the separately bounded GPUCC/first-open session, before consuming any boot
 claim or changing the phone's selection/shutdown. No request for operator
 availability belongs before all preparation is complete.
+
+### 2026-09-11 r110: GPU capture component qualified offline
+
+GPU capture binds the current OLED source, new target, exact staged owner and
+boot, state records and sealed relay nonce. Reuses the r93 background-drain fix
+with a 1 ms inter-read yield. Controller adaptation changes identity constants
+only; no live execution directory or durable claim exists. 72 cases passed:
+21 isolated receiver, 22 real-child supervisor, 25 controller ordering and four
+GPU identity/replay checks. Suite wall times were 0.515, 19.355, 1.517 and 0.716 s.
+Target/fallback sequencing and the >1 MiB busy-controller burst passed. Initial
+fixture failures are preserved in gpu-capture-r1; completion-r110.json indexes
+final hashes and evidence. Phone/privilege/clock fixtures do not prove hardware.
+
+No phone actions, builds, state/shutdown mutations, claim consumption or reboot
+ran. Last phone health remains r109. RAM staging stays consumed. Optical result
+is UNOBSERVED_OPERATOR_MISSED_WINDOW, with no human test ready. Next complete the
+scoped capture bridge, driver/recovery/target-health bindings and bounded GPUCC/
+first-open session before live admission. Frozen compiled/operational sources stay
+unchanged; the full Denial goal remains in progress.
