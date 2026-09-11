@@ -1478,3 +1478,26 @@ cases passed, including a90 s fastboot timeout with sealed-descriptor closure.
 The expected claim registry gained one entry with all228 old entries unchanged;
 registration alone is not admission or durable consumption. Keep the next work
 on live state/capture orchestration, not unchanged builds or another A01 run.
+
+### r109: reuse the exchange algorithm and discover source service states
+
+Exact current-source records and a new transaction namespace were sufficient for
+this Rust helper; source review proves the atomic exchange algorithm unchanged.
+Two added tests preserve all three prior namespaces and refuse an old OLED pending
+state.16 native tests, Clippy and ARM64 interoperability passed. Retain the fixed
+ARM64 flag checks/static-PIE linker; twins took1.012/1.029 s without a kernel build.
+
+Read current service states before adapting the V11 controls. The OLED healthy
+service is active/exited, its boot rollback timer is loaded/inactive, and the probe
+timer is absent. The exact observed states now drive the source-action checks;
+a running healthy writer still refuses.38 guard cases and21 action cases passed,
+with separate input-refusal tests. Offline QEMU shell qualification cost121.496 s
+and329.853 s versus1.127 s for actual read-only preflight; these are different
+execution environments, not evidence that phone IO is slow. Reuse the finished
+qualification when inputs are unchanged and focus later checks on changed code.
+
+RAM staging and before/after health completed in6.220 s. Preserve its consumed
+entry and exact namespace/custody rather than copying or staging another helper.
+No selection/shutdown exchange or reboot ran. Complete recording/recovery
+orchestration before admission; isolated fallback decisions and file-operation
+fixtures still do not prove physical GPU initialization or fallback boot.

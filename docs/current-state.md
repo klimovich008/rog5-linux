@@ -1,5 +1,57 @@
 # ROG5 current state
 
+Latest r109, 2026-09-11: **the GPU state-exchange helper and source controls pass
+offline qualification, and their files are now staged in the phone's RAM**.
+Previous r108 was progress. Actual RAM staging plus health checks took6.220 s;
+the subsequent live read-only source preflight passed in1.127 s. No boot selection,
+shutdown installation, helper execution, module load or reboot occurred. The GPU
+boot claim remains uncreated/unconsumed; capture/boot orchestration is not admitted.
+No human test is prepared, no Ready is pending, and optical acceptance stays
+UNOBSERVED_OPERATOR_MISSED_WINDOW.
+
+New helper source is tracked at tools/gpu_state_exchange in
+`60fdf9b63049df67d26280375d23804a5050a01d` (gpu-admission-worktree-r1). Its algorithm is
+identical to the tested atomic exchange: only exact embedded records, transaction/
+intent names and diagnostic labels changed. It uses .gpu-05941-transition and
+preserves the kernel/OLED/startup transaction namespaces.16 native cases and
+Clippy passed. ARM64 static-PIE twins match at1253144 bytes, SHA
+`83bdab961e5bc5bd1456a02a8301b5e904e9806f9091e0da91e0f1dcde3d96cc`.
+The ABI checks include rejecting the wrong ARM64 open flags. Six isolated
+interoperability scenarios executed17 operations with the retained v1/v2 trial
+helpers, including healthy marking, restoration of the original inode and
+refusal after lost replies;0.574 s. Builds took1.012/1.029 s, each under512 MiB,
+no swap and one CPU. All owned build containers exited and were removed.
+
+The new guards preserve the original power, device, partition, mount and custody
+checks and additionally verify the actual four-file startup transaction.38 ARM64
+fixture cases plus6 generator refusals passed in121.496 s. Source actions use the
+observed OLED service states, including the active/exited healthy service;
+21 cases plus4 generator refusals passed in329.853 s. They cover installation,
+restoration, lost/partial replies, locks, replacement races and exactly one reboot
+request. Seven RAM-stage cases passed in29.373 s, preserving all persistent files
+and refusing partial/duplicate staging. These are explicit fixture tests, not
+physical reboot/fallback evidence. The existing kernel, wrapper and A01 were reused.
+
+Actual staged namespace:
+`/run/initramfs/rog5-gpu-05941-eb7eb2d66a88422790d765655143768d`.
+Owner `eb7eb2d66a88422790d765655143768d`; host custody receipt
+`94aa13ff7ec74d5ece82f94c1b627601d7b7e23e85898cfc25dfc6e9fb311f2b`.
+Host entry gpu-ram-stage-r1/live-stage-r1 and its stage-once.py are consumed;
+never rerun them. The staged inventory is state-exchange, shutdown-to-fastboot,
+custody and staging-completed. The existing reboot helper is reused. Post-stage
+health passed on unchanged boot229580f9-ac26-4b18-a0eb-ea9c05bc632f, current OLED
+bundle/kernel and b4d203a8...c4d selection at13052.51 s uptime.
+The actual source preflight verifies the staged files, current service states,
+shutdown, restart provider, absence of a GPU transaction and fresh file locks.
+
+Evidence index: gpu-state-exchange-r1/completion-r109.json. Source guards live in
+gpu-state-guards-r1; source actions in gpu-source-actions-r1; staging evidence in
+gpu-ram-stage-r1. Keep the tested bytes and completed cases. Next prepare the
+remaining capture/boot/recovery orchestration and fresh target-health bindings,
+then the separately bounded GPUCC/first-open session, before consuming any boot
+claim or changing the phone's selection/shutdown. No request for operator
+availability belongs before all preparation is complete.
+
 Latest r108, 2026-09-11: **GPU-specific boot guards and the exact current-source
 transition bytes are prepared and tested offline**. This is progress from r107;
 the live controller is still unprepared. No reboot, module load, display command,
