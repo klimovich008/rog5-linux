@@ -916,3 +916,13 @@ source in the inheritance record and do not claim fresh credentials. Current
 controller replays and the actual read-only launcher preparation then passed.
 Validate evidence metadata, emptiness and size before canonical publication; this
 turn reused the reader contract and avoided r60's archive failures entirely.
+
+Watch backlight registration while a panel insertion helper is still running.
+Waiting only for helper exit leaves a gap between registration and zero request.
+The OLED loader reuses the single-syscall helper and checks the endpoint every
+50 ms; its child-process fixture proves zero is requested during probing. Early
+blanking alone is not the failure cleanup: a later asynchronous brightness change
+must also receive a zero request under independent same-boot ownership. A focused
+regression now verifies this path, while a changed boot refuses stale cleanup.
+Insertion success still needs driver binding, endpoint and independent full health;
+a one-use load may not retry or unload after a partial or uncertain outcome.

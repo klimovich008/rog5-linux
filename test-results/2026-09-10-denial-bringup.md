@@ -2734,3 +2734,58 @@ no replacement runtime guard or hardware retry was introduced. Next integrate
 production module/monitor/display callbacks and full health/capture closure.
 Physical availability remains released until the full test is prepared. OLED,
 front touch, GPU and real Denial acceptance remain incomplete.
+
+## Fixed module loading and early blanking (r62, 2026-09-11)
+
+Previous r61 is progress: the exact OLED claim became registered/pending, with
+current-source qualification and read-only launcher preparation passing. That
+source/qualification and its unused attempt remain unchanged this turn.
+
+`oled-display-component-r1/load-modules.py` now implements the target REFGEN →
+panel sequence, SHA `ae33fc62674be823a35533f0b5c5692158f4a9c0df1711c8d9607ca9cd69fb9d`.
+It verifies exact root-owned payload bytes and keeps directory/file descriptors,
+requires durable paired entry and fresh owner/health authorization, then invokes
+the existing `module-once` helper once per module. REFGEN binding and regulator
+identity precede panel loading. Parent polling watches for the exact backlight
+while the helper remains alive and requests zero through the unchanged endpoint
+component. Each child has a five-second deadline, two-second reap bound and
+4-KiB output limits. Framebuffer discovery is bounded; no framebuffer device is
+opened here. There is no unload or retry path.
+
+Failure cleanup uses separate same-boot ownership, including after early blanking
+if later brightness/health changes. Changed boots refuse stale cleanup. Uncertain
+durable entry consumes the local object; the external owner still must enforce
+persistent one-use state across objects/processes. The full owner/admission,
+boot-capture, monitor and authenticated health integration remains pending.
+
+The helper was streamed from the retained signed-payload archive, exact size
+219,912 and SHA `74436199…`; REFGEN/panel artifacts are unchanged. An initial
+incorrect 64-KiB helper-size assumption refused before extraction/execution and is
+recorded. No kernel/module/DT/package rebuild occurred. An initial fixture helper
+signature error stopped all cases in 0.192 s; it is retained and corrected only
+in test setup. The subsequent 15 cases passed in 1.079 s. Review added helper
+replacement checking and cleanup for a brightness change after early zero.
+
+Final **17 checks pass in 1.268 s** (1.384 s runner), with real files, owned child
+processes, descriptors, timeout/signal/reap and explicit insertion/probe/sysfs/
+health fixtures. The positive sequence completed in 0.174 s and issued zero while
+the panel child still existed; both children exited/reaped. Negative cases cover
+first/panel failures, normal-health loss, changed boot, timeout/output overflow,
+missing framebuffer, cleanup refusal, uncertain entry, preloaded module, changed
+payload/helper, module symlink and descriptor closure. A late brightness change
+receives a separate final zero. Trusted target payload ancestry is substituted
+for the test directory, and no real driver insertion is claimed.
+
+The exact ARM64 helper ran through QEMU in a root user namespace and refused one
+`finit_module` with errno38 (`Function not implemented` in this execution path).
+It exited one and was reaped, with no second invocation. This does not exercise
+real hardware or establish kernel driver success. Evidence and results are in
+`module-tests-r3.*` and `module-result-r1.json`, result SHA
+`a5da3d3e464839bf13974feae6647e9b226d8c2615203d3b44c7e1c9c90afc97`.
+
+After-run review: existing helper and endpoint code were sufficient; active
+endpoint observation and independent final zero close specific probing/cleanup
+gaps without altering boot qualification. No full-flow or 20-second frame test
+was repeated. About 51.9 GB disk remained free. No phone/claim/authentication
+operation or human request occurred. Next connect this component and the prepared
+frame session to the production monitor/admission and full-health closure.
