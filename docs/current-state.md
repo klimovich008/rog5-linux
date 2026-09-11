@@ -1,5 +1,65 @@
 # ROG5 current state
 
+Latest r125, 2026-09-12: **display modules loaded and DSI bound, but GPU
+initialization failed because the GPU has no IOMMU group; kernel fix prepared**.
+Previous r124 was progress. Same boot946acb59-744e-4bbc-b291-ac6b2e05f3fe remains
+healthy on7.1.4-g05941d04803f /gpu-05941-52181a3157c26029. No reboot, host sudo,
+password prompt, GPU userspace query/open or submission occurred.
+
+The separately admitted gpu-display-query-r1/session-r1 is consumed and terminal
+FAIL (153.028 s); owner d33af77c254a416c9359762b482bb8ef. It inherited the exact
+r124 provider markers and bindings without reloading GPUCC or reprobe writes.
+REFGEN insertion PASS0.016164 s; panel insertion PASS0.017981 s. DSI automatically
+bound after REFGEN arrived. The initial DSI failure was still queued as
+EPROBE_DEFER for missing refgen, unlike the earlier timed-out SMMU. No explicit
+DSI reprobe was needed. A separate driver binding is still not required for GMU.
+
+During panel attachment, kernel Adreno initialization failed with ENODEV (-19).
+The nine captured kernel records show DSI binding, GPU dummy-supply warnings,
+failed GPU initialization and failed panel attachment. Full150 s authenticated
+log PASS, no further records, logger reaped. Both action/cleanup worker groups
+and SSH reaped; independent zero-brightness cleanup FAILED. Early blank failed
+with EINVAL; subsequent inventory has no backlight and panel device unbound.
+Do not claim a successful blank or physical darkness. The Rust query did not run.
+
+Read-only diagnosis confirms GPU has no iommu_group while GMU has group6.
+The actual GPU DT has iommus cells[89,0,1024,89,1,1024]. msm_iommu_new returns
+ENODEV when device_iommu_mapped is false; that helper checks iommu_group.
+of_dma_configure ignores IOMMU errors other than EPROBE_DEFER, so an earlier
+supplier timeout allowed the GPU component to register without an attachment.
+Binding SMMU later did not attach the already-bound GPU. This explains the
+observed initialization failure. No unbind/rebind or in-place DMA repair ran.
+
+New isolated kernel successor 136f75ae869afd47a016b1278fae2110cc6d2229 at
+ gpu-iommu-probe-worktree-r1
+adds an adreno_probe guard: a DT GPU declaring iommus stays deferred until it has
+an IOMMU group. A late supplier can then trigger the whole bus probe, including
+DMA setup. Devices without an IOMMU DT binding retain their existing path.
+Strict checkpatch PASS. Only adreno_device.o was compiled: ARM64 ELF,1.882 s,
+pinned original builder/config, old build mounted read-only, one CPU/2 GiB limit,
+no OOM, owned container removed. The fix is NOT on the phone and a complete
+successor image/build/runtime test remains pending. Compiled source f74e719c and
+running kernel source05941d04 remain unchanged.
+
+14 new initializer boundary checks and14 complete session checks pass (0.331 s
+and3.030 s). Existing endpoint, display loader, module primitives and nine
+initializer functions were preserved byte/AST-identically. Inputs were frozen
+before the live run; failed live evidence remains failed. Fixtures cannot prove
+kernel GPU initialization. Final independent full health PASS1.765 s at uptime
+5403.34 s, exact healthy selection813f108a..., power/storage guards retained.
+REFGEN/panel/GPUCC modules stay loaded; DSI bound, panel unbound, no render node
+or backlight. GPUCC/SMMU r124 PASS remains valid as provider-only evidence.
+
+Next: integrate and incrementally build the isolated kernel fix, preserve all
+accepted source/artifacts, qualify a fresh signed temporary successor and test
+GPU IOMMU attachment before any display-module operation. Reuse existing modules
+only after checking exact kernel ABI/input compatibility. Do not replay either
+session-r1, reload the present modules, or repurpose consumed boot/query entries.
+No live process, operator request or countdown remains. Original r122 FAIL,
+V11/ASUS slotA preservation, S06/R01 and missed optical result remain unchanged.
+Evidence: gpu-display-query-r1/session-r1/result.json, failed-bind-inventory-r125,
+iommu-dt-proof-r125, health-final-r125, kernel-fix-compile-r1 and checkpoint-r125.
+
 Latest r124, 2026-09-12: **GPUCC and GPU SMMU binding PASS on the real phone;
 full150-second kernel observation and final independent health PASS**. Previous
 hardware goal turn r123 was progress; the intervening password explanation made

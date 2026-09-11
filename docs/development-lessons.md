@@ -1721,3 +1721,22 @@ in1.976 s once the fixture path was corrected; unchanged80 tests were inherited.
 Normal existing-route SSH needs no host sudo. Keep host privilege setup out of
 current-boot module tests that do not create network resources. A healthy target
 after failure is separate from action success and does not prove fallback recovery.
+
+### 2026-09-12 r125 — supplier binding does not prove client DMA attachment
+
+GPUCC/SMMU provider binding passed, but GPU initialization still returned ENODEV:
+GPU had no IOMMU group; GMU had group6. Verify client IOMMU attachment before
+loading display modules that trigger shared DRM component binding. A supplier
+that appears after deferred-probe timeout can leave an already-bound client
+without DMA/IOMMU setup because of_dma_configure ignores non-defer errors.
+The isolated kernel fix keeps Adreno pending until an explicitly declared IOMMU
+is attached, allowing the normal bus probe to configure DMA on the next trigger.
+A targeted ARM64 object compile used the existing read-only configuration and
+pinned builder and finished in1.882 s; no full build was needed to check the edit.
+DSI, by contrast, remained queued for missing refgen and bound automatically when
+REFGEN loaded. Use the actual deferred state instead of adding generic reprobing.
+Module insertion success also does not prove panel attach or cleanup: both
+display modules inserted, then GPU failure removed the backlight. Preserve the
+EINVAL and failed independent blank; an absent backlight is no optical-darkness
+proof. All28 focused checks passed first time, but simulated hardware could not
+prove the missing GPU IOMMU attachment. Carry that live dependency into preflight.
