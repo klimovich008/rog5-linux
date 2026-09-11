@@ -1679,3 +1679,28 @@ admitted live module session on a verified surviving boot to another build/reboo
 The user's request to reduce password prompts does not require saving a password
 in chat, project files or scripts. A future persistent privileged helper needs a
 reviewed, narrowly scoped installation; no sudoers change was made in this run.
+
+
+### r123: inspect current device links before assuming a late module will retry consumers
+
+The live GPUCC-to-SMMU link is dormant and sync-state-only after the early timeout.
+Frozen driver-core code shows that this relaxed link does not request automatic
+consumer probing. The provider test therefore prepares one bounded explicit SMMU
+reprobe if still needed after GPUCC binds, without opening DRM or rebuilding the
+kernel. GMU is initialized through a6xx_gmu_init; an unbound platform entry alone
+must not become an invented prerequisite. Record actual binding transitions.
+
+Reuse retained process ownership, acknowledgement and lease algorithms while
+changing the operation's explicit scope. Here nine backend primitives, four
+identity/DT functions and the complete module-I/O helper remain unchanged.
+Exercise the actual composed pipeline with real subprocesses and explicit kernel
+fixtures. Two residual brightness fixture paths failed after conversion to a
+read-only cleanup; fix both assertions and rerun only those two cases. The
+production path and the other17 transport checks were unchanged. Keep all80
+current checks tied to their source locks, with the failed test log retained.
+
+Once a provider is qualified on the running boot, later sessions must inherit
+that fact instead of replaying the all-in-one initializer that requires the
+provider to be absent. Preserve one-use entries, and reuse existing modules and
+query binaries. Finish the current-boot coordinator before requesting Ready or
+attempting the hardware operation; preparation is not a live qualification.

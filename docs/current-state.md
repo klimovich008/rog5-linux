@@ -1,5 +1,54 @@
 # ROG5 current state
 
+Latest r123, 2026-09-12: **GPUCC/SMMU provider components and supervised
+transport prepared offline; no hardware mutation or reboot this turn**. Previous
+r122 was progress. Fresh corrected health PASS in1.801 s on the same GPU boot
+946acb59-744e-4bbc-b291-ac6b2e05f3fe, observed uptime2372.94 s. Read-only dependency
+inventory PASS in0.292 s: GPUCC-to-SMMU and GPUCC-to-GMU links are dormant with
+sync_state_only=1. Frozen kernel core.c confirms such a link lacks the automatic
+consumer-probe flag after relaxation. Loading GPUCC must not be assumed to retry
+the SMMU. Also, a6xx_gmu_init initializes the GMU through its platform device;
+absence of a separate GMU driver binding alone is not a pre-initialization fault.
+Final read-only input discovery PASS in0.473 s: the actual306576-byte GPUCC .ko
+and219912-byte module-once helper match their full hashes and root metadata.
+drivers_probe is the expected root-owned sysfs attribute, mode0200, writable by
+the phone's authenticated root. No write or insertion was performed.
+
+New gpu-provider-probe-r1 admits at most one exact GPUCC module insertion and,
+only if the SMMU remains unbound after GPUCC binds, one fixed bounded write to
+platform drivers_probe for3da0000.iommu. No GPU device open, display operation,
+module unload or reboot exists in this component. Exact boot/DT identity, real
+module/helper hashes and held file metadata precede the exclusive RAM entry.
+The separate reprobe child rechecks boot, GPUCC binding, SMMU identity and sysfs
+metadata; it refuses an already-bound SMMU. Success requires GPUCC, SMMU and Adreno
+platform bindings, not hardware acceleration. A failed child remains failed.
+
+The retained supervisor provides host acknowledgement,3 s leases, owned process
+groups, bounded reaping and an independent read-only cleanup observation. Its
+nine framing/process primitives and four initializer identity/DT functions are
+unchanged; module-io.py is byte-identical. RAM staging carries four small sources,
+without a query binary. The real provider/reprobe/supervisor/host chain passes
+with explicit hardware/sysfs fixtures and a real reprobe subprocess.
+
+80 current unique focused checks pass: provider19, reprobe8, supervisor25,
+private RAM context9 and transport19. Seventeen transport checks initially passed;
+two leftover fixture paths referred to brightness instead of display-operation
+count. Those assertions were corrected and only those two rerun (1.164 s), both
+PASS; initial failures retained. Current production hashes match tested inputs.
+No full build or old expensive suite was repeated. Evidence:
+ gpu-provider-probe-r1/completion-r123.json and kernel-hardware-checkpoint-r123.json.
+
+Remaining before live execution: integrate these components with a separately
+admitted current-boot coordinator, corrected health, existing independent kernel
+logger, ownership/lifetime and recovery handling; validate the actual handoff.
+Do not run import-only provider/reprobe files directly, revive the dead original
+controller, or replay the consumed r119 launcher/boot claim. After GPUCC is loaded,
+the original all-in-one initializer's absent-GPUCC guard will correctly refuse;
+use the provider proof for the next display/query session and reuse its existing
+Rust query binary. No user Ready is pending. Ask only after any necessary local
+privilege/physical step is fully prepared. Kernel/non-cellular bring-up remains
+first; Denial/Flutter builds stay deferred.
+
 Latest r122, 2026-09-12: **GPU candidate boot is running and independently
 healthy; original combined trial FAILED before GPU initialization**. Fresh Ready
 started the prepared local touch authentication immediately. It passed with no
