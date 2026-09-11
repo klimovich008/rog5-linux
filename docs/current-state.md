@@ -1,5 +1,62 @@
 # ROG5 current state
 
+Latest r83, 2026-09-11: **complete signed OLED startup-logging payload and
+actual Arch-root composition PASS**. No new phone boot or Ready request occurred.
+The user's Ready was released because no new guarded test was armed; the two
+r81 passive entries and all prior OLED claims remain consumed and unchanged.
+No operator action is pending.
+
+The new bundle is `oled-log-05941-c371bcc38a6a73fe`, trial
+`7936240ab44b669f4e911f5c68e5709c10d40ff548cc4c2fdf21d3cec2d9f531`.
+Payload source remains `b3a964e6`; composition source is frozen at `98aa9610` in
+`oled-startup-integration-worktree-r1`. Wrapper packaging reuses exact `f74e719c`
+code. The unchanged 05941 Image, display DT, firmware, 32 loose module copies
+and nested module package are preserved. Only init, trial descriptor and its
+catalog changed; the exact relay and three-line startup-pull config were added.
+Both full payloads match, 58,467,436 bytes, SHA `9c53ebaa...`, produced in
+15.952/17.239 s without any kernel, module or Rust rebuild.
+
+Signed wrappers also match and remain 134,217,728 bytes; boot SHA `6cc2f611...`,
+manifest `7fc82767...`, recovery `f8f56544...`. Config SHA is `0340516a...`;
+use the exact `oled-startup-payload-r1/kernel-relay.conf` in the future recorder.
+The full config is sealed in the payload and bound by the new composition
+profile, SHA `a9a6ee1c...`. Packaging took 86.212 s with 512 MiB/no-swap scope.
+
+A01 passed all seven checks against the actual retained Arch base and deployed
+upper in 80.793 s: wrapper, signed target, archive, root runtime, 51 software
+module loads, firmware composition and generated timing/transport contract.
+Both image hashes and metadata remain unchanged. The QEMU container exited,
+was reaped/removed and reported no OOM. This proves offline runtime composition;
+it does not prove OLED scanout, real early-boot USB, watchdog expiry or physical
+firmware responses. No new boot claim is registered and no new live controller
+is prepared. Evidence: `oled-startup-payload-r1/qualification.json`,
+`oled-startup-package-r1/result.json`, `oled-startup-a01-r3/a01/result.json`.
+
+The first two A01 attempts refused missing sparse-checkout files before VM work:
+CPU-policy service in packaging (23.919 s) and retained test-shim source in tests
+(24.256 s). Both source trees are now present. A01 checks these small prerequisites
+before large root hashing; missing/symlink refusal and concurrent hash cleanup
+are tested. The final relevant suite totals 84 tests (9 delta, 9 old OLED, 7 new
+profile, 59 composition). Do not repeat the completed A01 for unchanged bytes.
+
+Read-only authenticated observation confirms V11 still runs boot
+`ee0d166e-5e69-4db7-8bbd-6266352594ea`, release `7.1.4-g359318de534f`, with old
+selection `ed3a62d1...`, battery Good/100%/30.0 C/8.483 V and USB online. The
+retained exact verification script passed physical/storage/readiness and restored
+selection guards. A preliminary query guessed inactive unit names; it is not a
+health failure and is superseded by the correct verified observation. `/run`
+remains 1777 and `/run/initramfs` 0755. Phone state was not modified.
+
+Removed 744,259,584 allocated bytes of this run's disposable extraction and
+roundtrip scratch after verifying both durable target archives; manifests,
+logs, receipts, signed packages and all prior recovery evidence remain.
+
+Next: prepare a successor controller for current V11 source and protected RAM
+parent, with fresh state/owner/one-use identity and the exact sealed logging
+config supplied to capture readiness. Preserve source and executed entries.
+Qualify complete boot, failure, fallback restoration and capture cleanup before
+requesting fresh Ready; source observations are not reusable availability.
+
 Latest r82, 2026-09-11: **startup request capture is integrated and passes
 offline checks; no phone action or Ready request occurred**. Source is
 `b3a964e6` in `kernel-startup-capture-worktree-r1`, based on frozen live-qualified

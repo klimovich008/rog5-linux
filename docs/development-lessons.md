@@ -1044,3 +1044,20 @@ For a new empty `--no-checkout` worktree, sparse selection alone may leave it
 unpopulated: follow it with `git read-tree -mu HEAD` before editing. Apply that
 population step only to the newly created empty checkout, not a user's working
 tree. Direct helper imports also need the established scripts/host search path.
+
+
+A sparse packaging/composition checkout needs `packaging` and `tests` in addition
+to scripts, initramfs, configs and the exact ignored tools. r83 lost 48.175 s to
+two missing-file refusals after root hashing had started. Add cheap source
+presence checks before launching large scans; this does not replace later exact
+content checks, and independent root hashing can still overlap actual artifact
+validation. Source completeness is separate from the kernel/module build cache.
+For a runtime-only change, reuse the qualified standalone builder and compare
+the complete archive delta: r83 changed only init plus fresh identity, added the
+sealed log pair, and kept all hardware bytes. Two full payloads took 33.191 s
+total with no kernel/Rust rebuild. Delete only owned, reconstructible scratch
+once durable output identities and receipts are verified; r83 recovered 744 MB.
+Use the existing exact phone health observer rather than guessing systemd unit
+names: authenticated SSH and the accepted readiness service establish the actual
+running health checks. An unsolicited Ready is not permission to replay a
+consumed test; release presence when no prepared successor entry exists.
