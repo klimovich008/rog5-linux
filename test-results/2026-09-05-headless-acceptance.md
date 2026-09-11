@@ -8653,3 +8653,21 @@ has separate lib/usr/lib directories; six destination paths are absent; three
 firmware destinations mapped to lib/firmware for the kernel's search path.
 No boot composition, signing, module load, GPU initialization or phone action.
 The r103 optical reply remains pending and its display launch remains consumed.
+
+### r105 unsigned GPU payload and r103 operator outcome
+
+PASS_TWIN_UNSIGNED_GPU_PAYLOAD: two58612856-byte archives, SHA
+`c253b28aa5db0382fcfe96bb5bf581f1009fff3256c5ba13c589552fc4c489f4`;
+736 matching records. Six pinned firmware/license files plus four directories
+added through the retained Wi-Fi firmware tree; only trial descriptor/catalog/
+relay configuration changed.32 loose module copies and nested module archive
+preserved. Verified five-property GPU DTB delta retained. Eight focused tests,
+exact roundtrip/member preservation and twin comparison PASS. Composition4.811/
+7.005 s, each336.1 MiB peak;512 MiB memory ceiling and zero swap. Scratch cleanup
+freed420444688 bytes after content verification against retained archives.
+
+Authenticated read-only phone check binds firmware path and existing handoff.
+No GPU load/open, signature, boot, flash or current-runtime mutation. Bootable
+wrapper and new admission remain outstanding. The user's exact r103 reply was
+"I missed the display window": optical outcome UNOBSERVED, not PASS/black-screen
+failure. Raw r103 command evidence and all consumed entries remain unchanged.
