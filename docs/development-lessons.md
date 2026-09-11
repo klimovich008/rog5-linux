@@ -1518,3 +1518,20 @@ and CAP_NET_ADMIN inside the disposable user/network namespace; host networking
 must remain untouched. A test's retained-file path also needs inspection before
 execution. All 72 cases now pass. Preserve these results and move to root bridge,
 target health and GPU initialization preparation; no unchanged kernel/A01 rebuild.
+
+### r111: bind reused process controls and extend runtime health before boot
+
+Keep the tested bridge algorithm and change only fixed identities and producer
+pins. Its 16 ownership/guardian cases and three stream integration cases passed
+on their first runs in 8.343/4.225 s. The r110 capture components stayed unchanged.
+Inspect the complete interface and actual fixture paths first, carrying forward
+r110's lesson instead of discovering those prerequisites through failed suites.
+
+GPU health now requires the three retained A660 firmware files as well as the
+nine existing runtime files. Compare them to the final candidate inventory and
+keep the actual collector/validator unchanged; reject old OLED identity and
+missing/changed/unsafe firmware metadata. All 24 cases passed in 0.465 s. This
+still does not authenticate firmware execution or initialize the GPU. Fresh
+current-source health took 1.778 s on the same boot. Reuse completed builds/A01
+and these component results while completing the live driver and bounded GPU
+session; a new component pass alone is not a boot-admission or hardware pass.
