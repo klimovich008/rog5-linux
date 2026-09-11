@@ -1704,3 +1704,20 @@ that fact instead of replaying the all-in-one initializer that requires the
 provider to be absent. Preserve one-use entries, and reuse existing modules and
 query binaries. Finish the current-boot coordinator before requesting Ready or
 attempting the hardware operation; preparation is not a live qualification.
+
+### 2026-09-12 r124 — carry provider proof into the next current-boot test
+
+The live GPUCC/SMMU action completed in0.280 s without a rebuild, reboot or host
+sudo; the explicitly retained150 s observation dominated its152.990 s session.
+GPUCC binding alone did not retry the SMMU: the verified single-device reprobe
+was necessary and succeeded. Future display/query work must inherit this proof
+and current bindings, never replay a loader whose entry assumes GPUCC absent.
+The session now uses one shared collector retaining entered/transport/snapshot
+for every read-only observation. Use that actual layout when creating fixtures;
+a guessed older snapshot filename prevented12 tests from even starting. Keep
+edits and test invocation in separate checked steps: a failed edit followed by
+an unconditional test command caused one redundant0.230 s run. All12 cases passed
+in1.976 s once the fixture path was corrected; unchanged80 tests were inherited.
+Normal existing-route SSH needs no host sudo. Keep host privilege setup out of
+current-boot module tests that do not create network resources. A healthy target
+after failure is separate from action success and does not prove fallback recovery.
