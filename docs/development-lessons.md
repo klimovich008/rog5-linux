@@ -799,3 +799,19 @@ caused one 2.043-second read refusal. File-operation tests require
 `unshare --user --map-root-user`: direct deck execution produced 13 ownership
 errors in 0.178 s, while the unchanged 16 cases passed there in 0.644 s.
 Carry the execution environment with test commands, not just the test filename.
+
+Source runtime identity and installed fallback inventory are separate bindings.
+The OLED derivative initially tried to obtain installed-file metadata from its
+new source-health receipt, which has a different schema. Reuse the pinned V9/V11
+inventory explicitly and verify those files again on the current source; do not
+rename installed bundles when changing the running source identity. The first
+assembled preflight refusal exposed this before any mutation.
+Preserve execute permissions when staging ELF tools. Byte-identical selector
+copies without execute bits returned an empty failure in 0.014 s; corrected
+modes and an explicit preflight check passed the three cases in 0.332 s.
+Generate changed ARM64 observation fixtures before full recovery flows. After
+target success, an absent new fallback fixture stopped the next scenario; the
+11 current cases passed in 52.193 s and only the remaining three flows resumed.
+Refresh transitive source pins in dependency order from the preceding pin map,
+keeping each prior result. Do not reapply the initial namespace transformation
+over an integrated cohort or reuse its historical qualification/claims.

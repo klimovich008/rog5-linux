@@ -2160,3 +2160,51 @@ change only signed identity/namespace and test cross-trial custody explicitly.
 Carry correct user-namespace and exitrd context into the next integration run.
 The next dependency is controller assembly and admission around these components,
 not another kernel/package build. OLED/touch/GPU and Denial remain unqualified.
+
+### 2026-09-11: assembled OLED controller and closed boot adapter (r49)
+
+`oled-controller-worktree-r1` at `30b72c12` adds exact OLED composition profile
+`0fc132e8…` alongside the unchanged default headless profile. Nine tests pass in
+0.077 s: old default preserved, exact new selection, mixed-profile refusal,
+preservation/module-map checks and refusal before claim lookup when OLED
+composition admission is missing. `verified-oled-hardware-boot.py` has no A01 or
+composition-source binding yet and cannot authorize execution.
+
+`oled-live-driver-r1` assembles all 22 phases with current kernel 05941 as source,
+OLED 05941 as target, and V11 fallback. Controller method/class ASTs are unchanged;
+fixed identities, namespaces and source pins differ. New host-only custody owner
+`ba670e08f11d4c3f8e2f95573689619f` binds the retained actual r48 source snapshot,
+old record and boot. This does not stage phone RAM or create a claim.
+
+The installed selector passes three real ARM64 scenarios in 0.332 s. An initial
+0.014-second attempt failed because copied ELF tools lacked execute bits; modes
+were corrected, a preflight permission check added, and fresh r3 evidence retained.
+The new inventory reader explicitly inherits pinned installed V9/V11 metadata,
+while the live route query revalidates those bytes on current source. New source
+custody is separate; the first full-flow preflight had incorrectly expected an
+old request.json in the new health directory and failed before mutation.
+
+Target capture/post-health passes in `full-flow-tests-r2`. Its next case stopped
+because new fallback observation fixtures did not yet exist. Eleven actual ARM64
+fallback reader/helper scenarios then passed in 52.193 s, with real tmpfs and
+explicit hardware/installed-file fixtures. Only early fallback, late fallback
+with separate capture, and pre-reboot source restoration resumed in r3; all three
+pass in 17.928 s. Recovery scenarios retain overall FAIL as intended, with old
+selection restored. USB, SSH replies, privilege, artifact/claim admission, RAM
+transfer and recording time are simulated. Host capture subprocesses are real
+and cleanup/reap checks pass. No physical OLED or new root handoff is proven.
+
+Twenty health boundary tests pass in 0.035 s, and the new source predicate replays
+the actual r48 health snapshot successfully without another phone query.
+Seventeen transfer-boundary/real-child tests pass in 3.675 s. Final import/pin
+checks pass; the actual boot adapter refuses `OLED composition admission is not
+prepared`. No live execution directory, input lock, qualification, registration,
+claim, phone query/write, reboot or flash occurred. Integration receipt is
+`oled-live-driver-r1/integration-result-r1.json`.
+
+After-run improvement: keep source runtime, installed inventory and host custody
+separate; preserve tool modes and generate current fixtures before full flows.
+The dependency-ordered pin map supports corrections without rebuilding the
+kernel or package. Reuse completed scenarios when production inputs match.
+Next dependency is exact composition/root admission and privileged handoff,
+followed by fully prepared physical display testing; Denial remains deferred.
