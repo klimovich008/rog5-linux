@@ -1,5 +1,15 @@
 # ROG5 current state
 
+Latest r91, 2026-09-11: **goal blocked awaiting fresh Deck availability and
+local sudo authentication**. The same condition persisted across r89–r91;
+r90/r91 added no implementation progress. Offline preparation is complete for
+the next privilege check. Its exclusive attempt directory is absent, and no phone
+command or password window has started. The goal was marked blocked, not complete.
+The pending availability question and exact r89 prepared command remain valid;
+on fresh Ready, start that read-only probe immediately. Preserve frozen source,
+qualification candidate and all one-use evidence. No unchanged test or sudo retry
+is justified while waiting. The full Denial objective remains unchanged.
+
 Latest r89, 2026-09-11: **startup boot profile registered in source and
 final software replay passes; awaiting Deck availability for a prepared read-only
 privilege check**. No phone command, reboot or new durable claim occurred.
