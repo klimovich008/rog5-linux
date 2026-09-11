@@ -3569,3 +3569,43 @@ Next work is target startup diagnosis and better retained failure evidence,
 then a separately qualified controller incorporating the proven private RAM
 parent. Preserve existing builds; another kernel rebuild or repeated physical
 test is not justified yet. No operator availability remains pending.
+
+
+## r78 — bounded kernel startup evidence (2026-09-11)
+
+An authenticated read-only journal inventory on V11 confirmed unchanged boot
+`ee0d166e-5e69-4db7-8bbd-6266352594ea` and restored selection `ed3a62d1...`.
+`systemd-journald` is running; the journal lists only the current boot. Archived
+pstore has no files. Evidence is `oled-startup-diagnosis-r2`. The cause of the
+OLED reset remains unknown; no new phone write, module operation or reboot ran.
+
+Added a dependency-free Rust log relay and host decoder in isolated source
+`9b6de57d57cf8f702353bd16fe67b7e5439cfa6d`. The relay uses nonblocking, read-only /dev/kmsg and UDP with fixed USB
+addresses, 1–120 s duration, 8,192 read attempts, 1,024 record/gap events,
+512 message bytes and 1,400 bytes per packet. It emits explicit gap, truncation
+and terminal accounting. Packets remain unauthenticated diagnostics; the decoder
+rejects changed boot/session identity, malformed framing, reordering and impossible
+counts. No boot authority or automatic service installation was added.
+
+Ten Rust tests plus formatting/Clippy passed; eight Python decoder tests passed.
+The static ARM64 PIE has no interpreter or required dynamic libraries and its
+invalid-input entry was checked under QEMU. Full build/check used Rust 1.98 in
+the retained no-network builder with 512 MiB and one CPU, taking **2.810 s**.
+An ARM64-only independent build took **1.166 s** and produced identical bytes:
+`b1be78b8c1c1592d750efef315a5a5818f6706bd4b1d9c10cb36b42216272851`,
+1,497,160 bytes. Both containers exited and were removed without OOM. Evidence:
+`kernel-log-relay-r1/qualification-r1.json`. These are software/ABI observations,
+not a live phone relay or a successful OLED boot.
+
+Initial preparation caught a Path/string mount construction error before a
+container ran; Clippy caught a redundant priority comparison. A decoder-test
+helper also needed distinct parameter names to inject malformed index/event
+fields. Failures were retained and corrected. Reused the known static-PIE
+linker and builder; no kernel/module rebuild or repeated full integration CI.
+The independent twin repeated only ARM64 compilation.
+
+The active USB firewall zone has a final reject rule. Live UDP observation
+needs an owned temporary 8085 allowance and cleanup. Cached sudo has expired;
+`sudo -n -v` failed without opening a dialog. No Ready was requested because the
+full receiver/privilege entry is not yet prepared. Continue independent startup
+integration work; preserve the current V11 source and the r77 recovery records.

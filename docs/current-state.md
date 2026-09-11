@@ -1,5 +1,41 @@
 # ROG5 current state
 
+Latest r78, 2026-09-11: **V11 and the restored old selection are unchanged**.
+A fresh authenticated read confirms boot ee0d166e-5e69-4db7-8bbd-6266352594ea
+and old state SHA ed3a62d1... . Archived pstore is empty, and the system journal
+lists only the current V11 boot. The OLED reset cause remains unproven.
+Previous r77 is classified as progress: a real OLED attempt, retained failure
+evidence, and separately verified recovery changed the next action.
+
+A bounded Rust kernel-log relay and strict host decoder now pass software
+qualification. Source is `9b6de57d` in `oled-startup-observer-worktree-r1`;
+compiled kernel and executed controllers remain frozen. The helper reads
+/dev/kmsg without clearing it, sends selected diagnostics to the Deck, and
+reports gaps/truncation/limits. It never establishes health, changes readiness,
+loads a module or requests reboot. No service is installed/enabled yet.
+
+Ten Rust tests, Clippy and formatting pass; eight decoder tests cover malformed,
+foreign, lost, reordered and inconsistent records. The 1,497,160-byte static
+ARM64 PIE entered correctly under QEMU, and independent builds are identical:
+SHA `b1be78b8c1c1592d750efef315a5a5818f6706bd4b1d9c10cb36b42216272851`.
+Full component build/check took 2.810 s; ARM64-only twin took 1.166 s. No kernel
+rebuild was needed. Evidence: `kernel-log-relay-r1/qualification-r1.json`.
+
+**Live relay and startup integration are still unqualified.** The USB zone's
+final reject rule requires a narrowly scoped temporary UDP 8085 allowance.
+Noninteractive sudo validation in retained PTY 44286 now reports password
+required. No password window, firewall change, phone deployment or reboot was
+started. Do not request Ready until the complete recording/probe and privileged
+entry are prepared. Credential expiry alone does not block independent work.
+
+Next: prepare the bounded receiver and owned firewall lifecycle, then qualify a
+short passive relay run on current V11 before adding it to a new startup payload.
+Reuse the exact relay binary. Integrate its diagnostic records without treating
+them as health authority. The next boot controller must accept the actual V11
+source and the verified protected RAM parent; the old headless-source controller
+and all consumed claims/entries must remain untouched. No physical user action
+is pending. Kernel startup remains ahead of Denial/Flutter and the PMIC audit.
+
 Latest r77, 2026-09-11: **OLED trial failed; V11 is running and the prior
 boot selection has been separately restored and verified**. Fresh Ready launched
 the prepared entry immediately. Authentication and both sudo reuse children
