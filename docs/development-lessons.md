@@ -1121,3 +1121,24 @@ not new ARM64 or live fallback evidence. Seed successor digest refresh from both
 private source history and exact prior repository files: four missing repository
 pins caused an import refusal, now covered by the dependency graph. Keep runtime
 route/predecessor conversion explicit; successful imports do not prove readiness.
+
+### r87: preserve predecessor identities and read the installed capability contract
+
+The copied route generator assumed 0644/0755, while the pinned installed inventory
+requires 0400 bundle files and a 0600 selector. Its local build refused before
+phone I/O. Use the exact inventory metadata and sealed V11 shell; Python is absent
+on this source. The real inventory completed in 5.806 s with unchanged state,
+so there is no reason to rebuild hardware artifacts or relax its 35 s transport
+budget. Reuse that raw observation for parser/receipt tests instead of rereading
+the phone for each host case. It is historical evidence, not future readiness.
+
+Keep historical predecessor pins in a separately sealed index. A source digest
+migration must update the successor's producer graph without rewriting consumed
+claim identities or treating an earlier preflight-only failure as the actual
+latest trial. Read historical summaries under their exact recorded metadata;
+retain stricter live receipt requirements. Preparation now verifies closed r77
+capture/credentials, actual restored V11 and consumed r84 staging, then still
+requires a fresh bounded read before any new claim. All 21 cases passed in
+2.191 s without phone I/O. The fallback fixture's missing copied tool directory
+was found before execution; it now verifies the two retained sealed-tool paths
+and hashes before allocating cases. No production guard was weakened.
