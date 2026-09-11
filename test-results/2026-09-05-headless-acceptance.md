@@ -8874,3 +8874,22 @@ transaction/reboot intent. No mutations, GPU open, reboot or claim consumption.
 Prior components and completed builds/A01 are unchanged. Installed-route and
 fallback transport/full driver admission remain; prepare bounded GPU initialization
 before live boot. No human test is ready; optical acceptance remains unobserved.
+
+### 2026-09-11 r114: installed route, fallback transport and assembled GPU driver
+
+PASS component integration, 65 distinct offline checks: 12 route cases 2.670 s,
+three transport-provenance refusals 1.017 s, one ARM64 GPU-observer composition
+17.233 s, 19 fallback worker cases 13.343 s, 16 fallback transport cases 2.169 s
+and 14 assembled-driver cases 11.791 s. File-reader code is byte-identical to
+retained qualification; no unchanged boundary suite/build/A01 rerun. Root/network
+operations remain fixtures; real process timeout/reaping and simulated source
+restoration pass. This is not a physical GPU boot or fallback result.
+
+One authenticated read-only phone route check passed in 7.843 s. Eleven installed
+files and boot_b match their fixed hashes; source boot229580f9-ac26-4b18-a0eb-ea9c05bc632f,
+healthy selection and original shutdown are unchanged, GPU transaction absent.
+No phone writes, module load, DRM open, reboot or durable claim consumption.
+Evidence: gpu-live-driver-r1/completion-r114.json and installed-route-live-r114.
+All prior r110-r113 components unchanged. Driver assembly exists; final admission,
+root verification, launcher integration and bounded GPUCC/first-open remain.
+The missed optical window remains unobserved. No human session prepared.

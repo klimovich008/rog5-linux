@@ -1570,3 +1570,20 @@ its own gpu_preservation nonce, not the prior startup profile field. Nineteen
 RAM-transfer cases pass in 4.677 s. Keep completed 67.488 s ARM64 reconciliation
 and other component evidence; move to route/transport/driver assembly, with no
 unchanged kernel build or A01 repeat.
+
+### r114: validate concrete interfaces before reusing controller components
+
+The capture and health receipt adapters deliberately have no output directory;
+they read explicit receipt paths. The assembled GPU driver checks real writers,
+including the capture controller, without adding fake fields to frozen adapters.
+A cheap import/interface check passed before the 14 integration cases (11.791 s).
+Those cases include rejecting divergent nested/capture writer paths. Apply this
+interface check when connecting the remaining admission/launcher components.
+
+The route generator is byte-identical to the qualified version. Reused its
+file-reading boundary results and ran one new ARM64 GPU observer-composition
+case (17.233 s), plus 15 host cases. Exact source/mode/invocation checks reject
+three malformed transport envelopes before accepting a route receipt. The real
+read-only phone check took 7.843 s. All 65 new cases passed; no expensive build or
+unchanged A01 rerun. Continue kernel bring-up through admission and bounded GPU
+initialization; more offline preparation alone is not GPU hardware acceptance.
