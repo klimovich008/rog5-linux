@@ -337,6 +337,34 @@ Receipt `oled-display-component-r1/frame-result-r1.json` is `787baaa3…`.
 Actual framebuffer writes, bounded brightness and enclosing controller/load/
 health/capture integration remain next; physical scanout is still NOT RUN.
 
+The r57 import-only `oled-display-component-r1/write-frame.py` now provides
+one admitted, entered write and complete memory readback from the sealed frame.
+It verifies the full frame hash, consumes the frame's in-process attempt flag,
+requires the enclosing durable entry callback, and compares a fresh GET capture
+before opening the exact owned fb0 inode read/write. Every 1-MiB write/read chunk
+rechecks admission, boot/endpoint/zero brightness, node and raw layout. Partial
+writes stop immediately without retry; exceptions retain uncertain-write state
+separately from acknowledged bytes. Cleanup errors retain prior write evidence.
+All opened descriptors are closed; no illumination or mode change is exposed.
+
+Nineteen tests pass in 3.855 s with the real sealed ARM64-rendered frame and
+actual file I/O, descriptor ownership and cleanup. Character-node/sysfs/ioctl,
+admission and durable-entry behavior are explicit fixtures. The successful
+10,653,696-byte write/readback takes 0.097 s with 11 writes and matching frame
+hash `859231da…`. Changes to boot, node, layout, brightness or admission stop
+further writes. Short/corrupt readback, partial/uncertain write, entry uncertainty,
+deadline and close failures refuse success. The original sources remain pinned;
+no kernel, Rust or package rebuild was needed.
+
+The exact clean 05941 kernel sources provide DMA fbdev read/write operations,
+including deferred-damage wrappers and positioned I/O. Memory readback does not
+prove damage completion, vblank or visible scanout. The ten-second deadline is
+checked between syscalls; the enclosing bounded worker remains required for a
+stuck kernel operation. Receipt `oled-display-component-r1/write-result-r1.json`
+is SHA `da73f546…`. Bounded brightness/blanking and integration with the existing
+admitted load/full-health/monitor/durable-entry controller are next. No physical
+framebuffer write, phone query, authentication or human request occurred in r57.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -344,7 +372,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
