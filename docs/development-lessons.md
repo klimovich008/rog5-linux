@@ -68,6 +68,16 @@ evidence or weakening one-use guards is not a test fix. The initially partial
 output-path substitution tripped component agreement; preserving the real
 read-only assembly paths avoided that unnecessary fixture complexity.
 
+Recovery after a controller error need not reboot a healthy target. In r45,
+a separate exact-boot wrapper reused the proven atomic helper and old custody,
+checked quiescent writers, and restored selection in 7.656 s with final health.
+Keep the original trial failed and use an explicitly different health predicate
+for the restored selection; never substitute observation bytes or erase consumed
+entries. Offline fixture tampering must make its own read-only file writable
+before changing it. Preserve partial test evidence and resume only untested
+cases when production source is unchanged; r45 retained seven passing cases
+and ran the remaining ten after that fixture fix.
+
 When an adapter return-shape bug is found, inspect sibling consumers. Both route
 workers expected three values from the real two-value network adapter; mocks
 hid one defect by returning the same incorrect shape. Exercise the real adapter

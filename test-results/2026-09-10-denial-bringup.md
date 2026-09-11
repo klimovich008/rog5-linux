@@ -5,6 +5,53 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## r45: restore selection while retaining the healthy successor boot
+
+`current-target-restore-r1` adds an exact-current-boot generator and one-use
+normal-USB SSH coordinator. It reuses the unchanged atomic ARM64 exchange
+helper, original custody and pinned descriptor/RAM primitives. The old V9/V11
+wrapper and consumed boot claims are unchanged. Before and after exchange it
+requires exact boot/release/bundle, sealed tools, protected storage and userdata
+geometry, power/thermal thresholds, quiescent rollback timers/healthy writer,
+matching transaction records and custody. It verifies original inode restoration
+and retention of the replaced new record. Uncertain outcomes never retry.
+
+Offline qualification covers 17 cases using the actual ARM64 helper and sealed
+BusyBox/loader under bwrap/QEMU, with physical telemetry, systemd and tmpfs
+explicitly simulated. Summed passing case time is 194.746 s. Seven cases passed
+before the fixture writer hit a read-only custody file; that harness failure is
+retained, and the remaining ten passed after fixing only fixture file mutation.
+Lost helper status and unsafe post-helper telemetry leave completed exchange
+bytes preserved but refuse success. A repeated restoration also refuses.
+
+A separate private health-module instance expects the restored old selection
+while requiring the same target runtime, early healthy commit and boot-bound
+markers. Original health inputs and observation bytes are untouched. Eleven
+health cases pass in 0.020 s; nine host order/output cases pass in 0.009 s.
+The reviewed preparation locks 78 input files to clean source `e98c826b`.
+No rebuild, signing, root-image rewrite, fastboot command or password was needed.
+
+The actual one-use run **PASSed all five phases in 7.656 s**: authenticated
+preflight; RAM staging; atomic restore; independent read-only state observation;
+and full restored-selection health. Boot `de90d177-3532-49e0-9bfd-8f8c65889a8d`
+and kernel `7.1.4-g05941d04803f` remained unchanged. Final uptime was 3,548.72 s;
+early healthy commit remains 64.957282 s. Current selection SHA is now
+`ed3a62d198a2e33d26093e079534315ae86ab28c91f48805463fd025c5b88b75`.
+The former new healthy record remains in the transaction exchange slot; old
+backup and original custody are retained. RAM restore entry/completion and
+persistent restore-intent/completion are consumed and must not be removed.
+This restores old boot-selection eligibility, not physical fallback qualification.
+The r43 controller result remains FAIL and S06/R01 remain open.
+
+Next-display inspection revalidated existing display-only DT `2ee1ed4b…`,
+successor panel `c554d3f5…` and REFGEN `efc31c29…` with exact 05941 vermagic.
+No module rebuild is needed. The old display plan/packaging recipe names f17
+and f236e710; those identities must not be reused for the successor. OLED adds
+L12/L13 children under the RPMh provider, whose source registers them at probe,
+so a live overlay is not an established shortcut. Prepare a fresh exact display
+DT boot and inert payload, then the bounded module/blank/frame sequence. No
+OLED/touch/GPU or Denial hardware acceptance is implied by the recovery.
+
 ## r44: integrate host fixes after the successful kernel observation
 
 The r43 controller remains FAIL; its real 23-minute capture and authenticated
