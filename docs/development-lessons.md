@@ -690,3 +690,16 @@ Full-flow evidence destinations must be fresh before execution. A reused
 default destination cost 7.781 seconds before refusing the copy; the harness
 now checks destination existence before controller.run. The corrected run
 preserved earlier evidence and passed all four cases in 25.566 seconds.
+
+The corrected same-session handoff passed on real sudo in r5 after one touch
+password entry, for both root guardian profiles. Preserve those observed process
+and source identities when reusing the evidence; later registry or documentation
+commits are separate source observations.
+
+Full-flow fixtures must retain early stdout as well as stderr. A capture child
+returned its failure as structured stdout, leaving stderr empty. That exposed a
+frozen-clock subtraction yielding 1380.0000000000002 against a 1380-second cap.
+Use whole-second values for this simulated clock so its exact-duration boundary
+is representable; keep production timing limits unchanged. All four flows then
+passed in 26.317 seconds. Source-gated tests also correctly refused the initially
+dirty checkout; freeze the small source change before those integration checks.
