@@ -1,5 +1,48 @@
 # ROG5 current state
 
+Latest r104, 2026-09-11: **the retained A660 firmware now has a reproducible
+component package and an explicit early-root install map**. Previous r103 was
+progress: the real-phone timed command sequence, cleanup, log and health passed.
+Its actual optical observation remains pending. The r101 display launch remains
+consumed; no currently unconsumed human test is prepared. No phone action ran in
+r104, and no boot image, current profile or frozen display source was modified.
+
+`gpu-firmware-package-r1/a.tar` and `b.tar` each contain1658880 bytes and have
+identical SHA `83fab937d3b02b295ec42ea389fe13f189d8ac619f1c9241b4e674f7e69d1c53`.
+The deterministic USTAR component carries all three previously pinned A660
+firmware files plus LICENSE.qcom, NOTICE.qcom and WHENCE from linux-firmware
+commit b2722d241309a1872446c1d00c2e812bad055f89. Metadata uses root ownership,
+0644 files,0755 directories and the existing epoch1681862400. Streaming input
+verification and exclusive publication prevent corrupt/partial input or an
+existing output from silently becoming an accepted package. Twin creation took
+0.028 s; independent tar inventories/extraction hashes and six refusal cases
+passed in0.062 s. No download or kernel/DT rebuild was needed.
+
+The0.484-second install-map audit caught a concrete integration issue: the exact
+726-member early-root archive has separate real lib and usr/lib directories.
+The matching kernel searches /lib/firmware; a usr/lib-only insertion would not
+satisfy that lookup. `boot-install-map.json` therefore maps the component's three
+usr/lib/firmware members to lib/firmware in the future newc archive. It preserves
+the license paths under usr/share/licenses and proves no destination currently
+exists. The Wi-Fi probe sets a custom firmware_class path; preserve it, since
+standard /lib/firmware fallback remains available. This is a component and merge
+recipe, not an already-integrated or deployed image.
+
+GPUCC is already packaged inert with no module dependencies; COMMON_CLK_QCOM,
+QCOM_GDSC and QCOM_CLK_RPMH are built in. This does not prove runtime clock/power
+readiness. Next compose a distinct successor with the verified firmware map and
+retained five-property GPU DT change, review GPUCC activation and qualify the
+result before a controlled first GPU open. Firmware authentication, GPU startup,
+accelerated Mesa, touch and Denial remain unverified. Continue to preserve stock
+slot A, signed fallback and every consumed entry.
+
+Evidence: `gpu-firmware-package-r1/result.json`, `validation.json`,
+`boot-install-map.json` and their pinned producer sources. After-run improvement:
+inspect the actual early-root library topology before selecting firmware paths;
+retain a small verified component and explicit map so future composition reuses
+these bytes instead of recovering firmware or rebuilding unchanged kernel inputs.
+
+
 Latest r103, 2026-09-11: **the prepared visible command sequence, cleanup,
 kernel recording and final health passed after a fresh user Ready**. The actual
 screen-observation reply is still pending. Do not count command/readback success
