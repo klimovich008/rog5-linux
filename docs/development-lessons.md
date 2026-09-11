@@ -1275,3 +1275,25 @@ renderer and unchanged component checks. A negative pipeline test must allow
 independent zero cleanup after entry while prohibiting frame writes/illumination.
 When embedding imported read-only source, use its own namespace: BOOT in the
 endpoint is a regex and can shadow an ad-hoc observation variable.
+
+### 2026-09-11 r97: Discover device permissions and close preparation before Ready
+
+The first frame preparation rejected the actual `/dev/fb0` ownership: udev uses
+root:video983,0660, while the reader assumed group0. Preserve the failed attempt,
+cleanup and health. The successor accepts the exact observed combination plus
+private root:root0600, still rejects other identities/permissions/device numbers,
+and checks actual node/sysfs metadata before admitting an open. No phone
+permission change was needed. Five node/real-ARM64 cases and the36-case updated
+composition (including those5) pass; unchanged cache/context cases are inherited.
+
+The full-error improvement was useful immediately: the bounded original worker
+payload is saved before summarizing, then fetched by its hash. Do not flatten
+large component receipts into a truncated string that loses the root cause.
+
+Separate capture/render/cache from the operator-dependent display. Actual capture
+exchange took1.013 s, rendering0.083 s; full preparation95.345 s includes an
+intentional90-second log. After verified cleanup and health, the cached frame
+waits without an operator countdown. Ready performs short checks and restores
+sealed cached bytes, with no rendering/build/staging. Final launch validation was
+0.543 s. Physical timing starts at nonzero brightness, not while the user waits.
+This is preparation evidence; visible scanout still needs an actual observation.
