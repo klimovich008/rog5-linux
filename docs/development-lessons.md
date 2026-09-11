@@ -59,6 +59,22 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+Post-trial regression lesson (r44): retained execution directories and consumed
+global claims are normal host state after a physical trial. Import-only assembly
+tests should verify that this state stays unchanged; prerequisite tests should
+use isolated output paths and explicit claim-boundary fixtures. Keep a separate
+actual check that the consumed production launcher refuses reuse. Removing old
+evidence or weakening one-use guards is not a test fix. The initially partial
+output-path substitution tripped component agreement; preserving the real
+read-only assembly paths avoided that unnecessary fixture complexity.
+
+When an adapter return-shape bug is found, inspect sibling consumers. Both route
+workers expected three values from the real two-value network adapter; mocks
+hid one defect by returning the same incorrect shape. Exercise the real adapter
+and replace only its external subprocess result. The corrected SSH-worker suite
+passes 13 cases in 0.405 s; full affected integration passes 63 in 53.078 s.
+Archive executed sources before integration and keep old qualification historical.
+
 Observed pattern:
 
 - A normal systemd/SSH profile was paired with a diagnostic reporter-bearing initramfs; the verifier correctly rejected the composition late in the build.
