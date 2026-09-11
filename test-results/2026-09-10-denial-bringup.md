@@ -2252,3 +2252,32 @@ adapter binding whose exact source delta is recorded. Next work remains kernel
 and display bring-up through prepared root handoff, one-use lifecycle and endpoint
 blanking/discovery. Denial/Flutter builds remain deferred. Phone health was not
 queried again in r50; r48 is still the latest physical observation.
+
+## Prepared privileged handoff (r51, 2026-09-11)
+
+Previous turn r50 is progress: exact OLED composition proof and 31-file input
+binding replaced missing admission prerequisites. No build, A01 rerun, phone
+query or repeated sudo-n attempt is needed for this step.
+
+`oled-live-driver-r1/handoff-preparation-r1` now passes 35 focused checks:
+16 guardian/bridge (6.926 s), three bridge/supervisor (1.959 s), 16 fallback
+transport (0.900 s). Wall times were 7.087/2.170/1.117 s. Real subprocesses,
+binary pipes, pidfds, parent-loss cleanup and command receipts are exercised;
+sudo/root authority and phone actions are explicit fixtures. These tests do not
+satisfy actual privileged handoff by themselves.
+
+`prepared.json` SHA `fd2cabc5f0d3bcad09b4c0b843f3f21c68981d5a4accd03f6e8a76ff2798ae5c`
+binds the clean Q revision/worktree digest, current host boot, exact source/mode
+pins, input lock and unique `privilege-probe-r2` output. Tk import, graphical
+session variables and existing askpass preflight pass. No window opened; no
+root, phone, network or claim action occurred. The command is the existing
+`run-privilege-probe.py --run-id r2 --authenticate`; it checks capture then SSH
+root guardian/runuser paths automatically after local touch authentication.
+It is ready for fresh user availability. No physical phone presence is required.
+
+After-run review: the longest check (6.926 s) exercises deliberate process-loss
+and backpressure deadlines, not a newly observed slowdown. Keep those bounds.
+Use the existing corrected launcher and record its exact prepared invocation;
+avoid another wrapper, repeated authentication failures or expensive build/VM
+work. On fresh Ready only brief current checks and launch remain. Display
+load/discovery/blanking preparation follows; no Denial/Flutter build was started.
