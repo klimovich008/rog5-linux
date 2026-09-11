@@ -1,5 +1,56 @@
 # ROG5 current state
 
+Latest r95, 2026-09-11: **the three-minute current-boot display-module test
+is fully prepared and awaits fresh operator availability**. The earlier Ready
+was released while integration was unfinished; do not reuse it. On the next
+fresh Ready, immediately execute the exact `argv` in
+`oled-startup-experiment-r1/prepared-run-r95.json` once. It already binds the
+validated coordinator and prepared record; only brief pinned admission, current
+health and live logger arming remain. Watch `oled-startup-module-host-r1/run-r1/logger-ready.json`
+for actual readiness and tell the user to watch the screen, leave USB connected
+and avoid button presses. No password, compilation, generation or staging belongs
+after Ready. The normal capture lasts180 seconds. Capture observations do not
+by themselves prove scanout or physical darkness.
+
+Actual preparation passed in3.008 s: current healthy boot
+`229580f9-ac26-4b18-a0eb-ea9c05bc632f`, exact module/helper inputs, then protected
+RAM source staging below `/run/initramfs/rog5-oled-modules-<owner>`. Health passed
+at2457.84 s uptime in1.681 s. No module insertion, brightness write, reboot,
+partition flash or new boot claim occurred. Final launch validation took0.694 s;
+three host liveness prerequisites took0.081–0.082 s each, within the0.75-second
+renewal interval and three-second remote lease. These timings are measurements,
+not a guarantee under future load.
+
+New `oled-startup-module-host-r1` composes the r94 endpoint/loader/backend and
+bounded direct-file SSH kernel logger. Static prepared evidence grants RAM
+staging only; actual logger readiness/liveness is required for runtime entry and
+every lease. Independent same-boot blanking remains available after lease loss.
+The one-use host run and target entry guards prevent automatic retries. Historical
+binding accepts only the exact recorded capture-close failure and separately
+checks current health; the startup trial remains FAIL with incomplete capture.
+Logger completion failure or cleanup exception cannot produce a passing run.
+
+26 focused current-host cases pass:13 duplex/staging checks in3.142 s and13
+integration/provenance/prepared-evidence checks in2.189 s including import/setup.
+Module effects are explicit fixtures. Initial composed tests correctly failed
+because their imported fixture retained the old boot in cleanup identity; the
+local peer now binds its complete identity from its explicit expected input.
+Original failed logs are retained. The r94 72 component and7 logger cases were
+not rerun because those sources did not change. No hardware loop was consumed
+by this fixture issue.
+
+Qualification SHA: `f51d67c3a37438b2c5cc962b819c5581fe9d8a67f8dbca2c866ab46f649a851f`.
+Prepared SHA: `8c3bb147b91baeb18cb2389fa39ef2e8ad96dd0797b17dcde54c72d24bfaefb8`.
+Coordinator SHA: `786f557c2ed4a20293faf19fcaadd0e8a4636fd19caf1015aa434dfa01a2379a`.
+Evidence in `oled-startup-module-host-r1`: `review-r95.json`, `qualification.json`,
+`tests-r2`, `tests-r3`, `preparation-r1`, `prepared.json`; exact launch command in
+`oled-startup-experiment-r1/prepared-run-r95.json`. Preserve this prepared source
+cohort. Never run the old module coordinator, r92 boot command, consumed startup
+claim or old stager. No user availability remains valid until a fresh reply.
+Kernel/non-cellular bring-up remains the priority; no rebuild or Denial build
+was needed. Next evidence is actual REFGEN/panel insertion, DRM/backlight
+discovery, cleanup, retained kernel logs and post-run health.
+
 Latest r94, 2026-09-11: **current-kernel module primitives and a rootless
 SSH kernel logger pass focused checks; the assembled module test is not ready**.
 No module insertion, brightness write, reboot, new boot claim, password prompt

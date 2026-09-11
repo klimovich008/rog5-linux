@@ -1229,3 +1229,22 @@ the affected suites. For new SSH kernel logs, direct bounded disk output avoids
 coupling log delivery to synchronous controller callbacks; real-child burst,
 closure/cancellation tests and actual same-boot read-only heartbeats are separate
 proofs from a hardware module test.
+
+### 2026-09-11 r95: Bind the complete identity in reused phone fixtures
+
+The new module coordinator's first composed tests failed cleanup because the
+reused backend fixture returned its historical boot ID, although the surrounding
+transport used the current boot. Bind the fixture's full identity from the peer's
+explicit expected input, including cleanup. Keep real identity rejection checks;
+never relax them to make a fixture pass. The corrected13 duplex/staging cases
+passed in3.142 s;13 integration cases passed in2.189 s. Retain the initial failed
+logs. Reuse unchanged qualified component results rather than rerunning72 cases.
+
+Pre-stage the exact module scripts and immutable input/health receipts before
+asking Ready. In this run preparation took3.008 s and final launch validation
+0.694 s; the saved command needs only brief current checks and logger arming.
+Keep prepared transport binding explicitly non-live: it cannot substitute for
+actual runtime logger liveness. The independent blanking path must remain usable
+when the logger lease fails, and a logger terminal failure must keep the overall
+result failed. All three are covered by composed tests. Preparation now reaches
+a concrete phone RAM namespace instead of another pending integration report.
