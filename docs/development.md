@@ -307,3 +307,13 @@ recovery dependencies. Archive the exact tree without dereferencing symlinks,
 compare archive members with originals, test restoration, and retain the
 archive digest and original path privately. Remove only that verified obsolete
 tree; preserve source, cache, unique evidence and recovery inputs.
+
+Authentication preparation lesson (2026-09-11): keep password-entry attempts
+separate from the one-use hardware execution entry. Preserve each bounded
+authentication result, exclude concurrent owners, and refuse incomplete or
+unreaped prior attempts. Reserve the hardware entry only after authentication
+succeeds, with the original claim and current-state checks still enforced. A
+password timeout before phone actions is not evidence of a kernel failure or a
+wrong password. Reuse unchanged artifact and timer evidence when only host
+authentication bookkeeping changes; verify the full dependency readers before
+asking for fresh availability.
