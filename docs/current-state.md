@@ -9,26 +9,33 @@ kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
-Fresh Ready started host privilege probe r4 immediately. Touch authentication
-returned success, with no logged password or diagnostic error. The following
-noninteractive sudo command refused authentication before any root probe ran.
-The full attempt failed in 11.161 seconds; no phone/network/claim action ran.
+Host privilege probe r5 **PASS** after one touch-password entry in 10.795 s.
+Both capture and SSH guardian profiles ran as root, checked the deck child and
+clean host source, and exited/reaped successfully. This verifies the corrected
+same-session sudo handoff; it does not qualify an actual recording or phone boot.
+The root probe and its root entry/worker/SSH implementation remain unchanged.
+Its source observation belongs to `7bbd8f4a`; subsequent registry work is recorded
+separately and must not be represented as that earlier root source observation.
 
-The launcher used a new session for every sudo child. Sudo separately rejects
-cached credentials whose session ID differs, even when parent PID matches.
-Authentication, both probe roles, capture/fallback launchers and credential
-refresh now preserve the controller session while each owns a separate process
-group (`process_group=0`). Existing ancestry/pidfd and cleanup guards remain.
-Eighty-eight relevant tests pass, including real SID/PGID assertions and four
-complete controller flows. Actual sudo reuse after this fix is still unverified.
+Fresh read-only phone health **PASS** in 1.362 s on unchanged V9 boot
+`7c945aa5-80d0-4af2-aa76-113d68e23ac5`, at 77,231.59 s uptime. Healthy commit
+remains 64.143 s, and boot-bound readiness/storage/power guards pass. Fresh RAM
+staging readback **PASS** in 0.386 s: helper, custody, inactive fastboot shutdown,
+original active shutdown and old healthy selection are unchanged; no exchange.
 
-Next fresh host Ready must immediately run
-`run-privilege-probe.py --authenticate --run-id r5`. Use the unchanged touch
-keyboard: tap the window's keys and then Unlock. It has a five-minute input
-bound and preserves masked input, private pipe output, core=0, bounded logs
-and owned group cancellation. r4 is terminal and cannot be reused. No phone
-availability or recording session is pending. The host boot ID changed since
-r3; obtain fresh device/runtime observations before any future physical trial.
+The exact `kernel-hw-05941-a607a2bb249c918b` profile is now registered at
+`02b9e9fe`. Its one-use claim has **not** been consumed. Registration tests verify
+that an unconsumed profile still cannot dispatch a boot. All affected focused
+checks and four full controller flows pass; the latter took 26.317 s.
+Early child stdout/stderr are now retained in the test harness. They exposed
+floating-point roundoff in its frozen clock (1380.0000000000002 > 1380); whole-
+second test timestamps fix that without relaxing the real recording boundary.
+
+No password prompt, phone Ready, recording or live admission is pending.
+Finish the final evidence/source-bound admission review and fresh installed-route
+preparation before requesting availability for an actual temporary kernel boot.
+The prior Ready applied only to the completed host privilege check. Preserve the
+unused claim and existing phone state; no reboot or flash occurred this turn.
 The full Denial/hardware goal remains incomplete; no phone test passed by inference.
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have

@@ -1820,3 +1820,36 @@ The unchanged touch keyboard is prepared for r5 on fresh host availability.
 Actual post-fix sudo reuse/root handoff still requires that next run. No phone
 Ready or physical trial is pending; subsequent device setup needs fresh health
 and identity observations after the host restart.
+
+### 2026-09-11: actual privilege success, fresh phone checks, exact claim (r38)
+
+Fresh Ready immediately launched r5. PASS in 10.795 s after one touch-password
+entry: capture and SSH guardian profiles each ran with all root UIDs zero,
+validated actual deck children, original controller/launcher ancestry and clean
+source `7bbd8f4a`, then reaped and verified exit. No phone/network/claim action
+ran in the probe. The password stayed between askpass and sudo.
+
+Fresh V9 health PASS in 1.362 s at 77,231.59 s uptime on the same phone boot.
+Current-boot healthy/readiness markers and storage/power protections pass.
+Fresh staged-file readback PASS in 0.386 s: exact helper/custody/inactive shutdown,
+unchanged active shutdown and old healthy boot selection; no state exchange.
+
+Registered the exact new kernel profile at `02b9e9fe`. Record hash
+`ad1d8dbfab6d5c2dd10cf3b61191b0d9354557a92a5ce9925601fe58c077e969` binds
+image, manifest, composition, A01 proof, device, slot, fallback and one attempt.
+No claim consumption, transfer, boot or flash occurred. Registry and primitive
+tests prove registration alone cannot dispatch without durable consumption.
+Dependent private pins/input lock were refreshed with prior source retained.
+
+Affected tests pass, including all four full flows in 26.317 s. Earlier dirty-
+source refusals were resolved by freezing the code commit. Initial child exits
+were traced after retaining early stdout/stderr: simulated deadline subtraction
+rounded 1380 seconds upward. Integer clock seeds fixed the fixture; no production
+recording guard was relaxed. Detailed outcomes and old sources are retained in
+`successor-claim-registration-r1`; final flow receipts are in
+`registered-claim-full-flow-r3`. Earlier failed attempts remain intact.
+
+Final live admission/installed-route preparation remains before any hardware
+availability request. No new prompt is pending. The completed host Ready must
+not be reused as presence for a future phone test. Root handoff source facts and
+later registry source facts remain distinct; the native Denial goal is incomplete.
