@@ -31,23 +31,41 @@ fallback SSH command. Old selection eligibility was **not restored**; current
 selection remains the new healthy record. The signed installed fallback was not
 modified, but this run did not physically qualify fallback boot/restoration.
 
-Both causes are reproduced with the original source and corrected in separate
-private candidates: `health-usb-transition-r1` (32 checks, 12.649 s) and
-`fallback-command-contract-r1` (25 checks, 13.010 s). The former preserves the
-300-second deadline and refuses fastboot after authenticated identity or during
-post-capture checks. The latter tests the real network command adapter and an
-actual read-only route lookup. No production live-source bytes were changed;
-patches are retained for the next controller integration. Preserve the original
-admitted source at `a9161e98` and the terminal execution evidence. Do not rerun
-the consumed trial or reuse its launcher/qualification as new admission.
+The host fixes are now integrated in `successor-live-driver-r1`, with the exact
+executed sources archived at `post-trial-driver-fixes-r1/executed-sources` before
+editing. The two-value adapter defect also existed in `ssh-worker.py`; its tests
+now call the real network adapter with only the subprocess result simulated.
+A negative replay reproduced that sibling failure. Final affected regression
+checks pass **63 cases in 53.078 s**, including four complete simulated flows.
+The earlier integrated transition/route checks passed 32/25 cases. These are
+host checks, not a second phone boot or qualification of automatic recovery.
+
+Regression fixtures now tolerate retained terminal execution and consumed claims
+without changing production guards. The actual 30-file input lock passes in
+0.104 s; the old launcher refuses `trial was already attempted`. Its old live
+qualification remains byte-identical, historical and stale for the new sources.
+Do not rerun the consumed trial or treat these changes as a new admission.
+
+Fresh authenticated health passed again at **2,620.11 s uptime** on the same
+successor boot. A 1.895-second read-only recovery inventory confirms both exact
+old-selection copies, matching stage-intent/completion, no restoration intent,
+and absent reboot-lost RAM custody. Rollback timers are inactive and the healthy
+service has exited. No selection change or reboot was requested this turn.
+
+Next: prepare and test a separate exact-current-boot restoration guard and RAM
+custody staging using the retained atomic helper. Its old wrapper admits only
+V9/V11, so it cannot yet run against the healthy successor. Keep current Linux
+running while preparing recovery, then prepare minimal OLED scanout. The combined
+native DT proposal passed offline checks in r40; OLED/touch/GPU are still
+unqualified. Kernel work precedes Denial/Flutter builds.
 
 No recording, password window, physical prompt or execution job remains active.
-Next: carry the proven host fixes into the next controller and qualify its
-recovery path, then prepare minimal OLED scanout on the physically observed
-successor kernel before touch/GPU activation. The combined native DT proposal
-passed offline checks in r40; it is not authority to skip separate hardware
-observations. Kernel/non-cellular work still precedes Denial/Flutter builds.
-Use checkpoint r43 for the final physical run and retained fixes.
+The unsolicited Ready arrived while host preparation was incomplete; the user
+was released from waiting. Request fresh availability only after a physical test
+is prepared. Use checkpoint r44 for current sources, r43 for the terminal trial.
+
+Earlier coordinator milestones below retain their original scope and timings;
+statements about pending jobs or absent trials there are historical.
 
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have

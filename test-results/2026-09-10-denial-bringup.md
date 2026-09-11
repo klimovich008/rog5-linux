@@ -5,6 +5,51 @@ Adreno graphics. Cellular is excluded. The initial integration base is
 `6651d598b9e2ce1f4a83b85630cdddfc2debb377`; the dirty original workspace and
 accepted server/recovery artifacts remain preserved.
 
+## r44: integrate host fixes after the successful kernel observation
+
+The r43 controller remains FAIL; its real 23-minute capture and authenticated
+kernel health remain independently PASS. Executed private sources were frozen
+under `post-trial-driver-fixes-r1/executed-sources` before the proven USB-transition
+and fallback-adapter patches were integrated. Transitive source pins were
+refreshed; the original live qualification, terminal receipts and consumed claim
+were preserved. An actual 30-file input check passed in 0.104 s and the production
+launcher still refuses the completed attempt before authentication or mutation.
+
+The first regression batch stopped on an assembly fixture's assumption that no
+real execution directory existed. A partial output override then correctly
+tripped component-path agreement. The final assembly check preserves existing
+directory metadata. Launcher tests use isolated attempt paths and explicitly
+simulate the global claim boundary; the production consumed guard is untouched.
+All failed test outputs are retained. No expensive kernel, module, package or
+full-CI build was repeated.
+
+The separate SSH worker had the same three-value unpacking bug as the fallback
+worker. Its old mock duplicated the wrong contract. A real-adapter fixture
+reproduced failure before changing the worker; after the two-value fix all 13
+worker cases pass in 0.405 s. Final affected checks pass **63 cases in 53.078 s**
+including process launch overhead: worker 13, fallback route 19, transport
+injection 3, assembly 3, launcher 21 and complete simulated flows 4. Earlier
+integrated transition/route/admission checks passed 32/25/24 cases on their
+retained pre-sibling-fix sources; do not relabel those bytes as the final source.
+
+One local health invocation failed before transport because it called a
+nonexistent worker convenience API; its result is retained. The corrected
+read-only call authenticated the unchanged successor at 2,387.56 s uptime in
+1.596 s. A subsequent 1.895-second guarded recovery inventory authenticated that
+same boot at **2,620.11 s**. It verifies both 390-byte old-selection copies and
+matching stage-intent/completion, with restoration not entered and the old RAM
+custody directory absent. The existing health predicate still passes all
+identity, readiness, service, storage and power checks. Current selection is
+still the new healthy record; no phone write or reboot ran in r44.
+
+The retained atomic helper can exchange a matching healthy successor record back
+to the exact old selection. The existing outer wrapper only admits V9/V11;
+current-target guard, RAM staging, focused validation and review remain to be
+prepared before that mutation. This is a recovery plan, not restored eligibility
+or physical fallback qualification. Then prioritize minimal OLED scanout before
+touch/GPU and Denial. The user's unsolicited Ready was released because no
+physical test was prepared; a future human step requires fresh readiness.
+
 ## Authentication blocker revalidated
 
 Checkpoint r34 confirms the prepared password probe and five relevant source
