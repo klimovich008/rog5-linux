@@ -59,6 +59,15 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r53: independently compile framebuffer structure offsets against target C
+headers before releasing an ARM64 decoder. Tests built from the same hand-written
+offsets missed vmode/rotate errors; the C assertions caught them. Emit actual C
+records and feed them through the real ARM64 parser, with independent interlace
+and rotation refusals. Read current DRM source for valid XRGB alpha conventions.
+The known missing fmt/Clippy tools recurred once; their exact 1.98.0 components
+are now staged from the retained pinned manifest in `rust-tools-r1`. Reuse this
+read-only overlay with the unchanged compiler image and explicit compiler sysroot.
+
 OLED r52: blank the verified backlight before waiting for unrelated framebuffer
 qualification. The panel registers default brightness 1023, so a later fb0/mode
 failure must not suppress the available zero-brightness action. Keep exact

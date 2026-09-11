@@ -259,6 +259,32 @@ layout, refresh timing, visible output or GPU acceleration. Enclosing admitted
 module-load/health/monitor/deadline and fixed-frame integration remain pending.
 The r51 prepared authentication receipt/source is unchanged and unstarted.
 
+The r53 Rust fixed-frame helper is now prepared in `oled-frame-r1`. Independent
+ARM64 static-PIE builds match SHA `ed3e8081…`, 1,252,408 bytes; final validation/
+build took 2.770 s and the independent build 1.056 s. Rustfmt, Clippy with denied
+warnings, 13 release tests (0.02 s) and cross-compiled framebuffer ABI assertions
+pass. Actual ARM64 C structure bytes feed the Rust decoder under QEMU; native
+and ARM64 render outputs match SHA `859231da…`, 10,653,696 bytes with 4352-byte
+fixture stride. Rendering took 0.031/0.125 s. The helper buffers at most one
+16-KiB row, accepts bounded layout records on stdin, and emits metadata or one
+fixed frame on stdout. It has no device-open, ioctl, module or backlight path.
+
+The inspected preview has an up-arrow, TOP label, RGB bar, asymmetric corner
+markers and border. It is generated host evidence, not an OLED photograph.
+Malformed/truncated/extra records, interlace/rotation and output failure refuse.
+Actual kernel depth24 XRGB (no alpha, offset zero) is recognized alongside
+ARGB32. An independent ARM64 header check caught incorrect vmode/rotate offsets
+in the first decoder and stopped before a usable ARM64 binary; corrected offsets
+132/136 are now checked against C-produced records. Enclosing device/boot-bound
+ioctl collection, fixed-frame write and low-brightness/blank controller remain.
+
+The previously missing Rustfmt/Clippy 1.98.0 tools are now staged separately in
+`rust-tools-r1`, verified against the retained release manifest hashes. They
+work with the existing immutable compiler image, avoiding another repeat of the
+known missing-tool failure. No systemwide install, compiler/kernel/package rebuild,
+phone action or authentication attempt occurred. The r51 authentication session
+remains prepared and unstarted; a goal continuation does not count as Ready.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -266,7 +292,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r52 for the offline display endpoint component, r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r53 for the Rust frame helper, r52 for the offline display endpoint component, r51 for the ready host handoff check, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
