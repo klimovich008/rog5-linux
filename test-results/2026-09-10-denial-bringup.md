@@ -2412,3 +2412,34 @@ are untouched. After-run improvement: retain the verified inode across open,
 check all descriptor exits and distinguish captured data from validated layout
 or physical evidence. Continue same-boot frame-write/brightness integration;
 no kernel/package/Denial build or repeated authentication attempt was needed.
+
+## Prepared host authentication attempt (r55, 2026-09-11)
+
+Fresh Ready triggered the pinned command immediately after brief receipt, source,
+host-boot and file/mode checks. `oled-live-driver-r1/privilege-probe-r2` retained
+its exclusive output. Authentication timed out after **300.014 s**; overall FAIL,
+no privileged result rows, stderr zero bytes. At 04:56:10.985505 UTC, xwininfo
+reported the 1040x560 password window at +120+106. This establishes window
+creation, not user visibility, successful interaction or a password error.
+The user did not answer the window-status question during the attempt.
+
+Authentication reports returncode -9, timed_out true, reaped true, no log
+overflow and password_retained false. The owned authentication group was killed
+by the existing timeout path; terminal checks found no remaining dialog/probe
+PID or matching window. Capture/SSH root profiles did not execute. There was no
+phone query/write, network action, registration, claim consumption or boot.
+
+The user was released from waiting. A fresh r3 output is prepared by
+`handoff-preparation-r2/prepared.json` (SHA `99e6ff62…`); its previous-attempt
+observation retains the result hashes. Six code/input file pins and modes,
+dependency map, clean Q revision, host boot, Tk import, graphical environment
+and absent new output passed. The previous 35 preparation tests are reused;
+no code changed, expensive test reran, second window opened or timer restarted.
+Only a new Ready starts the recorded r3 command. No response is assumed.
+
+After-run review: the proven delay is waiting for authentication, not a build
+or known software fault. Preserve the timeout evidence and request window/key
+status without collecting a password. The scoped improvement is a fresh,
+fully pinned retry receipt so the next Ready again starts immediately. Kernel
+and display preparation remain the priority; physical OLED/touch/GPU and root
+handoff remain unqualified. Previous r54 remains useful offline progress.
