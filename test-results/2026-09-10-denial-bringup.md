@@ -1877,3 +1877,69 @@ The final qualification binds the subsequently frozen notes revision separately.
 The prepared command requires fresh Ready, opens the working local touch keyboard
 for authentication, and then controls the single RAM boot/full capture itself.
 No current physical trial was started; no builds or full CI were repeated.
+
+### 2026-09-11: combined native-device DT proposal (r40)
+
+While awaiting fresh Ready, composed the previously qualified display DT with
+the pinned front-touch and GPU overlays, entirely outside the frozen admission
+inputs. Two orders, each built twice, passed in 0.336 s. Exact validators retained
+all unrelated properties, boot CPU/reservations, SPI4-disabled and shared L8
+always-on policy. The complete parsed trees match between orders; serialized
+bytes differ. Canonical order is GPU, disabled touch, touch enable. Its DTB is
+110,415 bytes, SHA-256
+`6c79982f3c2f8477cdb581640f9c038a4f13fa9071dd55beda92e100752c81b5`.
+
+Five actual encoded mutations (ZAP, SPI conflict, touch rail, touch disabled and
+boot CPU) were rejected in 0.106 s. Initial dictionary comparisons were replaced
+with real verifier calls; original output/source remain retained. Artifacts and
+receipts are private `combined-native-dt-r1`. This is unsigned composition only,
+not kernel ABI/probe, scanout, touch or GPU rendering evidence. Physical bring-up
+still starts with the prepared headless kernel trial, followed by separately
+observed OLED, touch and GPU stages. No phone action, signing, claim consumption
+or kernel build occurred. Notes were staged as a patch while the trial source
+remained frozen; apply this documentation patch only after the trial completes
+or is explicitly retired.
+
+### 2026-09-11: actual successor kernel capture, two host defects (r42–r43)
+
+Fresh Ready immediately started `final-preparation-r1/run-prepared-trial.py
+--start`. Local touch authentication succeeded, the pending claim was consumed
+once, source-state/exitrd preparation passed, and the exact 134,217,728-byte image
+transferred once. Source was `a9161e98`; phone serial remained M5AIKN00F0353YH,
+slot B, product lahaina. No flash or second RAM boot occurred.
+
+Real successor boot: `de90d177-3532-49e0-9bfd-8f8c65889a8d`, release
+`7.1.4-g05941d04803f`. The initial controller health callback saw fastboot and
+failed immediately. Passive capture subsequently observed target USB and
+switch-root PASS. Independent strict-key SSH health PASSed in 1.855 s at uptime
+108.19 s, with healthy commit at 64.957282 s. The original controller receipt was
+not altered or replaced by the independent health check.
+
+Full capture PASS: original deadline 6311.254956229 host monotonic; recording
+ended at 6311.392766294. Route, firewall, profile and address cleanup passed in
+order; root worker reaped and no owned process remained. Capture stream SHA-256
+`8c883d2e7ef4be55db792beccb60bae9d4cc26f7f97b523fb0023d750a9afa14`.
+All 32 credential refreshes succeeded and the refresher stopped without failure.
+The later fallback location failed before network acquisition or SSH: actual
+`NETWORK.command` returned two values, while the caller unpacked three. Its raw
+result retains `cleanup_complete=false`, `network_owned=false`, no events and
+no deck worker. Do not turn that failed route result into a cleanup PASS.
+Original controller, capture and fallback root/launcher PIDs were absent after
+termination; overall launcher had no cleanup exceptions, but returned FAIL.
+
+After terminal cleanup, independent strict-key SSH health PASSed in 1.523 s at
+uptime 1383.39 s, on the same boot and exact new healthy record. Boot-bound
+readiness and physical/storage/power guards passed. Receipts are
+`successor-live-driver-r1/actual-successor-health-r1` and `-r2`. The phone remains
+on the successor kernel. Old boot-selection eligibility was not restored; signed
+fallback remains unmodified but physical fallback/restoration remains unproven.
+
+Both host defects reproduce with original source and pass isolated fixes:
+32 health-transition cases in 12.649 s and 25 fallback-contract/process cases in
+13.010 s (candidate command wall times 13.691/13.313 s). Read-only route lookup
+exercises the real two-value adapter. Candidate sources and patches are private
+`health-usb-transition-r1` and `fallback-command-contract-r1`. No executed source
+was patched during the capture, no kernel rebuild/full CI repeated, and no
+additional phone cycle or claim was created. The combined-DT notes patch was
+applied only after execution terminated. Overall automated trial remains FAIL;
+physical headless kernel/capture observations passed at their stated scope.

@@ -9,51 +9,45 @@ kernel fully working while required hardware remains unqualified. Denial remains
 the eventual application layer. Prepare hardware trials completely before Ready.
 After each run and goal turn, review priorities, repeated failures and measured
 bottlenecks using the [feedback loop](development.md#feedback-after-each-run).
-Host privilege probe r5 **PASS** after one touch-password entry in 10.795 s.
-Both capture and SSH guardian profiles ran as root, checked the deck child and
-clean host source, and exited/reaped successfully. This verifies the corrected
-same-session sudo handoff; it does not qualify an actual recording or phone boot.
-The root probe and its root entry/worker/SSH implementation remain unchanged.
-Its source observation belongs to `7bbd8f4a`; subsequent registry work is recorded
-separately and must not be represented as that earlier root source observation.
+The exact successor kernel is now running on the phone: release
+`7.1.4-g05941d04803f`, bundle `kernel-hw-05941-a607a2bb249c918b`, boot
+`de90d177-3532-49e0-9bfd-8f8c65889a8d`. Fresh Ready immediately launched the
+prepared trial and local touch authentication succeeded. Exactly one 128-MiB
+RAM boot completed; the one-use claim is consumed. No partition was flashed.
 
-Fresh read-only phone health **PASS** in 1.362 s on unchanged V9 boot
-`7c945aa5-80d0-4af2-aa76-113d68e23ac5`, at 77,231.59 s uptime. Healthy commit
-remains 64.143 s, and boot-bound readiness/storage/power guards pass. Fresh RAM
-staging readback **PASS** in 0.386 s: helper, custody, inactive fastboot shutdown,
-original active shutdown and old healthy selection are unchanged; no exchange.
+The full 23-minute physical capture PASSed, including ordered route/firewall/
+profile/address cleanup and worker reap. Independent authenticated target health
+PASSed at 108.19 s and again after terminal cleanup at 1,383.39 s on the same
+boot. Healthy commit was 64.957 s; boot-bound readiness and physical/storage/power
+guards passed. No later USB transition was recorded after target enumeration.
+These are real headless-kernel observations; OLED/touch/GPU remain unqualified.
 
-The exact `kernel-hw-05941-a607a2bb249c918b` profile is now registered at
-`02b9e9fe`. Its one-use claim has **not** been consumed. Registration tests verify
-that an unconsumed profile still cannot dispatch a boot. All affected focused
-checks and four full controller flows pass; the latter took 26.317 s.
-Early child stdout/stderr are now retained in the test harness. They exposed
-floating-point roundoff in its frozen clock (1380.0000000000002 > 1380); whole-
-second test timestamps fix that without relaxing the real recording boundary.
+The automated controller result is **FAIL** and must stay FAIL. Its initial
+health query encountered the still-enumerated fastboot device immediately after
+RAM transfer. It failed before waiting for the new USB gadget. Later fallback
+location hit a separate host adapter error: unpacking three values from the
+network helper's two-value return. That error preceded network ownership or any
+fallback SSH command. Old selection eligibility was **not restored**; current
+selection remains the new healthy record. The signed installed fallback was not
+modified, but this run did not physically qualify fallback boot/restoration.
 
-Final preparation review now passes. Fresh read-only installed-route check r2
-PASS in 2.890 s: eleven files, the 96-MiB boot_b image and unchanged V9 state
-match, with storage protections intact. This does not prove a physical fallback.
-The exact one-use source record is staged but unconsumed. Final preparation had
-found that registration alone left that file absent; the launcher now verifies
-its exact bytes, ownership and unused guards before authentication and again
-before consumption. All 21 launcher tests PASS in 0.824 s. The four previously
-qualified controller flows and unchanged real r5 root handoff were replay-reviewed
-in 0.246 s, without repeating a build, full CI, root prompt or phone cycle.
+Both causes are reproduced with the original source and corrected in separate
+private candidates: `health-usb-transition-r1` (32 checks, 12.649 s) and
+`fallback-command-contract-r1` (25 checks, 13.010 s). The former preserves the
+300-second deadline and refuses fastboot after authenticated identity or during
+post-capture checks. The latter tests the real network command adapter and an
+actual read-only route lookup. No production live-source bytes were changed;
+patches are retained for the next controller integration. Preserve the original
+admitted source at `a9161e98` and the terminal execution evidence. Do not rerun
+the consumed trial or reuse its launcher/qualification as new admission.
 
-Next operator Ready is for the prepared temporary kernel trial. Use the private
-`successor-live-driver-r1/final-preparation-r1/run-prepared-trial.py --start`
-immediately, then prompt for the local touch-password window. Do not repeat
-preparation after Ready. Its `--check` mode is read-only; final source-bound
-qualification and check results belong to checkpoint r39. The launcher performs
-brief runtime guards, one RAM boot and a full 23-minute capture automatically;
-a late failure can require a separate fallback recording. Keep USB connected.
-Never reuse an earlier Ready or launch during a goal continuation without fresh
-operator presence. No trial, claim consumption, reboot or flash has happened yet.
-Preparation qualification combines explicitly simulated controller flows with
-actual read-only privilege and phone-route evidence; it is not physical kernel,
-recording, fallback or Denial acceptance. Root r5 still records source `7bbd8f4a`.
-Freeze this notes checkout while awaiting Ready so final admission stays valid.
+No recording, password window, physical prompt or execution job remains active.
+Next: carry the proven host fixes into the next controller and qualify its
+recovery path, then prepare minimal OLED scanout on the physically observed
+successor kernel before touch/GPU activation. The combined native DT proposal
+passed offline checks in r40; it is not authority to skip separate hardware
+observations. Kernel/non-cellular work still precedes Denial/Flutter builds.
+Use checkpoint r43 for the final physical run and retained fixes.
 
 Current coordinator handoff: the successor kernel, module and boot-package
 builds are complete; do not restart them. All twenty-two controller phases now have

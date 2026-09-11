@@ -712,3 +712,29 @@ cases and all 21 launcher tests passed in 0.824 s. Read-only final evidence repl
 can reuse unchanged component results while retaining their original source and
 fixture scope; do not turn a documentation commit into another root prompt or
 expensive build. Bind the final qualification only after freezing progress notes.
+
+Overlay order can change DTB bytes without changing hardware semantics. Combined
+OLED/touch/A660 composition produced equal complete parsed trees and preserved
+boot metadata in both orders, but different hashes. Pin GPU, disabled touch, then
+touch enable as the packaging order; twins within each order matched. Compare
+all properties and boot metadata, and run actual encoded mutations through the
+verifier. Merely checking unequal dictionaries is not a refusal test. Five real
+mutations were rejected in 0.106 s. Keep this offline proposal separate from
+physical qualification and the already prepared headless trial.
+
+A successful `fastboot boot` can return while USB still enumerates as fastboot.
+The actual r42 trace went fastboot → absent → recovery → absent → enumerating →
+target, and the kernel committed healthy at 64.957 s. Initial health discovery
+must allow that transient only after a verified boot command and before seeing
+an authenticated identity, within the original deadline. A post-capture return
+to fastboot must still fail. The original source reproduces the refusal; 32
+candidate checks pass, including the captured USB state and deadline boundaries.
+
+Boundary mocks must preserve the real helper contract. Fallback tests replaced
+`link_ready` wholesale and missed that `NETWORK.command` returns `(code, stdout)`.
+The real fallback attempt failed unpacking a third value before acquiring any
+network state or invoking SSH. The corrected adapter has six contract cases,
+including an unmodified read-only host route lookup; all 25 route/process cases
+pass. Keep the original controller failure separate from independently successful
+kernel/capture observations. Do not repeat a consumed phone trial just to test a
+host parsing fix. Preserve executed sources and stage fixes for the next driver.
