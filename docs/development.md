@@ -30,6 +30,14 @@ cause is unknown. An unrelated incident need not block a separately proven fix.
 
 ## Feedback after each run
 
+A healthy overall boot does not prove all PMIC children bound. In r76, a
+0.363-second metadata-only query distinguished the SID-5 unbound PMR735B from
+five successfully bound PMICs. Trace the exact failed register and probe return
+before changing DT nodes; device labels alone do not prove board population.
+Thermal-driver config, module availability, loading and actual alarm binding
+are separate facts. Keep this diagnosis independent of a frozen prepared test.
+
+
 For sudo reuse, retain the actual controlling terminal and verify its shell
 PID/start, session, foreground process group and host boot. `/dev/tty` reports
 its special device number rather than the underlying pts device; compare the
