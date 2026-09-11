@@ -466,9 +466,32 @@ source/input/qualification/registry/pending checks. Result is
 `oled-live-driver-r1/claim-registration-r1/result.json`. This is host preparation,
 not phone admission, a boot or physical display qualification.
 
+The r62 target module-loading component now passes **17 focused checks in
+1.268 s** (1.384 s runner): `oled-display-component-r1/load-modules.py`, SHA
+`ae33fc62…`. It reuses the exact 219,912-byte `module-once` ARM64 helper and retained
+REFGEN/panel modules. No build was needed. After one durable paired entry, it
+loads REFGEN, verifies its platform binding/regulator, then loads the panel once.
+It watches for the backlight every 50 ms while the helper is still running and
+issues the existing verified zero command immediately on discovery. Insertion
+has a five-second deadline and bounded output/reaping; framebuffer discovery is
+also bounded. Errors stop without unload or module retry. Separate cleanup
+ownership can reassert zero after normal authorization is lost or brightness
+changes after the first blank; a different boot refuses stale cleanup.
+
+Tests use real files, held descriptors and child processes with explicit module/
+probe/sysfs/health fixtures. The positive sequence takes 0.174 s, blanks during
+panel-child execution and reaps both children. The exact ARM64 helper also ran
+under QEMU and refused once with errno38 (unimplemented syscall in that path);
+this is a refusal-path check, not a kernel insertion. Timeout, output overflow,
+changed files/boot, uncertain entry, preloaded modules, missing framebuffer and
+late brightness changes fail as expected. The original 15-case pass and initial
+fixture setup failure are retained. Result `module-result-r1.json` is SHA
+`a5da3d3e…`. No real module was loaded and the phone was not queried or changed.
+The r61 boot qualification and unused pending claim remain unchanged.
+
 **Next:** integrate the OLED component monitor's production owner/admission,
 closed full-boot capture, fresh authenticated target health, real USB sampling,
-late REFGEN/panel module load and independent blank/full-health cleanup with the
+the r62 module loader and independent blank/full-health cleanup with the
 prepared display session. The boot launcher is prepared offline; the whole display
 test is not yet prepared. Preserve its unused pending claim until actual launch.
 No phone query/write, password window, recording or operator request is active.
@@ -481,7 +504,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r62 for the target module/early-blank component, r61 for current registry/pending claim/source qualification, r60 for its historical predecessor, r59 for the component transport adapter, r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
