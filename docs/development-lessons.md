@@ -1142,3 +1142,20 @@ requires a fresh bounded read before any new claim. All 21 cases passed in
 2.191 s without phone I/O. The fallback fixture's missing copied tool directory
 was found before execution; it now verifies the two retained sealed-tool paths
 and hashes before allocating cases. No production guard was weakened.
+
+### r88: run the complete command policy before requesting hardware availability
+
+Source callbacks alone passed while the outer admission policy still selected
+Python for three shell actions. The full assembled flow refused install, then
+restored its fixture selection. Correct the policy's transport without relaxing
+exact script/intent comparison; all four flow scenarios passed in 33.400 s.
+Retain the failed result and use qualified raw shell replies in host fixtures.
+A source-copy operation also lost askpass's required0700 mode despite preserving
+its digest. The graph refresher now checks that mode before publishing inputs;
+rerun only the four affected privilege tests, preserving the six prior passes.
+
+A live terminal does not prove a live sudo timestamp: session44286 still exists,
+but its noninteractive check explicitly requires a password. Finish independent
+preparation and ask for authentication only once the intended check can start.
+Do not reopen a password window or repeat the same failed noninteractive check
+without new evidence. Separate real root-handoff proof from root/network fixtures.
