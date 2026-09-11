@@ -59,6 +59,17 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+OLED r56: bind rendered output to the entire captured boot/node/layout record
+and execute a sealed copy of the pinned helper, so later source-path replacement
+cannot change the frame. Stream bounded output into a sealed descriptor; verify
+exact length before release. Exercise child cleanup after closed pipes, pidfd
+failure and output/sealing errors using actual processes and FD inventories.
+The existing ARM64 renderer needed no rebuild (0.021/0.122 s describe/render
+under QEMU); keep this small reusable step separate from kernel packaging.
+Actual touch authentication and both root handoffs passed on the next Ready in
+13.378 s. The prior timeout does not establish a persistent keyboard defect;
+retain that FAIL without speculative authentication code changes.
+
 OLED r55: distinguish an authentication timeout from a demonstrated keyboard or
 password failure. Window-tree evidence proves creation only. Keep the existing
 bounded cleanup, verify dialog/probe disappearance, preserve the terminal

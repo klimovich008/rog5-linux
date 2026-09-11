@@ -229,20 +229,27 @@ Terminal inspection found no remaining dialog/probe process or password window.
 Neither capture nor SSH privileged profile ran. No phone/network/claim action,
 boot admission or phone change occurred. Preserve the attempt; never reuse r2.
 
-Fresh attempt r3 is fully prepared in
-`oled-live-driver-r1/handoff-preparation-r2/prepared.json`, SHA `99e6ff62…`.
-It retains the exact source, host boot, six file/mode pins, dependency map and
-previous 35 passing preparation tests. Tk import and graphical environment were
-checked without opening another window; Q `462cef05` remains clean. No build or
-unchanged test suite was repeated. On a new Ready, briefly verify those pins and
-absent `privilege-probe-r3`, then immediately run the receipt's command with
-`--run-id r3 --authenticate`. Use local touch keys and Unlock, never chat input.
-This checks sudo/root guardian and runuser-to-deck handoff only; actual root
-handoff is still NOT RUN. The user is released from waiting; no auth job is live.
+The later fresh Ready in r56 immediately started the prepared r3 command.
+**Actual host authentication and both privileged handoff profiles PASS in
+13.378 s**. `oled-live-driver-r1/privilege-probe-r3` is terminal. Capture and
+SSH profiles each ran the real root guardian with all four UIDs zero and a
+runuser child with deck UID/EUID/GID/EGID 1000. Both child outputs match their
+retained raw results, stderr is empty and all launcher/root/deck processes were
+reaped or subsequently confirmed gone. Authentication exited zero without a
+timeout or retained password. The password window closed.
 
-After this short host check, continue live OLED lifecycle/registration and
-prepared display load/discovery/blanking work. Human display availability remains
-a separate fresh request after the physical endpoints have been prepared.
+Receipt `oled-live-driver-r1/handoff-preparation-r2/completed.json`, SHA
+`b38eff45…`, binds the raw/proc/result evidence to clean Q `462cef05`, exact
+worktree digest and host boot. This is actual host privilege evidence, with
+zero phone/network/claim actions; it does not grant boot admission or qualify
+OLED hardware. Preserve r2 FAIL and r3 PASS; do not rerun either. No password
+request, retry or operator countdown remains pending. The user is released.
+
+Continue live OLED lifecycle/registration and the admitted display
+load/discovery/blank/frame/brightness integration. Human display availability
+requires a separate fresh request only after the physical test is fully
+prepared. Normal future privileged actions still need current credential checks;
+this receipt does not promise an indefinitely reusable sudo session.
 
 The r52 `oled-display-component-r1/endpoint.py` now provides an import-only
 endpoint reader, guarded zero-brightness write/readback and subsequent framebuffer
@@ -309,6 +316,27 @@ creation/write, brightness session and enclosing load/health/capture/deadline
 integration remain pending. Endpoint/frame binaries and prepared authentication
 inputs remained unchanged in r54. The later r55 Ready/timeout is recorded above.
 
+The r56 `oled-display-component-r1/frame.py` now connects the exact collector
+record to the existing pinned ARM64 Rust renderer. It copies that 1,252,408-byte
+ELF into a sealed descriptor, executes the owned descriptor for layout and frame
+output, and streams at most 40,108,032 frame bytes with 4-KiB stderr and five-second
+child deadlines. Timeout/error paths kill and reap the owned helper and close
+all descriptors. No device or brightness access occurs.
+
+The resulting frame is sealed against write, shrink and growth, with a receipt
+binding the complete capture, boot identity, raw layout and renderer hashes.
+Before device write, the enclosing action must compare a fresh admitted capture
+with this binding. A matching receipt is not admission or physical evidence.
+The actual ARM64 helper under QEMU reproduced the 10,653,696-byte fixture frame,
+SHA `859231da…`, with describe/render times 0.021/0.122 s. Fifteen focused tests
+pass in 1.221 s, including changed identity/node/record, replacement of the
+renderer path, malformed layout, immutable frame, output/timeout/exit failures,
+closed-pipe timeout, pidfd failure and sealing failure. Every case checks for
+leaked descriptors. Device/sysfs/ioctl values remain explicit offline fixtures.
+Receipt `oled-display-component-r1/frame-result-r1.json` is `787baaa3…`.
+Actual framebuffer writes, bounded brightness and enclosing controller/load/
+health/capture integration remain next; physical scanout is still NOT RUN.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -316,7 +344,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r55 for the host authentication timeout/prepared r3 retry, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 
