@@ -8612,3 +8612,14 @@ duplex =47 PASS. Failed wrong-namespace fixture invocation is preserved separate
 corrected invocation passes with unchanged production permission checks. Launch
 and source pins are in current-state and visible-preparation-summary-r101.json.
 A future command PASS alone must not be recorded as human optical acceptance.
+
+
+### r102 offline GPU/current-OLED binding audit
+
+PASS_OFFLINE_CURRENT_BOOT_INPUT_BINDING in0.502 s: current DT base equals the
+retained display-v9 base; exact five-property GPU candidate delta passes and
+retained source hashes match. Three local firmware files total1153192 verified
+bytes; no matching firmware filename exists in the exact726-member boot archive.
+Current config/GPUCC inert packaging recorded. No hardware action, build, image
+edit or GPU acceptance. Prepared visible r101 source/launch pins unchanged and
+show-r1 absent; fresh Ready remains pending.

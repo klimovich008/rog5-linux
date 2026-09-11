@@ -1373,3 +1373,16 @@ normal user. Added a five-suite runner with an explicit namespace per suite and
 checked its --plan output. Keep production UID checks. Avoid inherited test
 repetition and rerunning the unchanged real20-second timer after only a new
 phase-entry callback. Initial failed fixture evidence remains in validation-r1.
+
+
+### r102: reuse exact inputs and inspect firmware placement before GPU activation
+
+The existing display/GPU proposal already matches the current OLED profile's
+DTB hash. Rechecking its exact delta and retained source hashes avoids another
+DT build. A0.502-second bounded streaming pass over the exact packaged initramfs
+found the three locally retained A660 firmware files absent from all726 members.
+Do not infer live firmware availability from local recovery or absence from one
+archive; carry exact install paths/hashes into a separate qualified successor.
+The existing47-case visible preparation remains frozen and awaiting fresh Ready.
+Use selected JSON fields for large composition profiles and filename globs for
+board searches, avoiding broad matches on the project's own rog-prefixed path.

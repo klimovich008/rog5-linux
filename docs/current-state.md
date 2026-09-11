@@ -1,5 +1,35 @@
 # ROG5 current state
 
+Latest r102, 2026-09-11: **offline GPU input binding advanced while the
+r101 visible test remains fully prepared and unentered**. This continuation
+was not a fresh user Ready, so no phone command or physical test ran. On an actual
+fresh Ready, immediately follow the r101 launch instructions below; all launch,
+source, cache and prepared-record pins remain unchanged.
+
+The current OLED profile pins the same display DTB used by the already-qualified
+GPU proposal: base SHA `2ee1ed4b43083bb7e50631269009107efbe0ffed89207acce3c8066f6ba9e4df`.
+Rechecking the retained candidate proves exactly four dependency status changes
+plus the ZAP firmware name; all other properties and boot/reservation metadata
+are preserved. Every retained composer/test/parser source hash still matches its
+qualification. No DT rebuild or repeated legacy test suite was needed.
+
+All three A660 firmware files remain locally verified (1153192 bytes total).
+A streaming inspection of all726 members of the exact58 MB packaged initramfs
+found none of a660_sqe.fw, a660_gmu.bin or a660_zap.mbn. This claim is scoped to
+that boot archive, not every mounted runtime filesystem. The audit records exact
+sources, hashes and intended usr/lib/firmware paths for a separate successor.
+Current config has MSM, SCM, ARM SMMU/QCOM, RPMh, AOSS and LLCC built in; GPUCC is
+a module already packaged inert. A GPU successor still needs firmware placement,
+GPUCC activation/dependency review, fresh qualification and controlled first-open
+validation. Enabling nodes alone is not GPU acceptance. No image, boot profile,
+DT source, module, phone state or prepared visible artifact was changed.
+
+The bounded streaming audit took0.502 seconds, reusing the qualified DT and
+firmware rather than rebuilding. Evidence: `gpu-current-boot-inputs-r1/result.json`,
+`audit.py`, and `retained-source-verification.json`. Prepared r101 is still the
+next operator action; do not execute old commands or infer readiness from an
+automatic goal continuation.
+
 Latest r101, 2026-09-11: **the visible test is fully prepared and waiting
 for a fresh user Ready**. Previous r100 was progress: exact real-phone framebuffer
 readback passed under graphics ownership. The current turn completed the visible
