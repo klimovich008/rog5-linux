@@ -3496,3 +3496,76 @@ These are independent follow-ups, not a diagnosis of the missing staging files
 or a change to the prepared OLED trial. Evidence:
 `pmic-sid5-investigation-r1/result.json`. No phone writes, driver rebind, module
 load, kernel build, claim consumption or reboot occurred.
+
+
+## r77 — prepared OLED launch and early fallback (2026-09-11)
+
+Fresh Ready immediately entered the prepared terminal wrapper. Local sudo
+validation and two independent noninteractive children passed; the bounded
+keeper continues to refresh credentials within the same controlling terminal.
+No password was retained and no sudo policy changed. The staged-source claim
+`oled-staged-source-05941-r1` is consumed and must not be retried.
+
+Source preflight, exact state exchange, RAM exitrd setup, source reboot,
+fastboot identity checks and one 128-MiB RAM transfer passed. Transfer completed
+in 13.472 s; no partition was flashed. Target-stage observations for boot
+`19141e40-a435-4317-ba8b-89cc55133984` reached switch-root PASS. The next four
+startup observations showed P2 activating, state and identity inactive, then
+an unsuccessful SSH-service query. Every journal query reported error and no
+explicit helper failure was received. These are unauthenticated observations,
+not target-health proof. USB disappeared 9.021 s after switch-root PASS.
+
+Authenticated discovery 031 returned V11 release `7.1.4-g359318de534f`, bundle
+`persistent-native-root-v11`, boot `ee0d166e-5e69-4db7-8bbd-6266352594ea`.
+The controller correctly rejected that identity as the OLED target. Preserve
+its FAIL outcome even if fallback restoration succeeds. The fixed full capture
+and fallback-restoration sequence remain in progress at this interim entry.
+
+Offline diagnosis preserved selected source files from the actual compressed
+payload using bounded streaming reads, and enumerated the exact display DT
+delta. The shipped startup observer matches the frozen source. Built-in
+DRM/MSM/MDSS/DSI can probe enabled DT hardware before the separate panel module
+is loaded. The 900-second emergency timer does not explain this early reset;
+a panic or another reboot route remains unproven. A retained bounded reset-log
+reader is prepared against the authenticated fallback boot and sealed BusyBox,
+with shell syntax checked. It must wait for the current controller to close.
+Evidence is in `oled-startup-failure-r1`; active controller evidence is in
+`oled-staged-controller-r1/execution`. No panel/frame test was entered.
+
+
+r77 terminal completion: the 23-minute capture reached its original deadline,
+cleaned all owned host network state and reaped its root worker. Target trial
+and capture remain FAIL. Automatic fallback staging failed with
+`RAM parent metadata`; an authenticated read found root-owned tmpfs `/run`
+mode 1777 and the staging namespace absent. The prior selection was still
+pending. P2/state/identity/SSH services were active on current V11. Mounted
+pstore had no records; no reset cause is proven. The exact OLED DT has no
+ramoops node. The Deck had 9.6 GiB available RAM, almost all swap free and
+46 GiB free disk, so the earlier host memory exhaustion was not present.
+
+Separate recovery `oled-fallback-restoration-r1` preserved every existing
+physical/storage/helper guard and relocated its fresh helper/custody namespace
+under root-owned 0755 tmpfs `/run/initramfs`. It did not change `/run` mode.
+Five ARM64 cases passed: real staging/restore, rejection of writable or linked
+private parent, duplicate stage, and partial helper transfer. Their summed
+case time was 5.645 s. Five coordinator fixtures passed in a 0.118 s runner,
+including failure at every phase and refusal of a second execution. Initial
+fixture preparation failures were retained: a guard-injection anchor differed
+between stage and restore; moving mounted loader files could not construct the
+symlink case. Corrected fixture setup reran only affected/remaining cases;
+no production guard was bypassed in the phone run.
+
+Actual recovery PASSed in **10.340 s**: authenticated preflight, RAM staging,
+one guarded restoration exchange and final verification. Original healthy
+selection `ed3a62d1...` and installed/protected files were verified on unchanged
+V11 boot `ee0d166e-5e69-4db7-8bbd-6266352594ea`. Its legacy readiness marker lacks
+an embedded boot ID; current authenticated identity is separately checked.
+No reboot, flash, panel load or frame write occurred during this recovery.
+Its owner is `40c18651355c8690fca8b8afe6b15283`; retain its terminal execution and
+RAM/durable records. Original trial stays FAIL. Sudo noninteractive validation
+also passed from retained PTY 44286 after the original launcher returned.
+
+Next work is target startup diagnosis and better retained failure evidence,
+then a separately qualified controller incorporating the proven private RAM
+parent. Preserve existing builds; another kernel rebuild or repeated physical
+test is not justified yet. No operator availability remains pending.
