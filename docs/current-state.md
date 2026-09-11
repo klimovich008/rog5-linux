@@ -1,5 +1,43 @@
 # ROG5 current state
 
+Latest r118, 2026-09-11: **GPU session, launcher integration and final live
+qualification are complete offline; no GPU boot claim or phone action ran**.
+Previous r117 was progress. Qualification abdaaa3c1a0cdea5675f3bc97b2c7ccbcb25f1b0f44b2b44fc262a06730b92bb
+validates against 71 exact inputs, including all62 unchanged prior inputs and nine
+new session/query files. The exact gpu-source-05941-r1 record is confirmed absent.
+
+session.py binds the completed boot-only result, original live controller,
+credential keeper and fresh full GPU-target health. It reserves an explicit
+GPU hardware session, stages pinned files, starts the independent130 s logger,
+runs the bounded initializer once, checks post-health and closes logging. It
+retains at least1800 s of the original admission lifetime for recovery. The boot
+controller and all22 original phase policies remain unchanged; no GPU mutation
+is concealed in a read-only health callback. The launcher now waits for the GPU
+session before closing bridges/credentials and requires its PASS for combined
+success. Initialization PASS still does not prove accelerated rendering.
+
+A failed query with proven healthy target/cleanup remains a GPU failure while
+Linux stays available. If health cannot be proven, the same controller tries the
+qualified fallback path. Hard hangs remain FAIL_RECOVERY_UNPROVEN; no forced reset
+or retry was added. Original boot evidence is preserved separately.
+
+93 current focused cases qualify the session, launcher, admission and handoffs.
+The real initializer/transport chain runs inside session tests with explicit
+hardware/logger fixtures. Full health decoding rejects unsafe power, stale boot
+and altered replies. A whole-controller recovery handoff passed in17.814 s with
+real capture children and retained phone/root/clock fixtures: all eight fallback
+steps ran, both captures closed and boot evidence stayed unchanged. Current root
+entry verification passed four cases in2.470 s. The initial new-lock mode0644
+caused two refusals; mode0600 and both focused rechecks pass. Failed logs retained.
+
+Evidence: gpu-first-open-r1/completion-r118.json and
+ gpu-live-driver-r1/live-qualification.json. Previous admission/launcher/test
+versions are retained in gpu-first-open-r1/before-launcher-integration-r118;
+compiled source and earlier phone artifacts are unchanged. Next prepare the exact
+canonical claim and start the autonomous qualified launcher, tracking its original
+handle through boot capture, GPU session and recovery. No human Ready pending;
+missed optical window remains unobserved, and S06/R01 remain unresolved.
+
 Latest r117, 2026-09-11: **GPU supervisor, RAM staging and host duplex
 transport pass 56 focused checks**. Previous r116 was progress. No phone action,
 GPU boot claim, module insertion, DRM open or reboot ran; full session admission

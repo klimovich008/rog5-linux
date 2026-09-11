@@ -1630,3 +1630,20 @@ fixtures explicit; a passing transport cannot establish GPU operation. The curre
 boot controller has only a read-only post-capture health phase. GPU insertion/open
 must receive explicit hardware-action admission and recovery ownership, rather
 than being added as a hidden side effect of that health callback.
+
+### r118: retain one controller across boot and GPU recovery
+
+The completed boot controller can retain ownership while a separately recorded
+GPU hardware session runs. Keeping its credential scope and recovery bridge alive
+avoids replacing22 qualified phase bindings or hiding mutations in health checks.
+The actual recovery handoff passed in17.814 s with retained explicit external
+fixtures and real capture processes; original boot evidence remained unchanged.
+A healthy surviving target with verified cleanup does not turn a failed query
+into success. A hard hang remains unproven recovery.
+
+Create admission receipts with mode0600 using the existing exclusive writer.
+The new lock defaulted to0644 and was correctly refused in two checks before any
+phone action. After mode correction, only those affected cases needed rechecking
+(2.169 s and2.069 s). Previous sources and failed logs are retained; final sealed
+qualification includes the corrected state. Next advance to the autonomous phone
+trial rather than extending already-qualified offline infrastructure.

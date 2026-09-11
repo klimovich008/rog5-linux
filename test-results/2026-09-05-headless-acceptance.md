@@ -8941,3 +8941,18 @@ verified the existing ARM64 query and five source files without executing ARM64.
 Evidence: gpu-first-open-r1/completion-r117.json. Seven unchanged backend functions
 and all24 r116 evidence pins verified. No phone action or GPU claim; full target
 health/logger binding, explicit hardware admission and recovery integration remain.
+
+### 2026-09-11 r118: GPU session and live launcher qualification
+
+93 current cases qualified: session24, launcher36, admission28, whole-controller
+GPU recovery handoff1 and root entry4. Session23 retained cases plus updated
+cohort1; launcher35 initially passed plus preparation1 after lock-mode correction.
+Two initial metadata failures remain recorded. Existing62 input rows unchanged;
+nine new files added to admission-inputs-r2.json (mode0600). Final qualification
+SHA abdaaa3c1a0cdea5675f3bc97b2c7ccbcb25f1b0f44b2b44fc262a06730b92bb
+validated with30 evidence items. GPU session and launcher result are explicit;
+boot-only PASS cannot hide GPU failure. Full recovery handoff preserved boot
+receipt and closed both real capture processes using external hardware fixtures.
+Evidence: gpu-first-open-r1/completion-r118.json. No phone action, query or claim;
+exact GPU claim absent. Actual acceleration, optical acceptance and S06/R01 remain
+unproven. Proceed to canonical claim preparation and the autonomous live trial.
