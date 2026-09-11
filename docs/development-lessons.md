@@ -1081,3 +1081,22 @@ the source; formatting applied only to the disposable lint copy. Use those pinne
 tools directly for this build image. Preserve the initial failure evidence.
 The 35 guard cases cost 106.701 s and are terminal PASS: rerun relevant cases only
 when source changes justify it. Qualified r83 payload and A01 bytes were reused.
+
+### r85: continue terminal fixture failures and check the intended refusal
+
+The source-action suite completed ten ARM64 cases before its fixture writer
+failed on a retained mode-0400 custody file. The fixture helper now makes its
+own copied file writable before injecting corruption, then restores the required
+mode. Keep the failed run and executed harness; continue from the first unfinished
+case in a new output directory when production source is unchanged. The remaining
+eleven cases passed in 131.090 s without repeating completed operation paths.
+
+Review found the first shutdown-replacement test also changed mode through the
+fixture's restrictive umask. Its failure proved metadata refusal but did not yet
+prove inode replacement detection for identical bytes and mode. Two focused
+ARM64 tests now preserve those properties and require the exact shutdown/directory
+identity refusal (30.749 s); the locked-record test also requires the recorded
+selection-replacement refusal. Check the reason as well as a nonzero exit status.
+Source action and observer hashes remained unchanged; no kernel, relay, module,
+payload or A01 rebuild was necessary. Phone preflight/reconciliation took only
+0.689/1.219 s; retain the actual V11 capability contract in the outer integration.
