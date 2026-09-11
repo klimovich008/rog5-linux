@@ -8597,3 +8597,18 @@ Focused tests:10 VT/action,7 frame-binding,5 real-fork/duplex PASS. No renderer,
 nonzero brightness, module action, reboot or flash. Optical scanout, damage
 completion, vblank and GPU acceleration remain unverified. No visible session
 is prepared yet. Preserve consumed r100 and earlier entries and results.
+
+
+### r101 prepared visible test; no optical execution yet
+
+PASS_PREPARED_VISIBLE_SESSION. Protected RAM staging and actual cache/layout/
+console preflight PASS in0.276 s; full health PASS at8081.64 s on the same boot.
+Current10653696-byte cached pattern matches r100; tty1 text mode, brightness0.
+No mode transition, application pixel write, illumination, reboot, module action
+or flash in preparation. The visible show is unentered and awaits fresh Ready.
+
+Focused tests:12 VT/phase +6 frame-binding +16 display +5 readiness +8 real-fork/
+duplex =47 PASS. Failed wrong-namespace fixture invocation is preserved separately;
+corrected invocation passes with unchanged production permission checks. Launch
+and source pins are in current-state and visible-preparation-summary-r101.json.
+A future command PASS alone must not be recorded as human optical acceptance.
