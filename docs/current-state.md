@@ -1,5 +1,34 @@
 # ROG5 current state
 
+Latest r114, 2026-09-11: **installed-route verification, fallback transport and
+assembled GPU driver pass offline integration**. The only phone action was an
+authenticated read-only installed-route check: PASS in 7.843 s, all 11 installed
+files and boot_b match, same boot229580f9-ac26-4b18-a0eb-ea9c05bc632f,
+healthy b4d203a8...c4d selection and original shutdown. No state write, reboot,
+module load, DRM open or claim consumption occurred.
+
+The route uses completed GPU/source selector evidence and requires exact transport
+source, normal mode and boolean command invocation. Its unchanged sealed-shell
+file reader is reused; one new ARM64 observer-composition case passed in 17.233 s
+without changing fixture RAM/storage. Fifteen host route cases passed (12 in
+2.670 s and three new provenance refusals in 1.017 s). The selector evidence is
+retained offline proof; this read did not execute a physical fallback.
+
+Fallback worker/transport passed 19/16 cases in 13.343/2.169 s, preserving owned
+route cleanup, borrowed routes, lost-mutation refusal, process reaping and root
+guardian deadlines. The assembled driver binds all 22 controller phases; 14 cases
+passed in 11.791 s, including actual callback/controller source-abort restoration
+with simulated transport. Output checks cover actual writers; receipt-only
+adapters retain their existing interfaces. All prior r110-r113 components remain
+unchanged. Total: 65 distinct offline checks; no build or A01 repeated.
+
+Evidence: gpu-live-driver-r1/completion-r114.json and
+installed-route-live-r114/result.json. live-driver.py now exists; live-admission.py
+and controller execution remain absent. Next complete admission/root verification
+and full-flow launcher integration, plus bounded GPUCC/first-open preparation
+before boot admission. Preserve consumed RAM staging/claims. No human test ready;
+missed display window remains unobserved, with a longer next window required.
+
 Latest r113, 2026-09-11: **GPU source-abort handling and guarded RAM-boot
 bindings pass qualification**. Previous r112 was progress. The source observer
 uses the exact current OLED action guards and GPU transaction/exitrd namespace.
