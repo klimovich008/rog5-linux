@@ -1159,3 +1159,19 @@ but its noninteractive check explicitly requires a password. Finish independent
 preparation and ask for authentication only once the intended check can start.
 Do not reopen a password window or repeat the same failed noninteractive check
 without new evidence. Separate real root-handoff proof from root/network fixtures.
+
+### r89: close the repository-to-private digest edge before final replay
+
+The claim registry changed after component validation. Its previous digest was
+not in the private refresh graph, so boot-callback import refused the old pin.
+Seed the exact pre-registration consumer edge before final publication; verify
+all53 admission inputs and then freeze both repository and private sources.
+The final replay took27.433 s and checked its source/metadata snapshot unchanged
+before/after. Retain the earlier successful scopes rather than assigning them
+new producer identities. Registry addition preserves all227 prior byte records;
+registration, pending-file creation and consumption remain distinct operations.
+
+Prepare the privilege probe independently of physical hardware availability.
+Its bounded read-only check and local input helper can be ready before asking
+for the Deck password window. Never infer authentication from a previous Ready
+or from a live terminal; no new window starts without fresh availability.

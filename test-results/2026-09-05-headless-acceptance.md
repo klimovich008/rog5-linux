@@ -8383,3 +8383,48 @@ both failures, completed scenarios, test streams and final private-source snapsh
 Next: finish exact boot-profile registration and final qualification binding;
 prepare actual read-only privilege probes with fresh sudo authentication, then
 fully prepare live recording/recovery before requesting hardware Ready.
+
+## r89: exact startup registration and final source replay
+
+Latest r89, 2026-09-11: **startup boot profile registered in source and
+final software replay passes; awaiting Deck availability for a prepared read-only
+privilege check**. No phone command, reboot or new durable claim occurred.
+No hardware Ready request was made. The pending question is specifically about
+entering sudo's password in the local Deck window; no password window or response
+countdown has started. Last phone evidence remains r87's unchanged V11 boot.
+
+Controller repository is clean/frozen at `f02083f4` in
+`oled-startup-controller-worktree-r1`. The literal registry adds exactly
+`oled-startup-source-05941-r1`, matching the r83 descriptor's signed image,
+composition/A01, V11 fallback and closed r77 predecessor result. All227 previous
+registry records are byte-preserved. The21 claim tests pass normally and under
+optimized Python (0.331/0.392 s), including descriptor agreement, wrong device/
+image refusal and the still-required durable consumption gate. No pending record,
+entered record or global guard exists for the new profile. Registration alone
+cannot launch it. Compiled kernel/payload/A01 inputs remain unchanged.
+
+An initial post-registration import caught the old claim-consumer digest still
+pinned in the private boot callback. The refresh graph now includes that exact
+pre-registration source mapping; no guard was weakened. Final53 inputs pass.
+The source identity is `f02083f4`, digest `642669b9...`; private sources and input
+metadata were captured before and after the final replay and match exactly.
+All four full-flow scenarios plus admission26, boot19, launcher32, preparation21
+and privilege-boundary10 tests passed in27.433 s total. The software fixtures do
+not prove current root handoff or physical phone behavior.
+
+Prepared evidence: `oled-startup-experiment-r1/qualification-candidate-r89.json`
+and447 exact bounded copies in `oled-startup-live-driver-r1/qualification-evidence-r89`.
+This is a non-admitting candidate; `live-qualification.json`, actual execution
+and one-use source readiness remain absent. Final replay/result/source snapshots
+are in `final-checks-r89`; registration records are in `registration-r89`.
+
+On a fresh reply that the user is ready at the Deck, immediately run the already
+prepared command, without another build or preflight:
+`python3 -B /home/deck/.local/state/rog5-denial-20260910-r1/oled-startup-live-driver-r1/run-privilege-probe.py --run-id r1 --authenticate`.
+Its check-only result passes, graphical environment and tkinter are available,
+and the exclusive `privilege-probe-r1` directory is still absent. It performs only
+UID0 guardian/runuser-UID1000 probes, no phone/network/claim actions. Password input
+stays in the local private helper. Preserve any failed attempt; never replay it.
+Do not retry the expired cached-sudo check unchanged. Once actual handoff is proven,
+finish the exact qualification/pending-claim preparation and prepare the complete
+phone session before a separate fresh hardware Ready request.
