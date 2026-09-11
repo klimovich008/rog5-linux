@@ -262,6 +262,16 @@ Rule: **A capability is available only if the exact booted artifact proves it; h
 
 ### R4. Timeout budgets were not maintained as a lattice
 
+OLED r67: separate acknowledged zero-state capture/render from the one-use frame
+write. Availability can expire after preparation without a frame ever being
+shown. A real process/RPC test proves no Ready leaves brightness zero and no
+frame-write entry, while independent cleanup/reap still runs. New preparation
+requires verified cleanup and fresh health; never clear an actual write entry.
+Leases maintain ownership but cannot extend preparation, Ready or active deadlines.
+Reuse the qualified framing/fork/reap/zero worker rather than creating another
+transport family. The14 lifecycle plus6 exact-file checks passed first time,
+using the already-correct private namespace setup and mode755 parent.
+
 OLED r66: a monitor accepting cleanup does not mean monitoring passed. The actual
 client returns a finished reply even when failure is latched. A negative assembled
 replay reproduced an incorrect coordinator PASS; require the nonfailed reply,

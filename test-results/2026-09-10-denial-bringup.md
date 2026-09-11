@@ -3038,3 +3038,72 @@ The next missing component is the bounded frame backend/coordinator and prepared
 physical prompt path. Real OLED boot plus completed capture and fresh health must
 precede module execution. No physical Ready is requested until the test is ready;
 OLED/touch/GPU/Denial acceptance remains incomplete.
+
+## Prepared target frame backend (r67, 2026-09-11)
+
+Previous r66 is progress: complete module host coordinator qualified with17
+integration cases, unchanged here. The next target frame worker is implemented
+at `oled-frame-backend-r1/backend.py`, SHA
+`1087ed7d00e8a0ee019da287184b20fb3054ec1c609dbdffd758f33c45ab21ff`.
+It imports an exact private copy of the r65 module backend for framing, owned
+fork/reap and independent zero cleanup, installing only a fixed frame worker in
+that private module instance. The original module backend and host coordinator
+remain byte-identical. All five display-component sources and the1,252,408-byte
+ARM64 renderer are copied unchanged, not rebuilt.
+
+The frame worker requests capture-only admission, then calls the actual existing
+zero-state GET collector and sealed-frame producer. It holds the sealed frame
+while waiting for Ready. Parent verification binds capture bytes, framebuffer
+node, frame hash and renderer. A Ready command must match the prepared hash and
+current owner/boot/monitor, carry a new caller-supplied token and arrive in the
+prepared phase before its deadline. Host coordination must create that token only
+from fresh human availability; the target protocol cannot establish human
+presence independently. Early, mismatched and repeated Ready refuse.
+
+After Ready, the unchanged writer/display session asks for the exact one-use
+frame/brightness32/20-second intent. The target global frame entry is created
+exclusively before host acknowledgement. Nonzero brightness readback triggers
+an immediate output event and acknowledgement to the fixed display callback;
+no callback waits for the user's observation. Production limits:3-second leases,
+15-second capture/render,60-second prepared Ready window,35-second active window,
+120-second overall bound. The unchanged display component owns20 seconds of
+brightness then zero. Outer supervision kills/reaps blocked work and runs the
+independent four-second same-boot zero worker with two-second reap allowance.
+Uninterruptible kernel work is not promised terminated; incomplete closure stays
+FAIL. Zero readback is not optical-darkness evidence.
+
+Preparation entry is deliberately separate from the global frame-write entry.
+If readiness expires, capture/render cleanup runs but an image never shown does
+not consume the write. The future host must retain aborted preparation evidence,
+verify zero/reap and fresh health before a new preparation, and preserve every
+actual write entry. It must not treat capture-only cancellation as successful
+physical frame acceptance or reuse an expired Ready response.
+
+`tests-r1`: **14 cases PASS in1.840s**,1.971s runner. Real parent/child/socket/pipe
+and termination paths run with explicit fixture phone/capture/frame/display
+boundaries and shortened phase timers. Cases cover waiting unlit, missing/early/
+wrong/duplicate Ready, blocked capture/display despite renewed lease, EOF while
+lit, wrong frame intent/prompt, changed boot, cleanup failure, consumed entry and
+wrong capture identity. The positive case binds the prepared hash, emits the
+prompt, closes the frame, zeros and reaps both worker groups. Missing Ready never
+calls the display or creates global write entry.
+
+`context-tests-r1`: **six cases PASS in0.039s**,0.165s runner. Actual root-owned
+RAM files in a private user/mount namespace verify current backend/component and
+renderer bytes, metadata and manifest. Changed renderer, symlink, wrong mode,
+wrong manifest and consumed entry refuse. Both suites passed first time using
+outer mount-namespace capture and mode755 parent, carrying forward r65/r66 setup
+lessons. The original real ARM64 renderer and20-second component checks are
+inherited for unchanged bytes; these faster fixtures do not re-prove that timing
+or actual phone scanout.
+
+Result `oled-frame-backend-r1/result.json` SHA:
+`f310d724433cca58d1f849a193a7dc68898e10364a7c789ded0771d1444aeddd`.
+It pins eight runtime files and the new evidence, totals20 cases and2.136s runner,
+and names inherited unchanged qualification results. No real SSH, phone query,
+RAM staging, module/frame action, brightness change, boot or claim action ran.
+No kernel/module/renderer/package build, full boot replay or authentication was
+repeated. The remaining step is the frame host staging/duplex/Ready/prompt
+coordinator, including completed-module provenance and after-cleanup health.
+Actual OLED boot/capture and module qualification must precede frame preparation;
+OLED/touch/GPU/Denial acceptance remains incomplete. No Ready request is pending.
