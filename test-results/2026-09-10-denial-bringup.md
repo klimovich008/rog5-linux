@@ -2904,3 +2904,62 @@ r61 boot qualification and the unused OLED claim remain unchanged. Next finish
 the bounded authenticated SSH backend/coordinator, including target-side timeout,
 independent zero cleanup and durable one-use phase records. Physical Ready stays
 unrequested until the complete test is prepared.
+
+## Bounded target module supervisor (r65, 2026-09-11)
+
+Current Ready was released after reading the saved state: no complete physical
+test was prepared, so no operator timer, password window or phone action began.
+The pending r64 docs/checkpoint were finalized, then the fixed target module
+backend was implemented at `oled-module-backend-r1/backend.py`, SHA
+`303e9075a09bdf2e56717c5897a6b2d6bf9c7c24f5b4c6977385a59e1acdf5bd`.
+It loads the unchanged exact endpoint and module-loader components. Its CLI
+requires the fixed private root-owned `/run/rog5-oled-modules-<owner>` namespace,
+pinned manifest and source inventory; it offers no staging, arbitrary command,
+boot, unload or retry interface. The host transport/coordinator is still absent.
+
+The authenticated SSH stream must carry bounded JSON lines with exact boot,
+owner, phase, monitor receipt, monotonic sequence and a fixed command. Three-second
+leases and a 60-second absolute normal deadline are measured on the target. The
+parent takes a global module flock and reserves the run exclusively. The worker
+requests entry; the parent durably records the intent once and sends its hash to
+the host, which must reserve the host phase before acknowledging it. No insertion
+occurs before acknowledgement. Missing/wrong/late acknowledgements leave the
+attempt non-repeatable. Child callbacks use bounded socket requests.
+
+All hardware calls run in a separate session/process group. On failure or lost
+connection the supervisor kills/reaps that owned group, then after any entry
+attempts a separate four-second zero-cleanup worker with exact same-boot ownership
+and a two-second reap allowance. Normal monitor failure cannot suppress cleanup.
+Changed boot refuses stale cleanup. Parent reap and process-group absence are
+recorded separately; a task stuck in kernel sleep cannot be promised terminated.
+Failures preserve their status and cleanup evidence. RAM terminal evidence is
+saved before output delivery, including when the host stops reading. The result
+records target monotonic time; future host health ordering must use the host's
+observed completion time, never compare clocks across machines.
+
+Final verification: **22 real process/socket/pipe cases in 4.009 s** (4.129 s
+runner), and **six actual root-owned RAM/source checks in 0.008 s** (0.115 s
+runner). Hardware identity/sysfs/insertion are explicit fixtures; process and
+namespace/file contracts are actual. The positive path reaps both workers and
+records zero. Negative cases cover lost lease, EOF, blocked output/worker/cleanup,
+module and cleanup failures, changed boot, wrong owner/monitor/ack, duplicate
+sequence/start/entry, no start, overlapping owner and prior entry. Source-file
+checks cover exact pinned bytes, changed manifest/source, symlink and wrong mode.
+
+The first 16-case process suite passed in 2.606 s. Review retained failed cleanup
+process evidence, checked process-group absence and excluded access-time changes
+from stable source metadata. The final 22-case suite passed. Root-file setup
+initially stopped with PermissionError reading `/proc/1/ns/mnt` inside the new
+user namespace (0.114 s, zero cases, before any mount). Exact failed fixture and
+output remain at `context-tests-r1`; passing `context-tests-r2` captures the
+outer process's mount namespace before unshare. Only the six pending cases ran.
+
+Final result `oled-module-backend-r1/result.json`, SHA
+`f14c31c0971b20cbe76bc9377afef6a0d9f548600d29644351457707d9964699`, pins
+current sources and final evidence, total 28 checks and 4.243 s runner time.
+No kernel, Rust renderer, module or wrapper rebuild, full boot replay, privilege
+prompt or phone query was repeated. r61 boot qualification/pending claim and
+r64 monitor qualification remain unchanged. The next task is authenticated host
+staging/duplex SSH and the module coordinator, followed by the frame supervisor.
+Actual OLED boot, completed capture and fresh authenticated health remain required
+before module insertion; OLED/touch/GPU/Denial hardware acceptance is incomplete.

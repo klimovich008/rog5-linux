@@ -262,6 +262,16 @@ Rule: **A capability is available only if the exact booted artifact proves it; h
 
 ### R4. Timeout budgets were not maintained as a lattice
 
+OLED r65: test the outer deadline with real blocked workers and pipes, while
+keeping phone effects explicit fixtures. Reaping the direct child alone does not
+prove its helper group is gone; retain both checks. Failed zero cleanup must keep
+its own process/reap evidence, and cannot become PASS just because the action
+worker closed. The 22-case supervision suite passed in 4.009 s. Capture the host
+mount namespace before entering a user namespace; host PID1 namespace reads can
+be permission-denied there. After that fixture-only failure, rerun just the six
+root-file checks (0.008 s), preserving the already-passing process suite. Avoid
+reopening human availability while the remote transport is still unprepared.
+
 Observed pattern:
 
 - A 180-second outer recovery rollback could not contain a 260-second fetch path plus margin.
