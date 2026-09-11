@@ -22,8 +22,8 @@ class Tests(unittest.TestCase):
         self.fields = M.expected_fields()
         self.pin = self.fields['boot_image_sha256']
 
-    def test_real_registry_has_no_authority_and_cannot_dispatch(self):
-        self.assertNotIn(M.PROFILE_ID, M.CLAIMS.CLAIMS)
+    def test_registered_but_unconsumed_claim_cannot_dispatch(self):
+        self.assertEqual(M.CLAIMS.expected_record(M.PROFILE_ID), encode(self.fields))
         with patch.dict(os.environ, ALLOW_TEMPORARY_BOOT='1', ALLOW_HEADLESS_LIVE_GATE='1'), \
              patch.object(M.BASE, 'validate_fastboot') as validate, \
              patch.object(M, 'sealed_snapshot') as snapshot, \
