@@ -317,3 +317,13 @@ password timeout before phone actions is not evidence of a kernel failure or a
 wrong password. Reuse unchanged artifact and timer evidence when only host
 authentication bookkeeping changes; verify the full dependency readers before
 asking for fresh availability.
+
+Hardware preparation lesson (2026-09-11, OLED r71): host artifact checks and
+generic phone health do not establish that the experiment-specific RAM helpers
+exist. Before live admission, claim consumption or asking Ready, stage the exact
+source helpers with their boot/owner/custody checks, then run the actual generated
+read-only source and route preflight on the phone. Retain its authenticated
+receipt and require current boot, owner and file identities. Keep the runtime
+verification in the observer; an unstaged phone must refuse. Do not consume a
+boot claim merely to discover missing preparatory RAM files. Failed/consumed
+experiments and their execution source remain immutable evidence.
