@@ -1,5 +1,60 @@
 # ROG5 current state
 
+Latest r99, 2026-09-11: **real-phone graphics-mode ownership validation,
+console restoration, kernel recording and final health all PASS**. Previous r98
+was progress: its failed readback and console diagnosis changed the next action.
+No operator availability was requested or consumed in r99. There is no prepared
+visible test yet. Do not rerun the closed r99 VT experiment or any old frame run.
+
+The phone entered KD_GRAPHICS on its existing tty1 descriptor, retained the same
+framebuffer GET record and active DRM 1080x2448 at 60 Hz, and held graphics mode
+for two seconds with nine state checks. The exercise took 2.281 seconds; target
+supervision including independent restoration took 2.567 seconds. A separate
+cleanup worker restored the original KD_TEXT state and then confirmed brightness
+zero. Both workers and SSH were reaped successfully. The 30-second kernel log
+closed naturally with zero new messages. Final full health passed at 6667.06
+seconds on unchanged boot `229580f9-ac26-4b18-a0eb-ea9c05bc632f`.
+
+There was no application framebuffer pixel write, nonzero brightness request,
+module insertion, reboot or flash. KD_TEXT restoration can redraw console pixels;
+zero application writes is not a claim that framebuffer memory was unchanged.
+This proves the bounded console transition/recovery boundary, not corrected
+pattern readback or optical scanout. GPU/GMU remain disabled on this boot.
+
+The parent retains a checked tty1 descriptor across the action and cleanup forks.
+A fixed durable VT entry precedes KDSETMODE. The action requires the authenticated
+host's three-second renewable lease and has a 15-second supervisor deadline.
+Action failure, EOF or lease loss triggers independent restoration and zero
+cleanup after reaping the action. Cleanup attempts zero even if mode restoration
+fails, and such a failure remains FAIL. Eight component cases and five real-fork,
+duplex-host cases passed; the existing eight console-discovery cases are inherited
+by unchanged source. Focused recorded runs took 0.116 and 2.712 seconds. Actual RAM
+staging validated all source hashes, protected namespace and the closed failed
+frame predecessor before any mode transition.
+
+Executed sources are frozen at `oled-startup-vt-session-r1` and
+`oled-startup-vt-host-r1`. Lease SHA:
+`a04cc08f8e5f5e2ffa317eb07385dc9d129eeb42418c5dd93f01bafebb782577`.
+Host SHA:
+`90bd9aab5fc037d26a4bd6e6cf87e7e62e7720ba8590e0037828ede78173639d`.
+Qualification SHA:
+`14dd3d974dcc0c35fa8fa181c8c89bf6f52317bdc297a51b27603e6947505226`.
+The host `run-r1`, its hardware phase, and target
+`/run/rog5-oled-vt-validation-r1-entered.json` are consumed. The old frame entry
+and all older failed results remain intact. The shared frame lock continues to
+exclude competing display work. Evidence and exact RAM namespace are in
+`oled-startup-experiment-r1/vt-validation-summary-r99.json` and the host result.
+
+Next: integrate the qualified console lease into a distinct unlit cached-frame
+write/readback experiment. The r97 cached capture equals the actual r99 captures,
+so its sealed-pattern bytes can be reused after fresh validation; no rendering
+or kernel build is justified yet. Reserve an explicit successor frame intent,
+keep the failed frame marker, compare every byte, and restore console/zero in
+independent cleanup. Only after this actual corrected readback, reviewed/staged
+visible-session preparation and health checks should a new Ready be requested.
+The r98 cursor-cell cause remains strongly indicated; successful KD_GRAPHICS
+transition alone does not prove that it fixes the pixel mismatch.
+
 Latest r98, 2026-09-11: **the prepared frame test ran once and failed readback
 before illumination; cleanup and current-boot health passed**. Fresh Ready was
 used immediately; runtime arming preceded frame exchange by about2.6 seconds.

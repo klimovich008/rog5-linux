@@ -8565,3 +8565,19 @@ Read-only diagnostics found the128-byte change in the exact cursor cell;
 KD_TEXT/fbcon remains active. Console preflight:8 focused cases PASS and actual
 known text-mode refusal PASS. No console transition or corrected physical run
 is qualified. See the r98 summary and current-state entry for hashes and limits.
+
+
+### r99 bounded console graphics-mode validation
+
+PASS_UNLIT_VT_COORDINATOR on unchanged OLED startup boot. KD_GRAPHICS held for
+two seconds with nine checks; before/graphics GET captures exactly match cached
+r97 data and active 1080x2448 at 60 Hz. Exercise 2.281 s; target including cleanup
+2.567 s. Independent original KD_TEXT restoration and brightness zero PASS;
+action, cleanup and SSH reaped. The 30-second logger completed with zero records;
+final health PASS at 6667.06 s uptime. No application pixel write, nonzero
+brightness, module load, reboot or flash. Text restoration may redraw pixels.
+
+Eight component and five actual-fork/duplex tests PASS, including worker failure,
+host lease loss, restoration failure and consumed entry refusal. See the pinned
+r99 summary and current state. Corrected frame readback and visible acceptance
+remain outstanding; no new Ready request or visible session is prepared.

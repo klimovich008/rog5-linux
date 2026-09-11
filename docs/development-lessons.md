@@ -1317,3 +1317,20 @@ restoration path before any new Ready request. Keep all-byte comparison and
 never rerun the consumed show. Graphics mode alone is not ownership proof.
 Read sysfs attributes according to their access mode: rotate_all is write-only;
 the first diagnostic failed there, and its evidence remains failed.
+
+
+### r99: validate console transition and independent restoration while dark
+
+The actual two-second KD_GRAPHICS hold preserved exact framebuffer layout and
+60 Hz DRM timing. Parent-retained descriptor cleanup restored KD_TEXT then zero;
+30 seconds of kernel recording and final health passed. This removes uncertainty
+about the mode transition without asking the operator to wait. Keep the next
+cached-frame write/readback validation unlit too: a successful transition is not
+a successful framebuffer write, and restoring text mode can redraw the console.
+
+Eight lease cases and five actual-fork/duplex cases ran in 0.116 and 2.712 seconds.
+The initial test peer wrongly imported host UID1000 checks inside a root-mapped
+namespace; the corrected peer imports only target code. Keep the production UID
+checks, test process boundaries, and independent restore/zero failure assertions.
+Actual r99 captures equal the retained r97 capture, so reuse cached pattern bytes
+after fresh identity/layout checks instead of rebuilding or rendering again.
