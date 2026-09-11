@@ -3868,3 +3868,51 @@ Next: implement and qualify V11 sealed-shell source exitrd installation, reboot
 request and pre-reboot restoration. Then bind the exact r83 logging config through
 a fresh live controller, capture owner and readiness, and qualify complete boot,
 failure, fallback restoration and cleanup. RAM staging alone is not boot admission.
+
+## r85 — V11 source actions and abort reconciliation
+
+Latest r85, 2026-09-11: **V11 source exitrd actions and read-only abort
+reconciliation are qualified components**. The phone was only read this turn;
+no state-helper execution, active shutdown replacement, reboot or new claim.
+No operator action is pending. r84 RAM staging remains consumed and must not
+be repeated.
+
+Fresh code is in `oled-startup-source-actions-r1`: `generate.py` SHA `1a89ff2d...`
+and `observe.py` SHA `78cbc782...`. Preserve these qualified producers when
+integrating the outer driver. Source actions use the sealed ARM64 BusyBox/loader,
+nonblocking directory/selection locks with open-descriptor identity checks,
+exclusive RAM receipts, retained original shutdown and atomic replacement.
+They pin the observed V11 unit states and reboot provider. Installation,
+restoration and reboot requests retain one-use intent checks. A lost reboot
+reply never permits retry or source-abort inference. The observer distinguishes
+absent, staged and restored selection with original/patched shutdown, and refuses
+foreign owners, reboot intents, partial publication and incomplete restoration.
+It is read-only and is required in the future outer preflight/abort paths.
+
+Qualification: 23 ARM64 action cases, 11 reconciliation cases, four generator
+refusals and direct verification that nine prerequisite refusals left no operation
+marker. The first action run completed ten cases before its fixture writer tried
+to alter a mode-0400 custody file and raised PermissionError. Its source, results
+and failure remain recorded; only the remaining eleven cases resumed (131.090 s).
+Two focused tests (30.749 s) prove same-byte/same-mode shutdown replacement and
+replacement of the locked exitrd directory are detected. Reconciliation took
+63.888 s. All mutation/reboot operations were confined to isolated fixtures with
+synthetic physical telemetry and service/reboot responses, using real ARM64
+file operations. This is not physical reboot/recovery or clean-teardown proof.
+
+Authenticated source preflight passed on V11 in 0.689 s, including acquisition
+and release of both nonblocking locks. Final read-only reconciliation passed in
+1.219 s: boot `ee0d166e-5e69-4db7-8bbd-6266352594ea`, owner
+`8799d4ece2db5fb5c322c0a24c198f97`, original shutdown `ec3c7fd2...`, selection
+`ed3a62d1...`, new transaction absent and no reboot intent. Existing RAM staging,
+prior transaction receipts, frozen r83 signed payload/A01 and claims are unchanged.
+Evidence: `oled-startup-source-actions-r1/qualification.json` binds all results;
+`phone-observation-r1/verify.sh` is reusable read-only verification.
+
+Next: create the fresh outer controller and capture owner for r83's sealed
+startup-pull config. Adapt action callbacks to sealed-shell transport and strict
+key-value replies; the old Python/JSON callbacks are incompatible. Use the new
+observer for source preflight, inspect-source-abort and verify-source-abort;
+retain identity, intent and partial-state refusal. Qualify complete boot/failure,
+source abort, fallback restoration and capture cleanup before fresh Ready. No
+new live controller or boot admission is ready yet; no unchanged build/A01 rerun.
