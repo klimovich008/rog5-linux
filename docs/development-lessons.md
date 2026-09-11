@@ -936,3 +936,14 @@ Keep read-only health freshness separate from hardware one-use state: after a
 its exact path/hash. Do not repeat a module insertion/display attempt or replace
 prior evidence to refresh health while waiting for the operator. The r63 checks
 exercise both expiration and refresh, with no new boot or network setup.
+
+Use one ownership lock for the device's module and frame phases, not separate
+locks that permit cross-phase overlap. The component monitor's initial phase-local
+lock was strengthened before physical admission; a real flock regression verifies
+cross-phase refusal. Preserve both the old qualification and final sources.
+A restored admission file must not clear a monitor failure: the actual owner/
+Unix-socket integration test changes then restores it and confirms failure stays
+latched. Independent verified cleanup may finish that failed monitor while the
+terminal status remains FAIL. Fixture completion times must follow actual fixture
+admission creation; inventing earlier offsets tests the timestamp guard instead
+of the intended cleanup path.
