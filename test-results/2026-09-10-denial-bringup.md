@@ -3636,3 +3636,39 @@ handoff delay. Apply the Ready gate to the whole launcher and its cleanup, not
 only its binary. The final receipt now pins scripts/tests/staging and records the
 exact terminal entry, so the next fresh Ready requires only brief identity checks
 and runtime arming. No expensive kernel rebuild was repeated.
+
+
+## r80 — optional startup relay integration, offline only
+
+While waiting for fresh Ready, added optional relay pairing to the standalone
+builder and init runtime in a separate source checkout, commit `8b20fbb3`.
+Absent by default; enabling requires an exact binary digest and fresh nonce.
+A base already containing relay/config input is rejected. Runtime verifies
+ownership, modes, size and hash, stages to a fresh private RAM directory, and
+creates an independent sysinit service with 120/125/2-second run/runtime/stop
+limits. The composition checker validates both archive members, propagates the
+selected kernel release and includes the new unit in verification.
+
+Five new assembly/runtime tests, two standalone composition tests, 57 rescue
+composition tests and eight existing startup observer tests pass. Host
+systemd-analyze validates the rendered optional unit; no service is started.
+Actual ARM64 bytes were assembled twice into explicitly nonbootable fixtures
+with identical SHA `0a454ac4d1b32c53029b1ddc0566197f281b5c9d845e48191c3a279e1a8708ad`
+and size 688,573 bytes, in 0.229 and 0.222 s. Evidence is
+`kernel-relay-startup-r1/qualification.json` and `assembly.json`.
+No live relay, exact Arch-root execution, startup packet collector integration,
+bootable image or OLED hardware qualification is claimed.
+
+Tests caught an inherited-payload guard relying on set -e across an AND list;
+explicit failure now rejects it. The composition driver also needed the selected
+release rather than an unset variable. Two older tests now use rendered init
+fixtures for this stricter binding. Initial sparse checkout omitted helper and
+boot-unpacker dependencies; selected tracked inputs and the exact pinned retained
+unpacker were restored without downloading or rebuilding. Final 57-test log is
+`kernel-relay-composition-tests-final-r80.log`.
+
+After-run review: no kernel build was needed. Use sparse source checkouts before
+materializing historical artifacts; include the selected test dependencies.
+Repeat only tests affected by discovered failures. The r79 probe remains pinned,
+unexecuted and ready for immediate launch after fresh Ready. No authentication
+or phone action occurred during this automatic continuation.
