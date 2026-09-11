@@ -1,5 +1,50 @@
 # ROG5 current state
 
+Latest r108, 2026-09-11: **GPU-specific boot guards and the exact current-source
+transition bytes are prepared and tested offline**. This is progress from r107;
+the live controller is still unprepared. No reboot, module load, display command,
+selection write or claim consumption ran. The missed optical window remains
+UNOBSERVED_OPERATOR_MISSED_WINDOW; no human test is ready and no Ready is pending.
+
+Fresh authenticated health passed in1.777 s on boot
+229580f9-ac26-4b18-a0eb-ea9c05bc632f, OLED bundle c371bcc38a6a73fe,
+7.1.4-g05941d04803f, uptime11842.52 s. Selection remains b4d203a8...c4d.
+The phone's10354-byte shutdown script exactly matches retained
+initramfs/persistent-root-shutdown-standalone, SHA fc1ce027...860. Its existing
+1600-byte root-owned executable reboot helper matches68d6a69e...785.
+
+Admission worktree: gpu-admission-worktree-r1, clean revision
+`25de2ea1bbbd83ba2a9977ca40307e0635fed9cd`. The new verified-gpu-hardware-boot.py binds the
+completed6956875b/A01 result, exact GPU profile/image, current source boot and
+selection, device/slot and V11 fallback. It uses a distinct gpu-source-05941-r1
+expected claim, requires durable consumption before dispatch, and bounds fastboot
+to90 s while closing the sealed image on failure/timeout. All228 prior expected
+claims remain byte-identical. No actual claim record was created or consumed.
+The compiled kernel, completed A01, integration source and current live driver
+remain unchanged; this admission worktree is the place for the next controller work.
+
+prepare-gpu-source-transition.py produces exact source/pending/healthy records and
+a shutdown variant changing only the final normal reboot dispatch to the existing
+bootloader helper. Teardown, relocking, poweroff and emergency-reset bytes stay
+unchanged. Pending SHA5c74582a...25d1; healthy813f108a...b4b4; shutdown variant
+0ee47fb5...84ca. These files exist only on the host, under
+gpu-admission-prep-r1/transition. Do not install them without the complete controller.
+
+46 distinct checks passed:9 boot boundaries (including timeout closure),7 shared
+RAM primitive,21 claim lifecycle,5 transition checks and4 ARM64 selector replays.
+The installed selector function/helper chose V11 for GPU pending, GPU healthy and
+current OLED healthy records without changing those records. Its original V9
+healthy case also passed. Replay took0.443 s with explicit storage fixtures;
+this proves the decision, not physical fallback boot. No kernel/wrapper/A01 rebuild.
+Evidence: gpu-admission-prep-r1/completion-r108.json and source-health/result.json.
+
+Next implement the exact state exchange/custody and source exitrd actions, then
+complete bounded capture/recovery orchestration and the separately recorded GPUCC
+load/first-open session before boot admission. Reuse the existing verified reboot
+helper; do not stage another copy unnecessarily. The old V11-starting controller
+is incompatible with the current OLED source, and its consumed run stays retired.
+Prepare a longer optical session separately with viewing instructions before Ready.
+
 Latest r107, 2026-09-11: **the GPU candidate passed complete offline A01
 composition qualification**. Previous r106 was progress: the verified wrapper
 is now integrated with the exact Arch roots and module/runtime checks. No phone
