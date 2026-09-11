@@ -365,6 +365,40 @@ is SHA `da73f546…`. Bounded brightness/blanking and integration with the exist
 admitted load/full-health/monitor/durable-entry controller are next. No physical
 framebuffer write, phone query, authentication or human request occurred in r57.
 
+The r58 `oled-display-component-r1/display-session.py` now joins the writer to
+one fixed brightness request: **32/1023 for 20 seconds**, followed by the pinned
+zero-only blank operation. It requires separate current cleanup ownership before
+entry. The owner's durable frame/display intent carries the fixed brightness,
+duration and cleanup value. A prompt event is queued only after successful frame
+readback and nonzero brightness readback. Callbacks must already be installed,
+bounded and nonblocking; no callback waits for the human response.
+
+After entry, frame failure, normal health refusal, prompt failure, short/uncertain
+brightness write and normal timeout all reach independent blank cleanup. A failed
+zero request stays FAIL with no false blank result. Changed boot identity refuses
+writes against the new boot. Deadline checks run after authorization callbacks
+as well as before them, preventing an overdue callback from queuing a late prompt.
+The enclosing worker, transport monitor and postcleanup full health are still
+required; this component does not establish a hard hardware timing bound.
+
+Sixteen tests pass in 23.933 s, including virtual-clock failures and a real-clock
+production-duration check. That fixture reached confirmed zero in **20.003 s**
+after the nonzero attempt (20.095 s total session), with 80 brightness samples.
+The real ARM64 frame and file operations are used; sysfs/ioctl/device, admission,
+monitor and durable entry are explicit fixtures. No OLED command ran on the phone.
+Receipt `oled-display-component-r1/session-result-r1.json` is `d30d2168…`.
+The first short-write test had an invalid no-newline sysfs fixture; correcting it
+to canonical readback made the existing cleanup path pass without a runtime bypass.
+
+Next, adapt the existing `buttons-module-monitor-r1` and
+`buttons-module-physical-r1` components under the retained 20260908 CPU state to
+the OLED identity, health, capture closure and prepared display phases. The
+monitor proves bounded same-boot USB observation, not target recovery or health.
+Reuse its owner/deadline protocol and the module-once loader; no new receiver
+family, kernel/package rebuild or authentication retry is needed. Actual module
+loading, OLED scanout, touch and Adreno remain unqualified. No human request is
+pending; prepare the entire physical session before a fresh Ready.
+
 `display-integration-plan-r1/PLAN.md` describes the inert-module/late-load
 sequence, but its f17 artifact identities are historical; the old display
 packaging recipe also pins f236e710. OLED adds L12/L13 under the already-probed
@@ -372,7 +406,7 @@ RPMh parent, whose probe-time child scan does not establish live-overlay support
 Prepare a new DT boot, not regulator unbind. OLED/touch/GPU remain unqualified;
 the combined DT proposal is offline only. Kernel work precedes Denial/Flutter.
 No physical prompt or job is active. Request fresh availability only after the
-physical display test is prepared. Use r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
+physical display test is prepared. Use r58 for the timed display session, r57 for the guarded write/readback component, r54 for framebuffer capture, r53 for the Rust frame helper, r52 for the offline display endpoint component, r56 for actual host handoff and sealed frame preparation, r50 for A01/input binding, r49 for controller integration, r48 for transition components/latest
 source health, r47 for signed packaging/static autoload, r46 for payload, r45
 for restoration, and r43 for the original trial.
 

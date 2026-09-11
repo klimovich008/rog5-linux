@@ -2549,3 +2549,58 @@ Next is bounded brightness/blanking and integration with the existing admitted
 module-load/full-health/monitor/entry controller, then complete preparation before
 fresh physical Ready. OLED/touch/Adreno remain unqualified. Authentication r3
 PASS is retained; no new password attempt, phone/network/claim action occurred.
+
+## Timed low-brightness session and independent blank cleanup (r58, 2026-09-11)
+
+Previous r57 is progress: the entered framebuffer writer/readback passed 19
+focused offline cases. This turn connects it to `display-session.py`, an
+import-only prepared-owner component. It reuses the exact writer/frame/collector/
+endpoint pins and existing ARM64 binary. No compilation or phone action occurred.
+
+`show_once(frame, capture, boot, authorize, enter, cleanup_authorize, armed)`
+requires independent cleanup ownership before entering. It carries fixed
+brightness32, maximum1023, duration20 s and cleanup0 in the owner's durable intent.
+After actual frame write/readback in the fixture, it verifies the exact blank
+backlight, opens a nofollow owned brightness FD, writes only 32 newline and checks
+readback. A nonblocking `armed` callback queues the observation prompt. The human
+response is collected outside this timed loop. It samples identity/brightness
+and normal authorization at 0.25-second intervals, then invokes pinned blanking.
+
+Once entry is acknowledged, cleanup runs even after writer failure, ordinary
+health refusal, prompt delivery failure or uncertain nonzero write. It uses the
+distinct cleanup predicate, verifies exact current boot/device and reports zero
+failure independently. A different boot refuses cleanup against that boot. A
+failed blank never supplies a blank PASS. All owned brightness FDs close. These
+are command/readback checks; physical visibility/darkness, final full health and
+admission remain false, and a bounded enclosing worker/monitor is still required.
+
+Initial `session-tests-r1` failed one of 14 cases: a short-write fixture left
+b'3' as sysfs readback, omitting the canonical newline. The endpoint correctly
+refused that invalid value before blanking. The fixture now exposes b'3 newline'
+while retaining its short return. No runtime validation was relaxed. The next
+15-case suite passed in 23.719 s, including a production 20-second real-clock
+case. Review then added a post-authorization deadline check and slow-callback
+regression, preventing a delayed authorization from queuing a late prompt.
+Final **16 cases pass in 23.933 s** (24.112 s outer runner).
+
+The final real-clock production-duration fixture took **20.003377 s** from the
+nonzero attempt to confirmed zero, **20.094627 s** total, with 80 samples. The
+virtual-clock nominal case also covers the full 20-second protocol; a separate
+shortened real-clock case exercises the wait path cheaply. Failure cases cover
+missing cleanup permission, rejected durable entry, partial frame write, health
+loss, late callback, failed/raising/blocking prompt callback, short/uncertain
+brightness write, external brightness change, failed zero write and changed boot.
+All cases inherit descriptor-leak checks. Real sealed ARM64 frame/file I/O is
+used; sysfs store/device/ioctl, admission, entry and monitor are explicit fixtures.
+Result `oled-display-component-r1/session-result-r1.json` is SHA `d30d2168…`.
+
+After-run review: rechecking the deadline after callbacks closes a real ordering
+hole; preserving independently authorized blank cleanup prevents normal health
+failure from disabling the available off path. The repeated sysfs fixture issue
+is now recorded as a canonical-store requirement. The slow stage here was the
+intentional real-clock 20-second test; keep virtual-clock fault cases and reuse
+unchanged timing evidence. Existing module-monitor/protocol/client and physical
+backend/admission components were located under the retained CPU state; next is
+OLED integration with updated identity/health/capture-closure bindings. They are
+historical f17 components, not already valid for OLED. No new receiver family,
+boot claim, authentication request or physical Ready is created by this turn.
