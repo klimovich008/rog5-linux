@@ -3609,3 +3609,30 @@ needs an owned temporary 8085 allowance and cleanup. Cached sudo has expired;
 `sudo -n -v` failed without opening a dialog. No Ready was requested because the
 full receiver/privilege entry is not yet prepared. Continue independent startup
 integration work; preserve the current V11 source and the r77 recovery records.
+
+
+## r79 — passive relay prepared before operator availability
+
+The new Ready arrived with an unfinished launcher; the user was released before
+independent preparation continued. Authenticated full V11 health/recovery checks
+passed in 5.077 s. Exact relay staging plus verification passed in 1.320 s in a
+fresh protected RAM namespace. No relay execution or authentication occurred.
+The binary remains SHA b1be78b8c1c1592d750efef315a5a5818f6706bd4b1d9c10cb36b42216272851.
+
+Receiver/decoder: 14 checks passed. Coordinator/payload: nine checks passed.
+Fault fixtures cover SSH loss with cleanup, failed authentication before phone
+work, pre-existing rules, ambiguous add without false ownership, incomplete
+cleanup, mismatched SSH/UDP summaries, and one-use refusal. Generated shell syntax
+and decoded payload hash match. Retained terminal identity, askpass identity,
+USB zone, absent rule and capture port were checked before requesting Ready.
+Evidence is `kernel-log-relay-live-r1/preparation-r1` and `review.json`.
+The receiver source commit is `5f404597`; frozen kernel and executed controllers
+were not changed. The prepared run is five seconds, with independent eight-second
+phone timeout, twenty-second receiver deadline and forty-five-second firewall
+expiry. Live transport and subsequent startup integration remain unqualified.
+
+After-run review: preparation work, rather than compilation, caused this Ready
+handoff delay. Apply the Ready gate to the whole launcher and its cleanup, not
+only its binary. The final receipt now pins scripts/tests/staging and records the
+exact terminal entry, so the next fresh Ready requires only brief identity checks
+and runtime arming. No expensive kernel rebuild was repeated.

@@ -1,5 +1,45 @@
 # ROG5 current state
 
+Latest r79, 2026-09-11: **the passive V11 kernel-log relay test is fully
+prepared and awaiting fresh Ready for sudo authentication**. The Ready received
+while the prior launcher was unfinished was released explicitly; do not reuse it.
+No password dialog or relay execution has started. No phone button/cable action
+is required for this test.
+
+Fresh authenticated full health/recovery observation passed in 5.077 s on boot
+`ee0d166e-5e69-4db7-8bbd-6266352594ea`, with the old boot selection unchanged.
+The exact r78 ARM64 binary is staged (not executed) in the private tmpfs directory
+`/run/initramfs/rog5-kernel-relay-3e4b3e34ee108aba51187644c6cc670e`.
+Staging and independent staged-file verification took 1.320 s. The relay will run
+for 5 seconds under an 8-second hard timeout, then remove its exact binary while
+preserving the one-use marker and small logs. No reboot, driver insertion or
+persistent-state write is included.
+
+Receiver source is frozen at `5f404597` in `oled-startup-observer-worktree-r1`.
+Fourteen decoder/receiver checks and nine coordinator/payload checks pass,
+including cancellation, loss, foreign peers, rejection flood, SSH failure,
+authentication failure and uncertain firewall ownership. Kernel and Rust binary
+were reused. The host port is available, USB zone matches, and the narrow UDP
+rule is absent. The runtime rule expires after 45 seconds and is explicitly
+removed when ownership is proven. SSH stdout must agree with the UDP terminal
+summary; neither UDP nor software tests establish OLED health.
+
+Prepared entry: `kernel-log-relay-live-r1/probe.py`, with `prepared.json` and
+`review.json` pinning inputs, scripts and evidence. On fresh Ready, immediately
+send this exact command to retained exec PTY **44286** (shell PID 251096), without
+rebuilding or repeating preparation:
+
+```sh
+/usr/bin/python3 -I -B /home/deck/.local/state/rog5-denial-20260910-r1/kernel-log-relay-live-r1/probe.py
+```
+
+It validates the terminal, uses only the retained touch authentication primitive,
+checks the staged phone, arms recording, and runs the passive probe. It does not
+invoke the consumed OLED terminal entry. If `execution-r1` exists, do not rerun.
+If authentication is requested, the existing touch password window is the only
+user action. Collect `execution-r1/result.json` and cleanup evidence afterwards.
+All earlier OLED claims remain consumed; the OLED reset cause is still unknown.
+
 Latest r78, 2026-09-11: **V11 and the restored old selection are unchanged**.
 A fresh authenticated read confirms boot ee0d166e-5e69-4db7-8bbd-6266352594ea
 and old state SHA ed3a62d1... . Archived pstore is empty, and the system journal
