@@ -37,7 +37,7 @@ class ReadbackTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10):
+    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False):
         env = os.environ.copy()
         for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
                      'EGL_PLATFORM', 'MESA_LOADER_DRIVER_OVERRIDE', 'GALLIUM_DRIVER',
@@ -50,12 +50,15 @@ class ReadbackTest(unittest.TestCase):
             env['ROG5_FAKE_GLES_RENDERER'] = renderer
         if not real:
             env['LD_LIBRARY_PATH'] = str(self.fake)
+            env['LD_PRELOAD'] = str(self.fake / 'fixture.so')
         # Private device namespace has no /dev/dri; no network/display sockets.
         command = ['bwrap', '--unshare-all', '--die-with-parent', '--ro-bind', '/', '/',
                    '--dev', '/dev', '--proc', '/proc', '--tmpfs', '/tmp',
                    '--', str(binary or self.binary)]
         if mode:
             command.append(mode)
+        if native_fence:
+            command.append('--native-fence')
         return subprocess.run(command, env=env, stdin=subprocess.DEVNULL,
                               capture_output=True, text=True, timeout=timeout)
 
@@ -138,6 +141,33 @@ class ReadbackTest(unittest.TestCase):
                 self.assertNotIn('CALL vertex_create', result.stderr)
                 self.assertIn('CALL destroy_context', result.stderr)
                 self.assertIn('CALL terminate', result.stderr)
+
+    def test_native_fence_export_wait_and_faults(self):
+        result = self.invoke(native_fence=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('native_fence=PASS', result.stdout)
+        stages = ['CALL draw', 'CALL fence_create', 'CALL flush',
+                  'CALL fence_export', 'CALL fence_info', 'CALL fence_destroy', 'CALL read']
+        offsets = [result.stderr.index(stage) for stage in stages]
+        self.assertEqual(offsets, sorted(offsets))
+        self.assertIn('FENCE_FD_CLOSED', result.stderr)
+        for fault in ('native_extension', 'fence_symbol', 'fence_create', 'flush',
+                      'fence_export', 'fence_timeout', 'fence_poll_error',
+                      'fence_info', 'fence_pending', 'fence_negative', 'fence_destroy'):
+            with self.subTest(fault=fault):
+                result = self.invoke(native_fence=True, fault=fault)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, '')
+                self.assertNotIn('CALL read\n', result.stderr)
+                self.assertIn('CALL terminate', result.stderr)
+                if fault not in ('native_extension', 'fence_symbol', 'fence_create'):
+                    self.assertIn('CALL fence_destroy', result.stderr)
+                if fault in ('fence_timeout', 'fence_poll_error', 'fence_info',
+                             'fence_pending', 'fence_negative', 'fence_destroy'):
+                    self.assertIn('FENCE_FD_CLOSED', result.stderr)
+        result = self.invoke(native_fence=True, fault='fence_eintr')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('native_fence=PASS', result.stdout)
 
     def test_stalled_readback_is_killed_without_success(self):
         with self.assertRaises(subprocess.TimeoutExpired) as caught:
