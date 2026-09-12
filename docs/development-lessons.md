@@ -2490,3 +2490,17 @@ When adapting recorded argv, support the representation actually present (the
 retained --workdir uses an equals form); preserve preparation failures separately.
 For low disk headroom, link unchanged frozen source files and atomically replace
 modified ones, then verify every parent hash. Never patch through shared links.
+
+
+Use separate memory budgets for single-object compilation and full engine LTO
+linking. The 3 GiB link was killed by its cgroup at 199 seconds; the identical
+input/response-file link passed at 4 GiB/no swap in 201 seconds. Kernel MEMCG
+evidence distinguishes this bounded failure from historical host-wide OOMs.
+Reuse the known successful link budget after checking host available memory,
+without changing optimization or expanding concurrency to hide the failure.
+Ninja compdb -x exposes response-file inputs even after the build removed its
+.rsp; redirect output and substitute the one corrected object against a read-only
+cache. Record all explicit input hashes and inspect for thin-archive indirection.
+The real VM showed raster unbind and main cleanup success, while six independent
+backing-store errors correctly retained session FAIL. Keep component and session
+results separate, and include newly introduced error messages in the classifier.

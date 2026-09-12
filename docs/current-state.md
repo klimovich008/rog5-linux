@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Impeller missing teardown unbind identified; source correction and ARM64 object pass**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Corrected Impeller engine passes VM render-context cleanup; frame admission remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The VM selects Impeller, not the Skia destructor inspected earlier. All 244 ownership records show only startup unbinding; the raster thread retains its render context until main cleanup fails. The diagnostic run reaches 52 frames but remains FAIL with five backing-store errors. A focused Impeller destructor correction passes five semantic tests and real ARM64 translation-unit compilation (4.4 seconds); full corrected-engine link and VM are NOT RUN. Five ownership/trace tests and 87 active suites pass. Next relink a separate engine and test cleanup with unchanged Denial/VM inputs, preserving the independent authorization review and all phone guards. See [current repair evidence](../test-results/2026-09-12-impeller-context-cleanup.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The separately linked engine explicitly releases the raster context, permits main-thread cleanup and finishes unbound, with no EGL_BAD_ACCESS. The full VM remains FAIL: 48 frames/page flips and six backing-store errors. The first 3 GiB link hit a confirmed container-local OOM; the identical-input 4 GiB/no-swap link passed in 201 seconds, preserving original engine bytes. ABI/bundle checks and 87 active suites pass. Reuse this engine for the queued-render protocol investigation; IO resource-context final release remains separately unqualified. No phone operation or candidate change occurred. See [current repair evidence](../test-results/2026-09-12-impeller-engine-vm.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

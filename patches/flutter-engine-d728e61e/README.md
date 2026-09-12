@@ -27,3 +27,8 @@ fails four cases and passes the invalid-surface case; the correction passes all
 five. The real engine translation-unit build, complete engine link and VM cleanup
 qualification are separate mandatory follow-ups before selecting corrected engine
 bytes. No active artifact builder or phone candidate selects this patch yet.
+
+The [corrected-engine VM result](../../test-results/2026-09-12-impeller-engine-vm.md)
+now records a complete separate link and successful render-context cleanup. The
+full VM still fails on backing-store authorization; IO resource-context lifetime
+and phone behavior remain unqualified. The original library is preserved.

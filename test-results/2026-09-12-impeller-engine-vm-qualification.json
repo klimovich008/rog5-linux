@@ -1,0 +1,1121 @@
+{
+  "schema": 1,
+  "scope": "corrected Impeller engine build and render-context cleanup in ARM64 VirGL VM; phone NOT RUN",
+  "status": "PARTIAL: cleanup PASS; full session FAIL",
+  "source_commit": "8d4f0a12ac651a5e4b7b1585b756f54b26de5a7c",
+  "source_tree": "e9d7e83de7bcb75f1836b3f470ecbf759319de03",
+  "engine_patch_source_commit": "27f1dedde6544cb2417d66ddaa32d6377701c923",
+  "denial_binary_source_commit": "09a4d25a1b923347c6bdc97ba9af68a8362b8146",
+  "engine_base": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+  "link_attempts": [
+    {
+      "command": [
+        "podman",
+        "run",
+        "--name",
+        "rog5-impeller-relink-r1",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--memory=3g",
+        "--memory-swap=3g",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--network=none",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1:/work:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+        "-e",
+        "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+        "-e",
+        "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+        "-e",
+        "CIPD_CACHE_DIR=/build/cipd-cache",
+        "-e",
+        "DEPOT_TOOLS_UPDATE=0",
+        "-e",
+        "HOME=/probe/home",
+        "-e",
+        "TMPDIR=/probe/tmp",
+        "--workdir=/work/out",
+        "-v",
+        "/home/deck/.local/state/rog5-impeller-relink-20260912-r1:/probe:rw",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "../../source/engine/src/flutter/buildtools/linux-x64/clang/bin/clang++",
+        "@/probe/link.rsp"
+      ],
+      "started": "2026-09-12T20:39:46.328526+00:00",
+      "repository_commit": "8d4f0a12ac651a5e4b7b1585b756f54b26de5a7c",
+      "repository_tree": "e9d7e83de7bcb75f1836b3f470ecbf759319de03",
+      "input_count": 3264,
+      "input_inventory_sha256": "a1170814f2be7f9d1bd297f70b2756f1db9d3125b2585d688ae7133d5a5b60cd",
+      "response_file_sha256": "0f91c538dff4bbc13b0eb95f0c633f1055bb4ad2161fa3edcca5a820c2d6335d",
+      "status": "FAIL",
+      "exit_status": 1,
+      "duration_seconds": 198.60136946299463,
+      "minimum_free_bytes": 3473330176,
+      "container_removed": true,
+      "original_engine_preserved": true,
+      "full_result": {
+        "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-result.json",
+        "sha256": "446ba9b80910d51edcba83642ed090663a89f6797a70342218237d5ddc861b49",
+        "size": 244520
+      }
+    },
+    {
+      "command": [
+        "podman",
+        "run",
+        "--name",
+        "rog5-impeller-relink-r2",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--memory=4g",
+        "--memory-swap=4g",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--network=none",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1:/work:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+        "-e",
+        "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+        "-e",
+        "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+        "-e",
+        "CIPD_CACHE_DIR=/build/cipd-cache",
+        "-e",
+        "DEPOT_TOOLS_UPDATE=0",
+        "-e",
+        "HOME=/probe/home",
+        "-e",
+        "TMPDIR=/probe/tmp",
+        "--workdir=/work/out",
+        "-v",
+        "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-r2:/probe:rw",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "../../source/engine/src/flutter/buildtools/linux-x64/clang/bin/clang++",
+        "@/probe/link.rsp"
+      ],
+      "started": "2026-09-12T20:44:17.294935+00:00",
+      "repository_commit": "8d4f0a12ac651a5e4b7b1585b756f54b26de5a7c",
+      "repository_tree": "e9d7e83de7bcb75f1836b3f470ecbf759319de03",
+      "input_count": 3264,
+      "input_inventory_sha256": "a1170814f2be7f9d1bd297f70b2756f1db9d3125b2585d688ae7133d5a5b60cd",
+      "response_file_sha256": "0f91c538dff4bbc13b0eb95f0c633f1055bb4ad2161fa3edcca5a820c2d6335d",
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 201.10255228201277,
+      "minimum_free_bytes": 3433078784,
+      "unstripped_sha256": "eed63fcb9600e452dc918f8d2e30c7d81ef015be9c032b3313dcc80ba07d7dbf",
+      "strip_command": [
+        "podman",
+        "run",
+        "--name",
+        "rog5-impeller-relink-r2",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--memory=4g",
+        "--memory-swap=4g",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--network=none",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1:/work:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+        "-e",
+        "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+        "-e",
+        "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+        "-e",
+        "CIPD_CACHE_DIR=/build/cipd-cache",
+        "-e",
+        "DEPOT_TOOLS_UPDATE=0",
+        "-e",
+        "HOME=/probe/home",
+        "-e",
+        "TMPDIR=/probe/tmp",
+        "--workdir=/work/out",
+        "-v",
+        "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-r2:/probe:rw",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "../../source/engine/src/flutter/buildtools/linux-x64/clang/bin/llvm-objcopy",
+        "--strip-all",
+        "/probe/libflutter_engine.unstripped.so",
+        "/probe/libflutter_engine.so"
+      ],
+      "strip_exit_status": 0,
+      "strip_stderr": "",
+      "binary_sha256": "645f85f2ac274c5ec010dc011496043099a4e88eaea2e8540400f82b77e37bde",
+      "binary_size": 15976208,
+      "container_removed": true,
+      "original_engine_preserved": true,
+      "full_result": {
+        "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-r2/link-result.json",
+        "sha256": "85f50e945397f7a678a1990e5f2ac6baa6e4f40fd4071adf05ddd4eb96f23e6d",
+        "size": 246497
+      }
+    }
+  ],
+  "oom": {
+    "scope": "first linker container only",
+    "constraint": "CONSTRAINT_MEMCG",
+    "task": "ld.lld",
+    "cap_gib": 3,
+    "killed_anon_rss_kib": 3129924,
+    "kernel_evidence": {
+      "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-oom-evidence.json",
+      "sha256": "4a44ce7e5cc753d6e18bd81ebc38226544f2dbe1fd676f50ea2ddeb98616690f",
+      "size": 991
+    },
+    "system_wide_oom": false
+  },
+  "retry_input_comparison": {
+    "explicit_input_count": 3264,
+    "input_inventory_unchanged": true,
+    "response_file_identical": true,
+    "semantic_link_arguments_unchanged": true,
+    "changed_resources": "container memory/swap-total 3g to 4g; swap still zero; private output mount and unique owner name"
+  },
+  "input_inventory": {
+    "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-r2/link-inputs.json",
+    "sha256": "a1170814f2be7f9d1bd297f70b2756f1db9d3125b2585d688ae7133d5a5b60cd",
+    "size": 955137
+  },
+  "response_file": {
+    "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-r2/link.rsp",
+    "sha256": "0f91c538dff4bbc13b0eb95f0c633f1055bb4ad2161fa3edcca5a820c2d6335d",
+    "size": 225751
+  },
+  "no_thin_archives": true,
+  "runtime_binding": {
+    "scope": "same Flutter bundle with corrected engine only; no candidate or phone authority",
+    "old_engine_sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+    "new_engine_sha256": "645f85f2ac274c5ec010dc011496043099a4e88eaea2e8540400f82b77e37bde",
+    "elf_abi": {
+      "machine": "AArch64",
+      "needed": [
+        "libdl.so.2",
+        "libfontconfig.so.1",
+        "libpthread.so.0",
+        "libm.so.6",
+        "libc.so.6",
+        "ld-linux-aarch64.so.1"
+      ],
+      "soname": [
+        "libflutter_engine.so"
+      ],
+      "exported_names": [
+        [
+          "DenialFlutterEngineRenderOutputs"
+        ],
+        [
+          "DenialFlutterEngineRequestFrameForExternalTextures"
+        ],
+        [
+          "DenialFlutterEngineScheduleFrameForExternalTextures"
+        ],
+        [
+          "DenialFlutterEngineSetExternalTextureGlStateCallback"
+        ],
+        [
+          "DenialFlutterEngineSetRenderOutputs"
+        ],
+        [
+          "FlutterEngineAddView"
+        ],
+        [
+          "FlutterEngineCollectAOTData"
+        ],
+        [
+          "FlutterEngineCreateAOTData"
+        ],
+        [
+          "FlutterEngineDeinitialize"
+        ],
+        [
+          "FlutterEngineDispatchSemanticsAction"
+        ],
+        [
+          "FlutterEngineGetCurrentTime"
+        ],
+        [
+          "FlutterEngineGetProcAddresses"
+        ],
+        [
+          "FlutterEngineInitialize"
+        ],
+        [
+          "FlutterEngineMarkExternalTextureFrameAvailable"
+        ],
+        [
+          "FlutterEngineNotifyDisplayUpdate"
+        ],
+        [
+          "FlutterEngineNotifyLowMemoryWarning"
+        ],
+        [
+          "FlutterEngineOnVsync"
+        ],
+        [
+          "FlutterEnginePostCallbackOnAllNativeThreads"
+        ],
+        [
+          "FlutterEnginePostDartObject"
+        ],
+        [
+          "FlutterEnginePostRenderThreadTask"
+        ],
+        [
+          "FlutterEngineRegisterExternalTexture"
+        ],
+        [
+          "FlutterEngineReloadSystemFonts"
+        ],
+        [
+          "FlutterEngineRemoveView"
+        ],
+        [
+          "FlutterEngineRun"
+        ],
+        [
+          "FlutterEngineRunInitialized"
+        ],
+        [
+          "FlutterEngineRunTask"
+        ],
+        [
+          "FlutterEngineRunsAOTCompiledDartCode"
+        ],
+        [
+          "FlutterEngineScheduleFrame"
+        ],
+        [
+          "FlutterEngineSendKeyEvent"
+        ],
+        [
+          "FlutterEngineSendPlatformMessage"
+        ],
+        [
+          "FlutterEngineSendPlatformMessageResponse"
+        ],
+        [
+          "FlutterEngineSendPointerEvent"
+        ],
+        [
+          "FlutterEngineSendSemanticsAction"
+        ],
+        [
+          "FlutterEngineSendViewFocusEvent"
+        ],
+        [
+          "FlutterEngineSendWindowMetricsEvent"
+        ],
+        [
+          "FlutterEngineSetNextFrameCallback"
+        ],
+        [
+          "FlutterEngineShutdown"
+        ],
+        [
+          "FlutterEngineTraceEventDurationBegin"
+        ],
+        [
+          "FlutterEngineTraceEventDurationEnd"
+        ],
+        [
+          "FlutterEngineTraceEventInstant"
+        ],
+        [
+          "FlutterEngineUnregisterExternalTexture"
+        ],
+        [
+          "FlutterEngineUpdateAccessibilityFeatures"
+        ],
+        [
+          "FlutterEngineUpdateLocales"
+        ],
+        [
+          "FlutterEngineUpdateSemanticsEnabled"
+        ],
+        [
+          "FlutterPlatformMessageCreateResponseHandle"
+        ],
+        [
+          "FlutterPlatformMessageReleaseResponseHandle"
+        ],
+        [
+          "InternalFlutterGpu_CommandBuffer_Initialize"
+        ],
+        [
+          "InternalFlutterGpu_CommandBuffer_Submit"
+        ],
+        [
+          "InternalFlutterGpu_Context_GetDefaultColorFormat"
+        ],
+        [
+          "InternalFlutterGpu_Context_GetDefaultDepthStencilFormat"
+        ],
+        [
+          "InternalFlutterGpu_Context_GetDefaultStencilFormat"
+        ],
+        [
+          "InternalFlutterGpu_Context_GetMinimumUniformByteAlignment"
+        ],
+        [
+          "InternalFlutterGpu_Context_GetSupportsOffscreenMSAA"
+        ],
+        [
+          "InternalFlutterGpu_Context_InitializeDefault"
+        ],
+        [
+          "InternalFlutterGpu_DeviceBuffer_Flush"
+        ],
+        [
+          "InternalFlutterGpu_DeviceBuffer_Initialize"
+        ],
+        [
+          "InternalFlutterGpu_DeviceBuffer_InitializeWithHostData"
+        ],
+        [
+          "InternalFlutterGpu_DeviceBuffer_Overwrite"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_Begin"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_BindIndexBufferDevice"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_BindPipeline"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_BindTexture"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_BindUniformDevice"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_BindVertexBufferDevice"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_ClearBindings"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_Draw"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_Initialize"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetColorAttachment"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetColorBlendEnable"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetColorBlendEquation"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetCullMode"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetDepthCompareOperation"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetDepthStencilAttachment"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetDepthWriteEnable"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetPolygonMode"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetPrimitiveType"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetScissor"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetStencilConfig"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetStencilReference"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetViewport"
+        ],
+        [
+          "InternalFlutterGpu_RenderPass_SetWindingOrder"
+        ],
+        [
+          "InternalFlutterGpu_RenderPipeline_Initialize"
+        ],
+        [
+          "InternalFlutterGpu_ShaderLibrary_GetShader"
+        ],
+        [
+          "InternalFlutterGpu_ShaderLibrary_InitializeWithAsset"
+        ],
+        [
+          "InternalFlutterGpu_Shader_GetUniformMemberOffset"
+        ],
+        [
+          "InternalFlutterGpu_Shader_GetUniformStructSize"
+        ],
+        [
+          "InternalFlutterGpu_Texture_AsImage"
+        ],
+        [
+          "InternalFlutterGpu_Texture_BytesPerTexel"
+        ],
+        [
+          "InternalFlutterGpu_Texture_Initialize"
+        ],
+        [
+          "InternalFlutterGpu_Texture_Overwrite"
+        ],
+        [
+          "InternalFlutterGpu_Texture_SetCoordinateSystem"
+        ],
+        [
+          "__FlutterEngineFlushPendingTasksNow"
+        ],
+        [
+          "__start___lcxx_override"
+        ],
+        [
+          "__stop___lcxx_override"
+        ],
+        [
+          "kFlutterSemanticsCustomActionIdBatchEnd"
+        ],
+        [
+          "kFlutterSemanticsNodeIdBatchEnd"
+        ]
+      ]
+    },
+    "files": [
+      {
+        "path": "data/flutter_assets/AssetManifest.bin",
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "size": 2439,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/FontManifest.json",
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "size": 307,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/NOTICES.Z",
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "size": 14745,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/branding/denial-dark.svg",
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "size": 3344,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "size": 1617,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "size": 1775,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "size": 860,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "size": 836,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "size": 535,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "size": 1162,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "size": 748,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "size": 1204,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "size": 1298,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "size": 968,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "size": 993,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "size": 1075,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "size": 858,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "size": 813,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "size": 1227,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "size": 818,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "size": 1495,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "size": 277828,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "size": 273860,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "size": 273900,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/icons/application-default-icon.svg",
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "size": 408,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "size": 3913008,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/shaders/ink_sparkle.frag",
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "size": 21856,
+        "changed": false
+      },
+      {
+        "path": "data/flutter_assets/shaders/stretch_effect.frag",
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "size": 17624,
+        "changed": false
+      },
+      {
+        "path": "data/icudtl.dat",
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "size": 10822192,
+        "changed": false
+      },
+      {
+        "path": "lib/libapp.so",
+        "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871",
+        "size": 10814352,
+        "changed": false
+      },
+      {
+        "path": "lib/libflutter_engine.so",
+        "sha256": "645f85f2ac274c5ec010dc011496043099a4e88eaea2e8540400f82b77e37bde",
+        "size": 15976208,
+        "changed": true
+      }
+    ]
+  },
+  "vm": {
+    "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+    "started": "2026-09-12T20:48:09.646819+00:00",
+    "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+    "deniald_sha256": "84bbe77ce67eea3f784e6341337a4e5b7c37116aea5f3eb3bc68411509d52304",
+    "egl_thread_probe_sha256": null,
+    "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "runtime_inventory_verified_by_this_runner": false,
+    "flutter_bundle": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/runtime-fixture",
+    "graphics_mode": "virgl",
+    "host_render_node": {
+      "path": "/dev/dri/renderD128",
+      "major": 226,
+      "minor": 128,
+      "scope": "host rendering only; no phone device"
+    },
+    "harness_sha256": "a3ab4618163b9ecf00d314f4c60dc82c91d1a631003bb8f99b76c1e8750c356f",
+    "init_source_sha256": "2628fa1cc582579e0e6a09489cc59ef5a0bc1a1f1ae3e0e275b523a7d5dcfe40",
+    "compile_command": [
+      "clang",
+      "--target=aarch64-none-elf",
+      "-fuse-ld=lld",
+      "-nostdlib",
+      "-static",
+      "-fno-pic",
+      "-fno-stack-protector",
+      "-Werror",
+      "-Wall",
+      "-Wextra",
+      "-Wl,--build-id=none,--entry=_start",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "-o",
+      "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/guest-engine/initramfs/init"
+    ],
+    "status": "FAIL",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-virtual-drm-e87541abc11e",
+      "--network",
+      "none",
+      "--read-only",
+      "--memory",
+      "1536m",
+      "--memory-swap",
+      "1536m",
+      "--cpus",
+      "2",
+      "--pids-limit",
+      "64",
+      "--security-opt",
+      "no-new-privileges",
+      "-v",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/guest-engine/initramfs.cpio.gz:/initramfs.gz:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/guest-engine/payload:/payload:ro",
+      "--device",
+      "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+      "-e",
+      "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "qemu-system-aarch64",
+      "-M",
+      "virt",
+      "-cpu",
+      "max",
+      "-smp",
+      "2",
+      "-m",
+      "1024M",
+      "-accel",
+      "tcg,thread=multi",
+      "-global",
+      "virtio-mmio.force-legacy=false",
+      "-display",
+      "egl-headless,rendernode=/dev/dri/renderD128",
+      "-monitor",
+      "none",
+      "-nic",
+      "none",
+      "-serial",
+      "stdio",
+      "-no-reboot",
+      "-kernel",
+      "/Image",
+      "-initrd",
+      "/initramfs.gz",
+      "-append",
+      "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+      "-device",
+      "virtio-gpu-gl-device,xres=640,yres=480",
+      "-device",
+      "virtio-keyboard-device",
+      "-device",
+      "virtio-tablet-device",
+      "-device",
+      "virtio-rng-device",
+      "-fsdev",
+      "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+      "-fsdev",
+      "local,id=payload,path=/payload,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=payload,mount_tag=payload"
+    ],
+    "qemu_exit_status": 0,
+    "drm_discovery": "PASS",
+    "deniald_kms": "NOT RUN",
+    "deniald_cli": "NOT RUN",
+    "shell_exit": "PASS",
+    "shell_rendering": {
+      "status": "FAIL",
+      "scope": "Denial terminal counters; not visual or phone proof",
+      "raster_frames": 48,
+      "output_page_flips": 48,
+      "render_errors": [
+        "Could not create the embedder backing store"
+      ],
+      "reason": "zero frames/page flips or observed rendering errors"
+    },
+    "container_removed": true,
+    "duration_seconds": 48.57076451499597,
+    "hashes": {
+      "initramfs/init": "e0eb44a479e83329e9c46e796d99875eca5211f2e6402af52202114d763c14bd",
+      "initramfs/stage/guest.sh": "8e423b1790eba3ab1a33e9ac7bfe34778d3bd81a773cd619e8d5326b89d9d839",
+      "initramfs.cpio.gz": "a3623413287a08fcf509b592b476532f7a942eca2c75b28bde2feb9effae46f4",
+      "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+      "serial.log": "9a57c671f78d976fcf79faca3d02bd151c407b6e2faffa38e1626c922a68e250"
+    }
+  },
+  "vm_invocation": [
+    "python3",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+    "--runtime",
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "--kernel",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+    "--deniald",
+    "/home/deck/.local/state/rog5-egl-context-trace-20260912-r1/deniald-context",
+    "--flutter-bundle",
+    "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/runtime-fixture",
+    "--image",
+    "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "--render-node",
+    "/dev/dri/renderD128",
+    "--output",
+    "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/guest-engine",
+    "--deadline",
+    "120"
+  ],
+  "cleanup": {
+    "scope": "actual corrected-engine VM render-context cleanup only; full Denial session FAIL",
+    "status": "PASS",
+    "trace_records": 236,
+    "contiguous": true,
+    "cap_reached": false,
+    "stage_counts": {
+      "bind-enter": 61,
+      "bind-ok": 61,
+      "unbind-enter": 3,
+      "unbind-ok": 3,
+      "raster-idle-enter": 53,
+      "raster-idle-exit": 53,
+      "cleanup-enter": 1,
+      "cleanup-bind-ok": 1
+    },
+    "raster_unbind": {
+      "sequence": 229,
+      "stage": "unbind-ok",
+      "thread": 10,
+      "owner": "None",
+      "context": "0xaaab190d3110",
+      "actual": "0x0",
+      "line": "1970-01-01T00:00:47.220672Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(229) stage=\"unbind-ok\" terminal=false thread=ThreadId(10) owner=None context=0xaaab190d3110 actual=0x0 last_regular_record=false"
+    },
+    "main_cleanup_bind": {
+      "sequence": 233,
+      "stage": "cleanup-bind-ok",
+      "thread": 1,
+      "owner": "Some(ThreadId(1))",
+      "context": "0xaaab190d3110",
+      "actual": "0xaaab190d3110",
+      "line": "1970-01-01T00:00:47.327352Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(233) stage=\"cleanup-bind-ok\" terminal=true thread=ThreadId(1) owner=Some(ThreadId(1)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+    },
+    "main_final_unbind": {
+      "sequence": 235,
+      "stage": "unbind-ok",
+      "thread": 1,
+      "owner": "None",
+      "context": "0xaaab190d3110",
+      "actual": "0x0",
+      "line": "1970-01-01T00:00:47.334441Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(235) stage=\"unbind-ok\" terminal=false thread=ThreadId(1) owner=None context=0xaaab190d3110 actual=0x0 last_regular_record=false"
+    },
+    "tail": [
+      {
+        "sequence": 223,
+        "stage": "raster-idle-exit",
+        "thread": 10,
+        "owner": "Some(ThreadId(10))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.068469Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(223) stage=\"raster-idle-exit\" terminal=false thread=ThreadId(10) owner=Some(ThreadId(10)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 224,
+        "stage": "bind-enter",
+        "thread": 10,
+        "owner": "Some(ThreadId(10))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.204549Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(224) stage=\"bind-enter\" terminal=false thread=ThreadId(10) owner=Some(ThreadId(10)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 225,
+        "stage": "bind-ok",
+        "thread": 10,
+        "owner": "Some(ThreadId(10))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.205486Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(225) stage=\"bind-ok\" terminal=false thread=ThreadId(10) owner=Some(ThreadId(10)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 226,
+        "stage": "bind-enter",
+        "thread": 10,
+        "owner": "Some(ThreadId(10))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.206560Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(226) stage=\"bind-enter\" terminal=false thread=ThreadId(10) owner=Some(ThreadId(10)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 227,
+        "stage": "bind-ok",
+        "thread": 10,
+        "owner": "Some(ThreadId(10))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.207326Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(227) stage=\"bind-ok\" terminal=false thread=ThreadId(10) owner=Some(ThreadId(10)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 228,
+        "stage": "unbind-enter",
+        "thread": 10,
+        "owner": "Some(ThreadId(10))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.219354Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(228) stage=\"unbind-enter\" terminal=false thread=ThreadId(10) owner=Some(ThreadId(10)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 229,
+        "stage": "unbind-ok",
+        "thread": 10,
+        "owner": "None",
+        "context": "0xaaab190d3110",
+        "actual": "0x0",
+        "line": "1970-01-01T00:00:47.220672Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(229) stage=\"unbind-ok\" terminal=false thread=ThreadId(10) owner=None context=0xaaab190d3110 actual=0x0 last_regular_record=false"
+      },
+      {
+        "sequence": 230,
+        "stage": "raster-idle-enter",
+        "thread": 10,
+        "owner": "None",
+        "context": "0xaaab190d3110",
+        "actual": "0x0",
+        "line": "1970-01-01T00:00:47.224672Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(230) stage=\"raster-idle-enter\" terminal=false thread=ThreadId(10) owner=None context=0xaaab190d3110 actual=0x0 last_regular_record=false"
+      },
+      {
+        "sequence": 231,
+        "stage": "raster-idle-exit",
+        "thread": 10,
+        "owner": "None",
+        "context": "0xaaab190d3110",
+        "actual": "0x0",
+        "line": "1970-01-01T00:00:47.225649Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(231) stage=\"raster-idle-exit\" terminal=false thread=ThreadId(10) owner=None context=0xaaab190d3110 actual=0x0 last_regular_record=false"
+      },
+      {
+        "sequence": 232,
+        "stage": "cleanup-enter",
+        "thread": 1,
+        "owner": "None",
+        "context": "0xaaab190d3110",
+        "actual": "0x0",
+        "line": "1970-01-01T00:00:47.326247Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(232) stage=\"cleanup-enter\" terminal=true thread=ThreadId(1) owner=None context=0xaaab190d3110 actual=0x0 last_regular_record=false"
+      },
+      {
+        "sequence": 233,
+        "stage": "cleanup-bind-ok",
+        "thread": 1,
+        "owner": "Some(ThreadId(1))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.327352Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(233) stage=\"cleanup-bind-ok\" terminal=true thread=ThreadId(1) owner=Some(ThreadId(1)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 234,
+        "stage": "unbind-enter",
+        "thread": 1,
+        "owner": "Some(ThreadId(1))",
+        "context": "0xaaab190d3110",
+        "actual": "0xaaab190d3110",
+        "line": "1970-01-01T00:00:47.333449Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(234) stage=\"unbind-enter\" terminal=false thread=ThreadId(1) owner=Some(ThreadId(1)) context=0xaaab190d3110 actual=0xaaab190d3110 last_regular_record=false"
+      },
+      {
+        "sequence": 235,
+        "stage": "unbind-ok",
+        "thread": 1,
+        "owner": "None",
+        "context": "0xaaab190d3110",
+        "actual": "0x0",
+        "line": "1970-01-01T00:00:47.334441Z  INFO deniald::flutter_runtime::renderer::gl_resources: EGL ownership trace sequence=Some(235) stage=\"unbind-ok\" terminal=false thread=ThreadId(1) owner=None context=0xaaab190d3110 actual=0x0 last_regular_record=false"
+      }
+    ],
+    "backing_store_errors": 6,
+    "remaining_limitations": [
+      "queued-render authorization errors remain",
+      "IO resource-context final release is not qualified",
+      "no phone or visual/input proof"
+    ]
+  },
+  "active_tier": {
+    "command": [
+      "systemd-run",
+      "--user",
+      "--wait",
+      "--pipe",
+      "--collect",
+      "--unit=rog5-impeller-relink-active-r1",
+      "-p",
+      "MemoryMax=1G",
+      "-p",
+      "MemorySwapMax=0",
+      "-p",
+      "TasksMax=256",
+      "-p",
+      "RuntimeMaxSec=600",
+      "-p",
+      "CPUQuota=200%",
+      "-p",
+      "Delegate=yes",
+      "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+      "env",
+      "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+      "ROG5_TEST_WORKERS=2",
+      "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-impeller-relink-20260912-r1/active-report",
+      "TMPDIR=/home/deck/.local/state/rog5-impeller-relink-20260912-r1/tmp",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "8d4f0a12ac651a5e4b7b1585b756f54b26de5a7c",
+    "source_tree": "e9d7e83de7bcb75f1836b3f470ecbf759319de03",
+    "started": "2026-09-12T20:50:19.073748+00:00",
+    "exit_status": 0,
+    "duration_seconds": 131.221521370986
+  },
+  "suite_counts": {
+    "PASS": 87,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "subcheck_counts": {
+    "SKIPPED": 3
+  },
+  "raw_summary": {
+    "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/active-report/summary.json",
+    "sha256": "c73c6f84847c2f4ad59d7f57453388dc3d5dade3407fe3a80bfd32204aa5a046",
+    "size": 108184
+  },
+  "payload_cleanup": {
+    "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/duplicate-staging-cleanup.json",
+    "sha256": "02526a1855dd686230071927a6db0dedababdde827e12ba9c69244754117b463",
+    "size": 14380
+  },
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "protected_storage_mutation": false,
+  "signing_claim_installation": false,
+  "original_engine_preserved": true,
+  "remaining": [
+    "queued-render authorization/backing-store errors",
+    "IO resource-context final release qualification",
+    "phone hardware/input/visual/interactive qualification"
+  ]
+}
