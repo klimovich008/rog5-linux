@@ -57,6 +57,10 @@ jobs:
           sudo apt-get install --yes --no-install-recommends \
             build-essential \
             bubblewrap \
+            rustc \
+            libegl1 \
+            libgles2 \
+            libgl1-mesa-dri \
             clang \
             cpio \
             device-tree-compiler \
@@ -124,6 +128,10 @@ jobs:
           sudo apt-get install --yes --no-install-recommends \
             build-essential \
             bubblewrap \
+            rustc \
+            libegl1 \
+            libgles2 \
+            libgl1-mesa-dri \
             clang \
             cpio \
             device-tree-compiler \

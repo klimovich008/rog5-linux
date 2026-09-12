@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Actual Rust executable, ABI faults and real Mesa software pixels; no DRI."""
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import unittest
+
+REPO = Path(__file__).resolve().parents[2]
+SOURCE = REPO / 'tools/a660/rog5-gles-readback.rs'
+
+
+class ReadbackTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        for tool in (os.environ.get('RUSTC', 'rustc'), 'cc', 'bwrap'):
+            if not shutil.which(tool):
+                raise RuntimeError(f'BLOCKED mandatory tool missing: {tool}')
+        cls.tmp = tempfile.TemporaryDirectory(prefix='gles-readback-')
+        cls.root = Path(cls.tmp.name)
+        cls.binary = cls.root / 'probe'
+        cls.unit = cls.root / 'unit'
+        cls.fake = cls.root / 'fake'
+        cls.fake.mkdir()
+        for extra, output in (([], cls.binary), (['--test'], cls.unit)):
+            subprocess.run([os.environ.get('RUSTC', 'rustc'), '--edition=2021',
+                            '-Dwarnings', '-O', *extra, str(SOURCE), '-o', str(output)],
+                           check=True, timeout=60)
+        subprocess.run(['cc', '-shared', '-fPIC', '-std=c11', '-Wall', '-Wextra', '-Werror',
+                        str(REPO / 'tools/a660/test-fake-gles.c'), '-o', str(cls.fake / 'fixture.so')],
+                       check=True, timeout=30)
+        for name in ('libEGL.so.1', 'libGLESv2.so.2'):
+            (cls.fake / name).symlink_to('fixture.so')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10):
+        env = os.environ.copy()
+        for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
+                     'EGL_PLATFORM', 'MESA_LOADER_DRIVER_OVERRIDE', 'GALLIUM_DRIVER',
+                     '__EGL_VENDOR_LIBRARY_FILENAMES', '__EGL_VENDOR_LIBRARY_DIRS'):
+            env.pop(name, None)
+        env.update(LIBGL_ALWAYS_SOFTWARE='1', MESA_SHADER_CACHE_DISABLE='true',
+                   LP_NUM_THREADS='1', ROG5_FAKE_GLES_FAIL=fault)
+        env.pop('ROG5_FAKE_GLES_RENDERER', None)
+        if renderer is not None:
+            env['ROG5_FAKE_GLES_RENDERER'] = renderer
+        if not real:
+            env['LD_LIBRARY_PATH'] = str(self.fake)
+        # Private device namespace has no /dev/dri; no network/display sockets.
+        command = ['bwrap', '--unshare-all', '--die-with-parent', '--ro-bind', '/', '/',
+                   '--dev', '/dev', '--proc', '/proc', '--tmpfs', '/tmp',
+                   '--', str(binary or self.binary)]
+        if mode:
+            command.append(mode)
+        return subprocess.run(command, env=env, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=timeout)
+
+    def test_rust_semantics(self):
+        subprocess.run([str(self.unit)], check=True, timeout=10)
+
+    def test_requires_explicit_mode_before_library_loading(self):
+        result = self.invoke(mode=None)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertNotIn('CALL ', result.stderr)
+
+    def test_actual_executable_faults_never_publish_pass(self):
+        faults = ('extensions', 'display', 'initialize', 'version', 'bind', 'no_config',
+                  'config', 'surface', 'context', 'current', 'identity_null',
+                  'vertex_create', 'fragment_create', 'vertex_compile', 'fragment_compile',
+                  'program_create', 'link', 'draw_error', 'read_error', 'read',
+                  'cleanup_error', 'unbind', 'destroy_context', 'destroy_surface', 'terminate')
+        for fault in faults:
+            with self.subTest(fault=fault):
+                result = self.invoke(fault=fault)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn('FAIL ', result.stderr)
+                self.assertEqual(result.stdout, '')
+                if fault not in ('extensions', 'display', 'initialize'):
+                    self.assertIn('CALL terminate', result.stderr)
+                if fault in ('context', 'current', 'vertex_compile', 'cleanup_error', 'unbind', 'destroy_context'):
+                    self.assertIn('CALL destroy_surface', result.stderr)
+                if fault == 'current':
+                    self.assertNotIn('CALL identity_null', result.stderr)
+
+    def test_strict_renderer_scope_and_cleanup(self):
+        for renderer, mode, status in (
+            ('FD660', '--require-a660', 0),
+            ('Adreno (TM) 660', '--require-a660', 0),
+            ('llvmpipe (ABI fixture)', '--require-a660', 1),
+            ('FD660 software', '--require-a660', 1),
+            ('FD660', '--software-fixture', 1),
+            ('llvmpipe (ABI fixture)', '--software-fixture', 0),
+        ):
+            with self.subTest(renderer=renderer, mode=mode):
+                result = self.invoke(mode=mode, renderer=renderer)
+                self.assertEqual(result.returncode, status, result.stderr)
+                self.assertIn('CALL destroy_context', result.stderr)
+                if status == 0:
+                    self.assertIn('physical_acceptance=NOT RUN', result.stdout)
+                    self.assertIn('render_readback=PASS', result.stdout)
+                else:
+                    self.assertNotIn('CALL vertex_create', result.stderr)
+
+    def test_real_mesa_software_pixels_and_hardware_mode_refusal(self):
+        result = self.invoke(real=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('scope=software-fixture-only', result.stdout)
+        self.assertIn('channels_checked=64', result.stdout)
+        self.assertIn('render_readback=PASS', result.stdout)
+        result = self.invoke(real=True, mode='--require-a660')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('renderer refused', result.stderr)
+        self.assertEqual(result.stdout, '')
+
+    def test_stalled_readback_is_killed_without_success(self):
+        with self.assertRaises(subprocess.TimeoutExpired) as caught:
+            self.invoke(fault='stall', timeout=0.5)
+        self.assertFalse(caught.exception.stdout)
+        self.assertIn(b'CALL stall', caught.exception.stderr)
+        result = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_no_draw_mutation_fails_against_real_mesa(self):
+        source = SOURCE.read_text()
+        marker = '(a.glDrawArrays)(0x0004, 0, 3);'
+        self.assertEqual(source.count(marker), 1)
+        mutated = self.root / 'no-draw.rs'
+        mutated.write_text(source.replace(marker, 'let _ = a.glDrawArrays;'))
+        binary = self.root / 'no-draw'
+        subprocess.run([os.environ.get('RUSTC', 'rustc'), '--edition=2021', '-Dwarnings',
+                        '-O', str(mutated), '-o', str(binary)], check=True, timeout=60)
+        result = self.invoke(real=True, binary=binary)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('pixel mismatch', result.stderr)
+        self.assertEqual(result.stdout, '')
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
