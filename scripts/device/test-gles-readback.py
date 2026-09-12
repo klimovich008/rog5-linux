@@ -37,7 +37,7 @@ class ReadbackTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False):
+    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False, fence_import=False):
         env = os.environ.copy()
         for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
                      'EGL_PLATFORM', 'MESA_LOADER_DRIVER_OVERRIDE', 'GALLIUM_DRIVER',
@@ -57,7 +57,9 @@ class ReadbackTest(unittest.TestCase):
                    '--', str(binary or self.binary)]
         if mode:
             command.append(mode)
-        if native_fence:
+        if fence_import:
+            command.append('--native-fence-import')
+        elif native_fence:
             command.append('--native-fence')
         return subprocess.run(command, env=env, stdin=subprocess.DEVNULL,
                               capture_output=True, text=True, timeout=timeout)
@@ -168,6 +170,54 @@ class ReadbackTest(unittest.TestCase):
         result = self.invoke(native_fence=True, fault='fence_eintr')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('native_fence=PASS', result.stdout)
+
+    def test_native_fence_import_consumer_and_cleanup(self):
+        result = self.invoke(fence_import=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('native_fence_import=PASS', result.stdout)
+        self.assertIn('buffer_sharing=NOT RUN', result.stdout)
+        stages = ['CALL fence_export', 'CALL consumer_context',
+                  'CALL consumer_current', 'CALL fence_import', 'CALL server_wait',
+                  'CALL consumer_fence_create', 'CALL consumer_flush',
+                  'CALL consumer_export', 'CALL consumer_info',
+                  'CALL consumer_fence_destroy', 'CALL import_destroy',
+                  'CALL restore_current', 'CALL consumer_destroy',
+                  'CALL fence_info', 'CALL fence_destroy', 'CALL read\n']
+        offsets = [result.stderr.index(stage) for stage in stages]
+        self.assertEqual(offsets, sorted(offsets))
+        self.assertIn('IMPORT_FD_CLOSED', result.stderr)
+        for fault in ('consumer_context', 'consumer_surface', 'consumer_current',
+                      'duplicate_fd', 'fence_import', 'server_wait', 'consumer_fence_create',
+                      'consumer_flush', 'consumer_export', 'consumer_info',
+                      'consumer_timeout', 'consumer_pending', 'consumer_negative',
+                      'consumer_fence_destroy', 'import_destroy',
+                      'restore_current', 'consumer_destroy', 'consumer_surface_destroy'):
+            with self.subTest(fault=fault):
+                result = self.invoke(fence_import=True, fault=fault)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, '')
+                self.assertNotIn('CALL read\n', result.stderr)
+                self.assertIn('CALL fence_destroy', result.stderr)
+                self.assertIn('CALL terminate', result.stderr)
+                self.assertIn('FENCE_FD_CLOSED', result.stderr)
+                if fault == 'restore_current':
+                    self.assertNotIn('CALL delete_program', result.stderr)
+                if fault == 'import_destroy':
+                    self.assertIn('IMPORT_FD_CLOSED_AT_TERMINATE', result.stderr)
+                if fault == 'fence_import':
+                    self.assertIn('IMPORT_FD_CLOSED', result.stderr)
+        result = self.invoke(fence_import=True, fault='context32')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('gles_requested=3.0', result.stdout)
+        self.assertIn('native_fence_import=PASS', result.stdout)
+        for mode in (None, '--native-fence', '--native-fence-import'):
+            result = self.invoke(mode=mode, fence_import=True)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertNotIn('CALL ', result.stderr)
+        # A blocked server call is covered by the external process deadline.
+        with self.assertRaises(subprocess.TimeoutExpired) as caught:
+            self.invoke(fence_import=True, fault='server_stall', timeout=0.5)
+        self.assertFalse(caught.exception.stdout)
 
     def test_stalled_readback_is_killed_without_success(self):
         with self.assertRaises(subprocess.TimeoutExpired) as caught:
