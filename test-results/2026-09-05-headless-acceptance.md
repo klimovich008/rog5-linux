@@ -9047,3 +9047,20 @@ read-only existing build. Not deployed; full image and runtime validation pendin
 Evidence: gpu-display-query-r1/session-r1/result.json, iommu-dt-proof-r125,
 health-final-r125 and kernel-fix-compile-r1/result.json. Original r122 FAIL and
 historical S06/R01/optical gaps remain open.
+
+
+## 2026-09-12 r126: GPU IOMMU successor kernel/module builds PASS
+
+Source136f75ae869afd47a016b1278fae2110cc6d2229, release7.1.4-g136f75ae869a.
+Independent incremental kernel twins PASS30 identical artifacts (A138.848 s,
+B265.248 s). Derived/completed module kit PASS; external31-module twins PASS
+(A210.467 s,B37.617 s). All four containers exited0, no OOM/cleanup errors.
+Static selected54 export/dependency/namespace/GPL closure and S12 typed edge
+PASS (5.680 s); full BTF kernel validation and hardware remain unproven.
+7 plan,18 runner and23 closure fixture tests pass. Current phone health PASS
+1.842 s on unchanged boot946acb59-744e-4bbc-b291-ac6b2e05f3fe at uptime6627.77 s.
+No reboot, module insertion, sudo or operator test. New fix not deployed.
+GPU archive736-member audit accounts for all54 identities; replacement payload
+and boot admission are pending. r122/r125 failures, blank cleanup, S06/R01 and
+missed optical acceptance remain open. Evidence: gpu-iommu-kernel-build-r1,
+gpu-iommu-module-build-r1, gpu-iommu-module-closure-r1 and gpu-iommu-payload-audit-r1.
