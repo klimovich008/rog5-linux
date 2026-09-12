@@ -10,7 +10,7 @@ compile produces an unsigned test artifact, not a candidate.
 [The set inventory](../manifests/artifact-sets.json) contains one manifest object
 per retained directory set. It covers all 827 rows in `manifests/artifacts.tsv`,
 all 177 tracked artifact files and the named private prepared IOMMU package:
-441 sets total. Per-output status resolves mixed sets. `retired` means a retained
+442 sets total. Per-output status resolves mixed sets. `retired` means a retained
 consumed/no-retry artifact; `superseded` has an identified replacement; `fixture`
 is an offline input; `historical` is retained evidence without current admission;
 `active` is a current preparation input, not physical acceptance.

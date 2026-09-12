@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Offline correctness and qualification repair in progress",
+  "phase": "Offline source repair implemented; production qualification FAIL at RPMh RSC schema",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Complete source regressions and exact production board qualification; no device operation in this task",
+  "next": "Resolve the documented RPMh binding/power-management conflict without weakening boot guards; final integrated test evidence follows. No phone operation in this task",
   "evidence": "test-results/2026-09-12-offline-correctness-repair.md"
 }
