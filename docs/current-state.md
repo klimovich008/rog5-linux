@@ -1,5 +1,55 @@
 # ROG5 current state
 
+Latest r128, 2026-09-12: **IOMMU successor boot-admission primitives and
+exact target health checks prepared; live staging/controller still pending**.
+Previous r127 was progress. New admission source 9dbb300effd9f35f8ac3e956f3712db13882035c
+in gpu-iommu-admission-worktree-r1 extends the frozen 2de739ad integration source.
+Kernel/image remain unchanged: 7.1.4-g136f75ae869a,
+gpu-136f7-a9b1bc89566205b6. A01 from r127 remains valid; no rebuild or repeat A01.
+
+Fresh read-only health PASS in 1.715 s at uptime 8977.72 s. A separate 2.113 s
+read verified the actual source shutdown bytes and healthy selection at uptime
+9091.22 s on boot 946acb59-744e-4bbc-b291-ac6b2e05f3fe. Source shutdown SHA256
+fc1ce027c20679a1d18200858e216c106c0fa690224de26e3705c105fda67860 is unchanged.
+No phone write, reboot, sudo/authentication request or human countdown occurred.
+
+New repository profile gpu-iommu-source-136f7-r1 binds that source boot and
+selection, corrected target image, A01 receipt, slot B, serial, USB path, fallback,
+read-only recovery and one RAM-boot attempt. It requires GPU IOMMU attachment
+before display initialization. This is an admission primitive, not an executable
+live session. The durable claim has NOT been created or consumed. The original
+gpu-source-05941-r1 claim was read and verified consumed. All earlier registry
+records and claim-engine functions remain exact. Nine boot-admission tests,
+five transition tests and 21 claim-engine tests passed.
+
+Offline selector preparation uses observed source bytes. Pending SHA256
+1902c4df48f7bd2d090723d0bc357d0a0f41bc6b3eec9b9d1a140849fd10f73b;
+healthy SHA256 994f02b688eaf46c3dccdb9096c944b4ffbac0578698ee8ccc3f6dc2e9337763.
+Only the normal reboot dispatch changes in the prepared exitrd variant; storage
+teardown, relocking and poweroff remain byte-identical. These files are on the
+host only. A matching state-exchange helper and recovery route are still needed.
+
+New gpu-iommu-health-r1/successor-health.py pins the corrected kernel, bundle,
+trial and selection. Nine health functions remain byte-identical, including
+physical/storage/thermal guards, the corrected 2 MiB streaming file reader,
+readiness, early health commit and service predicates. Only configuration and
+input identity changed. All 27 focused tests passed, including rejection of the
+actual current-source snapshot and reuse of its boot ID. Ten retained runtime
+members were checked against all 736 final archive members; two root members
+match frozen source and corrected A01. This streamed verification took 0.564 s.
+New-kernel physical health is unproven until booted.
+
+Next: prepare the exact state-exchange helper and RAM staging, then adapt the
+live controller/recording/route and recovery to current GPU source and new IOMMU
+target. Do not execute old consumed launchers or reuse expired Ready. Resolve
+host privilege needs before asking for availability; only request Ready once
+any human test can start immediately. Require the GPU itself to gain an IOMMU
+group before the next display attempt. S06/R01 and failed blank cleanup remain
+open; signed V11 fallback and ASUS slot A are preserved. No live job remains.
+Evidence: gpu-iommu-admission-prep-r1/result.json,
+gpu-iommu-source-observation-r1/result.json, gpu-iommu-transition-r1/result.json,
+gpu-iommu-health-r1/{health-inputs,reuse-review}.json and checkpoint-r128.
+
 Latest r127, 2026-09-12: **corrected IOMMU kernel image, signed bundle and
 identical boot wrappers passed offline integration A01; not deployed**.
 Kernel source remains 136f75ae869afd47a016b1278fae2110cc6d2229, release

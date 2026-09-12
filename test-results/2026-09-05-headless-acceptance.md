@@ -9079,3 +9079,13 @@ Retain rejected r1 nonce candidate and blocked A01 r1 as failures. The actual
 relay nonce test and 30 composition-profile tests pass for corrected r2. No phone
 boot, claim entry, persistent write or human observation took place. See current
 state r127 and kernel-hardware-checkpoint-r127.json for exact private receipts.
+
+## 2026-09-12 r128: successor admission components
+
+Admission source 9dbb300effd9f35f8ac3e956f3712db13882035c: nine boot-admission, five
+source-transition and 21 claim-engine checks passed. New target health passed
+27 tests; ten final-archive runtime members and two root members matched exact
+retained expectations. New physical boot/health is untested. Existing phone
+health passed at observed uptime 9091.22 s; shutdown and selection were read and
+verified. No durable successor claim, phone write or reboot occurred. Full live
+controller and staging are pending. See current state r128 and checkpoint-r128.
