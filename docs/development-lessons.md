@@ -2531,3 +2531,13 @@ caller around the actual allocation boundary before changing a tempting fallback
 predicate. Raster-call identity is still not queue-submission/reservation identity.
 Lossless archives recovered 108 MB from completed tests and unstripped historical
 outputs; preserve restoration mappings when historical commands name retired paths.
+
+Test a proposed completion hook against the actual producer and consumer, not
+just a task-queue diagram. The pinned Animator can commit a second pipeline item
+without posting another draw; Rasterizer reposts its next consume at the queue
+tail. A barrier can therefore run before the item it was meant to acknowledge.
+A BeginFrame-return barrier is earlier still: partial-view EndFrame has not yet
+committed. These deterministic host counterexamples avoid another speculative
+engine link/VM cycle. Scope cancellation to work identity as well as view: a
+delayed completion must not clear a newer grant. That last case is an API
+counterexample for a proposed callback, not an observed VM cancellation race.

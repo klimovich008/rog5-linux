@@ -90,6 +90,25 @@ recorded post-join outcome separately. This does not reproduce Denial's full
 thread/context lifecycle or qualify phone graphics. Record the source, executable,
 compiler container and unchanged VM inputs alongside the result.
 
+Before implementing native render reservation completion, run the manual
+exact-source ordering checks with fresh disk-backed outputs:
+
+```sh
+python3 -O scripts/host/test-frame-completion-order.py --source "$ENGINE_SOURCE" --output "$ENGINE_ORDER_OUTPUT"
+RUSTC="$BOUNDED_RUSTC" python3 -O scripts/host/test-render-reservation-order.py --source "$DENIAL_SOURCE" --output "$BROKER_ORDER_OUTPUT"
+```
+
+The engine check executes extracted production queue/animator/raster-dispatch
+methods with deterministic scheduling and a draw-result adapter. Its PASS means
+the ordering counterexamples and controls were reproduced, not that a completion
+protocol works. The broker check asserts desired stale-work isolation properties;
+it deliberately returns FAIL while delayed acquisition/cancellation can affect a
+replacement reservation. `counterexamples_observed` records reproduction
+separately. Neither manual check is silently included in the active tier.
+Both reuse the repository runner's process-group cleanup and deadlines. They
+execute no GPU, Dart, VM or phone code. A UI or raster queue barrier alone is not
+proof that a particular frame's raster work completed.
+
 The mobile package graph checker validates metadata by default. The original
 `mobile-package-closure.json` remains a historical graph; select the current
 snapshot explicitly through the graph reference in `manifests/current-artifact.json`.
