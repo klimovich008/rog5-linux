@@ -130,7 +130,7 @@
         },
         {
           "path": "scripts/device/test-rog5-touch-lifecycle.py",
-          "sha256": "5e98420d3e87cb1570be4ad0ddc6b6e27463368161b2d91559dfe6c6c9f71968"
+          "sha256": "b51eb095f03827a80b1b676d8260dd01473b88f41008c0150350e0eb97fb93ad"
         },
         {
           "path": "scripts/host/test-rog5-touch-module-build.py",
@@ -168,7 +168,7 @@
         "EDT FT5X06 compile is not FTS3658U support",
         "Current touch overlay disabled; identify protocol/driver before activation",
         "An enable/disable error can leave child or parent ownership unknown. Quarantine applies only to the current driver instance; devres cannot prove restoration. No rebind/reload/retry after uncertainty without independently verified recovery.",
-        "Suspend returns EBUSY; wake is unsupported and must not be tested under the touch-identity plan.",
+        "Ordinary non-wakeup sleep/resume has only host callback evidence. Physical sleep, wake and idle drain require the separate suspend-idle plan; hibernation and touch wake remain unsupported.",
         "L8C upstream supply and runtime GENI protocol/FIFO state remain unknown; a small ID response does not qualify event DMA."
       ],
       "offline_component_identity": {
@@ -216,6 +216,10 @@
         {
           "path": "scripts/host/test-suspend-pm-test-source-contract.py",
           "sha256": "421908903b5d2ca0a76fe105e21e8500f830a77b96edc79e3496410fef0fdcf1"
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-lifecycle.py",
+          "sha256": "b51eb095f03827a80b1b676d8260dd01473b88f41008c0150350e0eb97fb93ad"
         }
       ],
       "physical_actions": [
@@ -230,7 +234,8 @@
       ],
       "blockers": [
         "Battery-only operation, charging regulation and suspend are separate proofs",
-        "USB-required headless guard cannot be bypassed using mobile proposal"
+        "USB-required headless guard cannot be bypassed using mobile proposal",
+        "Touch sleep is non-wakeup and only host-qualified: use a separately verified wake source. Failed restoration or ambiguous regulator ownership leaves touch quiesced and requires independent recovery, not PM retry or module rebind."
       ]
     }
   ]

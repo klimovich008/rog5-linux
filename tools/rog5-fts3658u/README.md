@@ -5,8 +5,10 @@ It accepts normal ID `5652`, preserves the native fractional coordinates, and
 contains no touch firmware-upgrade or register-value write path. The included
 Makefile selects only this external module; it changes no kernel configuration.
 
-This remains a prototype: physical behavior is unqualified, and system suspend
-returns `-EBUSY`. Do not treat it as a production touchscreen driver.
+This remains a prototype: physical behavior is unqualified. Ordinary system
+sleep uses the existing power and normal-ID sequence; hibernation returns
+`-EBUSY`, and touch cannot wake the system. Do not treat it as a production
+touchscreen driver.
 
 Read the [protocol, dependencies and qualification status](../../docs/front-touch-prototype.md).
 Run the focused host test from the repository root:
