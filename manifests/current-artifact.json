@@ -573,24 +573,30 @@
     }
   },
   "denial_settings_gtk": {
-    "status": "PASS: library and native runner compile; observed software settings frame; clean session FAIL",
-    "set_id": "private:rog5-settings-native-evidence-20260912-r1",
+    "status": "PASS: patched library and disposal qualification; full Wayland/settings session not qualified",
+    "set_id": "private:rog5-gtk-disposal-evidence-20260912-r1",
     "output": {
-      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so",
-      "sha256": "42600a575bee4a753eb075b17e3a85adafcbf3cfa9d8172151277e02fd0db4cb",
+      "path": "/home/deck/.local/state/rog5-gtk-disposal-evidence-20260912-r1/build/out/libflutter_linux_gtk.so",
+      "sha256": "349bfd1d7278290f45e0fb425410288b1d4d1164d21124d7ac215844d43e5959",
       "size": 16286240
     },
     "evidence": {
-      "path": "test-results/2026-09-12-shell-initialization-qualification.json",
-      "sha256": "39e372d64e88b4e92fcfdc5c8ae54f540381d70faf52dd100e238f40a7727bec",
-      "size": 59576
+      "path": "test-results/2026-09-12-gtk-disposal-qualification.json",
+      "sha256": "f67b7180632e33bcfa304f7ede4772e192bf6aa7b1ba0999cd0da01c4931b98e",
+      "size": 27379
     },
     "physical_status": "NOT RUN",
     "authority": "none",
     "runtime_evidence": {
-      "path": "test-results/2026-09-12-settings-runner-qualification.json",
-      "sha256": "00a8ac61b283f93f11fc3b19c9c5ecf890d1fb2200f6738304dd526d8eddbdf6",
-      "size": 228188
+      "path": "test-results/2026-09-12-gtk-disposal-qualification.json",
+      "sha256": "f67b7180632e33bcfa304f7ede4772e192bf6aa7b1ba0999cd0da01c4931b98e",
+      "size": 27379
+    },
+    "upstream_base": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "local_patch": {
+      "path": "patches/flutter-d728e61e/0001-linux-preserve-implicit-view-on-dispose.patch",
+      "sha256": "4582af8442e207ea4364a19919688e86c8a34cdf662e7a62dece421fea57b851",
+      "size": 2317
     }
   },
   "denial_settings_runner": {
@@ -607,13 +613,20 @@
       "size": 75528
     },
     "runtime_bundle_tree": {
-      "path": "/home/deck/.local/state/rog5-settings-runner-evidence-20260912-r1/bundle-r3-tree.json",
-      "sha256": "66e1ec932577122b6e0ad43d5e874f755cbf28a0428fda91378d9555523d1556",
-      "size": 16693
+      "path": "/home/deck/.local/state/rog5-gtk-disposal-evidence-20260912-r1/settings-runtime-tree.json",
+      "sha256": "658efcd9705f9889fe88ade61a3d65ed5100b4fa3186816dadabec1e25906536",
+      "size": 18394
     },
-    "clean_session": "FAIL: invalid implicit-view removal; backend unavailable; Broadway diagnostics",
+    "clean_session": "NOT QUALIFIED: implicit-view error fixed; Broadway EGL/ATK diagnostics and absent Denial backend remain",
     "wayland_session": "NOT RUN",
     "physical_status": "NOT RUN",
-    "authority": "none"
+    "authority": "none",
+    "runtime_fixture_set_id": "private:rog5-gtk-disposal-evidence-20260912-r1",
+    "runtime_fixture_path": "/home/deck/.local/state/rog5-gtk-disposal-evidence-20260912-r1/settings-runtime-fixture",
+    "disposal_evidence": {
+      "path": "test-results/2026-09-12-gtk-disposal-qualification.json",
+      "sha256": "f67b7180632e33bcfa304f7ede4772e192bf6aa7b1ba0999cd0da01c4931b98e",
+      "size": 27379
+    }
   }
 }
