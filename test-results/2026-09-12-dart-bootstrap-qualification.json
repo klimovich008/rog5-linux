@@ -1,0 +1,472 @@
+{
+  "format": "rog5-dart-bootstrap-qualification-v1",
+  "status": "PASS",
+  "scope": "pinned bootstrap/DevTools payloads and SDK source package metadata only; complete SDK and shell AOT not built",
+  "source": {
+    "commit": "497fba3bb255f3767bc663e2ecc810b608164860",
+    "tree": "2ba8c3aff3ed2fe9d14b97545dad39dc6d33421c"
+  },
+  "flutter_commit": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+  "dart_source_commit": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
+  "bootstrap_revision": "9ac06cdd18015c83a25921e26912c96e3fbe22c2",
+  "devtools_revision": "fa063f322c03cc7a690d819db124c196a69cff56",
+  "tools": [
+    {
+      "pin": {
+        "package": "dart/dart-sdk/linux-amd64",
+        "instance_id": "kQHO7IWSgyqTlMF5sQShwKsh_v2nhtDq94BMQSmIfYUC"
+      },
+      "describe": {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=768m",
+          "--memory-swap=768m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools/.cipd_client:/cipd:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1:/work:rw",
+          "-e",
+          "HOME=/work/home",
+          "-e",
+          "TMPDIR=/work/tmp",
+          "-e",
+          "CIPD_CACHE_DIR=/work/cache",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/describe.cid",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/cipd",
+          "describe",
+          "dart/dart-sdk/linux-amd64",
+          "-version",
+          "git_revision:9ac06cdd18015c83a25921e26912c96e3fbe22c2",
+          "-json-output",
+          "/work/description.json"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 1.1669163029873744
+      },
+      "install": {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools/.cipd_client:/cipd:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1:/work:rw",
+          "-e",
+          "HOME=/work/home",
+          "-e",
+          "TMPDIR=/work/tmp",
+          "-e",
+          "CIPD_CACHE_DIR=/work/cache",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/install.cid",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/cipd",
+          "install",
+          "dart/dart-sdk/linux-amd64",
+          "kQHO7IWSgyqTlMF5sQShwKsh_v2nhtDq94BMQSmIfYUC",
+          "-root",
+          "/work/site",
+          "-json-output",
+          "/work/install.json"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "reason": null,
+        "duration_seconds": 27.512933394988067,
+        "disk_free_bytes": 10671079424,
+        "scope": "private pinned Dart bootstrap SDK package only",
+        "physical_status": "NOT RUN"
+      },
+      "verification": {
+        "status": "PASS",
+        "package_sha256": "9101ceec8592832a9394c179b104a1c0ab21fefda786d0eaf7804c4129887d85",
+        "package_bytes": 247107423,
+        "verified_members": 1013,
+        "payload_index_sha256": "660abd1bed67661212da749f665e2e72d43ce81c1da07cfda6cca6e9482f536a",
+        "tools": {
+          "dart": {
+            "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/site/bin/dart",
+            "resolved_path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/site/bin/dart",
+            "sha256": "3462432ad19e21e12c3b6c8d97f9cd03f872aa7bcb53906dec2307f5281eb8a7"
+          },
+          "dartaotruntime": {
+            "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/site/bin/dartaotruntime",
+            "resolved_path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/site/bin/dartaotruntime",
+            "sha256": "7b221031c67143327f57ec0f9fcc16f76ec2714972c02baa5f8688b595513c4b"
+          }
+        },
+        "duration_seconds": 4.204029293003259,
+        "scope": "package instance digest and every deployed payload member; upstream VSA signatures not independently verified",
+        "physical_status": "NOT RUN"
+      }
+    },
+    {
+      "pin": {
+        "package": "dart/third_party/flutter/devtools",
+        "instance_id": "jnk4ozU2qzyHPF9kkEliL7v7blRhxhor4rTTcud5yd4C"
+      },
+      "describe": {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=768m",
+          "--memory-swap=768m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools/.cipd_client:/cipd:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools:/work:rw",
+          "-e",
+          "HOME=/work/home",
+          "-e",
+          "TMPDIR=/work/tmp",
+          "-e",
+          "CIPD_CACHE_DIR=/work/cache",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools/describe.cid",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/cipd",
+          "describe",
+          "dart/third_party/flutter/devtools",
+          "-version",
+          "git_revision:fa063f322c03cc7a690d819db124c196a69cff56",
+          "-json-output",
+          "/work/description.json"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 1.0164312080014497
+      },
+      "install": {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools/.cipd_client:/cipd:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools:/work:rw",
+          "-e",
+          "HOME=/work/home",
+          "-e",
+          "TMPDIR=/work/tmp",
+          "-e",
+          "CIPD_CACHE_DIR=/work/cache",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools/install.cid",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/cipd",
+          "install",
+          "dart/third_party/flutter/devtools",
+          "jnk4ozU2qzyHPF9kkEliL7v7blRhxhor4rTTcud5yd4C",
+          "-root",
+          "/work/site",
+          "-json-output",
+          "/work/install.json"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "reason": null,
+        "duration_seconds": 4.502128326013917,
+        "disk_free_bytes": 9754279936,
+        "scope": "private pinned Dart DevTools dependency only",
+        "physical_status": "NOT RUN"
+      },
+      "verification": {
+        "status": "PASS",
+        "package_sha256": "8e7938a33536ab3c873c5f649049622fbbfb6e5461c61a2be2b4d372e779c9de",
+        "package_bytes": 30986312,
+        "verified_members": 515,
+        "payload_index_sha256": "1e87d2deb9932f2df2ce4716257d092b1a84d6e4acfaa51fb5bcb0e1fa056112",
+        "tools": {},
+        "duration_seconds": 0.6519839119864628,
+        "scope": "package instance digest and every deployed payload member; upstream VSA signatures not independently verified",
+        "physical_status": "NOT RUN"
+      }
+    }
+  ],
+  "copy": {
+    "source": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/engine/src/flutter/third_party/dart",
+    "output": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/source-copy",
+    "files": 76698,
+    "bytes": 476128656,
+    "git_metadata_excluded": true,
+    "duration_seconds": 31.853303459996823,
+    "scope": "isolated writable copy for exact SDK metadata generator, not replacement engine source"
+  },
+  "metadata_generator": {
+    "physical_status": "NOT RUN",
+    "scope": "pinned Dart SDK source package metadata in isolated source copy",
+    "tests": [
+      {
+        "name": "version",
+        "command": [
+          "/bootstrap/bin/dart",
+          "--version"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.0038825260126031935,
+        "status": "PASS"
+      },
+      {
+        "name": "package-config",
+        "command": [
+          "/bootstrap/bin/dart",
+          "--packages=/dart/tools/empty_package_config.json",
+          "/dart/tools/generate_package_config.dart"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.7766189059766475,
+        "status": "PASS"
+      }
+    ]
+  },
+  "metadata_container": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=1024m",
+      "--memory-swap=1024m",
+      "--cpus=1",
+      "--pids-limit=128",
+      "--network=none",
+      "-v",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/source-copy:/dart:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/site:/bootstrap:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools/site:/dart/third_party/devtools:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/package-config-r3:/work:rw",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "-e",
+      "PUB_CACHE=/work/pub-cache",
+      "--workdir=/dart",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/package-config-r3/run.cid",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "python3",
+      "/work/inside.py"
+    ],
+    "exit_status": 0,
+    "status": "PASS",
+    "reason": null,
+    "duration_seconds": 1.2523094560019672,
+    "scope": "SDK metadata in isolated source copy; original source unchanged"
+  },
+  "metadata_verification": {
+    "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/metadata-verification.json",
+    "sha256": "a10caee0b94ae80c5c3b53c0a78e8bf230c0a349d3a72ba991af698e03879b7e",
+    "size": 82667
+  },
+  "package_count": 193,
+  "library_directory_absent_count": 11,
+  "retained_failures": [
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/package-config-r1/container-result.json",
+      "sha256": "184435c1aa0425b614ec947d8e65a2a63c020bd4437f68b0bd9716ebc3392629",
+      "size": 1102
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/package-config-r2/container-result.json",
+      "sha256": "e9f70a991bbf5df1439cfeec2ce6a0002dcc8cb0e1dd2b232f8a981b8c484fec",
+      "size": 1070
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/preparation-r3-error.txt",
+      "sha256": "2fff16024c7c109cff97f38631e4e73207e32c78b9647ae88dd272f96143a52a",
+      "size": 331
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/metadata-verification-first-error.json",
+      "sha256": "c2cd998c6fa8ad605d6209d01ee936cd557f9a6048f69e5f887ed000d273d3ad",
+      "size": 1424
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
+      "sha256": "16386beba00db6263d0ea58e23c571dc61fc1c1200508eff9d38b4f1e01590f9",
+      "size": 1907
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/resume-preparation-error.json",
+      "sha256": "652d3f34ca3f6671e7e6e2f8dbb0ac777ec69329a251d5a3253787d7653131d2",
+      "size": 200
+    }
+  ],
+  "engine_observation": {
+    "observed_at": "2026-09-12T14:17:34.320786+00:00",
+    "command": [
+      "podman",
+      "inspect",
+      "d49de96af625ecb05244dca8aba6a9c6f4fef5065080e23bf196ec59a8013e03",
+      "--format",
+      "{{json .State}}"
+    ],
+    "state": {
+      "OciVersion": "1.2.1",
+      "Status": "running",
+      "Running": true,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 2800290,
+      "ConmonPid": 2800288,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-09-12T15:50:55.021369406+02:00",
+      "FinishedAt": "0001-01-01T00:00:00Z",
+      "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-d49de96af625ecb05244dca8aba6a9c6f4fef5065080e23bf196ec59a8013e03.scope",
+      "CheckpointedAt": "0001-01-01T00:00:00Z",
+      "RestoredAt": "0001-01-01T00:00:00Z"
+    },
+    "container_id": "d49de96af625ecb05244dca8aba6a9c6f4fef5065080e23bf196ec59a8013e03",
+    "exec_session_id": 98288,
+    "latest_completed_step": "[1980/6674] CXX obj/flutter/third_party/icu/source/i18n/icui18n.number_affixutils.o",
+    "terminal_result": null,
+    "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
+    "status": "RUNNING",
+    "physical_status": "NOT RUN",
+    "memory_peak_bytes": 651378688,
+    "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+  },
+  "physical_status": "NOT RUN",
+  "mobile_shell_pub_resolution": "NOT RUN",
+  "complete_host_sdk_build": "NOT RUN",
+  "shell_aot_status": "NOT RUN",
+  "nested_git_pin_revalidation": "NOT RUN this checkpoint; metadata checks compare 192 original/copy pubspecs plus the pinned DevTools package",
+  "phone_operations": false,
+  "signing": false,
+  "claim_operations": false,
+  "protected_storage_mutation": false,
+  "candidate_created": false,
+  "upstream_attestations": "retained; signatures not independently verified",
+  "private_tools": [
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/install.py",
+      "sha256": "d208a1bb664ba1dc7946485e3eeb46ec9a33d837e94116d04427a84b7db63501",
+      "size": 2130
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/verify.py",
+      "sha256": "9e635ace077573fbd02e1828ab7e8cc09dff2a7ae89d16aa0a6d9586b5f13156",
+      "size": 2173
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/run-package-config.py",
+      "sha256": "f23b31bfacc02042addf1bbee4ecf5d34daca6ce464e8a0cae341d62e2920ec3",
+      "size": 1902
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/run-package-config-r2.py",
+      "sha256": "cb638ddcedbe1469e8ed92c7efd44318156cd90883ff95275154a4ebf517cff6",
+      "size": 1917
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/run-package-config-r3.py",
+      "sha256": "bc5d9e17f443e218fa900a0955564c46401ff0584b10fbd8957c6376b1bee2f8",
+      "size": 1979
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/package-config-r3/inside.py",
+      "sha256": "378aa23f02996ba441168cc92ac1fc456d9804928e2902f91d6fdf019a965815",
+      "size": 1114
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/verify-package-config.py",
+      "sha256": "ebf58bfbaadfb708a858bc671963ca1a4b19965d6963ba78695e58f29109b384",
+      "size": 2088
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools/install.py",
+      "sha256": "0d4d4f8e670a178a5e27c38fa9955a63337432fdd578e3bf49782ae20a153793",
+      "size": 2136
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools/verify.py",
+      "sha256": "8bed49b9c8e1a860207437331de3152076648566af2922b94c2c630f34e8283c",
+      "size": 2158
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/compile-r2-initial.py",
+      "sha256": "7a1982ae71448479b4ee02e2261e6056ee7c7c1fccabd6bb0ccdb5d179cbfb42",
+      "size": 2364
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/compile-r2.py",
+      "sha256": "0f11287a7d4c41936e87c3c12e77004d636eab49d736f39b4f22c88333d3c4d5",
+      "size": 2393
+    }
+  ],
+  "engine_continuation": {
+    "observed_at": "2026-09-12T14:24:03.106732+00:00",
+    "command": [
+      "podman",
+      "inspect",
+      "7c1168c3e0b12c08cd3257120a36d654bb36d8c9047ecf0716dd7055370b7cc0",
+      "--format",
+      "{{json .State}}"
+    ],
+    "state": {
+      "OciVersion": "1.2.1",
+      "Status": "running",
+      "Running": true,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 2812607,
+      "ConmonPid": 2812605,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-09-12T16:22:46.546598345+02:00",
+      "FinishedAt": "0001-01-01T00:00:00Z",
+      "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-7c1168c3e0b12c08cd3257120a36d654bb36d8c9047ecf0716dd7055370b7cc0.scope",
+      "CheckpointedAt": "0001-01-01T00:00:00Z",
+      "RestoredAt": "0001-01-01T00:00:00Z"
+    },
+    "container_id": "7c1168c3e0b12c08cd3257120a36d654bb36d8c9047ecf0716dd7055370b7cc0",
+    "exec_session_id": 45465,
+    "latest_completed_step": "[172/3924] CXX clang_x64/obj/flutter/third_party/skia/src/gpu/ganesh/gpu.GrDefaultGeoProcFactory.o",
+    "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r2-result.json",
+    "status": "RUNNING",
+    "ninja_jobs": 2,
+    "memory_limit_bytes": 4294967296,
+    "first_segment_terminal": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
+      "sha256": "16386beba00db6263d0ea58e23c571dc61fc1c1200508eff9d38b4f1e01590f9",
+      "size": 1907
+    },
+    "physical_status": "NOT RUN"
+  }
+}
