@@ -9,8 +9,8 @@ fail() {
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 tier=${1:-quick}
 case $tier in
-	active|ci|nightly|probe|quick|rootfs) ;;
-	*) fail 'usage: test-repository-linux.sh [active|ci|nightly|probe|quick|rootfs]' ;;
+	active|board|ci|nightly|probe|quick|rootfs) ;;
+	*) fail 'usage: test-repository-linux.sh [active|board|ci|nightly|probe|quick|rootfs]' ;;
 esac
 
 repository_preflight() {
@@ -157,6 +157,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-buttons-indicator-trial-initramfs.py
 	scripts/device/test-display-trial-initramfs.py
 	scripts/device/test-rog5-front-touch.py
+	scripts/device/test-rog5-touch-lifecycle.py
 	scripts/device/test-rog5-physical-key-events.py
 	scripts/device/test-observe-local-root-physical-key.py
 	scripts/device/test-optional-display-runtime.py
@@ -170,6 +171,8 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/host/test-rog5-touch-module-build.py
+	scripts/device/test-rog5-rpmh-binding-guards.py
 	scripts/device/test-qcom-battmgr-charge-units.py
 	scripts/device/test-ncm-tx-timer.py
 	scripts/device/test-startup-observer.py
@@ -509,6 +512,9 @@ if [[ $tier == active ]]; then
 	tests=("${active_tests[@]}")
 elif [[ $tier == probe ]]; then
 	tests=("${probe_tests[@]}")
+elif [[ $tier == board ]]; then
+	# Source-dependent behavioral/schema checks; no implicit skip in host CI.
+	tests=(scripts/device/test-rog5-rpmh-binding.py scripts/device/test-rog5-touch-lifecycle.py)
 else
 	tests=("${active_tests[@]}" "${probe_tests[@]}" "${shared_tests[@]}" "${tier_tests[@]}")
 fi
