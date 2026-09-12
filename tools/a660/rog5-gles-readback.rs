@@ -250,7 +250,7 @@ impl Mode {
         match args {
             [mode] if mode == "--require-a660" => Ok(Self::A660),
             [mode] if mode == "--software-fixture" => Ok(Self::Software),
-            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence | --native-fence-import | --dma-buf | --gbm-fd=N] (external deadline required)".into()),
+            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence | --native-fence-import | --dma-buf | --gbm-fd=N | --gbm-sync-fd=N] (external deadline required)".into()),
         }
     }
     fn scope(self) -> &'static str {
@@ -358,8 +358,8 @@ impl<'a> Session<'a> {
             if count != 1 || config.is_null() { return Err("no RGBA8 ES3 config".into()); }
             let size = [0x3057, 4, 0x3056, 4, 0x3038];
             if gbm_fd.is_none() {
-            self.surface = (a.eglCreatePbufferSurface)(self.display, config, size.as_ptr());
-            if self.surface.is_null() { return Err("eglCreatePbufferSurface failed".into()); }
+                self.surface = (a.eglCreatePbufferSurface)(self.display, config, size.as_ptr());
+                if self.surface.is_null() { return Err("eglCreatePbufferSurface failed".into()); }
             }
             // Match pinned Denial's preferred GLES 3.2 and fallback GLES 3.0.
             // EGL 1.5 defines both major and minor context attributes.
@@ -431,11 +431,13 @@ impl<'a> Session<'a> {
             (a.glEnableVertexAttribArray)(0);
             (a.glDrawArrays)(0x0004, 0, 3);
             self.gl_check("draw")?;
-            if native_fence { self.native_fence(fence_import, config)?; }
+            if native_fence { self.native_fence(fence_import, config, if gbm_fd.is_some() { gbm_buffer.as_ref() } else { None })?; }
             if let Some((fd, fourcc, stride, offset)) = &gbm_buffer {
-                (a.glFinish)();
-                self.gl_check("GBM producer completion")?;
-                self.import_dma(fd, *fourcc, *stride, *offset)?;
+                if !native_fence {
+                    (a.glFinish)();
+                    self.gl_check("GBM producer completion")?;
+                    self.import_dma(fd, *fourcc, *stride, *offset)?;
+                }
             } else if dma_buf { self.dma_roundtrip()?; }
             let mut pixels = [0u8; 64];
             (a.glReadPixels)(0, 0, 4, 4, 0x1908, 0x1401, pixels.as_mut_ptr().cast());
@@ -444,7 +446,7 @@ impl<'a> Session<'a> {
             Ok((renderer, vendor, version))
         }
     }
-    fn native_fence(&mut self, import: bool, config: Handle) -> Result<()> {
+    fn native_fence(&mut self, import: bool, config: Handle, buffer: Option<&(OwnedFd, c_int, c_int, c_int)>) -> Result<()> {
         let a = self.api;
         // The display and current GLES context are owned by this session.
         unsafe {
@@ -467,7 +469,7 @@ impl<'a> Session<'a> {
                 if raw < 0 { return Err("native fence export failed".into()); }
                 // Export transfers ownership of a new descriptor to the caller.
                 let fd = OwnedFd::from_raw_fd(raw);
-                if import { self.consume_native_fence(&fd, config)?; }
+                if import { self.consume_native_fence(&fd, config, buffer)?; }
                 wait_native_fd(&fd)
             })();
             // fd has closed on every path before destroying the producer sync.
@@ -475,19 +477,20 @@ impl<'a> Session<'a> {
             combine(result, destroyed)
         }
     }
-    fn consume_native_fence(&mut self, fd: &OwnedFd, config: Handle) -> Result<()> {
+    fn consume_native_fence(&mut self, fd: &OwnedFd, config: Handle, buffer: Option<&(OwnedFd, c_int, c_int, c_int)>) -> Result<()> {
         let a = self.api;
-        // A separate unshared context and pbuffer isolate the consumer command
-        // stream. No pixel/buffer sharing is claimed by this fence-only check.
+        // A separate unshared context isolates the consumer command stream.
+        // GBM uses no surface; an optional buffer adds shared-pixel validation.
         unsafe {
             let attributes = [0x3098, 3, 0x30fb, self.requested_minor, 0x3038];
             let context = (a.eglCreateContext)(self.display, config, ptr::null_mut(), attributes.as_ptr());
             if context.is_null() { return Err("consumer context creation failed".into()); }
             let size = [0x3057, 4, 0x3056, 4, 0x3038];
-            let surface = (a.eglCreatePbufferSurface)(self.display, config, size.as_ptr());
+            let surface = if self.gbm.is_some() { ptr::null_mut() } else { (a.eglCreatePbufferSurface)(self.display, config, size.as_ptr()) };
+            let (texture_start, framebuffer_start, image_start) = (self.textures.len(), self.framebuffers.len(), self.images.len());
             let mut switched = false;
             let result = (|| {
-                if surface.is_null() { return Err("consumer surface creation failed".into()); }
+                if surface.is_null() && self.gbm.is_none() { return Err("consumer surface creation failed".into()); }
                 check((a.eglMakeCurrent)(self.display, surface, surface, context), "consumer make-current")?;
                 switched = true;
                 self.producer_current = false;
@@ -503,11 +506,32 @@ impl<'a> Session<'a> {
                     // A second native fence follows the server wait. Its export,
                     // bounded wait and Linux status prove consumer completion.
                     // import=false prevents recursion and keeps this context current.
-                    self.native_fence(false, config)
+                    if let Some((fd, fourcc, stride, offset)) = buffer { self.import_dma(fd, *fourcc, *stride, *offset)?; }
+                    self.native_fence(false, config, None)?;
+                    if buffer.is_some() {
+                        let mut pixels = [0u8; 64];
+                        (a.glReadPixels)(0, 0, 4, 4, 0x1908, 0x1401, pixels.as_mut_ptr().cast());
+                        self.gl_check("consumer pixel readback")?;
+                        pixels_match(&pixels)?;
+                    }
+                    Ok(())
                 })();
                 let destroyed = check((a.eglDestroySync)(self.display, imported), "imported fence destruction");
                 combine(waited, destroyed)
             })();
+            // Only consumer-created objects are drained, while its context is
+            // still current. Producer object names may numerically overlap.
+            let mut consumer_cleanup = Ok(());
+            if switched {
+                for framebuffer in self.framebuffers.drain(framebuffer_start..) { (a.glDeleteFramebuffers)(1, &framebuffer); }
+                consumer_cleanup = combine(consumer_cleanup, self.gl_check("consumer framebuffer cleanup"));
+                for texture in self.textures.drain(texture_start..) { (a.glDeleteTextures)(1, &texture); }
+                consumer_cleanup = combine(consumer_cleanup, self.gl_check("consumer texture cleanup"));
+                for image in self.images.drain(image_start..).rev() {
+                    consumer_cleanup = combine(consumer_cleanup, check((a.eglDestroyImage)(self.display, image), "consumer image cleanup"));
+                }
+            }
+            let result = combine(result, consumer_cleanup);
             let restored = if switched {
                 let result = check((a.eglMakeCurrent)(self.display, self.surface, self.surface, self.context), "producer context restoration");
                 self.producer_current = result.is_ok();
@@ -671,17 +695,17 @@ fn run(mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool, gbm_fd
         (Err(e), Ok(())) | (Ok(_), Err(e)) => return Err(e),
         (Err(e), Err(cleanup)) => return Err(format!("{e}; cleanup: {cleanup}")),
     };
-    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nnative_fence_import={}\nscanout=NOT RUN\ndma_buf={}\nbuffer_sharing={}\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" }, if fence_import { "PASS" } else { "NOT RUN" }, if dma_buf { "PASS" } else { "NOT RUN" }, if dma_buf { "PASS: same-context linear DMA-BUF" } else { "NOT RUN" });
-    if let Some((fourcc, stride, offset)) = session.dma_metadata { println!("dma_fourcc=0x{fourcc:x}\ndma_modifier=0x0\ndma_stride={stride}\ndma_offset={offset}\ndma_allocation={}\ndma_sync=glFinish", if gbm_fd.is_some() { "GBM explicit linear" } else { "GLES texture" }); }
+    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nnative_fence_import={}\nscanout=NOT RUN\ndma_buf={}\ncross_context_pixels={}\nbuffer_sharing={}\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" }, if fence_import { "PASS" } else { "NOT RUN" }, if dma_buf { "PASS" } else { "NOT RUN" }, if gbm_fd.is_some() && native_fence { "PASS" } else { "NOT RUN" }, if gbm_fd.is_some() && native_fence { "PASS: cross-context linear DMA-BUF" } else if dma_buf { "PASS: same-context linear DMA-BUF" } else { "NOT RUN" });
+    if let Some((fourcc, stride, offset)) = session.dma_metadata { println!("dma_fourcc=0x{fourcc:x}\ndma_modifier=0x0\ndma_stride={stride}\ndma_offset={offset}\ndma_allocation={}\ndma_sync={}", if gbm_fd.is_some() { "GBM explicit linear" } else { "GLES texture" }, if gbm_fd.is_some() && native_fence { "native fence server wait" } else { "glFinish" }); }
     Ok(())
 }
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     let gbm_fd = if args.len() == 2 {
-        args[1].strip_prefix("--gbm-fd=").filter(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit())).and_then(|v| v.parse::<c_int>().ok())
+        args[1].strip_prefix("--gbm-fd=").or_else(|| args[1].strip_prefix("--gbm-sync-fd=")).filter(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit())).and_then(|v| v.parse::<c_int>().ok())
     } else { None };
     let dma_buf = gbm_fd.is_some() || (args.len() == 2 && args[1] == "--dma-buf");
-    let fence_import = args.len() == 2 && args[1] == "--native-fence-import";
+    let fence_import = (gbm_fd.is_some() && args[1].starts_with("--gbm-sync-fd=")) || args.len() == 2 && args[1] == "--native-fence-import";
     let native_fence = fence_import || (args.len() == 2 && args[1] == "--native-fence");
     if native_fence || dma_buf { args.pop(); }
     let mode = match Mode::parse(&args) {
