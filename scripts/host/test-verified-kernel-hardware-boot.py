@@ -19,17 +19,23 @@ def encode(fields):
 
 class Tests(unittest.TestCase):
     def setUp(self):
+        # Admission unit tests must not depend on or inspect retained host claims.
+        for name in ('canonical_claim_root', 'canonical_claim_anchor'):
+            guard=patch.object(M.CLAIMS,name,side_effect=AssertionError('offline test attempted retained claim access'))
+            guard.start();self.addCleanup(guard.stop)
         self.fields = M.expected_fields()
         self.pin = self.fields['boot_image_sha256']
 
     def test_registered_but_unconsumed_claim_cannot_dispatch(self):
         self.assertEqual(M.CLAIMS.expected_record(M.PROFILE_ID), encode(self.fields))
         with patch.dict(os.environ, ALLOW_TEMPORARY_BOOT='1', ALLOW_HEADLESS_LIVE_GATE='1'), \
+             patch.object(M.CLAIMS, 'verify_entered', side_effect=M.CLAIMS.ClaimError('unconsumed fixture')) as entered, \
              patch.object(M.BASE, 'validate_fastboot') as validate, \
              patch.object(M, 'sealed_snapshot') as snapshot, \
              patch.object(M.subprocess, 'run') as run:
             with self.assertRaises(M.CLAIMS.ClaimError):
                 M.boot(Path('/fixture'), self.pin, M.SERIAL)
+            entered.assert_called_once_with(M.PROFILE_ID)
             validate.assert_not_called()
             snapshot.assert_not_called()
             run.assert_not_called()
