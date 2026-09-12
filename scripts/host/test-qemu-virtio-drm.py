@@ -4,8 +4,11 @@ import argparse
 import datetime
 import hashlib
 import json
+import os
+import re
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import time
 import uuid
@@ -18,9 +21,48 @@ def digest(path):
 
 def missing_runtime_inputs(runtime, shell):
     commands = ['bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest']
-    commands += ['seatd', 'sleep', 'Xwayland'] if shell else []
+    commands += ['seatd', 'sleep', 'Xwayland', 'dbus-daemon'] if shell else []
     return ['usr/bin/' + name for name in commands
             if not (runtime/'usr/bin'/name).is_file()]
+
+
+def session_result(log):
+    """Interpret actual Denial terminal counters; exit 0 is insufficient."""
+    text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', log)
+    summaries = [line for line in text.splitlines()
+                 if 'independently clocked Flutter KMS session complete' in line]
+    result = {'status': 'FAIL', 'scope': 'Denial terminal counters; not visual or phone proof'}
+    if len(summaries) != 1:
+        return dict(result, reason='missing or duplicate terminal session counters')
+    counts = {}
+    for name in ('raster_frames', 'output_page_flips'):
+        values = re.findall(r'\b' + name + r'=(\d+)\b', summaries[0])
+        if len(values) != 1:
+            return dict(result, reason='missing or duplicate frame count')
+        counts[name] = int(values[0])
+    errors = [message for message in (
+        'required Flutter native fence export failed',
+        'Could not create the embedder backing store',
+        'Unhandled Exception', 'deniald: fatal error:',
+        'could not bind Flutter context for output-target cleanup',
+    ) if message in text]
+    result.update(counts, render_errors=errors)
+    if all(counts.values()) and not errors:
+        result['status'] = 'PASS'
+    else:
+        result['reason'] = 'zero frames/page flips or observed rendering errors'
+    return result
+
+
+def render_node_identity(path):
+    if path.parent != Path('/dev/dri') or not re.fullmatch(r'renderD\d+', path.name):
+        raise ValueError('VirGL requires an explicit /dev/dri/renderD* node')
+    info = path.lstat()
+    if (not stat.S_ISCHR(info.st_mode) or os.major(info.st_rdev) != 226
+            or not 128 <= os.minor(info.st_rdev) <= 255):
+        raise ValueError('VirGL input is not a DRM render node')
+    return {'path': str(path), 'major': os.major(info.st_rdev),
+            'minor': os.minor(info.st_rdev), 'scope': 'host rendering only; no phone device'}
 
 
 def main():
@@ -29,10 +71,13 @@ def main():
     parser.add_argument('--kernel', required=True, type=Path)
     parser.add_argument('--deniald', required=True, type=Path)
     parser.add_argument('--flutter-bundle', type=Path)
+    parser.add_argument('--render-node', type=Path,
+                        help='explicit host DRM render node for virtual VirGL; default uses software')
     parser.add_argument('--image', required=True)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--deadline', type=int, default=120)
     args = parser.parse_args()
+    render_node = render_node_identity(args.render_node) if args.render_node else None
     if not 30 <= args.deadline <= 300:
         parser.error('deadline must be between 30 and 300 seconds')
     if len(args.image) != 64 or any(c not in '0123456789abcdef' for c in args.image):
@@ -71,6 +116,7 @@ def main():
                 parser.error(f'missing Flutter bundle input: {required}')
         shutil.copytree(bundle, payload/'flutter')
     shutil.copy2(repo/'tools/qemu-virtio-drm/guest.sh', stage/'stage/guest.sh')
+    (stage/'stage/graphics-mode').write_text('virgl\n' if render_node else 'software\n')
     compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
                        '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
                        '-Werror', '-Wall', '-Wextra',
@@ -83,6 +129,8 @@ def main():
               'container': args.image, 'runtime': str(runtime),
               'runtime_inventory_verified_by_this_runner': False,
               'flutter_bundle': str(args.flutter_bundle) if args.flutter_bundle else None,
+              'graphics_mode': 'virgl' if render_node else 'software',
+              'host_render_node': render_node,
               'harness_sha256': digest(Path(__file__)),
               'init_source_sha256': digest(repo/'tools/qemu-virtio-drm/init.c'),
               'compile_command': compile_command, 'status': 'FAIL'}
@@ -118,6 +166,12 @@ def main():
                    '-device', 'virtio-9p-device,fsdev=rootfs,mount_tag=rootfs',
                    '-fsdev', 'local,id=payload,path=/payload,security_model=none,readonly=on',
                    '-device', 'virtio-9p-device,fsdev=payload,mount_tag=payload']
+        if render_node:
+            index = command.index(args.image)
+            command[index:index] = ['--device', str(args.render_node)+':'+str(args.render_node)+':rw']
+            command[command.index('-display')+1] = 'egl-headless,rendernode='+str(args.render_node)
+            index = command.index('virtio-gpu-device,xres=640,yres=480')
+            command[index] = 'virtio-gpu-gl-device,xres=640,yres=480'
         report['command'] = command
         logpath = output/'serial.log'
         with logpath.open('xb') as log:
@@ -146,10 +200,11 @@ def main():
         if args.flutter_bundle:
             report['deniald_kms'] = 'NOT RUN'
             report['shell_exit'] = 'PASS' if 'PASS actual deniald shell bounded exit' in log else 'FAIL'
-            report['shell_rendering'] = 'NOT RUN: bounded exit alone is not frame evidence'
+            report['shell_rendering'] = session_result(log)
         if (process.returncode == 0 and
                 report['drm_discovery'] == 'PASS' and
-                (report.get('shell_exit') == 'PASS' or report['deniald_cli'] == 'PASS')
+                ((report.get('shell_exit') == 'PASS' and
+                  report['shell_rendering']['status'] == 'PASS') or report['deniald_cli'] == 'PASS')
                 and 'PASS guest-script exited cleanly' in log and 'FAIL guest-' not in log):
             report['status'] = 'PASS'
     except Exception as error:
@@ -164,7 +219,7 @@ def main():
                 report['status'] = 'FAIL'
         report['duration_seconds'] = time.monotonic() - start
         for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
-                     output/'serial.log'):
+                     stage/'stage/graphics-mode', output/'serial.log'):
             if path.is_file():
                 report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)
         (output/'result.json').write_text(json.dumps(report, indent=2)+'\n')
