@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Virtual EGL comparison proves thread exit alone does not release context**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Impeller missing teardown unbind identified; source correction and ARM64 object pass**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The standalone ARM64 VirGL probe reproduces BAD_ACCESS after a joined worker exits without release; explicit unbind and eglReleaseThread both permit transfer. Build and three-mode VM comparison pass in 0.6 and 12.9 seconds; 87 active suites pass in 131.4 seconds with three optional subchecks skipped. Flutter already calls clear-current during GL surface destruction, so the exact Denial cleanup callback ordering remains unresolved. Next correlate thread/context ownership in that path while the queued-render authorization review is pending. The retained full Denial session remains FAIL; no Denial/engine/kernel rebuild or phone operation occurred. See [current repair evidence](../test-results/2026-09-12-egl-thread-release.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The VM selects Impeller, not the Skia destructor inspected earlier. All 244 ownership records show only startup unbinding; the raster thread retains its render context until main cleanup fails. The diagnostic run reaches 52 frames but remains FAIL with five backing-store errors. A focused Impeller destructor correction passes five semantic tests and real ARM64 translation-unit compilation (4.4 seconds); full corrected-engine link and VM are NOT RUN. Five ownership/trace tests and 87 active suites pass. Next relink a separate engine and test cleanup with unchanged Denial/VM inputs, preserving the independent authorization review and all phone guards. See [current repair evidence](../test-results/2026-09-12-impeller-context-cleanup.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

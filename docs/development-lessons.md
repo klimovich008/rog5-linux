@@ -2472,3 +2472,21 @@ with 286 MiB peak and no swap; no repeated kernel or engine build was needed.
 When appending an artifact set, derive coverage.set_count from the resulting list
 before validation; the final metadata check caught this omitted update without
 requiring a build or active-tier retry.
+
+
+Identify the actual runtime renderer before tracing its teardown. The prior
+Skia destructor check was real but did not apply: the VM log explicitly selected
+Impeller, whose default surface destructor has no unbind. A 244-record context
+trace now shows startup-only unbinding and the retained raster owner at cleanup.
+Correct this interpretation explicitly rather than rewriting old evidence. Match
+context handles and caller/owner IDs, and leave terminal trace records outside
+the normal cap. Do not consume EGL errors while instrumenting ownership.
+
+The focused correction passed real-destructor fault tests and its ARM64 engine
+translation unit in 4.4 seconds using Ninja's exact command with read-only cache
+and redirected outputs. This is cheaper than relinking before source validation.
+Retain the original engine library; link separately before claiming runtime repair.
+When adapting recorded argv, support the representation actually present (the
+retained --workdir uses an equals form); preserve preparation failures separately.
+For low disk headroom, link unchanged frozen source files and atomically replace
+modified ones, then verify every parent hash. Never patch through shared links.

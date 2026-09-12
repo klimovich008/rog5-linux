@@ -636,10 +636,10 @@
     }
   },
   "denial_virtual_drm": {
-    "status": "FAIL: 50 virtual frames; seven refusals after consumption, one after expiry; EGL cleanup unresolved",
-    "set_id": "private:rog5-authorization-history-20260912-r1",
-    "source_commit": "ca89dcf7dcf5f1e5b6fde950504c35bdcedd472e",
-    "source_tree": "6eda334b934e8ca56b814c2197aa68c479335e99",
+    "status": "FAIL: 52 virtual frames, five backing-store errors; Impeller render context remains bound through thread exit",
+    "set_id": "private:rog5-egl-context-trace-20260912-r1",
+    "source_commit": "09a4d25a1b923347c6bdc97ba9af68a8362b8146",
+    "source_tree": "8ab081d9ace052f976104ab1a7525d0fb3306f1a",
     "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
     "kernel": {
       "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
@@ -659,24 +659,24 @@
       "size": 10419681
     },
     "evidence": {
+      "path": "test-results/2026-09-12-impeller-context-cleanup-qualification.json",
+      "sha256": "ccb4eb6b3c73f98588e199cbf610a746830275f13efdc0cc511410aaa8785b28",
+      "size": 39390
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline guest fixture only",
+    "next": "Relink the corrected Impeller engine into a separate output and compare cleanup in the same bounded VM. Full corrected-engine execution NOT RUN; queued-render authorization review remains separate. No phone operation.",
+    "previous_evidence": {
       "path": "test-results/2026-09-12-denial-authorization-history-qualification.json",
       "sha256": "77ac9910fb0bc3e1e313a7d45e5f032e7a71fdf0ce087f5104f724ffd9ab1f06",
       "size": 32353
     },
-    "physical_status": "NOT RUN",
-    "authority": "none; offline guest fixture only",
-    "next": "Correlate actual Denial context/thread ownership across make-current, clear-current, raster-idle and cleanup; the VM exit-only hypothesis now has a reproducer, but the engine already requests clear-current during surface destruction. Keep the queued-render review independent. No phone operation.",
-    "previous_evidence": {
-      "path": "test-results/2026-09-12-denial-broker-refusals-qualification.json",
-      "sha256": "f1c375d74d9dfacfa76297ee55be7fbbe66b8c2bbbde87585fab98d8740228ac",
-      "size": 28675
-    },
     "native_fence_export": "Required renderer path retained; no separate fence trace/readback qualification",
-    "shell_frames": "50 raster frames and 50 page flips; no visual capture or input proof",
+    "shell_frames": "52 raster frames and 52 page flips; no visual capture or input proof",
     "deniald": {
-      "path": "/home/deck/.local/state/rog5-authorization-history-20260912-r1/deniald-history",
-      "sha256": "6b4f86ae95648f97ba1191da9fcf1bd014fb1e80f16794086d86f1de173a6ec5",
-      "size": 15988544
+      "path": "/home/deck/.local/state/rog5-egl-context-trace-20260912-r1/deniald-context",
+      "sha256": "84bbe77ce67eea3f784e6341337a4e5b7c37116aea5f3eb3bc68411509d52304",
+      "size": 15991112
     },
     "upstream_denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
     "patch": {
@@ -710,6 +710,29 @@
       "physical_status": "NOT RUN",
       "authority": "none; standalone virtual experiment",
       "denial_executed": false
+    },
+    "context_ownership_patch": {
+      "path": "patches/denial-85b2303e/0004-trace-egl-context-ownership.patch",
+      "sha256": "1c96d95fa271e1de55bd0627d94a19fe9e752e940385b6e44fca2142a67d68f2",
+      "size": 4597
+    },
+    "prepared_engine_correction": {
+      "status": "PASS: actual destructor tests and real ARM64 translation unit; complete link and runtime NOT RUN",
+      "engine_base": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+      "source_commit": "27f1dedde6544cb2417d66ddaa32d6377701c923",
+      "source_tree": "190da29c80d93babe372f58747c516cb1e417fd3",
+      "patch": {
+        "path": "patches/flutter-engine-d728e61e/0001-release-impeller-surface-context.patch",
+        "sha256": "130db9685a703caac5ae6aca1bce68bb82d5dc32726ba47ce41f85d80a8efe66",
+        "size": 957
+      },
+      "object": {
+        "path": "/home/deck/.local/state/rog5-egl-context-trace-20260912-r1/engine-compile/impeller.o",
+        "sha256": "446eb7a7ab48611f2324bd7eb9682bac1105c5b111ab8285db25328c2ca39378",
+        "size": 72108
+      },
+      "selected_by_active_builder": false,
+      "authority": "none"
     }
   }
 }
