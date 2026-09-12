@@ -111,7 +111,15 @@
         "Corrected panel module hash bound to matching production Image and DT required",
         "Physical visual proof cannot be inferred from DRM or backlight readback",
         "Any regulator enable/disable error leaves panel power ownership uncertain. Driver blocks later DSI/backlight and regulator retries only within the same instance; independent recovery before rebind/reload is unqualified."
-      ]
+      ],
+      "offline_component_identity": {
+        "artifact_pointer": "manifests/current-artifact.json#current_board_qualification/panel_module",
+        "module_sha256": "e7a5ac14d92ded53ca480272f0272d8fe236a38b671c5deabb17ff44ba2a6191",
+        "source_commit": "fce7a9892df3e69a170015699aad3f3f13e13aea",
+        "kernel_release": "7.1.4-rog5-production",
+        "candidate": null,
+        "physical_status": "NOT RUN"
+      }
     },
     {
       "id": "touch",

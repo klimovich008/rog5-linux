@@ -14,8 +14,8 @@
       "software": {
         "status": "PASS",
         "evidence": {
-          "path": "test-results/2026-09-12-mobile-dt-qualification.json",
-          "sha256": "c0668da4ac424312a47b50959af6b1fc628b62b935b7c41794caa7ea8bb05a5a"
+          "path": "test-results/2026-09-12-panel-regulator-qualification.json",
+          "sha256": "e774fa7f9be35c531cae52f612505858ab1066539c375897407c735f625aa9d5"
         }
       },
       "physical": {

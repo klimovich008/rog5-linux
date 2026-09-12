@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Touch regulator error handling corrected and compiled offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Panel regulator error handling corrected; production module cohort qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Frozen-source active tier: 81 PASS, 0 FAIL, 0 BLOCKED, 3 declared optional subchecks SKIPPED in 109.865 s. Exact touch module twins match; actual regulator-core faults reject the old driver. Current display/GPU/inert-touch DT qualification remains valid and touch stays disabled. L8C supply evidence and recovery after uncertain power remain unresolved. Next: finish a bounded provider observation using existing readback components before seeking any separate phone authorization. Safe display work remains independent. No phone operation is authorized. See [current repair evidence](../test-results/2026-09-12-touch-regulator-repair.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Frozen-source CI: 305 PASS, 0 FAIL, 0 BLOCKED, 3 declared optional suites SKIPPED in 616.595 s. All 16 production patches apply; merged config unchanged; panel twins and 1,031-module cohort pass offline. Image/DT evidence is inherited only for matching inputs. Panel/touch physical recovery, OLED/A660 and L8C supply remain unqualified. GENI mode reads require active clock/pinctrl setup, so passive provider snapshots cannot close that gap. No phone operation is authorized; next hardware work requires separate approval of the bounded display trial. See [current repair evidence](../test-results/2026-09-12-panel-regulator-repair.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

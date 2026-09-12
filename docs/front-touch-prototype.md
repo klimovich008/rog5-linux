@@ -212,3 +212,17 @@ commands or blind retries. Production use also requires suspend/resume work.
 
 This document imports no private device logs, proprietary DT blobs, signing
 material or live admission into the repository.
+
+## Provider observation limits
+
+The September 12 bounded survey found no existing GENI-specific observer. Its
+probe enables clocks and selects pinctrl before reading protocol/FIFO registers;
+FIFO-depth decoding also needs the QUP wrapper version. A passive DT, sysfs or
+IOMMU-group snapshot cannot establish those register values or transfer ownership.
+The retained GPU controller includes active module/probe operations and historical
+bundle pins; its bounded reader patterns do not make the controller passive.
+
+Existing RPMh/PMIC readers are scoped to older PM8350 S12/L6 observations, not
+touch L3C/L8C. RPMh APPS votes and programmed PMIC values are not measurements of
+physical voltage or an unknown upstream feed. No addresses, provider mutations
+or controller were broadened to infer that evidence. Touch remains disabled.
