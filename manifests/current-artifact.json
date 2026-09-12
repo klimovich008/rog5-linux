@@ -128,5 +128,21 @@
     },
     "supersedes_module_sha256": "34b38126a8d3a4963fda6ec9bce163b7cd126520d722ed26d5bf85c24a30a714",
     "note": "Unsigned disabled-DT fixture; no production selection or installation. Ordinary non-wakeup sleep/resume implemented and host tested; physical sleep, touch wake and rail recovery remain unqualified. Hibernation is refused. Ambiguous ownership or failed restart stays quiesced within one instance; no rebind/reload retry is qualified."
+  },
+  "gpu_readback_probe": {
+    "status": "fixture: unsigned offscreen userspace helper; not packaged or admitted",
+    "set_id": "private:rog5-gles-readback-evidence-20260912-r1/build",
+    "source_commit": "bdea5a5ef8585092d5f1fcf52b835089b890161d",
+    "arm64": {
+      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a",
+      "size": 4654144,
+      "sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac"
+    },
+    "qualification": {
+      "path": "test-results/2026-09-12-gles-readback-qualification.json",
+      "sha256": "bf105142c3cbae600aaf0df7797cb68da8058882775a23cbbc28d81b5a1b75c2"
+    },
+    "physical_status": "NOT RUN",
+    "candidate": null
   }
 }

@@ -1,0 +1,262 @@
+{
+  "format": "rog5-gles-readback-qualification-v1",
+  "source_commit": "bdea5a5ef8585092d5f1fcf52b835089b890161d",
+  "source_tree": "f0c518d2d6b0d91955d683d021f0da3c97f402c9",
+  "builder_image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+  "source_sha256": "799f2449210e331d925d10c331bed2516d605e45643079131572c295f997c93b",
+  "outputs": [
+    {
+      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a",
+      "size": 4654144,
+      "sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-b",
+      "size": 4654144,
+      "sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/native",
+      "size": 4539568,
+      "sha256": "f22ad24169e44b17c306abecde9f6a0ba35ee32cbde01cf2c01b6384e4243f23"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/debug-unit",
+      "size": 7200952,
+      "sha256": "73f5b3b335176f8240e2c59ad5051d85dcf7d2eb1e6e879c7229e93c18490345"
+    }
+  ],
+  "commands": [
+    {
+      "name": "arm64-a",
+      "command": [
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/rustc",
+        "--edition=2021",
+        "-Dwarnings",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+        "-O",
+        "--target",
+        "aarch64-unknown-linux-gnu",
+        "-C",
+        "linker=aarch64-linux-gnu-gcc",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a"
+      ],
+      "start_utc": "2026-09-12T08:31:48.782296+00:00",
+      "duration_seconds": 1.167352838005172,
+      "exit_status": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "arm64-b",
+      "command": [
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/rustc",
+        "--edition=2021",
+        "-Dwarnings",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+        "-O",
+        "--target",
+        "aarch64-unknown-linux-gnu",
+        "-C",
+        "linker=aarch64-linux-gnu-gcc",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-b"
+      ],
+      "start_utc": "2026-09-12T08:31:49.950284+00:00",
+      "duration_seconds": 1.0164964689902263,
+      "exit_status": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "native",
+      "command": [
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/rustc",
+        "--edition=2021",
+        "-Dwarnings",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+        "-O",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/native"
+      ],
+      "start_utc": "2026-09-12T08:31:50.967553+00:00",
+      "duration_seconds": 0.91618257999653,
+      "exit_status": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "debug-unit-build",
+      "command": [
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/rustc",
+        "--edition=2021",
+        "-Dwarnings",
+        "--remap-path-prefix",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+        "--test",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/debug-unit"
+      ],
+      "start_utc": "2026-09-12T08:31:51.884152+00:00",
+      "duration_seconds": 0.615236958998139,
+      "exit_status": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "debug-unit",
+      "command": [
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/debug-unit"
+      ],
+      "start_utc": "2026-09-12T08:31:52.499775+00:00",
+      "duration_seconds": 0.0036679039912996814,
+      "exit_status": 0,
+      "log_sha256": "0eb401f28abf2be525c6e5ec8859e59755e1f38216049ab43e1664c9c2849f13"
+    },
+    {
+      "name": "arm64-elf",
+      "command": [
+        "readelf",
+        "-h",
+        "-d",
+        "-V",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a"
+      ],
+      "start_utc": "2026-09-12T08:31:52.503830+00:00",
+      "duration_seconds": 0.007893691989011131,
+      "exit_status": 0,
+      "log_sha256": "189448833a71339a7ae2d168f4217457e17eae7076a760f43d76c149bae941be"
+    },
+    {
+      "name": "native-real-mesa",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/",
+        "/",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "--unsetenv",
+        "DISPLAY",
+        "--unsetenv",
+        "WAYLAND_DISPLAY",
+        "--",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/native",
+        "--software-fixture"
+      ],
+      "start_utc": "2026-09-12T08:31:52.512134+00:00",
+      "duration_seconds": 0.16461946399067529,
+      "exit_status": 0,
+      "log_sha256": "59fc21335afc570d417406927428e8e94467470fe810bc4195b509f55f902421"
+    },
+    {
+      "name": "builder-tools",
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--network=none",
+        "--read-only",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=1",
+        "--pids-limit=128",
+        "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+        "sh",
+        "-c",
+        "/opt/denial-rust/bin/rustc -Vv; aarch64-linux-gnu-gcc --version; aarch64-linux-gnu-ld --version; sha256sum /opt/denial-rust/bin/rustc /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-ld /usr/bin/cc /usr/bin/ld"
+      ],
+      "start_utc": "2026-09-12T08:31:52.677229+00:00",
+      "duration_seconds": 0.3147108510020189,
+      "exit_status": 0,
+      "log_sha256": "dfc4af351c92463d0232923956932ec40d87d7c7f7ef5b76530dde1d65dc9f66"
+    }
+  ],
+  "scope": "offscreen software Mesa and ABI fixtures; ARM64 compile only",
+  "physical_status": "NOT RUN",
+  "candidate": null,
+  "admission": "none",
+  "arm64_execution": "NOT RUN",
+  "rustfmt_clippy": "NOT RUN: absent from cached builder",
+  "active_tier": {
+    "counts": {
+      "PASS": 83,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 256
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summed_test_seconds": 111.29059344895359,
+    "wall_duration_seconds": null,
+    "timing_note": "Each test duration is recorded; no outer monotonic wall timer was captured. Sum excludes runner overhead and overlaps parallel tests.",
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/active-r1/summary.json",
+      "sha256": "13b1e50658ebe3b0f19c676682131d720413f16b5f932dc2507701ab84b817ec"
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/active-r1/summary.xml",
+      "sha256": "e414dac626363263e0953c821ec4c1b0008292dd163a5b0aae7131df96d67d54"
+    },
+    "command": "PATH=E:$PATH RUSTC=E/rustc ROG5_TEST_WORKERS=2 ROG5_TEST_REPORT_DIR=E/active-r1 systemd-run --user --scope --quiet -p MemoryMax=3G -p MemorySwapMax=0 bash scripts/host/test-repository-linux.sh active",
+    "environment_alias": {
+      "E": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1"
+    },
+    "linux_source": "unset"
+  },
+  "focused_runs": [
+    {
+      "command": "TMPDIR=E/scratch RUSTC=E/rustc python3 scripts/device/test-gles-readback.py",
+      "log": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/focused-r1.log",
+      "sha256": "87b6fad756181cf1036f8a539062de7a89dfd47924bdf314785432c5d7f7c72c",
+      "result": "PASS",
+      "unittest_seconds": 3.509,
+      "tests": 6
+    },
+    {
+      "command": "TMPDIR=E/scratch RUSTC=E/rustc python3 -O scripts/device/test-gles-readback.py",
+      "log": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/focused-r2.log",
+      "sha256": "066b06c3d251004646bffff686148cd690ddc88b8aa7bbd648b1f00e8ed13958",
+      "result": "PASS",
+      "unittest_seconds": 3.645,
+      "tests": 7
+    },
+    {
+      "command": "TMPDIR=E/scratch RUSTC=E/rustc python3 -O scripts/device/test-gles-readback.py",
+      "log": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/focused-r3.log",
+      "sha256": "232cec6365854114498ea32cca4e48da4e0c22e0660b48390d50696ee7cf46b9",
+      "result": "PASS",
+      "unittest_seconds": 3.549,
+      "tests": 7
+    }
+  ],
+  "limitations": [
+    "ARM64 execution and target EGL/Mesa dependency closure NOT RUN",
+    "A660 hardware, scanout, DMA-BUF sharing, fences and physical acceptance NOT RUN",
+    "No installed/candidate/signed artifact changes",
+    "No new full kernel build: kernel inputs unchanged",
+    "GitHub Actions not executed this turn",
+    "Rustfmt and Clippy unavailable in retained builder"
+  ]
+}

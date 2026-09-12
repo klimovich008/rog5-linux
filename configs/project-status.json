@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Touch non-wakeup sleep callbacks implemented and compiled offline",
+  "phase": "Offscreen GLES shader/readback probe compiled and tested offline",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Frozen-source active tier: 82 PASS, 0 FAIL, 0 BLOCKED, three declared optional subchecks SKIPPED in 109.009 s. Touch module twins match; 24 lifecycle cases cover 20 sleep cycles and six unsafe mutations. Normal power/protocol functions and the current display/board qualification are unchanged. Touch stays disabled; physical ID/events, L8C supply, OLED/A660 and suspend/wake remain unqualified. No phone operation is authorized. The next hardware question remains one bounded display scanout/blank cycle after separate exact-artifact and execution approval.",
-  "evidence": "test-results/2026-09-12-touch-sleep.md"
+  "next": "Frozen-source active tier: 83 PASS, 0 FAIL, 0 BLOCKED; three declared optional subchecks SKIPPED. Real software Mesa verifies all 64 channels; no-draw mutation fails. ARM64 helper twins match, but target execution and EGL/Mesa closure remain unqualified. Board, panel, touch and signed artifacts are unchanged. Touch stays disabled; OLED/A660, touch events and suspend/wake physical tests remain NOT RUN. No phone operation is authorized. The next hardware question remains one bounded display scanout/blank cycle after separate exact-artifact and execution approval.",
+  "evidence": "test-results/2026-09-12-gles-readback.md"
 }
