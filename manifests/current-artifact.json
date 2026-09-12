@@ -81,41 +81,42 @@
   },
   "touch_prototype": {
     "status": "fixture: offline external module; disabled DT",
+    "set_id": "private:rog5-touch-provider-evidence-20260912-r1/module-build",
     "module": {
       "dependencies": [],
       "depends": "",
       "name": "rog5_fts3658u",
-      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
-      "sha256": "a2560d4458e5cab00725912db3a7e7551eb70362af2747d261a8460a7ac23b15",
-      "size": 16144,
+      "path": "/home/deck/.local/state/rog5-touch-provider-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
+      "sha256": "34b38126a8d3a4963fda6ec9bce163b7cd126520d722ed26d5bf85c24a30a714",
+      "size": 16544,
       "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64"
     },
     "kernel_release": "7.1.4-rog5-production",
     "physical_status": "NOT RUN",
     "execution_repository": {
-      "commit": "b2065813860ea0bc8d0e96fe165e91f11a76d087",
-      "dirty": true,
-      "tree": "bee31454298d4a6ee7c8426c7c6ac7e66767da87"
+      "commit": "7b17a25eab542913d3b28afa35b2bf8c7462d15e",
+      "dirty": false,
+      "tree": "6630ade9dfe84c9d20fa0705b1fcc20c57074b74"
     },
-    "execution_builder_sha256": "4173b4181ebd3943e173c3af6eced39378af4f8597401a0f2c7ffd4954934544",
-    "reviewed_builder_commit": "24daaf52ff57e971f7e7897cabc6719a733f8983",
+    "execution_builder_sha256": "e1392cc8305c0a03c4f079570293cac94b7bf569e95ba53794a131a2dd2ddfea",
     "source_inputs": {
       "tools/rog5-fts3658u/Makefile": "ee759e7c9bb745500fcd8a55045932d9decd70c68c67f3e24cc7e929d80dadb4",
-      "tools/rog5-fts3658u/rog5_fts3658u.c": "9f6e38fc714eb0dce7c935ac8d6e2589c1e4ec7c28db335acc1af04849dfd41a",
+      "tools/rog5-fts3658u/rog5_fts3658u.c": "9c3c1704e3462f43b710ae811c232ce0e887f3b391c4d5182f04498bbcecc386",
       "tools/rog5-fts3658u/rog5_fts_protocol.h": "0253cff9ced95ce9b7dfde34d84cf0538568e0b6bb565e3afa5245c2b0f6e4c5"
     },
     "twins": {
-      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/module-build/summary.json",
-      "sha256": "54d077e84fcca209859fb5d3e91512843c85cf7868243cb227e2a0bfd2b9986c"
+      "path": "/home/deck/.local/state/rog5-touch-provider-evidence-20260912-r1/module-build/twin-verification.json",
+      "sha256": "e856743f151661f651a20447a73c142b8be58bf814df79bfb9e964e344ad74e4"
     },
-    "receipt_reporting_fix": {
-      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/module-build/stage-receipt-fix.json",
-      "sha256": "dee27c68771da40aa028d8c11ad93abbe8b49a5170eab7354405e87ddff88b09"
+    "abi": {
+      "path": "/home/deck/.local/state/rog5-touch-provider-evidence-20260912-r1/module-build/abi-check.json",
+      "sha256": "c9346e8a20124d0cdfd1526825d1ab2ae42fb3cbcab1704de66940052f4d76ff"
     },
-    "source_origin_audit": {
-      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/series-dt-r1/result.json",
-      "sha256": "3bc4c9c03cd68999c177f95f87626139b5556bbdedd7823089c3293fc86cad6a"
+    "evidence": {
+      "path": "test-results/2026-09-12-touch-regulator-qualification.json",
+      "sha256": "2db29d1feff801ffdf69b1e925f0f7984c1d3eaf29c57825688d3b79dcdbc0ca"
     },
-    "note": "No production selection or installation; later reviewedbuilder changes failed-build receipts only, preserving successful build command. Persistent disable failure at final devres release may leave power outstanding."
+    "supersedes_module_sha256": "a2560d4458e5cab00725912db3a7e7551eb70362af2747d261a8460a7ac23b15",
+    "note": "Unsigned fixture only; no candidate, production selection or installation. UNKNOWN prevents retry only within the same consumer context. Failed regulator cleanup still requires independent recovery; no rebind/reload retry is qualified."
   }
 }

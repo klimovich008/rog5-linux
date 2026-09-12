@@ -160,7 +160,7 @@
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#touch_prototype",
-        "module_sha256": "a2560d4458e5cab00725912db3a7e7551eb70362af2747d261a8460a7ac23b15",
+        "module_sha256": "34b38126a8d3a4963fda6ec9bce163b7cd126520d722ed26d5bf85c24a30a714",
         "kernel_release": "7.1.4-rog5-production",
         "candidate": null,
         "physical_status": "NOT RUN"
