@@ -87,7 +87,13 @@ def compare(
     base: dict[str, dict[str, bytes]],
     candidate: dict[str, dict[str, bytes]],
     parser: ModuleType,
+    *,
+    input_direction: str = "input-enable",
 ) -> tuple[int, int]:
+    # The default keeps historical CLI verification exact. Current TLMM
+    # bindings require output-disable; both clear OE in pinned pinctrl-msm.c.
+    if input_direction not in ("input-enable", "output-disable"):
+        fail("unknown input direction contract")
     parser.require_board_identity(base, "base DTB")
     parser.require_board_identity(candidate, "candidate DTB")
 
@@ -158,7 +164,7 @@ def compare(
     })
     require_properties(candidate, TE_PIN, {
         "bias-pull-down": b"", "drive-strength": cell(2),
-        "function": string("gpio"), "input-enable": b"",
+        "function": string("gpio"), input_direction: b"",
         "pins": string("gpio82"),
     })
     require_properties(candidate, IRIS_WAKE_PIN, {
@@ -167,7 +173,7 @@ def compare(
     })
     require_properties(candidate, IRIS_READY_PIN, {
         "bias-disable": b"", "drive-strength": cell(8),
-        "function": string("gpio"), "input-enable": b"",
+        "function": string("gpio"), input_direction: b"",
         "pins": string("gpio84"),
     })
     require_properties(candidate, PANEL, {
@@ -195,6 +201,8 @@ def main(arguments: list[str]) -> int:
     arguments_parser = argparse.ArgumentParser(description=__doc__)
     arguments_parser.add_argument("base", type=Path)
     arguments_parser.add_argument("candidate", type=Path)
+    arguments_parser.add_argument("--input-direction", choices=("input-enable", "output-disable"),
+                                  default="input-enable")
     options = arguments_parser.parse_args(arguments)
     parser = load_parser()
     base_data = parser.read_dtb_bytes(options.base)
@@ -203,7 +211,7 @@ def main(arguments: list[str]) -> int:
         fail(f"base DTB identity changed: size={len(base_data)} sha256={digest}")
     base = parser.parse_dtb(base_data, str(options.base))
     candidate = parser.read_dtb(options.candidate)
-    added, changed = compare(base, candidate, parser)
+    added, changed = compare(base, candidate, parser, input_direction=options.input_direction)
     print(f"base_sha256={digest}")
     print(f"added_nodes={added}")
     print(f"changed_existing_properties={changed}")

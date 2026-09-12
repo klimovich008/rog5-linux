@@ -167,10 +167,13 @@ def main():
                             '-o', work / 'display.dtbo', preprocessed])
             run(['fdtoverlay', '-i', args.base, '-o', stage / 'candidate.dtb', work / 'display.dtbo'])
             warnings += run(['dtc', '-I', 'dtb', '-O', 'dts', '-o', '/dev/null', stage / 'candidate.dtb'])
-            run([inputs[-1], args.base, stage / 'candidate.dtb'])
+            run([inputs[-1], args.base, stage / 'candidate.dtb',
+                 '--input-direction', 'output-disable'])
             run(['dt-doc-validate', schema], strict=True)
             run(['dt-validate', '-s', source / 'Documentation/devicetree/bindings',
                  '-l', 'asus,rog5-ams678', stage / 'candidate.dtb'], strict=True)
+            run(['dt-validate', '-s', source / 'Documentation/devicetree/bindings',
+                 '-l', 'qcom,sm8350-tlmm', stage / 'candidate.dtb'], strict=True)
             if (bindings != bindings_identity(bindings_root) or
                     tool_pins != tools_identity()):
                 raise ValueError('binding tree or tools changed during validation')
@@ -183,6 +186,8 @@ def main():
                       'binding_tree': bindings, 'tools': tool_pins,
                       'dtc_version': run(['dtc', '--version']).strip(),
                       'dtc_diagnostics': warnings, 'panel_binding_validation': 'PASS',
+                      'tlmm_binding_validation': 'PASS',
+                      'all_board_bindings_validation': 'NOT RUN (separate production composition gate)',
                       'physical_validation': 'NOT RUN',
                       'memory_zero_length_tuple': 'preserved from exact base; unresolved'}
             (stage / 'provenance.json').write_text(json.dumps(record, indent=2, sort_keys=True) + '\n')
