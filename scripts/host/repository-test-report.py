@@ -178,7 +178,12 @@ def run(repo, directory, path):
     result = dict(path=path, status='BLOCKED', reason='', duration_seconds=0,
                   source_sections=[], command=[], subchecks=[], subcheck_counts={'SKIPPED': 0},
                   optional_suite_skip=False)
-    missing = [name for name in [row['interpreter'], *row['prerequisites']] if shutil.which(name) is None]
+    # Match the compiler selected by the Rust test, including an explicit empty
+    # or missing override. Never fall back to a different PATH compiler.
+    prerequisites = [row['interpreter'], *[os.environ.get('RUSTC', name)
+                     if name == 'rustc' else name for name in row['prerequisites']]]
+    result['resolved_prerequisites'] = prerequisites
+    missing = [name for name in prerequisites if shutil.which(name) is None]
     missing += [name for name in row['required_inputs'] if not (repo / name).is_file()]
     if row['exact_source'] and not os.environ.get('ROG5_LINUX_SOURCE'):
         missing.append('ROG5_LINUX_SOURCE')

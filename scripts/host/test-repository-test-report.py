@@ -12,6 +12,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 SOURCE = Path(__file__).with_name('repository-test-report.py')
 spec = importlib.util.spec_from_file_location('report', SOURCE)
@@ -54,11 +55,11 @@ t.join(timeout=1)
             self.assertFalse(alive,'owned child survived interrupted cleanup')
             self.assertEqual(json.loads(result.stdout)[0],'FAIL')
 
-    def result_fixture(self, body, mandatory=True, interpreter='python3', optional=None):
+    def result_fixture(self, body, mandatory=True, interpreter='python3', optional=None, prerequisites=None):
         tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup)
         root=Path(tmp.name);(root/'configs').mkdir();result=root/'result';result.mkdir()
         row=dict(path='one.py',interpreter=interpreter,tiers=['ci'],mandatory=mandatory,
-                 deadline_seconds=1,prerequisites=[],resource_class='shared-state',
+                 deadline_seconds=1,prerequisites=prerequisites or [],resource_class='shared-state',
                  exclusivity_group='repository',python_optimized=False,exact_source=False,required_inputs=[])
         if optional is not None:row['optional_subchecks']=optional
         (root/'configs/repository-tests.json').write_text(json.dumps(dict(tests=[row])))
@@ -67,6 +68,33 @@ t.join(timeout=1)
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             code=m.run(root,result,'one.py')
         return code,json.loads(next(result.glob('*.json')).read_text())
+
+    def test_rust_prerequisite_uses_the_compiler_selected_by_the_test(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            default = root / 'rustc'
+            selected = root / 'custom compiler'
+            for path in (default, selected):
+                path.write_text('#!' + sys.executable + '\nprint("fixture compiler")\n')
+                path.chmod(0o700)
+            body = ('import os, subprocess\n'
+                    'assert subprocess.check_output([os.environ.get("RUSTC", "rustc"), '
+                    '"--version"], text=True).strip() == "fixture compiler"\n')
+            for name, compiler, search, expected in (
+                ('explicit', str(selected), '', 'PASS'),
+                ('missing explicit', str(root / 'missing'), str(root), 'BLOCKED'),
+                ('empty explicit', '', str(root), 'BLOCKED'),
+                ('default', None, str(root), 'PASS'),
+            ):
+                with self.subTest(name=name), patch.dict(os.environ, {'PATH': search}):
+                    if compiler is None:
+                        os.environ.pop('RUSTC', None)
+                    else:
+                        os.environ['RUSTC'] = compiler
+                    code, result = self.result_fixture(body, interpreter=sys.executable,
+                                                       prerequisites=['rustc'])
+                    self.assertEqual(result['status'], expected)
+                    self.assertEqual(code, 0 if expected == 'PASS' else 1)
 
     def declaration(self, message='SKIP retained fixture', kind='line', scope='subcheck'):
         return dict(id='retained-fixture',kind=kind,message=message,scope=scope,
