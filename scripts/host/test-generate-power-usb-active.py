@@ -60,6 +60,15 @@ class PowerUsbGenerationTest(unittest.TestCase):
         )
         self.assertNotIn(self.record["candidate"], GENERATOR.TARGET_LOCK.read_text())
 
+    def test_inventory_exception_does_not_allow_another_identity_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            consumer = Path(raw) / "unapproved-consumer.py"
+            consumer.write_text("CANDIDATE = " + repr(self.record["candidate"]))
+            listing = subprocess.CompletedProcess([], 0, stdout=str(consumer) + "\n")
+            with mock.patch.object(GENERATOR.subprocess, "run", return_value=listing):
+                with self.assertRaisesRegex(GENERATOR.GenerationError, "outside generated closure"):
+                    GENERATOR.verify_consumer_closure(self.source)
+
     def test_early_probe_phase_selects_initramfs_capability(self) -> None:
         mutated = deepcopy(self.source)
         mutated["integration"]["probe_phase"] = "early-initramfs"
