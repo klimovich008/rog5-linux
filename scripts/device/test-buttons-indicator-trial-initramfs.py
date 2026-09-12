@@ -25,6 +25,20 @@ def descriptor(trial='1', bundle='fixture-primary'):
 
 
 class Composition(unittest.TestCase):
+    def test_historical_tracked_lpg_cannot_enter_active_payload(self):
+        old = (REPO/'artifacts/buttons-indicator-v1/leds-qcom-lpg.ko').read_bytes()
+        self.assertEqual(M.sha(old),
+                         '5885a9db2a8821f7c0ee9b16d92092d6d44f5c5092561e8e312f6047bb1a246c')
+        expected = PRODUCTION_PAYLOAD['leds-qcom-lpg.ko']
+        self.assertNotEqual(M.sha(old), expected[1])
+        # Keep unrelated payloads small; retain the actual production LPG pin.
+        # Validation is of bytes, so renaming the old directory cannot help.
+        specs = dict(M.PAYLOAD, **{'leds-qcom-lpg.ko': expected})
+        payload = dict(self.payload, **{'leds-qcom-lpg.ko': old})
+        with mock.patch.object(M, 'PAYLOAD', specs):
+            with self.assertRaisesRegex(ValueError, 'payload identity mismatch: leds-qcom-lpg'):
+                M.validate_payload(payload)
+
     def setUp(self):
         self.members = {}
         A.add(self.members, 'init', b'unchanged startup and storage policy', 0o100755)
