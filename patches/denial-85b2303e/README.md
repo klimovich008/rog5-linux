@@ -65,3 +65,11 @@ cases pass before and after instrumentation; one additional test covers the
 opt-in query/log cap and terminal exception. EGL effects are adapters in this
 host suite; the real ARM64 build and VM trace are separate. No phone builder
 selects these patches. Apply in numeric order for the combined diagnostic.
+
+`0005-clear-current-io-resource-context.patch` corrects callback dispatch for
+Flutter's IO resource-context release. It selects the resource context only when
+that context is actually current on the caller thread, and retains the existing
+ContextBinding ownership check and failure propagation. Render-context dispatch
+is otherwise unchanged. Apply with engine patch 0002; neither correction alone
+closes the IO shutdown path. The joint actual-method regression command is in
+the [engine patch notes](../flutter-engine-d728e61e/README.md).

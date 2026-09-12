@@ -47,6 +47,7 @@ def session_result(log):
         'could not bind Flutter context for output-target cleanup',
         'Could not make the context current to destroy Impeller surface resources.',
         'Could not clear the context after Impeller surface cleanup.',
+        'Could not clear the Impeller IO resource context.',
     ) if message in text]
     result.update(counts, render_errors=errors)
     if all(counts.values()) and not errors:

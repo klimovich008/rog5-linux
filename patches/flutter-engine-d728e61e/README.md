@@ -32,3 +32,19 @@ The [corrected-engine VM result](../../test-results/2026-09-12-impeller-engine-v
 now records a complete separate link and successful render-context cleanup. The
 full VM still fails on backing-store authorization; IO resource-context lifetime
 and phone behavior remain unqualified. The original library is preserved.
+
+Patch 0002 forwards the existing IO-thread release hook from PlatformViewEmbedder
+to its surface. The Impeller surface disables IO reactor work and clears a
+successfully bound resource context on that same thread. A failed clear is logged
+and retains the binding flag; a failed initial bind and repeated successful release
+do not issue a spurious clear. Other surface backends retain their existing behavior.
+Denial patch 0005 is required alongside it: the shared embedder clear callback must
+select the resource context when that context is current on the caller thread.
+
+`scripts/host/test-io-context-release.py --engine-source EXACT_ENGINE_GIT
+--denial-source EXACT_DENIAL_GIT --output FRESH_DIRECTORY` exercises the actual
+methods with narrow adapters. Three engine and two Denial regressions fail before
+the corrections; all nine cases pass afterward. This test does not qualify a
+linked engine or EGL runtime. The new virtual method affects derived-class vtables;
+recompile the complete dependency closure of the changed headers before linking.
+No phone builder or candidate selects these patches.

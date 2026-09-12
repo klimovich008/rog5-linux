@@ -1,0 +1,18 @@
+diff --git a/compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs b/compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs
+--- a/compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs
+@@ -51,6 +51,14 @@
+     }
+ 
+     fn clear_current(&self) -> bool {
++        // Flutter uses this callback for both raster and IO teardown. Select
++        // the context actually current here; ContextBinding still enforces
++        // ownership and preserves it if EGL unbinding fails.
++        let mut resource = lock(&self.resource_context);
++        if resource.context.is_current() {
++            return resource.clear_current();
++        }
++        drop(resource);
+         lock(&self.render_context).clear_current()
+     }
+ 
