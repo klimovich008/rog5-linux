@@ -80,7 +80,13 @@ class Builder(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'deadline'):
             M.run_owned([sys.executable,'-c',code],self.root/'log',dict(os.environ),time.monotonic()+.3,0)
         pid=int(pidfile.read_text());stat=Path('/proc')/str(pid)/'stat'
-        self.assertTrue(not stat.exists() or stat.read_text().split()[2]=='Z')
+        # Reaping can remove procfs between exists() and read_text(). Read once;
+        # either disappearance or a zombie proves this child stopped executing.
+        try:
+            state=stat.read_text().rsplit(')',1)[1].split()[0]
+        except FileNotFoundError:
+            state=None
+        self.assertIn(state,(None,'Z'))
     def test_main_failed_make_retains_stage_receipt(self):
         output=self.root/'failed-build';fake=self.root/'failed-make'
         fake.write_text('#!/bin/sh\nexit 42\n');fake.chmod(0o700)
