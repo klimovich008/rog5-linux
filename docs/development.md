@@ -46,6 +46,18 @@ Install the declared compiler, module and schema tools first; absence fails the
 selected gate. `--prepare-only` records configuration preparation, never a compile
 PASS. An optional `--base-archive` must match the pinned full archive hash.
 
+After a production source preparation/build, run the separate exact-source
+regressions with the schema environment on PATH:
+
+```sh
+ROG5_LINUX_SOURCE="$PWD/build/rog5-production/source" \
+  scripts/host/test-repository-linux.sh board
+```
+
+This tier requires the source and schema tools and fails if they are missing.
+It exercises the real RPMh binding/PM fixtures and compares touch core extracts.
+It does not rebuild Image/modules or establish physical qualification.
+
 The mobile acceptance contract is separate from the immutable headless baseline.
 `check-mobile-status.py --write` updates only the generated current-state header;
 old checkpoints remain unchanged. Neither this status file nor an artifact
