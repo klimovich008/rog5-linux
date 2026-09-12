@@ -1,0 +1,80 @@
+--- a/compositor/src/bin/deniald/flutter_runtime/output_pipeline.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/output_pipeline.rs
+@@ -79,6 +79,38 @@
+     pub screenshot_request_id: Option<u64>,
+     pub rendered_at: Option<Instant>,
+     pub request: OutputFrameRequest,
++}
++
++
++// Bound diagnostic work even if a client repeatedly requests an unauthorized target.
++fn next_authorization_trace_sequence(counter: &std::sync::atomic::AtomicUsize) -> Option<usize> {
++    counter
++        .fetch_update(std::sync::atomic::Ordering::Relaxed, std::sync::atomic::Ordering::Relaxed, |value| {
++            (value < 512).then(|| value + 1)
++        })
++        .ok()
++}
++
++fn trace_render_authorization(
++    event: &'static str,
++    pool: &OutputBufferPool,
++    authorization: Option<AuthorizedOutputRequest>,
++    now: Instant,
++) {
++    if !render_audit_enabled() {
++        return;
++    }
++    static SEQUENCE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
++    let Some(sequence) = next_authorization_trace_sequence(&SEQUENCE) else {
++        return;
++    };
++    let serial = authorization.map(|a| a.request.dirty_serial);
++    let age_us = authorization.map(|a| now.saturating_duration_since(a.authorized_at).as_micros());
++    let slots = pool.slots.iter().map(|slot| {
++        (slot.framebuffer, slot.state, slot.output_refs, slot.request.map(|request| request.dirty_serial))
++    }).collect::<Vec<_>>();
++    info!(sequence, event, view = pool.render_view_id.get(), ?serial, ?age_us, ?slots,
++        final_record = sequence == 511, "bounded render authorization trace");
+ }
+ 
+ impl OutputBufferBroker {
+@@ -192,12 +224,14 @@
+             request,
+             authorized_at: now,
+         });
++        trace_render_authorization("grant", pool, pool.authorized_request, now);
+         Some(pool.render_view_id.get())
+     }
+ 
+     pub(super) fn cancel_authorizations(&mut self, render_view_ids: &[i64]) {
+         for pool in &mut self.pools {
+             if render_view_ids.contains(&pool.render_view_id.get()) {
++                trace_render_authorization("cancel", pool, pool.authorized_request, Instant::now());
+                 pool.authorized_request = None;
+             }
+         }
+@@ -211,6 +245,7 @@
+                     >= authorization.request.tick.interval.saturating_mul(2)
+             });
+             if should_expire {
++                trace_render_authorization("expire", pool, pool.authorized_request, now);
+                 pool.authorized_request = None;
+                 expired += 1;
+             }
+@@ -231,6 +266,7 @@
+             return Err(RenderTargetBlocked::MissingPool);
+         };
+         let Some(authorization) = pool.authorized_request else {
++            trace_render_authorization("refuse-no-authorization", pool, None, Instant::now());
+             return Err(RenderTargetBlocked::MissingAuthorization);
+         };
+         if pool
+@@ -247,6 +283,7 @@
+         else {
+             return Err(RenderTargetBlocked::NoFreeSlot);
+         };
++        trace_render_authorization("consume", pool, Some(authorization), Instant::now());
+         pool.authorized_request = None;
+         let slot = &mut pool.slots[slot_index];
+         slot.state = BufferState::Rendering;
