@@ -173,10 +173,11 @@
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#touch_prototype",
-        "module_sha256": "34b38126a8d3a4963fda6ec9bce163b7cd126520d722ed26d5bf85c24a30a714",
+        "module_sha256": "0a191f48fccfebbe08902e25ba63127b2e86c2a60d727234b53a1e8f83c9b59f",
         "kernel_release": "7.1.4-rog5-production",
         "candidate": null,
-        "physical_status": "NOT RUN"
+        "physical_status": "NOT RUN",
+        "source_commit": "034ef34cd2f4551130ef9b8b3f521ba71ceb1acd"
       },
       "before_operator_readiness": [
         "Review final composed-DT, all-binding and inert-provider receipts; determine runtime GENI mode, L8C parent and rail ownership before an explicitly authorized enabled proposal. Current overlay stays disabled.",

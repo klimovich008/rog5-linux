@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Panel regulator error handling corrected; production module cohort qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Touch non-wakeup sleep callbacks implemented and compiled offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Frozen-source CI: 305 PASS, 0 FAIL, 0 BLOCKED, 3 declared optional suites SKIPPED in 616.595 s. All 16 production patches apply; merged config unchanged; panel twins and 1,031-module cohort pass offline. Image/DT evidence is inherited only for matching inputs. Panel/touch physical recovery, OLED/A660 and L8C supply remain unqualified. GENI mode reads require active clock/pinctrl setup, so passive provider snapshots cannot close that gap. No phone operation is authorized; next hardware work requires separate approval of the bounded display trial. See [current repair evidence](../test-results/2026-09-12-panel-regulator-repair.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Frozen-source active tier: 82 PASS, 0 FAIL, 0 BLOCKED, three declared optional subchecks SKIPPED in 109.009 s. Touch module twins match; 24 lifecycle cases cover 20 sleep cycles and six unsafe mutations. Normal power/protocol functions and the current display/board qualification are unchanged. Touch stays disabled; physical ID/events, L8C supply, OLED/A660 and suspend/wake remain unqualified. No phone operation is authorized. The next hardware question remains one bounded display scanout/blank cycle after separate exact-artifact and execution approval. See [current repair evidence](../test-results/2026-09-12-touch-sleep.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

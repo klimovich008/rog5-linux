@@ -2039,3 +2039,25 @@ failed receipts; neither failure demonstrated a kernel defect. Reuse the existin
 production module-closure checker: an ad hoc comparison falsely treated hyphenated
 dependency names as missing underscore-named modules. The existing checker also
 checks actual modules.dep coverage and cycles. No duplicate validator was added.
+
+## 2026-09-12: restore failed suspend before returning its error
+
+Linux only schedules a device's resume callback after its suspend callback
+succeeds. A consumer that drains IRQ and powers down before a suspend error
+must restore inside that failed callback, or explicitly remain quiesced for
+recovery. Touch restores only after both votes are known released and preserves
+the original error; UNKNOWN never triggers a retry. Test the actual PM table:
+the generic sleep macro also maps hibernation, which this prototype refuses.
+
+The unchanged module builder produced matching twins in 2.610/2.560 seconds;
+the applicable active tier passed in 109.009 seconds. Use the specific module's
+consumed dependencies when checking a retained kit against fresh source. An
+unrelated changed panel body initially rejected touch preflight before make;
+scoping that comparison correctly preserved the refusal and avoided rebuilding
+unchanged Image/DT outputs. Source-only sleep support does not qualify a wake
+source, physical provider retention or measured idle drain.
+
+Keep the retained kit's original qualification series separate from later
+incremental qualification and current source series. A matching consumed-header
+comparison is narrower than a complete kit rebuild; preserve each original
+compiled/final patch distinction in its producing receipt.

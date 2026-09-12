@@ -91,42 +91,42 @@
   },
   "touch_prototype": {
     "status": "fixture: offline external module; disabled DT",
-    "set_id": "private:rog5-touch-provider-evidence-20260912-r1/module-build",
+    "set_id": "private:rog5-touch-sleep-evidence-20260912-r1/module-build",
     "module": {
       "dependencies": [],
       "depends": "",
       "name": "rog5_fts3658u",
-      "path": "/home/deck/.local/state/rog5-touch-provider-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
-      "sha256": "34b38126a8d3a4963fda6ec9bce163b7cd126520d722ed26d5bf85c24a30a714",
-      "size": 16544,
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
+      "sha256": "0a191f48fccfebbe08902e25ba63127b2e86c2a60d727234b53a1e8f83c9b59f",
+      "size": 17448,
       "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64"
     },
     "kernel_release": "7.1.4-rog5-production",
     "physical_status": "NOT RUN",
     "execution_repository": {
-      "commit": "7b17a25eab542913d3b28afa35b2bf8c7462d15e",
-      "dirty": false,
-      "tree": "6630ade9dfe84c9d20fa0705b1fcc20c57074b74"
+      "commit": "034ef34cd2f4551130ef9b8b3f521ba71ceb1acd",
+      "tree": "e8d6ce7b7aad72c6704903b048449a567c3327d0",
+      "dirty": false
     },
     "execution_builder_sha256": "e1392cc8305c0a03c4f079570293cac94b7bf569e95ba53794a131a2dd2ddfea",
     "source_inputs": {
       "tools/rog5-fts3658u/Makefile": "ee759e7c9bb745500fcd8a55045932d9decd70c68c67f3e24cc7e929d80dadb4",
-      "tools/rog5-fts3658u/rog5_fts3658u.c": "9c3c1704e3462f43b710ae811c232ce0e887f3b391c4d5182f04498bbcecc386",
+      "tools/rog5-fts3658u/rog5_fts3658u.c": "d2ff4063df516a316b3716c841b99d82643474bfc07c63a946cdb8bed706c59f",
       "tools/rog5-fts3658u/rog5_fts_protocol.h": "0253cff9ced95ce9b7dfde34d84cf0538568e0b6bb565e3afa5245c2b0f6e4c5"
     },
     "twins": {
-      "path": "/home/deck/.local/state/rog5-touch-provider-evidence-20260912-r1/module-build/twin-verification.json",
-      "sha256": "e856743f151661f651a20447a73c142b8be58bf814df79bfb9e964e344ad74e4"
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/twin-verification.json",
+      "sha256": "10281deaa17d56f9e4f17c012bdc6e32246c3ef2ba499a210c4dc2c260b675d0"
     },
     "abi": {
-      "path": "/home/deck/.local/state/rog5-touch-provider-evidence-20260912-r1/module-build/abi-check.json",
-      "sha256": "c9346e8a20124d0cdfd1526825d1ab2ae42fb3cbcab1704de66940052f4d76ff"
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/abi-check.json",
+      "sha256": "8a7b13ce9f5f26684e01e4a8f5c6b33cd3eef2508b251d75e1c0c5893012d6b0"
     },
     "evidence": {
-      "path": "test-results/2026-09-12-touch-regulator-qualification.json",
-      "sha256": "2db29d1feff801ffdf69b1e925f0f7984c1d3eaf29c57825688d3b79dcdbc0ca"
+      "path": "test-results/2026-09-12-touch-sleep-qualification.json",
+      "sha256": "b83207d8873ff35cae7166f99654fb4b66dc9dc9532c1b07da1936892c6eafd9"
     },
-    "supersedes_module_sha256": "a2560d4458e5cab00725912db3a7e7551eb70362af2747d261a8460a7ac23b15",
-    "note": "Unsigned fixture only; no candidate, production selection or installation. UNKNOWN prevents retry only within the same consumer context. Failed regulator cleanup still requires independent recovery; no rebind/reload retry is qualified."
+    "supersedes_module_sha256": "34b38126a8d3a4963fda6ec9bce163b7cd126520d722ed26d5bf85c24a30a714",
+    "note": "Unsigned disabled-DT fixture; no production selection or installation. Ordinary non-wakeup sleep/resume implemented and host tested; physical sleep, touch wake and rail recovery remain unqualified. Hibernation is refused. Ambiguous ownership or failed restart stays quiesced within one instance; no rebind/reload retry is qualified."
   }
 }
