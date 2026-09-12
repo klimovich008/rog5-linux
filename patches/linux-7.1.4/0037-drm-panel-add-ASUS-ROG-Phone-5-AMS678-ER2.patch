@@ -7,8 +7,8 @@ Subject: [PATCH] drm/panel: add ASUS ROG Phone 5 AMS678 ER2
  .../display/panel/asus,rog5-ams678.yaml       |  73 +++
  drivers/gpu/drm/panel/Kconfig                 |  12 +
  drivers/gpu/drm/panel/Makefile                |   1 +
- .../gpu/drm/panel/panel-asus-rog5-ams678.c    | 448 ++++++++++++++++++
- 4 files changed, 534 insertions(+)
+ .../gpu/drm/panel/panel-asus-rog5-ams678.c    | 517 ++++++++++++++++++
+ 4 files changed, 603 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml
  create mode 100644 drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
 
@@ -128,10 +128,10 @@ index a4291dc39..40fc8ec5c 100644
  obj-$(CONFIG_DRM_PANEL_BOE_HIMAX8279D) += panel-boe-himax8279d.o
 diff --git a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
 new file mode 100644
-index 000000000..64e6fa96f
+index 000000000..4095fb153
 --- /dev/null
 +++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
-@@ -0,0 +1,448 @@
+@@ -0,0 +1,517 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +// Copyright (c) 2026 ROG5 Linux contributors
 +// Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
@@ -142,6 +142,7 @@ index 000000000..64e6fa96f
 +#include <linux/gpio/consumer.h>
 +#include <linux/mod_devicetable.h>
 +#include <linux/module.h>
++#include <linux/mutex.h>
 +#include <linux/regulator/consumer.h>
 +
 +#include <drm/display/drm_dsc.h>
@@ -154,6 +155,10 @@ index 000000000..64e6fa96f
 +#include <video/mipi_display.h>
 +
 +struct ams678_er2_plus_dsc {
++	/* Serializes lifecycle and DCS backlight transactions. */
++	struct mutex lock;
++	bool initialized;
++	bool supply_enabled[2];
 +	struct drm_panel panel;
 +	struct mipi_dsi_device *dsi;
 +	struct drm_dsc_config dsc;
@@ -310,6 +315,43 @@ index 000000000..64e6fa96f
 +	return dsi_ctx.accum_err;
 +}
 +
++/* Track each acquired reference, including partially failed power-off. */
++static int ams678_er2_plus_dsc_power_off(struct ams678_er2_plus_dsc *ctx)
++{
++	int ret = 0;
++	int err;
++	int i;
++
++	for (i = ARRAY_SIZE(ams678_er2_plus_dsc_supplies) - 1; i >= 0; i--) {
++		if (!ctx->supply_enabled[i])
++			continue;
++		err = regulator_disable(ctx->supplies[i].consumer);
++		if (err) {
++			dev_err(&ctx->dsi->dev, "Failed to disable %s: %d\n",
++				ctx->supplies[i].supply, err);
++			if (!ret)
++				ret = err;
++		} else {
++			ctx->supply_enabled[i] = false;
++		}
++	}
++	return ret;
++}
++
++static int ams678_er2_plus_dsc_power_on(struct ams678_er2_plus_dsc *ctx)
++{
++	int ret;
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(ams678_er2_plus_dsc_supplies); i++) {
++		ret = regulator_enable(ctx->supplies[i].consumer);
++		if (ret)
++			return ret;
++		ctx->supply_enabled[i] = true;
++	}
++	return 0;
++}
++
 +static int ams678_er2_plus_dsc_prepare(struct drm_panel *panel)
 +{
 +	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
@@ -317,10 +359,18 @@ index 000000000..64e6fa96f
 +	struct drm_dsc_picture_parameter_set pps;
 +	int ret;
 +
-+	ret = regulator_bulk_enable(ARRAY_SIZE(ams678_er2_plus_dsc_supplies),
-+				    ctx->supplies);
-+	if (ret < 0)
-+		return ret;
++	mutex_lock(&ctx->lock);
++	if (ctx->initialized) {
++		ret = 0;
++		goto out;
++	}
++	/* A failed prepare may have retained a regulator reference. */
++	ret = ams678_er2_plus_dsc_power_off(ctx);
++	if (ret)
++		goto out;
++	ret = ams678_er2_plus_dsc_power_on(ctx);
++	if (ret)
++		goto err_disable_regulators;
 +
 +	usleep_range(10000, 11000);
 +	ret = ams678_er2_plus_dsc_enter_iris_bypass(ctx);
@@ -351,15 +401,18 @@ index 000000000..64e6fa96f
 +	}
 +
 +	msleep(28); /* TODO: Is this panel-dependent? */
-+
-+	return 0;
++	ctx->initialized = true;
++	goto out;
 +
 +err_off:
-+	ams678_er2_plus_dsc_off(ctx);
-+	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	if (ams678_er2_plus_dsc_off(ctx) < 0)
++		dev_err(dev, "Failed to stop panel after prepare failure\n");
 +err_disable_regulators:
-+	regulator_bulk_disable(ARRAY_SIZE(ams678_er2_plus_dsc_supplies),
-+			       ctx->supplies);
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	/* Preserve the preparation error; power_off logs cleanup failures. */
++	ams678_er2_plus_dsc_power_off(ctx);
++out:
++	mutex_unlock(&ctx->lock);
 +	return ret;
 +}
 +
@@ -368,31 +421,42 @@ index 000000000..64e6fa96f
 +	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
 +	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
 +
++	mutex_lock(&ctx->lock);
++	if (!ctx->initialized) {
++		mutex_unlock(&ctx->lock);
++		return -EPERM;
++	}
++
 +	ctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 +	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x51, 0x00, 0x00);
 +	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x53, 0x20);
 +	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x55, 0x00);
 +	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
 +
++	mutex_unlock(&ctx->lock);
 +	return dsi_ctx.accum_err;
 +}
 +
 +static int ams678_er2_plus_dsc_unprepare(struct drm_panel *panel)
 +{
 +	struct ams678_er2_plus_dsc *ctx = to_ams678_er2_plus_dsc(panel);
-+	struct device *dev = &ctx->dsi->dev;
-+	int disable_ret;
 +	int ret;
 +
-+	ret = ams678_er2_plus_dsc_off(ctx);
-+	if (ret < 0)
-+		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
-+
++	mutex_lock(&ctx->lock);
++	if (ctx->initialized) {
++		ret = ams678_er2_plus_dsc_off(ctx);
++		if (ret < 0)
++			dev_err(&ctx->dsi->dev,
++				"Failed to un-initialize panel: %d\n", ret);
++	}
++	ctx->initialized = false;
 +	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-+	disable_ret = regulator_bulk_disable(
-+		ARRAY_SIZE(ams678_er2_plus_dsc_supplies), ctx->supplies);
-+
-+	return ret < 0 ? ret : disable_ret;
++	ret = ams678_er2_plus_dsc_power_off(ctx);
++	/* DSI failure is diagnostic once reset and power-off succeeded.
++	 * Retain core prepared state only while references remain to release.
++	 */
++	mutex_unlock(&ctx->lock);
++	return ret;
 +}
 +
 +static const struct drm_display_mode ams678_er2_plus_dsc_mode = {
@@ -426,20 +490,24 @@ index 000000000..64e6fa96f
 +static int ams678_er2_plus_dsc_bl_update_status(struct backlight_device *bl)
 +{
 +	struct mipi_dsi_device *dsi = bl_get_data(bl);
++	struct ams678_er2_plus_dsc *ctx = mipi_dsi_get_drvdata(dsi);
 +	u16 brightness = backlight_get_brightness(bl);
-+	u8 payload[] = {
-+		MIPI_DCS_SET_DISPLAY_BRIGHTNESS,
-+		brightness & 0xff,
-+		brightness >> 8,
-+	};
-+	unsigned long mode_flags = dsi->mode_flags;
++	unsigned long mode_flags;
 +	int ret;
 +
++	mutex_lock(&ctx->lock);
++	if (!ctx->initialized) {
++		mutex_unlock(&ctx->lock);
++		return -EPERM;
++	}
++	mode_flags = dsi->mode_flags;
 +	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 +
-+	ret = mipi_dsi_dcs_write_buffer(dsi, payload, sizeof(payload));
++	/* Vendor inverted-DBV handling sends the high byte first. */
++	ret = mipi_dsi_dcs_set_display_brightness_large(dsi, brightness);
 +	dsi->mode_flags = mode_flags;
 +
++	mutex_unlock(&ctx->lock);
 +	return ret < 0 ? ret : 0;
 +}
 +
@@ -497,6 +565,7 @@ index 000000000..64e6fa96f
 +		return dev_err_probe(dev, PTR_ERR(ctx->iris_bypass_ready_gpio),
 +				     "Failed to get Iris bypass-ready GPIO\n");
 +
++	mutex_init(&ctx->lock);
 +	ctx->dsi = dsi;
 +	mipi_dsi_set_drvdata(dsi, ctx);
 +
