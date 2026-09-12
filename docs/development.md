@@ -72,6 +72,9 @@ NOT RUN until actual screenshots are inspected. Clock/cursor changes cannot
 substitute for showing the expected keyboard modes. Synthetic pointer gestures
 are not phone multitouch qualification. Failed/incomplete observation fails the
 requested probe, and held pointer buttons are released before abort cleanup.
+The mobile probe starts bounded guest udev discovery and requires the virtual
+keyboard/mouse ID_INPUT properties before Denial; kernel event nodes alone do
+not prove libinput discovery. The daemon joins the owned guest cleanup.
 The existing default landscape, EGL-comparison and CLI probes remain separate.
 
 The authenticated successor graph is

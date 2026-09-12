@@ -61,6 +61,36 @@ class RuntimePrerequisites(unittest.TestCase):
             (root/'usr/bin/modetest').unlink()
             self.assertEqual(GUEST.missing_runtime_inputs(root, True), ['usr/bin/modetest'])
 
+    def test_mobile_requires_udev_tools_and_input_identification_rules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'usr/bin').mkdir(parents=True)
+            for name in ('bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout',
+                         'modetest', 'seatd', 'sleep', 'Xwayland', 'dbus-daemon'):
+                (root / 'usr/bin' / name).touch()
+            mandatory = ['usr/bin/udevadm', 'usr/lib/systemd/systemd-udevd',
+                         'usr/lib/udev/rules.d/60-input-id.rules']
+            self.assertEqual(GUEST.missing_runtime_inputs(root, True), [])
+            self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=False), [])
+            self.assertCountEqual(GUEST.missing_runtime_inputs(root, True, mobile=True),
+                                  mandatory)
+            for relative in mandatory:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True), [])
+            for relative in mandatory:
+                with self.subTest(missing=relative):
+                    path = root / relative
+                    path.unlink()
+                    self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True),
+                                     [relative])
+                    self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=False), [])
+                    path.touch()
+            (root / 'usr/bin/Xwayland').unlink()
+            self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True),
+                             ['usr/bin/Xwayland'])
+
     def test_actual_zero_frame_summary_is_failure(self):
         line = ('independently clocked Flutter KMS session complete '
                 '\x1b[3mraster_frames\x1b[0m\x1b[2m=\x1b[0m0 '

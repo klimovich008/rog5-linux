@@ -20,11 +20,14 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
-def missing_runtime_inputs(runtime, shell):
+def missing_runtime_inputs(runtime, shell, mobile=False):
     commands = ['bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest']
     commands += ['seatd', 'sleep', 'Xwayland', 'dbus-daemon'] if shell else []
-    return ['usr/bin/' + name for name in commands
-            if not (runtime/'usr/bin'/name).is_file()]
+    paths = ['usr/bin/'+name for name in commands]
+    if mobile:
+        paths += ['usr/bin/udevadm', 'usr/lib/systemd/systemd-udevd',
+                  'usr/lib/udev/rules.d/60-input-id.rules']
+    return [path for path in paths if not (runtime/path).is_file()]
 
 
 def mobile_ready(log):
@@ -141,7 +144,7 @@ def main():
     output = args.output.absolute()
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
-    missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle))
+    missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile)
     if missing:
         report = {'status': 'BLOCKED', 'scope': 'offline guest prerequisites',
                   'missing_runtime_inputs': missing, 'vm_started': False,

@@ -54,7 +54,45 @@ elif [[ -d /run/payload/flutter ]]; then
     export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
     dbus-daemon --session --nofork --address="$DBUS_SESSION_BUS_ADDRESS" &
     bus_pid=$!
-    trap 'kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true' EXIT
+    udev_pid=''
+    trap 'kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
+    if [[ -f /run/shell-profile ]]; then
+        # Fixed virtual devices need real udev input_id data for libinput.
+        for event in /sys/class/input/event*; do
+            properties=$(timeout --kill-after=1 3 udevadm info --query=property --path="$event")
+            if [[ $'\n'"$properties"$'\n' == *$'\nID_INPUT=1\n'* ]]; then
+                echo 'OBSERVE virtual input before udev: ID_INPUT present'
+            else
+                echo 'OBSERVE virtual input before udev: ID_INPUT absent'
+            fi
+        done
+        /usr/lib/systemd/systemd-udevd --resolve-names=never --children-max=2 &
+        udev_pid=$!
+        for ((attempt=0; attempt<30; attempt++)); do
+            [[ ! -S /run/udev/control ]] || break
+            sleep 0.1
+        done
+        timeout --kill-after=1 5 udevadm control --ping
+        timeout --kill-after=1 5 udevadm trigger --action=add --subsystem-match=input
+        timeout --kill-after=1 6 udevadm settle --timeout=5
+        mouse=0 keyboard=0
+        for event in /sys/class/input/event*; do
+            name=$(cat "$event/device/name")
+            properties=$(timeout --kill-after=1 3 udevadm info --query=property --path="$event")
+            [[ $'\n'"$properties"$'\n' == *$'\nID_INPUT=1\n'* ]]
+            case $name in
+                'QEMU Virtio Tablet')
+                    [[ $'\n'"$properties"$'\n' == *$'\nID_INPUT_MOUSE=1\n'* ]]
+                    mouse=$((mouse+1)) ;;
+                'QEMU Virtio Keyboard')
+                    [[ $'\n'"$properties"$'\n' == *$'\nID_INPUT_KEYBOARD=1\n'* ]]
+                    keyboard=$((keyboard+1)) ;;
+                *) echo 'FAIL unexpected virtual input device' >&2; exit 1 ;;
+            esac
+            echo "PASS initialized virtual input: $name"
+        done
+        [[ $mouse == 1 && $keyboard == 1 ]]
+    fi
     for ((attempt=0; attempt<50; attempt++)); do
         [[ ! -S $SEATD_SOCK || ! -S $XDG_RUNTIME_DIR/bus ]] || break
         sleep 0.1
