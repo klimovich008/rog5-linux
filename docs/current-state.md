@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Native ARM64 engine compiled; shell/settings locks resolve offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **ARM64 shell AOT reproducible; Denial engine loader qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The exact-revision Dart 3.12.2 SDK verifies, real sky_engine generation passes, and shell/settings dependencies resolve offline with both locks unchanged. The third incremental engine segment passes in 746.332 seconds; the ARM64 engine exports and AMD64-host ARM64-target snapshot version verify. Its owner is terminal; both earlier segment deadline FAIL results remain retained. Next qualify the engine against the authenticated ARM64 runtime and its ICU inputs, then prepare shell AOT; Flutter tool bootstrap and full session remain unqualified. No phone operation is authorized; signed/installed/fallback artifacts are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-matching-dart-resolution.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The shell frontend compiles with zero errors; two ARM64 AOT builds are byte-identical. Six real Denial loader/engine AOT-data tests pass under ARM64 QEMU, including repeated shell data loading/cleanup. All 13 resolved Arch libraries and 1,970 compiler inputs match retained package/source records; ICU bytes match the pinned source. This does not start a VM/isolate, compositor or shell. Next assemble the real Flutter assets and settings runtime, then qualify bounded offline startup. No phone operation is authorized; signed/installed/fallback artifacts are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-engine-shell-aot.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

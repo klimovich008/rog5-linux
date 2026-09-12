@@ -1,0 +1,690 @@
+{
+  "format": "rog5-engine-shell-aot-qualification-v1",
+  "status": "PASS",
+  "scope": "real Denial loader, ARM64 engine dependency closure, pinned ICU copy and reproducible shell AOT data loading under QEMU; no running shell/VM/isolate/compositor or physical proof",
+  "source": {
+    "commit": "fcaa289fb5f6ffe10907a9e3b5e36a6a9e19d473",
+    "tree": "54ccb1d9fa5d564d401cd1fedfa0e3637a0bee02"
+  },
+  "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "flutter_commit": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+  "dart_commit": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
+  "runtime_build_and_initial_tests": {
+    "status": "PASS",
+    "scope": "actual Denial EngineLibrary compiled from pinned source; QEMU ARM64 dynamic loading, custom extension/proc-table and AOT-query tests; no compositor start or graphics proof",
+    "physical_status": "NOT RUN",
+    "phone_operations": false,
+    "tests": [
+      {
+        "name": "compile-probe-r2",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "--timeout=85",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1:/work:rw",
+          "-e",
+          "TMPDIR=/work",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-L",
+          "dependency=/deps",
+          "-C",
+          "lto=thin",
+          "--test",
+          "--extern",
+          "denial_flutter_engine=/work/libdenial_flutter_engine.rlib",
+          "/work/probe.rs",
+          "-o",
+          "/work/probe"
+        ],
+        "duration_seconds": 3.4232245570165105,
+        "exit_status": 0,
+        "status": "PASS",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/compile-probe-r2.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        }
+      },
+      {
+        "name": "engine-loader",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=768M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "/tmp/libflutter_engine.so",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "--list",
+          "/tmp/libflutter_engine.so"
+        ],
+        "duration_seconds": 0.11451677401782945,
+        "exit_status": 0,
+        "status": "PASS",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/engine-loader.log",
+          "sha256": "a89c60acea373277ee20fbf886be9b35d426dd928632b11e9aab4096bea4ab19",
+          "size": 849
+        }
+      },
+      {
+        "name": "denial-loader-tests",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=768M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "/tmp/libflutter_engine.so",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "duration_seconds": 0.26465761600411497,
+        "exit_status": 0,
+        "status": "PASS",
+        "log": {
+          "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/denial-loader-tests.log",
+          "sha256": "87fdda18905a2d8b9350af65f8223e619cacb6acc4daa81bbdb9a267206f4a6a",
+          "size": 328
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source/compositor/flutter-engine/src/lib.rs",
+        "sha256": "37b1d24e409eb476865d2daa88a612967739f4ab7535973502d7374d199dd44b",
+        "size": 31825
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source/compositor/flutter-engine/src/host.rs",
+        "sha256": "267eeb287449fb964e5f65d8b6db2fa98dafcf642c92701ccb74ce1bde1bf338",
+        "size": 48935
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source/compositor/flutter-engine/src/sys.rs",
+        "sha256": "ae6b26f12a089f3939d75cc8b2e0fe4831d2589d6a792f4dd1564f2d64ac0f67",
+        "size": 84404
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-a77fc59e77e0294d.rlib",
+        "sha256": "d2d209494ece8b0cf19cdeb97b4bc36871d664db36ad895a1e47f0d571e21e96",
+        "size": 231526
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+        "sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+        "size": 15975760
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/tree.json",
+        "sha256": "d0c54597856c2205f6c19abb932182ffcf61102c9c0caaf39df76852fccfd75b",
+        "size": 10394055
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe.rs",
+        "sha256": "44a3646c37561f0a08fab28de3f88162b8a9bc3fc33593a2ced6d83dcea73eef",
+        "size": 1037
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib",
+        "sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637",
+        "size": 9258
+      }
+    ],
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe",
+        "sha256": "3abbec8b04879da82ce31e831fcb3102cf55b2d5ac4e7b22ee04169d0985397b",
+        "size": 6319736
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib",
+        "sha256": "490e49185809f056fb5007b12e728d55aec56e2d89d1d04b4b95afef01bc9efe",
+        "size": 2428228
+      }
+    ],
+    "builder": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "tools": [
+      {
+        "path": "/usr/bin/systemd-run",
+        "sha256": "f847163235e8489616888e350d8221a5846da47937d0ecac24802a3c810d0787",
+        "size": 84600
+      },
+      {
+        "path": "/usr/bin/bwrap",
+        "sha256": "11e350f9154f8c8e30482fb087f4c3d033907452b7a5d82d027b6662d07f3ab6",
+        "size": 84424
+      },
+      {
+        "path": "/usr/bin/qemu-aarch64-static",
+        "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+        "size": 6348264
+      }
+    ]
+  },
+  "frontend": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--network=none",
+      "--memory=2048m",
+      "--memory-swap=2048m",
+      "--cpus=2",
+      "--pids-limit=128",
+      "--timeout=290",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/sdk:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache:/pub-cache:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1:/work:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/flutter:/flutter:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages:/flutter/packages:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/gen/dart-pkg/sky_engine:/flutter/bin/cache/pkg/sky_engine:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/flutter_patched_sdk:/platform:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1:/output:rw",
+      "-e",
+      "HOME=/output/home",
+      "-e",
+      "TMPDIR=/output/tmp",
+      "--workdir=/work/workspace/dart_shell",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "/sdk/bin/dartaotruntime",
+      "/sdk/bin/snapshots/frontend_server_aot.dart.snapshot",
+      "--sdk-root",
+      "/platform/",
+      "--target=flutter",
+      "--no-print-incremental-dependencies",
+      "-Ddart.vm.profile=false",
+      "-Ddart.vm.product=true",
+      "--delete-tostring-package-uri=dart:ui",
+      "--delete-tostring-package-uri=package:flutter",
+      "--track-widget-creation",
+      "--aot",
+      "--tfa",
+      "--target-os",
+      "linux",
+      "--packages",
+      "/work/workspace/dart_shell/.dart_tool/package_config.json",
+      "--output-dill",
+      "/output/app.dill",
+      "--depfile",
+      "/output/app.d",
+      "--verbosity=error",
+      "lib/main.dart"
+    ],
+    "status": "PASS",
+    "exit_status": 0,
+    "duration_seconds": 23.17090888900566,
+    "physical_status": "NOT RUN",
+    "scope": "real shell frontend whole-program release compilation only; no assets or engine initialization",
+    "inputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/dartaotruntime",
+        "sha256": "297f6b68adf22140d0bfc92cf974dc0e22bd54be6e15d730b911ad5b661d6a89"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/snapshots/frontend_server_aot.dart.snapshot",
+        "sha256": "c538f3be137067d674993c36255e6b56ffcdf49a7cc867a6a7e850a2da46f045"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/flutter_patched_sdk/platform_strong.dill",
+        "sha256": "405cb8b4cfea924abdaf9c6f9445ffa327a4928dd410c96e5a778c1856728831"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/dart_shell/.dart_tool/package_config.json",
+        "sha256": "f16a991594ab891d0ec29a01e3ef2c1e8a5cd5474122bbaa1205258dd5534923"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter_tools/lib/src/compile.dart",
+        "sha256": "25483f204e9d8bf042ba1829fed4cbd5ef80f895adcab940d8968380b7faa8af"
+      }
+    ],
+    "log_sha256": "5dd643fcfc8fd9f8e4382b97911e7d7d5bf77f64a9f119dbd9ca20ebdfe4e2ce",
+    "output": {
+      "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/app.dill",
+      "sha256": "0a07d9cce460c68374dde3ca233ddcc6463b0c19b95a864800b7928c8692f9d0",
+      "size": 45472848
+    }
+  },
+  "aot": {
+    "status": "PASS",
+    "tests": [
+      {
+        "name": "aot-r1",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=128",
+          "--timeout=290",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot:/gen_snapshot:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/app.dill:/input/app.dill:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1:/output:rw",
+          "-e",
+          "TMPDIR=/output",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/gen_snapshot",
+          "--deterministic",
+          "--snapshot_kind=app-aot-elf",
+          "--elf=/output/libapp.so",
+          "--strip",
+          "/input/app.dill"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 20.111157053994248,
+        "log_sha256": "45aec0a66413d46de0747d94f6eab9289d869855dbaf49de297d66df1b989399",
+        "output": {
+          "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+          "size": 10814352,
+          "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871"
+        }
+      },
+      {
+        "name": "aot-r2",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=128",
+          "--timeout=290",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot:/gen_snapshot:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/app.dill:/input/app.dill:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r2:/output:rw",
+          "-e",
+          "TMPDIR=/output",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/gen_snapshot",
+          "--deterministic",
+          "--snapshot_kind=app-aot-elf",
+          "--elf=/output/libapp.so",
+          "--strip",
+          "/input/app.dill"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 19.96093450798071,
+        "log_sha256": "45aec0a66413d46de0747d94f6eab9289d869855dbaf49de297d66df1b989399",
+        "output": {
+          "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r2/libapp.so",
+          "size": 10814352,
+          "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871"
+        }
+      }
+    ],
+    "byte_identical": true,
+    "input_dill_sha256": "0a07d9cce460c68374dde3ca233ddcc6463b0c19b95a864800b7928c8692f9d0",
+    "tool_sha256": "c0d9294287db1e33fea482e6f4f9907b763901f8a6c9bdf025b5791a991ebb01",
+    "physical_status": "NOT RUN",
+    "scope": "real shell ARM64 AOT compilation and two fresh-output byte equality; assets/session not qualified"
+  },
+  "final_aot_loader_tests": {
+    "status": "PASS",
+    "tests": [
+      {
+        "name": "compile-aot-probe",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "--timeout=85",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1:/work:rw",
+          "-e",
+          "TMPDIR=/work",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-L",
+          "dependency=/deps",
+          "-C",
+          "lto=thin",
+          "--test",
+          "--extern",
+          "denial_flutter_engine=/work/libdenial_flutter_engine.rlib",
+          "/work/probe-aot.rs",
+          "-o",
+          "/work/probe-aot"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 3.775136645010207,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/compile-aot-probe.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        }
+      },
+      {
+        "name": "aot-loader-tests",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=768M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe-aot",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "/tmp/libflutter_engine.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+          "/tmp/libapp.so",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.36488756802282296,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/aot-loader-tests.log",
+          "sha256": "39a1edf6ea47976e13c8b78a052ee3d5f68da11e9f5274aceaf25c189ff72edc",
+          "size": 568
+        }
+      }
+    ],
+    "case_count": 6,
+    "inputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+        "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871",
+        "size": 10814352
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe-aot.rs",
+        "sha256": "0fa095496c8017e520c3aaaec4da326523130a32c9ae2d38af0269dd76483fef",
+        "size": 1604
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib",
+        "sha256": "490e49185809f056fb5007b12e728d55aec56e2d89d1d04b4b95afef01bc9efe",
+        "size": 2428228
+      }
+    ],
+    "output": {
+      "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe-aot",
+      "sha256": "efdd530b6eb7020a226f9897c3a605f021c19189b5ed3eadd7ad57f06bb51daa",
+      "size": 6331136
+    },
+    "physical_status": "NOT RUN",
+    "scope": "actual Denial loader and engine AOT data API under ARM64 QEMU; six tests including repeated real shell ELF load/cleanup. No VM/isolate/compositor start."
+  },
+  "input_audit": {
+    "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/input-audit.json",
+    "sha256": "059fd3e07f573d123373a95acdd94b4d38f5de2ea85d7027dd9a54b0ce622468",
+    "size": 804108
+  },
+  "compiler_input_count": 1970,
+  "verified_loaded_arch_libraries": 13,
+  "icu": {
+    "icu_source_commit": "ee5f27adc28bd3f15b2c293f726d14d2e336cbd5",
+    "icu_source": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/engine/src/flutter/third_party/icu/common/icudtl.dat",
+      "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+      "size": 10822192
+    },
+    "icu_output": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/icudtl.dat",
+      "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+      "size": 10822192
+    },
+    "icu_build_graph": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/toolchain.ninja",
+      "sha256": "5b8f43a5f5ed5d146edf8e59974b6045104bce5b3d2450a2fb5e2d57439cf5c5",
+      "size": 762677
+    }
+  },
+  "input_audit_duration_seconds": 1.9346867660060525,
+  "retained_failure": {
+    "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/build-r1-result.json",
+    "sha256": "bb7670e7725563c9c042cb2c0bb04d94dbcd2e469a26b7755a18c948fc6af380",
+    "size": 3249
+  },
+  "failure_explanation": "Standalone test harness initially omitted ThinLTO required by cached release dependency bitcode. The matching source Cargo.toml specifies lto=thin; adding that option fixed the harness without engine changes.",
+  "private_tools": [
+    {
+      "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/run.py",
+      "sha256": "ebe287f4fcc85295a90f96feb6fe9503cebff099d26954512078f46b4398a8a9",
+      "size": 4229
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/run-r2.py",
+      "sha256": "513236c90cefbe8868745c072959a02a0a86a7fcf4faae17888d403ed26a4c6f",
+      "size": 3980
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe.rs",
+      "sha256": "44a3646c37561f0a08fab28de3f88162b8a9bc3fc33593a2ced6d83dcea73eef",
+      "size": 1037
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe-aot.rs",
+      "sha256": "0fa095496c8017e520c3aaaec4da326523130a32c9ae2d38af0269dd76483fef",
+      "size": 1604
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/run-aot-probe.py",
+      "sha256": "b1acebf389cd5925a7a683b824e3efe78770bb9312c012cd19541dda2621c57c",
+      "size": 2025
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/audit-inputs.py",
+      "sha256": "b9aedd548a0c927137e187ca0ddc4b4f650b89e4de6f6165b3f6ea1ee29ce7e1",
+      "size": 4472
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/run-frontend.py",
+      "sha256": "e70c7c47ae2d2990f7401e8a876422c1aadf21b87bb0ac2946bfac36c10c00c5",
+      "size": 2942
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/run-aot.py",
+      "sha256": "37cc9dba208415f8d031ac89b50a19ef3207f886ec4af7b2bfe5375185280f97",
+      "size": 2476
+    }
+  ],
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "signing": false,
+  "claim_operations": false,
+  "protected_storage_mutation": false,
+  "candidate_created": false,
+  "remaining": [
+    "complete Flutter asset assembly and runtime startup",
+    "settings ARM64 application and GTK engine/package closure",
+    "native touch/graphics/session physical qualification"
+  ]
+}

@@ -394,7 +394,7 @@
     "dart_revision": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
     "dart_version": "3.12.2",
     "flutter_tool_bootstrap": "NOT RUN",
-    "shell_aot_status": "NOT RUN",
+    "shell_aot_status": "PASS: ARM64 compiler/data-load evidence in denial_shell_aot; assets/session NOT RUN",
     "physical_status": "NOT RUN",
     "authority": "none"
   },
@@ -434,8 +434,45 @@
         ]
       }
     ],
-    "engine_runtime_status": "NOT RUN",
-    "shell_aot_status": "NOT RUN",
+    "engine_runtime_status": "PASS: dynamic loading/proc-table and AOT-data APIs under ARM64 QEMU; initialization/session NOT RUN",
+    "shell_aot_status": "PASS: compiler and engine AOT-data load; application/session NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none",
+    "runtime_evidence": {
+      "path": "test-results/2026-09-12-engine-shell-aot-qualification.json",
+      "sha256": "2d75e29e349bb1d52070e3d0687aa4b47a5b13f3b7f68e6b7e7f2679d43a1078",
+      "size": 25261
+    }
+  },
+  "denial_shell_aot": {
+    "status": "PASS: two byte-identical ARM64 AOT outputs and real engine AOT-data loader; assets/session NOT RUN",
+    "set_id": "private:rog5-shell-aot-evidence-20260912-r1",
+    "evidence": {
+      "path": "test-results/2026-09-12-engine-shell-aot-qualification.json",
+      "sha256": "2d75e29e349bb1d52070e3d0687aa4b47a5b13f3b7f68e6b7e7f2679d43a1078",
+      "size": 25261
+    },
+    "output": {
+      "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+      "size": 10814352,
+      "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871"
+    },
+    "icu": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/icudtl.dat",
+      "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+      "size": 10822192
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_engine_loader_validation": {
+    "status": "PASS: six ARM64 QEMU loader/AOT-data tests; no engine or compositor startup",
+    "set_id": "private:rog5-engine-runtime-evidence-20260912-r1",
+    "evidence": {
+      "path": "test-results/2026-09-12-engine-shell-aot-qualification.json",
+      "sha256": "2d75e29e349bb1d52070e3d0687aa4b47a5b13f3b7f68e6b7e7f2679d43a1078",
+      "size": 25261
+    },
     "physical_status": "NOT RUN",
     "authority": "none"
   }
