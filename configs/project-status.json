@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Reservation ordering counterexamples reproduced; coherent work handoff remains open",
+  "phase": "Paired render-work correction passes ARM64 VirGL VM; phone qualification remains open",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Seven actual-engine ordering cases pass, including queued and resubmitted work overtaking barriers, zero-render frames and pipeline-full deferral. Two broker stale-work isolation properties remain FAIL with two passing controls. Implement work-specific acquisition/cancellation and separate UI-production from terminal raster completion. The retained VM remains FAIL at 46 frames/page flips and eight errors; context cleanup passes. No new engine build, VM, phone operation or candidate occurred.",
-  "evidence": "test-results/2026-09-13-reservation-order.md"
+  "next": "Work-specific reservations and engine ownership pass 45 host cases. All 52 affected engine objects and the paired ARM64 binaries build; the bounded VM records 41 raster frames/page flips, zero rendering errors and successful context cleanup. The active tier passes 87 suites. Work tracing saturated before admission, so individual work-to-FBO mapping is not claimed. Next qualify visible output and synthetic input with these VM bytes; phone OLED/touch/A660 and S06/R01 remain open. No phone operation, signing, candidate or claim occurred.",
+  "evidence": "test-results/2026-09-13-render-work.md"
 }

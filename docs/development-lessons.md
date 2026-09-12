@@ -2556,3 +2556,11 @@ without removing its input; retiring a byte-identical second kernel debug copy
 made room for verified lossless archives. Retain chained restoration commands
 when the surviving duplicate is subsequently archived. Boot Images, modules,
 configs, signed recovery bytes and original build caches are separate inputs.
+
+The passing work-protocol VM produced 41 page flips, but its shared 512-event
+work trace filled with initial grant/cancel traffic before admission. Do not
+claim runtime work-to-FBO correlation from that log. Separate bounded error and
+admission coverage from high-volume startup events if another ownership question
+requires tracing; preserve this coverage limitation and the passing terminal
+counters independently. Existing scheduler intervals separately observed 40
+ready-with-fence/signaled/submitted/presented transactions.

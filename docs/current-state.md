@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Reservation ordering counterexamples reproduced; coherent work handoff remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Paired render-work correction passes ARM64 VirGL VM; phone qualification remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Seven actual-engine ordering cases pass, including queued and resubmitted work overtaking barriers, zero-render frames and pipeline-full deferral. Two broker stale-work isolation properties remain FAIL with two passing controls. Implement work-specific acquisition/cancellation and separate UI-production from terminal raster completion. The retained VM remains FAIL at 46 frames/page flips and eight errors; context cleanup passes. No new engine build, VM, phone operation or candidate occurred. See [current repair evidence](../test-results/2026-09-13-reservation-order.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Work-specific reservations and engine ownership pass 45 host cases. All 52 affected engine objects and the paired ARM64 binaries build; the bounded VM records 41 raster frames/page flips, zero rendering errors and successful context cleanup. The active tier passes 87 suites. Work tracing saturated before admission, so individual work-to-FBO mapping is not claimed. Next qualify visible output and synthetic input with these VM bytes; phone OLED/touch/A660 and S06/R01 remain open. No phone operation, signing, candidate or claim occurred. See [current repair evidence](../test-results/2026-09-13-render-work.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
