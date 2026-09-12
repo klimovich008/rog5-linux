@@ -30,6 +30,18 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+IOMMU r135: replace historical fixed-boot provider receipts with a protected
+same-owner, same-boot handoff when composing successive hardware phases. Reject
+stale/incomplete handoffs and reobserve IOMMU attachment immediately before each
+subsequent operation; a previously successful provider is insufficient if its
+GPU group disappears. The113 focused cases passed on their first attempts after
+staging fixtures and using each suite's correct namespace. Check combined timing
+before wrapping independently qualified components: the old single-phase logger
+caps duration at180 seconds, and the new target handoff expires after180 seconds.
+The combined coordinator must bind the display's provider-result hash to its own
+successful provider transport result and explicitly budget both phases, health
+reads and logger closure. Module and kernel rebuilds were unnecessary.
+
 IOMMU r134: driver binding alone did not prove GPU IOMMU attachment on the
 previous phone run. Check both GPU and GMU group links, reciprocal membership
 and exact DT streams before display/query; keep this proof separate from actual

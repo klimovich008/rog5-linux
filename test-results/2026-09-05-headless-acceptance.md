@@ -9290,3 +9290,48 @@ Reuse the completed controller r2 RAM stage evidence, never restage. No human
 Ready is pending. Latest full phone health remains r131; installed route r132.
 S06/R01 and blank cleanup remain open. Evidence: gpu-iommu-provider-r1/review-r134.json
 and checkpoint-r134. All owned test processes are terminal.
+
+## IOMMU r135 — matched display and provider handoff, 2026-09-12
+
+Latest r135, 2026-09-12: **matching display/GPU component and same-owner provider
+handoff qualified offline**. Previous r134 was progress. No phone I/O, sudo
+change, boot claim or reboot occurred. The new kernel remains unbooted.
+
+New gpu-iommu-display-r1 binds REFGEN/panel modules extracted by streaming the
+qualified r2 initramfs. Endpoint and display-loader function bodies are unchanged;
+only matched kernel/bundle/descriptor/module pins differ. The initializer does
+not insert GPUCC again. It retains two display insertions, one render open/four
+parameter ioctls, zero submits and independent zero-brightness cleanup. Neither
+GPU initialization nor a group observation claims hardware acceleration.
+
+The old fixed r124 provider-marker dependency is replaced by a protected RAM
+result from the new provider, bound to the same boot and owner. The result must
+prove success, full process closure and cleanup, and be at most180 target-monotonic
+seconds old. Duplicate fields, wrong metadata, future/expired receipts and failed
+or incomplete providers refuse before display. GPU/GMU reciprocal IOMMU links and
+DT streams are read again on every initializer gate, including after display and
+before query. Losing the GPU group after display blocks the query. Parent backend
+and host validate attachment proof against the admitted boot/owner. The future
+combined coordinator must additionally compare the returned provider-result SHA
+to its exact successful provider transport target result; this linkage is pending.
+
+20 handoff/component cases passed0.768 s;20 endpoint cases0.178 s;17 actual matched
+module-file/loader cases1.295 s;25 supervision cases4.543 s;19 transport cases3.129 s;
+12 receipt cases0.135 s. Total113 host-architecture cases in10.048 s, all first
+attempts PASS. Actual owned children, query-child supervision, private-RAM staging
+and provider/initializer/host transport execute. Kernel/DRM effects, phone health
+and identity, and the provider process-closure receipt are fixtures. ARM64 target
+execution of the adapted provider/display remains pending. The staged source
+inventory is117671 bytes, below the existing131072-byte cap.
+
+Next: build the combined session under current IOMMU boot admission; finish the
+provider-result SHA linkage and budget logger/health/recovery for both phases.
+The old logger accepts at most180 seconds. Qualify a suitably bounded duration
+or separate captures while honoring the180-second provider handoff freshness;
+do not silently reuse the one-phase timing. Then qualify combined coordinator
+and ARM64 target execution, adapt launcher/credentials, freeze inputs and verify
+root handoffs before a live claim. INPUTS_SHA remains None. The completed r2
+controller RAM stage remains evidence only; never replay it. No Ready is pending.
+Latest full phone health remains r131; route read r132. S06/R01 and blank cleanup
+remain open. All test processes are terminal. Evidence: gpu-iommu-display-r1/
+review-r135.json and checkpoint-r135.
