@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial shell renders offline; GTK engine compiled**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Settings runner reproducible; assets corrected; GTK cleanup unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The exact ARM64 shell initializes its VM/isolate, renders the Denial lock screen in software under QEMU and shuts down cleanly. Invalid ICU is rejected and the unchanged valid fixture starts afterward. Black and truncated captures are rejected as visible-frame evidence. The cached GTK engine library compiled in 252 seconds and its Arch runtime dependencies resolve. Next build/qualify the settings native runner and full offline Wayland session. These results do not prove touch, hardware acceleration, lock security or phone operation. No phone operation is authorized; signed/installed/fallback bytes remain unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-shell-initialization.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Two ARM64 settings runner builds are byte-identical. A real software GTK frame exposed missing package assets; the committed helper now validates resolved roots and emits the complete 29-asset set. It rejects relocated roots and existing outputs. The UI renders with the qualified schema cache but reports Settings are unavailable without the Denial backend. GTK still attempts invalid implicit-view removal during disposal; clean settings session remains FAIL. The Rust test preflight now honors RUSTC; the frozen active tier passes 86 suites. Next fix and qualify GTK disposal, then bring up the full offline Wayland/backend session. No phone operation is authorized; signed/installed/fallback bytes are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-settings-runner.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
