@@ -59,6 +59,19 @@ and qualify an explicit successor with authenticated additional packages.
 The runner records the supplied runtime path but does not repeat its package
 inventory authentication; bind the run to that separate retained evidence.
 
+For the explicit mobile UI probe, add `--observe-mobile` to the full-shell
+VirGL command. It selects `DENIA_SHELL_PROFILE=mobile` and a 540×1224 portrait
+virtual output, then records four bounded PNG captures around an OSK reveal
+swipe and `?123`/`ABC` pointer clicks. It contacts only that fresh VM's named QMP
+socket; it never types credentials or sends power commands. The fixture assumes
+scale 1 coordinates and must be checked against the captured UI. QMP acceptance
+and valid PNGs are capture/delivery evidence only: `visual_semantics` stays
+NOT RUN until actual screenshots are inspected. Clock/cursor changes cannot
+substitute for showing the expected keyboard modes. Synthetic pointer gestures
+are not phone multitouch qualification. Failed/incomplete observation fails the
+requested probe, and held pointer buttons are released before abort cleanup.
+The existing default landscape, EGL-comparison and CLI probes remain separate.
+
 The authenticated successor graph is
 `mobile-package-snapshot-20260912-xwayland.json` (326 packages). The historical
 315-package graph remains unchanged. A full-shell run now requires a guest

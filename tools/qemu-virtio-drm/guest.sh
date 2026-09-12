@@ -31,6 +31,12 @@ esac
 export RUST_BACKTRACE=1
 # Existing bounded INFO audit exposes allocation backpressure in release builds.
 export DENIA_RENDER_AUDIT=1
+if [[ -f /run/shell-profile ]]; then
+    read -r profile < /run/shell-profile
+    [[ $profile == mobile ]] || { echo 'FAIL unknown explicit shell profile' >&2; exit 1; }
+    export DENIA_SHELL_PROFILE=mobile
+    echo 'OBSERVE explicit mobile shell profile; synthetic VM input only'
+fi
 # Keep buffer format/import evidence at the failing GL boundary. The host
 # harness bounds the complete serial log and guest lifetime.
 export RUST_LOG=deniald=info,smithay=info,smithay::backend::egl::display=trace,smithay::backend::renderer::gles=trace

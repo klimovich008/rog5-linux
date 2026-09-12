@@ -7921,6 +7921,30 @@
         "scripts/host/test-qemu-virtio-drm.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-qemu-mobile-observer.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/qemu-mobile-observer.py"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -100,6 +101,8 @@ def main():
     program.add_argument('--egl-thread-probe', type=Path,
                          help='standalone ARM64 EGL transfer comparison; no Denial execution')
     parser.add_argument('--flutter-bundle', type=Path)
+    parser.add_argument('--observe-mobile', action='store_true',
+                        help='portrait mobile profile, bounded QMP screenshots and OSK pointer gestures')
     parser.add_argument('--render-node', type=Path,
                         help='explicit host DRM render node for virtual VirGL; default uses software')
     parser.add_argument('--image', required=True)
@@ -108,6 +111,8 @@ def main():
     args = parser.parse_args()
     if args.egl_thread_probe and (args.flutter_bundle or not args.render_node):
         parser.error('EGL thread probe requires VirGL and excludes Flutter bundle')
+    if args.observe_mobile and (not args.flutter_bundle or not args.render_node):
+        parser.error('mobile observation requires Flutter and an explicit VirGL render node')
     render_node = render_node_identity(args.render_node) if args.render_node else None
     if not 30 <= args.deadline <= 300:
         parser.error('deadline must be between 30 and 300 seconds')
@@ -148,6 +153,8 @@ def main():
         shutil.copytree(bundle, payload/'flutter')
     shutil.copy2(repo/'tools/qemu-virtio-drm/guest.sh', stage/'stage/guest.sh')
     (stage/'stage/graphics-mode').write_text('virgl\n' if render_node else 'software\n')
+    if args.observe_mobile:
+        (stage/'stage/shell-profile').write_text('mobile\n')
     compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
                        '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
                        '-Werror', '-Wall', '-Wextra',
@@ -169,7 +176,18 @@ def main():
               'compile_command': compile_command, 'status': 'FAIL'}
     name = 'rog5-virtual-drm-' + uuid.uuid4().hex[:12]
     launched = False
+    observer = None
+    observer_finalized = False
+    observation_error = None
     try:
+        if args.observe_mobile:
+            observer_path = Path(__file__).with_name('qemu-mobile-observer.py')
+            spec = importlib.util.spec_from_file_location('qemu_mobile_observer', observer_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            observer = module.MobileObserver(output/'observe', name)
+            report['observer_sha256'] = digest(observer_path)
+            report['shell_profile'] = 'mobile'
         subprocess.run(compile_command, check=True, timeout=30,
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         members = sorted(str(p.relative_to(stage)) for p in stage.rglob('*'))
@@ -207,6 +225,12 @@ def main():
             command[command.index('-display')+1] = 'egl-headless,rendernode='+str(args.render_node)
             index = command.index('virtio-gpu-device,xres=640,yres=480')
             command[index] = 'virtio-gpu-gl-device,xres=640,yres=480'
+        if observer:
+            index = command.index(args.image)
+            command[index:index] = ['-v', str(output/'observe')+':/observe:rw']
+            command += ['-name', name, '-qmp', 'unix:/observe/qmp.sock,server=on,wait=off']
+            index = command.index('virtio-gpu-gl-device,xres=640,yres=480')
+            command[index] = 'virtio-gpu-gl-device,xres=540,yres=1224'
         report['command'] = command
         logpath = output/'serial.log'
         with logpath.open('xb') as log:
@@ -217,8 +241,22 @@ def main():
                     while process.poll() is None:
                         if time.monotonic() >= end or logpath.stat().st_size > 8*1024*1024:
                             raise TimeoutError('guest deadline or 8 MiB log bound exceeded')
+                        if observer and not observer.complete:
+                            with logpath.open('rb') as source:
+                                source.seek(max(0, logpath.stat().st_size-131072))
+                                ready = b'Flutter per-output render audit' in source.read(131072)
+                            observer.tick(time.monotonic(), ready)
                         time.sleep(0.2)
+                except BaseException as error:
+                    observation_error = error
+                    raise
                 finally:
+                    if observer:
+                        try:
+                            report['mobile_observation'] = observer.finish(observation_error)
+                        except Exception as error:
+                            report['mobile_observation'] = {'status': 'FAIL', 'error': str(error)}
+                        observer_finalized = True
                     if process.poll() is None:
                         subprocess.run(['podman', 'stop', '--time', '2', name],
                                        capture_output=True, timeout=10)
@@ -246,10 +284,15 @@ def main():
                 and 'PASS guest-script exited cleanly' in log and 'FAIL guest-' not in log):
             report['status'] = 'PASS'
     except Exception as error:
+        observation_error = error
         report['error'] = str(error)
         if isinstance(error, subprocess.CalledProcessError) and error.stderr:
             report['stderr'] = error.stderr.decode(errors='replace')[-4000:]
     finally:
+        if observer and not observer_finalized:
+            report['mobile_observation'] = observer.finish(observation_error)
+        if report.get('mobile_observation', {}).get('status', 'PASS') != 'PASS':
+            report['status'] = 'FAIL'
         if launched:
             check = subprocess.run(['podman', 'container', 'exists', name], timeout=10)
             report['container_removed'] = check.returncode == 1
@@ -257,7 +300,7 @@ def main():
                 report['status'] = 'FAIL'
         report['duration_seconds'] = time.monotonic() - start
         for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
-                     stage/'stage/graphics-mode', output/'serial.log'):
+                     stage/'stage/graphics-mode', stage/'stage/shell-profile', output/'serial.log'):
             if path.is_file():
                 report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)
         (output/'result.json').write_text(json.dumps(report, indent=2)+'\n')
