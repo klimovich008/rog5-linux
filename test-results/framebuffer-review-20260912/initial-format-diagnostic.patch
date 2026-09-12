@@ -1,0 +1,18 @@
+--- a/compositor/src/bin/deniald/startup.rs
++++ b/compositor/src/bin/deniald/startup.rs
+@@ -369,6 +369,15 @@
+             .ok_or("Flutter output pools were not allocated")?
+             .outputs
+         {
++            let dmabuf = &pool.buffers[pool.current].dmabuf;
++            let format = smithay::backend::allocator::Buffer::format(dmabuf);
++            info!(
++                ?format,
++                ?dmabuf,
++                renderable = egl_display.dmabuf_render_formats().contains(&format),
++                render_formats = ?egl_display.dmabuf_render_formats(),
++                "offline initial framebuffer diagnostic"
++            );
+             render_blank_target(
+                 &mut renderer,
+                 &mut pool.buffers[pool.current].dmabuf,
