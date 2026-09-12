@@ -16,7 +16,16 @@ M=module('check-mobile-status.py');P=module('load-private-device-profile.py')
 class Status(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
-        for name in ('configs/project-status.json','configs/mobile/acceptance.json','configs/release-acceptance.json','manifests/current-artifact.json','test-results/2026-09-12-offline-correctness-repair.md'):
+        status=json.loads((ROOT/'configs/project-status.json').read_text())
+        contract=json.loads((ROOT/status['mobile_contract']).read_text())
+        names={'configs/project-status.json',status['mobile_contract'],
+               contract['headless_baseline']['path'],status['artifact_pointer'],status['evidence']}
+        for row in contract['rows']:
+            for kind in ('software','physical'):
+                proof=row[kind]
+                if proof['status']=='PASS': names.add(proof['evidence']['path'])
+        for name in names:
+            (ROOT/name).resolve().relative_to(ROOT)
             path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,path)
     def test_contract_validates(self): self.assertIn('NOT RUN',M.validate(self.root))
     def test_physical_pass_cannot_use_unbound_software_proof(self):

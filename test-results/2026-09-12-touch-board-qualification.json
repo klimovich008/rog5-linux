@@ -1,0 +1,129 @@
+{
+  "format": "rog5-incremental-board-qualification-v1",
+  "row": "board-build",
+  "scope": "software",
+  "status": "PASS",
+  "source_commit": "5b716c1d0a48dfe13e429d94ac07a460681e250f",
+  "source_tree": "9492c29f1a71bb5e6164fb3da9d3ff803ec1c4b7",
+  "execution_repository": {
+    "commit": "5b716c1d0a48dfe13e429d94ac07a460681e250f",
+    "tree": "9492c29f1a71bb5e6164fb3da9d3ff803ec1c4b7",
+    "dirty": true
+  },
+  "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "production_series_sha256": "b027af87b37d0aa6d758539efefd082557fcfdd6bfda89cef220d476346eefde",
+  "ordered_patches": [
+    {
+      "name": "0001-ufs-add-read-only-discovery-mode.patch",
+      "sha256": "79391d934d328686879ea85956e0ded28fc351e98d05707e84dae0a289de221e"
+    },
+    {
+      "name": "0002-ufs-tighten-read-only-discovery-command-gates.patch",
+      "sha256": "2d6a1da7b1c02bcc587b6216d7b4b7c9ffdb4290e56ab267a65ffcd375817b66"
+    },
+    {
+      "name": "0003-ufs-pin-discovery-link-active-across-pm-and-shutdown.patch",
+      "sha256": "5dea8cc5814c9c02bdcf7625fc002ee2917c3261b89dabee8a80d463eb155929"
+    },
+    {
+      "name": "0012-drm-msm-a6xx-propagate-gmu-pwrlevels-error.patch",
+      "sha256": "0d223284805217246efaefa2fc8ad431d94d05e4fa9269f2ef86e3fb29378637"
+    },
+    {
+      "name": "0018-power-supply-qcom-battmgr-add-rog5-cell-voltage.patch",
+      "sha256": "12b84505ce30374482683e477e438c0c68ce41cdf7241e23c202be6625f8cbf0"
+    },
+    {
+      "name": "0026-clk-resume-runtime-pm-providers-around-orphan-walks.patch",
+      "sha256": "21f50debc2e84faa91a6ead1b262a91c88a14ae429fc0b3fdb988ccd895d8bb0"
+    },
+    {
+      "name": "0033-ufs-permit-bounded-data-writes-under-discovery-containment.patch",
+      "sha256": "1d449202a70f1bc3ec02c5c539686d2c885d120db89de305803a866ca87d6262"
+    },
+    {
+      "name": "0034-ufs-enable-high-speed-for-bounded-data-writes.patch",
+      "sha256": "f6067613d9c5c6f75c6002df5c99b8da0b95e0676cbe70d7e92ccfedf85d1c85"
+    },
+    {
+      "name": "0035-soc-qcom-rpmh-timeout-safe-readback.patch",
+      "sha256": "2ea5641fe540db4b27057d2f86f47573a03984e3a65bdfb74fe93301a415c8f8"
+    },
+    {
+      "name": "0036-regulator-qcom-rpmh-asus-s12-oem-point.patch",
+      "sha256": "c941010d0efffd01ec07f1a2147d11fb2c1c7d36ac939c0d9a04f0455afa8f2d"
+    },
+    {
+      "name": "0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+      "sha256": "db72de91f78617526f2965cfdf30441ebe034bf5824dfdb92027173046475e49"
+    },
+    {
+      "name": "0038-power-supply-qcom-battmgr-fix-charge-units.patch",
+      "sha256": "28ebfe38e7b6c48e16c65540cc71e0d3ace9b1f6d4534336c8f90b375d1f3658"
+    },
+    {
+      "name": "0039-usb-gadget-ncm-restart-busy-tx-timer.patch",
+      "sha256": "a13cc153c3249c0ba91c0713ed5a454d6e747696fd88b54c2cec5a4324e150e9"
+    },
+    {
+      "name": "0040-drm-msm-adreno-defer-until-iommu-attachment.patch",
+      "sha256": "e5c48c11b4f3cd794126ff2d5754d44ba42a4767d523a95d198d7e3fd52d5127"
+    },
+    {
+      "name": "0041-dt-bindings-arm-qcom-document-ASUS-ROG-Phone-5.patch",
+      "sha256": "9c8b4d745126d8b0cb6db8e24196e411d710f334ffedffdbda0111ee2bb4dca7"
+    },
+    {
+      "name": "0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch",
+      "sha256": "4af9c5b707e21f28f3459e545fd7ace25041d74e5b212d2201833242cfc6f6fe"
+    }
+  ],
+  "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+  "release": "7.1.4-rog5-production",
+  "checks": {
+    "production_hunks_applied": "PASS: all16, all22 affected files from exact hash-pinned base archive",
+    "compiled_source_reuse": "PASS: all compiled source inputs unchanged; only RPMh binding and board compatible changed",
+    "Image_modules": "PASS: inherited full compile; exact Image and1031 module bytes reverified",
+    "board_DTB": "PASS: compiled anew using retained kernel tool and flags; originalDTB reproduced byte-for-byte",
+    "overlays": "PASS: four compiled outputs reverified unchanged",
+    "full_board_schema": "PASS: zero diagnostics",
+    "modpost_depmod_closure": "PASS: inherited exact1031 modules and metadata",
+    "physical": "NOT RUN",
+    "firmware_presence": "NOT RUN"
+  },
+  "outputs": {
+    "image_sha256": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a",
+    "new_board_dtb_sha256": "52978b7def2241ed8f8d8a0223eb5becf47976b0355c09120ecfc8e2a5b5ead7",
+    "module_metadata_sha256": "ce75c8c580c82a96cf5b2731c363c91d07f22992f52a893d099c85c97d636a1b",
+    "module_count": 1031
+  },
+  "proofs": {
+    "audit": {
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/series-dt-r1/result.json",
+      "sha256": "3bc4c9c03cd68999c177f95f87626139b5556bbdedd7823089c3293fc86cad6a"
+    },
+    "rsc": {
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/rsc/run-r3/result.json",
+      "sha256": "538eba6b73e730d470c6ca06a96baa1c188db2aaaa6cb85a64c8d8568ea97ef4"
+    },
+    "rsc_source_binding": {
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/rsc/final-source-binding.json",
+      "sha256": "3a94fc3f7460d5d6403fb297eb716847ded29e34a10b64efb14a414f12462c20"
+    },
+    "prior_Q6_FAILURE": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/result.json",
+      "sha256": "b4e9b22be52dda512416ba4313cb8ee78e458c99685bea67ee4ab76e2fc7a999"
+    }
+  },
+  "durations_seconds": {
+    "audit": 15.386641123011941,
+    "schema_regression": 81.378
+  },
+  "limitations": [
+    "No cold Image/module rebuild; compiled inputs and all output bytes verified for reuse.",
+    "OriginalQ6qualificationFAIL and every historical physical result unchanged.",
+    "No signed or composed boot image; not a candidate or installation.",
+    "New DT changes the board-specific RPMh compatible only; PM behavior/suspend not physically qualified.",
+    "757 firmware names inventoried; firmware presence remains NOT RUN."
+  ]
+}

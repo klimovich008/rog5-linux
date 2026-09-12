@@ -46,5 +46,72 @@
     "source_binding": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/final-source-binding.json",
     "source_binding_sha256": "e61c8bef682fb5367351fdb6b58abb7f98652e3fcb60878ced52a5a2a819f5f4",
     "note": "Compilation and dependency checks completed; one remaining RPMh RSC power-domains schema diagnostic keeps qualification FAIL. Binding-only or later qualification requires a new evidence receipt; preserve this failure."
+  },
+  "current_board_qualification": {
+    "status": "PASS: offline incremental software qualification",
+    "source_commit": "5b716c1d0a48dfe13e429d94ac07a460681e250f",
+    "source_tree": "9492c29f1a71bb5e6164fb3da9d3ff803ec1c4b7",
+    "linux_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+    "production_series_sha256": "b027af87b37d0aa6d758539efefd082557fcfdd6bfda89cef220d476346eefde",
+    "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+    "release": "7.1.4-rog5-production",
+    "image": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/objects/arch/arm64/boot/Image",
+      "sha256": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a"
+    },
+    "dtb": {
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/series-dt-r1/current.dtb",
+      "sha256": "52978b7def2241ed8f8d8a0223eb5becf47976b0355c09120ecfc8e2a5b5ead7"
+    },
+    "module_metadata": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/module-provenance.json",
+      "sha256": "ce75c8c580c82a96cf5b2731c363c91d07f22992f52a893d099c85c97d636a1b"
+    },
+    "evidence": {
+      "path": "test-results/2026-09-12-touch-board-qualification.json",
+      "sha256": "272955188b61262deac6bbbf2c6877224f6668f7f9d0c450fc9c75f4c73fc215"
+    },
+    "physical_status": "NOT RUN",
+    "candidate": null,
+    "note": "Earlier board_validation_build remains the immutableQ6FAIL. This supplement compiles a changedDTB and reuses exact unchanged Image/modules; no image replacement."
+  },
+  "touch_prototype": {
+    "status": "fixture: offline external module; disabled DT",
+    "module": {
+      "dependencies": [],
+      "depends": "",
+      "name": "rog5_fts3658u",
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
+      "sha256": "a2560d4458e5cab00725912db3a7e7551eb70362af2747d261a8460a7ac23b15",
+      "size": 16144,
+      "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64"
+    },
+    "kernel_release": "7.1.4-rog5-production",
+    "physical_status": "NOT RUN",
+    "execution_repository": {
+      "commit": "b2065813860ea0bc8d0e96fe165e91f11a76d087",
+      "dirty": true,
+      "tree": "bee31454298d4a6ee7c8426c7c6ac7e66767da87"
+    },
+    "execution_builder_sha256": "4173b4181ebd3943e173c3af6eced39378af4f8597401a0f2c7ffd4954934544",
+    "reviewed_builder_commit": "24daaf52ff57e971f7e7897cabc6719a733f8983",
+    "source_inputs": {
+      "tools/rog5-fts3658u/Makefile": "ee759e7c9bb745500fcd8a55045932d9decd70c68c67f3e24cc7e929d80dadb4",
+      "tools/rog5-fts3658u/rog5_fts3658u.c": "9f6e38fc714eb0dce7c935ac8d6e2589c1e4ec7c28db335acc1af04849dfd41a",
+      "tools/rog5-fts3658u/rog5_fts_protocol.h": "0253cff9ced95ce9b7dfde34d84cf0538568e0b6bb565e3afa5245c2b0f6e4c5"
+    },
+    "twins": {
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/module-build/summary.json",
+      "sha256": "54d077e84fcca209859fb5d3e91512843c85cf7868243cb227e2a0bfd2b9986c"
+    },
+    "receipt_reporting_fix": {
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/module-build/stage-receipt-fix.json",
+      "sha256": "dee27c68771da40aa028d8c11ad93abbe8b49a5170eab7354405e87ddff88b09"
+    },
+    "source_origin_audit": {
+      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/series-dt-r1/result.json",
+      "sha256": "3bc4c9c03cd68999c177f95f87626139b5556bbdedd7823089c3293fc86cad6a"
+    },
+    "note": "No production selection or installation; later reviewedbuilder changes failed-build receipts only, preserving successful build command. Persistent disable failure at final devres release may leave power outstanding."
   }
 }
