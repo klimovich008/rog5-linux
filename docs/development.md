@@ -609,3 +609,23 @@ The real settings startup exposed the missing package logo. The corrected
 workspace yields 29 declared assets, including package assets and fonts; the
 complete SDK mapping also supplies its license notices. Keep frontend/AOT,
 asset assembly, actual startup and physical rendering as separate results.
+
+### GTK implicit-view disposal patch
+
+The local patch
+`patches/flutter-d728e61e/0001-linux-preserve-implicit-view-on-dispose.patch`
+applies to Flutter base `d728e61e7d835e02c453c70ae9523a40f6c03215`.
+That base's embedder forbids removing the implicit view, although its GTK
+`ViewDestroy` test expected such a call. The patch leaves implicit-view ownership
+with the engine and retains secondary-view removal, correcting the actual test.
+
+Keep qualified source/build artifacts intact. For incremental qualification,
+copy the completed output cache, apply the patch to independent copies of its
+two affected files, and mount those copies read-only at the original source
+paths. Build `flutter_linux_unittests` and `flutter_linux_gtk` in the copied
+cache. Record the upstream source revision, patch hash, effective file hashes,
+GN arguments and output hashes; an upstream engine version string alone does
+not describe patched bytes. Use the corrected test against the original
+implementation first, then test secondary removal/error cases and actual
+settings disposal with only the new library overlaid. None of these steps
+qualifies phone hardware, a Denial backend or a complete Wayland session.
