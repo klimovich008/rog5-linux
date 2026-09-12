@@ -2336,3 +2336,19 @@ retrying the tier. Query GCC for its internal executable paths rather than
 assuming a distribution layout. Preserve the successful native runner/engine
 cache: the runner builds reproducibly in about two seconds, and a settings
 asset fix needs neither an AOT rebuild nor a phone-kernel rebuild.
+
+A mocked API can encode the same defect as its caller. The pinned GTK
+ViewDestroy test expected implicit-view removal, while the real embedder
+explicitly rejects it. Correcting the existing test first produced the precise
+failure (two removals instead of one); the guard then passed three real lifecycle
+cases and removed the actual settings cleanup diagnostic. Keep that application
+check alongside mocks. Copy the completed cache and preserve before/after binary
+identities; only two compilations and two links were needed. The paired LTO links
+peaked near the 4 GiB bound without OOM; use one worker for future paired links
+and measure the result when another source change requires them. Reuse the
+patched cache instead of creating a fresh full cache every turn.
+
+Inspect what a demo binary actually runs before choosing a qualification path.
+The pinned denial-nested renders topology presets; it is not the full Denial
+shell/backend. A virtual DRM test of actual deniald is the relevant next offline
+integration question, and would still not prove phone graphics or touch.

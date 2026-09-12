@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Settings runner reproducible; assets corrected; GTK cleanup unresolved",
+  "phase": "GTK implicit-view cleanup fixed; full Wayland session pending",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Two ARM64 settings runner builds are byte-identical. A real software GTK frame exposed missing package assets; the committed helper now validates resolved roots and emits the complete 29-asset set. It rejects relocated roots and existing outputs. The UI renders with the qualified schema cache but reports Settings are unavailable without the Denial backend. GTK still attempts invalid implicit-view removal during disposal; clean settings session remains FAIL. The Rust test preflight now honors RUSTC; the frozen active tier passes 86 suites. Next fix and qualify GTK disposal, then bring up the full offline Wayland/backend session. No phone operation is authorized; signed/installed/fallback bytes are unchanged. S06/R01 remain FAIL; physical rows NOT RUN.",
-  "evidence": "test-results/2026-09-12-settings-runner.md"
+  "next": "The real GTK destruction regression fails before the guard and three lifecycle cases pass afterward. The actual settings app renders and exits without the invalid implicit-view removal message; its image is unchanged. The patched library and a byte-equivalent 34-file fixture are recorded separately from all previous artifacts. The frozen active tier passes 86 suites. Broadway EGL/ATK diagnostics and the unavailable Denial backend remain outside this fix. Upstream denial-nested is a topology demo, not the full shell. Next inspect retained ARM64 QEMU/kernel virtual DRM capabilities for an offline test of actual deniald. No phone operation is authorized; signed/installed/fallback bytes are unchanged. S06/R01 remain FAIL; physical rows NOT RUN.",
+  "evidence": "test-results/2026-09-12-gtk-disposal.md"
 }
