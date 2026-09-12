@@ -636,10 +636,10 @@
     }
   },
   "denial_virtual_drm": {
-    "status": "FAIL: full shell framebuffer binding; virtual DRM discovery and native fence extension availability observed",
-    "set_id": "private:rog5-xwayland-runtime-evidence-20260912-r1",
-    "source_commit": "756481ca35592149b9ef8951de8ee595b7a065eb",
-    "source_tree": "128dafd8ae9809d1b2766f6d733c12cd353d9c9e",
+    "status": "FAIL: initial import fixed, 33 virtual raster frames/page flips, backing-store and EGL cleanup errors remain",
+    "set_id": "private:rog5-framebuffer-diagnostic-20260912-r1",
+    "source_commit": "e709b1c7059727411b338037f6241cf325a24889",
+    "source_tree": "4dc18348dbe3ebbe20deb6d915e1fc8f23e7a339",
     "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
     "kernel": {
       "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
@@ -659,19 +659,35 @@
       "size": 10419681
     },
     "evidence": {
+      "path": "test-results/2026-09-12-denial-modifiers-qualification.json",
+      "sha256": "4c8008f7b8a7bda071feb56ed860b09640a5d071bc013acb0b2d66f44091a2ea",
+      "size": 37155
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline guest fixture only",
+    "next": "Enable existing DENIA_RENDER_AUDIT=1 without another Denial/kernel build; establish backing-store broker reasons and separately inspect EGL cleanup context ownership. No phone operation.",
+    "previous_evidence": {
       "path": "test-results/2026-09-12-xwayland-runtime-qualification.json",
       "sha256": "f0319c545599077300c04088bc8f1fa6859679f0ac0f178b916544311853d0b9",
       "size": 561640
     },
-    "physical_status": "NOT RUN",
-    "authority": "none; offline guest fixture only",
-    "next": "Inspect exact imported dmabuf format and framebuffer status using a bounded diagnostic Denial/Smithay build; release binary compiles out TRACE. No phone execution.",
-    "previous_evidence": {
-      "path": "test-results/2026-09-12-virtual-drm-qualification.json",
-      "sha256": "5879ec10add329f35e8bc9e03bf4e75b9fb6d6d4c6242947a2a6eef89acac674",
-      "size": 40357
+    "native_fence_export": "Required renderer path retained; no separate fence trace/readback qualification",
+    "shell_frames": "33 raster frames and 33 output page flips; no visual capture or input proof",
+    "deniald": {
+      "path": "/home/deck/.local/state/rog5-framebuffer-diagnostic-20260912-r1/deniald-pool",
+      "sha256": "d3377e4f57102b57bb19c43c8b810022ede01e47c4e9a50de8c14099aaa07b7a",
+      "size": 15919240
     },
-    "native_fence_export": "NOT RUN: extension advertised but initial framebuffer bind fails before use",
-    "shell_frames": "NOT RUN: no successful session frame"
+    "upstream_denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "patch": {
+      "path": "patches/denial-85b2303e/0001-preserve-implicit-render-modifier-contract.patch",
+      "sha256": "8c8f0627df1aacf86766a144c24116f146c89aec7b6a42addab7094c3c06586a",
+      "size": 2965
+    },
+    "diagnostic_patch": {
+      "path": "test-results/framebuffer-review-20260912/initial-format-diagnostic.patch",
+      "sha256": "bcb15834468d99d186eded0a353872603f54d357556d58408f0e5310fbde29c6",
+      "size": 773
+    }
   }
 }

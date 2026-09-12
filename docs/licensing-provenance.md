@@ -16,6 +16,7 @@ permission to redistribute. This is a source inventory, not a legal conclusion.
 | Firmware references | Exact firmware inventories and external source references | Inventory each firmware license and redistribution terms; reference does not grant permission |
 | Tracked binaries and archives | Existing checksums plus artifact-set inventory | Missing source/toolchain/command records remain BLOCKED, even when binary identity is known |
 | Third-party tools | Existing per-project notices, e.g. third_party/iw/COPYING | Preserve upstream notices and package metadata for each distributed tool |
+| Denial modifier patch and review excerpts | Exact Denial `85b2303e` LICENSE and compositor metadata declare GPL-3.0-or-later; Smithay `812bd332` LICENSE.txt carries the MIT notice | Preserve the respective upstream notices; these pins and local test adapters do not choose a project-wide license |
 
 See [artifact retention](artifact-retention.md) for the forward large-artifact
 policy. Preserve sealed historical objects; do not rewrite Git history to change

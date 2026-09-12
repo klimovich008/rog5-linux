@@ -2389,3 +2389,20 @@ correct RUST_LOG filter. One 10-second diagnostic run confirmed the limitation;
 repeating environment-only runs cannot resolve the framebuffer failure. The next
 probe needs a small diagnostic source change, exact binary identity and bounded
 reuse of the existing cache, after restoring sufficient disk headroom.
+
+An implicit EGL format is not an advertisement for explicit LINEAR. The INFO
+diagnostic observed an XR24/Linear GBM export against an XR24/Invalid-only render
+set; Smithay consequently marked it external-only. Preserve the implicit request
+through both selection and allocation. The first selector-only fix passed five
+unit cases but failed in the actual pool, which removed Invalid. Extend tests
+through the real pool function and its failure cleanup; the complete correction
+then reached 33 virtual raster frames/page flips. Backing-store and EGL cleanup
+errors still fail the session. Positive counters are not complete-session proof.
+
+For the next broker/backing-store question, use the existing
+`DENIA_RENDER_AUDIT=1` INFO reports before recompiling. Three one-crate ARM64
+links took 214, 246 and 213 seconds; another release trace-feature change would
+rebuild more dependencies. Preserve standalone binary copies and invalidate the
+mutable binary freshness marker after mapping a different source to the same
+Cargo path. Retire duplicate terminal VM payloads only after streaming comparison
+against retained originals; keep a reconstruction map and every raw result.

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Xwayland runtime authenticated; full virtual Denial framebuffer binding fails",
+  "phase": "Denial modifier fix reaches 33 virtual frames; session errors remain",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The 326-package runtime authenticates and starts Xwayland; all 55,666 previous filesystem entries are unchanged. The shell test now rejects zero-frame clean exits. VirGL advertises native fences but fails the initial framebuffer bind before Flutter startup; software llvmpipe lacks native fences. Targeted TRACE is compiled out in the retained release. Next prepare a bounded diagnostic renderer build after restoring disk headroom, reusing the kernel/runtime/cache. Frozen active tier: 87 PASS in 130.7 seconds; three declared optional subchecks skipped. No rendered full-session frame, compositor input or A660 proof is claimed. No phone operation is authorized; signed/installed/fallback bytes unchanged. S06/R01 remain FAIL; physical rows NOT RUN.",
-  "evidence": "test-results/2026-09-12-xwayland-runtime.md"
+  "next": "The initial XR24 Linear/implicit mismatch is reproduced and corrected through selector and pool allocation. Nine extracted-function cases pass; all prior pool guards/fallback tests are preserved. The same ARM64 VM now records 33 raster frames and 33 page flips, but backing-store errors and EGL BAD_ACCESS cleanup keep the full session FAIL. No screenshot, input or phone GPU proof is claimed. Pro review branch is frozen at 410b6935; independent development continues locally. Next enable existing DENIA_RENDER_AUDIT=1 without rebuilding, then inspect context ownership at shutdown. Active tier: 87 PASS in 135.1 seconds; three optional subchecks skipped. Signed/installed/fallback bytes unchanged; S06/R01 FAIL and physical NOT RUN.",
+  "evidence": "test-results/2026-09-12-denial-modifiers.md"
 }
