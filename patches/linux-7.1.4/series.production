@@ -13,3 +13,4 @@
 0038-power-supply-qcom-battmgr-fix-charge-units.patch
 0039-usb-gadget-ncm-restart-busy-tx-timer.patch
 0040-drm-msm-adreno-defer-until-iommu-attachment.patch
+0041-dt-bindings-arm-qcom-document-ASUS-ROG-Phone-5.patch

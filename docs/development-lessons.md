@@ -1961,3 +1961,25 @@ worker and22 real-child supervisor tests passed. Keep synthetic network/clock
 evidence separate from actual hardware: the only phone action this turn was a
 2.816 s read-only custody and health check. That check verifies the existing RAM
 stage, not just its historical host receipt, before any future selector mutation.
+
+## 2026-09-12: keep schema repairs separate from power-management changes
+
+Exact Linux 7.1.4 schema validation of the compiled ROG5 DTB rejected its existing
+`asus,rog-phone5`, `qcom,sm8350` root compatible because the upstream board enum
+omitted ASUS. Patch 0041 adds only that enum entry. The actual root-schema check
+went from a `oneOf` diagnostic to empty output against identical DTB bytes; both
+commands returned zero. Always inspect schema diagnostics as well as exit status.
+The final 15-patch production series applied to the exact base and resolved the
+same config in 58.799 seconds. Reuse compiled artifacts for a metadata-only schema
+repair; the prior cold kernel build took 4457.016 seconds.
+
+The remaining RPMh RSC `power-domains` requirement is a separate unresolved
+binding/power-management issue. The board deletes that reference together with
+CPU domain references while disabling `ARM_PSCI_CPUIDLE_DOMAIN` (introduced by
+b1bbf51a2e8296f758e9c3a65bcc5b3e0e66d988). Restoring `cluster_pd` alone would refer
+to a provider that is not built: platform probing attaches the domain before the
+RPMh driver can select its existing CPU_PM fallback. Do not restore that reference,
+enable the provider, or relax the generic binding merely to silence validation.
+The historical ASUS OSI reset explanation is recorded source history, not a newly
+observed firmware trace and not evidence explaining S06. Qualifying a board-specific
+CPU_PM fallback description or a safe PSCI domain topology remains separate work.
