@@ -109,6 +109,25 @@ Both reuse the repository runner's process-group cleanup and deadlines. They
 execute no GPU, Dart, VM or phone code. A UI or raster queue barrier alone is not
 proof that a particular frame's raster work completed.
 
+The work-specific successor is checked separately against the exact source:
+
+```sh
+python3 -O scripts/host/test-render-work-engine.py --source "$ENGINE_SOURCE" --output "$ENGINE_WORK_OUTPUT"
+RUSTC="$BOUNDED_RUSTC" python3 -O scripts/host/test-render-work-broker.py --source "$PATCHED_DENIAL_SOURCE" --output "$BROKER_WORK_OUTPUT"
+```
+
+These checks execute production ownership, admission and queue methods with
+explicit graphics/task adapters. They are manual exact-source checks, not an
+implicit active-tier PASS. A reservation is owned by one immutable work ID,
+including queued and retried frame items; its final owner cancels only that ID.
+Admission protects the begin-to-acquire span from expiry and completion cleanup.
+A stale task is deferred before allocation; real allocation errors stay errors.
+The native extension and engine must be built and qualified together. New public
+symbols fail closed when an older engine is loaded. Rebuild every linked object
+whose recorded dependencies include a changed engine header, then require real
+VM raster/page-flip progress without errors. Host fixtures cannot qualify that
+runtime boundary or the phone.
+
 The mobile package graph checker validates metadata by default. The original
 `mobile-package-closure.json` remains a historical graph; select the current
 snapshot explicitly through the graph reference in `manifests/current-artifact.json`.
