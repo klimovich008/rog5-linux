@@ -59,6 +59,16 @@ Rule: **No candidate name, profile, claim state, or artifact hash may require ma
 
 ### R2. Source validation did not always prove deployed composition
 
+IOMMU r131: after moving or appending test methods, inspect unittest discovery
+before relying on a green result. Six recovery methods were accidentally outside
+a TestCase; review caught this before execution. The corrected six and three new
+controller-to-action recovery cases all passed. Final discovery records25 basic,
+8 engine and6 target cases. Use the current source record in migrated fixtures:
+the older OLED record correctly failed the new preflight hash guard in4.286 s.
+Correcting the fixture, without weakening the guard, yielded21 ARM64 action cases
+in350.543 s. Keep completed emulation replies for fast host callback testing;
+rerun only affected integration cases after changing their fixtures.
+
 OLED r60: qualify evidence against the reader's actual metadata contract before
 creating the canonical record: mode0600, nonempty and at most1MiB per file. Retain
 larger bytes in ordered pinned chunks, normalize copies without changing original
