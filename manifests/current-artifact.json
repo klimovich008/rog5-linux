@@ -1,0 +1,36 @@
+{
+  "format": "rog5-current-artifact-v1",
+  "authority": "read-only index; no signing, installation, admission or replay authority",
+  "inventory": "manifests/artifact-sets.json",
+  "last_observed_runtime": {
+    "linux_commit": "05941d04803f54208da1e9920a81874edc540ca1",
+    "release": "7.1.4-g05941d04803f",
+    "bundle": "gpu-05941-52181a3157c26029",
+    "shutdown_sha256": "fc1ce027c20679a1d18200858e216c106c0fa690224de26e3705c105fda67860",
+    "evidence": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-iommu-live-driver-r1/source-observation-live-r131/result.json",
+    "installed_archive_bytes": "BLOCKED: runtime snapshot is not complete installed-image byte verification",
+    "qualification": "S06/R01 FAIL; runtime health PASS does not close either",
+    "unit_identity": "private retained evidence; no unit identity is a public selection default"
+  },
+  "prepared_signed_candidate": {
+    "set_id": "private:rog5-denial-20260910-r1/gpu-iommu-boot-package-r2",
+    "bundle": "gpu-136f7-a9b1bc89566205b6",
+    "physical_status": "NOT RUN",
+    "immutable": true,
+    "includes_current_review_fixes": false
+  },
+  "review_source_changes": {
+    "status": "NOT INSTALLED",
+    "candidate": null,
+    "note": "unsigned affected-driver compile is an offline artifact, not a new signed candidate"
+  },
+  "fallback": {
+    "bundle": "persistent-native-root-v11",
+    "status": "preserve signed bytes and all consumed claims; no new verification this review"
+  },
+  "board_validation_build": {
+    "status": "NOT A CANDIDATE",
+    "artifact": null,
+    "note": "consult current review execution receipt for affected-driver compile result"
+  }
+}
