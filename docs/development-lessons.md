@@ -30,6 +30,20 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+IOMMU r133: qualify the final test file after broad fixture substitutions. An
+r131 replacement intended for engine coverage silently broke a non-engine test
+after its initial pass; rerunning only engine cases missed it. The prior claim
+of unchanged remaining cases is superseded by the corrected full 39-case run
+(5.297 s). Inspect the final diff and discover the complete affected test class.
+Stage all referenced child fixtures before bridge tests; missing guardian-fixture
+caused six early failures. Correct integration fixtures using actual command
+receipts and phase intents; the combined 51-case policy suite passed in 8.268 s.
+These were harness defects: no kernel rebuild or repeated ARM64 qualification
+was justified. Preserve failed evidence and distinguish fixture privilege from
+an actual root handoff. Prefer bounded sudo authorization reuse; never store the
+user password in scripts or evidence. A persistent helper needs a root-owned
+code/dependency boundary, not a passwordless rule for user-writable launchers.
+
 ### R1. Duplicated candidate identity and policy
 
 IOMMU r132: read the current profile through its real loader when adapting a

@@ -1,5 +1,44 @@
 # ROG5 current state
 
+Latest r133, 2026-09-12: **privileged bridge components, retained-source preparation
+and command policy tested offline**. The complete launcher and GPU/IOMMU session
+remain pending. No phone I/O, sudo change, claim consumption or reboot occurred.
+
+Capture bridge/supervisor passed 16/3 cases in 6.950/2.213 s; fallback worker/
+transport passed 19/16 in 12.244/0.939 s. Owned children and pipes run for real;
+root credentials, network and SSH are fixtures. Source preparation passed 24
+cases in 1.137 s against retained predecessor and completed r2 staging evidence.
+It preserves the prior GPU trial failure and confirms its recorder and owners
+closed. The completed RAM stage is reused as evidence, never replayed.
+
+Command policy now covers exact-target recovery and adaptive route discovery,
+with numeric attempt order and target-before-fallback transport order. It checks
+the immutable kernel relay contract before claim consumption. All 51 combined
+policy cases passed in 8.268 s; all 39 final action cases passed in 5.297 s.
+INPUTS_SHA remains None and execution explicitly refuses an unfinished input
+closure. No fresh source-readiness observation or launcher was created.
+
+Correction to r131: a later engine-fixture edit also changed a non-engine test to
+reference undefined recovery_target. The earlier assertion that the other 31
+cases were unchanged was wrong. The original record is retained; r133 fixes the
+test and supersedes that final-harness completeness claim with all 39 passing.
+The production action callbacks are unchanged. Initial r133 failures also caught
+a missing guardian fixture and stale integration fixture output/phase bindings;
+all failed logs and rejected fixtures remain retained. Inspect final diffs and
+stage child fixture dependencies before running or claiming unaffected tests.
+
+Next: prepare the matching new-kernel GPU/IOMMU session, checking IOMMU attachment
+before GPU/display initialization. The old GPU session and module pins cannot be
+reused. Then finish launcher/credential integration, freeze inputs and qualify
+full admission, root handoffs and recovery flow before live execution. No human
+Ready is pending. Latest full phone health remains r131 and installed-route read
+r132; the new kernel remains unbooted. S06/R01 and failed blank cleanup stay open.
+
+The existing credential keeper refreshes already authenticated sudo during a
+bounded run without saving a password. A root-owned, narrowly scoped passwordless
+helper is a possible persistent improvement, not installed or qualified yet.
+Evidence: gpu-iommu-live-driver-r1/launch-layer-review-r133.json and checkpoint-r133.
+
 Latest r132, 2026-09-12: **all25 concrete IOMMU controller phases assembled and
 tested; actual installed recovery route verified read-only**. Previous r131 was
 progress. Core driver is assembled; complete live admission, privileged bridge,
