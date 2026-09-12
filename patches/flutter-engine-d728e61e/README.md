@@ -53,3 +53,13 @@ The [coordinated IO release qualification](../../test-results/2026-09-12-impelle
 now records a complete ARM64 dependency-closure rebuild, separate engine link,
 and observed IO-thread release in the VM. Raster and main cleanup still pass;
 frame-admission errors retain full-session FAIL. Physical behavior remains NOT RUN.
+
+Patch 0003 is an opt-in, additive raster-call diagnostic. With
+`DENIA_RENDER_AUDIT=1`, it records at most 4096 events identifying retained-output,
+framework-pipeline, last-layer-tree and preparation calls, implicit expansion
+selection, and per-view surface attempts/results. IDs identify actual raster
+calls, not native reservations or queued submissions. No broker, scheduling,
+selection, fence or framebuffer policy changes. The actual helper test covers
+disabled operation, nested/thread-local scope restoration, and concurrent bounds:
+`scripts/host/test-render-origin-audit.py --source EXACT_ENGINE_GIT
+--output FRESH_DIRECTORY`. This diagnostic alone cannot qualify a session.
