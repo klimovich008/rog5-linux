@@ -1,0 +1,379 @@
+{
+  "schema": 1,
+  "status": "BLOCKED",
+  "scope": "offline archive authentication; mobile runtime closure incomplete",
+  "starting_commit": "ebff99d3a1eace10dcd7e01d9f26365b6bb98098",
+  "starting_tree": "aa796146d56c246a0b12d23f7335a0d7789c8718",
+  "source_commit": "074a54c8b4efed1db6617bbbdff0d88dda446fce",
+  "source_tree": "d0ef2eafae7dfabff922ebe6471e3352bef1b6c2",
+  "implementation_tests": "PASS",
+  "archive_audit": {
+    "PASS": 14,
+    "FAIL": 0,
+    "BLOCKED": 298
+  },
+  "graph_sha256": "bba66eb1b3d16ad61954261742da79f8db8d5502586b7b83d4f755c32b68ee2f",
+  "tools": {
+    "gpgv": {
+      "path": "/usr/bin/gpgv",
+      "sha256": "d841368df2825ff34b788f01c7d6d97185ec8a0cb9592e9b25f498c206c32766",
+      "version": "gpgv (GnuPG) 2.4.8"
+    },
+    "bsdtar": {
+      "path": "/usr/bin/bsdtar",
+      "sha256": "d1693d7449be67053132d1ef0c34c5c98cf29ed0aeed9b87c7b5de2e44653530",
+      "version": "bsdtar 3.8.1 - libarchive 3.8.1 zlib/1.3.1 liblzma/5.8.1 bz2lib/1.0.8 liblz4/1.10.0 libzstd/1.5.7 openssl/3.5.0 libb2/bundled libacl/2.3.2 libattr/2.3.2 "
+    }
+  },
+  "trust_inputs_sha256": {
+    "keyring": "9403f923eed777ba0896a0b225e1522d3a7625234694c753ae26b27c29672aae",
+    "trusted": "f2a7250f2a2b77542f82f4219b2bae7895f27b3dcfdf350b497e2be306af776d",
+    "revoked": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "keyring_freshness": "NOT RUN",
+  "verified_packages": [
+    {
+      "name": "libdrm",
+      "version": "2.4.134-1",
+      "archive": "libdrm-2.4.134-1-aarch64.pkg.tar.xz",
+      "sha256": "d4173d7adc60d32d389e44e976447962c31bc23ff9a2153539bd8ad766e307b8",
+      "signature_sha256": "eba5b560895f0d12f8b92cbdaf32ee9425af439c201b733b6893d2b368300176",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libglvnd",
+      "version": "1.7.0-3",
+      "archive": "libglvnd-1.7.0-3-aarch64.pkg.tar.xz",
+      "sha256": "5a163e41583346b55f25de580e10c2edb31f5c8662667531d0e476b7b1336338",
+      "signature_sha256": "1069fbce37b23197fee87c8f30ce4e867a350388723a4160adfa017cc2c7b48d",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libpciaccess",
+      "version": "0.19-1",
+      "archive": "libpciaccess-0.19-1-aarch64.pkg.tar.xz",
+      "sha256": "d490a86384c25a9258e7eec84f5eaceca072e6ca45c37972e12f6e8a3da3766d",
+      "signature_sha256": "e07be1eccd969abbf395677b0565cdb97cc7809f2fdda728c79360aa815df110",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libx11",
+      "version": "1.8.13-1",
+      "archive": "libx11-1.8.13-1-aarch64.pkg.tar.xz",
+      "sha256": "e68195a71049251a68c5073c2baebc0f2bba41dbdfada5a41dbbd28a37040f3c",
+      "signature_sha256": "5a682383bb1c044c3f27b9aac8288d896edfa557b03608d439985042a8f833a7",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libxau",
+      "version": "1.0.12-1",
+      "archive": "libxau-1.0.12-1-aarch64.pkg.tar.xz",
+      "sha256": "f9abaead8ca4f0d4f9a6e181c3fcad8f96ddb9cf1d75d1d82a81c0ca8ad08a50",
+      "signature_sha256": "50f66512cf2ae861215b624c54406e90fdd4d76d6212be7346327893df61173c",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libxcb",
+      "version": "1.17.0-1",
+      "archive": "libxcb-1.17.0-1-aarch64.pkg.tar.xz",
+      "sha256": "329a41249a09b4bb7f9b5f9694c1848c971188243cc1c0a479df4227800214c0",
+      "signature_sha256": "a1bec28878ff180682133e01d06c3db19fb56e174cb8f8f6bcce1e560edbf0a2",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libxdmcp",
+      "version": "1.1.5-2",
+      "archive": "libxdmcp-1.1.5-2-aarch64.pkg.tar.xz",
+      "sha256": "aaf3575b4139a0ee675cbc15c03324d09892ded2188ac7cc326a8b36ef308496",
+      "signature_sha256": "d0278ab76d7e60e2960812d43bac281e2b36242858d3758aeedf274041d4c2aa",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libxext",
+      "version": "1.3.7-1",
+      "archive": "libxext-1.3.7-1-aarch64.pkg.tar.xz",
+      "sha256": "bff987768ac6bb9ed809d49f3c171c93ccf0c7264c59ec7b0940e844ba4e53ac",
+      "signature_sha256": "dc3526d0f1173280f0ecb039f5a7282d166d94b2ef7ad5f1951c49b9e78ba45a",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libxshmfence",
+      "version": "1.3.3-1",
+      "archive": "libxshmfence-1.3.3-1-aarch64.pkg.tar.xz",
+      "sha256": "d137d6cc13a75284267cd56beabfde6094fb1a4f8fb373af555c2e47c0e6b636",
+      "signature_sha256": "453600aa081f78b0abac4271afec2a958b0bb7ede005b7c0cbfd9534b150dd86",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "libxxf86vm",
+      "version": "1.1.7-1",
+      "archive": "libxxf86vm-1.1.7-1-aarch64.pkg.tar.xz",
+      "sha256": "9c07efd6fe6040a7e2d19af307c74d5f2235b6313e74710a29ecedb56f9a6ded",
+      "signature_sha256": "9673a3563caccb2322ecc25305d6797603cab47ebb68bc9556137e511753921f",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "llvm-libs",
+      "version": "22.1.8-2",
+      "archive": "llvm-libs-22.1.8-2-aarch64.pkg.tar.xz",
+      "sha256": "f3119b25813452a1cddd84ea985d7d76d9da41201b39e82f15cf23c2d3ed348e",
+      "signature_sha256": "6bfa9eaa70713c8088714b57003e996bad9d76359c0f4b8c4156af9c981c7502",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "lm_sensors",
+      "version": "1:3.6.2-1",
+      "archive": "lm_sensors-1:3.6.2-1-aarch64.pkg.tar.xz",
+      "sha256": "dc855daccb5fe4a7f89702db47bd3c53b3047dee8de92df2de975fe130985eb5",
+      "signature_sha256": "56331bf2d6f551d9015a5e35b3beb5b39339abc27553c45290b90b2f6c4f7521",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "spirv-tools",
+      "version": "1:1.4.357.0-1",
+      "archive": "spirv-tools-1:1.4.357.0-1-aarch64.pkg.tar.xz",
+      "sha256": "e49c54afc1e11b1a915df17ba380c4c4402477a5d5370417801a87df3388ae59",
+      "signature_sha256": "9be028473c49d20670b982c724f989cffacb46f06adb88686ab05ee45e288148",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    },
+    {
+      "name": "wayland",
+      "version": "1.26.0-1",
+      "archive": "wayland-1.26.0-1-aarch64.pkg.tar.xz",
+      "sha256": "9382b38f97ee3841597f89aa6ca1fceea3d968ae759151eaab9c4b5373d1ce72",
+      "signature_sha256": "5ca988b59b191e409eb09d73fb3ea23a1d4a7e893066149e8310bce8f2271109",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "primary_signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "metadata": "PASS",
+      "status": "PASS"
+    }
+  ],
+  "runtime_closure": "BLOCKED",
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "production_signing": false,
+  "claims_created_or_consumed": false,
+  "protected_storage_mutations": false,
+  "candidate_created": false,
+  "package_downloads_or_installation": false,
+  "github_ci": "NOT RUN",
+  "frozen_commands": [
+    {
+      "name": "audit-r3",
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/check-mobile-package-closure.py",
+        "--archive-dir",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages",
+        "--keyring",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/pubkeys.gpg",
+        "--trusted",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/archlinuxarm-trusted",
+        "--revoked",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/archlinuxarm-revoked",
+        "--report",
+        "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/audit-r3.json"
+      ],
+      "source_commit": "074a54c8b4efed1db6617bbbdff0d88dda446fce",
+      "source_tree": "d0ef2eafae7dfabff922ebe6471e3352bef1b6c2",
+      "environment_overrides": {
+        "TMPDIR": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/tmp",
+        "RUSTC": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+        "ROG5_TEST_WORKERS": "2",
+        "ROG5_TEST_REPORT_DIR": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/ci-r2",
+        "ROG5_TEST_TMP_PARENT": "/home/deck"
+      },
+      "ROG5_LINUX_SOURCE": "unset",
+      "duration_seconds": 4.27365997400193,
+      "exit_status": 2,
+      "expected_exit_status": 2
+    },
+    {
+      "name": "ci-r2",
+      "command": [
+        "systemd-run",
+        "--user",
+        "--scope",
+        "--quiet",
+        "-p",
+        "MemoryMax=3G",
+        "-p",
+        "MemorySwapMax=0",
+        "bash",
+        "scripts/host/test-repository-linux.sh",
+        "ci"
+      ],
+      "source_commit": "074a54c8b4efed1db6617bbbdff0d88dda446fce",
+      "source_tree": "d0ef2eafae7dfabff922ebe6471e3352bef1b6c2",
+      "environment_overrides": {
+        "TMPDIR": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/tmp",
+        "RUSTC": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+        "ROG5_TEST_WORKERS": "2",
+        "ROG5_TEST_REPORT_DIR": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/ci-r2",
+        "ROG5_TEST_TMP_PARENT": "/home/deck"
+      },
+      "ROG5_LINUX_SOURCE": "unset",
+      "duration_seconds": 622.6244269610033,
+      "exit_status": 0,
+      "expected_exit_status": 0
+    }
+  ],
+  "integrated_counts": {
+    "PASS": 306,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 3,
+    "NOT_SELECTED": 30
+  },
+  "integrated_subcheck_counts": {
+    "SKIPPED": 39
+  },
+  "changed_files": [
+    ".github/workflows/offline-smoke.yml",
+    "configs/repository-tests.json",
+    "docs/development.md",
+    "scripts/host/check-mobile-package-closure.py",
+    "scripts/host/record-ci-environment.sh",
+    "scripts/host/test-repository-linux.sh",
+    "scripts/host/test-review-metadata-checkers.py",
+    "configs/project-status.json",
+    "docs/current-state.md",
+    "docs/development-lessons.md",
+    "manifests/current-artifact.json",
+    "test-results/2026-09-12-mobile-package-audit.md",
+    "test-results/2026-09-12-mobile-package-audit-qualification.json"
+  ],
+  "source_hashes": {
+    ".github/workflows/offline-smoke.yml": "a171d1fb5f7b15267c5338d64e5d91ddc6dba70562e9697b83b53d85bd8450dc",
+    "configs/repository-tests.json": "1f417624bf655209a1e11ba3e0376c2537a4d691ea308d4b6f4b4fd411df407d",
+    "docs/development.md": "59bf5bebe2bbb7095e860d6f2b4c6c3ec3a859a65c1133cd538bd8b1fcff2744",
+    "scripts/host/check-mobile-package-closure.py": "da93fff7fa804cb13410c82c9682f72fcf9c2f5a7e5722b0afc34a927c5150c5",
+    "scripts/host/record-ci-environment.sh": "40347eb93192919355758711532152eb7b98cee98ce0309c340368ee53cc3d42",
+    "scripts/host/test-repository-linux.sh": "3601253791f8b74f69c170eaf140211cf9018b2954e84afee996dfd393ae3490",
+    "scripts/host/test-review-metadata-checkers.py": "366c6c625719e9bbb89b481f79d8794f90c1de05a823b6e55bae7f3c138c63b2"
+  },
+  "evidence": {
+    "failing-before.log": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/failing-before.log",
+      "sha256": "c69f0d8abb40e41f2d6c0a612c835bb8b48bfe9e8e48b9bcbc0334469d2a68a1",
+      "size": 1021
+    },
+    "interruption-before.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/interruption-before.json",
+      "sha256": "e5fb5a493435fb251b89c8aa0913324e5000159fa49ee174166b6499a24e2ff0",
+      "size": 765
+    },
+    "focused-final.log": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/focused-final.log",
+      "sha256": "9156e86c8db414c932860523feb7d048532cec5f8e431bf1f88fd43a90fd818b",
+      "size": 2127
+    },
+    "focused-r2.log": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/focused-r2.log",
+      "sha256": "9f4fdf51415ece60cd96eba03f4d3c608dfd3dae29e0c8f06e91c4799b5754c5",
+      "size": 2245
+    },
+    "audit-r1.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/audit-r1.json",
+      "sha256": "9dc71ebd69070df7da1866e5a49feed7293e7f884a2436a82a816e026bc95ec8",
+      "size": 102782
+    },
+    "audit-r2.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/audit-r2.json",
+      "sha256": "ea57d4ade71c68c79825396fc0beecba3b3b3af7746ec21024ae0a4107c475e5",
+      "size": 103287
+    },
+    "audit-r3.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/audit-r3.json",
+      "sha256": "79d42707b3d9a8553132df4adec6609cd15365e93c5c164171bebc3b322cb237",
+      "size": 103286
+    },
+    "frozen-execution.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/frozen-execution.json",
+      "sha256": "a0502470d8628752f3532f6ce65c0b1d87a745ad3b0d44e4c429639095bdc4b7",
+      "size": 2231
+    },
+    "final-execution.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/final-execution.json",
+      "sha256": "636885c474009f7c18128cb14f2e2371d411d09fe26dc37d099924b119f0bad5",
+      "size": 2228
+    },
+    "ci-r1-interruption.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/ci-r1-interruption.json",
+      "sha256": "66fe50b5aee6a9fc9fc4d001119f942abde40c70d8d7d0bb20e8f992c5234ac2",
+      "size": 161
+    },
+    "ci-r1/summary.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/ci-r1/summary.json",
+      "sha256": "5f9b229946a564db181059ba9a949c64fe6109feaf4c22171ea3ed943d0bd772",
+      "size": 148157
+    },
+    "ci-r2/summary.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/ci-r2/summary.json",
+      "sha256": "725efef2d80923fbd31d383209366da0dff7d9214cb4bce14241c68f7dfe93e6",
+      "size": 201139
+    },
+    "ci-r2/summary.xml": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/ci-r2/summary.xml",
+      "sha256": "d98170d782834825cd8333976be3c9e04d317e3c9c497f638103e9b698aef6d4",
+      "size": 84392
+    },
+    "environment-r1/sha256sums.txt": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/environment-r1/sha256sums.txt",
+      "sha256": "afeef8422ace682b7105251f170be4f72f6d95cbfb46236916d1b069f9f8a75e",
+      "size": 472
+    },
+    "preserved-inputs.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-package-evidence-20260912-r1/preserved-inputs.json",
+      "sha256": "1d8d4bd4347b32eec740edae43061cdd91e6a4bb1b680ec25a7764b47305164c",
+      "size": 805
+    }
+  },
+  "limitations": [
+    "298 exact package pins absent; newer cached Mesa is not a substitute",
+    "Retained repository authentication and keyring freshness unqualified",
+    "Matching Denial engine/AOT/ICU assets and runtime composition incomplete",
+    "Host Arch execution; clean Ubuntu and GitHub CI not run",
+    "All physical rows remain NOT RUN; S06/R01 FAIL preserved"
+  ]
+}

@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Cross-context GBM pixels with native fences qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Retained mobile archives authenticated; full runtime closure blocked**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Combined behavior and missing-server-wait mutation PASS on host and ARM64. Ten ARM64 fixture groups PASS; removing the wait loses shared pixels. Consumer resources are deleted while their context is current, then the producer is restored. Real /dev/null rejection remains before GBM; no DRM descriptor was supplied. Frozen active tier: 83 PASS in 129.924 s; three optional subchecks SKIPPED. These are controlled memfd/EGL fixtures, not real A660 or GPU scheduling proof. All phone physical rows remain NOT RUN. Board, signed/installed artifacts, touch and mobile graph are unchanged. No phone operation is authorized. Next physical question remains separately authorized bounded display scanout/blank. See [current repair evidence](../test-results/2026-09-12-gbm-sync.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Fourteen pinned ARM64 package archives pass retained-key signature and signed metadata verification; 298 pins are missing. The cached newer Mesa is not substituted. Eighteen focused tests include SIGTERM/SIGINT child reaping. Frozen full offline CI: 306 PASS in 622.624 s; 3 declared optional suites and 39 optional subchecks SKIPPED. An earlier run was intentionally stopped for the cancellation fix and remains recorded. Keyring freshness, repository authentication and engine/AOT closure remain unqualified. Board, signed/installed, touch and GPU artifacts and the mobile graph are unchanged. All physical rows remain NOT RUN; no phone operation is authorized. Next physical question remains separately authorized corrected-display scanout/blank. See [current repair evidence](../test-results/2026-09-12-mobile-package-audit.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
