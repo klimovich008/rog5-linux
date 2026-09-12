@@ -1,0 +1,14 @@
+{
+  "started": "2026-09-12T18:20:41.460134+00:00",
+  "free_before": 3736666112,
+  "status": "PASS",
+  "exit_status": 0,
+  "duration_seconds": 214.57045036100317,
+  "minimum_free_bytes": 3693162496,
+  "binary_sha256": "b3883d00bc8d1904ea2ffe8a499226eaf2b5323e58b6c11b9366691888f79ec4",
+  "container_removed": true,
+  "upstream": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "patch_sha256": "bcb15834468d99d186eded0a353872603f54d357556d58408f0e5310fbde29c6",
+  "source_sha256": "f725230bd72c15011ee826d49ee59f0c39c02102a8655b240b65e15e92363208",
+  "scope": "logging only, no renderer behavior change"
+}
