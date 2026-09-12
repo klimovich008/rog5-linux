@@ -1,0 +1,54 @@
+--- a/compositor/src/bin/deniald/kms_state.rs
++++ b/compositor/src/bin/deniald/kms_state.rs
+@@ -1204,19 +1204,12 @@
+ ) -> Vec<Modifier> {
+     let plane_formats = plane_formats.into_iter().collect::<Vec<_>>();
+     let mut modifiers = common_xrgb8888_modifiers(plane_formats.iter().copied());
+-    let renderer_has_explicit_modifiers = render_formats
+-        .iter()
+-        .any(|format| format.code == Fourcc::Xrgb8888 && format.modifier != Modifier::Invalid);
+-    if renderer_has_explicit_modifiers {
+-        modifiers.retain(|modifier| {
+-            render_formats.contains(&Format {
+-                code: Fourcc::Xrgb8888,
+-                modifier: *modifier,
+-            })
+-        });
+-    } else {
+-        modifiers.retain(|modifier| *modifier == Modifier::Linear);
+-    }
++    modifiers.retain(|modifier| {
++        render_formats.contains(&Format {
++            code: Fourcc::Xrgb8888,
++            modifier: *modifier,
++        })
++    });
+ 
+     let implicit_xrgb8888 = Format {
+         code: Fourcc::Xrgb8888,
+@@ -1229,10 +1222,10 @@
+             .all(|formats| formats.contains(&implicit_xrgb8888))
+         && render_formats.contains(&implicit_xrgb8888)
+     {
+-        // GBM may satisfy this through an explicit LINEAR allocation or its
+-        // legacy implicit allocation path. Both are safe when every consumer
+-        // advertises implicit XR24, unlike guessing a vendor modifier.
+-        modifiers.push(Modifier::Linear);
++        // Preserve the implicit contract through allocation and export. An
++        // explicit LINEAR buffer may be external-only to an EGL renderer that
++        // advertises only implicit XR24, even if GBM can allocate it.
++        modifiers.push(Modifier::Invalid);
+     }
+ 
+     modifiers
+@@ -1242,8 +1235,8 @@
+ /// render into. Plane order is retained: DRM exposes the driver's preferred
+ /// tiled/compressed layouts first and LINEAR last on hardware that supports
+ /// both. If there is no explicit intersection but every consumer advertises
+-/// legacy implicit XR24, fall back to a LINEAR allocation request rather than
+-/// guessing that a vendor modifier is renderable.
++/// legacy implicit XR24, request implicit allocation rather than assuming that
++/// implicit support also permits an explicit LINEAR or vendor modifier.
+ pub(super) fn shared_atlas_modifiers(
+     scanouts: &[Scanout],
+     render_formats: &FormatSet,
