@@ -3,7 +3,7 @@
 <!-- generated mobile status: begin -->
 Current structured status: **Offline source repair implemented; production qualification FAIL at RPMh RSC schema**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Resolve the documented RPMh binding/power-management conflict without weakening boot guards; final integrated test evidence follows. No phone operation in this task See [current repair evidence](../test-results/2026-09-12-offline-correctness-repair.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Integrated host tier: 297 PASS, 3 declared optional SKIPPED. Resolve the documented RPMh binding/power-management conflict without weakening boot guards. No phone operation in this task See [current repair evidence](../test-results/2026-09-12-offline-correctness-repair.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -3,8 +3,8 @@
   "scope": "software",
   "row": "board-build",
   "status": "FAIL",
-  "source_commit": "87ae7a3db0ee721e928467a3e0f18480b7b940e9",
-  "source_tree": "f1c18f598f9e6eab22e516ed7e92aaeba7adaac7",
+  "source_commit": "13c03247088f6ab117909c5af71e19cee75056fd",
+  "source_tree": "dc395ae3e16cd1cf8ebb43b211f3b500d61a1c19",
   "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
   "production_series_sha256": "1544f250a9e0305071e4eab6f5082f0ed3f369dbdc257d532b7e195dcb98ff08",
   "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
@@ -69,5 +69,11 @@
     "schema_seconds": 81.658,
     "qualification_seconds": 83.336,
     "final_series_prepare_seconds": 58.799
-  }
+  },
+  "execution_repository": {
+    "commit": "87ae7a3db0ee721e928467a3e0f18480b7b940e9",
+    "tree": "f1c18f598f9e6eab22e516ed7e92aaeba7adaac7",
+    "dirty": true
+  },
+  "source_binding_note": "Top-level source identifies committed input bytes; execution_repository records the original dirty execution. Compiled-output equality and all59 input hashes are bound in the referenced final-source-binding receipt."
 }

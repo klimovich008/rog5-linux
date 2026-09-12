@@ -449,3 +449,10 @@ sleeper. Keep original child identities through mock watchdog termination and
 wait for owned supervisors; do not loosen the reporter's descendant rejection.
 Keep execution metadata beside the reporter directory, whose JSON files are
 per-test receipts, rather than mixing an unrelated JSON record into that namespace.
+
+Provenance lesson (2026-09-12): a raw execution record can correctly identify
+a dirty starting checkout whose commit omits later inputs. Use the verified
+final-source-binding commit/tree for the resulting source identity, and retain
+the dirty execution repository separately. An independent final review caught
+that labeling error in the public board summary; the correction changes no
+build input or artifact byte.
