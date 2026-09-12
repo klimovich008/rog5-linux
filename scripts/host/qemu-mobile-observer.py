@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded QMP capture/input for one harness-owned portrait mobile VM."""
+"""Bounded local capture and QMP input for one owned portrait mobile VM."""
 import hashlib
 import json
 from pathlib import Path
@@ -127,21 +127,124 @@ def png_identity(path):
             'width': width, 'height': height}
 
 
+def capture_vnc(socket_path, name, path, timeout=3):
+    """Read one full raw frame from the owned UNIX-only QEMU VNC listener."""
+    deadline = time.monotonic()+timeout
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+        def receive(count):
+            if not 0 <= count <= 540*1224*4:
+                raise ValueError('VNC read exceeds frame bound')
+            result = bytearray()
+            while len(result) < count:
+                remaining = deadline-time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError('VNC capture deadline')
+                client.settimeout(remaining)
+                block = client.recv(min(65536, count-len(result)))
+                if not block:
+                    raise EOFError('VNC disconnected')
+                result.extend(block)
+            return bytes(result)
+
+        def send(data):
+            remaining = deadline-time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('VNC capture deadline')
+            client.settimeout(remaining)
+            client.sendall(data)
+
+        client.settimeout(timeout)
+        client.connect(str(socket_path))
+        if receive(12) != b'RFB 003.008\n':
+            raise ValueError('unsupported VNC version')
+        send(b'RFB 003.008\n')
+        count = receive(1)[0]
+        if count != 1 or receive(count) != b'\x01':
+            raise ValueError('unexpected private VNC security mode')
+        send(b'\x01')
+        if receive(4) != b'\0\0\0\0':
+            raise ValueError('VNC security handshake failed')
+        send(b'\x01')  # Shared observer, no input through VNC.
+        header = receive(24)
+        width, height = struct.unpack('>HH', header[:4])
+        size = struct.unpack('>I', header[20:24])[0]
+        if size > 4096 or receive(size) != ('QEMU ('+name+')').encode():
+            raise ValueError('VNC does not identify the owned VM')
+        if width not in (540, 544) or height != 1224:
+            raise ValueError('unexpected VNC portrait dimensions')
+        # QEMU pads its initial RFB width to16 pixels. DesktopSize reports
+        # the true scanout extent; require it before accepting a padded frame.
+        size_ready = width == 540
+        width = 540
+        # Request RGBx in wire order; only raw encoding, no clipboard or keys.
+        pixel_format = struct.pack('>BBBBHHHBBB3x', 32, 24, 1, 1, 255, 255, 255, 24, 16, 8)
+        send(b'\0\0\0\0'+pixel_format)
+        send(struct.pack('>BBHii', 2, 0, 2, 0, -223))
+        send(struct.pack('>BBHHHH', 3, 0, 0, 0, width, height))
+        pixels = bytearray(width*height*4)
+        covered = bytearray(width*height)
+        resized = False
+        for _ in range(4):
+            if receive(1) != b'\0':
+                raise ValueError('unexpected VNC server message')
+            count = struct.unpack('>xH', receive(3))[0]
+            if not 1 <= count <= 128:
+                raise ValueError('VNC rectangle count outside bound')
+            for _ in range(count):
+                x, y, w, h, encoding = struct.unpack('>HHHHi', receive(12))
+                if encoding == -223:
+                    if resized or any(covered) or (x, y, w, h) != (0, 0, width, height):
+                        raise ValueError('unexpected VNC desktop resize')
+                    size_ready = resized = True
+                    continue
+                if (not size_ready or encoding != 0 or not w or not h
+                        or x+w > width or y+h > height):
+                    raise ValueError('unexpected VNC rectangle geometry or encoding')
+                raw = receive(w*h*4)
+                for row in range(h):
+                    start = (y+row)*width+x
+                    if any(covered[start:start+w]):
+                        raise ValueError('overlapping VNC rectangles')
+                    covered[start:start+w] = b'\x01'*w
+                    pixels[start*4:(start+w)*4] = raw[row*w*4:(row+1)*w*4]
+            if all(covered):
+                break
+        if not all(covered):
+            raise ValueError('incomplete nonincremental VNC frame')
+    # Encode the captured RGB pixels losslessly; no scaling or visual edits.
+    rows = bytearray(height*(width*3+1))
+    for y in range(height):
+        start = y*(width*3+1)+1
+        row = pixels[y*width*4:(y+1)*width*4]
+        rows[start:start+width*3:3] = row[0::4]
+        rows[start+1:start+width*3:3] = row[1::4]
+        rows[start+2:start+width*3:3] = row[2::4]
+    def chunk(kind, data):
+        return struct.pack('>I', len(data))+kind+data+struct.pack('>I', zlib.crc32(kind+data))
+    png = (b'\x89PNG\r\n\x1a\n'
+           +chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0))
+           +chunk(b'IDAT', zlib.compress(rows))+chunk(b'IEND', b''))
+    with path.open('xb') as output:
+        output.write(png)
+
+
 class MobileObserver:
     """Fixed OSK-layer probe; no credential input or QMP power commands."""
-    def __init__(self, directory, name, client_factory=QMP):
+    def __init__(self, directory, name, client_factory=QMP, capture_backend=None):
         self.directory = Path(directory)
         self.directory.mkdir(mode=0o700, exist_ok=False)
         self.name = name
         self.client_factory = client_factory
+        self.capture_backend = capture_backend
         self.client = None
         self.stage = 0
         self.next_at = 0
         self.pressed = False
         self.complete = False
-        self.result = {'status': 'NOT RUN', 'scope': 'QMP captures and synthetic pointer delivery only',
+        self.result = {'status': 'NOT RUN', 'scope': 'Local VM captures and synthetic pointer delivery only',
                        'visual_semantics': 'NOT RUN: inspect screenshots separately',
-                       'phone_touch': 'NOT RUN', 'profile': 'mobile', 'screenshots': [], 'actions': []}
+                       'phone_touch': 'NOT RUN', 'profile': 'mobile',
+                       'capture_backend': 'UNIX VNC raw' if capture_backend else 'QMP screendump', 'screenshots': [], 'actions': []}
 
     def input(self, events):
         self.client.execute('input-send-event', {'events': events})
@@ -164,7 +267,10 @@ class MobileObserver:
         path = self.directory/(label+'.png')
         if path.exists():
             raise ValueError('refusing to overwrite screenshot')
-        self.client.execute('screendump', {'filename': '/observe/'+path.name, 'format': 'png'})
+        if self.capture_backend:
+            self.capture_backend(self.directory/'vnc.sock', self.name, path)
+        else:
+            self.client.execute('screendump', {'filename': '/observe/'+path.name, 'format': 'png'})
         self.result['screenshots'].append(png_identity(path))
         if sum(row['size'] for row in self.result['screenshots']) > 8*1024*1024:
             raise ValueError('screenshot aggregate exceeds 8 MiB')

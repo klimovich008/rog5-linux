@@ -195,7 +195,7 @@ def main():
             spec = importlib.util.spec_from_file_location('qemu_mobile_observer', observer_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            observer = module.MobileObserver(output/'observe', name)
+            observer = module.MobileObserver(output/'observe', name, capture_backend=module.capture_vnc)
             report['observer_sha256'] = digest(observer_path)
             report['shell_profile'] = 'mobile'
         subprocess.run(compile_command, check=True, timeout=30,
@@ -238,7 +238,8 @@ def main():
         if observer:
             index = command.index(args.image)
             command[index:index] = ['-v', str(output/'observe')+':/observe:rw']
-            command += ['-name', name, '-qmp', 'unix:/observe/qmp.sock,server=on,wait=off']
+            command += ['-name', name, '-qmp', 'unix:/observe/qmp.sock,server=on,wait=off',
+                        '-vnc', 'unix:/observe/vnc.sock']
             index = command.index('virtio-gpu-gl-device,xres=640,yres=480')
             command[index] = 'virtio-gpu-gl-device,xres=540,yres=1224'
         report['command'] = command

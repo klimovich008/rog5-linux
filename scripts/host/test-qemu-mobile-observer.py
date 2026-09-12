@@ -374,5 +374,271 @@ class MobileObservation(unittest.TestCase):
         self.observer.finish('test complete')
 
 
+class VNCCapture(unittest.TestCase):
+    class FakeRFB:
+        """One real UNIX peer with bounded I/O, explicit wire checks and cleanup."""
+        def __init__(self, overrides=None, rectangles=None, eof=None, silent=None,
+                     delay=0, initial_width=540, updates=None):
+            self.address = '\0rog5-rfb-test-' + uuid.uuid4().hex
+            self.overrides = overrides or {}
+            self.rectangles = rectangles if rectangles is not None else [
+                (0, 612, 540, 612, 0, b'\x91\x62\x33\xee' * (540 * 612)),
+                (0, 0, 540, 612, 0, b'\x12\x34\x56\xaa' * (540 * 612))]
+            self.eof, self.silent, self.delay = eof, silent, delay
+            self.initial_width = initial_width
+            self.updates = updates
+            self.requests, self.errors = [], []
+            self.stop = threading.Event()
+            self.peer = None
+            self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.listener.bind(self.address)
+            self.listener.listen(1)
+            self.listener.settimeout(.75)
+            self.thread = threading.Thread(target=self.serve, daemon=True)
+
+        def send(self, stage, payload):
+            if self.delay and self.stop.wait(self.delay):
+                raise EOFError('fixture stopped')
+            if self.silent == stage:
+                self.stop.wait(.75)
+                raise EOFError('silent fixture finished')
+            payload = self.overrides.get(stage, payload)
+            if self.eof == stage:
+                self.peer.sendall(payload[:-1])
+                raise EOFError('intentional truncated frame')
+            self.peer.sendall(payload)
+
+        def expect(self, label, expected):
+            received = bytearray()
+            while len(received) < len(expected):
+                block = self.peer.recv(len(expected) - len(received))
+                if not block:
+                    raise EOFError('client closed')
+                received.extend(block)
+            if received != expected:
+                raise AssertionError((label, bytes(received), expected))
+            self.requests.append(label)
+
+        def serve(self):
+            try:
+                self.peer, _ = self.listener.accept()
+                self.peer.settimeout(.75)
+                self.send('version', b'RFB 003.008\n')
+                self.expect('version', b'RFB 003.008\n')
+                self.send('security', b'\x01\x01')
+                self.expect('security', b'\x01')
+                self.send('security-result', b'\0' * 4)
+                self.expect('shared', b'\x01')
+                name = b'QEMU (owned)'
+                # ServerInit format differs deliberately from the requested one.
+                initial = struct.pack('>BBBBHHHBBB3x',
+                                      16, 16, 0, 1, 31, 63, 31, 11, 5, 0)
+                self.send('init', struct.pack('>HH', self.initial_width, 1224) + initial
+                          + struct.pack('>I', len(name)))
+                self.send('name', name)
+                self.expect('pixel-format', b'\0' * 4 + struct.pack(
+                    '>BBBBHHHBBB3x', 32, 24, 1, 1, 255, 255, 255, 24, 16, 8))
+                self.expect('raw-encoding-and-size', struct.pack('>BBHii', 2, 0, 2, 0, -223))
+                self.expect('full-frame', struct.pack('>BBHHHH', 3, 0, 0, 0, 540, 1224))
+                updates = self.updates if self.updates is not None else [self.rectangles]
+                for rectangles in updates:
+                    self.send('update', struct.pack('>BBH', 0, 0, len(rectangles)))
+                    for x, y, width, height, encoding, raw in rectangles:
+                        self.send('rectangle', struct.pack('>HHHHi', x, y, width, height, encoding))
+                        self.send('pixels', raw)
+            except (BrokenPipeError, ConnectionResetError, EOFError):
+                pass  # Expected when a deliberately invalid peer is refused.
+            except BaseException as error:
+                if not self.stop.is_set():
+                    self.errors.append(error)
+            finally:
+                if self.peer:
+                    self.peer.close()
+
+        def __enter__(self):
+            self.thread.start()
+            return self
+
+        def __exit__(self, *_):
+            self.stop.set()
+            if self.peer:
+                with contextlib.suppress(OSError):
+                    self.peer.shutdown(socket.SHUT_RDWR)
+            self.listener.close()
+            self.thread.join(1)
+            if self.thread.is_alive():
+                raise AssertionError('fake RFB peer exceeded cleanup deadline')
+            if self.errors:
+                raise AssertionError(self.errors)
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='vnc-capture-')
+        self.addCleanup(temporary.cleanup)
+        self.path = Path(temporary.name) / 'capture.png'
+
+    def reject(self, message, **peer_options):
+        with self.FakeRFB(**peer_options) as peer:
+            with self.assertRaisesRegex(ValueError, message):
+                MOBILE.capture_vnc(peer.address, 'owned', self.path, timeout=.5)
+        self.assertFalse(self.path.exists())
+
+    def test_real_handshake_requests_and_captured_rgb_pixels(self):
+        with self.FakeRFB() as peer:
+            MOBILE.capture_vnc(peer.address, 'owned', self.path, timeout=.5)
+        self.assertEqual(peer.requests, ['version', 'security', 'shared',
+                                        'pixel-format', 'raw-encoding-and-size', 'full-frame'])
+        self.check_captured_pixels()
+
+    def check_captured_pixels(self):
+        identity = MOBILE.png_identity(self.path)
+        self.assertEqual((identity['width'], identity['height']), (540, 1224))
+        data, offset, compressed = self.path.read_bytes(), 8, bytearray()
+        while offset < len(data):
+            size = struct.unpack('>I', data[offset:offset + 4])[0]
+            if data[offset + 4:offset + 8] == b'IDAT':
+                compressed.extend(data[offset + 8:offset + 8 + size])
+            offset += size + 12
+        self.assertEqual(zlib.decompress(compressed),
+                         (b'\0' + b'\x12\x34\x56' * 540) * 612
+                         + (b'\0' + b'\x91\x62\x33' * 540) * 612)
+
+    def test_padded_width_requires_exact_resize_before_captured_pixels(self):
+        resize = (0, 0, 540, 1224, -223, b'')
+        for separate_update in (False, True):
+            with self.subTest(separate_update=separate_update):
+                with self.FakeRFB(initial_width=544) as peer:
+                    peer.updates = ([[resize], peer.rectangles] if separate_update
+                                    else [[resize] + peer.rectangles])
+                    MOBILE.capture_vnc(peer.address, 'owned', self.path, timeout=.5)
+                self.check_captured_pixels()
+                self.path.unlink()
+        self.reject('geometry or encoding', initial_width=544)
+
+    def test_invalid_duplicate_and_late_resize_are_rejected(self):
+        for x, y, width, height in ((0, 0, 544, 1224), (1, 0, 540, 1224),
+                                   (0, 0, 540, 1223), (0, 0, 1, 1)):
+            with self.subTest(geometry=(x, y, width, height)):
+                self.reject('desktop resize', initial_width=544,
+                            rectangles=[(x, y, width, height, -223, b'')])
+        resize = (0, 0, 540, 1224, -223, b'')
+        self.reject('desktop resize', rectangles=[resize, resize])
+        self.reject('desktop resize', rectangles=[(0, 0, 1, 1, 0, bytes(4)), resize])
+
+    def test_unsupported_and_malformed_versions_are_rejected(self):
+        for version in (b'RFB 003.003\n', b'RFB 003.009\n', b'BAD 003.008\n'):
+            with self.subTest(version=version):
+                self.reject('version', overrides={'version': version})
+
+    def test_security_mode_and_failed_handshake_are_rejected(self):
+        for security in (b'\0', b'\x01\x02', b'\x02\x01\x02'):
+            with self.subTest(security=security):
+                self.reject('security mode', overrides={'security': security})
+        self.reject('handshake failed', overrides={'security-result': b'\0\0\0\x01'})
+
+    def test_wrong_name_and_oversized_name_are_rejected(self):
+        self.reject('owned VM', overrides={'name': b'QEMU (other)'})
+        self.reject('owned VM', overrides={
+            'init': struct.pack('>HH', 540, 1224) + bytes(16) + struct.pack('>I', 4097)})
+
+    def test_wrong_dimensions_are_rejected(self):
+        for width, height in ((0, 1224), (1224, 540), (540, 1223), (65535, 65535)):
+            with self.subTest(width=width, height=height):
+                self.reject('dimensions', overrides={
+                    'init': struct.pack('>HH', width, height) + bytes(16)
+                    + struct.pack('>I', len(b'QEMU (owned)'))})
+
+    def test_message_type_and_rectangle_count_are_bounded(self):
+        self.reject('server message', overrides={'update': b'\x02\0\0\x01'})
+        for count in (0, 129, 65535):
+            with self.subTest(count=count):
+                self.reject('rectangle count', overrides={
+                    'update': struct.pack('>BBH', 0, 0, count)})
+
+    def test_encoding_and_rectangle_geometry_are_rejected(self):
+        for geometry in ((0, 0, 1, 1, 1), (0, 0, 1, 1, -224),
+                         (0, 0, 0, 1, 0), (0, 0, 1, 0, 0),
+                         (540, 0, 1, 1, 0), (0, 1224, 1, 1, 0),
+                         (539, 0, 2, 1, 0), (0, 1223, 1, 2, 0)):
+            with self.subTest(geometry=geometry):
+                self.reject('geometry or encoding', rectangles=[(*geometry, b'')])
+
+    def test_partial_frame_and_overlapping_rectangles_are_rejected(self):
+        self.reject('incomplete', updates=[[(x, 0, 1, 1, 0, bytes(4))] for x in range(4)])
+        self.reject('overlapping', rectangles=[(0, 0, 1, 1, 0, bytes(4))] * 2)
+
+    def test_truncated_handshake_and_frame_are_rejected_without_output(self):
+        for stage in ('version', 'security', 'security-result', 'init', 'name',
+                      'update', 'rectangle', 'pixels'):
+            with self.subTest(stage=stage), self.FakeRFB(eof=stage) as peer:
+                with self.assertRaises(EOFError):
+                    MOBILE.capture_vnc(peer.address, 'owned', self.path, timeout=.5)
+                self.assertFalse(self.path.exists())
+
+    def test_silent_peer_is_bounded(self):
+        for stage in ('version', 'pixels'):
+            started = time.monotonic()
+            with self.subTest(stage=stage), self.FakeRFB(silent=stage) as peer:
+                with self.assertRaises(TimeoutError):
+                    MOBILE.capture_vnc(peer.address, 'owned', self.path, timeout=.05)
+            self.assertLess(time.monotonic() - started, 1)
+            self.assertFalse(self.path.exists())
+
+    def test_deadline_is_shared_across_protocol_reads(self):
+        started = time.monotonic()
+        with self.FakeRFB(delay=.025) as peer:
+            with self.assertRaises(TimeoutError):
+                MOBILE.capture_vnc(peer.address, 'owned', self.path, timeout=.09)
+        self.assertLess(time.monotonic() - started, .5)
+        self.assertFalse(self.path.exists())
+
+    def test_existing_file_and_symlink_are_not_overwritten(self):
+        retained = self.path.with_name('retained')
+        retained.write_bytes(b'original evidence')
+        for symlink in (False, True):
+            with self.subTest(symlink=symlink):
+                if symlink:
+                    self.path.symlink_to(retained)
+                else:
+                    self.path.write_bytes(b'original evidence')
+                with self.FakeRFB() as peer:
+                    with self.assertRaises(FileExistsError):
+                        MOBILE.capture_vnc(peer.address, 'owned', self.path, timeout=.5)
+                self.assertEqual(self.path.read_bytes(), b'original evidence')
+                self.assertEqual(retained.read_bytes(), b'original evidence')
+                self.assertEqual(self.path.is_symlink(), symlink)
+                self.path.unlink()
+
+    def test_observer_uses_owned_vnc_backend_and_validates_capture(self):
+        for valid in (True, False):
+            with self.subTest(valid=valid):
+                directory = self.path.parent / ('observe-' + str(valid))
+                client = CaptureClient(directory)
+                calls = []
+
+                def capture(socket_path, name, output):
+                    calls.append((socket_path, name, output))
+                    output.write_bytes(png_fixture() if valid else b'invalid PNG')
+
+                observer = MOBILE.MobileObserver(directory, 'owned',
+                    client_factory=lambda path, name: client, capture_backend=capture)
+                (directory / 'qmp.sock').touch()
+                try:
+                    if valid:
+                        observer.tick(0, True)
+                        self.assertEqual(len(observer.result['screenshots']), 1)
+                        self.assertEqual(observer.result['screenshots'][0],
+                                         MOBILE.png_identity(directory / '00-mobile-locked.png'))
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'not PNG'):
+                            observer.tick(0, True)
+                        self.assertEqual(observer.result['screenshots'], [])
+                    self.assertEqual(calls, [(directory / 'vnc.sock', 'owned',
+                                             directory / '00-mobile-locked.png')])
+                    self.assertFalse(any(record['command'] == 'screendump'
+                                         for record in client.records))
+                finally:
+                    observer.finish('fixture complete')
+
+
 if __name__ == '__main__':
     unittest.main()
