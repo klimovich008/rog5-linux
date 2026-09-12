@@ -213,8 +213,8 @@
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#gpu_readback_probe",
-        "source_commit": "6e1dc0e88b0bde4edb9788f08ab07c87a9dd97af",
-        "arm64_sha256": "1128b828b2bd47e876b060ef5085c966e30beab42828d4d5390465f8db508f33",
+        "source_commit": "f2f6f7981714c7eb24a8028acfb6c91d368ad262",
+        "arm64_sha256": "9f93abfad3b8b0e7861b679999c921d05ae37ea6df7ded67812592d1c4cdef7c",
         "candidate": null,
         "physical_status": "NOT RUN"
       },
@@ -226,6 +226,22 @@
         "artifact_pointer": "manifests/current-artifact.json#gpu_readback_runtime",
         "mesa": "1:26.2.2-1",
         "scope": "GLES 3.2 preferred / 3.0 fallback verified with ARM64 softpipe under QEMU user; full mobile graph, A660, DMA-BUF and fences remain unqualified",
+        "physical_status": "NOT RUN",
+        "native_fence_status": "BLOCKED: both software renderers lack EGL_ANDROID_native_fence_sync"
+      },
+      "native_fence_component": {
+        "option": "--native-fence",
+        "sequence": [
+          "draw",
+          "native EGL fence",
+          "flush",
+          "export",
+          "bounded poll",
+          "sync_file status 1",
+          "FD and sync cleanup",
+          "pixel readback"
+        ],
+        "scope": "prepared source/ABI checks only; A660 and KMS consumption NOT RUN",
         "physical_status": "NOT RUN"
       }
     },
