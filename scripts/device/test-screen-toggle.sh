@@ -52,3 +52,4 @@ set -e
 [ "$status" -eq 2 ]
 
 echo 'PASS idempotent screen off/on/toggle test'
+python3 "$repo/scripts/device/test-screen-toggle-failures.py"
