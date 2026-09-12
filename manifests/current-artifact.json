@@ -281,12 +281,38 @@
       "sha256": "fbe125b3b7258ee3b32460197788b20d831b6ab44692985a55c4886d9a6771e7"
     },
     "compiler_prerequisite": {
-      "status": "BLOCKED",
-      "reason": "pinned clang++ executable absent",
-      "package": "fuchsia/third_party/clang/linux-amd64",
-      "version": "git_revision:80743bd43fd5b38fedc503308e7a652e23d3ec93"
+      "status": "PASS: verified pinned compiler",
+      "set_id": "private:rog5-engine-clang-evidence-20260912-r1/site",
+      "evidence": {
+        "path": "test-results/2026-09-12-engine-compiler-qualification.json",
+        "sha256": "255084f98360470b3239fabd8166dfc17c47235a0406887d98f165763a940fe2"
+      }
     },
     "compilation_status": "NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_engine_compiler": {
+    "status": "PASS: pinned toolchain verified",
+    "set_id": "private:rog5-engine-clang-evidence-20260912-r1/site",
+    "version": "23.0.0git",
+    "llvm_revision": "80743bd43fd5b38fedc503308e7a652e23d3ec93",
+    "package_pin": {
+      "package": "fuchsia/third_party/clang/linux-amd64",
+      "instance_id": "LLHJM3zpP8SMJFN354aXWHO3JoSHDFdhCcLMCDAQSwkC"
+    },
+    "compiler_multicall_sha256": "a50ded9e62bb90048748f46106e31bf57f3e5262c5ab93134db9d8f082e89c4b",
+    "evidence": {
+      "path": "test-results/2026-09-12-engine-compiler-qualification.json",
+      "sha256": "255084f98360470b3239fabd8166dfc17c47235a0406887d98f165763a940fe2"
+    },
+    "compilation_status": "RUNNING at retained live observation; inspect owner/terminal result before continuing",
+    "build_observation": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-observation-r1.json",
+      "sha256": "1fcab67bafc06dc06a8a6ca35ac593d9c1ee9014a048bc4ae158e5b87033bb3f",
+      "size": 1482
+    },
+    "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
     "physical_status": "NOT RUN",
     "authority": "none"
   }

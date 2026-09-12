@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Pinned ARM64 engine GN graph passes; compiler prerequisite open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Pinned compiler verified; ARM64 engine compilation started**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Both pinned build sysroots pass archive and full extracted-payload verification. Real network-disabled GN generation passes (1,647 targets); engine ARM64 and host AOT target selection pass. The unused angle_build_all argument warning remains explicit. Next provision and verify the exact pinned Clang within measured disk capacity, then attempt bounded compilation. Compilation, matching engine/ICU/AOT, native session and all physical qualification remain open. Accepted/signed/installed/fallback artifacts are unchanged; no phone operation is authorized. S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-12-engine-sysroots.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Pinned Clang and all 4,118 deployed payload entries verify. Compiler version, real GN graph and 6,674-step Ninja input preflight pass. Actual one-worker compilation is RUNNING at the retained live observation, with 4 GiB memory, no network and a 30-minute segment deadline. Inspect the recorded container/session and terminal result before any continuation; reuse its output cache only after the owner is terminal. Complete engine/ICU/AOT, native session and physical qualification remain open. Accepted/signed/installed/fallback artifacts are unchanged; no phone operation is authorized. S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-12-engine-compiler.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
