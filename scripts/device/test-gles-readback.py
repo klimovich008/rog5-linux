@@ -116,6 +116,29 @@ class ReadbackTest(unittest.TestCase):
         self.assertIn('renderer refused', result.stderr)
         self.assertEqual(result.stdout, '')
 
+    def test_denial_gles_versions_and_refusal_before_drawing(self):
+        result = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('REQUEST_CONTEXT 3.2', result.stderr)
+        self.assertIn('REQUEST_CONFIG_ES 64', result.stderr)
+        self.assertNotIn('REQUEST_CONTEXT 3.0', result.stderr)
+        self.assertIn('gles_requested=3.2', result.stdout)
+        self.assertIn('gles_actual=3.2', result.stdout)
+        result = self.invoke(fault='context32')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(result.stderr.index('REQUEST_CONTEXT 3.2'),
+                        result.stderr.index('REQUEST_CONTEXT 3.0'))
+        self.assertIn('gles_requested=3.0', result.stdout)
+        self.assertIn('gles32_error=0x3009', result.stdout)
+        for fault in ('gles2', 'below_requested', 'negative_version', 'version_query'):
+            with self.subTest(fault=fault):
+                result = self.invoke(fault=fault)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, '')
+                self.assertNotIn('CALL vertex_create', result.stderr)
+                self.assertIn('CALL destroy_context', result.stderr)
+                self.assertIn('CALL terminate', result.stderr)
+
     def test_stalled_readback_is_killed_without_success(self):
         with self.assertRaises(subprocess.TimeoutExpired) as caught:
             self.invoke(fault='stall', timeout=0.5)

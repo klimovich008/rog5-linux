@@ -6,6 +6,7 @@
 #include <unistd.h>
 typedef void *H;
 static const char *stage;
+static int requested_major, requested_minor;
 static int fault(const char *name) {
  const char *value = getenv("ROG5_FAKE_GLES_FAIL");
  fprintf(stderr, "CALL %s\n", name);
@@ -19,9 +20,25 @@ const char *eglQueryString(H d, int n) {
 H eglGetPlatformDisplay(unsigned p, H d, const intptr_t *a) { (void)p; (void)d; (void)a; return fault("display") ? NULL : (H)1; }
 unsigned eglInitialize(H d, int *a, int *b) { (void)d; *a=1; *b=fault("version")?4:5; return !fault("initialize"); }
 unsigned eglBindAPI(unsigned a) { (void)a; return !fault("bind"); }
-unsigned eglChooseConfig(H d, const int *a, H *c, int size, int *n) { (void)d; (void)a; (void)size; *c=(H)2; *n=fault("no_config")?0:1; return !fault("config"); }
+unsigned eglChooseConfig(H d, const int *a, H *c, int size, int *n) { (void)d; (void)size; for (int i=0;a[i]!=0x3038;i+=2) if (a[i]==0x3040) fprintf(stderr,"REQUEST_CONFIG_ES %d\n",a[i+1]); *c=(H)2; *n=fault("no_config")?0:1; return !fault("config"); }
 H eglCreatePbufferSurface(H d, H c, const int *a) { (void)d; (void)c; (void)a; return fault("surface")?NULL:(H)3; }
-H eglCreateContext(H d, H c, H share, const int *a) { (void)d; (void)c; (void)share; (void)a; return fault("context")?NULL:(H)4; }
+H eglCreateContext(H d, H c, H share, const int *a) {
+ (void)d; (void)c; (void)share;
+ requested_major=1; requested_minor=0;
+ for (int i=0;a[i]!=0x3038;i+=2) {
+  if (a[i]==0x3098) requested_major=a[i+1];
+  if (a[i]==0x30fb) requested_minor=a[i+1];
+ }
+ fprintf(stderr,"REQUEST_CONTEXT %d.%d\n",requested_major,requested_minor);
+ if (requested_major==3 && requested_minor==2 && fault("context32")) return NULL;
+ return fault("context")?NULL:(H)4;
+}
+unsigned eglGetError(void) { return 0x3009; }
+void glGetIntegerv(unsigned name, int *value) {
+ int low=fault("gles2"), below=fault("below_requested"), negative=fault("negative_version");
+ *value = name==0x821b ? (low?2:requested_major) : (low?0:below?1:negative?-1:requested_minor);
+ fault("version_query");
+}
 unsigned eglMakeCurrent(H d, H r, H w, H c) { (void)d; (void)r; (void)w; return !fault(c?"current":"unbind"); }
 unsigned eglDestroyContext(H d, H c) { (void)d; (void)c; return !fault("destroy_context"); }
 unsigned eglDestroySurface(H d, H s) { (void)d; (void)s; return !fault("destroy_surface"); }
@@ -32,11 +49,11 @@ const char *glGetString(unsigned n) {
   const char *renderer=getenv("ROG5_FAKE_GLES_RENDERER");
   return renderer?renderer:"llvmpipe (ABI fixture)";
  }
- return n==0x1f00?"offline fixture":"OpenGL ES 2.0 fixture";
+ return n==0x1f00?"offline fixture":requested_major==2?"OpenGL ES 2.0 fixture":"OpenGL ES 3.x fixture";
 }
 unsigned glGetError(void) {
  const char *value=getenv("ROG5_FAKE_GLES_FAIL");
- return value && ((!strcmp(value,"draw_error") && stage && !strcmp(stage,"draw")) || (!strcmp(value,"cleanup_error") && stage && !strcmp(stage,"delete_program")) || (!strcmp(value,"read_error") && stage && !strcmp(stage,"read")))?0x502:0;
+ return value && ((!strcmp(value,"version_query") && stage && !strcmp(stage,"version_query")) || (!strcmp(value,"draw_error") && stage && !strcmp(stage,"draw")) || (!strcmp(value,"cleanup_error") && stage && !strcmp(stage,"delete_program")) || (!strcmp(value,"read_error") && stage && !strcmp(stage,"read")))?0x502:0;
 }
 unsigned glCreateShader(unsigned kind) { return fault(kind==0x8b31?"vertex_create":"fragment_create")?0:kind; }
 void glShaderSource(unsigned s, int n, const char **p, const int *len) { (void)s; (void)n; (void)p; (void)len; }
