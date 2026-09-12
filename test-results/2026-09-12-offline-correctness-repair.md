@@ -12,7 +12,8 @@ matched `4bd1a817618c0dbfdf4b96d391fbf53d50c37dc7`; fixes are applied in a separ
 worktree. The integration base is 147 commits beyond the audited SHA, with changes
 in 64 files (mainly retained progress, composition and input development); none
 of those four reviewed defect sources changed. The dirty original checkout and all frozen artifact worktrees remain
-preserved. Source fixes are implemented; final integrated evidence is pending below.
+preserved. Source fixes and the final integrated host tier are complete. Board qualification
+remains FAIL for the explicit schema conflict below.
 
 No phone operation, authentication, production signing, real claim consumption,
 installation or protected-storage mutation was executed by this repair. Offline
@@ -272,3 +273,180 @@ fully prepared recording/abort/recovery session. The existing signed 136f candid
 lacks these fixes. No claim, candidate, signing operation, readiness countdown or
 phone action was created by this plan. Safe display/touch source work need not
 wait for unrelated server milestones.
+
+## Final integrated execution
+
+The frozen source at `f1376ba6c886fb133a05b03d496613825d6b0237`, tree
+`09fa918b8b4a9d1bab9c8b0b337149a8a24c7e5d`, passed the applicable `ci` tier in
+**613.604 seconds**. The worktree remained clean throughout that run. The only
+subsequent edits correct/report provenance and status; no runtime source or kernel
+build input changed after the integrated run.
+
+| Execution | PASS | FAIL | BLOCKED | SKIPPED | NOT_SELECTED | Seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| First integrated run | 14 | 1 | 285 | 0 | 28 | 28.355 |
+| Second integrated run | 37 | 1 | 262 | 0 | 28 | 64.879 |
+| Focused continuation of remaining suites | 255 | 4 | 38 | 3 | 28 | 536.475 |
+| Final frozen integrated run | **297** | **0** | **0** | **3** | **28** | **613.604** |
+
+BLOCKED in the earlier runs means selected but not reached after failure; the
+focused continuation deliberately did not replay the first 38 suites. Its mutable
+iteration source is not presented as an integrated PASS. Earlier failures remain
+intact: two historical claim fixture assumptions, the new artifact index outside
+an old generated-consumer allowlist, two stale mutable Action-tag expectations,
+and an orphaned watchdog-fixture sleeper. Scoped fixes preserve production claim
+and descendant guards. A reporting-only continuation mistake placed unrelated
+execution JSON among test receipts; that record was moved beside the directory
+before generating its summary. No test result was changed to do so.
+
+The three explicitly optional, wholly skipped historical suites were
+`test-suspend-pm-test-source-contract.py`,
+`test-network-root-suspend-pm-test-candidate.sh`, and
+`test-corrected-successor-live-gate-offline.sh`. The summaries enumerate 39 optional
+skip events, including those whole-suite skips. Mandatory selected tests did not
+silently skip or block. Missing exact-source sections are explicitly NOT RUN in
+this host tier: `ROG5_LINUX_SOURCE` was deliberately unset. They are distinct from
+the separately executed board, affected-driver and composed panel-binding checks.
+Generic full-system QEMU was not newly run; its contract fixtures passed and its
+CI job remains scoped to userspace/initramfs behavior.
+
+[The complete execution table](2026-09-12-offline-correctness-tests.json) records
+every tier entry, interpreter/command, duration, outcome and source-dependent
+section, plus exact board commands, prior failures and JSON/JUnit receipt hashes.
+The raw local summaries are under
+`/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/ci-r3/`.
+Standalone panel command receipts are indexed privately in
+`panel/command-execution-index.json`: affected-driver batch 63.490622 seconds,
+brightness edit/test/incremental batch 2.795685 seconds, and final composed
+panel-binding/schema command 72.330923 seconds. Compile-only times for the first
+two batches were not separately recorded and are not invented.
+
+The final exact-source storage comparison also passed all 98,304 cases in 0.542
+seconds against the actual patched `ufshcd.c`; no device file was opened. The
+final metadata review corrected the public board summary's initial dirty-execution
+label to its verified committed input binding, retaining both identities. The
+raw board provenance, signed images and compiled bytes remain unchanged.
+
+After the report-only correction, all six focused metadata/consistency commands
+passed in 3.473 seconds total, including 22 regression cases. Forty-three local
+Markdown links validated. A final comparison confirmed the headless baseline and
+historical current-state body unchanged, no file deletions, and no newly added
+private unit serial or USB topology. Full runtime tests were not repeated for
+these report-only edits.
+
+## Findings disposition
+
+| Disposition | Findings |
+| --- | --- |
+| Confirmed and fixed | Boot-health finalization/rollback coherence; panel lifecycle and brightness byte order; truthful panel checks; DPMS error propagation/serialization; healthd disconnect tracebacks; bounded test execution and mandatory-result reporting; immutable Action pins; exact board patch/config/build provenance; ASUS root-compatible schema omission |
+| Disproved or stale | Last observed runtime already had corrected shutdown; existing LPG composer already rejects old module bytes; old CI run was complete, not pending; inherited Git environment caused wrong source selection, but no write escape was reproduced |
+| Confirmed boundary, not changed | DATA_WRITE permits arbitrary SCSI opcodes; trusted-tool scope is not kernel containment. USB-required headless health and disabled Wi-Fi power saving remain intentional headless policy |
+| BLOCKED / unresolved | RPMh schema versus preserved PSCI workaround; incomplete legacy/private provenance; firmware/package verification, mobile security and remaining panel TODOs; complete migration of sealed legacy identity interfaces; remote governance enablement and pinned build-container digest |
+| NOT RUN | All new physical rows, candidate composition/admission/signing/installation, phone operation, protected-storage mutation, physical storage experiments, new full-system QEMU execution |
+
+No accepted image, signed fallback, consumed experimental claim, original dirty
+checkout or frozen artifact worktree was replaced. No remote push or repository
+settings change was made. The original headless acceptance contract and historical
+current-state body are byte-identical to the integration base. Ending report-only
+commit/tree and all changed-file hashes are recorded in the local
+`completion.json` beside the evidence directories after the final commit, avoiding
+a self-referential commit identifier inside tracked evidence.
+
+## Changed files
+
+92 files differ from the integration base; no historical file deletion.
+
+```text
+.github/CODEOWNERS
+.github/workflows/offline-smoke.yml
+ROADMAP.md
+artifacts/persistent-trial-state-v3/SHA256SUMS
+artifacts/persistent-trial-state-v3/build-meta.txt
+artifacts/persistent-trial-state-v3/rog5-persistent-trial-state
+configs/devices/example.json
+configs/kernel/rog5-production-build.json
+configs/kernel/rog5-production-warning-policy.json
+configs/kernel/rog5-production.fragment
+configs/mobile/acceptance.json
+configs/mobile/session-policy.json
+configs/mobile/trial-plans.json
+configs/persistent-trial-helper.path
+configs/project-status.json
+configs/repository-tests.json
+docs/artifact-retention.md
+docs/current-state.md
+docs/development-lessons.md
+docs/development.md
+docs/licensing-provenance.md
+docs/mobile-power-policy.md
+docs/mobile-trial-plans.md
+docs/repository-governance.md
+docs/storage-trust-boundary.md
+dts/qcom/sm8350-asus-rog-phone5-display-60hz-reviewed.dtso
+initramfs/native-wifi-persistent/healthy
+initramfs/native-wifi/runtime
+manifests/artifact-sets.json
+manifests/current-artifact.json
+packaging/arch/mobile-package-closure.json
+packaging/arch/mobile/sysusers.conf
+patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
+patches/linux-7.1.4/0040-drm-msm-adreno-defer-until-iommu-attachment.patch
+patches/linux-7.1.4/0041-dt-bindings-arm-qcom-document-ASUS-ROG-Phone-5.patch
+patches/linux-7.1.4/series.diagnostic
+patches/linux-7.1.4/series.production
+scripts/device/build-display-60hz-candidate-dtb.py
+scripts/device/build-display-60hz-candidate-dtb.sh
+scripts/device/fixtures/ams678/cases.c
+scripts/device/fixtures/ams678/drm-brightness-v7.1.4.c
+scripts/device/fixtures/ams678/drm-panel-v7.1.4.c
+scripts/device/fixtures/ams678/stubs.h
+scripts/device/fixtures/display60/gpio.h
+scripts/device/fixtures/display60/qcom,rpmh-regulator.h
+scripts/device/probe-native-wifi.sh
+scripts/device/rog5-healthd.py
+scripts/device/screen-toggle.sh
+scripts/device/test-ams678-lifecycle.py
+scripts/device/test-ams678-panel-patch.sh
+scripts/device/test-buttons-indicator-trial-initramfs.py
+scripts/device/test-disarm-recovery-layout-watchdog.sh
+scripts/device/test-display-60hz-candidate-dtb.sh
+scripts/device/test-display-60hz-publication.py
+scripts/device/test-native-wifi-boot.py
+scripts/device/test-native-wifi-finalization.py
+scripts/device/test-native-wifi-healthy.py
+scripts/device/test-rog5-healthd.py
+scripts/device/test-screen-toggle-failures.py
+scripts/device/test-screen-toggle.sh
+scripts/device/test-ufs-storage-trust-boundary.py
+scripts/host/assess-mobile-power.py
+scripts/host/build-ams678-panel-check.sh
+scripts/host/build-rog5-production-kernel.py
+scripts/host/check-artifact-inventory.py
+scripts/host/check-mobile-package-closure.py
+scripts/host/check-mobile-status.py
+scripts/host/check-production-build-diagnostics.py
+scripts/host/generate-power-usb-active.py
+scripts/host/load-private-device-profile.py
+scripts/host/record-ci-environment.sh
+scripts/host/repository-test-report.py
+scripts/host/test-ams678-compile-location.py
+scripts/host/test-generate-power-usb-active.py
+scripts/host/test-github-exact-head-workflow.sh
+scripts/host/test-mobile-power-policy.py
+scripts/host/test-mobile-status.py
+scripts/host/test-persistent-trial-state.py
+scripts/host/test-production-build-diagnostics.py
+scripts/host/test-production-kernel-build.py
+scripts/host/test-qemu-system-smoke-contract.sh
+scripts/host/test-release-composition.py
+scripts/host/test-repository-linux.sh
+scripts/host/test-repository-test-report.py
+scripts/host/test-review-metadata-checkers.py
+scripts/host/test-select-repository-test-tier.py
+scripts/host/test-systemd-ssh-rollback.py
+scripts/host/test-verified-kernel-hardware-boot.py
+test-results/2026-09-12-offline-correctness-repair.md
+test-results/2026-09-12-offline-correctness-tests.json
+test-results/2026-09-12-production-board-build.json
+tools/persistent_trial_state/rog5-persistent-trial-state.c
+```
