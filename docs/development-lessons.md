@@ -2103,3 +2103,14 @@ not prove native GPU fences. Both real software renderers lack the native-fence
 extension, so preserve those capability blockers separately from passing ABI
 checks. No CPU/ordinary-EGL-fence fallback should silently satisfy Denial's native
 export requirement.
+
+Native-fence consumer preparation (2026-09-12): importing/waiting in a second
+context adds a cleanup constraint: after failed restoration, never issue producer
+GL object deletions in the consumer context. Track successful current-context
+state and let EGL teardown reclaim objects on that failure path. The executable
+fault test now covers this, imported-FD ownership and descriptor exhaustion.
+The 10-group focused run took 6.812 s; ARM64 fixtures 6.472 s, with unchanged
+real-software extension blockers. Reuse the cached builder and library identities,
+but generate new execution evidence for each binary. A private verifier initially
+assumed regular-file metadata for symlinks; check the recorded entry type first
+and make successful verification a dependency of subsequent runtime execution.
