@@ -1,0 +1,451 @@
+{
+  "format": "rog5-gles3-qualification-v1",
+  "status": "PASS: offline context-version and software rendering checks",
+  "starting_commit": "fc82a98ae90c9e40dd1d7ae77b0f37af7a79a3c0",
+  "starting_tree": "006e414f8bbe2eb1b27d3e8983ce6825326d5473",
+  "build": {
+    "format": "rog5-gles-readback-qualification-v1",
+    "source_commit": "6e1dc0e88b0bde4edb9788f08ab07c87a9dd97af",
+    "source_tree": "56c1824ff93a0680cf2b7ed561be3438be39026e",
+    "builder_image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "source_sha256": "0684ad0e66c73aa3ed651184ec0e93d197fedef83e4c07f9b713b2a4ace59aba",
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a",
+        "size": 4654144,
+        "sha256": "1128b828b2bd47e876b060ef5085c966e30beab42828d4d5390465f8db508f33"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-b",
+        "size": 4654144,
+        "sha256": "1128b828b2bd47e876b060ef5085c966e30beab42828d4d5390465f8db508f33"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/native",
+        "size": 4540464,
+        "sha256": "c65a9c6ddb684022596efe6a2947f3b78cc8de4ecdb8a670aade969e835b3465"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/debug-unit",
+        "size": 7200952,
+        "sha256": "f2f456c1f786895dba1738b0984a6c518e89a34a541e325e035048bf09132ab4"
+      }
+    ],
+    "commands": [
+      {
+        "name": "arm64-a",
+        "command": [
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=aarch64-linux-gnu-gcc",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a"
+        ],
+        "start_utc": "2026-09-12T09:09:09.549979+00:00",
+        "duration_seconds": 1.0665677999932086,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "arm64-b",
+        "command": [
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=aarch64-linux-gnu-gcc",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-b"
+        ],
+        "start_utc": "2026-09-12T09:09:10.617295+00:00",
+        "duration_seconds": 1.2168586059997324,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "native",
+        "command": [
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/native"
+        ],
+        "start_utc": "2026-09-12T09:09:11.834671+00:00",
+        "duration_seconds": 1.1163916420046007,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "debug-unit-build",
+        "command": [
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "--test",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/debug-unit"
+        ],
+        "start_utc": "2026-09-12T09:09:12.951553+00:00",
+        "duration_seconds": 0.7159749330021441,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "debug-unit",
+        "command": [
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/debug-unit"
+        ],
+        "start_utc": "2026-09-12T09:09:13.667979+00:00",
+        "duration_seconds": 0.003750467993086204,
+        "exit_status": 0,
+        "log_sha256": "0eb401f28abf2be525c6e5ec8859e59755e1f38216049ab43e1664c9c2849f13"
+      },
+      {
+        "name": "arm64-elf",
+        "command": [
+          "readelf",
+          "-h",
+          "-d",
+          "-V",
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a"
+        ],
+        "start_utc": "2026-09-12T09:09:13.672231+00:00",
+        "duration_seconds": 0.008041063993005082,
+        "exit_status": 0,
+        "log_sha256": "ee9f155ffdf09638ce11e768eb000f7a443ff2dd57bf3ec0ce7fe91b321610e2"
+      },
+      {
+        "name": "native-real-mesa",
+        "command": [
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--ro-bind",
+          "/",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--setenv",
+          "LIBGL_ALWAYS_SOFTWARE",
+          "1",
+          "--setenv",
+          "MESA_SHADER_CACHE_DISABLE",
+          "true",
+          "--setenv",
+          "LP_NUM_THREADS",
+          "1",
+          "--unsetenv",
+          "DISPLAY",
+          "--unsetenv",
+          "WAYLAND_DISPLAY",
+          "--",
+          "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/native",
+          "--software-fixture"
+        ],
+        "start_utc": "2026-09-12T09:09:13.680671+00:00",
+        "duration_seconds": 0.16462541899818461,
+        "exit_status": 0,
+        "log_sha256": "3ca63e0ba97a792d5b4f7eb16758ba329cfb1c8f5d76a135e3f4418312049f4a"
+      },
+      {
+        "name": "builder-tools",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "sh",
+          "-c",
+          "/opt/denial-rust/bin/rustc -Vv; aarch64-linux-gnu-gcc --version; aarch64-linux-gnu-ld --version; sha256sum /opt/denial-rust/bin/rustc /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-ld /usr/bin/cc /usr/bin/ld"
+        ],
+        "start_utc": "2026-09-12T09:09:13.845714+00:00",
+        "duration_seconds": 0.3649890889937524,
+        "exit_status": 0,
+        "log_sha256": "dfc4af351c92463d0232923956932ec40d87d7c7f7ef5b76530dde1d65dc9f66"
+      }
+    ],
+    "scope": "offscreen software Mesa and ABI fixtures; ARM64 compile only",
+    "physical_status": "NOT RUN",
+    "candidate": null,
+    "admission": "none",
+    "arm64_execution": "NOT RUN",
+    "rustfmt_clippy": "NOT RUN: absent from cached builder"
+  },
+  "denial_requirement": {
+    "commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "path": "compositor/src/bin/deniald/egl_context.rs",
+    "sha256": "709c4897cff8753283fb14bbe4dbc85a0b1d6761b983629f5423be7435a3c022",
+    "preferred": [
+      3,
+      2
+    ],
+    "fallback": [
+      3,
+      0
+    ],
+    "scope": "version selection only; not full Denial GL/GBM/native-fence qualification"
+  },
+  "before": {
+    "result": "expected FAIL",
+    "seconds": 1.707,
+    "test": "ReadbackTest.test_denial_gles_versions_and_refusal_before_drawing",
+    "log": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/before.log",
+    "sha256": "844a708d41d0347e288d703026297d989e7a7f528ee4e1cc9c948984ef619bf3",
+    "counterexample": "old executable requested GLES 2.0 and reported pixel PASS"
+  },
+  "focused": {
+    "result": "PASS",
+    "groups": 8,
+    "seconds": 3.703,
+    "command": "TMPDIR=E/scratch RUSTC=E/rustc python3 -O scripts/device/test-gles-readback.py",
+    "log_sha256": "9310c80613befb1d334f1aeb8767bad7492dd0795af49caf466683f0d516b888"
+  },
+  "arm64_fault_tests": {
+    "status": "PASS",
+    "seconds": 2.333737207009108,
+    "tests": [
+      "test_denial_gles_versions_and_refusal_before_drawing",
+      "test_actual_executable_faults_never_publish_pass",
+      "test_requires_explicit_mode_before_library_loading",
+      "test_strict_renderer_scope_and_cleanup",
+      "test_stalled_readback_is_killed_without_success"
+    ],
+    "probe": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a",
+    "scope": "retained ARM64 binary on retained Arch libc via QEMU user; EGL/GLES ABI fixtures only",
+    "phone_operations": false
+  },
+  "arm64_mesa_tests": [
+    {
+      "name": "loader",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/usr/lib/ld-linux-aarch64.so.1",
+        "--list",
+        "/probe"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "duration_seconds": 0.03238033299567178,
+      "status": "PASS"
+    },
+    {
+      "name": "software",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/probe",
+        "--software-fixture"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "duration_seconds": 0.9663516250002431,
+      "status": "PASS"
+    },
+    {
+      "name": "hardware-refusal",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/probe",
+        "--require-a660"
+      ],
+      "exit_status": 1,
+      "expected_exit_status": 1,
+      "duration_seconds": 0.6655060569901252,
+      "status": "PASS"
+    }
+  ],
+  "runtime_binding": {
+    "path": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/runtime-binding.json",
+    "sha256": "0d1ff8d1e39fb188723bf92b393d951537f863dff68f1d3e3bccc0e2b7626b13"
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--scope",
+        "--quiet",
+        "-p",
+        "MemoryMax=3G",
+        "-p",
+        "MemorySwapMax=0",
+        "bash",
+        "scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "environment_overrides": {
+        "RUSTC": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/rustc",
+        "ROG5_TEST_WORKERS": "2",
+        "ROG5_TEST_REPORT_DIR": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/active-r1"
+      },
+      "ROG5_LINUX_SOURCE": "unset",
+      "seconds": 116.0327719909983,
+      "exit_status": 0
+    },
+    "counts": {
+      "PASS": 83,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 256
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary_sha256": "02324c9e172f643640747740b58da69146b40fb162810fc621a6c086163a09a6",
+    "junit_sha256": "cfc79715cd49e50f6f8f306056f3b63612283d3e6bd43d246e77f8b44e540c11"
+  },
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "protected_storage_mutation": false,
+  "candidate": null,
+  "limitations": [
+    "No full kernel rebuild or GitHub CI run this turn",
+    "GBM/DMA-BUF import, native fences and A660 rendering remain NOT RUN",
+    "Current full mobile graph unchanged; library fixture uses separate Mesa 26.2.2",
+    "Native shader mutation rerun; earlier ARM64 no-draw result remains historical",
+    "Rustfmt/Clippy unavailable in cached builder"
+  ]
+}

@@ -130,33 +130,33 @@
     "note": "Unsigned disabled-DT fixture; no production selection or installation. Ordinary non-wakeup sleep/resume implemented and host tested; physical sleep, touch wake and rail recovery remain unqualified. Hibernation is refused. Ambiguous ownership or failed restart stays quiesced within one instance; no rebind/reload retry is qualified."
   },
   "gpu_readback_probe": {
-    "status": "fixture: unsigned offscreen userspace helper; not packaged or admitted",
-    "set_id": "private:rog5-gles-readback-evidence-20260912-r1/build",
-    "source_commit": "bdea5a5ef8585092d5f1fcf52b835089b890161d",
+    "status": "fixture: unsigned GLES 3.2/3.0 probe; not packaged or admitted",
+    "set_id": "private:rog5-gles3-evidence-20260912-r1/build",
+    "source_commit": "6e1dc0e88b0bde4edb9788f08ab07c87a9dd97af",
     "arm64": {
-      "path": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a",
+      "path": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/build/arm64-a",
       "size": 4654144,
-      "sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac"
+      "sha256": "1128b828b2bd47e876b060ef5085c966e30beab42828d4d5390465f8db508f33"
     },
     "qualification": {
-      "path": "test-results/2026-09-12-gles-readback-qualification.json",
-      "sha256": "bf105142c3cbae600aaf0df7797cb68da8058882775a23cbbc28d81b5a1b75c2"
+      "path": "test-results/2026-09-12-gles3-qualification.json",
+      "sha256": "3c1ec06c0b65497580d3673a6d8e3ab8e9e07cef6519f403f42c6f8c4fb66c0d"
     },
     "physical_status": "NOT RUN",
     "candidate": null
   },
   "gpu_readback_runtime": {
-    "set_id": "private:rog5-gles-arm64-evidence-20260912-r1/runtime",
-    "status": "fixture: ARM64 Arch software rendering only; not admitted or installed",
-    "probe_sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac",
+    "set_id": "private:rog5-gles3-evidence-20260912-r1/build",
+    "status": "fixture: matching new probe with reused Arch software libraries; not installed",
+    "probe_sha256": "1128b828b2bd47e876b060ef5085c966e30beab42828d4d5390465f8db508f33",
     "mesa": "1:26.2.2-1",
-    "runtime_lock": {
-      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/runtime-lock.json",
-      "sha256": "045b08493566687bdca6b2bc4d35eeb6f0233b140be6d59268a0707c31c63abd"
+    "runtime_binding": {
+      "path": "/home/deck/.local/state/rog5-gles3-evidence-20260912-r1/runtime-binding.json",
+      "sha256": "0d1ff8d1e39fb188723bf92b393d951537f863dff68f1d3e3bccc0e2b7626b13"
     },
     "qualification": {
-      "path": "test-results/2026-09-12-gles-arm64-qualification.json",
-      "sha256": "01cb0530e705b4d37241fbb6911c0e59ad146ed82e4b197fc75e65c40e53e9de"
+      "path": "test-results/2026-09-12-gles3-qualification.json",
+      "sha256": "3c1ec06c0b65497580d3673a6d8e3ab8e9e07cef6519f403f42c6f8c4fb66c0d"
     },
     "physical_status": "NOT RUN",
     "candidate": null

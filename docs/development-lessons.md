@@ -2085,3 +2085,11 @@ fail. Detect ASCII public keyrings and dearmor them in private scratch. These
 were preparer failures, not phone or renderer failures; their original results
 remain retained. Keep a newer software fixture separate from an unchanged mobile
 package graph when an older pinned archive is no longer on checked mirrors.
+
+Check a renderer probe against the selected compositor's minimum API, not only
+whether its simple shader runs. Pinned Denial needs GLES 3.2 or 3.0; requesting
+GLES 2 left that prerequisite untested. The corrected probe checks the actual
+version, with the fallback exercised by real ARM64 softpipe (3.2 refused,
+3.0 requested, 3.1 returned). Reuse verified library bytes but create a new binding
+for a changed executable; do not inherit an old lock's probe-specific results.
+The active-tier wrapper now captures outer wall time as well as per-test timings.

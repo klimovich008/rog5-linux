@@ -213,8 +213,8 @@
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#gpu_readback_probe",
-        "source_commit": "bdea5a5ef8585092d5f1fcf52b835089b890161d",
-        "arm64_sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac",
+        "source_commit": "6e1dc0e88b0bde4edb9788f08ab07c87a9dd97af",
+        "arm64_sha256": "1128b828b2bd47e876b060ef5085c966e30beab42828d4d5390465f8db508f33",
         "candidate": null,
         "physical_status": "NOT RUN"
       },
@@ -225,7 +225,7 @@
       "software_runtime_fixture": {
         "artifact_pointer": "manifests/current-artifact.json#gpu_readback_runtime",
         "mesa": "1:26.2.2-1",
-        "scope": "ARM64 softpipe under QEMU user; full mobile graph, A660, DMA-BUF and fences remain unqualified",
+        "scope": "GLES 3.2 preferred / 3.0 fallback verified with ARM64 softpipe under QEMU user; full mobile graph, A660, DMA-BUF and fences remain unqualified",
         "physical_status": "NOT RUN"
       }
     },
