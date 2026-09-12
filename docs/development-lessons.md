@@ -1767,3 +1767,28 @@ existing module map covers all54 identities across32 loose and37 nested copies.
 Use that measured coverage to preserve unrelated payload bytes, instead of
 rebuilding the historical headless-to-OLED-to-GPU composition chain. New package,
 BTF registration and real-phone DMA attachment still require their own evidence.
+
+## 2026-09-12 r127: validate configuration against the retained consumer
+
+Payload and wrapper twins matched even though a newly generated relay nonce had
+28 characters and the retained Rust relay requires 32. The producer fixture had
+mirrored the incorrect length. Reject that first candidate permanently. The
+corrected payload now pins a 0.500 s actual ARM64 relay parser test for both
+lengths, stopping at an intentionally wrong release before transport access.
+Give extracted executable test copies the mode the real consumer receives: the
+first mode-0600 fixture failed without the expected parser message. Preserve that
+failed evidence as well as the corrected result. Byte identity alone does not
+validate runtime configuration.
+
+A01 also spent 24.019 s before refusing missing repository candidate identity.
+Move the existing identity check before large root hashing; an actual subprocess
+regression now proves an unknown candidate returns without root_hashes. Register
+and check small composition inputs before expensive scans and packaging wherever
+possible. The corrected candidate passed all seven A01 checks in 78.989 s.
+
+Reusing the current GPU archive avoided replaying historical payload stages.
+Retained writeback draining and canonical raw-image reuse kept corrected wrapper
+packaging within its existing 512 MiB bound (84.975 s, 11.408 s writeback). Do not
+claim a total speedup against older partial resumes with different work. Next
+priority is the new kernel's physical GPU IOMMU attachment, not more unchanged
+builds or Denial work.

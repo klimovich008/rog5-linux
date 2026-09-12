@@ -9064,3 +9064,18 @@ GPU archive736-member audit accounts for all54 identities; replacement payload
 and boot admission are pending. r122/r125 failures, blank cleanup, S06/R01 and
 missed optical acceptance remain open. Evidence: gpu-iommu-kernel-build-r1,
 gpu-iommu-module-build-r1, gpu-iommu-module-closure-r1 and gpu-iommu-payload-audit-r1.
+
+## 2026-09-12 r127: IOMMU successor offline integration
+
+Candidate gpu-136f7-a9b1bc89566205b6 on source
+2de739adcd5bf2678cc1e1ba8260fa282266e503 passed A01 in 78.989 s: wrapper,
+signed target, archive, root runtime, module load, firmware and timing/transport.
+Root and upper content/metadata remained unchanged. A01-qualified=true;
+release-qualified=false. Kernel is 7.1.4-g136f75ae869a. Both payload and signed
+bundle/wrapper twins match. Registration VM evidence covers 51 ordinary loads
+and three expected board refusals; physical GPU/display operation is unproven.
+
+Retain rejected r1 nonce candidate and blocked A01 r1 as failures. The actual
+relay nonce test and 30 composition-profile tests pass for corrected r2. No phone
+boot, claim entry, persistent write or human observation took place. See current
+state r127 and kernel-hardware-checkpoint-r127.json for exact private receipts.
