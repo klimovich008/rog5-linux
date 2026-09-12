@@ -306,13 +306,13 @@
       "path": "test-results/2026-09-12-engine-compiler-qualification.json",
       "sha256": "255084f98360470b3239fabd8166dfc17c47235a0406887d98f165763a940fe2"
     },
-    "compilation_status": "RUNNING at retained live observation; inspect owner/terminal result before continuing",
+    "compilation_status": "RUNNING: two-worker incremental segment after retained first-segment timeout FAIL",
     "build_observation": {
-      "path": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/engine-observation.json",
-      "sha256": "d8d0b94383eb6caa635c51b1b85fa9e49004f384f15dae166e00179d468bb127",
-      "size": 1636
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/engine-continuation-observation.json",
+      "sha256": "0a03a709b96ba1b7bd24612a20b7c42734a37973cbc8c49271811c6ab4b3e207",
+      "size": 1536
     },
-    "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
+    "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r2-result.json",
     "physical_status": "NOT RUN",
     "authority": "none"
   },
@@ -326,6 +326,23 @@
     },
     "pub_resolution_status": "NOT RUN",
     "shell_aot_status": "NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_dart_bootstrap": {
+    "status": "PASS: pinned tooling and 193-root SDK metadata",
+    "set_id": "private:rog5-dart-bootstrap-evidence-20260912-r1",
+    "evidence": {
+      "path": "test-results/2026-09-12-dart-bootstrap-qualification.json",
+      "sha256": "9220e8c3f71e98bec734182a65e7695e08f0fd575d4cc800e4a1ab71e9fb498f"
+    },
+    "metadata": {
+      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/package-config-r3/generated-package-config.json",
+      "sha256": "366a49e0f5cbdebb9c920039172c8e5f1205c84e87f66d9d07aa16b44db27cd1",
+      "size": 29782
+    },
+    "source_cache_installation": "NOT RUN: existing engine inputs unchanged",
+    "complete_sdk_build": "NOT RUN",
     "physical_status": "NOT RUN",
     "authority": "none"
   }

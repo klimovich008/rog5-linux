@@ -2242,3 +2242,20 @@ Retain distinct versions across application locks and compare both archive
 hashes and contained package identity. Download verification does not establish
 pub resolution, SDK closure or AOT success. The early compiler phase peaked at
 273 MiB with no OOM events; that measurement is not a bound on later LTO linking.
+
+The SDK metadata hook needs its separate bootstrap Dart pin and DevTools package;
+the runtime Dart revision is not the bootstrap revision. A 0.777-second offline
+generator run resolved 193 roots after those exact packages were supplied.
+Scan declared overrides/workspace paths before retrying one missing dependency.
+This host rejected Podman's `:O` mount before execution; a bounded isolated source
+copy preserved the frozen checkout. Existing mount-target README files need not
+be removed or treated as an error for a read-only namespace mount. Pub workspace
+entries can legitimately have no library directory: record absence and require
+actual compilation separately instead of imposing an unrelated collector rule.
+
+Podman may remove a `--cidfile` during automatic container cleanup. Preserve the
+actual ID while the process is live, then query that ID plus the terminal receipt
+before incremental continuation; missing CID-file text alone is not proof that an
+owner stopped. The first 1,800-second segment retained a timeout FAIL and its
+objects, reducing the continuation from 6,674 to 3,924 steps. Two workers retain
+the same memory cap; evaluate speed and later linker memory from actual results.
