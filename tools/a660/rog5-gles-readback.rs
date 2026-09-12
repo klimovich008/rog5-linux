@@ -2,7 +2,7 @@
 //! Run only under an external deadline: synchronous driver calls can block.
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use std::ptr;
-use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd, OwnedFd};
 use std::time::{Duration, Instant};
 
 type Handle = *mut c_void;
@@ -99,6 +99,7 @@ api! {
     eglGetProcAddress(*const c_char) -> Handle;
     eglCreateSync(Handle, c_uint, *const isize) -> Handle;
     eglDestroySync(Handle, Handle) -> c_uint;
+    eglWaitSync(Handle, Handle, c_int) -> c_uint;
     eglQueryString(Handle, c_int) -> *const c_char;
     eglGetPlatformDisplay(c_uint, Handle, *const isize) -> Handle;
     eglInitialize(Handle, *mut c_int, *mut c_int) -> c_uint;
@@ -143,7 +144,7 @@ impl Mode {
         match args {
             [mode] if mode == "--require-a660" => Ok(Self::A660),
             [mode] if mode == "--software-fixture" => Ok(Self::Software),
-            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence] (external deadline required)".into()),
+            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence | --native-fence-import] (external deadline required)".into()),
         }
     }
     fn scope(self) -> &'static str {
@@ -185,10 +186,19 @@ fn check(ok: c_uint, stage: &str) -> Result<()> {
     if ok != 0 { Ok(()) } else { Err(format!("{stage} failed")) }
 }
 
+fn combine(result: Result<()>, cleanup: Result<()>) -> Result<()> {
+    match (result, cleanup) {
+        (Ok(()), Ok(())) => Ok(()),
+        (Err(e), Ok(())) | (Ok(()), Err(e)) => Err(e),
+        (Err(e), Err(cleanup)) => Err(format!("{e}; {cleanup}")),
+    }
+}
+
 struct Session<'a> {
     api: &'a Api,
     display: Handle,
     initialized: bool,
+    producer_current: bool,
     surface: Handle,
     context: Handle,
     shaders: Vec<c_uint>,
@@ -199,13 +209,13 @@ struct Session<'a> {
 }
 impl<'a> Session<'a> {
     fn new(api: &'a Api) -> Self {
-        Self { api, display: ptr::null_mut(), initialized: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0, requested_minor: 0, actual_version: (0, 0), preferred_error: 0 }
+        Self { api, display: ptr::null_mut(), initialized: false, producer_current: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0, requested_minor: 0, actual_version: (0, 0), preferred_error: 0 }
     }
     fn gl_check(&self, stage: &str) -> Result<()> {
         let error = unsafe { (self.api.glGetError)() };
         if error == 0 { Ok(()) } else { Err(format!("{stage}: GL error 0x{error:x}")) }
     }
-    fn render(&mut self, mode: Mode, native_fence: bool) -> Result<(String, String, String)> {
+    fn render(&mut self, mode: Mode, native_fence: bool, fence_import: bool) -> Result<(String, String, String)> {
         let a = self.api;
         // All pointer arguments below reference live arrays/handles of the exact
         // API types and lengths. GL calls follow a successful eglMakeCurrent.
@@ -246,6 +256,7 @@ impl<'a> Session<'a> {
                 }
             }
             check((a.eglMakeCurrent)(self.display, self.surface, self.surface, self.context), "eglMakeCurrent")?;
+            self.producer_current = true;
             let renderer = string_value((a.glGetString)(0x1f01), "renderer")?;
             mode.check(&renderer)?;
             let vendor = string_value((a.glGetString)(0x1f00), "vendor")?;
@@ -289,7 +300,7 @@ impl<'a> Session<'a> {
             (a.glEnableVertexAttribArray)(0);
             (a.glDrawArrays)(0x0004, 0, 3);
             self.gl_check("draw")?;
-            if native_fence { self.native_fence()?; }
+            if native_fence { self.native_fence(fence_import, config)?; }
             let mut pixels = [0u8; 64];
             (a.glReadPixels)(0, 0, 4, 4, 0x1908, 0x1401, pixels.as_mut_ptr().cast());
             self.gl_check("readback")?;
@@ -297,7 +308,7 @@ impl<'a> Session<'a> {
             Ok((renderer, vendor, version))
         }
     }
-    fn native_fence(&self) -> Result<()> {
+    fn native_fence(&mut self, import: bool, config: Handle) -> Result<()> {
         let a = self.api;
         // The display and current GLES context are owned by this session.
         unsafe {
@@ -320,15 +331,59 @@ impl<'a> Session<'a> {
                 if raw < 0 { return Err("native fence export failed".into()); }
                 // Export transfers ownership of a new descriptor to the caller.
                 let fd = OwnedFd::from_raw_fd(raw);
+                if import { self.consume_native_fence(&fd, config)?; }
                 wait_native_fd(&fd)
             })();
             // fd has closed on every path before destroying the producer sync.
             let destroyed = check((a.eglDestroySync)(self.display, sync), "native fence destruction");
-            match (result, destroyed) {
-                (Ok(()), Ok(())) => Ok(()),
-                (Err(e), Ok(())) | (Ok(()), Err(e)) => Err(e),
-                (Err(e), Err(cleanup)) => Err(format!("{e}; {cleanup}")),
-            }
+            combine(result, destroyed)
+        }
+    }
+    fn consume_native_fence(&mut self, fd: &OwnedFd, config: Handle) -> Result<()> {
+        let a = self.api;
+        // A separate unshared context and pbuffer isolate the consumer command
+        // stream. No pixel/buffer sharing is claimed by this fence-only check.
+        unsafe {
+            let attributes = [0x3098, 3, 0x30fb, self.requested_minor, 0x3038];
+            let context = (a.eglCreateContext)(self.display, config, ptr::null_mut(), attributes.as_ptr());
+            if context.is_null() { return Err("consumer context creation failed".into()); }
+            let size = [0x3057, 4, 0x3056, 4, 0x3038];
+            let surface = (a.eglCreatePbufferSurface)(self.display, config, size.as_ptr());
+            let mut switched = false;
+            let result = (|| {
+                if surface.is_null() { return Err("consumer surface creation failed".into()); }
+                check((a.eglMakeCurrent)(self.display, surface, surface, context), "consumer make-current")?;
+                switched = true;
+                self.producer_current = false;
+                let imported_fd = fd.try_clone().map_err(|e| format!("native fence duplicate: {e}"))?;
+                let attributes = [0x3145, imported_fd.as_raw_fd() as isize, 0x3038];
+                let imported = (a.eglCreateSync)(self.display, 0x3144, attributes.as_ptr());
+                if imported.is_null() { return Err("native fence import failed".into()); }
+                // Successful creation transfers the duplicate to EGL. On error
+                // OwnedFd closes it, matching the pinned Smithay import path.
+                let _ = imported_fd.into_raw_fd();
+                let waited = (|| {
+                    check((a.eglWaitSync)(self.display, imported, 0), "native fence server wait")?;
+                    // A second native fence follows the server wait. Its export,
+                    // bounded wait and Linux status prove consumer completion.
+                    // import=false prevents recursion and keeps this context current.
+                    self.native_fence(false, config)
+                })();
+                let destroyed = check((a.eglDestroySync)(self.display, imported), "imported fence destruction");
+                combine(waited, destroyed)
+            })();
+            let restored = if switched {
+                let result = check((a.eglMakeCurrent)(self.display, self.surface, self.surface, self.context), "producer context restoration");
+                self.producer_current = result.is_ok();
+                result
+            } else { Ok(()) };
+            // Destroy all independent resources even when restoration fails.
+            // Final cleanup then avoids producer GL calls in the wrong context.
+            let destroyed = check((a.eglDestroyContext)(self.display, context), "consumer context destruction");
+            let surface_destroyed = if surface.is_null() { Ok(()) } else {
+                check((a.eglDestroySurface)(self.display, surface), "consumer surface destruction")
+            };
+            combine(combine(combine(result, restored), destroyed), surface_destroyed)
         }
     }
     fn cleanup(&mut self) -> Result<()> {
@@ -339,12 +394,14 @@ impl<'a> Session<'a> {
         // subsequent rendering. Context destruction reclaims all GL objects.
         unsafe {
             let had_objects = !self.shaders.is_empty() || self.program != 0;
-            for shader in self.shaders.drain(..) { (a.glDeleteShader)(shader); }
-            if self.program != 0 { (a.glDeleteProgram)(self.program); self.program = 0; }
-            if had_objects {
-                if let Err(e) = self.gl_check("GL object cleanup") { errors.push(e); }
+            if self.producer_current {
+                for shader in self.shaders.drain(..) { (a.glDeleteShader)(shader); }
+                if self.program != 0 { (a.glDeleteProgram)(self.program); self.program = 0; }
+                if had_objects {
+                    if let Err(e) = self.gl_check("GL object cleanup") { errors.push(e); }
+                }
             }
-            // No GL calls when make-current failed: no objects then exist.
+            // Context teardown also reclaims objects when restoration failed.
             if !self.context.is_null() {
                 if let Err(e) = check((a.eglMakeCurrent)(self.display, ptr::null_mut(), ptr::null_mut(), ptr::null_mut()), "unbind") { errors.push(e); }
                 if let Err(e) = check((a.eglDestroyContext)(self.display, self.context), "eglDestroyContext") { errors.push(e); }
@@ -361,28 +418,29 @@ impl<'a> Session<'a> {
     }
 }
 
-fn run(mode: Mode, native_fence: bool) -> Result<()> {
+fn run(mode: Mode, native_fence: bool, fence_import: bool) -> Result<()> {
     let api = Api::load()?;
     let mut session = Session::new(&api);
-    let rendered = session.render(mode, native_fence);
+    let rendered = session.render(mode, native_fence, fence_import);
     let cleanup = session.cleanup();
     let (renderer, vendor, version) = match (rendered, cleanup) {
         (Ok(identity), Ok(())) => identity,
         (Err(e), Ok(())) | (Ok(_), Err(e)) => return Err(e),
         (Err(e), Err(cleanup)) => return Err(format!("{e}; cleanup: {cleanup}")),
     };
-    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nscanout=NOT RUN\nbuffer_sharing=NOT RUN\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" });
+    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nnative_fence_import={}\nscanout=NOT RUN\nbuffer_sharing=NOT RUN\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" }, if fence_import { "PASS" } else { "NOT RUN" });
     Ok(())
 }
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
-    let native_fence = args.len() == 2 && args[1] == "--native-fence";
+    let fence_import = args.len() == 2 && args[1] == "--native-fence-import";
+    let native_fence = fence_import || (args.len() == 2 && args[1] == "--native-fence");
     if native_fence { args.pop(); }
     let mode = match Mode::parse(&args) {
         Ok(mode) => mode,
         Err(error) => { eprintln!("{error}"); std::process::exit(2); }
     };
-    if let Err(error) = run(mode, native_fence) { eprintln!("FAIL {error}"); std::process::exit(1); }
+    if let Err(error) = run(mode, native_fence, fence_import) { eprintln!("FAIL {error}"); std::process::exit(1); }
 }
 
 #[cfg(test)]

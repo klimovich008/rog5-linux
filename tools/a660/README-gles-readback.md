@@ -72,3 +72,33 @@ qualification. Offline fault tests use actual eventfd/poll/FD closure with the
 EGL and sync-file ioctl boundaries controlled by an LD_PRELOAD fixture. That
 fixture is used only in the no-DRI test namespace; it is never a native-fence
 hardware proof.
+
+## Optional native-fence consumer check
+
+Use `--native-fence-import` instead of `--native-fence` to add a second,
+unshared GLES context and pbuffer. After producer draw/flush/export, duplicate
+the exported FD, import it with `EGL_SYNC_NATIVE_FENCE_FD_ANDROID`, and queue
+`eglWaitSync(..., 0)` in the consumer context. Create, flush and export a second
+native fence after that wait; require its bounded completion and Linux status 1.
+Then destroy the imported sync, restore the producer context, destroy the
+consumer resources, and check producer status before pixel readback.
+
+The duplicate transfers to EGL on successful import; import failure closes it
+in Rust, as in pinned Smithay 812bd33. Every later error attempts independent
+EGL cleanup. If restoring the producer fails, GL object deletion is skipped
+and context teardown reclaims those objects. Success requires every explicit
+cleanup operation to succeed. Each exported-FD wait has a one-second deadline;
+an external process deadline must cover the whole run, including driver calls.
+
+Output adds `native_fence_import=PASS` only for the requested, completed path;
+plain/export-only modes record `native_fence_import=NOT RUN`. The controlled ABI
+fixture covers descriptor exhaustion, import/wait/consumer completion failures,
+context restoration, teardown and interruption. Its eventfds are not GPU fences.
+A real successful run would prove import/server-wait API operation and consumer
+queue completion, not that an unsignaled dependency was exercised: the producer
+may already have finished. Shared buffer visibility, DMA-BUF formats/modifiers,
+KMS consumption and A660/physical acceptance need separate evidence.
+
+API references: [native fence FD ownership](https://registry.khronos.org/EGL/extensions/ANDROID/EGL_ANDROID_native_fence_sync.txt)
+and [server wait semantics](https://registry.khronos.org/EGL/extensions/KHR/EGL_KHR_wait_sync.txt).
+The probe uses the EGL 1.5 core wait entry point, matching pinned Smithay.
