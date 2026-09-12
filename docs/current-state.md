@@ -1,5 +1,56 @@
 # ROG5 current state
 
+Latest r127, 2026-09-12: **corrected IOMMU kernel image, signed bundle and
+identical boot wrappers passed offline integration A01; not deployed**.
+Kernel source remains 136f75ae869afd47a016b1278fae2110cc6d2229, release
+7.1.4-g136f75ae869a. Integration source is now
+2de739adcd5bf2678cc1e1ba8260fa282266e503 in gpu-iommu-integration-worktree-r1.
+The accepted offline candidate is gpu-136f7-a9b1bc89566205b6 (r2).
+
+The refreshed payload preserves the GPU device tree, firmware and relay binary.
+All 54 selected module identities match the new kernel. Payload twins match;
+39 of 736 archive members changed, with no added members. Component and baseline
+VM checks passed in 3.335 s and 7.771 s: 51 registration loads and three expected
+wrong-board refusals. The test-only BTF shim stays out of the phone payload;
+the existing packaged PDR BTF exception remains explicit. These checks do not
+prove physical hardware or full kernel BTF validation.
+
+Corrected wrapper packaging passed in 84.975 s under 512 MiB without swap.
+Both signed inner bundles and boot wrappers match, and the existing AVB footer
+verification passes (algorithm NONE; no new AVB secure-boot signature claim).
+The final boot-a.avb.img SHA256 is
+932f991e3bfb74c89ab297a907421877a47a84f5d9f15e148bf29eb67dda1fcd.
+A01 passed all seven checks in 78.989 s, with 16.761 s guest runtime and unchanged
+root/upper content and metadata before and after. Containers exited without OOM
+and were removed. A01-qualified is true; release-qualified remains false.
+
+Retained failures: r1 candidate gpu-136f7-63ab11b0662349db is rejected for its
+28-character relay nonce despite byte-identical packaging. Never boot or register
+it. The actual ARM64 relay requires 32 characters. Its parser now has a mandatory
+consumer test: 28 is rejected as invalid nonce; 32 reaches the intentionally wrong
+kernel-release check. The first fixture had a non-executable extracted copy and
+failed; a verified executable test copy fixes that fixture without changing the
+archive. Separately, A01 r1 refused the unregistered candidate after 24.019 s.
+The new integration source registers the exact corrected artifacts and checks
+candidate identity before large root hashing. All 30 profile checks passed,
+including actual early refusal, nonce boundaries and mixed-artifact rejection.
+
+Read-only phone health passed in 1.841 s at observed uptime 7720.75 s on existing
+boot 946acb59-744e-4bbc-b291-ac6b2e05f3fe, bundle gpu-05941-52181a3157c26029.
+No phone mutation, reboot, new boot claim, sudo change or human prompt occurred.
+Next prepare admission, monitoring, exact successor health checks and recovery
+before a temporary boot. Require the GPU itself to have an IOMMU group after
+provider setup before trying display initialization. No human session is ready;
+request fresh availability only after complete preparation. Do not replay consumed
+sessions. Failed blank cleanup, S06/R01 and the missed optical result remain open.
+V11 fallback and ASUS slot A are preserved. No live job or countdown remains.
+
+Evidence under the state directory: gpu-iommu-payload-r2/result.json,
+gpu-iommu-payload-r2/relay-args-check.json,
+gpu-iommu-boot-package-r2/result.json, gpu-iommu-a01-r2/a01/result.json,
+gpu-iommu-components-vm-r1/run-r1/result.json,
+gpu-iommu-baseline-vm-r1/run-r1/result.json and checkpoint-r127.
+
 Latest r126, 2026-09-12: **GPU IOMMU kernel fix and matching module twins
 built; selected 54-module static export/dependency closure PASS**. Previous
 hardware goal turn r125 was progress. The intervening password response made
