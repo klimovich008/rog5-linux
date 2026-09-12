@@ -1,0 +1,376 @@
+{
+  "schema": 1,
+  "product": "Native touch-first Arch Linux with Denial Wayland",
+  "cellular": "excluded",
+  "headless_baseline": {
+    "path": "configs/release-acceptance.json",
+    "sha256": "c1cb49c1e6bd38dc4dcdf7230c66ca4651833fa01ef0fb3a6283b74cbc4ed191"
+  },
+  "candidate_sha256": null,
+  "rows": [
+    {
+      "id": "board-build",
+      "requirement": "Exact production board Image, DTs and modules",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "panel-scanout",
+      "requirement": "Panel probe and stable 60 Hz scanout",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "brightness",
+      "requirement": "0/min/mid/max and monotonic brightness ramp",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "panel-lifecycle",
+      "requirement": "Blank/unblank and repeated panel lifecycle",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "touch-identity",
+      "requirement": "Touch controller identity",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "touch-coordinates",
+      "requirement": "Coordinates, multitouch and rotation",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "touch-wake",
+      "requirement": "Touch wake",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "gpu-gles",
+      "requirement": "A660 hardware GLES without llvmpipe",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "gpu-vulkan",
+      "requirement": "A660 hardware Vulkan without software fallback",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "buttons-led",
+      "requirement": "Power/volume and default-off status LED behavior and cleanup",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "mobile-shell",
+      "requirement": "Touch-first Wayland launcher, navigation, keyboard, settings, lock and practical applications",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "audio",
+      "requirement": "Audio input and output",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "bluetooth",
+      "requirement": "Bluetooth",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "sensors",
+      "requirement": "Sensors and rotation",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "cameras",
+      "requirement": "Cameras",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "suspend-idle",
+      "requirement": "Suspend/wake and measured idle drain",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "charging",
+      "requirement": "Charging and thermal regulation",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "shutdown-startup",
+      "requirement": "Shutdown and powered-off startup",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "networking",
+      "requirement": "Wi-Fi and network-degraded local operation",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "update-rollback",
+      "requirement": "Signed update and rollback",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "recovery",
+      "requirement": "Known-good rescue return",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "daily-security",
+      "requirement": "Daily-driver security review",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "data-at-rest",
+      "requirement": "Data-at-rest protection",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "boot-threat",
+      "requirement": "Unlocked-bootloader threat model",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "lock-security",
+      "requirement": "Lock-screen authentication and isolation",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "secret-handling",
+      "requirement": "Wi-Fi/Tailscale secrets",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "lost-device",
+      "requirement": "Lost-device response",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    },
+    {
+      "id": "remote-defaults",
+      "requirement": "Remote development services default off",
+      "software": {
+        "status": "NOT RUN",
+        "evidence": null
+      },
+      "physical": {
+        "status": "NOT RUN",
+        "evidence": null,
+        "candidate_sha256": null
+      }
+    }
+  ]
+}

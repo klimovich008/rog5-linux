@@ -1,0 +1,177 @@
+{
+  "common": {
+    "schema": 1,
+    "status": "PREPARED_PLAN_NOT_ARMED",
+    "authority": "No phone operation authorized by this offline repair",
+    "candidate_sha256": null,
+    "source_identity": "Resolve exact frozen repair commit/tree and board provenance; retained 136f signed candidate lacks these fixes",
+    "offline_prerequisites": [
+      "All selected mandatory tests PASS with JSON/JUnit receipt",
+      "Exact production build, module dependency and DT schema evidence reviewed",
+      "Exact unsigned artifact hashes bound into a separately authorized candidate; no substitution by directory name",
+      "Existing signing, exact-device/slot/topology/storage and unconsumed one-use guards",
+      "Fresh power/thermal identity-bound samples; known-good ASUS slot A and signed rescue fallback readiness",
+      "Complete logging, abort/cleanup and return-to-known-good controllers validated offline",
+      "One coordinator; recording armed before a fresh Ready and first physical prompt"
+    ],
+    "power_limits": {
+      "battery_health": "Good",
+      "battery_temp_decic": [
+        0,
+        399
+      ],
+      "thermal_millic": [
+        0,
+        59999
+      ],
+      "voltage_uv": [
+        8400000,
+        8800000
+      ],
+      "usb_online": true,
+      "mobile_battery_only": "BLOCKED until separate telemetry/energy policy physically qualified"
+    },
+    "abort": [
+      "Identity, topology, slot, artifact or claim mismatch",
+      "Thermal/power/storage guard failure or stale telemetry",
+      "Lost ownership, logger, transport or bounded deadline",
+      "Unexpected reboot/fastboot, unbounded light, failed cleanup or recovery"
+    ],
+    "cleanup": [
+      "Stop owned stimulus and recording processes; prove no descendants remain",
+      "Restore default-off LED and zero brightness with verified return values",
+      "Preserve original failure evidence and consumed claims; never retry implicitly",
+      "Run existing exact-candidate return-to-known-good verifier; absence of contact alone is not proof of power-off"
+    ],
+    "return_to_known_good": "Existing signed fallback, fresh matching boot/source health and protected-storage checks; retain FAIL if recovery is uncertain",
+    "physical_status": "NOT RUN"
+  },
+  "plans": [
+    {
+      "id": "buttons-led",
+      "tests": [
+        {
+          "path": "scripts/host/test-key-indicatord.sh",
+          "sha256": "4f85ae479c3e29fa36e3691b204ee7ed054bde4c09c01e3c05613ccd37efe337"
+        },
+        {
+          "path": "scripts/device/test-rog5-physical-key-events.py",
+          "sha256": "fd7af4c9b4eed0dbe4d3ff36d04bc70bdff4c0a9c9d1c33329461511d9292d87"
+        }
+      ],
+      "physical_actions": [
+        "One brief power press/release after reader READY",
+        "One volume-up press/release",
+        "One volume-down press/release"
+      ],
+      "expected_evidence": [
+        "Exact evdev identity/events/timestamps",
+        "Default-off LED and bounded pulse; user optical reply",
+        "Cleanup zero and fresh known-good health"
+      ],
+      "blockers": [
+        "No defensive daemon replacement; persistent integration remains unqualified"
+      ]
+    },
+    {
+      "id": "display-brightness",
+      "tests": [
+        {
+          "path": "scripts/device/test-ams678-lifecycle.py",
+          "sha256": "2f852c66f914edc48ef075f786f90046f8b3ab65de3d49c2d4e8c73ce389a5fc"
+        },
+        {
+          "path": "scripts/device/test-screen-toggle.sh",
+          "sha256": "d26143e145c325308905b05324176244daba0ec63c22850d211360d4b6be0098"
+        }
+      ],
+      "physical_actions": [
+        "Observe stationary 60 Hz pattern after recording READY",
+        "Observe 0/min/mid/max then monotonic bounded ramp",
+        "Observe repeated blank/unblank"
+      ],
+      "expected_evidence": [
+        "Exact DRM connector/mode and atomic commit results",
+        "Requested/readback DCS brightness and error propagation",
+        "Optical observations, no unbounded brightness, reset/regulator diagnostics"
+      ],
+      "blockers": [
+        "Corrected panel module hash bound to matching production Image and DT required",
+        "Physical visual proof cannot be inferred from DRM or backlight readback"
+      ]
+    },
+    {
+      "id": "touch",
+      "tests": [
+        {
+          "path": "scripts/device/test-rog5-front-touch.py",
+          "sha256": "0da70f86d361dd86b59321128098b79bd4831b5cd092b2e9c956bf3d8fbd8163"
+        }
+      ],
+      "physical_actions": [
+        "Tap marked corners and center",
+        "Move two fingers independently",
+        "Rotate then repeat coordinates",
+        "Attempt separately qualified wake only if authorized"
+      ],
+      "expected_evidence": [
+        "Exact controller/bus/firmware identity",
+        "Timestamped raw events, slots, coordinates, rotation transform",
+        "No stale touch after release and clean close"
+      ],
+      "blockers": [
+        "EDT FT5X06 compile is not FTS3658U support",
+        "Current touch overlay disabled; identify protocol/driver before activation"
+      ]
+    },
+    {
+      "id": "gpu-rendering",
+      "tests": [
+        {
+          "path": "scripts/device/test-a660-acceptance.py",
+          "sha256": "8fed23f792717c504755a72125da7f70dc795338aaacc2e96980093ba4627f7a"
+        }
+      ],
+      "physical_actions": [
+        "Observe bounded GLES test",
+        "Observe bounded Vulkan test"
+      ],
+      "expected_evidence": [
+        "Exact render-node/driver identity and A660 renderer",
+        "Reject llvmpipe, lavapipe and software fallbacks",
+        "Successful submitted/rendered frames, timestamps and fault counters"
+      ],
+      "blockers": [
+        "IOMMU group/provider presence alone does not prove rendering",
+        "Exact firmware closure and panel/blank cleanup required"
+      ]
+    },
+    {
+      "id": "suspend-idle",
+      "tests": [
+        {
+          "path": "scripts/host/test-headless-battery-series.py",
+          "sha256": "6dd3396806c24f11b6bded86f2e2dd7d4e3d4fd0e50c6fdca1b9e3bc542a1004"
+        },
+        {
+          "path": "scripts/host/test-suspend-pm-test-source-contract.py",
+          "sha256": "421908903b5d2ca0a76fe105e21e8500f830a77b96edc79e3496410fef0fdcf1"
+        }
+      ],
+      "physical_actions": [
+        "Observe baseline idle under fixed settings",
+        "Only after independent authorization remove USB if energy margin qualifies",
+        "Perform bounded suspend and one named wake source"
+      ],
+      "expected_evidence": [
+        "Before/during/after telemetry with same candidate and calibrated units",
+        "Measured idle/suspend energy over recorded duration",
+        "Wake source, latency, persistent network/local UI return"
+      ],
+      "blockers": [
+        "Battery-only operation, charging regulation and suspend are separate proofs",
+        "USB-required headless guard cannot be bypassed using mobile proposal"
+      ]
+    }
+  ]
+}

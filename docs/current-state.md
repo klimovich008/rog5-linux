@@ -1,5 +1,11 @@
 # ROG5 current state
 
+<!-- generated mobile status: begin -->
+Current structured status: **Offline correctness and qualification repair in progress**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+
+Complete source regressions and exact production board qualification; no device operation in this task See [current repair evidence](../test-results/2026-09-12-offline-correctness-repair.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+<!-- generated mobile status: end -->
+
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
 offline live-flow qualification complete**. The intervening sudo answer was
 no progress; r136 was the previous project checkpoint and was progress. No
