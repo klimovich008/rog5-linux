@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM render and IO context release pass; queued frame admission remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM trace resolves competing raster paths; per-work reservation repair remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The coordinated engine/Denial correction releases the resource context on its owning IO thread; raster and main cleanup still pass with no BAD_ACCESS. The full VM remains FAIL: 47 frames/page flips and 7 backing-store errors. Nine focused cases, all eight affected linked ARM64 engine objects, Denial, the full engine link and 87 active suites pass. Reuse these fixtures for the pending queued-render protocol investigation. No phone operation or candidate change occurred. See [current repair evidence](../test-results/2026-09-12-impeller-io-context.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Eight rejected backing-store requests are now attributed: three retained-output and five framework-pipeline. Seven follow consumption by the other path; one follows expiry. All five failed pipeline draws had explicit selection, disproving a fallback-only fix for this run. The final VM has 46 frames/page flips and remains FAIL, while render/IO cleanup passes. Three helper cases and 87 active suites pass. Implement a bounded work/reservation handshake; retain all admission and physical guards. No phone operation or candidate change occurred. See [current repair evidence](../test-results/2026-09-12-render-origin.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

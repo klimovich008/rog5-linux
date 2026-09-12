@@ -2515,3 +2515,19 @@ Trace each context independently: successful raster teardown did not release the
 IO resource context. Pair the engine IO-thread hook with the embedder callback's
 context dispatch, and test failure ownership before linking. Correct fixture
 namespace adapters without changing the extracted production method body.
+
+
+A compiled FML INFO callsite is not proof that engine startup will display it.
+The pinned Shell raises the threshold to ERROR for normal non-verbose launches.
+An initial diagnostic link/VM emitted zero origin records. Reusing that exact
+initialization assignment in the sub-second fixture reproduced the suppression;
+targeted IMPORTANT logging passes without dependency-wide verbosity. Test the
+actual startup configuration before paying for another 201-second engine link.
+Keep known telemetry failures separate from application failures and retain both.
+
+The new trace attributes failures to both retained and framework paths; every
+failed framework expansion already had explicit selection pending. Capture the
+caller around the actual allocation boundary before changing a tempting fallback
+predicate. Raster-call identity is still not queue-submission/reservation identity.
+Lossless archives recovered 108 MB from completed tests and unstripped historical
+outputs; preserve restoration mappings when historical commands name retired paths.

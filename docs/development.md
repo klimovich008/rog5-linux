@@ -70,8 +70,9 @@ devices. Use the retained complete GL container from the current artifact
 pointer. Default software mode remains available, but the retained llvmpipe
 stack lacks the native-fence extension required by this Denial renderer.
 The corrected modifier allocation reaches presented frames in the retained VirGL
-VM. The full session still fails on per-frame authorization and EGL cleanup;
-positive counters do not qualify the session or the phone. The guest's targeted
+VM. At that initial checkpoint, per-frame authorization and EGL cleanup both failed;
+see current state for the later cleanup repair. Positive counters do not qualify
+the session or the phone. The guest's targeted
 TRACE filter needs a diagnostic build: the retained Denial release enables
 `release_max_level_info`, which compiles those callsites out.
 
@@ -685,3 +686,9 @@ not describe patched bytes. Use the corrected test against the original
 implementation first, then test secondary removal/error cases and actual
 settings disposal with only the new library overlaid. None of these steps
 qualifies phone hardware, a Denial backend or a complete Wayland session.
+
+For engine raster-origin diagnostics, use the bounded patch and exact-source
+runner documented in `patches/flutter-engine-d728e61e/README.md`. Normal startup
+suppresses FML INFO; test the actual Shell threshold and use targeted IMPORTANT
+audit messages. Keep call IDs distinct from native reservation IDs and preserve
+failed origin collection as failure even when the guest renders frames.

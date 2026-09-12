@@ -636,8 +636,8 @@
     }
   },
   "denial_virtual_drm": {
-    "status": "FAIL: 47 frames, 7 backing-store errors; render and IO context cleanup PASS",
-    "set_id": "private:rog5-io-context-release-20260912-r1",
+    "status": "FAIL: 46 frames, eight backing-store errors; origins resolved, context cleanup PASS",
+    "set_id": "private:rog5-render-origin-20260912-r2",
     "source_commit": "5c960b5bd1ff043c543a3614df9cb56c450d76bd",
     "source_tree": "8df0e373a6242bf5a5684818e56c57cd74c510fb",
     "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
@@ -659,20 +659,20 @@
       "size": 10419681
     },
     "evidence": {
+      "path": "test-results/2026-09-12-render-origin-qualification.json",
+      "sha256": "bf4a42d452560857a8d9a16cc321dcd610f68f2d8664b8eae997bf8dbac654bd",
+      "size": 133799
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline guest fixture only",
+    "next": "Bind queued retained/framework work to its own bounded per-output reservation. All five failed pipeline attempts had explicit selection; fallback-only or TTL-only changes cannot resolve the observed cases.",
+    "previous_evidence": {
       "path": "test-results/2026-09-12-impeller-io-context-qualification.json",
       "sha256": "3ec6633e761ad6626b861e506d0e6027c83dcee9eb77c16b03e2023bbe4f4bca",
       "size": 155374
     },
-    "physical_status": "NOT RUN",
-    "authority": "none; offline guest fixture only",
-    "next": "Reuse corrected render/IO cleanup artifacts for queued-render generation/reservation investigation. No phone operation.",
-    "previous_evidence": {
-      "path": "test-results/2026-09-12-impeller-engine-vm-qualification.json",
-      "sha256": "d7c3eb946e857fa8adc34c2553026012cde6c2f0dcd529b66153a3c04a77ba10",
-      "size": 40811
-    },
     "native_fence_export": "Required renderer path retained; no separate fence trace/readback qualification",
-    "shell_frames": "47 raster frames and 47 page flips; no visual capture or input proof",
+    "shell_frames": "46 raster frames and 46 page flips; no visual or input proof",
     "deniald": {
       "path": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/deniald-context",
       "sha256": "aa00de38f46ee44d85b3bc2fcc2104575d13d4e040ba60b6f73279311d436711",
@@ -744,12 +744,12 @@
         "size": 40811
       }
     },
-    "harness_source_commit": "5c960b5bd1ff043c543a3614df9cb56c450d76bd",
-    "flutter_bundle": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/runtime-fixture",
+    "harness_source_commit": "bf0458a1737c99ae284edc5805751318730771b3",
+    "flutter_bundle": "/home/deck/.local/state/rog5-render-origin-20260912-r2/runtime-fixture",
     "engine": {
-      "path": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/libflutter_engine.so",
-      "sha256": "8b57bc22ac3613e5da3af08965443c5706b0fa064c71a419a6af0ead13337291",
-      "size": 15976656
+      "path": "/home/deck/.local/state/rog5-render-origin-20260912-r2/libflutter_engine.so",
+      "sha256": "4ca08d258a4f60ad8f3238cf066422354675fe17ef2b0fd043b4cf6f9a8335cf",
+      "size": 15978984
     },
     "render_context_cleanup": "PASS: raster unbind, main cleanup bind and final unbind observed; no BAD_ACCESS",
     "io_context_cleanup": "PASS: owning IO thread unbind observed before main cleanup, no later rebind",
@@ -771,6 +771,24 @@
         "path": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/libflutter_engine.so",
         "sha256": "8b57bc22ac3613e5da3af08965443c5706b0fa064c71a419a6af0ead13337291",
         "size": 15976656
+      },
+      "selected_by_active_builder": false,
+      "authority": "none"
+    },
+    "engine_source_commit": "bf0458a1737c99ae284edc5805751318730771b3",
+    "raster_origin_diagnostic": {
+      "status": "PASS: eight refusals correlated across both raster paths; full session FAIL",
+      "source_commit": "bf0458a1737c99ae284edc5805751318730771b3",
+      "source_tree": "cc8f930b67cc500db0fd4e75cf8358075752a70e",
+      "patch": {
+        "path": "patches/flutter-engine-d728e61e/0003-trace-raster-call-origin.patch",
+        "sha256": "c9035d5fff42338ba05c17619f9088fdb1b0dcaa078c93e6828de6ffb4463d96",
+        "size": 5764
+      },
+      "engine": {
+        "path": "/home/deck/.local/state/rog5-render-origin-20260912-r2/libflutter_engine.so",
+        "sha256": "4ca08d258a4f60ad8f3238cf066422354675fe17ef2b0fd043b4cf6f9a8335cf",
+        "size": 15978984
       },
       "selected_by_active_builder": false,
       "authority": "none"
