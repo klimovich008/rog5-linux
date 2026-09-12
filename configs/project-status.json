@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "ARM64 GLES software rendering verified with a signed package fixture",
+  "phase": "GLES probe matches Denial context-version requirements offline",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The retained ARM64 probe verifies 64 pixel channels using Arch Mesa 26.2.2 softpipe under QEMU user; its no-draw mutation fails and strict A660 mode refuses software. Four reused fault-test groups PASS. Fifteen package signatures and 369 runtime paths are recorded. This fixture is separate from the unchanged full mobile package graph. The prior 83-PASS active tier is inherited for unchanged source, not rerun. Board, touch, signed and installed artifacts remain unchanged; physical OLED/A660, touch and suspend/wake remain NOT RUN. No phone operation is authorized. Next hardware question: one bounded display scanout/blank cycle after separate exact-artifact and execution approval.",
-  "evidence": "test-results/2026-09-12-gles-arm64.md"
+  "next": "Old GLES 2 selection fails the new regression. The corrected probe requests 3.2 then 3.0, checks actual GL version before drawing, and reports fallback errors. Eight focused groups and five ARM64 groups PASS. Native llvmpipe accepts 3.2; Arch softpipe takes the 3.0 fallback and reports 3.1. Frozen active tier: 83 PASS, 0 FAIL, 0 BLOCKED; three optional subchecks SKIPPED in 116.033 s. Only GPU fixture pointers changed. Board, touch, signed/installed artifacts and full mobile graph are unchanged. A660, DMA-BUF/native fences and all phone tests remain NOT RUN; no phone operation is authorized. Next physical question remains separately authorized bounded display scanout/blank.",
+  "evidence": "test-results/2026-09-12-gles3.md"
 }

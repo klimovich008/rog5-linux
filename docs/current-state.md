@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **ARM64 GLES software rendering verified with a signed package fixture**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **GLES probe matches Denial context-version requirements offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The retained ARM64 probe verifies 64 pixel channels using Arch Mesa 26.2.2 softpipe under QEMU user; its no-draw mutation fails and strict A660 mode refuses software. Four reused fault-test groups PASS. Fifteen package signatures and 369 runtime paths are recorded. This fixture is separate from the unchanged full mobile package graph. The prior 83-PASS active tier is inherited for unchanged source, not rerun. Board, touch, signed and installed artifacts remain unchanged; physical OLED/A660, touch and suspend/wake remain NOT RUN. No phone operation is authorized. Next hardware question: one bounded display scanout/blank cycle after separate exact-artifact and execution approval. See [current repair evidence](../test-results/2026-09-12-gles-arm64.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Old GLES 2 selection fails the new regression. The corrected probe requests 3.2 then 3.0, checks actual GL version before drawing, and reports fallback errors. Eight focused groups and five ARM64 groups PASS. Native llvmpipe accepts 3.2; Arch softpipe takes the 3.0 fallback and reports 3.1. Frozen active tier: 83 PASS, 0 FAIL, 0 BLOCKED; three optional subchecks SKIPPED in 116.033 s. Only GPU fixture pointers changed. Board, touch, signed/installed artifacts and full mobile graph are unchanged. A660, DMA-BUF/native fences and all phone tests remain NOT RUN; no phone operation is authorized. Next physical question remains separately authorized bounded display scanout/blank. See [current repair evidence](../test-results/2026-09-12-gles3.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
