@@ -46,3 +46,10 @@ Use the same source/output arguments with
 `scripts/host/test-denial-broker-refusals.py`; seven actual-function cases cover
 refusal identity, unchanged consumption/expiry and audit counter aggregation.
 The two patches apply in numeric order; neither is selected by a phone builder.
+
+
+`0003-trace-render-authorization-history.patch` adds an audit-only sequence of
+at most 512 grant/consume/expire/cancel/refusal records, including render view,
+request serial, authorization age and current slot state. It does not change
+admission. Apply after 0002. The same broker runner now checks nine cases,
+including expiry followed by a fresh explicit grant and concurrent trace bounds.
