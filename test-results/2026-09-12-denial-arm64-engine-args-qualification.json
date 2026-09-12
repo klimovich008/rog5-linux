@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "ARM64 engine argument generation and source-level semantic checks only",
+  "starting_commit": "7cdca39a57204fc9bad336f9e0ddbe4c26912a65",
+  "starting_tree": "ed4c7e5552fd2ff798d3b526ad639c83a137f4d1",
+  "source_commit": "1d6c8484ddfa777c9d1fb7a642b3fe170838227b",
+  "source_tree": "7a314db8ba8f16dd696bc8656385f2c0613c7627",
+  "physical_status": "NOT RUN",
+  "authority": "none",
+  "source_versions": {
+    "engine_version": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "skia_version": "0ee042f542b3e79f5ac49115387718c6bb3d7d34",
+    "dart_version": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
+    "content_hash": "37adf98800f0a513ce806464c4032ea26e6b902d"
+  },
+  "generator": {
+    "sha256": "6e1a678804bf5cdc1797340578b082c81f2ebbf7b9c19ce3a8543ae0251ea1cf",
+    "lock_sha256": "20c51dace60bbacfa3abb80f5b0626ed66df7247a78b248aa0030c9cc46c1e67"
+  },
+  "generation": {
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/generate-denial-arm64-engine-args.py",
+      "--source",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout",
+      "--output",
+      "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/generated-r2"
+    ],
+    "result": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/generated-r2/result.json",
+      "sha256": "d08902d29675f406f9ecfa1334cb9fd8ed360e3baac221c2250ea63185622042"
+    },
+    "args": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/generated-r2/args.gn",
+      "sha256": "db52820a0702bf63149044f49fcccd600cee55387cd0a441d85ffafadcec3865"
+    },
+    "duration_seconds": 0.11258823199023027,
+    "memory_max": "1G",
+    "swap_max": 0
+  },
+  "focused": {
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-denial-arm64-engine-args.py"
+    ],
+    "status": "PASS",
+    "count": 9,
+    "duration_seconds": 0.207,
+    "evidence": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/focused-final-r2.log",
+      "sha256": "6c38b69950aa642254e622b117e04b0cce9d3c79c469b9834d2ca74502d156b5"
+    }
+  },
+  "exact_source": {
+    "command": [
+      "python3",
+      "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/exact-source-tests.py"
+    ],
+    "runner": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/exact-source-tests.py",
+      "sha256": "6fb2cdec1c77ecab0c69da0e411330cb81cc012ddd0e5e3f3ee973482f5a6d50"
+    },
+    "evidence": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/exact-source-tests.json",
+      "sha256": "dd2065131813008c2323a50b4fd6067c1435d3b43ea23bdebfdcb00342a49900"
+    },
+    "count": 5,
+    "duration_seconds": 0.10468775003391784,
+    "tests": [
+      {
+        "name": "default-x64",
+        "status": "PASS",
+        "profile_accepted": false,
+        "refusal": "wrong ARM64 engine argument: target_cpu",
+        "duration_seconds": 0.024153709993697703
+      },
+      {
+        "name": "missing-target-embedder",
+        "status": "PASS",
+        "profile_accepted": false,
+        "refusal": "wrong ARM64 engine argument: embedder_for_target",
+        "duration_seconds": 0.01963794100447558
+      },
+      {
+        "name": "missing-program-name",
+        "status": "PASS",
+        "profile_accepted": false,
+        "refusal": "wrong ARM64 engine argument: flutter_runtime_mode",
+        "duration_seconds": 0.01941936901130248
+      },
+      {
+        "name": "correct-arm64",
+        "status": "PASS",
+        "profile_accepted": true,
+        "refusal": null,
+        "duration_seconds": 0.020402307010954246
+      },
+      {
+        "name": "prebuilt-cache-independent",
+        "status": "PASS",
+        "duration_seconds": 0.02107442301348783
+      }
+    ]
+  },
+  "active_tier": {
+    "command": [
+      "bash",
+      "scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "1d6c8484ddfa777c9d1fb7a642b3fe170838227b",
+    "source_tree": "7a314db8ba8f16dd696bc8656385f2c0613c7627",
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/active-report-r2/summary.json",
+      "sha256": "4015a6443ba7a0565f088a289514601de6d8aa43b59d8f5b356f0d300f8c4394"
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/active-report-r2/summary.xml",
+      "sha256": "5fad4a9ee2e71ae8712f855c751740d31b180b812dc652177d40f052493fd4d2"
+    },
+    "counts": {
+      "PASS": 86,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "duration_seconds": 131.663,
+    "workers": 2,
+    "memory_max": "3G",
+    "swap_max": 0
+  },
+  "prior_failures": [
+    {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/generated/result.json",
+      "sha256": "634a4f65489c3e885c0a944a144f5af47050ad4a77700283d86bd564196fff6f"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/parser-before.log",
+      "sha256": "65b8ea9c3e4a9a21be823aef17f2f98a61a1000a7eb33a003f34c6433fa2fed9"
+    }
+  ],
+  "stopped_obsolete_tier": {
+    "evidence": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/active-report/summary.json",
+      "sha256": "96a6efce04c602f90f42f4a3b294d38424d124d2816cc80b929db029264aa2d0"
+    },
+    "exit_status": 143,
+    "duration_seconds": 38.722,
+    "reason": "intentional cancellation before changing tested source after parser integration failure"
+  },
+  "capacity_and_owner": {
+    "evidence": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/capacity-and-owner.json",
+      "sha256": "071298b7f03414eeac934f236be2ae3119406721db31dfd529e1af71cd849f85"
+    },
+    "free_bytes": 5395140608,
+    "reserve_bytes": 3221225472,
+    "retained_recipe_sync_start_required_bytes": 85899345920,
+    "old_container_missing": true,
+    "builder_image_exists": true
+  },
+  "graph": {
+    "status": "NOT RUN",
+    "prerequisite_status": "BLOCKED: missing GN executable and incomplete dependency sync",
+    "command": [
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/engine/src/flutter/third_party/gn/gn",
+      "gen",
+      "--check",
+      "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/generated-r2"
+    ],
+    "cwd": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/engine/src"
+  },
+  "compilation": "NOT RUN",
+  "runtime_session": "NOT RUN",
+  "unchanged": [
+    "authenticated Arch payload and schema cache",
+    "retained Denial native binaries",
+    "kernel/DT/modules",
+    "accepted headless contract and historical S06/R01 FAIL",
+    "signed candidate/fallback",
+    "installed bytes and consumed claims"
+  ]
+}

@@ -2185,3 +2185,17 @@ exact native binaries and authenticated libraries; no unchanged kernel rebuild
 was needed. The active tier took 125.816 s. Compare complete file/link manifests
 before reclaiming failed duplicate extraction scratch; retained receipts plus an
 identical durable tree preserved evidence while recovering about 1.5 GiB.
+
+
+ARM64 engine preparation (2026-09-12): invoke the exact upstream argument parser
+before freezing an integration run. Its API consumes argv[0]; passing flags alone
+dropped release mode. The producer's semantic guard rejected debug output before
+publication, and a tiny parser-contract regression reproduces that failure. The
+corrected real generator passed five cases in 0.105 s and generated arguments in
+0.113 s; the final active tier took 131.663 s. The earlier tier was explicitly
+terminated before modifying its source, preserving 28 PASS/58 BLOCKED. Check both
+target architecture and target embedder inclusion: upstream's documented x86-64
+reference path is not an ARM64 build recipe. Pin toolchain concurrency explicitly,
+since the generator observes host RAM rather than the container limit. Argument
+validation does not qualify GN, dependency hooks or compilation; retain those
+NOT RUN states while resolving actual cache/capacity prerequisites.
