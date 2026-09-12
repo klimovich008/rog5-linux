@@ -1,0 +1,390 @@
+{
+  "schema": 1,
+  "scope": "standalone ARM64 VirGL EGL ownership comparison; not Denial or phone qualification",
+  "status": "PASS",
+  "source_commit": "ecd4608223cf10f5952e99b27f0c17e79f991dfa",
+  "source_tree": "206915d9e6a6417f3ffbc9a9b51fde4f0ca8b7ee",
+  "build": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-egl-thread-build-r1",
+      "--network=none",
+      "--read-only",
+      "--memory=512m",
+      "--memory-swap=512m",
+      "--cpus=1",
+      "--pids-limit=64",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/egl-thread-probe.c:/probe.c:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1:/output:rw",
+      "-e",
+      "TMPDIR=/output/tmp",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "aarch64-linux-gnu-gcc",
+      "-std=c11",
+      "-D_GNU_SOURCE",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pthread",
+      "/probe.c",
+      "-o",
+      "/output/egl-thread-probe",
+      "-lEGL",
+      "-lGLESv2",
+      "-lgbm"
+    ],
+    "source_commit": "ecd4608223cf10f5952e99b27f0c17e79f991dfa",
+    "source_tree": "206915d9e6a6417f3ffbc9a9b51fde4f0ca8b7ee",
+    "source_sha256": "cf27c0d3a9fc42a2500ac35c4934970fd9459605b3262924cd3efd6af06347e5",
+    "started": "2026-09-12T20:07:53.683665+00:00",
+    "exit_status": 0,
+    "duration_seconds": 0.6154604239854962,
+    "status": "PASS",
+    "binary_sha256": "8cd05f3ef196593560595217ed4d49ee4bd777ab7683434eab7032892e2ed994",
+    "container_removed": true
+  },
+  "vm": {
+    "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+    "started": "2026-09-12T20:08:10.705280+00:00",
+    "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+    "deniald_sha256": null,
+    "egl_thread_probe_sha256": "8cd05f3ef196593560595217ed4d49ee4bd777ab7683434eab7032892e2ed994",
+    "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "runtime_inventory_verified_by_this_runner": false,
+    "flutter_bundle": null,
+    "graphics_mode": "virgl",
+    "host_render_node": {
+      "path": "/dev/dri/renderD128",
+      "major": 226,
+      "minor": 128,
+      "scope": "host rendering only; no phone device"
+    },
+    "harness_sha256": "78c28eea83302d916351f3cd6c35678e03a5c30b9d50ec339db2b7c8fd893060",
+    "init_source_sha256": "2628fa1cc582579e0e6a09489cc59ef5a0bc1a1f1ae3e0e275b523a7d5dcfe40",
+    "compile_command": [
+      "clang",
+      "--target=aarch64-none-elf",
+      "-fuse-ld=lld",
+      "-nostdlib",
+      "-static",
+      "-fno-pic",
+      "-fno-stack-protector",
+      "-Werror",
+      "-Wall",
+      "-Wextra",
+      "-Wl,--build-id=none,--entry=_start",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "-o",
+      "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/guest/initramfs/init"
+    ],
+    "status": "PASS",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-virtual-drm-6fe665ee39d6",
+      "--network",
+      "none",
+      "--read-only",
+      "--memory",
+      "1536m",
+      "--memory-swap",
+      "1536m",
+      "--cpus",
+      "2",
+      "--pids-limit",
+      "64",
+      "--security-opt",
+      "no-new-privileges",
+      "-v",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/guest/initramfs.cpio.gz:/initramfs.gz:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/guest/payload:/payload:ro",
+      "--device",
+      "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+      "-e",
+      "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "qemu-system-aarch64",
+      "-M",
+      "virt",
+      "-cpu",
+      "max",
+      "-smp",
+      "2",
+      "-m",
+      "1024M",
+      "-accel",
+      "tcg,thread=multi",
+      "-global",
+      "virtio-mmio.force-legacy=false",
+      "-display",
+      "egl-headless,rendernode=/dev/dri/renderD128",
+      "-monitor",
+      "none",
+      "-nic",
+      "none",
+      "-serial",
+      "stdio",
+      "-no-reboot",
+      "-kernel",
+      "/Image",
+      "-initrd",
+      "/initramfs.gz",
+      "-append",
+      "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+      "-device",
+      "virtio-gpu-gl-device,xres=640,yres=480",
+      "-device",
+      "virtio-keyboard-device",
+      "-device",
+      "virtio-tablet-device",
+      "-device",
+      "virtio-rng-device",
+      "-fsdev",
+      "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+      "-fsdev",
+      "local,id=payload,path=/payload,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=payload,mount_tag=payload"
+    ],
+    "qemu_exit_status": 0,
+    "drm_discovery": "PASS",
+    "deniald_kms": "NOT RUN: discovery/CLI are separate from frames",
+    "deniald_cli": "NOT RUN",
+    "egl_thread_probe": {
+      "status": "PASS",
+      "scope": "standalone virtual EGL thread transfer; not Denial",
+      "after_join": {
+        "exit": {
+          "acquired": false,
+          "egl_error": "0x3002"
+        },
+        "unbind": {
+          "acquired": true,
+          "egl_error": "0x3000"
+        },
+        "release": {
+          "acquired": true,
+          "egl_error": "0x3000"
+        }
+      }
+    },
+    "container_removed": true,
+    "duration_seconds": 12.931080196023686,
+    "hashes": {
+      "initramfs/init": "e0eb44a479e83329e9c46e796d99875eca5211f2e6402af52202114d763c14bd",
+      "initramfs/stage/guest.sh": "8e423b1790eba3ab1a33e9ac7bfe34778d3bd81a773cd619e8d5326b89d9d839",
+      "initramfs.cpio.gz": "6501540b7a5edde8db2dcf8f4c57ccf129551314b940adb16ee89d190e47223a",
+      "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+      "serial.log": "419543c34de7c3023b3d5ccfac00b49a98be77a106c877c5d5c5ddfcfb8df27e"
+    }
+  },
+  "vm_invocation": [
+    "python3",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+    "--runtime",
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "--kernel",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+    "--egl-thread-probe",
+    "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/egl-thread-probe",
+    "--image",
+    "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "--render-node",
+    "/dev/dri/renderD128",
+    "--output",
+    "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/guest",
+    "--deadline",
+    "120"
+  ],
+  "runtime_libraries": [
+    {
+      "path": "usr/lib/libEGL.so.1",
+      "resolved_path": "usr/lib/libEGL.so.1.1.0",
+      "sha256": "d2b76272182bccaf0b36d1e89e64998f1b5c7ab175e6dfe7b9910804c84970a0"
+    },
+    {
+      "path": "usr/lib/libEGL_mesa.so.0",
+      "resolved_path": "usr/lib/libEGL_mesa.so.0.0.0",
+      "sha256": "3dd8788d56eb97e5a07cece9d94003258673134ed2a0aae1699a675802e57500"
+    },
+    {
+      "path": "usr/lib/libgbm.so.1",
+      "resolved_path": "usr/lib/libgbm.so.1.0.0",
+      "sha256": "e28a74e111cf6f9e2c0f5e1aa3edb0c431dfe088a24cd37da4a0f974eaa42dd1"
+    },
+    {
+      "path": "usr/lib/libGLESv2.so.2",
+      "resolved_path": "usr/lib/libGLESv2.so.2.1.0",
+      "sha256": "983e6c9e65341ff407020c71d25796bbac6144b112b7139c1704fe1d3f0c52b5"
+    },
+    {
+      "path": "usr/lib/libc.so.6",
+      "resolved_path": "usr/lib/libc.so.6",
+      "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab"
+    }
+  ],
+  "compiler_identity": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--memory=128m",
+      "--memory-swap=128m",
+      "--cpus=1",
+      "--pids-limit=32",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "/bin/sh",
+      "-c",
+      "aarch64-linux-gnu-gcc --version; sha256sum /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-ld"
+    ],
+    "exit_status": 0,
+    "stdout": "aarch64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\ncd90adc7801f4595267f61a5d25bd3a0c6beb2f9f1f107ab919a97a12972dc9a  /usr/bin/aarch64-linux-gnu-gcc\n7c903ac277dd1f5c4397277db865f12d8239fe45782f71afbeb3d42180a4b1ae  /usr/bin/aarch64-linux-gnu-ld\n",
+    "stderr": ""
+  },
+  "source_review": {
+    "engine_source": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "denial_source": "85b2303e2f09ae7b7b993641f90061a200f03d53 plus reviewed patches 0001-0003",
+    "files": [
+      {
+        "path": "engine/src/flutter/shell/gpu/gpu_surface_gl_skia.cc",
+        "sha256": "526dfb7a928bcf2d2c86efa038c02fd30cb2ebc638256ada134adae16ac5f568"
+      },
+      {
+        "path": "engine/src/flutter/shell/platform/embedder/embedder_surface_gl_skia.cc",
+        "sha256": "7890193e0134285c0bbb8767f16a21f104b2a52f9a874f27b45831bdb01be4c3"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/rasterizer.cc",
+        "sha256": "064ca3aec3f7aa89b111dfe2b214aaebb74f6457f12fd5ebfbc3ffa61f65c886"
+      },
+      {
+        "path": "engine/src/flutter/shell/common/shell.cc",
+        "sha256": "4828e7af91b92b2f91e91ea144cc7c97519ecb58d3b4cca2407ea562a5148016"
+      },
+      {
+        "path": "compositor/src/bin/deniald/flutter_runtime/renderer/handler.rs",
+        "sha256": "0a4c5dfe400c89ff52142259a10ba136e64ffd4bf6e03cb7d379f56f4cb12dc8"
+      },
+      {
+        "path": "compositor/src/bin/deniald/flutter_runtime/renderer/gl.rs",
+        "sha256": "2fcafd03bd259b5deb6456ad6e7055b5e202a6a7e8c273a26a05a58e602ff39e"
+      },
+      {
+        "path": "compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs",
+        "sha256": "927c26d2df1df26f036671451e625d1a5cd030bff389850d096c45ffd3894453"
+      },
+      {
+        "path": "compositor/flutter-engine/src/host.rs",
+        "sha256": "267eeb287449fb964e5f65d8b6db2fa98dafcf642c92701ccb74ce1bde1bf338"
+      }
+    ],
+    "findings": [
+      "The standalone VM fails cross-thread acquisition after exit without release; explicit unbind/release works.",
+      "Denial destroy_targets assumes joining the raster thread means the EGL context cannot remain current elsewhere; the standalone result disproves this general inference.",
+      "Pinned GPUSurfaceGLSkia destructor does explicitly call GLContextClearCurrent after resource destruction, and the embedder delegate forwards the callback. Therefore a missing release in this destructor has NOT been established.",
+      "The next diagnostic should correlate make_current, clear_current, raster-idle and cleanup with actual thread/context identities, especially callbacks after surface teardown. Adding a blanket release to raster_idle would also affect its synchronous fallback and is not yet justified."
+    ],
+    "specification": "https://registry.khronos.org/EGL/specs/eglspec.1.5.pdf section 3.12",
+    "scope": "Source plus standalone virtual experiment; no new Denial run or phone operation"
+  },
+  "active_tier": {
+    "command": [
+      "systemd-run",
+      "--user",
+      "--wait",
+      "--pipe",
+      "--collect",
+      "--unit=rog5-egl-thread-release-active-r1",
+      "-p",
+      "MemoryMax=1G",
+      "-p",
+      "MemorySwapMax=0",
+      "-p",
+      "TasksMax=256",
+      "-p",
+      "RuntimeMaxSec=600",
+      "-p",
+      "CPUQuota=200%",
+      "-p",
+      "Delegate=yes",
+      "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+      "env",
+      "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+      "ROG5_TEST_WORKERS=2",
+      "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/active-report",
+      "TMPDIR=/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/tmp",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "ecd4608223cf10f5952e99b27f0c17e79f991dfa",
+    "source_tree": "206915d9e6a6417f3ffbc9a9b51fde4f0ca8b7ee",
+    "started": "2026-09-12T20:09:13.830473+00:00",
+    "exit_status": 0,
+    "duration_seconds": 131.36887026301702
+  },
+  "suite_counts": {
+    "PASS": 87,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "subcheck_counts": {
+    "SKIPPED": 3
+  },
+  "raw_summary": {
+    "path": "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/active-report/summary.json",
+    "sha256": "752bc4d8a9e32b754d80bc1152f5702096a553cce767dcb48448d132c7dabdc9",
+    "size": 108183
+  },
+  "physical_status": "NOT RUN",
+  "denial_session_status": "FAIL: retained authorization-history VM, not rerun by this standalone probe",
+  "phone_operations": false,
+  "protected_storage_mutation": false,
+  "production_signing_or_claims": false,
+  "artifacts": {
+    "egl-thread-probe": {
+      "path": "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/egl-thread-probe",
+      "sha256": "8cd05f3ef196593560595217ed4d49ee4bd777ab7683434eab7032892e2ed994",
+      "size": 72232
+    },
+    "guest/serial.log": {
+      "path": "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/guest/serial.log",
+      "sha256": "419543c34de7c3023b3d5ccfac00b49a98be77a106c877c5d5c5ddfcfb8df27e",
+      "size": 13699
+    },
+    "guest/result.json": {
+      "path": "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/guest/result.json",
+      "sha256": "c70c8f49dbabd0e1f198fca8affbfc6752f3a74ac8fcb3b369e5904bfea3bf3c",
+      "size": 4506
+    },
+    "guest/initramfs.cpio.gz": {
+      "path": "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/guest/initramfs.cpio.gz",
+      "sha256": "6501540b7a5edde8db2dcf8f4c57ccf129551314b940adb16ee89d190e47223a",
+      "size": 3248
+    },
+    "source-review.json": {
+      "path": "/home/deck/.local/state/rog5-egl-thread-release-20260912-r1/source-review.json",
+      "sha256": "232e7f3a56a370d37c5c151a11918a4dfc69c4397ef030d4376d09275db8d2ce",
+      "size": 2541
+    }
+  }
+}

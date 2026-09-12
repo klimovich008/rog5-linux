@@ -2457,3 +2457,18 @@ restoration commands beside the archived hashes, because historical commands
 otherwise refer to absent source paths. This saved about 102 MB without losing
 unique data. Preserve current source unpacked, reuse dependencies and record the
 compiler wrapper in the service environment; the active tier needed no retry.
+
+
+A 0.6-second standalone ARM64 EGL build and 13-second virtual comparison proved
+that this stack retains context ownership after a bare worker exit, while explicit
+unbind/release allows transfer. A joined thread is not evidence of released EGL
+state. Use a live-owner negative control and condition-variable ordering when
+testing transfers. Keep probe completion separate from the measured failure and
+from Denial session qualification. The pinned engine already clears the surface
+context in its destructor, so trace the actual callback/context identities before
+placing another release. Avoid a multi-minute compositor link for an API question
+a small program can discriminate. The frozen active tier passed in 131 seconds
+with 286 MiB peak and no swap; no repeated kernel or engine build was needed.
+When appending an artifact set, derive coverage.set_count from the resulting list
+before validation; the final metadata check caught this omitted update without
+requiring a build or active-tier retry.

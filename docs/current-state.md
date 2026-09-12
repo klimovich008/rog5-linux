@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial trace rules out an expiry-only fix; focused protocol review prepared**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Virtual EGL comparison proves thread exit alone does not release context**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The bounded history records 278 contiguous events: 135 grants, 85 expiries, 50 consumes and eight refusals. Seven refusals follow a consumed per-frame reservation; one follows expiry. No cancellation or trace truncation occurred. The VM reaches 50 frames/page flips but remains FAIL with backing-store and EGL cleanup errors. Nine broker/trace tests, ARM64 build and 87 active suites pass (133.7 seconds; three optional subchecks skipped). The focused render-authorization review packet asks for a coherent queue/acknowledgment fix. Next independent work is an EGL thread-release VM probe. Historical source/test binaries are byte-verified in restoration archives; signed/installed/fallback and physical NOT RUN remain unchanged. See [current repair evidence](../test-results/2026-09-12-denial-authorization-history.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The standalone ARM64 VirGL probe reproduces BAD_ACCESS after a joined worker exits without release; explicit unbind and eglReleaseThread both permit transfer. Build and three-mode VM comparison pass in 0.6 and 12.9 seconds; 87 active suites pass in 131.4 seconds with three optional subchecks skipped. Flutter already calls clear-current during GL surface destruction, so the exact Denial cleanup callback ordering remains unresolved. Next correlate thread/context ownership in that path while the queued-render authorization review is pending. The retained full Denial session remains FAIL; no Denial/engine/kernel rebuild or phone operation occurred. See [current repair evidence](../test-results/2026-09-12-egl-thread-release.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

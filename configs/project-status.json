@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Denial trace rules out an expiry-only fix; focused protocol review prepared",
+  "phase": "Virtual EGL comparison proves thread exit alone does not release context",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The bounded history records 278 contiguous events: 135 grants, 85 expiries, 50 consumes and eight refusals. Seven refusals follow a consumed per-frame reservation; one follows expiry. No cancellation or trace truncation occurred. The VM reaches 50 frames/page flips but remains FAIL with backing-store and EGL cleanup errors. Nine broker/trace tests, ARM64 build and 87 active suites pass (133.7 seconds; three optional subchecks skipped). The focused render-authorization review packet asks for a coherent queue/acknowledgment fix. Next independent work is an EGL thread-release VM probe. Historical source/test binaries are byte-verified in restoration archives; signed/installed/fallback and physical NOT RUN remain unchanged.",
-  "evidence": "test-results/2026-09-12-denial-authorization-history.md"
+  "next": "The standalone ARM64 VirGL probe reproduces BAD_ACCESS after a joined worker exits without release; explicit unbind and eglReleaseThread both permit transfer. Build and three-mode VM comparison pass in 0.6 and 12.9 seconds; 87 active suites pass in 131.4 seconds with three optional subchecks skipped. Flutter already calls clear-current during GL surface destruction, so the exact Denial cleanup callback ordering remains unresolved. Next correlate thread/context ownership in that path while the queued-render authorization review is pending. The retained full Denial session remains FAIL; no Denial/engine/kernel rebuild or phone operation occurred.",
+  "evidence": "test-results/2026-09-12-egl-thread-release.md"
 }

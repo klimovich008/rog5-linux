@@ -665,7 +665,7 @@
     },
     "physical_status": "NOT RUN",
     "authority": "none; offline guest fixture only",
-    "next": "Review the reservation/queued-engine-work protocol using the focused packet; do not assume expiry explains post-consumption callbacks. Independently prepare a bounded two-thread EGL release probe in the retained VM. No phone operation.",
+    "next": "Correlate actual Denial context/thread ownership across make-current, clear-current, raster-idle and cleanup; the VM exit-only hypothesis now has a reproducer, but the engine already requests clear-current during surface destruction. Keep the queued-render review independent. No phone operation.",
     "previous_evidence": {
       "path": "test-results/2026-09-12-denial-broker-refusals-qualification.json",
       "sha256": "f1c375d74d9dfacfa76297ee55be7fbbe66b8c2bbbde87585fab98d8740228ac",
@@ -696,6 +696,20 @@
     "authorization_history_patch": {
       "path": "patches/denial-85b2303e/0003-trace-render-authorization-history.patch",
       "sha256": "448b00598c86134a4bd56e496dda6a8daf8952297e1cb92fff084840bb267025"
+    },
+    "egl_thread_comparison": {
+      "status": "PASS: comparison completed; exit-only transfer fails, explicit unbind/release succeeds",
+      "set_id": "private:rog5-egl-thread-release-20260912-r1",
+      "source_commit": "ecd4608223cf10f5952e99b27f0c17e79f991dfa",
+      "source_tree": "206915d9e6a6417f3ffbc9a9b51fde4f0ca8b7ee",
+      "evidence": {
+        "path": "test-results/2026-09-12-egl-thread-release-qualification.json",
+        "sha256": "bafe3c1a4fca28f401619560fc34898323eb0c4afcfedfefc403610d0df36d41",
+        "size": 15252
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; standalone virtual experiment",
+      "denial_executed": false
     }
   }
 }
