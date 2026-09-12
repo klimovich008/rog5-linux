@@ -2136,3 +2136,13 @@ coordinator. The initial failure is preserved. Final native/ARM64 refusals took
 The source correction justified fresh component builds; no unchanged kernel
 build was repeated. Lifetime tests now require EGL teardown before BO/device
 teardown and keep the borrowed descriptor alive through the latter.
+
+Cross-context pixels (2026-09-12): completion of a fence-only test does not check
+buffer visibility. The combined fixture now delays BO bytes until server wait;
+omitting that call loses pixels on native and ARM64. Resource lists are drained
+for consumer-owned GL objects while that context is current, before restoration.
+Split behavior from mutation compilation so ARM64 can reuse the same cases on
+its retained executable. The target behavior suite took 9.306 s; the additional
+negative target build 1.518 s and execution 0.052 s; active tier 129.924 s.
+No unchanged kernel rebuild was needed. Real unsignaled GPU dependencies remain
+unproven even if a future small-buffer hardware test passes.
