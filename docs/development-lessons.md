@@ -2114,3 +2114,15 @@ real-software extension blockers. Reuse the cached builder and library identitie
 but generate new execution evidence for each binary. A private verifier initially
 assumed regular-file metadata for symlinks; check the recorded entry type first
 and make successful verification a dependency of subsequent runtime execution.
+
+DMA-BUF preparation (2026-09-12): MESA export query can write four modifier
+entries before the caller knows the plane count. Reserve the API's maximum,
+then validate the selected one-plane layout. Preserve source-image contents
+explicitly and distinguish borrowed DMA-BUF import FDs from transferred native
+fence FDs. FD-backed pixel fixtures and missing-draw/binding mutations now test
+these boundaries. Real texture/FBO pixels pass independently; software export
+extension absence remains BLOCKED. A fixture formatting error stopped -Werror
+compilation before tests and was corrected. The expanded focused suite took
+9.786 s and frozen active tier 118.638 s; cached component builds avoided an
+unrelated kernel rebuild. Texture-only test mutations now explicitly label
+DMA-BUF NOT RUN so their diagnostic output cannot be mistaken for sharing proof.
