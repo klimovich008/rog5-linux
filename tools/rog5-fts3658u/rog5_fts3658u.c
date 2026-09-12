@@ -34,6 +34,7 @@ struct rog5_fts {
 	enum rog5_fts_vote vdd_vote;
 	enum rog5_fts_vote io_vote;
 	bool irq_running;
+	bool suspended;
 };
 
 static int rog5_fts_read(struct rog5_fts *ts, u8 reg, u8 *data, u16 size)
@@ -224,6 +225,7 @@ static void rog5_fts_stop(void *data)
 {
 	struct rog5_fts *ts = data;
 
+	ts->suspended = false;
 	if (ts->irq_running) {
 		disable_irq(ts->client->irq);
 		ts->irq_running = false;
@@ -314,12 +316,76 @@ static void rog5_fts_shutdown(struct i2c_client *client)
 	rog5_fts_power_off(ts);
 }
 
-/* Initial component probe does not qualify suspend/resume or wake gestures. */
+/* Ordinary PM callbacks and shutdown are serialized by the device core. */
+static int rog5_fts_restart(struct rog5_fts *ts)
+{
+	int ret;
+
+	ret = rog5_fts_power_on(ts);
+	if (!ret)
+		ret = rog5_fts_identify(ts);
+	if (ret) {
+		rog5_fts_power_off(ts);
+		dev_err(&ts->client->dev,
+			"touch restart failed: %d; recovery required\n", ret);
+		return ret;
+	}
+	ts->irq_running = true;
+	enable_irq(ts->client->irq);
+	return 0;
+}
+
+/* Non-wakeup sleep: no gesture commands or wake-IRQ changes. */
 static int rog5_fts_suspend(struct device *dev)
+{
+	struct rog5_fts *ts = dev_get_drvdata(dev);
+	int ret;
+
+	if (ts->suspended)
+		return 0;
+	if (!ts->irq_running)
+		return -EUCLEAN;
+	rog5_fts_stop(ts);
+	ret = rog5_fts_power_off(ts);
+	if (ret) {
+		/* PM will not resume the device whose suspend callback failed.
+		 * Restore here only when both consumer votes were released;
+		 * ambiguous ownership remains quiesced for external recovery.
+		 * Preserve the suspend failure even if restoration succeeds.
+		 */
+		if (ts->vdd_vote == ROG5_FTS_VOTE_NONE &&
+		    ts->io_vote == ROG5_FTS_VOTE_NONE)
+			rog5_fts_restart(ts);
+		return ret;
+	}
+	ts->suspended = true;
+	return 0;
+}
+
+static int rog5_fts_resume(struct device *dev)
+{
+	struct rog5_fts *ts = dev_get_drvdata(dev);
+
+	if (!ts->suspended)
+		return ts->irq_running ? 0 : -EUCLEAN;
+	/* A failed attempt cannot be retried by another PM transition. */
+	ts->suspended = false;
+	return rog5_fts_restart(ts);
+}
+
+/* Hibernation and gesture wake need separate implementation/qualification. */
+static int rog5_fts_hibernate_refused(struct device *dev)
 {
 	return -EBUSY;
 }
-static DEFINE_SIMPLE_DEV_PM_OPS(rog5_fts_pm, rog5_fts_suspend, NULL);
+
+static const struct dev_pm_ops rog5_fts_pm = {
+	.suspend = rog5_fts_suspend,
+	.resume = rog5_fts_resume,
+	.freeze = rog5_fts_hibernate_refused,
+	.poweroff = rog5_fts_hibernate_refused,
+	.restore = rog5_fts_hibernate_refused,
+};
 
 static const struct of_device_id rog5_fts_match[] = {
 	{ .compatible = "asus,rog5-mp2-fts3658u" },

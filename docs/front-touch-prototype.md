@@ -1,9 +1,10 @@
 # Front-touch prototype
 
 The ASUS ROG Phone 5 MP2 FTS3658U prototype provides a small normal-mode input
-driver and a disabled DT candidate. **Physical touchscreen behavior remains
-unqualified. System suspend returns `-EBUSY`; suspend/resume and wake gestures
-are not implemented.** No accepted image or activation policy selects it.
+driver and a disabled DT candidate. **Physical touchscreen behavior, suspend and
+resume remain unqualified.** Ordinary non-wakeup system-sleep callbacks are
+implemented; hibernation returns `-EBUSY`, and wake gestures are unsupported.
+No accepted image or activation policy selects it.
 
 Source is in [tools/rog5-fts3658u](../tools/rog5-fts3658u/README.md). The private
 draft compatible is `asus,rog5-mp2-fts3658u`; it is not an upstream binding or a
@@ -35,10 +36,10 @@ python3 scripts/device/test-rog5-touch-lifecycle.py
 ```
 
 It compiles the real probe, power, identification, IRQ and shutdown functions
-with faulted API boundaries. Sixteen cases cover thirteen probe failure stages,
+with faulted API boundaries. Cases cover thirteen probe failure stages,
 uncertain regulator failures, immediate IRQ delivery, blocked IRQ shutdown,
-stale-contact release and the existing suspend refusal. Three deliberate unsafe
-mutations must fail. `ROG5_LINUX_SOURCE` enables comparison of the retained IRQ
+stale-contact release and ordinary sleep/resume. Deliberate unsafe mutations
+must fail. `ROG5_LINUX_SOURCE` enables comparison of the retained IRQ
 and input core extracts with the exact supplied kernel. This is host behavior
 coverage; it does not establish physical IRQ or rail behavior.
 
@@ -82,6 +83,28 @@ context. Do not rebind, reload or retry after an uncertain outcome. Independent
 rail/GPIO observation and return-to-known-good recovery remain mandatory before
 any future authorized operation. The driver neither force-disables shared rails
 nor infers consumer ownership from a global enabled flag.
+
+## Ordinary system sleep
+
+The sleep callbacks run in the ordinary device-PM phase, while GENI I2C remains
+available. Suspend disables and drains the threaded IRQ, releases all contacts,
+asserts reset and releases only the driver's own power votes. Resume repeats the
+existing power sequence and normal `5652` identification before enabling IRQs.
+No controller sleep command, gesture mode or wake-IRQ change is added. Touch
+cannot wake the phone; another independently qualified wake source is required.
+
+Linux does not call resume for a device whose suspend callback failed. If power
+off reports a GPIO error but both consumer votes were successfully released,
+the callback attempts one normal power/ID restoration before returning the
+original suspend error. An ambiguous regulator error blocks that restoration.
+Failed restoration or resume leaves input quiesced and refuses another PM retry;
+independent recovery remains required. Shutdown while asleep cannot restart
+touch. This inhibition, like the regulator guard, lasts only for that instance.
+
+The driver explicitly refuses freeze, hibernation poweroff and restore instead
+of inheriting the generic sleep macro's additional mappings. Runtime PM,
+hibernation, physical regulator retention, wake gestures, idle drain and actual
+system sleep/resume are not qualified by the host callback tests.
 
 ## Exact protocol scope
 

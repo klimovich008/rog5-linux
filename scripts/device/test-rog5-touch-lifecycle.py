@@ -22,15 +22,17 @@ FIXTURES = ROOT / 'scripts/device/fixtures/fts3658u'
 CASES = ('probe-unwind', 'vote-vdd-unknown', 'vote-io-unknown', 'off-reset-error',
          'off-io-error', 'normal-id-refusal', 'irq-short-transfer', 'irq-io-error',
          'irq-invalid-frame', 'irq-drop-unused', 'shutdown-idempotent',
-         'shutdown-drains-irq', 'suspend-refused', 'prepare-cleanup-unknown',
-         'irq-at-registration', 'normal-power-cycles')
+         'shutdown-drains-irq', 'sleep-cycles', 'prepare-cleanup-unknown',
+         'irq-at-registration', 'normal-power-cycles', 'sleep-drains-irq',
+         'sleep-gpio-restore', 'sleep-regulator-quarantine', 'resume-errors',
+         'sleep-restore-errors', 'shutdown-asleep', 'sleep-pm-map', 'resume-cleanup-unknown')
 
 
 def driver_unit(source):
     # Compile all actual callbacks, the power/ID/parser paths and full probe.
-    # Omit only kernel includes and static registration/PM metadata.
+    # Include the actual PM callback table; omit kernel includes and registration metadata.
     begin = source.index('enum rog5_fts_vote {')
-    end = source.index('static DEFINE_SIMPLE_DEV_PM_OPS(')
+    end = source.index('static const struct of_device_id ')
     return source[begin:end]
 
 
@@ -92,6 +94,12 @@ def main():
              '\t\t\tdev_err(dev, "VDD vote release failed:', 'vote-vdd-unknown'),
             ('bad-frame-release', '\t\trog5_fts_release(ts);\n\t\tdev_warn_ratelimited',
              '\t\tdev_warn_ratelimited', 'irq-invalid-frame'),
+            ('resume-without-id', 'if (!ret)\n\t\tret = rog5_fts_identify(ts);',
+             'if (!ret)\n\t\tret = 0;', 'sleep-cycles'),
+            ('resume-retry', '\tts->suspended = false;\n\treturn rog5_fts_restart(ts);',
+             '\treturn rog5_fts_restart(ts);', 'resume-errors'),
+            ('abort-without-restore', 'ts->io_vote == ROG5_FTS_VOTE_NONE)\n\t\t\trog5_fts_restart(ts);',
+             'ts->io_vote == ROG5_FTS_VOTE_NONE)\n\t\t\t(void)0;', 'sleep-gpio-restore'),
         )
         for label, old, new, case in mutations:
             if source.count(old) != 1:
@@ -106,7 +114,7 @@ def main():
         raise ValueError('source input changed during tests')
     print('driver_sha256=' + pins[DRIVER])
     print(f'PASS behavioral: {len(CASES)} actual-driver cases (13 probe failure stages), '
-          f'3 mutation controls; elapsed={time.monotonic() - started:.6f}s')
+          f'{len(mutations)} mutation controls; elapsed={time.monotonic() - started:.6f}s')
     print('NOT RUN module loading, physical IRQ/input, rail behavior or suspend qualification')
 
 

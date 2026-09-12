@@ -62,6 +62,20 @@ struct i2c_client {
 	int addr, flags, irq;
 	void *adapter, *data;
 };
+struct dev_pm_ops {
+	int (*suspend)(struct device *), (*resume)(struct device *);
+	int (*freeze)(struct device *), (*thaw)(struct device *);
+	int (*poweroff)(struct device *), (*restore)(struct device *);
+	int (*suspend_noirq)(struct device *), (*resume_noirq)(struct device *);
+};
+static struct i2c_client *to_i2c_client(struct device *dev)
+{
+	return (struct i2c_client *)dev;
+}
+static void *dev_get_drvdata(struct device *dev)
+{
+	return to_i2c_client(dev)->data;
+}
 struct i2c_msg {
 	int addr, flags, len;
 	u8 *buf;
@@ -108,7 +122,10 @@ static struct regulator vdd = { .name = "vdd" }, io = { .name = "io" };
 static void *allocated;
 static const char *fault, *second_fault;
 static int faults_left, second_faults_left, short_transfer, reads,
-	identity_reads, disables;
+	identity_reads, disables, enables;
+static unsigned irq_depth;
+static int last_irq_identity_reads;
+static bool irq_running_ready(void);
 static unsigned long jiffies;
 static bool irq_during_request;
 static bool normal_id = true, irq_available, irq_disabled, irq_inflight,
@@ -230,10 +247,26 @@ static int __disable_irq_nosync(unsigned irq)
 	CHECK(irq == 23);
 	pthread_mutex_lock(&irq_lock);
 	irq_disabled = true;
+	irq_depth++;
 	disables++;
 	pthread_cond_broadcast(&irq_cond);
 	pthread_mutex_unlock(&irq_lock);
 	return 0;
+}
+/* Enable boundary checks nesting and readiness; disable body is exact core. */
+static void enable_irq(unsigned irq)
+{
+	CHECK(irq == 23 && irq_available && irq_disabled && irq_depth == 1);
+	CHECK(irq_running_ready() && normal_id &&
+	      identity_reads >= last_irq_identity_reads + 2);
+	last_irq_identity_reads = identity_reads;
+	CHECK(vdd.votes == 1 && io.votes == 1 && reset.level == 0 &&
+	      io_enable.level == 1);
+	pthread_mutex_lock(&irq_lock);
+	irq_depth--;
+	irq_disabled = false;
+	enables++;
+	pthread_mutex_unlock(&irq_lock);
 }
 static void synchronize_irq(unsigned irq)
 {
@@ -431,6 +464,7 @@ static int devm_request_threaded_irq(struct device *dev, int irq, void *primary,
 	if (fail("irq-request"))
 		return -EIO;
 	irq_available = true;
+	last_irq_identity_reads = identity_reads;
 	irq_handler = handler;
 	irq_data = data;
 	push(irq_free, data);
