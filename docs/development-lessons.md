@@ -2303,3 +2303,16 @@ about nine seconds each with the already compiled impellerc; shell asset trees
 matched across fresh outputs. Stage only declared assets for runtime, retaining
 shader intermediates in build evidence. These are useful build/packaging results,
 not image decoding, VM startup or physical graphics qualification.
+
+A valid software frame callback can initially contain only black pixels. In the
+real ARM64 shell test, the first capture was uniform; retaining the latest frame
+for eight seconds produced the actual lock screen. Reject uniform/truncated
+captures as visible-UI evidence, and bind visual inspection to the image hash.
+Keep VM/isolate, visible frame, backend behavior and physical GPU proof separate.
+When adapting a read-only runtime namespace, preflight the exact mounts using
+`true`; new writable targets belong under `/tmp`, not the immutable root. That
+check took 0.060 s. Invalid ICU deliberately aborts the engine: isolate the case,
+disable core dumps and verify a fresh valid process with unchanged fixture bytes.
+The cached GTK affected target needed only 97 steps and 252 s; no full engine
+rebuild was necessary. Check public API requirements against the exact header
+before asserting exported symbols: private `fl_engine_start` is not an export.
