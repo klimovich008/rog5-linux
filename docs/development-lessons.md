@@ -2406,3 +2406,22 @@ rebuild more dependencies. Preserve standalone binary copies and invalidate the
 mutable binary freshness marker after mapping a different source to the same
 Cargo path. Retire duplicate terminal VM payloads only after streaming comparison
 against retained originals; keep a reconstruction map and every raw result.
+
+
+The focused Pro modifier review added an allocation-return check that selector
+and pool tests alone missed. Four failing actual-function cases establish the
+gap; compare BO/exported formats and the exact requested modifier before DRM
+registration, including PRIME. Preserve implicit versus explicit semantics rather
+than rewriting a returned descriptor. Also connect selection directly to pool
+allocation in regression tests and cover a renderer with no XR24 at all.
+
+The checked run with existing INFO render audit reached 50 virtual frames/page
+flips, five PoolExhausted events and five backing-store errors. PoolExhausted
+combines absent pool, absent authorization and lack of a free slot; do not turn
+that label into a proven memory/pool-capacity diagnosis. The next probe should
+split those existing branches. EGL cleanup BAD_ACCESS remains a separate issue.
+The 229-second build reused dependencies; no kernel or engine rebuild was needed.
+The active tier initially blocked because the service command omitted the retained
+Rust wrapper directory from PATH. Include that compiler selection in the recorded
+command/environment, not only in an interactive shell. The corrected environment
+passed 87 suites in about 127 seconds, with 311 MiB peak memory and no swap.

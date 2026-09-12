@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial modifier fix reaches 33 virtual frames; session errors remain**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial allocation guard tested; 50 virtual frames with session errors**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The initial XR24 Linear/implicit mismatch is reproduced and corrected through selector and pool allocation. Nine extracted-function cases pass; all prior pool guards/fallback tests are preserved. The same ARM64 VM now records 33 raster frames and 33 page flips, but backing-store errors and EGL BAD_ACCESS cleanup keep the full session FAIL. No screenshot, input or phone GPU proof is claimed. Pro review branch is frozen at 410b6935; independent development continues locally. Next enable existing DENIA_RENDER_AUDIT=1 without rebuilding, then inspect context ownership at shutdown. Active tier: 87 PASS in 135.1 seconds; three optional subchecks skipped. Signed/installed/fallback bytes unchanged; S06/R01 FAIL and physical NOT RUN. See [current repair evidence](../test-results/2026-09-12-denial-modifiers.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The Pro review's returned-descriptor gap is reproduced and fixed before framebuffer registration. Sixteen real-function regressions pass; ARM64 build passes. The audited VM reaches XR24/Invalid and 50 raster frames/page flips but remains FAIL with five backing-store errors and EGL BAD_ACCESS cleanup. PoolExhausted counted five, ReadyHandoff zero; that bucket conflates three causes. Next distinguish pool lookup, authorization and reusable-slot state. Active tier: 87 PASS in 126.5 seconds; three optional subchecks skipped. Review branch stays frozen at 410b6935. Signed/installed/fallback bytes, S06/R01 FAIL and physical NOT RUN remain unchanged. See [current repair evidence](../test-results/2026-09-12-denial-allocation-contract.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
