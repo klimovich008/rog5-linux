@@ -1,0 +1,1575 @@
+{
+  "format": "rog5-shell-initialization-qualification-v1",
+  "status": "PASS",
+  "scope": "real ARM64 shell initialization, software lock-screen output and shutdown; GTK library compile and loader resolution",
+  "source": {
+    "commit": "1bb6c03d839cb36db6cf41f33abdbc85bf89f9ba",
+    "tree": "f67cb86bee8a9c6e614861f7ac4f3d4d4e8e446d"
+  },
+  "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "flutter_commit": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+  "initialization": {
+    "tests": [
+      {
+        "name": "compile-r3",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "--timeout=85",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1:/work:rw",
+          "-e",
+          "TMPDIR=/work",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib:/work/libdenial_flutter_engine.rlib:ro",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-L",
+          "dependency=/deps",
+          "-C",
+          "lto=thin",
+          "--extern",
+          "denial_flutter_engine=/work/libdenial_flutter_engine.rlib",
+          "/work/init-r3.rs",
+          "-o",
+          "/work/init-r3"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 2.4214693480171263,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/compile-r3.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        }
+      },
+      {
+        "name": "initialize-r3",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=1536M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r3",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "/tmp/libflutter_engine.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+          "/tmp/libapp.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+          "/tmp/bundle",
+          "--bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r3",
+          "/tmp/result",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 8.188759520999156,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/initialize-r3.log",
+          "sha256": "e36fb309ff1e64a533e52c778fa1408aed103891de738d9ea7eb4928a2aa3144",
+          "size": 193
+        }
+      }
+    ],
+    "status": "PASS",
+    "inputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r3.rs",
+        "sha256": "fbf00dfa3ac7c0215bd93e1ad0b7a72ffaf0bce9eeca61cda24095ce709c97d7",
+        "size": 8127
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib",
+        "sha256": "490e49185809f056fb5007b12e728d55aec56e2d89d1d04b4b95afef01bc9efe",
+        "size": 2428228
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-tree.json",
+        "sha256": "e2cfdd7c25fbd00c6a705c0084f0d1a9fb806c00ea2ec3d4c808f93386d6f9de",
+        "size": 10255
+      }
+    ],
+    "physical_status": "NOT RUN",
+    "phone_operations": false,
+    "scope": "real shell engine initialization/first software frame/shutdown under ARM64 QEMU; missing host services not simulated",
+    "observation": {
+      "status": "PASS",
+      "root_isolates": 1,
+      "frames": 9,
+      "tasks_run": 39,
+      "platform_messages": 16,
+      "invalid_callback": false,
+      "shutdown_pass": true,
+      "elapsed_ms": 8047,
+      "physical_status": "NOT RUN"
+    }
+  },
+  "initial_black_frame_run": {
+    "tests": [
+      {
+        "name": "compile-r2",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=1024m",
+          "--memory-swap=1024m",
+          "--cpus=1",
+          "--pids-limit=64",
+          "--timeout=85",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/deps:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1:/work:rw",
+          "-e",
+          "TMPDIR=/work",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib:/work/libdenial_flutter_engine.rlib:ro",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/rustc",
+          "--edition=2024",
+          "--target=aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=/usr/bin/aarch64-linux-gnu-gcc",
+          "-L",
+          "dependency=/deps",
+          "-C",
+          "lto=thin",
+          "--extern",
+          "denial_flutter_engine=/work/libdenial_flutter_engine.rlib",
+          "/work/init-r2.rs",
+          "-o",
+          "/work/init-r2"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 2.4211714999983087,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/compile-r2.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        }
+      },
+      {
+        "name": "initialize-r2",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=1536M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r2",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "/tmp/libflutter_engine.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+          "/tmp/libapp.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+          "/tmp/bundle",
+          "--bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r2",
+          "/tmp/result",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 3.8747610239952337,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/initialize-r2.log",
+          "sha256": "42e59c248af92b68653b3bb6943dcb2ff4537dcb928502efd454ceca507c4b7f",
+          "size": 193
+        }
+      }
+    ],
+    "status": "PASS",
+    "inputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r2.rs",
+        "sha256": "e57e82e9df593c279fddfc9d783bb6972b9e303807b22425e7404b5d9ae11a5c",
+        "size": 8125
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib",
+        "sha256": "490e49185809f056fb5007b12e728d55aec56e2d89d1d04b4b95afef01bc9efe",
+        "size": 2428228
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-tree.json",
+        "sha256": "e2cfdd7c25fbd00c6a705c0084f0d1a9fb806c00ea2ec3d4c808f93386d6f9de",
+        "size": 10255
+      }
+    ],
+    "physical_status": "NOT RUN",
+    "phone_operations": false,
+    "scope": "real shell engine initialization/first software frame/shutdown under ARM64 QEMU; missing host services not simulated",
+    "observation": {
+      "status": "PASS",
+      "root_isolates": 1,
+      "frames": 4,
+      "tasks_run": 37,
+      "platform_messages": 14,
+      "invalid_callback": false,
+      "shutdown_pass": true,
+      "elapsed_ms": 3683,
+      "physical_status": "NOT RUN"
+    }
+  },
+  "namespace_preflight": {
+    "status": "PASS",
+    "command": [
+      "systemd-run",
+      "--user",
+      "--quiet",
+      "--wait",
+      "--pipe",
+      "--collect",
+      "-p",
+      "MemoryMax=1536M",
+      "-p",
+      "MemorySwapMax=0",
+      "-p",
+      "TasksMax=64",
+      "-p",
+      "CPUQuota=100%",
+      "-p",
+      "RuntimeMaxSec=60s",
+      "bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--cap-drop",
+      "ALL",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+      "/",
+      "--dev",
+      "/dev",
+      "--proc",
+      "/proc",
+      "--tmpfs",
+      "/tmp",
+      "--ro-bind",
+      "/usr/bin/qemu-aarch64-static",
+      "/tmp/qemu",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r2",
+      "/tmp/probe",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+      "/tmp/libflutter_engine.so",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+      "/tmp/libapp.so",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+      "/tmp/bundle",
+      "--bind",
+      "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r2",
+      "/tmp/result",
+      "--clearenv",
+      "--setenv",
+      "HOME",
+      "/tmp",
+      "--setenv",
+      "LC_ALL",
+      "C",
+      "--setenv",
+      "LD_BIND_NOW",
+      "1",
+      "--",
+      "/tmp/qemu",
+      "/usr/bin/true"
+    ],
+    "exit_status": 0,
+    "duration_seconds": 0.06033322401344776,
+    "stdout": "",
+    "stderr": "",
+    "scope": "exact existing namespace/mounts without engine execution"
+  },
+  "icu_tests": {
+    "status": "PASS",
+    "tests": [
+      {
+        "name": "invalid-icu",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=1536M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "-p",
+          "LimitCORE=0",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r3",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "/tmp/libflutter_engine.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+          "/tmp/libapp.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+          "/tmp/bundle",
+          "--bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/invalid-icu",
+          "/tmp/result",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/empty-icu.dat",
+          "/tmp/bundle/data/icudtl.dat",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe"
+        ],
+        "status": "PASS",
+        "exit_status": 134,
+        "duration_seconds": 1.116714720003074,
+        "expected": "isolated SIGABRT before engine success",
+        "observation": null,
+        "log_sha256": "c7d46ece05db32c78f71750bdfa052d8e5a0cf8966c2cfd6bb50b460900d3a1e"
+      },
+      {
+        "name": "valid-after-invalid",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=1536M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "-p",
+          "LimitCORE=0",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r3",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "/tmp/libflutter_engine.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+          "/tmp/libapp.so",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+          "/tmp/bundle",
+          "--bind",
+          "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/valid-after-invalid",
+          "/tmp/result",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/tmp/probe"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 8.194652762002079,
+        "expected": "valid fixture starts, renders and shuts down",
+        "observation": {
+          "status": "PASS",
+          "root_isolates": 1,
+          "frames": 8,
+          "tasks_run": 39,
+          "platform_messages": 16,
+          "invalid_callback": false,
+          "shutdown_pass": true,
+          "elapsed_ms": 8043,
+          "physical_status": "NOT RUN"
+        },
+        "log_sha256": "06d99cd8e6ad15337b5e5294a0e8d18c7bceb35aeaadd7e3cd07c954350b2916"
+      }
+    ],
+    "fixture_unchanged": true,
+    "phone_operations": false,
+    "physical_status": "NOT RUN",
+    "scope": "invalid ICU rejected in isolated process, then unchanged valid fixture initializes and renders; core dumps disabled"
+  },
+  "visible_frame_tests": {
+    "status": "PASS",
+    "tests": [
+      {
+        "name": "initial-black-frame",
+        "status": "PASS",
+        "accepted_as_visible": false,
+        "result": {
+          "reason": "uniform frame cannot establish visible UI"
+        }
+      },
+      {
+        "name": "later-frame",
+        "status": "PASS",
+        "accepted_as_visible": true,
+        "result": {
+          "bytes": 819200,
+          "sha256": "88743af2bda75f7376a45302e32195aeda59109d94c868370dde98abfce39aee",
+          "nonuniform": true
+        }
+      },
+      {
+        "name": "valid-after-invalid-icu",
+        "status": "PASS",
+        "accepted_as_visible": true,
+        "result": {
+          "bytes": 819200,
+          "sha256": "206298bb04056c750fa1525d9e0130a751d4831b96022f5b78755c7d6c24d30e",
+          "nonuniform": true
+        }
+      },
+      {
+        "name": "truncated-frame",
+        "status": "PASS",
+        "accepted_as_visible": false
+      }
+    ],
+    "duration_seconds": 0.029884649004088715,
+    "visual_inspection": {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r3/latest-frame.png",
+      "sha256": "d989813b0eb8a70666c1667b250e4a9916cd3f7496aa988517afbee1f49720f3",
+      "observed": "Denial portrait lock screen with wallpaper, clock and date",
+      "scope": "assistant inspection of actual QEMU software output; nonuniform check alone does not prove this UI identity"
+    },
+    "physical_status": "NOT RUN"
+  },
+  "frames": {
+    "status": "PASS",
+    "frames": [
+      {
+        "input": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r2/first-frame.raw",
+        "input_sha256": "65202248cc96372e94abf2d43842a0d7cecb164cd4decf9743fa7c63e59cb443",
+        "png": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r2/first-frame.png",
+        "png_sha256": "55119b01e9b9a16b1923077257d74cd7fb3d8273d76312c4cd9cb5695f191390",
+        "width": 320,
+        "height": 640,
+        "pixel_format": "RGBA8888, opaque; exact Linux Skia N32 default and no build override",
+        "unique_colors": 1
+      },
+      {
+        "input": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r3/latest-frame.raw",
+        "input_sha256": "88743af2bda75f7376a45302e32195aeda59109d94c868370dde98abfce39aee",
+        "png": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r3/latest-frame.png",
+        "png_sha256": "d989813b0eb8a70666c1667b250e4a9916cd3f7496aa988517afbee1f49720f3",
+        "width": 320,
+        "height": 640,
+        "pixel_format": "RGBA8888, opaque; exact Linux Skia N32 default and no build override",
+        "unique_colors": 31399
+      }
+    ],
+    "physical_status": "NOT RUN",
+    "scope": "lossless export of actual emulator software buffers; no compositing or UI reconstruction"
+  },
+  "gtk_preflight": {
+    "status": "PASS",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=4096m",
+      "--memory-swap=4096m",
+      "--cpus=2",
+      "--pids-limit=128",
+      "--network=none",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1:/work:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+      "-e",
+      "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+      "-e",
+      "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+      "-e",
+      "CIPD_CACHE_DIR=/build/cipd-cache",
+      "-e",
+      "DEPOT_TOOLS_UPDATE=0",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "--workdir=/source/engine/src",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/preflight.cid",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "ninja",
+      "-C",
+      "/work/out",
+      "-n",
+      "flutter_linux_gtk"
+    ],
+    "exit_status": 0,
+    "duration_seconds": 0.8662222650018521,
+    "args_sha256": "db52820a0702bf63149044f49fcccd600cee55387cd0a441d85ffafadcec3865",
+    "scope": "cached exact-source GTK target dry-run only",
+    "physical_status": "NOT RUN"
+  },
+  "gtk_compile": {
+    "status": "PASS",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=4096m",
+      "--memory-swap=4096m",
+      "--cpus=2",
+      "--pids-limit=128",
+      "--network=none",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1:/work:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+      "-e",
+      "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+      "-e",
+      "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+      "-e",
+      "CIPD_CACHE_DIR=/build/cipd-cache",
+      "-e",
+      "DEPOT_TOOLS_UPDATE=0",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "--workdir=/source/engine/src",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/compile.cid",
+      "--timeout=580",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "ninja",
+      "-C",
+      "/work/out",
+      "-j2",
+      "flutter_linux_gtk"
+    ],
+    "exit_status": 0,
+    "reason": null,
+    "duration_seconds": 252.2786691779911,
+    "owner": {
+      "container_id": "cee470fde676dcd72a76e4bf1caf15dde888841ae399f110b435a15cb8baee8f",
+      "state": {
+        "OciVersion": "1.2.1",
+        "Status": "running",
+        "Running": true,
+        "Paused": false,
+        "Restarting": false,
+        "OOMKilled": false,
+        "Dead": false,
+        "Pid": 2840956,
+        "ConmonPid": 2840954,
+        "ExitCode": 0,
+        "Error": "",
+        "StartedAt": "2026-09-12T18:03:43.430813933+02:00",
+        "FinishedAt": "0001-01-01T00:00:00Z",
+        "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-cee470fde676dcd72a76e4bf1caf15dde888841ae399f110b435a15cb8baee8f.scope",
+        "CheckpointedAt": "0001-01-01T00:00:00Z",
+        "RestoredAt": "0001-01-01T00:00:00Z"
+      },
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--memory=4096m",
+        "--memory-swap=4096m",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--network=none",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1:/work:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+        "-e",
+        "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+        "-e",
+        "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+        "-e",
+        "CIPD_CACHE_DIR=/build/cipd-cache",
+        "-e",
+        "DEPOT_TOOLS_UPDATE=0",
+        "-e",
+        "HOME=/work/home",
+        "-e",
+        "TMPDIR=/work/tmp",
+        "--workdir=/source/engine/src",
+        "--cidfile",
+        "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/compile.cid",
+        "--timeout=580",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "ninja",
+        "-C",
+        "/work/out",
+        "-j2",
+        "flutter_linux_gtk"
+      ],
+      "terminal_result_path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/compile-result.json"
+    },
+    "disk_free_bytes": 7556599808,
+    "physical_status": "NOT RUN",
+    "scope": "exact pinned GTK engine affected target compilation only; native runner/runtime not qualified"
+  },
+  "gtk_qualification": {
+    "status": "PASS",
+    "tests": [
+      {
+        "name": "elf-header",
+        "command": [
+          "readelf",
+          "-h",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.004930262977723032,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/elf-header.log",
+          "sha256": "f8633b7d3e02e9e2ee1ed1ad8777a566deb992ac7dc5e074399c22d482037f1b",
+          "size": 939
+        }
+      },
+      {
+        "name": "exports",
+        "command": [
+          "readelf",
+          "--dyn-syms",
+          "--wide",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.008935552003094926,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/exports.log",
+          "sha256": "385faaf13d5f38d0799656ebf53962c15b0ae23dabf1e2fe2ab77601dec01f0d",
+          "size": 81348
+        }
+      },
+      {
+        "name": "dynamic",
+        "command": [
+          "readelf",
+          "-d",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.0047156189975794405,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/dynamic.log",
+          "sha256": "51888f383ec0b2689cc8ba27a61b65e29576ac00f9f22f4a2e3ab72816dfc308",
+          "size": 2703
+        }
+      },
+      {
+        "name": "gtk-loader",
+        "command": [
+          "systemd-run",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=768M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=60s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/probe",
+          "/tmp/probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so",
+          "/tmp/libflutter_linux_gtk.so",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--",
+          "/tmp/qemu",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "--list",
+          "/tmp/libflutter_linux_gtk.so"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 0.10292451299028471,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/gtk-loader.log",
+          "sha256": "47a915ce73878ceb19fc9a791f4537c6f4d1953e39ebafb5ac6d0105883ff0f0",
+          "size": 4825
+        }
+      }
+    ],
+    "output": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so",
+      "sha256": "42600a575bee4a753eb075b17e3a85adafcbf3cfa9d8172151277e02fd0db4cb",
+      "size": 16286240
+    },
+    "needed": [
+      "libdl.so.2",
+      "libgtk-3.so.0",
+      "libgdk-3.so.0",
+      "libpangocairo-1.0.so.0",
+      "libpango-1.0.so.0",
+      "libatk-1.0.so.0",
+      "libcairo.so.2",
+      "libgio-2.0.so.0",
+      "libgobject-2.0.so.0",
+      "libglib-2.0.so.0",
+      "libepoxy.so.0",
+      "libfontconfig.so.1",
+      "libpthread.so.0",
+      "libm.so.6",
+      "libc.so.6",
+      "ld-linux-aarch64.so.1"
+    ],
+    "runtime_dependencies": [
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/ld-linux-aarch64.so.1",
+        "sha256": "b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d",
+        "size": 201832
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libX11.so.6.4.0",
+        "sha256": "47bbfc7dc44b2f7408250ad51fecf0fe9a65480d6aa3716d7b5bf6e910253212",
+        "size": 1389856
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXau.so.6.0.0",
+        "sha256": "a92fa15e6ec8830a02c36ce6b398dbd736da3c59441addc03c210a55fee00001",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXcomposite.so.1.0.0",
+        "sha256": "8276b444c0cdc352d9c5fe1b7f6bb5e07a42b66878a32386a7fa2384345181bb",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXcursor.so.1.0.2",
+        "sha256": "1ce887ea4c05c75818e7cc24968c867b2191624223c8f3358b5bfa2ce48d72a6",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXdamage.so.1.1.0",
+        "sha256": "e6371addb3562bc128c6c62ea73bbb95b59b2e6ae988b8e5827c409eeba8fc4b",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXdmcp.so.6.0.0",
+        "sha256": "d16300a2508f4af718dfe2fa9a1d89c743b7befd8eb59f376a814f37c6e41e28",
+        "size": 67496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXext.so.6.4.0",
+        "sha256": "5cf185138a80b6f1dcec100ee0b777b469beec699d10b284a53b9febcdd2bbb6",
+        "size": 134160
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXfixes.so.3.1.0",
+        "sha256": "9df0e400823971f414abef56897aff6444926a88bb30222029c2c4fec9ee6afa",
+        "size": 67384
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXi.so.6.1.0",
+        "sha256": "709397ff25e8c0385395e0d6df4f093ce32353862441db9fde9ab3192283c28e",
+        "size": 133192
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXinerama.so.1.0.0",
+        "sha256": "b757d3f3e823a9e476d54309e66fc889d0b93604db7edb5f0b35294a496ac2a5",
+        "size": 67472
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXrandr.so.2.2.0",
+        "sha256": "354311ad6b3a93fc755a9a34c58c9bf7aa7dc02ee1ab8e7178cc5f4929a3a6d5",
+        "size": 67472
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libXrender.so.1.3.0",
+        "sha256": "893463f7e5a4d0dc6e69218d9f8084740c894789da47b15c14967a1105907308",
+        "size": 67624
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libatk-1.0.so.0.26015.1",
+        "sha256": "d2ec588d350853666d8dafab949e4ff346bea0d731e6d39bee06f166c480c956",
+        "size": 198720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libatk-bridge-2.0.so.0.0.0",
+        "sha256": "cf2ef64beb4826f31d52ec984736bf9edc1022fb8f522c83ebb06eb54366259f",
+        "size": 268496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libatspi.so.0.0.1",
+        "sha256": "31a9472ea490ee86c37a034a21aa3e6017e8c9f588800ba17ab8e732788cd5e3",
+        "size": 330112
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libblkid.so.1.1.0",
+        "sha256": "07ec798050e65a5da9eae02ad6f3d86d1e938a17c20b012616ef259adeef4858",
+        "size": 461728
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libbrotlicommon.so.1.2.0",
+        "sha256": "93d374c121f516fe27c7f52f1ac75443bfc221979999cf931ac4145f51d03424",
+        "size": 198528
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libbrotlidec.so.1.2.0",
+        "sha256": "393cd16c4a9b5fc17961c8ac1f4bc5c7b0f3fe5b587bbbddd81f78a14b50462d",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libbz2.so.1.0.8",
+        "sha256": "973f0f527699d7eda3dc15cbc8b236d0c1d877492c4e471b94b15cb51190684a",
+        "size": 70504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libc.so.6",
+        "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab",
+        "size": 1853736
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libcairo-gobject.so.2.11804.4",
+        "sha256": "c177034db0a79f0096aba5e9d8bd4e90030425024c307d5d7c7d0b6c8e665198",
+        "size": 67304
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libcairo.so.2.11804.4",
+        "sha256": "e177503dd5ce3d1c514bb64b6cc906c529f2344f6b07b5dd37dc0f1ae7e0a15e",
+        "size": 1317392
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libcloudproviders.so.0.4.1",
+        "sha256": "5dae7d09701f1c6d1e39ade7a9d1bde81b216dc737cb3d1e2f87662028d57d39",
+        "size": 133192
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libdatrie.so.1.4.1",
+        "sha256": "11840392563ae6d57f3f14859c76823abdb5538e293669b0f9925be7d9ae0df6",
+        "size": 67456
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libdbus-1.so.3.38.3",
+        "sha256": "06e6dd59186871e3c493fbcecb008996b5eb01b6085d449e1849ea369506ca87",
+        "size": 460896
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libdl.so.2",
+        "sha256": "c368bb964d02a4cf1252f2e812e91f4206924ed4fccd9b68eaad676aafd0ce1f",
+        "size": 67672
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libepoxy.so.0.0.0",
+        "sha256": "3e96fcda5f5843be7fcca2ba5aeac6fa09d73429a23baabf02d45af7b2d21ebc",
+        "size": 1406504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libexpat.so.1.12.4",
+        "sha256": "58e5e6ebdcc2ae387debfeae2556748fac678ecc4a59deaf71ab695ab29ace94",
+        "size": 198640
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libffi.so.8.5.0",
+        "sha256": "8be7610cc71df6b52d7ae8ad50ffd32fedbe47a64184efdb321c6789f84d1605",
+        "size": 67720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libfontconfig.so.1.17.0",
+        "sha256": "8a749c8c9d3dce3a83752bc304d257ac1895c0d2637c6f1ae54afb70906ab34b",
+        "size": 526328
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libfreetype.so.6.20.6",
+        "sha256": "d66b8ccd73e4852f4c084fb35dd95d7374de2b06fba837f51b3efed6d34c0a72",
+        "size": 854248
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libfribidi.so.0.4.0",
+        "sha256": "55b23cbaad2fc61e03de59e6a9da06aec30ca24b8c6a2e51c7968cec7bbd869a",
+        "size": 133072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgcc_s.so.1",
+        "sha256": "ac598673a4bf67c0295b6609e46b1fafd0d4adf3f80a513d61ac49ecff772e48",
+        "size": 133352
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgdk-3.so.0.2420.32",
+        "sha256": "8aab3455ab4a7cc2c1dbe287be35aaf780943ac98805c85fd777be79563702de",
+        "size": 1186072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgdk_pixbuf-2.0.so.0.4400.6",
+        "sha256": "0720a84038d25e38c5eea6e7f261cd465f3c188a3a13ad2b44e4df293a75d072",
+        "size": 265264
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgio-2.0.so.0.8800.3",
+        "sha256": "33d25537d9c5ef347a9b79e95e8fd1ef6de768396d24ab9c6f114cb5acbb1a54",
+        "size": 2428456
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libglib-2.0.so.0.8800.3",
+        "sha256": "a94149b7c410bd66bc71491fe68fcade5bf736108ffca9fd1af23cf76eab37b7",
+        "size": 1576520
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libglycin-2.so.0",
+        "sha256": "70889a485831446777424c82f48dc3f9a35fda09f501f744b9223f6271d8e609",
+        "size": 3892072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgmodule-2.0.so.0.8800.3",
+        "sha256": "f6ec1950608783871653ba2476796b3de46433e1f7bb14c72fcd7eaa238f6140",
+        "size": 67536
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgobject-2.0.so.0.8800.3",
+        "sha256": "db2f18d8fd70549cfb99a4c53499b29154c42a4ee4746549ba594a4abf8d809f",
+        "size": 462680
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgraphite2.so.3.3.1",
+        "sha256": "91a4f216f03d906d6417a1166c0e4d1bf8557848f7880d284e9f3eea84d920ff",
+        "size": 198640
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libgtk-3.so.0.2420.32",
+        "sha256": "0baabc9210f3cbc007715fdd3bd69c26eac383ab16427182c094d7337db6d418",
+        "size": 8466632
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libharfbuzz.so.0.61440.0",
+        "sha256": "c7d1059ae2c670f798d276428968670d1ce872189dc75fd1027ed43ba78ceb78",
+        "size": 1445984
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libicudata.so.78.3",
+        "sha256": "2f624d6c2d92113a45906f245e0d50f4d28572cfe973ede09b25e8422460ba09",
+        "size": 33162960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libicuuc.so.78.3",
+        "sha256": "76217efb5cf1c42284a1572e6b8f1b13147523b0072d3cc819458be5f657fe40",
+        "size": 2427016
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libjson-glib-1.0.so.0.1000.8",
+        "sha256": "13a692c2c562e6ff3c28701511caadd68d4a71e6c36cab372db44889ff53e5fa",
+        "size": 198608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/liblcms2.so.2.0.19",
+        "sha256": "95ac8cee9257d197e6a231c7f8886c819c2c85380b002adccf8add7ad429e399",
+        "size": 472040
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libm.so.6",
+        "sha256": "71ed8de709c40acd4fd0177258fc71251a5acdb1d075122409ad42529d6c7a4e",
+        "size": 788960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libmount.so.1.1.0",
+        "sha256": "cbb3219202f5ccc81ab892bc24b0bffc6c3d052e48e0d595d88fd4c1df7763b6",
+        "size": 526976
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libpango-1.0.so.0.5800.2",
+        "sha256": "a50a3c4e0eae528da8e0584bad64f4e4941d9d511eac801ea42b4a32cd5e0e29",
+        "size": 527960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libpangocairo-1.0.so.0.5800.2",
+        "sha256": "96302baa4edc4972f8b0452ebe479a6a265901aafc8f06642c76ff54f728d8f8",
+        "size": 67608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libpangoft2-1.0.so.0.5800.2",
+        "sha256": "7ebb5140f4afd32d852867b019caefb5ea03d58b1f1e554ac090cdce1006b335",
+        "size": 133040
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libpcre2-8.so.0.16.0",
+        "sha256": "9743c89f9b3b7b4aa28049880086ebe85936d7259f87cf82fe52d60dd0f56650",
+        "size": 657720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libpixman-1.so.0.46.4",
+        "sha256": "5a10532bc2d6ab50fd022f0d09f9b53f2d1e7587aaeea7afd2696874dc4f404a",
+        "size": 657376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libpng16.so.16.58.0",
+        "sha256": "5625ab5cb931571d68b18efd452c0a9c9adb97412becdd9eabe6f45be59b82b8",
+        "size": 264256
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libpthread.so.0",
+        "sha256": "27844a766189d65aa53c273fb6d807073fd5fe74021dc7f5dc13657760b5931f",
+        "size": 67672
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libseccomp.so.2.6.0",
+        "sha256": "bb30f1c00ccfa041ada09a6276eb7d76e937ce58b27a9c7a02684b50a840f8a8",
+        "size": 198584
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libsqlite3.so.3.53.4",
+        "sha256": "2db449a85914b1fefa35388d205fa3a8dc946ee3e8ab289cb8a0bfbdc17f575f",
+        "size": 1657608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libstdc++.so.6.0.35",
+        "sha256": "abdf011833740a6f0ca1654876f18d9a5911a9ad08806a38d015e60e3e516ab8",
+        "size": 3017768
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libsystemd.so.0.44.0",
+        "sha256": "72d678a063f9388b8b839fb0a71942e9582ab37a6b7ba5cd1045e64871696483",
+        "size": 2498712
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libthai.so.0.3.2",
+        "sha256": "356740303788d2e814db8b8191d5f8a570904b8d650b737d37fce39e92db2ffa",
+        "size": 68552
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libtinysparql-3.0.so.0.1101.0",
+        "sha256": "e09eea649e3868c96f133bd65f3d83cd1454cf5a6525897073af92b53e632946",
+        "size": 986480
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libwayland-client.so.0.26.0",
+        "sha256": "ccae8b4a09ec07ce893cf276697bab766d7e406efe4c42e0149680c755b96437",
+        "size": 133952
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libwayland-cursor.so.0.26.0",
+        "sha256": "d172c3875c6c385870a110703934ea080bdd472e8959117c44a33c2e53ed50e1",
+        "size": 80368
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libwayland-egl.so.1.26.0",
+        "sha256": "40f8c72ba7675193d014946dcee8da6f33b904667c22e1fefe8ca3cfc0d3dc4f",
+        "size": 67424
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libxcb-render.so.0.0.0",
+        "sha256": "7b2308fe50c862ff8852bc9c5e33354923fad49e9e30064bcc08b5bfa6d3ce24",
+        "size": 55160
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libxcb-shm.so.0.0.0",
+        "sha256": "b5c9cf94623c26e216963515ca0c6781a5fd34f0a73dda22c84a0e2456d2c325",
+        "size": 14200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libxcb.so.1.1.0",
+        "sha256": "6bc5e4009e1bbc706479d1a4ebba7763c42f0d9c1655e237ca0f16e1a83aac39",
+        "size": 169888
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libxkbcommon.so.0.13.2",
+        "sha256": "f9637f999ea874ddab721f7e9bd37e321b0888739b9b325b2962955cd6ab5dd1",
+        "size": 395432
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libxml2.so.16.1.4",
+        "sha256": "4b35c8763ef09eb47d84eebe1eb1096388851ab75b1c5ad79f1ddf8e49a4aa47",
+        "size": 1379200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root/usr/lib/libz.so.1.3.2",
+        "sha256": "f8d5729601ca8fb86a8d9d048eff241a0e349342da7a5cea11389d0e33ed0a43",
+        "size": 133128
+      }
+    ],
+    "runtime_tree": {
+      "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/tree.json",
+      "sha256": "d0c54597856c2205f6c19abb932182ffcf61102c9c0caaf39df76852fccfd75b",
+      "size": 10394055
+    },
+    "duration_seconds": 0.44325906899757683,
+    "owner_terminal": true,
+    "scope": "ARM64 GTK library compilation, ELF exports and dynamic loader dependency resolution; not dlopen or GTK/session initialization",
+    "physical_status": "NOT RUN",
+    "phone_operations": false
+  },
+  "retained_failures": [
+    {
+      "tests": [
+        {
+          "name": "compile",
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--read-only",
+            "--read-only-tmpfs=false",
+            "--network=none",
+            "--memory=1024m",
+            "--memory-swap=1024m",
+            "--cpus=1",
+            "--pids-limit=64",
+            "--timeout=85",
+            "-v",
+            "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source:/source:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps:/deps:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1:/work:rw",
+            "-e",
+            "TMPDIR=/work",
+            "-v",
+            "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib:/work/libdenial_flutter_engine.rlib:ro",
+            "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+            "/opt/denial-rust/bin/rustc",
+            "--edition=2024",
+            "--target=aarch64-unknown-linux-gnu",
+            "-C",
+            "linker=/usr/bin/aarch64-linux-gnu-gcc",
+            "-L",
+            "dependency=/deps",
+            "-C",
+            "lto=thin",
+            "--extern",
+            "denial_flutter_engine=/work/libdenial_flutter_engine.rlib",
+            "/work/init.rs",
+            "-o",
+            "/work/init"
+          ],
+          "status": "PASS",
+          "exit_status": 0,
+          "duration_seconds": 3.2246876870049164,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/compile.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size": 0
+          }
+        },
+        {
+          "name": "initialize",
+          "command": [
+            "systemd-run",
+            "--user",
+            "--quiet",
+            "--wait",
+            "--pipe",
+            "--collect",
+            "-p",
+            "MemoryMax=1536M",
+            "-p",
+            "MemorySwapMax=0",
+            "-p",
+            "TasksMax=64",
+            "-p",
+            "CPUQuota=100%",
+            "-p",
+            "RuntimeMaxSec=60s",
+            "bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--cap-drop",
+            "ALL",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+            "/",
+            "--dev",
+            "/dev",
+            "--proc",
+            "/proc",
+            "--tmpfs",
+            "/tmp",
+            "--ro-bind",
+            "/usr/bin/qemu-aarch64-static",
+            "/tmp/qemu",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init",
+            "/tmp/probe",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+            "/tmp/libflutter_engine.so",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+            "/tmp/libapp.so",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+            "/bundle",
+            "--bind",
+            "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/observation-r1",
+            "/result",
+            "--clearenv",
+            "--setenv",
+            "HOME",
+            "/tmp",
+            "--setenv",
+            "LC_ALL",
+            "C",
+            "--setenv",
+            "LD_BIND_NOW",
+            "1",
+            "--",
+            "/tmp/qemu",
+            "/tmp/probe"
+          ],
+          "status": "FAIL",
+          "exit_status": 1,
+          "duration_seconds": 0.06424532798700966,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/initialize.log",
+            "sha256": "b64ed6672504f402a50cc9109bb80f5cec100c53a0529d949d3e328f5b7c58b2",
+            "size": 50
+          }
+        }
+      ],
+      "status": "FAIL",
+      "inputs": [
+        {
+          "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init.rs",
+          "sha256": "5bca37be26683d3f3ba79b46e6651ae009b082d45511f1aff6100c15f20a7897",
+          "size": 8101
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-engine-runtime-evidence-20260912-r1/libdenial_flutter_engine.rlib",
+          "sha256": "490e49185809f056fb5007b12e728d55aec56e2d89d1d04b4b95afef01bc9efe",
+          "size": 2428228
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-tree.json",
+          "sha256": "e2cfdd7c25fbd00c6a705c0084f0d1a9fb806c00ea2ec3d4c808f93386d6f9de",
+          "size": 10255
+        }
+      ],
+      "physical_status": "NOT RUN",
+      "phone_operations": false,
+      "scope": "real shell engine initialization/first software frame/shutdown under ARM64 QEMU; missing host services not simulated"
+    },
+    {
+      "status": "FAIL",
+      "stage": "export assertion",
+      "reason": "Fixture incorrectly required private fl_engine_start as a public export. Exact public header exposes fl_engine_new instead; no engine defect demonstrated."
+    }
+  ],
+  "private_tools": [
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/check-visible-frame.py",
+      "sha256": "1b68fba54c56bf595fec36a8bd34180b4b82bc08304a4e4705952785c69101a3",
+      "size": 1655
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/export-frame.py",
+      "sha256": "2edd6cfbfd528e786bc838f9aa45ba143805170598f6b613880559523a320d1a",
+      "size": 1349
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r2.rs",
+      "sha256": "e57e82e9df593c279fddfc9d783bb6972b9e303807b22425e7404b5d9ae11a5c",
+      "size": 8125
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init-r3.rs",
+      "sha256": "fbf00dfa3ac7c0215bd93e1ad0b7a72ffaf0bce9eeca61cda24095ce709c97d7",
+      "size": 8127
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/init.rs",
+      "sha256": "5bca37be26683d3f3ba79b46e6651ae009b082d45511f1aff6100c15f20a7897",
+      "size": 8101
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/run-r2.py",
+      "sha256": "a0c57d11f67f48004afad2f831baac5fda8529e7e898f0a9b42bef55b1a60470",
+      "size": 2963
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/run-r3.py",
+      "sha256": "d60a7dfa834a867286cd819bb1fbe8f43855323cfdc839d592c84dc40d702fad",
+      "size": 2963
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/run.py",
+      "sha256": "cb8ecf26ed7c2eb1084fa2a3b81711f509f34782b8e17ae86bf0d085d63f0581",
+      "size": 2937
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-shell-init-evidence-20260912-r1/test-icu.py",
+      "sha256": "996f1d907a35eb92abd36c12c42e8dd00fb8469e40bdea160a5e2b9b6daeed92",
+      "size": 2303
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/compile.py",
+      "sha256": "a851c04208d4b9152e925fe10ddd74e0d128bdaeede40ac75fdc6429e6e9f709",
+      "size": 2054
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/preflight.py",
+      "sha256": "ee24bacacf50020c70282c2f85d1e01f7cb8001130a41e62b4aa733be51b6c84",
+      "size": 1761
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/qualify-r2.py",
+      "sha256": "19da27554873726c8cee91f7540d50b7911f2c32a86123472d9c70a32a1afb96",
+      "size": 2973
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-settings-native-evidence-20260912-r1/qualify.py",
+      "sha256": "1d78ffb8719f6df0005a4d25931a056b2ff163281ec8d8b0ed46290d8b9bd340",
+      "size": 2975
+    }
+  ],
+  "phone_operations": false,
+  "signing": false,
+  "claim_operations": false,
+  "protected_storage_mutation": false,
+  "candidate_created": false,
+  "physical_status": "NOT RUN",
+  "remaining": [
+    "Settings native runner and GTK initialization",
+    "Full Denial Wayland session and backend services",
+    "Physical OLED/touch/Adreno qualification",
+    "S06/R01 remain FAIL"
+  ]
+}

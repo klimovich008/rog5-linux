@@ -447,6 +447,11 @@
       "path": "test-results/2026-09-12-engine-shell-aot-qualification.json",
       "sha256": "2d75e29e349bb1d52070e3d0687aa4b47a5b13f3b7f68e6b7e7f2679d43a1078",
       "size": 25261
+    },
+    "initialization_evidence": {
+      "path": "test-results/2026-09-12-shell-initialization-qualification.json",
+      "sha256": "39e372d64e88b4e92fcfdc5c8ae54f540381d70faf52dd100e238f40a7727bec",
+      "size": 59576
     }
   },
   "denial_shell_aot": {
@@ -528,10 +533,15 @@
       "sha256": "721bd95061468b5ae3ded62d47e4999bb5bd3786fa98f43705f5a702ef18f10b"
     },
     "physical_status": "NOT RUN",
-    "authority": "none"
+    "authority": "none",
+    "gtk_evidence": {
+      "path": "test-results/2026-09-12-shell-initialization-qualification.json",
+      "sha256": "39e372d64e88b4e92fcfdc5c8ae54f540381d70faf52dd100e238f40a7727bec",
+      "size": 59576
+    }
   },
   "denial_shell_runtime_fixture": {
-    "status": "PREPARED: exact 32-file offline fixture; VM/isolate/session NOT RUN",
+    "status": "PASS: real VM/isolate, software lock-screen frame and clean shutdown under ARM64 QEMU; full Wayland/phone session NOT RUN",
     "set_id": "private:rog5-flutter-assets-evidence-20260912-r1",
     "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
     "tree": {
@@ -543,6 +553,27 @@
       "path": "test-results/2026-09-12-flutter-assets-settings-qualification.json",
       "sha256": "22e50cc2e5d713b37a9b325e32f118a81b73294be23fa7cc476e54b34e037e1a",
       "size": 71849
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none",
+    "initialization_evidence": {
+      "path": "test-results/2026-09-12-shell-initialization-qualification.json",
+      "sha256": "39e372d64e88b4e92fcfdc5c8ae54f540381d70faf52dd100e238f40a7727bec",
+      "size": 59576
+    }
+  },
+  "denial_settings_gtk": {
+    "status": "PASS: ARM64 library compile, exports and Arch loader resolution; native runner/GTK initialization NOT RUN",
+    "set_id": "private:rog5-settings-native-evidence-20260912-r1",
+    "output": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so",
+      "sha256": "42600a575bee4a753eb075b17e3a85adafcbf3cfa9d8172151277e02fd0db4cb",
+      "size": 16286240
+    },
+    "evidence": {
+      "path": "test-results/2026-09-12-shell-initialization-qualification.json",
+      "sha256": "39e372d64e88b4e92fcfdc5c8ae54f540381d70faf52dd100e238f40a7727bec",
+      "size": 59576
     },
     "physical_status": "NOT RUN",
     "authority": "none"

@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Shell/settings assets and ARM64 AOT ready for offline startup**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial shell renders offline; GTK engine compiled**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Real Flutter asset assembly passes for shell and settings; two fresh shell asset trees match byte-for-byte. Settings frontend and two identical ARM64 AOT builds pass. The isolated source tool resolves 102 locked packages and its CLI executes offline after normal metadata bootstrap; its upstream SDK engine metadata is distinct from the local fork engine. A 32-file private shell runtime fixture combines exact engine/AOT/ICU and declared assets. Next qualify bounded offline initialization and the settings native runner/GTK runtime. No VM/isolate, compositor or phone session is claimed. No phone operation is authorized; signed/installed/fallback artifacts are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-flutter-assets-settings.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The exact ARM64 shell initializes its VM/isolate, renders the Denial lock screen in software under QEMU and shuts down cleanly. Invalid ICU is rejected and the unchanged valid fixture starts afterward. Black and truncated captures are rejected as visible-frame evidence. The cached GTK engine library compiled in 252 seconds and its Arch runtime dependencies resolve. Next build/qualify the settings native runner and full offline Wayland session. These results do not prove touch, hardware acceleration, lock security or phone operation. No phone operation is authorized; signed/installed/fallback bytes remain unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-shell-initialization.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
