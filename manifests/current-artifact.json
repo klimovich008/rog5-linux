@@ -393,10 +393,15 @@
     },
     "dart_revision": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
     "dart_version": "3.12.2",
-    "flutter_tool_bootstrap": "NOT RUN",
+    "flutter_tool_bootstrap": "PASS: isolated source tool dependency resolution, metadata bootstrap and CLI execution; historical tool AOT snapshot not rebuilt",
     "shell_aot_status": "PASS: ARM64 compiler/data-load evidence in denial_shell_aot; assets/session NOT RUN",
     "physical_status": "NOT RUN",
-    "authority": "none"
+    "authority": "none",
+    "flutter_tool_evidence": {
+      "path": "test-results/2026-09-12-flutter-assets-settings-qualification.json",
+      "sha256": "22e50cc2e5d713b37a9b325e32f118a81b73294be23fa7cc476e54b34e037e1a",
+      "size": 71849
+    }
   },
   "denial_compiled_engine": {
     "status": "PASS: compilation, ELF architecture/exports and snapshot version; runtime closure NOT RUN",
@@ -463,7 +468,12 @@
       "size": 10822192
     },
     "physical_status": "NOT RUN",
-    "authority": "none"
+    "authority": "none",
+    "assets_evidence": {
+      "path": "test-results/2026-09-12-flutter-assets-settings-qualification.json",
+      "sha256": "22e50cc2e5d713b37a9b325e32f118a81b73294be23fa7cc476e54b34e037e1a",
+      "size": 71849
+    }
   },
   "denial_engine_loader_validation": {
     "status": "PASS: six ARM64 QEMU loader/AOT-data tests; no engine or compositor startup",
@@ -472,6 +482,67 @@
       "path": "test-results/2026-09-12-engine-shell-aot-qualification.json",
       "sha256": "2d75e29e349bb1d52070e3d0687aa4b47a5b13f3b7f68e6b7e7f2679d43a1078",
       "size": 25261
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_flutter_assets": {
+    "status": "PASS: real shell/settings asset manifests/fonts/shaders; shell fresh-output bytes identical",
+    "set_id": "private:rog5-flutter-assets-evidence-20260912-r1",
+    "evidence": {
+      "path": "test-results/2026-09-12-flutter-assets-settings-qualification.json",
+      "sha256": "22e50cc2e5d713b37a9b325e32f118a81b73294be23fa7cc476e54b34e037e1a",
+      "size": 71849
+    },
+    "asset_trees": {
+      "assets-r1": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/tree.json",
+        "sha256": "5b30028692afc04c736e8d378f7abbeaafa4dd29a4f763cb4bc2708dd2296645",
+        "size": 8384
+      },
+      "assets-r2": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r2/tree.json",
+        "sha256": "5b30028692afc04c736e8d378f7abbeaafa4dd29a4f763cb4bc2708dd2296645",
+        "size": 8384
+      },
+      "settings-assets-r1": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-assets-r1/tree.json",
+        "sha256": "ec5c98dfa9e14265f98a4f4c82ca5cc3aa5a9c4a5259d1041b44178b7c51ad82",
+        "size": 1239
+      }
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_settings_aot": {
+    "status": "PASS: two identical ARM64 AOT builds; native runner/GTK and startup NOT RUN",
+    "set_id": "private:rog5-flutter-assets-evidence-20260912-r1",
+    "evidence": {
+      "path": "test-results/2026-09-12-flutter-assets-settings-qualification.json",
+      "sha256": "22e50cc2e5d713b37a9b325e32f118a81b73294be23fa7cc476e54b34e037e1a",
+      "size": 71849
+    },
+    "output": {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/aot-r1/libapp.so",
+      "size": 8127376,
+      "sha256": "721bd95061468b5ae3ded62d47e4999bb5bd3786fa98f43705f5a702ef18f10b"
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_shell_runtime_fixture": {
+    "status": "PREPARED: exact 32-file offline fixture; VM/isolate/session NOT RUN",
+    "set_id": "private:rog5-flutter-assets-evidence-20260912-r1",
+    "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+    "tree": {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-tree.json",
+      "sha256": "e2cfdd7c25fbd00c6a705c0084f0d1a9fb806c00ea2ec3d4c808f93386d6f9de",
+      "size": 10255
+    },
+    "evidence": {
+      "path": "test-results/2026-09-12-flutter-assets-settings-qualification.json",
+      "sha256": "22e50cc2e5d713b37a9b325e32f118a81b73294be23fa7cc476e54b34e037e1a",
+      "size": 71849
     },
     "physical_status": "NOT RUN",
     "authority": "none"

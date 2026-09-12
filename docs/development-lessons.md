@@ -2290,3 +2290,16 @@ outputs took about 20 s each with identical bytes. Reuse those real components
 before bootstrapping another toolchain. Audit actual depfile inputs and resolved
 libraries (1,970 files and 13 libraries in 1.935 s), while keeping asset assembly,
 VM/isolate startup and physical rendering as distinct unfinished requirements.
+
+A source pubspec's long pin list is not necessarily its complete closure:
+Flutter tools listed 100 exact packages but needed two more transitives. Scan
+selected package dependencies and freeze the actual resolver's resulting lock;
+102 packages then resolved offline in 0.515 s. Compare decoded archive URL paths
+while retaining the exact host/version/hash checks because Pub encodes `+`.
+Direct Flutter-tool entry also needs normal SDK metadata bootstrap, including
+its informative upstream engine record. Keep that record separate from the local
+fork engine binary identity. The real asset APIs built shell/settings assets in
+about nine seconds each with the already compiled impellerc; shell asset trees
+matched across fresh outputs. Stage only declared assets for runtime, retaining
+shader intermediates in build evidence. These are useful build/packaging results,
+not image decoding, VM startup or physical graphics qualification.
