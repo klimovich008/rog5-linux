@@ -1,0 +1,91 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/input/touchscreen/asus,rog5-mp2-fts3658u.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: ASUS ROG Phone 5 MP2 FTS3658U disabled touch prototype
+
+maintainers:
+  - ROG5 Linux contributors <klimovich008@gmail.com>
+
+description: |
+  Local binding for the dedicated normal-firmware FTS3658U prototype. This is
+  the MP2 front controller at address 0x38, with normal firmware ID 0x5652.
+  Coordinates retain native 1/16-pixel units (1080 by 2448 physical pixels).
+  The prototype does not implement axis transforms, wake or firmware updates.
+  This deliberately disabled schema is an offline composition contract, not
+  authority to enable probing or a claim of physical qualification. Enabling
+  the device requires a separately reviewed binding and hardware admission.
+
+properties:
+  compatible:
+    const: asus,rog5-mp2-fts3658u
+
+  reg:
+    items:
+      - const: 0x38
+
+  interrupts:
+    items:
+      - items:
+          - const: 23
+          - const: 2
+    description: TLMM GPIO23, falling-edge IRQ_TYPE_EDGE_FALLING.
+
+  reset-gpios:
+    items:
+      - items:
+          - description: TLMM controller phandle.
+          - const: 22
+          - const: 1
+    description: TLMM GPIO22, GPIO_ACTIVE_LOW reset.
+
+  io-enable-gpios:
+    items:
+      - items:
+          - description: TLMM controller phandle.
+          - const: 131
+          - const: 0
+    description: TLMM GPIO131, GPIO_ACTIVE_HIGH IO enable.
+
+  vdd-supply:
+    description: Real 3.008 V L3C rail; dummy regulator substitution is refused.
+
+  vcc_i2c-supply:
+    description: Real shared 1.8 V L8C rail; never force-disabled by the prototype.
+
+  pinctrl-names:
+    const: default
+
+  pinctrl-0: true
+
+  touchscreen-size-x:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    const: 17280
+    description: Native horizontal coordinate range, maximum plus one.
+
+  touchscreen-size-y:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    const: 39168
+    description: Native vertical coordinate range, maximum plus one.
+
+  status:
+    const: disabled
+
+required:
+  - compatible
+  - reg
+  - interrupt-parent
+  - interrupts
+  - reset-gpios
+  - io-enable-gpios
+  - vdd-supply
+  - vcc_i2c-supply
+  - pinctrl-names
+  - pinctrl-0
+  - touchscreen-size-x
+  - touchscreen-size-y
+  - status
+
+additionalProperties: false
