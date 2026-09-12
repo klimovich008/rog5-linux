@@ -213,8 +213,8 @@
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#gpu_readback_probe",
-        "source_commit": "8becd31edf24ae358b3ee6caa4477965b361f426",
-        "arm64_sha256": "7cf02675e107b5a4f6ea36f921fc771882f7598123a6013fc4548a14f97c8764",
+        "source_commit": "7b3a05ce4cb6919a4990be24f312117c9868d9cf",
+        "arm64_sha256": "77c98c27e8bb2f8913bbfddc5429cebf5495161da7e3e6a86fdc7761cafecffa",
         "candidate": null,
         "physical_status": "NOT RUN"
       },
@@ -263,6 +263,13 @@
         "descriptor": "external exact-device coordinator must supply an admitted render FD; no discovery/open; duplicated and DRM-version checked",
         "layout": "explicit one-plane ABGR8888 linear, rendering usage",
         "scope": "ABI-tested GBM/EGL imports and pixels with glFinish; real non-DRM refusal observed; hardware allocation NOT RUN",
+        "physical_status": "NOT RUN"
+      },
+      "gbm_sync_component": {
+        "option": "--gbm-sync-fd=N",
+        "descriptor": "same external admission and DRM-version guards as GBM mode",
+        "scope": "prepared cross-context linear pixels with native-fence server wait; host/ARM64 missing-wait mutation loses fixture pixels",
+        "synchronization": "producer export/flush, consumer import/server wait/completion; no glFinish fallback",
         "physical_status": "NOT RUN"
       }
     },

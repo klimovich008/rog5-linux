@@ -130,33 +130,33 @@
     "note": "Unsigned disabled-DT fixture; no production selection or installation. Ordinary non-wakeup sleep/resume implemented and host tested; physical sleep, touch wake and rail recovery remain unqualified. Hibernation is refused. Ambiguous ownership or failed restart stays quiesced within one instance; no rebind/reload retry is qualified."
   },
   "gpu_readback_probe": {
-    "status": "fixture: explicit-descriptor GBM allocation/import/pixel check; not admitted",
-    "set_id": "private:rog5-gbm-evidence-20260912-r1/r2/build",
-    "source_commit": "8becd31edf24ae358b3ee6caa4477965b361f426",
+    "status": "fixture: GBM pixels across unshared contexts with native fences; not admitted",
+    "set_id": "private:rog5-gbm-sync-evidence-20260912-r1/build",
+    "source_commit": "7b3a05ce4cb6919a4990be24f312117c9868d9cf",
     "arm64": {
-      "path": "/home/deck/.local/state/rog5-gbm-evidence-20260912-r1/r2/build/arm64-a",
-      "size": 4662512,
-      "sha256": "7cf02675e107b5a4f6ea36f921fc771882f7598123a6013fc4548a14f97c8764"
+      "path": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/build/arm64-a",
+      "size": 4662808,
+      "sha256": "77c98c27e8bb2f8913bbfddc5429cebf5495161da7e3e6a86fdc7761cafecffa"
     },
     "qualification": {
-      "path": "test-results/2026-09-12-gbm-qualification.json",
-      "sha256": "ab557d001d14e46a6796a886cbb1274c8d7c6262a3fb8d93fb53a507e7d9ef34"
+      "path": "test-results/2026-09-12-gbm-sync-qualification.json",
+      "sha256": "6f8230e505d0ecb366aef556cabcf435ce286722b375a944fd297263a6cc06bf"
     },
     "physical_status": "NOT RUN",
     "candidate": null
   },
   "gpu_readback_runtime": {
-    "set_id": "private:rog5-gbm-evidence-20260912-r1/r2/build",
+    "set_id": "private:rog5-gbm-sync-evidence-20260912-r1/build",
     "status": "fixture: new probe with preserved Arch software libraries; not installed",
-    "probe_sha256": "7cf02675e107b5a4f6ea36f921fc771882f7598123a6013fc4548a14f97c8764",
+    "probe_sha256": "77c98c27e8bb2f8913bbfddc5429cebf5495161da7e3e6a86fdc7761cafecffa",
     "mesa": "1:26.2.2-1",
     "runtime_binding": {
-      "path": "/home/deck/.local/state/rog5-gbm-evidence-20260912-r1/r2/runtime-binding.json",
-      "sha256": "e24e07da1590edaabc7ae53748f0614b9d37d8e18156ef64002094149507d17c"
+      "path": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/runtime-binding.json",
+      "sha256": "3b4dc5769f2d1e0398c387db09b05f476d21add7fd6710e943ae7dd99ce16383"
     },
     "qualification": {
-      "path": "test-results/2026-09-12-gbm-qualification.json",
-      "sha256": "ab557d001d14e46a6796a886cbb1274c8d7c6262a3fb8d93fb53a507e7d9ef34"
+      "path": "test-results/2026-09-12-gbm-sync-qualification.json",
+      "sha256": "6f8230e505d0ecb366aef556cabcf435ce286722b375a944fd297263a6cc06bf"
     },
     "physical_status": "NOT RUN",
     "candidate": null

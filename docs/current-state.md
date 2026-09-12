@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Explicit-descriptor GBM pixel probe qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Cross-context GBM pixels with native fences qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Thirteen focused groups and nine ARM64 groups PASS. The GBM path allocates explicit linear rendering storage and imports it twice for shader/readback. A real /dev/null counterexample exposed deferred GBM failure; the fix now refuses it at DRM_VERSION before backend creation on native and ARM64 runtimes. Fixture buffers are memfd, not GPU buffers. Frozen active tier: 83 PASS in 119.335 s; three optional subchecks SKIPPED. Real GBM allocation, cross-context shared pixels/fences and all phone physical tests remain NOT RUN. Board, signed/installed artifacts, touch and mobile graph are unchanged. No phone operation is authorized. Next physical question remains separately authorized bounded display scanout/blank. See [current repair evidence](../test-results/2026-09-12-gbm.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Combined behavior and missing-server-wait mutation PASS on host and ARM64. Ten ARM64 fixture groups PASS; removing the wait loses shared pixels. Consumer resources are deleted while their context is current, then the producer is restored. Real /dev/null rejection remains before GBM; no DRM descriptor was supplied. Frozen active tier: 83 PASS in 129.924 s; three optional subchecks SKIPPED. These are controlled memfd/EGL fixtures, not real A660 or GPU scheduling proof. All phone physical rows remain NOT RUN. Board, signed/installed artifacts, touch and mobile graph are unchanged. No phone operation is authorized. Next physical question remains separately authorized bounded display scanout/blank. See [current repair evidence](../test-results/2026-09-12-gbm-sync.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
