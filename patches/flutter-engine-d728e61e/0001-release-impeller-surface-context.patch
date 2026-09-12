@@ -1,0 +1,29 @@
+--- a/engine/src/flutter/shell/gpu/gpu_surface_gl_impeller.cc
++++ b/engine/src/flutter/shell/gpu/gpu_surface_gl_impeller.cc
+@@ -42,7 +42,25 @@
+ }
+ 
+ // |Surface|
+-GPUSurfaceGLImpeller::~GPUSurfaceGLImpeller() = default;
++GPUSurfaceGLImpeller::~GPUSurfaceGLImpeller() {
++  if (!is_valid_) {
++    return;
++  }
++  auto context_switch = delegate_->GLContextMakeCurrent();
++  if (!context_switch->GetResult()) {
++    FML_LOG(ERROR) << "Could not make the context current to destroy Impeller "
++                     "surface resources.";
++    return;
++  }
++
++  // Release this surface's GPU-owning references while its reactor can run.
++  // Joining the raster thread does not implicitly unbind an EGL context.
++  aiks_context_.reset();
++  impeller_context_.reset();
++  if (!delegate_->GLContextClearCurrent()) {
++    FML_LOG(ERROR) << "Could not clear the context after Impeller surface cleanup.";
++  }
++}
+ 
+ // |Surface|
+ bool GPUSurfaceGLImpeller::IsValid() {
