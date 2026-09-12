@@ -585,3 +585,27 @@ alone neither installs that tool nor populates sysroots. Historical intermediate
 archives remain outside Git with per-file restoration manifests. The existing
 regular-file hash helper rewinds its input; pipe-backed archive verification
 requires a non-seeking streaming hash loop.
+
+### Denial Flutter assets at resolved package paths
+
+Use `scripts/host/assemble-denial-flutter-assets.dart` with the pinned
+`flutter_tools` package configuration. Its four positional arguments are the
+absolute application root, Flutter root, compiled engine output and fresh output
+directory. For the isolated ARM64 build layout:
+
+```sh
+/flutter/bin/cache/dart-sdk/bin/dart \
+  --packages=/flutter/packages/flutter_tools/.dart_tool/package_config.json \
+  /repo/scripts/host/assemble-denial-flutter-assets.dart \
+  /work/workspace/settings_app /flutter /engine /output
+```
+
+Mount the resolved workspace, hosted package cache and matching generated
+`sky_engine` root at the paths recorded by the application package configuration.
+The helper rejects missing package roots and an existing `flutter_assets` output.
+Relocating settings to `/app` changes its relative shell dependency to
+`/dart_shell`: Flutter can otherwise emit a valid but incomplete asset manifest.
+The real settings startup exposed the missing package logo. The corrected
+workspace yields 29 declared assets, including package assets and fonts; the
+complete SDK mapping also supplies its license notices. Keep frontend/AOT,
+asset assembly, actual startup and physical rendering as separate results.
