@@ -1,4 +1,4 @@
-//! One offscreen GLES 3.2/3.0 shader/readback. No KMS, window, DMA-BUF or admission.
+//! One offscreen GLES 3.2/3.0 shader/readback. Optional same-context DMA-BUF roundtrip; no KMS or admission.
 //! Run only under an external deadline: synchronous driver calls can block.
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use std::ptr;
@@ -114,6 +114,19 @@ api! {
     glGetString(c_uint) -> *const c_char;
     glGetError() -> c_uint;
     glFlush() -> ();
+    glFinish() -> ();
+    eglCreateImage(Handle, Handle, c_uint, Handle, *const isize) -> Handle;
+    eglDestroyImage(Handle, Handle) -> c_uint;
+    glGenTextures(c_int, *mut c_uint) -> ();
+    glBindTexture(c_uint, c_uint) -> ();
+    glTexParameteri(c_uint, c_uint, c_int) -> ();
+    glTexImage2D(c_uint, c_int, c_int, c_int, c_int, c_int, c_uint, c_uint, *const c_void) -> ();
+    glDeleteTextures(c_int, *const c_uint) -> ();
+    glGenFramebuffers(c_int, *mut c_uint) -> ();
+    glBindFramebuffer(c_uint, c_uint) -> ();
+    glFramebufferTexture2D(c_uint, c_uint, c_uint, c_uint, c_int) -> ();
+    glCheckFramebufferStatus(c_uint) -> c_uint;
+    glDeleteFramebuffers(c_int, *const c_uint) -> ();
     glGetIntegerv(c_uint, *mut c_int) -> ();
     glCreateShader(c_uint) -> c_uint;
     glShaderSource(c_uint, c_int, *const *const c_char, *const c_int) -> ();
@@ -144,7 +157,7 @@ impl Mode {
         match args {
             [mode] if mode == "--require-a660" => Ok(Self::A660),
             [mode] if mode == "--software-fixture" => Ok(Self::Software),
-            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence | --native-fence-import] (external deadline required)".into()),
+            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence | --native-fence-import | --dma-buf] (external deadline required)".into()),
         }
     }
     fn scope(self) -> &'static str {
@@ -203,19 +216,23 @@ struct Session<'a> {
     context: Handle,
     shaders: Vec<c_uint>,
     program: c_uint,
+    textures: Vec<c_uint>,
+    framebuffers: Vec<c_uint>,
+    images: Vec<Handle>,
+    dma_metadata: Option<(c_int, c_int, c_int)>,
     requested_minor: c_int,
     actual_version: (c_int, c_int),
     preferred_error: c_uint,
 }
 impl<'a> Session<'a> {
     fn new(api: &'a Api) -> Self {
-        Self { api, display: ptr::null_mut(), initialized: false, producer_current: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0, requested_minor: 0, actual_version: (0, 0), preferred_error: 0 }
+        Self { api, display: ptr::null_mut(), initialized: false, producer_current: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0, textures: Vec::new(), framebuffers: Vec::new(), images: Vec::new(), dma_metadata: None, requested_minor: 0, actual_version: (0, 0), preferred_error: 0 }
     }
     fn gl_check(&self, stage: &str) -> Result<()> {
         let error = unsafe { (self.api.glGetError)() };
         if error == 0 { Ok(()) } else { Err(format!("{stage}: GL error 0x{error:x}")) }
     }
-    fn render(&mut self, mode: Mode, native_fence: bool, fence_import: bool) -> Result<(String, String, String)> {
+    fn render(&mut self, mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool) -> Result<(String, String, String)> {
         let a = self.api;
         // All pointer arguments below reference live arrays/handles of the exact
         // API types and lengths. GL calls follow a successful eglMakeCurrent.
@@ -268,6 +285,11 @@ impl<'a> Session<'a> {
             if self.actual_version.1 < 0 || self.actual_version < (3, self.requested_minor) {
                 return Err(format!("GLES context version {}.{} is below requested 3.{}", self.actual_version.0, self.actual_version.1, self.requested_minor));
             }
+            if dma_buf {
+                self.dma_extensions()?;
+                let texture = self.create_texture(true)?;
+                self.attach_framebuffer(texture)?;
+            }
             for (kind, source) in [
                 (0x8b31, b"attribute vec2 position; void main() { gl_Position=vec4(position,0.,1.); }\0".as_slice()),
                 (0x8b30, b"precision mediump float; void main() { gl_FragColor=vec4(gl_FragCoord.xy/4.,0.25,1.); }\0".as_slice()),
@@ -301,6 +323,7 @@ impl<'a> Session<'a> {
             (a.glDrawArrays)(0x0004, 0, 3);
             self.gl_check("draw")?;
             if native_fence { self.native_fence(fence_import, config)?; }
+            if dma_buf { self.dma_roundtrip()?; }
             let mut pixels = [0u8; 64];
             (a.glReadPixels)(0, 0, 4, 4, 0x1908, 0x1401, pixels.as_mut_ptr().cast());
             self.gl_check("readback")?;
@@ -386,6 +409,95 @@ impl<'a> Session<'a> {
             combine(combine(combine(result, restored), destroyed), surface_destroyed)
         }
     }
+    fn dma_extensions(&self) -> Result<()> {
+        let extensions = string_value(unsafe { (self.api.eglQueryString)(self.display, 0x3055) }, "EGL display extensions")?;
+        for name in ["EGL_MESA_image_dma_buf_export", "EGL_EXT_image_dma_buf_import", "EGL_EXT_image_dma_buf_import_modifiers"] {
+            if !extensions.split_ascii_whitespace().any(|value| value == name) {
+                return Err(format!("DMA-BUF unavailable: {name}"));
+            }
+        }
+        Ok(())
+    }
+    fn create_texture(&mut self, allocate: bool) -> Result<c_uint> {
+        let a = self.api;
+        // All objects stay session-owned, including partial setup failures.
+        unsafe {
+            let mut texture = 0;
+            (a.glGenTextures)(1, &mut texture);
+            if texture == 0 { return Err("texture creation failed".into()); }
+            self.textures.push(texture);
+            (a.glBindTexture)(0x0de1, texture);
+            for (name, value) in [(0x2801, 0x2600), (0x2800, 0x2600), (0x2802, 0x812f), (0x2803, 0x812f)] {
+                (a.glTexParameteri)(0x0de1, name, value);
+            }
+            if allocate { (a.glTexImage2D)(0x0de1, 0, 0x8058, 4, 4, 0, 0x1908, 0x1401, ptr::null()); }
+            self.gl_check("texture setup")?;
+            Ok(texture)
+        }
+    }
+    fn attach_framebuffer(&mut self, texture: c_uint) -> Result<()> {
+        let a = self.api;
+        unsafe {
+            let mut framebuffer = 0;
+            (a.glGenFramebuffers)(1, &mut framebuffer);
+            if framebuffer == 0 { return Err("framebuffer creation failed".into()); }
+            self.framebuffers.push(framebuffer);
+            (a.glBindFramebuffer)(0x8d40, framebuffer);
+            (a.glFramebufferTexture2D)(0x8d40, 0x8ce0, 0x0de1, texture, 0);
+            if (a.glCheckFramebufferStatus)(0x8d40) != 0x8cd5 { return Err("framebuffer incomplete".into()); }
+            self.gl_check("framebuffer setup")
+        }
+    }
+    fn dma_roundtrip(&mut self) -> Result<()> {
+        let a = self.api;
+        // This deliberately uses CPU completion, separating pixel sharing from
+        // native-fence qualification. The external deadline covers glFinish.
+        unsafe {
+            (a.glFinish)();
+            self.gl_check("DMA-BUF producer completion")?;
+            let attributes = [0x30bc, 0, 0x30d2, 1, 0x3038]; // level 0, PRESERVED
+            let image = (a.eglCreateImage)(self.display, self.context, 0x30b1, self.textures[0] as usize as Handle, attributes.as_ptr());
+            if image.is_null() { return Err("DMA-BUF source image creation failed".into()); }
+            self.images.push(image);
+            let query = (a.eglGetProcAddress)(b"eglExportDMABUFImageQueryMESA\0".as_ptr().cast());
+            let export = (a.eglGetProcAddress)(b"eglExportDMABUFImageMESA\0".as_ptr().cast());
+            let target = (a.eglGetProcAddress)(b"glEGLImageTargetTexture2DOES\0".as_ptr().cast());
+            if query.is_null() || export.is_null() || target.is_null() { return Err("DMA-BUF symbols unavailable".into()); }
+            let query: unsafe extern "C" fn(Handle, Handle, *mut c_int, *mut c_int, *mut u64) -> c_uint = std::mem::transmute(query);
+            let export: unsafe extern "C" fn(Handle, Handle, *mut c_int, *mut c_int, *mut c_int) -> c_uint = std::mem::transmute(export);
+            let target: unsafe extern "C" fn(c_uint, Handle) = std::mem::transmute(target);
+            let (mut fourcc, mut planes) = (0, 0);
+            // MESA specifies at most four planes; query writes one modifier per
+            // plane, even when this probe will subsequently refuse multi-plane.
+            let mut modifiers = [u64::MAX; 4];
+            check(query(self.display, image, &mut fourcc, &mut planes, modifiers.as_mut_ptr()), "DMA-BUF query")?;
+            if planes != 1 || !matches!(fourcc, 0x34325241 | 0x34324241) || modifiers[0] != 0 {
+                return Err(format!("DMA-BUF layout unsupported: fourcc=0x{fourcc:x} planes={planes} modifier=0x{:x}", modifiers[0]));
+            }
+            let (mut raw, mut stride, mut offset) = (-1, 0, -1);
+            let exported = export(self.display, image, &mut raw, &mut stride, &mut offset);
+            // The exporter can leave an FD on a failed partial operation. Own
+            // any returned descriptor before checking the status or metadata.
+            let fd = if raw >= 0 { Some(OwnedFd::from_raw_fd(raw)) } else { None };
+            check(exported, "DMA-BUF export")?;
+            let fd = fd.ok_or("DMA-BUF export returned no FD")?;
+            if stride < 16 || offset < 0 { return Err("DMA-BUF invalid stride/offset".into()); }
+            let attributes = [0x3057, 4, 0x3056, 4, 0x3271, fourcc as isize,
+                0x3272, fd.as_raw_fd() as isize, 0x3273, offset as isize,
+                0x3274, stride as isize, 0x3443, 0, 0x3444, 0, 0x3038];
+            let imported = (a.eglCreateImage)(self.display, ptr::null_mut(), 0x3270, ptr::null_mut(), attributes.as_ptr());
+            if imported.is_null() { return Err("DMA-BUF import failed".into()); }
+            self.images.push(imported);
+            // EGL borrows the DMA-BUF FD; unlike native-fence import, ownership
+            // stays here. The image holds its own backing reference after close.
+            let texture = self.create_texture(false)?;
+            target(0x0de1, imported);
+            self.gl_check("DMA-BUF texture import")?;
+            self.attach_framebuffer(texture)?;
+            self.dma_metadata = Some((fourcc, stride, offset));
+            Ok(())
+        }
+    }
     fn cleanup(&mut self) -> Result<()> {
         if !self.initialized { return Ok(()); }
         let a = self.api;
@@ -400,6 +512,15 @@ impl<'a> Session<'a> {
                 if had_objects {
                     if let Err(e) = self.gl_check("GL object cleanup") { errors.push(e); }
                 }
+            }
+            if self.producer_current {
+                for framebuffer in self.framebuffers.drain(..) { (a.glDeleteFramebuffers)(1, &framebuffer); }
+                if let Err(e) = self.gl_check("framebuffer cleanup") { errors.push(e); }
+                for texture in self.textures.drain(..) { (a.glDeleteTextures)(1, &texture); }
+                if let Err(e) = self.gl_check("texture cleanup") { errors.push(e); }
+            }
+            for image in self.images.drain(..).rev() {
+                if let Err(e) = check((a.eglDestroyImage)(self.display, image), "EGL image cleanup") { errors.push(e); }
             }
             // Context teardown also reclaims objects when restoration failed.
             if !self.context.is_null() {
@@ -418,29 +539,31 @@ impl<'a> Session<'a> {
     }
 }
 
-fn run(mode: Mode, native_fence: bool, fence_import: bool) -> Result<()> {
+fn run(mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool) -> Result<()> {
     let api = Api::load()?;
     let mut session = Session::new(&api);
-    let rendered = session.render(mode, native_fence, fence_import);
+    let rendered = session.render(mode, native_fence, fence_import, dma_buf);
     let cleanup = session.cleanup();
     let (renderer, vendor, version) = match (rendered, cleanup) {
         (Ok(identity), Ok(())) => identity,
         (Err(e), Ok(())) | (Ok(_), Err(e)) => return Err(e),
         (Err(e), Err(cleanup)) => return Err(format!("{e}; cleanup: {cleanup}")),
     };
-    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nnative_fence_import={}\nscanout=NOT RUN\nbuffer_sharing=NOT RUN\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" }, if fence_import { "PASS" } else { "NOT RUN" });
+    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nnative_fence_import={}\nscanout=NOT RUN\ndma_buf={}\nbuffer_sharing={}\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" }, if fence_import { "PASS" } else { "NOT RUN" }, if dma_buf { "PASS" } else { "NOT RUN" }, if dma_buf { "PASS: same-context linear DMA-BUF" } else { "NOT RUN" });
+    if let Some((fourcc, stride, offset)) = session.dma_metadata { println!("dma_fourcc=0x{fourcc:x}\ndma_modifier=0x0\ndma_stride={stride}\ndma_offset={offset}\ndma_allocation=GLES texture\ndma_sync=glFinish"); }
     Ok(())
 }
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let dma_buf = args.len() == 2 && args[1] == "--dma-buf";
     let fence_import = args.len() == 2 && args[1] == "--native-fence-import";
     let native_fence = fence_import || (args.len() == 2 && args[1] == "--native-fence");
-    if native_fence { args.pop(); }
+    if native_fence || dma_buf { args.pop(); }
     let mode = match Mode::parse(&args) {
         Ok(mode) => mode,
         Err(error) => { eprintln!("{error}"); std::process::exit(2); }
     };
-    if let Err(error) = run(mode, native_fence, fence_import) { eprintln!("FAIL {error}"); std::process::exit(1); }
+    if let Err(error) = run(mode, native_fence, fence_import, dma_buf) { eprintln!("FAIL {error}"); std::process::exit(1); }
 }
 
 #[cfg(test)]
