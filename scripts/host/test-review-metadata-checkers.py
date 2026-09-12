@@ -4,12 +4,15 @@ import json
 import hashlib
 import importlib.util
 import io
+import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -191,6 +194,42 @@ class PackageArchives(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.module.bounded_command([sys.executable, '-c', code],
                                                 timeout=limit, limit=1000)
+
+    def test_interruption_reaps_the_owned_command(self):
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            with self.subTest(signal=sig):
+                pidfile = self.directory / f'child-{sig}.pid'
+                child = (f'import os,time;from pathlib import Path;'
+                         f'Path({str(pidfile)!r}).write_text(str(os.getpid()));time.sleep(60)')
+                parent = ('import importlib.util,sys;'
+                          's=importlib.util.spec_from_file_location("closure",sys.argv[1]);'
+                          'm=importlib.util.module_from_spec(s);s.loader.exec_module(m);'
+                          'm.bounded_command([sys.executable,"-c",sys.argv[2]])')
+                proc = subprocess.Popen([sys.executable, '-c', parent,
+                                         str(ROOT / 'scripts/host/check-mobile-package-closure.py'), child],
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                child_pid = None
+                try:
+                    deadline = time.monotonic() + 3
+                    while not pidfile.exists() and time.monotonic() < deadline:
+                        time.sleep(0.01)
+                    self.assertTrue(pidfile.exists(), 'child did not arm')
+                    child_pid = int(pidfile.read_text())
+                    proc.send_signal(sig)
+                    stdout, stderr = proc.communicate(timeout=3)
+                    self.assertEqual(proc.returncode, 128 + sig, stderr)
+                    self.assertEqual(stdout, b'')
+                    self.assertFalse(Path(f'/proc/{child_pid}').exists(), 'owned command was not reaped')
+                    child_pid = None
+                finally:
+                    if proc.poll() is None:
+                        proc.kill()
+                    proc.communicate(timeout=3)
+                    if child_pid is not None:
+                        try:
+                            os.killpg(child_pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
 
 
 

@@ -21,14 +21,26 @@ def need(condition, message):
 
 
 def bounded_command(argv, *, timeout=20, limit=131072, pass_fds=()):
-    """Bound elapsed time and combined output; reap the isolated process group."""
+    """Main-thread CLI helper: bound output/time and own cancellation cleanup."""
     started = time.monotonic()
     output = bytearray()
+    stop_signals = {signal.SIGINT, signal.SIGTERM}
+    handlers = {sig: signal.getsignal(sig) for sig in stop_signals}
+    previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, stop_signals)
+    proc = None
+    def interrupted(signum, _frame):
+        raise SystemExit(128 + signum)
     with selectors.DefaultSelector() as selector:
-        proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, start_new_session=True,
-                                pass_fds=pass_fds, env=dict(os.environ, LC_ALL='C'))
         try:
+            for sig in stop_signals:
+                signal.signal(sig, interrupted)
+            # Defer cancellation until the child's PID is owned. This CLI is
+            # single-threaded; restore its inherited signal mask before exec.
+            proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, start_new_session=True,
+                                    pass_fds=pass_fds, env=dict(os.environ, LC_ALL='C'),
+                                    preexec_fn=lambda: signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask))
+            signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
             selector.register(proc.stdout, selectors.EVENT_READ)
             while True:
                 remaining = timeout - (time.monotonic() - started)
@@ -44,12 +56,19 @@ def bounded_command(argv, *, timeout=20, limit=131072, pass_fds=()):
                 if exited is not None and not selector.get_map():
                     break
         finally:
+            signal.pthread_sigmask(signal.SIG_BLOCK, stop_signals)
             try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            proc.wait()
-            proc.stdout.close()
+                if proc is not None:
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    proc.wait()
+                    proc.stdout.close()
+            finally:
+                for sig, handler in handlers.items():
+                    signal.signal(sig, handler)
+                signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
     need(proc.returncode == 0, f'command failed ({proc.returncode}): {argv[0]}')
     return output.decode('utf-8', errors='strict')
 
