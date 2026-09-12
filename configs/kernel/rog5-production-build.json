@@ -1,0 +1,82 @@
+{
+  "format": "rog5-production-kernel-build-v1",
+  "base_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "fragments": [
+    "configs/kernel/rog5-mainline.fragment",
+    "configs/kernel/rog5-ufs-deferred-probe.fragment",
+    "configs/kernel/rog5-persistent-root.fragment",
+    "configs/kernel/rog5-persistent-root-power-usb.fragment",
+    "configs/kernel/rog5-wifi.fragment",
+    "configs/kernel/rog5-thermal-pmic-critical.fragment",
+    "configs/kernel/rog5-production.fragment"
+  ],
+  "required": {
+    "CONFIG_ARM64": "y",
+    "CONFIG_ARCH_QCOM": "y",
+    "CONFIG_MODULES": "y",
+    "CONFIG_EXT4_FS": "y",
+    "CONFIG_OVERLAY_FS": "y",
+    "CONFIG_SCSI_UFSHCD": "m",
+    "CONFIG_SCSI_UFS_QCOM": "m",
+    "CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY": "y",
+    "CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE": "y",
+    "CONFIG_DRM_MSM": "m",
+    "CONFIG_DRM_MSM_KMS": "y",
+    "CONFIG_DRM_MSM_DSI": "y",
+    "CONFIG_DRM_PANEL_ASUS_ROG5_AMS678": "m",
+    "CONFIG_REGULATOR_QCOM_REFGEN": "m",
+    "CONFIG_SM_GPUCC_8350": "m",
+    "CONFIG_ATH11K_PCI": "m",
+    "CONFIG_BATTERY_QCOM_BATTMGR": "m",
+    "CONFIG_QCOM_PMIC_GLINK": "m",
+    "CONFIG_QCOM_SPMI_TEMP_ALARM": "y",
+    "CONFIG_INPUT_EVDEV": "y",
+    "CONFIG_TOUCHSCREEN_EDT_FT5X06": "m",
+    "CONFIG_INPUT_PM8941_PWRKEY": "y",
+    "CONFIG_LEDS_QCOM_LPG": "m",
+    "CONFIG_IOMMU_API": "y",
+    "CONFIG_ARM_SMMU": "y",
+    "CONFIG_ARM_SMMU_QCOM": "y",
+    "CONFIG_LOCALVERSION": "\"-rog5-production\"",
+    "CONFIG_LOCALVERSION_AUTO": "n"
+  },
+  "forbidden": [
+    "CONFIG_COMPILE_TEST",
+    "CONFIG_CHR_DEV_SG",
+    "CONFIG_BLK_DEV_BSG",
+    "CONFIG_SCSI_UFS_BSG",
+    "CONFIG_RPMB",
+    "CONFIG_KASAN",
+    "CONFIG_KCOV",
+    "CONFIG_UBSAN"
+  ],
+  "dt_sources": [
+    "dts/qcom/sm8350-asus-rog-phone5.dts",
+    "dts/qcom/sm8350-asus-rog-phone5-display-60hz-reviewed.dtso",
+    "dts/qcom/sm8350-asus-rog-phone5-gpu.dtso",
+    "dts/qcom/sm8350-asus-rog-phone5-buttons-indicator.dtso",
+    "dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso"
+  ],
+  "required_modules": [
+    "msm",
+    "panel_asus_rog5_ams678",
+    "qcom_refgen_regulator",
+    "gpucc_sm8350",
+    "ath11k_pci",
+    "qcom_battmgr",
+    "pmic_glink",
+    "edt_ft5x06",
+    "leds_qcom_lpg",
+    "ufshcd_core",
+    "ufs_qcom"
+  ],
+  "warning_policy": "W=1; all compiler and device-tree warnings retained; any warning fails qualification until specifically reviewed. No global suppression.",
+  "firmware_policy": "Enumerate every module-declared firmware dependency; presence only verified when --firmware-root is supplied. No firmware, module loading or touch binding is inferred from compilation.",
+  "physical_validation": "NOT RUN",
+  "limitations": [
+    "EDT FT5X06 compilation does not establish support for ASUS FTS3658U; existing board touch overlay remains disabled.",
+    "Storage DATA_WRITE relies on trusted initramfs/tool containment and permits arbitrary SCSI commands at its kernel gate.",
+    "DT overlays are compiled individually; this output is unsigned and is not a composed boot image."
+  ],
+  "base_archive_sha256": "a8bd2a5f30ed94861b71b2aa5cd46241eb75aefadd36c484be5ef70e80a4a834"
+}

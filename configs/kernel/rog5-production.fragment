@@ -1,0 +1,37 @@
+# Source-build qualification only. No boot, signing or installation authority.
+CONFIG_LOCALVERSION="-rog5-production"
+# CONFIG_LOCALVERSION_AUTO is not set
+CONFIG_MODULES=y
+CONFIG_DRM_MSM=m
+CONFIG_DRM_MSM_KMS=y
+CONFIG_DRM_MSM_DPU=y
+CONFIG_DRM_MSM_DSI=y
+CONFIG_DRM_MSM_DSI_7NM_PHY=y
+CONFIG_DRM_PANEL_ASUS_ROG5_AMS678=m
+CONFIG_REGULATOR_QCOM_REFGEN=m
+CONFIG_SM_GPUCC_8350=m
+CONFIG_INPUT_EVDEV=y
+CONFIG_INPUT_TOUCHSCREEN=y
+CONFIG_TOUCHSCREEN_EDT_FT5X06=m
+CONFIG_I2C_QCOM_GENI=y
+CONFIG_LEDS_QCOM_LPG=m
+CONFIG_LEDS_CLASS=y
+CONFIG_INPUT_PM8941_PWRKEY=y
+CONFIG_KEYBOARD_GPIO=y
+# Keep existing trusted-initramfs write policy; NOT a kernel LUN/LBA boundary.
+CONFIG_SCSI_UFS_DISCOVERY_READ_ONLY=y
+CONFIG_SCSI_UFS_DISCOVERY_DATA_WRITE=y
+# CONFIG_CHR_DEV_SG is not set
+# CONFIG_BLK_DEV_BSG is not set
+# CONFIG_SCSI_UFS_BSG is not set
+# CONFIG_RPMB is not set
+# No diagnostic-only build, userspace metadata does not claim touch binding.
+# CONFIG_COMPILE_TEST is not set
+# CONFIG_KASAN is not set
+# CONFIG_UBSAN is not set
+# CONFIG_KCOV is not set
+# Bounded unsigned build; no DWARF/BTF artifact needed for this compile gate.
+# CONFIG_DEBUG_INFO is not set
+CONFIG_DEBUG_INFO_NONE=y
+# CONFIG_DEBUG_INFO_BTF is not set
+# CONFIG_DEBUG_INFO_BTF_MODULES is not set
