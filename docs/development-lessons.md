@@ -2226,3 +2226,12 @@ Two focused fixtures cover inside/outside links. Inspect real GN output lists
 before assuming cardinality: engine TOC and unstripped AOT companions are declared
 outputs too. A generated graph can pass with a missing compiler and an unused
 argument warning; report those prerequisites and diagnostics separately.
+
+The pinned compiler package deployed in 54.527 s and its complete payload verified
+in 12.404 s. A 0.766-second Ninja input preflight enumerated 6,674 steps before
+actual compilation. Keep that dry-run PASS separate from compiled/link results.
+Mount a verified private compiler cache read-only into the expected source path;
+do not replace tracked files or rerun a full dependency sync for one missing tool.
+For a long build, retain its actual container/session identity and terminal-result
+path alongside the output cache. A historical RUNNING paragraph never authorizes
+a replacement process; inspect the owner before continuing incrementally.
