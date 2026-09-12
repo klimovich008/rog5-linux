@@ -1,6 +1,23 @@
 --- a/compositor/src/bin/deniald/kms_state.rs
 +++ b/compositor/src/bin/deniald/kms_state.rs
-@@ -1204,19 +1204,12 @@
+@@ -493,6 +493,16 @@
+             allocator.create_buffer(size.width, size.height, Fourcc::Xrgb8888, modifiers)?;
+         let format = smithay::backend::allocator::Buffer::format(&buffer);
+         let dmabuf = buffer.export()?;
++        let exported_format = smithay::backend::allocator::Buffer::format(&dmabuf);
++        if format != exported_format
++            || format.code != Fourcc::Xrgb8888
++            || !modifiers.contains(&format.modifier)
++        {
++            return Err(format!(
++                "scanout allocation contract mismatch: requested XR24 modifiers={modifiers:?}, stored={format:?}, exported={exported_format:?}"
++            )
++            .into());
++        }
+         let framebuffer = if cross_device {
+             AtlasFramebuffer::Prime(framebuffer_from_prime_dmabuf(drm_fd, &dmabuf)?)
+         } else {
+@@ -1204,19 +1214,12 @@
  ) -> Vec<Modifier> {
      let plane_formats = plane_formats.into_iter().collect::<Vec<_>>();
      let mut modifiers = common_xrgb8888_modifiers(plane_formats.iter().copied());
@@ -26,7 +43,7 @@
  
      let implicit_xrgb8888 = Format {
          code: Fourcc::Xrgb8888,
-@@ -1229,10 +1222,10 @@
+@@ -1229,10 +1232,10 @@
              .all(|formats| formats.contains(&implicit_xrgb8888))
          && render_formats.contains(&implicit_xrgb8888)
      {
@@ -41,7 +58,7 @@
      }
  
      modifiers
-@@ -1242,8 +1235,8 @@
+@@ -1242,8 +1245,8 @@
  /// render into. Plane order is retained: DRM exposes the driver's preferred
  /// tiled/compressed layouts first and LINEAR last on hardware that supports
  /// both. If there is no explicit intersection but every consumer advertises
@@ -52,7 +69,7 @@
  pub(super) fn shared_atlas_modifiers(
      scanouts: &[Scanout],
      render_formats: &FormatSet,
-@@ -1320,6 +1313,13 @@
+@@ -1320,6 +1323,13 @@
      linear_render_targets: bool,
  ) -> Result<Vec<ScanoutBuffer>, Box<dyn Error>> {
      validate_scanout_pool_allocation(size, length)?;
