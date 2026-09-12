@@ -58,6 +58,27 @@ This tier requires the source and schema tools and fails if they are missing.
 It exercises the real RPMh binding/PM fixtures and compares touch core extracts.
 It does not rebuild Image/modules or establish physical qualification.
 
+The board build stages the local disabled-touch binding without replacing any
+upstream binding. It exports base-DT labels, then requires ordered
+display/GPU/inert-touch composition and the provider contract before PASS.
+The same composition check can use existing exact board outputs:
+
+```sh
+python3 scripts/device/test-mobile-dt-composition.py \
+  --linux-source build/rog5-production/source \
+  --base-dtb build/rog5-production/objects/arch/arm64/boot/dts/qcom/sm8350-asus-rog-phone5.dtb \
+  --schema build/rog5-production/objects/Documentation/devicetree/bindings/processed-schema.json \
+  --output build/new-mobile-dt-check
+```
+
+The output must be new. The source/schema must contain the complete production
+bindings and local touch binding. This compiles only DTs, records consumed
+includes and tools, and validates all bindings; it never creates a phone image.
+The cheap active tier checks semantic guards and actual GENI extracts. The board
+tier additionally runs the real touch schema fixtures. Keep missing source or
+schema prerequisites visible; an individual driver/module build proves neither
+an enabled provider nor physical input.
+
 The mobile acceptance contract is separate from the immutable headless baseline.
 `check-mobile-status.py --write` updates only the generated current-state header;
 old checkpoints remain unchanged. Neither this status file nor an artifact

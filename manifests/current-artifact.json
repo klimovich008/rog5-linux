@@ -49,8 +49,8 @@
   },
   "current_board_qualification": {
     "status": "PASS: offline incremental software qualification",
-    "source_commit": "5b716c1d0a48dfe13e429d94ac07a460681e250f",
-    "source_tree": "9492c29f1a71bb5e6164fb3da9d3ff803ec1c4b7",
+    "source_commit": "ec9c4e630fd4f60eeb3bc86b0005b7a0358701e8",
+    "source_tree": "ec738ae37957b4a6f316af40990fb3c09038dd2f",
     "linux_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
     "production_series_sha256": "b027af87b37d0aa6d758539efefd082557fcfdd6bfda89cef220d476346eefde",
     "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
@@ -60,20 +60,24 @@
       "sha256": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a"
     },
     "dtb": {
-      "path": "/home/deck/.local/state/rog5-touch-kernel-evidence-20260912-r1/series-dt-r1/current.dtb",
-      "sha256": "52978b7def2241ed8f8d8a0223eb5becf47976b0355c09120ecfc8e2a5b5ead7"
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/run-r3/base-symbols.dtb",
+      "sha256": "bf7aebb449d6a7eee0c2778f13d69166ba3203bebffd1120e9c1f89357301412"
     },
     "module_metadata": {
       "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/module-provenance.json",
       "sha256": "ce75c8c580c82a96cf5b2731c363c91d07f22992f52a893d099c85c97d636a1b"
     },
     "evidence": {
-      "path": "test-results/2026-09-12-touch-board-qualification.json",
-      "sha256": "272955188b61262deac6bbbf2c6877224f6668f7f9d0c450fc9c75f4c73fc215"
+      "path": "test-results/2026-09-12-mobile-dt-qualification.json",
+      "sha256": "c0668da4ac424312a47b50959af6b1fc628b62b935b7c41794caa7ea8bb05a5a"
     },
     "physical_status": "NOT RUN",
     "candidate": null,
-    "note": "Earlier board_validation_build remains the immutableQ6FAIL. This supplement compiles a changedDTB and reuses exact unchanged Image/modules; no image replacement."
+    "note": "Current unsigned base exports symbols; composed display/GPU/inert-touch fixture passes all bindings. Exact unchanged Image/modules inherit prior compiled evidence. Earlier Q6 FAIL and prior standalone qualification remain unchanged.",
+    "composed_mobile_dtb": {
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/run-r3/composed-2.dtb",
+      "sha256": "deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57"
+    }
   },
   "touch_prototype": {
     "status": "fixture: offline external module; disabled DT",

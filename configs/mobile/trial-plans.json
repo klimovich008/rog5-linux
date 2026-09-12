@@ -83,6 +83,14 @@
         {
           "path": "scripts/device/test-screen-toggle.sh",
           "sha256": "d26143e145c325308905b05324176244daba0ec63c22850d211360d4b6be0098"
+        },
+        {
+          "path": "scripts/device/test-display-60hz-candidate-dtb.sh",
+          "sha256": "8834cd0577d7aa5063b0daef28934d9b9354c0c75e02d430283968f2f564f2a9"
+        },
+        {
+          "path": "scripts/device/test-mobile-dt-composition.py",
+          "sha256": "f363d8423e6240d103ca205614fa8d5250cf0213bd4d402f645bbd3d9ad5f684"
         }
       ],
       "physical_actions": [
@@ -114,6 +122,18 @@
         {
           "path": "scripts/host/test-rog5-touch-module-build.py",
           "sha256": "fa2cb763a0c7b6201630363756fe6136dc9030a8f1e91c892669209d0473f9b5"
+        },
+        {
+          "path": "scripts/device/test-rog5-geni-mode.py",
+          "sha256": "0fb8a82475a33b016ca680efb976957c55060b77051c2dc460a323efa4cec3b8"
+        },
+        {
+          "path": "scripts/device/test-mobile-touch-providers.py",
+          "sha256": "b26ee9deb46b29429258a54f741c563e67492ec2987171f6367ff033a2f6ebf9"
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-binding.py",
+          "sha256": "ae4666b5862491f74b0ae76d21acdffad93264072b2c89dae773dfce15a1210c"
         }
       ],
       "physical_actions": [
@@ -131,7 +151,8 @@
         "EDT FT5X06 compile is not FTS3658U support",
         "Current touch overlay disabled; identify protocol/driver before activation",
         "Persistent regulator-disable failure at final devres release can leave power outstanding; unbind alone does not prove cleanup.",
-        "Suspend returns EBUSY; wake is unsupported and must not be tested under the touch-identity plan."
+        "Suspend returns EBUSY; wake is unsupported and must not be tested under the touch-identity plan.",
+        "L8C upstream supply and runtime GENI protocol/FIFO state remain unknown; a small ID response does not qualify event DMA."
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#touch_prototype",
@@ -141,7 +162,7 @@
         "physical_status": "NOT RUN"
       },
       "before_operator_readiness": [
-        "Validate exact composed DT and GENI/GPI/provider/rail closure; current overlay stays disabled.",
+        "Review final composed-DT, all-binding and inert-provider receipts; determine runtime GENI mode, L8C parent and rail ownership before an explicitly authorized enabled proposal. Current overlay stays disabled.",
         "Under future explicit phone authorization, establish normal firmware ID56/52, unique IRQ/input ownership and fresh identity-bound health before asking Ready.",
         "Prepare independent bounded shutdown/cleanup and signed fallback; no firmware writes or blind retries."
       ]

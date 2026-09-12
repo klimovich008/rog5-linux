@@ -110,11 +110,36 @@ separate health and rail/GPIO readback. The driver disables/synchronizes IRQ
 activity before managed input and power resources are released; offline guest
 registration does not exercise physical resource teardown.
 
-## Provider and kernel qualification
+## Current composed DT and provider checks
 
-The touch module alone is insufficient. Its closure also requires the matching
-`i2c-qcom-geni.ko` and `gpi.ko`, the QUP wrapper, GCC clocks, IOMMU, pinctrl and real
-RPMh providers. GENI chooses FIFO/SE-DMA or GPI from hardware state. It requires
+The production board build now checks display, GPU and inert-touch composition
+against all bindings. The [local touch binding](../tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml)
+requires the prototype to remain disabled; it is not an upstream hardware-support
+claim. `test-rog5-touch-binding.py` uses real DTB fixtures and the schema library
+to check missing supplies even where the CLI suppresses those errors on disabled
+nodes. The full composition also checks every expected property.
+
+`test-rog5-geni-mode.py` compiles five exact Linux extracts with eleven probe/mode
+and five DMA-buffer cases. `ROG5_LINUX_SOURCE` adds exact source comparison. With
+valid I2C protocol and FIFO enabled, small ID reads use FIFO; 62-byte event reads
+may use wrapper SE-DMA. FIFO-disabled mode needs both GPI channels. ID success
+therefore cannot qualify event DMA. Invalid protocol needs separately qualified
+serial-engine firmware; a different valid protocol is refused.
+
+`verify-mobile-touch-providers.py --dtb COMPOSED_DTB --config RESOLVED_CONFIG
+--module-metadata MODULE_PROVENANCE_JSON` checks the inert tree's exact GPIO,
+clock, IRQ, DMA and IOMMU relationships. Its PASS describes that source contract,
+not probed hardware. In the production config GENI I2C and its wrapper are built
+in; GPI is a module. I2C4, SPI4, GPI0, touch and both touch rails remain disabled.
+The combined display overlay supplies L3C's BOB parent. L8C's parent remains
+unspecified. Actual protocol/FIFO state, DMA ownership, SMMU attachment, CMD-DB
+resources and electrical power remain unobserved.
+
+## Historical provider and kernel qualification
+
+For the earlier kernels below, the touch module alone is insufficient. Their
+modular closure also requires matching `i2c-qcom-geni.ko` and `gpi.ko`, the QUP
+wrapper, GCC clocks, IOMMU, pinctrl and real RPMh providers. GENI chooses FIFO/SE-DMA or GPI from hardware state. It requires
 GPI if FIFO is disabled. If the serial-engine protocol is invalid, the upstream
 provider requires a separately qualified wrapper `firmware-name` and firmware
 asset. No such property or asset is invented by this prototype; a different

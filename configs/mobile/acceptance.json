@@ -14,8 +14,8 @@
       "software": {
         "status": "PASS",
         "evidence": {
-          "path": "test-results/2026-09-12-touch-board-qualification.json",
-          "sha256": "272955188b61262deac6bbbf2c6877224f6668f7f9d0c450fc9c75f4c73fc215"
+          "path": "test-results/2026-09-12-mobile-dt-qualification.json",
+          "sha256": "c0668da4ac424312a47b50959af6b1fc628b62b935b7c41794caa7ea8bb05a5a"
         }
       },
       "physical": {

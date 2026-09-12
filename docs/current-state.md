@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **RPMh board schema repaired; dedicated touch build and lifecycle checks qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Display/GPU/inert-touch composition and provider contracts qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Frozen-source host tier: 300 PASS, 0 FAIL, 0 BLOCKED, 3 declared optional SKIPPED in 601.985 s. Next offline work: qualify the composed display/touch DT and provider/cleanup closure before any separately authorized controller-ID trial. No phone operation is authorized. See [current repair evidence](../test-results/2026-09-12-touch-kernel-readiness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Frozen-source host tier: 303 PASS, 0 FAIL, 0 BLOCKED, 3 declared optional SKIPPED in 603.870 s. Composed DT passes all bindings; touch and its buses/rails remain disabled. Next offline work: resolve L8C upstream-supply evidence and qualify a bounded provider observation before any separately authorized touch-ID trial. Safe display work remains independent. No phone operation is authorized. See [current repair evidence](../test-results/2026-09-12-mobile-dt-readiness.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
