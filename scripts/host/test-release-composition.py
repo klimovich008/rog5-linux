@@ -20,16 +20,20 @@ class ReleaseCompositionTest(unittest.TestCase):
     def test_offline_profile_does_not_create_a_consumable_claim(self):
         profile = M.PROFILES.load_profile()
         candidate = profile['id']
-        before = dict(M.CLAIMS.CLAIMS)
-        record = M.composition_record(candidate)
-        self.assertEqual(record['target_bundle'], candidate)
-        self.assertNotIn('state', record)
-        self.assertNotIn('attempt_limit', record)
-        self.assertEqual(M.CLAIMS.CLAIMS, before)
-        with self.assertRaises(M.CLAIMS.ClaimError):
-            M.CLAIMS.expected_record(candidate)
-        with self.assertRaises(M.Blocked):
-            M.composition_record(candidate + '-unknown')
+        # The retained profile later acquired a historical claim. Exercise the
+        # pre-admission route with an isolated registry, without editing history.
+        registry = {name: raw for name, raw in M.CLAIMS.CLAIMS.items() if name != candidate}
+        with patch.dict(M.CLAIMS.CLAIMS, registry, clear=True):
+            before = dict(M.CLAIMS.CLAIMS)
+            record = M.composition_record(candidate)
+            self.assertEqual(record['target_bundle'], candidate)
+            self.assertNotIn('state', record)
+            self.assertNotIn('attempt_limit', record)
+            self.assertEqual(M.CLAIMS.CLAIMS, before)
+            with self.assertRaises(M.CLAIMS.ClaimError):
+                M.CLAIMS.expected_record(candidate)
+            with self.assertRaises(M.Blocked):
+                M.composition_record(candidate + '-unknown')
 
     def test_historical_claim_resolution_is_unchanged(self):
         for candidate, raw in M.CLAIMS.CLAIMS.items():
