@@ -13,7 +13,7 @@ else
  printf 'NOT RUN package inventory: supported query tool unavailable\n' > "$output/packages.tsv"
 fi
 {
- for tool in git make cc clang ld.lld llvm-ar llvm-readelf dtc python3 rustc dt-validate dt-doc-validate; do
+ for tool in git make cc clang ld.lld llvm-ar llvm-readelf dtc python3 rustc dt-validate dt-doc-validate gpg gpgv gpgconf bsdtar vercmp; do
   if command -v "$tool" >/dev/null; then
    printf 'tool=%s\n' "$tool"
    command -v "$tool"
