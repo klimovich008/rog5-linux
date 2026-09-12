@@ -6,6 +6,51 @@ the active server. In particular, `power-usb-active.json` and its generated
 lock still describe the older NFS observer track; they are kept for its
 regression/publication contract, not current installed-selector identity.
 
+## Offline qualification and reporting
+
+The public `test-repository-linux.sh` tier commands are preserved. Test execution
+policy is declared in `configs/repository-tests.json`; the retained shell
+selection is checked against its tier membership during this incremental
+migration. Every selected suite has a deadline, required inputs/prerequisites,
+resource classification and an explicit Python optimization/source requirement.
+Only reviewed isolated suites run concurrently; the default remains two workers,
+bounded by CPU affinity/quota and `ROG5_TEST_WORKERS`. Network, namespace,
+high-memory and shared-state work runs serially.
+
+The runner writes per-suite logs plus `summary.json` and JUnit `summary.xml` under
+`build/test-reports/` (or a fresh `ROG5_TEST_REPORT_DIR`). Missing mandatory inputs,
+unexpected skips, failures and deadlines fail the tier. An early failure leaves
+unreached selected suites BLOCKED and unrelated suites NOT_SELECTED. Declared
+optional subchecks remain visible separately. Cleanup terminates ordinary test
+process groups, including background descendants; this is not containment for
+arbitrary daemons that deliberately create another session.
+
+Panel identity, exact-base application, affected-driver compilation, executable
+lifecycle behavior and physical validation are separate results. Generic ARM64
+QEMU covers userspace/initramfs behavior. It cannot prove SM8350 panel, touch,
+GPU, charging or PMIC behavior. The exact production board job is selected for
+kernel/DT/build changes; unrelated userspace/documentation work does not require
+a full phone-kernel rebuild. Build failures and schema diagnostics must remain
+visible even when an unsigned Image was produced.
+
+Run the unsigned board build with an existing Git object store containing the
+pinned Linux commit and a new output directory:
+
+```sh
+scripts/host/build-rog5-production-kernel.py \
+  --linux-git "$ROG5_LINUX_SOURCE" --output build/rog5-production --jobs 2
+```
+
+The command archives verified immutable source instead of modifying that checkout.
+Install the declared compiler, module and schema tools first; absence fails the
+selected gate. `--prepare-only` records configuration preparation, never a compile
+PASS. An optional `--base-archive` must match the pinned full archive hash.
+
+The mobile acceptance contract is separate from the immutable headless baseline.
+`check-mobile-status.py --write` updates only the generated current-state header;
+old checkpoints remain unchanged. Neither this status file nor an artifact
+inventory grants admission, signing or phone-execution authority.
+
 ## Qualification-first scope
 
 The 2026-09-10 user clarification expands the product destination to a mobile

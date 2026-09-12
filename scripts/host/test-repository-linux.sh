@@ -13,6 +13,7 @@ case $tier in
 	*) fail 'usage: test-repository-linux.sh [active|ci|nightly|probe|quick|rootfs]' ;;
 esac
 
+repository_preflight() {
 for command in bash date dirname dtc gcc git head nm openssl pkg-config python3 sh \
 	ssh-keygen strings; do
 	command -v "$command" >/dev/null ||
@@ -138,6 +139,8 @@ then
 	fail 'repository contains a private-key header or literal OpenRouter key'
 fi
 
+}
+
 native_wifi_probe_tests=(
 	scripts/device/test-rpmh-readback.py
 	scripts/device/test-rpmh-state-reader.py
@@ -158,6 +161,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-observe-local-root-physical-key.py
 	scripts/device/test-optional-display-runtime.py
 	scripts/device/test-native-wifi-healthy.py
+	scripts/device/test-native-wifi-finalization.py
 	scripts/device/test-native-wifi-radio-refusal.py
 	scripts/host/test-quiesce-native-usb-data.py
 	scripts/host/test-native-wifi-discovery.py
@@ -230,6 +234,14 @@ probe_tests=(
 )
 
 shared_tests=(
+	scripts/host/test-ams678-compile-location.py
+	scripts/host/test-review-metadata-checkers.py
+	scripts/host/test-mobile-status.py
+	scripts/host/test-production-kernel-build.py
+	scripts/host/test-production-build-diagnostics.py
+	scripts/host/test-repository-test-report.py
+	scripts/host/test-mobile-power-policy.py
+	scripts/device/test-ufs-storage-trust-boundary.py
 	scripts/device/test-durability-file-ops.py
 	scripts/device/test-durability-target.py
 	scripts/host/test-durability-phase.py
@@ -512,6 +524,11 @@ for selected in "${tests[@]}"; do
 done
 tests=("${unique_tests[@]}")
 
+
+report_root=${ROG5_TEST_REPORT_DIR:-$repo/build/test-reports/$(date -u +%Y%m%dT%H%M%S)-$$}
+python3 "$repo/scripts/host/repository-test-report.py" init "$repo" "$report_root" "$tier" "${tests[@]}"
+trap 'status=$?; python3 "$repo/scripts/host/repository-test-report.py" summary "$repo" "$report_root"; exit "$status"' EXIT
+repository_preflight
 for test_path in "${tests[@]}"; do
 	test_file=$repo/$test_path
 	[[ -f $test_file && ! -L $test_file ]] ||
@@ -523,15 +540,13 @@ for test_path in "${tests[@]}"; do
 	esac
 done
 
+
 run_test() {
 	test_path=$1
 	test_file=$repo/$test_path
 	started=$(date +%s%N)
 	set +e
-	case $test_file in
-		*.py) python3 "$test_file" ;;
-		*) "$test_file" ;;
-	esac
+	python3 "$repo/scripts/host/repository-test-report.py" run "$repo" "$report_root" "$test_path"
 	status=$?
 	set -e
 	finished=$(date +%s%N)
@@ -541,17 +556,12 @@ run_test() {
 }
 
 isolated_tests=(
-	"${native_wifi_probe_tests[@]}"
-	# Private temporary files and loopback port 0; no shared service/listener.
-	scripts/device/test-rog5-healthd.py
-	scripts/host/test-persistent-trial-state.py
-	scripts/host/test-build-persistent-wifi-selector.py
-	scripts/host/test-select-repository-test-tier.py
-	scripts/host/test-qemu-system-smoke-contract.sh
-	scripts/host/test-qemu-network-root-nfs-hostile.sh
-	scripts/host/test-kernel-builder-bootstrap-contract.sh
-	scripts/host/test-import-asus-source-volume-contract.sh
-	scripts/host/test-steam-deck-builder-contract.sh
+)
+mapfile -t isolated_tests < <(python3 - "$repo/configs/repository-tests.json" <<'PYMANIFEST'
+import json,sys
+for row in json.load(open(sys.argv[1]))['tests']:
+    if row['resource_class']=='isolated': print(row['path'])
+PYMANIFEST
 )
 selected_test() {
 	local candidate=$1
@@ -682,6 +692,11 @@ cleanup_parallel_tests() {
 	for pid in "${parallel_pids[@]}"; do
 		[[ -z $pid ]] || wait "$pid" 2>/dev/null || true
 	done
+	if [[ -n ${report_root:-} ]]; then
+		if ! python3 "$repo/scripts/host/repository-test-report.py" summary "$repo" "$report_root"; then
+			[[ $cleanup_status -ne 0 ]] || cleanup_status=1
+		fi
+	fi
 	rm -rf -- "$parallel_root"
 	[[ -z ${test_tmp_root:-} ]] || rm -rf -- "$test_tmp_root"
 	exit "$cleanup_status"
