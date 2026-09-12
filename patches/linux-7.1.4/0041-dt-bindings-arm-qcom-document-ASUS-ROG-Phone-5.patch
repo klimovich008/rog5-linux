@@ -1,0 +1,19 @@
+Subject: [PATCH] dt-bindings: arm: qcom: document ASUS ROG Phone 5
+
+Document the existing board compatible beside the other SM8350 boards.
+This changes schema metadata only; it does not change the device tree,
+PSCI policy, RPMh power-domain workaround, or compiled driver behavior.
+
+Base: 7a5cef0db4795d9d453a12e0f61b5b7634fc4d40 (Linux 7.1.4)
+
+diff --git a/Documentation/devicetree/bindings/arm/qcom.yaml b/Documentation/devicetree/bindings/arm/qcom.yaml
+--- a/Documentation/devicetree/bindings/arm/qcom.yaml
++++ b/Documentation/devicetree/bindings/arm/qcom.yaml
+@@ -1067,6 +1067,7 @@
+ 
+       - items:
+           - enum:
++              - asus,rog-phone5
+               - microsoft,surface-duo2
+               - qcom,sm8350-hdk
+               - qcom,sm8350-mtp
