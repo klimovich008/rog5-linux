@@ -29,6 +29,8 @@ case $graphics_mode in
     *) echo 'FAIL unknown virtual graphics mode' >&2; exit 1 ;;
 esac
 export RUST_BACKTRACE=1
+# Existing bounded INFO audit exposes allocation backpressure in release builds.
+export DENIA_RENDER_AUDIT=1
 # Keep buffer format/import evidence at the failing GL boundary. The host
 # harness bounds the complete serial log and guest lifetime.
 export RUST_LOG=deniald=info,smithay=info,smithay::backend::egl::display=trace,smithay::backend::renderer::gles=trace

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Run the actual pinned Denial modifier selectors before/after the local patch.
+"""Run actual pinned Denial selection and allocation functions before/after the patch.
 
-Data adapters represent only the Format/FormatSet values the functions consume;
+Adapters supply data types and allocation/export/registration boundary effects;
 this test does not emulate GBM, EGL, DRM or physical hardware.
 """
 import argparse
@@ -51,6 +51,10 @@ fn formats(modifiers: &[Modifier]) -> FormatSet { modifiers.iter().map(|&modifie
  let plane=formats(&[Modifier::Linear]);let render=formats(&[Modifier::Invalid]);
  assert!(compatible_xrgb8888_modifiers([&plane],&render).is_empty());
 }
+#[test] fn renderer_without_xr24_cannot_use_linear_plane() {
+ let plane=formats(&[Modifier::Linear]);
+ assert!(compatible_xrgb8888_modifiers([&plane],&vec![]).is_empty());
+}
 #[test] fn explicit_intersection_preserves_preference() {
  let plane=formats(&[Modifier::Tiled,Modifier::Linear,Modifier::Invalid]);let render=plane.clone();
  assert_eq!(compatible_xrgb8888_modifiers([&plane],&render),vec![Modifier::Tiled,Modifier::Linear]);
@@ -62,7 +66,9 @@ fn formats(modifiers: &[Modifier]) -> FormatSet { modifiers.iter().map(|&modifie
 }
 #[test] fn implicit_pool_reaches_allocator_without_relabelling() {
  let mut a=ScanoutAllocator::new(None);
- let buffers=allocate_scanout_pool(&mut a,PixelSize{width:640,height:480},2,&[Modifier::Invalid],false).expect("implicit allocation");
+ let plane=formats(&[Modifier::Linear,Modifier::Invalid]);let render=formats(&[Modifier::Invalid]);
+ let selected=compatible_xrgb8888_modifiers([&plane],&render);
+ let buffers=allocate_scanout_pool(&mut a,PixelSize{width:640,height:480},2,&selected,false).expect("implicit allocation");
  assert_eq!(a.calls,vec![vec![Modifier::Invalid];2]);assert_eq!(a.live.get(),2);drop(buffers);assert_eq!(a.live.get(),0);
 }
 #[test] fn implicit_pool_failure_releases_partial_allocations() {
@@ -121,7 +127,7 @@ def main():
                    check=True, timeout=10)
     subprocess.run(['git', 'apply', str(patch)], cwd=stage,
                    check=True, timeout=10)
-    result = {'scope': 'actual extracted selector functions; no GBM/EGL/phone proof',
+    result = {'scope': 'actual extracted selector, pool and allocation functions with boundary adapters; no GBM/EGL/phone proof',
               'source_commit': BASE, 'patch_sha256': hashlib.sha256(patch.read_bytes()).hexdigest(),
               'physical': 'NOT RUN', 'runs': {}}
     env = dict(os.environ, TMPDIR=str(output))
@@ -138,13 +144,36 @@ def main():
         subprocess.run(command, env=env, check=True, capture_output=True, timeout=30)
         run = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
         (output / (label + '.log')).write_text(run.stdout + run.stderr)
-        expected = '4 passed; 5 failed' if label == 'before' else '9 passed; 0 failed'
+        expected = '4 passed; 6 failed' if label == 'before' else '10 passed; 0 failed'
         passed = expected in run.stdout and run.returncode == (101 if label == 'before' else 0)
         result['runs'][label] = {'command': command, 'test_command': [str(binary)],
                                  'exit_status': run.returncode,
                                  'duration_seconds': time.monotonic() - start,
                                  'expected_result_observed': passed,
                                  'source_sha256': hashlib.sha256(unit.encode()).hexdigest()}
+    fixture = (repo / 'tools/denial-modifier-tests/allocation-fixture.rs').read_text()
+    for label, source in [('allocation-before', original), ('allocation-after', target.read_text())]:
+        struct_start = source.index('pub(super) struct ScanoutBuffer {')
+        struct_end = source.index('\n}', struct_start) + 2
+        declaration = source[struct_start:struct_end].replace('pub(super) ', '')
+        unit = fixture.replace('// @ACTUAL_STRUCT@', declaration).replace(
+            '// @ACTUAL_ALLOCATE_GBM@', extract(source, 'allocate_gbm'))
+        path = output / (label + '.rs')
+        path.write_text(unit)
+        binary = output / label
+        command = [rustc, '--edition=2024', '--test', str(path), '-o', str(binary)]
+        start = time.monotonic()
+        subprocess.run(command, env=env, check=True, capture_output=True, timeout=30)
+        run = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
+        (output / (label + '.log')).write_text(run.stdout + run.stderr)
+        before = label.endswith('before')
+        expected = '2 passed; 4 failed' if before else '6 passed; 0 failed'
+        passed = expected in run.stdout and run.returncode == (101 if before else 0)
+        result['runs'][label] = {'command': command, 'test_command': [str(binary)],
+                                'exit_status': run.returncode,
+                                'duration_seconds': time.monotonic() - start,
+                                'expected_result_observed': passed,
+                                'source_sha256': hashlib.sha256(unit.encode()).hexdigest()}
     result['status'] = 'PASS' if all(r['expected_result_observed'] for r in result['runs'].values()) else 'FAIL'
     (output / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))

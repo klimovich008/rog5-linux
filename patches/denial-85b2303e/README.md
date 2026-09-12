@@ -5,11 +5,15 @@ Upstream compositor metadata declares GPL-3.0-or-later; retain its source notice
 This patch is not selected by a phone image builder and grants no installation,
 execution or admission authority.
 
-An actual ARM64 VirGL guest exported XR24/Linear while EGL advertised only
+An actual ARM64 VirGL guest exported XR24/Linear while Smithay’s EGL-derived render-format set contained only
 XR24/Invalid. Smithay consequently imported it as external-only and refused
 render-target binding. The patch intersects explicit formats strictly, requests
 Invalid only for shared implicit support, and preserves that request through
-scanout-pool allocation. It does not relabel buffers or change native fences.
+scanout-pool allocation. Before framebuffer registration it checks that the
+BO and exported dma-buf agree on XR24 and a requested modifier. Unexpected
+explicit or implicit results fail with both descriptors; they are not relabeled.
+Native fences are unchanged. Smithay inserts implicit entries into its derived
+set; that membership permits an attempt and is not a raw EGL query result.
 Pool dimensions, memory limits, explicit preference/fallback, allocation errors
 and partial-allocation destruction remain in the existing path.
 
@@ -21,10 +25,12 @@ RUSTC=rustc python3 scripts/host/test-denial-modifier-selection.py \
 ```
 
 This compiles the actual selected functions from the pinned Git object before
-and after patch application. Nine cases cover modifier compatibility, allocation
+and after patch application. Sixteen cases cover modifier compatibility, allocation
 routing, failure cleanup and unchanged guards. Only data types and allocator
-boundary effects are adapters; GBM/EGL/DRM are not modeled. The original fails
-five cases; the corrected functions pass all nine. Missing exact source or
+boundary effects are adapters; no real GBM/EGL/DRM operations run. The original
+fails ten cases; the corrected functions pass all sixteen. Allocation cases
+check returned/exported descriptors, original export errors and resource release
+before DRM registration on failure, through both same-device and PRIME routes. Missing exact source or
 compiler cannot pass. This explicit-source test is not silently run by ordinary
 repository tiers; real ARM64 build and VM results remain separate evidence.
 The logging-only diagnostic used in VM comparison lives in the review packet,
