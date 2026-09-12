@@ -1,5 +1,62 @@
 # ROG5 current state
 
+Latest r129, 2026-09-12: **corrected IOMMU state helper qualified and staged
+in phone RAM; no selection change or reboot**. Previous r128 was progress.
+Rust source 1ec65e783c27bc90516ba06c1a75ce7ef7ee697e is clean in
+gpu-iommu-state-worktree-r1. It extends admission source 9dbb300e. Kernel and
+signed image remain unchanged and unbooted: 7.1.4-g136f75ae869a,
+gpu-136f7-a9b1bc89566205b6. Existing A01 is retained; no kernel rebuild.
+
+Actual source RAM staging PASS in 6.146 s, including health before and after.
+Use gpu-iommu-ram-stage-r2/live-stage-r1 as the current completed staging record.
+Owner 7cc55d796d494bd8a3c38bfea9d6d2b1; namespace
+/run/initramfs/rog5-gpu-iommu-136f7-7cc55d796d494bd8a3c38bfea9d6d2b1.
+Preparation SHA256 9c163c9ae5b7469c92169fc0d0baaed61a206c5ef4fd951b9446909e0fa7c061;
+custody SHA256 56092f31291d414478539d0767d3d12f41e56b679509f931703beb6a8645ca52.
+The helper, custody, prepared shutdown variant and staging-completed file are
+present and verified in RAM. Helper was NOT executed, selector was NOT written,
+boot claim was NOT consumed and no reboot occurred. Transport exited0 and reaped.
+Post-stage health PASS on boot946acb59-744e-4bbc-b291-ac6b2e05f3fe at uptime
+10141.5 s, old bundle gpu-05941-52181a3157c26029 and selection813f108a... unchanged.
+Do not repeat staging or reuse this RAM namespace for another attempt.
+
+New static ARM64 helper twins match SHA256
+0fc981f4ae60ad9765961124c7152d1d789e9634aedff000af20e57ce709e1e2,
+size1253208. Builds1.331/1.035 s;16 Rust tests passed in2.283 s including compilation;
+Clippy PASS1.032 s. All four owned containers exited without OOM and were removed.
+ABI assertions reject the old wrong AArch64 directory/no-follow constants.
+Actual ARM64 stage, v1/v2 health commit and restore interoperability PASS0.578 s
+in an empty QEMU namespace. Only record blobs, transaction/intent identifiers,
+diagnostic names and the predecessor-preservation test changed; storage logic
+is preserved. New transaction name is .gpu-iommu-136f7-transition.
+
+Guards now preserve the current GPU predecessor transaction as well as earlier
+history. They support restoration on the source, V11 and a healthy new-kernel
+boot.43 actual ARM64 shell/guard cases PASS153.257 s;9 RAM staging cases PASS47.924 s,
+including source/target/fallback staging. Telemetry is synthetic in these tests;
+only source RAM staging has run on the phone. Historical S06/R01 recovery and
+failed blank cleanup remain unresolved.
+
+Two failures remain recorded: gpu-iommu-prior-state-r1 failed read-only because
+its added collector lacked a Path import. The explicit-namespace correction r2
+passed and captured the actual four predecessor files. The first RAM controller
+attempt, gpu-iommu-ram-stage-r1/live-stage-r1, failed BEFORE stage intent or
+transport: the reused writer returned None instead of a receipt hash. No upload
+occurred. Corrected r2 preserves that failed directory and returns the actual
+written hash. Two complete controller/writer tests PASS0.046 s; their transport
+is mocked. Unchanged ARM64 guard/staging evidence was inherited by exact bytes.
+
+Next wire the completed r2 source stage into the boot controller, route/capture,
+source-custody verification and recovery; qualify before any claim consumption.
+The new guard can restore on the new target but its RAM helper must be staged
+there after boot before that path is usable. Require actual GPU IOMMU attachment
+before display initialization. No human test is ready or countdown active. Do
+not ask Ready until setup is complete. ASUS slot A, signed V11 and consumed claims
+remain preserved. All this turn's processes are terminal; goal remains active.
+Evidence: gpu-iommu-state-exchange-r1/{source-review,interop-r1/result}.json,
+gpu-iommu-state-guards-r1/tests-r1/result.json,
+gpu-iommu-ram-stage-r2/{preparation-review,live-stage-r1/result}.json and checkpoint-r129.
+
 Latest r128, 2026-09-12: **IOMMU successor boot-admission primitives and
 exact target health checks prepared; live staging/controller still pending**.
 Previous r127 was progress. New admission source 9dbb300effd9f35f8ac3e956f3712db13882035c

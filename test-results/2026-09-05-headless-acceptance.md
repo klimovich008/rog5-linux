@@ -9089,3 +9089,14 @@ retained expectations. New physical boot/health is untested. Existing phone
 health passed at observed uptime 9091.22 s; shutdown and selection were read and
 verified. No durable successor claim, phone write or reboot occurred. Full live
 controller and staging are pending. See current state r128 and checkpoint-r128.
+
+## 2026-09-12 r129: actual source RAM staging
+
+Rust state source1ec65e783c27bc90516ba06c1a75ce7ef7ee697e produced identical static
+ARM64 helper twins;16 Rust tests, Clippy, actual ARM64 trial-helper interoperability,
+43 guard cases,9 RAM staging cases and2 corrected-controller tests passed.
+Actual source staging gpu-iommu-ram-stage-r2/live-stage-r1 PASS6.146 s. Post-stage
+health PASS at uptime10141.5 s on the existing946acb59 boot. Helper was copied
+to RAM but not executed; no persistent selection write, claim consumption or
+reboot. First collector and first controller failures are retained explicitly.
+New kernel boot and physical GPU IOMMU attachment remain unproven. See r129 state.

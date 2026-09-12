@@ -1811,3 +1811,26 @@ bound to frozen source and corrected A01. Tests reject the actual old-phone
 snapshot. This avoids repeating kernel or A01 builds while retaining exact input
 checks. Next effort belongs to live staging and GPU attachment, not more tests of
 unchanged builds.
+
+## 2026-09-12 r129: exercise the caller with its actual adapter before staging
+
+The ARM64 helper, guards and RAM script passed, but the first controller attempt
+failed before upload because its reused save function returned None where the
+caller needed SHA256. Component tests did not cover that interface. The corrected
+adapter returns the digest of the written receipt. A complete controller test now
+uses the real writer and request parser, with mocked transport, through staging
+reply and post-health validation; it also proves an existing attempt refuses
+replay. Two tests passed in0.046 s, followed by real RAM-only staging in6.146 s.
+The failed pre-upload attempt remains terminal and preserved under r1.
+
+The added read-only transaction collector also initially missed imports because
+the retained observer runs readers in a separate namespace. Bind imports and
+reader functions explicitly instead of assuming the caller has them. The
+corrected real read passed in2.359 s and preserved all source state.
+
+Guard tests took153.257 s and RAM tests47.924 s under ARM64 emulation. Reuse them
+when the generated scripts, binary and input bytes are unchanged; retest the
+changed caller interface directly. The corrected r2 stage inherited those exact
+components and passed real pre/post health. New-target restoration is now covered
+offline, but still requires RAM helper staging and live controller admission on
+that boot; a healthy experimental kernel is not automatically V11 recovery.
