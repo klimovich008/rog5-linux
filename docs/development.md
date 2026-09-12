@@ -571,4 +571,5 @@ result is **argument generation only**. GN graph validation, complete dependency
 hook closure, compilation, host gen_snapshot targeting ARM64, engine/ICU and shell
 AOT still need separate evidence. The command executes no GN, Ninja, hooks or
 package/phone operations, and will not write inside the frozen source or replace
-an existing output. Its receipt includes the exact subsequent GN command.
+an existing output. Its receipt includes the subsequent GN argument vector; run
+that command with the locked checkout’s `engine/src` as the working directory.

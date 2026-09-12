@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Native-mobile payload assembled; Denial ARM64 ABI checks pass**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Native mobile ABI passes; pinned ARM64 engine arguments prepared**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The authenticated 315-package host tree passes selected ARM64 Denial/application loader and CLI checks, software GLES and hardware-refusal checks. A separate generated GSettings cache removes Mousepad version warnings. Frozen active tier: 85 PASS in 125.816 s; 3 optional subchecks SKIPPED. This is not a native session or installable image. Matching Flutter engine/AOT/ICU, session UX and all phone qualification remain open. The successful tree is retained; only its verified duplicate failed scratch was reclaimed. Board, signed/installed/fallback artifacts, old package evidence and S06/R01 FAIL remain unchanged. No phone operation is authorized. See [current repair evidence](../test-results/2026-09-12-mobile-runtime.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The authenticated Arch payload and selected Denial ARM64 ABI results remain valid. Exact pinned Flutter generation now produces guarded ARM64 release/embedder arguments with one internal toolchain job; 5 real-generator cases and 9 producer fixtures pass. Frozen active tier: 86 PASS in 131.663 s; 3 optional subchecks SKIPPED. GN graph/build remain NOT RUN: the old sync is terminal, GN is missing, and the retained recipe capacity guard cannot pass with about 5 GiB free. Next audit disposable/duplicate project scratch before completing the pinned dependency cache. Matching engine/AOT/ICU, native session and all phone qualification remain open. No phone operation is authorized; accepted/signed/installed/fallback evidence and S06/R01 FAIL remain unchanged. See [current repair evidence](../test-results/2026-09-12-denial-arm64-engine-args.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

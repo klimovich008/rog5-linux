@@ -218,5 +218,23 @@
     "physical_status": "NOT RUN",
     "authority": "none",
     "runtime_closure": "BLOCKED: matching Flutter engine/AOT/ICU and complete native session remain unqualified"
+  },
+  "denial_arm64_engine_arguments": {
+    "status": "PASS: arguments only",
+    "set_id": "private:rog5-engine-cross-evidence-20260912-r1/generated-r2",
+    "source_commit": "1d6c8484ddfa777c9d1fb7a642b3fe170838227b",
+    "source_tree": "7a314db8ba8f16dd696bc8656385f2c0613c7627",
+    "args": {
+      "path": "/home/deck/.local/state/rog5-engine-cross-evidence-20260912-r1/generated-r2/args.gn",
+      "sha256": "db52820a0702bf63149044f49fcccd600cee55387cd0a441d85ffafadcec3865"
+    },
+    "evidence": {
+      "path": "test-results/2026-09-12-denial-arm64-engine-args-qualification.json",
+      "sha256": "957079592dbcc02994228ab1fc99b043492fc31e1d5e66ee7e5f9e044f20ddc5"
+    },
+    "graph_status": "NOT RUN",
+    "compilation_status": "NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none"
   }
 }
