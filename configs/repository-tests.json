@@ -7539,6 +7539,107 @@
       "exact_source": false,
       "required_inputs": [],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-lifecycle.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "board",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "tools/rog5-fts3658u/rog5_fts_protocol.h"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-rog5-touch-module-build.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "bwrap"
+      ],
+      "resource_class": "namespace",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-rpmh-binding.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 300,
+      "prerequisites": [
+        "python3",
+        "cpp",
+        "dtc",
+        "dt-validate",
+        "dt-doc-validate",
+        "dt-mk-schema",
+        "cc",
+        "git"
+      ],
+      "resource_class": "high-memory",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": true,
+      "required_inputs": [
+        "dts/qcom/sm8350-asus-rog-phone5.dts",
+        "patches/linux-7.1.4/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-rpmh-binding-guards.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [],
+      "optional_subchecks": []
     }
   ]
 }

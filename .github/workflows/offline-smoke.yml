@@ -212,7 +212,7 @@ jobs:
           else
             changed=$(git diff --name-only "$BASE" HEAD)
             if grep -Eq \
-              '^(patches/linux-7\.1\.4/|configs/kernel/|dts/qcom/|scripts/host/(build-rog5-production-kernel|test-production-kernel-build|check-production-build-diagnostics|test-production-build-diagnostics)\.py$|scripts/device/(kernel-build-contract|build-display-60hz-candidate-dtb)\.|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
+              '^(patches/linux-7\.1\.4/|configs/kernel/|dts/qcom/|scripts/host/(build-rog5-production-kernel|test-production-kernel-build|check-production-build-diagnostics|test-production-build-diagnostics)\.py$|scripts/device/(kernel-build-contract|build-display-60hz-candidate-dtb)\.|scripts/device/test-rog5-rpmh-binding\.py$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
               selected=yes
             fi
           fi
@@ -249,6 +249,12 @@ jobs:
         run: |
           scripts/host/build-rog5-production-kernel.py \
             --linux-git build/board-linux-source --output build/board-production --jobs 2
+      - name: Exercise exact-source board schema and RPMh lifecycle checks
+        if: steps.board.outputs.selected == 'yes'
+        run: |
+          ROG5_LINUX_SOURCE="$PWD/build/board-production/source" \
+          ROG5_TEST_REPORT_DIR="$PWD/build/board-regressions" \
+            scripts/host/test-repository-linux.sh board
       - name: Retain exact-board results and validation logs
         if: steps.board.outputs.selected == 'yes' && always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -259,6 +265,7 @@ jobs:
             build/board-production/*.log
             build/schema-tool-versions.txt
             build/board-environment/
+            build/board-regressions/
           if-no-files-found: error
 
   panel-driver:
