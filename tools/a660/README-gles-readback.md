@@ -37,7 +37,7 @@ authority. It is not selected by any current image/trial builder.
 
 Every result keeps physical acceptance and scanout NOT RUN. Buffer sharing is
 NOT RUN unless the explicit DMA-BUF mode completes.
-A successful authorized A660 readback would prove this offscreen shader path,
+A successful authorized plain-mode A660 readback would prove this offscreen shader path,
 not OLED output, sustained rendering, Vulkan, native fences, DMA-BUF
 formats/modifiers/export/import, or Denial's complete renderer integration.
 

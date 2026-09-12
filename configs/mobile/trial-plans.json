@@ -213,8 +213,8 @@
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#gpu_readback_probe",
-        "source_commit": "ea638a8aef0f5cafcecc0f54a923dfd7db7eda2e",
-        "arm64_sha256": "a815ce5f62f53c78319db3dde625007fd6217537a2ee9f7330fe3cb45badc073",
+        "source_commit": "2abc23e4f409b74d4905ab62ae1158e6255794bb",
+        "arm64_sha256": "35d3743896bf268f375311edea7381b4ef1ecc57a7bf6ace051cc67f8b1a4d9d",
         "candidate": null,
         "physical_status": "NOT RUN"
       },
@@ -227,7 +227,8 @@
         "mesa": "1:26.2.2-1",
         "scope": "GLES 3.2 preferred / 3.0 fallback verified with ARM64 softpipe under QEMU user; full mobile graph, A660, DMA-BUF and fences remain unqualified",
         "physical_status": "NOT RUN",
-        "native_fence_status": "BLOCKED: both software renderers lack EGL_ANDROID_native_fence_sync"
+        "native_fence_status": "Historical BLOCKED with the same libraries: EGL_ANDROID_native_fence_sync absent; current real native-fence execution NOT RUN",
+        "dma_buf_status": "BLOCKED: both software renderers lack EGL_MESA_image_dma_buf_export"
       },
       "native_fence_component": {
         "option": "--native-fence",
@@ -247,6 +248,14 @@
       "native_fence_import_component": {
         "option": "--native-fence-import",
         "scope": "ABI-tested separate consumer import/server wait and completion; real runtime capability BLOCKED; DMA-BUF/KMS/A660 NOT RUN",
+        "physical_status": "NOT RUN"
+      },
+      "dma_buf_component": {
+        "option": "--dma-buf",
+        "allocation": "GLES texture; GBM NOT RUN",
+        "layout": "one plane ARGB8888/ABGR8888, explicit linear modifier",
+        "synchronization": "glFinish; native-fence combination NOT RUN",
+        "scope": "same-context FD export/import pixel check prepared and ABI-tested; real software export unavailable; A660 NOT RUN",
         "physical_status": "NOT RUN"
       }
     },
