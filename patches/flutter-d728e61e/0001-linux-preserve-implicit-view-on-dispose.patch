@@ -1,0 +1,59 @@
+From: ROG5 local integration
+Subject: [PATCH] linux: leave the implicit view owned by the engine
+
+Base: denialwm/flutter d728e61e7d835e02c453c70ae9523a40f6c03215
+
+FlutterEngineRemoveView rejects kFlutterImplicitViewId. Do not invoke it when
+FlView disposes its implicit view; keep removal of secondary views unchanged.
+Correct the real GTK destruction test to require exactly the secondary removal.
+The corrected test fails against the old implementation (two removals), and a
+real settings startup also reports the invalid implicit-view removal at cleanup.
+
+--- a/engine/src/flutter/shell/platform/linux/fl_view.cc
++++ b/engine/src/flutter/shell/platform/linux/fl_view.cc
+@@ -602,9 +602,11 @@
+       self->cursor_changed_cb_id = 0;
+     }
+ 
+-    // Release the view ID from the engine.
+-    fl_engine_remove_view(self->engine, self->view_id, nullptr, nullptr,
+-                          nullptr);
++    // The implicit view belongs to the engine and cannot be removed.
++    if (self->view_id != flutter::kFlutterImplicitViewId) {
++      fl_engine_remove_view(self->engine, self->view_id, nullptr, nullptr,
++                            nullptr);
++    }
+   }
+ 
+   if (self->on_pre_engine_restart_cb_id != 0) {
+--- a/engine/src/flutter/shell/platform/linux/fl_view_test.cc
++++ b/engine/src/flutter/shell/platform/linux/fl_view_test.cc
+@@ -171,7 +171,7 @@
+   EXPECT_EQ(view_id, fl_view_get_id(secondary_view));
+ }
+ 
+-// Check views are deregistered on destruction.
++// Only secondary views can be deregistered; the engine owns the implicit view.
+ TEST(FlViewTest, ViewDestroy) {
+   flutter::testing::fl_ensure_gtk_init();
+ 
+@@ -193,17 +193,15 @@
+ 
+   FlView* secondary_view = fl_view_new_for_engine(engine);
+ 
+-  int64_t implicit_view_id = fl_view_get_id(implicit_view);
++  EXPECT_EQ(fl_view_get_id(implicit_view), 0);
+   int64_t secondary_view_id = fl_view_get_id(secondary_view);
+ 
+   fl_gtk_widget_destroy(GTK_WIDGET(secondary_view));
+   fl_gtk_widget_destroy(GTK_WIDGET(implicit_view));
+ 
+-  EXPECT_EQ(removed_views->len, 2u);
++  EXPECT_EQ(removed_views->len, 1u);
+   EXPECT_EQ(GPOINTER_TO_INT(g_ptr_array_index(removed_views, 0)),
+             secondary_view_id);
+-  EXPECT_EQ(GPOINTER_TO_INT(g_ptr_array_index(removed_views, 1)),
+-            implicit_view_id);
+ }
+ 
+ // Check views deregistered with errors works.
