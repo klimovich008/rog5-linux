@@ -46,7 +46,7 @@ diff --git a/engine/src/flutter/shell/common/rasterizer.cc b/engine/src/flutter/
 +  if (!Enabled()) return;
 +  const auto sequence = Take(events);
 +  if (!sequence) return;
-+  FML_LOG(INFO) << "Denial render origin seq=" << sequence
++  FML_LOG(IMPORTANT) << "Denial render origin seq=" << sequence
 +                << " call=" << current.id << " origin=" << current.origin
 +                << " stage=" << stage << " view=" << view
 +                << " value=" << value << " generation=" << generation

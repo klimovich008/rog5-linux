@@ -17,11 +17,17 @@ struct Log {
   template<class T> Log& operator<<(T value) { text << value; return *this; }
   ~Log() { std::lock_guard<std::mutex> guard(log_mutex); logs.push_back(text.str()); }
 };
-#define FML_LOG(level) Log{}
+namespace fml { constexpr int kLogInfo = 0; constexpr int kLogError = 2; }
+struct { bool verbose_logging = false; } settings;
+struct { int min_log_level = 0; } log_settings;
+constexpr int INFO = 0;
+constexpr int IMPORTANT = 3;
+#define FML_LOG(level) if ((level) < log_settings.min_log_level) {} else Log{}
 // @HELPER@
 int main(int argc, char** argv) {
   assert(argc == 2);
   const std::string mode = argv[1];
+  // @LOG_THRESHOLD@
   setenv("DENIA_RENDER_AUDIT", mode == "disabled" ? "0" : "1", 1);
   using namespace denial_render_audit;
   if (mode == "disabled") {

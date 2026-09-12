@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import resource
 import subprocess
 import time
 
@@ -34,7 +35,13 @@ def main():
     end = text.index('}  // namespace denial_render_audit', start) + len('}  // namespace denial_render_audit')
     fixture = (repo / 'tools/denial-engine-tests/render-origin.cc').read_text()
     unit = output / 'fixture.cc'
-    unit.write_text(fixture.replace('// @HELPER@', text[start:end]))
+    shell = subprocess.check_output(['git', '-C', str(args.source), 'show',
+                                     BASE + ':engine/src/flutter/shell/common/shell.cc'],
+                                    text=True, timeout=10)
+    threshold_start = shell.index('log_settings.min_log_level =')
+    threshold = shell[threshold_start:shell.index(';', threshold_start) + 1]
+    unit.write_text(fixture.replace('// @HELPER@', text[start:end]).replace(
+        '// @LOG_THRESHOLD@', threshold))
     binary = output / 'fixture'
     cmd = [os.environ.get('CXX', 'c++'), '-std=c++17', '-Wall', '-Wextra', '-Werror', '-pthread', str(unit), '-o', str(binary)]
     started = time.monotonic()
@@ -44,7 +51,8 @@ def main():
     for mode in ('disabled', 'nested', 'concurrent-cap'):
         command = [str(binary), mode]
         started = time.monotonic()
-        run = subprocess.run(command, capture_output=True, text=True, timeout=10)
+        run = subprocess.run(command, capture_output=True, text=True, timeout=10,
+                             preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_CORE, (0, 0)))
         (output / (mode + '.log')).write_text(run.stdout + run.stderr)
         result['runs'].append({'command': command, 'exit_status': run.returncode,
                               'duration_seconds': time.monotonic() - started})

@@ -63,3 +63,8 @@ selection, fence or framebuffer policy changes. The actual helper test covers
 disabled operation, nested/thread-local scope restoration, and concurrent bounds:
 `scripts/host/test-render-origin-audit.py --source EXACT_ENGINE_GIT
 --output FRESH_DIRECTORY`. This diagnostic alone cannot qualify a session.
+
+Use the engine's IMPORTANT audit level: normal Shell initialization raises its
+threshold to ERROR, suppressing INFO even though the callsites compile. The test
+uses that exact initialization assignment with normal, non-verbose settings.
+An earlier INFO build produced no origin records; it is not origin evidence.
