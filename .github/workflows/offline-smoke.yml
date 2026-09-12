@@ -64,6 +64,9 @@ jobs:
             clang \
             cpio \
             device-tree-compiler \
+            gnupg \
+            gpgv \
+            makepkg \
             libarchive-tools \
             libbpf1 \
             libssl-dev \
@@ -135,6 +138,9 @@ jobs:
             clang \
             cpio \
             device-tree-compiler \
+            gnupg \
+            gpgv \
+            makepkg \
             libarchive-tools \
             libbpf1 \
             libssl-dev \

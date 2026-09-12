@@ -7504,6 +7504,7 @@
       "path": "scripts/host/test-review-metadata-checkers.py",
       "interpreter": "python3",
       "tiers": [
+        "active",
         "ci",
         "nightly",
         "quick",
@@ -7512,7 +7513,13 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "python3"
+        "python3",
+        "git",
+        "gpg",
+        "gpgv",
+        "gpgconf",
+        "bsdtar",
+        "vercmp"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",

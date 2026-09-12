@@ -33,6 +33,34 @@ kernel/DT/build changes; unrelated userspace/documentation work does not require
 a full phone-kernel rebuild. Build failures and schema diagnostics must remain
 visible even when an unsigned Image was produced.
 
+The mobile package graph checker validates metadata by default. To audit cached
+archives against that graph without downloading or installing anything:
+
+```sh
+python3 -O scripts/host/check-mobile-package-closure.py \
+  --archive-dir "$PACKAGE_CACHE" --keyring "$RETAINED_PUBLIC_KEYRING" \
+  --trusted "$RETAINED_TRUSTED_KEYS" --revoked "$RETAINED_REVOKED_KEYS" \
+  --report build/new-mobile-archive-audit.json
+```
+
+Use a disk-backed TMPDIR. The output must be new. Archive audit exit codes are
+0 for all requested archives verified, 1 for failed verification and 2 for
+missing inputs/tools. JSON enumerates every pinned package. PASS covers archive
+size/hash, detached signature hash and GPG verification, explicit signer trust
+and revocation, and signed `.PKGINFO` name/version/architecture/dependencies/
+provides. It grants no installation authority. Newer cached revisions are not
+substitutes for missing pins. The retained graph and historical verification
+fields are unchanged; archive receipts bind their exact graph and trust inputs.
+Keyring freshness, repository authentication and engine/AOT closure require
+separate evidence. Trusted-key files use full uppercase fingerprints with
+`:4:`, `:5:` or `:6:` owner-trust records; revoked files use one full fingerprint
+per line. Comments start with `#`. No host keyring or network key lookup is used.
+GPG/bsdtar subprocesses have deadlines, output limits and process-group cleanup.
+The mandatory metadata/archive suite runs in the active tier, including under
+Python optimization. It requires `gpg`, `gpgv`, `gpgconf`, `bsdtar` and `vercmp`;
+Ubuntu 24.04 supplies the last tool through
+[`makepkg`](https://manpages.ubuntu.com/manpages/noble/en/man8/vercmp.8.html).
+
 Run the unsigned board build with an existing Git object store containing the
 pinned Linux commit and a new output directory:
 

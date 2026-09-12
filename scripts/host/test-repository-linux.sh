@@ -173,6 +173,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/host/test-review-metadata-checkers.py
 	scripts/device/test-gles-readback.py
 	scripts/device/test-mobile-dt-guards.py
 	scripts/device/test-mobile-touch-providers.py
@@ -244,7 +245,6 @@ probe_tests=(
 
 shared_tests=(
 	scripts/host/test-ams678-compile-location.py
-	scripts/host/test-review-metadata-checkers.py
 	scripts/host/test-mobile-status.py
 	scripts/host/test-production-kernel-build.py
 	scripts/host/test-production-build-diagnostics.py
