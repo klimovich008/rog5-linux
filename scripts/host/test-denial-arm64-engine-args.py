@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise the argument producer and reject wrong-architecture configurations."""
+import argparse
 import copy
 import json
 from pathlib import Path
@@ -19,13 +20,25 @@ class Arguments(unittest.TestCase):
         parser=Mock(return_value=object()); generator=Mock(return_value=values)
         renderer=Mock(return_value=['target_cpu="arm64"'])
         result,text=M['generate']({'parse_args':parser,'to_gn_args':generator,'to_command_line':renderer})
-        parser.assert_called_once_with(M['FLAGS'])
+        parser.assert_called_once_with(['gn', *M['FLAGS']])
         generator.assert_called_once_with(parser.return_value)
         self.assertEqual(result['concurrent_toolchain_jobs'],1)
         renderer.assert_called_once_with(result)
         self.assertEqual(text,'target_cpu="arm64"\n')
         for option in ('--target-os=linux','--linux-cpu=arm64','--embedder-for-target','--no-prebuilt-dart-sdk'):
             self.assertIn(option,parser.call_args.args[0])
+
+    def test_upstream_parser_receives_program_name(self):
+        parser=argparse.ArgumentParser()
+        parser.add_argument('--runtime-mode',default='debug')
+        def parse(argv):
+            return parser.parse_known_args(argv[1:])[0]
+        def convert(args):
+            values=copy.deepcopy(M['REQUIRED'])
+            values['flutter_runtime_mode']=args.runtime_mode
+            return values
+        values,_=M['generate']({'parse_args':parse,'to_gn_args':convert,'to_command_line':lambda values:[]})
+        self.assertEqual(values['flutter_runtime_mode'],'release')
 
     def test_wrong_profile_fields_refused(self):
         for key in M['REQUIRED']:

@@ -28,7 +28,7 @@ def require_profile(args):
 
 
 def generate(gn):
-    args = gn['to_gn_args'](gn['parse_args'](FLAGS))
+    args = gn['to_gn_args'](gn['parse_args'](['gn', *FLAGS]))
     # Upstream sizes this from host RAM, outside our build resource budget.
     args['concurrent_toolchain_jobs'] = 1
     require_profile(args)
