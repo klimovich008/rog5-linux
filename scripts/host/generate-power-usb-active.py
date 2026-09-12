@@ -426,6 +426,8 @@ def verify_consumer_closure(source: dict[str, object]) -> None:
         LOCK.relative_to(REPO).as_posix(),
         POLICY.relative_to(REPO).as_posix(),
         "manifests/artifacts.tsv",
+        # Recorded artifact identities are an index, never an executable consumer.
+        "manifests/artifact-sets.json",
     }
     names = subprocess.run(
         ["git", "-C", str(REPO), "ls-files", "-co", "--exclude-standard"],
