@@ -69,6 +69,16 @@ graph against signed package metadata and libalpm, and describe HTTPS snapshot
 selection separately from package authentication. Missing upstream database
 signatures are not an obtainable prerequisite. This does not establish
 cryptographic freshness/anti-rollback or grant signed mobile-update authority.
+For an isolated ABI test tree, `scripts/host/materialize-mobile-runtime.py`
+requires `--graph`, `--cache`, `--keyring`, `--trusted`, `--revoked` and a new
+`--output` directory. It repeats authentication, preflights archive paths and
+conflicts, then extracts payloads through a network-isolated bubblewrap sandbox.
+It retains a 3 GiB disk reserve and records every output file/link in `tree.json`.
+Package installation hooks and metadata are excluded; ownership, privileged
+permissions and generated caches are not an installed-system guarantee. PASS
+means payload assembly only. Test ARM64 loader/ABI behavior separately, with no
+physical device nodes, and retain QEMU/software-rendering scope explicitly.
+
 The native package set includes `archlinuxarm-keyring` explicitly as well as
 Arch's general keyring. Current signed ARM keyring package files and the upstream
 keyring Git files differ; retain their exact identities and use the documented

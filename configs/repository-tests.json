@@ -7842,6 +7842,35 @@
         "tools/a660/test-fake-gles.c"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-mobile-runtime-materialization.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "bwrap",
+        "bsdtar",
+        "vercmp"
+      ],
+      "resource_class": "namespace",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/materialize-mobile-runtime.py",
+        "scripts/host/check-mobile-package-closure.py",
+        "packaging/arch/mobile-package-snapshot-20260912.json"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
