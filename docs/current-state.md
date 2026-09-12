@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial allocation guard tested; 50 virtual frames with session errors**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial VM backing-store failures isolated to missing render authorization**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The Pro review's returned-descriptor gap is reproduced and fixed before framebuffer registration. Sixteen real-function regressions pass; ARM64 build passes. The audited VM reaches XR24/Invalid and 50 raster frames/page flips but remains FAIL with five backing-store errors and EGL BAD_ACCESS cleanup. PoolExhausted counted five, ReadyHandoff zero; that bucket conflates three causes. Next distinguish pool lookup, authorization and reusable-slot state. Active tier: 87 PASS in 126.5 seconds; three optional subchecks skipped. Review branch stays frozen at 410b6935. Signed/installed/fallback bytes, S06/R01 FAIL and physical NOT RUN remain unchanged. See [current repair evidence](../test-results/2026-09-12-denial-allocation-contract.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Seven actual broker/audit cases and the ARM64 diagnostic build pass. The VM records 53 raster frames/page flips, nine missing-authorization refusals, zero missing-pool/no-free-slot/ReadyHandoff refusals and 104 authorization expiries. The full session remains FAIL, including EGL BAD_ACCESS cleanup. Queued engine rendering can outlive the two-interval broker authorization; per-refusal expiry versus consumption/cancellation is not yet proven. Next trace that handoff with a bounded event history. Active tier: 87 PASS in 128.6 seconds, three optional subchecks skipped. Signed/installed/fallback identities and historical failures remain unchanged; physical NOT RUN. See [current repair evidence](../test-results/2026-09-12-denial-broker-refusals.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
