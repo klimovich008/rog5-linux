@@ -2267,3 +2267,15 @@ Compiler depfiles can mix absolute source paths and output-relative intermediate
 resolve relative entries against the actual Ninja working directory with an escape
 check. The input audit covered 992 files and four clean recorded Git roots without
 rehashing unrelated source trees or claiming a complete DEPS resolution.
+
+Verify the runtime SDK revision separately from the bootstrap SDK before app
+package resolution. The exact Dart 3.12.2 prebuilt verified in 4.188 s; the real
+sky_engine package generated in 5.277 s. Pub can resolve pinned Flutter source
+packages through an explicit SDK view without first bootstrapping the Flutter
+tool. Record that narrower scope and the source of its version metadata. Populate
+hash sidecars only after validating the actual package archives and payloads;
+both locked app resolutions then took 0.165 s each, and a 2.053-second audit
+confirmed roots, locks and all 84 unchanged payload trees. Preserve a live build
+container's actual ID automatically: the second deadline retained objects and
+left only 411 steps, while its auto-removed CID file could not identify the old
+owner by itself. Never infer completion or launch a duplicate from a missing file.
