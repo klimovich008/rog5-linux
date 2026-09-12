@@ -17,6 +17,13 @@
 
 #include "rog5_fts_protocol.h"
 
+/* A regulator error can occur after child or parent bookkeeping changed. */
+enum rog5_fts_vote {
+	ROG5_FTS_VOTE_NONE,
+	ROG5_FTS_VOTE_HELD,
+	ROG5_FTS_VOTE_UNKNOWN,
+};
+
 struct rog5_fts {
 	struct i2c_client *client;
 	struct input_dev *input;
@@ -24,8 +31,8 @@ struct rog5_fts {
 	struct gpio_desc *io_enable;
 	struct regulator *vdd;
 	struct regulator *vcc_i2c;
-	bool vdd_vote;
-	bool io_vote;
+	enum rog5_fts_vote vdd_vote;
+	enum rog5_fts_vote io_vote;
 	bool irq_running;
 };
 
@@ -87,24 +94,34 @@ static int rog5_fts_power_off(struct rog5_fts *ts)
 			first = ret;
 	}
 	usleep_range(1000, 1500);
-	if (ts->vdd_vote) {
+	if (ts->vdd_vote == ROG5_FTS_VOTE_UNKNOWN) {
+		dev_err(dev, "VDD ownership unknown; recovery required\n");
+		if (!first)
+			first = -EUCLEAN;
+	} else if (ts->vdd_vote == ROG5_FTS_VOTE_HELD) {
 		ret = regulator_disable(ts->vdd);
 		if (ret) {
+			ts->vdd_vote = ROG5_FTS_VOTE_UNKNOWN;
 			dev_err(dev, "VDD vote release failed: %d\n", ret);
 			if (!first)
 				first = ret;
 		} else {
-			ts->vdd_vote = false;
+			ts->vdd_vote = ROG5_FTS_VOTE_NONE;
 		}
 	}
-	if (ts->io_vote) {
+	if (ts->io_vote == ROG5_FTS_VOTE_UNKNOWN) {
+		dev_err(dev, "IO supply ownership unknown; recovery required\n");
+		if (!first)
+			first = -EUCLEAN;
+	} else if (ts->io_vote == ROG5_FTS_VOTE_HELD) {
 		ret = regulator_disable(ts->vcc_i2c);
 		if (ret) {
+			ts->io_vote = ROG5_FTS_VOTE_UNKNOWN;
 			dev_err(dev, "IO supply vote release failed: %d\n", ret);
 			if (!first)
 				first = ret;
 		} else {
-			ts->io_vote = false;
+			ts->io_vote = ROG5_FTS_VOTE_NONE;
 		}
 	}
 	return first;
@@ -120,24 +137,29 @@ static int rog5_fts_power_on(struct rog5_fts *ts)
 {
 	int ret;
 
-	if (ts->vdd_vote || ts->io_vote)
+	if (ts->vdd_vote != ROG5_FTS_VOTE_NONE ||
+	    ts->io_vote != ROG5_FTS_VOTE_NONE)
 		return -EBUSY;
 	ret = gpiod_set_value_cansleep(ts->reset, 1);
 	if (ret)
 		return ret;
 	usleep_range(1000, 1500);
 	ret = regulator_enable(ts->vcc_i2c);
-	if (ret)
+	if (ret) {
+		ts->io_vote = ROG5_FTS_VOTE_UNKNOWN;
 		return ret;
-	ts->io_vote = true;
+	}
+	ts->io_vote = ROG5_FTS_VOTE_HELD;
 	ret = gpiod_set_value_cansleep(ts->io_enable, 1);
 	if (ret)
 		goto fail;
 	usleep_range(1000, 1500);
 	ret = regulator_enable(ts->vdd);
-	if (ret)
+	if (ret) {
+		ts->vdd_vote = ROG5_FTS_VOTE_UNKNOWN;
 		goto fail;
-	ts->vdd_vote = true;
+	}
+	ts->vdd_vote = ROG5_FTS_VOTE_HELD;
 	usleep_range(5000, 6000);
 	ret = gpiod_set_value_cansleep(ts->reset, 0);
 	if (ret)

@@ -12,6 +12,8 @@ static void setup(void)
 	reset.level = 1;
 	io_enable.level = 0;
 	vdd.votes = io.votes = 0;
+	vdd.enable_calls = io.enable_calls = 0;
+	vdd.disable_calls = io.disable_calls = 0;
 	fault = NULL;
 	second_fault = NULL;
 	faults_left = second_faults_left = 0;
@@ -25,20 +27,36 @@ static void setup(void)
 	memset(frame_bytes, 0xff, sizeof(frame_bytes));
 	frame_bytes[0] = frame_bytes[1] = 0;
 }
-static void finish(void)
+static void finish_state(bool unknown_vdd, bool unknown_io,
+			 int retained_vdd, int retained_io)
 {
+	unsigned vdd_calls = vdd.disable_calls, io_calls = io.disable_calls;
+	struct rog5_fts *ts = client.data;
 	unwind();
 	CHECK(!irq_available && !irq_inflight && !input.valid);
-	CHECK(!vdd.votes && !io.votes);
+	CHECK(ts->vdd_vote == (unknown_vdd ? ROG5_FTS_VOTE_UNKNOWN :
+					    ROG5_FTS_VOTE_NONE));
+	CHECK(ts->io_vote == (unknown_io ? ROG5_FTS_VOTE_UNKNOWN :
+					  ROG5_FTS_VOTE_NONE));
+	CHECK(!unknown_vdd || vdd.disable_calls == vdd_calls);
+	CHECK(!unknown_io || io.disable_calls == io_calls);
+	CHECK(vdd.votes == retained_vdd && io.votes == retained_io);
 	CHECK(reset.level == 1 && io_enable.level == 0);
+	/* Unknown fixture votes are observed, not repaired by another API call.
+	 * A following setup starts an independent synthetic device instance. */
 	free(allocated);
 	allocated = NULL;
+}
+static void finish(void)
+{
+	finish_state(false, false, 0, 0);
 }
 static void start(void)
 {
 	CHECK(rog5_fts_probe(&client) == 0);
 	touch = client.data;
-	CHECK(touch->irq_running && touch->vdd_vote && touch->io_vote &&
+	CHECK(touch->irq_running && touch->vdd_vote == ROG5_FTS_VOTE_HELD &&
+	      touch->io_vote == ROG5_FTS_VOTE_HELD &&
 	      input.registered);
 	CHECK(identity_reads == 2 &&
 	      jiffies == 207); /* Existing 1+1+5+200 ms sequence. */
@@ -91,10 +109,19 @@ static void probe_failures(void)
 		faults_left = 1;
 		CHECK(rog5_fts_probe(&client) < 0);
 		CHECK(!faults_left);
-		finish();
+		bool vdd_error = !strcmp(faults[i], "enable:vdd:1");
+		bool io_error = !strcmp(faults[i], "enable:io:1");
+		if (vdd_error || io_error) {
+			touch = client.data;
+			CHECK(rog5_fts_power_on(touch) == -EBUSY);
+			CHECK(vdd.enable_calls == (unsigned)vdd_error &&
+			      io.enable_calls == 1);
+			CHECK((vdd_error ? vdd.disable_calls : io.disable_calls) == 0);
+		}
+		finish_state(vdd_error, io_error, 0, 0);
 	}
 }
-static void vote_retry(const char *rail)
+static void vote_unknown(const char *rail)
 {
 	setup();
 	start();
@@ -103,14 +130,20 @@ static void vote_retry(const char *rail)
 	faults_left = 1;
 	CHECK(rog5_fts_power_off(touch) == -EIO);
 	bool is_vdd = !strcmp(rail, "disable:vdd:0");
-	CHECK(touch->vdd_vote == is_vdd && touch->io_vote == !is_vdd);
+	CHECK(touch->vdd_vote == (is_vdd ? ROG5_FTS_VOTE_UNKNOWN :
+					 ROG5_FTS_VOTE_NONE));
+	CHECK(touch->io_vote == (is_vdd ? ROG5_FTS_VOTE_NONE :
+					ROG5_FTS_VOTE_UNKNOWN));
 	CHECK(vdd.votes == (int)is_vdd && io.votes == (int)!is_vdd);
 	CHECK(rog5_fts_power_on(touch) == -EBUSY);
-	CHECK(rog5_fts_power_off(touch) == 0);
-	CHECK(!touch->vdd_vote && !touch->io_vote);
-	CHECK(rog5_fts_power_on(touch) == 0);
-	CHECK(rog5_fts_identify(touch) == 0);
-	finish();
+	CHECK(rog5_fts_power_off(touch) == -EUCLEAN);
+	fault = "gpio:reset:1";
+	faults_left = 1;
+	CHECK(rog5_fts_power_off(touch) == -EIO); /* Preserve earlier error. */
+	CHECK(rog5_fts_power_off(touch) == -EUCLEAN);
+	CHECK(vdd.enable_calls == 1 && io.enable_calls == 1 &&
+	      vdd.disable_calls == 1 && io.disable_calls == 1);
+	finish_state(is_vdd, !is_vdd, is_vdd, !is_vdd);
 }
 static void gpio_off_error(const char *line)
 {
@@ -120,7 +153,8 @@ static void gpio_off_error(const char *line)
 	fault = line;
 	faults_left = 1;
 	CHECK(rog5_fts_power_off(touch) == -EIO);
-	CHECK(!touch->vdd_vote && !touch->io_vote);
+	CHECK(touch->vdd_vote == ROG5_FTS_VOTE_NONE &&
+	      touch->io_vote == ROG5_FTS_VOTE_NONE);
 	CHECK(rog5_fts_power_off(touch) == 0);
 	finish();
 }
@@ -180,12 +214,12 @@ int main(int argc, char **argv)
 		probe_failures();
 		return 0;
 	}
-	if (!strcmp(name, "vote-vdd-retry")) {
-		vote_retry("disable:vdd:0");
+	if (!strcmp(name, "vote-vdd-unknown")) {
+		vote_unknown("disable:vdd:0");
 		return 0;
 	}
-	if (!strcmp(name, "vote-io-retry")) {
-		vote_retry("disable:io:0");
+	if (!strcmp(name, "vote-io-unknown")) {
+		vote_unknown("disable:io:0");
 		return 0;
 	}
 	if (!strcmp(name, "off-reset-error")) {
@@ -200,7 +234,7 @@ int main(int argc, char **argv)
 		shutdown_race();
 		return 0;
 	}
-	if (!strcmp(name, "prepare-cleanup-retry")) {
+	if (!strcmp(name, "prepare-cleanup-unknown")) {
 		setup();
 		fault = "gpio:reset:0";
 		faults_left = 1;
@@ -208,9 +242,11 @@ int main(int argc, char **argv)
 		second_faults_left = 1;
 		CHECK(rog5_fts_probe(&client) == -EIO);
 		touch = client.data;
-		CHECK(touch->vdd_vote && !touch->io_vote && !faults_left &&
+		CHECK(touch->vdd_vote == ROG5_FTS_VOTE_UNKNOWN &&
+		      touch->io_vote == ROG5_FTS_VOTE_NONE && !faults_left &&
 		      !second_faults_left);
-		finish();
+		CHECK(vdd.disable_calls == 1 && io.disable_calls == 1);
+		finish_state(true, false, 1, 0);
 		return 0;
 	}
 	if (!strcmp(name, "irq-at-registration")) {
@@ -221,6 +257,21 @@ int main(int argc, char **argv)
 		start();
 		CHECK(active() == BIT(4) && input.syncs == 1);
 		finish();
+		return 0;
+	}
+	if (!strcmp(name, "normal-power-cycles")) {
+		setup();
+		start();
+		rog5_fts_stop(touch);
+		CHECK(rog5_fts_power_on(touch) == -EBUSY);
+		for (unsigned i = 0; i < 3; i++) {
+			CHECK(rog5_fts_power_off(touch) == 0);
+			CHECK(rog5_fts_power_on(touch) == 0);
+			CHECK(rog5_fts_identify(touch) == 0);
+		}
+		finish();
+		CHECK(vdd.enable_calls == 4 && io.enable_calls == 4 &&
+		      vdd.disable_calls == 4 && io.disable_calls == 4);
 		return 0;
 	}
 	if (!strcmp(name, "normal-id-refusal")) {
@@ -266,8 +317,9 @@ int main(int argc, char **argv)
 	} else if (!strcmp(name, "suspend-refused")) {
 		contact();
 		CHECK(rog5_fts_suspend(&client.dev) == -EBUSY);
-		CHECK(active() == BIT(4) && !irq_disabled && touch->vdd_vote &&
-		      touch->io_vote);
+		CHECK(active() == BIT(4) && !irq_disabled &&
+		      touch->vdd_vote == ROG5_FTS_VOTE_HELD &&
+		      touch->io_vote == ROG5_FTS_VOTE_HELD);
 	} else
 		CHECK(!"unknown case");
 	finish();

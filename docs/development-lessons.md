@@ -2006,3 +2006,18 @@ child and permission failures. The first focused correction exposed ESRCH and
 remains recorded. The final thirteen-case fixture passes in 0.610 seconds, with
 deterministic coverage of both errors and the rejection cases. This changes
 only the test observation, not process termination or production deadlines.
+
+## 2026-09-12: regulator failure does not identify remaining ownership
+
+The earlier touch fixture made every regulator failure retain its child vote.
+Actual Linux 7.1.4 accounting disproves that assumption: a parent-disable error
+can follow consumption of the child vote, while enable unwind can silently fail
+to release the parent. The new test compiles the real core and driver callbacks;
+five fault cases fail against the old driver while its normal cycles pass.
+Use an explicit uncertain state and stop ambiguous retries. This limits damage
+within the consumer lifetime; it does not establish rail recovery or survive a
+new probe. Preserve those limitations in the trial's abort/cleanup requirements.
+
+For vendor evidence, inspect root selectors and source composition before trusting
+a DT filename. Mode thresholds are not load measurements. Missing upstream-supply
+properties in stock data do not justify inventing a mainline parent connection.

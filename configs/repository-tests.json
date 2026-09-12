@@ -7573,6 +7573,36 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-rog5-touch-regulator-errors.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "board",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/rog5-fts3658u/rog5_fts3658u.c",
+        "scripts/device/fixtures/fts3658u-regulator/stubs.h",
+        "scripts/device/fixtures/fts3658u-regulator/regulator-core-v7.1.4.c",
+        "scripts/device/fixtures/fts3658u-regulator/cases.c"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-rog5-touch-module-build.py",
       "interpreter": "python3",
       "tiers": [
