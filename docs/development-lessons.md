@@ -30,6 +30,17 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+Mobile archive audit, 2026-09-12: cache filenames and a resolved graph do not
+prove package identity or closure. Fourteen exact pins authenticated; a newer
+Mesa archive remained outside the graph. Compare signed `.PKGINFO` as well as
+hashes, and declare verifier tools in CI. Exercise cancellation before freezing
+for expensive qualification: a short SIGTERM check found an owned-child leak
+after the first CI run had started, costing a 329.738-second interrupted run.
+The correction defers signals across child ownership/cleanup and verifies
+SIGTERM/SIGINT reaping. Eighteen focused checks took 1.657 seconds; final archive
+verification took about four seconds. Keep these checks before full CI and
+reuse unchanged board/target artifacts.
+
 Offline review, 2026-09-12: distinguish the persistent acceptance linearization
 point from a success message or RAM file alone. Test the real state helper across
 publication/syscall failures and timer races, including the actual automatically

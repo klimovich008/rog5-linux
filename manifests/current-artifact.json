@@ -160,5 +160,23 @@
     },
     "physical_status": "NOT RUN",
     "candidate": null
+  },
+  "mobile_archive_audit": {
+    "status": "BLOCKED",
+    "source_commit": "074a54c8b4efed1db6617bbbdff0d88dda446fce",
+    "source_tree": "d0ef2eafae7dfabff922ebe6471e3352bef1b6c2",
+    "graph_sha256": "bba66eb1b3d16ad61954261742da79f8db8d5502586b7b83d4f755c32b68ee2f",
+    "counts": {
+      "PASS": 14,
+      "FAIL": 0,
+      "BLOCKED": 298
+    },
+    "evidence": {
+      "path": "test-results/2026-09-12-mobile-package-audit-qualification.json",
+      "sha256": "592cff8c9775685ac612113298d79b9bbaa1a9acc89ff712b291489209a88d42"
+    },
+    "keyring_freshness": "NOT RUN",
+    "runtime_closure": "BLOCKED",
+    "authority": "none; archive verification grants no installation or phone authority"
   }
 }
