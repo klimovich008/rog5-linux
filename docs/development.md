@@ -456,3 +456,13 @@ final-source-binding commit/tree for the resulting source identity, and retain
 the dirty execution repository separately. An independent final review caught
 that labeling error in the public board summary; the correction changes no
 build input or artifact byte.
+
+Component qualification lesson (2026-09-12): use read-only external-module
+builds when the compiled kernel inputs are unchanged. Touch twins took about
+2.9 seconds each; an archive/source comparison and exact DT rebuild took
+15.4 seconds, avoiding another 4,457-second cold kernel compile. Reproduce the
+old DTB with its actual kernel flags before interpreting a new DT delta.
+Keep full schema checks separate from cheap guard changes: an unchanged
+schema/driver/DT input binding can retain the 81.4-second result while a stricter
+configuration parser receives focused regressions. Record commands before
+launch so failed and interrupted builds retain the same provenance as successes.

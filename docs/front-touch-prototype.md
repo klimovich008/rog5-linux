@@ -26,6 +26,48 @@ required. The test compiles the actual shared C decoder in optimized and UBSan
 modes and checks the actual compiled disabled DT. It does not build a kernel
 module, access hardware, enable a regulator, or prove kernel cleanup behavior.
 
+## Current offline lifecycle and module checks
+
+The September 12 repair adds an actual-driver fault harness:
+
+```sh
+python3 scripts/device/test-rog5-touch-lifecycle.py
+```
+
+It compiles the real probe, power, identification, IRQ and shutdown functions
+with faulted API boundaries. Fifteen cases cover thirteen probe failure stages,
+transient regulator failures, immediate IRQ delivery, blocked IRQ shutdown,
+stale-contact release and the existing suspend refusal. Three deliberate unsafe
+mutations must fail. `ROG5_LINUX_SOURCE` enables comparison of the retained IRQ
+and input core extracts with the exact supplied kernel. This is host behavior
+coverage; it does not establish physical IRQ or rail behavior.
+
+A separately scoped builder uses the retained production kernel kit read-only:
+
+```sh
+python3 scripts/host/build-rog5-touch-module.py \
+  --kit /path/to/retained/board/build-r2 \
+  --qualification /path/to/retained/board/qualification-r6 \
+  --output /path/to/new/touch-prototype --jobs 2
+```
+
+The kit and qualification receipts must match its reviewed pins. It uses a
+read-only namespace, a fresh external-module directory, W=1 and modpost; it
+checks the toolchain, resolved configuration, release, module dependencies and
+input identities. It neither installs the module nor adds it to the production
+series. Two matching builds produced a 16,144-byte module in 2.854 and 2.855 s;
+its complete identity and limitations are in the current artifact pointer.
+The production kit has GENI I2C built in and GPI as a module. Earlier three-module
+provider closures below describe their older kernels, not this configuration.
+
+Cleanup has a specific unresolved limit: if the regulator provider repeatedly
+refuses a disable, the final managed cleanup cannot return the failure to
+unbind. Linux may warn and destroy the consumer while a provider vote remains.
+Transient failure tests prove retry bookkeeping only while that consumer still
+exists. They do not prove that unbind restores rail power. More generally,
+regulator errors after load, coupling or upstream-supply updates need their own
+ownership analysis if those features enter this draft's power topology.
+
 ## Exact protocol scope
 
 The first component admits only normal firmware ID A3/9F=`56/52`. The vendor's

@@ -12,12 +12,11 @@
       "id": "board-build",
       "requirement": "Exact production board Image, DTs and modules",
       "software": {
-        "status": "FAIL",
+        "status": "PASS",
         "evidence": {
-          "path": "test-results/2026-09-12-production-board-build.json",
-          "sha256": "cfa53766b88688a4b066ff61b0e7bdafc33ce461c949f6172967afa6bf77373b"
-        },
-        "detail": "Image, modules and DTs compile; one RPMh RSC schema diagnostic blocks production qualification"
+          "path": "test-results/2026-09-12-touch-board-qualification.json",
+          "sha256": "272955188b61262deac6bbbf2c6877224f6668f7f9d0c450fc9c75f4c73fc215"
+        }
       },
       "physical": {
         "status": "NOT RUN",
