@@ -232,10 +232,15 @@
       "path": "test-results/2026-09-12-denial-arm64-engine-args-qualification.json",
       "sha256": "957079592dbcc02994228ab1fc99b043492fc31e1d5e66ee7e5f9e044f20ddc5"
     },
-    "graph_status": "NOT RUN",
+    "graph_status": "PASS: real offline GN graph; unused angle_build_all warning retained",
     "compilation_status": "NOT RUN",
     "physical_status": "NOT RUN",
-    "authority": "none"
+    "authority": "none",
+    "graph_evidence": {
+      "path": "/home/deck/.local/state/rog5-arm64-sysroot-evidence-20260912-r1/gn-graph-r2/result.json",
+      "sha256": "d387d45962a7639e31321c07cf68b56b5c0340b70213d3cbb399f4cf6b39e255",
+      "size": 2280
+    }
   },
   "denial_gn_tool": {
     "status": "PASS: pinned GN executable",
@@ -249,10 +254,11 @@
       "instance_id": "zTMMtPTg2OXILKOlg3mOpTN_0BMIlS2-Inyd2LxR2FQC"
     },
     "version": "2285 (81b24e01531e)",
-    "graph_status": "FAIL: real offline graph check reaches missing ARM64 sysroot",
+    "graph_status": "PASS: real offline GN graph; unused angle_build_all warning retained",
     "graph_evidence": {
-      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r3/result.json",
-      "sha256": "5c8bde49c8caf81c8c11734ba48f16c5d248fb083168eedd9bd65fff0dff54ac"
+      "path": "/home/deck/.local/state/rog5-arm64-sysroot-evidence-20260912-r1/gn-graph-r2/result.json",
+      "sha256": "d387d45962a7639e31321c07cf68b56b5c0340b70213d3cbb399f4cf6b39e255",
+      "size": 2280
     },
     "compilation_status": "NOT RUN",
     "physical_status": "NOT RUN",
@@ -261,5 +267,27 @@
       "path": "test-results/2026-09-12-storage-reclamation-gn-qualification.json",
       "sha256": "7e96bc2b1945b8561ea71513ea75f40c641fddb11f6b44f2b3c123beeca006ba"
     }
+  },
+  "denial_engine_sysroots": {
+    "status": "PASS: pinned payloads verified",
+    "set_id": "private:rog5-arm64-sysroot-evidence-20260912-r1",
+    "flutter_commit": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "roots": [
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/engine/src/build/linux/debian_bullseye_arm64-sysroot",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/engine/src/build/linux/debian_bullseye_amd64-sysroot"
+    ],
+    "evidence": {
+      "path": "test-results/2026-09-12-engine-sysroots-qualification.json",
+      "sha256": "fbe125b3b7258ee3b32460197788b20d831b6ab44692985a55c4886d9a6771e7"
+    },
+    "compiler_prerequisite": {
+      "status": "BLOCKED",
+      "reason": "pinned clang++ executable absent",
+      "package": "fuchsia/third_party/clang/linux-amd64",
+      "version": "git_revision:80743bd43fd5b38fedc503308e7a652e23d3ec93"
+    },
+    "compilation_status": "NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Native mobile ABI passes; pinned GN reaches missing ARM64 sysroot",
+  "phase": "Pinned ARM64 engine GN graph passes; compiler prerequisite open",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Verified archival reclamation recovered 8.79 GB net while preserving final kernels, sources and evidence. The pinned GN executable is now available. After bounded interpreter-cache provisioning, a real network-disabled one-worker graph check reaches the explicit missing ARM64 sysroot assertion. Earlier environment/deadline FAIL results are retained. Next verify and provision the pinned ARM64 sysroot within measured disk capacity, then retry GN. Compilation, matching engine/ICU/AOT, native session and all physical qualification remain open. Source implementation and accepted/signed/installed/fallback artifacts are unchanged; no phone operation is authorized. S06/R01 remain FAIL.",
-  "evidence": "test-results/2026-09-12-storage-reclamation-gn.md"
+  "next": "Both pinned build sysroots pass archive and full extracted-payload verification. Real network-disabled GN generation passes (1,647 targets); engine ARM64 and host AOT target selection pass. The unused angle_build_all argument warning remains explicit. Next provision and verify the exact pinned Clang within measured disk capacity, then attempt bounded compilation. Compilation, matching engine/ICU/AOT, native session and all physical qualification remain open. Accepted/signed/installed/fallback artifacts are unchanged; no phone operation is authorized. S06/R01 remain FAIL.",
+  "evidence": "test-results/2026-09-12-engine-sysroots.md"
 }
