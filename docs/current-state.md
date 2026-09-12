@@ -1,5 +1,51 @@
 # ROG5 current state
 
+Latest r131, 2026-09-12: **IOMMU source actions and recovery callbacks qualified;
+phone source/custody still healthy**. Previous goal checkpoint r130 was progress.
+The intervening sudo explanation made no system change. Re-polled the existing
+live test handle4521 to terminal completion; no restart or duplicate stage.
+
+Source actions passed21 ARM64 namespace cases in350.543 s. The read-only observer
+passed11 cases in71.785 s, checking actual files, locks, renames and retained
+operation evidence with synthetic telemetry/service/reboot calls. The initial
+fixture run remains FAIL: it loaded the older OLED healthy record and correctly
+failed its file-hash guard in4.286 s. Corrected tests-r2 uses the current GPU
+source record; no production guard was relaxed.
+
+Concrete callbacks bind the new controller/guards/actions to the completed r2
+RAM stage and its owner/custody. They support nine mutation phases, including
+normal-SSH staging/restoration on an independently verified healthy new target.
+Source/V11 paths, durable intent, complete raw reply retention and one-use refusal
+remain.36 action/engine tests passed4.452 s. After adding three target-recovery
+engine cases, all8 engine cases passed2.475 s; unchanged other31 cases are retained.
+Final discovery verifies25 basic callbacks,8 engine cases and6 target cases.
+Nine source-read callback tests passed0.794 s using actual ARM64 observer output,
+with explicit test identity/admission/SSH substitution. Capture/boot/health proofs
+remain synthetic in these integration tests. Full live driver is NOT assembled.
+
+Fresh phone preflight plus RAM custody and full current health PASS4.322 s at
+uptime11589.72 s on boot946acb59-744e-4bbc-b291-ac6b2e05f3fe. The actual sealed
+source observer verifies original shutdown, original selection813f108a..., absent
+new transaction/reboot intent and exact staged helper custody. No phone mutation,
+helper execution, claim consumption, reboot, sudo change or human countdown.
+The corrected kernel/image remains qualified offline and unbooted. Original
+ASUS slot A, installed fallback and consumed historical claims remain preserved.
+
+Review caught six recovery test methods outside a TestCase before running them;
+they now belong to TargetRecovery and all six were executed. Check discovered
+case names/counts when moving tests, and use current-record fixtures before ARM64
+runs. No kernel/image rebuild or repeated A01 was needed. All test/read processes
+are terminal; host disk retains about24 GiB available. No Ready request is pending.
+
+Next: implement target discovery/restoration verification and current V11 health
+bindings, then route/boot callbacks and the privileged capture launcher. Qualify
+the complete assembled controller before claim consumption. GPU IOMMU attachment
+before display is the next physical question; Denial work remains behind kernel
+bring-up. S06/R01, failed blank cleanup and physical new-target recovery stay open.
+Evidence: gpu-iommu-live-driver-r1/component-review.json,
+source-observation-live-r131/result.json, gpu-iommu-source-actions-r1/tests-r2 and
+observation-tests-r1, and checkpoint-r131. Existing RAM stage must not be replayed.
+
 Latest r130, 2026-09-12: **IOMMU controller recovery path and capture cohort
 qualified offline; actual source RAM custody reverified**. Previous r129 was
 progress. Kernel/image and state-helper source remain unchanged. No phone write,
