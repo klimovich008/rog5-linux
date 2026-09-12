@@ -2,6 +2,7 @@
 //! Run only under an external deadline: synchronous driver calls can block.
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use std::ptr;
+use std::os::unix::fs::FileTypeExt;
 use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd, OwnedFd};
 use std::time::{Duration, Instant};
 
@@ -13,6 +14,7 @@ extern "C" {
     fn dlopen(name: *const c_char, flags: c_int) -> Handle;
     fn dlsym(handle: Handle, name: *const c_char) -> Handle;
     fn dlclose(handle: Handle) -> c_int;
+    fn fcntl(fd: c_int, command: c_int, ...) -> c_int;
     fn poll(fds: *mut PollFd, count: usize, timeout: c_int) -> c_int;
     fn ioctl(fd: c_int, request: std::ffi::c_ulong, ...) -> c_int;
 }
@@ -71,6 +73,78 @@ impl Library {
 }
 impl Drop for Library {
     fn drop(&mut self) { unsafe { dlclose(self.0); } }
+}
+
+macro_rules! gbm_api {
+    ($($name:ident($($arg:ty),*) -> $ret:ty;)+) => {
+        #[allow(non_snake_case)]
+        struct GbmApi { $($name: unsafe extern "C" fn($($arg),*) -> $ret,)+ _library: Library }
+        impl GbmApi {
+            fn load() -> Result<Self> {
+                let library = Library::open(b"libgbm.so.1\0")?;
+                Ok(Self { $($name: unsafe { std::mem::transmute::<Handle, unsafe extern "C" fn($($arg),*) -> $ret>(library.symbol(concat!(stringify!($name), "\0").as_bytes())?) },)+ _library: library })
+            }
+        }
+    }
+}
+gbm_api! {
+    gbm_create_device(c_int) -> Handle;
+    gbm_device_destroy(Handle) -> ();
+    gbm_bo_create_with_modifiers2(Handle, u32, u32, u32, *const u64, u32, u32) -> Handle;
+    gbm_bo_get_format(Handle) -> u32;
+    gbm_bo_get_modifier(Handle) -> u64;
+    gbm_bo_get_plane_count(Handle) -> c_int;
+    gbm_bo_get_stride_for_plane(Handle, c_int) -> u32;
+    gbm_bo_get_offset(Handle, c_int) -> u32;
+    gbm_bo_get_fd_for_plane(Handle, c_int) -> c_int;
+    gbm_bo_destroy(Handle) -> ();
+}
+struct Gbm { api: GbmApi, device: Handle, bo: Handle, _fd: std::fs::File }
+impl Gbm {
+    fn open(raw: c_int) -> Result<Self> {
+        // Duplicate an explicitly inherited FD; no path discovery/open and no
+        // ownership change to the caller's FD. F_DUPFD_CLOEXEC is Linux 1030.
+        let cloned = unsafe { fcntl(raw, 1030, 3) };
+        if cloned < 0 { return Err(format!("GBM descriptor duplication: {}", std::io::Error::last_os_error())); }
+        let file = std::fs::File::from(unsafe { OwnedFd::from_raw_fd(cloned) });
+        if !file.metadata().map_err(|e| format!("GBM descriptor metadata: {e}"))?.file_type().is_char_device() {
+            return Err("GBM descriptor must be a character device".into());
+        }
+        // This type check is not device admission. The coordinator must bind
+        // the exact render node/device/module identity before any physical run.
+        let api = GbmApi::load()?;
+        let device = unsafe { (api.gbm_create_device)(file.as_raw_fd()) };
+        if device.is_null() { return Err("GBM device creation failed".into()); }
+        Ok(Self { api, device, bo: ptr::null_mut(), _fd: file })
+    }
+    fn allocate(&mut self) -> Result<(OwnedFd, c_int, c_int, c_int)> {
+        let a = &self.api;
+        let linear = [0u64];
+        // ABGR8888, 4x4, explicit LINEAR, GBM_BO_USE_RENDERING. No fallback
+        // allocation or scanout request. Keep BO alive through EGL teardown.
+        unsafe {
+            self.bo = (a.gbm_bo_create_with_modifiers2)(self.device, 4, 4, 0x34324241, linear.as_ptr(), 1, 4);
+            if self.bo.is_null() { return Err("GBM explicit linear allocation failed".into()); }
+            let format = (a.gbm_bo_get_format)(self.bo);
+            if format != 0x34324241 || (a.gbm_bo_get_plane_count)(self.bo) != 1 || (a.gbm_bo_get_modifier)(self.bo) != 0 {
+                return Err("GBM allocation layout mismatch".into());
+            }
+            let stride = (a.gbm_bo_get_stride_for_plane)(self.bo, 0);
+            let offset = (a.gbm_bo_get_offset)(self.bo, 0);
+            if stride < 16 || stride > c_int::MAX as u32 || offset > c_int::MAX as u32 { return Err("GBM stride/offset out of EGL range".into()); }
+            let raw = (a.gbm_bo_get_fd_for_plane)(self.bo, 0);
+            if raw < 0 { return Err("GBM DMA-BUF export failed".into()); }
+            Ok((OwnedFd::from_raw_fd(raw), format as c_int, stride as c_int, offset as c_int))
+        }
+    }
+}
+impl Drop for Gbm {
+    fn drop(&mut self) {
+        unsafe {
+            if !self.bo.is_null() { (self.api.gbm_bo_destroy)(self.bo); }
+            (self.api.gbm_device_destroy)(self.device);
+        }
+    }
 }
 
 // Signatures match EGL 1.5 / GLES 3.0. Keeping libraries in Api owns their lifetime.
@@ -157,7 +231,7 @@ impl Mode {
         match args {
             [mode] if mode == "--require-a660" => Ok(Self::A660),
             [mode] if mode == "--software-fixture" => Ok(Self::Software),
-            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence | --native-fence-import | --dma-buf] (external deadline required)".into()),
+            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence | --native-fence-import | --dma-buf | --gbm-fd=N] (external deadline required)".into()),
         }
     }
     fn scope(self) -> &'static str {
@@ -219,6 +293,7 @@ struct Session<'a> {
     textures: Vec<c_uint>,
     framebuffers: Vec<c_uint>,
     images: Vec<Handle>,
+    gbm: Option<Gbm>,
     dma_metadata: Option<(c_int, c_int, c_int)>,
     requested_minor: c_int,
     actual_version: (c_int, c_int),
@@ -226,36 +301,47 @@ struct Session<'a> {
 }
 impl<'a> Session<'a> {
     fn new(api: &'a Api) -> Self {
-        Self { api, display: ptr::null_mut(), initialized: false, producer_current: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0, textures: Vec::new(), framebuffers: Vec::new(), images: Vec::new(), dma_metadata: None, requested_minor: 0, actual_version: (0, 0), preferred_error: 0 }
+        Self { api, display: ptr::null_mut(), initialized: false, producer_current: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0, textures: Vec::new(), framebuffers: Vec::new(), images: Vec::new(), gbm: None, dma_metadata: None, requested_minor: 0, actual_version: (0, 0), preferred_error: 0 }
     }
     fn gl_check(&self, stage: &str) -> Result<()> {
         let error = unsafe { (self.api.glGetError)() };
         if error == 0 { Ok(()) } else { Err(format!("{stage}: GL error 0x{error:x}")) }
     }
-    fn render(&mut self, mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool) -> Result<(String, String, String)> {
+    fn render(&mut self, mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool, gbm_fd: Option<c_int>) -> Result<(String, String, String)> {
         let a = self.api;
         // All pointer arguments below reference live arrays/handles of the exact
         // API types and lengths. GL calls follow a successful eglMakeCurrent.
         unsafe {
             let extensions = string_value((a.eglQueryString)(ptr::null_mut(), 0x3055), "EGL client extensions")?;
-            if !extensions.split_ascii_whitespace().any(|e| e == "EGL_MESA_platform_surfaceless") {
-                return Err("EGL_MESA_platform_surfaceless unavailable".into());
+            if let Some(fd) = gbm_fd {
+                if !extensions.split_ascii_whitespace().any(|e| matches!(e, "EGL_KHR_platform_gbm" | "EGL_MESA_platform_gbm")) { return Err("EGL GBM platform unavailable".into()); }
+                let gbm = Gbm::open(fd)?;
+                self.display = (a.eglGetPlatformDisplay)(0x31d7, gbm.device, ptr::null());
+                self.gbm = Some(gbm);
+            } else {
+                if !extensions.split_ascii_whitespace().any(|e| e == "EGL_MESA_platform_surfaceless") { return Err("EGL_MESA_platform_surfaceless unavailable".into()); }
+                self.display = (a.eglGetPlatformDisplay)(0x31dd, ptr::null_mut(), ptr::null());
             }
-            self.display = (a.eglGetPlatformDisplay)(0x31dd, ptr::null_mut(), ptr::null());
             if self.display.is_null() { return Err("eglGetPlatformDisplay failed".into()); }
             let (mut major, mut minor) = (0, 0);
             check((a.eglInitialize)(self.display, &mut major, &mut minor), "eglInitialize")?;
             self.initialized = true;
             if (major, minor) < (1, 5) { return Err("EGL 1.5 required".into()); }
+            if gbm_fd.is_some() {
+                let extensions = string_value((a.eglQueryString)(self.display, 0x3055), "EGL display extensions")?;
+                if !extensions.split_ascii_whitespace().any(|e| e == "EGL_KHR_surfaceless_context") { return Err("GBM requires EGL_KHR_surfaceless_context".into()); }
+            }
             check((a.eglBindAPI)(0x30a0), "eglBindAPI")?; // OPENGL_ES_API
             // PBUFFER_BIT, OPENGL_ES3_BIT, RGBA sizes and no depth/stencil requirement.
-            let attributes = [0x3033, 1, 0x3040, 0x40, 0x3024, 8, 0x3023, 8, 0x3022, 8, 0x3021, 8, 0x3038];
+            let attributes = [0x3033, if gbm_fd.is_some() { 0 } else { 1 }, 0x3040, 0x40, 0x3024, 8, 0x3023, 8, 0x3022, 8, 0x3021, 8, 0x3038];
             let (mut config, mut count) = (ptr::null_mut(), 0);
             check((a.eglChooseConfig)(self.display, attributes.as_ptr(), &mut config, 1, &mut count), "eglChooseConfig")?;
-            if count != 1 || config.is_null() { return Err("no RGBA8 ES3 pbuffer config".into()); }
+            if count != 1 || config.is_null() { return Err("no RGBA8 ES3 config".into()); }
             let size = [0x3057, 4, 0x3056, 4, 0x3038];
+            if gbm_fd.is_none() {
             self.surface = (a.eglCreatePbufferSurface)(self.display, config, size.as_ptr());
             if self.surface.is_null() { return Err("eglCreatePbufferSurface failed".into()); }
+            }
             // Match pinned Denial's preferred GLES 3.2 and fallback GLES 3.0.
             // EGL 1.5 defines both major and minor context attributes.
             for minor in [2, 0] {
@@ -285,8 +371,12 @@ impl<'a> Session<'a> {
             if self.actual_version.1 < 0 || self.actual_version < (3, self.requested_minor) {
                 return Err(format!("GLES context version {}.{} is below requested 3.{}", self.actual_version.0, self.actual_version.1, self.requested_minor));
             }
-            if dma_buf {
-                self.dma_extensions()?;
+            let gbm_buffer = if let Some(gbm) = &mut self.gbm { Some(gbm.allocate()?) } else { None };
+            if let Some((fd, fourcc, stride, offset)) = &gbm_buffer {
+                self.dma_extensions(false)?;
+                self.import_dma(fd, *fourcc, *stride, *offset)?;
+            } else if dma_buf {
+                self.dma_extensions(true)?;
                 let texture = self.create_texture(true)?;
                 self.attach_framebuffer(texture)?;
             }
@@ -323,7 +413,11 @@ impl<'a> Session<'a> {
             (a.glDrawArrays)(0x0004, 0, 3);
             self.gl_check("draw")?;
             if native_fence { self.native_fence(fence_import, config)?; }
-            if dma_buf { self.dma_roundtrip()?; }
+            if let Some((fd, fourcc, stride, offset)) = &gbm_buffer {
+                (a.glFinish)();
+                self.gl_check("GBM producer completion")?;
+                self.import_dma(fd, *fourcc, *stride, *offset)?;
+            } else if dma_buf { self.dma_roundtrip()?; }
             let mut pixels = [0u8; 64];
             (a.glReadPixels)(0, 0, 4, 4, 0x1908, 0x1401, pixels.as_mut_ptr().cast());
             self.gl_check("readback")?;
@@ -409,9 +503,10 @@ impl<'a> Session<'a> {
             combine(combine(combine(result, restored), destroyed), surface_destroyed)
         }
     }
-    fn dma_extensions(&self) -> Result<()> {
+    fn dma_extensions(&self, export: bool) -> Result<()> {
         let extensions = string_value(unsafe { (self.api.eglQueryString)(self.display, 0x3055) }, "EGL display extensions")?;
         for name in ["EGL_MESA_image_dma_buf_export", "EGL_EXT_image_dma_buf_import", "EGL_EXT_image_dma_buf_import_modifiers"] {
+            if !export && name == "EGL_MESA_image_dma_buf_export" { continue; }
             if !extensions.split_ascii_whitespace().any(|value| value == name) {
                 return Err(format!("DMA-BUF unavailable: {name}"));
             }
@@ -461,11 +556,9 @@ impl<'a> Session<'a> {
             self.images.push(image);
             let query = (a.eglGetProcAddress)(b"eglExportDMABUFImageQueryMESA\0".as_ptr().cast());
             let export = (a.eglGetProcAddress)(b"eglExportDMABUFImageMESA\0".as_ptr().cast());
-            let target = (a.eglGetProcAddress)(b"glEGLImageTargetTexture2DOES\0".as_ptr().cast());
-            if query.is_null() || export.is_null() || target.is_null() { return Err("DMA-BUF symbols unavailable".into()); }
+            if query.is_null() || export.is_null() { return Err("DMA-BUF symbols unavailable".into()); }
             let query: unsafe extern "C" fn(Handle, Handle, *mut c_int, *mut c_int, *mut u64) -> c_uint = std::mem::transmute(query);
             let export: unsafe extern "C" fn(Handle, Handle, *mut c_int, *mut c_int, *mut c_int) -> c_uint = std::mem::transmute(export);
-            let target: unsafe extern "C" fn(c_uint, Handle) = std::mem::transmute(target);
             let (mut fourcc, mut planes) = (0, 0);
             // MESA specifies at most four planes; query writes one modifier per
             // plane, even when this probe will subsequently refuse multi-plane.
@@ -482,6 +575,12 @@ impl<'a> Session<'a> {
             check(exported, "DMA-BUF export")?;
             let fd = fd.ok_or("DMA-BUF export returned no FD")?;
             if stride < 16 || offset < 0 { return Err("DMA-BUF invalid stride/offset".into()); }
+            self.import_dma(&fd, fourcc, stride, offset)
+        }
+    }
+    fn import_dma(&mut self, fd: &OwnedFd, fourcc: c_int, stride: c_int, offset: c_int) -> Result<()> {
+        let a = self.api;
+        unsafe {
             let attributes = [0x3057, 4, 0x3056, 4, 0x3271, fourcc as isize,
                 0x3272, fd.as_raw_fd() as isize, 0x3273, offset as isize,
                 0x3274, stride as isize, 0x3443, 0, 0x3444, 0, 0x3038];
@@ -490,6 +589,9 @@ impl<'a> Session<'a> {
             self.images.push(imported);
             // EGL borrows the DMA-BUF FD; unlike native-fence import, ownership
             // stays here. The image holds its own backing reference after close.
+            let symbol = (a.eglGetProcAddress)(b"glEGLImageTargetTexture2DOES\0".as_ptr().cast());
+            if symbol.is_null() { return Err("DMA-BUF image target unavailable".into()); }
+            let target: unsafe extern "C" fn(c_uint, Handle) = std::mem::transmute(symbol);
             let texture = self.create_texture(false)?;
             target(0x0de1, imported);
             self.gl_check("DMA-BUF texture import")?;
@@ -499,7 +601,7 @@ impl<'a> Session<'a> {
         }
     }
     fn cleanup(&mut self) -> Result<()> {
-        if !self.initialized { return Ok(()); }
+        if !self.initialized { drop(self.gbm.take()); return Ok(()); }
         let a = self.api;
         let mut errors = Vec::new();
         // Attempt each independent EGL teardown even after failure; no retry or
@@ -535,14 +637,15 @@ impl<'a> Session<'a> {
             if let Err(e) = check((a.eglTerminate)(self.display), "eglTerminate") { errors.push(e); }
             self.initialized = false;
         }
+        drop(self.gbm.take());
         if errors.is_empty() { Ok(()) } else { Err(errors.join("; ")) }
     }
 }
 
-fn run(mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool) -> Result<()> {
+fn run(mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool, gbm_fd: Option<c_int>) -> Result<()> {
     let api = Api::load()?;
     let mut session = Session::new(&api);
-    let rendered = session.render(mode, native_fence, fence_import, dma_buf);
+    let rendered = session.render(mode, native_fence, fence_import, dma_buf, gbm_fd);
     let cleanup = session.cleanup();
     let (renderer, vendor, version) = match (rendered, cleanup) {
         (Ok(identity), Ok(())) => identity,
@@ -550,12 +653,15 @@ fn run(mode: Mode, native_fence: bool, fence_import: bool, dma_buf: bool) -> Res
         (Err(e), Err(cleanup)) => return Err(format!("{e}; cleanup: {cleanup}")),
     };
     println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nnative_fence_import={}\nscanout=NOT RUN\ndma_buf={}\nbuffer_sharing={}\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" }, if fence_import { "PASS" } else { "NOT RUN" }, if dma_buf { "PASS" } else { "NOT RUN" }, if dma_buf { "PASS: same-context linear DMA-BUF" } else { "NOT RUN" });
-    if let Some((fourcc, stride, offset)) = session.dma_metadata { println!("dma_fourcc=0x{fourcc:x}\ndma_modifier=0x0\ndma_stride={stride}\ndma_offset={offset}\ndma_allocation=GLES texture\ndma_sync=glFinish"); }
+    if let Some((fourcc, stride, offset)) = session.dma_metadata { println!("dma_fourcc=0x{fourcc:x}\ndma_modifier=0x0\ndma_stride={stride}\ndma_offset={offset}\ndma_allocation={}\ndma_sync=glFinish", if gbm_fd.is_some() { "GBM explicit linear" } else { "GLES texture" }); }
     Ok(())
 }
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
-    let dma_buf = args.len() == 2 && args[1] == "--dma-buf";
+    let gbm_fd = if args.len() == 2 {
+        args[1].strip_prefix("--gbm-fd=").filter(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit())).and_then(|v| v.parse::<c_int>().ok())
+    } else { None };
+    let dma_buf = gbm_fd.is_some() || (args.len() == 2 && args[1] == "--dma-buf");
     let fence_import = args.len() == 2 && args[1] == "--native-fence-import";
     let native_fence = fence_import || (args.len() == 2 && args[1] == "--native-fence");
     if native_fence || dma_buf { args.pop(); }
@@ -563,12 +669,19 @@ fn main() {
         Ok(mode) => mode,
         Err(error) => { eprintln!("{error}"); std::process::exit(2); }
     };
-    if let Err(error) = run(mode, native_fence, fence_import, dma_buf) { eprintln!("FAIL {error}"); std::process::exit(1); }
+    if let Err(error) = run(mode, native_fence, fence_import, dma_buf, gbm_fd) { eprintln!("FAIL {error}"); std::process::exit(1); }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn gbm_rejects_invalid_and_regular_descriptors_before_loading() {
+        assert!(matches!(Gbm::open(-1), Err(e) if e.contains("descriptor duplication")));
+        let regular = std::fs::File::open(std::env::current_exe().unwrap()).unwrap();
+        assert!(matches!(Gbm::open(regular.as_raw_fd()), Err(e) if e.contains("character device")));
+        assert!(regular.metadata().is_ok()); // caller retains its descriptor
+    }
     #[test]
     fn explicit_mode_only() {
         for args in [vec![], vec!["--require-a660", "--software-fixture"], vec!["--unknown"]] {
