@@ -2352,3 +2352,20 @@ Inspect what a demo binary actually runs before choosing a qualification path.
 The pinned denial-nested renders topology presets; it is not the full Denial
 shell/backend. A virtual DRM test of actual deniald is the relevant next offline
 integration question, and would still not prove phone graphics or touch.
+
+For the retained ARM64 QEMU, select modern Virtio MMIO explicitly: its default
+legacy transport let 9P work while the actual GPU/input drivers refused probing.
+The exact Linux drivers require VERSION_1. One 631-second guest kernel build was
+enough; changing the transport then produced DRM discovery in about three seconds.
+Keep this cache separate from phone kernels and the old smoke profile. Query the
+actual ARM64 utility's help before assuming flags: seatd 0.9.3 has no `-s` option.
+
+Package dependency closure does not discover executables spawned by application
+code. The actual Denial session reached Wayland socket creation, then failed at
+its unconditional Xwayland spawn; the selected graph had called Xwayland optional.
+The guest preflight now checks that concrete executable before launching a VM.
+Retain the old authenticated graph and qualify an explicit extension. Prepare
+temporary X11 socket directories in the guest because package hooks were never
+run. Diagnostic mode requires a predecessor CRTC mode; normal shell startup has
+its own inactive-CRTC path and needs an external test deadline. Keep discovery,
+CLI, shell frames and physical rendering results separate.
