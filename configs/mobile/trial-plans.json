@@ -194,7 +194,7 @@
         },
         {
           "path": "scripts/device/test-gles-readback.py",
-          "sha256": "38530034aadacb6c431da3dca73865035be0946ac6aa1d8b7fa316d2d68eadc1"
+          "sha256": "b8e978386697f7f3d3bc091702cf12f1ed757855e46514ea403e2c8316298aa0"
         }
       ],
       "physical_actions": [

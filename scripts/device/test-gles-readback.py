@@ -37,7 +37,7 @@ class ReadbackTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False, fence_import=False, dma_buf=False, gbm=False):
+    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False, fence_import=False, dma_buf=False, gbm=False, gbm_sync=False):
         env = os.environ.copy()
         for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
                      'EGL_PLATFORM', 'MESA_LOADER_DRIVER_OVERRIDE', 'GALLIUM_DRIVER',
@@ -57,7 +57,9 @@ class ReadbackTest(unittest.TestCase):
                    '--', str(binary or self.binary)]
         if mode:
             command.append(mode)
-        if gbm:
+        if gbm_sync:
+            command.append('--gbm-sync-fd=0')
+        elif gbm:
             command.append('--gbm-fd=0')
         elif dma_buf:
             command.append('--dma-buf')
@@ -281,6 +283,43 @@ class ReadbackTest(unittest.TestCase):
                 if fault != 'gbm_device': self.assertIn('CALL gbm_destroy', result.stderr)
                 if fault not in ('gbm_device', 'gbm_context_extension', 'gbm_allocate'):
                     self.assertIn('CALL gbm_bo_destroy', result.stderr)
+
+    def test_gbm_shared_pixels_after_native_fence_wait(self):
+        result = self.invoke(gbm_sync=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('cross_context_pixels=PASS', result.stdout)
+        self.assertIn('dma_sync=native fence server wait', result.stdout)
+        self.assertNotIn('CALL dma_finish', result.stderr)
+        self.assertNotIn('CALL consumer_surface', result.stderr)
+        stages = ['CALL draw', 'CALL fence_export', 'CALL consumer_current',
+                  'CALL server_wait', 'CALL consumer_dma_import', 'CALL consumer_info',
+                  'CALL consumer_read', 'CALL consumer_texture_delete',
+                  'CALL restore_current', 'CALL fence_info', 'CALL read\n']
+        offsets = [result.stderr.index(x) for x in stages]
+        self.assertEqual(offsets, sorted(offsets))
+        for fault in ('server_wait', 'consumer_dma_import', 'consumer_texture_create',
+                      'consumer_framebuffer_incomplete', 'consumer_read',
+                      'consumer_info', 'consumer_texture_delete', 'consumer_framebuffer_delete',
+                      'restore_current', 'consumer_destroy', 'import_destroy'):
+            with self.subTest(fault=fault):
+                result = self.invoke(gbm_sync=True, fault=fault)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, '')
+                self.assertIn('CALL gbm_destroy', result.stderr)
+                self.assertIn('GBM_FD_CLOSED', result.stderr)
+    def test_missing_server_wait_loses_shared_pixels(self):
+        source = SOURCE.read_text()
+        marker = 'check((a.eglWaitSync)(self.display, imported, 0), "native fence server wait")?;'
+        self.assertEqual(source.count(marker), 1)
+        path = self.root / 'no-server-wait.rs'
+        path.write_text(source.replace(marker, 'let _ = a.eglWaitSync;'))
+        binary = self.root / 'no-server-wait'
+        subprocess.run([os.environ.get('RUSTC', 'rustc'), '--edition=2021', '-Dwarnings',
+                        '-O', str(path), '-o', str(binary)], check=True, timeout=60)
+        result = self.invoke(gbm_sync=True, binary=binary)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('pixel mismatch', result.stderr)
+        self.assertEqual(result.stdout, '')
 
     def test_stalled_readback_is_killed_without_success(self):
         with self.assertRaises(subprocess.TimeoutExpired) as caught:

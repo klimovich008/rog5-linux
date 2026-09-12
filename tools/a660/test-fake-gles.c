@@ -23,7 +23,9 @@ static void closed(int fd,const char *label);
 static H current_context;
 static int dma_fd=-1, dma_backing=-1, texture_count, framebuffer_count;
 static unsigned bound_texture, attached_texture;
-static int import_bound;
+static int import_bound, producer_flushed;
+static unsigned producer_attachment, consumer_attachment;
+static H texture_owner[128], framebuffer_owner[128];
 static int gbm_enabled, gbm_parent_fd=-1, gbm_storage=-1, source_backing=-1, gbm_imports;
 static unsigned char dma_pixels[64];
 static int producer_created, consumer_created;
@@ -69,10 +71,10 @@ void glGetIntegerv(unsigned name, int *value) {
 }
 unsigned eglMakeCurrent(H d, H r, H w, H c) {
  (void)d;
- if (r!=w || (c==(H)14 && r!=(H)13) || (c==(H)4 && r!=(gbm_enabled?NULL:(H)3))) abort();
+ if (r!=w || (c==(H)14 && r!=(gbm_enabled?NULL:(H)13)) || (c==(H)4 && r!=(gbm_enabled?NULL:(H)3))) abort();
  const char *name=!c?"unbind":c==(H)14?"consumer_current":current_context==(H)14?"restore_current":"current";
  if (fault(name)) return 0;
- current_context=c; return 1;
+ current_context=c;attached_texture=c==(H)14?consumer_attachment:producer_attachment; return 1;
 }
 unsigned eglDestroyContext(H d, H c) { (void)d; (void)c; return !fault(c==(H)14?"consumer_destroy":"destroy_context"); }
 unsigned eglDestroySurface(H d, H s) { (void)d; (void)s; return !fault(s==(H)13?"consumer_surface_destroy":"destroy_surface"); }
@@ -97,7 +99,7 @@ unsigned glGetError(void) {
  const char *dma_fault=getenv("ROG5_FAKE_GLES_FAIL");
  if (dma_fault && stage && !strcmp(dma_fault,stage) &&
      (!strcmp(stage,"texture_allocate") || !strcmp(stage,"image_texture") ||
-      !strcmp(stage,"dma_finish") || !strcmp(stage,"texture_delete") || !strcmp(stage,"framebuffer_delete"))) return 0x502;
+      !strcmp(stage,"dma_finish") || !strcmp(stage,"texture_delete") || !strcmp(stage,"framebuffer_delete") || !strcmp(stage,"consumer_texture_delete") || !strcmp(stage,"consumer_framebuffer_delete"))) return 0x502;
  const char *value=getenv("ROG5_FAKE_GLES_FAIL");
  return value && ((!strcmp(value,"consumer_flush") && stage && !strcmp(stage,"consumer_flush")) || (!strcmp(value,"flush") && stage && !strcmp(stage,"flush")) || (!strcmp(value,"version_query") && stage && !strcmp(stage,"version_query")) || (!strcmp(value,"draw_error") && stage && !strcmp(stage,"draw")) || (!strcmp(value,"cleanup_error") && stage && !strcmp(stage,"delete_program")) || (!strcmp(value,"read_error") && stage && !strcmp(stage,"read")))?0x502:0;
 }
@@ -127,17 +129,18 @@ void glDrawArrays(unsigned m, int first, int n) { (void)m; (void)first; (void)n;
    dma_pixels[i+1]=(unsigned char)((y+0.5)*255/4+0.5);
    dma_pixels[i+2]=64;dma_pixels[i+3]=255;
   }
-  if (gbm_enabled && (source_backing<0 || pwrite(source_backing,dma_pixels,64,0)!=64)) abort();
+
  }
 }
 void glReadPixels(int x, int y, int w, int h, unsigned fmt, unsigned type, void *data) {
  (void)x; (void)y; (void)w; (void)h; (void)fmt; (void)type;
  unsigned char *out=data;
  if (fault("stall")) { for (;;) pause(); }
- int corrupt=fault("read");
- if (attached_texture==12) {
-  if (dma_backing<0 || pread(dma_backing,data,64,0)!=64) abort();
-  if (fault("dma_corrupt")) out[20]^=32;
+ int corrupt=fault(current_context==(H)14?"consumer_read":"read");
+ if (attached_texture==12 || (gbm_enabled && attached_texture==11)) {
+  int backing=attached_texture==11?source_backing:dma_backing;
+  if (backing<0 || pread(backing,data,64,0)!=64) abort();
+  if (fault("dma_corrupt") || corrupt) out[20]^=32;
   return;
  }
  for (int j=0;j<4;j++) for (int i=0;i<4;i++) {
@@ -147,7 +150,7 @@ void glReadPixels(int x, int y, int w, int h, unsigned fmt, unsigned type, void 
  }
 }
 
-void glFlush(void) { fault(current_context==(H)14?"consumer_flush":"flush"); }
+void glFlush(void) { if (current_context==(H)4) producer_flushed=1;fault(current_context==(H)14?"consumer_flush":"flush"); }
 H eglCreateSync(H display, unsigned type, const intptr_t *attributes) {
  (void)display;
  if (type!=0x3144) abort();
@@ -164,7 +167,11 @@ unsigned eglWaitSync(H display,H sync,int flags) {
  (void)display;
  if (current_context!=(H)14 || sync!=(H)29 || flags) abort();
  if (fault("server_stall")) { for (;;) pause(); }
- return !fault("server_wait");
+ if (fault("server_wait")) return 0;
+ if (gbm_enabled) {
+  if (!producer_flushed || source_backing<0 || pwrite(source_backing,dma_pixels,64,0)!=64) abort();
+ }
+ return 1;
 }
 static int export_fence(H display, H sync) {
  (void)display;
@@ -244,10 +251,14 @@ int ioctl(int fd,unsigned long request,...) {
  info->status=pending?0:negative?-5:1;info->num_fences=1;return 0;
 }
 
-void glFinish(void) { fault("dma_finish"); }
+void glFinish(void) {
+ if (gbm_enabled && (source_backing<0 || pwrite(source_backing,dma_pixels,64,0)!=64)) abort();
+ fault("dma_finish");
+}
 void glGenTextures(int count,unsigned *texture) {
  if (count!=1) abort();
- *texture=fault("texture_create")?0:(unsigned)(11+texture_count++);
+ *texture=fault(current_context==(H)14?"consumer_texture_create":"texture_create")?0:(unsigned)(11+texture_count++);
+ if (*texture) texture_owner[*texture]=current_context;
 }
 void glBindTexture(unsigned target,unsigned texture) { if (target!=0x0de1) abort();bound_texture=texture; }
 void glTexParameteri(unsigned target,unsigned name,int value) { (void)target;(void)name;(void)value; }
@@ -255,15 +266,16 @@ void glTexImage2D(unsigned target,int level,int format,int width,int height,int 
  if (target!=0x0de1 || level || format!=0x8058 || width!=4 || height!=4 || border || external!=0x1908 || type!=0x1401 || data) abort();
  memset(dma_pixels,0,sizeof(dma_pixels));fault("texture_allocate");
 }
-void glDeleteTextures(int count,const unsigned *texture) { (void)texture;if (count!=1 || current_context!=(H)4) abort();fault("texture_delete"); }
-void glGenFramebuffers(int count,unsigned *framebuffer) { if (count!=1) abort();*framebuffer=fault("framebuffer_create")?0:(unsigned)(31+framebuffer_count++); }
+void glDeleteTextures(int count,const unsigned *texture) { if (count!=1 || current_context!=texture_owner[*texture]) abort();fault(current_context==(H)14?"consumer_texture_delete":"texture_delete"); }
+void glGenFramebuffers(int count,unsigned *framebuffer) { if (count!=1) abort();*framebuffer=fault("framebuffer_create")?0:(unsigned)(31+framebuffer_count++);if (*framebuffer) framebuffer_owner[*framebuffer]=current_context; }
 void glBindFramebuffer(unsigned target,unsigned framebuffer) { (void)framebuffer;if (target!=0x8d40) abort(); }
 void glFramebufferTexture2D(unsigned target,unsigned attachment,unsigned textarget,unsigned texture,int level) {
  if (target!=0x8d40 || attachment!=0x8ce0 || textarget!=0x0de1 || level) abort();
  attached_texture=texture;
+ if (current_context==(H)14) consumer_attachment=texture;else producer_attachment=texture;
 }
-unsigned glCheckFramebufferStatus(unsigned target) { (void)target;return (fault("framebuffer_incomplete") || (attached_texture==12 && !(import_bound & (1<<12))))?0x8cd6:0x8cd5; }
-void glDeleteFramebuffers(int count,const unsigned *framebuffer) { (void)framebuffer;if (count!=1 || current_context!=(H)4) abort();fault("framebuffer_delete"); }
+unsigned glCheckFramebufferStatus(unsigned target) { (void)target;return (fault(current_context==(H)14?"consumer_framebuffer_incomplete":"framebuffer_incomplete") || (attached_texture==12 && !(import_bound & (1<<12))))?0x8cd6:0x8cd5; }
+void glDeleteFramebuffers(int count,const unsigned *framebuffer) { if (count!=1 || current_context!=framebuffer_owner[*framebuffer]) abort();fault(current_context==(H)14?"consumer_framebuffer_delete":"framebuffer_delete"); }
 H eglCreateImage(H display,H context,unsigned target,H buffer,const intptr_t *attributes) {
  (void)display;
  if (target==0x30b1) {
@@ -273,7 +285,7 @@ H eglCreateImage(H display,H context,unsigned target,H buffer,const intptr_t *at
  if (target!=0x3270 || context || buffer) abort();
  intptr_t expected[]={0x3057,4,0x3056,4,0x3271,0x34324241,0x3272,dma_fd,0x3273,0,0x3274,16,0x3443,0,0x3444,0,0x3038};
  if (memcmp(attributes,expected,sizeof(expected))) abort();
- if (fault("dma_import")) return NULL;
+ if (fault(current_context==(H)14?"consumer_dma_import":"dma_import")) return NULL;
  if (gbm_enabled) {
   int backing=dup(dma_fd);if (backing<0) abort();
   if (gbm_imports++==0) { source_backing=backing;return (H)41; }
@@ -283,7 +295,7 @@ H eglCreateImage(H display,H context,unsigned target,H buffer,const intptr_t *at
 }
 unsigned eglDestroyImage(H display,H image) {
  (void)display;
- closed(dma_fd,"DMA_FD_CLOSED");
+ if (!(gbm_enabled && current_context==(H)14)) closed(dma_fd,"DMA_FD_CLOSED");
  if (image==(H)41) { if (close(source_backing)) abort();source_backing=-1; }
  if (image==(H)22 || image==(H)42) { if (close(dma_backing)) abort();dma_backing=-1; }
  return !fault("dma_destroy");

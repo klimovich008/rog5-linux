@@ -182,3 +182,34 @@ creation is not proof of a DRM descriptor: Mesa can defer failure until buffer
 allocation. The DRM-version check now refuses that input before GBM backend
 creation. It is still not admission or proof that the FD is the selected render
 node; the external exact-device coordinator remains responsible for that binding.
+
+## GBM pixels across contexts with native fences
+
+`--gbm-sync-fd=N` combines GBM allocation with an unshared consumer GLES context.
+The same descriptor/DRM-driver checks apply as for `--gbm-fd=N`. After rendering
+the producer texture it creates, flushes and exports a native fence. The consumer
+imports that fence and queues a server wait, imports the shared DMA-BUF into its
+own texture/FBO, then exports and checks a consumer completion fence. It reads
+and validates all 64 channels before destroying its GL/image resources and
+restoring the producer. Producer status/readback and final cleanup must also
+succeed. There is no `glFinish` fallback in this mode.
+
+The GBM contexts are surfaceless; no pbuffer or scanout surface is created.
+Consumer-created GL resources are removed from their own portion of the
+session's lists while that context is still current. Producer resources survive
+restoration. Failure still attempts independent cleanup, and no PASS record is
+published after readback, fence or teardown errors. One-second exported-FD waits
+remain bounded; the coordinator must enforce an external whole-process deadline.
+
+Success adds `cross_context_pixels=PASS` and `dma_sync=native fence server wait`.
+The other modes explicitly leave cross-context pixels NOT RUN. This is still a
+single 4×4, one-plane linear-buffer check, not a stress test or KMS qualification.
+On hardware the producer could already be signaled; success alone would not
+prove that an unsignaled dependency stalled the consumer.
+
+The offline fixture withholds producer bytes in its memfd-backed BO until the
+server wait is issued. Removing that wait causes a pixel mismatch. It tracks
+context-owned textures/FBOs and tests consumer import/read/cleanup failures,
+restoration failure and fence failures. This controls the driver boundaries;
+it is not a real GPU scheduling or native-fence result. Physical acceptance,
+KMS and sustained real-phone Denial remain NOT RUN.
