@@ -2316,3 +2316,23 @@ disable core dumps and verify a fresh valid process with unchanged fixture bytes
 The cached GTK affected target needed only 97 steps and 252 s; no full engine
 rebuild was necessary. Check public API requirements against the exact header
 before asserting exported symbols: private `fl_engine_start` is not an export.
+
+Run asset assembly at the resolved package-config location. Relocating settings
+from its workspace to `/app` changed the shell dependency root and silently
+omitted package assets: the actual UI rendered with unhandled logo exceptions.
+Checking all package roots before assembly catches this (including absent SDK
+roots). The corrected helper emits 29 assets and refuses existing output; do not
+interpret exit 0 or a nonuniform frame as absence of Dart errors. The complete
+sky_engine mapping also adds license notices, so compare those bytes explicitly.
+Reuse the qualified GSettings cache alongside the authenticated payload; missing
+package hooks mean a source schema alone is insufficient. Frame/asset success,
+backend readiness and clean GTK disposal need separate conclusions.
+
+Match central prerequisite checks to the tool a suite actually executes. The
+GLES test supports RUSTC, but the runner checked literal rustc and blocked twice.
+A four-case regression now covers explicit/default/missing/empty selections;
+the final active tier passes 86 suites in 137.748 s. Inspect this boundary before
+retrying the tier. Query GCC for its internal executable paths rather than
+assuming a distribution layout. Preserve the successful native runner/engine
+cache: the runner builds reproducibly in about two seconds, and a settings
+asset fix needs neither an AOT rebuild nor a phone-kernel rebuild.

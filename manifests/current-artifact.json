@@ -517,7 +517,12 @@
       }
     },
     "physical_status": "NOT RUN",
-    "authority": "none"
+    "authority": "none",
+    "settings_correction_evidence": {
+      "path": "test-results/2026-09-12-settings-runner-qualification.json",
+      "sha256": "00a8ac61b283f93f11fc3b19c9c5ecf890d1fb2200f6738304dd526d8eddbdf6",
+      "size": 228188
+    }
   },
   "denial_settings_aot": {
     "status": "PASS: two identical ARM64 AOT builds; native runner/GTK and startup NOT RUN",
@@ -538,6 +543,11 @@
       "path": "test-results/2026-09-12-shell-initialization-qualification.json",
       "sha256": "39e372d64e88b4e92fcfdc5c8ae54f540381d70faf52dd100e238f40a7727bec",
       "size": 59576
+    },
+    "runner_evidence": {
+      "path": "test-results/2026-09-12-settings-runner-qualification.json",
+      "sha256": "00a8ac61b283f93f11fc3b19c9c5ecf890d1fb2200f6738304dd526d8eddbdf6",
+      "size": 228188
     }
   },
   "denial_shell_runtime_fixture": {
@@ -563,7 +573,7 @@
     }
   },
   "denial_settings_gtk": {
-    "status": "PASS: ARM64 library compile, exports and Arch loader resolution; native runner/GTK initialization NOT RUN",
+    "status": "PASS: library and native runner compile; observed software settings frame; clean session FAIL",
     "set_id": "private:rog5-settings-native-evidence-20260912-r1",
     "output": {
       "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_linux_gtk.so",
@@ -575,6 +585,34 @@
       "sha256": "39e372d64e88b4e92fcfdc5c8ae54f540381d70faf52dd100e238f40a7727bec",
       "size": 59576
     },
+    "physical_status": "NOT RUN",
+    "authority": "none",
+    "runtime_evidence": {
+      "path": "test-results/2026-09-12-settings-runner-qualification.json",
+      "sha256": "00a8ac61b283f93f11fc3b19c9c5ecf890d1fb2200f6738304dd526d8eddbdf6",
+      "size": 228188
+    }
+  },
+  "denial_settings_runner": {
+    "status": "PASS: two identical ARM64 runner builds; corrected assets and observed software UI",
+    "set_id": "private:rog5-settings-runner-evidence-20260912-r1",
+    "evidence": {
+      "path": "test-results/2026-09-12-settings-runner-qualification.json",
+      "sha256": "00a8ac61b283f93f11fc3b19c9c5ecf890d1fb2200f6738304dd526d8eddbdf6",
+      "size": 228188
+    },
+    "output": {
+      "path": "/home/deck/.local/state/rog5-settings-runner-evidence-20260912-r1/denial-settings",
+      "sha256": "15d69037d73f8ea0f4df03ae7bfcb829277a2c34f33fc4104f40c84eca23024c",
+      "size": 75528
+    },
+    "runtime_bundle_tree": {
+      "path": "/home/deck/.local/state/rog5-settings-runner-evidence-20260912-r1/bundle-r3-tree.json",
+      "sha256": "66e1ec932577122b6e0ad43d5e874f755cbf28a0428fda91378d9555523d1556",
+      "size": 16693
+    },
+    "clean_session": "FAIL: invalid implicit-view removal; backend unavailable; Broadway diagnostics",
+    "wayland_session": "NOT RUN",
     "physical_status": "NOT RUN",
     "authority": "none"
   }
