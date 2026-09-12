@@ -32,6 +32,16 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ### R1. Duplicated candidate identity and policy
 
+IOMMU r132: read the current profile through its real loader when adapting a
+consumer. The new profile uses kernel_refresh; gpu_preservation belongs to the
+older GPU profile. The loader returns immutable MappingProxyType recursively,
+so a mutable-dict check also rejected valid input. Both failed attempts stayed
+offline. The corrected boot binding checks the exact immutable relay contract
+against the capture producer before attempt intent or snapshot; two refusal
+cases and the existing boot suite pass (21 cases,3.481 s). Full admission should
+call that same check before consuming the trial. Preserve the frozen mapping
+contract instead of adding broad schema fallbacks.
+
 Observed pattern:
 
 - A new recovery profile was added to the host packager/verifier but omitted from the sealed recovery fetcher and control-process allowlists.
