@@ -168,7 +168,9 @@ def main():
                    '-device', 'virtio-9p-device,fsdev=payload,mount_tag=payload']
         if render_node:
             index = command.index(args.image)
-            command[index:index] = ['--device', str(args.render_node)+':'+str(args.render_node)+':rw']
+            command[index:index] = [
+                '--device', str(args.render_node)+':'+str(args.render_node)+':rw',
+                '-e', 'XDG_CACHE_HOME=/tmp/rog5-qemu-cache']
             command[command.index('-display')+1] = 'egl-headless,rendernode='+str(args.render_node)
             index = command.index('virtio-gpu-device,xres=640,yres=480')
             command[index] = 'virtio-gpu-gl-device,xres=640,yres=480'
