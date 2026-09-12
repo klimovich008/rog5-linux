@@ -173,7 +173,8 @@ static void parse_record(char *record, struct parsed_trial *parsed)
 	    !take_field(&cursor, "state", parsed->state, sizeof(parsed->state)) ||
 	    *cursor != '\0' ||
 	    (strcmp(parsed->state, "pending") != 0 &&
-	     strcmp(parsed->state, "healthy") != 0))
+	     strcmp(parsed->state, "healthy") != 0 &&
+	     strcmp(parsed->state, "failed") != 0))
 		fail("invalid trial record fields");
 	identity.id = parsed->id;
 	identity.primary = parsed->primary;
@@ -222,6 +223,9 @@ static int open_state_directory(const char *root_path, bool create)
 	if (state < 0)
 		fail("cannot open boot state directory: %s", strerror(errno));
 	validate_directory(state, 0700, "boot state directory");
+	/* Lock the stable directory, not only a record inode replaced by rename. */
+	if (flock(state, LOCK_EX) < 0)
+		fail("cannot lock boot state directory: %s", strerror(errno));
 	if (close(rog5) < 0 || close(root) < 0)
 		fail("cannot close state parent directory: %s", strerror(errno));
 	return state;
@@ -338,12 +342,14 @@ static void decide(const struct trial_identity *identity)
 	char actual[RECORD_CAPACITY];
 	char pending[RECORD_CAPACITY];
 	char healthy[RECORD_CAPACITY];
+	char failed[RECORD_CAPACITY];
 	struct stat metadata;
 	int directory = open_state_directory(ROG5_DECIDE_ROOT, true);
 	int descriptor;
 
 	render_record(pending, sizeof(pending), identity, "pending");
 	render_record(healthy, sizeof(healthy), identity, "healthy");
+	render_record(failed, sizeof(failed), identity, "failed");
 	descriptor = read_record(directory, actual, sizeof(actual), &metadata);
 	if (descriptor < 0) {
 		create_pending(directory, pending, strlen(pending));
@@ -352,7 +358,7 @@ static void decide(const struct trial_identity *identity)
 		if (descriptor < 0 || strcmp(actual, pending) != 0)
 			fail("pending trial publication did not revalidate");
 		print_line(identity->primary);
-	} else if (strcmp(actual, pending) == 0) {
+	} else if (strcmp(actual, pending) == 0 || strcmp(actual, failed) == 0) {
 		print_line(identity->fallback);
 	} else if (strcmp(actual, healthy) == 0) {
 		/* Accepted persistent boots also need a fresh health acknowledgment.
@@ -375,7 +381,8 @@ static void decide(const struct trial_identity *identity)
 		fail("cannot close boot state directory: %s", strerror(errno));
 }
 
-static void mark_healthy(const char *expected_id, const char *expected_primary)
+static void update_health(const char *operation, const char *expected_id,
+			  const char *expected_primary)
 {
 	char actual[RECORD_CAPACITY];
 	char healthy[RECORD_CAPACITY];
@@ -397,9 +404,31 @@ static void mark_healthy(const char *expected_id, const char *expected_primary)
 	identity.primary_hash = parsed.primary_hash;
 	identity.fallback = parsed.fallback;
 	identity.fallback_hash = parsed.fallback_hash;
+	if (strcmp(operation, "state") == 0) {
+		print_line(parsed.state);
+		if (close(descriptor) < 0 || close(directory) < 0)
+			fail("cannot close inspected trial record");
+		return;
+	}
+	if (strcmp(operation, "reject") == 0 ||
+	    (strcmp(operation, "rollback") == 0 &&
+	     strcmp(parsed.state, "healthy") != 0)) {
+		/* A timer winning the race fences a later health commit. */
+		render_record(healthy, sizeof(healthy), &identity, "failed");
+		if (strcmp(parsed.state, "failed") != 0)
+			replace_record(directory, descriptor, &metadata, healthy,
+				       strlen(healthy));
+		else if (close(descriptor) < 0)
+			fail("cannot close failed trial record");
+		print_line("rollback");
+		if (close(directory) < 0)
+			fail("cannot close rejected trial directory");
+		return;
+	}
 	render_record(healthy, sizeof(healthy), &identity, "healthy");
 	if (strcmp(parsed.state, "healthy") == 0) {
-		print_line("already-healthy");
+		print_line(strcmp(operation, "rollback") == 0 ? "healthy" :
+			   "already-healthy");
 		if (close(descriptor) < 0)
 			fail("cannot close healthy trial record: %s", strerror(errno));
 	} else if (strcmp(parsed.state, "pending") == 0) {
@@ -432,13 +461,16 @@ int main(int argc, char **argv)
 		identity.fallback_hash = argv[6];
 		validate_identity(&identity);
 		decide(&identity);
-	} else if (argc == 4 && strcmp(argv[1], "healthy") == 0) {
+	} else if (argc == 4 && (strcmp(argv[1], "healthy") == 0 ||
+			       strcmp(argv[1], "state") == 0 ||
+			       strcmp(argv[1], "rollback") == 0 ||
+			       strcmp(argv[1], "reject") == 0)) {
 		if (!lower_hex(argv[2]) || !bundle_name(argv[3]))
 			fail("invalid running trial identity");
-		mark_healthy(argv[2], argv[3]);
+		update_health(argv[1], argv[2], argv[3]);
 	} else {
 		fail("usage: decide TRIAL_ID PRIMARY PRIMARY_HASH FALLBACK "
-		     "FALLBACK_HASH | healthy TRIAL_ID PRIMARY");
+		     "FALLBACK_HASH | healthy/state/rollback/reject TRIAL_ID PRIMARY");
 	}
 	return 0;
 }

@@ -101,7 +101,7 @@ class PersistentTrialState(unittest.TestCase):
                 primary_hash=PRIMARY_HASH, fallback=FALLBACK,
                 fallback_hash=FALLBACK_HASH, check=True, stdout=subprocess.PIPE):
         arguments = ([str(self.binary), action, trial, primary]
-                     if action == "healthy" else
+                     if action != "decide" else
                      [str(self.binary), action, trial, primary, primary_hash,
                       fallback, fallback_hash])
         if self.arm64:
@@ -124,6 +124,24 @@ class PersistentTrialState(unittest.TestCase):
     @property
     def record(self):
         return self.rog5 / "boot" / "wifi-trial-state"
+
+    def test_rollback_fences_late_health_and_reject_revokes_acceptance(self):
+        self.command()
+        self.assertEqual(self.command("state").stdout, "pending\n")
+        self.assertEqual(self.command("rollback").stdout, "rollback\n")
+        self.assertEqual(self.command("state").stdout, "failed\n")
+        self.assertNotEqual(self.command("healthy", check=False).returncode, 0)
+        self.assertEqual(self.command().stdout, FALLBACK+"\n")
+
+    def test_accepted_rollback_is_read_only_and_reject_is_durable(self):
+        self.command(); self.command("healthy")
+        before = self.record.read_bytes()
+        self.assertEqual(self.command("rollback").stdout, "healthy\n")
+        self.assertEqual(self.record.read_bytes(), before)
+        self.assertEqual(self.command("reject").stdout, "rollback\n")
+        self.assertEqual(self.command("reject").stdout, "rollback\n")
+        self.assertNotEqual(self.command("healthy", check=False).returncode, 0)
+        self.assertEqual(self.command().stdout, FALLBACK+"\n")
 
     def test_first_boot_is_primary_then_pending_falls_back(self):
         self.assertEqual(self.command().stdout, PRIMARY + "\n")
