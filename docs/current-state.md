@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Offscreen GLES shader/readback probe compiled and tested offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **ARM64 GLES software rendering verified with a signed package fixture**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Frozen-source active tier: 83 PASS, 0 FAIL, 0 BLOCKED; three declared optional subchecks SKIPPED. Real software Mesa verifies all 64 channels; no-draw mutation fails. ARM64 helper twins match, but target execution and EGL/Mesa closure remain unqualified. Board, panel, touch and signed artifacts are unchanged. Touch stays disabled; OLED/A660, touch events and suspend/wake physical tests remain NOT RUN. No phone operation is authorized. The next hardware question remains one bounded display scanout/blank cycle after separate exact-artifact and execution approval. See [current repair evidence](../test-results/2026-09-12-gles-readback.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The retained ARM64 probe verifies 64 pixel channels using Arch Mesa 26.2.2 softpipe under QEMU user; its no-draw mutation fails and strict A660 mode refuses software. Four reused fault-test groups PASS. Fifteen package signatures and 369 runtime paths are recorded. This fixture is separate from the unchanged full mobile package graph. The prior 83-PASS active tier is inherited for unchanged source, not rerun. Board, touch, signed and installed artifacts remain unchanged; physical OLED/A660, touch and suspend/wake remain NOT RUN. No phone operation is authorized. Next hardware question: one bounded display scanout/blank cycle after separate exact-artifact and execution approval. See [current repair evidence](../test-results/2026-09-12-gles-arm64.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

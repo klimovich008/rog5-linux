@@ -1,0 +1,862 @@
+{
+  "format": "rog5-arm64-gles-qualification-v1",
+  "status": "PASS: ARM64 software fixture; no hardware promotion",
+  "starting_commit": "6521eef31ad5f6cbbce60e955103ec67c3c46298",
+  "starting_tree": "9e8a31c2d300543383c695b9691c3830ba390c7c",
+  "probe_source_commit": "bdea5a5ef8585092d5f1fcf52b835089b890161d",
+  "probe_sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac",
+  "source_changes": "none; retained probe and existing fault test methods unchanged",
+  "qemu": {
+    "path": "/usr/bin/qemu-aarch64-static",
+    "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867"
+  },
+  "runtime_totals": {
+    "packages": 15,
+    "files": 369,
+    "regular_bytes": 297297138,
+    "loaded_libraries": 41
+  },
+  "runtime_lock": {
+    "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/runtime-lock.json",
+    "sha256": "045b08493566687bdca6b2bc4d35eeb6f0233b140be6d59268a0707c31c63abd"
+  },
+  "packages": [
+    {
+      "name": "libdrm",
+      "version": "2.4.134-1",
+      "architecture": "aarch64",
+      "archive": "libdrm-2.4.134-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libdrm-2.4.134-1-aarch64.pkg.tar.xz",
+      "size": 400060,
+      "sha256": "d4173d7adc60d32d389e44e976447962c31bc23ff9a2153539bd8ad766e307b8",
+      "signature_sha256": "eba5b560895f0d12f8b92cbdaf32ee9425af439c201b733b6893d2b368300176",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "libpciaccess",
+        "glibc"
+      ]
+    },
+    {
+      "name": "libglvnd",
+      "version": "1.7.0-3",
+      "architecture": "aarch64",
+      "archive": "libglvnd-1.7.0-3-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libglvnd-1.7.0-3-aarch64.pkg.tar.xz",
+      "size": 315240,
+      "sha256": "5a163e41583346b55f25de580e10c2edb31f5c8662667531d0e476b7b1336338",
+      "signature_sha256": "1069fbce37b23197fee87c8f30ce4e867a350388723a4160adfa017cc2c7b48d",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "libxext",
+        "mesa",
+        "opengl-driver"
+      ]
+    },
+    {
+      "name": "libpciaccess",
+      "version": "0.19-1",
+      "architecture": "aarch64",
+      "archive": "libpciaccess-0.19-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libpciaccess-0.19-1-aarch64.pkg.tar.xz",
+      "size": 20856,
+      "sha256": "d490a86384c25a9258e7eec84f5eaceca072e6ca45c37972e12f6e8a3da3766d",
+      "signature_sha256": "e07be1eccd969abbf395677b0565cdb97cc7809f2fdda728c79360aa815df110",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "glibc",
+        "zlib"
+      ]
+    },
+    {
+      "name": "libx11",
+      "version": "1.8.13-1",
+      "architecture": "aarch64",
+      "archive": "libx11-1.8.13-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libx11-1.8.13-1-aarch64.pkg.tar.xz",
+      "size": 2011676,
+      "sha256": "e68195a71049251a68c5073c2baebc0f2bba41dbdfada5a41dbbd28a37040f3c",
+      "signature_sha256": "5a682383bb1c044c3f27b9aac8288d896edfa557b03608d439985042a8f833a7",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "libxcb",
+        "glibc",
+        "xorgproto"
+      ]
+    },
+    {
+      "name": "libxau",
+      "version": "1.0.12-1",
+      "architecture": "aarch64",
+      "archive": "libxau-1.0.12-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libxau-1.0.12-1-aarch64.pkg.tar.xz",
+      "size": 11664,
+      "sha256": "f9abaead8ca4f0d4f9a6e181c3fcad8f96ddb9cf1d75d1d82a81c0ca8ad08a50",
+      "signature_sha256": "50f66512cf2ae861215b624c54406e90fdd4d76d6212be7346327893df61173c",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "glibc",
+        "xorgproto"
+      ]
+    },
+    {
+      "name": "libxcb",
+      "version": "1.17.0-1",
+      "architecture": "aarch64",
+      "archive": "libxcb-1.17.0-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libxcb-1.17.0-1-aarch64.pkg.tar.xz",
+      "size": 996228,
+      "sha256": "329a41249a09b4bb7f9b5f9694c1848c971188243cc1c0a479df4227800214c0",
+      "signature_sha256": "a1bec28878ff180682133e01d06c3db19fb56e174cb8f8f6bcce1e560edbf0a2",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "xcb-proto",
+        "libxdmcp",
+        "libxau",
+        "glibc"
+      ]
+    },
+    {
+      "name": "libxdmcp",
+      "version": "1.1.5-2",
+      "architecture": "aarch64",
+      "archive": "libxdmcp-1.1.5-2-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libxdmcp-1.1.5-2-aarch64.pkg.tar.xz",
+      "size": 26648,
+      "sha256": "aaf3575b4139a0ee675cbc15c03324d09892ded2188ac7cc326a8b36ef308496",
+      "signature_sha256": "d0278ab76d7e60e2960812d43bac281e2b36242858d3758aeedf274041d4c2aa",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "glibc",
+        "xorgproto"
+      ]
+    },
+    {
+      "name": "libxext",
+      "version": "1.3.7-1",
+      "architecture": "aarch64",
+      "archive": "libxext-1.3.7-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libxext-1.3.7-1-aarch64.pkg.tar.xz",
+      "size": 103732,
+      "sha256": "bff987768ac6bb9ed809d49f3c171c93ccf0c7264c59ec7b0940e844ba4e53ac",
+      "signature_sha256": "dc3526d0f1173280f0ecb039f5a7282d166d94b2ef7ad5f1951c49b9e78ba45a",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "libx11",
+        "glibc",
+        "xorgproto"
+      ]
+    },
+    {
+      "name": "libxshmfence",
+      "version": "1.3.3-1",
+      "architecture": "aarch64",
+      "archive": "libxshmfence-1.3.3-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libxshmfence-1.3.3-1-aarch64.pkg.tar.xz",
+      "size": 6188,
+      "sha256": "d137d6cc13a75284267cd56beabfde6094fb1a4f8fb373af555c2e47c0e6b636",
+      "signature_sha256": "453600aa081f78b0abac4271afec2a958b0bb7ede005b7c0cbfd9534b150dd86",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "glibc"
+      ]
+    },
+    {
+      "name": "libxxf86vm",
+      "version": "1.1.7-1",
+      "architecture": "aarch64",
+      "archive": "libxxf86vm-1.1.7-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/libxxf86vm-1.1.7-1-aarch64.pkg.tar.xz",
+      "size": 15016,
+      "sha256": "9c07efd6fe6040a7e2d19af307c74d5f2235b6313e74710a29ecedb56f9a6ded",
+      "signature_sha256": "9673a3563caccb2322ecc25305d6797603cab47ebb68bc9556137e511753921f",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "libxext",
+        "libx11",
+        "glibc",
+        "xorgproto"
+      ]
+    },
+    {
+      "name": "llvm-libs",
+      "version": "22.1.8-2",
+      "architecture": "aarch64",
+      "archive": "llvm-libs-22.1.8-2-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/llvm-libs-22.1.8-2-aarch64.pkg.tar.xz",
+      "size": 36838688,
+      "sha256": "f3119b25813452a1cddd84ea985d7d76d9da41201b39e82f15cf23c2d3ed348e",
+      "signature_sha256": "6bfa9eaa70713c8088714b57003e996bad9d76359c0f4b8c4156af9c981c7502",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "libgcc",
+        "glibc",
+        "libstdc++",
+        "zlib",
+        "zstd",
+        "libffi",
+        "libedit",
+        "libxml2"
+      ]
+    },
+    {
+      "name": "lm_sensors",
+      "version": "1:3.6.2-1",
+      "architecture": "aarch64",
+      "archive": "lm_sensors-1:3.6.2-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/lm_sensors-1:3.6.2-1-aarch64.pkg.tar.xz",
+      "size": 125904,
+      "sha256": "dc855daccb5fe4a7f89702db47bd3c53b3047dee8de92df2de975fe130985eb5",
+      "signature_sha256": "56331bf2d6f551d9015a5e35b3beb5b39339abc27553c45290b90b2f6c4f7521",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "bash",
+        "glibc"
+      ]
+    },
+    {
+      "name": "mesa",
+      "version": "1:26.2.2-1",
+      "architecture": "aarch64",
+      "archive": "mesa-1:26.2.2-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/mesa-1:26.2.2-1-aarch64.pkg.tar.xz",
+      "size": 12636812,
+      "sha256": "038526d27535aa153fd76b556185c93e0957a23348898bb46860a92652fd5a26",
+      "signature_sha256": "93f31b48c95247729fe42685ee3527362226e2a06cd4d1a2f305505b54747115",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "expat",
+        "glibc",
+        "libdrm",
+        "libelf",
+        "libgcc",
+        "libglvnd",
+        "libstdc++",
+        "libx11",
+        "libxcb",
+        "libxext",
+        "libxshmfence",
+        "libxxf86vm",
+        "llvm-libs",
+        "lm_sensors",
+        "spirv-tools",
+        "wayland",
+        "zlib",
+        "zstd"
+      ]
+    },
+    {
+      "name": "spirv-tools",
+      "version": "1:1.4.357.0-1",
+      "architecture": "aarch64",
+      "archive": "spirv-tools-1:1.4.357.0-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/spirv-tools-1:1.4.357.0-1-aarch64.pkg.tar.xz",
+      "size": 1935624,
+      "sha256": "e49c54afc1e11b1a915df17ba380c4c4402477a5d5370417801a87df3388ae59",
+      "signature_sha256": "9be028473c49d20670b982c724f989cffacb46f06adb88686ab05ee45e288148",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "libstdc++",
+        "glibc",
+        "sh"
+      ]
+    },
+    {
+      "name": "wayland",
+      "version": "1.26.0-1",
+      "architecture": "aarch64",
+      "archive": "wayland-1.26.0-1-aarch64.pkg.tar.xz",
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/packages/wayland-1.26.0-1-aarch64.pkg.tar.xz",
+      "size": 143632,
+      "sha256": "9382b38f97ee3841597f89aa6ca1fceea3d968ae759151eaab9c4b5373d1ce72",
+      "signature_sha256": "5ca988b59b191e409eb09d73fb3ea23a1d4a7e893066149e8310bce8f2271109",
+      "signer": "68B3537F39A313B3E574D06777193F152BDBE6A6",
+      "signature_status": "PASS against retained keyring; keyring freshness NOT RUN",
+      "depends": [
+        "glibc",
+        "libffi",
+        "expat",
+        "libxml2",
+        "default-cursors"
+      ]
+    }
+  ],
+  "keyring": {
+    "source_ascii_sha256": "6ce771e853f04a38a5b533cb33e61f877b9b06b58b6db051eb8a15d737a2332f",
+    "dearmored_sha256": "9403f923eed777ba0896a0b225e1522d3a7625234694c753ae26b27c29672aae",
+    "revoked_list_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "freshness": "NOT RUN"
+  },
+  "root_verification_scope": "recorded metadata unchanged; extracted file hashes checked; full image hashes are historical, not recomputed",
+  "abi_tests": {
+    "status": "PASS",
+    "seconds": 2.0587376930052415,
+    "tests": [
+      "test_actual_executable_faults_never_publish_pass",
+      "test_requires_explicit_mode_before_library_loading",
+      "test_strict_renderer_scope_and_cleanup",
+      "test_stalled_readback_is_killed_without_success"
+    ],
+    "probe": "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a",
+    "scope": "retained ARM64 binary on retained Arch libc via QEMU user; EGL/GLES ABI fixtures only",
+    "phone_operations": false
+  },
+  "mesa_tests": [
+    {
+      "name": "loader",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/usr/lib/ld-linux-aarch64.so.1",
+        "--list",
+        "/probe"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "duration_seconds": 0.0323308039951371,
+      "status": "PASS"
+    },
+    {
+      "name": "software",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/probe",
+        "--software-fixture"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "duration_seconds": 1.0164681229944108,
+      "status": "PASS"
+    },
+    {
+      "name": "hardware-refusal",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-readback-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/probe",
+        "--require-a660"
+      ],
+      "exit_status": 1,
+      "expected_exit_status": 1,
+      "duration_seconds": 0.6657165230135433,
+      "status": "PASS"
+    }
+  ],
+  "mutation": {
+    "status": "PASS",
+    "observed_exit_status": 1,
+    "expected_exit_status": 1,
+    "seconds": 1.0170886959967902,
+    "command": [
+      "bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+      "/usr",
+      "--symlink",
+      "usr/lib",
+      "/lib",
+      "--dev",
+      "/dev",
+      "--proc",
+      "/proc",
+      "--tmpfs",
+      "/tmp",
+      "--ro-bind",
+      "/usr/bin/qemu-aarch64-static",
+      "/qemu",
+      "--ro-bind",
+      "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/build/no-draw-arm64",
+      "/probe",
+      "--clearenv",
+      "--setenv",
+      "LD_DEBUG",
+      "libs",
+      "--setenv",
+      "LD_LIBRARY_PATH",
+      "/usr/lib",
+      "--setenv",
+      "LIBGL_ALWAYS_SOFTWARE",
+      "1",
+      "--setenv",
+      "GALLIUM_DRIVER",
+      "softpipe",
+      "--setenv",
+      "MESA_SHADER_CACHE_DISABLE",
+      "true",
+      "--setenv",
+      "LP_NUM_THREADS",
+      "1",
+      "/qemu",
+      "/probe",
+      "--software-fixture"
+    ]
+  },
+  "loaded_libraries": [
+    {
+      "runtime_path": "/lib/ld-linux-aarch64.so.1",
+      "resolved_path": "usr/lib/ld-linux-aarch64.so.1",
+      "sha256": "b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d",
+      "size": 201832
+    },
+    {
+      "runtime_path": "/usr/lib/libEGL.so.1",
+      "resolved_path": "usr/lib/libEGL.so.1.1.0",
+      "sha256": "d2b76272182bccaf0b36d1e89e64998f1b5c7ab175e6dfe7b9910804c84970a0",
+      "size": 133024
+    },
+    {
+      "runtime_path": "/usr/lib/libEGL_mesa.so.0",
+      "resolved_path": "usr/lib/libEGL_mesa.so.0.0.0",
+      "sha256": "3dd8788d56eb97e5a07cece9d94003258673134ed2a0aae1699a675802e57500",
+      "size": 396360
+    },
+    {
+      "runtime_path": "/usr/lib/libGLESv2.so.2",
+      "resolved_path": "usr/lib/libGLESv2.so.2.1.0",
+      "sha256": "983e6c9e65341ff407020c71d25796bbac6144b112b7139c1704fe1d3f0c52b5",
+      "size": 198600
+    },
+    {
+      "runtime_path": "/usr/lib/libGLdispatch.so.0",
+      "resolved_path": "usr/lib/libGLdispatch.so.0.0.0",
+      "sha256": "4341cba6efd6f63fd079d444daa753691cb900b96e405a227e7cff1e90312d99",
+      "size": 1574936
+    },
+    {
+      "runtime_path": "/usr/lib/libLLVM.so.22.1",
+      "resolved_path": "usr/lib/libLLVM.so.22.1",
+      "sha256": "b58132b38f1652282811f6ba505d57f4c6d1a3e79874de02a67c2e9ad9e2d032",
+      "size": 168704440
+    },
+    {
+      "runtime_path": "/usr/lib/libSPIRV-Tools.so",
+      "resolved_path": "usr/lib/libSPIRV-Tools.so",
+      "sha256": "cb516ba0183d76fe3c3b5844a9894d6f96249df4c669e86d8f38aed26cbfa2db",
+      "size": 2099960
+    },
+    {
+      "runtime_path": "/usr/lib/libX11-xcb.so.1",
+      "resolved_path": "usr/lib/libX11-xcb.so.1.0.0",
+      "sha256": "c100d271ba9a49922b65d6d91be9376f3f5722341b52fd443036f516fe1d1403",
+      "size": 67144
+    },
+    {
+      "runtime_path": "/usr/lib/libX11.so.6",
+      "resolved_path": "usr/lib/libX11.so.6.4.0",
+      "sha256": "47bbfc7dc44b2f7408250ad51fecf0fe9a65480d6aa3716d7b5bf6e910253212",
+      "size": 1389856
+    },
+    {
+      "runtime_path": "/usr/lib/libXau.so.6",
+      "resolved_path": "usr/lib/libXau.so.6.0.0",
+      "sha256": "a92fa15e6ec8830a02c36ce6b398dbd736da3c59441addc03c210a55fee00001",
+      "size": 67376
+    },
+    {
+      "runtime_path": "/usr/lib/libXdmcp.so.6",
+      "resolved_path": "usr/lib/libXdmcp.so.6.0.0",
+      "sha256": "d16300a2508f4af718dfe2fa9a1d89c743b7befd8eb59f376a814f37c6e41e28",
+      "size": 67496
+    },
+    {
+      "runtime_path": "/usr/lib/libc.so.6",
+      "resolved_path": "usr/lib/libc.so.6",
+      "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab",
+      "size": 1853736
+    },
+    {
+      "runtime_path": "/usr/lib/libdrm.so.2",
+      "resolved_path": "usr/lib/libdrm.so.2.134.0",
+      "sha256": "cd771d2c85a933b66874255b66edbf845b00519262b12d5994930ade3a56b48d",
+      "size": 133216
+    },
+    {
+      "runtime_path": "/usr/lib/libdrm_amdgpu.so.1",
+      "resolved_path": "usr/lib/libdrm_amdgpu.so.1.134.0",
+      "sha256": "dfc8b428ab28a55dd467960fc3f7e4794228dd1bf2c11fb2c93086a455202e8f",
+      "size": 67496
+    },
+    {
+      "runtime_path": "/usr/lib/libdrm_intel.so.1",
+      "resolved_path": "usr/lib/libdrm_intel.so.1.134.0",
+      "sha256": "4b36e1c0e49de408791f9110494afff0086b0aa969219a809ffe9b91033369f7",
+      "size": 200248
+    },
+    {
+      "runtime_path": "/usr/lib/libedit.so.0",
+      "resolved_path": "usr/lib/libedit.so.0.0.78",
+      "sha256": "c49dac5cafc3958fb1e52b4be54fcdd660f78c32ab8b4b1cc126705cdd888ca4",
+      "size": 264360
+    },
+    {
+      "runtime_path": "/usr/lib/libelf.so.1",
+      "resolved_path": "usr/lib/libelf-0.196.so",
+      "sha256": "e9afbe1e85f038a5fac5733b9e5ab253af3f5f3f0e2416c9232f8b1a09ab0578",
+      "size": 133256
+    },
+    {
+      "runtime_path": "/usr/lib/libexpat.so.1",
+      "resolved_path": "usr/lib/libexpat.so.1.12.3",
+      "sha256": "b7ef7417740d557baf4a3b6320b224c678586de7e7ac70520dd332b9129e8e50",
+      "size": 198640
+    },
+    {
+      "runtime_path": "/usr/lib/libffi.so.8",
+      "resolved_path": "usr/lib/libffi.so.8.5.0",
+      "sha256": "8be7610cc71df6b52d7ae8ad50ffd32fedbe47a64184efdb321c6789f84d1605",
+      "size": 67720
+    },
+    {
+      "runtime_path": "/usr/lib/libgallium-26.2.2-arch1.1.so",
+      "resolved_path": "usr/lib/libgallium-26.2.2-arch1.1.so",
+      "sha256": "b552cd6c748afc4eda241b7506c6d102968775f6323d005b8ef6485ed8a70d1f",
+      "size": 53602840
+    },
+    {
+      "runtime_path": "/usr/lib/libgbm.so.1",
+      "resolved_path": "usr/lib/libgbm.so.1.0.0",
+      "sha256": "e28a74e111cf6f9e2c0f5e1aa3edb0c431dfe088a24cd37da4a0f974eaa42dd1",
+      "size": 67616
+    },
+    {
+      "runtime_path": "/usr/lib/libgcc_s.so.1",
+      "resolved_path": "usr/lib/libgcc_s.so.1",
+      "sha256": "ac598673a4bf67c0295b6609e46b1fafd0d4adf3f80a513d61ac49ecff772e48",
+      "size": 133352
+    },
+    {
+      "runtime_path": "/usr/lib/libicudata.so.78",
+      "resolved_path": "usr/lib/libicudata.so.78.3",
+      "sha256": "2f624d6c2d92113a45906f245e0d50f4d28572cfe973ede09b25e8422460ba09",
+      "size": 33162960
+    },
+    {
+      "runtime_path": "/usr/lib/libicuuc.so.78",
+      "resolved_path": "usr/lib/libicuuc.so.78.3",
+      "sha256": "76217efb5cf1c42284a1572e6b8f1b13147523b0072d3cc819458be5f657fe40",
+      "size": 2427016
+    },
+    {
+      "runtime_path": "/usr/lib/libm.so.6",
+      "resolved_path": "usr/lib/libm.so.6",
+      "sha256": "71ed8de709c40acd4fd0177258fc71251a5acdb1d075122409ad42529d6c7a4e",
+      "size": 788960
+    },
+    {
+      "runtime_path": "/usr/lib/libncursesw.so.6",
+      "resolved_path": "usr/lib/libncursesw.so.6.6",
+      "sha256": "893eea93d2c1011c1f9edee6393cd46475f115d9f2a788e3b55f34591020316b",
+      "size": 527568
+    },
+    {
+      "runtime_path": "/usr/lib/libpciaccess.so.0",
+      "resolved_path": "usr/lib/libpciaccess.so.0.11.1",
+      "sha256": "fcc51df5475c0fcfbee0ac51c8dc97738fb55f923cc8beeb41739bf353dd07af",
+      "size": 67576
+    },
+    {
+      "runtime_path": "/usr/lib/libsensors.so.5",
+      "resolved_path": "usr/lib/libsensors.so.5.0.0",
+      "sha256": "66f3ef8beae7a03ddb0d9d3732edb481552b929c19067ce32e67716a27bdfd01",
+      "size": 67504
+    },
+    {
+      "runtime_path": "/usr/lib/libstdc++.so.6",
+      "resolved_path": "usr/lib/libstdc++.so.6.0.35",
+      "sha256": "abdf011833740a6f0ca1654876f18d9a5911a9ad08806a38d015e60e3e516ab8",
+      "size": 3017768
+    },
+    {
+      "runtime_path": "/usr/lib/libwayland-client.so.0",
+      "resolved_path": "usr/lib/libwayland-client.so.0.26.0",
+      "sha256": "ccae8b4a09ec07ce893cf276697bab766d7e406efe4c42e0149680c755b96437",
+      "size": 133952
+    },
+    {
+      "runtime_path": "/usr/lib/libxcb-dri3.so.0",
+      "resolved_path": "usr/lib/libxcb-dri3.so.0.1.0",
+      "sha256": "76fbf9d4e65cd07f42dbda1e354a31f56b6ce216aa5f257a6b757b68d4623c01",
+      "size": 18296
+    },
+    {
+      "runtime_path": "/usr/lib/libxcb-present.so.0",
+      "resolved_path": "usr/lib/libxcb-present.so.0.0.0",
+      "sha256": "edfb8b41ba9044ed1f771734a359d4aec994265127c5b5a07d0533b760f85c78",
+      "size": 14200
+    },
+    {
+      "runtime_path": "/usr/lib/libxcb-randr.so.0",
+      "resolved_path": "usr/lib/libxcb-randr.so.0.1.0",
+      "sha256": "6ba3894ebbcaef9fd94720d75c34eb15a9ede62d29759621bd08cfa73fa930bf",
+      "size": 67448
+    },
+    {
+      "runtime_path": "/usr/lib/libxcb-shm.so.0",
+      "resolved_path": "usr/lib/libxcb-shm.so.0.0.0",
+      "sha256": "b5c9cf94623c26e216963515ca0c6781a5fd34f0a73dda22c84a0e2456d2c325",
+      "size": 14200
+    },
+    {
+      "runtime_path": "/usr/lib/libxcb-sync.so.1",
+      "resolved_path": "usr/lib/libxcb-sync.so.1.0.0",
+      "sha256": "6ae2354d68e507adc9bdaa9fd5e785b82c16e6ce73e7d7dbd7b07681cc237e71",
+      "size": 26488
+    },
+    {
+      "runtime_path": "/usr/lib/libxcb-xfixes.so.0",
+      "resolved_path": "usr/lib/libxcb-xfixes.so.0.0.0",
+      "sha256": "b9b96393f66544f003c51e8c467793f64847fe5cfcef17b82e96c45944a70dd4",
+      "size": 34680
+    },
+    {
+      "runtime_path": "/usr/lib/libxcb.so.1",
+      "resolved_path": "usr/lib/libxcb.so.1.1.0",
+      "sha256": "6bc5e4009e1bbc706479d1a4ebba7763c42f0d9c1655e237ca0f16e1a83aac39",
+      "size": 169888
+    },
+    {
+      "runtime_path": "/usr/lib/libxml2.so.16",
+      "resolved_path": "usr/lib/libxml2.so.16.1.3",
+      "sha256": "a0fafd1caf0bf63f71e23175a797d0f1decaef1afa752d3d05d2946cebe03d0c",
+      "size": 1379208
+    },
+    {
+      "runtime_path": "/usr/lib/libxshmfence.so.1",
+      "resolved_path": "usr/lib/libxshmfence.so.1.0.0",
+      "sha256": "8d8678ee3b1d6a235c2d45bf5ac83f87f551fc6928c8cc22f2dd91703a3560c9",
+      "size": 67384
+    },
+    {
+      "runtime_path": "/usr/lib/libz.so.1",
+      "resolved_path": "usr/lib/libz.so.1.3.2",
+      "sha256": "f8d5729601ca8fb86a8d9d048eff241a0e349342da7a5cea11389d0e33ed0a43",
+      "size": 133128
+    },
+    {
+      "runtime_path": "/usr/lib/libzstd.so.1",
+      "resolved_path": "usr/lib/libzstd.so.1.5.7",
+      "sha256": "14d907be630eb1670d14fc104a0982cca01feac5bc75f1846e54f6278c5ee2e2",
+      "size": 854104
+    }
+  ],
+  "receipts": {
+    "runtime-lock.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/runtime-lock.json",
+      "sha256": "045b08493566687bdca6b2bc4d35eeb6f0233b140be6d59268a0707c31c63abd"
+    },
+    "arm64-tests-r2.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/arm64-tests-r2.json",
+      "sha256": "841f925cbfdf035e70434e0dc86024391af30e07fbafaf6c7ab281b77facbd7e"
+    },
+    "mesa-tests-r2.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/mesa-tests-r2.json",
+      "sha256": "3e18850552767b6eff0ceec2142babac4a2a51584c7cf3e14a32830aef6d3beb"
+    },
+    "mutation-test.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/mutation-test.json",
+      "sha256": "a12534f464b94f9a933fbc1ad9ea59cec726f7185c654df960e82dd4d797a0df"
+    },
+    "loader-mode.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/loader-mode.json",
+      "sha256": "639c9e2d0dfa904e645ebe04c5e5eca76a80a5d6468f6c248410b231d3124247"
+    },
+    "mutation-build.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/mutation-build.json",
+      "sha256": "81552e0adf55f6f0cb3e3edaf21008989d8449a79787a1de451cf1611b56f3a5"
+    },
+    "arm64-tests.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/arm64-tests.json",
+      "sha256": "f0325fa5b42c51197fe2a4bb27b756d8e31e4091c2b03cc7dc56ea693be8dfff"
+    },
+    "mesa-tests.json": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/mesa-tests.json",
+      "sha256": "eceb8b3dab0d5c47c1cd24db3c2ee730279937b49c8f5c2f4b18c609290d1bdf"
+    },
+    "mesa-signature.log": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/mesa-signature.log",
+      "sha256": "f85c1a5c40b1cc9fbb2bc5d0706679d82299f6e8928d4cecaff7971c4889693f"
+    }
+  },
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "protected_storage_mutation": false,
+  "candidate": null,
+  "signing_operations": false,
+  "package_signature_verification": "PASS against retained Arch Linux ARM keyring, not a production admission or freshness guarantee",
+  "mobile_graph": "unchanged: pinned Mesa 1:26.2.1-1 not available from checked mirrors; this separate fixture uses signed 1:26.2.2-1",
+  "inherited_tests": "83 PASS active tier from bdea5a5e retained for unchanged source; not rerun this turn",
+  "limits": [
+    "No A660 GPU/kernel/firmware or phone execution",
+    "No scanout, DMA-BUF export/import/modifiers or native fences",
+    "No Denial runtime/mobile graph qualification",
+    "Package keyring freshness and full-image rehash NOT RUN"
+  ],
+  "host_tools": {
+    "qemu-aarch64-static": {
+      "path": "/usr/bin/qemu-aarch64-static",
+      "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+      "version_output": "qemu-aarch64 version 10.0.3\nCopyright (c) 2003-2025 Fabrice Bellard and the QEMU Project developers\n",
+      "exit_status": 0
+    },
+    "bwrap": {
+      "path": "/usr/bin/bwrap",
+      "sha256": "11e350f9154f8c8e30482fb087f4c3d033907452b7a5d82d027b6662d07f3ab6",
+      "version_output": "bubblewrap 0.11.0\n",
+      "exit_status": 0
+    },
+    "gpgv": {
+      "path": "/usr/bin/gpgv",
+      "sha256": "d841368df2825ff34b788f01c7d6d97185ec8a0cb9592e9b25f498c206c32766",
+      "version_output": "gpgv (GnuPG) 2.4.8\nlibgcrypt 1.11.1\nCopyright (C) 2025 g10 Code GmbH\nLicense GNU GPL-3.0-or-later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n",
+      "exit_status": 0
+    },
+    "gpg": {
+      "path": "/usr/bin/gpg",
+      "sha256": "96281ecf00e6a81fe7d8b15ef11f28093cfe85f42559fc28b360fb6bf0d2f184",
+      "version_output": "gpg (GnuPG) 2.4.8\nlibgcrypt 1.11.1\nCopyright (C) 2025 g10 Code GmbH\nLicense GNU GPL-3.0-or-later <https://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law.\n\nHome: /home/deck/.gnupg\nSupported algorithms:\nPubkey: RSA, ELG, DSA, ECDH, ECDSA, EDDSA\nCipher: IDEA, 3DES, CAST5, BLOWFISH, AES, AES192, AES256, TWOFISH,\n        CAMELLIA128, CAMELLIA192, CAMELLIA256\nHash: SHA1, RIPEMD160, SHA256, SHA384, SHA512, SHA224\nCompression: Uncompressed, ZIP, ZLIB, BZIP2\n",
+      "exit_status": 0
+    },
+    "debugfs": {
+      "path": "/usr/bin/debugfs",
+      "sha256": "848c2af621f67d50dee390bd52a97fc0cc67ab6dd6fd96c05bc6dca734d9a0e2",
+      "version_output": "debugfs 1.47.3 (8-Jul-2025)\n\tUsing EXT2FS Library version 1.47.3\n",
+      "exit_status": 0
+    },
+    "readelf": {
+      "path": "/usr/bin/readelf",
+      "sha256": "3ab82eac85b65718cea1cb69d2614b73a63c724c937f26830cb6a4eb33263d08",
+      "version_output": "GNU readelf (GNU Binutils) 2.45\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) any later version.\nThis program has absolutely no warranty.\n",
+      "exit_status": 0
+    },
+    "python3": {
+      "path": "/usr/bin/python3",
+      "sha256": "62cf34d8c76bbde1cceea478800c3b9125a90746dd73f1281614823bdcf1b718",
+      "version_output": "Python 3.13.5\n",
+      "exit_status": 0
+    }
+  }
+}
