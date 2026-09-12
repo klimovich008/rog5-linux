@@ -66,7 +66,9 @@ class RuntimePrerequisites(unittest.TestCase):
                 'raster_frames=3 output_page_flips=2')
         self.assertEqual(GUEST.session_result(line)['status'], 'PASS')
         for error in ('required Flutter native fence export failed',
-                      'Unhandled Exception', 'Could not create the embedder backing store'):
+                      'Unhandled Exception', 'Could not create the embedder backing store',
+                      'Could not make the context current to destroy Impeller surface resources.',
+                      'Could not clear the context after Impeller surface cleanup.'):
             self.assertEqual(GUEST.session_result(line+'\n'+error)['status'], 'FAIL')
 
     def test_missing_duplicate_and_incomplete_counters_fail(self):

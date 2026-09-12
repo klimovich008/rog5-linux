@@ -45,6 +45,8 @@ def session_result(log):
         'Could not create the embedder backing store',
         'Unhandled Exception', 'deniald: fatal error:',
         'could not bind Flutter context for output-target cleanup',
+        'Could not make the context current to destroy Impeller surface resources.',
+        'Could not clear the context after Impeller surface cleanup.',
     ) if message in text]
     result.update(counts, render_errors=errors)
     if all(counts.values()) and not errors:
