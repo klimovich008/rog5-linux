@@ -6,6 +6,12 @@ Cellular calling, SMS and mobile data are excluded. Display, touch and GPU are
 now central work. The existing headless server provides the development and
 recovery baseline; completing its matrix alone does not complete this product.
 
+The [mobile acceptance contract](configs/mobile/acceptance.json) separates exact
+production-build/software evidence from candidate-bound physical evidence. Its
+physical rows start NOT RUN. The [prepared trial plans](docs/mobile-trial-plans.md)
+cover buttons/LED, corrected 60 Hz display, touch, GPU and suspend/idle questions;
+this offline repair grants no phone-operation authority.
+
 The reference is the [OnePlus 12R Denial demonstration](https://www.reddit.com/r/mobilelinux/comments/1w80kvt/arch_linux_on_a_oneplus_12r_powered_by_the_denial/).
 [Denial](https://github.com/denialwm/denial) is the selected compositor for the
 native mobile session. Its author's post described the

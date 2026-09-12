@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "serial": "REPLACE_WITH_PRIVATE_SERIAL",
+  "product": "lahaina",
+  "usb_path": "REPLACE_WITH_PRIVATE_TOPOLOGY",
+  "expected_slot": "b",
+  "rescue_slot": "a",
+  "authority": "identity only; no operation authorization"
+}

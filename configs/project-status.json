@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "phase": "Offline correctness and qualification repair in progress",
+  "artifact_pointer": "manifests/current-artifact.json",
+  "mobile_contract": "configs/mobile/acceptance.json",
+  "physical_tests": "NOT RUN",
+  "phone_operations_authorized": false,
+  "open_headless_results": {
+    "S06": "FAIL",
+    "R01": "FAIL"
+  },
+  "next": "Complete source regressions and exact production board qualification; no device operation in this task",
+  "evidence": "test-results/2026-09-12-offline-correctness-repair.md"
+}

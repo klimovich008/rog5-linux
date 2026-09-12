@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "status": "PREPARED_NOT_INSTALLED",
+  "normal_user": "mobile",
+  "uid_policy": "UID 1000 reserved for mobile; future composer must refuse any existing conflicting UID/name/home ownership before installing",
+  "autologin": false,
+  "sudo_rules": [],
+  "supplementary_device_groups": [],
+  "device_access": "logind active-seat mediation; no raw block, kmem, module loading or permanent input group",
+  "privilege_requests": "narrow authenticated polkit operations; review each rule before composition",
+  "root_ssh": "explicit rescue/development profile only",
+  "default_off_services": [
+    "sshd.service",
+    "tailscaled.service",
+    "rog5-ttyd.service",
+    "rog5-chromium-headless.service",
+    "krdpserver.service"
+  ],
+  "secrets": "root-owned 0600 Wi-Fi/Tailscale files outside Git; no session-environment export or log capture",
+  "lock_screen": "BLOCKED until Denial lock authentication and input isolation are physically qualified",
+  "data_at_rest": "BLOCKED: no qualified encrypted mobile userdata composition",
+  "unlocked_bootloader": "Physical possession permits replacement boot code; encryption alone does not establish verified boot or prevent credential capture",
+  "updates": "Signed exact-artifact verification, rollback protection and signed rescue preserved; no mutable package upgrade promoted to accepted image",
+  "lost_device": "Revoke Tailscale node and SSH credentials from another trusted host; remote wipe is not promised; offline exposure follows encryption and boot threat model",
+  "headless_policy": "unchanged"
+}
