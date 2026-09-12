@@ -246,13 +246,15 @@ class Checkers(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT/name, path)
 
-    def check(self, checker, expect):
+    def check(self, checker, expect, graph=None):
         program = ('import importlib.util, pathlib, sys; '
                    's=importlib.util.spec_from_file_location("checker",sys.argv[1]); '
                    'm=importlib.util.module_from_spec(s); s.loader.exec_module(m); '
-                   'm.validate(pathlib.Path(sys.argv[2]))')
+                   'm.validate(pathlib.Path(sys.argv[2]), graph=pathlib.Path(sys.argv[3])) '
+                   'if len(sys.argv)>3 else m.validate(pathlib.Path(sys.argv[2]))')
         result = subprocess.run([sys.executable, '-O', '-c', program,
-                                 str(ROOT/'scripts/host'/checker), str(self.root)],
+                                 str(ROOT/'scripts/host'/checker), str(self.root)] +
+                                ([str(graph)] if graph is not None else []),
                                 capture_output=True, text=True, timeout=10)
         if expect:
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -281,6 +283,15 @@ class Checkers(unittest.TestCase):
         self.alter('packaging/arch/mobile-package-closure.json',
                    lambda data: data['dependency_edges'].pop())
         self.check('check-mobile-package-closure.py', False)
+
+    def test_explicit_graph_is_selected_and_validated_under_optimization(self):
+        original = 'packaging/arch/mobile-package-closure.json'
+        selected = 'packaging/arch/selected-snapshot.json'
+        shutil.copyfile(self.root / original, self.root / selected)
+        self.alter(original, lambda data: data['dependency_edges'].pop())
+        self.check('check-mobile-package-closure.py', True, selected)
+        self.alter(selected, lambda data: data['dependency_edges'].pop())
+        self.check('check-mobile-package-closure.py', False, selected)
 
     def test_wrong_provider_refuses_under_optimization(self):
         def replace(data):
