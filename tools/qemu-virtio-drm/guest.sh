@@ -34,7 +34,12 @@ export DENIA_RENDER_AUDIT=1
 # Keep buffer format/import evidence at the failing GL boundary. The host
 # harness bounds the complete serial log and guest lifetime.
 export RUST_LOG=deniald=info,smithay=info,smithay::backend::egl::display=trace,smithay::backend::renderer::gles=trace
-if [[ -d /run/payload/flutter ]]; then
+if [[ -x /run/payload/egl-thread-probe ]]; then
+    for mode in exit unbind release; do
+        timeout --kill-after=2 10 /run/payload/egl-thread-probe "$mode"
+    done
+    echo 'NOT RUN Denial: standalone EGL thread-transfer experiment'
+elif [[ -d /run/payload/flutter ]]; then
     # UntilLogout supports initially inactive CRTCs; the external timer owns
     # this guest's lifetime. Keep seatd alive while Denial handles SIGTERM.
     export SEATD_SOCK=/run/seatd.sock

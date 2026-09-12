@@ -69,10 +69,25 @@ only the Deck render node; it does not expose host display control or phone
 devices. Use the retained complete GL container from the current artifact
 pointer. Default software mode remains available, but the retained llvmpipe
 stack lacks the native-fence extension required by this Denial renderer.
-VirGL advertises the extension but currently fails initial framebuffer binding;
-successful fence export and a full session remain unproven. The guest's targeted
+The corrected modifier allocation reaches presented frames in the retained VirGL
+VM. The full session still fails on per-frame authorization and EGL cleanup;
+positive counters do not qualify the session or the phone. The guest's targeted
 TRACE filter needs a diagnostic build: the retained Denial release enables
 `release_max_level_info`, which compiles those callsites out.
+
+For the independent EGL cleanup investigation, build
+`tools/qemu-virtio-drm/egl-thread-probe.c` with the retained ARM64 cross compiler:
+`aarch64-linux-gnu-gcc -std=c11 -D_GNU_SOURCE -O2 -Wall -Wextra -Werror
+-pthread tools/qemu-virtio-drm/egl-thread-probe.c -o OUTPUT -lEGL -lGLESv2 -lgbm`.
+Use the same VM command with `--egl-thread-probe OUTPUT` instead of `--deniald`,
+require `--render-node`, and omit `--flutter-bundle`. No Denial binary or shell
+runs in this mode. Three fresh processes compare worker exit, explicit unbind,
+and `eglReleaseThread`; each first checks rejection while the worker still owns
+the context. The ten-second per-process deadline and existing VM/log bounds
+apply. PASS means the comparison completed with valid controls; inspect the
+recorded post-join outcome separately. This does not reproduce Denial's full
+thread/context lifecycle or qualify phone graphics. Record the source, executable,
+compiler container and unchanged VM inputs alongside the result.
 
 The mobile package graph checker validates metadata by default. The original
 `mobile-package-closure.json` remains a historical graph; select the current

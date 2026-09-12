@@ -65,11 +65,37 @@ def render_node_identity(path):
             'minor': os.minor(info.st_rdev), 'scope': 'host rendering only; no phone device'}
 
 
+def egl_thread_result(log):
+    """A completed comparison is not evidence that Denial teardown is fixed."""
+    result = {'status': 'FAIL', 'scope': 'standalone virtual EGL thread transfer; not Denial',
+              'after_join': {}}
+    for mode in ('exit', 'unbind', 'release'):
+        if log.count('PASS EGL thread probe mode='+mode) != 1:
+            return dict(result, reason='missing or duplicate mode completion')
+        collision = re.findall(r'EGL_THREAD mode='+mode+
+                               r' stage=live-collision ok=(\d+) error=(0x[0-9a-f]+)', log)
+        joined = re.findall(r'EGL_THREAD mode='+mode+
+                            r' stage=after-join ok=(\d+) error=(0x[0-9a-f]+)', log)
+        if collision != [('0', '0x3002')] or len(joined) != 1:
+            return dict(result, reason='missing or inconsistent transfer observation')
+        ok, error = joined[0]
+        if ((ok, error) not in [('1', '0x3000'), ('0', '0x3002')] or
+                (mode != 'exit' and ok != '1')):
+            return dict(result, reason='unexpected transfer error')
+        result['after_join'][mode] = {'acquired': ok == '1', 'egl_error': error}
+    if 'FAIL EGL thread probe' in log:
+        return dict(result, reason='probe reported failure')
+    return dict(result, status='PASS')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', required=True, type=Path)
     parser.add_argument('--kernel', required=True, type=Path)
-    parser.add_argument('--deniald', required=True, type=Path)
+    program = parser.add_mutually_exclusive_group(required=True)
+    program.add_argument('--deniald', type=Path)
+    program.add_argument('--egl-thread-probe', type=Path,
+                         help='standalone ARM64 EGL transfer comparison; no Denial execution')
     parser.add_argument('--flutter-bundle', type=Path)
     parser.add_argument('--render-node', type=Path,
                         help='explicit host DRM render node for virtual VirGL; default uses software')
@@ -77,6 +103,8 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--deadline', type=int, default=120)
     args = parser.parse_args()
+    if args.egl_thread_probe and (args.flutter_bundle or not args.render_node):
+        parser.error('EGL thread probe requires VirGL and excludes Flutter bundle')
     render_node = render_node_identity(args.render_node) if args.render_node else None
     if not 30 <= args.deadline <= 300:
         parser.error('deadline must be between 30 and 300 seconds')
@@ -87,11 +115,11 @@ def main():
             parser.error(f'BLOCKED missing {tool}')
     runtime = args.runtime.resolve(strict=True)
     kernel = args.kernel.resolve(strict=True)
-    deniald = args.deniald.resolve(strict=True)
+    executable = (args.egl_thread_probe or args.deniald).resolve(strict=True)
     if not (runtime/'usr/bin/bash').is_file() or runtime == Path('/'):
         parser.error('expected an explicitly materialized guest runtime')
-    if not kernel.is_file() or not deniald.is_file():
-        parser.error('kernel and deniald must be regular files')
+    if not kernel.is_file() or not executable.is_file():
+        parser.error('kernel and executable must be regular files')
     output = args.output.absolute()
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
@@ -108,7 +136,7 @@ def main():
         (stage/directory).mkdir(parents=True, exist_ok=True)
     payload = output/'payload'
     payload.mkdir()
-    shutil.copy2(deniald, payload/'deniald')
+    shutil.copy2(executable, payload/('egl-thread-probe' if args.egl_thread_probe else 'deniald'))
     if args.flutter_bundle:
         bundle = args.flutter_bundle.resolve(strict=True)
         for required in ('lib/libflutter_engine.so', 'lib/libapp.so', 'data/icudtl.dat'):
@@ -125,7 +153,9 @@ def main():
     start = time.monotonic()
     report = {'scope': 'generic ARM64 virtual DRM; phone hardware NOT RUN',
               'started': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-              'kernel_sha256': digest(kernel), 'deniald_sha256': digest(deniald),
+              'kernel_sha256': digest(kernel),
+              'deniald_sha256': None if args.egl_thread_probe else digest(executable),
+              'egl_thread_probe_sha256': digest(executable) if args.egl_thread_probe else None,
               'container': args.image, 'runtime': str(runtime),
               'runtime_inventory_verified_by_this_runner': False,
               'flutter_bundle': str(args.flutter_bundle) if args.flutter_bundle else None,
@@ -199,6 +229,8 @@ def main():
         report['drm_discovery'] = 'PASS' if 'PASS virtual DRM discovery' in log else 'FAIL'
         report['deniald_kms'] = 'NOT RUN: discovery/CLI are separate from frames'
         report['deniald_cli'] = 'PASS' if 'PASS actual deniald guest CLI' in log else 'NOT RUN'
+        if args.egl_thread_probe:
+            report['egl_thread_probe'] = egl_thread_result(log)
         if args.flutter_bundle:
             report['deniald_kms'] = 'NOT RUN'
             report['shell_exit'] = 'PASS' if 'PASS actual deniald shell bounded exit' in log else 'FAIL'
@@ -206,7 +238,8 @@ def main():
         if (process.returncode == 0 and
                 report['drm_discovery'] == 'PASS' and
                 ((report.get('shell_exit') == 'PASS' and
-                  report['shell_rendering']['status'] == 'PASS') or report['deniald_cli'] == 'PASS')
+                  report['shell_rendering']['status'] == 'PASS') or report['deniald_cli'] == 'PASS'
+                 or (args.egl_thread_probe and report['egl_thread_probe']['status'] == 'PASS'))
                 and 'PASS guest-script exited cleanly' in log and 'FAIL guest-' not in log):
             report['status'] = 'PASS'
     except Exception as error:

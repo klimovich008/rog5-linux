@@ -16,6 +16,27 @@ SPEC.loader.exec_module(GUEST)
 
 
 class RuntimePrerequisites(unittest.TestCase):
+    def test_egl_comparison_requires_all_modes_and_observations(self):
+        lines = []
+        for mode in ('exit', 'unbind', 'release'):
+            lines += [f'EGL_THREAD mode={mode} stage=live-collision ok=0 error=0x3002',
+                      f'EGL_THREAD mode={mode} stage=after-join ok=1 error=0x3000',
+                      f'PASS EGL thread probe mode={mode}']
+        log = '\n'.join(lines)
+        self.assertEqual(GUEST.egl_thread_result(log)['status'], 'PASS')
+        exit_failed = log.replace('mode=exit stage=after-join ok=1 error=0x3000',
+                                 'mode=exit stage=after-join ok=0 error=0x3002')
+        result = GUEST.egl_thread_result(exit_failed)
+        self.assertEqual(result['status'], 'PASS')
+        self.assertFalse(result['after_join']['exit']['acquired'])
+        for bad in ('', log+'\n'+lines[-1], log.replace(lines[0], ''),
+                    log.replace('mode=unbind stage=after-join ok=1 error=0x3000',
+                                'mode=unbind stage=after-join ok=0 error=0x3002'),
+                    log.replace('stage=live-collision ok=0 error=0x3002',
+                                'stage=live-collision ok=1 error=0x3000'),
+                    log+'\nFAIL EGL thread probe: cleanup'):
+            self.assertEqual(GUEST.egl_thread_result(bad)['status'], 'FAIL')
+
     def test_shell_requires_xwayland_before_launch(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
