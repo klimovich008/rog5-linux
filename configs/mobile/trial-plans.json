@@ -106,6 +106,14 @@
         {
           "path": "scripts/device/test-rog5-front-touch.py",
           "sha256": "0da70f86d361dd86b59321128098b79bd4831b5cd092b2e9c956bf3d8fbd8163"
+        },
+        {
+          "path": "scripts/device/test-rog5-touch-lifecycle.py",
+          "sha256": "72aeb57116efbff28554c30e1e7bd5cc1127c396403bd961768654336bdf206a"
+        },
+        {
+          "path": "scripts/host/test-rog5-touch-module-build.py",
+          "sha256": "d8e462a95393294f9032d71f2ff340fda88bd976911df35318be52743e68fae1"
         }
       ],
       "physical_actions": [
@@ -121,7 +129,21 @@
       ],
       "blockers": [
         "EDT FT5X06 compile is not FTS3658U support",
-        "Current touch overlay disabled; identify protocol/driver before activation"
+        "Current touch overlay disabled; identify protocol/driver before activation",
+        "Persistent regulator-disable failure at final devres release can leave power outstanding; unbind alone does not prove cleanup.",
+        "Suspend returns EBUSY; wake is unsupported and must not be tested under the touch-identity plan."
+      ],
+      "offline_component_identity": {
+        "artifact_pointer": "manifests/current-artifact.json#touch_prototype",
+        "module_sha256": "a2560d4458e5cab00725912db3a7e7551eb70362af2747d261a8460a7ac23b15",
+        "kernel_release": "7.1.4-rog5-production",
+        "candidate": null,
+        "physical_status": "NOT RUN"
+      },
+      "before_operator_readiness": [
+        "Validate exact composed DT and GENI/GPI/provider/rail closure; current overlay stays disabled.",
+        "Under future explicit phone authorization, establish normal firmware ID56/52, unique IRQ/input ownership and fresh identity-bound health before asking Ready.",
+        "Prepare independent bounded shutdown/cleanup and signed fallback; no firmware writes or blind retries."
       ]
     },
     {

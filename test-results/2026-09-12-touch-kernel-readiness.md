@@ -61,9 +61,23 @@ This supplement took 15.387 seconds and retains its producer/cache identities.
   JSON/JUnit results and fails on missing source. Ordinary host tests include
   the cheap guards, actual touch harness and namespace builder regressions.
 
-Integrated tier: pending final frozen-source execution. Earlier 297-PASS host
-results belong to the preceding repair and are not a new result for these changes.
+Integrated host tier at `7a49f454c01afedec161fc26fa1666f6fafd8d76`, tree
+`b32803e5b561edf85d1dc9eaba77be50ab791754`: **300 PASS, 0 FAIL, 0 BLOCKED,
+3 declared optional SKIPPED, 29 NOT_SELECTED** in 601.985 seconds.
+Two workers ran under a 3 GiB/no-swap scope. All new focused suites passed.
+The explicit missing-board-prerequisite experiment correctly returned nonzero
+with one BLOCKED suite, one PASS and 330 NOT_SELECTED; it is an expected
+negative check, not a successful board run. The mobile-status fixture initially
+failed after the new evidence pointer moved; it now copies referenced proof
+files instead of hardcoding the preceding report. Eight focused cases pass.
+
+Every selected/not-selected test, exact command, duration, source-dependent
+section and receipt identity is in the [machine-readable test record](2026-09-12-touch-kernel-tests.json).
+The earlier 297-PASS tier remains a separate historical result.
 Remote GitHub Actions and full-system QEMU were not run in this continuation.
+Final report/plan validation passed in 1.061 seconds: twelve metadata tests,
+three validators, ten plan test identities and sixty Markdown link checks.
+Common authorization, power, cleanup and non-touch plans are unchanged.
 
 ## Remaining limits
 
@@ -86,10 +100,44 @@ The next touch question is whether the exact normal-mode controller responds
 as `56/52` through the qualified provider/rail topology. A future authorized,
 bounded identity/readback trial must establish cleanup and fallback before
 asking for touches. No phone operation, candidate generation, signing,
-admission, claim creation/consumption or protected-storage mutation occurred.
+live admission, real claim creation/consumption or protected-storage mutation occurred.
 
 Exact commands, raw logs, timings, hashes and read-only input bindings are in
 the private `rog5-touch-kernel-evidence-20260912-r1` evidence root. The
 [current artifact pointer](../manifests/current-artifact.json) separates the
 historical board failure, new software supplement, touch prototype and signed
 candidate. None of these offline results authorizes installation.
+
+## Changed files
+
+- [.github/workflows/offline-smoke.yml](../.github/workflows/offline-smoke.yml)
+- [configs/mobile/acceptance.json](../configs/mobile/acceptance.json)
+- [configs/mobile/trial-plans.json](../configs/mobile/trial-plans.json)
+- [configs/project-status.json](../configs/project-status.json)
+- [configs/repository-tests.json](../configs/repository-tests.json)
+- [docs/current-state.md](../docs/current-state.md)
+- [docs/development.md](../docs/development.md)
+- [docs/front-touch-prototype.md](../docs/front-touch-prototype.md)
+- [dts/qcom/sm8350-asus-rog-phone5.dts](../dts/qcom/sm8350-asus-rog-phone5.dts)
+- [manifests/artifact-sets.json](../manifests/artifact-sets.json)
+- [manifests/current-artifact.json](../manifests/current-artifact.json)
+- [patches/linux-7.1.4/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch](../patches/linux-7.1.4/0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch)
+- [patches/linux-7.1.4/series.production](../patches/linux-7.1.4/series.production)
+- [scripts/device/fixtures/fts3658u/cases.c](../scripts/device/fixtures/fts3658u/cases.c)
+- [scripts/device/fixtures/fts3658u/kernel-v7.1.4.c](../scripts/device/fixtures/fts3658u/kernel-v7.1.4.c)
+- [scripts/device/fixtures/fts3658u/stubs.h](../scripts/device/fixtures/fts3658u/stubs.h)
+- [scripts/device/test-rog5-rpmh-binding-guards.py](../scripts/device/test-rog5-rpmh-binding-guards.py)
+- [scripts/device/test-rog5-rpmh-binding.py](../scripts/device/test-rog5-rpmh-binding.py)
+- [scripts/device/test-rog5-touch-lifecycle.py](../scripts/device/test-rog5-touch-lifecycle.py)
+- [scripts/host/build-rog5-touch-module.py](../scripts/host/build-rog5-touch-module.py)
+- [scripts/host/test-mobile-status.py](../scripts/host/test-mobile-status.py)
+- [scripts/host/test-production-kernel-build.py](../scripts/host/test-production-kernel-build.py)
+- [scripts/host/test-repository-linux.sh](../scripts/host/test-repository-linux.sh)
+- [scripts/host/test-rog5-touch-module-build.py](../scripts/host/test-rog5-touch-module-build.py)
+- [test-results/2026-09-12-touch-board-qualification.json](../test-results/2026-09-12-touch-board-qualification.json)
+- [test-results/2026-09-12-touch-kernel-readiness.md](../test-results/2026-09-12-touch-kernel-readiness.md)
+- [test-results/2026-09-12-touch-kernel-tests.json](../test-results/2026-09-12-touch-kernel-tests.json)
+
+Final ending commit/tree and hashes for every changed file are retained in the
+private completion receipt after the report-only commit. Only report metadata and the unarmed touch trial plan changed after
+the frozen integrated tier; their references and guards receive focused checks.
