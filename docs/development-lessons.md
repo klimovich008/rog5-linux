@@ -2021,3 +2021,21 @@ new probe. Preserve those limitations in the trial's abort/cleanup requirements.
 For vendor evidence, inspect root selectors and source composition before trusting
 a DT filename. Mode thresholds are not load measurements. Missing upstream-supply
 properties in stock data do not justify inventing a mainline parent connection.
+
+## 2026-09-12: share real regulator accounting tests across panel and touch
+
+The panel's boolean supply tracking had the same demonstrated child/parent error
+ambiguity as touch. Reuse the four exact core functions in both suites, while
+retaining separate actual-driver/DRM tests for initialization, DSI and brightness.
+The new panel regression rejects the old patch in 0.282 seconds; frozen source
+passes both suites. Complete production preparation took 59.630 seconds and the
+affected module twins took 2.962/2.811 seconds, avoiding another cold Image build.
+
+Private build preparation initially confused retained Python with PATH-selected
+Python, then missed generated module-common dependencies in its pre-build input
+inventory. Distinguish verified historical tools from actual command resolution
+and include generated control inputs before freezing a twin run. Preserve the
+failed receipts; neither failure demonstrated a kernel defect. Reuse the existing
+production module-closure checker: an ad hoc comparison falsely treated hyphenated
+dependency names as missing underscore-named modules. The existing checker also
+checks actual modules.dep coverage and cycles. No duplicate validator was added.
