@@ -52,3 +52,17 @@
  pub(super) fn shared_atlas_modifiers(
      scanouts: &[Scanout],
      render_formats: &FormatSet,
+@@ -1320,6 +1313,13 @@
+     linear_render_targets: bool,
+ ) -> Result<Vec<ScanoutBuffer>, Box<dyn Error>> {
+     validate_scanout_pool_allocation(size, length)?;
++    if modifiers == [Modifier::Invalid] {
++        // The selector returns this only for shared implicit XR24 support.
++        // Keep that contract intact instead of translating it to LINEAR.
++        return (0..length)
++            .map(|_| allocator.allocate(size, modifiers, linear_render_targets))
++            .collect();
++    }
+     let optimized = modifiers
+         .iter()
+         .copied()

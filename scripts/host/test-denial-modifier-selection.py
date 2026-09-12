@@ -22,6 +22,20 @@ ADAPTERS = r"""
 #[derive(Clone,Copy,Debug,PartialEq,Eq)] enum Modifier { Linear, Invalid, Tiled }
 #[derive(Clone,Copy,Debug,PartialEq,Eq)] struct Format { code: Fourcc, modifier: Modifier }
 type FormatSet = Vec<Format>;
+use std::{error::Error,cell::Cell,rc::Rc};
+#[derive(Clone,Copy)] struct PixelSize { width:u32, height:u32 }
+macro_rules! warn { ($($tokens:tt)*) => {{}} }
+struct ScanoutBuffer { live:Rc<Cell<usize>> }
+impl Drop for ScanoutBuffer { fn drop(&mut self) { self.live.set(self.live.get()-1); } }
+struct ScanoutAllocator { calls:Vec<Vec<Modifier>>, live:Rc<Cell<usize>>, fail_on:Option<usize> }
+impl ScanoutAllocator {
+ fn new(fail_on:Option<usize>) -> Self { Self {calls:vec![],live:Rc::new(Cell::new(0)),fail_on} }
+ fn allocate(&mut self, _size:PixelSize, modifiers:&[Modifier], _linear:bool) -> Result<ScanoutBuffer,Box<dyn Error>> {
+  self.calls.push(modifiers.to_vec());
+  if self.fail_on==Some(self.calls.len()) {return Err("injected allocation failure".into());}
+  self.live.set(self.live.get()+1);Ok(ScanoutBuffer {live:self.live.clone()})
+ }
+}
 """
 TESTS = r"""
 fn formats(modifiers: &[Modifier]) -> FormatSet { modifiers.iter().map(|&modifier| Format {code:Fourcc::Xrgb8888,modifier}).collect() }
@@ -46,6 +60,29 @@ fn formats(modifiers: &[Modifier]) -> FormatSet { modifiers.iter().map(|&modifie
  assert!(compatible_xrgb8888_modifiers([&a,&b],&render).is_empty());
  assert!(compatible_xrgb8888_modifiers([], &render).is_empty());
 }
+#[test] fn implicit_pool_reaches_allocator_without_relabelling() {
+ let mut a=ScanoutAllocator::new(None);
+ let buffers=allocate_scanout_pool(&mut a,PixelSize{width:640,height:480},2,&[Modifier::Invalid],false).expect("implicit allocation");
+ assert_eq!(a.calls,vec![vec![Modifier::Invalid];2]);assert_eq!(a.live.get(),2);drop(buffers);assert_eq!(a.live.get(),0);
+}
+#[test] fn implicit_pool_failure_releases_partial_allocations() {
+ let mut a=ScanoutAllocator::new(Some(2));
+ assert!(allocate_scanout_pool(&mut a,PixelSize{width:640,height:480},3,&[Modifier::Invalid],false).is_err());
+ assert_eq!(a.calls.len(),2);assert_eq!(a.live.get(),0);
+}
+#[test] fn invalid_pool_dimensions_still_refuse_before_allocation() {
+ let mut a=ScanoutAllocator::new(None);
+ assert!(allocate_scanout_pool(&mut a,PixelSize{width:0,height:480},2,&[Modifier::Invalid],false).is_err());
+ assert!(allocate_scanout_pool(&mut a,PixelSize{width:640,height:480},1,&[Modifier::Invalid],false).is_err());
+ assert!(a.calls.is_empty());
+}
+#[test] fn optimized_failure_retains_existing_linear_fallback() {
+ let mut a=ScanoutAllocator::new(Some(1));
+ let buffers=allocate_scanout_pool(&mut a,PixelSize{width:640,height:480},2,&[Modifier::Tiled,Modifier::Linear],false).expect("linear fallback");
+ assert_eq!(a.calls,vec![vec![Modifier::Tiled],vec![Modifier::Linear],vec![Modifier::Linear]]);
+ drop(buffers);assert_eq!(a.live.get(),0);
+}
+
 """
 
 
@@ -89,8 +126,10 @@ def main():
               'physical': 'NOT RUN', 'runs': {}}
     env = dict(os.environ, TMPDIR=str(output))
     for label, source in [('before', original), ('after', target.read_text())]:
-        unit = ADAPTERS + '\n'.join(extract(source, name) for name in (
-            'common_xrgb8888_modifiers', 'compatible_xrgb8888_modifiers')) + TESTS
+        constants = '\n'.join(line for line in source.splitlines() if line.startswith(('const SCANOUT_BYTES_PER_PIXEL:', 'const MAX_SCANOUT_')))
+        unit = ADAPTERS + constants + '\n'.join(extract(source, name) for name in (
+            'common_xrgb8888_modifiers', 'compatible_xrgb8888_modifiers',
+            'allocate_scanout_pool', 'validate_scanout_pool_allocation')) + TESTS
         path = output / (label + '.rs')
         path.write_text(unit)
         binary = output / label
@@ -99,7 +138,7 @@ def main():
         subprocess.run(command, env=env, check=True, capture_output=True, timeout=30)
         run = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10)
         (output / (label + '.log')).write_text(run.stdout + run.stderr)
-        expected = '2 passed; 3 failed' if label == 'before' else '5 passed; 0 failed'
+        expected = '4 passed; 5 failed' if label == 'before' else '9 passed; 0 failed'
         passed = expected in run.stdout and run.returncode == (101 if label == 'before' else 0)
         result['runs'][label] = {'command': command, 'test_command': [str(binary)],
                                  'exit_status': run.returncode,
