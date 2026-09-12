@@ -2425,3 +2425,18 @@ The active tier initially blocked because the service command omitted the retain
 Rust wrapper directory from PATH. Include that compiler selection in the recorded
 command/environment, not only in an interactive shell. The corrected environment
 passed 87 suites in about 127 seconds, with 311 MiB peak memory and no swap.
+
+
+Splitting the broker's aggregate counter identified nine missing-authorization
+refusals, with zero missing-pool/no-free-slot/ReadyHandoff cases. The same run
+had 104 authorization expiries and 53 frames/page flips; do not turn temporal
+coexistence into a per-request cause. The exact engine queues render work, while
+the broker expires permissions after two intervals. Next capture a bounded
+history of grant/consume/expire/cancel and callback order before altering that
+handoff. More GBM changes or a larger pool would address an unobserved cause.
+Seven actual broker/audit cases took about one second; the cached one-crate
+ARM64 build took 213 seconds, VM 49 seconds and active tier 129 seconds. Preserve
+the precise refusal taxonomy and use cheap actual-function ordering tests before
+another VM build. The recorded compiler-wrapper PATH avoided the previous
+infrastructure retry. Engine thread joining and EGL context release are distinct:
+the retained source proves the join path, but cleanup BAD_ACCESS remains open.

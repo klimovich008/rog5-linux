@@ -1,0 +1,685 @@
+{
+  "schema": 1,
+  "scope": "offline Denial broker diagnostics; ARM64 VirGL evidence only",
+  "starting_commit": "c1beb871d45503e9894a8731dcdf2fd59d538eaf",
+  "starting_tree": "b31c00a442dcaf18fb7a78a5671fdc749eac5a96",
+  "source_commit": "a3534e51769ef694045e2095485fc440fbd34481",
+  "source_tree": "8ead532c95f321ff292523db1a09032dbcd96581",
+  "review_branch_commit": "410b6935526a977ca727359f23ee43fc4ebe45b2",
+  "upstream_denial": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "smithay": "812bd33259ff58810dadef6086d8385eeac1ca55",
+  "source_inventory": {
+    "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/source-binding.json",
+    "sha256": "ea7d15c9783df2ef2b4a7fc54a7b3c60a06e09cc9d2c19b7d9fe3366f2e1efc5",
+    "size": 127243
+  },
+  "patches": [
+    {
+      "path": "patches/denial-85b2303e/0001-preserve-implicit-render-modifier-contract.patch",
+      "sha256": "3d05d2d441d32f852c71887bf750aede1a7a5fc959f5a2ac50234a844783b8f1"
+    },
+    {
+      "path": "patches/denial-85b2303e/0002-distinguish-render-target-refusals.patch",
+      "sha256": "593e74d6d5fde9f41fdff210296d82c4d4617d206b6a2c368805a0d344fea269"
+    },
+    {
+      "path": "test-results/framebuffer-review-20260912/initial-format-diagnostic.patch",
+      "sha256": "bcb15834468d99d186eded0a353872603f54d357556d58408f0e5310fbde29c6"
+    }
+  ],
+  "records": {
+    "regression/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/regression/result.json",
+        "sha256": "896003965510015fe321d5c03c0cc3b4a236b54a04ed58e14cfde49d4d1bd069",
+        "size": 1637
+      },
+      "result": {
+        "scope": "actual broker functions with data adapters; no VM or phone proof",
+        "physical": "NOT RUN",
+        "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "patch_sha256": "df55c1c5eb8c3f7f1699732d15b1d03aabd345e109be243e8bffca89c8fa12de",
+        "runs": {
+          "before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/regression/before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/regression/before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/regression/before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.573665126983542,
+            "expected_result_observed": true,
+            "source_sha256": "b928849b44daaa40e4adefc26bc089d1f74254f6aaa933a087321fcca4c5808b"
+          },
+          "after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/regression/after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/regression/after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/regression/after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.5637531940010376,
+            "expected_result_observed": true,
+            "source_sha256": "b0dca000dbf8e066ee03217d65a92e541c3c073f9270cda11aa8b931d9eb48cd"
+          }
+        },
+        "status": "PASS"
+      }
+    },
+    "frozen-regression/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/frozen-regression/result.json",
+        "sha256": "b068980d53c3c6d0ccc7f4c613782c5442f195f55ee0375125986416863bd72e",
+        "size": 1680
+      },
+      "result": {
+        "scope": "actual broker functions with data adapters; no VM or phone proof",
+        "physical": "NOT RUN",
+        "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "patch_sha256": "df55c1c5eb8c3f7f1699732d15b1d03aabd345e109be243e8bffca89c8fa12de",
+        "runs": {
+          "before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/frozen-regression/before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/frozen-regression/before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/frozen-regression/before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.5525251229992136,
+            "expected_result_observed": true,
+            "source_sha256": "d7b3cd834ed28cdef12d96c0b503e1a5c81f3dcf4ec85a0c859ecb193e700604"
+          },
+          "after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/frozen-regression/after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/frozen-regression/after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/frozen-regression/after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.5652534090040717,
+            "expected_result_observed": true,
+            "source_sha256": "8f572eebe59f9565d64ce9fb755ce355e63b60d6526664ade7076b98134918e6"
+          }
+        },
+        "status": "PASS"
+      }
+    },
+    "final-regression/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/final-regression/result.json",
+        "sha256": "c27420023817ae2ca195d9a9f4c028ff45d20bbb13ca4b053ef2558a58bb9d54",
+        "size": 1673
+      },
+      "result": {
+        "scope": "actual broker functions with data adapters; no VM or phone proof",
+        "physical": "NOT RUN",
+        "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "patch_sha256": "593e74d6d5fde9f41fdff210296d82c4d4617d206b6a2c368805a0d344fea269",
+        "runs": {
+          "before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/final-regression/before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/final-regression/before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/final-regression/before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.577851409005234,
+            "expected_result_observed": true,
+            "source_sha256": "d7b3cd834ed28cdef12d96c0b503e1a5c81f3dcf4ec85a0c859ecb193e700604"
+          },
+          "after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/final-regression/after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/final-regression/after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/final-regression/after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.5604686930018943,
+            "expected_result_observed": true,
+            "source_sha256": "3949814f20ec68b9c682e5a36b9cc8adff42adca7f8498b148aff2c7a136f98a"
+          }
+        },
+        "status": "PASS"
+      }
+    },
+    "build-broker-result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/build-broker-result.json",
+        "sha256": "93d08a3041d9987f1ab8a2ca7852bd88d51b00be2cd6add225c3ef747583f058",
+        "size": 1739
+      },
+      "result": {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-broker-audit-build-r1",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=3g",
+          "--memory-swap=3g",
+          "--cpus=2",
+          "--pids-limit=512",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/build-broker.cid",
+          "--network=none",
+          "-v",
+          "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/source:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2:/build:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/tmp:/tmp:rw",
+          "-e",
+          "CARGO_HOME=/build/cargo-home",
+          "-e",
+          "CARGO_TARGET_DIR=/build/target",
+          "-e",
+          "TMPDIR=/build/tmp",
+          "-e",
+          "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/aarch64-linux-gnu-gcc",
+          "-e",
+          "PKG_CONFIG_ALLOW_CROSS=1",
+          "-e",
+          "PKG_CONFIG_SYSROOT_DIR=/",
+          "-e",
+          "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig",
+          "-e",
+          "PKG_CONFIG_PATH=",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/cargo",
+          "build",
+          "--manifest-path",
+          "/source/compositor/Cargo.toml",
+          "--locked",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "--offline",
+          "--release",
+          "--jobs",
+          "1",
+          "--features",
+          "flutter",
+          "--bin",
+          "deniald"
+        ],
+        "started": "2026-09-12T19:21:14.710426+00:00",
+        "free_before": 3361021952,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 213.0699145719991,
+        "minimum_free_bytes": 3324870656,
+        "binary_sha256": "1fa170f899fb77c2dadc6c32c1087f5b7e8e2aa507de37d7f8aec791c745054c",
+        "container_removed": true
+      }
+    },
+    "guest-broker/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/guest-broker/result.json",
+        "sha256": "073de634d0c38c8a58d7fbf57e4ec5b53606b8ce16d7c8eb896bf3ade772d28f",
+        "size": 4544
+      },
+      "result": {
+        "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+        "started": "2026-09-12T19:25:16.448369+00:00",
+        "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+        "deniald_sha256": "1fa170f899fb77c2dadc6c32c1087f5b7e8e2aa507de37d7f8aec791c745054c",
+        "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "runtime_inventory_verified_by_this_runner": false,
+        "flutter_bundle": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+        "graphics_mode": "virgl",
+        "host_render_node": {
+          "path": "/dev/dri/renderD128",
+          "major": 226,
+          "minor": 128,
+          "scope": "host rendering only; no phone device"
+        },
+        "harness_sha256": "373454da46718ab5a3ed95617db5907f50969256139a41bddb95864089c89a54",
+        "init_source_sha256": "2628fa1cc582579e0e6a09489cc59ef5a0bc1a1f1ae3e0e275b523a7d5dcfe40",
+        "compile_command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/guest-broker/initramfs/init"
+        ],
+        "status": "FAIL",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-virtual-drm-701ac18c46c3",
+          "--network",
+          "none",
+          "--read-only",
+          "--memory",
+          "1536m",
+          "--memory-swap",
+          "1536m",
+          "--cpus",
+          "2",
+          "--pids-limit",
+          "64",
+          "--security-opt",
+          "no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/guest-broker/initramfs.cpio.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/guest-broker/payload:/payload:ro",
+          "--device",
+          "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+          "-e",
+          "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "egl-headless,rendernode=/dev/dri/renderD128",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+          "-device",
+          "virtio-gpu-gl-device,xres=640,yres=480",
+          "-device",
+          "virtio-keyboard-device",
+          "-device",
+          "virtio-tablet-device",
+          "-device",
+          "virtio-rng-device",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload"
+        ],
+        "qemu_exit_status": 0,
+        "drm_discovery": "PASS",
+        "deniald_kms": "NOT RUN",
+        "deniald_cli": "NOT RUN",
+        "shell_exit": "PASS",
+        "shell_rendering": {
+          "status": "FAIL",
+          "scope": "Denial terminal counters; not visual or phone proof",
+          "raster_frames": 53,
+          "output_page_flips": 53,
+          "render_errors": [
+            "Could not create the embedder backing store",
+            "could not bind Flutter context for output-target cleanup"
+          ],
+          "reason": "zero frames/page flips or observed rendering errors"
+        },
+        "container_removed": true,
+        "duration_seconds": 48.779101122985594,
+        "hashes": {
+          "initramfs/init": "e0eb44a479e83329e9c46e796d99875eca5211f2e6402af52202114d763c14bd",
+          "initramfs/stage/guest.sh": "ba7cb1dfed418261776d5ab84d4341e0e49784ada21017a09e409ca8bc8676f7",
+          "initramfs.cpio.gz": "43c0374b842d8dd05176f6a12bb18f1c5f0f5d2435e3d8b8ff314d6397c5f3c4",
+          "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+          "serial.log": "d94f1d9ba037687c2c5ed605defc4b381639ec010441430e4873be7133a6fef0"
+        }
+      }
+    },
+    "audit-summary.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/audit-summary.json",
+        "sha256": "9030755c603a91315737fb404d79bd5ff68eeacf2046990add6c79b37aa4ff05",
+        "size": 615
+      },
+      "result": {
+        "scope": "ARM64 VirGL only",
+        "audit_records": 16,
+        "totals": {
+          "target_blocked_ready": 0,
+          "target_blocked_exhausted": 9,
+          "target_blocked_missing_pool": 0,
+          "target_blocked_no_authorization": 9,
+          "target_blocked_no_free_slot": 0
+        },
+        "backing_store_errors": 9,
+        "expiry_events": 104,
+        "session": [
+          "1970-01-01T00:00:47.385910Z  INFO deniald::flutter_event_loop: independently clocked Flutter KMS session complete raster_frames=53 output_page_flips=53 delivered_vsyncs=54 elapsed_ms=33283.215376 raster_frames_per_second=1.592394226376862 finite=false"
+        ],
+        "physical": "NOT RUN"
+      }
+    },
+    "engine-source-review.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/engine-source-review.json",
+        "sha256": "e13c3ffeeff886540eebeeab45a9302bcfaa753ce92b2553fc7bac22d33b0b9c",
+        "size": 2763
+      },
+      "result": {
+        "scope": "source deduction; no new engine runtime or phone proof",
+        "engine_source": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+        "engine_binary_sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+        "files": [
+          {
+            "path": "engine/src/flutter/shell/platform/embedder/embedder.cc",
+            "sha256": "cd6d8a156fa3d29c8eba8e55cd72a3bbc2f37b84cc1140e1fbca7c33e5c19bd9"
+          },
+          {
+            "path": "engine/src/flutter/shell/platform/embedder/embedder_engine.cc",
+            "sha256": "3dbe383689ad4d759b7d50f3c6cb4d8e0be6889267d7ca6ead0d06de32612f86"
+          },
+          {
+            "path": "engine/src/flutter/shell/platform/embedder/embedder_thread_host.cc",
+            "sha256": "494246a321957749d9f4fca0ccd76b5c3bf5cd2251221216333217e2475912df"
+          },
+          {
+            "path": "engine/src/flutter/shell/platform/embedder/embedder_thread_host.h",
+            "sha256": "3a6a1f2afbf67a405f0c441dfbbbc44aabfe441b49abb537cddaeb9e49f63ed8"
+          },
+          {
+            "path": "engine/src/flutter/shell/common/thread_host.h",
+            "sha256": "1e712e7404530cf9df1c91a4e28d89a273d42e568177187077f286930b9669d9"
+          },
+          {
+            "path": "engine/src/flutter/fml/thread.cc",
+            "sha256": "e16d4b0bb3d142cfc0c67121bfc2811cc612b0e2d8f1fd79472653b9febf72e9"
+          },
+          {
+            "path": "engine/src/flutter/shell/common/shell.cc",
+            "sha256": "4828e7af91b92b2f91e91ea144cc7c97519ecb58d3b4cca2407ea562a5148016"
+          },
+          {
+            "path": "engine/src/flutter/shell/common/rasterizer.cc",
+            "sha256": "064ca3aec3f7aa89b111dfe2b214aaebb74f6457f12fd5ebfbc3ffa61f65c886"
+          }
+        ],
+        "findings": [
+          "The retained embedder emits the observed backing-store error when the create callback returns false; the Rust callback maps None to false.",
+          "Denial passes a null custom render task runner, using the engine-managed raster thread.",
+          "FlutterEngineShutdown calls Deinitialize, which collects shell and thread host. ThreadHost owns unique fml::Thread values; the destructor joins them.",
+          "Successful thread joining does not establish that the EGL implementation released a current context; BAD_ACCESS cause remains unresolved.",
+          "Shell::RenderOutputs posts PrepareDenialRenderOutputs or DrawDenialRenderOutputs to the raster task runner and returns before execution.",
+          "The Rust broker expiry uses two output tick intervals without an engine queue-completion acknowledgment. A delayed queued request can therefore outlive its authorization; the VM audit identifies missing authorization but does not tag which expiry/consumption/cancellation preceded each callback.",
+          "Missing pool, ReadyHandoff and no reusable slot were not observed in this diagnostic run. Do not change GBM allocation or enlarge the pool on the basis of the old aggregate label."
+        ]
+      }
+    },
+    "active-result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/active-result.json",
+        "sha256": "ff5639b39db4082edb3daf744cd6c1b7d9ba3b8aef5c682c1fb0323553131611",
+        "size": 1593
+      },
+      "result": {
+        "command": [
+          "systemd-run",
+          "--user",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "--unit=rog5-broker-audit-active-r1",
+          "-p",
+          "MemoryMax=1G",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=256",
+          "-p",
+          "RuntimeMaxSec=600",
+          "-p",
+          "CPUQuota=200%",
+          "-p",
+          "Delegate=yes",
+          "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+          "env",
+          "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+          "ROG5_TEST_WORKERS=2",
+          "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-broker-refusal-20260912-r1/active-report",
+          "TMPDIR=/home/deck/.local/state/rog5-broker-refusal-20260912-r1/tmp",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+          "active"
+        ],
+        "source_commit": "a3534e51769ef694045e2095485fc440fbd34481",
+        "source_tree": "8ead532c95f321ff292523db1a09032dbcd96581",
+        "started": "2026-09-12T19:28:46.380287+00:00",
+        "exit_status": 0,
+        "duration_seconds": 128.55617691000225
+      }
+    },
+    "cache-handoff.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/cache-handoff.json",
+        "sha256": "5bc16fe26b07e332afb9c12447126088e844da18c3335d765f07e17c4908ed7e",
+        "size": 845
+      },
+      "result": {
+        "action": "invalidate modified binary freshness; retain dependencies and all unique outputs",
+        "marker_before": {
+          "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/.fingerprint/denial-679a960ef0e054f3/bin-deniald",
+          "sha256": "b312b0d14bf3c92aa5be36a6235938a2cd0b978aebf84ed9e280e5995920d678",
+          "size": 16
+        },
+        "archive": {
+          "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/retired-bin-deniald-fingerprint",
+          "sha256": "b312b0d14bf3c92aa5be36a6235938a2cd0b978aebf84ed9e280e5995920d678",
+          "size": 16
+        },
+        "original_deniald": {
+          "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/native-artifacts/deniald",
+          "sha256": "8698b0716c0ab16ab5c33d618ae52cef0cd8c0966ad356cf2ca49d78a0ba8591",
+          "size": 15979872
+        }
+      }
+    }
+  },
+  "binary": {
+    "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/deniald-broker",
+    "sha256": "1fa170f899fb77c2dadc6c32c1087f5b7e8e2aa507de37d7f8aec791c745054c",
+    "size": 15986264
+  },
+  "serial_log": {
+    "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/guest-broker/serial.log",
+    "sha256": "d94f1d9ba037687c2c5ed605defc4b381639ec010441430e4873be7133a6fef0",
+    "size": 257707
+  },
+  "initramfs": {
+    "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/guest-broker/initramfs.cpio.gz",
+    "sha256": "43c0374b842d8dd05176f6a12bb18f1c5f0f5d2435e3d8b8ff314d6397c5f3c4",
+    "size": 3182
+  },
+  "vm_invocation": [
+    "python3",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+    "--runtime",
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "--kernel",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+    "--deniald",
+    "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/deniald-broker",
+    "--flutter-bundle",
+    "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+    "--image",
+    "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "--render-node",
+    "/dev/dri/renderD128",
+    "--output",
+    "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/guest-broker",
+    "--deadline",
+    "120"
+  ],
+  "guest_script": {
+    "path": "tools/qemu-virtio-drm/guest.sh",
+    "sha256": "ba7cb1dfed418261776d5ab84d4341e0e49784ada21017a09e409ca8bc8676f7",
+    "size": 2654
+  },
+  "cleanup": {
+    "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/duplicate-staging-cleanup.json",
+    "sha256": "a23585c266ed3c0d4f14bbbf212ddace6c4cc55f353ee2d556f399f938ea6ac8",
+    "size": 20083
+  },
+  "integrated": {
+    "counts": {
+      "PASS": 87,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/active-report/summary.json",
+      "sha256": "28d8b78a849166e4ebb0a5fcf03bf440bd3dc6eb3aa7d527ecb2d0071923b5e5",
+      "size": 108178
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/active-report/summary.xml",
+      "sha256": "1fdaa2ac21418b5dd93b6348ed8cdaebb63d78d845811ba5784de6f4341857c3",
+      "size": 55397
+    },
+    "log": {
+      "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/active.log",
+      "sha256": "8678fa6a37c01509e90ff4e6d436d0d43ccad643b5a26c38167def4b3df06d04",
+      "size": 81355
+    }
+  },
+  "previous_qualification": {
+    "path": "test-results/2026-09-12-denial-allocation-contract-qualification.json",
+    "sha256": "782d270d0c6fc2757ff9f4b72bf88a7f9d32b99fb602a0d57f8b8c6741ff2416",
+    "size": 37636
+  },
+  "next": "Trace the first rejected render authorization across grant, queueing, expiry/consumption/cancellation and engine callback, with a bounded event history. Preserve one-use admission and buffer ownership. Separately isolate EGL release after raster-thread termination. No phone operation.",
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "protected_storage_mutations": false,
+  "final_metadata": {
+    "status": "PASS",
+    "results": [
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-review-metadata-checkers.py",
+          "Checkers"
+        ],
+        "duration_seconds": 0.9159838010091335,
+        "exit_status": 0
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/host/test-mobile-status.py"
+        ],
+        "duration_seconds": 0.11421927998890169,
+        "exit_status": 0
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/host/check-artifact-inventory.py"
+        ],
+        "duration_seconds": 0.11439027197775431,
+        "exit_status": 0
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/host/check-mobile-status.py"
+        ],
+        "duration_seconds": 0.06429230197682045,
+        "exit_status": 0
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "duration_seconds": 0.032013403018936515,
+        "exit_status": 0
+      }
+    ]
+  },
+  "preservation": {
+    "status": "PASS",
+    "base": "c1beb871d45503e9894a8731dcdf2fd59d538eaf",
+    "checks": {
+      "configs/release-acceptance.json": "byte-identical",
+      "configs/mobile/acceptance.json": "byte-identical",
+      "patches/denial-85b2303e/0001-preserve-implicit-render-modifier-contract.patch": "byte-identical",
+      "docs/current-state.md": "historical body byte-identical",
+      "manifests/artifact-sets.json": "all 485 prior sets preserved",
+      "manifests/current-artifact.json": "all non-VM fields preserved"
+    }
+  }
+}
