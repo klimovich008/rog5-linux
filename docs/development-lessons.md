@@ -2126,3 +2126,13 @@ compilation before tests and was corrected. The expanded focused suite took
 9.786 s and frozen active tier 118.638 s; cached component builds avoided an
 unrelated kernel rebuild. Texture-only test mutations now explicitly label
 DMA-BUF NOT RUN so their diagnostic output cannot be mistaken for sharing proof.
+
+GBM preparation (2026-09-12): successful gbm_create_device does not validate that
+an FD is a usable DRM render descriptor. Both real runtimes accepted /dev/null
+until allocation; a bounded DRM_VERSION/driver check now refuses it before GBM
+backend setup. Exact render-node/device admission still belongs to the external
+coordinator. The initial failure is preserved. Final native/ARM64 refusals took
+0.024/0.487 s; nine target fixture groups 8.668 s and active tier 119.335 s.
+The source correction justified fresh component builds; no unchanged kernel
+build was repeated. Lifetime tests now require EGL teardown before BO/device
+teardown and keep the borrowed descriptor alive through the latter.

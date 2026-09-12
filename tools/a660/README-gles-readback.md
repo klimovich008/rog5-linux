@@ -5,6 +5,7 @@
 64 RGBA channels to one quantization unit, and completes EGL cleanup before
 publishing PASS. It requires EGL 1.5, `EGL_MESA_platform_surfaceless`, an RGBA8
 pbuffer configuration advertising GLES 3 support and the runtime `libEGL.so.1` / `libGLESv2.so.2` libraries.
+GBM mode uses the distinct platform/context requirements described below.
 It uses no Rust crates or development GL headers. The version preference
 matches pinned Denial 85b2303e: GLES 3.2, then GLES 3.0 if context creation fails.
 The actual major/minor version is queried before shader creation and must meet
