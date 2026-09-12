@@ -1,0 +1,190 @@
+{
+  "scope": "ARM64 VirGL VM only; not phone GPU evidence",
+  "source_commit": "ca89dcf7dcf5f1e5b6fde950504c35bdcedd472e",
+  "source_tree": "6eda334b934e8ca56b814c2197aa68c479335e99",
+  "denial_revision": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "smithay_revision": "812bd33259ff58810dadef6086d8385eeac1ca55",
+  "flutter_revision": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+  "binary_sha256": "6b4f86ae95648f97ba1191da9fcf1bd014fb1e80f16794086d86f1de173a6ec5",
+  "build_seconds": 211.06971168299788,
+  "vm_status": "FAIL",
+  "vm_seconds": 48.76853703497909,
+  "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+  "guest_script_sha256": "ba7cb1dfed418261776d5ab84d4341e0e49784ada21017a09e409ca8bc8676f7",
+  "history": {
+    "scope": "last recorded broker transition; not engine frame-ID correlation or phone evidence",
+    "records": 278,
+    "trace_limit_reached": false,
+    "event_counts": {
+      "grant": 135,
+      "expire": 85,
+      "consume": 50,
+      "refuse-no-authorization": 8
+    },
+    "refusal_predecessors": {
+      "consume": 7,
+      "expire": 1
+    },
+    "refusals": [
+      {
+        "refusal": {
+          "sequence": 160,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:23.665179Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=160 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 159,
+          "event": "consume",
+          "view": -41,
+          "line": "1970-01-01T00:00:23.310665Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=159 event=\"consume\" view=-41 serial=Some(2) age_us=Some(6274) slots=[(2, Free, 0, None), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": 2,
+          "age_us": 6274
+        }
+      },
+      {
+        "refusal": {
+          "sequence": 165,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:23.904813Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=165 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Free, 0, None), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 164,
+          "event": "consume",
+          "view": -41,
+          "line": "1970-01-01T00:00:23.872857Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=164 event=\"consume\" view=-41 serial=Some(3) age_us=Some(5756) slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": 3,
+          "age_us": 5756
+        }
+      },
+      {
+        "refusal": {
+          "sequence": 170,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.097346Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=170 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 169,
+          "event": "consume",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.064757Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=169 event=\"consume\" view=-41 serial=Some(4) age_us=Some(2298) slots=[(2, Free, 0, None), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": 4,
+          "age_us": 2298
+        }
+      },
+      {
+        "refusal": {
+          "sequence": 175,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.172905Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=175 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Free, 1, None), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 174,
+          "event": "consume",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.160692Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=174 event=\"consume\" view=-41 serial=Some(5) age_us=Some(2580) slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": 5,
+          "age_us": 2580
+        }
+      },
+      {
+        "refusal": {
+          "sequence": 180,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.284862Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=180 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 179,
+          "event": "consume",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.212816Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=179 event=\"consume\" view=-41 serial=Some(6) age_us=Some(2560) slots=[(2, Free, 0, None), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": 6,
+          "age_us": 2560
+        }
+      },
+      {
+        "refusal": {
+          "sequence": 185,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.369479Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=185 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Free, 0, None), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 184,
+          "event": "consume",
+          "view": -41,
+          "line": "1970-01-01T00:00:24.332815Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=184 event=\"consume\" view=-41 serial=Some(7) age_us=Some(3001) slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": 7,
+          "age_us": 3001
+        }
+      },
+      {
+        "refusal": {
+          "sequence": 226,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:25.713658Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=226 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Ready, 0, Some(26)), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 225,
+          "event": "consume",
+          "view": -41,
+          "line": "1970-01-01T00:00:25.665421Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=225 event=\"consume\" view=-41 serial=Some(26) age_us=Some(3458) slots=[(2, Free, 0, None), (3, Free, 1, None), (4, Free, 0, None)] final_record=false",
+          "serial": 26,
+          "age_us": 3458
+        }
+      },
+      {
+        "refusal": {
+          "sequence": 257,
+          "event": "refuse-no-authorization",
+          "view": -41,
+          "line": "1970-01-01T00:00:27.662208Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=257 event=\"refuse-no-authorization\" view=-41 serial=None age_us=None slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": null,
+          "age_us": null
+        },
+        "last_transition": {
+          "sequence": 256,
+          "event": "expire",
+          "view": -41,
+          "line": "1970-01-01T00:00:27.660412Z  INFO deniald::flutter_runtime::output_pipeline: bounded render authorization trace sequence=256 event=\"expire\" view=-41 serial=Some(41) age_us=Some(27686) slots=[(2, Free, 1, None), (3, Free, 0, None), (4, Free, 0, None)] final_record=false",
+          "serial": 41,
+          "age_us": 27686
+        }
+      }
+    ],
+    "backing_store_errors": 8,
+    "session": [
+      "1970-01-01T00:00:47.350067Z  INFO deniald::flutter_event_loop: independently clocked Flutter KMS session complete raster_frames=50 output_page_flips=50 delivered_vsyncs=50 elapsed_ms=32952.818496 raster_frames_per_second=1.517320893387899 finite=false"
+    ],
+    "physical": "NOT RUN"
+  },
+  "raw_serial_sha256": "6298acad565dc03cab8af3410a89304a6c426749238b36277324a61c36974097",
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "notes": [
+    "278 contiguous trace records, no 512-record truncation",
+    "135 grants, 85 expiries, 50 consumes, eight refusals",
+    "Seven refusals follow consumption; one follows expiry; no cancel event",
+    "Exact engine RenderOutputs mode per grant and C++ callback caller path were not logged",
+    "EGL BAD_ACCESS cleanup remains a separate failure"
+  ]
+}

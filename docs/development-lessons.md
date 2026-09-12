@@ -2440,3 +2440,20 @@ the precise refusal taxonomy and use cheap actual-function ordering tests before
 another VM build. The recorded compiler-wrapper PATH avoided the previous
 infrastructure retry. Engine thread joining and EGL context release are distinct:
 the retained source proves the join path, but cleanup BAD_ACCESS remains open.
+
+
+The 278-record reservation history changed the hypothesis: seven of eight
+refusals followed consumption, only one expiry. The snapshot preserves queue
+ownership guards while disproving an expiry-only remedy. Dirty serial is not a
+unique engine submission ID; an end-to-end follow-up needs the queued work mode
+and callback provenance, not another larger timeout. The new trace is opt-in,
+atomically capped at 512 records and tested under contention. Keep bounded event
+history at asynchronous ownership handoffs when a single aggregate loses causal
+information. Seek a focused protocol review before changing admission semantics.
+
+Build headroom was restored by byte-verifying four source archives and twelve
+completed host-test executables before retiring their unpacked copies. Keep
+restoration commands beside the archived hashes, because historical commands
+otherwise refer to absent source paths. This saved about 102 MB without losing
+unique data. Preserve current source unpacked, reuse dependencies and record the
+compiler wrapper in the service environment; the active tier needed no retry.

@@ -636,10 +636,10 @@
     }
   },
   "denial_virtual_drm": {
-    "status": "FAIL: 53 virtual frames/page flips; all nine backing-store refusals lack render authorization; EGL cleanup error remains",
-    "set_id": "private:rog5-broker-refusal-20260912-r1",
-    "source_commit": "a3534e51769ef694045e2095485fc440fbd34481",
-    "source_tree": "8ead532c95f321ff292523db1a09032dbcd96581",
+    "status": "FAIL: 50 virtual frames; seven refusals after consumption, one after expiry; EGL cleanup unresolved",
+    "set_id": "private:rog5-authorization-history-20260912-r1",
+    "source_commit": "ca89dcf7dcf5f1e5b6fde950504c35bdcedd472e",
+    "source_tree": "6eda334b934e8ca56b814c2197aa68c479335e99",
     "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
     "kernel": {
       "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
@@ -659,24 +659,24 @@
       "size": 10419681
     },
     "evidence": {
+      "path": "test-results/2026-09-12-denial-authorization-history-qualification.json",
+      "sha256": "77ac9910fb0bc3e1e313a7d45e5f032e7a71fdf0ce087f5104f724ffd9ab1f06",
+      "size": 32353
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline guest fixture only",
+    "next": "Review the reservation/queued-engine-work protocol using the focused packet; do not assume expiry explains post-consumption callbacks. Independently prepare a bounded two-thread EGL release probe in the retained VM. No phone operation.",
+    "previous_evidence": {
       "path": "test-results/2026-09-12-denial-broker-refusals-qualification.json",
       "sha256": "f1c375d74d9dfacfa76297ee55be7fbbe66b8c2bbbde87585fab98d8740228ac",
       "size": 28675
     },
-    "physical_status": "NOT RUN",
-    "authority": "none; offline guest fixture only",
-    "next": "Trace the first rejected render authorization across grant, queueing, expiry/consumption/cancellation and engine callback, with a bounded event history. Preserve one-use admission and buffer ownership. Separately isolate EGL release after raster-thread termination. No phone operation.",
-    "previous_evidence": {
-      "path": "test-results/2026-09-12-denial-allocation-contract-qualification.json",
-      "sha256": "782d270d0c6fc2757ff9f4b72bf88a7f9d32b99fb602a0d57f8b8c6741ff2416",
-      "size": 37636
-    },
     "native_fence_export": "Required renderer path retained; no separate fence trace/readback qualification",
-    "shell_frames": "53 raster frames and 53 output page flips; no visual capture or input proof",
+    "shell_frames": "50 raster frames and 50 page flips; no visual capture or input proof",
     "deniald": {
-      "path": "/home/deck/.local/state/rog5-broker-refusal-20260912-r1/deniald-broker",
-      "sha256": "1fa170f899fb77c2dadc6c32c1087f5b7e8e2aa507de37d7f8aec791c745054c",
-      "size": 15986264
+      "path": "/home/deck/.local/state/rog5-authorization-history-20260912-r1/deniald-history",
+      "sha256": "6b4f86ae95648f97ba1191da9fcf1bd014fb1e80f16794086d86f1de173a6ec5",
+      "size": 15988544
     },
     "upstream_denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
     "patch": {
@@ -692,6 +692,10 @@
     "broker_diagnostic_patch": {
       "path": "patches/denial-85b2303e/0002-distinguish-render-target-refusals.patch",
       "sha256": "593e74d6d5fde9f41fdff210296d82c4d4617d206b6a2c368805a0d344fea269"
+    },
+    "authorization_history_patch": {
+      "path": "patches/denial-85b2303e/0003-trace-render-authorization-history.patch",
+      "sha256": "448b00598c86134a4bd56e496dda6a8daf8952297e1cb92fff084840bb267025"
     }
   }
 }
