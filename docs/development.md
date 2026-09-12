@@ -33,6 +33,32 @@ kernel/DT/build changes; unrelated userspace/documentation work does not require
 a full phone-kernel rebuild. Build failures and schema diagnostics must remain
 visible even when an unsigned Image was produced.
 
+For the separate offline Denial DRM probe, build the pinned upstream kernel with
+`QEMU_KERNEL_PROFILE=virtio-drm JOBS=2 scripts/host/build-qemu-smoke-kernel.sh
+LINUX_SOURCE build/qemu-virtio-drm`. The default `smoke` profile remains for the
+existing initramfs checks. Profile identity is part of the locked build inputs;
+use a fresh output for a different profile. Both use the exact source check and
+verify required symbols after `olddefconfig`.
+
+Run `python3 scripts/host/test-qemu-virtio-drm.py --help` for the explicit kernel,
+materialized ARM64 runtime, Denial binary, retained QEMU container ID and fresh
+output arguments. This manual integration probe needs those private inputs and
+is not implicitly executed by an ordinary repository tier. It mounts runtime
+and payload read-only, supplies only virtual GPU/input/RNG/9P devices, and gives
+the guest 1 GiB RAM with a bounded container, deadline and serial log. Guest root
+is a test fixture, not the mobile privilege model. The default checks virtual
+DRM discovery and Denial's CLI. Its bounded KMS diagnostic requires a preexisting
+active CRTC, which this blank guest lacks. `--flutter-bundle` selects normal
+shell startup with an external 45-second deadline. Even a clean timed exit is
+separate from rendered-frame evidence. Software rendering is not Adreno proof.
+The pinned Denial starts Xwayland unconditionally: it is a mandatory shell
+runtime prerequisite, even for native Wayland applications. The retained
+315-package graph omitted it and cannot qualify a full session. A missing
+Xwayland now produces BLOCKED before VM launch; retain that historical graph
+and qualify an explicit successor with authenticated additional packages.
+The runner records the supplied runtime path but does not repeat its package
+inventory authentication; bind the run to that separate retained evidence.
+
 The mobile package graph checker validates metadata by default. The original
 `mobile-package-closure.json` remains a historical graph; select the current
 snapshot explicitly through the graph reference in `manifests/current-artifact.json`.
