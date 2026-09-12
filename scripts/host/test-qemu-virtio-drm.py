@@ -27,6 +27,16 @@ def missing_runtime_inputs(runtime, shell):
             if not (runtime/'usr/bin'/name).is_file()]
 
 
+def mobile_ready(log):
+    text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', log.decode(errors='replace'))
+    for line in text.splitlines():
+        if 'Denial/Volition output scheduler audit' in line:
+            values = re.findall(r'\bpresentations=(\d+)\b', line)
+            if len(values) == 1 and int(values[0]) > 0:
+                return True
+    return False
+
+
 def session_result(log):
     """Interpret actual Denial terminal counters; exit 0 is insufficient."""
     text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', log)
@@ -244,7 +254,7 @@ def main():
                         if observer and not observer.complete:
                             with logpath.open('rb') as source:
                                 source.seek(max(0, logpath.stat().st_size-131072))
-                                ready = b'Flutter per-output render audit' in source.read(131072)
+                                ready = mobile_ready(source.read(131072))
                             observer.tick(time.monotonic(), ready)
                         time.sleep(0.2)
                 except BaseException as error:

@@ -37,6 +37,16 @@ class RuntimePrerequisites(unittest.TestCase):
                     log+'\nFAIL EGL thread probe: cleanup'):
             self.assertEqual(GUEST.egl_thread_result(bad)['status'], 'FAIL')
 
+    def test_mobile_readiness_requires_real_presentation(self):
+        for text in ('', 'Flutter per-output render audit presented_outputs=0',
+                     'Flutter per-output render audit presented_outputs=1',
+                     'Denial/Volition output scheduler audit presentations=0',
+                     'unrelated presentations=1',
+                     'Denial/Volition output scheduler audit presentations=1 presentations=0'):
+            self.assertFalse(GUEST.mobile_ready(text.encode()))
+        text = 'Denial/Volition output scheduler audit \x1b[3mpresentations\x1b[0m=2 ready_with_fence=2'
+        self.assertTrue(GUEST.mobile_ready(text.encode()))
+
     def test_shell_requires_xwayland_before_launch(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
