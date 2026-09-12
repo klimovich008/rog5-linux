@@ -2216,3 +2216,13 @@ cache provisioning, `--threads=1` exposed the actual missing ARM64 sysroot in
 0.315 s. Keep package acquisition, interpreter execution, graph validation and
 compilation as separate results. A full-sync capacity guard does not require
 restarting a full sync to fetch one independently bounded pinned tool.
+
+The next graph attempt exposed the AMD64 host sysroot as well as the ARM64
+target sysroot; provision both exact source pins for a cross-engine/AOT build.
+After payload verification, one-worker GN passed in 1.718 s. Regular-file digest
+helpers intentionally refuse symlinks: for an expected compiler dependency such
+as libc, resolve it strictly within its sysroot before hashing the regular target.
+Two focused fixtures cover inside/outside links. Inspect real GN output lists
+before assuming cardinality: engine TOC and unstripped AOT companions are declared
+outputs too. A generated graph can pass with a missing compiler and an unused
+argument warning; report those prerequisites and diagnostics separately.
