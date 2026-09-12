@@ -1,0 +1,1745 @@
+{
+  "format": "rog5-flutter-assets-settings-qualification-v1",
+  "status": "PASS",
+  "scope": "real source Flutter tool, shell/settings assets, reproducible settings AOT and private shell runtime fixture; no VM/isolate, compositor or physical startup",
+  "source": {
+    "commit": "ef2648d41b455e195482d5431936264e088657cd",
+    "tree": "b92dfa3a8af39b6df6120cb96a17fbe60c34e2b3"
+  },
+  "flutter_commit": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+  "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "dart_commit": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
+  "tool_package_acquisition": [
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/archives-result.json",
+      "sha256": "dd3aed4b3408af2948f77fe6a3ed51769471d92bd9fa005007292455910d906d",
+      "size": 52599,
+      "counts": {
+        "packages": 100,
+        "reused": 52,
+        "fetched": 48
+      },
+      "duration_seconds": 23.707988957001362
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/archives-extra-result.json",
+      "sha256": "cb402eb93fe199e646d4576583b0ade0c056101e2cac2f31ef27bd4a6710fa3e",
+      "size": 2029,
+      "counts": {
+        "packages": 2,
+        "reused": 0,
+        "fetched": 2
+      },
+      "duration_seconds": 0.7367367850092705
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache-result.json",
+      "sha256": "277c9f771466ddcf40108f715280a79f17fff65c394bfdd9dec3d05bee198d6a",
+      "size": 2282987,
+      "counts": null,
+      "duration_seconds": 4.720416522992309
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache-extra-result.json",
+      "sha256": "2aa6251960590bbd87586c947a5c6540f118b0e6ceca77d9aceee04df9293d5a",
+      "size": 39273,
+      "counts": null,
+      "duration_seconds": 0.07044122999650426
+    }
+  ],
+  "tool_resolution": [
+    {
+      "name": "pub-resolve-r2",
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--network=none",
+        "--memory=1536m",
+        "--memory-swap=1536m",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--timeout=170",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/flutter:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools:/flutter/packages/flutter_tools:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache:/flutter/bin/cache:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/flutter/bin/cache/dart-sdk:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache:/tools-pub-cache:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/home:/home/build:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tmp:/tmp:rw",
+        "-e",
+        "HOME=/home/build",
+        "-e",
+        "TMPDIR=/tmp",
+        "-e",
+        "PUB_CACHE=/tools-pub-cache",
+        "-e",
+        "FLUTTER_ROOT=/flutter",
+        "-e",
+        "FLUTTER_SUPPRESS_ANALYTICS=true",
+        "-e",
+        "CI=true",
+        "-e",
+        "GIT_CONFIG_COUNT=1",
+        "-e",
+        "GIT_CONFIG_KEY_0=safe.directory",
+        "-e",
+        "GIT_CONFIG_VALUE_0=/flutter",
+        "--workdir=/flutter/packages/flutter_tools",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "/flutter/bin/cache/dart-sdk/bin/dart",
+        "pub",
+        "get",
+        "--offline"
+      ],
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.5153545580105856,
+      "log_sha256": "8960c5e387db63c0684222608f828c0636ebd2fe932504c95dd33d105d9b362d"
+    },
+    {
+      "name": "pub-locked-r2",
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--network=none",
+        "--memory=1536m",
+        "--memory-swap=1536m",
+        "--cpus=2",
+        "--pids-limit=128",
+        "--timeout=170",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/flutter:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools:/flutter/packages/flutter_tools:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache:/flutter/bin/cache:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/flutter/bin/cache/dart-sdk:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache:/tools-pub-cache:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/home:/home/build:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tmp:/tmp:rw",
+        "-e",
+        "HOME=/home/build",
+        "-e",
+        "TMPDIR=/tmp",
+        "-e",
+        "PUB_CACHE=/tools-pub-cache",
+        "-e",
+        "FLUTTER_ROOT=/flutter",
+        "-e",
+        "FLUTTER_SUPPRESS_ANALYTICS=true",
+        "-e",
+        "CI=true",
+        "-e",
+        "GIT_CONFIG_COUNT=1",
+        "-e",
+        "GIT_CONFIG_KEY_0=safe.directory",
+        "-e",
+        "GIT_CONFIG_VALUE_0=/flutter",
+        "--workdir=/flutter/packages/flutter_tools",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "/flutter/bin/cache/dart-sdk/bin/dart",
+        "pub",
+        "get",
+        "--offline",
+        "--enforce-lockfile"
+      ],
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.4150474909984041,
+      "log_sha256": "d4cb7a3c68b4133b4f6e58c67ff5bfd13725d8021e930388cdc98da8a575919d"
+    }
+  ],
+  "fonts": {
+    "status": "PASS",
+    "source_pin": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/bin/internal/material_fonts.version",
+    "source_pin_sha256": "532f782264831c4186d45c290159d1b26c16566e2d8393e32c821b76d21a3a61",
+    "url": "https://storage.googleapis.com/flutter_infra_release/flutter/fonts/3012db47f3130e62f7cc0beabff968a33cbec8d8/fonts.zip",
+    "archive": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/fonts.zip",
+    "archive_sha256": "e56fa8e9bb4589fde964be3de451f3e5b251e4a1eafb1dc98d94add034dd5a86",
+    "archive_size": 2306678,
+    "files": [
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/RobotoCondensed-Regular.ttf",
+        "sha256": "6a2cfb7e61dd09d77526fd314b256894094f96e3a6f3149d9f8000c1132ef4b8",
+        "size": 170284
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/RobotoCondensed_LICENSE.txt",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "size": 11358
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-BlackItalic.ttf",
+        "sha256": "013d22a4fb2638adba28555ee19366f4585f6dc533b7c332f4931a231497cb22",
+        "size": 177552
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/RobotoCondensed-BoldItalic.ttf",
+        "sha256": "aecb99256fe43e06356bcf1af7a2a384fe9334dc21508f37c6259beae67e190e",
+        "size": 175888
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-LightItalic.ttf",
+        "sha256": "364a23e13c64937c3fcea3db778628b89379c893849bbade6e5bf83c5f605c6a",
+        "size": 176616
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/RobotoCondensed-Light.ttf",
+        "sha256": "b766b29053df4c6bfedbdf3cc33284717f835cdf6ca8d137c5106cee9dba68d3",
+        "size": 168004
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/RobotoCondensed-LightItalic.ttf",
+        "sha256": "da6861fa0ca6a29d305d5f484fbb228ea354ac9d27737e8cd7c15b754b4f9fb9",
+        "size": 175380
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/RobotoCondensed-Italic.ttf",
+        "sha256": "351cc12eb1d11769056069a6c14f84e45c46bb18d1b7327bae45720aa9753f28",
+        "size": 175188
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-Black.ttf",
+        "sha256": "3872e9b39760a1b59ac1e192633dbb3b58e595b4d423930ac7ded525e9ae25e0",
+        "size": 171480
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-ThinItalic.ttf",
+        "sha256": "f5e89a344894a60f0f98f1c0182ba51f5046e29dde3118820d39025445aeaae8",
+        "size": 176300
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/MaterialIcons_LICENSE.txt",
+        "sha256": "be698262aecd042c0de6f886cc0af622f8def446462026992cc530275d8a9e74",
+        "size": 18531
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/codepoints",
+        "sha256": "e9b6f6afe11baf536baedc5fac5d30e6e45f5fc25bdb12f9f2f4bc27c4db2ae3",
+        "size": 228708
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-Light.ttf",
+        "sha256": "a6d343d425bc38db90152fa06058b1c7391eca9264f334ef65c1ce175085c6f6",
+        "size": 170420
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-Bold.ttf",
+        "sha256": "7d0b991ee3e0be7af01ad7ea8cd2beea6c00a25e679a0226b6737f079aafff86",
+        "size": 170760
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/RobotoCondensed-Bold.ttf",
+        "sha256": "03b4e8042b9af4bf3349428fa734ed583f2d5d83287e1f42cf4d514c909146ef",
+        "size": 169800
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-MediumItalic.ttf",
+        "sha256": "f177eed10d2470d13ec68d04907a582829d0ee8281f8a02a906f6954c7816e58",
+        "size": 176864
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-Thin.ttf",
+        "sha256": "3d91f7aa69cb7f7064035895c566ac5cb9b2084582d351af7267bb4e0fba60f5",
+        "size": 171904
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-Regular.ttf",
+        "sha256": "79e851404657dac2106b3d22ad256d47824a9a5765458edb72c9102a45816d95",
+        "size": 171676
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-Italic.ttf",
+        "sha256": "5fce8b6f8ba9f4d19f0d535e241d56a2b8e72bb07e7df711d968d092ef7f9fca",
+        "size": 173932
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto_LICENSE.txt",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "size": 11358
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-Medium.ttf",
+        "sha256": "f205cc511821ea56078a105557fcea6253129404d411c997e1866fbd006abb68",
+        "size": 172064
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache/artifacts/material_fonts/Roboto-BoldItalic.ttf",
+        "sha256": "a4bcac14f419a97de0917198a4bc51c3ed4fc4a3db9f68a5102f23664ee01354",
+        "size": 174952
+      }
+    ],
+    "duration_seconds": 0.39846128699718975,
+    "scope": "pinned upstream font URL, HTTPS-observed archive identity and verified payload; no independent upstream signature",
+    "physical_status": "NOT RUN"
+  },
+  "sdk_metadata_bootstrap": {
+    "name": "bootstrap-metadata",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--network=none",
+      "--memory=1536m",
+      "--memory-swap=1536m",
+      "--cpus=2",
+      "--pids-limit=128",
+      "--timeout=170",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/flutter:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools:/flutter/packages/flutter_tools:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache:/flutter/bin/cache:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/flutter/bin/cache/dart-sdk:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache:/tools-pub-cache:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/home:/home/build:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tmp:/tmp:rw",
+      "-e",
+      "HOME=/home/build",
+      "-e",
+      "TMPDIR=/tmp",
+      "-e",
+      "PUB_CACHE=/tools-pub-cache",
+      "-e",
+      "FLUTTER_ROOT=/flutter",
+      "-e",
+      "FLUTTER_SUPPRESS_ANALYTICS=true",
+      "-e",
+      "CI=true",
+      "-e",
+      "GIT_CONFIG_COUNT=1",
+      "-e",
+      "GIT_CONFIG_KEY_0=safe.directory",
+      "-e",
+      "GIT_CONFIG_VALUE_0=/flutter",
+      "--workdir=/flutter/packages/flutter_tools",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "bash",
+      "/flutter/bin/internal/update_engine_version.sh"
+    ],
+    "status": "PASS",
+    "exit_status": 0,
+    "duration_seconds": 0.3147713820217177
+  },
+  "upstream_sdk_engine_metadata": {
+    "url": "https://storage.googleapis.com/flutter_infra_release/flutter/69c8c61792f04cc809dfef0c910414fb9afc06cd/engine_stamp.json",
+    "source_engine_stamp": "69c8c61792f04cc809dfef0c910414fb9afc06cd",
+    "sha256": "a0582c6b1a9ac49553a11bac54bae52ba66676b21640b17b3f1626018d53a0a7",
+    "size": 237,
+    "duration_seconds": 0.2717566280043684,
+    "scope": "upstream SDK artifact metadata only, not local compiled-engine identity"
+  },
+  "tool_cli_version": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--network=none",
+      "--memory=1536m",
+      "--memory-swap=1536m",
+      "--cpus=2",
+      "--pids-limit=128",
+      "--timeout=170",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/flutter:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools:/flutter/packages/flutter_tools:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache:/flutter/bin/cache:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/flutter/bin/cache/dart-sdk:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache:/tools-pub-cache:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/home:/home/build:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tmp:/tmp:rw",
+      "-e",
+      "HOME=/home/build",
+      "-e",
+      "TMPDIR=/tmp",
+      "-e",
+      "PUB_CACHE=/tools-pub-cache",
+      "-e",
+      "FLUTTER_ROOT=/flutter",
+      "-e",
+      "FLUTTER_SUPPRESS_ANALYTICS=true",
+      "-e",
+      "CI=true",
+      "-e",
+      "GIT_CONFIG_COUNT=1",
+      "-e",
+      "GIT_CONFIG_KEY_0=safe.directory",
+      "-e",
+      "GIT_CONFIG_VALUE_0=/flutter",
+      "--workdir=/flutter/packages/flutter_tools",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "/flutter/bin/cache/dart-sdk/bin/dart",
+      "--packages=/flutter/packages/flutter_tools/.dart_tool/package_config.json",
+      "/flutter/packages/flutter_tools/bin/flutter_tools.dart",
+      "--version",
+      "--suppress-analytics",
+      "--no-version-check"
+    ],
+    "status": "PASS",
+    "exit_status": 0,
+    "duration_seconds": 19.562256455013994,
+    "physical_status": "NOT RUN",
+    "scope": "real source Flutter CLI version using upstream SDK engine metadata, not local fork engine identity"
+  },
+  "tool_cli_output": "Flutter \u2022 channel [user-branch] \u2022 unknown source\nFramework \u2022 revision d728e61e7d (2 weeks ago) \u2022 2026-08-27 21:22:50 +0200\nEngine \u2022 hash 7076f47b1d1a3a0edfd8837b17dc15be6abab661 (revision 69c8c61792) (1 months ago) \u2022 2026-07-15 20:46:58.000Z\nTools \u2022 Dart 3.12.2 \u2022 DevTools 2.57.0\n",
+  "engine_identity_note": "CLI engine revision 69c8c61792f04cc809dfef0c910414fb9afc06cd is the source-pinned upstream SDK artifact metadata. The local ARM64 engine remains the d728e61e7d835e02c453c70ae9523a40f6c03215 fork with separately recorded build/bytes.",
+  "asset_runs": {
+    "assets-r1": {
+      "run": {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=1536m",
+          "--memory-swap=1536m",
+          "--cpus=2",
+          "--pids-limit=128",
+          "--timeout=170",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/flutter:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools:/flutter/packages/flutter_tools:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache:/flutter/bin/cache:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/flutter/bin/cache/dart-sdk:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache:/tools-pub-cache:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/home:/home/build:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tmp:/tmp:rw",
+          "-e",
+          "HOME=/home/build",
+          "-e",
+          "TMPDIR=/tmp",
+          "-e",
+          "PUB_CACHE=/tools-pub-cache",
+          "-e",
+          "FLUTTER_ROOT=/flutter",
+          "-e",
+          "FLUTTER_SUPPRESS_ANALYTICS=true",
+          "-e",
+          "CI=true",
+          "-e",
+          "GIT_CONFIG_COUNT=1",
+          "-e",
+          "GIT_CONFIG_KEY_0=safe.directory",
+          "-e",
+          "GIT_CONFIG_VALUE_0=/flutter",
+          "--workdir=/flutter/packages/flutter_tools",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1:/work:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/dart_shell:/app:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache:/pub-cache:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out:/engine:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1:/output:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets.dart:/driver.dart:ro",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/flutter/bin/cache/dart-sdk/bin/dart",
+          "--packages=/flutter/packages/flutter_tools/.dart_tool/package_config.json",
+          "/driver.dart"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 8.93546352800331,
+        "physical_status": "NOT RUN"
+      },
+      "result": {
+        "status": "PASS",
+        "entries": [
+          {
+            "path": "assets/cursors/bibata_modern_ice/alternate/00.png",
+            "kind": "regular",
+            "size": 1617
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/busy/00.png",
+            "kind": "regular",
+            "size": 1775
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+            "kind": "regular",
+            "size": 860
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+            "kind": "regular",
+            "size": 836
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/handwriting/00.png",
+            "kind": "regular",
+            "size": 535
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/help/00.png",
+            "kind": "regular",
+            "size": 1162
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+            "kind": "regular",
+            "size": 748
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/link/00.png",
+            "kind": "regular",
+            "size": 1204
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/move/00.png",
+            "kind": "regular",
+            "size": 1298
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/normal/00.png",
+            "kind": "regular",
+            "size": 968
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/person/00.png",
+            "kind": "regular",
+            "size": 993
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/pin/00.png",
+            "kind": "regular",
+            "size": 1075
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/precision/00.png",
+            "kind": "regular",
+            "size": 858
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/text/00.png",
+            "kind": "regular",
+            "size": 813
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/unavailable/00.png",
+            "kind": "regular",
+            "size": 1227
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+            "kind": "regular",
+            "size": 818
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/working/00.png",
+            "kind": "regular",
+            "size": 1495
+          },
+          {
+            "path": "assets/branding/denial-dark.svg",
+            "kind": "regular",
+            "size": 3344
+          },
+          {
+            "path": "assets/icons/application-default-icon.svg",
+            "kind": "regular",
+            "size": 408
+          },
+          {
+            "path": "assets/wallpapers/trails-h-accent-9-dark.png",
+            "kind": "regular",
+            "size": 3913008
+          },
+          {
+            "path": "assets/fonts/JetBrainsMono-Regular.ttf",
+            "kind": "font",
+            "size": 273900
+          },
+          {
+            "path": "assets/fonts/JetBrainsMono-Medium.ttf",
+            "kind": "font",
+            "size": 273860
+          },
+          {
+            "path": "assets/fonts/JetBrainsMono-Bold.ttf",
+            "kind": "font",
+            "size": 277828
+          },
+          {
+            "path": "fonts/MaterialIcons-Regular.otf",
+            "kind": "font",
+            "size": 1645184
+          },
+          {
+            "path": "shaders/ink_sparkle.frag",
+            "kind": "shader",
+            "size": 21856
+          },
+          {
+            "path": "shaders/stretch_effect.frag",
+            "kind": "shader",
+            "size": 17624
+          },
+          {
+            "path": "AssetManifest.bin",
+            "kind": "regular",
+            "size": 2439
+          },
+          {
+            "path": "FontManifest.json",
+            "kind": "regular",
+            "size": 307
+          },
+          {
+            "path": "NOTICES.Z",
+            "kind": "regular",
+            "size": 14745
+          }
+        ],
+        "manifest_variants": 23,
+        "font_files": 4,
+        "fonts_subset": false,
+        "scope": "real Flutter manifest/font/shader asset assembly; no application or physical startup"
+      }
+    },
+    "assets-r2": {
+      "run": {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=1536m",
+          "--memory-swap=1536m",
+          "--cpus=2",
+          "--pids-limit=128",
+          "--timeout=170",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/flutter:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools:/flutter/packages/flutter_tools:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache:/flutter/bin/cache:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/flutter/bin/cache/dart-sdk:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache:/tools-pub-cache:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/home:/home/build:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tmp:/tmp:rw",
+          "-e",
+          "HOME=/home/build",
+          "-e",
+          "TMPDIR=/tmp",
+          "-e",
+          "PUB_CACHE=/tools-pub-cache",
+          "-e",
+          "FLUTTER_ROOT=/flutter",
+          "-e",
+          "FLUTTER_SUPPRESS_ANALYTICS=true",
+          "-e",
+          "CI=true",
+          "-e",
+          "GIT_CONFIG_COUNT=1",
+          "-e",
+          "GIT_CONFIG_KEY_0=safe.directory",
+          "-e",
+          "GIT_CONFIG_VALUE_0=/flutter",
+          "--workdir=/flutter/packages/flutter_tools",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1:/work:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/dart_shell:/app:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache:/pub-cache:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out:/engine:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r2:/output:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets.dart:/driver.dart:ro",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/flutter/bin/cache/dart-sdk/bin/dart",
+          "--packages=/flutter/packages/flutter_tools/.dart_tool/package_config.json",
+          "/driver.dart"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 8.83538939600112,
+        "physical_status": "NOT RUN"
+      },
+      "result": {
+        "status": "PASS",
+        "entries": [
+          {
+            "path": "assets/cursors/bibata_modern_ice/alternate/00.png",
+            "kind": "regular",
+            "size": 1617
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/busy/00.png",
+            "kind": "regular",
+            "size": 1775
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+            "kind": "regular",
+            "size": 860
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+            "kind": "regular",
+            "size": 836
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/handwriting/00.png",
+            "kind": "regular",
+            "size": 535
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/help/00.png",
+            "kind": "regular",
+            "size": 1162
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+            "kind": "regular",
+            "size": 748
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/link/00.png",
+            "kind": "regular",
+            "size": 1204
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/move/00.png",
+            "kind": "regular",
+            "size": 1298
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/normal/00.png",
+            "kind": "regular",
+            "size": 968
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/person/00.png",
+            "kind": "regular",
+            "size": 993
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/pin/00.png",
+            "kind": "regular",
+            "size": 1075
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/precision/00.png",
+            "kind": "regular",
+            "size": 858
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/text/00.png",
+            "kind": "regular",
+            "size": 813
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/unavailable/00.png",
+            "kind": "regular",
+            "size": 1227
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+            "kind": "regular",
+            "size": 818
+          },
+          {
+            "path": "assets/cursors/bibata_modern_ice/working/00.png",
+            "kind": "regular",
+            "size": 1495
+          },
+          {
+            "path": "assets/branding/denial-dark.svg",
+            "kind": "regular",
+            "size": 3344
+          },
+          {
+            "path": "assets/icons/application-default-icon.svg",
+            "kind": "regular",
+            "size": 408
+          },
+          {
+            "path": "assets/wallpapers/trails-h-accent-9-dark.png",
+            "kind": "regular",
+            "size": 3913008
+          },
+          {
+            "path": "assets/fonts/JetBrainsMono-Regular.ttf",
+            "kind": "font",
+            "size": 273900
+          },
+          {
+            "path": "assets/fonts/JetBrainsMono-Medium.ttf",
+            "kind": "font",
+            "size": 273860
+          },
+          {
+            "path": "assets/fonts/JetBrainsMono-Bold.ttf",
+            "kind": "font",
+            "size": 277828
+          },
+          {
+            "path": "fonts/MaterialIcons-Regular.otf",
+            "kind": "font",
+            "size": 1645184
+          },
+          {
+            "path": "shaders/ink_sparkle.frag",
+            "kind": "shader",
+            "size": 21856
+          },
+          {
+            "path": "shaders/stretch_effect.frag",
+            "kind": "shader",
+            "size": 17624
+          },
+          {
+            "path": "AssetManifest.bin",
+            "kind": "regular",
+            "size": 2439
+          },
+          {
+            "path": "FontManifest.json",
+            "kind": "regular",
+            "size": 307
+          },
+          {
+            "path": "NOTICES.Z",
+            "kind": "regular",
+            "size": 14745
+          }
+        ],
+        "manifest_variants": 23,
+        "font_files": 4,
+        "fonts_subset": false,
+        "scope": "real Flutter manifest/font/shader asset assembly; no application or physical startup"
+      }
+    },
+    "settings-assets-r1": {
+      "run": {
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=1536m",
+          "--memory-swap=1536m",
+          "--cpus=2",
+          "--pids-limit=128",
+          "--timeout=170",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/flutter:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools:/flutter/packages/flutter_tools:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-cache:/flutter/bin/cache:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/flutter/bin/cache/dart-sdk:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/pub-cache:/tools-pub-cache:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/home:/home/build:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tmp:/tmp:rw",
+          "-e",
+          "HOME=/home/build",
+          "-e",
+          "TMPDIR=/tmp",
+          "-e",
+          "PUB_CACHE=/tools-pub-cache",
+          "-e",
+          "FLUTTER_ROOT=/flutter",
+          "-e",
+          "FLUTTER_SUPPRESS_ANALYTICS=true",
+          "-e",
+          "CI=true",
+          "-e",
+          "GIT_CONFIG_COUNT=1",
+          "-e",
+          "GIT_CONFIG_KEY_0=safe.directory",
+          "-e",
+          "GIT_CONFIG_VALUE_0=/flutter",
+          "--workdir=/flutter/packages/flutter_tools",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1:/work:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/settings_app:/app:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache:/pub-cache:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out:/engine:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-assets-r1:/output:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets.dart:/driver.dart:ro",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/flutter/bin/cache/dart-sdk/bin/dart",
+          "--packages=/flutter/packages/flutter_tools/.dart_tool/package_config.json",
+          "/driver.dart"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 8.685084140015533,
+        "physical_status": "NOT RUN"
+      },
+      "result": {
+        "status": "PASS",
+        "entries": [
+          {
+            "path": "fonts/MaterialIcons-Regular.otf",
+            "kind": "font",
+            "size": 1645184
+          },
+          {
+            "path": "shaders/ink_sparkle.frag",
+            "kind": "shader",
+            "size": 21856
+          },
+          {
+            "path": "shaders/stretch_effect.frag",
+            "kind": "shader",
+            "size": 17624
+          },
+          {
+            "path": "AssetManifest.bin",
+            "kind": "regular",
+            "size": 2
+          },
+          {
+            "path": "FontManifest.json",
+            "kind": "regular",
+            "size": 82
+          },
+          {
+            "path": "NOTICES.Z",
+            "kind": "regular",
+            "size": 14757
+          }
+        ],
+        "manifest_variants": 0,
+        "font_files": 1,
+        "fonts_subset": false,
+        "scope": "real Flutter manifest/font/shader asset assembly; no application or physical startup"
+      }
+    }
+  },
+  "settings_frontend": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--network=none",
+      "--memory=2048m",
+      "--memory-swap=2048m",
+      "--cpus=2",
+      "--pids-limit=128",
+      "--timeout=290",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/sdk:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache:/pub-cache:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1:/work:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/flutter:/flutter:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages:/flutter/packages:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/gen/dart-pkg/sky_engine:/flutter/bin/cache/pkg/sky_engine:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/flutter_patched_sdk:/platform:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build:/output:rw",
+      "-e",
+      "HOME=/output/home",
+      "-e",
+      "TMPDIR=/output/tmp",
+      "--workdir=/work/workspace/settings_app",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "/sdk/bin/dartaotruntime",
+      "/sdk/bin/snapshots/frontend_server_aot.dart.snapshot",
+      "--sdk-root",
+      "/platform/",
+      "--target=flutter",
+      "--no-print-incremental-dependencies",
+      "-Ddart.vm.profile=false",
+      "-Ddart.vm.product=true",
+      "--delete-tostring-package-uri=dart:ui",
+      "--delete-tostring-package-uri=package:flutter",
+      "--track-widget-creation",
+      "--aot",
+      "--tfa",
+      "--target-os",
+      "linux",
+      "--packages",
+      "/work/workspace/settings_app/.dart_tool/package_config.json",
+      "--output-dill",
+      "/output/app.dill",
+      "--depfile",
+      "/output/app.d",
+      "--verbosity=error",
+      "lib/main.dart"
+    ],
+    "status": "PASS",
+    "exit_status": 0,
+    "duration_seconds": 20.714630682981806,
+    "physical_status": "NOT RUN",
+    "scope": "real settings frontend whole-program release compilation only; no assets or engine initialization",
+    "inputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/dartaotruntime",
+        "sha256": "297f6b68adf22140d0bfc92cf974dc0e22bd54be6e15d730b911ad5b661d6a89"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/snapshots/frontend_server_aot.dart.snapshot",
+        "sha256": "c538f3be137067d674993c36255e6b56ffcdf49a7cc867a6a7e850a2da46f045"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/flutter_patched_sdk/platform_strong.dill",
+        "sha256": "405cb8b4cfea924abdaf9c6f9445ffa327a4928dd410c96e5a778c1856728831"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/settings_app/.dart_tool/package_config.json",
+        "sha256": "6e68687b7ffffc15838ce5e14d99c47a98c921b631f3c43df9c5643e947810e9"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter_tools/lib/src/compile.dart",
+        "sha256": "25483f204e9d8bf042ba1829fed4cbd5ef80f895adcab940d8968380b7faa8af"
+      }
+    ],
+    "log_sha256": "02a7d9f04f283199c15782aea37e1abc43b0b5708337af8ed57331f79a668af9"
+  },
+  "settings_aot": {
+    "status": "PASS",
+    "tests": [
+      {
+        "name": "aot-r1",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=128",
+          "--timeout=290",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot:/gen_snapshot:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/app.dill:/input/app.dill:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/aot-r1:/output:rw",
+          "-e",
+          "TMPDIR=/output",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/gen_snapshot",
+          "--deterministic",
+          "--snapshot_kind=app-aot-elf",
+          "--elf=/output/libapp.so",
+          "--strip",
+          "/input/app.dill"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 13.545331101980992,
+        "log_sha256": "45aec0a66413d46de0747d94f6eab9289d869855dbaf49de297d66df1b989399",
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/aot-r1/libapp.so",
+          "size": 8127376,
+          "sha256": "721bd95061468b5ae3ded62d47e4999bb5bd3786fa98f43705f5a702ef18f10b"
+        }
+      },
+      {
+        "name": "aot-r2",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--network=none",
+          "--memory=2048m",
+          "--memory-swap=2048m",
+          "--cpus=2",
+          "--pids-limit=128",
+          "--timeout=290",
+          "-v",
+          "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot:/gen_snapshot:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/app.dill:/input/app.dill:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/aot-r2:/output:rw",
+          "-e",
+          "TMPDIR=/output",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/gen_snapshot",
+          "--deterministic",
+          "--snapshot_kind=app-aot-elf",
+          "--elf=/output/libapp.so",
+          "--strip",
+          "/input/app.dill"
+        ],
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 13.394570378004573,
+        "log_sha256": "45aec0a66413d46de0747d94f6eab9289d869855dbaf49de297d66df1b989399",
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/aot-r2/libapp.so",
+          "size": 8127376,
+          "sha256": "721bd95061468b5ae3ded62d47e4999bb5bd3786fa98f43705f5a702ef18f10b"
+        }
+      }
+    ],
+    "byte_identical": true,
+    "input_dill_sha256": "76df9905bbd96e352c94eccc10ea1aaffb1a094968b1b681ec7d26f675ac8ea6",
+    "tool_sha256": "c0d9294287db1e33fea482e6f4f9907b763901f8a6c9bdf025b5791a991ebb01",
+    "physical_status": "NOT RUN",
+    "scope": "real settings ARM64 AOT compilation and two fresh-output byte equality; assets/session not qualified"
+  },
+  "qualification": {
+    "status": "PASS",
+    "duration_seconds": 1.0435188059927896,
+    "tool_lock_packages": 102,
+    "tool_package_roots": 103,
+    "verified_archive_members": 9558,
+    "unchanged_tool_source_files": 1396,
+    "tool_lock": {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools/pubspec.lock",
+      "sha256": "1aa193fc5df798338a2ca97d1737450f9c2cc1984ec0095b2efbaa0f4dcad340",
+      "size": 23993
+    },
+    "tool_package_config": {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/flutter-tools/.dart_tool/package_config.json",
+      "sha256": "109b379e6fb060fd9374be21fdeb1b37410a92391abc714301d08f7a89b05a4e",
+      "size": 18331
+    },
+    "asset_trees": {
+      "assets-r1": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/tree.json",
+        "sha256": "5b30028692afc04c736e8d378f7abbeaafa4dd29a4f763cb4bc2708dd2296645",
+        "size": 8384
+      },
+      "assets-r2": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r2/tree.json",
+        "sha256": "5b30028692afc04c736e8d378f7abbeaafa4dd29a4f763cb4bc2708dd2296645",
+        "size": 8384
+      },
+      "settings-assets-r1": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-assets-r1/tree.json",
+        "sha256": "ec5c98dfa9e14265f98a4f4c82ca5cc3aa5a9c4a5259d1041b44178b7c51ad82",
+        "size": 1239
+      }
+    },
+    "shell_assets_byte_identical": true,
+    "settings_aot_byte_identical": true,
+    "impellerc": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/impellerc",
+      "sha256": "2f745f1180f4f22f8d72d888296d666e1e581043923dc4ad324fa238c4c961c4",
+      "size": 9272632
+    },
+    "scope": "real Flutter asset assembly/manifest semantics and shader compilation; repeated shell asset bytes, settings AOT equality, source/package identity; no image/font rendering or application startup",
+    "physical_status": "NOT RUN",
+    "phone_operations": false
+  },
+  "runtime_fixture": {
+    "status": "PASS",
+    "kind": "private offline runtime fixture",
+    "files": [
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+          "size": 15975760
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/lib/libflutter_engine.so",
+          "sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+          "size": 15975760
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-shell-aot-evidence-20260912-r1/aot-r1/libapp.so",
+          "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871",
+          "size": 10814352
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/lib/libapp.so",
+          "sha256": "0d4fae6a98fc5d5e37e8e907db2fcd0484ed9706e89ac3c6bd103e472ad6b871",
+          "size": 10814352
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/icudtl.dat",
+          "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+          "size": 10822192
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/icudtl.dat",
+          "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+          "size": 10822192
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+          "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+          "size": 1617
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+          "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+          "size": 1617
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+          "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+          "size": 1775
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+          "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+          "size": 1775
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+          "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+          "size": 860
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+          "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+          "size": 860
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+          "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+          "size": 836
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+          "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+          "size": 836
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+          "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+          "size": 535
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+          "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+          "size": 535
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+          "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+          "size": 1162
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+          "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+          "size": 1162
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+          "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+          "size": 748
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+          "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+          "size": 748
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+          "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+          "size": 1204
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+          "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+          "size": 1204
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+          "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+          "size": 1298
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+          "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+          "size": 1298
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+          "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+          "size": 968
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+          "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+          "size": 968
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+          "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+          "size": 993
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+          "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+          "size": 993
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+          "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+          "size": 1075
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+          "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+          "size": 1075
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+          "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+          "size": 858
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+          "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+          "size": 858
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+          "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+          "size": 813
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+          "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+          "size": 813
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+          "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+          "size": 1227
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+          "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+          "size": 1227
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+          "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+          "size": 818
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+          "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+          "size": 818
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+          "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+          "size": 1495
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+          "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+          "size": 1495
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/branding/denial-dark.svg",
+          "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+          "size": 3344
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/branding/denial-dark.svg",
+          "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+          "size": 3344
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/icons/application-default-icon.svg",
+          "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+          "size": 408
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/icons/application-default-icon.svg",
+          "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+          "size": 408
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+          "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+          "size": 3913008
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+          "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+          "size": 3913008
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+          "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+          "size": 273900
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+          "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+          "size": 273900
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+          "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+          "size": 273860
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+          "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+          "size": 273860
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+          "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+          "size": 277828
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+          "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+          "size": 277828
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/fonts/MaterialIcons-Regular.otf",
+          "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+          "size": 1645184
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+          "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+          "size": 1645184
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/shaders/ink_sparkle.frag",
+          "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+          "size": 21856
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/shaders/ink_sparkle.frag",
+          "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+          "size": 21856
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/shaders/stretch_effect.frag",
+          "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+          "size": 17624
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/shaders/stretch_effect.frag",
+          "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+          "size": 17624
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/AssetManifest.bin",
+          "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+          "size": 2439
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/AssetManifest.bin",
+          "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+          "size": 2439
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/FontManifest.json",
+          "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+          "size": 307
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/FontManifest.json",
+          "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+          "size": 307
+        }
+      },
+      {
+        "input": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets-r1/flutter_assets/NOTICES.Z",
+          "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+          "size": 14745
+        },
+        "output": {
+          "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture/data/flutter_assets/NOTICES.Z",
+          "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+          "size": 14745
+        }
+      }
+    ],
+    "file_count": 32,
+    "tree": {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-tree.json",
+      "sha256": "e2cfdd7c25fbd00c6a705c0084f0d1a9fb806c00ea2ec3d4c808f93386d6f9de",
+      "size": 10255
+    },
+    "duration_seconds": 0.157272123004077,
+    "scope": "exact library/ICU/declared asset composition; shader intermediates excluded; initialization/VM/isolate/session NOT RUN",
+    "phone_operations": false,
+    "signing": false,
+    "claim_operations": false,
+    "candidate_created": false,
+    "physical_status": "NOT RUN"
+  },
+  "retained_failures": [
+    {
+      "kind": "strict raw-URL comparison rejected the percent-encoded plus in a version",
+      "evidence": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/fetch.log",
+        "sha256": "1c226e055b97e0e289e61e16909a7802dad95ad80cc9bb6c73b0e3ddcca48138",
+        "size": 2397
+      }
+    },
+    {
+      "kind": "initial resolution lacked two transitive dependencies",
+      "evidence": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tool-r1-result.json",
+        "sha256": "78a038275af16cfa0f2cac8f010e22afeb8f2404d42bf0390f77fa9a18e1f9f0",
+        "size": 2052
+      }
+    },
+    {
+      "kind": "direct source CLI lacked normal engine-stamp bootstrap",
+      "evidence": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/tool-r2-result.json",
+        "sha256": "26e95fd3e7ac47e9b483685891ac33af866f3e9f32aebca4be05d7b2825d67c8",
+        "size": 6271
+      }
+    },
+    {
+      "kind": "offline CLI lacked source-pinned upstream engine metadata",
+      "evidence": {
+        "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/bootstrap-result.json",
+        "sha256": "18919ee3f028b301307592e07b2e2b5d4d84d866b2bf61347eb96283477055fd",
+        "size": 4011
+      }
+    }
+  ],
+  "private_tools": [
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/fetch-tools.py",
+      "sha256": "a9430584fb7be0e861e8963c669c17489eb3d342715397c8b02ea7ab2c5d036b",
+      "size": 4091
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/fetch-tools-r2.py",
+      "sha256": "11192cacbdea5973fa7d53b8e26034e1017b109ff07aa11c7e0c35849955ac18",
+      "size": 4610
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/fetch-extra.py",
+      "sha256": "0b0ad1d9b36bb4f74b771fb97bdcc4166ee3b1ff320275bf32c99a091b6fb417",
+      "size": 4164
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/materialize-tools.py",
+      "sha256": "b075fc9ec591556964b3e072b61e76e6cb500dd586bcb5b8d37c7ffb71dae89e",
+      "size": 2166
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/materialize-extra.py",
+      "sha256": "33302b1478ec238a6955605c7455cc94f61d79e9dd185b666a9d66e863730de2",
+      "size": 2215
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/prepare-tool.py",
+      "sha256": "e1d5f26519f4d9d454aa632fa356acd7eea2754939b15a9756913f4e51f37aed",
+      "size": 2889
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/prepare-tool-r2.py",
+      "sha256": "17291e964682b646597ef088126f5082936551201b1eeed9f1a021522c374cd5",
+      "size": 2867
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/fetch-fonts.py",
+      "sha256": "836ccfea011b47a25850989026f475f1cf2ae8f4f81a640aa0b2b6253f6248ad",
+      "size": 2261
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/bootstrap-metadata.py",
+      "sha256": "07cdeda01eccd9baef2767b1c31365c64b7f211e5c58b0b67a0775a3e221a122",
+      "size": 1330
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/assets.dart",
+      "sha256": "d74e3d83d6d80ee8ae82bf72d7fee9513d61795d0b1856478403035e1dd58151",
+      "size": 3957
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/run-assets.py",
+      "sha256": "78741892f393aaec5c9cae64bbd0b7a60e211a8fec94f23750180cbddf6f4bc7",
+      "size": 1405
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/run-assets-r2.py",
+      "sha256": "e2edf10fa9ce16a0ca8f080bed6f9844ce87b6e3b09ab6741e5f28a515101747",
+      "size": 1405
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/run-settings-assets.py",
+      "sha256": "bfaefb0959d736b3f3a657925c72fa2509c25ec55712e554b7b63174649ad5c7",
+      "size": 1416
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/finish-asset-runs.py",
+      "sha256": "322b77102729508086b06402449f2db156ecc43f634ccdf1557ca865eb653409",
+      "size": 1046
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/qualify.py",
+      "sha256": "82eb4b5cfda67f1b6f8f6fc7df56f8df794b3b88efb140e394ff0266cb311222",
+      "size": 3907
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/stage-runtime.py",
+      "sha256": "00970b25c5671c6b504e435ed5fe7fe70d682f345d2a8bfbc37e991cd71566b8",
+      "size": 2321
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/run-frontend.py",
+      "sha256": "6dd10bca5db4b2b8df729e603f8aebe4e2b3d6d72fe119f697c6f4ef6e5d2d20",
+      "size": 2953
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/settings-build/run-aot.py",
+      "sha256": "a77e70a5dd70fa83fa1260cf562c7cc076fd6da15a73b0c89ffcbf78601820aa",
+      "size": 2479
+    }
+  ],
+  "phone_operations": false,
+  "signing": false,
+  "claim_operations": false,
+  "protected_storage_mutation": false,
+  "candidate_created": false,
+  "physical_status": "NOT RUN",
+  "remaining": [
+    "bounded offline shell runtime initialization",
+    "settings native runner/GTK runtime qualification",
+    "actual mobile session and physical acceptance"
+  ]
+}

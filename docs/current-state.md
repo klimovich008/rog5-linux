@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **ARM64 shell AOT reproducible; Denial engine loader qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Shell/settings assets and ARM64 AOT ready for offline startup**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The shell frontend compiles with zero errors; two ARM64 AOT builds are byte-identical. Six real Denial loader/engine AOT-data tests pass under ARM64 QEMU, including repeated shell data loading/cleanup. All 13 resolved Arch libraries and 1,970 compiler inputs match retained package/source records; ICU bytes match the pinned source. This does not start a VM/isolate, compositor or shell. Next assemble the real Flutter assets and settings runtime, then qualify bounded offline startup. No phone operation is authorized; signed/installed/fallback artifacts are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-engine-shell-aot.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Real Flutter asset assembly passes for shell and settings; two fresh shell asset trees match byte-for-byte. Settings frontend and two identical ARM64 AOT builds pass. The isolated source tool resolves 102 locked packages and its CLI executes offline after normal metadata bootstrap; its upstream SDK engine metadata is distinct from the local fork engine. A 32-file private shell runtime fixture combines exact engine/AOT/ICU and declared assets. Next qualify bounded offline initialization and the settings native runner/GTK runtime. No VM/isolate, compositor or phone session is claimed. No phone operation is authorized; signed/installed/fallback artifacts are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-flutter-assets-settings.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
