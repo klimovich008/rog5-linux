@@ -2093,3 +2093,13 @@ version, with the fallback exercised by real ARM64 softpipe (3.2 refused,
 3.0 requested, 3.1 returned). Reuse verified library bytes but create a new binding
 for a changed executable; do not inherit an old lock's probe-specific results.
 The active-tier wrapper now captures outer wall time as well as per-test timings.
+
+Native fence readiness is not successful GPU completion: the pinned sync-file
+poll path reports signaled fences, while the info ioctl distinguishes status 1
+from negative completion. Check both, retain one deadline across interrupted
+polls, and close the exported FD on every error path. Native and ARM64 eventfd
+fixtures verify polling/ownership with controlled EGL/ioctl boundaries; they do
+not prove native GPU fences. Both real software renderers lack the native-fence
+extension, so preserve those capability blockers separately from passing ABI
+checks. No CPU/ordinary-EGL-fence fallback should silently satisfy Denial's native
+export requirement.
