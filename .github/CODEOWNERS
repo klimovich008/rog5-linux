@@ -1,0 +1,7 @@
+# Routing only; branch protection must be configured separately.
+* @klimovich008
+/patches/ @klimovich008
+/dts/ @klimovich008
+/initramfs/ @klimovich008
+/configs/kernel/ @klimovich008
+/.github/workflows/ @klimovich008
