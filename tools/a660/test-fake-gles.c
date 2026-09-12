@@ -24,6 +24,7 @@ static H current_context;
 static int dma_fd=-1, dma_backing=-1, texture_count, framebuffer_count;
 static unsigned bound_texture, attached_texture;
 static int import_bound;
+static int gbm_enabled, gbm_parent_fd=-1, gbm_storage=-1, source_backing=-1, gbm_imports;
 static unsigned char dma_pixels[64];
 static int producer_created, consumer_created;
 static int fault(const char *name) {
@@ -34,9 +35,10 @@ static int fault(const char *name) {
 }
 const char *eglQueryString(H d, int n) {
  (void)n;
- if (d && fault("dma_extension")) return "EGL_MESA_image_dma_buf_export_suffix EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers";
- if (d) return fault("native_extension")?"EGL_ANDROID_native_fence_sync_suffix EGL_KHR_fence_sync":"EGL_ANDROID_native_fence_sync EGL_KHR_fence_sync EGL_MESA_image_dma_buf_export EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers";
- return fault("extensions") ? "EGL_MESA_platform_surfaceless_suffix" : "EGL_MESA_platform_surfaceless";
+ if (d && gbm_enabled && fault("gbm_context_extension")) return "EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers";
+ if (d && fault("dma_extension")) return "EGL_MESA_image_dma_buf_export_suffix EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_KHR_surfaceless_context";
+ if (d) return fault("native_extension")?"EGL_ANDROID_native_fence_sync_suffix EGL_KHR_fence_sync":"EGL_ANDROID_native_fence_sync EGL_KHR_fence_sync EGL_MESA_image_dma_buf_export EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_KHR_surfaceless_context";
+ return fault("extensions") ? "EGL_MESA_platform_surfaceless_suffix" : "EGL_MESA_platform_surfaceless EGL_KHR_platform_gbm";
 }
 H eglGetPlatformDisplay(unsigned p, H d, const intptr_t *a) { (void)p; (void)d; (void)a; return fault("display") ? NULL : (H)1; }
 unsigned eglInitialize(H d, int *a, int *b) { (void)d; *a=1; *b=fault("version")?4:5; return !fault("initialize"); }
@@ -67,7 +69,7 @@ void glGetIntegerv(unsigned name, int *value) {
 }
 unsigned eglMakeCurrent(H d, H r, H w, H c) {
  (void)d;
- if (r!=w || (c==(H)14 && r!=(H)13) || (c==(H)4 && r!=(H)3)) abort();
+ if (r!=w || (c==(H)14 && r!=(H)13) || (c==(H)4 && r!=(gbm_enabled?NULL:(H)3))) abort();
  const char *name=!c?"unbind":c==(H)14?"consumer_current":current_context==(H)14?"restore_current":"current";
  if (fault(name)) return 0;
  current_context=c; return 1;
@@ -125,6 +127,7 @@ void glDrawArrays(unsigned m, int first, int n) { (void)m; (void)first; (void)n;
    dma_pixels[i+1]=(unsigned char)((y+0.5)*255/4+0.5);
    dma_pixels[i+2]=64;dma_pixels[i+3]=255;
   }
+  if (gbm_enabled && (source_backing<0 || pwrite(source_backing,dma_pixels,64,0)!=64)) abort();
  }
 }
 void glReadPixels(int x, int y, int w, int h, unsigned fmt, unsigned type, void *data) {
@@ -246,7 +249,7 @@ void glFramebufferTexture2D(unsigned target,unsigned attachment,unsigned textarg
  if (target!=0x8d40 || attachment!=0x8ce0 || textarget!=0x0de1 || level) abort();
  attached_texture=texture;
 }
-unsigned glCheckFramebufferStatus(unsigned target) { (void)target;return (fault("framebuffer_incomplete") || (attached_texture==12 && !import_bound))?0x8cd6:0x8cd5; }
+unsigned glCheckFramebufferStatus(unsigned target) { (void)target;return (fault("framebuffer_incomplete") || (attached_texture==12 && !(import_bound & (1<<12))))?0x8cd6:0x8cd5; }
 void glDeleteFramebuffers(int count,const unsigned *framebuffer) { (void)framebuffer;if (count!=1 || current_context!=(H)4) abort();fault("framebuffer_delete"); }
 H eglCreateImage(H display,H context,unsigned target,H buffer,const intptr_t *attributes) {
  (void)display;
@@ -258,12 +261,18 @@ H eglCreateImage(H display,H context,unsigned target,H buffer,const intptr_t *at
  intptr_t expected[]={0x3057,4,0x3056,4,0x3271,0x34324241,0x3272,dma_fd,0x3273,0,0x3274,16,0x3443,0,0x3444,0,0x3038};
  if (memcmp(attributes,expected,sizeof(expected))) abort();
  if (fault("dma_import")) return NULL;
+ if (gbm_enabled) {
+  int backing=dup(dma_fd);if (backing<0) abort();
+  if (gbm_imports++==0) { source_backing=backing;return (H)41; }
+  dma_backing=backing;return (H)42;
+ }
  dma_backing=dup(dma_fd);if (dma_backing<0) abort();return (H)22;
 }
 unsigned eglDestroyImage(H display,H image) {
  (void)display;
  closed(dma_fd,"DMA_FD_CLOSED");
- if (image==(H)22) { if (close(dma_backing)) abort();dma_backing=-1; }
+ if (image==(H)41) { if (close(source_backing)) abort();source_backing=-1; }
+ if (image==(H)22 || image==(H)42) { if (close(dma_backing)) abort();dma_backing=-1; }
  return !fault("dma_destroy");
 }
 static unsigned dma_query(H display,H image,int *fourcc,int *planes,uint64_t *modifiers) {
@@ -282,6 +291,40 @@ static unsigned dma_export(H display,H image,int *fd,int *stride,int *offset) {
  *fd=dma_fd;return !fault("dma_export_partial");
 }
 static void image_texture(unsigned target,H image) {
- if (target!=0x0de1 || image!=(H)22 || bound_texture!=12) abort();
- if (!fault("image_texture")) import_bound=1;
+ if (target!=0x0de1 || (gbm_enabled?image!=(H)(uintptr_t)(bound_texture+30):(image!=(H)22 || bound_texture!=12))) abort();
+ if (!fault("image_texture")) import_bound|=1<<bound_texture;
+}
+
+H gbm_create_device(int fd) {
+ gbm_enabled=1;gbm_parent_fd=fd;
+ if (fd<3 || fcntl(fd,F_GETFD)==-1) abort();
+ return fault("gbm_device")?NULL:(H)50;
+}
+void gbm_device_destroy(H device) {
+ if (device!=(H)50 || fcntl(gbm_parent_fd,F_GETFD)==-1) abort();
+ fprintf(stderr,"GBM_FD_ALIVE\n");fault("gbm_destroy");
+}
+H gbm_bo_create_with_modifiers2(H device,uint32_t width,uint32_t height,uint32_t format,const uint64_t *modifiers,unsigned count,uint32_t flags) {
+ if (device!=(H)50 || width!=4 || height!=4 || format!=0x34324241 || count!=1 || modifiers[0]!=0 || flags!=4) abort();
+ if (fault("gbm_allocate")) return NULL;
+ gbm_storage=memfd_create("gbm-ABI-fixture",MFD_CLOEXEC);
+ if (gbm_storage<0 || ftruncate(gbm_storage,64)) abort();
+ return (H)51;
+}
+uint32_t gbm_bo_get_format(H bo) { (void)bo;return fault("gbm_format")?0:0x34324241; }
+uint64_t gbm_bo_get_modifier(H bo) { (void)bo;return fault("gbm_modifier")?1:0; }
+int gbm_bo_get_plane_count(H bo) { (void)bo;return fault("gbm_planes")?2:1; }
+uint32_t gbm_bo_get_stride_for_plane(H bo,int plane) { (void)bo;if (plane) abort();return fault("gbm_stride")?UINT32_MAX:16; }
+uint32_t gbm_bo_get_offset(H bo,int plane) { (void)bo;if (plane) abort();return fault("gbm_offset")?UINT32_MAX:0; }
+int gbm_bo_get_fd_for_plane(H bo,int plane) {
+ (void)bo;if (plane) abort();if (fault("gbm_export")) return -1;
+ dma_fd=dup(gbm_storage);return dma_fd;
+}
+void gbm_bo_destroy(H bo) {
+ if (bo!=(H)51 || fcntl(gbm_parent_fd,F_GETFD)==-1 || close(gbm_storage)) abort();
+ gbm_storage=-1;fault("gbm_bo_destroy");
+}
+
+__attribute__((destructor)) static void gbm_descriptor_cleanup(void) {
+ closed(gbm_parent_fd,"GBM_FD_CLOSED");
 }

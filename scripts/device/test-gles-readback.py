@@ -30,14 +30,14 @@ class ReadbackTest(unittest.TestCase):
         subprocess.run(['cc', '-shared', '-fPIC', '-std=c11', '-Wall', '-Wextra', '-Werror',
                         str(REPO / 'tools/a660/test-fake-gles.c'), '-o', str(cls.fake / 'fixture.so')],
                        check=True, timeout=30)
-        for name in ('libEGL.so.1', 'libGLESv2.so.2'):
+        for name in ('libEGL.so.1', 'libGLESv2.so.2', 'libgbm.so.1'):
             (cls.fake / name).symlink_to('fixture.so')
 
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False, fence_import=False, dma_buf=False):
+    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False, fence_import=False, dma_buf=False, gbm=False):
         env = os.environ.copy()
         for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
                      'EGL_PLATFORM', 'MESA_LOADER_DRIVER_OVERRIDE', 'GALLIUM_DRIVER',
@@ -57,7 +57,9 @@ class ReadbackTest(unittest.TestCase):
                    '--', str(binary or self.binary)]
         if mode:
             command.append(mode)
-        if dma_buf:
+        if gbm:
+            command.append('--gbm-fd=0')
+        elif dma_buf:
             command.append('--dma-buf')
         elif fence_import:
             command.append('--native-fence-import')
@@ -250,6 +252,29 @@ class ReadbackTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('dma_buf=PASS', result.stdout)
 
+    def test_gbm_allocation_import_and_cleanup(self):
+        result = self.invoke(gbm=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('dma_allocation=GBM explicit linear', result.stdout)
+        self.assertIn('dma_buf=PASS', result.stdout)
+        self.assertNotIn('CALL dma_export', result.stderr)
+        self.assertNotIn('CALL texture_allocate', result.stderr)
+        self.assertIn('GBM_FD_ALIVE', result.stderr)
+        self.assertIn('GBM_FD_CLOSED', result.stderr)
+        self.assertLess(result.stderr.index('CALL terminate'), result.stderr.index('CALL gbm_bo_destroy'))
+        self.assertLess(result.stderr.index('CALL gbm_bo_destroy'), result.stderr.index('CALL gbm_destroy'))
+        for fault in ('gbm_device', 'gbm_context_extension', 'gbm_allocate',
+                      'gbm_planes', 'gbm_format', 'gbm_modifier', 'gbm_stride',
+                      'gbm_offset', 'gbm_export', 'dma_import', 'image_texture',
+                      'dma_corrupt', 'dma_destroy', 'texture_delete', 'terminate'):
+            with self.subTest(fault=fault):
+                result = self.invoke(gbm=True, fault=fault)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, '')
+                if fault != 'gbm_device': self.assertIn('CALL gbm_destroy', result.stderr)
+                if fault not in ('gbm_device', 'gbm_context_extension', 'gbm_allocate'):
+                    self.assertIn('CALL gbm_bo_destroy', result.stderr)
+
     def test_stalled_readback_is_killed_without_success(self):
         with self.assertRaises(subprocess.TimeoutExpired) as caught:
             self.invoke(fault='stall', timeout=0.5)
@@ -276,14 +301,18 @@ class ReadbackTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn('pixel mismatch', result.stderr)
         self.assertEqual(result.stdout, '')
+        result = self.invoke(gbm=True, binary=binary)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('pixel mismatch', result.stderr)
+        self.assertEqual(result.stdout, '')
 
     def test_dma_import_binding_mutation_and_real_texture_pixels(self):
         source = SOURCE.read_text()
         for name, marker, replacement, real, wanted in (
             ('no-import-binding', 'target(0x0de1, imported);',
              'let _ = target;', False, 1),
-            ('texture-only', 'self.dma_extensions()?;',
-             'let _ = self.dma_extensions();', True, 0),
+            ('texture-only', 'self.dma_extensions(true)?;',
+             'let _ = self.dma_extensions(true);', True, 0),
         ):
             changed = source.replace(marker, replacement)
             self.assertNotEqual(source, changed)

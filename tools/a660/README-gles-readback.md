@@ -140,3 +140,36 @@ operation is authorized by this component.
 References: [MESA export and four-plane query ABI](https://registry.khronos.org/EGL/extensions/MESA/EGL_MESA_image_dma_buf_export.txt),
 [EGL DMA-BUF import](https://registry.khronos.org/EGL/extensions/EXT/EGL_EXT_image_dma_buf_import.txt),
 [explicit modifiers](https://registry.khronos.org/EGL/extensions/EXT/EGL_EXT_image_dma_buf_import_modifiers.txt).
+
+## Explicit GBM descriptor mode
+
+`--gbm-fd=N` is an alternative optional mode. An external coordinator must
+supply an already-open render descriptor and bind its exact device, driver,
+firmware and power/admission identities. The probe never discovers or opens a
+DRM node. It duplicates the supplied descriptor with CLOEXEC, rejects invalid
+and non-character descriptors, and preserves the caller's ownership. A character
+FD and renderer string alone are not device admission.
+
+This mode loads `libgbm.so.1`, creates a GBM device and selects the EGL GBM
+platform with an EGL 1.5/GLES 3 context and `EGL_KHR_surfaceless_context`. It uses
+no pbuffer or KMS surface. `gbm_bo_create_with_modifiers2` requests a 4×4
+ABGR8888 buffer, explicit LINEAR and rendering usage. There is no implicit
+allocation fallback. Returned format/plane count/modifier must match; stride
+and offset must fit signed EGL attributes. It exports a plane FD and imports
+the buffer into EGL twice: first for shader rendering, then for pixel readback.
+`glFinish` separates the two operations. This path does not require MESA EGL
+image export because GBM supplies the DMA-BUF descriptor directly.
+
+EGL images/contexts are torn down before the BO, GBM device and descriptor;
+PASS is published after those destructors return. GBM destruction has no error
+return. As with all driver calls, an external process deadline remains required.
+Output identifies `dma_allocation=GBM explicit linear`. Same-context linear
+pixels are the limit of a successful result; cross-context synchronization,
+tiled modifiers, scanout and physical acceptance remain separate.
+
+The offline C fixture substitutes `/dev/null` for the inherited descriptor and
+memfd for the BO, while executing the real Rust allocation/import/readback and
+teardown code. This is ABI/lifetime evidence only. Invalid/regular descriptors,
+allocation and layout failures, EGL import failures, missing draw, corrupt pixels
+and cleanup are covered. No current image or coordinator automatically selects
+this new mode, and no phone execution is authorized here.
