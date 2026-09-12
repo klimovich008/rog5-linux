@@ -147,7 +147,9 @@ References: [MESA export and four-plane query ABI](https://registry.khronos.org/
 supply an already-open render descriptor and bind its exact device, driver,
 firmware and power/admission identities. The probe never discovers or opens a
 DRM node. It duplicates the supplied descriptor with CLOEXEC, rejects invalid
-and non-character descriptors, and preserves the caller's ownership. A character
+and non-character descriptors, then validates a bounded DRM_VERSION ioctl
+before loading GBM. Hardware mode requires driver `msm`; software-fixture mode
+requires the fixture-only driver name. It preserves the caller's ownership. A character
 FD and renderer string alone are not device admission.
 
 This mode loads `libgbm.so.1`, creates a GBM device and selects the EGL GBM
@@ -173,3 +175,9 @@ teardown code. This is ABI/lifetime evidence only. Invalid/regular descriptors,
 allocation and layout failures, EGL import failures, missing draw, corrupt pixels
 and cleanup are covered. No current image or coordinator automatically selects
 this new mode, and no phone execution is authorized here.
+
+A real-library `/dev/null` counterexample showed that successful GBM device
+creation is not proof of a DRM descriptor: Mesa can defer failure until buffer
+allocation. The DRM-version check now refuses that input before GBM backend
+creation. It is still not admission or proof that the FD is the selected render
+node; the external exact-device coordinator remains responsible for that binding.

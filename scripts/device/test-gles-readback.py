@@ -263,6 +263,13 @@ class ReadbackTest(unittest.TestCase):
         self.assertIn('GBM_FD_CLOSED', result.stderr)
         self.assertLess(result.stderr.index('CALL terminate'), result.stderr.index('CALL gbm_bo_destroy'))
         self.assertLess(result.stderr.index('CALL gbm_bo_destroy'), result.stderr.index('CALL gbm_destroy'))
+        for fault in ('gbm_drm_ioctl', 'gbm_drm_driver', 'gbm_drm_length'):
+            result = self.invoke(gbm=True, fault=fault)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertEqual(result.stdout, '')
+            self.assertNotIn('CALL gbm_device', result.stderr)
+        result = self.invoke(gbm=True, mode='--require-a660', renderer='FD660')
+        self.assertEqual(result.returncode, 0, result.stderr)
         for fault in ('gbm_device', 'gbm_context_extension', 'gbm_allocate',
                       'gbm_planes', 'gbm_format', 'gbm_modifier', 'gbm_stride',
                       'gbm_offset', 'gbm_export', 'dma_import', 'image_texture',

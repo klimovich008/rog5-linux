@@ -99,9 +99,27 @@ gbm_api! {
     gbm_bo_get_fd_for_plane(Handle, c_int) -> c_int;
     gbm_bo_destroy(Handle) -> ();
 }
+#[repr(C)]
+#[derive(Default)]
+struct DrmVersion {
+    major: c_int, minor: c_int, patchlevel: c_int,
+    name_len: usize, name: *mut c_char,
+    date_len: usize, date: *mut c_char,
+    desc_len: usize, desc: *mut c_char,
+}
+fn drm_driver(fd: c_int, mode: Mode) -> Result<()> {
+    let mut name = [0u8; 64];
+    let mut version = DrmVersion { name_len: name.len(), name: name.as_mut_ptr().cast(), ..DrmVersion::default() };
+    // Exact Linux UAPI DRM_IOWR(0x00, struct drm_version), size 64 on our two ABIs.
+    let request = (3 << 30) | (std::mem::size_of::<DrmVersion>() << 16) | (100 << 8);
+    if unsafe { ioctl(fd, request as std::ffi::c_ulong, &mut version) } != 0 { return Err(format!("GBM DRM version query: {}", std::io::Error::last_os_error())); }
+    let expected: &[u8] = match mode { Mode::A660 => b"msm", Mode::Software => b"rog5-abi-fixture" };
+    if version.name_len > name.len() || &name[..version.name_len] != expected { return Err("GBM DRM driver refused".into()); }
+    Ok(())
+}
 struct Gbm { api: GbmApi, device: Handle, bo: Handle, _fd: std::fs::File }
 impl Gbm {
-    fn open(raw: c_int) -> Result<Self> {
+    fn open(raw: c_int, mode: Mode) -> Result<Self> {
         // Duplicate an explicitly inherited FD; no path discovery/open and no
         // ownership change to the caller's FD. F_DUPFD_CLOEXEC is Linux 1030.
         let cloned = unsafe { fcntl(raw, 1030, 3) };
@@ -112,6 +130,7 @@ impl Gbm {
         }
         // This type check is not device admission. The coordinator must bind
         // the exact render node/device/module identity before any physical run.
+        drm_driver(file.as_raw_fd(), mode)?;
         let api = GbmApi::load()?;
         let device = unsafe { (api.gbm_create_device)(file.as_raw_fd()) };
         if device.is_null() { return Err("GBM device creation failed".into()); }
@@ -315,7 +334,7 @@ impl<'a> Session<'a> {
             let extensions = string_value((a.eglQueryString)(ptr::null_mut(), 0x3055), "EGL client extensions")?;
             if let Some(fd) = gbm_fd {
                 if !extensions.split_ascii_whitespace().any(|e| matches!(e, "EGL_KHR_platform_gbm" | "EGL_MESA_platform_gbm")) { return Err("EGL GBM platform unavailable".into()); }
-                let gbm = Gbm::open(fd)?;
+                let gbm = Gbm::open(fd, mode)?;
                 self.display = (a.eglGetPlatformDisplay)(0x31d7, gbm.device, ptr::null());
                 self.gbm = Some(gbm);
             } else {
@@ -677,9 +696,9 @@ mod tests {
     use super::*;
     #[test]
     fn gbm_rejects_invalid_and_regular_descriptors_before_loading() {
-        assert!(matches!(Gbm::open(-1), Err(e) if e.contains("descriptor duplication")));
+        assert!(matches!(Gbm::open(-1, Mode::Software), Err(e) if e.contains("descriptor duplication")));
         let regular = std::fs::File::open(std::env::current_exe().unwrap()).unwrap();
-        assert!(matches!(Gbm::open(regular.as_raw_fd()), Err(e) if e.contains("character device")));
+        assert!(matches!(Gbm::open(regular.as_raw_fd(), Mode::Software), Err(e) if e.contains("character device")));
         assert!(regular.metadata().is_ok()); // caller retains its descriptor
     }
     #[test]

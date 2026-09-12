@@ -222,8 +222,21 @@ int poll(struct pollfd *fds,nfds_t count,int timeout) {
  if (!real_poll) abort();
  return real_poll(fds,count,timeout);
 }
+struct drm_version_abi {
+ int major,minor,patchlevel;
+ size_t name_len;char *name;size_t date_len;char *date;size_t desc_len;char *desc;
+};
 int ioctl(int fd,unsigned long request,...) {
- va_list args;va_start(args,request);struct sync_file_info *info=va_arg(args,void *);va_end(args);
+ va_list args;va_start(args,request);void *data=va_arg(args,void *);va_end(args);
+ if (request==_IOWR('d',0,struct drm_version_abi)) {
+  struct drm_version_abi *version=data;
+  if (fault("gbm_drm_ioctl")) { errno=ENOTTY;return -1; }
+  const char *name=getenv("ROG5_FAKE_GLES_RENDERER")?"msm":"rog5-abi-fixture";
+  if (fault("gbm_drm_driver")) name="amdgpu";
+  if (version->name_len!=64 || version->date_len || version->desc_len) abort();
+  memcpy(version->name,name,strlen(name));version->name_len=fault("gbm_drm_length")?65:strlen(name);return 0;
+ }
+ struct sync_file_info *info=data;
  if ((fd!=fence_fd && fd!=consumer_fd) || request!=SYNC_IOC_FILE_INFO) { errno=ENOTTY;return -1; }
  if (info->flags || info->num_fences || info->pad || info->sync_fence_info) abort();
  int pending=fault(fd==consumer_fd?"consumer_pending":"fence_pending"),negative=fault(fd==consumer_fd?"consumer_negative":"fence_negative");
