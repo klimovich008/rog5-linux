@@ -1,5 +1,57 @@
 # ROG5 current state
 
+Latest r136, 2026-09-12: **combined provider/display session and selected ARM64
+component tests qualified offline**. Previous r135 was progress. No phone I/O,
+sudo change, boot claim or reboot occurred. The new kernel remains unbooted.
+
+New gpu-iommu-session-r1 stages both matching payloads, refreshes full health,
+starts an independently owned logger, runs the provider, refreshes health again,
+and runs display/query. The display's provider-result SHA must match the exact
+encoded target result received through the successful provider transport. Both
+phases keep the same admitted boot/owner. Failed providers prevent display;
+failed GPU query remains failed even with healthy target and blank cleanup.
+
+The logger is bounded to300 seconds, with its prior byte/record/identity/reaping
+guards retained. The session is bounded to500 seconds and admission requires2300
+seconds remaining, leaving the original1800-second recovery allowance afterward.
+Before logger start the owner must have330 seconds remaining; admission is checked
+again after logger closure. Health refresh between actions stays within the
+180-second target provider handoff lifetime.31 final coordinator/admission/health
+cases PASS5.211 s;10 logger cases PASS5.120 s. Logger children are real; the
+300-second test uses virtual remote elapsed time, not five minutes of observation.
+
+Three focused regressions were demonstrated before fixing: unknown display
+transport inherited provider-only cleanup; the old admission reserve failed to
+account for the longer session; and slow preparation could start a logger without
+its full lifetime reserved. Initial failures and pre-fix sources are retained.
+Display dispatch now requires display cleanup evidence, and timing covers full
+session/logger/recovery lifetimes. Owner.base no longer repeats cohort/ad.inputs:
+common() already validates the complete immutable input closure on every call.
+Initial cohort inclusion remains mandatory; a call-count test checks this reuse.
+
+81 selected provider/display cases also PASS under the retained ARM64 Python3.14.7
+in10.969 s (13.896 s including startup), in a512 MiB/no-swap isolated scope. They
+exercise actual matched module bytes, file/identity guards, handoff and IOMMU
+observation code; hardware effects remain fixtures. The executable, standard
+library and dependencies were extracted read-only from the retained root pair;
+95.8 MB runtime inventory and QEMU identity are recorded. Root-image metadata
+remained unchanged. The first broad dependency scan reached optional Tk, absent
+from the image. Actual required ARM64 imports succeeded; dependency selection was
+corrected to those observed imports. Optional Tk support is not claimed.
+
+The installed systematic-debugging skill was read and applied following the
+forwarded user request; it does not restart completed tests. Relevant companion
+skills are not installed; explicit failing regressions and verification were used.
+No kernel rebuild, A01 repeat or human countdown was needed. All owned processes
+are terminal. Final live launcher and input closure remain pending (INPUTS_SHA=None).
+Next: adapt launcher to the combined session, freeze its full cohort, qualify
+launcher/credentials/root handoffs, then prepare live privilege preflight before
+requesting local authentication. Reuse completed controller r2 RAM staging;
+never replay it. No Ready is pending. Latest full phone health remains r131;
+installed route r132. S06/R01 and blank cleanup remain open. Evidence:
+gpu-iommu-session-r1/review-r136.json, gpu-iommu-arm64-python-r1/tests-r1-result.json
+and checkpoint-r136.
+
 Latest r135, 2026-09-12: **matching display/GPU component and same-owner provider
 handoff qualified offline**. Previous r134 was progress. No phone I/O, sudo
 change, boot claim or reboot occurred. The new kernel remains unbooted.

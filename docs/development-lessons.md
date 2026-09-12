@@ -30,6 +30,21 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+IOMMU r136: compose cleanup by the last dispatched hardware phase. A lost
+display result must never inherit provider-only cleanup. Demonstrate that refusal
+before changing classification. Budget logger closure as well as action time;
+reserve recovery after the entire combined session, not only at session entry.
+The final500-second session requires2300 seconds at admission and330 seconds
+before starting its300-second logger.31 coordinator tests and10 logger tests pass.
+Avoid duplicated expensive input checks where the same immutable closure is
+already revalidated by admission on every lease check; retain initial cohort
+membership and exact input SHA. ARM64 test runtime extraction should follow
+actually imported extensions: scanning all optional Python extensions reached
+uninstalled Tk although every required graphics-test import worked.81 ARM64
+fixture cases pass. Apply the installed systematic-debugging skill: locate the
+failing boundary, establish a regression, make a scoped fix and verify it. These
+results qualify software paths, not real GPU DMA, scanout or acceleration.
+
 IOMMU r135: replace historical fixed-boot provider receipts with a protected
 same-owner, same-boot handoff when composing successive hardware phases. Reject
 stale/incomplete handoffs and reobserve IOMMU attachment immediately before each
