@@ -1,5 +1,57 @@
 # ROG5 current state
 
+Latest r130, 2026-09-12: **IOMMU controller recovery path and capture cohort
+qualified offline; actual source RAM custody reverified**. Previous r129 was
+progress. Kernel/image and state-helper source remain unchanged. No phone write,
+helper execution, boot claim consumption, reboot, sudo request or human prompt.
+
+New gpu-iommu-controller-r1/controller.py binds the current GPU source and
+corrected gpu-136f7-a9b1bc89566205b6 target. It adds three explicit recovery phases:
+stage_target_recovery, restore_target_state and verify_target_restoration.
+After a failed but fully closed recording, a separately authenticated healthy
+exact target may restore the original selection without pretending to be V11.
+Fresh target identity, healthy selection, all health/physical guards, RAM staging
+and independent restoration verification are mandatory. Reused/changed boot,
+missing health/authentication, staging failure, lost restore reply or incomplete
+recording cleanup refuses. Recovery preserves trial FAIL and forbids retries.
+Only Controller.restore_fallback changed among engine methods; other ordering,
+source abort, V11 recovery and receipt functions are unchanged.33 tests PASS1.935 s.
+
+New gpu-iommu-capture-r1 binds the corrected composition profile, exact 32-character
+relay nonce40b6bd61ce0a37571fec60a6d5b852b3 and existing staging owner
+7cc55d796d494bd8a3c38bfea9d6d2b1. Capture functions/classes are unchanged, except the
+supervisor loader's dependency hash. Identity/path/configuration pins changed.
+Four binding tests PASS0.069 s;21 worker tests PASS0.077 s (0.265 s namespace run)
+with real loopback sockets and virtual clock in a disposable network namespace;
+22 supervisor tests PASS10.083 s with real owned child processes/streams and
+explicit root/transport fixtures. Production capture lifetime1380 s and minimum
+1320 s remain unchanged. No live recorder or privileged root bridge was started.
+
+Actual source-custody observation PASS2.816 s on boot
+946acb59-744e-4bbc-b291-ac6b2e05f3fe, observed uptime10681.3 s, original
+selection813f108a... and current GPU kernel7.1.4-g05941d04803f. It verifies the exact
+four staged RAM members, ownership/modes/hashes, completed custody, unchanged
+shutdown and selector, absent new persistent transaction and retained predecessor
+records, with physical guards before/after. The reader uses only the qualified
+physical-guard prefix, excluding run_helper entirely. Python and shell syntax,
+current-health predicate and strict missing-custody rejection checks passed before
+the real read. It imports observer helpers explicitly, avoiding r129's namespace
+mistake. This proves current staging custody, not a new-kernel boot or recovery.
+
+Use gpu-iommu-ram-stage-r2/live-stage-r1 for completed RAM staging; never repeat
+that stage or its earlier failed r1 attempt. New read-only custody component:
+gpu-iommu-source-custody-r1/source-custody.py. Next wire concrete source actions,
+route/boot callbacks, new-target recovery and privileged launch admission to the
+new engine/capture/health components and this existing stage. Exercise the complete
+assembled controller before a boot claim or human availability prompt. The full
+live driver/root bridge is NOT prepared yet. GPU IOMMU attachment before display
+is still the next hardware question; no Denial build is needed. S06/R01, failed
+blank cleanup and physical new-target recovery remain open. No live job/countdown.
+Evidence: gpu-iommu-capture-r1/component-review.json, controller/tests.stderr,
+gpu-iommu-capture-r1/{binding-tests.stderr,worker-tests-r1/result.json,
+supervisor-tests.stderr}, gpu-iommu-source-custody-r1/{checks.json,
+observation-r1/result.json} and checkpoint-r130.
+
 Latest r129, 2026-09-12: **corrected IOMMU state helper qualified and staged
 in phone RAM; no selection change or reboot**. Previous r128 was progress.
 Rust source 1ec65e783c27bc90516ba06c1a75ce7ef7ee697e is clean in

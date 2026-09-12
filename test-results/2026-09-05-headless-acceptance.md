@@ -9100,3 +9100,13 @@ health PASS at uptime10141.5 s on the existing946acb59 boot. Helper was copied
 to RAM but not executed; no persistent selection write, claim consumption or
 reboot. First collector and first controller failures are retained explicitly.
 New kernel boot and physical GPU IOMMU attachment remain unproven. See r129 state.
+
+## 2026-09-12 r130: IOMMU controller, capture and live source custody
+
+33 controller,4 capture-binding,21 worker and22 supervisor tests passed. New
+controller target-recovery ordering is qualified with synthetic callbacks;
+privileged launch and full driver integration remain pending. Capture retains
+its full lifetime and exact corrected nonce. Actual read-only source custody
+PASS2.816 s at observed uptime10681.3 s verified all staged RAM files and unchanged
+shutdown/selection. No persistent write, claim consumption, reboot or new-kernel
+physical test occurred. See current-state r130 and checkpoint-r130.

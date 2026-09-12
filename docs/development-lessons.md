@@ -1834,3 +1834,20 @@ changed caller interface directly. The corrected r2 stage inherited those exact
 components and passed real pre/post health. New-target restoration is now covered
 offline, but still requires RAM helper staging and live controller admission on
 that boot; a healthy experimental kernel is not automatically V11 recovery.
+
+## 2026-09-12 r130: recover according to the observed boot identity
+
+A failed recording may leave a healthy experimental kernel running. The prior
+engine accepted only V11 after reboot, so it could not use that healthy target
+for selection restoration. Add a separate authenticated target branch with exact
+boot/health checks, target RAM staging and independent restoration proof; never
+relax V11 identity. Eight new failure-injection cases join25 existing cases, all
+passing in1.935 s. Recovery never converts the original failure to PASS. Physical
+recovery remains unproven until the assembled callbacks run on the phone.
+
+Capture logic was unchanged; update the exact image/nonce/owner bindings and
+verify the dependency graph rather than rebuild kernels. Four binding,21 isolated
+worker and22 real-child supervisor tests passed. Keep synthetic network/clock
+evidence separate from actual hardware: the only phone action this turn was a
+2.816 s read-only custody and health check. That check verifies the existing RAM
+stage, not just its historical host receipt, before any future selector mutation.
