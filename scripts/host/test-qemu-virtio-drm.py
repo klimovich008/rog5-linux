@@ -16,11 +16,19 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
+def missing_runtime_inputs(runtime, shell):
+    commands = ['bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest']
+    commands += ['seatd', 'sleep', 'Xwayland'] if shell else []
+    return ['usr/bin/' + name for name in commands
+            if not (runtime/'usr/bin'/name).is_file()]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', required=True, type=Path)
     parser.add_argument('--kernel', required=True, type=Path)
     parser.add_argument('--deniald', required=True, type=Path)
+    parser.add_argument('--flutter-bundle', type=Path)
     parser.add_argument('--image', required=True)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--deadline', type=int, default=120)
@@ -42,12 +50,26 @@ def main():
     output = args.output.absolute()
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
+    missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle))
+    if missing:
+        report = {'status': 'BLOCKED', 'scope': 'offline guest prerequisites',
+                  'missing_runtime_inputs': missing, 'vm_started': False,
+                  'phone_hardware': 'NOT RUN', 'runtime': str(runtime)}
+        (output/'result.json').write_text(json.dumps(report, indent=2)+'\n')
+        print(json.dumps(report, indent=2))
+        return 2
     stage = output/'initramfs'
     for directory in ('dev', 'sysroot', 'stage/payload'):
         (stage/directory).mkdir(parents=True, exist_ok=True)
     payload = output/'payload'
     payload.mkdir()
     shutil.copy2(deniald, payload/'deniald')
+    if args.flutter_bundle:
+        bundle = args.flutter_bundle.resolve(strict=True)
+        for required in ('lib/libflutter_engine.so', 'lib/libapp.so', 'data/icudtl.dat'):
+            if not (bundle/required).is_file():
+                parser.error(f'missing Flutter bundle input: {required}')
+        shutil.copytree(bundle, payload/'flutter')
     shutil.copy2(repo/'tools/qemu-virtio-drm/guest.sh', stage/'stage/guest.sh')
     compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
                        '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
@@ -60,6 +82,9 @@ def main():
               'kernel_sha256': digest(kernel), 'deniald_sha256': digest(deniald),
               'container': args.image, 'runtime': str(runtime),
               'runtime_inventory_verified_by_this_runner': False,
+              'flutter_bundle': str(args.flutter_bundle) if args.flutter_bundle else None,
+              'harness_sha256': digest(Path(__file__)),
+              'init_source_sha256': digest(repo/'tools/qemu-virtio-drm/init.c'),
               'compile_command': compile_command, 'status': 'FAIL'}
     name = 'rog5-virtual-drm-' + uuid.uuid4().hex[:12]
     launched = False
@@ -81,7 +106,8 @@ def main():
                    '-v', str(output/'initramfs.cpio.gz')+':/initramfs.gz:ro',
                    '-v', str(payload)+':/payload:ro', args.image,
                    'qemu-system-aarch64', '-M', 'virt', '-cpu', 'max', '-smp', '2',
-                   '-m', '1024M', '-accel', 'tcg,thread=multi', '-display', 'none',
+                   '-m', '1024M', '-accel', 'tcg,thread=multi',
+                   '-global', 'virtio-mmio.force-legacy=false', '-display', 'none',
                    '-monitor', 'none', '-nic', 'none', '-serial', 'stdio', '-no-reboot',
                    '-kernel', '/Image', '-initrd', '/initramfs.gz',
                    '-append', 'console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1',
@@ -115,8 +141,15 @@ def main():
                 report['qemu_exit_status'] = process.returncode
         log = logpath.read_text(errors='replace')
         report['drm_discovery'] = 'PASS' if 'PASS virtual DRM discovery' in log else 'FAIL'
-        report['deniald_kms'] = 'PASS' if 'PASS actual deniald virtual KMS frames' in log else 'FAIL'
-        if (process.returncode == 0 and report['deniald_kms'] == 'PASS'
+        report['deniald_kms'] = 'NOT RUN: discovery/CLI are separate from frames'
+        report['deniald_cli'] = 'PASS' if 'PASS actual deniald guest CLI' in log else 'NOT RUN'
+        if args.flutter_bundle:
+            report['deniald_kms'] = 'NOT RUN'
+            report['shell_exit'] = 'PASS' if 'PASS actual deniald shell bounded exit' in log else 'FAIL'
+            report['shell_rendering'] = 'NOT RUN: bounded exit alone is not frame evidence'
+        if (process.returncode == 0 and
+                report['drm_discovery'] == 'PASS' and
+                (report.get('shell_exit') == 'PASS' or report['deniald_cli'] == 'PASS')
                 and 'PASS guest-script exited cleanly' in log and 'FAIL guest-' not in log):
             report['status'] = 'PASS'
     except Exception as error:

@@ -10,6 +10,7 @@ ulimit -c 0
 export XDG_RUNTIME_DIR=/run/user/0
 mkdir -p "$XDG_RUNTIME_DIR" /run/seatd /run/dbus
 chmod 700 "$XDG_RUNTIME_DIR"
+mkdir -m 1777 /tmp/.X11-unix
 echo 'BEGIN virtual DRM discovery (phone hardware NOT RUN)'
 uname -a
 test -c /dev/dri/card0
@@ -19,11 +20,30 @@ for connector in /sys/class/drm/card0-*/status; do
 done
 timeout --kill-after=2 15 modetest -M virtio_gpu -c
 echo 'PASS virtual DRM discovery'
-# Deliberately no Flutter yet: isolate seat, EGL and KMS startup first.
 export LIBSEAT_BACKEND=seatd
 export SEATD_VTBOUND=0
 export LIBGL_ALWAYS_SOFTWARE=1
 export RUST_BACKTRACE=1
-timeout --kill-after=2 45 seatd-launch -- /run/payload/deniald \
-    --device /dev/dri/card0 --frames 3
-echo 'PASS actual deniald virtual KMS frames'
+if [[ -d /run/payload/flutter ]]; then
+    # UntilLogout supports initially inactive CRTCs; the external timer owns
+    # this guest's lifetime. Keep seatd alive while Denial handles SIGTERM.
+    export SEATD_SOCK=/run/seatd.sock
+    seatd &
+    seat_pid=$!
+    trap 'kill "$seat_pid"; wait "$seat_pid" || true' EXIT
+    for ((attempt=0; attempt<50; attempt++)); do
+        [[ ! -S $SEATD_SOCK ]] || break
+        sleep 0.1
+    done
+    test -S "$SEATD_SOCK"
+    timeout --preserve-status --kill-after=5 45 /run/payload/deniald \
+        --device /dev/dri/card0 --wayland \
+        --flutter-bundle /run/payload/flutter --start-locked
+    echo 'PASS actual deniald shell bounded exit'
+else
+    # Denial's bounded KMS diagnostic requires an existing mode to restore.
+    # This initially blank guest qualifies discovery/ABI separately instead.
+    timeout --kill-after=2 5 /run/payload/deniald --version
+    echo 'PASS actual deniald guest CLI'
+    echo 'NOT RUN Denial frames: use the complete shell runtime'
+fi
