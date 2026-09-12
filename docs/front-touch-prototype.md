@@ -35,8 +35,8 @@ python3 scripts/device/test-rog5-touch-lifecycle.py
 ```
 
 It compiles the real probe, power, identification, IRQ and shutdown functions
-with faulted API boundaries. Fifteen cases cover thirteen probe failure stages,
-transient regulator failures, immediate IRQ delivery, blocked IRQ shutdown,
+with faulted API boundaries. Sixteen cases cover thirteen probe failure stages,
+uncertain regulator failures, immediate IRQ delivery, blocked IRQ shutdown,
 stale-contact release and the existing suspend refusal. Three deliberate unsafe
 mutations must fail. `ROG5_LINUX_SOURCE` enables comparison of the retained IRQ
 and input core extracts with the exact supplied kernel. This is host behavior
@@ -55,18 +55,31 @@ The kit and qualification receipts must match its reviewed pins. It uses a
 read-only namespace, a fresh external-module directory, W=1 and modpost; it
 checks the toolchain, resolved configuration, release, module dependencies and
 input identities. It neither installs the module nor adds it to the production
-series. Two matching builds produced a 16,144-byte module in 2.854 and 2.855 s;
+series. The earlier matching builds produced a 16,144-byte module in 2.854 and 2.855 s;
 its complete identity and limitations are in the current artifact pointer.
 The production kit has GENI I2C built in and GPI as a module. Earlier three-module
 provider closures below describe their older kernels, not this configuration.
 
-Cleanup has a specific unresolved limit: if the regulator provider repeatedly
-refuses a disable, the final managed cleanup cannot return the failure to
-unbind. Linux may warn and destroy the consumer while a provider vote remains.
-Transient failure tests prove retry bookkeeping only while that consumer still
-exists. They do not prove that unbind restores rail power. More generally,
-regulator errors after load, coupling or upstream-supply updates need their own
-ownership analysis if those features enter this draft's power topology.
+Run `python3 scripts/device/test-rog5-touch-regulator-errors.py` for the separate
+regulator regression. It compiles four actual Linux 7.1.4 accounting functions
+with the driver's power callbacks. Failures before and after child-vote
+consumption, failed parent unwind, normal cycles and release of another known
+vote are covered. Exact source comparison runs when `ROG5_LINUX_SOURCE` is set;
+physical providers and locking remain outside this harness.
+
+A single regulator error can already leave ownership uncertain: Linux may
+consume the child vote before a parent disable fails, or leak a parent vote
+while unwinding a failed child enable. The driver records NONE, HELD or UNKNOWN.
+It does not retry UNKNOWN regulator operations and refuses another power-on in
+that context. It still releases the other known-held vote. Initial errors are
+preserved; later cleanup of uncertain ownership returns `-EUCLEAN`.
+
+This prevents unbalanced retries; it does not restore an uncertain rail. Final
+managed cleanup cannot return a failure to unbind, and a new probe has a new
+context. Do not rebind, reload or retry after an uncertain outcome. Independent
+rail/GPIO observation and return-to-known-good recovery remain mandatory before
+any future authorized operation. The driver neither force-disables shared rails
+nor infers consumer ownership from a global enabled flag.
 
 ## Exact protocol scope
 
@@ -132,8 +145,12 @@ clock, IRQ, DMA and IOMMU relationships. Its PASS describes that source contract
 not probed hardware. In the production config GENI I2C and its wrapper are built
 in; GPI is a module. I2C4, SPI4, GPI0, touch and both touch rails remain disabled.
 The combined display overlay supplies L3C's BOB parent. L8C's parent remains
-unspecified. Actual protocol/FIFO state, DMA ownership, SMMU attachment, CMD-DB
-resources and electrical power remain unobserved.
+unspecified. A new bounded stock-source audit found no upstream-supply property
+for either L3C or L8C. Vendor 10,000 µA entries describe mode thresholds, not a
+measured touch load. No parent, load or mode is inferred from them. A retained
+file named `asus-mp2.dtb` has generic Lahaina selectors; its filename does not
+establish MP2 composition provenance. Actual protocol/FIFO state, DMA ownership,
+SMMU attachment, CMD-DB resources and electrical power remain unobserved.
 
 ## Historical provider and kernel qualification
 

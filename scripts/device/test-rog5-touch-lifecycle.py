@@ -2,7 +2,9 @@
 """Exercise actual FTS3658U driver/probe code with faulted hardware APIs.
 
 Exact Linux7.1.4 IRQ-disable and multitouch functions are compiled too; the
-remaining input/devres/GPIO/I2C boundaries are fixtures. Never loads a module,
+remaining input/devres/GPIO/I2C/regulator boundaries are fixtures. Regulator
+failure preserves votes in this controlled fixture; actual-core error effects
+are covered separately by test-rog5-touch-regulator-errors.py. Never loads a module,
 uses a phone, changes DT, or establishes physical touch/power qualification.
 """
 import argparse
@@ -17,17 +19,17 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 DRIVER = ROOT / 'tools/rog5-fts3658u/rog5_fts3658u.c'
 FIXTURES = ROOT / 'scripts/device/fixtures/fts3658u'
-CASES = ('probe-unwind', 'vote-vdd-retry', 'vote-io-retry', 'off-reset-error',
+CASES = ('probe-unwind', 'vote-vdd-unknown', 'vote-io-unknown', 'off-reset-error',
          'off-io-error', 'normal-id-refusal', 'irq-short-transfer', 'irq-io-error',
          'irq-invalid-frame', 'irq-drop-unused', 'shutdown-idempotent',
-         'shutdown-drains-irq', 'suspend-refused', 'prepare-cleanup-retry',
-         'irq-at-registration')
+         'shutdown-drains-irq', 'suspend-refused', 'prepare-cleanup-unknown',
+         'irq-at-registration', 'normal-power-cycles')
 
 
 def driver_unit(source):
     # Compile all actual callbacks, the power/ID/parser paths and full probe.
     # Omit only kernel includes and static registration/PM metadata.
-    begin = source.index('struct rog5_fts {')
+    begin = source.index('enum rog5_fts_vote {')
     end = source.index('static DEFINE_SIMPLE_DEV_PM_OPS(')
     return source[begin:end]
 
@@ -49,7 +51,7 @@ def main():
                 begin = original.index(signature)
                 if original[begin:original.index('\n}', begin) + 2] not in kernel:
                     raise ValueError('kernel fixture differs: ' + signature)
-        print('PASS exact-kernel extracted IRQ and input functions')
+        print('PASS behavioral: exact-kernel extracted IRQ and input functions compared')
     else:
         print('NOT RUN external kernel-source comparison; pinned extract is compiled')
     inputs = [DRIVER, DRIVER.with_name('rog5_fts_protocol.h'),
@@ -84,8 +86,10 @@ def main():
             print(f'PASS {case} elapsed={time.monotonic() - start:.6f}s', flush=True)
         mutations = (
             ('irq-drain', '\t\tdisable_irq(ts->client->irq);', '', 'shutdown-drains-irq'),
-            ('vote-tracking', 'dev_err(dev, "VDD vote release failed:',
-             'ts->vdd_vote = false; dev_err(dev, "VDD vote release failed:', 'vote-vdd-retry'),
+            ('vote-tracking', '\t\t\tts->vdd_vote = ROG5_FTS_VOTE_UNKNOWN;\n'
+             '\t\t\tdev_err(dev, "VDD vote release failed:',
+             '\t\t\tts->vdd_vote = ROG5_FTS_VOTE_HELD;\n'
+             '\t\t\tdev_err(dev, "VDD vote release failed:', 'vote-vdd-unknown'),
             ('bad-frame-release', '\t\trog5_fts_release(ts);\n\t\tdev_warn_ratelimited',
              '\t\tdev_warn_ratelimited', 'irq-invalid-frame'),
         )
@@ -101,7 +105,7 @@ def main():
     if pins != {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs}:
         raise ValueError('source input changed during tests')
     print('driver_sha256=' + pins[DRIVER])
-    print(f'PASS {len(CASES)} actual-driver cases (13 probe failure stages), '
+    print(f'PASS behavioral: {len(CASES)} actual-driver cases (13 probe failure stages), '
           f'3 mutation controls; elapsed={time.monotonic() - started:.6f}s')
     print('NOT RUN module loading, physical IRQ/input, rail behavior or suspend qualification')
 

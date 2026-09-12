@@ -73,6 +73,7 @@ struct gpio_desc {
 struct regulator {
 	const char *name;
 	int votes;
+	unsigned enable_calls, disable_calls;
 };
 struct input_mt_slot {
 	int id, x, y, area;
@@ -103,7 +104,7 @@ static unsigned resource_count;
 static struct input_dev input;
 static struct input_mt mt;
 static struct gpio_desc reset = { "reset", 1 }, io_enable = { "io", 0 };
-static struct regulator vdd = { "vdd", 0 }, io = { "io", 0 };
+static struct regulator vdd = { .name = "vdd" }, io = { .name = "io" };
 static void *allocated;
 static const char *fault, *second_fault;
 static int faults_left, second_faults_left, short_transfer, reads,
@@ -172,6 +173,8 @@ static int gpiod_set_value_cansleep(struct gpio_desc *gpio, int level)
 }
 static int regulator_enable(struct regulator *reg)
 {
+	/* This boundary fixture preserves votes on error; it is not regulator core. */
+	reg->enable_calls++;
 	int ret = operation("enable", reg->name, 1);
 	if (!ret)
 		reg->votes++;
@@ -179,6 +182,7 @@ static int regulator_enable(struct regulator *reg)
 }
 static int regulator_disable(struct regulator *reg)
 {
+	reg->disable_calls++;
 	CHECK(!irq_inflight);
 	CHECK(reg->votes == 1);
 	int ret = operation("disable", reg->name, 0);
