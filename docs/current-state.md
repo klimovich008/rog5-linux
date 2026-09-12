@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Engine resumed incrementally; pinned SDK package metadata prepared**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM/Flutter platform Dill reproducible; native engine compiling**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The first engine segment ended at its 1,800-second deadline and retains FAIL. Its owner was confirmed absent before the two-worker continuation started from the same objects (3,924 remaining steps), preserving the 4 GiB memory cap and disk reserve. Poll the new recorded owner/terminal result; do not start a duplicate. Bootstrap Dart and DevTools payloads verify, and the real SDK metadata generator resolves 193 local roots offline in an isolated source copy. These dependencies have not changed engine source/cache inputs. Complete host SDK, shell pub resolution/AOT and engine/ICU/session closure remain open. No phone operation is authorized; signed/installed/fallback bytes are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-dart-bootstrap.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The real VM and Flutter platform-Dill actions pass in two fresh output directories; all four outputs are byte-identical and parse with the expected VM/Flutter library identities. The input audit covers 992 files and four clean recorded Git pins. Native engine continuation remains live at the retained observation (2,216/3,924 remaining-segment steps); poll its actual owner/terminal receipt before continuing. Complete host SDK, shell pub resolution/AOT and native engine/ICU/session closure remain open. No phone operation is authorized; accepted/signed/installed/fallback bytes are unchanged. S06/R01 remain FAIL; physical rows NOT RUN. See [current repair evidence](../test-results/2026-09-12-sdk-platform.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

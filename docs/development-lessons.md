@@ -2259,3 +2259,11 @@ before incremental continuation; missing CID-file text alone is not proof that a
 owner stopped. The first 1,800-second segment retained a timeout FAIL and its
 objects, reducing the continuation from 6,674 to 3,924 steps. Two workers retain
 the same memory cap; evaluate speed and later linker memory from actual results.
+
+The real VM/Flutter platform actions took 94.820 s; a fresh-output repeat took
+94.071 s and produced four identical binary hashes. Inspect those binaries with
+the pinned kernel parser, then reuse that semantic result for identical copies.
+Compiler depfiles can mix absolute source paths and output-relative intermediates:
+resolve relative entries against the actual Ninja working directory with an escape
+check. The input audit covered 992 files and four clean recorded Git roots without
+rehashing unrelated source trees or claiming a complete DEPS resolution.
