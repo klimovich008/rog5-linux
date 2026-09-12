@@ -35,7 +35,8 @@ exact-device, module/Mesa identity, power/thermal, admission and recovery proces
 before a phone result can be interpreted. This source addition grants no such
 authority. It is not selected by any current image/trial builder.
 
-Every result keeps physical acceptance, scanout and buffer sharing NOT RUN.
+Every result keeps physical acceptance and scanout NOT RUN. Buffer sharing is
+NOT RUN unless the explicit DMA-BUF mode completes.
 A successful authorized A660 readback would prove this offscreen shader path,
 not OLED output, sustained rendering, Vulkan, native fences, DMA-BUF
 formats/modifiers/export/import, or Denial's complete renderer integration.
@@ -102,3 +103,40 @@ KMS consumption and A660/physical acceptance need separate evidence.
 API references: [native fence FD ownership](https://registry.khronos.org/EGL/extensions/ANDROID/EGL_ANDROID_native_fence_sync.txt)
 and [server wait semantics](https://registry.khronos.org/EGL/extensions/KHR/EGL_KHR_wait_sync.txt).
 The probe uses the EGL 1.5 core wait entry point, matching pinned Smithay.
+
+## Optional linear DMA-BUF pixel check
+
+Use `--dma-buf` as the single optional mode. It allocates a 4×4 RGBA8 GLES
+texture, renders the existing shader through an FBO, and uses `glFinish` for
+producer completion. It creates a preserved EGLImage, queries/exports its
+DMA-BUF, imports the exported layout into a new EGLImage with explicit linear
+modifier attributes, binds a second texture/FBO, and verifies all 64 channels.
+Only after pixel validation and all cleanup succeed does it emit `dma_buf=PASS`.
+
+The initial scope is one plane, ARGB8888 or ABGR8888, explicit linear modifier,
+and the same GLES context. Unsupported planes, formats or modifiers are refused;
+there is no implicit modifier fallback. Query storage accommodates all four
+planes permitted by MESA before validating the single-plane requirement.
+Stride must hold a four-pixel row and offset must be nonnegative. EGL import
+borrows the exported FD; the caller closes it on every path, including partial
+export failure. This differs from native-fence import ownership.
+
+The mode requires `EGL_MESA_image_dma_buf_export`,
+`EGL_EXT_image_dma_buf_import`, `EGL_EXT_image_dma_buf_import_modifiers` and their
+entry points. Missing support fails the requested check. The output records
+fourcc, modifier, stride, offset, GLES texture allocation and `glFinish` sync.
+That allocator may choose a non-linear layout that this first probe refuses;
+its refusal does not establish that the renderer lacks all DMA-BUF support.
+
+The test fixture transports drawn pixels through a real memfd and checks the
+actual import attribute ABI, ownership, readback and cleanup. Missing draw or
+image binding fails. A separate source mutation exercises the texture/FBO draw
+on real software Mesa with DMA-BUF explicitly NOT RUN. Neither a memfd nor
+that mutation proves real DMA-BUF operation. GBM allocation, cross-context or
+cross-process sharing, tiled modifiers, native-fence synchronization of shared
+pixels, KMS scanout and A660 hardware require separate qualification. No phone
+operation is authorized by this component.
+
+References: [MESA export and four-plane query ABI](https://registry.khronos.org/EGL/extensions/MESA/EGL_MESA_image_dma_buf_export.txt),
+[EGL DMA-BUF import](https://registry.khronos.org/EGL/extensions/EXT/EGL_EXT_image_dma_buf_import.txt),
+[explicit modifiers](https://registry.khronos.org/EGL/extensions/EXT/EGL_EXT_image_dma_buf_import_modifiers.txt).

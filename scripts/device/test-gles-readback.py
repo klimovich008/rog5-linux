@@ -37,7 +37,7 @@ class ReadbackTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False, fence_import=False):
+    def invoke(self, mode='--software-fixture', fault='', renderer=None, real=False, binary=None, timeout=10, native_fence=False, fence_import=False, dma_buf=False):
         env = os.environ.copy()
         for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'LD_PRELOAD', 'LD_LIBRARY_PATH',
                      'EGL_PLATFORM', 'MESA_LOADER_DRIVER_OVERRIDE', 'GALLIUM_DRIVER',
@@ -57,7 +57,9 @@ class ReadbackTest(unittest.TestCase):
                    '--', str(binary or self.binary)]
         if mode:
             command.append(mode)
-        if fence_import:
+        if dma_buf:
+            command.append('--dma-buf')
+        elif fence_import:
             command.append('--native-fence-import')
         elif native_fence:
             command.append('--native-fence')
@@ -219,6 +221,35 @@ class ReadbackTest(unittest.TestCase):
             self.invoke(fence_import=True, fault='server_stall', timeout=0.5)
         self.assertFalse(caught.exception.stdout)
 
+    def test_dma_buf_roundtrip_and_faults(self):
+        result = self.invoke(dma_buf=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('dma_buf=PASS', result.stdout)
+        self.assertIn('buffer_sharing=PASS: same-context linear DMA-BUF', result.stdout)
+        self.assertIn('DMA_FD_CLOSED', result.stderr)
+        stages = ['CALL texture_allocate', 'CALL draw', 'CALL dma_finish',
+                  'CALL source_image', 'CALL dma_query', 'CALL dma_export',
+                  'CALL dma_import', 'CALL image_texture', 'CALL read\n']
+        offsets = [result.stderr.index(stage) for stage in stages]
+        self.assertEqual(offsets, sorted(offsets))
+        for fault in ('dma_extension', 'dma_symbol', 'texture_create', 'texture_allocate',
+                      'framebuffer_create', 'framebuffer_incomplete', 'source_image',
+                      'dma_finish', 'dma_query', 'dma_planes', 'dma_format', 'dma_modifier',
+                      'dma_export', 'dma_export_partial', 'dma_fd', 'dma_stride',
+                      'dma_offset', 'dma_import', 'image_texture', 'dma_corrupt',
+                      'dma_destroy', 'texture_delete', 'framebuffer_delete'):
+            with self.subTest(fault=fault):
+                result = self.invoke(dma_buf=True, fault=fault)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, '')
+                self.assertIn('CALL terminate', result.stderr)
+                if fault in ('dma_export_partial', 'dma_stride', 'dma_offset',
+                             'dma_import', 'image_texture', 'dma_corrupt', 'dma_destroy'):
+                    self.assertIn('DMA_FD_CLOSED', result.stderr)
+        result = self.invoke(dma_buf=True, fault='context32')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('dma_buf=PASS', result.stdout)
+
     def test_stalled_readback_is_killed_without_success(self):
         with self.assertRaises(subprocess.TimeoutExpired) as caught:
             self.invoke(fault='stall', timeout=0.5)
@@ -240,6 +271,44 @@ class ReadbackTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertIn('pixel mismatch', result.stderr)
         self.assertEqual(result.stdout, '')
+        # The same mutation must also fail after a real FD-backed fixture transfer.
+        result = self.invoke(dma_buf=True, binary=binary)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('pixel mismatch', result.stderr)
+        self.assertEqual(result.stdout, '')
+
+    def test_dma_import_binding_mutation_and_real_texture_pixels(self):
+        source = SOURCE.read_text()
+        for name, marker, replacement, real, wanted in (
+            ('no-import-binding', 'target(0x0de1, imported);',
+             'let _ = target;', False, 1),
+            ('texture-only', 'self.dma_extensions()?;',
+             'let _ = self.dma_extensions();', True, 0),
+        ):
+            changed = source.replace(marker, replacement)
+            self.assertNotEqual(source, changed)
+            if real:
+                changed = changed.replace('if dma_buf { self.dma_roundtrip()?; }',
+                                          'if false { self.dma_roundtrip()?; }')
+                changed = changed.replace('if dma_buf { "PASS" } else { "NOT RUN" }',
+                                          '"NOT RUN: texture-only test mutation"')
+                changed = changed.replace('PASS: same-context linear DMA-BUF',
+                                          'NOT RUN: texture-only test mutation')
+            path = self.root / (name + '.rs')
+            path.write_text(changed)
+            binary = self.root / name
+            subprocess.run([os.environ.get('RUSTC', 'rustc'), '--edition=2021', '-Dwarnings',
+                            '-O', str(path), '-o', str(binary)], check=True, timeout=60)
+            result = self.invoke(dma_buf=True, binary=binary, real=real)
+            self.assertEqual(result.returncode, wanted, result.stderr)
+            if real:
+                self.assertIn('render_readback=PASS', result.stdout)
+                self.assertIn('dma_buf=NOT RUN: texture-only test mutation', result.stdout)
+                # This intentionally bypasses the DMA-BUF operations. Only the
+                # actual texture/FBO/shader/readback is evidence, not its labels.
+            else:
+                self.assertIn('framebuffer incomplete', result.stderr)
+                self.assertEqual(result.stdout, '')
 
 
 if __name__ == '__main__':
