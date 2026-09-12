@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Pinned compiler verified; ARM64 engine compilation started**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **ARM64 engine compiling; locked shell package archives verified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Pinned Clang and all 4,118 deployed payload entries verify. Compiler version, real GN graph and 6,674-step Ninja input preflight pass. Actual one-worker compilation is RUNNING at the retained live observation, with 4 GiB memory, no network and a 30-minute segment deadline. Inspect the recorded container/session and terminal result before any continuation; reuse its output cache only after the owner is terminal. Complete engine/ICU/AOT, native session and physical qualification remain open. Accepted/signed/installed/fallback artifacts are unchanged; no phone operation is authorized. S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-12-engine-compiler.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The same one-worker engine build remains live at the recorded observation (571/6,674 steps, zero OOM events). Its compiler and output cache are unchanged. All 84 distinct hosted package/version pins for the mobile shell and settings app now pass archive hashes and package identity checks. Pub resolution, matching host SDK tools, shell AOT and complete engine/ICU/session closure remain open. Inspect the recorded build owner and terminal result before continuation; do not start a duplicate. Accepted/signed/installed/fallback artifacts are unchanged; no phone operation is authorized. S06/R01 remain FAIL and all mobile physical tests remain NOT RUN. See [current repair evidence](../test-results/2026-09-12-mobile-pub.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
