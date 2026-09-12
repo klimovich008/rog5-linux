@@ -636,10 +636,10 @@
     }
   },
   "denial_virtual_drm": {
-    "status": "FAIL: 48 frames, six backing-store errors; corrected Impeller render-context cleanup PASS",
-    "set_id": "private:rog5-impeller-relink-20260912-r1",
-    "source_commit": "09a4d25a1b923347c6bdc97ba9af68a8362b8146",
-    "source_tree": "8ab081d9ace052f976104ab1a7525d0fb3306f1a",
+    "status": "FAIL: 47 frames, 7 backing-store errors; render and IO context cleanup PASS",
+    "set_id": "private:rog5-io-context-release-20260912-r1",
+    "source_commit": "5c960b5bd1ff043c543a3614df9cb56c450d76bd",
+    "source_tree": "8df0e373a6242bf5a5684818e56c57cd74c510fb",
     "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
     "kernel": {
       "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
@@ -659,24 +659,24 @@
       "size": 10419681
     },
     "evidence": {
+      "path": "test-results/2026-09-12-impeller-io-context-qualification.json",
+      "sha256": "3ec6633e761ad6626b861e506d0e6027c83dcee9eb77c16b03e2023bbe4f4bca",
+      "size": 155374
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline guest fixture only",
+    "next": "Reuse corrected render/IO cleanup artifacts for queued-render generation/reservation investigation. No phone operation.",
+    "previous_evidence": {
       "path": "test-results/2026-09-12-impeller-engine-vm-qualification.json",
       "sha256": "d7c3eb946e857fa8adc34c2553026012cde6c2f0dcd529b66153a3c04a77ba10",
       "size": 40811
     },
-    "physical_status": "NOT RUN",
-    "authority": "none; offline guest fixture only",
-    "next": "Reuse corrected engine for queued-render reservation investigation; capture work mode/generation and callback provenance before changing admission. IO resource-context final release remains separately unqualified. No phone operation.",
-    "previous_evidence": {
-      "path": "test-results/2026-09-12-impeller-context-cleanup-qualification.json",
-      "sha256": "ccb4eb6b3c73f98588e199cbf610a746830275f13efdc0cc511410aaa8785b28",
-      "size": 39390
-    },
     "native_fence_export": "Required renderer path retained; no separate fence trace/readback qualification",
-    "shell_frames": "48 raster frames and 48 page flips; no visual capture or input proof",
+    "shell_frames": "47 raster frames and 47 page flips; no visual capture or input proof",
     "deniald": {
-      "path": "/home/deck/.local/state/rog5-egl-context-trace-20260912-r1/deniald-context",
-      "sha256": "84bbe77ce67eea3f784e6341337a4e5b7c37116aea5f3eb3bc68411509d52304",
-      "size": 15991112
+      "path": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/deniald-context",
+      "sha256": "aa00de38f46ee44d85b3bc2fcc2104575d13d4e040ba60b6f73279311d436711",
+      "size": 15990544
     },
     "upstream_denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
     "patch": {
@@ -744,13 +744,36 @@
         "size": 40811
       }
     },
-    "harness_source_commit": "8d4f0a12ac651a5e4b7b1585b756f54b26de5a7c",
-    "flutter_bundle": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/runtime-fixture",
+    "harness_source_commit": "5c960b5bd1ff043c543a3614df9cb56c450d76bd",
+    "flutter_bundle": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/runtime-fixture",
     "engine": {
-      "path": "/home/deck/.local/state/rog5-impeller-relink-20260912-r1/link-r2/libflutter_engine.so",
-      "sha256": "645f85f2ac274c5ec010dc011496043099a4e88eaea2e8540400f82b77e37bde",
-      "size": 15976208
+      "path": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/libflutter_engine.so",
+      "sha256": "8b57bc22ac3613e5da3af08965443c5706b0fa064c71a419a6af0ead13337291",
+      "size": 15976656
     },
-    "render_context_cleanup": "PASS: raster unbind, main cleanup bind and final unbind observed; no BAD_ACCESS"
+    "render_context_cleanup": "PASS: raster unbind, main cleanup bind and final unbind observed; no BAD_ACCESS",
+    "io_context_cleanup": "PASS: owning IO thread unbind observed before main cleanup, no later rebind",
+    "io_context_patch": {
+      "path": "patches/denial-85b2303e/0005-clear-current-io-resource-context.patch",
+      "sha256": "f4d39aef4eac255f504a4900095935cb91fd1d5bde238e02b90b69e35ed0e0d2",
+      "size": 842
+    },
+    "prepared_io_context_correction": {
+      "status": "PASS: nine actual-method cases, ARM64 dependency closure, complete engine link and VM IO release; session FAIL",
+      "source_commit": "5c960b5bd1ff043c543a3614df9cb56c450d76bd",
+      "source_tree": "8df0e373a6242bf5a5684818e56c57cd74c510fb",
+      "patch": {
+        "path": "patches/flutter-engine-d728e61e/0002-release-impeller-io-context.patch",
+        "sha256": "a7d70c263929fdbfb8ad1fec5c6fc1818a72f0181ac960b47b126d074e628c89",
+        "size": 3916
+      },
+      "library": {
+        "path": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/libflutter_engine.so",
+        "sha256": "8b57bc22ac3613e5da3af08965443c5706b0fa064c71a419a6af0ead13337291",
+        "size": 15976656
+      },
+      "selected_by_active_builder": false,
+      "authority": "none"
+    }
   }
 }

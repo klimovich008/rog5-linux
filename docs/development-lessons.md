@@ -2504,3 +2504,14 @@ cache. Record all explicit input hashes and inspect for thin-archive indirection
 The real VM showed raster unbind and main cleanup success, while six independent
 backing-store errors correctly retained session FAIL. Keep component and session
 results separate, and include newly introduced error messages in the classifier.
+
+
+A virtual-method addition changes derived vtables and may change object sizes.
+Use Ninja's retained header dependency graph intersected with the actual link
+inputs to recompile the full affected closure. Here all eight linked ARM64
+objects compiled in 39 seconds; eight internal-library duplicates were excluded
+because this library does not link them. Keep the original object cache read-only.
+Trace each context independently: successful raster teardown did not release the
+IO resource context. Pair the engine IO-thread hook with the embedder callback's
+context dispatch, and test failure ownership before linking. Correct fixture
+namespace adapters without changing the extracted production method body.

@@ -48,3 +48,8 @@ the corrections; all nine cases pass afterward. This test does not qualify a
 linked engine or EGL runtime. The new virtual method affects derived-class vtables;
 recompile the complete dependency closure of the changed headers before linking.
 No phone builder or candidate selects these patches.
+
+The [coordinated IO release qualification](../../test-results/2026-09-12-impeller-io-context.md)
+now records a complete ARM64 dependency-closure rebuild, separate engine link,
+and observed IO-thread release in the VM. Raster and main cleanup still pass;
+frame-admission errors retain full-session FAIL. Physical behavior remains NOT RUN.
