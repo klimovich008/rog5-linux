@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Linear DMA-BUF pixel roundtrip prepared and ABI-tested offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Explicit-descriptor GBM pixel probe qualified offline**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Twelve focused groups and eight ARM64 groups PASS. The new optional mode renders a texture/FBO, exports/imports one explicit linear DMA-BUF and checks 64 channels; ABI fixtures use memfd, not GPU buffers. Actual native/ARM64 software runs are BLOCKED by the missing MESA export extension. Real software texture/FBO pixels pass separately. Frozen active tier: 83 PASS in 118.638 s; three optional subchecks SKIPPED. GBM allocation, cross-context shared pixels with fences, tiled modifiers and A660 remain unqualified. Board, signed/installed artifacts, touch and mobile package graph are unchanged. No phone operation is authorized. Next physical question remains separately authorized bounded display scanout/blank. See [current repair evidence](../test-results/2026-09-12-dmabuf.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Thirteen focused groups and nine ARM64 groups PASS. The GBM path allocates explicit linear rendering storage and imports it twice for shader/readback. A real /dev/null counterexample exposed deferred GBM failure; the fix now refuses it at DRM_VERSION before backend creation on native and ARM64 runtimes. Fixture buffers are memfd, not GPU buffers. Frozen active tier: 83 PASS in 119.335 s; three optional subchecks SKIPPED. Real GBM allocation, cross-context shared pixels/fences and all phone physical tests remain NOT RUN. Board, signed/installed artifacts, touch and mobile graph are unchanged. No phone operation is authorized. Next physical question remains separately authorized bounded display scanout/blank. See [current repair evidence](../test-results/2026-09-12-gbm.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
