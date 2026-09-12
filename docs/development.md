@@ -33,11 +33,15 @@ kernel/DT/build changes; unrelated userspace/documentation work does not require
 a full phone-kernel rebuild. Build failures and schema diagnostics must remain
 visible even when an unsigned Image was produced.
 
-The mobile package graph checker validates metadata by default. To audit cached
-archives against that graph without downloading or installing anything:
+The mobile package graph checker validates metadata by default. The original
+`mobile-package-closure.json` remains a historical graph; select the current
+snapshot explicitly through the graph reference in `manifests/current-artifact.json`.
+To audit cached archives against the September 12 snapshot without downloading
+or installing anything:
 
 ```sh
 python3 -O scripts/host/check-mobile-package-closure.py \
+  --graph packaging/arch/mobile-package-snapshot-20260912.json \
   --archive-dir "$PACKAGE_CACHE" --keyring "$RETAINED_PUBLIC_KEYRING" \
   --trusted "$RETAINED_TRUSTED_KEYS" --revoked "$RETAINED_REVOKED_KEYS" \
   --report build/new-mobile-archive-audit.json
@@ -51,10 +55,25 @@ and revocation, and signed `.PKGINFO` name/version/architecture/dependencies/
 provides. It grants no installation authority. Newer cached revisions are not
 substitutes for missing pins. The retained graph and historical verification
 fields are unchanged; archive receipts bind their exact graph and trust inputs.
-Keyring freshness, repository authentication and engine/AOT closure require
-separate evidence. Trusted-key files use full uppercase fingerprints with
-`:4:`, `:5:` or `:6:` owner-trust records; revoked files use one full fingerprint
-per line. Comments start with `#`. No host keyring or network key lookup is used.
+Keyring observation, repository selection and engine/AOT closure require
+separate evidence. `--trusted` is a direct primary package-signer allowlist,
+not a GPG web-of-trust evaluator. It accepts full uppercase fingerprints with
+`:4:`, `:5:` or `:6:` record syntax; those values do not cause trust-chain
+evaluation. Revoked files use one full fingerprint per line. Comments start
+with `#`. No host keyring or network key lookup is used.
+
+[Arch Linux ARM's published policy](https://archlinuxarm.org/about/package-signing)
+signs packages and intentionally does not sign repository databases. Preserve
+raw database hashes and malformed records, validate the selected dependency
+graph against signed package metadata and libalpm, and describe HTTPS snapshot
+selection separately from package authentication. Missing upstream database
+signatures are not an obtainable prerequisite. This does not establish
+cryptographic freshness/anti-rollback or grant signed mobile-update authority.
+The native package set includes `archlinuxarm-keyring` explicitly as well as
+Arch's general keyring. Current signed ARM keyring package files and the upstream
+keyring Git files differ; retain their exact identities and use the documented
+package-signing fingerprint deliberately. Do not substitute the Git repository's
+master-key owner-trust file for a direct package-signer allowlist.
 GPG/bsdtar subprocesses have deadlines, output limits and process-group cleanup.
 The mandatory metadata/archive suite runs in the active tier, including under
 Python optimization. It requires `gpg`, `gpgv`, `gpgconf`, `bsdtar` and `vercmp`;

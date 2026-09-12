@@ -217,8 +217,8 @@ def audit_archives(packages, directory, keyring, trusted_file, revoked_file):
     report['duration_seconds'] = time.monotonic() - started
     return report
 
-def validate(root, database_dir=None):
-    lock = json.loads((root / 'packaging/arch/mobile-package-closure.json').read_text())
+def validate(root, database_dir=None, graph=None):
+    lock = json.loads((root / (graph or 'packaging/arch/mobile-package-closure.json')).read_text())
     need(hashlib.sha256((root / lock['source_lock']['path']).read_bytes()).hexdigest() == lock['source_lock']['sha256'], 'invalid recorded metadata')
     packages = {p['name']: p for p in lock['packages']}
     need(len(packages) == len(lock['packages']) == lock['counts']['packages'], 'invalid recorded metadata')
@@ -258,11 +258,12 @@ def validate(root, database_dir=None):
     need(not any(lock['authority'].values()), 'invalid recorded metadata')
     print(f'PASS metadata graph: {len(packages)} packages, {len(edges)} dependency edges')
     print('PASS retained database hashes' if database_dir else 'NOT RUN retained database hashes')
-    print('BLOCKED runtime closure: archive/signature verification, valid repository snapshot and engine/AOT remain missing')
+    print('BLOCKED runtime closure: metadata validation does not qualify package archives or matching engine/AOT assets')
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--database-dir', type=Path)
+    parser.add_argument('--graph', type=Path, help='explicit snapshot graph; default preserves the historical graph command')
     parser.add_argument('--archive-dir', type=Path)
     parser.add_argument('--keyring', type=Path)
     parser.add_argument('--trusted', type=Path)
@@ -273,9 +274,10 @@ def main():
     inputs = (args.archive_dir, args.keyring, args.trusted, args.revoked, args.report)
     if any(inputs) and not all(inputs):
         parser.error('archive audit requires --archive-dir, --keyring, --trusted, --revoked and --report')
-    validate(root, args.database_dir)
+    graph = root / (args.graph or 'packaging/arch/mobile-package-closure.json')
+    validate(root, args.database_dir, graph)
     if args.archive_dir:
-        lock_path = root / 'packaging/arch/mobile-package-closure.json'
+        lock_path = graph
         lock_bytes = lock_path.read_bytes()
         lock = json.loads(lock_bytes)
         # Reserve the output first, so an existing receipt cannot trigger a rerun.
