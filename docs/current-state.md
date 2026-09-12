@@ -1,5 +1,59 @@
 # ROG5 current state
 
+Latest r132, 2026-09-12: **all25 concrete IOMMU controller phases assembled and
+tested; actual installed recovery route verified read-only**. Previous r131 was
+progress. Core driver is assembled; complete live admission, privileged bridge,
+source-preparation and launch envelope are still pending. No live execution,
+claim consumption, phone write, reboot, sudo change or human countdown occurred.
+
+The new recovery observer handles V11 and exact-target restoration separately.
+It verifies original selection, completed state transaction, RAM helper operation
+receipts, installed files and physical guards. Target restoration additionally
+requires the exact new-kernel readiness marker bound to that boot; it does not
+claim the original trial became successful.18 actual ARM64 namespace cases passed
+116.742 s with synthetic physical/service/installed-image data. Health callbacks
+identify a recovery peer through authenticated normal/diagnostic SSH discovery,
+then run full new-target health or V11 checks. Failed or pending target health
+cannot be reclassified as V11.36 health cases passed7.354 s;29 fastboot cases
+passed8.204 s, including preserving the authenticated target classification.
+
+The actual installed ARM64 selector chose V11 for the new pending/healthy and
+current-source records, preserving them, in4 cases/0.443 s. These are fixture
+selector decisions, not a physical fallback boot.15 route-binding cases passed
+1.467 s; the full source observer combined with streaming route reads passed an
+ARM64 fixture in18.125 s. Fresh phone route observation passed7.484 s, verifying
+boot B and all11 installed selector/bundle files, unchanged source selection and
+shutdown, absent new trial/reboot intent and staged custody. Source remains boot
+946acb59-744e-4bbc-b291-ac6b2e05f3fe, bundle gpu-05941-52181a3157c26029. This read
+is installed-route/physical proof; latest full source health remains r131.
+
+Boot callback now binds exact image932f991e... and admission source9dbb300e.
+Two failed offline attempts remain retained. First reused gpu_preservation, absent
+from the new profile; second assumed mutable dict, whereas the actual loader
+returns MappingProxyType. The corrected function reads immutable kernel_refresh
+and compares it to the actual capture configuration before attempt intent,
+canonical lookup, snapshot or USB queries.21 boot cases passed3.481 s, including
+wrong-profile/config refusal, unregistered actual claim refusal, lost replies and
+real owned child/sealed-FD cleanup using a tiny harmless image. No real transfer.
+
+The assembled live-driver.py binds all25 phases, including new target staging,
+restoration and verification, with14 assembly/source-abort cases PASS3.642 s.
+Admission, privilege and transport are explicit fixtures. Root transport/launch
+and full-flow admission are NOT qualified yet. No kernel/image rebuild or A01
+repeat was needed. All owned tests/read processes are terminal. Kernel/image,
+ASUS slot A, signed V11 and consumed historical claims remain preserved. GPU
+IOMMU attachment is still the next physical question; S06/R01, failed blank
+cleanup and physical new-target recovery remain open.
+
+Next: adapt privileged capture entrypoint, fallback transport and full admission.
+Admission must bind new target recovery phases and adaptive discovery labels/
+selected-role health scripts; keep normal commands on the normal worker and
+privileged diagnostic routing restricted. Validate expected_kernel_relay before
+claim consumption. Prepare source/launcher from the existing completed r2 stage,
+never restage. Run the complete assembled flow before a live claim or Ready prompt.
+Evidence: gpu-iommu-live-driver-r1/integration-review-r132.json,
+route-observation-live-r132/result.json and checkpoint-r132.
+
 Latest r131, 2026-09-12: **IOMMU source actions and recovery callbacks qualified;
 phone source/custody still healthy**. Previous goal checkpoint r130 was progress.
 The intervening sudo explanation made no system change. Re-polled the existing
