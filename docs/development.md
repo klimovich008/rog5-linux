@@ -434,3 +434,10 @@ across related test launches, and verify noninteractive reuse from separate
 child processes after fresh authentication. Retain bounded refresh only during
 active work. A terminal handle or an old success is not proof of current sudo
 credentials; do not open a password window from automatic goal continuation.
+
+Offline fixture lesson (2026-09-12): admission tests must construct unconsumed
+and consumed claim states explicitly. The first integrated repair run exposed
+a test that read the host's retained claim state and therefore changed outcome
+after a historical trial. Guard the canonical claim paths in unit tests and
+mock the admission result; never reset a real claim to make a fixture pass.
+The failing run is retained and the isolated nine-case fixture passes.
