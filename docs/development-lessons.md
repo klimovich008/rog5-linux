@@ -2235,3 +2235,10 @@ do not replace tracked files or rerun a full dependency sync for one missing too
 For a long build, retain its actual container/session identity and terminal-result
 path alongside the output cache. A historical RUNNING paragraph never authorizes
 a replacement process; inspect the owner before continuing incrementally.
+
+The shell/settings locks contained 84 distinct hosted package/version pins;
+preparing their 51.2 MB of archives took 45.388 s while engine compilation ran.
+Retain distinct versions across application locks and compare both archive
+hashes and contained package identity. Download verification does not establish
+pub resolution, SDK closure or AOT success. The early compiler phase peaked at
+273 MiB with no OOM events; that measurement is not a bound on later LTO linking.

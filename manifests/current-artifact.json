@@ -308,11 +308,24 @@
     },
     "compilation_status": "RUNNING at retained live observation; inspect owner/terminal result before continuing",
     "build_observation": {
-      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-observation-r1.json",
-      "sha256": "1fcab67bafc06dc06a8a6ca35ac593d9c1ee9014a048bc4ae158e5b87033bb3f",
-      "size": 1482
+      "path": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/engine-observation.json",
+      "sha256": "d8d0b94383eb6caa635c51b1b85fa9e49004f384f15dae166e00179d468bb127",
+      "size": 1636
     },
     "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_mobile_pub_archives": {
+    "status": "PASS: 84 exact hosted archives",
+    "set_id": "private:rog5-mobile-pub-evidence-20260912-r1/packages",
+    "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "evidence": {
+      "path": "test-results/2026-09-12-mobile-pub-qualification.json",
+      "sha256": "76a4b0265c383a90d381e4cd82f0a063f8b754383e0519da37f9913cd5754dae"
+    },
+    "pub_resolution_status": "NOT RUN",
+    "shell_aot_status": "NOT RUN",
     "physical_status": "NOT RUN",
     "authority": "none"
   }

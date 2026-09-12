@@ -1,0 +1,1601 @@
+{
+  "format": "rog5-mobile-pub-archives-v1",
+  "status": "PASS",
+  "scope": "exact hosted package archives for locked mobile shell/settings; SDK/path closure and pub resolution not executed",
+  "source": {
+    "commit": "dc9c7a23cf03ff483bcabfa872ce8fd1a252d56e",
+    "tree": "3b0ab846f6a4cea28b67eadd5c0ff07c2a0e7942"
+  },
+  "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "lock_inputs": [
+    {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source/dart_shell/pubspec.lock",
+      "sha256": "a1ac5efa8a9458e3f761b39a76a639bc7740fcf5070f9908734b30481ecad604"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source/settings_app/pubspec.lock",
+      "sha256": "eda67da1b3f4e50eecb5820d835dd5ba8bc002bfd3c64cb2e406988b9e54a3f7"
+    }
+  ],
+  "non_hosted": [
+    {
+      "component": "dart_shell",
+      "name": "denial_wire_protocol",
+      "dependency": "direct main",
+      "description": {
+        "path": "../protocol/generated/dart",
+        "relative": true
+      },
+      "source": "path",
+      "version": "0.1.0"
+    },
+    {
+      "component": "dart_shell",
+      "name": "flutter",
+      "dependency": "direct main",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    },
+    {
+      "component": "dart_shell",
+      "name": "flutter_localizations",
+      "dependency": "direct main",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    },
+    {
+      "component": "dart_shell",
+      "name": "flutter_test",
+      "dependency": "direct dev",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    },
+    {
+      "component": "dart_shell",
+      "name": "sky_engine",
+      "dependency": "transitive",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    },
+    {
+      "component": "settings_app",
+      "name": "denial_dart_shell",
+      "dependency": "direct main",
+      "description": {
+        "path": "../dart_shell",
+        "relative": true
+      },
+      "source": "path",
+      "version": "0.0.0"
+    },
+    {
+      "component": "settings_app",
+      "name": "denial_wire_protocol",
+      "dependency": "transitive",
+      "description": {
+        "path": "../protocol/generated/dart",
+        "relative": true
+      },
+      "source": "path",
+      "version": "0.1.0"
+    },
+    {
+      "component": "settings_app",
+      "name": "flutter",
+      "dependency": "direct main",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    },
+    {
+      "component": "settings_app",
+      "name": "flutter_localizations",
+      "dependency": "transitive",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    },
+    {
+      "component": "settings_app",
+      "name": "flutter_test",
+      "dependency": "direct dev",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    },
+    {
+      "component": "settings_app",
+      "name": "sky_engine",
+      "dependency": "transitive",
+      "description": "flutter",
+      "source": "sdk",
+      "version": "0.0.0"
+    }
+  ],
+  "counts": {
+    "PASS": 84,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0
+  },
+  "duration_seconds": 45.38811859601992,
+  "downloaded_bytes": 51229183,
+  "command": [
+    "python3",
+    "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/fetch.py"
+  ],
+  "collector": {
+    "path": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/fetch.py",
+    "sha256": "ab5ef544a467b3411d836e7c3fb4a7f44168762ced80a416026f0ec339b60884",
+    "size": 4246
+  },
+  "yaml_version": "6.0.2",
+  "packages": [
+    {
+      "name": "_fe_analyzer_shared",
+      "version": "99.0.0",
+      "sha256": "a49d6cf99e8d8e7a8e93668d09ced0bbdb954d0b4fccc2f5f9241c6b87fad95c",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/_fe_analyzer_shared-99.0.0.tar.gz",
+      "size": 710930,
+      "api_url": "https://pub.dev/api/packages/_fe_analyzer_shared/versions/99.0.0",
+      "archive_url": "https://pub.dev/api/archives/_fe_analyzer_shared-99.0.0.tar.gz",
+      "api_sha256": "85b8196f218cea6cd41fb51135532da1a145ffede385f3a8c71dcc03af8b72b2",
+      "members": 571,
+      "duration_seconds": 0.4658497819909826
+    },
+    {
+      "name": "analyzer",
+      "version": "12.1.0",
+      "sha256": "663efa951fb8a45e06f491223a604c93820598f20e6a99c25617a1576065e8b7",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/analyzer-12.1.0.tar.gz",
+      "size": 3782605,
+      "api_url": "https://pub.dev/api/packages/analyzer/versions/12.1.0",
+      "archive_url": "https://pub.dev/api/archives/analyzer-12.1.0.tar.gz",
+      "api_sha256": "ca45cd965ab35e1ccf733cca129eac863cc3841b52657b8c23d7e6af9ccc6780",
+      "members": 1839,
+      "duration_seconds": 0.6671746219799388
+    },
+    {
+      "name": "archive",
+      "version": "3.6.1",
+      "sha256": "cb6a278ef2dbb298455e1a713bda08524a175630ec643a242c399c932a0a1f7d",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/archive-3.6.1.tar.gz",
+      "size": 1933889,
+      "api_url": "https://pub.dev/api/packages/archive/versions/3.6.1",
+      "archive_url": "https://pub.dev/api/archives/archive-3.6.1.tar.gz",
+      "api_sha256": "be9983671becc8074f7d91c914240d60f78954b1d06ceb0b97e2032e1fdc7fdb",
+      "members": 154,
+      "duration_seconds": 0.46438455302268267
+    },
+    {
+      "name": "args",
+      "version": "2.7.0",
+      "sha256": "d0481093c50b1da8910eb0bb301626d4d8eb7284aa739614d2b394ee09e3ea04",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/args-2.7.0.tar.gz",
+      "size": 46690,
+      "api_url": "https://pub.dev/api/packages/args/versions/2.7.0",
+      "archive_url": "https://pub.dev/api/archives/args-2.7.0.tar.gz",
+      "api_sha256": "02f6dbe2c0f207ec0ed4e55787d1d92869041afa4ad170befe391a23dbdc9a65",
+      "members": 41,
+      "duration_seconds": 0.7897629380167928
+    },
+    {
+      "name": "async",
+      "version": "2.13.1",
+      "sha256": "e2eb0491ba5ddb6177742d2da23904574082139b07c1e33b8503b9f46f3e1a37",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/async-2.13.1.tar.gz",
+      "size": 85402,
+      "api_url": "https://pub.dev/api/packages/async/versions/2.13.1",
+      "archive_url": "https://pub.dev/api/archives/async-2.13.1.tar.gz",
+      "api_sha256": "2ac06ce96f94c5dbece5e47cebaf311e0847d2e38e944d7cc57a966fb56039a1",
+      "members": 91,
+      "duration_seconds": 0.5150713229959365
+    },
+    {
+      "name": "boolean_selector",
+      "version": "2.1.2",
+      "sha256": "8aab1771e1243a5063b8b0ff68042d67334e3feab9e95b9490f9a6ebf73b42ea",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/boolean_selector-2.1.2.tar.gz",
+      "size": 12958,
+      "api_url": "https://pub.dev/api/packages/boolean_selector/versions/2.1.2",
+      "archive_url": "https://pub.dev/api/archives/boolean_selector-2.1.2.tar.gz",
+      "api_sha256": "df76f4ee62a7f364741ccc55056ffadaa25d24d18b3e5bb4bb6a07c755c5621f",
+      "members": 31,
+      "duration_seconds": 0.495369126991136
+    },
+    {
+      "name": "characters",
+      "version": "1.4.1",
+      "sha256": "faf38497bda5ead2a8c7615f4f7939df04333478bf32e4173fcb06d428b5716b",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/characters-1.4.1.tar.gz",
+      "size": 528692,
+      "api_url": "https://pub.dev/api/packages/characters/versions/1.4.1",
+      "archive_url": "https://pub.dev/api/archives/characters-1.4.1.tar.gz",
+      "api_sha256": "73d0535b59a2b5bc3cb3fd16988d20524b5de9b2767b959dfbba5d805e2dd52c",
+      "members": 60,
+      "duration_seconds": 0.5986410909972619
+    },
+    {
+      "name": "cli_config",
+      "version": "0.2.0",
+      "sha256": "ac20a183a07002b700f0c25e61b7ee46b23c309d76ab7b7640a028f18e4d99ec",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/cli_config-0.2.0.tar.gz",
+      "size": 12466,
+      "api_url": "https://pub.dev/api/packages/cli_config/versions/0.2.0",
+      "archive_url": "https://pub.dev/api/archives/cli_config-0.2.0.tar.gz",
+      "api_sha256": "c2174fabc68186c9d30594f56c99323502fa672b7706c6fb38be48e8b44c3389",
+      "members": 20,
+      "duration_seconds": 0.4112374930118676
+    },
+    {
+      "name": "clock",
+      "version": "1.1.2",
+      "sha256": "fddb70d9b5277016c77a80201021d40a2247104d9f4aa7bab7157b7e3f05b84b",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/clock-1.1.2.tar.gz",
+      "size": 11740,
+      "api_url": "https://pub.dev/api/packages/clock/versions/1.1.2",
+      "archive_url": "https://pub.dev/api/archives/clock-1.1.2.tar.gz",
+      "api_sha256": "dc85dccf91dfef4e7719c32ce71e5766760e95c5d3d2cddb758126494c61b4b4",
+      "members": 18,
+      "duration_seconds": 0.3046332550002262
+    },
+    {
+      "name": "collection",
+      "version": "1.19.1",
+      "sha256": "2f5709ae4d3d59dd8f7cd309b4e023046b57d8a6c82130785d2b0e5868084e76",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/collection-1.19.1.tar.gz",
+      "size": 77897,
+      "api_url": "https://pub.dev/api/packages/collection/versions/1.19.1",
+      "archive_url": "https://pub.dev/api/archives/collection-1.19.1.tar.gz",
+      "api_sha256": "52e31d1aa8184258e8b4513d91b934a267608ccec71b5ed79311e0d424518d76",
+      "members": 61,
+      "duration_seconds": 0.3374234719958622
+    },
+    {
+      "name": "convert",
+      "version": "3.1.2",
+      "sha256": "b30acd5944035672bc15c6b7a8b47d773e41e2f17de064350988c5d02adb1c68",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/convert-3.1.2.tar.gz",
+      "size": 23145,
+      "api_url": "https://pub.dev/api/packages/convert/versions/3.1.2",
+      "archive_url": "https://pub.dev/api/archives/convert-3.1.2.tar.gz",
+      "api_sha256": "b4640095b13f42f28ba14edfeb899d7c1cb2caf038f7a49a207859d01a38e598",
+      "members": 38,
+      "duration_seconds": 0.32346250998671167
+    },
+    {
+      "name": "coverage",
+      "version": "1.15.1",
+      "sha256": "956a3de0725ca232ad353565a8290d3357592bf4250f6f298a185e2d949c5d3d",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/coverage-1.15.1.tar.gz",
+      "size": 495383,
+      "api_url": "https://pub.dev/api/packages/coverage/versions/1.15.1",
+      "archive_url": "https://pub.dev/api/archives/coverage-1.15.1.tar.gz",
+      "api_sha256": "9e94d20ae89a02b2761f4d82cf8a520b7914105064f604362c0b2b20a23eaeb6",
+      "members": 91,
+      "duration_seconds": 0.392686020990368
+    },
+    {
+      "name": "crypto",
+      "version": "3.0.7",
+      "sha256": "c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/crypto-3.0.7.tar.gz",
+      "size": 615595,
+      "api_url": "https://pub.dev/api/packages/crypto/versions/3.0.7",
+      "archive_url": "https://pub.dev/api/archives/crypto-3.0.7.tar.gz",
+      "api_sha256": "aca4bdc05be314c6a9fbcda0ae5137b833e3a27a6b751ba1363c951292319d52",
+      "members": 37,
+      "duration_seconds": 0.4220501029922161
+    },
+    {
+      "name": "dbus",
+      "version": "0.7.14",
+      "sha256": "0ce9b0a839e6dee59a37a623d2fc26a35bbbe6404213e419b0d6411023d62645",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/dbus-0.7.14.tar.gz",
+      "size": 97365,
+      "api_url": "https://pub.dev/api/packages/dbus/versions/0.7.14",
+      "archive_url": "https://pub.dev/api/archives/dbus-0.7.14.tar.gz",
+      "api_sha256": "51b88911b9ab2ace271b38432037e4975561e666317819b16d7819de66fe46e0",
+      "members": 113,
+      "duration_seconds": 0.8313142599945422
+    },
+    {
+      "name": "dbus",
+      "version": "0.7.15",
+      "sha256": "a48d5da28e89bd02196e80d81ed8d7954923d00a0f4a68cc20b575038f023383",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/dbus-0.7.15.tar.gz",
+      "size": 97433,
+      "api_url": "https://pub.dev/api/packages/dbus/versions/0.7.15",
+      "archive_url": "https://pub.dev/api/archives/dbus-0.7.15.tar.gz",
+      "api_sha256": "ec84818e1755a1916339ee0a09fdd7c01290af25a6b92b59c2d6625a22a33d49",
+      "members": 113,
+      "duration_seconds": 0.3532887579931412
+    },
+    {
+      "name": "fake_async",
+      "version": "1.3.3",
+      "sha256": "5368f224a74523e8d2e7399ea1638b37aecfca824a3cc4dfdf77bf1fa905ac44",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/fake_async-1.3.3.tar.gz",
+      "size": 15216,
+      "api_url": "https://pub.dev/api/packages/fake_async/versions/1.3.3",
+      "archive_url": "https://pub.dev/api/archives/fake_async-1.3.3.tar.gz",
+      "api_sha256": "6514810e5c4eaabf2d525f221c177e38da0a7705bc720498d1cb0f9b5cf0cfb7",
+      "members": 10,
+      "duration_seconds": 0.625702164019458
+    },
+    {
+      "name": "ffi",
+      "version": "2.2.0",
+      "sha256": "6d7fd89431262d8f3125e81b50d3847a091d846eafcd4fdb88dd06f36d705a45",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/ffi-2.2.0.tar.gz",
+      "size": 11014,
+      "api_url": "https://pub.dev/api/packages/ffi/versions/2.2.0",
+      "archive_url": "https://pub.dev/api/archives/ffi-2.2.0.tar.gz",
+      "api_sha256": "7cd75ecdb7b9e0cc18b0d09bfb0931c4d3be34789a143857f8c64b4fbc1c54cd",
+      "members": 20,
+      "duration_seconds": 0.5114350079966243
+    },
+    {
+      "name": "file",
+      "version": "7.0.1",
+      "sha256": "a3b4f84adafef897088c160faf7dfffb7696046cb13ae90b508c2cbc95d3b8d4",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/file-7.0.1.tar.gz",
+      "size": 56783,
+      "api_url": "https://pub.dev/api/packages/file/versions/7.0.1",
+      "archive_url": "https://pub.dev/api/archives/file-7.0.1.tar.gz",
+      "api_sha256": "c40ea3dd936b642afb89caea19b330c73343826a1179afe005ae53deef990acf",
+      "members": 72,
+      "duration_seconds": 0.5367386169964448
+    },
+    {
+      "name": "fixnum",
+      "version": "1.1.1",
+      "sha256": "b6dc7065e46c974bc7c5f143080a6764ec7a4be6da1285ececdc37be96de53be",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/fixnum-1.1.1.tar.gz",
+      "size": 24416,
+      "api_url": "https://pub.dev/api/packages/fixnum/versions/1.1.1",
+      "archive_url": "https://pub.dev/api/archives/fixnum-1.1.1.tar.gz",
+      "api_sha256": "e0a7972f1228344ff842cbdaa14129af27bd86ee022ed3548def240dc5a9e447",
+      "members": 18,
+      "duration_seconds": 0.4977434590109624
+    },
+    {
+      "name": "flat_buffers",
+      "version": "25.9.23",
+      "sha256": "7c1de2d6eb5f3e61e5c50040841109f509deaaf2b12ec0d57b92456d9ea50345",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/flat_buffers-25.9.23.tar.gz",
+      "size": 56593,
+      "api_url": "https://pub.dev/api/packages/flat_buffers/versions/25.9.23",
+      "archive_url": "https://pub.dev/api/archives/flat_buffers-25.9.23.tar.gz",
+      "api_sha256": "b3df5b31d6766dcebb36515eee48b9cedeb61e88780f75959e30f90383d1edc1",
+      "members": 33,
+      "duration_seconds": 1.4729116150119808
+    },
+    {
+      "name": "flutter_lints",
+      "version": "6.0.0",
+      "sha256": "3105dc8492f6183fb076ccf1f351ac3d60564bff92e20bfc4af9cc1651f4e7e1",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/flutter_lints-6.0.0.tar.gz",
+      "size": 4980,
+      "api_url": "https://pub.dev/api/packages/flutter_lints/versions/6.0.0",
+      "archive_url": "https://pub.dev/api/archives/flutter_lints-6.0.0.tar.gz",
+      "api_sha256": "42284d3d7bfb201bedb7f77c31b84d9e12c205942fda20b1579760a1ffb73172",
+      "members": 14,
+      "duration_seconds": 0.548746073996881
+    },
+    {
+      "name": "flutter_riverpod",
+      "version": "3.3.2",
+      "sha256": "9255e1e3ad6e38906a1b4f8287678f95f378744c5b46b1985588543f3f19046e",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/flutter_riverpod-3.3.2.tar.gz",
+      "size": 55885,
+      "api_url": "https://pub.dev/api/packages/flutter_riverpod/versions/3.3.2",
+      "archive_url": "https://pub.dev/api/archives/flutter_riverpod-3.3.2.tar.gz",
+      "api_sha256": "2a5e93b13dc61389ae98c4be2650a7971bf3291b16fa9cf0e253a57e40861840",
+      "members": 59,
+      "duration_seconds": 0.9944359570217784
+    },
+    {
+      "name": "flutter_riverpod",
+      "version": "3.4.2",
+      "sha256": "56e81e662e6e54e59b231da57e90ac0d06ac67d8e3f2273c129a37ae6282b40c",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/flutter_riverpod-3.4.2.tar.gz",
+      "size": 58039,
+      "api_url": "https://pub.dev/api/packages/flutter_riverpod/versions/3.4.2",
+      "archive_url": "https://pub.dev/api/archives/flutter_riverpod-3.4.2.tar.gz",
+      "api_sha256": "e1bf9afae081eb6d49e9753d65db39d1e66085d4a3a30f30c0c19f42718df5f6",
+      "members": 60,
+      "duration_seconds": 0.36431730299955234
+    },
+    {
+      "name": "flutter_svg",
+      "version": "2.3.0",
+      "sha256": "35882981abcbfb8c15b286f0cd690ff25bac12d95eff3e25ee207f37d4c42e7f",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/flutter_svg-2.3.0.tar.gz",
+      "size": 505319,
+      "api_url": "https://pub.dev/api/packages/flutter_svg/versions/2.3.0",
+      "archive_url": "https://pub.dev/api/archives/flutter_svg-2.3.0.tar.gz",
+      "api_sha256": "c2172cc9b9b8d230f411df58fb81c705ec70f5d4cfa180474c6507d4fdf3cbf0",
+      "members": 328,
+      "duration_seconds": 0.7900189159845468
+    },
+    {
+      "name": "frontend_server_client",
+      "version": "4.0.0",
+      "sha256": "f64a0333a82f30b0cca061bc3d143813a486dc086b574bfb233b7c1372427694",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/frontend_server_client-4.0.0.tar.gz",
+      "size": 14419,
+      "api_url": "https://pub.dev/api/packages/frontend_server_client/versions/4.0.0",
+      "archive_url": "https://pub.dev/api/archives/frontend_server_client-4.0.0.tar.gz",
+      "api_sha256": "dc19c3ce322cfa8501655f672822efe2f7050d52f813df3810fc5837d0c92860",
+      "members": 17,
+      "duration_seconds": 0.3069330560101662
+    },
+    {
+      "name": "glob",
+      "version": "2.1.3",
+      "sha256": "c3f1ee72c96f8f78935e18aa8cecced9ab132419e8625dc187e1c2408efc20de",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/glob-2.1.3.tar.gz",
+      "size": 22395,
+      "api_url": "https://pub.dev/api/packages/glob/versions/2.1.3",
+      "archive_url": "https://pub.dev/api/archives/glob-2.1.3.tar.gz",
+      "api_sha256": "342eabaef365a8a46ffefe9ae97ec2e0d28ce6c7a73730349cb26716a05a5d5c",
+      "members": 19,
+      "duration_seconds": 0.5322723200079054
+    },
+    {
+      "name": "http",
+      "version": "1.6.0",
+      "sha256": "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/http-1.6.0.tar.gz",
+      "size": 46315,
+      "api_url": "https://pub.dev/api/packages/http/versions/1.6.0",
+      "archive_url": "https://pub.dev/api/archives/http-1.6.0.tar.gz",
+      "api_sha256": "ea5c518f3788df25dedd81e38cf6317cbb049a8d04c9f858e8031353df86b7c1",
+      "members": 60,
+      "duration_seconds": 0.3233752009982709
+    },
+    {
+      "name": "http_multi_server",
+      "version": "3.2.2",
+      "sha256": "aa6199f908078bb1c5efb8d8638d4ae191aac11b311132c3ef48ce352fb52ef8",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/http_multi_server-3.2.2.tar.gz",
+      "size": 11690,
+      "api_url": "https://pub.dev/api/packages/http_multi_server/versions/3.2.2",
+      "archive_url": "https://pub.dev/api/archives/http_multi_server-3.2.2.tar.gz",
+      "api_sha256": "001381a54022ead005690389975b2a35f3824b59a3446ce0a41cbb57690fadb6",
+      "members": 14,
+      "duration_seconds": 0.3063174679991789
+    },
+    {
+      "name": "http_parser",
+      "version": "4.1.2",
+      "sha256": "178d74305e7866013777bab2c3d8726205dc5a4dd935297175b19a23a2e66571",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/http_parser-4.1.2.tar.gz",
+      "size": 17424,
+      "api_url": "https://pub.dev/api/packages/http_parser/versions/4.1.2",
+      "archive_url": "https://pub.dev/api/archives/http_parser-4.1.2.tar.gz",
+      "api_sha256": "87704c880053e115fba8d3937d413f0d305cffeb073405f8fea49bea8acf221a",
+      "members": 29,
+      "duration_seconds": 0.31189466099021956
+    },
+    {
+      "name": "intl",
+      "version": "0.20.2",
+      "sha256": "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/intl-0.20.2.tar.gz",
+      "size": 305265,
+      "api_url": "https://pub.dev/api/packages/intl/versions/0.20.2",
+      "archive_url": "https://pub.dev/api/archives/intl-0.20.2.tar.gz",
+      "api_sha256": "3d94f2f97b74b016479e119795705fa6a8073cac2604456663fb1529cdc84717",
+      "members": 356,
+      "duration_seconds": 0.38903467598720454
+    },
+    {
+      "name": "io",
+      "version": "1.0.5",
+      "sha256": "dfd5a80599cf0165756e3181807ed3e77daf6dd4137caaad72d0b7931597650b",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/io-1.0.5.tar.gz",
+      "size": 17975,
+      "api_url": "https://pub.dev/api/packages/io/versions/1.0.5",
+      "archive_url": "https://pub.dev/api/archives/io-1.0.5.tar.gz",
+      "api_sha256": "9ae1d5c6678e4d7afe26415f6bbd542a4aeb3949d1b7aad7aa88956f58c86482",
+      "members": 34,
+      "duration_seconds": 0.30879790100152604
+    },
+    {
+      "name": "leak_tracker",
+      "version": "11.0.2",
+      "sha256": "33e2e26bdd85a0112ec15400c8cbffea70d0f9c3407491f672a2fad47915e2de",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/leak_tracker-11.0.2.tar.gz",
+      "size": 34448,
+      "api_url": "https://pub.dev/api/packages/leak_tracker/versions/11.0.2",
+      "archive_url": "https://pub.dev/api/archives/leak_tracker-11.0.2.tar.gz",
+      "api_sha256": "b0f19fb5a8eda6679488b5aadd63bfbd5f88babd7cca11446ef1e35212bf40f4",
+      "members": 71,
+      "duration_seconds": 0.32098749998840503
+    },
+    {
+      "name": "leak_tracker_flutter_testing",
+      "version": "3.0.10",
+      "sha256": "1dbc140bb5a23c75ea9c4811222756104fbcd1a27173f0c34ca01e16bea473c1",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/leak_tracker_flutter_testing-3.0.10.tar.gz",
+      "size": 10363,
+      "api_url": "https://pub.dev/api/packages/leak_tracker_flutter_testing/versions/3.0.10",
+      "archive_url": "https://pub.dev/api/archives/leak_tracker_flutter_testing-3.0.10.tar.gz",
+      "api_sha256": "71527a464ad9e64793c536fafaf1379cac33aabd22d5c4715540bc58893f4a9f",
+      "members": 32,
+      "duration_seconds": 0.6998431330139283
+    },
+    {
+      "name": "leak_tracker_testing",
+      "version": "3.0.2",
+      "sha256": "8d5a2d49f4a66b49744b23b018848400d23e54caf9463f4eb20df3eb8acb2eb1",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/leak_tracker_testing-3.0.2.tar.gz",
+      "size": 7535,
+      "api_url": "https://pub.dev/api/packages/leak_tracker_testing/versions/3.0.2",
+      "archive_url": "https://pub.dev/api/archives/leak_tracker_testing-3.0.2.tar.gz",
+      "api_sha256": "07b4a28dac8672c62615628366156ed86c3a1172c5e601297a8986a76e617678",
+      "members": 16,
+      "duration_seconds": 0.4078143209917471
+    },
+    {
+      "name": "lints",
+      "version": "6.1.0",
+      "sha256": "12f842a479589fea194fe5c5a3095abc7be0c1f2ddfa9a0e76aed1dbd26a87df",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/lints-6.1.0.tar.gz",
+      "size": 18120,
+      "api_url": "https://pub.dev/api/packages/lints/versions/6.1.0",
+      "archive_url": "https://pub.dev/api/archives/lints-6.1.0.tar.gz",
+      "api_sha256": "f663b6916609a4191087b2d0175345d64f09e492c206b890d4f2c0d3aecf76d7",
+      "members": 18,
+      "duration_seconds": 0.29848960699746385
+    },
+    {
+      "name": "listen",
+      "version": "1.0.1",
+      "sha256": "47501a08016a43fcad79252439d723f50f14f88fa7bfd8a177e0a417e5c9e1f2",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/listen-1.0.1.tar.gz",
+      "size": 12987,
+      "api_url": "https://pub.dev/api/packages/listen/versions/1.0.1",
+      "archive_url": "https://pub.dev/api/archives/listen-1.0.1.tar.gz",
+      "api_sha256": "30a49e3904c3209cb98c4d50aef642b1ef54bea9459460788c78f3c2be0bd590",
+      "members": 22,
+      "duration_seconds": 0.2921945349953603
+    },
+    {
+      "name": "logging",
+      "version": "1.3.0",
+      "sha256": "c8245ada5f1717ed44271ed1c26b8ce85ca3228fd2ffdb75468ab01979309d61",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/logging-1.3.0.tar.gz",
+      "size": 12198,
+      "api_url": "https://pub.dev/api/packages/logging/versions/1.3.0",
+      "archive_url": "https://pub.dev/api/archives/logging-1.3.0.tar.gz",
+      "api_sha256": "b541701e0e8eace6972da88053a82c1cdfeb30697b39748a9bd0c46d25e76643",
+      "members": 16,
+      "duration_seconds": 0.5242119260074105
+    },
+    {
+      "name": "matcher",
+      "version": "0.12.19",
+      "sha256": "dc0b7dc7651697ea4ff3e69ef44b0407ea32c487a39fff6a4004fa585e901861",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/matcher-0.12.19.tar.gz",
+      "size": 60050,
+      "api_url": "https://pub.dev/api/packages/matcher/versions/0.12.19",
+      "archive_url": "https://pub.dev/api/archives/matcher-0.12.19.tar.gz",
+      "api_sha256": "43c830bcd6ac1d4136ed0be52ab405d08e7e4baf52a349ab5c19f55b53e09694",
+      "members": 67,
+      "duration_seconds": 0.5425087850017007
+    },
+    {
+      "name": "material_color_utilities",
+      "version": "0.13.0",
+      "sha256": "9c337007e82b1889149c82ed242ed1cb24a66044e30979c44912381e9be4c48b",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/material_color_utilities-0.13.0.tar.gz",
+      "size": 2115434,
+      "api_url": "https://pub.dev/api/packages/material_color_utilities/versions/0.13.0",
+      "archive_url": "https://pub.dev/api/archives/material_color_utilities-0.13.0.tar.gz",
+      "api_sha256": "c3f102c84e056e5b3d1a459e835838082e22ac7764b6d54c44d5071a4d79e453",
+      "members": 87,
+      "duration_seconds": 0.6438160940015223
+    },
+    {
+      "name": "meta",
+      "version": "1.18.0",
+      "sha256": "1741988757a65eb6b36abe716829688cf01910bbf91c34354ff7ec1c3de2b349",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/meta-1.18.0.tar.gz",
+      "size": 15782,
+      "api_url": "https://pub.dev/api/packages/meta/versions/1.18.0",
+      "archive_url": "https://pub.dev/api/archives/meta-1.18.0.tar.gz",
+      "api_sha256": "48c4e109352414c890de378aa70dbe4bf61f9018c452352f07682fcba7b3c5ea",
+      "members": 10,
+      "duration_seconds": 0.31064668600447476
+    },
+    {
+      "name": "mime",
+      "version": "2.0.0",
+      "sha256": "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/mime-2.0.0.tar.gz",
+      "size": 24379,
+      "api_url": "https://pub.dev/api/packages/mime/versions/2.0.0",
+      "archive_url": "https://pub.dev/api/archives/mime-2.0.0.tar.gz",
+      "api_sha256": "a45cbe527db256c886b412a4e87d70d7a19ec467ad9a344bd1f8d39d34493aae",
+      "members": 25,
+      "duration_seconds": 0.5576567419921048
+    },
+    {
+      "name": "node_preamble",
+      "version": "2.0.2",
+      "sha256": "6e7eac89047ab8a8d26cf16127b5ed26de65209847630400f9aefd7cd5c730db",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/node_preamble-2.0.2.tar.gz",
+      "size": 6563,
+      "api_url": "https://pub.dev/api/packages/node_preamble/versions/2.0.2",
+      "archive_url": "https://pub.dev/api/archives/node_preamble-2.0.2.tar.gz",
+      "api_sha256": "23906f6a5e7fca8754b1e14d5468b19bfddf37e6337fc67e495a79c626905b9c",
+      "members": 11,
+      "duration_seconds": 0.49660471800598316
+    },
+    {
+      "name": "package_config",
+      "version": "2.2.0",
+      "sha256": "f096c55ebb7deb7e384101542bfba8c52696c1b56fca2eb62827989ef2353bbc",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/package_config-2.2.0.tar.gz",
+      "size": 33690,
+      "api_url": "https://pub.dev/api/packages/package_config/versions/2.2.0",
+      "archive_url": "https://pub.dev/api/archives/package_config-2.2.0.tar.gz",
+      "api_sha256": "34bfc2ea488e166ac8879e9d680c0c2137ff3bc269fb7506803aa4565359d57f",
+      "members": 30,
+      "duration_seconds": 0.3498215859872289
+    },
+    {
+      "name": "path",
+      "version": "1.9.1",
+      "sha256": "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/path-1.9.1.tar.gz",
+      "size": 45282,
+      "api_url": "https://pub.dev/api/packages/path/versions/1.9.1",
+      "archive_url": "https://pub.dev/api/archives/path-1.9.1.tar.gz",
+      "api_sha256": "0ee25cab732a36bea865276f35df57ac8b16734fac3a2b27cbbfde944d80f598",
+      "members": 36,
+      "duration_seconds": 0.7006942159787286
+    },
+    {
+      "name": "path_parsing",
+      "version": "1.1.0",
+      "sha256": "883402936929eac138ee0a45da5b0f2c80f89913e6dc3bf77eb65b84b409c6ca",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/path_parsing-1.1.0.tar.gz",
+      "size": 13693,
+      "api_url": "https://pub.dev/api/packages/path_parsing/versions/1.1.0",
+      "archive_url": "https://pub.dev/api/archives/path_parsing-1.1.0.tar.gz",
+      "api_sha256": "eab73e0d4439e36ace44f773dbeb9b318f75073adee466d62bd0721824d84992",
+      "members": 16,
+      "duration_seconds": 0.33187759201973677
+    },
+    {
+      "name": "petitparser",
+      "version": "7.0.2",
+      "sha256": "91bd59303e9f769f108f8df05e371341b15d59e995e6806aefab827b58336675",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/petitparser-7.0.2.tar.gz",
+      "size": 125648,
+      "api_url": "https://pub.dev/api/packages/petitparser/versions/7.0.2",
+      "archive_url": "https://pub.dev/api/archives/petitparser-7.0.2.tar.gz",
+      "api_sha256": "b5415f5808cb425e1815281c0501cff998cb0a300383ab1009180a45283a7f3b",
+      "members": 194,
+      "duration_seconds": 0.34591413600719534
+    },
+    {
+      "name": "pool",
+      "version": "1.5.2",
+      "sha256": "978783255c543aa3586a1b3c21f6e9d720eb315376a915872c61ef8b5c20177d",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/pool-1.5.2.tar.gz",
+      "size": 11161,
+      "api_url": "https://pub.dev/api/packages/pool/versions/1.5.2",
+      "archive_url": "https://pub.dev/api/archives/pool-1.5.2.tar.gz",
+      "api_sha256": "faa1838c2e6d7cfedf2a776d8659336cf683400f050fc164160c403a0589a17e",
+      "members": 11,
+      "duration_seconds": 0.3200458789942786
+    },
+    {
+      "name": "pub_semver",
+      "version": "2.2.0",
+      "sha256": "5bfcf68ca79ef689f8990d1160781b4bad40a3bd5e5218ad4076ddb7f4081585",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/pub_semver-2.2.0.tar.gz",
+      "size": 25661,
+      "api_url": "https://pub.dev/api/packages/pub_semver/versions/2.2.0",
+      "archive_url": "https://pub.dev/api/archives/pub_semver-2.2.0.tar.gz",
+      "api_sha256": "178de55b66151cc23128ccd5ee54df2df27db0a2a69ea9da22b52bbc5157dba4",
+      "members": 22,
+      "duration_seconds": 0.5279711860057432
+    },
+    {
+      "name": "riverpod",
+      "version": "3.3.2",
+      "sha256": "17100416c51db7810c71a7bb2c34d1f881faa0074fd452afb0c4db6f8f126c76",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/riverpod-3.3.2.tar.gz",
+      "size": 16061392,
+      "api_url": "https://pub.dev/api/packages/riverpod/versions/3.3.2",
+      "archive_url": "https://pub.dev/api/archives/riverpod-3.3.2.tar.gz",
+      "api_sha256": "26bbc7e229d6476685b2e01aa83e6fb43f2db3cceec80f8ac51c1eab8fce9c54",
+      "members": 242,
+      "duration_seconds": 1.5925394349906128
+    },
+    {
+      "name": "riverpod",
+      "version": "3.4.2",
+      "sha256": "84351b3472a447f7b89f961f95c73287009d58c59d8cc1267425d995f78e50f1",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/riverpod-3.4.2.tar.gz",
+      "size": 17607088,
+      "api_url": "https://pub.dev/api/packages/riverpod/versions/3.4.2",
+      "archive_url": "https://pub.dev/api/archives/riverpod-3.4.2.tar.gz",
+      "api_sha256": "b8cb2f02fd7dce30e763ae3e213a69f637b100a155b6669e14bdeb6866b02fb3",
+      "members": 250,
+      "duration_seconds": 1.581131776998518
+    },
+    {
+      "name": "shelf",
+      "version": "1.4.2",
+      "sha256": "e7dd780a7ffb623c57850b33f43309312fc863fb6aa3d276a754bb299839ef12",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/shelf-1.4.2.tar.gz",
+      "size": 47492,
+      "api_url": "https://pub.dev/api/packages/shelf/versions/1.4.2",
+      "archive_url": "https://pub.dev/api/archives/shelf-1.4.2.tar.gz",
+      "api_sha256": "bbcd6a1825e76d64a4f30ba338164f793a268bf240697759929c056a3d05ad44",
+      "members": 42,
+      "duration_seconds": 0.40920484001981094
+    },
+    {
+      "name": "shelf_packages_handler",
+      "version": "3.0.2",
+      "sha256": "89f967eca29607c933ba9571d838be31d67f53f6e4ee15147d5dc2934fee1b1e",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/shelf_packages_handler-3.0.2.tar.gz",
+      "size": 4243,
+      "api_url": "https://pub.dev/api/packages/shelf_packages_handler/versions/3.0.2",
+      "archive_url": "https://pub.dev/api/archives/shelf_packages_handler-3.0.2.tar.gz",
+      "api_sha256": "076937e07e619880b4c909df911cdddeafc0b6dc4aef7155baf69ee3b008a505",
+      "members": 10,
+      "duration_seconds": 0.49224008299643174
+    },
+    {
+      "name": "shelf_static",
+      "version": "1.1.3",
+      "sha256": "c87c3875f91262785dade62d135760c2c69cb217ac759485334c5857ad89f6e3",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/shelf_static-1.1.3.tar.gz",
+      "size": 18155,
+      "api_url": "https://pub.dev/api/packages/shelf_static/versions/1.1.3",
+      "archive_url": "https://pub.dev/api/archives/shelf_static-1.1.3.tar.gz",
+      "api_sha256": "773d36d59334d2b3006d01492776214af7fb3ce10b2a74d11446e335eb173837",
+      "members": 27,
+      "duration_seconds": 0.5189665310026612
+    },
+    {
+      "name": "shelf_web_socket",
+      "version": "3.0.0",
+      "sha256": "3632775c8e90d6c9712f883e633716432a27758216dfb61bd86a8321c0580925",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/shelf_web_socket-3.0.0.tar.gz",
+      "size": 7182,
+      "api_url": "https://pub.dev/api/packages/shelf_web_socket/versions/3.0.0",
+      "archive_url": "https://pub.dev/api/archives/shelf_web_socket-3.0.0.tar.gz",
+      "api_sha256": "790df7ff752d9cff9a06bb51e56c6f47bb46e067ab788a7d15e183a4bd48fef8",
+      "members": 14,
+      "duration_seconds": 0.2946253390109632
+    },
+    {
+      "name": "source_map_stack_trace",
+      "version": "2.1.2",
+      "sha256": "c0713a43e323c3302c2abe2a1cc89aa057a387101ebd280371d6a6c9fa68516b",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/source_map_stack_trace-2.1.2.tar.gz",
+      "size": 6237,
+      "api_url": "https://pub.dev/api/packages/source_map_stack_trace/versions/2.1.2",
+      "archive_url": "https://pub.dev/api/archives/source_map_stack_trace-2.1.2.tar.gz",
+      "api_sha256": "defc278f81544b22429a2c3b0cb17de32eafbf061a45d78545c57db947e07283",
+      "members": 10,
+      "duration_seconds": 0.731131335021928
+    },
+    {
+      "name": "source_maps",
+      "version": "0.10.13",
+      "sha256": "190222579a448b03896e0ca6eca5998fa810fda630c1d65e2f78b3f638f54812",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/source_maps-0.10.13.tar.gz",
+      "size": 23051,
+      "api_url": "https://pub.dev/api/packages/source_maps/versions/0.10.13",
+      "archive_url": "https://pub.dev/api/archives/source_maps-0.10.13.tar.gz",
+      "api_sha256": "566c1f96a32a9ef7bde73a1910b6ad419577bca675b661fd5ffc97bb9789b08b",
+      "members": 24,
+      "duration_seconds": 0.31063381701824255
+    },
+    {
+      "name": "source_maps",
+      "version": "0.10.14",
+      "sha256": "14c2945847669b44089bb1222f66873d7ff7103c58911917f2a63c5a62327898",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/source_maps-0.10.14.tar.gz",
+      "size": 24689,
+      "api_url": "https://pub.dev/api/packages/source_maps/versions/0.10.14",
+      "archive_url": "https://pub.dev/api/archives/source_maps-0.10.14.tar.gz",
+      "api_sha256": "d769bac1d502a5acefc94f1069f23481e1903972718dbba79f0e6cb288bb4a3a",
+      "members": 25,
+      "duration_seconds": 0.31839612798648886
+    },
+    {
+      "name": "source_span",
+      "version": "1.10.2",
+      "sha256": "56a02f1f4cd1a2d96303c0144c93bd6d909eea6bee6bf5a0e0b685edbd4c47ab",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/source_span-1.10.2.tar.gz",
+      "size": 29648,
+      "api_url": "https://pub.dev/api/packages/source_span/versions/1.10.2",
+      "archive_url": "https://pub.dev/api/archives/source_span-1.10.2.tar.gz",
+      "api_sha256": "0f47911345bd0504a75e22e7acbff603cb034f703ef8252ab46752d3926ff951",
+      "members": 29,
+      "duration_seconds": 0.40152138101984747
+    },
+    {
+      "name": "stack_trace",
+      "version": "1.12.1",
+      "sha256": "8b27215b45d22309b5cddda1aa2b19bdfec9df0e765f2de506401c071d38d1b1",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/stack_trace-1.12.1.tar.gz",
+      "size": 35098,
+      "api_url": "https://pub.dev/api/packages/stack_trace/versions/1.12.1",
+      "archive_url": "https://pub.dev/api/archives/stack_trace-1.12.1.tar.gz",
+      "api_sha256": "703904f13785d335f215f7355966723321e2e51deffd3527f732fe38e586c0c6",
+      "members": 29,
+      "duration_seconds": 0.3220435059920419
+    },
+    {
+      "name": "state_notifier",
+      "version": "1.0.0",
+      "sha256": "b8677376aa54f2d7c58280d5a007f9e8774f1968d1fb1c096adcb4792fba29bb",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/state_notifier-1.0.0.tar.gz",
+      "size": 18144,
+      "api_url": "https://pub.dev/api/packages/state_notifier/versions/1.0.0",
+      "archive_url": "https://pub.dev/api/archives/state_notifier-1.0.0.tar.gz",
+      "api_sha256": "7673eddd66350d8bbca3010d91c6164f4baf821db8090f666ba685cfb2ed9811",
+      "members": 13,
+      "duration_seconds": 0.32173412200063467
+    },
+    {
+      "name": "stream_channel",
+      "version": "2.1.4",
+      "sha256": "969e04c80b8bcdf826f8f16579c7b14d780458bd97f56d107d3950fdbeef059d",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/stream_channel-2.1.4.tar.gz",
+      "size": 22854,
+      "api_url": "https://pub.dev/api/packages/stream_channel/versions/2.1.4",
+      "archive_url": "https://pub.dev/api/archives/stream_channel-2.1.4.tar.gz",
+      "api_sha256": "f491dfe366c89477f0ddee73d51c5325168d5c41ef2266e7c840e85f78faf0c6",
+      "members": 32,
+      "duration_seconds": 0.375343139981851
+    },
+    {
+      "name": "string_scanner",
+      "version": "1.4.1",
+      "sha256": "921cd31725b72fe181906c6a94d987c78e3b98c2e205b397ea399d4054872b43",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/string_scanner-1.4.1.tar.gz",
+      "size": 16495,
+      "api_url": "https://pub.dev/api/packages/string_scanner/versions/1.4.1",
+      "archive_url": "https://pub.dev/api/archives/string_scanner-1.4.1.tar.gz",
+      "api_sha256": "3325a084387212d88632c145870e4bb2cb864c3c7fd77297828dc43c51f816d5",
+      "members": 24,
+      "duration_seconds": 0.4996029699977953
+    },
+    {
+      "name": "term_glyph",
+      "version": "1.2.2",
+      "sha256": "7f554798625ea768a7518313e58f83891c7f5024f88e46e7182a4558850a4b8e",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/term_glyph-1.2.2.tar.gz",
+      "size": 9024,
+      "api_url": "https://pub.dev/api/packages/term_glyph/versions/1.2.2",
+      "archive_url": "https://pub.dev/api/archives/term_glyph-1.2.2.tar.gz",
+      "api_sha256": "a390028cefffeabc8f50edefc12827730e8b86fbe09768b66507d0a2e562dd53",
+      "members": 19,
+      "duration_seconds": 0.5105542519886512
+    },
+    {
+      "name": "test",
+      "version": "1.31.0",
+      "sha256": "8d9ceddbab833f180fbefed08afa76d7c03513dfdba87ffcec2718b02bbcbf20",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/test-1.31.0.tar.gz",
+      "size": 357899,
+      "api_url": "https://pub.dev/api/packages/test/versions/1.31.0",
+      "archive_url": "https://pub.dev/api/archives/test-1.31.0.tar.gz",
+      "api_sha256": "270591c2500483ddabb0379e2231852c1b665565f54ef29dd121fbe85f92be7a",
+      "members": 139,
+      "duration_seconds": 1.038721094984794
+    },
+    {
+      "name": "test_api",
+      "version": "0.7.11",
+      "sha256": "949a932224383300f01be9221c39180316445ecb8e7547f70a41a35bf421fb9e",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/test_api-0.7.11.tar.gz",
+      "size": 60693,
+      "api_url": "https://pub.dev/api/packages/test_api/versions/0.7.11",
+      "archive_url": "https://pub.dev/api/archives/test_api-0.7.11.tar.gz",
+      "api_sha256": "b46015f9a4a2a104a2f70f1635c61df6d023f6c1b5e406a36ffe915cae13cce9",
+      "members": 70,
+      "duration_seconds": 0.5235777930065524
+    },
+    {
+      "name": "test_core",
+      "version": "0.6.17",
+      "sha256": "1991d4cfe85d5043241acac92962c3977c8d2f2add1ee73130c7b286417d1d34",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/test_core-0.6.17.tar.gz",
+      "size": 111673,
+      "api_url": "https://pub.dev/api/packages/test_core/versions/0.6.17",
+      "archive_url": "https://pub.dev/api/archives/test_core-0.6.17.tar.gz",
+      "api_sha256": "6d61fa1fa44f19339224b7e33d09532a7ab417f24a6bc8b69ff7a95b61690685",
+      "members": 94,
+      "duration_seconds": 0.9790040770021733
+    },
+    {
+      "name": "typed_data",
+      "version": "1.4.0",
+      "sha256": "f9049c039ebfeb4cf7a7104a675823cd72dba8297f264b6637062516699fa006",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/typed_data-1.4.0.tar.gz",
+      "size": 15910,
+      "api_url": "https://pub.dev/api/packages/typed_data/versions/1.4.0",
+      "archive_url": "https://pub.dev/api/archives/typed_data-1.4.0.tar.gz",
+      "api_sha256": "c61b9876b80bfc7e53e6dff4586304f810c197680a376f20d041435a5916454c",
+      "members": 16,
+      "duration_seconds": 0.303065679006977
+    },
+    {
+      "name": "uuid",
+      "version": "4.6.0",
+      "sha256": "9b129329f58692f6e6578329498a8fe9fbe98f090beb764ffbb8ee2eadd01dcd",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/uuid-4.6.0.tar.gz",
+      "size": 251325,
+      "api_url": "https://pub.dev/api/packages/uuid/versions/4.6.0",
+      "archive_url": "https://pub.dev/api/archives/uuid-4.6.0.tar.gz",
+      "api_sha256": "6ff768e710e3bac547b6eb286c725b614e7be3646e2115e2f3b350bae41dd323",
+      "members": 378,
+      "duration_seconds": 0.8064462099864613
+    },
+    {
+      "name": "vector_graphics",
+      "version": "1.2.2",
+      "sha256": "2306c03da2ba81724afeb589c351ebbc0aa7d86005925be8f8735856dbe5e42d",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vector_graphics-1.2.2.tar.gz",
+      "size": 72946,
+      "api_url": "https://pub.dev/api/packages/vector_graphics/versions/1.2.2",
+      "archive_url": "https://pub.dev/api/archives/vector_graphics-1.2.2.tar.gz",
+      "api_sha256": "6bdf218bf068c26be19af10865922fd85e7b63b6f47b70eafc4d6f589d841250",
+      "members": 35,
+      "duration_seconds": 0.9186805920035113
+    },
+    {
+      "name": "vector_graphics",
+      "version": "1.2.3",
+      "sha256": "9d0e3b9cb16542ad660daee871e726a10d13a93b7b5391677c3160e8f5e83935",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vector_graphics-1.2.3.tar.gz",
+      "size": 72756,
+      "api_url": "https://pub.dev/api/packages/vector_graphics/versions/1.2.3",
+      "archive_url": "https://pub.dev/api/archives/vector_graphics-1.2.3.tar.gz",
+      "api_sha256": "98023537774fff6739ae57f3a1805bc0d1f6e63b89452cf7a1d50687634ee153",
+      "members": 35,
+      "duration_seconds": 0.3498628690140322
+    },
+    {
+      "name": "vector_graphics_codec",
+      "version": "1.1.13",
+      "sha256": "99fd9fbd34d9f9a32efd7b6a6aae14125d8237b10403b422a6a6dfeac2806146",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vector_graphics_codec-1.1.13.tar.gz",
+      "size": 19506,
+      "api_url": "https://pub.dev/api/packages/vector_graphics_codec/versions/1.1.13",
+      "archive_url": "https://pub.dev/api/archives/vector_graphics_codec-1.1.13.tar.gz",
+      "api_sha256": "75958581bdf4aa5eccc78009f51a992aad02312cb66e36600d75bf2d39d98429",
+      "members": 12,
+      "duration_seconds": 0.3082322069967631
+    },
+    {
+      "name": "vector_graphics_compiler",
+      "version": "1.2.6",
+      "sha256": "142a9146f447d15b10bdc00e21d5f4d83e5b32bb5f8f8f5a04c75311344923a3",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vector_graphics_compiler-1.2.6.tar.gz",
+      "size": 247654,
+      "api_url": "https://pub.dev/api/packages/vector_graphics_compiler/versions/1.2.6",
+      "archive_url": "https://pub.dev/api/archives/vector_graphics_compiler-1.2.6.tar.gz",
+      "api_sha256": "8d9337479b8e3388c863ef070925373f43eb2c91b083c6010b6bcbe46f53d52b",
+      "members": 78,
+      "duration_seconds": 0.9066296970122494
+    },
+    {
+      "name": "vector_graphics_compiler",
+      "version": "1.3.0",
+      "sha256": "4dca4feb77dc3ec7f6e27e49c53241eb8217f55e4f9b12599a27f8903bca5682",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vector_graphics_compiler-1.3.0.tar.gz",
+      "size": 248286,
+      "api_url": "https://pub.dev/api/packages/vector_graphics_compiler/versions/1.3.0",
+      "archive_url": "https://pub.dev/api/archives/vector_graphics_compiler-1.3.0.tar.gz",
+      "api_sha256": "123ac7ce9e27f01a7725a87a51b49f0a251a00bd04e8aaef9dd819400a95847b",
+      "members": 78,
+      "duration_seconds": 0.5804040540242568
+    },
+    {
+      "name": "vector_math",
+      "version": "2.2.0",
+      "sha256": "d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vector_math-2.2.0.tar.gz",
+      "size": 181198,
+      "api_url": "https://pub.dev/api/packages/vector_math/versions/2.2.0",
+      "archive_url": "https://pub.dev/api/archives/vector_math-2.2.0.tar.gz",
+      "api_sha256": "6cea70806b00bc997a20a9db0fc07722990ec30fcc42018dc51243804f3b8493",
+      "members": 127,
+      "duration_seconds": 0.4982741639832966
+    },
+    {
+      "name": "vm_service",
+      "version": "15.2.0",
+      "sha256": "0016aef94fc66495ac78af5859181e3f3bf2026bd8eecc72b9565601e19ab360",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vm_service-15.2.0.tar.gz",
+      "size": 1000087,
+      "api_url": "https://pub.dev/api/packages/vm_service/versions/15.2.0",
+      "archive_url": "https://pub.dev/api/archives/vm_service-15.2.0.tar.gz",
+      "api_sha256": "e4d89e171dea81a44181fd021d819352e70a9ec0b31d7c1a68291598f36e99ad",
+      "members": 2272,
+      "duration_seconds": 0.6504461879958399
+    },
+    {
+      "name": "vm_service",
+      "version": "15.3.0",
+      "sha256": "5f37239c4851efcef929cea7824e76df7f2f0970aef85d66bbc430afa40e72f0",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/vm_service-15.3.0.tar.gz",
+      "size": 998996,
+      "api_url": "https://pub.dev/api/packages/vm_service/versions/15.3.0",
+      "archive_url": "https://pub.dev/api/archives/vm_service-15.3.0.tar.gz",
+      "api_sha256": "36ee7173d63905f1a65beb0be42eb358db68f842115c0982f61a7452fa3e1f8a",
+      "members": 2592,
+      "duration_seconds": 0.5185826900124084
+    },
+    {
+      "name": "watcher",
+      "version": "1.2.1",
+      "sha256": "1398c9f081a753f9226febe8900fce8f7d0a67163334e1c94a2438339d79d635",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/watcher-1.2.1.tar.gz",
+      "size": 57442,
+      "api_url": "https://pub.dev/api/packages/watcher/versions/1.2.1",
+      "archive_url": "https://pub.dev/api/archives/watcher-1.2.1.tar.gz",
+      "api_sha256": "9cfe950767d044055353bff97b462c192b5126448a6b671e520be39ea8e6fed1",
+      "members": 81,
+      "duration_seconds": 0.6968971140158828
+    },
+    {
+      "name": "web",
+      "version": "1.1.1",
+      "sha256": "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/web-1.1.1.tar.gz",
+      "size": 539843,
+      "api_url": "https://pub.dev/api/packages/web/versions/1.1.1",
+      "archive_url": "https://pub.dev/api/archives/web-1.1.1.tar.gz",
+      "api_sha256": "a3719c4b0450148993fbd6c8a005036907a8f4acd8c867af08c3e25aa8e5496e",
+      "members": 216,
+      "duration_seconds": 0.7435070509964135
+    },
+    {
+      "name": "web_socket",
+      "version": "1.0.1",
+      "sha256": "34d64019aa8e36bf9842ac014bb5d2f5586ca73df5e4d9bf5c936975cae6982c",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/web_socket-1.0.1.tar.gz",
+      "size": 9038,
+      "api_url": "https://pub.dev/api/packages/web_socket/versions/1.0.1",
+      "archive_url": "https://pub.dev/api/archives/web_socket-1.0.1.tar.gz",
+      "api_sha256": "54514de6bfe39bf84f1563bf7d5aa0a7432e9d63e9407ec9b8cafa8de17268b9",
+      "members": 26,
+      "duration_seconds": 0.3026125449978281
+    },
+    {
+      "name": "web_socket_channel",
+      "version": "3.0.3",
+      "sha256": "d645757fb0f4773d602444000a8131ff5d48c9e47adfe9772652dd1a4f2d45c8",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/web_socket_channel-3.0.3.tar.gz",
+      "size": 14525,
+      "api_url": "https://pub.dev/api/packages/web_socket_channel/versions/3.0.3",
+      "archive_url": "https://pub.dev/api/archives/web_socket_channel-3.0.3.tar.gz",
+      "api_sha256": "d671e2adc3efe83aa8fc19164ba4b7bc277382aa2693298980be2d572ee74ae3",
+      "members": 23,
+      "duration_seconds": 0.3024300929973833
+    },
+    {
+      "name": "webkit_inspection_protocol",
+      "version": "1.2.1",
+      "sha256": "87d3f2333bb240704cd3f1c6b5b7acd8a10e7f0bc28c28dcf14e782014f4a572",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/webkit_inspection_protocol-1.2.1.tar.gz",
+      "size": 24985,
+      "api_url": "https://pub.dev/api/packages/webkit_inspection_protocol/versions/1.2.1",
+      "archive_url": "https://pub.dev/api/archives/webkit_inspection_protocol-1.2.1.tar.gz",
+      "api_sha256": "42fe8c9e43551c20924a617f7dcab6a1a682e9d6722216bfb44240c2602d4b36",
+      "members": 28,
+      "duration_seconds": 0.8458648360101506
+    },
+    {
+      "name": "xml",
+      "version": "6.6.1",
+      "sha256": "971043b3a0d3da28727e40ed3e0b5d18b742fa5a68665cca88e74b7876d5e025",
+      "components": [
+        "dart_shell"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/xml-6.6.1.tar.gz",
+      "size": 199307,
+      "api_url": "https://pub.dev/api/packages/xml/versions/6.6.1",
+      "archive_url": "https://pub.dev/api/archives/xml-6.6.1.tar.gz",
+      "api_sha256": "c2a00b648238bf4b27b98b97f0b8be3556fde6bf7f6c7954677db43170f6f025",
+      "members": 180,
+      "duration_seconds": 0.5436274270177819
+    },
+    {
+      "name": "xml",
+      "version": "7.0.1",
+      "sha256": "67f0aff7be013d107995e9b75bf4e7f2c3ef2dfdb2c8e68024bba0a7fd5756a4",
+      "components": [
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/xml-7.0.1.tar.gz",
+      "size": 438897,
+      "api_url": "https://pub.dev/api/packages/xml/versions/7.0.1",
+      "archive_url": "https://pub.dev/api/archives/xml-7.0.1.tar.gz",
+      "api_sha256": "b34dcea5d46d8c90378ff16f55c6d97756a474babf56f2d16d18a9a8a9d89a64",
+      "members": 342,
+      "duration_seconds": 0.5433509130089078
+    },
+    {
+      "name": "yaml",
+      "version": "3.1.3",
+      "sha256": "b9da305ac7c39faa3f030eccd175340f968459dae4af175130b3fc47e40d76ce",
+      "components": [
+        "dart_shell",
+        "settings_app"
+      ],
+      "status": "PASS",
+      "archive": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/packages/yaml-3.1.3.tar.gz",
+      "size": 46513,
+      "api_url": "https://pub.dev/api/packages/yaml/versions/3.1.3",
+      "archive_url": "https://pub.dev/api/archives/yaml-3.1.3.tar.gz",
+      "api_sha256": "b1632d52b158dad96aaee5cbbfc7defc4afd8d54820850f9ecdfd40f0133033b",
+      "members": 34,
+      "duration_seconds": 0.43854614699375816
+    }
+  ],
+  "raw_result": {
+    "path": "/home/deck/.local/state/rog5-mobile-pub-evidence-20260912-r1/result.json",
+    "sha256": "dc9a9a72a5e7b116198788817c7b1d15af8348f5dd9d07c8e1167fafd3491689",
+    "size": 61339
+  },
+  "engine_observation": {
+    "observed_at": "2026-09-12T14:00:24.344398+00:00",
+    "command": [
+      "podman",
+      "inspect",
+      "d49de96af625ecb05244dca8aba6a9c6f4fef5065080e23bf196ec59a8013e03",
+      "--format",
+      "{{json .State}}"
+    ],
+    "state": {
+      "OciVersion": "1.2.1",
+      "Status": "running",
+      "Running": true,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 2800290,
+      "ConmonPid": 2800288,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-09-12T15:50:55.021369406+02:00",
+      "FinishedAt": "0001-01-01T00:00:00Z",
+      "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-d49de96af625ecb05244dca8aba6a9c6f4fef5065080e23bf196ec59a8013e03.scope",
+      "CheckpointedAt": "0001-01-01T00:00:00Z",
+      "RestoredAt": "0001-01-01T00:00:00Z"
+    },
+    "container_id": "d49de96af625ecb05244dca8aba6a9c6f4fef5065080e23bf196ec59a8013e03",
+    "exec_session_id": 98288,
+    "latest_completed_step": "[571/6674] CXX obj/flutter/third_party/skia/src/image/skia.SkImage_Base.o",
+    "memory_peak_bytes": 286261248,
+    "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+    "cpu_stat": "usage_usec 558537420\nuser_usec 499530468\nsystem_usec 59006951\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 5694\nnr_throttled 4\nthrottled_usec 2989\nnr_bursts 0\nburst_usec 0\n",
+    "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
+    "log_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile.log",
+    "status": "RUNNING",
+    "physical_status": "NOT RUN"
+  },
+  "pub_resolution_status": "NOT RUN",
+  "shell_aot_status": "NOT RUN",
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "signing": false,
+  "claim_operations": false,
+  "protected_storage_mutation": false,
+  "candidate_created": false
+}
