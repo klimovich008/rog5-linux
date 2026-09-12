@@ -30,6 +30,17 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+IOMMU r134: driver binding alone did not prove GPU IOMMU attachment on the
+previous phone run. Check both GPU and GMU group links, reciprocal membership
+and exact DT streams before display/query; keep this proof separate from actual
+DMA/acceleration. New input pins come from the qualified archive and selected DT,
+not the old module inventory.37 provider tests include the observed missing-GPU-
+group failure; supervised transport and proof checks bring the total to101.
+Unittest discovery skipped hyphenated filenames entirely; explicit module loading
+now enforces exact counts. Backend fixture files must be root-owned in a user
+namespace; an ordinary-host invocation failed before READY. Carry namespace
+requirements alongside test commands and verify counts before interpreting PASS.
+
 IOMMU r133: qualify the final test file after broad fixture substitutions. An
 r131 replacement intended for engine coverage silently broke a non-engine test
 after its initial pass; rerunning only engine cases missed it. The prior claim

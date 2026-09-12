@@ -9244,3 +9244,49 @@ The existing credential keeper refreshes already authenticated sudo during a
 bounded run without saving a password. A root-owned, narrowly scoped passwordless
 helper is a possible persistent improvement, not installed or qualified yet.
 Evidence: gpu-iommu-live-driver-r1/launch-layer-review-r133.json and checkpoint-r133.
+
+## IOMMU r134 — provider and supervised transport, 2026-09-12
+
+Latest r134, 2026-09-12: **matching GPUCC/IOMMU provider and supervised transport
+qualified offline**. Previous r133 was progress. No phone I/O, sudo change, boot
+claim or reboot occurred. The new kernel remains unbooted; full launcher pending.
+
+The new gpu-iommu-provider-r1 reads the GPUCC module and descriptor directly from
+the qualified r2 initramfs using bounded streaming. Module 4c896436... (306576
+bytes), unchanged module-once helper 74436199... and descriptor 519b0e65... bind
+kernel 136f75ae / bundle gpu-136f7-a9b1bc89566205b6. The selected DT artifact
+5ce36eec... confirms GPU streams (phandle89, IDs0/1, mask1024), GMU stream5 and
+provider #iommu-cells2. Group IDs remain runtime allocated, not hardcoded.
+
+Provider success now requires GPUCC/SMMU/Adreno binding plus both GPU and GMU
+IOMMU groups, exact DT streams and reciprocal group/device links. The historical
+GMU-present/GPU-absent failure is explicitly rejected. One GPUCC insertion and,
+only if needed, one fixed bounded SMMU probe retain durable one-use entry and
+independent read-only cleanup. No DRM open/display action or DMA/acceleration
+claim is made. The parent supervisor and host validate the attachment receipt
+against their admitted boot, rather than accepting a child-supplied identity.
+
+37 provider/attachment/reprobe cases passed0.632 s;25 supervisor cases4.599 s;
+19 transport cases2.948 s;9 private-RAM metadata/staging-context cases0.012 s;
+11 receipt refusal cases0.001 s. Total101 host-architecture case executions.
+Actual selected input bytes, sysfs-shaped file traversal, child/pid/pipe lifetime
+and private-RAM staging execute; kernel insertion/probe effects, network, target
+identity and health remain fixtures. Full-chain tests run the actual provider,
+supervisor and host exchange, preserving failed probe evidence and cleanup.
+ARM64 execution of this adapted provider is still pending.
+
+Two initial harness failures remain retained: generic unittest discovery skipped
+hyphenated filenames (zero tests, exit5), and running backend tests as the ordinary
+host user failed root-owned fixture metadata (19 failures/3 errors in25 cases).
+Explicit import loading with exact expected counts fixed discovery; the proper
+user namespace passed backend tests without production changes. Preserve each
+suite's execution environment with its command. No kernel build/A01 repeat.
+
+Next: integrate this provider before the matching display/GPU query session,
+recheck attachment immediately before display/query, and qualify the combined
+session including ARM64 fixture execution. Finish launcher/credential preflight
+and freeze all admission inputs before a live claim. INPUTS_SHA remains None.
+Reuse the completed controller r2 RAM stage evidence, never restage. No human
+Ready is pending. Latest full phone health remains r131; installed route r132.
+S06/R01 and blank cleanup remain open. Evidence: gpu-iommu-provider-r1/review-r134.json
+and checkpoint-r134. All owned test processes are terminal.
