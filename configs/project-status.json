@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Panel regulator error handling corrected; production module cohort qualified offline",
+  "phase": "Touch non-wakeup sleep callbacks implemented and compiled offline",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Frozen-source CI: 305 PASS, 0 FAIL, 0 BLOCKED, 3 declared optional suites SKIPPED in 616.595 s. All 16 production patches apply; merged config unchanged; panel twins and 1,031-module cohort pass offline. Image/DT evidence is inherited only for matching inputs. Panel/touch physical recovery, OLED/A660 and L8C supply remain unqualified. GENI mode reads require active clock/pinctrl setup, so passive provider snapshots cannot close that gap. No phone operation is authorized; next hardware work requires separate approval of the bounded display trial.",
-  "evidence": "test-results/2026-09-12-panel-regulator-repair.md"
+  "next": "Frozen-source active tier: 82 PASS, 0 FAIL, 0 BLOCKED, three declared optional subchecks SKIPPED in 109.009 s. Touch module twins match; 24 lifecycle cases cover 20 sleep cycles and six unsafe mutations. Normal power/protocol functions and the current display/board qualification are unchanged. Touch stays disabled; physical ID/events, L8C supply, OLED/A660 and suspend/wake remain unqualified. No phone operation is authorized. The next hardware question remains one bounded display scanout/blank cycle after separate exact-artifact and execution approval.",
+  "evidence": "test-results/2026-09-12-touch-sleep.md"
 }

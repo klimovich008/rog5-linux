@@ -1,0 +1,280 @@
+{
+  "format": "rog5-touch-sleep-qualification-v1",
+  "status": "PASS: scoped offline module implementation",
+  "starting_repository": {
+    "started_utc": "2026-09-12T07:07:05.357619+00:00",
+    "previous_turn": "progress",
+    "worktree": "/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+    "commit": "254e81380d932ce45225c9291bb4da1d2cf1bb9e",
+    "tree": "07c5f5fbf0af6cda1090de11173e659cfa2ba81e",
+    "dirty": false,
+    "driver_sha256": "9c3c1704e3462f43b710ae811c232ce0e887f3b391c4d5182f04498bbcecc386",
+    "phone_authority": false,
+    "question": "Can the existing normal-mode touch driver quiesce and re-identify across ordinary non-wakeup system sleep while handling Linux PM rollback and uncertain regulator ownership correctly?",
+    "hardware_status": "NOT RUN"
+  },
+  "frozen_repository": {
+    "commit": "034ef34cd2f4551130ef9b8b3f521ba71ceb1acd",
+    "tree": "e8d6ce7b7aad72c6704903b048449a567c3327d0",
+    "dirty": false
+  },
+  "linux_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+  "production_series_sha256": "6ecab1592d1293be2dbb2d48792f4de889a5db5d2418738b56e8f3c394af62ee",
+  "series_scope": "Current source production series, prior incremental production qualification, and retained Q6 qualification are distinct identities. Q6 retains its compiled/final patch delta and schema FAIL. Consumed touch headers/control inputs match current prepared source; unrelated panel and binding differences do not imply a rebuilt kit. No full board rebuild or new board qualification is claimed.",
+  "driver_and_build_inputs": {
+    "tools/rog5-fts3658u/Makefile": "ee759e7c9bb745500fcd8a55045932d9decd70c68c67f3e24cc7e929d80dadb4",
+    "tools/rog5-fts3658u/rog5_fts3658u.c": "d2ff4063df516a316b3716c841b99d82643474bfc07c63a946cdb8bed706c59f",
+    "tools/rog5-fts3658u/rog5_fts_protocol.h": "0253cff9ced95ce9b7dfde34d84cf0538568e0b6bb565e3afa5245c2b0f6e4c5"
+  },
+  "builder_sha256": "e1392cc8305c0a03c4f079570293cac94b7bf569e95ba53794a131a2dd2ddfea",
+  "module": {
+    "dependencies": [],
+    "depends": "",
+    "name": "rog5_fts3658u",
+    "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
+    "sha256": "0a191f48fccfebbe08902e25ba63127b2e86c2a60d727234b53a1e8f83c9b59f",
+    "size": 17448,
+    "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64"
+  },
+  "toolchain_hashes": {
+    "clang": "466441076b17c1106a17f31c2b782baf12271c2445e19950879b81c0f793c1ba",
+    "ld.lld": "15de1de0f0a68cc29cddd8ecc86f7614f4c0b02028d530e50c7a43efdd1a331b",
+    "llvm-ar": "92eca2c5292fb20f9afbb31099867f867417d290beada5a0ef57906636b74136",
+    "llvm-nm": "bbc79ce5a43e0178a7809b80561ace3baca1151d2b16b32113a95c8236bf4c9a",
+    "llvm-objcopy": "218fd7d66028896d7328a0fe9e06dfa5e7d6980875773df16b8d8624565a2d5e",
+    "make": "d683953851f122c5a95204aced41210196e5a861185dccb2a0561782bfb1e735",
+    "modinfo": "c593242174e1e50399584c8164564fed1e06bfaef11a10f7af57fbf3d1667cc3"
+  },
+  "tool_execution_scope": {
+    "builder_PATH": "/usr/bin:/bin",
+    "child_exec_tracing": "NOT RUN",
+    "distinction": "Q6 records bundled Python3.12; builder resolves host /usr/bin/python3. PATH presence does not establish invocation.",
+    "orchestrator_path": "/usr/bin/python3",
+    "orchestrator_sha256": "62cf34d8c76bbde1cceea478800c3b9125a90746dd73f1281614823bdcf1b718",
+    "orchestrator_version": "3.13.5 (main, Jun 21 2025, 09:35:00) [GCC 15.1.1 20250425]"
+  },
+  "focused_tests": {
+    "lifecycle": [
+      {
+        "name": "exact",
+        "command": [
+          "python3",
+          "scripts/device/test-rog5-touch-lifecycle.py",
+          "--linux-source",
+          "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/prepare-r1/source"
+        ],
+        "seconds": 4.106083247999777,
+        "exit_code": 0
+      },
+      {
+        "name": "default",
+        "command": [
+          "python3",
+          "scripts/device/test-rog5-touch-lifecycle.py"
+        ],
+        "seconds": 4.106931734000682,
+        "exit_code": 0
+      }
+    ],
+    "coverage": "24 actual-driver cases:13probe failurestages,20sleepcycles,8resume failures+failedcleanupUNKNOWN,3failedrestore cases,6mutations",
+    "unchanged_boundaries": {
+      "status": "PASS",
+      "checks": [
+        {
+          "command": [
+            "python3",
+            "-O",
+            "scripts/device/test-rog5-front-touch.py"
+          ],
+          "seconds": 0.43815100099891424,
+          "returncode": 0
+        },
+        {
+          "command": [
+            "python3",
+            "-O",
+            "scripts/device/test-rog5-touch-regulator-errors.py",
+            "--linux-source",
+            "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/prepare-r1/source"
+          ],
+          "seconds": 0.6456875520088943,
+          "returncode": 0
+        }
+      ]
+    },
+    "checkpatch": {
+      "command": [
+        "perl",
+        "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/prepare-r1/source/scripts/checkpatch.pl",
+        "--no-tree",
+        "--strict",
+        "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/touch-sleep-driver.diff"
+      ],
+      "returncode": 0,
+      "seconds": 0.27556812900002114
+    }
+  },
+  "module_validation": {
+    "twins_byte_identical": true,
+    "kit_pre_post_files": 760,
+    "actual_consumed_kit_files": 740,
+    "actual_consumed_source_files": 698,
+    "fresh_source_compared_files": 715,
+    "kit_preserved": true,
+    "abi": {
+      "imports": 31,
+      "new_imports": [
+        "enable_irq"
+      ],
+      "missing_exports": [],
+      "firmware": [],
+      "module_dependencies": []
+    },
+    "make_seconds": [
+      2.61,
+      2.56
+    ],
+    "orchestration_seconds": 6.394269,
+    "scope_command": [
+      "systemd-run",
+      "--user",
+      "--scope",
+      "--quiet",
+      "-p",
+      "MemoryMax=1536M",
+      "-p",
+      "MemorySwapMax=0",
+      "python3",
+      "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/build-twins.py",
+      "--frozen-commit",
+      "034ef34cd2f4551130ef9b8b3f521ba71ceb1acd"
+    ],
+    "limits": {
+      "MemoryMax_bytes": 1610612736,
+      "MemorySwapMax_bytes": 0,
+      "jobs": 2,
+      "sequential_twins": true,
+      "min_free_bytes": 3221225472
+    }
+  },
+  "integrated_tier": {
+    "name": "active",
+    "counts": {
+      "PASS": 82,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 256
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--scope",
+        "--quiet",
+        "-pMemoryMax=3G",
+        "-pMemorySwapMax=0",
+        "bash",
+        "scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "cwd": "/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+      "started_utc": "2026-09-12T07:12:43.607729+00:00",
+      "seconds": 109.00939801499771,
+      "returncode": 0,
+      "environment": {
+        "ROG5_LINUX_SOURCE": "UNSET",
+        "ROG5_TEST_WORKERS": "2",
+        "ROG5_TEST_REPORT_DIR": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/active-r1",
+        "TMPDIR": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/scratch"
+      },
+      "repository": {
+        "commit": "034ef34cd2f4551130ef9b8b3f521ba71ceb1acd",
+        "tree": "e8d6ce7b7aad72c6704903b048449a567c3327d0",
+        "dirty": false
+      }
+    }
+  },
+  "receipts": {
+    "before-r1/result.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/before-r1/result.json",
+      "sha256": "2c70e45fdfd2305ba97668118597dab40b20e02d9a894e53594b9aaa93465f5f"
+    },
+    "lifecycle-final-r2/result.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/lifecycle-final-r2/result.json",
+      "sha256": "6058f793f153494170d099f74dae9ecd9eca7d49a6c482a761a96200f461cbc2"
+    },
+    "exact-pm-source-counterexample.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/exact-pm-source-counterexample.json",
+      "sha256": "101b0d353779441a14050eea51462240d22945a60eb098ff6f2543ffcc059561"
+    },
+    "focused-unchanged-boundaries-r1/result.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/focused-unchanged-boundaries-r1/result.json",
+      "sha256": "3dccabac27be028592bad2f946e46564d620aa6ce83066fef8a5391eb9d7d222"
+    },
+    "checkpatch-r1.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/checkpatch-r1.json",
+      "sha256": "9fe7bb7df7641114ad7208ca1f3a2d8260e77f7736645a8a9f1b258bdab7089c"
+    },
+    "source-boundary-check.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/source-boundary-check.json",
+      "sha256": "1b7b90ebe9e94f193f3e4e8678fb50be1a61d62605942d602ad5416cbbe922c2"
+    },
+    "module-build/twin-verification.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/twin-verification.json",
+      "sha256": "10281deaa17d56f9e4f17c012bdc6e32246c3ef2ba499a210c4dc2c260b675d0"
+    },
+    "module-build/abi-check.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/abi-check.json",
+      "sha256": "8a7b13ce9f5f26684e01e4a8f5c6b33cd3eef2508b251d75e1c0c5893012d6b0"
+    },
+    "module-build/result.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/result.json",
+      "sha256": "06951693264675674dc9728502f8c5c523eae2f88e6c3e42df3bb907250e385a"
+    },
+    "module-build/preflight.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/preflight.json",
+      "sha256": "49c510766f230b2fabba85ac8dc90355e7d78e2ae0eea5c6a421be33493ccc55"
+    },
+    "module-build/preflight-r2.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/preflight-r2.json",
+      "sha256": "ae88163211dafd5899b595f09a88edf5c0cca7c2f9a87d795be4b364046def39"
+    },
+    "active-r1-execution.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/active-r1-execution.json",
+      "sha256": "59ee3b0cb2737c41d4f1bba87e7ac6653b8ab5df40be1f0524c9ae4b93ceeb7f"
+    },
+    "active-r1/summary.json": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/active-r1/summary.json",
+      "sha256": "fee8965f998f1ec9d6128ebadbb203dd608ef2f2e1fac2d9e314b7e419d1a573"
+    },
+    "active-r1/summary.xml": {
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/active-r1/summary.xml",
+      "sha256": "4ab808043da7912b2f73381641c4008ad1a8cf93add3e922ddbea7530e146c6d"
+    },
+    "retained-Q6-qualification": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/result.json",
+      "sha256": "b4e9b22be52dda512416ba4313cb8ee78e458c99685bea67ee4ab76e2fc7a999"
+    }
+  },
+  "physical_status": "NOT RUN",
+  "candidate": "NOT CREATED",
+  "phone_operations": 0,
+  "protected_storage_mutations": 0,
+  "limitations": [
+    "The normal system-sleep callbacks are implemented but physical touch, rail retention, sleep/resume and idle drain remain unqualified.",
+    "Touch is not a wake source. Hibernation is explicitly refused; runtime PM and wake gestures are not implemented.",
+    "Failed suspend restores only fully released known votes before returning the original error. Ambiguous ownership or failed restoration/resume leaves input quiesced; no implicit PM retry.",
+    "Quarantine does not survive devres teardown or rebind. Independent physical recovery is required and unqualified.",
+    "L8C upstream supply, runtime GENI protocol/FIFO/DMA ownership, normal hardware ID and actual touch events remain unknown.",
+    "No Image/DT/schema rebuild, guest module load, remote CI, signing, candidate creation, claim or phone operation was performed. Accepted, signed fallback and historical physical outcomes are unchanged.",
+    "Q6 historical schema FAIL remains immutable. Current board/DT software evidence stays in the unchanged current_board_qualification pointer.",
+    "Initial build preflight rejected an unrelated panel input; corrected input selection preserves the FAIL receipt. Tool PATH resolution is distinguished from execution tracing, which is NOT RUN."
+  ],
+  "prior_qualified_production_series_sha256": "b027af87b37d0aa6d758539efefd082557fcfdd6bfda89cef220d476346eefde",
+  "retained_Q6_qualification_series_sha256": "1544f250a9e0305071e4eab6f5082f0ed3f369dbdc257d532b7e195dcb98ff08"
+}
