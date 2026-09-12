@@ -30,6 +30,18 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+Mobile snapshot, 2026-09-12: use the supplier's actual trust model. Arch Linux
+ARM signs packages, not repository databases; retain TLS snapshot identities
+and require signed package metadata rather than waiting for unavailable database
+signatures. libalpm print-only preparation independently checked the exact
+selected set. Include the ARM keyring explicitly. Read both desc and depends
+records even for a single added package: the initial keyring-only extraction
+omitted pacman and was correctly rejected before publication. Preserve unselected
+malformed records and distinguish direct signer allowlists from master-key
+owner-trust files. Reusing 15 identical cached archives avoided downloads; 315
+complete signature/metadata checks took about 28 seconds. Keep large archives
+outside Git and preserve the old graph as evidence rather than editing its pins.
+
 Mobile archive audit, 2026-09-12: cache filenames and a resolved graph do not
 prove package identity or closure. Fourteen exact pins authenticated; a newer
 Mesa archive remained outside the graph. Compare signed `.PKGINFO` as well as
