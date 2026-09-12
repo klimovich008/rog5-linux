@@ -40,9 +40,22 @@ class HealthHandler(http.server.BaseHTTPRequestHandler):
 
     def finish(self) -> None:
         try:
-            super().finish()
+            try:
+                super().finish()
+            except ConnectionError:
+                # A peer may disappear while the final stream is flushed.
+                pass
         finally:
             self._deadline.cancel()
+
+    def handle(self) -> None:
+        try:
+            super().handle()
+        except ConnectionError:
+            # Reset/aborted connections and broken pipes are normal client
+            # departures, including during request headers or response writes.
+            # Other errors still reach the server's normal diagnostic handler.
+            self.close_connection = True
 
     def do_GET(self) -> None:  # noqa: N802 - HTTP method name
         if self.path != "/healthz":
