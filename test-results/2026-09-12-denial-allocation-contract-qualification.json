@@ -1,0 +1,790 @@
+{
+  "schema": 1,
+  "scope": "Pro framebuffer review response; offline host and ARM64 VirGL only",
+  "starting_commit": "472fcfebd1a97409c3df953a3f9b3333ca68894d",
+  "starting_tree": "70c7c00ed38976c5b8274d574e45f55454b0d776",
+  "source_commit": "1282476b19c61a3efdcc1c00f11b705223c81ad5",
+  "source_tree": "63efcfb25ed8f7c2807e76889fd6c704b4ae837a",
+  "review_commit": "410b6935526a977ca727359f23ee43fc4ebe45b2",
+  "upstream_denial": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "smithay": "812bd33259ff58810dadef6086d8385eeac1ca55",
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "protected_storage_mutations": false,
+  "records": {
+    "before-guard/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/result.json",
+        "sha256": "52247a85d15930dc0858b62f7e119c4cf632e5f7a03da08a71a16d03fdf47206",
+        "size": 3213
+      },
+      "result": {
+        "scope": "actual extracted selector functions; no GBM/EGL/phone proof",
+        "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "patch_sha256": "8c8f0627df1aacf86766a144c24116f146c89aec7b6a42addab7094c3c06586a",
+        "physical": "NOT RUN",
+        "runs": {
+          "before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.7103450320137199,
+            "expected_result_observed": true,
+            "source_sha256": "edaa8af71b2a5e6013db2a72ce18c34acb08de42e29d15873e95606994a86a3f"
+          },
+          "after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.724863996001659,
+            "expected_result_observed": true,
+            "source_sha256": "f4ad36977ad822e826bade4f2f59471afe8cc732f6345a5e3fc645302d9859dc"
+          },
+          "allocation-before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/allocation-before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/allocation-before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/allocation-before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.6330358399718534,
+            "expected_result_observed": true,
+            "source_sha256": "89ba4190ad089480a16ad7b66ce2baacae2579d30154928c39ffd75d13535c78"
+          },
+          "allocation-after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/allocation-after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/allocation-after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/before-guard/allocation-after"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.6275010080134962,
+            "expected_result_observed": false,
+            "source_sha256": "89ba4190ad089480a16ad7b66ce2baacae2579d30154928c39ffd75d13535c78"
+          }
+        },
+        "status": "FAIL"
+      }
+    },
+    "after-guard/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/result.json",
+        "sha256": "c216fc033ee66fa44c825b8e982508c2a92a519ca8e8dea35caf04ca343a510f",
+        "size": 3243
+      },
+      "result": {
+        "scope": "actual extracted selector, pool and allocation functions with boundary adapters; no GBM/EGL/phone proof",
+        "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "patch_sha256": "3d05d2d441d32f852c71887bf750aede1a7a5fc959f5a2ac50234a844783b8f1",
+        "physical": "NOT RUN",
+        "runs": {
+          "before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.6941926330036949,
+            "expected_result_observed": true,
+            "source_sha256": "edaa8af71b2a5e6013db2a72ce18c34acb08de42e29d15873e95606994a86a3f"
+          },
+          "after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.7171885510033462,
+            "expected_result_observed": true,
+            "source_sha256": "f4ad36977ad822e826bade4f2f59471afe8cc732f6345a5e3fc645302d9859dc"
+          },
+          "allocation-before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/allocation-before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/allocation-before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/allocation-before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.6356655060080811,
+            "expected_result_observed": true,
+            "source_sha256": "89ba4190ad089480a16ad7b66ce2baacae2579d30154928c39ffd75d13535c78"
+          },
+          "allocation-after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/allocation-after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/allocation-after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/after-guard/allocation-after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.6267983069992624,
+            "expected_result_observed": true,
+            "source_sha256": "fb72ce7e6a131321606cc2de739809552d4347ca7ffd2764c8e5cc1aa9e0edf4"
+          }
+        },
+        "status": "PASS"
+      }
+    },
+    "frozen-regression/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/result.json",
+        "sha256": "a2ba87c5cc4d256a14db6415c6c2f4149a24079fded9b96b2bdd3a74bb1a2e4b",
+        "size": 3315
+      },
+      "result": {
+        "scope": "actual extracted selector, pool and allocation functions with boundary adapters; no GBM/EGL/phone proof",
+        "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "patch_sha256": "3d05d2d441d32f852c71887bf750aede1a7a5fc959f5a2ac50234a844783b8f1",
+        "physical": "NOT RUN",
+        "runs": {
+          "before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.6749258160125464,
+            "expected_result_observed": true,
+            "source_sha256": "e0df69858cfe2b1c18d2a35e9c944f6abe445d00b679a874799409577cf027f0"
+          },
+          "after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.7066230899945367,
+            "expected_result_observed": true,
+            "source_sha256": "7aa0a386d06284453cf5318a8a8320b8098d3837c1376945473dda3b1306516a"
+          },
+          "allocation-before": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/allocation-before.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/allocation-before"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/allocation-before"
+            ],
+            "exit_status": 101,
+            "duration_seconds": 0.6172795929887798,
+            "expected_result_observed": true,
+            "source_sha256": "89ba4190ad089480a16ad7b66ce2baacae2579d30154928c39ffd75d13535c78"
+          },
+          "allocation-after": {
+            "command": [
+              "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+              "--edition=2024",
+              "--test",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/allocation-after.rs",
+              "-o",
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/allocation-after"
+            ],
+            "test_command": [
+              "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/frozen-regression/allocation-after"
+            ],
+            "exit_status": 0,
+            "duration_seconds": 0.6119309740024619,
+            "expected_result_observed": true,
+            "source_sha256": "fb72ce7e6a131321606cc2de739809552d4347ca7ffd2764c8e5cc1aa9e0edf4"
+          }
+        },
+        "status": "PASS"
+      }
+    },
+    "source-binding.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/source-binding.json",
+        "sha256": "59583d91dcc4107c0acb9a5e91f7e4f351a0f20e8a82ddef71ef4958bdfdac68",
+        "size": 895
+      },
+      "result": {
+        "source_commit": "1282476b19c61a3efdcc1c00f11b705223c81ad5",
+        "source_tree": "63efcfb25ed8f7c2807e76889fd6c704b4ae837a",
+        "upstream_denial": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+        "smithay": "812bd33259ff58810dadef6086d8385eeac1ca55",
+        "files": {
+          "compositor/src/bin/deniald/kms_state.rs": "2db8a55738e6772ae082940a49982694b295ad9b51b3679ad3dca90c0c6e1956",
+          "compositor/src/bin/deniald/startup.rs": "f725230bd72c15011ee826d49ee59f0c39c02102a8655b240b65e15e92363208",
+          "compositor/Cargo.lock": "f82e8be777ba3f9d21308a3ac8f8cead7586c11aad06e8136d426b8403d2a481",
+          "compositor/Cargo.toml": "66fbb023d035d500448b1df4c7bd64cf0d3661a55d9bda0d3dc581066cc9c1db"
+        },
+        "diagnostic_patch": "bcb15834468d99d186eded0a353872603f54d357556d58408f0e5310fbde29c6",
+        "behavior_patch": "3d05d2d441d32f852c71887bf750aede1a7a5fc959f5a2ac50234a844783b8f1",
+        "phone_operations": false
+      }
+    },
+    "build-guard-result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/build-guard-result.json",
+        "sha256": "66e80a242703f8f68c36b12af6d363376c0f863e3b9878d9363c5cd8fbd20742",
+        "size": 1760
+      },
+      "result": {
+        "command": [
+          "podman",
+          "run",
+          "--name",
+          "rog5-modifier-guard-build-r1",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=3g",
+          "--memory-swap=3g",
+          "--cpus=2",
+          "--pids-limit=512",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/build-guard.cid",
+          "--network=none",
+          "-v",
+          "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/source:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2:/build:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/tmp:/tmp:rw",
+          "-e",
+          "CARGO_HOME=/build/cargo-home",
+          "-e",
+          "CARGO_TARGET_DIR=/build/target",
+          "-e",
+          "TMPDIR=/build/tmp",
+          "-e",
+          "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=/usr/bin/aarch64-linux-gnu-gcc",
+          "-e",
+          "PKG_CONFIG_ALLOW_CROSS=1",
+          "-e",
+          "PKG_CONFIG_SYSROOT_DIR=/",
+          "-e",
+          "PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig",
+          "-e",
+          "PKG_CONFIG_PATH=",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "/opt/denial-rust/bin/cargo",
+          "build",
+          "--manifest-path",
+          "/source/compositor/Cargo.toml",
+          "--locked",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "--offline",
+          "--release",
+          "--jobs",
+          "1",
+          "--features",
+          "flutter",
+          "--bin",
+          "deniald"
+        ],
+        "started": "2026-09-12T19:04:28.795498+00:00",
+        "free_before": 3450535936,
+        "status": "PASS",
+        "exit_status": 0,
+        "duration_seconds": 229.0716087059991,
+        "minimum_free_bytes": 3409637376,
+        "binary_sha256": "2e58170d826668e7fa34f9949f51657bc3d5894b459fd3a1ae3354acf962eeca",
+        "container_removed": true
+      }
+    },
+    "guest-guard/result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/guest-guard/result.json",
+        "sha256": "8d3de972b53d66bcd0339954f534fe8d8a2b77439c19ae346723769cd643e283",
+        "size": 4570
+      },
+      "result": {
+        "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+        "started": "2026-09-12T19:08:25.423180+00:00",
+        "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+        "deniald_sha256": "2e58170d826668e7fa34f9949f51657bc3d5894b459fd3a1ae3354acf962eeca",
+        "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "runtime_inventory_verified_by_this_runner": false,
+        "flutter_bundle": "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+        "graphics_mode": "virgl",
+        "host_render_node": {
+          "path": "/dev/dri/renderD128",
+          "major": 226,
+          "minor": 128,
+          "scope": "host rendering only; no phone device"
+        },
+        "harness_sha256": "373454da46718ab5a3ed95617db5907f50969256139a41bddb95864089c89a54",
+        "init_source_sha256": "2628fa1cc582579e0e6a09489cc59ef5a0bc1a1f1ae3e0e275b523a7d5dcfe40",
+        "compile_command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/guest-guard/initramfs/init"
+        ],
+        "status": "FAIL",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-virtual-drm-d202e45c59fb",
+          "--network",
+          "none",
+          "--read-only",
+          "--memory",
+          "1536m",
+          "--memory-swap",
+          "1536m",
+          "--cpus",
+          "2",
+          "--pids-limit",
+          "64",
+          "--security-opt",
+          "no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/guest-guard/initramfs.cpio.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/guest-guard/payload:/payload:ro",
+          "--device",
+          "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+          "-e",
+          "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "egl-headless,rendernode=/dev/dri/renderD128",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+          "-device",
+          "virtio-gpu-gl-device,xres=640,yres=480",
+          "-device",
+          "virtio-keyboard-device",
+          "-device",
+          "virtio-tablet-device",
+          "-device",
+          "virtio-rng-device",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload"
+        ],
+        "qemu_exit_status": 0,
+        "drm_discovery": "PASS",
+        "deniald_kms": "NOT RUN",
+        "deniald_cli": "NOT RUN",
+        "shell_exit": "PASS",
+        "shell_rendering": {
+          "status": "FAIL",
+          "scope": "Denial terminal counters; not visual or phone proof",
+          "raster_frames": 50,
+          "output_page_flips": 50,
+          "render_errors": [
+            "Could not create the embedder backing store",
+            "could not bind Flutter context for output-target cleanup"
+          ],
+          "reason": "zero frames/page flips or observed rendering errors"
+        },
+        "container_removed": true,
+        "duration_seconds": 48.97126779099926,
+        "hashes": {
+          "initramfs/init": "e0eb44a479e83329e9c46e796d99875eca5211f2e6402af52202114d763c14bd",
+          "initramfs/stage/guest.sh": "ba7cb1dfed418261776d5ab84d4341e0e49784ada21017a09e409ca8bc8676f7",
+          "initramfs.cpio.gz": "5cec141ad6a5e50b5aab210c584de707df6f5fd2f18f47d5a8c8fdf470c61671",
+          "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+          "serial.log": "527a494374e828000c5a4ee6800d6096969a3ca1e3156838d650b811cfe569e3"
+        }
+      }
+    },
+    "audit-summary.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/audit-summary.json",
+        "sha256": "4c3b1265d0a7fd83e30687871a7b8c22696489d1990cffe5c7d8ba403b6873d6",
+        "size": 4864
+      },
+      "result": {
+        "scope": "VM only; audit buckets do not identify one root cause",
+        "render_audit_records": 14,
+        "target_blocked_ready": 0,
+        "target_blocked_exhausted": 5,
+        "backing_store_errors": 5,
+        "excerpts": [
+          "1970-01-01T00:00:09.080577Z  INFO deniald::startup: offline initial framebuffer diagnostic format=DrmFormat { code: DrmFourcc(XR24), modifier: Invalid } dmabuf=Dmabuf(DmabufInternal { planes: [Plane { fd: OwnedFd { fd: 30 }, plane_idx: 0, offset: 0, stride: 2560 }], size: Size<smithay::utils::geometry::Buffer> { w: 640, h: 480 }, format: DrmFourcc(XR24), modifier: Invalid, flags: DmabufFlags(0x0), node: Mutex { data: Some(DrmNode { dev: 57856, ty: Primary }), poisoned: false, .. } }) renderable=true render_formats=FormatSet { formats: {DrmFormat { code: DrmFourcc(AB4H), modifier: Invalid }, DrmFormat { code: DrmFourcc(XB4H), modifier: Invalid }, DrmFormat { code: DrmFourcc(AR30), modifier: Invalid }, DrmFormat { code: DrmFourcc(XR30), modifier: Invalid }, DrmFormat { code: DrmFourcc(AB30), modifier: Invalid }, DrmFormat { code: DrmFourcc(XB30), modifier: Invalid }, DrmFormat { code: DrmFourcc(AR24), modifier: Invalid }, DrmFormat { code: DrmFourcc(BA24), modifier: Invalid }, DrmFormat { code: DrmFourcc(AB24), modifier: Invalid }, DrmFormat { code: DrmFourcc(RA24), modifier: Invalid }, DrmFormat { code: DrmFourcc(XR24), modifier: Invalid }, DrmFormat { code: DrmFourcc(BX24), modifier: Invalid }, DrmFormat { code: DrmFourcc(XB24), modifier: Invalid }, DrmFormat { code: DrmFourcc(AR15), modifier: Invalid }, DrmFormat { code: DrmFourcc(AR12), modifier: Invalid }, DrmFormat { code: DrmFourcc(RG16), modifier: Invalid }, DrmFormat { code: DrmFourcc(R8  ), modifier: Invalid }, DrmFormat { code: DrmFourcc(R16 ), modifier: Invalid }, DrmFormat { code: DrmFourcc(GR88), modifier: Invalid }, DrmFormat { code: DrmFourcc(GR32), modifier: Invalid }, DrmFormat { code: DrmFourcc(YUV9), modifier: Invalid }, DrmFormat { code: DrmFourcc(YU11), modifier: Invalid }, DrmFormat { code: DrmFourcc(YU12), modifier: Invalid }, DrmFormat { code: DrmFourcc(YU16), modifier: Invalid }, DrmFormat { code: DrmFourcc(YU24), modifier: Invalid }, DrmFormat { code: DrmFourcc(YVU9), modifier: Invalid }, DrmFormat { code: DrmFourcc(YV11), modifier: Invalid }, DrmFormat { code: DrmFourcc(YV12), modifier: Invalid }, DrmFormat { code: DrmFourcc(YV16), modifier: Invalid }, DrmFormat { code: DrmFourcc(YV24), modifier: Invalid }, DrmFormat { code: DrmFourcc(NV12), modifier: Invalid }, DrmFormat { code: DrmFourcc(NV21), modifier: Invalid }, DrmFormat { code: DrmFourcc(P010), modifier: Invalid }, DrmFormat { code: DrmFourcc(P012), modifier: Invalid }, DrmFormat { code: DrmFourcc(P016), modifier: Invalid }, DrmFormat { code: DrmFourcc(NV16), modifier: Invalid }, DrmFormat { code: DrmFourcc(NV61), modifier: Invalid }, DrmFormat { code: DrmFourcc(NV24), modifier: Invalid }, DrmFormat { code: DrmFourcc(NV42), modifier: Invalid }, DrmFormat { code: DrmFourcc(AYUV), modifier: Invalid }, DrmFormat { code: DrmFourcc(XYUV), modifier: Invalid }, DrmFormat { code: DrmFourcc(Y410), modifier: Invalid }, DrmFormat { code: DrmFourcc(Y412), modifier: Invalid }, DrmFormat { code: DrmFourcc(Y416), modifier: Invalid }, DrmFormat { code: DrmFourcc(YUYV), modifier: Invalid }, DrmFormat { code: DrmFourcc(YVYU), modifier: Invalid }, DrmFormat { code: DrmFourcc(UYVY), modifier: Invalid }, DrmFormat { code: DrmFourcc(VYUY), modifier: Invalid }, DrmFormat { code: DrmFourcc(Y210), modifier: Invalid }, DrmFormat { code: DrmFourcc(Y212), modifier: Invalid }, DrmFormat { code: DrmFourcc(Y216), modifier: Invalid }} }",
+          "[ERROR:.flutter/shell/platform/embedder/embedder.cc(1501)] Could not create the embedder backing store.",
+          "[ERROR:.flutter/shell/platform/embedder/embedder.cc(1501)] Could not create the embedder backing store.",
+          "[ERROR:.flutter/shell/platform/embedder/embedder.cc(1501)] Could not create the embedder backing store.",
+          "[ERROR:.flutter/shell/platform/embedder/embedder.cc(1501)] Could not create the embedder backing store.",
+          "[ERROR:.flutter/shell/platform/embedder/embedder.cc(1501)] Could not create the embedder backing store.",
+          "1970-01-01T00:00:47.423511Z ERROR smithay::backend::egl::ffi: [EGL] 0x3002 (BAD_ACCESS) eglMakeCurrent: eglMakeCurrent",
+          "1970-01-01T00:00:47.426016Z ERROR deniald::flutter_runtime::renderer::texture::handler: could not bind Flutter context for output-target cleanup error=`eglMakeCurrent` failed: EGL cannot access a requested resource (for example a context is bound in another thread).",
+          "1970-01-01T00:00:47.441773Z  INFO deniald::flutter_event_loop: independently clocked Flutter KMS session complete raster_frames=50 output_page_flips=50 delivered_vsyncs=50 elapsed_ms=33091.99430400001 raster_frames_per_second=1.5109394598788577 finite=false"
+        ],
+        "physical": "NOT RUN"
+      }
+    },
+    "active-result.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/active-result.json",
+        "sha256": "d27c26d20319a55fe1748b70c31d93428b8f97358954f6b822d79be6def223f9",
+        "size": 1003
+      },
+      "result": {
+        "command": [
+          "systemd-run",
+          "--user",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "--unit=rog5-modifier-guard-active-r1",
+          "-p",
+          "MemoryMax=1G",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=256",
+          "-p",
+          "RuntimeMaxSec=600",
+          "-p",
+          "CPUQuota=200%",
+          "-p",
+          "Delegate=yes",
+          "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+          "env",
+          "ROG5_TEST_WORKERS=2",
+          "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/active-report",
+          "TMPDIR=/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/tmp",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+          "active"
+        ],
+        "source_commit": "1282476b19c61a3efdcc1c00f11b705223c81ad5",
+        "source_tree": "63efcfb25ed8f7c2807e76889fd6c704b4ae837a",
+        "started": "2026-09-12T19:09:27.656269+00:00",
+        "exit_status": 1,
+        "duration_seconds": 9.784880502003944
+      }
+    },
+    "active-result-r2.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/active-result-r2.json",
+        "sha256": "d963266f31111853708d406ea4fbeda6cf8922443251f95de8148c83e50d77f8",
+        "size": 1618
+      },
+      "result": {
+        "command": [
+          "systemd-run",
+          "--user",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "--unit=rog5-modifier-guard-active-r2",
+          "-p",
+          "MemoryMax=1G",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=256",
+          "-p",
+          "RuntimeMaxSec=600",
+          "-p",
+          "CPUQuota=200%",
+          "-p",
+          "Delegate=yes",
+          "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+          "env",
+          "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+          "ROG5_TEST_WORKERS=2",
+          "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/active-report-r2",
+          "TMPDIR=/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/tmp",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+          "active"
+        ],
+        "source_commit": "1282476b19c61a3efdcc1c00f11b705223c81ad5",
+        "source_tree": "63efcfb25ed8f7c2807e76889fd6c704b4ae837a",
+        "started": "2026-09-12T19:10:16.553154+00:00",
+        "exit_status": 0,
+        "duration_seconds": 126.49900579999667
+      }
+    },
+    "cache-handoff.json": {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/cache-handoff.json",
+        "sha256": "64bd588ee4c81c259d8733e3cec41290ce8d4dc4a5d522b237c7e80bf2fe8feb",
+        "size": 877
+      },
+      "result": {
+        "action": "archive and remove modified deniald freshness marker; preserve dependency cache and standalone outputs",
+        "marker_before": {
+          "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/.fingerprint/denial-679a960ef0e054f3/bin-deniald",
+          "sha256": "b312b0d14bf3c92aa5be36a6235938a2cd0b978aebf84ed9e280e5995920d678",
+          "size": 16
+        },
+        "archive": {
+          "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/retired-bin-deniald-fingerprint",
+          "sha256": "b312b0d14bf3c92aa5be36a6235938a2cd0b978aebf84ed9e280e5995920d678",
+          "size": 16
+        },
+        "original_deniald": {
+          "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/native-artifacts/deniald",
+          "sha256": "8698b0716c0ab16ab5c33d618ae52cef0cd8c0966ad356cf2ca49d78a0ba8591",
+          "size": 15979872
+        }
+      }
+    }
+  },
+  "source_inventory": {
+    "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/source-tree.json",
+    "sha256": "60540101ea49f5d31ac0628fbcf0b804b58fb83cc662ed6958b7dbe33c235e02",
+    "size": 126320
+  },
+  "binary": {
+    "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/deniald-guard",
+    "sha256": "2e58170d826668e7fa34f9949f51657bc3d5894b459fd3a1ae3354acf962eeca",
+    "size": 15985400
+  },
+  "behavior_patch": {
+    "path": "patches/denial-85b2303e/0001-preserve-implicit-render-modifier-contract.patch",
+    "sha256": "3d05d2d441d32f852c71887bf750aede1a7a5fc959f5a2ac50234a844783b8f1",
+    "size": 3807
+  },
+  "guest_script": {
+    "path": "tools/qemu-virtio-drm/guest.sh",
+    "sha256": "ba7cb1dfed418261776d5ab84d4341e0e49784ada21017a09e409ca8bc8676f7",
+    "size": 2654
+  },
+  "vm_invocation": [
+    "python3",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+    "--runtime",
+    "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "--kernel",
+    "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+    "--deniald",
+    "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/deniald-guard",
+    "--flutter-bundle",
+    "/home/deck/.local/state/rog5-flutter-assets-evidence-20260912-r1/shell-runtime-fixture",
+    "--image",
+    "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "--render-node",
+    "/dev/dri/renderD128",
+    "--output",
+    "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/guest-guard",
+    "--deadline",
+    "120"
+  ],
+  "serial_log": {
+    "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/guest-guard/serial.log",
+    "sha256": "527a494374e828000c5a4ee6800d6096969a3ca1e3156838d650b811cfe569e3",
+    "size": 223903
+  },
+  "initramfs": {
+    "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/guest-guard/initramfs.cpio.gz",
+    "sha256": "5cec141ad6a5e50b5aab210c584de707df6f5fd2f18f47d5a8c8fdf470c61671",
+    "size": 3182
+  },
+  "cleanup": {
+    "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/duplicate-staging-cleanup.json",
+    "sha256": "0aab89cb9c1f0f7a8e0ead2dd1c576e8aa38ca6268bc7c70452c5931ab9f30f0",
+    "size": 20368
+  },
+  "control_evidence": {
+    "path": "test-results/2026-09-12-denial-modifiers-qualification.json",
+    "sha256": "4c8008f7b8a7bda071feb56ed860b09640a5d071bc013acb0b2d66f44091a2ea",
+    "size": 37155
+  },
+  "integrated": {
+    "counts": {
+      "PASS": 87,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/active-report-r2/summary.json",
+      "sha256": "9a5088e67e0204c9dd9c9bc882c47acc47767d73e578f6504c91f4ba3277b9b7",
+      "size": 108183
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/active-report-r2/summary.xml",
+      "sha256": "ec43b66ce952dec5eac32a9951b73dfb83241d965c05e2bd2fc2f0e00318f7cf",
+      "size": 55402
+    },
+    "log": {
+      "path": "/home/deck/.local/state/rog5-modifier-contract-review-20260912-r1/active-r2.log",
+      "sha256": "583f071d702edc328335dc5fa4a7e27c666783a932447562d8062eed5f942c11",
+      "size": 81370
+    }
+  },
+  "next": "Split the existing PoolExhausted audit into missing pool/view/size, absent authorization and no reusable slot in a bounded VM probe. Separately trace exact Flutter shutdown and EGL context ownership. No phone operation.",
+  "final_metadata": {
+    "status": "PASS",
+    "checks": [
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-review-metadata-checkers.py",
+          "Checkers"
+        ],
+        "passed": 5,
+        "duration_seconds": 0.842
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/host/test-mobile-status.py"
+        ],
+        "passed": 8,
+        "duration_seconds": 0.02
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/host/check-artifact-inventory.py"
+        ],
+        "status": "PASS",
+        "duration_seconds": null
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/host/check-mobile-status.py",
+          "--write"
+        ],
+        "status": "PASS",
+        "duration_seconds": null
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "status": "PASS",
+        "duration_seconds": null
+      }
+    ],
+    "duration_note": "Unit runner durations captured from executed unittest output; standalone checker durations were not separately recorded."
+  },
+  "preservation": {
+    "status": "PASS",
+    "base": "472fcfebd1a97409c3df953a3f9b3333ca68894d",
+    "checks": {
+      "configs/release-acceptance.json": "byte-identical",
+      "configs/mobile/acceptance.json": "byte-identical",
+      "docs/current-state.md": "historical body byte-identical",
+      "manifests/artifact-sets.json": "all 484 previous sets preserved",
+      "manifests/current-artifact.json": "all non-VM fields preserved",
+      "review_branch": "410b6935526a977ca727359f23ee43fc4ebe45b2"
+    }
+  }
+}
