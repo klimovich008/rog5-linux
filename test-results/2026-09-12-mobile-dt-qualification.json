@@ -1,0 +1,172 @@
+{
+  "format": "rog5-incremental-board-qualification-v1",
+  "row": "board-build",
+  "scope": "software",
+  "status": "PASS",
+  "source_commit": "ec9c4e630fd4f60eeb3bc86b0005b7a0358701e8",
+  "source_tree": "ec738ae37957b4a6f316af40990fb3c09038dd2f",
+  "execution_repository": {
+    "commit": "1e963ee0789314ee1d249adee42123d5b8664146",
+    "tree": "80c9a097e578f4f5b36eaa5e07ee5674c16398e3",
+    "dirty": true,
+    "note": "Component runs preceded commits; exact executed file bytes are bound separately to the committed source."
+  },
+  "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "production_series_sha256": "b027af87b37d0aa6d758539efefd082557fcfdd6bfda89cef220d476346eefde",
+  "ordered_patches": [
+    {
+      "name": "0001-ufs-add-read-only-discovery-mode.patch",
+      "sha256": "79391d934d328686879ea85956e0ded28fc351e98d05707e84dae0a289de221e"
+    },
+    {
+      "name": "0002-ufs-tighten-read-only-discovery-command-gates.patch",
+      "sha256": "2d6a1da7b1c02bcc587b6216d7b4b7c9ffdb4290e56ab267a65ffcd375817b66"
+    },
+    {
+      "name": "0003-ufs-pin-discovery-link-active-across-pm-and-shutdown.patch",
+      "sha256": "5dea8cc5814c9c02bdcf7625fc002ee2917c3261b89dabee8a80d463eb155929"
+    },
+    {
+      "name": "0012-drm-msm-a6xx-propagate-gmu-pwrlevels-error.patch",
+      "sha256": "0d223284805217246efaefa2fc8ad431d94d05e4fa9269f2ef86e3fb29378637"
+    },
+    {
+      "name": "0018-power-supply-qcom-battmgr-add-rog5-cell-voltage.patch",
+      "sha256": "12b84505ce30374482683e477e438c0c68ce41cdf7241e23c202be6625f8cbf0"
+    },
+    {
+      "name": "0026-clk-resume-runtime-pm-providers-around-orphan-walks.patch",
+      "sha256": "21f50debc2e84faa91a6ead1b262a91c88a14ae429fc0b3fdb988ccd895d8bb0"
+    },
+    {
+      "name": "0033-ufs-permit-bounded-data-writes-under-discovery-containment.patch",
+      "sha256": "1d449202a70f1bc3ec02c5c539686d2c885d120db89de305803a866ca87d6262"
+    },
+    {
+      "name": "0034-ufs-enable-high-speed-for-bounded-data-writes.patch",
+      "sha256": "f6067613d9c5c6f75c6002df5c99b8da0b95e0676cbe70d7e92ccfedf85d1c85"
+    },
+    {
+      "name": "0035-soc-qcom-rpmh-timeout-safe-readback.patch",
+      "sha256": "2ea5641fe540db4b27057d2f86f47573a03984e3a65bdfb74fe93301a415c8f8"
+    },
+    {
+      "name": "0036-regulator-qcom-rpmh-asus-s12-oem-point.patch",
+      "sha256": "c941010d0efffd01ec07f1a2147d11fb2c1c7d36ac939c0d9a04f0455afa8f2d"
+    },
+    {
+      "name": "0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+      "sha256": "db72de91f78617526f2965cfdf30441ebe034bf5824dfdb92027173046475e49"
+    },
+    {
+      "name": "0038-power-supply-qcom-battmgr-fix-charge-units.patch",
+      "sha256": "28ebfe38e7b6c48e16c65540cc71e0d3ace9b1f6d4534336c8f90b375d1f3658"
+    },
+    {
+      "name": "0039-usb-gadget-ncm-restart-busy-tx-timer.patch",
+      "sha256": "a13cc153c3249c0ba91c0713ed5a454d6e747696fd88b54c2cec5a4324e150e9"
+    },
+    {
+      "name": "0040-drm-msm-adreno-defer-until-iommu-attachment.patch",
+      "sha256": "e5c48c11b4f3cd794126ff2d5754d44ba42a4767d523a95d198d7e3fd52d5127"
+    },
+    {
+      "name": "0041-dt-bindings-arm-qcom-document-ASUS-ROG-Phone-5.patch",
+      "sha256": "9c8b4d745126d8b0cb6db8e24196e411d710f334ffedffdbda0111ee2bb4dca7"
+    },
+    {
+      "name": "0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch",
+      "sha256": "4af9c5b707e21f28f3459e545fd7ace25041d74e5b212d2201833242cfc6f6fe"
+    }
+  ],
+  "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+  "release": "7.1.4-rog5-production",
+  "qualification_mode": "DT-only compilation and full composition; exact unchanged Image/modules inherited",
+  "checks": {
+    "symbols_only_delta": "PASS",
+    "ordered_composition": "PASS",
+    "repeatability": "PASS",
+    "all_bindings": "PASS",
+    "inert_touch_providers": "PASS",
+    "existing_image_and_1031_module_bytes": "PASS",
+    "full_new_builder_invocation": "NOT RUN",
+    "physical": "NOT RUN"
+  },
+  "outputs": {
+    "base-no-symbols.dtb": "52978b7def2241ed8f8d8a0223eb5becf47976b0355c09120ecfc8e2a5b5ead7",
+    "base-symbols.dtb": "bf7aebb449d6a7eee0c2778f13d69166ba3203bebffd1120e9c1f89357301412",
+    "composed-2.dtb": "deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57",
+    "overlay-0.dtbo": "f57ab227d64687f9802bae6f7e566f01da83af024b0e7c2df9e1c985fd275095",
+    "overlay-1.dtbo": "fcdfc2621d7bbaa8d6ae46bed39d26bf2fbe58fb544defd8d8265c6a0fd85f58",
+    "overlay-2.dtbo": "80eaa773e9dfcacd87ab8b0d2b2e2b459ac313d7b9e57e9e18a09e6b4c971ea9"
+  },
+  "tools": {
+    "cpp": {
+      "path": "/usr/bin/cpp",
+      "sha256": "1f7e553968125b98fb8f78bc7c3a31c08c516e89b1595bf298366456d549e745",
+      "version": [
+        "cpp (GCC) 15.1.1 20250425",
+        "Copyright (C) 2025 Free Software Foundation, Inc."
+      ]
+    },
+    "dtc": {
+      "path": "/usr/bin/dtc",
+      "sha256": "03356c1223c6643a552e509c343f42d104d47f796d8a72315c9d32c0ae19def8",
+      "version": [
+        "Version: DTC v1.7.2-1-g9af601c"
+      ]
+    },
+    "fdtoverlay": {
+      "path": "/usr/bin/fdtoverlay",
+      "sha256": "fc0420723b1c945be73c86488eb0d919383e36b70cfb0b93de5eaade876394d2",
+      "version": [
+        "Version: DTC v1.7.2-1-g9af601c"
+      ]
+    },
+    "dt-validate": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/schema-tools-r2/bin/dt-validate",
+      "sha256": "fe55a2a68a9e6700a13beb44583d538fbb01008d33370696ceef0342ed120c55",
+      "version": [
+        "2026.6"
+      ]
+    }
+  },
+  "proofs": {
+    "composition": {
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/run-r3/result.json",
+      "sha256": "bfc96a5b734bfb961e0215333a9b8c5bae13a949975fde804e0b60f4b4c7301e"
+    },
+    "full_schema": {
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/schema-r3/result.json",
+      "sha256": "6f000b85574c419ab03d9d4e9addf6a9631ddcd166cf36fc43a401c2f4f045a0"
+    },
+    "source_binding": {
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/final-source-binding.json",
+      "sha256": "1e3a5cd86d38a2054bed601601750b4586826924120c3f595d7f0f72777b0098"
+    },
+    "inherited_build": {
+      "path": "test-results/2026-09-12-touch-board-qualification.json",
+      "sha256": "272955188b61262deac6bbbf2c6877224f6668f7f9d0c450fc9c75f4c73fc215"
+    },
+    "reuse": {
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/integration/reuse-r1/result.json",
+      "sha256": "ea7c8edeb5928221d1fbc7b80bf7579254067eb71422f33b24d977f65671434f"
+    },
+    "providers": {
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/integration/reuse-r1/providers.json",
+      "sha256": "44704d867e42a96b7044e94a8b4c1386bcd07fb63a559e38a05fca9632242199"
+    }
+  },
+  "durations_seconds": {
+    "composition": 12.119,
+    "schema": 70.795,
+    "retained_artifact_verification": 0.3463197679957375
+  },
+  "limitations": [
+    "Physical validation NOT RUN; no candidate/signing/admission/installation.",
+    "Touch/I2C4/SPI4/GPI0/L3C/L8C remain disabled.",
+    "L8C parent, runtime protocol/FIFO/DMA/IRQ and terminal regulator cleanup remain unqualified.",
+    "Image/modpost/depmod evidence is inherited for exact unchanged bytes, not freshly executed this continuation.",
+    "Historical Q6 and composition r1/r2 failures are preserved."
+  ]
+}
