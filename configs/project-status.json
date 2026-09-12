@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Virtual DRM guest qualified; native Denial runtime lacks Xwayland",
+  "phase": "Xwayland runtime authenticated; full virtual Denial framebuffer binding fails",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The exact upstream ARM64 guest kernel builds and boots authenticated Arch payloads through read-only 9P. Modern Virtio enables virtual display/input discovery; the actual Denial CLI succeeds and the guest exits cleanly in 2.72 seconds. Actual full-shell startup reached Wayland socket creation but failed at unconditional Xwayland launch: the retained 315-package runtime omits it. The new prerequisite check reports BLOCKED before starting another VM. Next authenticate an explicit Xwayland/dependency extension and reuse this guest kernel for the full Denial startup question. No rendered shell frame, compositor input or Adreno proof is claimed. Frozen active tier: 87 PASS; three declared optional subchecks skipped. No phone operation is authorized; signed/installed/fallback bytes unchanged. S06/R01 remain FAIL; physical rows NOT RUN.",
-  "evidence": "test-results/2026-09-12-virtual-drm.md"
+  "next": "The 326-package runtime authenticates and starts Xwayland; all 55,666 previous filesystem entries are unchanged. The shell test now rejects zero-frame clean exits. VirGL advertises native fences but fails the initial framebuffer bind before Flutter startup; software llvmpipe lacks native fences. Targeted TRACE is compiled out in the retained release. Next prepare a bounded diagnostic renderer build after restoring disk headroom, reusing the kernel/runtime/cache. Frozen active tier: 87 PASS in 130.7 seconds; three declared optional subchecks skipped. No rendered full-session frame, compositor input or A660 proof is claimed. No phone operation is authorized; signed/installed/fallback bytes unchanged. S06/R01 remain FAIL; physical rows NOT RUN.",
+  "evidence": "test-results/2026-09-12-xwayland-runtime.md"
 }

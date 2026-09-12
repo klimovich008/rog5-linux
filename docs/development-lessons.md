@@ -2369,3 +2369,23 @@ temporary X11 socket directories in the guest because package hooks were never
 run. Diagnostic mode requires a predecessor CRTC mode; normal shell startup has
 its own inactive-CRTC path and needs an external test deadline. Keep discovery,
 CLI, shell frames and physical rendering results separate.
+
+The authenticated Xwayland extension preserved all 55,666 old runtime entries;
+the complete 326-package materialization took 114 seconds. Reuse that tree and
+the existing guest kernel. A clean 51-second shell exit had zero raster frames
+and page flips: require actual positive counters and no rendering errors before
+passing a session. Prepare a guest session bus before the Dart process starts.
+
+QEMU device enumeration and `ldd` miss dynamically loaded GL libraries. The
+retained VirGL container needed libEGL plus libGL/libOpenGL; a paused QMP
+graphics initialization then passed in 0.48 seconds. Keep Podman stdin open
+with `-i` when sending QMP over stdin. This check belongs before another guest
+launch. Preserve the host AMD file-description warning; do not add privileges
+to suppress an unexplained warning.
+
+Before enabling extra logging, inspect compile-time tracing features. Denial's
+release_max_level_info discards the relevant Smithay TRACE calls even with a
+correct RUST_LOG filter. One 10-second diagnostic run confirmed the limitation;
+repeating environment-only runs cannot resolve the framebuffer failure. The next
+probe needs a small diagnostic source change, exact binary identity and bounded
+reuse of the existing cache, after restoring sufficient disk headroom.
