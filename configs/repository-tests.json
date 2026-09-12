@@ -7466,11 +7466,15 @@
       "mandatory": true,
       "deadline_seconds": 300,
       "prerequisites": [
-        "python3"
+        "python3",
+        "make",
+        "dtc",
+        "fdtoverlay",
+        "fdtget"
       ],
       "resource_class": "shared-state",
       "exclusivity_group": "repository",
-      "python_optimized": false,
+      "python_optimized": true,
       "exact_source": false,
       "required_inputs": [],
       "optional_subchecks": []
@@ -7639,6 +7643,110 @@
       "python_optimized": true,
       "exact_source": false,
       "required_inputs": [],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-mobile-dt-guards.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/test-mobile-dt-composition.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-mobile-touch-providers.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/verify-mobile-touch-providers.py"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-geni-mode.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "board",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/device/fixtures/geni-mode/buffer-select.inc",
+        "scripts/device/fixtures/geni-mode/buffer.inc",
+        "scripts/device/fixtures/geni-mode/cases.c",
+        "scripts/device/fixtures/geni-mode/firmware.inc",
+        "scripts/device/fixtures/geni-mode/protocol.inc",
+        "scripts/device/fixtures/geni-mode/setup.inc"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-rog5-touch-binding.py",
+      "interpreter": "python3",
+      "tiers": [
+        "board"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "dtc",
+        "dt-doc-validate",
+        "dt-mk-schema",
+        "dt-validate"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml",
+        "dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso"
+      ],
       "optional_subchecks": []
     }
   ]

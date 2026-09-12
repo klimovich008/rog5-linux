@@ -212,7 +212,7 @@ jobs:
           else
             changed=$(git diff --name-only "$BASE" HEAD)
             if grep -Eq \
-              '^(patches/linux-7\.1\.4/|configs/kernel/|dts/qcom/|scripts/host/(build-rog5-production-kernel|test-production-kernel-build|check-production-build-diagnostics|test-production-build-diagnostics)\.py$|scripts/device/(kernel-build-contract|build-display-60hz-candidate-dtb)\.|scripts/device/test-rog5-rpmh-binding\.py$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
+              '^(patches/linux-7\.1\.4/|configs/kernel/|dts/qcom/|scripts/host/(build-rog5-production-kernel|test-production-kernel-build|check-production-build-diagnostics|test-production-build-diagnostics)\.py$|scripts/device/(kernel-build-contract|build-display-60hz-candidate-dtb)\.|scripts/device/(test-rog5-(rpmh|touch)-binding|test-mobile-dt-composition|verify-mobile-touch-providers|verify-display-60hz-dtb-delta|verify-recovery-dtb-delta)\.py$|tools/rog5-fts3658u/.*\.yaml$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
               selected=yes
             fi
           fi
@@ -263,6 +263,7 @@ jobs:
           path: |
             build/board-production/*.json
             build/board-production/*.log
+            build/board-production/dt-composition/
             build/schema-tool-versions.txt
             build/board-environment/
             build/board-regressions/

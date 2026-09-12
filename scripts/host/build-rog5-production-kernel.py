@@ -20,6 +20,8 @@ PATCHES = REPO/'patches/linux-7.1.4'
 MIN_FREE = 3 * 1024**3
 DIAGNOSTIC_SOURCE = REPO/'scripts/host/check-production-build-diagnostics.py'
 WARNING_POLICY = REPO/'configs/kernel/rog5-production-warning-policy.json'
+DT_COMPOSITION = REPO/'scripts/device/test-mobile-dt-composition.py'
+TOUCH_PROVIDERS = REPO/'scripts/device/verify-mobile-touch-providers.py'
 
 
 def digest(path):
@@ -83,6 +85,34 @@ def build_environment(output, environ=None):
     return env
 
 
+def stage_dt_sources(source, names, repo=REPO):
+    dtdir = source/'arch/arm64/boot/dts/qcom'
+    targets = []
+    with (dtdir/'Makefile').open('a') as makefile:
+        for relative in names:
+            path=repo/relative; shutil.copyfile(path,dtdir/path.name)
+            suffix='.dtbo' if path.suffix=='.dtso' else '.dtb'
+            target=path.stem+suffix; targets.append('qcom/'+target)
+            makefile.write('\ndtb-$(CONFIG_ARCH_QCOM) += '+target+'\n')
+            # Linux Makefile.dtbs uses this per-target flag. The board's
+            # overlays need its exported labels; other DT targets stay scoped.
+            if path.name == 'sm8350-asus-rog-phone5.dts':
+                makefile.write('DTC_FLAGS_'+path.stem+' += -@\n')
+    return targets
+
+
+def stage_dt_bindings(source, bindings, repo=REPO):
+    for item in bindings:
+        relative=Path(item['target'])
+        if relative.is_absolute() or '..' in relative.parts or relative.parts[:3] != ('Documentation','devicetree','bindings'):
+            raise ValueError('binding target must be inside kernel bindings')
+        target=source/relative
+        target.parent.mkdir(parents=True,exist_ok=True)
+        # An external prototype binding must not replace an upstream contract.
+        with target.open('xb') as output, (repo/item['source']).open('rb') as input_file:
+            shutil.copyfileobj(input_file,output)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--linux-git', type=Path, required=True)
@@ -98,7 +128,7 @@ def main():
     started = time.monotonic()
     result = dict(format='rog5-production-kernel-build-result-v1', status='RUNNING',
                   started=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                  stages={name:dict(status='NOT RUN') for name in ('defconfig','merge-config','olddefconfig','kernel-build','modules-install','depmod','dtbs-check')}, physical_validation='NOT RUN', signed_candidate='NOT CREATED',
+                  stages={name:dict(status='NOT RUN') for name in ('defconfig','merge-config','olddefconfig','kernel-build','modules-install','depmod','dtbs-check','dt-composition','touch-providers')}, physical_validation='NOT RUN', signed_candidate='NOT CREATED',
                   installed_bytes='UNCHANGED')
     env = build_environment(output)
     def interrupted(signum, _frame): raise RuntimeError('interrupted by signal '+str(signum))
@@ -146,6 +176,9 @@ def main():
         inputs = [CONFIG, Path(__file__).resolve(), DIAGNOSTIC_SOURCE, WARNING_POLICY, PATCHES/'series.production', PATCHES/'series.diagnostic']
         inputs += [PATCHES/name for name in groups['production']+groups['diagnostic']]
         inputs += [REPO/name for name in policy['fragments']+policy['dt_sources']]
+        inputs += [REPO/item['source'] for item in policy['dt_bindings']]
+        inputs += [DT_COMPOSITION, REPO/'scripts/device/verify-recovery-dtb-delta.py',
+                   REPO/'scripts/device/verify-display-60hz-dtb-delta.py', TOUCH_PROVIDERS]
         result['inputs'] = {str(p.relative_to(REPO)): digest(p) for p in inputs}
         result['ordered_series']={role:[dict(name=name,sha256=digest(PATCHES/name)) for name in groups[role]] for role in groups}
         result['production_series_binding_sha256']=hashlib.sha256(json.dumps(result['ordered_series']['production'],sort_keys=True,separators=(',',':')).encode()).hexdigest()
@@ -155,7 +188,7 @@ def main():
         if result['linux_base'] != policy['base_commit']: raise ValueError('exact kernel base missing')
         result['linux_base_tree'] = capture(['git','-C',str(args.linux_git),'rev-parse',policy['base_commit']+'^{tree}'])
         result['tools'] = {}
-        for name in ('git','make','clang','ld.lld','llvm-ar','llvm-nm','llvm-objcopy','llvm-strip','llvm-readelf','bc','bison','flex','depmod','modinfo','dtc','fdtoverlay','python3','openssl','perl'):
+        for name in ('git','make','clang','ld.lld','llvm-ar','llvm-nm','llvm-objcopy','llvm-strip','llvm-readelf','bc','bison','flex','depmod','modinfo','cpp','dtc','fdtoverlay','python3','openssl','perl'):
             path = shutil.which(name)
             if not path: raise RuntimeError('missing build tool '+name)
             version = subprocess.run([path, '--version'], env=env, capture_output=True, text=True)
@@ -183,14 +216,8 @@ def main():
         for name in groups['production']:
             run('apply-'+name[:4], ['git','apply','--check',str(PATCHES/name)], cwd=source)
             subprocess.run(['git','apply',str(PATCHES/name)], cwd=source, env=env, check=True)
-        dtdir = source/'arch/arm64/boot/dts/qcom'
-        targets = []
-        with (dtdir/'Makefile').open('a') as makefile:
-            for relative in policy['dt_sources']:
-                path=REPO/relative; shutil.copyfile(path,dtdir/path.name)
-                suffix='.dtbo' if path.suffix=='.dtso' else '.dtb'
-                target=path.stem+suffix; targets.append('qcom/'+target)
-                makefile.write('\ndtb-$(CONFIG_ARCH_QCOM) += '+target+'\n')
+        targets = stage_dt_sources(source, policy['dt_sources'])
+        stage_dt_bindings(source, policy['dt_bindings'])
         objects = output/'objects'
         make = ['make','-C',str(source),'O='+str(objects),'ARCH=arm64','LLVM=1']
         run('defconfig', make+['defconfig'])
@@ -240,8 +267,23 @@ def main():
             missing_schema=[name for name in ('dt-validate','dt-doc-validate','dt-mk-schema') if not shutil.which(name)]
             if missing_schema:
                 result['stages']['dtbs-check']=dict(status='BLOCKED',reason='missing schema tools: '+', '.join(missing_schema))
+                result['stages']['dt-composition']=dict(status='BLOCKED',reason='missing schema tools')
+                result['stages']['touch-providers']=dict(status='BLOCKED',reason='composition unavailable without schema tools')
             else:
                 run('dtbs-check',make+['-j'+str(args.jobs),'W=1','CHECK_DTBS=y',*targets])
+                run('dt-composition',[sys.executable,str(DT_COMPOSITION),
+                    '--linux-source',str(source),'--base-dtb',str(objects/'arch/arm64/boot/dts/qcom/sm8350-asus-rog-phone5.dtb'),
+                    '--schema',str(objects/'Documentation/devicetree/bindings/processed-schema.json'),
+                    '--output',str(output/'dt-composition')])
+                composition=json.loads((output/'dt-composition/result.json').read_text())
+                if composition['status']!='PASS': raise RuntimeError('composed DT qualification failed')
+                result['dt_composition']=dict(status='PASS',physical_validation='NOT RUN',
+                    result_sha256=digest(output/'dt-composition/result.json'),outputs=composition['outputs'])
+                run('touch-providers',[sys.executable,str(TOUCH_PROVIDERS),
+                    '--dtb',str(output/'dt-composition/composed-2.dtb'),
+                    '--config',str(objects/'.config'),
+                    '--module-metadata',str(output/'module-provenance.json')])
+                result['touch_providers']=json.loads((output/'touch-providers.log').read_text())
             result['diagnostics']=[]
             for stage in ('kernel-build','modules-install','depmod','dtbs-check'):
                 log=output/(stage+'.log')

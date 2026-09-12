@@ -38,7 +38,18 @@
     "CONFIG_ARM_SMMU": "y",
     "CONFIG_ARM_SMMU_QCOM": "y",
     "CONFIG_LOCALVERSION": "\"-rog5-production\"",
-    "CONFIG_LOCALVERSION_AUTO": "n"
+    "CONFIG_LOCALVERSION_AUTO": "n",
+    "CONFIG_I2C": "y",
+    "CONFIG_I2C_QCOM_GENI": "y",
+    "CONFIG_QCOM_GENI_SE": "y",
+    "CONFIG_SM_GCC_8350": "y",
+    "CONFIG_PINCTRL_SM8350": "y",
+    "CONFIG_REGULATOR_QCOM_RPMH": "y",
+    "CONFIG_QCOM_RPMH": "y",
+    "CONFIG_QCOM_COMMAND_DB": "y",
+    "CONFIG_DMA_ENGINE": "y",
+    "CONFIG_DMA_VIRTUAL_CHANNELS": "y",
+    "CONFIG_QCOM_GPI_DMA": "m"
   },
   "forbidden": [
     "CONFIG_COMPILE_TEST",
@@ -68,7 +79,8 @@
     "edt_ft5x06",
     "leds_qcom_lpg",
     "ufshcd_core",
-    "ufs_qcom"
+    "ufs_qcom",
+    "gpi"
   ],
   "warning_policy": "W=1; all compiler and device-tree warnings retained; any warning fails qualification until specifically reviewed. No global suppression.",
   "firmware_policy": "Enumerate every module-declared firmware dependency; presence only verified when --firmware-root is supplied. No firmware, module loading or touch binding is inferred from compilation.",
@@ -76,7 +88,13 @@
   "limitations": [
     "EDT FT5X06 compilation does not establish support for ASUS FTS3658U; existing board touch overlay remains disabled.",
     "Storage DATA_WRITE relies on trusted initramfs/tool containment and permits arbitrary SCSI commands at its kernel gate.",
-    "DT overlays are compiled individually; this output is unsigned and is not a composed boot image."
+    "DT overlays compile individually and display/GPU/inert-touch composition is checked against all bindings. Outputs are unsigned qualification fixtures, not boot candidates."
   ],
-  "base_archive_sha256": "a8bd2a5f30ed94861b71b2aa5cd46241eb75aefadd36c484be5ef70e80a4a834"
+  "base_archive_sha256": "a8bd2a5f30ed94861b71b2aa5cd46241eb75aefadd36c484be5ef70e80a4a834",
+  "dt_bindings": [
+    {
+      "source": "tools/rog5-fts3658u/asus,rog5-mp2-fts3658u.yaml",
+      "target": "Documentation/devicetree/bindings/input/touchscreen/asus,rog5-mp2-fts3658u.yaml"
+    }
+  ]
 }
