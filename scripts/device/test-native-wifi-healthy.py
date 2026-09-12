@@ -126,7 +126,7 @@ class PersistentWifiHealthy(unittest.TestCase):
                     target.write_bytes(target.read_bytes() + value if value else value)
                     target.chmod(0o444)
                 self.assertEqual(self.fire_boot_timer(root), 'reboot\n')
-                if label == 'oversized':
+                if label == 'oversized' and path == descriptor:
                     self.assertFalse((root/'content-reads').exists())
 
         for path in (record, descriptor):
@@ -175,13 +175,8 @@ class PersistentWifiHealthy(unittest.TestCase):
                     path.chmod(0o444)
                 self.assertEqual(self.fire_boot_timer(root), 'reboot\n')
 
-    def test_timer_disarm_ignores_required_unit_stop_propagation(self):
-        self.assertIn('rog5-wifi-probe-rollback.timer', SOURCE)
-        self.assertIn('rog5-wifi-boot-rollback.timer', SOURCE)
-        self.assertIn(
-            'systemctl --job-mode=ignore-dependencies stop "$rollback_timer"',
-            SOURCE,
-        )
+    def test_rollback_timers_are_not_cancelled(self):
+        self.assertNotIn('ignore-dependencies stop', SOURCE)
 
     def fixture(self, mutation=None):
         temporary = tempfile.TemporaryDirectory()
@@ -219,8 +214,10 @@ class PersistentWifiHealthy(unittest.TestCase):
             mutation and mutation.startswith('already-healthy')
         )
         helper.write_text(
-            '#!/bin/sh\n[ "$1" = healthy ] && [ "$2" = "' + TRIAL +
+            '#!/bin/sh\n[ "$2" = "' + TRIAL +
             '" ] && [ "$3" = "' + PRIMARY + '" ] || exit 2\n'
+            + ('exit 1\n' if mutation == 'helper-fail' else '')
+            + 'case $1 in state) echo '+ ('healthy' if already_healthy else 'pending') +'; exit ;; rollback) echo healthy; exit ;; reject) exit ;; esac\n'
             + ('exit 1\n' if mutation == 'helper-fail' else
                'echo already-healthy\n' if already_healthy else
                'echo healthy\n'))
@@ -252,8 +249,9 @@ class PersistentWifiHealthy(unittest.TestCase):
             '#!/bin/sh\nset -eu\nselector=' + str(descriptor) + '\n'
             'record_fixture=' + str(record) + '\n'
             'id() { echo 0; }\n'
-            'stat() { if [ "$3" = "$selector" ] || '
-            '[ "$3" = "$record_fixture" ]; then echo 0:0:444:1; '
+            'stat() { if [ "$2" = "%u:%g:%a:%h" ] && { '
+            '[ "$3" = "$selector" ] || [ "$3" = "$record_fixture" ]; }; then '
+            'printf "0:0:%s\\n" "$(command stat -c \'%a:%h\' "$3")"; '
             'else command stat "$@"; fi; }\n'
             'probe_timer_active=' +
             ('missing\n' if mutation in (
@@ -299,7 +297,7 @@ class PersistentWifiHealthy(unittest.TestCase):
         harness.chmod(0o700)
         return root, harness
 
-    def test_healthy_trial_commits_then_disarms(self):
+    def test_healthy_trial_commits_with_timers_armed(self):
         root, harness = self.fixture()
         result = subprocess.run([*SHELL, str(harness)], text=True,
                                 capture_output=True, timeout=5)
@@ -317,9 +315,7 @@ class PersistentWifiHealthy(unittest.TestCase):
                 result = subprocess.run([*SHELL, str(harness)], text=True,
                                         capture_output=True, timeout=5)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertFalse(
-                    (root/'run/rog5-native-wifi/healthy.record').exists()
-                )
+                self.assertEqual(self.fire_boot_timer(root), 'reboot\n')
 
     def test_already_healthy_rerun_accepts_absent_timers_and_exact_record(self):
         root, harness = self.fixture('already-healthy-missing-timers')
@@ -338,15 +334,11 @@ class PersistentWifiHealthy(unittest.TestCase):
                                 capture_output=True, timeout=5)
         self.assertNotEqual(result.returncode, 0)
 
-    def test_already_healthy_fresh_boot_creates_record_after_timer_stop(self):
+    def test_already_healthy_without_current_boot_receipt_is_rejected(self):
         root, harness = self.fixture('already-healthy-fresh-boot')
         result = subprocess.run([*SHELL, str(harness)], text=True,
                                 capture_output=True, timeout=5)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(
-            (root/'run/rog5-native-wifi/healthy.record')
-            .read_text().endswith('result=PASS\n')
-        )
+        self.assertNotEqual(result.returncode, 0)
 
     def test_already_healthy_without_record_still_requires_timers(self):
         root, harness = self.fixture(
@@ -359,14 +351,12 @@ class PersistentWifiHealthy(unittest.TestCase):
             (root/'run/rog5-native-wifi/healthy.record').exists()
         )
 
-    def test_first_commit_still_rejects_absent_timer(self):
+    def test_timer_cancellation_is_not_a_commit_prerequisite(self):
         root, harness = self.fixture('healthy-missing-timers')
         result = subprocess.run([*SHELL, str(harness)], text=True,
                                 capture_output=True, timeout=5)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(
-            (root/'run/rog5-native-wifi/healthy.record').exists()
-        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.fire_boot_timer(root), '')
 
 
 if __name__ == '__main__':

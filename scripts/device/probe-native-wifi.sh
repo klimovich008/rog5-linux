@@ -100,10 +100,18 @@ umask 077
 mkdir "$root/probe-entered" || fail 'probe-already-entered'
 # 17*(20+2)s loads +30s activation +30s PCI +60s PHY +90s cleanup
 # =584s, within 600s. The caller must budget the preceding S12 qualification.
+# Automatic boot compositions own a persistent acceptance protocol. Manual
+# one-shot probes retain the unconditional reboot deadline.
+if [ -f "$root/automatic" ]; then
+ [ -x "$root/runtime" ] || fail 'automatic-rollback-runtime'
+ set -- "$root/runtime" rollback
+else
+ set -- /usr/bin/systemctl reboot
+fi
 systemd-run --unit=rog5-wifi-probe-rollback --on-active=600s --timer-property=AccuracySec=1s \
  --property=DefaultDependencies=no --property=Before=shutdown.target --property=Conflicts=shutdown.target \
  --timer-property=DefaultDependencies=no --timer-property=Before=shutdown.target --timer-property=Conflicts=shutdown.target \
- /usr/bin/systemctl reboot
+ "$@"
 systemctl is-active --quiet rog5-wifi-probe-rollback.timer || fail 'rollback-not-armed'
 trap collect EXIT
 printf '%s' "$root/firmware" >/sys/module/firmware_class/parameters/path

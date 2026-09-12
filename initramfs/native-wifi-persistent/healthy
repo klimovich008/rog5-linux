@@ -31,8 +31,20 @@ primary=$(sed -n 's/^primary_bundle=//p' "$selector")
 [ "$(sed -n '2p' "$selector")" = "trial_id=$trial_id" ] &&
 	[ "$(sed -n '3p' "$selector")" = "primary_bundle=$primary" ] ||
 	fail 'trial fields'
-candidate=$(sed -n 's/.*\<rog5.bundle=\([^ ]*\).*/\1/p' /proc/cmdline)
-[ "$candidate" = "$primary" ] || fail 'primary bundle is not running'
+# Exactly one bundle token; a matching last token must not hide duplicates.
+set -f
+count=0
+for argument in $(cat /proc/cmdline); do
+	case $argument in rog5.bundle=*)
+		[ "$argument" = "rog5.bundle=$primary" ] || fail 'primary bundle is not running'
+		count=$((count + 1)) ;;
+	esac
+done
+set +f
+[ "$count" -eq 1 ] || fail 'primary bundle is not running'
+boot_id=$(cat /proc/sys/kernel/random/boot_id)
+printf '%s\n' "$boot_id" | grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' ||
+	fail 'boot identity'
 
 interface=$(cat "$root/interface") || fail 'interface record'
 [ "$(readlink -f "/sys/class/net/$interface/device")" = \
@@ -71,29 +83,38 @@ while [ "$(cut -d. -f1 </proc/uptime)" -lt "$deadline" ]; do
 	sleep 1
 done
 [ "$ready" -eq 1 ] || fail 'healthy startup deadline'
+# Keep both rollback timers armed. Cancelling them introduces a failed-commit
+# window; an elapsed/reactivated timer verifies BOTH receipts instead.
+state=$("$helper" state "$trial_id" "$primary") || fail 'trial state'
+case $state in pending|healthy) ;; *) fail 'trial is no longer eligible' ;; esac
+# A reported commit/publication failure may have happened after rename. Fence
+# that attempt before returning failure; the armed timer retries on I/O error.
+finalization_exit() {
+	status=$?
+	trap - 0
+	if [ "$status" -ne 0 ]; then
+		"$helper" reject "$trial_id" "$primary" >/dev/null || true
+	fi
+	exit "$status"
+}
+trap finalization_exit 0
+trap 'exit 143' TERM
+trap 'exit 130' INT
+trap 'exit 129' HUP
+if [ -e "$record" ] || [ -L "$record" ]; then
+	healthy_record_valid || fail 'healthy record identity'
+else
+	[ "$state" = pending ] || fail 'accepted state without current-boot receipt'
+	umask 077
+	# A partial file is never acceptance. Publish only the finished 0444 file.
+	(set -C; printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
+		"$boot_id" "$trial_id" >"$record.next") || fail 'healthy record creation'
+	chmod 0444 "$record.next" || fail 'healthy record mode'
+	mv -T "$record.next" "$record" || fail 'healthy record publication'
+	healthy_record_valid || fail 'healthy record validation'
+fi
+# This is the acceptance linearization point. A timer that already chose
+# rollback writes failed under the same helper lock, preventing this commit.
 result=$("$helper" healthy "$trial_id" "$primary") || fail 'trial commit'
 case $result in healthy|already-healthy) ;; *) fail 'trial commit result' ;; esac
-boot_id=$(cat /proc/sys/kernel/random/boot_id)
-record_state=new
-if [ "$result" = already-healthy ] &&
-	{ [ -e "$record" ] || [ -L "$record" ]; }; then
-	healthy_record_valid || fail 'healthy record identity'
-	record_state=existing
-fi
-for rollback_timer in rog5-wifi-probe-rollback.timer \
-	rog5-wifi-boot-rollback.timer; do
-	if ! systemctl --job-mode=ignore-dependencies stop "$rollback_timer"; then
-		[ "$result:$record_state" = already-healthy:existing ] ||
-			fail "rollback timer stop: $rollback_timer"
-	fi
-	! systemctl is-active --quiet "$rollback_timer" ||
-		fail "rollback timer remains active: $rollback_timer"
-done
-if [ "$record_state" = new ]; then
-	[ ! -e "$record" ] && [ ! -L "$record" ] || fail 'healthy record exists'
-	umask 077
-	printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
-		"$boot_id" "$trial_id" >"$record"
-	chmod 0444 "$record"
-fi
 echo "PASS native Wi-Fi persistent trial healthy interface=$interface"

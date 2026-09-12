@@ -204,12 +204,12 @@ def main():
                 return any(line.split()[1:]==public for line in scan.splitlines() if not line.startswith('#'))
             wait_for(listener,'initial exact fixture SSH listener')
             if count() or (root/'reboots').exists():
-                raise RuntimeError('timer fired before healthy disarm')
+                raise RuntimeError('timer fired before fixture disarm')
             for stale in (False,True):
                 if stale:
                     # A new deadline represents another trial, not replay of
-                    # an already-fired OnBootSec timestamp. The production
-                    # health gate stops its timer BEFORE the first expiry.
+                    # an already-fired OnBootSec timestamp. This fixture
+                    # explicitly disarms/rearms; production leaves timers armed.
                     command(['systemctl','--user','--job-mode=ignore-dependencies','stop',timer])
                     timer_deadline=math.ceil(time.monotonic()+3)
                     (work/timer).write_text(timer_source.replace('@OUTER_SECONDS@',str(timer_deadline)).replace(
@@ -218,7 +218,7 @@ def main():
                     command(['systemctl','--user','start',timer])
                 state=command(['systemctl','--user','show',timer,'-p','SubState','--value'])
                 if state!='waiting' or time.monotonic()>=timer_deadline:
-                    raise RuntimeError('fixture missed pre-expiry health disarm')
+                    raise RuntimeError('fixture missed pre-expiry disarm')
                 command(['systemctl','--user','--job-mode=ignore-dependencies','stop',timer])
                 command(['systemctl','--user','is-active','--quiet',ssh])
                 if not stale:

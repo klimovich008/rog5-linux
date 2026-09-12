@@ -385,9 +385,9 @@ refused_core_ready() {
 	return 0
 }
 
-rollback_healthy() {
-	# SSH Requires can re-arm an elapsed OnBootSec timer after healthy stopped
-	# it. Only exact acceptance for this boot/trial may suppress that reboot.
+rollback_healthy() (
+	# Timers stay armed and may be reactivated. Both current-boot RAM receipt
+	# and persistent acceptance are required to suppress rollback.
 	selector=$root/trial-descriptor
 	record=$root/healthy.record
 	for path in "$selector" "$record"; do
@@ -419,7 +419,19 @@ rollback_healthy() {
 	done
 	[ "$count" -eq 1 ] || return 1
 	printf 'format=rog5-native-wifi-healthy-v1\nboot_id=%s\ntrial_id=%s\nresult=PASS\n' \
-		"$boot_id" "$trial_id" | cmp -s - "$record"
+		"$boot_id" "$trial_id" | cmp -s - "$record" || return 1
+	[ "$("$root/trial-state" rollback "$trial_id" "$primary")" = healthy ]
+)
+
+rollback_reject() {
+	# Best effort fail-closed fence before reboot; malformed/missing descriptors
+	# still reboot. The helper verifies the persistent identity itself.
+	[ -f "$root/trial-descriptor" ] && [ ! -L "$root/trial-descriptor" ] &&
+		[ "$(stat -c '%u:%g:%a:%h' "$root/trial-descriptor")" = 0:0:444:1 ] &&
+		[ "$(stat -c %s "$root/trial-descriptor")" -le 256 ] || return 1
+	trial_id=$(sed -n 's/^trial_id=//p' "$root/trial-descriptor") || return 1
+	primary=$(sed -n 's/^primary_bundle=//p' "$root/trial-descriptor") || return 1
+	"$root/trial-state" reject "$trial_id" "$primary" >/dev/null
 }
 
 [ "$#" = 1 ] || fail 'one action required'
@@ -434,6 +446,10 @@ case $1 in
 	dhcp) run_dhcp ;;
 	# Invalid or absent acceptance is ordinary rollback, never a failed gate
 	# that accidentally prevents the service from requesting its reboot.
-	rollback) rollback_healthy || refused_core_ready || systemctl --no-block reboot ;;
+	rollback)
+		if ! rollback_healthy; then
+			rollback_reject || true
+			refused_core_ready || systemctl --no-block reboot
+		fi ;;
 	*) fail 'unknown action' ;;
 esac
