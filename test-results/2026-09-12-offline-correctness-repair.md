@@ -12,10 +12,14 @@ matched `4bd1a817618c0dbfdf4b96d391fbf53d50c37dc7`; fixes are applied in a separ
 worktree. The integration base is 147 commits beyond the audited SHA, with changes
 in 64 files (mainly retained progress, composition and input development); none
 of those four reviewed defect sources changed. The dirty original checkout and all frozen artifact worktrees remain
-preserved. This report is in progress; final integrated evidence is pending.
+preserved. Source fixes are implemented; final integrated evidence is pending below.
 
-No phone operation, authentication, signing, claim operation, installation or
-protected-storage mutation is authorized or executed by this repair. All new
+No phone operation, authentication, production signing, real claim consumption,
+installation or protected-storage mutation was executed by this repair. Offline
+fixtures use disposable synthetic records. The first integrated run unexpectedly
+read retained host claim metadata through an old fixture; transport was mocked
+and no dispatch or claim mutation occurred. That fixture now forbids retained
+claim-path access. All new
 physical results remain **NOT RUN**. Source changes do not modify retained signed
 candidate bytes. Historical S06 and R01 remain **FAIL**.
 
@@ -163,8 +167,8 @@ empty region, but its original board-memory rationale is not established.
 
 ## Build and CI changes
 
-Forty patches are classified into disjoint, ordered production (14) and diagnostic
-(26) series. Unlisted, duplicate and overlapping entries are rejected. The board
+Forty-one patches are classified into disjoint, ordered production (15) and
+diagnostic (26) series. Unlisted, duplicate and overlapping entries are rejected. The board
 builder verifies the pinned commit and archive, freezes every source/config input,
 merges seven fragments, checks resolved mandatory/forbidden symbols, and builds
 Image, modules and five required DTB/DTBO targets with W=1. Generated metadata,
@@ -193,3 +197,78 @@ behavior only. GitHub branch protection and CODEOWNERS expectations are prepared
 no repository settings or remote branches were changed by this repair. A pinned
 build-container digest is not established; recorded tool environments are not a
 claim of a hermetic toolchain.
+
+## Final board result and provenance
+
+**Compilation PASS; production qualification FAIL.** The exact 7.1.4 base is
+`7a5cef0db4795d9d453a12e0f61b5b7634fc4d40`. All 15 production patches apply with
+`git apply --check` and the merged board configuration resolves unchanged.
+The final fresh application/configuration check took 58.799 seconds. The real
+Image, 1,031 modules and five DTB/DTBO targets compiled; the AMS678 module is in
+the recorded module inventory. Real modpost, corrected `depmod -ae`, vermagic
+and dependency closure checks passed. The cold compile took 4,457.016 seconds;
+its raw wrapper FAIL remains preserved. Later wrapper regressions corrected an
+early kernel-release lookup and module-name normalization without repeating the
+cold compile. A 25.220-second incremental check preserved compiled bytes.
+
+The final schema run took 81.658 seconds and emitted one real diagnostic despite
+make exit 0: `rsc@18200000 (qcom,rpmh-rsc): 'power-domains' is a required property`.
+The gate detects it and fails. Patch 0041 resolves the two ASUS root compatibility
+diagnostics from the earlier run without changing any DTB bytes. The remaining
+property deletion accompanies a disabled PSCI domain provider in historical
+source. Restoring that reference alone would obstruct RPMh probing. Its binding
+versus CPU_PM fallback conflict remains unresolved; no generic schema relaxation
+or unqualified power-management change was made.
+
+The reviewed W=1 warning policy binds exact diagnostic sites, source/header hashes,
+configuration values and occurrence ceilings. Unknown diagnostics still fail.
+757 module-declared firmware names are inventoried; presence is NOT RUN. Full
+board overlays are compiled individually. A separate composed display-binding
+check passed, but this is not a composed, signed, admitted boot artifact.
+
+The final build input binding is source `13c03247088f6ab117909c5af71e19cee75056fd`,
+tree `dc395ae3e16cd1cf8ebb43b211f3b500d61a1c19`, covering 59 inputs. It distinguishes
+the initial dirty execution from later byte-for-byte committed source binding.
+The original compile used the same driver C; a later patch correction changed
+only two descriptive geometry numbers, and 0041 changes only binding metadata.
+All output and module identities were checked unchanged after schema validation.
+See [machine-readable board result](2026-09-12-production-board-build.json) and
+[artifact pointer](../manifests/current-artifact.json) for exact hashes and private
+raw-provenance references. Registered/tracked artifact inventory now has 442 sets.
+
+| Output | SHA-256 |
+| --- | --- |
+| Image | `0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a` |
+| Merged config | `277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c` |
+| Ordered production series | `1544f250a9e0305071e4eab6f5082f0ed3f369dbdc257d532b7e195dcb98ff08` |
+| Module metadata | `ce75c8c580c82a96cf5b2731c363c91d07f22992f52a893d099c85c97d636a1b` |
+| Final board provenance | `b4e9b22be52dda512416ba4313cb8ee78e458c99685bea67ee4ab76e2fc7a999` |
+
+## Remaining limits and next experiment
+
+1. Production qualification remains FAIL at the RPMh RSC schema conflict. Resolve
+   the binding and CPU_PM/PSCI topology deliberately before admission; the accepted
+   rescue and headless power policy remain unchanged.
+2. Physical panel/brightness, touch binding, A660 rendering, charging, suspend and
+   cleanup remain NOT RUN for these source fixes. Touch remains disabled; compiling
+   EDT FT5X06 does not establish FTS3658U support. S06 and R01 remain historical FAIL.
+3. Mobile packaging is BLOCKED by repository/signature/archive integrity and
+   missing ARM64 Denial runtime assets. Encryption, bootloader/lock-screen threat
+   model, signed-update rollout and daily-device security need qualification.
+4. Unregistered private artifact sets and missing old build/toolchain provenance
+   remain BLOCKED. Installed archive identity is not established by a runtime
+   observation. The new inventory grants no authority to select an old artifact.
+5. Active mobile policy uses an ignored private profile. Legacy sealed controller
+   interfaces retain embedded identity bindings; wholesale migration is not claimed.
+   GitHub protection is documented, not remotely enabled; container digest and
+   complete licensing/redistribution provenance remain unresolved.
+6. Duplicate reset assertion, 28 ms delay, DSC slice TODOs, generated copyright
+   attribution and zero-length memory tuple rationale remain explicit source issues.
+
+The next smallest **future** physical question is whether the corrected panel
+shows a stable 60 Hz pattern with correctly ordered brightness levels and clean
+blanking. It requires a separately authorized exact-artifact composition and
+fully prepared recording/abort/recovery session. The existing signed 136f candidate
+lacks these fixes. No claim, candidate, signing operation, readiness countdown or
+phone action was created by this plan. Safe display/touch source work need not
+wait for unrelated server milestones.

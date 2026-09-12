@@ -1,0 +1,73 @@
+{
+  "format": "rog5-public-offline-board-result-v1",
+  "scope": "software",
+  "row": "board-build",
+  "status": "FAIL",
+  "source_commit": "87ae7a3db0ee721e928467a3e0f18480b7b940e9",
+  "source_tree": "f1c18f598f9e6eab22e516ed7e92aaeba7adaac7",
+  "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+  "production_series_sha256": "1544f250a9e0305071e4eab6f5082f0ed3f369dbdc257d532b7e195dcb98ff08",
+  "config_sha256": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+  "release": "7.1.4-rog5-production",
+  "module_count": 1031,
+  "module_metadata_sha256": "ce75c8c580c82a96cf5b2731c363c91d07f22992f52a893d099c85c97d636a1b",
+  "outputs": {
+    "objects/arch/arm64/boot/Image": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a",
+    "objects/Module.symvers": "de1247aeea64380b469f2e3cecfa5b0d2d55bea021e81c4c5890c13ab248052e",
+    "objects/System.map": "6bd1f0bf15b7648cb5b2b80b577791f5f25f51e04f99e8bea90b5da1cc9910cc",
+    "objects/.config": "277bc74e104bcdec8e6eda8a345e2a4e7bb15be5118bb829741742e97d8a174c",
+    "objects/arch/arm64/boot/dts/qcom/sm8350-asus-rog-phone5.dtb": "3da5b74426b6a80e2854d52237ccce71083c3a06582028fde30c089c16b1ff48",
+    "objects/arch/arm64/boot/dts/qcom/sm8350-asus-rog-phone5-display-60hz-reviewed.dtbo": "214799deeabe455e07ca10d70203718f04a972898a2469bdf3f90fb41ec23996",
+    "objects/arch/arm64/boot/dts/qcom/sm8350-asus-rog-phone5-gpu.dtbo": "fcdfc2621d7bbaa8d6ae46bed39d26bf2fbe58fb544defd8d8265c6a0fd85f58",
+    "objects/arch/arm64/boot/dts/qcom/sm8350-asus-rog-phone5-buttons-indicator.dtbo": "87610baf7bfda988d136000cb3cd5f9e5ea5de66729babb0368da0a34c2b4105",
+    "objects/arch/arm64/boot/dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtbo": "80eaa773e9dfcacd87ab8b0d2b2e2b459ac313d7b9e57e9e18a09e6b4c971ea9"
+  },
+  "checks": {
+    "production_application": "PASS",
+    "resolved_config": "PASS",
+    "Image_modules_DTs": "PASS",
+    "affected_panel_compilation": "PASS",
+    "modpost_depmod_dependency_closure": "PASS",
+    "board_schema": "FAIL",
+    "firmware_presence": "NOT RUN",
+    "physical": "NOT RUN"
+  },
+  "schema_errors": [
+    "board/build-r2/objects/arch/arm64/boot/dts/qcom/sm8350-asus-rog-phone5.dtb: rsc@18200000 (qcom,rpmh-rsc): 'power-domains' is a required property"
+  ],
+  "warning_policy": {
+    "accepted_diagnostics": 1229,
+    "policy": "configs/kernel/rog5-production-warning-policy.json",
+    "sha256": "72e4484eb2cf6069c9c0124f43f0958bf2f6adbb4c094c6bdc7aff605009c1c9",
+    "scope": "exact source/config/sites/counts; unknown compiler/tool/schema diagnostics fail"
+  },
+  "provenance": {
+    "result.json": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/result.json",
+      "sha256": "b4e9b22be52dda512416ba4313cb8ee78e458c99685bea67ee4ab76e2fc7a999"
+    },
+    "final-source-binding.json": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/final-source-binding.json",
+      "sha256": "e61c8bef682fb5367351fdb6b58abb7f98652e3fcb60878ced52a5a2a819f5f4"
+    },
+    "summary.json": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/summary.json",
+      "sha256": "7b7c3db70a46b2cb0a37a8e1061ad67c7751562f2a3e2d6e467996af2f42bb0c"
+    }
+  },
+  "limitations": [
+    "Unsigned offline artifact; not a candidate and not installed",
+    "Board RSC property deletion deliberately preserved; no power-management change to silence schema",
+    "Full board DT overlays compiled individually; composed display binding validation is separate",
+    "757 module-declared firmware names inventoried, not checked for presence",
+    "No pinned container digest; recorded tool hashes do not establish hermetic package input",
+    "Historical physical S06/R01 remain FAIL; no phone operation authorized"
+  ],
+  "durations_seconds": {
+    "cold_compile_seconds": 4457.016,
+    "incremental_seconds": 25.22,
+    "schema_seconds": 81.658,
+    "qualification_seconds": 83.336,
+    "final_series_prepare_seconds": 58.799
+  }
+}

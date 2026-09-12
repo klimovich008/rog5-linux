@@ -30,7 +30,21 @@
   },
   "board_validation_build": {
     "status": "NOT A CANDIDATE",
-    "artifact": null,
-    "note": "consult current review execution receipt for affected-driver compile result"
+    "set_id": "private:rog5-review-correctness-evidence-20260912-r1/board/qualification-r6",
+    "artifact": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/objects/arch/arm64/boot/Image",
+    "image_sha256": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a",
+    "source_commit": "13c03247088f6ab117909c5af71e19cee75056fd",
+    "linux_base": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+    "release": "7.1.4-rog5-production",
+    "module_count": 1031,
+    "module_metadata_sha256": "ce75c8c580c82a96cf5b2731c363c91d07f22992f52a893d099c85c97d636a1b",
+    "qualification_status": "FAIL",
+    "physical_status": "NOT RUN",
+    "admission": "BLOCKED: unsigned fixture; no new claim or installation authority",
+    "evidence": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/result.json",
+    "evidence_sha256": "b4e9b22be52dda512416ba4313cb8ee78e458c99685bea67ee4ab76e2fc7a999",
+    "source_binding": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/qualification-r6/final-source-binding.json",
+    "source_binding_sha256": "e61c8bef682fb5367351fdb6b58abb7f98652e3fcb60878ced52a5a2a819f5f4",
+    "note": "Compilation and dependency checks completed; one remaining RPMh RSC power-domains schema diagnostic keeps qualification FAIL. Binding-only or later qualification requires a new evidence receipt; preserve this failure."
   }
 }

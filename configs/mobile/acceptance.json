@@ -12,8 +12,12 @@
       "id": "board-build",
       "requirement": "Exact production board Image, DTs and modules",
       "software": {
-        "status": "NOT RUN",
-        "evidence": null
+        "status": "FAIL",
+        "evidence": {
+          "path": "test-results/2026-09-12-production-board-build.json",
+          "sha256": "efcc20a44152ab0f252b8cf9c9b58e726e000b2f2e1cc9a50a795f47ee3afb6f"
+        },
+        "detail": "Image, modules and DTs compile; one RPMh RSC schema diagnostic blocks production qualification"
       },
       "physical": {
         "status": "NOT RUN",
@@ -39,7 +43,8 @@
       "requirement": "0/min/mid/max and monotonic brightness ramp",
       "software": {
         "status": "NOT RUN",
-        "evidence": null
+        "evidence": null,
+        "detail": "Actual driver semantic/fault regressions PASS; candidate composition and complete row qualification remain NOT RUN"
       },
       "physical": {
         "status": "NOT RUN",
@@ -52,7 +57,8 @@
       "requirement": "Blank/unblank and repeated panel lifecycle",
       "software": {
         "status": "NOT RUN",
-        "evidence": null
+        "evidence": null,
+        "detail": "Actual driver semantic/fault regressions PASS; candidate composition and complete row qualification remain NOT RUN"
       },
       "physical": {
         "status": "NOT RUN",
