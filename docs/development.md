@@ -558,3 +558,17 @@ Keep full schema checks separate from cheap guard changes: an unchanged
 schema/driver/DT input binding can retain the 81.4-second result while a stricter
 configuration parser receives focused regressions. Record commands before
 launch so failed and interrupted builds retain the same provenance as successes.
+
+
+For the retained x86-64 builder, `scripts/host/generate-denial-arm64-engine-args.py
+--source "$LOCKED_FLUTTER_SOURCE" --output "$NEW_EXTERNAL_OUTPUT"` derives
+arguments through the pinned Flutter generator. It verifies Flutter/Skia commits,
+Dart against that Flutter DEPS file, and tracked cleanliness. Linux ARM64 target,
+ARM64 Dart code generation, target embedder inclusion, Fontconfig and release mode
+are mandatory; internal toolchain concurrency is one. Prebuilt Dart auto-selection
+is disabled so cache contents cannot silently choose another SDK route. The
+result is **argument generation only**. GN graph validation, complete dependency/
+hook closure, compilation, host gen_snapshot targeting ARM64, engine/ICU and shell
+AOT still need separate evidence. The command executes no GN, Ninja, hooks or
+package/phone operations, and will not write inside the frozen source or replace
+an existing output. Its receipt includes the exact subsequent GN command.

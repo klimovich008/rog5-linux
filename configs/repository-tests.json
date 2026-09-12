@@ -7871,6 +7871,32 @@
         "packaging/arch/mobile-package-snapshot-20260912.json"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-denial-arm64-engine-args.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "git"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/generate-denial-arm64-engine-args.py",
+        "configs/denial/source-lock-v1.json"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
