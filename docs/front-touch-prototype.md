@@ -55,8 +55,10 @@ The kit and qualification receipts must match its reviewed pins. It uses a
 read-only namespace, a fresh external-module directory, W=1 and modpost; it
 checks the toolchain, resolved configuration, release, module dependencies and
 input identities. It neither installs the module nor adds it to the production
-series. The earlier matching builds produced a 16,144-byte module in 2.854 and 2.855 s;
-its complete identity and limitations are in the current artifact pointer.
+series. The corrected 16,544-byte module builds identically in 2.770 seconds per twin;
+all 30 imported symbols resolve in the exact kit. Its identity and limitations
+are in the current artifact pointer. The earlier 16,144-byte module is retained
+as a superseded prototype fixture, with its original evidence unchanged.
 The production kit has GENI I2C built in and GPI as a module. Earlier three-module
 provider closures below describe their older kernels, not this configuration.
 
