@@ -2169,3 +2169,19 @@ its retained executable. The target behavior suite took 9.306 s; the additional
 negative target build 1.518 s and execution 0.052 s; active tier 129.924 s.
 No unchanged kernel rebuild was needed. Real unsignaled GPU dependencies remain
 unproven even if a future small-buffer hardware test passes.
+
+
+Mobile payload preparation (2026-09-12): restrictive extraction permissions can
+make legitimate execute-only package helpers unreadable to the host evidence
+hasher. The real 315-package run failed at that boundary in 81.803 s; a tiny
+execute-only fixture reproduces it. Normalize permissions explicitly for test-only
+trees and record the distinction from installation semantics. The corrected
+assembly took 81.434 s and focused regressions 0.435 s. Mount test executables
+under an existing writable scratch mount when the payload root is read-only.
+A zero exit from Mousepad --version did not imply clean initialization: it logged
+missing GSettings schemas. Strict cache generation plus a stderr check closed
+that narrower issue in 0.530 s, without package hooks or session claims. Reuse the
+exact native binaries and authenticated libraries; no unchanged kernel rebuild
+was needed. The active tier took 125.816 s. Compare complete file/link manifests
+before reclaiming failed duplicate extraction scratch; retained receipts plus an
+identical durable tree preserved evidence while recovering about 1.5 GiB.

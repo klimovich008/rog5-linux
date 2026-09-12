@@ -198,5 +198,25 @@
       "sha256": "496adf4192e7013260e0f3bd21fe0f6a3d038ae920950f1ba5b4cfc40c425989",
       "size": 176018
     }
+  },
+  "mobile_host_runtime": {
+    "status": "PASS: selected offline ARM64 loader/CLI and software-rendering checks",
+    "set_id": "private:rog5-mobile-runtime-evidence-20260912-r1/materialize-r2",
+    "source_commit": "1205091552cc9cd3b986594c57535468262e266e",
+    "source_tree": "2865ab6ed02133e220f130030dc0d2555416647d",
+    "root": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+    "tree_manifest": {
+      "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/tree.json",
+      "sha256": "d0c54597856c2205f6c19abb932182ffcf61102c9c0caaf39df76852fccfd75b"
+    },
+    "gsettings_overlay": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/schema-cache-r1/schemas",
+    "gsettings_cache_sha256": "d76471d85118a43eb466b9298e90ff97eb584f11df9520130a565619f6a6f59a",
+    "evidence": {
+      "path": "test-results/2026-09-12-mobile-runtime-qualification.json",
+      "sha256": "8b0ee94b6338d0957d3b29239295e911bda45ec9fc4e07f05ac121256523fd2d"
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none",
+    "runtime_closure": "BLOCKED: matching Flutter engine/AOT/ICU and complete native session remain unqualified"
   }
 }
