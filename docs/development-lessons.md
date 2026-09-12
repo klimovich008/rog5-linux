@@ -1740,3 +1740,30 @@ display modules inserted, then GPU failure removed the backlight. Preserve the
 EINVAL and failed independent blank; an absent backlight is no optical-darkness
 proof. All28 focused checks passed first time, but simulated hardware could not
 prove the missing GPU IOMMU attachment. Carry that live dependency into preflight.
+
+
+### r126: retain verified incremental inputs across a kernel-only fix
+
+The earlier full kernel twins took about45 minutes each; the new incremental
+twins took138.848 s and265.248 s, with all30 retained output identities equal.
+Verified independent copies of the accepted11370-file build trees avoided a
+full rebuild; no hardlinks or old execution leases were reused. Restore source
+mtimes only where clean Git blobs are identical (93706 files,10.896 s), leaving
+the changed Adreno file newer. The logs confirm that changed object compiled.
+Preserve original artifacts read-only and include seed code/timestamp provenance
+in downstream recipe pins. This is evidence of reproducible incremental builds,
+not a clean-build claim. Seed verification/copying and linking remain real costs;
+do not attribute every timing difference to ccache without measurement.
+
+Reuse completed generated headers/tools for a separate immutable module kit.
+Module twins took210.467 s and37.617 s; keep stable container paths and independent
+outputs. The existing54-module verifier needed only successor constants changed:
+all19 function bodies remain identical,23 fixture cases pass, and the actual
+new selection passes. No repeated full kernel build was needed for module work.
+
+Audit the latest qualified GPU archive before refreshing kernel payloads. Its
+736 members already contain the intended OLED/startup/firmware changes; the
+existing module map covers all54 identities across32 loose and37 nested copies.
+Use that measured coverage to preserve unrelated payload bytes, instead of
+rebuilding the historical headless-to-OLED-to-GPU composition chain. New package,
+BTF registration and real-phone DMA attachment still require their own evidence.

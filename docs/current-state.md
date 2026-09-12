@@ -1,5 +1,54 @@
 # ROG5 current state
 
+Latest r126, 2026-09-12: **GPU IOMMU kernel fix and matching module twins
+built; selected 54-module static export/dependency closure PASS**. Previous
+hardware goal turn r125 was progress. The intervening password response made
+no hardware progress or sudoers change; resumed work completed the builds.
+
+Kernel source136f75ae869afd47a016b1278fae2110cc6d2229, release7.1.4-g136f75ae869a,
+remains clean in gpu-iommu-probe-worktree-r1. Both independently copied incremental
+build trees produced identical .config, Image, Image.gz, vmlinux, Module.symvers
+and all25 kernel modules. A139 s, B265 s; total405.860 s. Both owned containers
+exited0 without OOM or cleanup errors and were removed; exec46589 completed0.
+These are incremental twins seeded from accepted05941 artifacts, not clean
+from-scratch builds. The changed adreno_device.c was compiled in each tree.
+
+The separate matching module kit passed byte-verified derivation (3378 files,
+435219857 bytes,3.402 s), generated-header/tool comparison and completion with
+15 power/USB modules. Original derived files and raw build outputs are preserved;
+only the established PDR packaging derivative omits BTF. External module twins
+PASS: A210.467 s, B37.617 s,31 raw modules each, identical hashes and sizes.
+Those select29 external modules plus25 kernel modules,54 unique identities.
+Exec74160 completed0; both module containers exited0, no OOM/cleanup errors.
+
+Static selected54 closure PASS in5.680 s under3 GiB RAM/512 MiB swap.
+All strong imports resolve to actual kernel/module exports; dependencies,
+namespace/GPL restrictions and the existing S12 typed edge pass. Raw BTF is
+present. This does not prove full kernel BTF validation, module loading, package
+qualification or GPU hardware. The adapted verifier preserves all19 functions;
+23 fixture tests pass. Module runner18 tests and module plan7 tests pass.
+
+Fresh read-only phone health PASS1.842 s at uptime6627.77 s on the existing
+boot946acb59-744e-4bbc-b291-ac6b2e05f3fe /gpu-05941-52181a3157c26029. This turn made
+no phone mutation, reboot, sudo request or human prompt. The fix is NOT deployed.
+Current GPU payload audit verifies736 members,32 loose modules and37 nested
+module copies covering exactly54 identities (15 duplicated). Only init,
+kernel-release and the nested module manifest contain textual old-release
+references. Retain firmware, startup/relay behavior and GPU DT in the successor;
+prepare a fresh descriptor/relay nonce when composing the new temporary image.
+
+Next: refresh that exact GPU payload with all selected matching modules,
+regenerated depmod/manifests and kernel identity; verify archive roundtrips,
+BTF/module registration and signed temporary bundle before a new boot admission.
+On the fresh boot require the GPU itself to have an IOMMU group before display
+loading. Do not replay r124/r125 sessions or the consumed r122 boot claim.
+Original r122/r125 FAIL, failed blank cleanup, S06/R01 and missed optical result
+remain open; V11 fallback and ASUS slotA unchanged. No live job/countdown remains.
+Evidence: gpu-iommu-kernel-build-r1/twins-result.json,
+gpu-iommu-module-build-r1/result.json,
+gpu-iommu-module-closure-r1/verification-r1/result.json,
+gpu-iommu-payload-audit-r1/{result,coverage}.json and checkpoint-r126.
+
 Latest r125, 2026-09-12: **display modules loaded and DSI bound, but GPU
 initialization failed because the GPU has no IOMMU group; kernel fix prepared**.
 Previous r124 was progress. Same boot946acb59-744e-4bbc-b291-ac6b2e05f3fe remains
