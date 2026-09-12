@@ -221,7 +221,13 @@
       "before_operator_readiness": [
         "Bind the exact helper, kernel, firmware and target Mesa dependency closure to a separately authorized session; the helper renderer string is not admission authority.",
         "Prepare a separate process deadline and stderr capture for synchronous driver calls, independent recovery and return-to-known-good verification. No session is armed by the offline component receipt."
-      ]
+      ],
+      "software_runtime_fixture": {
+        "artifact_pointer": "manifests/current-artifact.json#gpu_readback_runtime",
+        "mesa": "1:26.2.2-1",
+        "scope": "ARM64 softpipe under QEMU user; full mobile graph, A660, DMA-BUF and fences remain unqualified",
+        "physical_status": "NOT RUN"
+      }
     },
     {
       "id": "suspend-idle",

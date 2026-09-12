@@ -144,5 +144,21 @@
     },
     "physical_status": "NOT RUN",
     "candidate": null
+  },
+  "gpu_readback_runtime": {
+    "set_id": "private:rog5-gles-arm64-evidence-20260912-r1/runtime",
+    "status": "fixture: ARM64 Arch software rendering only; not admitted or installed",
+    "probe_sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac",
+    "mesa": "1:26.2.2-1",
+    "runtime_lock": {
+      "path": "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/runtime-lock.json",
+      "sha256": "045b08493566687bdca6b2bc4d35eeb6f0233b140be6d59268a0707c31c63abd"
+    },
+    "qualification": {
+      "path": "test-results/2026-09-12-gles-arm64-qualification.json",
+      "sha256": "01cb0530e705b4d37241fbb6911c0e59ad146ed82e4b197fc75e65c40e53e9de"
+    },
+    "physical_status": "NOT RUN",
+    "candidate": null
   }
 }

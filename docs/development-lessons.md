@@ -2074,3 +2074,14 @@ userspace change needed no kernel rebuild or new candidate. Namespace tests
 stay serialized with explicit per-probe and suite deadlines. Preserve raw
 per-test timings and capture an outer monotonic timer when wall time matters;
 a sum of parallel test durations is not elapsed integration time.
+
+The ARM64 follow-up ran the retained probe against signed Arch Mesa packages:
+software readback took 1.016 s, while package transfer dominated preparation.
+Preserve partial downloads for bounded resume, but require the final pinned hash
+and signature. Check the target loader before a fault matrix: missing libgcc
+caused 33 derivative assertions in the first fixture. Preserve source executable
+modes when extracting with debugfs; its dump defaults made a direct loader check
+fail. Detect ASCII public keyrings and dearmor them in private scratch. These
+were preparer failures, not phone or renderer failures; their original results
+remain retained. Keep a newer software fixture separate from an unchanged mobile
+package graph when an older pinned archive is no longer on checked mirrors.
