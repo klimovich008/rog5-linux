@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import http.client
+import contextlib
+import io
 from pathlib import Path
 import re
 import runpy
 import selectors
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import tempfile
@@ -23,6 +26,86 @@ HEALTH_BODY = b'{"service":"rog5-healthd","status":"ok","version":1}\n'
 
 
 class HealthdTest(unittest.TestCase):
+    def test_disconnects_do_not_traceback_or_block_later_clients(self) -> None:
+        """Real TCP resets at deterministic production read/write boundaries."""
+        source = runpy.run_path(str(TARGET))
+        for phase in ('before-headers', 'after-headers', 'during-body'):
+            with self.subTest(phase=phase):
+                paused, resume, closed = (threading.Event() for _ in range(3))
+
+                class Handler(source['HealthHandler']):
+                    def pause(self):
+                        paused.set()
+                        if not resume.wait(2):
+                            raise RuntimeError('test reset was not released')
+
+                    def handle_one_request(self):
+                        if phase == 'before-headers' and not paused.is_set():
+                            self.pause()
+                        return super().handle_one_request()
+
+                    def end_headers(self):
+                        super().end_headers()
+                        if phase == 'after-headers' and not paused.is_set():
+                            self.pause()
+
+                    def setup(self):
+                        super().setup()
+                        if phase == 'during-body' and not paused.is_set():
+                            original = self.wfile
+                            handler = self
+
+                            class PartialWriter:
+                                def __getattr__(self, name):
+                                    return getattr(original, name)
+
+                                def write(self, data):
+                                    if data == HEALTH_BODY:
+                                        original.write(data[:1])
+                                        handler.pause()
+                                        return 1 + original.write(data[1:])
+                                    return original.write(data)
+
+                            self.wfile = PartialWriter()
+
+                class Server(source['HealthServer']):
+                    def process_request_thread(self, request, address):
+                        try:
+                            super().process_request_thread(request, address)
+                        finally:
+                            closed.set()
+
+                errors = io.StringIO()
+                with contextlib.redirect_stderr(errors):
+                    server = Server(('127.0.0.1', 0), Handler)
+                    worker = threading.Thread(target=server.serve_forever,
+                                              kwargs={'poll_interval': .01}, daemon=True)
+                    worker.start()
+                    first = socket.create_connection(server.server_address, timeout=2)
+                    later = http.client.HTTPConnection(*server.server_address, timeout=2)
+                    try:
+                        if phase != 'before-headers':
+                            first.sendall(b'GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n')
+                        self.assertTrue(paused.wait(2), 'handler boundary not reached')
+                        # Abort rather than orderly EOF: exercise ECONNRESET/EPIPE.
+                        first.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
+                                         struct.pack('ii', 1, 0))
+                        first.close()
+                        resume.set()
+                        self.assertTrue(closed.wait(2), 'disconnected handler not closed')
+                        later.request('GET', '/healthz')
+                        response = later.getresponse()
+                        self.assertEqual(response.status, 200)
+                        self.assertEqual(response.read(), HEALTH_BODY)
+                    finally:
+                        resume.set()
+                        first.close()
+                        later.close()
+                        server.shutdown()
+                        server.server_close()
+                        worker.join(timeout=2)
+                self.assertEqual(errors.getvalue(), '', errors.getvalue())
+
     def test_slow_sender_cannot_starve_another_health_client(self) -> None:
         source = runpy.run_path(str(TARGET))
         server = source['HealthServer'](('127.0.0.1', 0), source['HealthHandler'])
