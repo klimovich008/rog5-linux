@@ -113,7 +113,7 @@
         },
         {
           "path": "scripts/host/test-rog5-touch-module-build.py",
-          "sha256": "d8e462a95393294f9032d71f2ff340fda88bd976911df35318be52743e68fae1"
+          "sha256": "fa2cb763a0c7b6201630363756fe6136dc9030a8f1e91c892669209d0473f9b5"
         }
       ],
       "physical_actions": [

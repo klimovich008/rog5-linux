@@ -80,13 +80,27 @@ class Builder(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'deadline'):
             M.run_owned([sys.executable,'-c',code],self.root/'log',dict(os.environ),time.monotonic()+.3,0)
         pid=int(pidfile.read_text());stat=Path('/proc')/str(pid)/'stat'
+        self.assert_process_stopped(stat)
+
+    def assert_process_stopped(self,stat):
         # Reaping can remove procfs between exists() and read_text(). Read once;
         # either disappearance or a zombie proves this child stopped executing.
         try:
             state=stat.read_text().rsplit(')',1)[1].split()[0]
-        except FileNotFoundError:
+        except (FileNotFoundError,ProcessLookupError):
             state=None
         self.assertIn(state,(None,'Z'))
+
+    def test_proc_disappearance_is_distinct_from_running_or_unreadable(self):
+        for error in (FileNotFoundError(),ProcessLookupError()):
+            with mock.patch.object(Path,'read_text',side_effect=error):
+                self.assert_process_stopped(Path('/unused/proc/stat'))
+        with mock.patch.object(Path,'read_text',return_value='1 (child name) S 0'):
+            with self.assertRaises(AssertionError):
+                self.assert_process_stopped(Path('/unused/proc/stat'))
+        with mock.patch.object(Path,'read_text',side_effect=PermissionError()):
+            with self.assertRaises(PermissionError):
+                self.assert_process_stopped(Path('/unused/proc/stat'))
     def test_main_failed_make_retains_stage_receipt(self):
         output=self.root/'failed-build';fake=self.root/'failed-make'
         fake.write_text('#!/bin/sh\nexit 42\n');fake.chmod(0o700)

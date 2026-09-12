@@ -1983,3 +1983,26 @@ enable the provider, or relax the generic binding merely to silence validation.
 The historical ASUS OSI reset explanation is recorded source history, not a newly
 observed firmware trace and not evidence explaining S06. Qualifying a board-specific
 CPU_PM fallback description or a safe PSCI domain topology remains separate work.
+
+## 2026-09-12: validate composed DTs and transient procfs reads
+
+The standalone production DT compiled and passed schema checks but lacked the
+exported labels required by its overlays. A board-specific `-@` flag fixes
+composition without changing existing hardware properties. The combined display,
+GPU and inert-touch DT exposed two errors missed by the earlier panel-only
+schema filter: unsupported TLMM `input-enable` properties and an undocumented
+private touch compatible. Exact pinctrl code proves `output-disable` preserves
+the OE=0 effect. Full-schema preparation took 70.795 seconds and composition
+12.119 seconds; no Image or module rebuild was needed. Keep combined validation
+mandatory and validate every expected property, including disabled devices: the
+DT validator CLI suppresses some missing-required-property errors on disabled
+nodes. Direct schema-library fixtures and exact composition checks cover those.
+
+The first integrated run stopped after 19.356 seconds because its cleanup test
+checked `/proc/PID/stat` existence before reading it. Reaping can produce either
+ENOENT before open or ESRCH while reading an opened procfs file. Read once and
+accept only those disappearance errors or a zombie state; still reject a live
+child and permission failures. The first focused correction exposed ESRCH and
+remains recorded. The final thirteen-case fixture passes in 0.610 seconds, with
+deterministic coverage of both errors and the rejection cases. This changes
+only the test observation, not process termination or production deadlines.
