@@ -71,7 +71,7 @@ grep -Fq "hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/k
 [[ $(grep -Fc "key: qemu-linux-arm64-v7.1.4-7a5cef0-\${{ runner.os }}-\${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}" \
 	"$workflow") == 2 ]] ||
 	fail 'QEMU restore and immediate-save cache keys differ'
-grep -Fq 'uses: actions/cache/save@v4' "$workflow" ||
+grep -Fq 'uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4' "$workflow" ||
 	fail 'QEMU kernel is not cached immediately after a successful build'
 for option in BLK_DEV_INITRD BINFMT_ELF CGROUPS EPOLL FHANDLE FILE_LOCKING \
 	FUTEX INET INOTIFY_USER IP_PNP MEMFD_CREATE MULTIUSER NET NETDEVICES POSIX_TIMERS PRINTK PROC_FS RD_GZIP \
