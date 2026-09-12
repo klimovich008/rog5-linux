@@ -191,7 +191,7 @@
       "sha256": "592cff8c9775685ac612113298d79b9bbaa1a9acc89ff712b291489209a88d42"
     },
     "keyring_observation": "upstream Git snapshot and signed current package retained; explicit build signer unchanged; cryptographic freshness/anti-rollback unqualified",
-    "runtime_closure": "BLOCKED: matching engine/AOT/ICU/shell and ABI/session qualification remain incomplete",
+    "runtime_closure": "BLOCKED: archive authentication is complete for this historical 315-package graph, which omits the Xwayland executable required by pinned Denial startup.",
     "authority": "none; no installation, update, admission or phone authority",
     "provenance": {
       "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/package-provenance.json",
@@ -217,7 +217,7 @@
     },
     "physical_status": "NOT RUN",
     "authority": "none",
-    "runtime_closure": "BLOCKED: matching Flutter engine/AOT/ICU and complete native session remain unqualified"
+    "runtime_closure": "BLOCKED: actual Denial shell startup requires Xwayland, omitted by this 315-package runtime; complete session and physical behavior remain unqualified."
   },
   "denial_arm64_engine_arguments": {
     "status": "PASS: arguments only",
@@ -628,5 +628,37 @@
       "sha256": "f67b7180632e33bcfa304f7ede4772e192bf6aa7b1ba0999cd0da01c4931b98e",
       "size": 27379
     }
+  },
+  "denial_virtual_drm": {
+    "status": "PASS: generic guest DRM discovery and Denial CLI; shell BLOCKED",
+    "set_id": "private:rog5-virtual-drm-evidence-20260912-r1",
+    "source_commit": "b63aa1671bec8fda2352d66f16ca25c18b8223aa",
+    "source_tree": "dbd90d1d2c7e3d989ccd71dd617a2520f5042e4b",
+    "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
+    "kernel": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+      "sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+      "size": 6918152
+    },
+    "config": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/.config",
+      "sha256": "2fb657ae7d113f72d62c5e0238f974747577e8547cee6fb6d0ca025fd233b251",
+      "size": 65265
+    },
+    "kernel_output": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm",
+    "qemu_container": "9ee9f67fabc6a4cde87171fedf616666f035f02104a7a7807930a7ad290d8aae",
+    "runtime_tree": {
+      "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/tree.json",
+      "sha256": "d0c54597856c2205f6c19abb932182ffcf61102c9c0caaf39df76852fccfd75b",
+      "size": 10394055
+    },
+    "evidence": {
+      "path": "test-results/2026-09-12-virtual-drm-qualification.json",
+      "sha256": "5879ec10add329f35e8bc9e03bf4e75b9fb6d6d4c6242947a2a6eef89acac674",
+      "size": 40357
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline guest fixture only",
+    "next": "Authenticate the missing Xwayland runtime and dependency extension; reuse the existing virtual DRM kernel; no phone execution."
   }
 }
