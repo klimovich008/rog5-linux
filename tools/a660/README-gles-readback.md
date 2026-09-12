@@ -49,3 +49,26 @@ not to an observed successful EGL cleanup.
 
 The old Vulkan helper intentionally submits an empty command buffer. Its
 historical acceptance scope and sealed callers are unchanged.
+
+## Optional native-fence check
+
+Add `--native-fence` after the explicit renderer mode to require Denial's
+create/flush/export sequence after drawing. The exported descriptor must become
+readable within one second, with interrupted polls sharing the original deadline.
+`SYNC_IOC_FILE_INFO` must identify it as a Linux sync file with status 1; readable
+error fences and ordinary descriptors fail. The owned exported FD closes on every
+path before the producer EGL sync is destroyed. Pixel readback and PASS follow
+only after the fence check succeeds. Destruction failures remain errors.
+
+The optional mode requires `EGL_ANDROID_native_fence_sync` and
+`EGL_KHR_fence_sync`; there is no ordinary-EGL-fence fallback. Without the option,
+output explicitly records `native_fence=NOT RUN`. Missing support fails a
+requested check and is a capability blocker, not a successful native-fence trial.
+The external process deadline still covers driver calls that can block.
+
+This checks export, bounded completion and Linux status; it does not prove
+cross-context imports, KMS in-fence consumption, buffer sharing or physical
+qualification. Offline fault tests use actual eventfd/poll/FD closure with the
+EGL and sync-file ioctl boundaries controlled by an LD_PRELOAD fixture. That
+fixture is used only in the no-DRI test namespace; it is never a native-fence
+hardware proof.

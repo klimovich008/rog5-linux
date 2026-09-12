@@ -2,6 +2,8 @@
 //! Run only under an external deadline: synchronous driver calls can block.
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use std::ptr;
+use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+use std::time::{Duration, Instant};
 
 type Handle = *mut c_void;
 type Result<T> = std::result::Result<T, String>;
@@ -11,6 +13,45 @@ extern "C" {
     fn dlopen(name: *const c_char, flags: c_int) -> Handle;
     fn dlsym(handle: Handle, name: *const c_char) -> Handle;
     fn dlclose(handle: Handle) -> c_int;
+    fn poll(fds: *mut PollFd, count: usize, timeout: c_int) -> c_int;
+    fn ioctl(fd: c_int, request: std::ffi::c_ulong, ...) -> c_int;
+}
+
+#[repr(C)]
+struct PollFd { fd: c_int, events: i16, revents: i16 }
+#[repr(C)]
+#[derive(Default)]
+struct SyncFileInfo {
+    name: [u8; 32], status: i32, flags: u32, num_fences: u32,
+    pad: u32, sync_fence_info: u64,
+}
+
+fn wait_native_fd(fd: &OwnedFd) -> Result<()> {
+    let deadline = Instant::now() + Duration::from_secs(1);
+    loop {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() { return Err("native fence wait timeout".into()); }
+        let timeout = remaining.as_millis().clamp(1, 1000) as c_int;
+        let mut entry = PollFd { fd: fd.as_raw_fd(), events: 1, revents: 0 };
+        // Poll borrows the live descriptor; all waits share one deadline.
+        let result = unsafe { poll(&mut entry, 1, timeout) };
+        if result < 0 {
+            let error = std::io::Error::last_os_error();
+            if error.kind() == std::io::ErrorKind::Interrupted { continue; }
+            return Err(format!("native fence poll: {error}"));
+        }
+        if result == 0 { continue; }
+        if entry.revents != 1 { return Err(format!("native fence poll events=0x{:x}", entry.revents)); }
+        let mut info = SyncFileInfo::default();
+        // Linux _IOWR('>', 4, struct sync_file_info), verified on x86_64/aarch64.
+        let request = (3 << 30) | (std::mem::size_of::<SyncFileInfo>() << 16) | (62 << 8) | 4;
+        // num_fences=0 requests only the fixed header; no user array is supplied.
+        if unsafe { ioctl(fd.as_raw_fd(), request as std::ffi::c_ulong, &mut info) } != 0 {
+            return Err(format!("native sync_file info: {}", std::io::Error::last_os_error()));
+        }
+        if info.status != 1 { return Err(format!("native sync_file status={}", info.status)); }
+        return Ok(());
+    }
 }
 
 struct Library(Handle);
@@ -55,6 +96,9 @@ macro_rules! api {
 }
 api! {
     eglGetError() -> c_uint;
+    eglGetProcAddress(*const c_char) -> Handle;
+    eglCreateSync(Handle, c_uint, *const isize) -> Handle;
+    eglDestroySync(Handle, Handle) -> c_uint;
     eglQueryString(Handle, c_int) -> *const c_char;
     eglGetPlatformDisplay(c_uint, Handle, *const isize) -> Handle;
     eglInitialize(Handle, *mut c_int, *mut c_int) -> c_uint;
@@ -68,6 +112,7 @@ api! {
     eglTerminate(Handle) -> c_uint;
     glGetString(c_uint) -> *const c_char;
     glGetError() -> c_uint;
+    glFlush() -> ();
     glGetIntegerv(c_uint, *mut c_int) -> ();
     glCreateShader(c_uint) -> c_uint;
     glShaderSource(c_uint, c_int, *const *const c_char, *const c_int) -> ();
@@ -98,7 +143,7 @@ impl Mode {
         match args {
             [mode] if mode == "--require-a660" => Ok(Self::A660),
             [mode] if mode == "--software-fixture" => Ok(Self::Software),
-            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture (external deadline required)".into()),
+            _ => Err("usage: rog5-gles-readback --require-a660 | --software-fixture [--native-fence] (external deadline required)".into()),
         }
     }
     fn scope(self) -> &'static str {
@@ -160,7 +205,7 @@ impl<'a> Session<'a> {
         let error = unsafe { (self.api.glGetError)() };
         if error == 0 { Ok(()) } else { Err(format!("{stage}: GL error 0x{error:x}")) }
     }
-    fn render(&mut self, mode: Mode) -> Result<(String, String, String)> {
+    fn render(&mut self, mode: Mode, native_fence: bool) -> Result<(String, String, String)> {
         let a = self.api;
         // All pointer arguments below reference live arrays/handles of the exact
         // API types and lengths. GL calls follow a successful eglMakeCurrent.
@@ -244,11 +289,46 @@ impl<'a> Session<'a> {
             (a.glEnableVertexAttribArray)(0);
             (a.glDrawArrays)(0x0004, 0, 3);
             self.gl_check("draw")?;
+            if native_fence { self.native_fence()?; }
             let mut pixels = [0u8; 64];
             (a.glReadPixels)(0, 0, 4, 4, 0x1908, 0x1401, pixels.as_mut_ptr().cast());
             self.gl_check("readback")?;
             pixels_match(&pixels)?;
             Ok((renderer, vendor, version))
+        }
+    }
+    fn native_fence(&self) -> Result<()> {
+        let a = self.api;
+        // The display and current GLES context are owned by this session.
+        unsafe {
+            let extensions = string_value((a.eglQueryString)(self.display, 0x3055), "EGL display extensions")?;
+            for required in ["EGL_ANDROID_native_fence_sync", "EGL_KHR_fence_sync"] {
+                if !extensions.split_ascii_whitespace().any(|value| value == required) {
+                    return Err(format!("native fence unavailable: {required}"));
+                }
+            }
+            let symbol = (a.eglGetProcAddress)(b"eglDupNativeFenceFDANDROID\0".as_ptr().cast());
+            if symbol.is_null() { return Err("native fence export symbol unavailable".into()); }
+            let export: unsafe extern "C" fn(Handle, Handle) -> c_int = std::mem::transmute(symbol);
+            let sync = (a.eglCreateSync)(self.display, 0x3144, ptr::null());
+            if sync.is_null() { return Err("native fence creation failed".into()); }
+            let result = (|| {
+                // Match Denial: fence after drawing, explicit flush before export.
+                (a.glFlush)();
+                self.gl_check("native fence flush")?;
+                let raw = export(self.display, sync);
+                if raw < 0 { return Err("native fence export failed".into()); }
+                // Export transfers ownership of a new descriptor to the caller.
+                let fd = OwnedFd::from_raw_fd(raw);
+                wait_native_fd(&fd)
+            })();
+            // fd has closed on every path before destroying the producer sync.
+            let destroyed = check((a.eglDestroySync)(self.display, sync), "native fence destruction");
+            match (result, destroyed) {
+                (Ok(()), Ok(())) => Ok(()),
+                (Err(e), Ok(())) | (Ok(()), Err(e)) => Err(e),
+                (Err(e), Err(cleanup)) => Err(format!("{e}; {cleanup}")),
+            }
         }
     }
     fn cleanup(&mut self) -> Result<()> {
@@ -281,26 +361,28 @@ impl<'a> Session<'a> {
     }
 }
 
-fn run(mode: Mode) -> Result<()> {
+fn run(mode: Mode, native_fence: bool) -> Result<()> {
     let api = Api::load()?;
     let mut session = Session::new(&api);
-    let rendered = session.render(mode);
+    let rendered = session.render(mode, native_fence);
     let cleanup = session.cleanup();
     let (renderer, vendor, version) = match (rendered, cleanup) {
         (Ok(identity), Ok(())) => identity,
         (Err(e), Ok(())) | (Ok(_), Err(e)) => return Err(e),
         (Err(e), Err(cleanup)) => return Err(format!("{e}; cleanup: {cleanup}")),
     };
-    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nscanout=NOT RUN\nbuffer_sharing=NOT RUN\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error);
+    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nnative_fence={}\nscanout=NOT RUN\nbuffer_sharing=NOT RUN\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error, if native_fence { "PASS" } else { "NOT RUN" });
     Ok(())
 }
 fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let native_fence = args.len() == 2 && args[1] == "--native-fence";
+    if native_fence { args.pop(); }
     let mode = match Mode::parse(&args) {
         Ok(mode) => mode,
         Err(error) => { eprintln!("{error}"); std::process::exit(2); }
     };
-    if let Err(error) = run(mode) { eprintln!("FAIL {error}"); std::process::exit(1); }
+    if let Err(error) = run(mode, native_fence) { eprintln!("FAIL {error}"); std::process::exit(1); }
 }
 
 #[cfg(test)]

@@ -1,12 +1,22 @@
+#define _GNU_SOURCE
 /* ABI fixture for the actual Rust executable; never a hardware renderer. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <dlfcn.h>
+#include <poll.h>
+#include <stdarg.h>
+#include <sys/eventfd.h>
+#include <sys/ioctl.h>
+#include <linux/sync_file.h>
 typedef void *H;
 static const char *stage;
 static int requested_major, requested_minor;
+static int fence_fd=-1, poll_calls;
 static int fault(const char *name) {
  const char *value = getenv("ROG5_FAKE_GLES_FAIL");
  fprintf(stderr, "CALL %s\n", name);
@@ -14,7 +24,8 @@ static int fault(const char *name) {
  return value && !strcmp(value, name);
 }
 const char *eglQueryString(H d, int n) {
- (void)d; (void)n;
+ (void)n;
+ if (d) return fault("native_extension")?"EGL_ANDROID_native_fence_sync_suffix EGL_KHR_fence_sync":"EGL_ANDROID_native_fence_sync EGL_KHR_fence_sync";
  return fault("extensions") ? "EGL_MESA_platform_surfaceless_suffix" : "EGL_MESA_platform_surfaceless";
 }
 H eglGetPlatformDisplay(unsigned p, H d, const intptr_t *a) { (void)p; (void)d; (void)a; return fault("display") ? NULL : (H)1; }
@@ -53,7 +64,7 @@ const char *glGetString(unsigned n) {
 }
 unsigned glGetError(void) {
  const char *value=getenv("ROG5_FAKE_GLES_FAIL");
- return value && ((!strcmp(value,"version_query") && stage && !strcmp(stage,"version_query")) || (!strcmp(value,"draw_error") && stage && !strcmp(stage,"draw")) || (!strcmp(value,"cleanup_error") && stage && !strcmp(stage,"delete_program")) || (!strcmp(value,"read_error") && stage && !strcmp(stage,"read")))?0x502:0;
+ return value && ((!strcmp(value,"flush") && stage && !strcmp(stage,"flush")) || (!strcmp(value,"version_query") && stage && !strcmp(stage,"version_query")) || (!strcmp(value,"draw_error") && stage && !strcmp(stage,"draw")) || (!strcmp(value,"cleanup_error") && stage && !strcmp(stage,"delete_program")) || (!strcmp(value,"read_error") && stage && !strcmp(stage,"read")))?0x502:0;
 }
 unsigned glCreateShader(unsigned kind) { return fault(kind==0x8b31?"vertex_create":"fragment_create")?0:kind; }
 void glShaderSource(unsigned s, int n, const char **p, const int *len) { (void)s; (void)n; (void)p; (void)len; }
@@ -84,4 +95,48 @@ void glReadPixels(int x, int y, int w, int h, unsigned fmt, unsigned type, void 
   *out++ = (unsigned char)((j+0.5)*255/4+0.5);
   *out++ = 64; *out++ = 255;
  }
+}
+
+void glFlush(void) { fault("flush"); }
+H eglCreateSync(H display, unsigned type, const intptr_t *attributes) {
+ (void)display;
+ if (type!=0x3144 || attributes) abort();
+ return fault("fence_create")?NULL:(H)9;
+}
+static int export_fence(H display, H sync) {
+ (void)display; (void)sync;
+ if (fault("fence_export")) return -1;
+ const char *value=getenv("ROG5_FAKE_GLES_FAIL");
+ fence_fd=eventfd(value && !strcmp(value,"fence_timeout")?0:1,EFD_CLOEXEC|EFD_NONBLOCK);
+ return fence_fd;
+}
+H eglGetProcAddress(const char *name) {
+ if (strcmp(name,"eglDupNativeFenceFDANDROID")) abort();
+ return fault("fence_symbol")?NULL:(H)export_fence;
+}
+unsigned eglDestroySync(H display, H sync) {
+ (void)display; (void)sync;
+ if (fence_fd>=0) {
+  if (fcntl(fence_fd,F_GETFD)!=-1 || errno!=EBADF) abort();
+  fprintf(stderr,"FENCE_FD_CLOSED\n");
+ }
+ return !fault("fence_destroy");
+}
+int poll(struct pollfd *fds,nfds_t count,int timeout) {
+ const char *value=getenv("ROG5_FAKE_GLES_FAIL");
+ if (count==1 && fds[0].fd==fence_fd) {
+  if (value && !strcmp(value,"fence_eintr") && poll_calls++==0) { errno=EINTR; return -1; }
+  if (value && !strcmp(value,"fence_poll_error")) { fds[0].revents=POLLIN|POLLERR; return 1; }
+ }
+ int (*real_poll)(struct pollfd *,nfds_t,int)=dlsym(RTLD_NEXT,"poll");
+ if (!real_poll) abort();
+ return real_poll(fds,count,timeout);
+}
+int ioctl(int fd,unsigned long request,...) {
+ va_list args;va_start(args,request);struct sync_file_info *info=va_arg(args,void *);va_end(args);
+ if (fd!=fence_fd || request!=SYNC_IOC_FILE_INFO) { errno=ENOTTY;return -1; }
+ if (info->flags || info->num_fences || info->pad || info->sync_fence_info) abort();
+ int pending=fault("fence_pending"),negative=fault("fence_negative");
+ if (fault("fence_info")) { errno=EINVAL;return -1; }
+ info->status=pending?0:negative?-5:1;info->num_fences=1;return 0;
 }
