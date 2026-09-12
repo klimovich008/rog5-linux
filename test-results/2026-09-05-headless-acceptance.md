@@ -9389,3 +9389,60 @@ never replay it. No Ready is pending. Latest full phone health remains r131;
 installed route r132. S06/R01 and blank cleanup remain open. Evidence:
 gpu-iommu-session-r1/review-r136.json, gpu-iommu-arm64-python-r1/tests-r1-result.json
 and checkpoint-r136.
+
+
+## IOMMU r137: final launcher and offline flow qualification
+
+Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
+offline live-flow qualification complete**. The intervening sudo answer was
+no progress; r136 was the previous project checkpoint and was progress. No
+phone I/O, root execution, claim creation/consumption, reboot or sudoers change.
+
+The new launcher uses gpu-iommu-session-r1/session.py and the current admission
+verifier. All11 launcher function/class ASTs are unchanged from the old launcher;
+only dependency bindings differ.129 inputs are frozen; the combined session's19
+required files validate against that lock. Actual input/cohort validation took
+0.133 s. Verifier and launcher stay outside their own lock to avoid a hash cycle;
+launcher pins verifier, and qualification/admission bind all identities.
+
+Final80 offline checks PASS:38 launcher/credential/claim cases0.953 s;28 admission
+cases1.015 s;4 root-entry routing cases0.285 s;5 assembled boot/recovery cases
+19.211 s;3 factory/source-abort cases2.285 s;2 combined-session recovery handoffs
+10.710 s. Capture processes and their closure are real; capture clocks are
+virtual, preserving the1380-second production limit. Phone/USB/SSH, root UID,
+credentials and GPU effects remain fixtures. Host fastboot path metadata passed
+separately. Session/ARM64 evidence from r136 is reused only for matching hashes.
+
+The assembled flow covers target success, source abort, early V11 return, late
+fastboot recovery and restoration while the exact target remains healthy. The
+session recovery function was exercised against both actual controller branches:
+fastboot recovery uses one ordinary reboot and separate recorder; healthy-target
+recovery uses neither. Neither overwrites the original boot-result bytes.
+
+live-qualification.json now validates the final launcher/verifier/input lock.
+Actual prepare() reaches the expected ClaimError: pending trial claim absent.
+No launch, authentication or execution directory was created. The existing
+read-only privilege helper passes --check-only; this proves local files/UI
+prerequisites, not current root authority or successful password entry.
+
+Preparation issues were confined to fixtures/preparer: isolated subprocess
+scratch initially pointed into a read-only historical directory; isolated mount
+root ownership required explicit fastboot-metadata fixtures in every imported
+copy; the real host check passed. Input inventory initially assumed all pin keys
+were paths, but producers also use PATHS mappings and symbolic keys. Resolution
+now accounts for both and refuses unresolved pins. Streaming hash stability now
+excludes access time, which reading may legitimately update, while retaining
+inode/owner/mode/size/mtime/ctime checks. Initial flow/launcher failures remain
+retained. Focused handoff selection runs only the two new cases, avoiding inherited
+suite duplication. No kernel rebuild or A01 repeat was needed.
+
+Next: prepare a single-parent authentication/privilege-check/launch entry so one
+local authentication can cover both root probes and the full trial; preserve
+one-use and closed-authentication rules. Finish that host preparation, check
+current phone health and create only the exact qualified pending claim before
+requesting fresh user availability. Do not run the launcher yet or request Ready
+until that entry is reviewed and ready. Reuse completed controller r2 RAM staging;
+never replay it. No Ready is pending. Latest full phone health remains r131 and
+installed route r132. New kernel remains unbooted; OLED/acceleration, S06/R01 and
+blank cleanup remain open. All owned test processes are terminal. Evidence:
+gpu-iommu-live-driver-r1/review-r137.json, live-qualification.json and checkpoint-r137.

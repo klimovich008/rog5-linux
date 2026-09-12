@@ -30,6 +30,19 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+IOMMU r137: isolated flow tests must relocate subprocess scratch as well as
+receipt outputs. Fastboot metadata checks also see the namespace mount root;
+verify the real host path separately, and substitute that boundary in every
+loaded fixture copy. Keep those changes out of production. Resolve inventory
+pins through declared PATHS/symbolic dependencies instead of assuming every key
+is a state-relative filename. Hash stability excludes access time, not mtime or
+ctime.129 final inputs and the19-file session cohort validated in0.133 s.80 final
+launcher/admission/full-flow/handoff checks passed; select only new handoff cases
+rather than inheriting and rerunning unrelated suites. Next live entry must keep
+authentication, both root probes and launch in the same parent/session so one
+password entry can be reused without storing it. Do not claim that entry exists
+yet or ask for user presence before it is prepared.
+
 IOMMU r136: compose cleanup by the last dispatched hardware phase. A lost
 display result must never inherit provider-only cleanup. Demonstrate that refusal
 before changing classification. Budget logger closure as well as action time;
