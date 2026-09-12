@@ -308,9 +308,9 @@
     },
     "compilation_status": "RUNNING: two-worker incremental segment after retained first-segment timeout FAIL",
     "build_observation": {
-      "path": "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/engine-continuation-observation.json",
-      "sha256": "0a03a709b96ba1b7bd24612a20b7c42734a37973cbc8c49271811c6ab4b3e207",
-      "size": 1536
+      "path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/engine-observation.json",
+      "sha256": "64dfd7ac8cb15db44276a948542e6c7236082960ced37684bb3d210d503feeda",
+      "size": 1380
     },
     "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r2-result.json",
     "physical_status": "NOT RUN",
@@ -343,6 +343,40 @@
     },
     "source_cache_installation": "NOT RUN: existing engine inputs unchanged",
     "complete_sdk_build": "NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none"
+  },
+  "denial_sdk_platform": {
+    "status": "PASS: two byte-identical platform-Dill builds and parsed library identities",
+    "set_id": "private:rog5-sdk-platform-evidence-20260912-r1",
+    "evidence": {
+      "path": "test-results/2026-09-12-sdk-platform-qualification.json",
+      "sha256": "5edf9a3b916bfc3e56dcd48d295c7bf613721816c19b10696ca1af13df7414c8"
+    },
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/vm_platform.dill",
+        "sha256": "f7973d75a7a5f6758b9ead46e3a7bddcb019e9bd6eebd3b3bb03a89a82639498",
+        "size": 8267376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/vm_outline.dill",
+        "sha256": "c8e9f4976dea4fbf9bdafb84b62aa530e28056e4d3d12a3559c0d7bc3e4444f6",
+        "size": 1609864
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/flutter_patched_sdk/platform_strong.dill",
+        "sha256": "405cb8b4cfea924abdaf9c6f9445ffa327a4928dd410c96e5a778c1856728831",
+        "size": 9960416
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/flutter_patched_sdk/vm_outline_strong.dill",
+        "sha256": "7f196ba23caf539443796e166ef8eb1fa6fc3f19b37db8742f6620056bbb601f",
+        "size": 1905984
+      }
+    ],
+    "complete_sdk_build": "NOT RUN",
+    "shell_aot_status": "NOT RUN",
     "physical_status": "NOT RUN",
     "authority": "none"
   }
