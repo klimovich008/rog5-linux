@@ -35,3 +35,14 @@ compiler cannot pass. This explicit-source test is not silently run by ordinary
 repository tiers; real ARM64 build and VM results remain separate evidence.
 The logging-only diagnostic used in VM comparison lives in the review packet,
 not in this behavior patch. Neither VM result proves phone GPU or scanout.
+
+
+`0002-distinguish-render-target-refusals.patch` is a separate diagnostic patch.
+With existing `DENIA_RENDER_AUDIT=1`, it distinguishes missing view/size pool,
+missing render authorization and no reusable slot, preserving the old aggregate
+counter and all broker decisions. It also exposes existing authorization expiry
+at INFO level only while auditing. It does not extend deadlines or admit frames.
+Use the same source/output arguments with
+`scripts/host/test-denial-broker-refusals.py`; seven actual-function cases cover
+refusal identity, unchanged consumption/expiry and audit counter aggregation.
+The two patches apply in numeric order; neither is selected by a phone builder.

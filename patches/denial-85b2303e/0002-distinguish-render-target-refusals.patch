@@ -1,0 +1,109 @@
+--- a/compositor/src/bin/deniald/flutter_runtime/output_pipeline.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/output_pipeline.rs
+@@ -13,7 +13,9 @@
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+ pub(super) enum RenderTargetBlocked {
+     ReadyHandoff,
+-    PoolExhausted,
++    MissingPool,
++    MissingAuthorization,
++    NoFreeSlot,
+ }
+ 
+ #[derive(Clone, Copy, Debug)]
+@@ -226,10 +228,10 @@
+             .iter_mut()
+             .find(|pool| pool.render_view_id.get() == render_view_id && pool.size == size)
+         else {
+-            return Err(RenderTargetBlocked::PoolExhausted);
++            return Err(RenderTargetBlocked::MissingPool);
+         };
+         let Some(authorization) = pool.authorized_request else {
+-            return Err(RenderTargetBlocked::PoolExhausted);
++            return Err(RenderTargetBlocked::MissingAuthorization);
+         };
+         if pool
+             .slots
+@@ -243,7 +245,7 @@
+             .iter()
+             .position(|slot| slot.state == BufferState::Free && slot.output_refs == 0)
+         else {
+-            return Err(RenderTargetBlocked::PoolExhausted);
++            return Err(RenderTargetBlocked::NoFreeSlot);
+         };
+         pool.authorized_request = None;
+         let slot = &mut pool.slots[slot_index];
+--- a/compositor/src/bin/deniald/flutter_runtime/render_audit.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/render_audit.rs
+@@ -88,6 +88,9 @@
+     authorization_lateness_max: Duration,
+     target_blocked_ready: u64,
+     target_blocked_exhausted: u64,
++    target_blocked_missing_pool: u64,
++    target_blocked_no_authorization: u64,
++    target_blocked_no_free_slot: u64,
+     last_render_view_id: Option<i64>,
+     last_frame_damage: Option<DamageRegion>,
+     last_buffer_damage: Option<DamageRegion>,
+@@ -137,6 +140,9 @@
+             authorization_lateness_max: Duration::ZERO,
+             target_blocked_ready: 0,
+             target_blocked_exhausted: 0,
++            target_blocked_missing_pool: 0,
++            target_blocked_no_authorization: 0,
++            target_blocked_no_free_slot: 0,
+             last_render_view_id: None,
+             last_frame_damage: None,
+             last_buffer_damage: None,
+@@ -212,8 +218,18 @@
+             RenderTargetBlocked::ReadyHandoff => {
+                 self.target_blocked_ready = self.target_blocked_ready.saturating_add(1);
+             }
+-            RenderTargetBlocked::PoolExhausted => {
++            RenderTargetBlocked::MissingPool => {
+                 self.target_blocked_exhausted = self.target_blocked_exhausted.saturating_add(1);
++                self.target_blocked_missing_pool = self.target_blocked_missing_pool.saturating_add(1);
++            }
++            RenderTargetBlocked::MissingAuthorization => {
++                self.target_blocked_exhausted = self.target_blocked_exhausted.saturating_add(1);
++                self.target_blocked_no_authorization =
++                    self.target_blocked_no_authorization.saturating_add(1);
++            }
++            RenderTargetBlocked::NoFreeSlot => {
++                self.target_blocked_exhausted = self.target_blocked_exhausted.saturating_add(1);
++                self.target_blocked_no_free_slot = self.target_blocked_no_free_slot.saturating_add(1);
+             }
+         }
+     }
+@@ -365,6 +381,9 @@
+                 * 1_000_000.0,
+             target_blocked_ready = self.target_blocked_ready,
+             target_blocked_exhausted = self.target_blocked_exhausted,
++            target_blocked_missing_pool = self.target_blocked_missing_pool,
++            target_blocked_no_authorization = self.target_blocked_no_authorization,
++            target_blocked_no_free_slot = self.target_blocked_no_free_slot,
+             raster_restarts = self.raster_restarts,
+             context_make_current_avg_us = context_make_current.average_us,
+             context_make_current_p95_us = context_make_current.p95_us,
+@@ -445,6 +464,9 @@
+         self.authorization_lateness_max = Duration::ZERO;
+         self.target_blocked_ready = 0;
+         self.target_blocked_exhausted = 0;
++        self.target_blocked_missing_pool = 0;
++        self.target_blocked_no_authorization = 0;
++        self.target_blocked_no_free_slot = 0;
+         self.last_render_view_id = None;
+         self.last_frame_damage = None;
+         self.last_buffer_damage = None;
+--- a/compositor/src/bin/deniald/flutter_runtime/output_runtime.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/output_runtime.rs
+@@ -319,6 +319,9 @@
+                 action(pending, target_available)
+             });
+         if expired > 0 {
++            if render_audit_enabled() {
++                info!(expired, "expired unclaimed output render authorizations");
++            }
+             debug!(
+                 expired,
+                 "released output render authorizations which produced no raster task"
