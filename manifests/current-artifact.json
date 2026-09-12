@@ -130,33 +130,33 @@
     "note": "Unsigned disabled-DT fixture; no production selection or installation. Ordinary non-wakeup sleep/resume implemented and host tested; physical sleep, touch wake and rail recovery remain unqualified. Hibernation is refused. Ambiguous ownership or failed restart stays quiesced within one instance; no rebind/reload retry is qualified."
   },
   "gpu_readback_probe": {
-    "status": "fixture: GLES probe with optional native-fence export/status check; not admitted",
-    "set_id": "private:rog5-native-fence-evidence-20260912-r1/build",
-    "source_commit": "f2f6f7981714c7eb24a8028acfb6c91d368ad262",
+    "status": "fixture: GLES probe with optional native-fence import/server-wait check; not admitted",
+    "set_id": "private:rog5-fence-import-evidence-20260912-r1/build",
+    "source_commit": "ea638a8aef0f5cafcecc0f54a923dfd7db7eda2e",
     "arm64": {
-      "path": "/home/deck/.local/state/rog5-native-fence-evidence-20260912-r1/build/arm64-a",
-      "size": 4658448,
-      "sha256": "9f93abfad3b8b0e7861b679999c921d05ae37ea6df7ded67812592d1c4cdef7c"
+      "path": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a",
+      "size": 4659224,
+      "sha256": "a815ce5f62f53c78319db3dde625007fd6217537a2ee9f7330fe3cb45badc073"
     },
     "qualification": {
-      "path": "test-results/2026-09-12-native-fence-qualification.json",
-      "sha256": "b556916ca81bd0d0640b9a36a3e184546a86ad3335f5ea3cc4a0a294383554fa"
+      "path": "test-results/2026-09-12-fence-import-qualification.json",
+      "sha256": "f4756bd506a90a9fb5bb8b8ac783ec7f2a13986f90d5b1858f59fb050ac69193"
     },
     "physical_status": "NOT RUN",
     "candidate": null
   },
   "gpu_readback_runtime": {
-    "set_id": "private:rog5-native-fence-evidence-20260912-r1/build",
+    "set_id": "private:rog5-fence-import-evidence-20260912-r1/build",
     "status": "fixture: matching new probe with reused Arch software libraries; not installed",
-    "probe_sha256": "9f93abfad3b8b0e7861b679999c921d05ae37ea6df7ded67812592d1c4cdef7c",
+    "probe_sha256": "a815ce5f62f53c78319db3dde625007fd6217537a2ee9f7330fe3cb45badc073",
     "mesa": "1:26.2.2-1",
     "runtime_binding": {
-      "path": "/home/deck/.local/state/rog5-native-fence-evidence-20260912-r1/runtime-binding.json",
-      "sha256": "388545d513a1e5d81f6aebca56e55f4e1a8114ac6d6156c7695c1fbb4b89608f"
+      "path": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/runtime-binding.json",
+      "sha256": "be6a184e9d51b975ecba2fcf0e5e1a4c077ad60a7586af5cd641619fc638676e"
     },
     "qualification": {
-      "path": "test-results/2026-09-12-native-fence-qualification.json",
-      "sha256": "b556916ca81bd0d0640b9a36a3e184546a86ad3335f5ea3cc4a0a294383554fa"
+      "path": "test-results/2026-09-12-fence-import-qualification.json",
+      "sha256": "f4756bd506a90a9fb5bb8b8ac783ec7f2a13986f90d5b1858f59fb050ac69193"
     },
     "physical_status": "NOT RUN",
     "candidate": null

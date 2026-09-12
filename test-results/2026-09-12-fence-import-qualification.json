@@ -1,0 +1,583 @@
+{
+  "format": "rog5-fence-import-qualification-v1",
+  "status": "PASS: offline code/ABI and pixel checks; real native-fence capability BLOCKED",
+  "starting_commit": "57b7cd577919bcee7deb71283c4d44fb989894d2",
+  "starting_tree": "185144463a13aa32bbc0cb8d847b21f0e2bc7e4c",
+  "build": {
+    "format": "rog5-gles-readback-qualification-v1",
+    "source_commit": "ea638a8aef0f5cafcecc0f54a923dfd7db7eda2e",
+    "source_tree": "c32e4b658ee34d0c5be3bc472caef51276b5d753",
+    "builder_image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "source_sha256": "beb7291a1eed2248eadbebed8f7f2ecad872836630b175f987bc24da8f3709c1",
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a",
+        "size": 4659224,
+        "sha256": "a815ce5f62f53c78319db3dde625007fd6217537a2ee9f7330fe3cb45badc073"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-b",
+        "size": 4659224,
+        "sha256": "a815ce5f62f53c78319db3dde625007fd6217537a2ee9f7330fe3cb45badc073"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/native",
+        "size": 4557944,
+        "sha256": "f051cbfee491fddb01f44fff5216bf80f612f2aee802f9492877718c14aa6139"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/debug-unit",
+        "size": 7200984,
+        "sha256": "3f1eacfe068d08ce18ba734976ab9b5f83c079871c0d92f882fe4e9a098e769b"
+      }
+    ],
+    "commands": [
+      {
+        "name": "arm64-a",
+        "command": [
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=aarch64-linux-gnu-gcc",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a"
+        ],
+        "start_utc": "2026-09-12T09:38:41.103861+00:00",
+        "duration_seconds": 1.1667223449912854,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "arm64-b",
+        "command": [
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "--target",
+          "aarch64-unknown-linux-gnu",
+          "-C",
+          "linker=aarch64-linux-gnu-gcc",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-b"
+        ],
+        "start_utc": "2026-09-12T09:38:42.271219+00:00",
+        "duration_seconds": 1.166574672999559,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "native",
+        "command": [
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "-O",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/native"
+        ],
+        "start_utc": "2026-09-12T09:38:43.438325+00:00",
+        "duration_seconds": 1.0165193319990067,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "debug-unit-build",
+        "command": [
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/rustc",
+          "--edition=2021",
+          "-Dwarnings",
+          "--remap-path-prefix",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1=/rog5",
+          "--test",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/a660/rog5-gles-readback.rs",
+          "-o",
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/debug-unit"
+        ],
+        "start_utc": "2026-09-12T09:38:44.455235+00:00",
+        "duration_seconds": 0.6152848640049342,
+        "exit_status": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "name": "debug-unit",
+        "command": [
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/debug-unit"
+        ],
+        "start_utc": "2026-09-12T09:38:45.070942+00:00",
+        "duration_seconds": 0.0037412570090964437,
+        "exit_status": 0,
+        "log_sha256": "0eb401f28abf2be525c6e5ec8859e59755e1f38216049ab43e1664c9c2849f13"
+      },
+      {
+        "name": "arm64-elf",
+        "command": [
+          "readelf",
+          "-h",
+          "-d",
+          "-V",
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a"
+        ],
+        "start_utc": "2026-09-12T09:38:45.075103+00:00",
+        "duration_seconds": 0.007894877999206074,
+        "exit_status": 0,
+        "log_sha256": "5d465e4e493e9725cd1cb26544cf82ca9e85744e5cd4fc2f089a9dea9e7af831"
+      },
+      {
+        "name": "native-real-mesa",
+        "command": [
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--ro-bind",
+          "/",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--setenv",
+          "LIBGL_ALWAYS_SOFTWARE",
+          "1",
+          "--setenv",
+          "MESA_SHADER_CACHE_DISABLE",
+          "true",
+          "--setenv",
+          "LP_NUM_THREADS",
+          "1",
+          "--unsetenv",
+          "DISPLAY",
+          "--unsetenv",
+          "WAYLAND_DISPLAY",
+          "--",
+          "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/native",
+          "--software-fixture"
+        ],
+        "start_utc": "2026-09-12T09:38:45.083362+00:00",
+        "duration_seconds": 0.16470508399652317,
+        "exit_status": 0,
+        "log_sha256": "ec126b18cdb5db9ea20b403aba3b3e957c689b9bbd48703df0bc34d2accf6c45"
+      },
+      {
+        "name": "builder-tools",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--network=none",
+          "--read-only",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "sh",
+          "-c",
+          "/opt/denial-rust/bin/rustc -Vv; aarch64-linux-gnu-gcc --version; aarch64-linux-gnu-ld --version; sha256sum /opt/denial-rust/bin/rustc /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-ld /usr/bin/cc /usr/bin/ld"
+        ],
+        "start_utc": "2026-09-12T09:38:45.248657+00:00",
+        "duration_seconds": 0.3150266469892813,
+        "exit_status": 0,
+        "log_sha256": "dfc4af351c92463d0232923956932ec40d87d7c7f7ef5b76530dde1d65dc9f66"
+      }
+    ],
+    "scope": "offscreen software Mesa and ABI fixtures; ARM64 compile only",
+    "physical_status": "NOT RUN",
+    "candidate": null,
+    "admission": "none",
+    "arm64_execution": "NOT RUN",
+    "rustfmt_clippy": "NOT RUN: absent from cached builder"
+  },
+  "denial_requirement": {
+    "commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "path": "compositor/src/bin/deniald/egl_context.rs",
+    "sha256": "709c4897cff8753283fb14bbe4dbc85a0b1d6761b983629f5423be7435a3c022",
+    "preferred": [
+      3,
+      2
+    ],
+    "fallback": [
+      3,
+      0
+    ],
+    "scope": "version selection only; not full Denial GL/GBM/native-fence qualification"
+  },
+  "before": {
+    "result": "expected FAIL",
+    "seconds": 1.911,
+    "test": "ReadbackTest.test_native_fence_import_consumer_and_cleanup",
+    "log": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/before.log",
+    "sha256": "59ff141b8e89a35969b2be1c3a298e9a07a8eb6b90a854114dfb7a82d5eb4c88",
+    "counterexample": "old executable refused the newly requested native-fence-import option; this is a new capability, not a retroactive bug claim"
+  },
+  "focused": {
+    "result": "PASS",
+    "groups": 10,
+    "seconds": 6.812,
+    "command": "TMPDIR=/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1 RUSTC=/home/deck/.local/state/rog5-native-fence-evidence-20260912-r1/rustc python3 -O scripts/device/test-gles-readback.py",
+    "log_sha256": "da86f2649856952670eed440f6c81c96ea84c6fc621409a467dbb6ac3d5edaff"
+  },
+  "arm64_fault_tests": {
+    "status": "PASS",
+    "seconds": 6.471651221989305,
+    "tests": [
+      "test_native_fence_import_consumer_and_cleanup",
+      "test_native_fence_export_wait_and_faults",
+      "test_denial_gles_versions_and_refusal_before_drawing",
+      "test_actual_executable_faults_never_publish_pass",
+      "test_requires_explicit_mode_before_library_loading",
+      "test_strict_renderer_scope_and_cleanup",
+      "test_stalled_readback_is_killed_without_success"
+    ],
+    "probe": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a",
+    "scope": "retained ARM64 binary on retained Arch libc via QEMU user; EGL/GLES ABI fixtures only",
+    "phone_operations": false
+  },
+  "arm64_mesa_tests": [
+    {
+      "name": "loader",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/usr/lib/ld-linux-aarch64.so.1",
+        "--list",
+        "/probe"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "duration_seconds": 0.03239549099816941,
+      "status": "PASS"
+    },
+    {
+      "name": "software",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/probe",
+        "--software-fixture"
+      ],
+      "exit_status": 0,
+      "expected_exit_status": 0,
+      "duration_seconds": 0.9664766389905708,
+      "status": "PASS"
+    },
+    {
+      "name": "hardware-refusal",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/probe",
+        "--require-a660"
+      ],
+      "exit_status": 1,
+      "expected_exit_status": 1,
+      "duration_seconds": 0.6661279359977925,
+      "status": "PASS"
+    }
+  ],
+  "runtime_binding": {
+    "path": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/runtime-binding.json",
+    "sha256": "be6a184e9d51b975ecba2fcf0e5e1a4c077ad60a7586af5cd641619fc638676e"
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--scope",
+        "--quiet",
+        "-p",
+        "MemoryMax=3G",
+        "-p",
+        "MemorySwapMax=0",
+        "bash",
+        "scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "environment_overrides": {
+        "RUSTC": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/rustc",
+        "ROG5_TEST_WORKERS": "2",
+        "ROG5_TEST_REPORT_DIR": "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/active-r1"
+      },
+      "ROG5_LINUX_SOURCE": "unset",
+      "seconds": 120.2942780470039,
+      "exit_status": 0
+    },
+    "counts": {
+      "PASS": 83,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 256
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary_sha256": "204bf7dbb88bbdd268be817639fd6f88415b3950475dff0c9f032cc0cc8be382",
+    "junit_sha256": "ab2ed2d79656ed58ed265b1bfc446655c3b339b46ecfb8bfb80b8b80e521d416"
+  },
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "protected_storage_mutation": false,
+  "candidate": null,
+  "limitations": [
+    "No full kernel rebuild or GitHub CI run this turn",
+    "GBM/DMA-BUF import, native fences and A660 rendering remain NOT RUN",
+    "Current full mobile graph unchanged; library fixture uses separate Mesa 26.2.2",
+    "Native shader mutation rerun; earlier ARM64 no-draw result remains historical",
+    "Rustfmt/Clippy unavailable in cached builder"
+  ],
+  "native_capability": [
+    {
+      "name": "native-software",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/",
+        "/",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--clearenv",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "--",
+        "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/native",
+        "--software-fixture",
+        "--native-fence-import"
+      ],
+      "exit_status": 1,
+      "duration_seconds": 0.1648642399959499,
+      "status": "BLOCKED",
+      "reason": "FAIL native fence unavailable: EGL_ANDROID_native_fence_sync",
+      "scope": "actual software Mesa; no DRI or phone",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "45499a8c603051de3da9dfcc9b036a0864b71caba268a053eadd0735ba01aea0"
+    },
+    {
+      "name": "arm64-software",
+      "command": [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gles-arm64-evidence-20260912-r1/root/usr",
+        "/usr",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-fence-import-evidence-20260912-r1/build/arm64-a",
+        "/probe",
+        "--clearenv",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/usr/lib",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "GALLIUM_DRIVER",
+        "softpipe",
+        "--setenv",
+        "MESA_SHADER_CACHE_DISABLE",
+        "true",
+        "--setenv",
+        "LP_NUM_THREADS",
+        "1",
+        "/qemu",
+        "/probe",
+        "--software-fixture",
+        "--native-fence-import"
+      ],
+      "exit_status": 1,
+      "duration_seconds": 0.9665641509927809,
+      "status": "BLOCKED",
+      "reason": "FAIL native fence unavailable: EGL_ANDROID_native_fence_sync",
+      "scope": "actual software Mesa; no DRI or phone",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "45499a8c603051de3da9dfcc9b036a0864b71caba268a053eadd0735ba01aea0"
+    }
+  ],
+  "native_fence_requirement": {
+    "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "path": "compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs",
+    "sha256": "927c26d2df1df26f036671451e625d1a5cd030bff389850d096c45ffd3894453",
+    "sequence": [
+      "draw",
+      "create native fence",
+      "flush",
+      "export FD"
+    ],
+    "probe_adds": [
+      "separate unshared consumer context",
+      "FD duplicate and EGL import",
+      "server wait before consumer fence",
+      "consumer flush/export/poll/status",
+      "producer restoration and cleanup"
+    ],
+    "not_proven": [
+      "real native-fence import (software extension absent)",
+      "unsignaled producer dependency",
+      "buffer sharing",
+      "KMS consumption",
+      "A660"
+    ]
+  },
+  "smithay_import_wait": {
+    "commit": "812bd33259ff58810dadef6086d8385eeac1ca55",
+    "path": "src/backend/egl/fence.rs",
+    "sha256": "d135aecf723210d6c264c87573ab2441b82f1856af3b9c8f96a2763dcdda533a",
+    "scope": "EGL import ownership and WaitSync API calls"
+  },
+  "preparer_issue": {
+    "status": "fixed",
+    "error": "library verifier initially expected mode on symlink records",
+    "effect": "verification stopped before real Mesa execution; separate ABI runner still ran and passed",
+    "resolution": "check regular-file modes and symlink targets separately; corrected verification PASS"
+  }
+}

@@ -213,8 +213,8 @@
       ],
       "offline_component_identity": {
         "artifact_pointer": "manifests/current-artifact.json#gpu_readback_probe",
-        "source_commit": "f2f6f7981714c7eb24a8028acfb6c91d368ad262",
-        "arm64_sha256": "9f93abfad3b8b0e7861b679999c921d05ae37ea6df7ded67812592d1c4cdef7c",
+        "source_commit": "ea638a8aef0f5cafcecc0f54a923dfd7db7eda2e",
+        "arm64_sha256": "a815ce5f62f53c78319db3dde625007fd6217537a2ee9f7330fe3cb45badc073",
         "candidate": null,
         "physical_status": "NOT RUN"
       },
@@ -242,6 +242,11 @@
           "pixel readback"
         ],
         "scope": "prepared source/ABI checks only; A660 and KMS consumption NOT RUN",
+        "physical_status": "NOT RUN"
+      },
+      "native_fence_import_component": {
+        "option": "--native-fence-import",
+        "scope": "ABI-tested separate consumer import/server wait and completion; real runtime capability BLOCKED; DMA-BUF/KMS/A660 NOT RUN",
         "physical_status": "NOT RUN"
       }
     },
