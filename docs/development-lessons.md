@@ -30,6 +30,31 @@ The correct response is not to remove the protections that prevent wrong-device 
 
 ## Failure classes and prevention rules
 
+Offline review, 2026-09-12: distinguish the persistent acceptance linearization
+point from a success message or RAM file alone. Test the real state helper across
+publication/syscall failures and timer races, including the actual automatically
+created probe timer. Timer cancellation itself can remove recovery protection.
+Keep current-boot acceptance fresh and fence rejected commits before another
+primary selection.
+
+Compile extracted actual driver callbacks against exact DRM behavior before
+hardware tests. Vendor byte order needs tracing through every transform: ASUS
+inverted-DBV handling made its low-byte-first helper emit high byte first on the
+wire. Regenerate only patch headers/statistics, never globally replace line-count
+numbers in patch payloads. The new binding identity check caught a description
+corruption before publication; driver resolution bytes were unchanged.
+
+Keep process exit failure stronger than textual SKIP/BLOCKED output. Reserve a
+test leader PID until group cleanup and defer repeated interrupts during cleanup.
+The reporter review reproduced both masked exit42 and interrupted reaping.
+A JSON failure count is insufficient if summary/cleanup returns success: the
+summary exit status must propagate through the actual shell cleanup. Validate
+physical receipt scope and aggregate status as well as hashes and row IDs.
+Prepare schema dependencies with a Python installation that includes headers:
+the host Python lacked Python.h; a separate bundled-Python environment succeeded.
+Archive extraction is a measurable build cost; reuse only a verified immutable
+base archive, while preserving source/input drift refusal.
+
 IOMMU r137: isolated flow tests must relocate subprocess scratch as well as
 receipt outputs. Fastboot metadata checks also see the namespace mount root;
 verify the real host path separately, and substitute that boundary in every

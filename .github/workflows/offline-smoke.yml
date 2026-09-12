@@ -25,7 +25,7 @@ jobs:
       test_tier: ${{ steps.select-tier.outputs.test_tier }}
       qemu: ${{ steps.select-tier.outputs.qemu }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
@@ -56,6 +56,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             build-essential \
+            bubblewrap \
             clang \
             cpio \
             device-tree-compiler \
@@ -65,7 +66,10 @@ jobs:
             lld \
             openssl \
             python3-pyelftools \
+            qemu-user-static \
             pkg-config
+      - name: Record actual runner environment
+        run: scripts/host/record-ci-environment.sh build/test-reports/environment
       - name: Bootstrap pinned Android boot tools
         run: scripts/host/fetch-android-boot-tools.sh
       - name: Build canonical boot-v3 template
@@ -73,6 +77,14 @@ jobs:
         run: scripts/host/build-canonical-boot-v3-template.sh
       - name: Run hardware-free recovery core
         run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
+      - name: Retain JSON and JUnit results on success or failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: head-reports-${{ github.event.pull_request.head.sha || github.sha }}
+          path: build/test-reports/
+          if-no-files-found: warn
+
 
   merge-compat:
     if: github.event_name == 'pull_request'
@@ -81,7 +93,7 @@ jobs:
     outputs:
       qemu: ${{ steps.select-tier.outputs.qemu }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # The merge ref can be regenerated after the event, even with the
           # same parents. Test the immutable merge snapshot for this run.
@@ -111,6 +123,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             build-essential \
+            bubblewrap \
             clang \
             cpio \
             device-tree-compiler \
@@ -120,7 +133,10 @@ jobs:
             lld \
             openssl \
             python3-pyelftools \
+            qemu-user-static \
             pkg-config
+      - name: Record actual runner environment
+        run: scripts/host/record-ci-environment.sh build/test-reports/environment
       - name: Bootstrap pinned Android boot tools
         run: scripts/host/fetch-android-boot-tools.sh
       - name: Build canonical boot-v3 template
@@ -128,16 +144,24 @@ jobs:
         run: scripts/host/build-canonical-boot-v3-template.sh
       - name: Run merge-compatibility recovery core
         run: scripts/host/test-repository-linux.sh '${{ steps.select-tier.outputs.test_tier }}'
+      - name: Retain JSON and JUnit results on success or failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: merge-reports-${{ github.event.pull_request.head.sha || github.sha }}
+          path: build/test-reports/
+          if-no-files-found: warn
+
 
   candidate-publication:
     if: github.event_name == 'pull_request'
-    needs: head-exact
+    needs: [head-exact, panel-driver, board-production]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.head-exact.outputs.head_sha }}
-      - name: Publish exact reviewed candidate checkpoint
+      - name: Record historical observer candidate provenance (no mobile release)
         run: |
           actual=$(git rev-parse HEAD)
           printf 'reviewed_head=%s\nvalidated_head=%s\n' \
@@ -157,13 +181,149 @@ jobs:
             printf 'candidate_sha256=%s\n' "$candidate_sha"
             printf 'authority=none\n'
           } > candidate-publication-checkpoint.txt
-      - name: Upload reviewed candidate checkpoint
-        uses: actions/upload-artifact@v6
+      - name: Retain historical observer provenance checkpoint
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: reviewed-candidate-${{ needs.head-exact.outputs.head_sha }}
           path: candidate-publication-checkpoint.txt
           if-no-files-found: error
           retention-days: 14
+
+  board-production:
+    runs-on: ubuntu-24.04
+    # Measured cold 2-job build exceeded 38 minutes before link/schema stages.
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Select exact-board checks
+        id: board
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        shell: bash
+        run: |
+          selected=no
+          if [[ $EVENT == schedule || $EVENT == workflow_dispatch ]] ||
+             ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            selected=yes
+          else
+            changed=$(git diff --name-only "$BASE" HEAD)
+            if grep -Eq \
+              '^(patches/linux-7\.1\.4/|configs/kernel/|dts/qcom/|scripts/host/(build-rog5-production-kernel|test-production-kernel-build|check-production-build-diagnostics|test-production-build-diagnostics)\.py$|scripts/device/(kernel-build-contract|build-display-60hz-candidate-dtb)\.|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
+              selected=yes
+            fi
+          fi
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
+          if [[ $selected == no ]]; then
+            echo 'NOT RUN exact-board build: unrelated change'
+          fi
+      - name: Install bounded exact-board dependencies
+        if: steps.board.outputs.selected == 'yes'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential bc bison flex clang lld llvm libssl-dev libelf-dev \
+            kmod device-tree-compiler python3-venv python3-dev libfdt-dev swig
+          python3 -m venv build/schema-tools
+          build/schema-tools/bin/pip install dtschema==2026.6
+          build/schema-tools/bin/pip freeze > build/schema-tool-versions.txt
+          echo "$PWD/build/schema-tools/bin" >> "$GITHUB_PATH"
+      - name: Record board runner environment
+        if: steps.board.outputs.selected == 'yes'
+        run: scripts/host/record-ci-environment.sh build/board-environment
+      - name: Fetch exact production kernel base
+        if: steps.board.outputs.selected == 'yes'
+        run: |
+          mkdir -p build/board-linux-source
+          git -C build/board-linux-source init
+          git -C build/board-linux-source fetch --depth=1 \
+            https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
+            refs/tags/v7.1.4
+          test "$(git -C build/board-linux-source rev-parse FETCH_HEAD^{commit})" = \
+            7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+      - name: Compile production series with merged board configuration
+        if: steps.board.outputs.selected == 'yes'
+        run: |
+          scripts/host/build-rog5-production-kernel.py \
+            --linux-git build/board-linux-source --output build/board-production --jobs 2
+      - name: Retain exact-board results and validation logs
+        if: steps.board.outputs.selected == 'yes' && always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: board-production-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            build/board-production/*.json
+            build/board-production/*.log
+            build/schema-tool-versions.txt
+            build/board-environment/
+          if-no-files-found: error
+
+  panel-driver:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Select affected panel checks
+        id: panel
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        shell: bash
+        run: |
+          selected=no
+          if [[ $EVENT == schedule || $EVENT == workflow_dispatch ]] ||
+             ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            selected=yes
+          else
+            changed=$(git diff --name-only "$BASE" HEAD)
+            if grep -Eq \
+              '^(patches/linux-7\.1\.4/0037-|scripts/device/(test-ams678[^/]*|fixtures/ams678/)|scripts/host/(build-ams678-panel-check\.sh|test-ams678-compile-location\.py)$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
+              selected=yes
+            fi
+          fi
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
+          if [[ $selected == no ]]; then
+            echo 'NOT RUN panel application/compile: unrelated change'
+          fi
+      - name: Install affected-driver dependencies
+        if: steps.panel.outputs.selected == 'yes'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential bc bison flex clang lld llvm libssl-dev libelf-dev
+      - name: Record panel runner environment
+        if: steps.panel.outputs.selected == 'yes'
+        run: scripts/host/record-ci-environment.sh build/panel-environment
+      - name: Fetch exact panel base
+        if: steps.panel.outputs.selected == 'yes'
+        run: |
+          mkdir -p build/panel-linux-source
+          git -C build/panel-linux-source init
+          git -C build/panel-linux-source fetch --depth=1 \
+            https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git \
+            refs/tags/v7.1.4
+          test "$(git -C build/panel-linux-source rev-parse FETCH_HEAD^{commit})" = \
+            7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+      - name: Apply exact base and compile affected ARM64 driver
+        if: steps.panel.outputs.selected == 'yes'
+        run: |
+          scripts/host/build-ams678-panel-check.sh \
+            build/panel-linux-source build/panel-driver-check
+      - name: Retain panel source/config/object identities
+        if: steps.panel.outputs.selected == 'yes' && success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: panel-driver-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            build/panel-driver-check/identity.txt
+            build/panel-environment/
+          if-no-files-found: error
 
   qemu-system:
     needs: [head-exact, merge-compat]
@@ -176,12 +336,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Restore pinned ARM64 kernel
         id: qemu-kernel-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: build/qemu-smoke-kernel/arch/arm64/boot/Image
           key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}
@@ -206,6 +366,15 @@ jobs:
             nfs-ganesha \
             nfs-ganesha-vfs \
             qemu-system-arm
+      - name: Record QEMU runner environment
+        run: scripts/host/record-ci-environment.sh build/qemu-environment
+      - name: Retain QEMU environment receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: qemu-environment-${{ github.event.pull_request.head.sha || github.sha }}
+          path: build/qemu-environment/
+          if-no-files-found: warn
       - name: Fetch pinned upstream Linux source
         if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
         run: |
@@ -225,7 +394,7 @@ jobs:
             build/qemu-smoke-kernel
       - name: Save pinned ARM64 kernel after build
         if: steps.qemu-kernel-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: build/qemu-smoke-kernel/arch/arm64/boot/Image
           key: qemu-linux-arm64-v7.1.4-7a5cef0-${{ runner.os }}-${{ hashFiles('scripts/host/build-qemu-smoke-kernel.sh', 'scripts/device/kernel-build-contract.sh') }}

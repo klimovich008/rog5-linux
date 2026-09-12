@@ -27,7 +27,7 @@ class TierSelectorTest(unittest.TestCase):
         declarations=[]
         for name in ('native_wifi_probe_tests','active_tests','probe_tests','shared_tests'):
             declarations.append(re.search(r'^'+name+r'=\(\n.*?^\)',runner,re.M|re.S).group())
-        selection=runner[runner.index('if [[ $tier == active ]]; then'):runner.index('for test_path in "${tests[@]}"; do')]
+        selection=runner[runner.index('if [[ $tier == active ]]; then'):runner.index('\nreport_root=')]
         def selected(tier):
             code='set -eu\n'+'\n'.join(declarations)+'\ntier_tests=()\ntier='+tier+'\n'+selection+'\nprintf "%s\\n" "${tests[@]}"'
             return subprocess.check_output(['bash','-c',code],text=True).splitlines()
@@ -359,7 +359,7 @@ class WorkflowSelectionTest(unittest.TestCase):
 
     def test_stable_checks_and_head_identity(self) -> None:
         self.assertEqual(set(self.jobs),
-                         {"head-exact", "merge-compat", "candidate-publication", "qemu-system"})
+                         {"head-exact", "merge-compat", "candidate-publication", "panel-driver", "board-production", "qemu-system"})
         self.assertNotRegex(self.jobs["head-exact"], r"(?m)^    if:")
         self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}",
                       self.jobs["head-exact"])
@@ -374,7 +374,7 @@ class WorkflowSelectionTest(unittest.TestCase):
         merge = self.jobs["merge-compat"]
         self.assertIn("--event merge", merge)
         self.assertIn("'${{ github.event.pull_request.base.sha }}' \\\n            HEAD)", merge)
-        self.assertNotIn("github.event.pull_request.head.sha", merge)
+        self.assertNotIn("ref: ${{ github.event.pull_request.head.sha", merge)
         self.assertIn("qemu: ${{ steps.select-tier.outputs.qemu }}", merge)
 
     def test_merge_checkout_survives_ref_regeneration_after_event(self) -> None:
