@@ -72,9 +72,11 @@ elif [[ -d /run/payload/flutter ]]; then
             [[ ! -S /run/udev/control ]] || break
             sleep 0.1
         done
-        timeout --kill-after=1 5 udevadm control --ping
-        timeout --kill-after=1 5 udevadm trigger --action=add --subsystem-match=input
-        timeout --kill-after=1 6 udevadm settle --timeout=5
+        # PID1 stays outside the guest chroot; these commands must still
+        # contact this guest's udev. The virtual-only entry guard remains above.
+        SYSTEMD_IGNORE_CHROOT=1 timeout --kill-after=1 5 udevadm control --ping
+        SYSTEMD_IGNORE_CHROOT=1 timeout --kill-after=1 5 udevadm trigger --action=add --subsystem-match=input
+        SYSTEMD_IGNORE_CHROOT=1 timeout --kill-after=1 6 udevadm settle --timeout=5
         mouse=0 keyboard=0
         for event in /sys/class/input/event*; do
             name=$(cat "$event/device/name")
