@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM trace resolves competing raster paths; per-work reservation repair remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Reservation ordering counterexamples reproduced; coherent work handoff remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Eight rejected backing-store requests are now attributed: three retained-output and five framework-pipeline. Seven follow consumption by the other path; one follows expiry. All five failed pipeline draws had explicit selection, disproving a fallback-only fix for this run. The final VM has 46 frames/page flips and remains FAIL, while render/IO cleanup passes. Three helper cases and 87 active suites pass. Implement a bounded work/reservation handshake; retain all admission and physical guards. No phone operation or candidate change occurred. See [current repair evidence](../test-results/2026-09-12-render-origin.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Seven actual-engine ordering cases pass, including queued and resubmitted work overtaking barriers, zero-render frames and pipeline-full deferral. Two broker stale-work isolation properties remain FAIL with two passing controls. Implement work-specific acquisition/cancellation and separate UI-production from terminal raster completion. The retained VM remains FAIL at 46 frames/page flips and eight errors; context cleanup passes. No new engine build, VM, phone operation or candidate occurred. See [current repair evidence](../test-results/2026-09-13-reservation-order.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -1,0 +1,467 @@
+{
+  "schema": 1,
+  "scope": "offline source characterization; reservation repair remains open",
+  "starting_commit": "0c5c980ab5d9c0cba2dd22d24e6fe036f530bd51",
+  "source_commit": "3e1a2f0f38c4ea3a0d72a8802322ed199d09d982",
+  "source_tree": "8f2b5f60f0a21e197f8cdc144738e9069dd8cb3b",
+  "phone_operations": false,
+  "protected_storage_mutation": false,
+  "phone_physical": "NOT RUN",
+  "new_engine_build": "NOT RUN",
+  "new_vm_run": "NOT RUN",
+  "status": "FAIL",
+  "reason": "two desired broker isolation properties fail; characterization is not a protocol fix",
+  "engine": {
+    "base": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+    "kind": "characterization-counterexamples",
+    "status": "PASS",
+    "sources": {
+      "engine/src/flutter/shell/common/pipeline.h": "c6e9e9c44f52351e079e7fd3591b84f266c361bdb9f7c09cf2dc0d996a0a7152",
+      "engine/src/flutter/shell/common/rasterizer.h": "bafabfcce86e359046963133be04aaf217281d81201da952f1bda3c426d9238b",
+      "engine/src/flutter/shell/common/animator.cc": "8454701fbc99fb3ac4d34a7774c54b14faebc9d16a515e6d83eb141c7460f7f0",
+      "engine/src/flutter/shell/common/rasterizer.cc": "064ca3aec3f7aa89b111dfe2b214aaebb74f6457f12fd5ebfbc3ffa61f65c886",
+      "engine/src/flutter/shell/common/shell.cc": "4828e7af91b92b2f91e91ea144cc7c97519ecb58d3b4cca2407ea562a5148016"
+    },
+    "sections": {
+      "PIPELINE": "598904a85b51a79c8995e1b88f33d03e23bc40604d4049c68cb401872994926d",
+      "FRAME_ITEM": "4f5ee4ea2113a5731c0b549764c03ab6e3d2c0b1da4a9f2cdfbd748e8859dbb0",
+      "BEGIN_FRAME": "29be3a4b937aaa394daaabdebc43724f04574fca8cc0ab615f5e63c29fc39084",
+      "END_FRAME": "4b5c66061cec5d7fd6696d7ef750049b34e896cf58ae706f10846d7573b90bc4",
+      "RENDER": "02c54ab04101ef11dfe10cd2cef0571a8caf37d484f9896e2f54d17d96266b65",
+      "ALL_VIEWS": "f9ef83345dc8f467ab63cf6975fdb4ba62e7e66f256f0c836b3d55e3453e448a",
+      "DRAW": "05cbce694464e472185bc51451dce97562d0effbd4c06ce3493ca166e038686e",
+      "SHELL_DRAW": "fd30fcb0028f201dfa1dac11a093677713a4a73bca9bb5829f192d11837e1b90",
+      "RESUBMIT": "19150f25f3d8dd8e9eedb770254ad52116b615c6fc51446ce64c73440cccd79b"
+    },
+    "runs": [
+      {
+        "case": "single-item",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08378085200092755
+      },
+      {
+        "case": "queued-item-barrier",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08440046201576479
+      },
+      {
+        "case": "begin-return-barrier",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08432269000331871
+      },
+      {
+        "case": "zero-render",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08413146701059304
+      },
+      {
+        "case": "double-end-frame",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08383737201802433
+      },
+      {
+        "case": "pipeline-full",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08394977400894277
+      },
+      {
+        "case": "resubmission-barrier",
+        "status": "PASS",
+        "reason": "exit 0",
+        "duration_seconds": 0.08389625302515924
+      }
+    ],
+    "boundaries": [
+      "Unmodified extracted Pipeline, FrameItem, Animator BeginFrame/Render/EndFrame/OnAllViewsRendered, Shell OnAnimatorDraw, Rasterizer Draw/ShouldResubmitFrame.",
+      "Dart/Engine/RuntimeController dispatch is a synchronous callback adapter producing specified Render calls; their code is not executed.",
+      "FIFO task runners are deterministic and single-threaded; no claim of concurrent scheduler coverage.",
+      "Semaphore counting is adapted for that single-thread schedule; RequestFrame counts retry requests without scheduling a new vsync.",
+      "DoDraw records item identity and normally returns kDone; the resubmission case supplies one resubmitted item, then executes actual Draw/ShouldResubmitFrame/ProduceIfEmpty handling and reposting. No GPU, surface, presentation or real decision to resubmit is tested.",
+      "Clock, tracing, weak-pointer lifetime and frame-timing data are adapters; objects stay alive throughout each case.",
+      "Delayed idle tasks are queued separately and not advanced; frame admission remains the extracted Pipeline implementation."
+    ],
+    "process_runner_sha256": "44bf4da44ec26a89cb9e4412f0bff16177d487969fc54bc8f26f84878b34135c",
+    "fixture_sha256": "e5b84b17255f836fea638979ad743dc4900f03014c09b3b284f3e0306cf2f390",
+    "runner_sha256": "62d243397b690bff5b9a1227ca39b29c9bf900ece175a5064d0d4a735f87b3ac",
+    "translation_unit_sha256": "8a4e49b1eef08f42637e85fd273116395d4f8a37435e09f36d44136d6573c1ca",
+    "build": {
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pthread",
+        "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-engine/fixture.cc",
+        "-o",
+        "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-engine/fixture"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 1.8940050730016083
+    },
+    "duration_seconds": 2.5062569979927503
+  },
+  "broker": {
+    "source_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "repository_commit": "3e1a2f0f38c4ea3a0d72a8802322ed199d09d982",
+    "patches": {
+      "0002-distinguish-render-target-refusals.patch": "593e74d6d5fde9f41fdff210296d82c4d4617d206b6a2c368805a0d344fea269",
+      "0003-trace-render-authorization-history.patch": "448b00598c86134a4bd56e496dda6a8daf8952297e1cb92fff084840bb267025"
+    },
+    "section_sha256": {
+      "acquire": "bb0b875b6d1b484abf58e205c57f43700a4cbee9697e650be8d7a39700d5e0e8",
+      "expire_authorizations": "59a4038af6c3e79538def3b6a9bf7dd57aa370366cc19f2acdf9f8985496dfab",
+      "target_available": "9c2427bc1d66fd2369a728a6f1757fa434e9096087b4f6d823b645251ef04b7f",
+      "authorize": "364bc3abdf03eb3cfd51146a18fe5939cd495c50384bd760012d150857cd7e3a",
+      "cancel_authorizations": "8900c3b4f9a16e9e2373dac38b9fc9296c4af7a20e7242a005e476dd1886a6e1"
+    },
+    "unit_sha256": "54a950f530ac1bdaaeea99e84996615c3728c05c34b049588f2189f98e46b2d3",
+    "build": {
+      "command": [
+        "env",
+        "TMPDIR=/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker",
+        "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+        "--edition=2024",
+        "--test",
+        "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker/reservation-order.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker/reservation-order"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "duration_seconds": 0.6884218649938703
+    },
+    "scope": "actual broker methods; deterministic call ordering with data adapters",
+    "vm": "NOT RUN",
+    "phone": "NOT RUN",
+    "runs": [
+      {
+        "name": "delayed_acquire_must_not_consume_a_replacement_reservation",
+        "command": [
+          "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker/reservation-order",
+          "--exact",
+          "reservation_order::delayed_acquire_must_not_consume_a_replacement_reservation",
+          "--nocapture"
+        ],
+        "reason": "exit 101",
+        "status": "FAIL",
+        "expected_exit_status": 101,
+        "observed_expected": true,
+        "duration_seconds": 0.08399857601034455
+      },
+      {
+        "name": "delayed_cancel_must_not_remove_a_replacement_reservation",
+        "command": [
+          "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker/reservation-order",
+          "--exact",
+          "reservation_order::delayed_cancel_must_not_remove_a_replacement_reservation",
+          "--nocapture"
+        ],
+        "reason": "exit 101",
+        "status": "FAIL",
+        "expected_exit_status": 101,
+        "observed_expected": true,
+        "duration_seconds": 0.08453702297993004
+      },
+      {
+        "name": "expired_acquire_without_replacement_is_refused",
+        "command": [
+          "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker/reservation-order",
+          "--exact",
+          "reservation_order::expired_acquire_without_replacement_is_refused",
+          "--nocapture"
+        ],
+        "reason": "exit 0",
+        "status": "PASS",
+        "expected_exit_status": 0,
+        "observed_expected": true,
+        "duration_seconds": 0.08451516297645867
+      },
+      {
+        "name": "current_acquire_consumes_exactly_once",
+        "command": [
+          "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker/reservation-order",
+          "--exact",
+          "reservation_order::current_acquire_consumes_exactly_once",
+          "--nocapture"
+        ],
+        "reason": "exit 0",
+        "status": "PASS",
+        "expected_exit_status": 0,
+        "observed_expected": true,
+        "duration_seconds": 0.08372770098503679
+      }
+    ],
+    "counterexamples_observed": true,
+    "status": "FAIL"
+  },
+  "focused_commands": [
+    {
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-frame-completion-order.py",
+        "--source",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout",
+        "--output",
+        "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-engine"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 2.5709716720157303
+    },
+    {
+      "command": [
+        "env",
+        "RUSTC=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+        "python3",
+        "-O",
+        "scripts/host/test-render-reservation-order.py",
+        "--source",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source",
+        "--output",
+        "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker"
+      ],
+      "exit_status": 1,
+      "duration_seconds": 1.1172247470240109
+    }
+  ],
+  "integrated": {
+    "command": [
+      "systemd-run",
+      "--user",
+      "--wait",
+      "--pipe",
+      "--collect",
+      "--unit=rog5-reservation-order-active-r1",
+      "-p",
+      "MemoryMax=1G",
+      "-p",
+      "MemorySwapMax=0",
+      "-p",
+      "TasksMax=256",
+      "-p",
+      "RuntimeMaxSec=600",
+      "-p",
+      "CPUQuota=200%",
+      "-p",
+      "Delegate=yes",
+      "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+      "env",
+      "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+      "ROG5_TEST_WORKERS=2",
+      "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/active-report",
+      "TMPDIR=/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/tmp",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "3e1a2f0f38c4ea3a0d72a8802322ed199d09d982",
+    "source_tree": "8f2b5f60f0a21e197f8cdc144738e9069dd8cb3b",
+    "started": "2026-09-12T22:28:06.316646+00:00",
+    "exit_status": 0,
+    "duration_seconds": 126.50494607599103
+  },
+  "integrated_counts": {
+    "PASS": 87,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 0,
+    "NOT_SELECTED": 255
+  },
+  "integrated_subcheck_counts": {
+    "SKIPPED": 3
+  },
+  "integrated_reports": [
+    {
+      "path": "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/active-report/summary.json",
+      "sha256": "e76edae07f87498f019e3a3b285b75ad0defd2c64fe56811aa629424d1b73567",
+      "size": 108180
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/active-report/summary.xml",
+      "sha256": "f8c65cb420c17bc4c9eccb97c06e5566942f4d6e3df99317e70135ee960f7077",
+      "size": 55399
+    }
+  ],
+  "toolchain": {
+    "cxx": {
+      "path": "/usr/bin/c++",
+      "sha256": "493660337c903559895981f4a29400cabe4dae9a576c8fbbada63af80ba48764",
+      "version": "c++ (GCC) 15.1.1 20250425"
+    },
+    "rust": {
+      "wrapper": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+      "container": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "wrapper_sha256": "72f93915dc58456942ed604954928809446a8a69559e66ad3d9069f7e1b21870"
+    }
+  },
+  "retained_artifact_recheck": [
+    {
+      "path": "/home/deck/.local/state/rog5-render-origin-20260912-r2/libflutter_engine.so",
+      "sha256": "4ca08d258a4f60ad8f3238cf066422354675fe17ef2b0fd043b4cf6f9a8335cf",
+      "size": 15978984,
+      "matches": true
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-io-context-release-20260912-r1/deniald-context",
+      "sha256": "aa00de38f46ee44d85b3bc2fcc2104575d13d4e040ba60b6f73279311d436711",
+      "size": 15990544,
+      "matches": true
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-render-origin-20260912-r2/guest-engine/serial.log",
+      "sha256": "24a7c2528c9d8220e4c9352b8052abeacc3f9f0dd0ed27a1cb8ec12b8c59a477",
+      "size": 609948,
+      "matches": true
+    }
+  ],
+  "changed_files": [
+    "scripts/host/test-frame-completion-order.py",
+    "scripts/host/test-render-reservation-order.py",
+    "tools/denial-engine-tests/frame-completion-order.cc",
+    "tools/denial-modifier-tests/reservation-order.rs",
+    "docs/development.md",
+    "docs/development-lessons.md",
+    "configs/project-status.json",
+    "docs/current-state.md",
+    "manifests/artifact-sets.json",
+    "manifests/current-artifact.json",
+    "test-results/2026-09-13-reservation-order.md",
+    "test-results/2026-09-13-reservation-order-qualification.json"
+  ],
+  "initial_attempts": [
+    {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-frame-completion-order-20260913-r1/agent-test/result.json",
+        "sha256": "de7eb19f051d3b9b7e36115fc05ed6bc7d724897a31c09f13f31ea049eaec543",
+        "size": 2570
+      },
+      "status": "FAIL",
+      "duration_seconds": 0.014468296023551375,
+      "cases": 0
+    },
+    {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-frame-completion-order-20260913-r1/agent-test-r2/result.json",
+        "sha256": "4d5f4d601ccab627c4a6111da07d9a4237017438055bb1ec0ef535b78ba49c6b",
+        "size": 3649
+      },
+      "status": "PASS",
+      "duration_seconds": 1.892565324989846,
+      "cases": 5
+    },
+    {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-frame-completion-order-20260913-r1/agent-test-r3/result.json",
+        "sha256": "79e596ffd556afdd0cfe2f958927e7aea7bc130e2b162711542ca7233334499b",
+        "size": 3813
+      },
+      "status": "PASS",
+      "duration_seconds": 1.8255508420115802,
+      "cases": 5
+    },
+    {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-frame-completion-order-20260913-r1/agent-test-r4/result.json",
+        "sha256": "bd2f53c6be536847c76a9c1fed14a4e6e36c4528d992e1e04b8462d18284c8f7",
+        "size": 4177
+      },
+      "status": "PASS",
+      "duration_seconds": 1.8744568040128797,
+      "cases": 7
+    },
+    {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-frame-completion-order-20260913-r1/agent-test-r5/result.json",
+        "sha256": "6bd1b8d898f12f260749547f532403dfb43d146fba621fe8f429e3b9be7970e4",
+        "size": 4467
+      },
+      "status": "PASS",
+      "duration_seconds": 2.5081116030050907,
+      "cases": 7
+    },
+    {
+      "receipt": {
+        "path": "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/regression/result.json",
+        "sha256": "40183fae10176b9d75397f306d7592acc2aba4b8c010fb803e77e1bea245769f",
+        "size": 3595
+      },
+      "status": "FAIL",
+      "reason": "two expected stale-work counterexamples; before shared process-group runner reuse"
+    }
+  ],
+  "host_test_artifacts": [
+    {
+      "path": "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-engine/fixture",
+      "sha256": "b656a97c119cd253f033e504fcc592dfaefa25161d9d3794766f39c9d4740109",
+      "size": 378920,
+      "status": "fixture"
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-render-reservation-order-20260913-r1/frozen-broker/reservation-order",
+      "sha256": "36e7ec210c87132d0905438f4b992e29220eea411292f01aa18add870368838e",
+      "size": 7241256,
+      "status": "fixture"
+    }
+  ],
+  "final_metadata_checks": [
+    {
+      "command": [
+        "python3",
+        "-O",
+        "scripts/host/test-review-metadata-checkers.py",
+        "Checkers"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 0.9665207170182839
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/host/test-mobile-status.py"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 0.11457821499789134
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/host/check-artifact-inventory.py"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 0.11466975798248313
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/host/check-mobile-status.py"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 0.064409851009259
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 0.03233525302493945
+    }
+  ],
+  "preservation": {
+    "configs/release-acceptance.json": true,
+    "configs/mobile/acceptance.json": true,
+    "historical_current_state_body": true,
+    "all_493_previous_artifact_sets": true,
+    "all_previous_artifact_pointer_fields": true,
+    "production_patches_unchanged": true,
+    "python_syntax": true
+  }
+}

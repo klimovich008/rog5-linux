@@ -792,6 +792,21 @@
       },
       "selected_by_active_builder": false,
       "authority": "none"
+    },
+    "reservation_order_counterexamples": {
+      "status": "FAIL: two desired broker properties; seven engine characterization and two broker control cases PASS",
+      "set_id": "private:rog5-reservation-order-20260913-r1",
+      "source_commit": "3e1a2f0f38c4ea3a0d72a8802322ed199d09d982",
+      "source_tree": "8f2b5f60f0a21e197f8cdc144738e9069dd8cb3b",
+      "evidence": {
+        "path": "test-results/2026-09-13-reservation-order-qualification.json",
+        "sha256": "fdb23fe68887d9c9b4c298548864166a7953ea64dbc157f260f2f1e8fae88713",
+        "size": 18229
+      },
+      "authority": "none",
+      "production_policy_changed": false,
+      "vm_executed": false,
+      "physical_status": "NOT RUN"
     }
   }
 }
