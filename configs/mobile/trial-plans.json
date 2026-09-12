@@ -191,6 +191,10 @@
         {
           "path": "scripts/device/test-a660-acceptance.py",
           "sha256": "8fed23f792717c504755a72125da7f70dc795338aaacc2e96980093ba4627f7a"
+        },
+        {
+          "path": "scripts/device/test-gles-readback.py",
+          "sha256": "0dbff7c299450645fb1f204dac94b13d664c0ecfbefdbdca818452e06d1797c8"
         }
       ],
       "physical_actions": [
@@ -204,7 +208,19 @@
       ],
       "blockers": [
         "IOMMU group/provider presence alone does not prove rendering",
-        "Exact firmware closure and panel/blank cleanup required"
+        "Exact firmware closure and panel/blank cleanup required",
+        "Offscreen software pixels and ARM64 compilation do not qualify target EGL/Mesa closure, A660 rendering, DMA-BUF sharing/modifiers or native fences. The historical Vulkan helper submits an empty command buffer."
+      ],
+      "offline_component_identity": {
+        "artifact_pointer": "manifests/current-artifact.json#gpu_readback_probe",
+        "source_commit": "bdea5a5ef8585092d5f1fcf52b835089b890161d",
+        "arm64_sha256": "fd715ddaa7d38664fe63794bf144c3e43200c4cc5019fa1b9e436f76ee5ae1ac",
+        "candidate": null,
+        "physical_status": "NOT RUN"
+      },
+      "before_operator_readiness": [
+        "Bind the exact helper, kernel, firmware and target Mesa dependency closure to a separately authorized session; the helper renderer string is not admission authority.",
+        "Prepare a separate process deadline and stderr capture for synchronous driver calls, independent recovery and return-to-known-good verification. No session is armed by the offline component receipt."
       ]
     },
     {

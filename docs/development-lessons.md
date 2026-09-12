@@ -2061,3 +2061,16 @@ Keep the retained kit's original qualification series separate from later
 incremental qualification and current source series. A matching consumed-header
 comparison is narrower than a complete kit rebuild; preserve each original
 compiled/final patch distinction in its producing receipt.
+
+### Offline GLES preparation: distinguish a query, submission and rendered pixels
+
+The existing GPU query and empty Vulkan submission did not check shader output.
+The new readback component exercises real software Mesa with no DRI device and
+rejects a no-draw mutation; 25 ABI faults separately check failure and cleanup
+paths. Keep these proof scopes separate from A660, scanout and DMA-BUF/fence
+qualification. A renderer string is a filter, not device admission authority.
+The cached Rust builder compiled each ARM64 twin in about one second; this
+userspace change needed no kernel rebuild or new candidate. Namespace tests
+stay serialized with explicit per-probe and suite deadlines. Preserve raw
+per-test timings and capture an outer monotonic timer when wall time matters;
+a sum of parallel test durations is not elapsed integration time.
