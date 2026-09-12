@@ -1,0 +1,27 @@
+# Ordered historical diagnostics; alternatives/intermediate steps, NOT one applicable stack.
+0004-pmic-glink-add-battery-only-diagnostic-mode.patch
+0005-gpucc-sm8350-add-attended-probe-trace.patch
+0006-qcom-cc-add-attended-registration-trace.patch
+0007-clk-trace-attended-SM8350-GPUCC-CCF-registration.patch
+0008-clk-trace-attended-SM8350-GPUCC-orphan-reparent.patch
+0009-clk-trace-attended-SM8350-GPUCC-orphan-parent-lookup.patch
+0010-clk-qcom-trace-attended-SM8350-DISPCC-RCG-parent-read.patch
+0011-clk-guard-orphan-reparent-with-runtime-PM.patch
+0013-drm-msm-add-a660-firmware-request-only-diagnostic.patch
+0014-drm-msm-add-a660-ucode-allocation-diagnostic.patch
+0015-drm-msm-add-a660-gmu-resume-entry-diagnostic.patch
+0016-drm-msm-add-a660-gmu-cx-runtime-pm-diagnostic.patch
+0017-drm-msm-add-a660-gmu-clock-preparation-diagnostic.patch
+0019-phy-qcom-qmp-ufs-stop-sm8350-after-regulator-acquisition.patch
+0020-phy-qcom-qmp-ufs-stop-sm8350-after-mmio-parse.patch
+0021-phy-qcom-qmp-ufs-stop-sm8350-after-clock-provider.patch
+0022-phy-qcom-qmp-ufs-stop-sm8350-after-fixed-clocks.patch
+0023-phy-qcom-qmp-ufs-stop-sm8350-after-first-fixed-clock.patch
+0024-phy-qcom-qmp-ufs-stop-sm8350-after-clock-allocation.patch
+0025-phy-qcom-qmp-ufs-stop-sm8350-after-first-clock-name.patch
+0027-phy-qcom-qmp-ufs-stop-sm8350-after-first-clock-with-runtime-pm.patch
+0028-phy-qcom-qmp-ufs-stop-sm8350-after-second-clock-with-runtime-pm.patch
+0029-phy-qcom-qmp-ufs-stop-sm8350-after-third-clock-with-runtime-pm.patch
+0030-phy-qcom-qmp-ufs-publish-clock-provider-with-cleanup.patch
+0031-phy-qcom-qmp-ufs-stop-sm8350-after-phy-creation.patch
+0032-phy-qcom-qmp-ufs-publish-of-phy-provider.patch

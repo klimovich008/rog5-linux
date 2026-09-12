@@ -1,0 +1,36 @@
+From 136f75ae869afd47a016b1278fae2110cc6d2229 Mon Sep 17 00:00:00 2001
+From: ROG5 kernel builder <builder@rog5.invalid>
+Date: Sat, 12 Sep 2026 01:42:44 +0200
+Subject: [PATCH] drm/msm/adreno: defer probing until IOMMU attachment is ready
+
+DMA configuration ignores IOMMU errors other than EPROBE_DEFER. If a supplier arrives after the deferred probe timeout, Adreno can register its component without an IOMMU group and later fail GPU initialization with ENODEV. Keep DT devices that declare an IOMMU on the deferred list until DMA configuration attaches it. Preserve devices without an IOMMU binding.
+
+Validated with strict checkpatch and an ARM64 object compile using the pinned kernel toolchain and existing configuration. Runtime qualification on a successor boot remains pending.
+---
+ drivers/gpu/drm/msm/adreno/adreno_device.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/gpu/drm/msm/adreno/adreno_device.c b/drivers/gpu/drm/msm/adreno/adreno_device.c
+index fc38331ce..1a1143c54 100644
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -271,6 +271,16 @@ static const struct component_ops a3xx_ops = {
+ 
+ static int adreno_probe(struct platform_device *pdev)
+ {
++	/*
++	 * DMA configuration can ignore an IOMMU error after deferred probing
++	 * times out. Keep this device pending so a late supplier causes the
++	 * bus to configure DMA again before we register the GPU component.
++	 */
++	if (of_property_present(pdev->dev.of_node, "iommus") &&
++	    !device_iommu_mapped(&pdev->dev))
++		return dev_err_probe(&pdev->dev, -EPROBE_DEFER,
++				     "IOMMU attachment is not ready\n");
++
+ 	if (of_device_is_compatible(pdev->dev.of_node, "amd,imageon") ||
+ 	    msm_gpu_no_components())
+ 		return msm_gpu_probe(pdev, &a3xx_ops);
+-- 
+2.50.1
+
