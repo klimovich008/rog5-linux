@@ -1,0 +1,1783 @@
+{
+  "format": "rog5-matching-dart-resolution-v1",
+  "status": "PASS",
+  "scope": "exact-revision prebuilt host Dart SDK and real locked offline shell/settings package resolution; Flutter tool bootstrap and shell AOT not run",
+  "source": {
+    "commit": "55962cc3adbd079fe900baa9346e2f41f0b52244",
+    "tree": "fbb6aa06505badc99d3475cc228d0168e2b679ba"
+  },
+  "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "flutter_commit": "d728e61e7d835e02c453c70ae9523a40f6c03215",
+  "dart_commit": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
+  "sdk_version": "3.12.2",
+  "sdk_revision": "d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
+  "pin": {
+    "package": "flutter/dart-sdk/linux-amd64",
+    "instance_id": "mKiCKGu13Mk_I7udqhlk6gAyukzBPONWUy1bcpMF5mEC"
+  },
+  "describe": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=768m",
+      "--memory-swap=768m",
+      "--cpus=1",
+      "--pids-limit=128",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools/.cipd_client:/cipd:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1:/work:rw",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "-e",
+      "CIPD_CACHE_DIR=/work/cache",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/describe.cid",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "/cipd",
+      "describe",
+      "flutter/dart-sdk/linux-amd64",
+      "-version",
+      "git_revision:d684a576a6aa954ae107a03b2b4e1d61c3bebe93",
+      "-json-output",
+      "/work/description.json"
+    ],
+    "exit_status": 0,
+    "duration_seconds": 1.1169427649874706
+  },
+  "install": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=1024m",
+      "--memory-swap=1024m",
+      "--cpus=1",
+      "--pids-limit=128",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools/.cipd_client:/cipd:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1:/work:rw",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "-e",
+      "CIPD_CACHE_DIR=/work/cache",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/install.cid",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "/cipd",
+      "install",
+      "flutter/dart-sdk/linux-amd64",
+      "mKiCKGu13Mk_I7udqhlk6gAyukzBPONWUy1bcpMF5mEC",
+      "-root",
+      "/work/site",
+      "-json-output",
+      "/work/install.json"
+    ],
+    "status": "PASS",
+    "exit_status": 0,
+    "reason": null,
+    "duration_seconds": 27.511359660013113,
+    "disk_free_bytes": 8445726720,
+    "scope": "private exact-revision host Dart SDK package only",
+    "physical_status": "NOT RUN"
+  },
+  "verification": {
+    "status": "PASS",
+    "package_sha256": "98a882286bb5dcc93f23bb9daa1964ea0032ba4cc13ce356532d5b729305e661",
+    "package_bytes": 246737284,
+    "verified_members": 1016,
+    "payload_index_sha256": "2983511ade568877022dec4a05105f5af9f1f46fbb38cc6480130901491e6faf",
+    "tools": {
+      "dart": {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/dart",
+        "resolved_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/dart",
+        "sha256": "c03ad868b5c53e31461b0fef22dc6eb6aeb56b7567efff6ca488ce9c4a6f8a6a"
+      },
+      "dartaotruntime": {
+        "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/dartaotruntime",
+        "resolved_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site/bin/dartaotruntime",
+        "sha256": "297f6b68adf22140d0bfc92cf974dc0e22bd54be6e15d730b911ad5b661d6a89"
+      }
+    },
+    "duration_seconds": 4.188470085995505,
+    "scope": "package instance digest and every deployed payload member; upstream VSA signatures not independently verified",
+    "physical_status": "NOT RUN"
+  },
+  "cache_materialization": {
+    "receipt": {
+      "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache-result.json",
+      "sha256": "7740669efd5bc8d848d814ea3a8a3601c341751eed19ae6782ddf123a4b605ee",
+      "size": 3063230
+    },
+    "packages": 84,
+    "archive_members_verified": 12751,
+    "duration_seconds": 7.1198720399988815,
+    "hooks_executed": false
+  },
+  "sky_engine_build": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=1536m",
+      "--memory-swap=1536m",
+      "--cpus=1",
+      "--pids-limit=128",
+      "--network=none",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/source-copy:/source/engine/src/flutter/third_party/dart:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/site:/source/engine/src/flutter/third_party/dart/tools/sdks/dart-sdk:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-dart-bootstrap-evidence-20260912-r1/devtools/site:/source/engine/src/flutter/third_party/dart/third_party/devtools:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1:/work:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+      "-e",
+      "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+      "-e",
+      "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+      "-e",
+      "CIPD_CACHE_DIR=/build/cipd-cache",
+      "-e",
+      "DEPOT_TOOLS_UPDATE=0",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "--workdir=/source/engine/src",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/sky.cid",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "ninja",
+      "-C",
+      "/work/out",
+      "-j1",
+      "sky_engine"
+    ],
+    "exit_status": 0,
+    "status": "PASS",
+    "duration_seconds": 5.277030954981456,
+    "physical_status": "NOT RUN",
+    "scope": "actual generated sky_engine SDK package, no shell compilation"
+  },
+  "sky_engine_tree": {
+    "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/sky-tree.json",
+    "sha256": "12e4dc3cb6564dfa3163753a5db33e0a1ec26797a2b2d2feb061da03dda0b483",
+    "size": 57296
+  },
+  "framework_metadata_origin": {
+    "scope": "thin pub resolver view, not completed Flutter SDK",
+    "version": "3.44.7",
+    "declared_by": "/home/deck/.local/state/rog5-denial-20260910-r1/upstream-audit-r1/source/tools/denial-pc",
+    "declaring_source_sha256": "eadf330429ff21398e6c8e1ca233c30c700b58c519ffae69a3e141878c4a494a",
+    "recipe": "FLUTTER_SDK_VERSION and prepare_flutter_version_metadata from the pinned Denial source; no Git tag mutation"
+  },
+  "resolution": {
+    "tests": [
+      {
+        "name": "version",
+        "command": [
+          "/sdk/bin/dart",
+          "--version"
+        ],
+        "cwd": "/work",
+        "exit_status": 0,
+        "duration_seconds": 0.0036663060018327087,
+        "lock_before": null,
+        "lock_after": null,
+        "status": "PASS"
+      },
+      {
+        "name": "shell",
+        "command": [
+          "/sdk/bin/dart",
+          "pub",
+          "get",
+          "--offline",
+          "--enforce-lockfile"
+        ],
+        "cwd": "/work/workspace/dart_shell",
+        "exit_status": 0,
+        "duration_seconds": 0.16468439297750592,
+        "lock_before": "a1ac5efa8a9458e3f761b39a76a639bc7740fcf5070f9908734b30481ecad604",
+        "lock_after": "a1ac5efa8a9458e3f761b39a76a639bc7740fcf5070f9908734b30481ecad604",
+        "status": "PASS"
+      },
+      {
+        "name": "settings",
+        "command": [
+          "/sdk/bin/dart",
+          "pub",
+          "get",
+          "--offline",
+          "--enforce-lockfile"
+        ],
+        "cwd": "/work/workspace/settings_app",
+        "exit_status": 0,
+        "duration_seconds": 0.16491472799680196,
+        "lock_before": "eda67da1b3f4e50eecb5820d835dd5ba8bc002bfd3c64cb2e406988b9e54a3f7",
+        "lock_after": "eda67da1b3f4e50eecb5820d835dd5ba8bc002bfd3c64cb2e406988b9e54a3f7",
+        "status": "PASS"
+      }
+    ],
+    "scope": "actual locked offline shell/settings package resolution; Flutter tool bootstrap, AOT and physical tests NOT RUN",
+    "physical_status": "NOT RUN"
+  },
+  "resolution_container": {
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=1024m",
+      "--memory-swap=1024m",
+      "--cpus=1",
+      "--pids-limit=128",
+      "--network=none",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/site:/sdk:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache:/pub-cache:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1:/work:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/flutter:/flutter:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages:/flutter/packages:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/gen/dart-pkg/sky_engine:/flutter/bin/cache/pkg/sky_engine:ro",
+      "-e",
+      "FLUTTER_ROOT=/flutter",
+      "-e",
+      "PUB_CACHE=/pub-cache",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/run.cid",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "python3",
+      "/work/inside.py"
+    ],
+    "exit_status": 0,
+    "duration_seconds": 0.6658585229888558,
+    "scope": "offline package resolution in isolated app copies; original source/cache inputs unchanged"
+  },
+  "resolution_verification": {
+    "status": "PASS",
+    "resolutions": [
+      {
+        "component": "dart_shell",
+        "status": "PASS",
+        "packages": [
+          {
+            "name": "_fe_analyzer_shared",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/_fe_analyzer_shared-99.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/_fe_analyzer_shared-99.0.0",
+            "pubspec_sha256": "39475a5d8145533b6ee7f82d29afcf9a21ca2d1817302a1bbb92453159b3b7f2"
+          },
+          {
+            "name": "analyzer",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/analyzer-12.1.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/analyzer-12.1.0",
+            "pubspec_sha256": "af0216d9b4e5a607da66e87810ea4b284c91958eb6fa0e34bff796311a302f27"
+          },
+          {
+            "name": "archive",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/archive-3.6.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/archive-3.6.1",
+            "pubspec_sha256": "74d2fec5c920e2e3480ebe09112f586d96dd2e4c6f24c050404adc27c8b590b3"
+          },
+          {
+            "name": "args",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/args-2.7.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/args-2.7.0",
+            "pubspec_sha256": "2b4cd847855bfce84a3dabae75c216974804e068c1ed0a5d663abb7d63006303"
+          },
+          {
+            "name": "async",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/async-2.13.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/async-2.13.1",
+            "pubspec_sha256": "e3e95b194e5b58db0e6a2649c4ad4957a92027d64a38cfa0de53a225601c030c"
+          },
+          {
+            "name": "boolean_selector",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/boolean_selector-2.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/boolean_selector-2.1.2",
+            "pubspec_sha256": "694e93a3e5cb9bea0868a4873f8ea9dd3856e00e3629ee7488cbbec42c41bc5c"
+          },
+          {
+            "name": "characters",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/characters-1.4.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/characters-1.4.1",
+            "pubspec_sha256": "5cca9e9296ee6f219922c5e9049b71559b46ac45095b10de9afc57da2c12f951"
+          },
+          {
+            "name": "cli_config",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/cli_config-0.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/cli_config-0.2.0",
+            "pubspec_sha256": "1750408e11627ede23689dc41a2e31ccb513396be2d1caf17db698f1351ab7a1"
+          },
+          {
+            "name": "clock",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/clock-1.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/clock-1.1.2",
+            "pubspec_sha256": "0089e7447cd2f74865403d69b5fab16fefa54fa3a04b9453a3c23c114752e35e"
+          },
+          {
+            "name": "collection",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/collection-1.19.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/collection-1.19.1",
+            "pubspec_sha256": "0558412e31aacf6a97e6b226e0f9f6b10ab5ae95c57a8a562ff579ee1609f913"
+          },
+          {
+            "name": "convert",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/convert-3.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/convert-3.1.2",
+            "pubspec_sha256": "2970044ca804d99db9fa9b5bdf785a2c95e229d7b919d4bb9f4428f857bc60d2"
+          },
+          {
+            "name": "coverage",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/coverage-1.15.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/coverage-1.15.1",
+            "pubspec_sha256": "c96a11349eec1c79db538913ff338036346d082a798cbc57d810ff7059d19142"
+          },
+          {
+            "name": "crypto",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/crypto-3.0.7",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/crypto-3.0.7",
+            "pubspec_sha256": "7e80694c991709360b161f4af801646902127f120b864286dbc413e4f667f712"
+          },
+          {
+            "name": "dbus",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/dbus-0.7.14",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/dbus-0.7.14",
+            "pubspec_sha256": "a9b4054b0681aa730b8126d2d2e52d12b0e7474092a497f8f20f64282c70e339"
+          },
+          {
+            "name": "denial_wire_protocol",
+            "kind": "path",
+            "resolved_uri": "file:///work/workspace/protocol/generated/dart",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/protocol/generated/dart",
+            "pubspec_sha256": "56cd8ae645f8efd36fd186d0fb43a4b088c5b4b2ae1a54fd25df5ead9b15c3c3"
+          },
+          {
+            "name": "fake_async",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/fake_async-1.3.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/fake_async-1.3.3",
+            "pubspec_sha256": "e327702810254b2950d552c0cc5d0174fcd287a9b70ff4aa55d9fb5dd477e655"
+          },
+          {
+            "name": "ffi",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/ffi-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/ffi-2.2.0",
+            "pubspec_sha256": "00eb29c9e0d66e1696dd41772e157c8ec4bcc6454ee7ab426128ec270722587b"
+          },
+          {
+            "name": "file",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/file-7.0.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/file-7.0.1",
+            "pubspec_sha256": "2431ce26b72e9f4000cda857183316cf98fcdc5f1c6143ef97ca54a333500d82"
+          },
+          {
+            "name": "fixnum",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/fixnum-1.1.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/fixnum-1.1.1",
+            "pubspec_sha256": "0e4778875281ea0265bb1b00aa809ff5ac9fbd089e2fa2a0f23750c304d4ee3c"
+          },
+          {
+            "name": "flat_buffers",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flat_buffers-25.9.23",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flat_buffers-25.9.23",
+            "pubspec_sha256": "8226152e3e0e96016063fd0cce9c0d175273711a9e544f54506d367d8a9c5e83"
+          },
+          {
+            "name": "flutter",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/packages/flutter",
+            "actual_path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter",
+            "pubspec_sha256": "c0e57dc9aee87273c1ff2cd3778959cb57eb5daa7a89f5f8568ab9e8ccd1cd4d"
+          },
+          {
+            "name": "flutter_lints",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flutter_lints-6.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flutter_lints-6.0.0",
+            "pubspec_sha256": "8b819dad320bf3f6a7464d3c10f98fe749e5687685cb097534f99e5be0032e9d"
+          },
+          {
+            "name": "flutter_localizations",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/packages/flutter_localizations",
+            "actual_path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter_localizations",
+            "pubspec_sha256": "33020ffcf129cbcdcb98ea0e206b82dd495880980dc6652e3397cfdf872829c2"
+          },
+          {
+            "name": "flutter_riverpod",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flutter_riverpod-3.3.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flutter_riverpod-3.3.2",
+            "pubspec_sha256": "8442835aa739e9dca243d62b00fd8ecb5e4ecd40f610e38bd826d9df8cb2ebcb"
+          },
+          {
+            "name": "flutter_svg",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flutter_svg-2.3.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flutter_svg-2.3.0",
+            "pubspec_sha256": "33a173c336ef0b28387bb5b35236e7472ce0f4cff990ef37d948755be4bc4e97"
+          },
+          {
+            "name": "flutter_test",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/packages/flutter_test",
+            "actual_path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter_test",
+            "pubspec_sha256": "53938ed63f88cd504289e12c326e989fe6dbe127204965f35e340be3618f5543"
+          },
+          {
+            "name": "frontend_server_client",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/frontend_server_client-4.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/frontend_server_client-4.0.0",
+            "pubspec_sha256": "2fb1ca24712dc2902201de0169df72feb4a860da2aec6775b47ad9f3c5bb5348"
+          },
+          {
+            "name": "glob",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/glob-2.1.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/glob-2.1.3",
+            "pubspec_sha256": "7801944569d2be60962f16283014551e34e9414dd9119a6f5771076221892dcc"
+          },
+          {
+            "name": "http",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/http-1.6.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/http-1.6.0",
+            "pubspec_sha256": "ab9b20099e285fcabbdb52188d8a9205adee7eeb9b51f00727206edeb1e72420"
+          },
+          {
+            "name": "http_multi_server",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/http_multi_server-3.2.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/http_multi_server-3.2.2",
+            "pubspec_sha256": "f55836d45801489e1cc991e59c1771fe672f4d0ffa5ca59ed40bf94a3214696c"
+          },
+          {
+            "name": "http_parser",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/http_parser-4.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/http_parser-4.1.2",
+            "pubspec_sha256": "88a08953bcff87d5b003d46d689a87d4149d4abca5200f7d6534dd2e2aba4751"
+          },
+          {
+            "name": "intl",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/intl-0.20.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/intl-0.20.2",
+            "pubspec_sha256": "b48bd7b5eb665b23bf1a0e507b1440a75ee7014a4aff80f477419a72caef3f91"
+          },
+          {
+            "name": "io",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/io-1.0.5",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/io-1.0.5",
+            "pubspec_sha256": "2e78b32cafbdf5f03eb1cd2dbe8e88b241fd480ffcee4fc0bea9a309767929e6"
+          },
+          {
+            "name": "leak_tracker",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/leak_tracker-11.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/leak_tracker-11.0.2",
+            "pubspec_sha256": "baa761e9bf38ebeff3ccf67d4ea542ede08e7286695df569f91be867134b03a5"
+          },
+          {
+            "name": "leak_tracker_flutter_testing",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/leak_tracker_flutter_testing-3.0.10",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/leak_tracker_flutter_testing-3.0.10",
+            "pubspec_sha256": "230b28feb29c520794eb49924bad2c19073080d4cdf94240d222a73250877abb"
+          },
+          {
+            "name": "leak_tracker_testing",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2",
+            "pubspec_sha256": "bda15ec4370d21476ed0eca93f25e86f2dfe3887c19720335821348c390f0b21"
+          },
+          {
+            "name": "lints",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/lints-6.1.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/lints-6.1.0",
+            "pubspec_sha256": "45a12e5d281279d245741c002b33ed10b0af776074d457f4e342d46ced8431e6"
+          },
+          {
+            "name": "logging",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/logging-1.3.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/logging-1.3.0",
+            "pubspec_sha256": "c2880dbeafc99cd7b16c5b4da088c06d111498107476544d3cdb60f9735f05fa"
+          },
+          {
+            "name": "matcher",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/matcher-0.12.19",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/matcher-0.12.19",
+            "pubspec_sha256": "d8b48bd29b1457783ad1cf4309ad512f37a12b75887b60627ad5f359b378f321"
+          },
+          {
+            "name": "material_color_utilities",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/material_color_utilities-0.13.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/material_color_utilities-0.13.0",
+            "pubspec_sha256": "4c32df8a37a2548d4ccc5ad892b9f3780236ad655685273d366ca34aee39fa1d"
+          },
+          {
+            "name": "meta",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/meta-1.18.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/meta-1.18.0",
+            "pubspec_sha256": "c4c5b8b2e576b3a5ba34d9f6584495fdf872b7d3a4b357d61b2112e42cb21bd4"
+          },
+          {
+            "name": "mime",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/mime-2.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/mime-2.0.0",
+            "pubspec_sha256": "0a52e0c16ec928acab31bf057fcdbaa3a12171ac8be4fefb5e49af55b63513c9"
+          },
+          {
+            "name": "node_preamble",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/node_preamble-2.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/node_preamble-2.0.2",
+            "pubspec_sha256": "00e45a39f773b8ae80804910d25eef80de13b9d972893591bc04965553b2b79d"
+          },
+          {
+            "name": "package_config",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/package_config-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/package_config-2.2.0",
+            "pubspec_sha256": "7c5033e163a22d6b19269f717983ae6eaa43db91f97ee2a34568a0e353f225f6"
+          },
+          {
+            "name": "path",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/path-1.9.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/path-1.9.1",
+            "pubspec_sha256": "94bc2793c42741c611722b22b0bc0f1a000ae4914f5ab52810d91e18ce4b1f6d"
+          },
+          {
+            "name": "path_parsing",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/path_parsing-1.1.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/path_parsing-1.1.0",
+            "pubspec_sha256": "c57fcafb9a849203db7c4c65e94c5e7a74e897c6e5f602867226f4e696bf0bc5"
+          },
+          {
+            "name": "petitparser",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/petitparser-7.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/petitparser-7.0.2",
+            "pubspec_sha256": "852ea6753432f6f3d5fa1a35f3b2343fe848c8a9b6c2d4e3ad2015221ff0f3d0"
+          },
+          {
+            "name": "pool",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/pool-1.5.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/pool-1.5.2",
+            "pubspec_sha256": "cb6ff50a9a3f161df6bd0be90600f23829e848bd6027f33048963f6f3ad84558"
+          },
+          {
+            "name": "pub_semver",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/pub_semver-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/pub_semver-2.2.0",
+            "pubspec_sha256": "4a5651655fc1162b65bddc441861b1d47de73389f72e2e6d4bc9f3e46753829f"
+          },
+          {
+            "name": "riverpod",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/riverpod-3.3.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/riverpod-3.3.2",
+            "pubspec_sha256": "8027f8ec2ebb7524d143cd59148e1c1524dfdf24b7885c3669b4334a213ca47e"
+          },
+          {
+            "name": "shelf",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf-1.4.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf-1.4.2",
+            "pubspec_sha256": "4343d71ca671b07f079d006a6eb2393f936d2369b4659b3bd52d6f3ecb1e51df"
+          },
+          {
+            "name": "shelf_packages_handler",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf_packages_handler-3.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf_packages_handler-3.0.2",
+            "pubspec_sha256": "3ab547a6b9b9534bec7d652eafa4a8af91ca91c4c83adafcd0358df264d2215c"
+          },
+          {
+            "name": "shelf_static",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf_static-1.1.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf_static-1.1.3",
+            "pubspec_sha256": "bb1397e8df951e4a90b2ba7bc8ee150061ab344f2fc67f72a50cb66baac705a6"
+          },
+          {
+            "name": "shelf_web_socket",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf_web_socket-3.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf_web_socket-3.0.0",
+            "pubspec_sha256": "fe719937bbcd01978c475cf3c33c8fc3239d3e9880e96b4720f6f9b8c6d844a3"
+          },
+          {
+            "name": "sky_engine",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/bin/cache/pkg/sky_engine",
+            "actual_path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/gen/dart-pkg/sky_engine",
+            "pubspec_sha256": "f08241742a8286a35aacc231780fdae568a6d0927a7d7b2f080dfd60f56b11b6"
+          },
+          {
+            "name": "source_map_stack_trace",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/source_map_stack_trace-2.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/source_map_stack_trace-2.1.2",
+            "pubspec_sha256": "3799d273787f95aadee1c44040c0593b730beeb8ae0f74ff8954473e4ecb9713"
+          },
+          {
+            "name": "source_maps",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/source_maps-0.10.13",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/source_maps-0.10.13",
+            "pubspec_sha256": "07a16197fb86f62a73a5f3ecf0648d19af175d2588a8a270b8dc147415f56e55"
+          },
+          {
+            "name": "source_span",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/source_span-1.10.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/source_span-1.10.2",
+            "pubspec_sha256": "ef70b95ff6588bbe25c695f6fdd7f3eed6525b70955bf429fd08e676a6fc6d02"
+          },
+          {
+            "name": "stack_trace",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/stack_trace-1.12.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/stack_trace-1.12.1",
+            "pubspec_sha256": "4a268375024e12885ed4d195dbb5a9fc168b43e867932efcf80bebb87ca75520"
+          },
+          {
+            "name": "state_notifier",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/state_notifier-1.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/state_notifier-1.0.0",
+            "pubspec_sha256": "1e9f4d517e55de26a3b2a50884d3ef12972b1b536d819ecb8481ef4f61dde820"
+          },
+          {
+            "name": "stream_channel",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/stream_channel-2.1.4",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/stream_channel-2.1.4",
+            "pubspec_sha256": "bb9e840e71b1b060c6e32c4c33b73c845f1b9f9dfddd7a2f01c1d8ebb5ac5cae"
+          },
+          {
+            "name": "string_scanner",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/string_scanner-1.4.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/string_scanner-1.4.1",
+            "pubspec_sha256": "e2e5e7815773dd7525a75cb446f05bfa6525457c3310ff9a676119b432296106"
+          },
+          {
+            "name": "term_glyph",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/term_glyph-1.2.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/term_glyph-1.2.2",
+            "pubspec_sha256": "8cc3f20df49edba351049c9a4080ac6f629da8c073fc7c63c5acc2de1230317a"
+          },
+          {
+            "name": "test",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/test-1.31.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/test-1.31.0",
+            "pubspec_sha256": "bd263b52384d4982c819d57aa78a577ecf06603bd81fc1012e38d8cf0000b5f4"
+          },
+          {
+            "name": "test_api",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/test_api-0.7.11",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/test_api-0.7.11",
+            "pubspec_sha256": "df6df3bd3f65db3836c5d738ce350d76f5c9eb953ec79d4b766b2a7a17f4b2d2"
+          },
+          {
+            "name": "test_core",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/test_core-0.6.17",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/test_core-0.6.17",
+            "pubspec_sha256": "230e978e77469b4b020310e6496ad3e226eb9d450ba0cd2c3c0c933a01cb5dfe"
+          },
+          {
+            "name": "typed_data",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/typed_data-1.4.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/typed_data-1.4.0",
+            "pubspec_sha256": "a9f411c96b3904fdb471b2c34b5c88569b899bc5b6bcb74fd08d1abfcdc1c79f"
+          },
+          {
+            "name": "uuid",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/uuid-4.6.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/uuid-4.6.0",
+            "pubspec_sha256": "f22a82dceacc2f885ed9879652c815bbd7ee03ba1666615005b5d1508aa6d4ec"
+          },
+          {
+            "name": "vector_graphics",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_graphics-1.2.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_graphics-1.2.2",
+            "pubspec_sha256": "9aed9513e3fa06ece50c613b6fe730cea861851749ef5bac4b0a0b20d8249cc8"
+          },
+          {
+            "name": "vector_graphics_codec",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_graphics_codec-1.1.13",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_graphics_codec-1.1.13",
+            "pubspec_sha256": "81a6b8f147b3fc5adace19d3c1461d4b8303f8dcfbbf9a97a844f68bf486a38f"
+          },
+          {
+            "name": "vector_graphics_compiler",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_graphics_compiler-1.2.6",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_graphics_compiler-1.2.6",
+            "pubspec_sha256": "8a07664d7b19d0ac4b68d9a177bb034d8d386cab80b54d2607295c2a01e528c3"
+          },
+          {
+            "name": "vector_math",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_math-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_math-2.2.0",
+            "pubspec_sha256": "c4d77861f9dbe286b5ef7495661afab686b47239d61fcbcd9f6b069c73792023"
+          },
+          {
+            "name": "vm_service",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vm_service-15.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vm_service-15.2.0",
+            "pubspec_sha256": "118c1786c2b702acd6bb0cf9e8410b3e1564807efed3afdf2daa5bbdd403df31"
+          },
+          {
+            "name": "watcher",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/watcher-1.2.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/watcher-1.2.1",
+            "pubspec_sha256": "b696d132a6ef7b099e8a63b4b8f8dadf2757be7fbffd04982f832b4d86e0d769"
+          },
+          {
+            "name": "web",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/web-1.1.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/web-1.1.1",
+            "pubspec_sha256": "229e6d6763aa2095d73390e7f94af0aad306e7a8d31e97c7b75a47bc896ccfc5"
+          },
+          {
+            "name": "web_socket",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/web_socket-1.0.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/web_socket-1.0.1",
+            "pubspec_sha256": "cb772a2362eee485b4658be7d85f9edd87f0110cf2243041c7e5cd221a479814"
+          },
+          {
+            "name": "web_socket_channel",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
+            "pubspec_sha256": "115000a10051194436a0597dacc62170887aa4b43157828a14a767c024d0e6b6"
+          },
+          {
+            "name": "webkit_inspection_protocol",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/webkit_inspection_protocol-1.2.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/webkit_inspection_protocol-1.2.1",
+            "pubspec_sha256": "482a37c78e5210593d4311d5c3ee832fb63fa49372ce080794c79856992d875d"
+          },
+          {
+            "name": "xml",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/xml-6.6.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/xml-6.6.1",
+            "pubspec_sha256": "2f024688c78e7f5870b261e2d543772ad1783f0de0dbfd6511741392983fe2d5"
+          },
+          {
+            "name": "yaml",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/yaml-3.1.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/yaml-3.1.3",
+            "pubspec_sha256": "cbad2cf80759ac9a0b2cb062de6756df59a626e389a948a315a226c5cae6293f"
+          },
+          {
+            "name": "denial_dart_shell",
+            "kind": "application",
+            "resolved_uri": "file:///work/workspace/dart_shell",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/dart_shell",
+            "pubspec_sha256": "95671df02304f02de0e5f13b8ae9bab22624d32b3faf421dd966c7b7558f42dc"
+          }
+        ],
+        "config_sha256": "f16a991594ab891d0ec29a01e3ef2c1e8a5cd5474122bbaa1205258dd5534923",
+        "lock_sha256": "a1ac5efa8a9458e3f761b39a76a639bc7740fcf5070f9908734b30481ecad604"
+      },
+      {
+        "component": "settings_app",
+        "status": "PASS",
+        "packages": [
+          {
+            "name": "_fe_analyzer_shared",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/_fe_analyzer_shared-99.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/_fe_analyzer_shared-99.0.0",
+            "pubspec_sha256": "39475a5d8145533b6ee7f82d29afcf9a21ca2d1817302a1bbb92453159b3b7f2"
+          },
+          {
+            "name": "analyzer",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/analyzer-12.1.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/analyzer-12.1.0",
+            "pubspec_sha256": "af0216d9b4e5a607da66e87810ea4b284c91958eb6fa0e34bff796311a302f27"
+          },
+          {
+            "name": "archive",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/archive-3.6.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/archive-3.6.1",
+            "pubspec_sha256": "74d2fec5c920e2e3480ebe09112f586d96dd2e4c6f24c050404adc27c8b590b3"
+          },
+          {
+            "name": "args",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/args-2.7.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/args-2.7.0",
+            "pubspec_sha256": "2b4cd847855bfce84a3dabae75c216974804e068c1ed0a5d663abb7d63006303"
+          },
+          {
+            "name": "async",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/async-2.13.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/async-2.13.1",
+            "pubspec_sha256": "e3e95b194e5b58db0e6a2649c4ad4957a92027d64a38cfa0de53a225601c030c"
+          },
+          {
+            "name": "boolean_selector",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/boolean_selector-2.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/boolean_selector-2.1.2",
+            "pubspec_sha256": "694e93a3e5cb9bea0868a4873f8ea9dd3856e00e3629ee7488cbbec42c41bc5c"
+          },
+          {
+            "name": "characters",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/characters-1.4.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/characters-1.4.1",
+            "pubspec_sha256": "5cca9e9296ee6f219922c5e9049b71559b46ac45095b10de9afc57da2c12f951"
+          },
+          {
+            "name": "cli_config",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/cli_config-0.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/cli_config-0.2.0",
+            "pubspec_sha256": "1750408e11627ede23689dc41a2e31ccb513396be2d1caf17db698f1351ab7a1"
+          },
+          {
+            "name": "clock",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/clock-1.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/clock-1.1.2",
+            "pubspec_sha256": "0089e7447cd2f74865403d69b5fab16fefa54fa3a04b9453a3c23c114752e35e"
+          },
+          {
+            "name": "collection",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/collection-1.19.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/collection-1.19.1",
+            "pubspec_sha256": "0558412e31aacf6a97e6b226e0f9f6b10ab5ae95c57a8a562ff579ee1609f913"
+          },
+          {
+            "name": "convert",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/convert-3.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/convert-3.1.2",
+            "pubspec_sha256": "2970044ca804d99db9fa9b5bdf785a2c95e229d7b919d4bb9f4428f857bc60d2"
+          },
+          {
+            "name": "coverage",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/coverage-1.15.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/coverage-1.15.1",
+            "pubspec_sha256": "c96a11349eec1c79db538913ff338036346d082a798cbc57d810ff7059d19142"
+          },
+          {
+            "name": "crypto",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/crypto-3.0.7",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/crypto-3.0.7",
+            "pubspec_sha256": "7e80694c991709360b161f4af801646902127f120b864286dbc413e4f667f712"
+          },
+          {
+            "name": "dbus",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/dbus-0.7.15",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/dbus-0.7.15",
+            "pubspec_sha256": "5279ec60a7f3c367b2897081e2b14118975fe3715480cd528480ff58138e3f1e"
+          },
+          {
+            "name": "denial_dart_shell",
+            "kind": "path",
+            "resolved_uri": "file:///work/workspace/dart_shell",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/dart_shell",
+            "pubspec_sha256": "95671df02304f02de0e5f13b8ae9bab22624d32b3faf421dd966c7b7558f42dc"
+          },
+          {
+            "name": "denial_wire_protocol",
+            "kind": "path",
+            "resolved_uri": "file:///work/workspace/protocol/generated/dart",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/protocol/generated/dart",
+            "pubspec_sha256": "56cd8ae645f8efd36fd186d0fb43a4b088c5b4b2ae1a54fd25df5ead9b15c3c3"
+          },
+          {
+            "name": "fake_async",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/fake_async-1.3.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/fake_async-1.3.3",
+            "pubspec_sha256": "e327702810254b2950d552c0cc5d0174fcd287a9b70ff4aa55d9fb5dd477e655"
+          },
+          {
+            "name": "ffi",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/ffi-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/ffi-2.2.0",
+            "pubspec_sha256": "00eb29c9e0d66e1696dd41772e157c8ec4bcc6454ee7ab426128ec270722587b"
+          },
+          {
+            "name": "file",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/file-7.0.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/file-7.0.1",
+            "pubspec_sha256": "2431ce26b72e9f4000cda857183316cf98fcdc5f1c6143ef97ca54a333500d82"
+          },
+          {
+            "name": "fixnum",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/fixnum-1.1.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/fixnum-1.1.1",
+            "pubspec_sha256": "0e4778875281ea0265bb1b00aa809ff5ac9fbd089e2fa2a0f23750c304d4ee3c"
+          },
+          {
+            "name": "flat_buffers",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flat_buffers-25.9.23",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flat_buffers-25.9.23",
+            "pubspec_sha256": "8226152e3e0e96016063fd0cce9c0d175273711a9e544f54506d367d8a9c5e83"
+          },
+          {
+            "name": "flutter",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/packages/flutter",
+            "actual_path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter",
+            "pubspec_sha256": "c0e57dc9aee87273c1ff2cd3778959cb57eb5daa7a89f5f8568ab9e8ccd1cd4d"
+          },
+          {
+            "name": "flutter_lints",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flutter_lints-6.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flutter_lints-6.0.0",
+            "pubspec_sha256": "8b819dad320bf3f6a7464d3c10f98fe749e5687685cb097534f99e5be0032e9d"
+          },
+          {
+            "name": "flutter_localizations",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/packages/flutter_localizations",
+            "actual_path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter_localizations",
+            "pubspec_sha256": "33020ffcf129cbcdcb98ea0e206b82dd495880980dc6652e3397cfdf872829c2"
+          },
+          {
+            "name": "flutter_riverpod",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flutter_riverpod-3.4.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flutter_riverpod-3.4.2",
+            "pubspec_sha256": "030495a22f79968836e32fe850c9eec5664067c6d044ee36f8901bc03fa1d9bb"
+          },
+          {
+            "name": "flutter_svg",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/flutter_svg-2.3.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/flutter_svg-2.3.0",
+            "pubspec_sha256": "33a173c336ef0b28387bb5b35236e7472ce0f4cff990ef37d948755be4bc4e97"
+          },
+          {
+            "name": "flutter_test",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/packages/flutter_test",
+            "actual_path": "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout/packages/flutter_test",
+            "pubspec_sha256": "53938ed63f88cd504289e12c326e989fe6dbe127204965f35e340be3618f5543"
+          },
+          {
+            "name": "frontend_server_client",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/frontend_server_client-4.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/frontend_server_client-4.0.0",
+            "pubspec_sha256": "2fb1ca24712dc2902201de0169df72feb4a860da2aec6775b47ad9f3c5bb5348"
+          },
+          {
+            "name": "glob",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/glob-2.1.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/glob-2.1.3",
+            "pubspec_sha256": "7801944569d2be60962f16283014551e34e9414dd9119a6f5771076221892dcc"
+          },
+          {
+            "name": "http",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/http-1.6.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/http-1.6.0",
+            "pubspec_sha256": "ab9b20099e285fcabbdb52188d8a9205adee7eeb9b51f00727206edeb1e72420"
+          },
+          {
+            "name": "http_multi_server",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/http_multi_server-3.2.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/http_multi_server-3.2.2",
+            "pubspec_sha256": "f55836d45801489e1cc991e59c1771fe672f4d0ffa5ca59ed40bf94a3214696c"
+          },
+          {
+            "name": "http_parser",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/http_parser-4.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/http_parser-4.1.2",
+            "pubspec_sha256": "88a08953bcff87d5b003d46d689a87d4149d4abca5200f7d6534dd2e2aba4751"
+          },
+          {
+            "name": "intl",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/intl-0.20.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/intl-0.20.2",
+            "pubspec_sha256": "b48bd7b5eb665b23bf1a0e507b1440a75ee7014a4aff80f477419a72caef3f91"
+          },
+          {
+            "name": "io",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/io-1.0.5",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/io-1.0.5",
+            "pubspec_sha256": "2e78b32cafbdf5f03eb1cd2dbe8e88b241fd480ffcee4fc0bea9a309767929e6"
+          },
+          {
+            "name": "leak_tracker",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/leak_tracker-11.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/leak_tracker-11.0.2",
+            "pubspec_sha256": "baa761e9bf38ebeff3ccf67d4ea542ede08e7286695df569f91be867134b03a5"
+          },
+          {
+            "name": "leak_tracker_flutter_testing",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/leak_tracker_flutter_testing-3.0.10",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/leak_tracker_flutter_testing-3.0.10",
+            "pubspec_sha256": "230b28feb29c520794eb49924bad2c19073080d4cdf94240d222a73250877abb"
+          },
+          {
+            "name": "leak_tracker_testing",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2",
+            "pubspec_sha256": "bda15ec4370d21476ed0eca93f25e86f2dfe3887c19720335821348c390f0b21"
+          },
+          {
+            "name": "lints",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/lints-6.1.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/lints-6.1.0",
+            "pubspec_sha256": "45a12e5d281279d245741c002b33ed10b0af776074d457f4e342d46ced8431e6"
+          },
+          {
+            "name": "listen",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/listen-1.0.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/listen-1.0.1",
+            "pubspec_sha256": "f81a25f4be8ff0ca03effb7b62d280519ad08a49cafc63e8d0c5d2a0176158e3"
+          },
+          {
+            "name": "logging",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/logging-1.3.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/logging-1.3.0",
+            "pubspec_sha256": "c2880dbeafc99cd7b16c5b4da088c06d111498107476544d3cdb60f9735f05fa"
+          },
+          {
+            "name": "matcher",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/matcher-0.12.19",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/matcher-0.12.19",
+            "pubspec_sha256": "d8b48bd29b1457783ad1cf4309ad512f37a12b75887b60627ad5f359b378f321"
+          },
+          {
+            "name": "material_color_utilities",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/material_color_utilities-0.13.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/material_color_utilities-0.13.0",
+            "pubspec_sha256": "4c32df8a37a2548d4ccc5ad892b9f3780236ad655685273d366ca34aee39fa1d"
+          },
+          {
+            "name": "meta",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/meta-1.18.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/meta-1.18.0",
+            "pubspec_sha256": "c4c5b8b2e576b3a5ba34d9f6584495fdf872b7d3a4b357d61b2112e42cb21bd4"
+          },
+          {
+            "name": "mime",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/mime-2.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/mime-2.0.0",
+            "pubspec_sha256": "0a52e0c16ec928acab31bf057fcdbaa3a12171ac8be4fefb5e49af55b63513c9"
+          },
+          {
+            "name": "node_preamble",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/node_preamble-2.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/node_preamble-2.0.2",
+            "pubspec_sha256": "00e45a39f773b8ae80804910d25eef80de13b9d972893591bc04965553b2b79d"
+          },
+          {
+            "name": "package_config",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/package_config-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/package_config-2.2.0",
+            "pubspec_sha256": "7c5033e163a22d6b19269f717983ae6eaa43db91f97ee2a34568a0e353f225f6"
+          },
+          {
+            "name": "path",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/path-1.9.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/path-1.9.1",
+            "pubspec_sha256": "94bc2793c42741c611722b22b0bc0f1a000ae4914f5ab52810d91e18ce4b1f6d"
+          },
+          {
+            "name": "path_parsing",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/path_parsing-1.1.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/path_parsing-1.1.0",
+            "pubspec_sha256": "c57fcafb9a849203db7c4c65e94c5e7a74e897c6e5f602867226f4e696bf0bc5"
+          },
+          {
+            "name": "petitparser",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/petitparser-7.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/petitparser-7.0.2",
+            "pubspec_sha256": "852ea6753432f6f3d5fa1a35f3b2343fe848c8a9b6c2d4e3ad2015221ff0f3d0"
+          },
+          {
+            "name": "pool",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/pool-1.5.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/pool-1.5.2",
+            "pubspec_sha256": "cb6ff50a9a3f161df6bd0be90600f23829e848bd6027f33048963f6f3ad84558"
+          },
+          {
+            "name": "pub_semver",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/pub_semver-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/pub_semver-2.2.0",
+            "pubspec_sha256": "4a5651655fc1162b65bddc441861b1d47de73389f72e2e6d4bc9f3e46753829f"
+          },
+          {
+            "name": "riverpod",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/riverpod-3.4.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/riverpod-3.4.2",
+            "pubspec_sha256": "2dbf635b72d2f176347d8cdef45681b556310a5d4880f3b66720e2c9431f453d"
+          },
+          {
+            "name": "shelf",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf-1.4.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf-1.4.2",
+            "pubspec_sha256": "4343d71ca671b07f079d006a6eb2393f936d2369b4659b3bd52d6f3ecb1e51df"
+          },
+          {
+            "name": "shelf_packages_handler",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf_packages_handler-3.0.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf_packages_handler-3.0.2",
+            "pubspec_sha256": "3ab547a6b9b9534bec7d652eafa4a8af91ca91c4c83adafcd0358df264d2215c"
+          },
+          {
+            "name": "shelf_static",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf_static-1.1.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf_static-1.1.3",
+            "pubspec_sha256": "bb1397e8df951e4a90b2ba7bc8ee150061ab344f2fc67f72a50cb66baac705a6"
+          },
+          {
+            "name": "shelf_web_socket",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/shelf_web_socket-3.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/shelf_web_socket-3.0.0",
+            "pubspec_sha256": "fe719937bbcd01978c475cf3c33c8fc3239d3e9880e96b4720f6f9b8c6d844a3"
+          },
+          {
+            "name": "sky_engine",
+            "kind": "sdk",
+            "resolved_uri": "file:///flutter/bin/cache/pkg/sky_engine",
+            "actual_path": "/home/deck/.local/state/rog5-sdk-platform-evidence-20260912-r1/out/gen/dart-pkg/sky_engine",
+            "pubspec_sha256": "f08241742a8286a35aacc231780fdae568a6d0927a7d7b2f080dfd60f56b11b6"
+          },
+          {
+            "name": "source_map_stack_trace",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/source_map_stack_trace-2.1.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/source_map_stack_trace-2.1.2",
+            "pubspec_sha256": "3799d273787f95aadee1c44040c0593b730beeb8ae0f74ff8954473e4ecb9713"
+          },
+          {
+            "name": "source_maps",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/source_maps-0.10.14",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/source_maps-0.10.14",
+            "pubspec_sha256": "9bd384bd917596c0185593208c7ed9e2a597e1f2741305616eac331ad2b97e27"
+          },
+          {
+            "name": "source_span",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/source_span-1.10.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/source_span-1.10.2",
+            "pubspec_sha256": "ef70b95ff6588bbe25c695f6fdd7f3eed6525b70955bf429fd08e676a6fc6d02"
+          },
+          {
+            "name": "stack_trace",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/stack_trace-1.12.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/stack_trace-1.12.1",
+            "pubspec_sha256": "4a268375024e12885ed4d195dbb5a9fc168b43e867932efcf80bebb87ca75520"
+          },
+          {
+            "name": "state_notifier",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/state_notifier-1.0.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/state_notifier-1.0.0",
+            "pubspec_sha256": "1e9f4d517e55de26a3b2a50884d3ef12972b1b536d819ecb8481ef4f61dde820"
+          },
+          {
+            "name": "stream_channel",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/stream_channel-2.1.4",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/stream_channel-2.1.4",
+            "pubspec_sha256": "bb9e840e71b1b060c6e32c4c33b73c845f1b9f9dfddd7a2f01c1d8ebb5ac5cae"
+          },
+          {
+            "name": "string_scanner",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/string_scanner-1.4.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/string_scanner-1.4.1",
+            "pubspec_sha256": "e2e5e7815773dd7525a75cb446f05bfa6525457c3310ff9a676119b432296106"
+          },
+          {
+            "name": "term_glyph",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/term_glyph-1.2.2",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/term_glyph-1.2.2",
+            "pubspec_sha256": "8cc3f20df49edba351049c9a4080ac6f629da8c073fc7c63c5acc2de1230317a"
+          },
+          {
+            "name": "test",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/test-1.31.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/test-1.31.0",
+            "pubspec_sha256": "bd263b52384d4982c819d57aa78a577ecf06603bd81fc1012e38d8cf0000b5f4"
+          },
+          {
+            "name": "test_api",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/test_api-0.7.11",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/test_api-0.7.11",
+            "pubspec_sha256": "df6df3bd3f65db3836c5d738ce350d76f5c9eb953ec79d4b766b2a7a17f4b2d2"
+          },
+          {
+            "name": "test_core",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/test_core-0.6.17",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/test_core-0.6.17",
+            "pubspec_sha256": "230e978e77469b4b020310e6496ad3e226eb9d450ba0cd2c3c0c933a01cb5dfe"
+          },
+          {
+            "name": "typed_data",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/typed_data-1.4.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/typed_data-1.4.0",
+            "pubspec_sha256": "a9f411c96b3904fdb471b2c34b5c88569b899bc5b6bcb74fd08d1abfcdc1c79f"
+          },
+          {
+            "name": "uuid",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/uuid-4.6.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/uuid-4.6.0",
+            "pubspec_sha256": "f22a82dceacc2f885ed9879652c815bbd7ee03ba1666615005b5d1508aa6d4ec"
+          },
+          {
+            "name": "vector_graphics",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_graphics-1.2.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_graphics-1.2.3",
+            "pubspec_sha256": "64730c4bbfb2ae1c103d61563567f4a0e47ec9390c245b44df2fc7b7fcee5ff9"
+          },
+          {
+            "name": "vector_graphics_codec",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_graphics_codec-1.1.13",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_graphics_codec-1.1.13",
+            "pubspec_sha256": "81a6b8f147b3fc5adace19d3c1461d4b8303f8dcfbbf9a97a844f68bf486a38f"
+          },
+          {
+            "name": "vector_graphics_compiler",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_graphics_compiler-1.3.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_graphics_compiler-1.3.0",
+            "pubspec_sha256": "cd81ba463e74ec7fea93d8548b3900ab5defe79625629a18e5f9139ec98b82dd"
+          },
+          {
+            "name": "vector_math",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vector_math-2.2.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vector_math-2.2.0",
+            "pubspec_sha256": "c4d77861f9dbe286b5ef7495661afab686b47239d61fcbcd9f6b069c73792023"
+          },
+          {
+            "name": "vm_service",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/vm_service-15.3.0",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/vm_service-15.3.0",
+            "pubspec_sha256": "0a6088e90a6eb2a83b48590e9fabd0c859f1e07f79eabf8e95280985b375e5c1"
+          },
+          {
+            "name": "watcher",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/watcher-1.2.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/watcher-1.2.1",
+            "pubspec_sha256": "b696d132a6ef7b099e8a63b4b8f8dadf2757be7fbffd04982f832b4d86e0d769"
+          },
+          {
+            "name": "web",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/web-1.1.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/web-1.1.1",
+            "pubspec_sha256": "229e6d6763aa2095d73390e7f94af0aad306e7a8d31e97c7b75a47bc896ccfc5"
+          },
+          {
+            "name": "web_socket",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/web_socket-1.0.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/web_socket-1.0.1",
+            "pubspec_sha256": "cb772a2362eee485b4658be7d85f9edd87f0110cf2243041c7e5cd221a479814"
+          },
+          {
+            "name": "web_socket_channel",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
+            "pubspec_sha256": "115000a10051194436a0597dacc62170887aa4b43157828a14a767c024d0e6b6"
+          },
+          {
+            "name": "webkit_inspection_protocol",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/webkit_inspection_protocol-1.2.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/webkit_inspection_protocol-1.2.1",
+            "pubspec_sha256": "482a37c78e5210593d4311d5c3ee832fb63fa49372ce080794c79856992d875d"
+          },
+          {
+            "name": "xml",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/xml-7.0.1",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/xml-7.0.1",
+            "pubspec_sha256": "de65521a3bb1df93eb2a9cc17642771db8c506ab09206eb1eef475cde4e84cdb"
+          },
+          {
+            "name": "yaml",
+            "kind": "hosted",
+            "resolved_uri": "file:///pub-cache/hosted/pub.dev/yaml-3.1.3",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/pub-cache/hosted/pub.dev/yaml-3.1.3",
+            "pubspec_sha256": "cbad2cf80759ac9a0b2cb062de6756df59a626e389a948a315a226c5cae6293f"
+          },
+          {
+            "name": "denial_settings",
+            "kind": "application",
+            "resolved_uri": "file:///work/workspace/settings_app",
+            "actual_path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/workspace/settings_app",
+            "pubspec_sha256": "20ff38f64a52467d77011298fcf3af1e56b8d18bf22d199b73b5c322ef6c4e01"
+          }
+        ],
+        "config_sha256": "6e68687b7ffffc15838ce5e14d99c47a98c921b631f3c43df9c5643e947810e9",
+        "lock_sha256": "eda67da1b3f4e50eecb5820d835dd5ba8bc002bfd3c64cb2e406988b9e54a3f7"
+      }
+    ],
+    "hosted_payloads_unchanged": 84,
+    "platform_files_unchanged": 4,
+    "sky_tree_sha256": "12e4dc3cb6564dfa3163753a5db33e0a1ec26797a2b2d2feb061da03dda0b483",
+    "duration_seconds": 2.0530230320000555,
+    "scope": "actual locked resolution roots, identity and unchanged cache/source locks; no Flutter tool bootstrap, AOT or physical proof",
+    "physical_status": "NOT RUN"
+  },
+  "engine_observation": {
+    "observed_at": "2026-09-12T15:00:43.154298+00:00",
+    "command": [
+      "podman",
+      "inspect",
+      "d62c80531a70103fe74c2fe1029b9b6dd1e0d5439475a50ebc38a56e1b01fb4d",
+      "--format",
+      "{{json .State}}"
+    ],
+    "state": {
+      "OciVersion": "1.2.1",
+      "Status": "running",
+      "Running": true,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 2827686,
+      "ConmonPid": 2827684,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-09-12T16:56:28.452581533+02:00",
+      "FinishedAt": "0001-01-01T00:00:00Z",
+      "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-d62c80531a70103fe74c2fe1029b9b6dd1e0d5439475a50ebc38a56e1b01fb4d.scope",
+      "CheckpointedAt": "0001-01-01T00:00:00Z",
+      "RestoredAt": "0001-01-01T00:00:00Z"
+    },
+    "container_id": "d62c80531a70103fe74c2fe1029b9b6dd1e0d5439475a50ebc38a56e1b01fb4d",
+    "exec_session_id": 32451,
+    "latest_completed_step": "[196/411] CXX obj/flutter/impeller/renderer/backend/vulkan/vulkan.debug_report_vk.o",
+    "terminal_result": null,
+    "terminal_result_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r3-result.json",
+    "owner_receipt_path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r3-owner.json",
+    "status": "RUNNING",
+    "physical_status": "NOT RUN",
+    "memory_peak_bytes": 811401216,
+    "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+  },
+  "retained_build_failures": [
+    {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-result.json",
+      "sha256": "16386beba00db6263d0ea58e23c571dc61fc1c1200508eff9d38b4f1e01590f9",
+      "size": 1907
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r2-result.json",
+      "sha256": "817d462c318c863f2063a5b01bcdedd1e8175df7a56c9edefab440c8e830b227",
+      "size": 1910
+    }
+  ],
+  "private_tools": [
+    {
+      "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/install.py",
+      "sha256": "a58dc5786c695fb669833f8d5d3174633a633e7f1d7a263ccacd75b36e184f3c",
+      "size": 2136
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/verify.py",
+      "sha256": "445d700213bdd8c07a3ee7585a4df3931a6b0a738263aff9bc3d630dfd8fedee",
+      "size": 2176
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/materialize-pub.py",
+      "sha256": "195c3b8bb3daa93fc4e3e483eb0752e2f14c3598cf59a9bd14f3948b27770936",
+      "size": 2223
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/resolve-r1/inside.py",
+      "sha256": "44266bbfc976d13d34c1910818cbc8af3db3f9f87e83ea5cdfe2ecf9536fc86c",
+      "size": 1438
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/verify-resolution.py",
+      "sha256": "240156ce7e4278862587ba228aecebdee1ad424a302f9098481ba4299ec9fe49",
+      "size": 3900
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/compile-r3.py",
+      "sha256": "ff1f2d05e728f28667842a99ee31d52ad593a1bba39c6f128e820163a362cf7d",
+      "size": 3132
+    }
+  ],
+  "upstream_attestations": "retained; signatures not independently verified",
+  "host_dart_sdk": "PASS: verified upstream prebuilt; source rebuild NOT RUN",
+  "flutter_tool_bootstrap": "NOT RUN",
+  "shell_aot_status": "NOT RUN",
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "signing": false,
+  "claim_operations": false,
+  "protected_storage_mutation": false,
+  "candidate_created": false,
+  "engine_compilation": {
+    "status": "PASS",
+    "terminal_result": {
+      "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r3-result.json",
+      "sha256": "52d2ff0dc6eb4731107efb67123b4fd330e32a3a6699fe8d2f4eaa931eea2847",
+      "size": 4448
+    },
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--memory=4096m",
+      "--memory-swap=4096m",
+      "--cpus=2",
+      "--pids-limit=128",
+      "--network=none",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/site:/source/engine/src/flutter/buildtools/linux-x64/clang:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1:/work:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+      "-e",
+      "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+      "-e",
+      "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+      "-e",
+      "CIPD_CACHE_DIR=/build/cipd-cache",
+      "-e",
+      "DEPOT_TOOLS_UPDATE=0",
+      "-e",
+      "HOME=/work/home",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "--workdir=/source/engine/src",
+      "--cidfile",
+      "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r3.cid",
+      "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+      "ninja",
+      "-C",
+      "/work/out",
+      "-j2",
+      "libflutter_engine.so",
+      "clang_x64/gen_snapshot"
+    ],
+    "duration_seconds": 746.3316846749804,
+    "earlier_segments": "two deadline FAIL results retained; same output and arguments resumed",
+    "verification": {
+      "status": "PASS",
+      "scope": "compiled ELF architecture, embedder exports, declared dependencies and host ARM64-target snapshot version; runtime dependency closure and engine execution NOT RUN",
+      "observed_at": "2026-09-12T15:10:24.006891+00:00",
+      "terminal_result": {
+        "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/compile-r3-result.json",
+        "sha256": "52d2ff0dc6eb4731107efb67123b4fd330e32a3a6699fe8d2f4eaa931eea2847",
+        "size": 4448
+      },
+      "owner_absent": true,
+      "commands": [
+        {
+          "command": [
+            "readelf",
+            "-h",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so"
+          ],
+          "exit_status": 0,
+          "duration_seconds": 0.004819766996661201,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/libflutter_engine.so-header.log",
+            "sha256": "1c2f55c4785bd1f97de9450ab442e5f58eff6b429f6507c1c2072c41ca11d83f",
+            "size": 939
+          }
+        },
+        {
+          "command": [
+            "readelf",
+            "-d",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so"
+          ],
+          "exit_status": 0,
+          "duration_seconds": 0.004693363996921107,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/libflutter_engine.so-dynamic.log",
+            "sha256": "eaa63e5c7143e90578266bf4874513ee1934bfe50d60369efa959c53a8989ca4",
+            "size": 1874
+          }
+        },
+        {
+          "command": [
+            "readelf",
+            "--dyn-syms",
+            "--wide",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so"
+          ],
+          "exit_status": 0,
+          "duration_seconds": 0.0067458270059432834,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/libflutter_engine.so-symbols.log",
+            "sha256": "885700e318cde25d0ff8d19f4c53caf58ce86d384f857b63f574a3b9fab5ed6a",
+            "size": 39655
+          }
+        },
+        {
+          "command": [
+            "readelf",
+            "-h",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot"
+          ],
+          "exit_status": 0,
+          "duration_seconds": 0.004827816010219976,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/clang_x64-gen_snapshot-header.log",
+            "sha256": "d53a478ba41f68f4e937856f95ef7ef6b90d4314c319495d72c24db5aabe3269",
+            "size": 983
+          }
+        },
+        {
+          "command": [
+            "readelf",
+            "-d",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot"
+          ],
+          "exit_status": 0,
+          "duration_seconds": 0.004619672981789336,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/clang_x64-gen_snapshot-dynamic.log",
+            "sha256": "aab63b0b0f4531201efe231840194f7b5e9b8391d7d5261cc797e8da2a3ce22f",
+            "size": 1830
+          }
+        },
+        {
+          "command": [
+            "readelf",
+            "--dyn-syms",
+            "--wide",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot"
+          ],
+          "exit_status": 0,
+          "duration_seconds": 0.005576188996201381,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/clang_x64-gen_snapshot-symbols.log",
+            "sha256": "34bc79454a6fb5bdd3e691f1fe700d960b5e3d475c114106448681769f14dc45",
+            "size": 15202
+          }
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--read-only",
+            "--read-only-tmpfs=false",
+            "--network=none",
+            "--memory=256m",
+            "--memory-swap=256m",
+            "--cpus=1",
+            "--pids-limit=32",
+            "-v",
+            "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot:/gen_snapshot:ro",
+            "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+            "/gen_snapshot",
+            "--version"
+          ],
+          "exit_status": 0,
+          "duration_seconds": 0.17524760600645095,
+          "log": {
+            "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/gen-snapshot-version.log",
+            "sha256": "a581e206400178764591bfb59370993b06330108a66a5717d285997b62bf5f14",
+            "size": 86
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/libflutter_engine.so",
+          "sha256": "1948c859989fc8721112ffb6eda4e6869745e0fafcec42d6c2f77d9bd402cadb",
+          "size": 15975760,
+          "machine": "AArch64",
+          "needed": [
+            "libdl.so.2",
+            "libfontconfig.so.1",
+            "libpthread.so.0",
+            "libm.so.6",
+            "libc.so.6",
+            "ld-linux-aarch64.so.1"
+          ]
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-engine-clang-evidence-20260912-r1/build-r1/out/clang_x64/gen_snapshot",
+          "sha256": "c0d9294287db1e33fea482e6f4f9907b763901f8a6c9bdf025b5791a991ebb01",
+          "size": 5927352,
+          "machine": "Advanced Micro Devices X86-64",
+          "needed": [
+            "libdl.so.2",
+            "libpthread.so.0",
+            "libm.so.6",
+            "libc.so.6",
+            "ld-linux-x86-64.so.2"
+          ]
+        }
+      ],
+      "gen_snapshot_version": "Dart SDK version: 3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on \"linux_simarm64\"",
+      "duration_seconds": 0.2596631929918658,
+      "phone_operations": false,
+      "physical_status": "NOT RUN",
+      "runtime_dependency_closure": "NOT RUN"
+    },
+    "verification_script": {
+      "path": "/home/deck/.local/state/rog5-matching-dart-sdk-evidence-20260912-r1/verify-engine.py",
+      "sha256": "e93bc120bfeebcc8807ccdeb4dcdd0c822262aadf508b702b92a3d089a43e066",
+      "size": 3169
+    },
+    "physical_status": "NOT RUN",
+    "runtime_dependency_closure": "NOT RUN"
+  }
+}
