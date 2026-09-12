@@ -173,6 +173,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/device/test-gles-readback.py
 	scripts/device/test-mobile-dt-guards.py
 	scripts/device/test-mobile-touch-providers.py
 	scripts/device/test-rog5-geni-mode.py

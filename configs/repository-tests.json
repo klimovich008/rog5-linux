@@ -7808,6 +7808,33 @@
         "dts/qcom/sm8350-rog5-mp2-front-touch-disabled.dtso"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/device/test-gles-readback.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "rustc",
+        "cc",
+        "bwrap"
+      ],
+      "resource_class": "namespace",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/a660/rog5-gles-readback.rs",
+        "tools/a660/test-fake-gles.c"
+      ],
+      "optional_subchecks": []
     }
   ]
 }
