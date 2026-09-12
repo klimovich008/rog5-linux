@@ -1,0 +1,408 @@
+{
+  "schema": 1,
+  "status": "FAIL",
+  "scope": "archival reclamation and pinned GN acquisition PASS; real engine graph FAIL on missing ARM64 sysroot; compilation NOT RUN",
+  "source_commit": "871f876b7a2aa47010d85d02d6f74b731924b56a",
+  "source_tree": "8b5932da7904abbfd272763abf712a356034e206",
+  "physical_status": "NOT RUN",
+  "authority": "none",
+  "archive_reclamation": {
+    "roots": 6,
+    "removed_intermediate_files": 23280,
+    "removed_allocated_bytes": 12393938944,
+    "compressed_archive_bytes": 3596407396,
+    "observed_net_reclaimed_bytes": 8786944000,
+    "measured_cycle_seconds": 145.80502482800512,
+    "timing_limit": "first compression failed in verification; its compression time is not included in the resumed cycle measurement",
+    "all_archives_content_verified": true,
+    "all_protected_outputs_unchanged": true,
+    "runner": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archive-intermediates.py",
+      "sha256": "430653327a0ac8c81f0775bcb40ec87ae66cd371ab854e50199702a60d95782d"
+    },
+    "inventory": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/inventory.json",
+      "sha256": "827ea5a8874f8f8d13ad21b12ea5ac87435c0bb1b9f7e769c3b383313b6d07a2"
+    },
+    "selection": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/eligible.json",
+      "sha256": "ad1e7bd5cf2f41225d943aebd4335c37b33f4a155bc1f321e3da82e0776d4af5"
+    },
+    "results": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/results.json",
+      "sha256": "8acdacedd3ab96398623650b6f8a2332dd513baab4e2c280ae28272834664485"
+    },
+    "outputs": [
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-c/intermediates.tar.zst",
+        "sha256": "a9ce9066674d4d92e6bb9e1e88943fc7a80afd46748de56c274705fc0317540d",
+        "size": 599186681
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-c/manifest.json",
+        "sha256": "185ae2cdc26b26863c5275bb6caa8a036af854a023e5367884fb0b8b5d4f6abc",
+        "size": 1333594
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-c/result.json",
+        "sha256": "dbd368d7bde64fc2c232b097f9add27f84aed11102a908bd562ec7bb2a698506",
+        "size": 1348
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-d/intermediates.tar.zst",
+        "sha256": "e992a4f4731ac1849b43a2cc79d3b6cc2901f0eaec00ece78c1c722bfb80d8b4",
+        "size": 599169375
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-d/manifest.json",
+        "sha256": "560b914cea8e1e69f4528b7ed3cb793e4143cc1004a8ded510b1d3c47bdf0d0c",
+        "size": 1333594
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-d/result.json",
+        "sha256": "c8e18a935bb8b42f1523015f9fa5101403baa8b20cd84fb002b5f7a207a1564e",
+        "size": 1307
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-a/intermediates.tar.zst",
+        "sha256": "517f6191468c4bc651a585745f35bff8fb89e390e05b1e526a830ead9aaa2c34",
+        "size": 599273648
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-a/manifest.json",
+        "sha256": "d3f7d495fd6bbc8e662fac014fb36de87e33ad7d0e5deecbaa5eeb004213156a",
+        "size": 1333594
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-a/result.json",
+        "sha256": "25d5e595bac7680b1b5e8e49989e83e3220553680c60ff3874b96572aa4a4f25",
+        "size": 1306
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-b/intermediates.tar.zst",
+        "sha256": "f50514dd50516bb3666718ad43891c7985ea90337bb409d644a008c87e9d74f6",
+        "size": 599228435
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-b/manifest.json",
+        "sha256": "7f5a3fca991b2d2ebb3efb437cf9b939a6ec80fbaa670b43b8857651aa764e6f",
+        "size": 1333594
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-contained-local-write-kernel-20260814-r1--kernel-clean-b/result.json",
+        "sha256": "0ff406120ff237fe625da98ec35ff6f20f4d27b4fb58d3d8e607212484137830",
+        "size": 1308
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-local-write-kernel-20260814-r1--kernel-clean-a/intermediates.tar.zst",
+        "sha256": "e3a622e7d4f1c271ec5418adf92db6e28426683eaefe3974f5016253cbbd0ed1",
+        "size": 599768483
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-local-write-kernel-20260814-r1--kernel-clean-a/manifest.json",
+        "sha256": "9022e8c00a59bc81d9001a705079f9c054ce91f937137cbe75ec8a6b449432a8",
+        "size": 1333616
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-local-write-kernel-20260814-r1--kernel-clean-a/result.json",
+        "sha256": "872c2e18d4011241fcec27db661d1326b98dea2d804eb4632fbe5a5b1844041f",
+        "size": 1258
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-local-write-kernel-20260814-r1--kernel-clean-b/intermediates.tar.zst",
+        "sha256": "f0d60a721e9b491636b3a5dd1c76b7fb9cc23db40cb23a7cd5adf90ac4f9df91",
+        "size": 599780774
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-local-write-kernel-20260814-r1--kernel-clean-b/manifest.json",
+        "sha256": "5770773020c10509c7d61cf31ea6fdb95d1380afe0d7b3a413d3f6b68f20fdfc",
+        "size": 1333616
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archives/rog5-local-write-kernel-20260814-r1--kernel-clean-b/result.json",
+        "sha256": "220bd2fb4149564a990a0bcd1df9ee6d95c11457ff2cc4a905f2f9c413aba999",
+        "size": 1259
+      }
+    ],
+    "commands": [
+      [
+        "python3",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archive-intermediates.py"
+      ]
+    ],
+    "memory_max": "768M",
+    "swap_max": 0,
+    "protected": [
+      "vmlinux",
+      "vmlinux.unstripped",
+      "Image",
+      "System.map",
+      "Module.symvers",
+      ".config",
+      "all source trees",
+      "final .ko and DT files",
+      "all original repository/worktree contents",
+      "signed/installed/fallback and claim evidence"
+    ],
+    "status": "PASS"
+  },
+  "fixtures": {
+    "count": 5,
+    "status": "PASS",
+    "duration_seconds": 0.02,
+    "command": [
+      "python3",
+      "-O",
+      "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/test-archive.py"
+    ],
+    "runner": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/test-archive.py",
+      "sha256": "9d5b282a83e1f958cabf617ef67f2cae11b00828d6cafad7a7b4f19d8d440ef5"
+    },
+    "log": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/fixture-tests.log",
+      "sha256": "0972642974817e6b852c4e7a08c2c4a66dd8b97d95b40d977d988e1dd6d7207c"
+    }
+  },
+  "retained_verifier_failure": {
+    "log": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archive.log",
+      "sha256": "58e43fb84d6dd4271d44f861098119ebe2a654fadd56e780663946a545a3dc7e"
+    },
+    "source": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/archive-intermediates-r1.py",
+      "sha256": "5a40ff71280ce331e2109ea3436e4c31a535450034b173e965347b2e981fcc0a"
+    },
+    "pre_resume_receipt": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/first-archive-before-resume.json",
+      "sha256": "cdf8936b1cd990489b7b7f383949df52fc6ce5ab4a581c6b19745dcbf6e778f6"
+    },
+    "explanation": "regular-file hash helper seeks; archive member stream cannot seek; no deletion occurred before repair"
+  },
+  "gn": {
+    "status": "PASS: pinned package acquisition and version execution",
+    "package_pin": {
+      "package": "gn/gn/linux-amd64",
+      "instance_id": "zTMMtPTg2OXILKOlg3mOpTN_0BMIlS2-Inyd2LxR2FQC"
+    },
+    "package": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/cache/instances/zTMMtPTg2OXILKOlg3mOpTN_0BMIlS2-Inyd2LxR2FQC",
+      "sha256": "cd330cb4f4e0d8e5c82ca3a583798ea5337fd01308952dbe227c9dd8bc51d854"
+    },
+    "package_bytes": 3300842,
+    "package_sha256_matches_instance": true,
+    "binary": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn",
+      "sha256": "c6be2b6774aa536bbeef8f2c2c793f52fa4c27f883c7a01d4260653b0a71e0cf"
+    },
+    "description": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/description.json",
+      "sha256": "ccb91c4c9640fccb2c2f5471a5dd97746fb7bf375056b5b8a307cf1cfee59077"
+    },
+    "install": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/install.json",
+      "sha256": "60e3e3c0a3c1f9ed53a4aea14c72764511c18e28268d95695a79c2cb84f4460f"
+    },
+    "client_sha256": "341314febc2b0e447914a20a3b845eb5052957451b30ed27b6221e8ddf9e0ed0",
+    "client_digest_matches_pinned_depot_tools": true,
+    "revision": "81b24e01531ecf0eff12ec9359a555ec3944ec4e",
+    "version": "2285 (81b24e01531e)",
+    "version_test": {
+      "name": "version",
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--read-only",
+        "--read-only-tmpfs=false",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=1",
+        "--pids-limit=128",
+        "--network=none",
+        "-v",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r1:/work:rw",
+        "-v",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+        "-e",
+        "HOME=/work/home",
+        "-e",
+        "TMPDIR=/work/tmp",
+        "--workdir=/source/engine/src",
+        "--cidfile",
+        "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r1/version.cid",
+        "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+        "/gn",
+        "--version"
+      ],
+      "status": "PASS",
+      "exit_status": 0,
+      "duration_seconds": 0.21468223197734915,
+      "log_sha256": "bb50f4c02aa5a569b7fbe2e2135e58bb1ba39f643230046f1db9fb353b292f01"
+    },
+    "attestations": "metadata retained; VSA signatures were not independently verified",
+    "deployment_scope": "private host tool cache; no system package install or phone operation"
+  },
+  "graph_attempts": {
+    "first": {
+      "result": {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r1/result.json",
+        "sha256": "ed89ffb02f713b77595dc631ee385cc6998ce0292c5c167d3ed00ebc1db4027f"
+      },
+      "status": "FAIL",
+      "reason": "vpython3 unavailable in initial container environment",
+      "test": {
+        "name": "graph",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "--network=none",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r1:/work:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+          "-e",
+          "HOME=/work/home",
+          "-e",
+          "TMPDIR=/work/tmp",
+          "--workdir=/source/engine/src",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r1/graph.cid",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/gn",
+          "gen",
+          "--check",
+          "/work/out"
+        ],
+        "status": "FAIL",
+        "exit_status": 1,
+        "duration_seconds": 0.3147995450126473,
+        "log_sha256": "fb2577c3a2da2b7487b1f26f6e18b05e138b82528ac1298f3c737bccefd6ee9e"
+      }
+    },
+    "second": {
+      "result": {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r2/timeout-result.json",
+        "sha256": "4ba521c302eb20721f7dfc0be9f3a8134aa33d6122f12f90adb1ab595f21f805"
+      },
+      "runner": {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/run-gn-r2.py",
+        "sha256": "76196013060f7208d2688702653d79a656ad8183a2d1736041fb83f110cf875d"
+      },
+      "status": "FAIL",
+      "reason": "120-second deadline; observed vpython CIPD virtualenv export pending with network disabled",
+      "deadline_seconds": 120,
+      "container_remaining": false,
+      "next_prerequisite": {
+        "package": "infra/3pp/tools/virtualenv",
+        "version": "version:2@16.7.12.chromium.7"
+      }
+    },
+    "network": "none",
+    "source_mount": "read-only",
+    "compilation_status": "NOT RUN",
+    "third": {
+      "result": {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r3/result.json",
+        "sha256": "5c8bde49c8caf81c8c11734ba48f16c5d248fb083168eedd9bd65fff0dff54ac"
+      },
+      "runner": {
+        "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/run-gn-r3.py",
+        "sha256": "76a328d69ba11e584504b1ef6c7856c64db0db2a02c00bb2015425765a17be13"
+      },
+      "status": "FAIL",
+      "reason": "missing Debian bullseye ARM64 sysroot",
+      "test": {
+        "name": "graph",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--read-only",
+          "--read-only-tmpfs=false",
+          "--memory=512m",
+          "--memory-swap=512m",
+          "--cpus=1",
+          "--pids-limit=128",
+          "--network=none",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/checkout:/source:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r3:/work:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn:/gn:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/depot_tools:/build/depot_tools:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/vpython:/build/vpython:rw",
+          "-v",
+          "/home/deck/.local/state/rog5-denial-20260910-r1/engine-build-r1/cipd-cache:/build/cipd-cache:ro",
+          "-e",
+          "PATH=/build/depot_tools/.cipd_bin:/build/depot_tools:/usr/bin:/bin",
+          "-e",
+          "VPYTHON_VIRTUALENV_ROOT=/build/vpython",
+          "-e",
+          "CIPD_CACHE_DIR=/build/cipd-cache",
+          "-e",
+          "DEPOT_TOOLS_UPDATE=0",
+          "-e",
+          "HOME=/work/home",
+          "-e",
+          "TMPDIR=/work/tmp",
+          "--workdir=/source/engine/src",
+          "--cidfile",
+          "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r3/graph.cid",
+          "237f1e2fbb6bd4007dff61e165c60676e5668f716a4a2397f5e590a2a80303ee",
+          "/gn",
+          "gen",
+          "--threads=1",
+          "--check",
+          "/work/out"
+        ],
+        "status": "FAIL",
+        "exit_status": 1,
+        "duration_seconds": 0.3149561370082665,
+        "log_sha256": "41829956822ef865d1d01b3b2ca26201c932e1ad0457bd9263d27f96b7ece31b"
+      },
+      "workers": 1,
+      "network": "none"
+    }
+  },
+  "free_bytes_at_recording": 13997056000,
+  "reserve_bytes": 3221225472,
+  "full_sync_recipe_start_guard_bytes": 85899345920,
+  "unchanged": [
+    "repository implementation source",
+    "headless acceptance and S06/R01 FAIL",
+    "mobile physical contract",
+    "ARM64 args and Arch payload",
+    "kernel/DT/modules and native Denial binaries",
+    "signed candidate/fallback and installed qualification"
+  ],
+  "vpython_preflight": {
+    "status": "PASS: single pinned-source directory-existence script executed",
+    "directory_exists": false,
+    "log": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/vpython-preflight/run.log",
+      "sha256": "60a33e6cf5151f2d52eddae9685cfa270426aa89d8dbc7dfb854606f1d1a40fe"
+    },
+    "network": "enabled only for isolated build-cache provisioning",
+    "scope": "not a complete interpreter/package closure audit"
+  },
+  "next_prerequisite": {
+    "path": "engine/src/build/linux/debian_bullseye_arm64-sysroot",
+    "source_installer": "engine/src/build/linux/sysroot_scripts/install-sysroot.py --arch=arm64",
+    "status": "BLOCKED: archive/installation not yet qualified"
+  }
+}

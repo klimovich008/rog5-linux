@@ -2199,3 +2199,20 @@ reference path is not an ARM64 build recipe. Pin toolchain concurrency explicitl
 since the generator observes host RAM rather than the container limit. Argument
 validation does not qualify GN, dependency hooks or compilation; retain those
 NOT RUN states while resolving actual cache/capacity prerequisites.
+
+
+Storage/engine tools (2026-09-12): archive and independently verify each file
+before reclaiming historical build intermediates. Six roots retained 23,280
+files in compressed recovery copies and recovered 8.79 GB net; final kernel and
+configuration hashes stayed unchanged. A verifier failed before any removal
+because the regular-file hash helper rewinds its input. Streaming tar members
+need a non-seeking loop; five focused cases passed in 0.020 s. Resume only the
+verified pre-removal phase and retain the failed receipt. The measured final
+archive/removal cycles totaled 145.805 s, excluding first-attempt compression.
+For GN, warm the exact interpreter environment with one bounded source script
+before parallel graph evaluation. Missing vpython first caused exit 127; its
+uncached virtualenv then consumed a 120-second offline deadline. After explicit
+cache provisioning, `--threads=1` exposed the actual missing ARM64 sysroot in
+0.315 s. Keep package acquisition, interpreter execution, graph validation and
+compilation as separate results. A full-sync capacity guard does not require
+restarting a full sync to fetch one independently bounded pinned tool.

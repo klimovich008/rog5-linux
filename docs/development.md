@@ -573,3 +573,15 @@ AOT still need separate evidence. The command executes no GN, Ninja, hooks or
 package/phone operations, and will not write inside the frozen source or replace
 an existing output. Its receipt includes the subsequent GN argument vector; run
 that command with the locked checkout’s `engine/src` as the working directory.
+
+
+Before the real engine GN graph, run a single bounded `vpython3` source script
+in the same isolated build environment. This separates interpreter-cache misses
+from graph/configuration failures. Provision missing pinned interpreter packages
+explicitly; keep the subsequent graph check network-disabled. Use `--threads=1`
+while diagnosing dependency closure. The active GN tool path and immutable CIPD
+instance are recorded in `manifests/current-artifact.json`; argument generation
+alone neither installs that tool nor populates sysroots. Historical intermediate
+archives remain outside Git with per-file restoration manifests. The existing
+regular-file hash helper rewinds its input; pipe-backed archive verification
+requires a non-seeking streaming hash loop.

@@ -236,5 +236,30 @@
     "compilation_status": "NOT RUN",
     "physical_status": "NOT RUN",
     "authority": "none"
+  },
+  "denial_gn_tool": {
+    "status": "PASS: pinned GN executable",
+    "set_id": "private:rog5-storage-reclaim-evidence-20260912-r1/gn-fetch",
+    "binary": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-fetch/site/gn",
+      "sha256": "c6be2b6774aa536bbeef8f2c2c793f52fa4c27f883c7a01d4260653b0a71e0cf"
+    },
+    "package_pin": {
+      "package": "gn/gn/linux-amd64",
+      "instance_id": "zTMMtPTg2OXILKOlg3mOpTN_0BMIlS2-Inyd2LxR2FQC"
+    },
+    "version": "2285 (81b24e01531e)",
+    "graph_status": "FAIL: real offline graph check reaches missing ARM64 sysroot",
+    "graph_evidence": {
+      "path": "/home/deck/.local/state/rog5-storage-reclaim-evidence-20260912-r1/gn-graph-r3/result.json",
+      "sha256": "5c8bde49c8caf81c8c11734ba48f16c5d248fb083168eedd9bd65fff0dff54ac"
+    },
+    "compilation_status": "NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none",
+    "evidence": {
+      "path": "test-results/2026-09-12-storage-reclamation-gn-qualification.json",
+      "sha256": "7e96bc2b1945b8561ea71513ea75f40c641fddb11f6b44f2b3c123beeca006ba"
+    }
   }
 }
