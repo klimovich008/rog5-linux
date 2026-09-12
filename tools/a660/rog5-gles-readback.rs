@@ -1,4 +1,4 @@
-//! One offscreen GLES2 shader/readback. No KMS, window, DMA-BUF or admission.
+//! One offscreen GLES 3.2/3.0 shader/readback. No KMS, window, DMA-BUF or admission.
 //! Run only under an external deadline: synchronous driver calls can block.
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use std::ptr;
@@ -32,7 +32,7 @@ impl Drop for Library {
     fn drop(&mut self) { unsafe { dlclose(self.0); } }
 }
 
-// Signatures match EGL 1.5 / GLES 2.0. Keeping libraries in Api owns their lifetime.
+// Signatures match EGL 1.5 / GLES 3.0. Keeping libraries in Api owns their lifetime.
 macro_rules! api {
     ($($name:ident($($arg:ty),*) -> $ret:ty;)+) => {
         #[allow(non_snake_case)]
@@ -54,6 +54,7 @@ macro_rules! api {
     }
 }
 api! {
+    eglGetError() -> c_uint;
     eglQueryString(Handle, c_int) -> *const c_char;
     eglGetPlatformDisplay(c_uint, Handle, *const isize) -> Handle;
     eglInitialize(Handle, *mut c_int, *mut c_int) -> c_uint;
@@ -67,6 +68,7 @@ api! {
     eglTerminate(Handle) -> c_uint;
     glGetString(c_uint) -> *const c_char;
     glGetError() -> c_uint;
+    glGetIntegerv(c_uint, *mut c_int) -> ();
     glCreateShader(c_uint) -> c_uint;
     glShaderSource(c_uint, c_int, *const *const c_char, *const c_int) -> ();
     glCompileShader(c_uint) -> ();
@@ -146,10 +148,13 @@ struct Session<'a> {
     context: Handle,
     shaders: Vec<c_uint>,
     program: c_uint,
+    requested_minor: c_int,
+    actual_version: (c_int, c_int),
+    preferred_error: c_uint,
 }
 impl<'a> Session<'a> {
     fn new(api: &'a Api) -> Self {
-        Self { api, display: ptr::null_mut(), initialized: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0 }
+        Self { api, display: ptr::null_mut(), initialized: false, surface: ptr::null_mut(), context: ptr::null_mut(), shaders: Vec::new(), program: 0, requested_minor: 0, actual_version: (0, 0), preferred_error: 0 }
     }
     fn gl_check(&self, stage: &str) -> Result<()> {
         let error = unsafe { (self.api.glGetError)() };
@@ -171,23 +176,42 @@ impl<'a> Session<'a> {
             self.initialized = true;
             if (major, minor) < (1, 5) { return Err("EGL 1.5 required".into()); }
             check((a.eglBindAPI)(0x30a0), "eglBindAPI")?; // OPENGL_ES_API
-            // PBUFFER_BIT, OPENGL_ES2_BIT, RGBA sizes and no depth/stencil requirement.
-            let attributes = [0x3033, 1, 0x3040, 4, 0x3024, 8, 0x3023, 8, 0x3022, 8, 0x3021, 8, 0x3038];
+            // PBUFFER_BIT, OPENGL_ES3_BIT, RGBA sizes and no depth/stencil requirement.
+            let attributes = [0x3033, 1, 0x3040, 0x40, 0x3024, 8, 0x3023, 8, 0x3022, 8, 0x3021, 8, 0x3038];
             let (mut config, mut count) = (ptr::null_mut(), 0);
             check((a.eglChooseConfig)(self.display, attributes.as_ptr(), &mut config, 1, &mut count), "eglChooseConfig")?;
-            if count != 1 || config.is_null() { return Err("no RGBA8 ES2 pbuffer config".into()); }
+            if count != 1 || config.is_null() { return Err("no RGBA8 ES3 pbuffer config".into()); }
             let size = [0x3057, 4, 0x3056, 4, 0x3038];
             self.surface = (a.eglCreatePbufferSurface)(self.display, config, size.as_ptr());
             if self.surface.is_null() { return Err("eglCreatePbufferSurface failed".into()); }
-            let context_attributes = [0x3098, 2, 0x3038];
-            self.context = (a.eglCreateContext)(self.display, config, ptr::null_mut(), context_attributes.as_ptr());
-            if self.context.is_null() { return Err("eglCreateContext failed".into()); }
+            // Match pinned Denial's preferred GLES 3.2 and fallback GLES 3.0.
+            // EGL 1.5 defines both major and minor context attributes.
+            for minor in [2, 0] {
+                let attributes = [0x3098, 3, 0x30fb, minor, 0x3038];
+                self.context = (a.eglCreateContext)(self.display, config, ptr::null_mut(), attributes.as_ptr());
+                if !self.context.is_null() {
+                    self.requested_minor = minor;
+                    break;
+                }
+                let error = (a.eglGetError)();
+                if minor == 2 {
+                    self.preferred_error = error;
+                } else {
+                    return Err(format!("eglCreateContext failed: GLES 3.2 error=0x{:x}; GLES 3.0 error=0x{error:x}", self.preferred_error));
+                }
+            }
             check((a.eglMakeCurrent)(self.display, self.surface, self.surface, self.context), "eglMakeCurrent")?;
             let renderer = string_value((a.glGetString)(0x1f01), "renderer")?;
             mode.check(&renderer)?;
             let vendor = string_value((a.glGetString)(0x1f00), "vendor")?;
             let version = string_value((a.glGetString)(0x1f02), "version")?;
             self.gl_check("identity")?;
+            (a.glGetIntegerv)(0x821b, &mut self.actual_version.0);
+            (a.glGetIntegerv)(0x821c, &mut self.actual_version.1);
+            self.gl_check("GLES version query")?;
+            if self.actual_version.1 < 0 || self.actual_version < (3, self.requested_minor) {
+                return Err(format!("GLES context version {}.{} is below requested 3.{}", self.actual_version.0, self.actual_version.1, self.requested_minor));
+            }
             for (kind, source) in [
                 (0x8b31, b"attribute vec2 position; void main() { gl_Position=vec4(position,0.,1.); }\0".as_slice()),
                 (0x8b30, b"precision mediump float; void main() { gl_FragColor=vec4(gl_FragCoord.xy/4.,0.25,1.); }\0".as_slice()),
@@ -267,7 +291,7 @@ fn run(mode: Mode) -> Result<()> {
         (Err(e), Ok(())) | (Ok(_), Err(e)) => return Err(e),
         (Err(e), Err(cleanup)) => return Err(format!("{e}; cleanup: {cleanup}")),
     };
-    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nscanout=NOT RUN\nbuffer_sharing=NOT RUN\nphysical_acceptance=NOT RUN", mode.scope());
+    println!("format=rog5-gles-readback-v1\nscope={}\nrenderer={renderer}\nvendor={vendor}\nversion={version}\ngles_requested=3.{}\ngles_actual={}.{}\ngles32_error=0x{:x}\npixels=16\nchannels_checked=64\nrender_readback=PASS\ncleanup=PASS\nscanout=NOT RUN\nbuffer_sharing=NOT RUN\nphysical_acceptance=NOT RUN", mode.scope(), session.requested_minor, session.actual_version.0, session.actual_version.1, session.preferred_error);
     Ok(())
 }
 fn main() {

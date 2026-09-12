@@ -1,10 +1,16 @@
 # Offscreen GLES shader/readback component
 
-`rog5-gles-readback.rs` renders one 4×4 GLES2 fullscreen triangle, verifies all
+`rog5-gles-readback.rs` renders one 4×4 fullscreen triangle in a GLES 3.2 context
+(or 3.0 fallback), verifies all
 64 RGBA channels to one quantization unit, and completes EGL cleanup before
 publishing PASS. It requires EGL 1.5, `EGL_MESA_platform_surfaceless`, an RGBA8
-pbuffer configuration and the runtime `libEGL.so.1` / `libGLESv2.so.2` libraries.
-It uses no Rust crates or development GL headers. For example, compile offline:
+pbuffer configuration advertising GLES 3 support and the runtime `libEGL.so.1` / `libGLESv2.so.2` libraries.
+It uses no Rust crates or development GL headers. The version preference
+matches pinned Denial 85b2303e: GLES 3.2, then GLES 3.0 if context creation fails.
+The actual major/minor version is queried before shader creation and must meet
+the requested version. Output records requested/actual versions and the first
+EGL creation error when fallback was needed. The simple shader does not qualify
+Denial's complete shader set or native-fence/DMA-BUF path. For example, compile offline:
 
 ```sh
 rustc --edition=2021 -Dwarnings -O tools/a660/rog5-gles-readback.rs -o NEW_OUTPUT
