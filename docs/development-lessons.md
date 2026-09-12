@@ -2279,3 +2279,14 @@ confirmed roots, locks and all 84 unchanged payload trees. Preserve a live build
 container's actual ID automatically: the second deadline retained objects and
 left only 411 steps, while its auto-removed CID file could not identify the old
 owner by itself. Never infer completion or launch a duplicate from a missing file.
+
+Standalone Rust probes that reuse Cargo release artifacts must preserve the
+source profile's ThinLTO setting: the first harness link rejected bitcode, and
+the matching option fixed it in 3.423 s. Exercise the actual Denial loader and
+RAII AOT-data owner; six ARM64-emulated cases ran in 0.365 s without starting a
+compositor. The exact-revision Dart SDK already contains the real frontend
+snapshot: direct release compilation took 23.171 s and two fresh ARM64 AOT
+outputs took about 20 s each with identical bytes. Reuse those real components
+before bootstrapping another toolchain. Audit actual depfile inputs and resolved
+libraries (1,970 files and 13 libraries in 1.935 s), while keeping asset assembly,
+VM/isolate startup and physical rendering as distinct unfinished requirements.
