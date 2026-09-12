@@ -2541,3 +2541,18 @@ committed. These deterministic host counterexamples avoid another speculative
 engine link/VM cycle. Scope cancellation to work identity as well as view: a
 delayed completion must not clear a newer grant. That last case is an API
 counterexample for a proposed callback, not an observed VM cancellation race.
+
+
+Work completion and admission have different owners. A completion callback can
+cancel an unused work-specific grant, but once begin admits it, only acquire or
+its matching end may release that protected span. The first repair passed stale
+ID isolation yet failed two completion-during-admission cases; retaining the
+admitted grant fixed both. Keep those tests alongside expiry and thread/view
+checks instead of enlarging a deadline to mask ordering.
+
+Reclaim verified duplicate debug data before trying to archive unique large
+files near a disk reserve. A streaming archive guard stopped the first attempt
+without removing its input; retiring a byte-identical second kernel debug copy
+made room for verified lossless archives. Retain chained restoration commands
+when the surviving duplicate is subsequently archived. Boot Images, modules,
+configs, signed recovery bytes and original build caches are separate inputs.

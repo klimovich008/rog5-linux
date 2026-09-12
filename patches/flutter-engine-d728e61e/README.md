@@ -68,3 +68,14 @@ Use the engine's IMPORTANT audit level: normal Shell initialization raises its
 threshold to ERROR, suppressing INFO even though the callsites compile. The test
 uses that exact initialization assignment with normal, non-verbose settings.
 An earlier INFO build produced no origin records; it is not origin evidence.
+
+
+Patch 0004 pairs with Denial patch 0006. Immutable work ownership follows the
+exact vsync callback, committed frame items, retained draws and retries; the
+last owner reports completion. Admission runs before backing-store allocation.
+Stale work retains its scene for a later grant without reporting a draw, and
+real allocation errors remain failures. The old API remains available until a
+client opts into work mode. No existing public struct is enlarged.
+`test-render-work-engine.py` replays all four patches against the exact engine
+and executes production queue/admission methods with explicit graphics and task
+adapters. Real ARM64 compilation and VM presentation remain separate gates.

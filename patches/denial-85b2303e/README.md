@@ -73,3 +73,23 @@ ContextBinding ownership check and failure propagation. Render-context dispatch
 is otherwise unchanged. Apply with engine patch 0002; neither correction alone
 closes the IO shutdown path. The joint actual-method regression command is in
 the [engine patch notes](../flutter-engine-d728e61e/README.md).
+
+
+Patch 0006 replaces view-only grants with nonzero, process-unique work IDs.
+Admission must precede backing-store acquisition on the same raster thread;
+expiry and completion cannot revoke that admitted span. Late completion cancels
+only unused grants for its own work. It requires engine patch 0004 and its two
+new exported functions; older libraries fail loading. Apply all patches in
+numeric order. The manual `test-render-work-broker.py` runner uses a fully patched
+Denial source tree and executes actual broker, handler and FFI methods. Its host
+PASS does not qualify queued engine execution, GL, the VM or phone.
+
+Patch 0007 constructs the host lifetime owner before registering callbacks, so
+registration failure followed by failed shutdown retains the complete callback
+and configuration graph. The actual startup-tail test has two failures before
+and six passes after the correction. This is injected-error contract hardening;
+the pinned matched runtime has no demonstrated path to that pair of failures.
+Run `test-engine-registration-ownership.py --source-before BEFORE_SOURCE
+--source-after AFTER_SOURCE --output FRESH_DIRECTORY`. The two supplied trees
+must differ by patch 0007; the runner checks that identity before extracting
+the actual startup and shutdown methods.

@@ -128,6 +128,16 @@ whose recorded dependencies include a changed engine header, then require real
 VM raster/page-flip progress without errors. Host fixtures cannot qualify that
 runtime boundary or the phone.
 
+The startup lifetime regression runs separately with
+`RUSTC="$BOUNDED_RUSTC" python3 -O scripts/host/test-engine-registration-ownership.py
+--source-before "$BEFORE_SOURCE" --source-after "$AFTER_SOURCE"
+--output "$REGISTRATION_OUTPUT"`.
+The source inputs differ by patch 0007; it verifies that delta and executes both actual
+constructor tails with shutdown/registration boundary failures. It must retain
+the original registration error and keep callback state alive when shutdown
+cannot establish worker termination. This injected failure is separate from
+the observed VM reservation errors.
+
 The mobile package graph checker validates metadata by default. The original
 `mobile-package-closure.json` remains a historical graph; select the current
 snapshot explicitly through the graph reference in `manifests/current-artifact.json`.
