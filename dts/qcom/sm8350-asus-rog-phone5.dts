@@ -132,6 +132,7 @@
  * references; both subsystems remain disabled until recovery gates exist.
  */
 &apps_rsc {
+	compatible = "asus,rog-phone5-rpmh-apps-rsc", "qcom,rpmh-rsc";
 	/delete-property/ power-domains;
 
 	regulators-0 {

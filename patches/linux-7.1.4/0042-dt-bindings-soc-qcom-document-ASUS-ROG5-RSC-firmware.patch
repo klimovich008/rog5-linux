@@ -1,0 +1,40 @@
+Subject: [PATCH] dt-bindings: soc: qcom: describe ASUS ROG Phone 5 RSC firmware
+
+The existing ASUS board integration avoids the hierarchical PSCI domains
+after a recorded OSI transition reset on the kexec boot route. Identify
+that integration explicitly while preserving the generic RSC fallback.
+Like the existing SC7180/SDM845 cases, permit absence of system-domain
+notifications only for the specific compatible. Runtime driver and power
+domain properties are unchanged by this binding extension.
+
+Base: 7a5cef0db4795d9d453a12e0f61b5b7634fc4d40 (Linux 7.1.4)
+
+diff --git a/Documentation/devicetree/bindings/soc/qcom/qcom,rpmh-rsc.yaml b/Documentation/devicetree/bindings/soc/qcom/qcom,rpmh-rsc.yaml
+--- a/Documentation/devicetree/bindings/soc/qcom/qcom,rpmh-rsc.yaml
++++ b/Documentation/devicetree/bindings/soc/qcom/qcom,rpmh-rsc.yaml
+@@ -47,6 +47,7 @@
+     oneOf:
+       - items:
+           - enum:
++              - asus,rog-phone5-rpmh-apps-rsc
+               - qcom,sc7180-rpmh-apps-rsc
+               - qcom,sdm845-rpmh-apps-rsc
+           - const: qcom,rpmh-rsc
+@@ -133,14 +134,16 @@
+ 
+ allOf:
+   # Some platforms may lack a OSI-mode PSCI implementation, which implies the
+-  # system power domain can't provide feedback about entering power collapse
++  # system power domain can't provide feedback about entering power collapse.
++  # ASUS ROG Phone 5 firmware integration also has this limitation after kexec.
+   - if:
+       not:
+         properties:
+           compatible:
+             contains:
+               enum:
++                - asus,rog-phone5-rpmh-apps-rsc
+                 - qcom,sc7180-rpmh-apps-rsc
+                 - qcom,sdm845-rpmh-apps-rsc
+     then:
+       required:

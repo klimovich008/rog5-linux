@@ -14,3 +14,4 @@
 0039-usb-gadget-ncm-restart-busy-tx-timer.patch
 0040-drm-msm-adreno-defer-until-iommu-attachment.patch
 0041-dt-bindings-arm-qcom-document-ASUS-ROG-Phone-5.patch
+0042-dt-bindings-soc-qcom-document-ASUS-ROG5-RSC-firmware.patch
