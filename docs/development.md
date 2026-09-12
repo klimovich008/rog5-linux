@@ -75,7 +75,9 @@ requires `--graph`, `--cache`, `--keyring`, `--trusted`, `--revoked` and a new
 conflicts, then extracts payloads through a network-isolated bubblewrap sandbox.
 It retains a 3 GiB disk reserve and records every output file/link in `tree.json`.
 Package installation hooks and metadata are excluded; ownership, privileged
-permissions and generated caches are not an installed-system guarantee. PASS
+permissions and generated caches are not an installed-system guarantee. Files
+are made owner-readable and directories owner-traversable for evidence hashing;
+setuid/setgid/sticky mode bits are stripped. PASS
 means payload assembly only. Test ARM64 loader/ABI behavior separately, with no
 physical device nodes, and retain QEMU/software-rendering scope explicitly.
 

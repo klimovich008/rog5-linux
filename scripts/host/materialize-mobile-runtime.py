@@ -92,6 +92,18 @@ def materialize(packages, cache, root, inventory_rows):
                 raise ValueError('archive changed during extraction')
     finally:
         os.umask(old_umask)
+    # Some package helpers deliberately have execute-only permissions. This is
+    # a test payload tree, not an installation: make files owner-readable for
+    # hashing and directories owner-traversable, without privileged mode bits.
+    for directory, subdirs, files in os.walk(root, followlinks=False):
+        for name in subdirs + files:
+            path = Path(directory) / name
+            info = path.lstat()
+            if stat.S_ISLNK(info.st_mode):
+                continue
+            mode = stat.S_IMODE(info.st_mode) & 0o777
+            mode |= 0o700 if stat.S_ISDIR(info.st_mode) else 0o400
+            os.chmod(path, mode, follow_symlinks=False)
     return commands
 
 
@@ -122,7 +134,8 @@ def main():
     output = args.output.absolute()
     output.mkdir()  # Failure here must never change an existing output's receipt.
     record = {'status': 'IN_PROGRESS', 'scope': 'host-test package payload tree; not an installable image',
-              'installation_scripts_executed': False, 'physical_status': 'NOT RUN', 'authority': 'none'}
+              'installation_scripts_executed': False,
+              'permission_policy': 'owner-readable files; owner-traversable directories; no privileged mode bits', 'physical_status': 'NOT RUN', 'authority': 'none'}
     started = time.monotonic()
     try:
         graph_path = (REPO / args.graph).resolve()

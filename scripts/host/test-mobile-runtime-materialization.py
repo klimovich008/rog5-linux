@@ -25,13 +25,13 @@ class Materialization(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.home = Path(self.temp.name)
 
-    def package(self, name, files, links=(), hardlinks=()):
+    def package(self, name, files, links=(), hardlinks=(), mode=0o755):
         path = self.home / (name + '.pkg.tar.xz')
         with tarfile.open(path, 'w:xz') as archive:
             for filename, data in files.items():
                 member = tarfile.TarInfo(filename)
                 member.size = len(data)
-                member.mode = 0o755
+                member.mode = mode
                 archive.addfile(member, io.BytesIO(data))
             for pairs, kind in ((links, tarfile.SYMTYPE), (hardlinks, tarfile.LNKTYPE)):
                 for filename, target in pairs:
@@ -55,6 +55,13 @@ class Materialization(unittest.TestCase):
         self.assertFalse((output / '.PKGINFO').exists())
         self.assertFalse((output / 'executed').exists())
         self.assertEqual(len(M.tree_manifest(output)), 5)
+
+    def test_execute_only_payload_is_readable_for_manifest(self):
+        package = self.package('execute-only', {'usr/lib/helper': b'payload'}, mode=0o110)
+        root = self.home / 'root'
+        M.materialize([package], self.home, root, M.inventory([package], self.home))
+        self.assertEqual((root / 'usr/lib/helper').read_bytes(), b'payload')
+        self.assertTrue(M.tree_manifest(root))
 
     def test_conflicting_files_refused_before_extraction(self):
         a = self.package('a', {'usr/bin/app': b'a'})
