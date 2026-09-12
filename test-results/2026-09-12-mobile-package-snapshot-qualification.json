@@ -1,0 +1,319 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "selected package archive authentication; not runtime qualification",
+  "starting_commit": "70cef098a5d0a1c35fd2c8ae65a79dc54417d306",
+  "starting_tree": "82214898e31153f582555c8e10989f391859bb14",
+  "source_commit": "d21180c0f78e075c5d858a2455d48b2a2892298a",
+  "source_tree": "3e93004c1cfa7da310fe30220a317782d86ea611",
+  "graph": {
+    "path": "packaging/arch/mobile-package-snapshot-20260912.json",
+    "sha256": "b5fa5dac0ea87a34126ced885a2da139b48f22ec26f3ec2e32484506e3da08e1"
+  },
+  "archive_counts": {
+    "PASS": 315,
+    "FAIL": 0,
+    "BLOCKED": 0
+  },
+  "package_count": 315,
+  "dependency_edges": 1421,
+  "root_requests": 29,
+  "archive_bytes": 279364868,
+  "archive_and_signature_bytes": 279543157,
+  "retained_archive_reuse": 15,
+  "new_archive_fetches": 300,
+  "transfer_check_seconds_sum": 535.2445929770474,
+  "integrated_counts": {
+    "PASS": 306,
+    "FAIL": 0,
+    "BLOCKED": 0,
+    "SKIPPED": 3,
+    "NOT_SELECTED": 30
+  },
+  "integrated_subcheck_counts": {
+    "SKIPPED": 39
+  },
+  "runtime_closure": "BLOCKED: engine/AOT/ICU/shell assets and ABI/session qualification incomplete",
+  "physical_status": "NOT RUN",
+  "phone_operations": false,
+  "production_signing": false,
+  "claims_created_or_consumed": false,
+  "protected_storage_mutations": false,
+  "candidate_created": false,
+  "package_installation": false,
+  "package_downloads": true,
+  "github_ci": "NOT RUN",
+  "frozen_execution": [
+    {
+      "name": "audit-r2",
+      "command": [
+        "systemd-run",
+        "--user",
+        "--scope",
+        "--quiet",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "MemoryMax=1G",
+        "python3",
+        "-O",
+        "scripts/host/check-mobile-package-closure.py",
+        "--graph",
+        "packaging/arch/mobile-package-snapshot-20260912.json",
+        "--database-dir",
+        "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/repos",
+        "--archive-dir",
+        "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/packages",
+        "--keyring",
+        "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/keys/pubkeys.gpg",
+        "--trusted",
+        "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/keys/package-signers",
+        "--revoked",
+        "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/keys/archlinuxarm-revoked",
+        "--report",
+        "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/archive-audit-r2.json"
+      ],
+      "environment": {
+        "TMPDIR": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1",
+        "ROG5_TEST_TMP_PARENT": "/home/deck",
+        "ROG5_TEST_REPORT_DIR": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/ci-r1",
+        "ROG5_TEST_WORKERS": "2",
+        "RUSTC": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc"
+      },
+      "source_commit": "d21180c0f78e075c5d858a2455d48b2a2892298a",
+      "source_tree": "3e93004c1cfa7da310fe30220a317782d86ea611",
+      "start_utc": "2026-09-12T11:36:15.093792+00:00",
+      "end_utc": "2026-09-12T11:36:43.869022+00:00",
+      "duration_seconds": 28.775257084009354,
+      "exit_status": 0,
+      "ROG5_LINUX_SOURCE": "unset"
+    },
+    {
+      "name": "ci-r1",
+      "command": [
+        "systemd-run",
+        "--user",
+        "--scope",
+        "--quiet",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "MemoryMax=3G",
+        "bash",
+        "scripts/host/test-repository-linux.sh",
+        "ci"
+      ],
+      "environment": {
+        "TMPDIR": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1",
+        "ROG5_TEST_TMP_PARENT": "/home/deck",
+        "ROG5_TEST_REPORT_DIR": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/ci-r1",
+        "ROG5_TEST_WORKERS": "2",
+        "RUSTC": "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc"
+      },
+      "source_commit": "d21180c0f78e075c5d858a2455d48b2a2892298a",
+      "source_tree": "3e93004c1cfa7da310fe30220a317782d86ea611",
+      "start_utc": "2026-09-12T11:36:43.869349+00:00",
+      "end_utc": "2026-09-12T11:46:56.160337+00:00",
+      "duration_seconds": 612.2910205259977,
+      "exit_status": 0,
+      "ROG5_LINUX_SOURCE": "unset"
+    }
+  ],
+  "trust_policy": {
+    "format": "rog5-offline-package-trust-policy-v1",
+    "policy": "explicit primary package-signing fingerprint allowlist; not pacman owner-trust/WoT evaluation",
+    "allowed_primary_signers": [
+      "68B3537F39A313B3E574D06777193F152BDBE6A6"
+    ],
+    "identity_source": "https://archlinuxarm.org/about/package-signing",
+    "public_keys_source": "https://github.com/archlinuxarm/archlinuxarm-keyring/tree/91e6b11698f8df66042d56aaa56fbe9c9263847d",
+    "canonical_owner_trust_file": "archlinuxarm-trusted is retained unchanged; its three master keys are not passed as the package-signer allowlist",
+    "repository_database_signatures": "not published by upstream; TLS retrieval and snapshot hashes bind selection, package signatures bind selected bytes",
+    "does_not_prove": [
+      "cryptographic repository freshness/anti-rollback",
+      "signed mobile update authority",
+      "runtime or physical qualification"
+    ],
+    "files": {
+      "pubkeys.gpg": {
+        "sha256": "ba0157829cbee9f071756280a793fd4bd41bd4744444b7f68ef0bedb2f13c556",
+        "size": 10609
+      },
+      "archlinuxarm.gpg": {
+        "sha256": "50a08f82ce3cd524a552da4bfa37f3e04b2c9da468e2fce5783474b58a34c518",
+        "size": 14690
+      },
+      "archlinuxarm-trusted": {
+        "sha256": "1fac8590ef65db6da6d64a905c9be4486f7eecf4479e23fab6515472dca26a1e",
+        "size": 132
+      },
+      "archlinuxarm-revoked": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size": 0
+      },
+      "package-signers": {
+        "sha256": "f2a7250f2a2b77542f82f4219b2bae7895f27b3dcfdf350b497e2be306af776d",
+        "size": 44
+      }
+    },
+    "authority": "none; offline cache verification only"
+  },
+  "keyring_source_comparison": {
+    "archlinuxarm.gpg": {
+      "sha256": "6ce771e853f04a38a5b533cb33e61f877b9b06b58b6db051eb8a15d737a2332f",
+      "matches_upstream_git_bytes": false
+    },
+    "archlinuxarm-trusted": {
+      "sha256": "f2a7250f2a2b77542f82f4219b2bae7895f27b3dcfdf350b497e2be306af776d",
+      "matches_upstream_git_bytes": false
+    },
+    "archlinuxarm-revoked": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "matches_upstream_git_bytes": true
+    }
+  },
+  "archive_index": {
+    "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/archive-index.json",
+    "sha256": "d15af72055f7b83bdd35c8f74d1d8d1c40a2b44c3331a5d43dd07d5038880083",
+    "size": 173537
+  },
+  "evidence": {
+    "download-databases.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/download-databases.json",
+      "sha256": "cc8dd276546ac39ee390684c92c7e1b51fb690632fa133fd4c86199c3999b66a",
+      "size": 3395
+    },
+    "resolver-source.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/resolver-source.json",
+      "sha256": "3b91d14051b2642e000ca85e1bc8e76a30a0032584545968afcf0291bf670575",
+      "size": 593
+    },
+    "resolve.py": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/resolve.py",
+      "sha256": "f491fc1e467867e0b51cdbd3a84a60050d32673321df8b7f8a1749435e3cf4ce",
+      "size": 4009
+    },
+    "repos/resolved.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/repos/resolved.json",
+      "sha256": "9e87be9b9969280c7ab763bc9d223497dcf9eff532724e6467f140ff52e62702",
+      "size": 331143
+    },
+    "resolved-r2.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/resolved-r2.json",
+      "sha256": "6d790bec28369259fcda9d1d07716592ab6134a602e35657e8c2d939f748eaa4",
+      "size": 331904
+    },
+    "alpm.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/alpm.json",
+      "sha256": "eae7392ff7d9c16006344f016b1041f2ab1a02823d3ee8f2ded22ddef55f2d58",
+      "size": 6125
+    },
+    "alpm-r2.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/alpm-r2.json",
+      "sha256": "b56e6462f4ce7109d08bc433615ef9ab5e70631172fd15548e00f1d13e3044b8",
+      "size": 6166
+    },
+    "alpm-r2.stdout": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/alpm-r2.stdout",
+      "sha256": "fd73a302bd95ace037e75398c206d01449cdd83ad925e7fd5b86e2f3569cfed9",
+      "size": 6112
+    },
+    "fetch.py": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/fetch.py",
+      "sha256": "264596d3b4768d6ab7a61e281a8a7e8dfd4f171f7d5b9d267df1616878c4baa2",
+      "size": 2660
+    },
+    "fetch-results.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/fetch-results.json",
+      "sha256": "51e05bd83e6b0f2460e4fbb931d384a28d346a8a09dd76b16f6df048792b8e5b",
+      "size": 310954
+    },
+    "current-keyring-fetch.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/current-keyring-fetch.json",
+      "sha256": "67f3b3c8198747caa5331254ee7284f6c1f4906347c45943e6854d35922a955c",
+      "size": 2975
+    },
+    "keyring-package-audit.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/keyring-package-audit.json",
+      "sha256": "e3ed3db548ab22d29af4930b837577367ec6922da12ce9b025eb1191c21db470",
+      "size": 1906
+    },
+    "keyring-package-audit-r2.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/keyring-package-audit-r2.json",
+      "sha256": "cef6190b81f8ae3184d8d147a36f9f2a798f20d84f4a792a2795864e102f0d88",
+      "size": 1650
+    },
+    "keyring-source-comparison.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/keyring-source-comparison.json",
+      "sha256": "c49596a503f66cbe913a9b4ddd0c5581ba76c9eeb654187d94c8a3f33d7570d2",
+      "size": 463
+    },
+    "graph-before.log": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/graph-before.log",
+      "sha256": "d7afbf5eec4585ba59ec0c9bb205017852d12fc2bbe846638fbc1c5a0ce99e38",
+      "size": 1891
+    },
+    "focused.log": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/focused.log",
+      "sha256": "69aa28ea973140ee8fb5381eeeb49d2bb23bcbda6515a952325d12a6f367752b",
+      "size": 2402
+    },
+    "archive-audit-r1.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/archive-audit-r1.json",
+      "sha256": "c5674e98062e5835b6d7d919bfffa92cd9c94e3e65e0c3139f049c2530b55a67",
+      "size": 153584
+    },
+    "archive-audit-r2.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/archive-audit-r2.json",
+      "sha256": "473536ffc62acc44180d929bf4b80a23fe5c86c78c5b9d97c07889120566104c",
+      "size": 153303
+    },
+    "qualification-execution.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/qualification-execution.json",
+      "sha256": "90b25abaf8296fec9cc7a94274e5e7d152f2efaf9923daf8652a62151011ba28",
+      "size": 2717
+    },
+    "ci-r1/summary.json": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/ci-r1/summary.json",
+      "sha256": "3de4bec7254a7870d6aae1ca8dc188a33664d7bbee39e7c321c896d86695e224",
+      "size": 201133
+    },
+    "ci-r1/summary.xml": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/ci-r1/summary.xml",
+      "sha256": "687c539c24a6ed19c9508dbe1c8962d343704534b87b16ba06cc81ecbf1db122",
+      "size": 84386
+    }
+  },
+  "tools": {
+    "gpgv": {
+      "path": "/usr/bin/gpgv",
+      "sha256": "d841368df2825ff34b788f01c7d6d97185ec8a0cb9592e9b25f498c206c32766",
+      "version": "gpgv (GnuPG) 2.4.8"
+    },
+    "bsdtar": {
+      "path": "/usr/bin/bsdtar",
+      "sha256": "d1693d7449be67053132d1ef0c34c5c98cf29ed0aeed9b87c7b5de2e44653530",
+      "version": "bsdtar 3.8.1 - libarchive 3.8.1 zlib/1.3.1 liblzma/5.8.1 bz2lib/1.0.8 liblz4/1.10.0 libzstd/1.5.7 openssl/3.5.0 libb2/bundled libacl/2.3.2 libattr/2.3.2 "
+    }
+  },
+  "changed_files": [
+    "scripts/host/check-mobile-package-closure.py",
+    "scripts/host/test-review-metadata-checkers.py",
+    "packaging/arch/mobile-package-snapshot-20260912.json",
+    "docs/development.md",
+    "configs/project-status.json",
+    "docs/current-state.md",
+    "docs/development-lessons.md",
+    "manifests/current-artifact.json",
+    "manifests/artifact-sets.json",
+    "test-results/2026-09-12-mobile-package-snapshot.md",
+    "test-results/2026-09-12-mobile-package-snapshot-qualification.json"
+  ],
+  "limitations": [
+    "metadata closure/authentication are not installed ABI or session evidence",
+    "upstream database signatures do not exist; HTTPS snapshots do not prove cryptographic freshness/anti-rollback",
+    "one unselected malformed findnewest record remains quarantined in the raw database",
+    "signed keyring package and upstream Git files differ; explicit documented package signer is pinned",
+    "engine build remains stopped; engine/AOT/ICU and real-phone acceptance incomplete"
+  ]
+}

@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Retained mobile archives authenticated; full runtime closure blocked**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **315 native-mobile package inputs authenticated; engine/AOT still pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Fourteen pinned ARM64 package archives pass retained-key signature and signed metadata verification; 298 pins are missing. The cached newer Mesa is not substituted. Eighteen focused tests include SIGTERM/SIGINT child reaping. Frozen full offline CI: 306 PASS in 622.624 s; 3 declared optional suites and 39 optional subchecks SKIPPED. An earlier run was intentionally stopped for the cancellation fix and remains recorded. Keyring freshness, repository authentication and engine/AOT closure remain unqualified. Board, signed/installed, touch and GPU artifacts and the mobile graph are unchanged. All physical rows remain NOT RUN; no phone operation is authorized. Next physical question remains separately authorized corrected-display scanout/blank. See [current repair evidence](../test-results/2026-09-12-mobile-package-audit.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+All 315 archives and signatures verify against the explicit snapshot graph and signed metadata; libalpm agrees with all 315 exact targets. The set includes the ARM package-signing keyring. Frozen offline CI: 306 PASS in 612.291 s, with 3 optional suites and 39 subchecks SKIPPED. The old graph and incomplete-cache audit remain unchanged. Unsigned upstream database snapshots do not prove cryptographic freshness; one unselected malformed record remains quarantined. Next offline work is ARM64 ABI/runtime composition and matching Denial engine/AOT assets. Board, GPU/touch and signed/installed/fallback artifacts remain unchanged. All physical rows remain NOT RUN; no phone operation is authorized. See [current repair evidence](../test-results/2026-09-12-mobile-package-snapshot.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -162,21 +162,41 @@
     "candidate": null
   },
   "mobile_archive_audit": {
-    "status": "BLOCKED",
-    "source_commit": "074a54c8b4efed1db6617bbbdff0d88dda446fce",
-    "source_tree": "d0ef2eafae7dfabff922ebe6471e3352bef1b6c2",
-    "graph_sha256": "bba66eb1b3d16ad61954261742da79f8db8d5502586b7b83d4f755c32b68ee2f",
+    "status": "PASS",
+    "scope": "selected package archive authentication",
+    "set_id": "private:rog5-mobile-snapshot-evidence-20260912-r1/packages",
+    "source_commit": "d21180c0f78e075c5d858a2455d48b2a2892298a",
+    "source_tree": "3e93004c1cfa7da310fe30220a317782d86ea611",
+    "graph": {
+      "path": "packaging/arch/mobile-package-snapshot-20260912.json",
+      "sha256": "b5fa5dac0ea87a34126ced885a2da139b48f22ec26f3ec2e32484506e3da08e1"
+    },
+    "cache_root": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/packages",
+    "archive_index": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/archive-index.json",
+      "sha256": "d15af72055f7b83bdd35c8f74d1d8d1c40a2b44c3331a5d43dd07d5038880083",
+      "size": 173537
+    },
     "counts": {
-      "PASS": 14,
+      "PASS": 315,
       "FAIL": 0,
-      "BLOCKED": 298
+      "BLOCKED": 0
     },
     "evidence": {
+      "path": "test-results/2026-09-12-mobile-package-snapshot-qualification.json",
+      "sha256": "d24f2dd2b2620a51fe22bddd2df6b38dab932f27e477ba4f1a98f044ec3901a5"
+    },
+    "previous_audit": {
       "path": "test-results/2026-09-12-mobile-package-audit-qualification.json",
       "sha256": "592cff8c9775685ac612113298d79b9bbaa1a9acc89ff712b291489209a88d42"
     },
-    "keyring_freshness": "NOT RUN",
-    "runtime_closure": "BLOCKED",
-    "authority": "none; archive verification grants no installation or phone authority"
+    "keyring_observation": "upstream Git snapshot and signed current package retained; explicit build signer unchanged; cryptographic freshness/anti-rollback unqualified",
+    "runtime_closure": "BLOCKED: matching engine/AOT/ICU/shell and ABI/session qualification remain incomplete",
+    "authority": "none; no installation, update, admission or phone authority",
+    "provenance": {
+      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/package-provenance.json",
+      "sha256": "496adf4192e7013260e0f3bd21fe0f6a3d038ae920950f1ba5b4cfc40c425989",
+      "size": 176018
+    }
   }
 }
