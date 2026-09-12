@@ -1,0 +1,143 @@
+#!/usr/bin/env python3
+"""Bounded, offline generic ARM64 DRM guest. Does not qualify phone hardware."""
+import argparse
+import datetime
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import time
+import uuid
+
+
+def digest(path):
+    with path.open('rb') as source:
+        return hashlib.file_digest(source, 'sha256').hexdigest()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--runtime', required=True, type=Path)
+    parser.add_argument('--kernel', required=True, type=Path)
+    parser.add_argument('--deniald', required=True, type=Path)
+    parser.add_argument('--image', required=True)
+    parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--deadline', type=int, default=120)
+    args = parser.parse_args()
+    if not 30 <= args.deadline <= 300:
+        parser.error('deadline must be between 30 and 300 seconds')
+    if len(args.image) != 64 or any(c not in '0123456789abcdef' for c in args.image):
+        parser.error('image must be a retained immutable container ID')
+    for tool in ('clang', 'cpio', 'gzip', 'podman'):
+        if not shutil.which(tool):
+            parser.error(f'BLOCKED missing {tool}')
+    runtime = args.runtime.resolve(strict=True)
+    kernel = args.kernel.resolve(strict=True)
+    deniald = args.deniald.resolve(strict=True)
+    if not (runtime/'usr/bin/bash').is_file() or runtime == Path('/'):
+        parser.error('expected an explicitly materialized guest runtime')
+    if not kernel.is_file() or not deniald.is_file():
+        parser.error('kernel and deniald must be regular files')
+    output = args.output.absolute()
+    output.mkdir(parents=True, exist_ok=False)
+    repo = Path(__file__).resolve().parents[2]
+    stage = output/'initramfs'
+    for directory in ('dev', 'sysroot', 'stage/payload'):
+        (stage/directory).mkdir(parents=True, exist_ok=True)
+    payload = output/'payload'
+    payload.mkdir()
+    shutil.copy2(deniald, payload/'deniald')
+    shutil.copy2(repo/'tools/qemu-virtio-drm/guest.sh', stage/'stage/guest.sh')
+    compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
+                       '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
+                       '-Werror', '-Wall', '-Wextra',
+                       '-Wl,--build-id=none,--entry=_start',
+                       str(repo/'tools/qemu-virtio-drm/init.c'), '-o', str(stage/'init')]
+    start = time.monotonic()
+    report = {'scope': 'generic ARM64 virtual DRM; phone hardware NOT RUN',
+              'started': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'kernel_sha256': digest(kernel), 'deniald_sha256': digest(deniald),
+              'container': args.image, 'runtime': str(runtime),
+              'runtime_inventory_verified_by_this_runner': False,
+              'compile_command': compile_command, 'status': 'FAIL'}
+    name = 'rog5-virtual-drm-' + uuid.uuid4().hex[:12]
+    launched = False
+    try:
+        subprocess.run(compile_command, check=True, timeout=30,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        members = sorted(str(p.relative_to(stage)) for p in stage.rglob('*'))
+        archive = subprocess.run(['cpio', '--null', '-o', '--quiet', '--format=newc',
+                                  '--owner=0:0'], input=('\0'.join(members)+'\0').encode(),
+                                 cwd=stage, capture_output=True, check=True, timeout=10)
+        with (output/'initramfs.cpio.gz').open('xb') as packed:
+            subprocess.run(['gzip', '-n'], input=archive.stdout, stdout=packed,
+                           check=True, timeout=10)
+        command = ['podman', 'run', '--rm', '--name', name, '--network', 'none',
+                   '--read-only', '--memory', '1536m', '--memory-swap', '1536m',
+                   '--cpus', '2', '--pids-limit', '64', '--security-opt', 'no-new-privileges',
+                   '-v', str(runtime)+':/runtime:ro',
+                   '-v', str(kernel)+':/Image:ro',
+                   '-v', str(output/'initramfs.cpio.gz')+':/initramfs.gz:ro',
+                   '-v', str(payload)+':/payload:ro', args.image,
+                   'qemu-system-aarch64', '-M', 'virt', '-cpu', 'max', '-smp', '2',
+                   '-m', '1024M', '-accel', 'tcg,thread=multi', '-display', 'none',
+                   '-monitor', 'none', '-nic', 'none', '-serial', 'stdio', '-no-reboot',
+                   '-kernel', '/Image', '-initrd', '/initramfs.gz',
+                   '-append', 'console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1',
+                   '-device', 'virtio-gpu-device,xres=640,yres=480',
+                   '-device', 'virtio-keyboard-device', '-device', 'virtio-tablet-device',
+                   '-device', 'virtio-rng-device',
+                   '-fsdev', 'local,id=rootfs,path=/runtime,security_model=none,readonly=on',
+                   '-device', 'virtio-9p-device,fsdev=rootfs,mount_tag=rootfs',
+                   '-fsdev', 'local,id=payload,path=/payload,security_model=none,readonly=on',
+                   '-device', 'virtio-9p-device,fsdev=payload,mount_tag=payload']
+        report['command'] = command
+        logpath = output/'serial.log'
+        with logpath.open('xb') as log:
+            launched = True
+            with subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT) as process:
+                try:
+                    end = time.monotonic() + args.deadline
+                    while process.poll() is None:
+                        if time.monotonic() >= end or logpath.stat().st_size > 8*1024*1024:
+                            raise TimeoutError('guest deadline or 8 MiB log bound exceeded')
+                        time.sleep(0.2)
+                finally:
+                    if process.poll() is None:
+                        subprocess.run(['podman', 'stop', '--time', '2', name],
+                                       capture_output=True, timeout=10)
+                        try:
+                            process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait(timeout=5)
+                report['qemu_exit_status'] = process.returncode
+        log = logpath.read_text(errors='replace')
+        report['drm_discovery'] = 'PASS' if 'PASS virtual DRM discovery' in log else 'FAIL'
+        report['deniald_kms'] = 'PASS' if 'PASS actual deniald virtual KMS frames' in log else 'FAIL'
+        if (process.returncode == 0 and report['deniald_kms'] == 'PASS'
+                and 'PASS guest-script exited cleanly' in log and 'FAIL guest-' not in log):
+            report['status'] = 'PASS'
+    except Exception as error:
+        report['error'] = str(error)
+        if isinstance(error, subprocess.CalledProcessError) and error.stderr:
+            report['stderr'] = error.stderr.decode(errors='replace')[-4000:]
+    finally:
+        if launched:
+            check = subprocess.run(['podman', 'container', 'exists', name], timeout=10)
+            report['container_removed'] = check.returncode == 1
+            if not report['container_removed']:
+                report['status'] = 'FAIL'
+        report['duration_seconds'] = time.monotonic() - start
+        for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
+                     output/'serial.log'):
+            if path.is_file():
+                report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)
+        (output/'result.json').write_text(json.dumps(report, indent=2)+'\n')
+    print(json.dumps(report, indent=2))
+    return 0 if report['status'] == 'PASS' else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

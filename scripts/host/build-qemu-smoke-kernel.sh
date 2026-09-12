@@ -15,6 +15,11 @@ output_root=$(realpath -m -- "$2") ||
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 kernel_contract=$repo/scripts/device/kernel-build-contract.sh
 expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
+profile=${QEMU_KERNEL_PROFILE:-smoke}
+case $profile in
+	smoke|virtio-drm) ;;
+	*) fail 'QEMU_KERNEL_PROFILE must be smoke or virtio-drm' ;;
+esac
 
 [[ -d $source_root && ! -L $source_root ]] ||
 	fail 'Linux source is not a regular directory'
@@ -55,7 +60,7 @@ toolchain_identity=$(rog5_kernel_toolchain_identity \
 	make bc clang clang++ ld.lld llvm-ar llvm-nm llvm-objcopy llvm-strip)
 build_state=$(
 	printf 'format=rog5-kbuild-inputs-v1\n'
-	printf 'profile=qemu-system-arm64-tiny-v1\n'
+	printf 'profile=qemu-system-arm64-%s-v1\n' "$profile"
 	printf 'source_path=%s\n' "$source_root"
 	printf 'output_path=%s\n' "$output_root"
 	printf 'source_commit=%s\n' "$expected_commit"
@@ -84,6 +89,15 @@ required_runtime_options=(
 	SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS TMPFS_XATTR TTY UNIX
 	VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO VIRTIO_NET
 )
+if [[ $profile == virtio-drm ]]; then
+	# Generic virtual hardware only; no ROG5 drivers or device qualification.
+	required_runtime_options+=(
+		BINFMT_SCRIPT DRM DRM_VIRTIO_GPU DRM_VIRTIO_GPU_KMS
+		INPUT INPUT_EVDEV VIRTIO_INPUT NET_9P NET_9P_VIRTIO 9P_FS
+		HW_RANDOM HW_RANDOM_VIRTIO UNIX98_PTYS VT VT_CONSOLE
+		SYSVIPC EVENTFD
+	)
+fi
 disabled_runtime_options=(NFS_V4_2_READ_PLUS)
 config_arguments=()
 for required_runtime_option in "${required_runtime_options[@]}"; do
@@ -106,11 +120,11 @@ for disabled_runtime_option in "${disabled_runtime_options[@]}"; do
 		fail "QEMU kernel enabled unsupported $disabled_runtime_option"
 done
 rog5_kernel_make -s -C "$source_root" O="$output_root" LLVM=1 \
-	-j"${JOBS:-$(nproc)}" Image
+	-j"${JOBS:-2}" Image
 rog5_kernel_cache_stats
 
 image=$output_root/arch/arm64/boot/Image
 [[ -f $image && ! -L $image && $(stat -c %s "$image") -gt 1048576 ]] ||
 	fail 'QEMU kernel Image is missing or implausibly small'
 sha256sum "$output_root/.config" "$image"
-echo 'PASS built minimal ARM64 QEMU virt kernel'
+echo "PASS built ARM64 QEMU virt kernel: $profile (generic guest only; phone hardware NOT RUN)"
