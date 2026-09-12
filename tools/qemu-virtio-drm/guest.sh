@@ -22,7 +22,12 @@ timeout --kill-after=2 15 modetest -M virtio_gpu -c
 echo 'PASS virtual DRM discovery'
 export LIBSEAT_BACKEND=seatd
 export SEATD_VTBOUND=0
-export LIBGL_ALWAYS_SOFTWARE=1
+read -r graphics_mode < /run/graphics-mode
+case $graphics_mode in
+    software) export LIBGL_ALWAYS_SOFTWARE=1 ;;
+    virgl) unset LIBGL_ALWAYS_SOFTWARE ;;
+    *) echo 'FAIL unknown virtual graphics mode' >&2; exit 1 ;;
+esac
 export RUST_BACKTRACE=1
 if [[ -d /run/payload/flutter ]]; then
     # UntilLogout supports initially inactive CRTCs; the external timer owns
@@ -30,12 +35,16 @@ if [[ -d /run/payload/flutter ]]; then
     export SEATD_SOCK=/run/seatd.sock
     seatd &
     seat_pid=$!
-    trap 'kill "$seat_pid"; wait "$seat_pid" || true' EXIT
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+    dbus-daemon --session --nofork --address="$DBUS_SESSION_BUS_ADDRESS" &
+    bus_pid=$!
+    trap 'kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true' EXIT
     for ((attempt=0; attempt<50; attempt++)); do
-        [[ ! -S $SEATD_SOCK ]] || break
+        [[ ! -S $SEATD_SOCK || ! -S $XDG_RUNTIME_DIR/bus ]] || break
         sleep 0.1
     done
     test -S "$SEATD_SOCK"
+    test -S "$XDG_RUNTIME_DIR/bus"
     timeout --preserve-status --kill-after=5 45 /run/payload/deniald \
         --device /dev/dri/card0 --wayland \
         --flutter-bundle /run/payload/flutter --start-locked
