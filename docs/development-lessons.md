@@ -1792,3 +1792,22 @@ packaging within its existing 512 MiB bound (84.975 s, 11.408 s writeback). Do n
 claim a total speedup against older partial resumes with different work. Next
 priority is the new kernel's physical GPU IOMMU attachment, not more unchanged
 builds or Denial work.
+
+## 2026-09-12 r128: keep admission tests independent of live claim consumption
+
+The inherited boot-admission test treated the real claim as unconsumed. That
+assumption expires after its first hardware run. The new test injects the
+unconsumed verifier result explicitly; the unchanged engine's 21 tests continue
+to exercise durable entry, concurrency and crash boundaries in isolated fixtures.
+Separately verify the actual predecessor remains consumed and the successor has
+no durable claim before staging. Nine admission tests and five transition tests
+pass without modifying real claim state.
+
+For the successor health reader, change the exact target configuration while
+preserving the nine qualified predicates/readers, including the repaired 2 MiB
+firmware bound. Reuse needs artifact evidence: streaming verification checked ten
+retained files against the corrected final archive in 0.564 s; two root files are
+bound to frozen source and corrected A01. Tests reject the actual old-phone
+snapshot. This avoids repeating kernel or A01 builds while retaining exact input
+checks. Next effort belongs to live staging and GPU attachment, not more tests of
+unchanged builds.
