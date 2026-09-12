@@ -441,3 +441,11 @@ a test that read the host's retained claim state and therefore changed outcome
 after a historical trial. Guard the canonical claim paths in unit tests and
 mock the admission result; never reset a real claim to make a fixture pass.
 The failing run is retained and the isolated nine-case fixture passes.
+
+Integrated repair lesson (2026-09-12): preserve failing receipts while repairing
+fixture assumptions, then run the final tier on frozen source. The 536.475-second
+continuation exposed stale Action-tag expectations and an orphaned watchdog-test
+sleeper. Keep original child identities through mock watchdog termination and
+wait for owned supervisors; do not loosen the reporter's descendant rejection.
+Keep execution metadata beside the reporter directory, whose JSON files are
+per-test receipts, rather than mixing an unrelated JSON record into that namespace.

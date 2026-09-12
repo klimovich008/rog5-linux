@@ -5,21 +5,25 @@ repo=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd -P)
 target=$repo/scripts/device/disarm-recovery-layout-watchdog.sh
 work=$(mktemp -d)
 fixture_pid=
+fixture_children=
 fixture_supervisor_pid=
 
 cleanup_fixture() {
+	# The helper intentionally kills only the watchdog shell. Keep its original
+	# sleep children so a successful disarm cannot orphan test-owned sleepers.
+	for child in $fixture_children; do
+		kill -CONT "$child" 2>/dev/null || true
+		kill -KILL "$child" 2>/dev/null || true
+	done
+	fixture_children=
 	case $fixture_pid in ''|*[!0-9]*|0|1) return ;; esac
-	if [ -r "/proc/$fixture_pid/task/$fixture_pid/children" ]; then
-		for child in $(cat "/proc/$fixture_pid/task/$fixture_pid/children"); do
-			kill -CONT "$child" 2>/dev/null || true
-			kill -KILL "$child" 2>/dev/null || true
-		done
-	fi
+
 	kill -CONT "$fixture_pid" 2>/dev/null || true
 	kill -KILL "$fixture_pid" 2>/dev/null || true
 	case $fixture_supervisor_pid in
 		''|*[!0-9]*|0|1) ;;
-		*) kill -KILL "$fixture_supervisor_pid" 2>/dev/null || true ;;
+		*) kill -KILL "$fixture_supervisor_pid" 2>/dev/null || true
+		   wait "$fixture_supervisor_pid" 2>/dev/null || true ;;
 	esac
 	fixture_supervisor_pid=
 }
@@ -47,7 +51,7 @@ spawn_fixture() {
 	while [ "$attempt" -lt 100 ]; do
 		if [ -r "/proc/$fixture_pid/stat" ]; then
 			set -- $(cat "/proc/$fixture_pid/task/$fixture_pid/children")
-			[ "$#" -eq "$children" ] && return 0
+			[ "$#" -ne "$children" ] || { fixture_children="$*"; return 0; }
 		fi
 		sleep 0.05
 		attempt=$((attempt + 1))
@@ -123,6 +127,7 @@ prepare_helper "$work/success"
 [ ! -e "/proc/$fixture_pid" ]
 [ ! -e "$work/success/armed" ]
 [ -f "$work/success/disarmed" ]
+cleanup_fixture
 fixture_pid=
 
 spawn_fixture 1
