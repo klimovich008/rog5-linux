@@ -53,3 +53,15 @@ at most 512 grant/consume/expire/cancel/refusal records, including render view,
 request serial, authorization age and current slot state. It does not change
 admission. Apply after 0002. The same broker runner now checks nine cases,
 including expiry followed by a fresh explicit grant and concurrent trace bounds.
+
+`0004-trace-egl-context-ownership.patch` adds audit-only ownership observations
+around actual bind/unbind, raster-idle and post-engine cleanup. Each record gives
+the caller thread, tracked owner, EGL context handle and current-context handle;
+it does not consume EGL errors or change ownership decisions. Regular records
+are capped at 2048; terminal cleanup records remain visible after saturation.
+Use `scripts/host/test-denial-context-ownership.py --source EXACT_DENIAL_GIT
+--output FRESH_DIRECTORY` with the retained Rust compiler. Four actual-function
+cases pass before and after instrumentation; one additional test covers the
+opt-in query/log cap and terminal exception. EGL effects are adapters in this
+host suite; the real ARM64 build and VM trace are separate. No phone builder
+selects these patches. Apply in numeric order for the combined diagnostic.

@@ -1,0 +1,105 @@
+--- a/compositor/src/bin/deniald/flutter_runtime/renderer/gl.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/renderer/gl.rs
+@@ -15,9 +15,29 @@
+         }
+     }
+ 
++    pub(super) fn trace_binding(&self, stage: &'static str, terminal: bool) {
++        if !render_audit_enabled() {
++            return;
++        }
++        static EVENTS: AtomicUsize = AtomicUsize::new(0);
++        let sequence = EVENTS.fetch_update(Ordering::Relaxed, Ordering::Relaxed,
++            |value| (value < 2048).then(|| value + 1)).ok();
++        if sequence.is_none() && !terminal {
++            return;
++        }
++        // Read-only current-context query; never consume EGL/GL error state.
++        let actual = unsafe { egl_ffi::egl::GetCurrentContext() };
++        info!(?sequence, stage, terminal, thread = ?thread::current().id(),
++            owner = ?self.owner, context = ?self.context.get_context_handle(),
++            actual = ?actual, last_regular_record = sequence == Some(2047),
++            "EGL ownership trace");
++    }
++
+     pub(super) fn make_current(&mut self) -> bool {
++        self.trace_binding("bind-enter", false);
+         let thread = thread::current().id();
+         if self.owner.is_some_and(|owner| owner != thread) {
++            self.trace_binding("bind-owner-refused", false);
+             error!("refusing to bind an EGL context still owned by another thread");
+             return false;
+         }
+@@ -26,9 +46,11 @@
+         match unsafe { self.context.make_current() } {
+             Ok(()) => {
+                 self.owner = Some(thread);
++                self.trace_binding("bind-ok", false);
+                 true
+             }
+             Err(error) => {
++                self.trace_binding("bind-egl-failed", false);
+                 error!(%error, "could not make Flutter EGL context current");
+                 false
+             }
+@@ -36,17 +58,21 @@
+     }
+ 
+     pub(super) fn clear_current(&mut self) -> bool {
++        self.trace_binding("unbind-enter", false);
+         let thread = thread::current().id();
+         if self.owner.is_some_and(|owner| owner != thread) {
++            self.trace_binding("unbind-owner-refused", false);
+             error!("refusing to unbind a Flutter EGL context from the wrong thread");
+             return false;
+         }
+         match self.context.unbind() {
+             Ok(()) => {
+                 self.owner = None;
++                self.trace_binding("unbind-ok", false);
+                 true
+             }
+             Err(error) => {
++                self.trace_binding("unbind-egl-failed", false);
+                 error!(%error, "could not clear Flutter EGL context");
+                 false
+             }
+--- a/compositor/src/bin/deniald/flutter_runtime/renderer/handler.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/renderer/handler.rs
+@@ -1220,13 +1220,16 @@
+             return;
+         }
+         let mut context = lock(&self.render_context);
+-        // SAFETY: EngineHost has already shut down and joined its raster
+-        // thread, so this context is no longer current anywhere else.
++        context.trace_binding("cleanup-enter", true);
++        // EngineHost has joined its raster thread. This diagnostic checks
++        // whether that thread explicitly released the context before exit.
+         if let Err(error) = unsafe { context.context.make_current() } {
++            context.trace_binding("cleanup-bind-failed", true);
+             error!(%error, "could not bind Flutter context for output-target cleanup");
+             return;
+         }
+         context.owner = Some(thread::current().id());
++        context.trace_binding("cleanup-bind-ok", true);
+         let cached_dmabufs = lock(&self.dmabuf_texture_cache).drain();
+         let cached_native = lock(&self.retained_native_texture_cache).drain();
+         let cached_shm = lock(&self.shm_texture_cache).drain();
+--- a/compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs
++++ b/compositor/src/bin/deniald/flutter_runtime/renderer/handler/open_gl.rs
+@@ -59,6 +59,7 @@
+     }
+ 
+     fn raster_idle(&self) {
++        lock(&self.render_context).trace_binding("raster-idle-enter", false);
+         let audit_timer = RenderAuditCallbackTimer::new(
+             self.render_audit.as_ref(),
+             RenderAuditStage::RasterIdleCallback,
+@@ -101,6 +102,7 @@
+                 self.publish_sampled_buffer_release(None, batch);
+             }
+         }
++        lock(&self.render_context).trace_binding("raster-idle-exit", false);
+     }
+ 
+     fn surface_transformation(&self) -> sys::FlutterTransformation {
