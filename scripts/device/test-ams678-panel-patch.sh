@@ -4,7 +4,7 @@ set -eu
 repo=$(CDPATH='' cd -- "$(dirname "$0")/../.." && pwd)
 patch=$repo/patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch
 fragment=$repo/configs/kernel/rog5-display-60hz.fragment
-expected=db72de91f78617526f2965cfdf30441ebe034bf5824dfdb92027173046475e49
+expected=a3fcff9b884facfa5628aff9623428c074eb4146926efd1c3dd9c53b4bd083ae
 
 [ -f "$patch" ] && [ ! -L "$patch" ]
 [ -f "$fragment" ] && [ ! -L "$fragment" ]
@@ -13,7 +13,7 @@ expected=db72de91f78617526f2965cfdf30441ebe034bf5824dfdb92027173046475e49
 	'73	0	Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml' \
 	'12	0	drivers/gpu/drm/panel/Kconfig' \
 	'1	0	drivers/gpu/drm/panel/Makefile' \
-	'517	0	drivers/gpu/drm/panel/panel-asus-rog5-ams678.c')" ]
+	'537	0	drivers/gpu/drm/panel/panel-asus-rog5-ams678.c')" ]
 
 for marker in \
 	'The Samsung AMS678 ER2 is a 1080x2448 command-mode MIPI-DSI OLED panel' \

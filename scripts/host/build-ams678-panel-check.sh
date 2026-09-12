@@ -31,6 +31,7 @@ kernel_git "$(dirname "$linux_git")" -C "$linux_git" archive "$base" | tar -x -C
 apply_panel_patch "$output/source" "$patch"
 echo "PASS applicability: exact Linux base $base"
 python3 "$repo/scripts/device/test-ams678-lifecycle.py" --linux-source "$output/source"
+python3 "$repo/scripts/device/test-ams678-regulator-errors.py" --linux-source "$output/source"
 export KBUILD_BUILD_TIMESTAMP='2026-07-18 00:00:00 UTC'
 export KBUILD_BUILD_USER=rog5 KBUILD_BUILD_HOST=panel-check
 make -s -C "$output/source" O="$output/objects" ARCH=arm64 LLVM=1 defconfig
