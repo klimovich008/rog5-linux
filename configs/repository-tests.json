@@ -7603,6 +7603,36 @@
       "optional_subchecks": []
     },
     {
+      "path": "scripts/device/test-ams678-regulator-errors.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "board",
+        "ci",
+        "nightly",
+        "probe",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 60,
+      "prerequisites": [
+        "python3",
+        "cc"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "patches/linux-7.1.4/0037-drm-panel-add-ASUS-ROG-Phone-5-AMS678-ER2.patch",
+        "scripts/device/fixtures/ams678-regulator/cases.c",
+        "scripts/device/fixtures/fts3658u-regulator/stubs.h",
+        "scripts/device/fixtures/fts3658u-regulator/regulator-core-v7.1.4.c"
+      ],
+      "optional_subchecks": []
+    },
+    {
       "path": "scripts/host/test-rog5-touch-module-build.py",
       "interpreter": "python3",
       "tiers": [

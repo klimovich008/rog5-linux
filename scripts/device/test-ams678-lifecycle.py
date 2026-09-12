@@ -6,12 +6,14 @@ kernel compile check compares that extract to the actual base again. This test
 does not load a module or establish physical panel behavior.
 """
 import argparse
+import hashlib
 import os
 from pathlib import Path
 import re
 import resource
 import subprocess
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / 'scripts/device/fixtures/ams678'
@@ -27,7 +29,7 @@ def driver_source(patch):
 def extract(source):
     # Compile the whole lifecycle implementation, including real command
     # sequences and Iris polling. Exclude only kernel registration/mode code.
-    start = source.index('struct ams678_er2_plus_dsc {')
+    start = source.index('enum ams678_supply_vote {')
     end = source.index('static const struct drm_display_mode ')
     lifecycle = source[start:end]
     start = source.index('static int ams678_er2_plus_dsc_bl_update_status(')
@@ -40,7 +42,10 @@ def main():
     parser.add_argument('--patch', type=Path, default=DEFAULT)
     parser.add_argument('--linux-source', type=Path)
     args = parser.parse_args()
+    started = time.monotonic()
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    inputs = [args.patch, *sorted(FIXTURES.iterdir())]
+    pins = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
     core = (FIXTURES / 'drm-panel-v7.1.4.c').read_text()
     brightness = (FIXTURES / 'drm-brightness-v7.1.4.c').read_text()
     if args.linux_source:
@@ -55,6 +60,9 @@ def main():
         begin = exact.index('int mipi_dsi_dcs_set_display_brightness_large(')
         if exact[begin:exact.index('\n}', begin) + 2] not in brightness:
             raise ValueError('DRM brightness fixture differs')
+        print('PASS behavioral: exact Linux DRM lifecycle and brightness source comparison')
+    else:
+        print('NOT RUN external kernel-source comparison; pinned extracts compiled')
     driver = driver_source(args.patch)
     lock_init = '\n'.join(re.findall(r'mutex_init\(&ctx->\w+\);', driver)).replace('ctx->', 'ctx.')
     source = ((FIXTURES / 'stubs.h').read_text() + '\n' + brightness + '\n' +
@@ -64,16 +72,18 @@ def main():
              'compression-error', 'off-error-reprepare', 'disable-error',
              'prepare-cleanup-error', 'normal-cycles', 'brightness-order',
              'enable-error', 'serialized-backlight', 'enable-supply-error',
-             'disable-second-supply-error', 'brightness-error-flags')
+             'disable-second-supply-error', 'brightness-error-flags',
+             'enable-first-supply-error')
     with tempfile.TemporaryDirectory(prefix='ams678-lifecycle-',
                                      dir=os.environ.get('TMPDIR')) as tmp:
         unit = Path(tmp) / 'unit.c'
         unit.write_text(source)
         binary = Path(tmp) / 'test'
-        subprocess.run([os.environ.get('CC', 'cc'), '-std=gnu11', '-Wall',
+        command = [os.environ.get('CC', 'cc'), '-std=gnu11', '-Wall',
                         '-Wextra', '-Werror', '-Wno-unused-parameter',
                         '-Wno-unused-function', '-pthread', str(unit),
-                        '-o', str(binary)], check=True)
+                        '-o', str(binary)]
+        subprocess.run(command, check=True, timeout=30)
         failed = []
         for case in cases:
             result = subprocess.run([str(binary), case], timeout=5)
@@ -83,7 +93,23 @@ def main():
                 failed.append(case)
         if failed:
             raise SystemExit('FAIL lifecycle cases: ' + ', '.join(failed))
-    print(f'PASS behavior: {len(cases)} actual-driver/core fault-injection cases')
+        target = ('\t\t\tctx->supply_vote[i] = AMS678_VOTE_UNKNOWN;\n'
+                  '\t\t\tdev_err')
+        if source.count(target) != 1:
+            raise ValueError('uncertain vote mutation target changed')
+        unit.write_text(source.replace(target, target.replace('AMS678_VOTE_UNKNOWN',
+                                                               'AMS678_VOTE_HELD'), 1))
+        subprocess.run(command, check=True, timeout=30)
+        result = subprocess.run([str(binary), 'disable-error'], capture_output=True,
+                                text=True, timeout=5)
+        if result.returncode == 0 or 'Assertion' not in result.stderr:
+            raise ValueError('unsafe regulator retry mutation escaped behavioral checks')
+        print('PASS behavioral: rejects HELD ownership after regulator-disable error')
+    if pins != {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}:
+        raise ValueError('lifecycle inputs changed during tests')
+    print('driver_sha256=' + hashlib.sha256(driver.encode()).hexdigest())
+    print(f'PASS behavioral: {len(cases)} actual-driver/core fault-injection cases, 1 mutation; '
+          f'elapsed={time.monotonic() - started:.6f}s')
     print('NOT RUN physical panel validation')
 
 

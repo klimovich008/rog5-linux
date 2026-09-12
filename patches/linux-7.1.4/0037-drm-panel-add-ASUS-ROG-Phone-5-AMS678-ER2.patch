@@ -7,8 +7,8 @@ Subject: [PATCH] drm/panel: add ASUS ROG Phone 5 AMS678 ER2
  .../display/panel/asus,rog5-ams678.yaml       |  73 +++
  drivers/gpu/drm/panel/Kconfig                 |  12 +
  drivers/gpu/drm/panel/Makefile                |   1 +
- .../gpu/drm/panel/panel-asus-rog5-ams678.c    | 517 ++++++++++++++++++
- 4 files changed, 603 insertions(+)
+ .../gpu/drm/panel/panel-asus-rog5-ams678.c    | 537 ++++++++++++++++++
+ 4 files changed, 623 insertions(+)
  create mode 100644 Documentation/devicetree/bindings/display/panel/asus,rog5-ams678.yaml
  create mode 100644 drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
 
@@ -128,10 +128,10 @@ index a4291dc39..40fc8ec5c 100644
  obj-$(CONFIG_DRM_PANEL_BOE_HIMAX8279D) += panel-boe-himax8279d.o
 diff --git a/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
 new file mode 100644
-index 000000000..4095fb153
+index 000000000..57dbb44f0
 --- /dev/null
 +++ b/drivers/gpu/drm/panel/panel-asus-rog5-ams678.c
-@@ -0,0 +1,517 @@
+@@ -0,0 +1,537 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +// Copyright (c) 2026 ROG5 Linux contributors
 +// Generated with linux-mdss-dsi-panel-driver-generator from vendor device tree:
@@ -154,11 +154,18 @@ index 000000000..4095fb153
 +
 +#include <video/mipi_display.h>
 +
++/* An error may follow partial child or upstream-supply accounting changes. */
++enum ams678_supply_vote {
++	AMS678_VOTE_NONE,
++	AMS678_VOTE_HELD,
++	AMS678_VOTE_UNKNOWN,
++};
++
 +struct ams678_er2_plus_dsc {
 +	/* Serializes lifecycle and DCS backlight transactions. */
 +	struct mutex lock;
 +	bool initialized;
-+	bool supply_enabled[2];
++	enum ams678_supply_vote supply_vote[2];
 +	struct drm_panel panel;
 +	struct mipi_dsi_device *dsi;
 +	struct drm_dsc_config dsc;
@@ -315,7 +322,7 @@ index 000000000..4095fb153
 +	return dsi_ctx.accum_err;
 +}
 +
-+/* Track each acquired reference, including partially failed power-off. */
++/* Release only known votes; never retry uncertain regulator accounting. */
 +static int ams678_er2_plus_dsc_power_off(struct ams678_er2_plus_dsc *ctx)
 +{
 +	int ret = 0;
@@ -323,16 +330,24 @@ index 000000000..4095fb153
 +	int i;
 +
 +	for (i = ARRAY_SIZE(ams678_er2_plus_dsc_supplies) - 1; i >= 0; i--) {
-+		if (!ctx->supply_enabled[i])
++		if (ctx->supply_vote[i] == AMS678_VOTE_UNKNOWN) {
++			dev_err(&ctx->dsi->dev, "%s ownership unknown; recovery required\n",
++				ctx->supplies[i].supply);
++			if (!ret)
++				ret = -EUCLEAN;
++			continue;
++		}
++		if (ctx->supply_vote[i] == AMS678_VOTE_NONE)
 +			continue;
 +		err = regulator_disable(ctx->supplies[i].consumer);
 +		if (err) {
++			ctx->supply_vote[i] = AMS678_VOTE_UNKNOWN;
 +			dev_err(&ctx->dsi->dev, "Failed to disable %s: %d\n",
 +				ctx->supplies[i].supply, err);
 +			if (!ret)
 +				ret = err;
 +		} else {
-+			ctx->supply_enabled[i] = false;
++			ctx->supply_vote[i] = AMS678_VOTE_NONE;
 +		}
 +	}
 +	return ret;
@@ -343,11 +358,16 @@ index 000000000..4095fb153
 +	int ret;
 +	int i;
 +
++	for (i = 0; i < ARRAY_SIZE(ams678_er2_plus_dsc_supplies); i++)
++		if (ctx->supply_vote[i] != AMS678_VOTE_NONE)
++			return -EBUSY;
 +	for (i = 0; i < ARRAY_SIZE(ams678_er2_plus_dsc_supplies); i++) {
 +		ret = regulator_enable(ctx->supplies[i].consumer);
-+		if (ret)
++		if (ret) {
++			ctx->supply_vote[i] = AMS678_VOTE_UNKNOWN;
 +			return ret;
-+		ctx->supply_enabled[i] = true;
++		}
++		ctx->supply_vote[i] = AMS678_VOTE_HELD;
 +	}
 +	return 0;
 +}
@@ -364,7 +384,7 @@ index 000000000..4095fb153
 +		ret = 0;
 +		goto out;
 +	}
-+	/* A failed prepare may have retained a regulator reference. */
++	/* Refuse another prepare when prior regulator ownership is unknown. */
 +	ret = ams678_er2_plus_dsc_power_off(ctx);
 +	if (ret)
 +		goto out;
@@ -453,7 +473,7 @@ index 000000000..4095fb153
 +	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 +	ret = ams678_er2_plus_dsc_power_off(ctx);
 +	/* DSI failure is diagnostic once reset and power-off succeeded.
-+	 * Retain core prepared state only while references remain to release.
++	 * Retain core prepared state while power/reference state is uncertain.
 +	 */
 +	mutex_unlock(&ctx->lock);
 +	return ret;

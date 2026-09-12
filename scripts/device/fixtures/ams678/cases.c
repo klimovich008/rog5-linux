@@ -36,6 +36,29 @@ static void no_commands(void)
  assert(ams678_er2_plus_dsc_bl_update_status(&bl) == -EPERM);
  assert(dsi_calls == before); assert(dsi.mode_flags == flags);
 }
+static void quarantined(int rail, int retained_refs)
+{
+ int calls = regulator_calls;
+ bool prepared = ctx.panel.prepared;
+ assert(ctx.supply_vote[rail] == AMS678_VOTE_UNKNOWN);
+ assert(ctx.supply_vote[1 - rail] == AMS678_VOTE_NONE);
+ assert(regs[rail].refs == retained_refs && !regs[1 - rail].refs);
+ assert(!ctx.initialized);
+ fail_disable = fail_enable = -1; fail_init = 0;
+ no_commands();
+ for (int i = 0; i < 2; i++) {
+  assert(ams678_er2_plus_dsc_power_off(&ctx) == -EUCLEAN);
+  assert(ams678_er2_plus_dsc_power_on(&ctx) == -EBUSY);
+  drm_panel_unprepare(&ctx.panel);
+  drm_panel_prepare(&ctx.panel);
+  assert(ctx.panel.prepared == prepared);
+  no_commands();
+ }
+ assert(regulator_calls == calls);
+ assert(ctx.supply_vote[rail] == AMS678_VOTE_UNKNOWN);
+ assert(regs[rail].refs == retained_refs && !regs[1 - rail].refs);
+ /* No synthetic repair or retry: UNKNOWN may survive final cleanup. */
+}
 static void *brightness_thread(void *arg)
 { assert(!ams678_er2_plus_dsc_bl_update_status(&bl)); return NULL; }
 static void *off_thread(void *arg)
@@ -65,33 +88,35 @@ int main(int argc, char **argv)
  } else if (!strcmp(name, "disable-error")) {
   start(); fail_disable = 0; stop(); assert(ctx.panel.prepared);
   assert(regs[0].refs == 1 && regs[1].refs == 0);
-  no_commands(); int calls = enable_calls;
-  drm_panel_prepare(&ctx.panel); assert(enable_calls == calls);
-  fail_disable = -1; drm_panel_unprepare(&ctx.panel);
-  assert(!ctx.panel.prepared); assert(!regs[0].refs && !regs[1].refs);
-  start(); stop();
+  assert(regs[0].disable_calls == 1 && regs[1].disable_calls == 1);
+  quarantined(0, 1);
  } else if (!strcmp(name, "prepare-cleanup-error")) {
   fail_init = 1; fail_disable = 0; drm_panel_prepare(&ctx.panel);
   assert(!ctx.panel.prepared); assert(regs[0].refs == 1 && regs[1].refs == 0);
-  no_commands(); fail_init = 0; int calls = enable_calls;
-  drm_panel_prepare(&ctx.panel); assert(!ctx.panel.prepared);
-  assert(enable_calls == calls); fail_disable = -1;
-  start(); stop(); assert(!regs[0].refs && !regs[1].refs);
- } else if (!strcmp(name, "enable-supply-error")) {
-  fail_enable = 1; drm_panel_prepare(&ctx.panel); assert(!ctx.panel.prepared);
+  assert(regs[0].disable_calls == 1 && regs[1].disable_calls == 1);
+  quarantined(0, 1);
+ } else if (!strcmp(name, "enable-supply-error") ||
+            !strcmp(name, "enable-first-supply-error")) {
+  int rail = !strcmp(name, "enable-supply-error") ? 1 : 0;
+  fail_enable = rail; drm_panel_prepare(&ctx.panel); assert(!ctx.panel.prepared);
   assert(!regs[0].refs && !regs[1].refs); no_commands();
-  fail_enable = -1; start(); stop();
+  assert(regs[rail].enable_calls == 1 && regs[rail].disable_calls == 0);
+  assert(regs[1 - rail].enable_calls == rail &&
+         regs[1 - rail].disable_calls == rail);
+  quarantined(rail, 0);
  } else if (!strcmp(name, "disable-second-supply-error")) {
   start(); fail_disable = 1; stop(); assert(ctx.panel.prepared);
   assert(regs[0].refs == 0 && regs[1].refs == 1); no_commands();
-  fail_disable = -1; drm_panel_unprepare(&ctx.panel);
-  assert(!ctx.panel.prepared && !regs[0].refs && !regs[1].refs); start(); stop();
+  assert(regs[0].disable_calls == 1 && regs[1].disable_calls == 1);
+  quarantined(1, 1);
  } else if (!strcmp(name, "normal-cycles")) {
   for (int i = 0; i < 20; i++) {
    start(); assert(!ams678_er2_plus_dsc_bl_update_status(&bl)); stop();
    assert(!ctx.panel.prepared && !ctx.panel.enabled);
    assert(!regs[0].refs && !regs[1].refs); no_commands();
   }
+  assert(regs[0].enable_calls == 20 && regs[1].enable_calls == 20);
+  assert(regs[0].disable_calls == 20 && regs[1].disable_calls == 20);
  } else if (!strcmp(name, "brightness-order")) {
   static const unsigned values[] = {0, 1, 255, 256, 1023};
   start();

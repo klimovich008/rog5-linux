@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: MIT */
-/* Fault-injected API boundary; production driver functions are extracted. */
+/* Fault-injected API boundary; production driver functions are extracted.
+ * Regulator errors preserve votes in this controlled fixture. Actual core
+ * bookkeeping/error effects are covered by the separate regulator suite. */
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
@@ -24,7 +26,7 @@ static void mutex_unlock(struct mutex *m) { assert(!pthread_mutex_unlock(&m->nat
 struct device { int unused; };
 struct drm_dsc_config { int unused; };
 struct drm_dsc_picture_parameter_set { int unused; };
-struct regulator { int refs, index; };
+struct regulator { int refs, index, enable_calls, disable_calls; };
 struct regulator_bulk_data { const char *supply; struct regulator *consumer; };
 struct gpio_desc { int role; };
 struct mipi_dsi_device { struct device dev; unsigned long mode_flags; void *data; };
@@ -69,13 +71,13 @@ static void gpiod_set_value_cansleep(struct gpio_desc *g, int value)
 static int gpiod_get_value_cansleep(struct gpio_desc *g) { gpio_reads++; return ready; }
 static int regulator_enable(struct regulator *r)
 {
- regulator_calls++; enable_calls++;
+ regulator_calls++; enable_calls++; r->enable_calls++;
  if (r->index == fail_enable) return -EIO;
  r->refs++; return 0;
 }
 static int regulator_disable(struct regulator *r)
 {
- regulator_calls++;
+ regulator_calls++; r->disable_calls++;
  assert(r->refs == 1);
  if (r->index == fail_disable) return -EIO;
  r->refs--; return 0;

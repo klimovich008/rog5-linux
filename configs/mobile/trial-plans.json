@@ -78,7 +78,7 @@
       "tests": [
         {
           "path": "scripts/device/test-ams678-lifecycle.py",
-          "sha256": "2f852c66f914edc48ef075f786f90046f8b3ab65de3d49c2d4e8c73ce389a5fc"
+          "sha256": "2315ede421859a35f9d6ce164f41372522dca0740945f8852d3f4a92ab4f24d5"
         },
         {
           "path": "scripts/device/test-screen-toggle.sh",
@@ -91,6 +91,10 @@
         {
           "path": "scripts/device/test-mobile-dt-composition.py",
           "sha256": "f363d8423e6240d103ca205614fa8d5250cf0213bd4d402f645bbd3d9ad5f684"
+        },
+        {
+          "path": "scripts/device/test-ams678-regulator-errors.py",
+          "sha256": "b8dec1f8d4251d26d33e5b2b2eb8ff026e7d66706632d184725ef9e5e61d8746"
         }
       ],
       "physical_actions": [
@@ -105,7 +109,8 @@
       ],
       "blockers": [
         "Corrected panel module hash bound to matching production Image and DT required",
-        "Physical visual proof cannot be inferred from DRM or backlight readback"
+        "Physical visual proof cannot be inferred from DRM or backlight readback",
+        "Any regulator enable/disable error leaves panel power ownership uncertain. Driver blocks later DSI/backlight and regulator retries only within the same instance; independent recovery before rebind/reload is unqualified."
       ]
     },
     {

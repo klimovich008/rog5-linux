@@ -159,6 +159,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-rog5-front-touch.py
 	scripts/device/test-rog5-touch-lifecycle.py
 	scripts/device/test-rog5-touch-regulator-errors.py
+	scripts/device/test-ams678-regulator-errors.py
 	scripts/device/test-rog5-physical-key-events.py
 	scripts/device/test-observe-local-root-physical-key.py
 	scripts/device/test-optional-display-runtime.py
@@ -518,7 +519,7 @@ elif [[ $tier == probe ]]; then
 	tests=("${probe_tests[@]}")
 elif [[ $tier == board ]]; then
 	# Source-dependent behavioral/schema checks; no implicit skip in host CI.
-	tests=(scripts/device/test-rog5-rpmh-binding.py scripts/device/test-rog5-touch-lifecycle.py scripts/device/test-rog5-touch-regulator-errors.py scripts/device/test-rog5-touch-binding.py scripts/device/test-rog5-geni-mode.py)
+	tests=(scripts/device/test-rog5-rpmh-binding.py scripts/device/test-rog5-touch-lifecycle.py scripts/device/test-rog5-touch-regulator-errors.py scripts/device/test-ams678-regulator-errors.py scripts/device/test-rog5-touch-binding.py scripts/device/test-rog5-geni-mode.py)
 else
 	tests=("${active_tests[@]}" "${probe_tests[@]}" "${shared_tests[@]}" "${tier_tests[@]}")
 fi

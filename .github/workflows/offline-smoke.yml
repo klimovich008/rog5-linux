@@ -291,7 +291,7 @@ jobs:
           else
             changed=$(git diff --name-only "$BASE" HEAD)
             if grep -Eq \
-              '^(patches/linux-7\.1\.4/0037-|scripts/device/(test-ams678[^/]*|fixtures/ams678/)|scripts/host/(build-ams678-panel-check\.sh|test-ams678-compile-location\.py)$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
+              '^(patches/linux-7\.1\.4/0037-|scripts/device/(test-ams678[^/]*|fixtures/(ams678(-regulator)?|fts3658u-regulator)/)|scripts/host/(build-ams678-panel-check\.sh|test-ams678-compile-location\.py)$|\.github/workflows/offline-smoke\.yml$)' <<<"$changed"; then
               selected=yes
             fi
           fi
