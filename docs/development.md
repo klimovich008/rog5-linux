@@ -59,6 +59,21 @@ and qualify an explicit successor with authenticated additional packages.
 The runner records the supplied runtime path but does not repeat its package
 inventory authentication; bind the run to that separate retained evidence.
 
+The authenticated successor graph is
+`mobile-package-snapshot-20260912-xwayland.json` (326 packages). The historical
+315-package graph remains unchanged. A full-shell run now requires a guest
+session bus and positive terminal raster-frame/page-flip counters without
+rendering errors; a clean exit alone cannot pass. This is still separate from
+visual proof. An explicit `--render-node /dev/dri/renderD128` enables VirGL using
+only the Deck render node; it does not expose host display control or phone
+devices. Use the retained complete GL container from the current artifact
+pointer. Default software mode remains available, but the retained llvmpipe
+stack lacks the native-fence extension required by this Denial renderer.
+VirGL advertises the extension but currently fails initial framebuffer binding;
+successful fence export and a full session remain unproven. The guest's targeted
+TRACE filter needs a diagnostic build: the retained Denial release enables
+`release_max_level_info`, which compiles those callsites out.
+
 The mobile package graph checker validates metadata by default. The original
 `mobile-package-closure.json` remains a historical graph; select the current
 snapshot explicitly through the graph reference in `manifests/current-artifact.json`.

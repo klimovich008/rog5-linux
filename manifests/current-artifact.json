@@ -163,61 +163,67 @@
   },
   "mobile_archive_audit": {
     "status": "PASS",
-    "scope": "selected package archive authentication",
-    "set_id": "private:rog5-mobile-snapshot-evidence-20260912-r1/packages",
-    "source_commit": "d21180c0f78e075c5d858a2455d48b2a2892298a",
-    "source_tree": "3e93004c1cfa7da310fe30220a317782d86ea611",
+    "scope": "326 selected package archive authentications; not a complete session",
+    "set_id": "private:rog5-xwayland-runtime-evidence-20260912-r1",
+    "source_commit": "266a80fb10c18e32d8cf657eaad81202144812d3",
+    "source_tree": "37ba771ccaee64a93f509a1639f7fc9dda2bd76a",
     "graph": {
-      "path": "packaging/arch/mobile-package-snapshot-20260912.json",
-      "sha256": "b5fa5dac0ea87a34126ced885a2da139b48f22ec26f3ec2e32484506e3da08e1"
+      "path": "packaging/arch/mobile-package-snapshot-20260912-xwayland.json",
+      "sha256": "2f7fc793898dbd18c8732b447bf6965ab98fab7509c003bdec08e80151b31054",
+      "size": 349408
     },
-    "cache_root": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/packages",
+    "cache_root": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/packages",
     "archive_index": {
-      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/archive-index.json",
-      "sha256": "d15af72055f7b83bdd35c8f74d1d8d1c40a2b44c3331a5d43dd07d5038880083",
-      "size": 173537
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/archive-index.json",
+      "sha256": "7652b4bbfd26b5f41fbea970466b23e0bc608be533211f06e3fbbe325fb6a47b",
+      "size": 158447
     },
     "counts": {
-      "PASS": 315,
+      "PASS": 326,
       "FAIL": 0,
       "BLOCKED": 0
     },
     "evidence": {
+      "path": "test-results/2026-09-12-xwayland-runtime-qualification.json",
+      "sha256": "f0319c545599077300c04088bc8f1fa6859679f0ac0f178b916544311853d0b9",
+      "size": 561640
+    },
+    "previous_audit": {
       "path": "test-results/2026-09-12-mobile-package-snapshot-qualification.json",
       "sha256": "d24f2dd2b2620a51fe22bddd2df6b38dab932f27e477ba4f1a98f044ec3901a5"
     },
-    "previous_audit": {
-      "path": "test-results/2026-09-12-mobile-package-audit-qualification.json",
-      "sha256": "592cff8c9775685ac612113298d79b9bbaa1a9acc89ff712b291489209a88d42"
-    },
-    "keyring_observation": "upstream Git snapshot and signed current package retained; explicit build signer unchanged; cryptographic freshness/anti-rollback unqualified",
-    "runtime_closure": "BLOCKED: archive authentication is complete for this historical 315-package graph, which omits the Xwayland executable required by pinned Denial startup.",
-    "authority": "none; no installation, update, admission or phone authority",
-    "provenance": {
-      "path": "/home/deck/.local/state/rog5-mobile-snapshot-evidence-20260912-r1/package-provenance.json",
-      "sha256": "496adf4192e7013260e0f3bd21fe0f6a3d038ae920950f1ba5b4cfc40c425989",
-      "size": 176018
-    }
+    "runtime_closure": "Xwayland present and starts; complete rendering FAIL at framebuffer binding",
+    "authority": "none; no installation, admission or phone authority",
+    "keyring_observation": "upstream Git snapshot and signed current package retained; explicit build signer unchanged; cryptographic freshness/anti-rollback unqualified"
   },
   "mobile_host_runtime": {
-    "status": "PASS: selected offline ARM64 loader/CLI and software-rendering checks",
-    "set_id": "private:rog5-mobile-runtime-evidence-20260912-r1/materialize-r2",
-    "source_commit": "1205091552cc9cd3b986594c57535468262e266e",
-    "source_tree": "2865ab6ed02133e220f130030dc0d2555416647d",
-    "root": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/root",
+    "status": "PASS: 326 authenticated package payloads materialized; session FAIL",
+    "set_id": "private:rog5-xwayland-runtime-evidence-20260912-r1",
+    "source_commit": "266a80fb10c18e32d8cf657eaad81202144812d3",
+    "source_tree": "37ba771ccaee64a93f509a1639f7fc9dda2bd76a",
+    "root": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
     "tree_manifest": {
-      "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/tree.json",
-      "sha256": "d0c54597856c2205f6c19abb932182ffcf61102c9c0caaf39df76852fccfd75b"
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+      "sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+      "size": 10419681
     },
-    "gsettings_overlay": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/schema-cache-r1/schemas",
-    "gsettings_cache_sha256": "d76471d85118a43eb466b9298e90ff97eb584f11df9520130a565619f6a6f59a",
     "evidence": {
+      "path": "test-results/2026-09-12-xwayland-runtime-qualification.json",
+      "sha256": "f0319c545599077300c04088bc8f1fa6859679f0ac0f178b916544311853d0b9",
+      "size": 561640
+    },
+    "previous_evidence": {
       "path": "test-results/2026-09-12-mobile-runtime-qualification.json",
       "sha256": "8b0ee94b6338d0957d3b29239295e911bda45ec9fc4e07f05ac121256523fd2d"
     },
     "physical_status": "NOT RUN",
     "authority": "none",
-    "runtime_closure": "BLOCKED: actual Denial shell startup requires Xwayland, omitted by this 315-package runtime; complete session and physical behavior remain unqualified."
+    "runtime_closure": "All 55,666 previous entries unchanged; 145 entries added. Xwayland starts; framebuffer binding prevents a full session.",
+    "extension_comparison": {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/runtime-extension.json",
+      "sha256": "deb22a66c89cee9e528d43248388abe0a706919130794fbd847f8f272492130f",
+      "size": 6574
+    }
   },
   "denial_arm64_engine_arguments": {
     "status": "PASS: arguments only",
@@ -630,10 +636,10 @@
     }
   },
   "denial_virtual_drm": {
-    "status": "PASS: generic guest DRM discovery and Denial CLI; shell BLOCKED",
-    "set_id": "private:rog5-virtual-drm-evidence-20260912-r1",
-    "source_commit": "b63aa1671bec8fda2352d66f16ca25c18b8223aa",
-    "source_tree": "dbd90d1d2c7e3d989ccd71dd617a2520f5042e4b",
+    "status": "FAIL: full shell framebuffer binding; virtual DRM discovery and native fence extension availability observed",
+    "set_id": "private:rog5-xwayland-runtime-evidence-20260912-r1",
+    "source_commit": "756481ca35592149b9ef8951de8ee595b7a065eb",
+    "source_tree": "128dafd8ae9809d1b2766f6d733c12cd353d9c9e",
     "linux_commit": "7a5cef0db4795d9d453a12e0f61b5b7634fc4d40",
     "kernel": {
       "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
@@ -646,19 +652,26 @@
       "size": 65265
     },
     "kernel_output": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm",
-    "qemu_container": "9ee9f67fabc6a4cde87171fedf616666f035f02104a7a7807930a7ad290d8aae",
+    "qemu_container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
     "runtime_tree": {
-      "path": "/home/deck/.local/state/rog5-mobile-runtime-evidence-20260912-r1/materialize-r2/tree.json",
-      "sha256": "d0c54597856c2205f6c19abb932182ffcf61102c9c0caaf39df76852fccfd75b",
-      "size": 10394055
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+      "sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+      "size": 10419681
     },
     "evidence": {
+      "path": "test-results/2026-09-12-xwayland-runtime-qualification.json",
+      "sha256": "f0319c545599077300c04088bc8f1fa6859679f0ac0f178b916544311853d0b9",
+      "size": 561640
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline guest fixture only",
+    "next": "Inspect exact imported dmabuf format and framebuffer status using a bounded diagnostic Denial/Smithay build; release binary compiles out TRACE. No phone execution.",
+    "previous_evidence": {
       "path": "test-results/2026-09-12-virtual-drm-qualification.json",
       "sha256": "5879ec10add329f35e8bc9e03bf4e75b9fb6d6d4c6242947a2a6eef89acac674",
       "size": 40357
     },
-    "physical_status": "NOT RUN",
-    "authority": "none; offline guest fixture only",
-    "next": "Authenticate the missing Xwayland runtime and dependency extension; reuse the existing virtual DRM kernel; no phone execution."
+    "native_fence_export": "NOT RUN: extension advertised but initial framebuffer bind fails before use",
+    "shell_frames": "NOT RUN: no successful session frame"
   }
 }
