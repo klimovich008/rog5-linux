@@ -1,0 +1,51 @@
+--- a/dart_shell/lib/src/state/shell_controller.dart
++++ b/dart_shell/lib/src/state/shell_controller.dart
+@@ -88,6 +88,7 @@
+     ref.onDispose(() {
+       _automaticSoftwareKeyboardCloseTimer?.cancel();
+       _automaticSoftwareKeyboardCloseTimer = null;
++      _automaticSoftwareKeyboardPolicy = null;
+       _launchRequestTimer?.cancel();
+       _launchRequestTimer = null;
+       unawaited(_textInputStateSubscription?.cancel());
+@@ -136,12 +137,14 @@
+   Timer? _launchRequestTimer;
+   bool? _lastMirroredNativeLock;
+   bool _automaticSoftwareKeyboard = false;
++  (bool, bool, bool, int)? _automaticSoftwareKeyboardPolicy;
+   final Set<String> _legacyTextInputAppIds = <String>{};
+   final Set<String> _backgroundLaunchAppIds = <String>{};
+   Timer? _automaticSoftwareKeyboardCloseTimer;
+   StreamSubscription<DenialTextInputState>? _textInputStateSubscription;
+ 
+   void _resetBuildFields() {
++    _automaticSoftwareKeyboardPolicy = null;
+     _automaticSoftwareKeyboardCloseTimer?.cancel();
+     _automaticSoftwareKeyboardCloseTimer = null;
+     unawaited(_textInputStateSubscription?.cancel());
+@@ -179,6 +182,15 @@
+     if (!_automaticSoftwareKeyboard) {
+       return;
+     }
++    // Caret motion must still update presentation, but it is not a new request
++    // to show/hide the keyboard. In particular, do not revoke a user's manual
++    // opening just because a pointer-authorized editor reports a new rectangle.
++    final policy = (input.active, input.inputPanelVisible, input.legacy,
++        input.activationSerial);
++    if (_automaticSoftwareKeyboardPolicy == policy) {
++      return;
++    }
++    _automaticSoftwareKeyboardPolicy = policy;
+     if (input.inputPanelVisible) {
+       final foregroundAppId = AppLaunchRequest.normalizeAppId(
+         state.foregroundWindow?.appId ?? '',
+@@ -848,6 +860,9 @@
+   }
+ 
+   void openEdgePanel() {
++    // An explicit open wins over a close queued during the grace period.
++    _automaticSoftwareKeyboardCloseTimer?.cancel();
++    _automaticSoftwareKeyboardCloseTimer = null;
+     if (state.edgePanelVisible &&
+         state.edgePanelDrag == Offset.zero &&
+         !state.edgePanelDragActive) {

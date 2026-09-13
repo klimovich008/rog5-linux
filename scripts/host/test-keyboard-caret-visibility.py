@@ -40,6 +40,7 @@ class Control {
  bool _edgePanelDragStartedOpen=false,_edgePanelDragMoved=false;
  static const _edgePanelFlickVelocity=520.0;
  bool _automaticSoftwareKeyboard=false;
+ (bool,bool,bool,int)? _automaticSoftwareKeyboardPolicy;
  final Set<String> _legacyTextInputAppIds={};
  Timer? _automaticSoftwareKeyboardCloseTimer;
  static const _automaticSoftwareKeyboardCloseGrace=Duration(milliseconds:1);
@@ -187,7 +188,8 @@ void main(List<String> args) {
         caret = strip(caret).replace('DenialWindow','Window')
         helper = strip(helper).replace('DenialWindow','Window')
         input_state=bridge[bridge.index('class DenialTextInputState {'):bridge.index('class DenialSettingsDocument {')]
-        unit=unit.replace("import 'dart:math' as math;", "import 'dart:math' as math;\nimport 'dart:async';")
+        if "import 'dart:async';" not in unit:
+            unit=unit.replace("import 'dart:math' as math;", "import 'dart:math' as math;\nimport 'dart:async';")
         a,b=unit.index('class Window {'),unit.index('enum _GestureAxis ')
         unit=unit[:a]+WINDOW+state+caret+helper+input_state+unit[b:]
         a,b=unit.index('class Control {'),unit.index('class ShellInteractionSnapshot ')

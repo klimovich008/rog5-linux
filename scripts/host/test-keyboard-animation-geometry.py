@@ -24,6 +24,7 @@ def method(text, marker):
 
 ADAPTERS = r'''
 import 'dart:math' as math;
+import 'dart:async';
 class Offset {
  const Offset(this.dx,this.dy); final double dx,dy;
  static const zero=Offset(0,0);
@@ -82,6 +83,7 @@ class State {
 enum _GestureAxis {undecided}
 class Control {
  State state=State();Offset _rawGestureDrag=Offset.zero,_gestureLockOrigin=Offset.zero;
+ Timer? _automaticSoftwareKeyboardCloseTimer;
  _GestureAxis _gestureAxis=_GestureAxis.undecided;
  bool _edgePanelDragStartedOpen=false,_edgePanelDragMoved=false;
  static const _edgePanelFlickVelocity=520.0;
