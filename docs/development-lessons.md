@@ -2564,3 +2564,19 @@ admission coverage from high-volume startup events if another ownership question
 requires tracing; preserve this coverage limitation and the passing terminal
 counters independently. Existing scheduler intervals separately observed 40
 ready-with-fence/signaled/submitted/presented transactions.
+
+A QMP schema entry proves a command exists, not that it captures the active GL
+scanout. The first mobile probe captured an inactive placeholder; the next hit
+QEMU8.2.2's explicit non-surface rejection. Require actual presentation before
+input and use the existing local VNC readback for this retained QEMU. Verify its
+true-size notification instead of cropping the padded initial width. Real RFB
+fixtures verify complete RGB pixels and refusal paths before another guest run.
+
+Kernel event nodes and accepted virtual input messages do not prove libinput
+sees a device. The custom VM init omitted udev initialization: R3 displayed the
+lockscreen but ignored the OSK gesture. Record ID_INPUT properties, initialize
+the fixed devices with the retained guest tools, and verify actual UI transitions.
+Account for the custom PID1's chroot when addressing guest udev; do not silently
+ignore its refusal. The corrected51.8-second run proved keyboard layer switching
+without rebuilding the native/engine pair. Text entry and physical touch remain
+separate checks. Keep visual verdicts separate from transport receipts.
