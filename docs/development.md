@@ -858,6 +858,25 @@ mixed boot evidence cannot qualify a reboot. Complete pinned SSH/local-root
 verification and host boot-service-absence evidence are still required for S01.
 Do not infer bootloader slot-success state from Linux trial-health records.
 
+Cold archival can reclaim final historical outputs without discarding their
+bytes. The September 13 fifth pass stored the exact revoked Stage-2 generations
+176–187 A AVBs and their independently audited wrapper Images as hash-addressed
+compressed blobs. Each original was restored and compared before journaled
+removal. Signed bundles, sibling raw/B images, claims and manifests stayed in
+place. Restoring bytes does not restore inode qualification or boot authority.
+The private archive index is `rog5-project-cleanup-20260913-r5/REPORT.md` under
+the host state directory; its restore helper writes only to a new inspection
+location. Historical commands need explicit restoration of their archived inputs.
+
+The old `board/build-r1/base.tar` was reused by later successful builds despite
+its first attempt failing. Retain its exact bytes as a compressed cache; restore
+and verify its pinned hash before reusing commands with `--base-archive`.
+Superseded plain source extractions can be archived separately from registered
+worktrees and active source trees. Check generated dependency files and source
+symlinks, not just current manifests, before deciding which copies are cold.
+For large deletion journals, persist bounded batches of intents before unlinking
+any member; this keeps interruption auditing without an fsync for every file.
+
 ## Retention and context
 
 Current state owns accepted identities and links to evidence. Active context
