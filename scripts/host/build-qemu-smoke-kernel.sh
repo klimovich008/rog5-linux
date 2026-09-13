@@ -17,8 +17,8 @@ kernel_contract=$repo/scripts/device/kernel-build-contract.sh
 expected_commit=7a5cef0db4795d9d453a12e0f61b5b7634fc4d40
 profile=${QEMU_KERNEL_PROFILE:-smoke}
 case $profile in
-	smoke|virtio-drm) ;;
-	*) fail 'QEMU_KERNEL_PROFILE must be smoke or virtio-drm' ;;
+	smoke|virtio-drm|virtio-session) ;;
+	*) fail 'QEMU_KERNEL_PROFILE must be smoke, virtio-drm or virtio-session' ;;
 esac
 
 [[ -d $source_root && ! -L $source_root ]] ||
@@ -89,7 +89,7 @@ required_runtime_options=(
 	SERIAL_AMBA_PL011 SERIAL_AMBA_PL011_CONSOLE SHMEM SIGNALFD SYSFS TIMERFD TMPFS TMPFS_XATTR TTY UNIX
 	VIRTIO VIRTIO_CONSOLE VIRTIO_MENU VIRTIO_MMIO VIRTIO_NET
 )
-if [[ $profile == virtio-drm ]]; then
+if [[ $profile == virtio-drm || $profile == virtio-session ]]; then
 	# Generic virtual hardware only; no ROG5 drivers or device qualification.
 	required_runtime_options+=(
 		BINFMT_SCRIPT DRM DRM_VIRTIO_GPU DRM_VIRTIO_GPU_KMS
@@ -97,6 +97,11 @@ if [[ $profile == virtio-drm ]]; then
 		HW_RANDOM HW_RANDOM_VIRTIO UNIX98_PTYS VT VT_CONSOLE
 		SYSVIPC EVENTFD
 	)
+fi
+if [[ $profile == virtio-session ]]; then
+	# The document portal mounts its exported document filesystem through FUSE.
+	# Keep this separate from the retained graphics-only kernel profile.
+	required_runtime_options+=(FUSE_FS)
 fi
 disabled_runtime_options=(NFS_V4_2_READ_PLUS)
 config_arguments=()

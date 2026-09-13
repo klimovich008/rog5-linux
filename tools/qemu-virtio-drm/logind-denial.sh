@@ -10,6 +10,61 @@ export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 cd "$HOME"
 launcher='' foot='' editor=''
 readers=()
+require_fuse_device() {
+    local device=${1:-/dev/fuse}
+    [[ -c $device && -r $device && -w $device ]] || {
+        echo 'FAIL accessible FUSE character device required for document portal' >&2; return 1;
+    }
+}
+qualify_activated_services() {
+    local states mount_record target fstype options extra
+    local -a services=(at-spi-dbus-bus.service xdg-document-portal.service
+        xdg-desktop-portal-gtk.service xdg-desktop-portal.service)
+    timeout -k 1 20 systemctl --user start "${services[@]}" || return $?
+    states=$(timeout -k 1 3 systemctl --user is-active "${services[@]}") || return $?
+    [[ $states == $'active\nactive\nactive\nactive' ]] || {
+        echo 'FAIL activated accessibility/portal services not all active' >&2; return 1;
+    }
+    mount_record=$(timeout -k 1 3 findmnt --kernel --noheadings --raw \
+        --mountpoint "$XDG_RUNTIME_DIR/doc" --output TARGET,FSTYPE,OPTIONS) || return $?
+    [[ -n $mount_record && $mount_record != *$'\n'* ]] || return 1
+    read -r target fstype options extra <<< "$mount_record"
+    [[ $target == "$XDG_RUNTIME_DIR/doc" && -n $options && -z $extra &&
+       ( $fstype == fuse || $fstype == fuse.* ) ]] || {
+        echo 'FAIL document portal exact FUSE mount not confirmed' >&2; return 1;
+    }
+    printf 'OBSERVE document portal mount=%s\n' "$mount_record"
+    echo 'PASS activated accessibility and portal services with document FUSE mount'
+}
+publish_cache_environment() {
+    local manager key value schema_count=0 data_count=0
+    [[ -n ${GSETTINGS_SCHEMA_DIR:-} && -n ${XDG_DATA_DIRS:-} ]] || {
+        echo 'FAIL GTK cache environment missing' >&2; return 1;
+    }
+    [[ -r $GSETTINGS_SCHEMA_DIR/gschemas.compiled && -s $GSETTINGS_SCHEMA_DIR/gschemas.compiled &&
+       -r ${XDG_DATA_DIRS%%:*}/mime/mime.cache && -s ${XDG_DATA_DIRS%%:*}/mime/mime.cache ]] || {
+        echo 'FAIL GTK schema or MIME cache unavailable' >&2; return 1;
+    }
+    # Direct clients inherit these exports, but activated services use the
+    # already-running user manager/bus. Transfer only the two prepared paths.
+    timeout -k 1 3 dbus-update-activation-environment --systemd \
+        GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS || return $?
+    manager=$(timeout -k 1 3 systemctl --user show-environment) || return $?
+    while IFS='=' read -r key value; do
+        case $key in
+            GSETTINGS_SCHEMA_DIR)
+                [[ $value == "$GSETTINGS_SCHEMA_DIR" ]] || return 1
+                schema_count=$((schema_count + 1));;
+            XDG_DATA_DIRS)
+                [[ $value == "$XDG_DATA_DIRS" ]] || return 1
+                data_count=$((data_count + 1));;
+        esac
+    done <<< "$manager"
+    [[ $schema_count == 1 && $data_count == 1 ]] || {
+        echo 'FAIL activated GTK cache environment not confirmed' >&2; return 1;
+    }
+    echo 'PASS GTK cache environment transferred and verified in user manager'
+}
 start_log() {
     local name=$1
     mkfifo "$HOME/$name.pipe"
@@ -88,6 +143,8 @@ finish() {
 trap finish EXIT
 trap 'exit 143' TERM
 trap 'exit 130' INT
+require_fuse_device
+publish_cache_environment
 /usr/bin/denial-mobile-session --check
 /usr/bin/denial-mobile-session > "$HOME/denial.pipe" 2>&1 &
 launcher=$!
@@ -105,6 +162,7 @@ done <<< "$manager"
 [[ ${WAYLAND_DISPLAY:-} == wayland-* && $WAYLAND_DISPLAY != */* && -S $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY ]]
 [[ ${DENIAL_SOCKET:-} == "$XDG_RUNTIME_DIR/"* && -S $DENIAL_SOCKET ]]
 printf 'OBSERVE activated local Denial wayland=%s socket=%s\n' "$WAYLAND_DISPLAY" "$DENIAL_SOCKET"
+qualify_activated_services
 : > "$HOME/text.txt"
 GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout -k 2 65 mousepad "$HOME/text.txt" > "$HOME/mousepad.pipe" 2>&1 &
 editor=$!

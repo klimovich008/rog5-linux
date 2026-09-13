@@ -33,6 +33,16 @@ kernel/DT/build changes; unrelated userspace/documentation work does not require
 a full phone-kernel rebuild. Build failures and schema diagnostics must remain
 visible even when an unsigned Image was produced.
 
+For an actual local Denial session with the document portal, use the separate
+`QEMU_KERNEL_PROFILE=virtio-session` profile and a fresh ignored build output.
+It adds built-in FUSE to the virtual DRM prerequisites. The retained `virtio-drm`
+profile and its evidence remain unchanged. Require a usable `/dev/fuse` and a
+real document-portal mount in the VM; a successful modprobe unit is insufficient.
+Prepared RAM GTK schema/MIME caches must be imported into the D-Bus and systemd
+user activation environments using the explicit two-variable allowlist before
+launch. Cache transfer, service readiness, client lifetime and phone behavior
+remain separate checks.
+
 For the separate offline Denial DRM probe, build the pinned upstream kernel with
 `QEMU_KERNEL_PROFILE=virtio-drm JOBS=2 scripts/host/build-qemu-smoke-kernel.sh
 LINUX_SOURCE build/qemu-virtio-drm`. The default `smoke` profile remains for the

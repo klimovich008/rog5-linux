@@ -200,6 +200,148 @@ FIRST=$2; SECOND=$3
                     self.assertNotIn('CALL canonical', result.stdout)
 
 
+class CacheEnvironment(unittest.TestCase):
+    def publish(self, mode='success'):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
+        source = script.read_text()
+        functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
+        # Real production boundary: cache publication must precede even the
+        # mobile entry preflight. Old code executes it without any publication.
+        prelaunch = source.split("trap 'exit 130' INT\n", 1)[1]
+        prelaunch = prelaunch.split('/usr/bin/denial-mobile-session >', 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'schemas').mkdir(); (root/'mime').mkdir()
+            if mode != 'missing_schema': (root/'schemas/gschemas.compiled').write_bytes(b'fixture')
+            if mode != 'missing_mime': (root/'mime/mime.cache').write_bytes(b'fixture')
+            code = 'set -euo pipefail\n' + functions + r'''
+export GSETTINGS_SCHEMA_DIR=$1/schemas XDG_DATA_DIRS=$1:/usr/local/share:/usr/share
+MODE=$2
+# FUSE access is checked separately; this fixture isolates cache publication.
+require_fuse_device(){ :; }
+# Only external transport is stubbed; production file validation and result
+# parsing execute unchanged. No host session bus or manager is contacted.
+timeout(){ printf 'TIMEOUT %s\n' "$*" >&2; shift 3; "$@"; }
+dbus-update-activation-environment(){
+    printf 'IMPORT %s\n' "$*"
+    case $MODE in unavailable) return 127;; update_fail) return 69;; deadline) return 124;; esac
+}
+systemctl(){
+    printf 'MANAGER %s\n' "$*" >&2
+    [[ $MODE != query_fail ]] || return 42
+    [[ $MODE != missing_value ]] || return 0
+    printf 'GSETTINGS_SCHEMA_DIR=%s\n' "$GSETTINGS_SCHEMA_DIR"
+    if [[ $MODE == mismatch ]]; then printf 'XDG_DATA_DIRS=/wrong\n'
+    else printf 'XDG_DATA_DIRS=%s\n' "$XDG_DATA_DIRS"; fi
+    [[ $MODE != duplicate ]] || printf 'GSETTINGS_SCHEMA_DIR=%s\n' "$GSETTINGS_SCHEMA_DIR"
+    return 0
+}
+/usr/bin/denial-mobile-session(){ printf 'MOBILE %s\n' "$*"; }
+''' + prelaunch
+            return subprocess.run(['bash', '-c', code, 'fixture', directory, mode],
+                                  capture_output=True, text=True, timeout=3)
+
+    def test_actual_prelaunch_publishes_only_cache_keys_and_verifies_manager(self):
+        result = self.publish()
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertIn('IMPORT --systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS', result.stdout)
+        self.assertIn('MANAGER --user show-environment', result.stderr)
+        self.assertIn('TIMEOUT -k 1 3 dbus-update-activation-environment --systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS', result.stderr)
+        self.assertIn('TIMEOUT -k 1 3 systemctl --user show-environment', result.stderr)
+        self.assertLess(result.stdout.index('IMPORT '), result.stdout.index('MOBILE --check'))
+
+    def test_missing_caches_prevent_publication_and_launch(self):
+        for mode in ['missing_schema', 'missing_mime']:
+            with self.subTest(mode=mode):
+                result = self.publish(mode)
+                self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+                self.assertNotIn('IMPORT ', result.stdout)
+                self.assertNotIn('MOBILE ', result.stdout)
+
+    def test_failed_transfer_or_query_prevents_launch_and_preserves_status(self):
+        for mode, status in [('unavailable', 127), ('update_fail', 69), ('deadline', 124), ('query_fail', 42)]:
+            with self.subTest(mode=mode):
+                result = self.publish(mode)
+                self.assertEqual(result.returncode, status, result.stdout+result.stderr)
+                self.assertNotIn('MOBILE ', result.stdout)
+
+    def test_missing_duplicate_or_mismatched_manager_values_prevent_launch(self):
+        for mode in ['missing_value', 'duplicate', 'mismatch']:
+            with self.subTest(mode=mode):
+                result = self.publish(mode)
+                self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+                self.assertNotIn('MOBILE ', result.stdout)
+
+
+class ActivatedServices(unittest.TestCase):
+    def qualify(self, mode='success'):
+        source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
+        functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
+        boundary = re.search(r"^printf 'OBSERVE activated local Denial.*?\n(.*?)^: >", source, re.M | re.S).group(1)
+        code = 'set -euo pipefail\n' + functions + r'''
+export XDG_RUNTIME_DIR=/run/user/1000
+MODE=$1
+timeout(){ printf 'BOUNDED %s\n' "$*" >&2; shift 3; "$@"; }
+systemctl(){
+    printf 'SERVICE %s\n' "$*" >&2
+    if [[ $2 == start ]]; then [[ $MODE != start_fail ]] || return 124; return 0; fi
+    [[ $MODE != query_fail ]] || return 42
+    case $MODE in
+        empty_states) return 0;;
+        partial_states) printf 'active\nactive\nactive\n';;
+        inactive) printf 'active\nactive\ninactive\nactive\n';;
+        *) printf 'active\nactive\nactive\nactive\n';;
+    esac
+}
+findmnt(){
+    printf 'MOUNT %s\n' "$*" >&2
+    case $MODE in
+        mount_fail) return 1;;
+        empty_mount) return 0;;
+        ancestor) printf '/run/user/1000 tmpfs rw\n';;
+        wrong_type) printf '/run/user/1000/doc tmpfs rw\n';;
+        duplicate_mount) printf '/run/user/1000/doc fuse.portal rw\n/run/user/1000/doc fuse.portal rw\n';;
+        fuse_plain) printf '/run/user/1000/doc fuse rw,nosuid,nodev\n';;
+        *) printf '/run/user/1000/doc fuse.portal rw,nosuid,nodev\n';;
+    esac
+}
+''' + boundary + "echo CLIENTS-MAY-START\n"
+        return subprocess.run(['bash', '-c', code, 'fixture', mode],
+                              capture_output=True, text=True, timeout=3)
+
+    def test_actual_fuse_guard_rejects_missing_and_regular_files(self):
+        source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
+        function = re.search(r'^require_fuse_device\(\) \{.*?^\}', source, re.M | re.S).group()
+        with tempfile.TemporaryDirectory() as directory:
+            regular = Path(directory)/'regular'; regular.write_bytes(b'not a device')
+            for path, expected in [(regular, 1), (regular.with_name('missing'), 1), (Path('/dev/null'), 0)]:
+                with self.subTest(path=str(path)):
+                    result = subprocess.run(['bash', '-c', function+'\nrequire_fuse_device "$1"', 'fixture', str(path)],
+                                            capture_output=True, text=True, timeout=3)
+                    self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+            # /dev/null exercises only the predicate, not actual FUSE support.
+
+    def test_actual_boundary_starts_all_services_and_requires_exact_fuse_mount(self):
+        for mode in ['success', 'fuse_plain']:
+            with self.subTest(mode=mode):
+                result = self.qualify(mode)
+                self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+                names = 'at-spi-dbus-bus.service xdg-document-portal.service xdg-desktop-portal-gtk.service xdg-desktop-portal.service'
+                self.assertIn('BOUNDED -k 1 20 systemctl --user start '+names, result.stderr)
+                self.assertIn('BOUNDED -k 1 3 systemctl --user is-active '+names, result.stderr)
+                self.assertIn('MOUNT --kernel --noheadings --raw --mountpoint /run/user/1000/doc --output TARGET,FSTYPE,OPTIONS', result.stderr)
+                self.assertIn('OBSERVE document portal mount=/run/user/1000/doc fuse', result.stdout)
+                self.assertIn('CLIENTS-MAY-START', result.stdout)
+
+    def test_service_and_mount_failures_never_admit_clients(self):
+        for mode in ['start_fail', 'query_fail', 'empty_states', 'partial_states', 'inactive',
+                     'mount_fail', 'empty_mount', 'ancestor', 'wrong_type', 'duplicate_mount']:
+            with self.subTest(mode=mode):
+                result = self.qualify(mode)
+                self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+                self.assertNotIn('CLIENTS-MAY-START', result.stdout)
+
+
 class ClientLog(unittest.TestCase):
     def test_actual_drainer_bounds_storage_without_killing_writer(self):
         script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
