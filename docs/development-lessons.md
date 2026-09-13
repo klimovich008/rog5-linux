@@ -2655,3 +2655,10 @@ shows pending counts can stay buffered forever once rendering becomes idle.
 Use owned native lifecycle/focus readiness to schedule a settled capture; retain
 optional interval reports and actual captured pixels as distinct evidence.
 Extending the guest deadline would not repair this event-driven reporting gap.
+
+A velocity-dependent up-flick went home in one TCG VM run but opened Overview
+in the next. The screenshot distinguished that test-routing failure from a
+launcher failure. Use the supported deliberate Overview pull and exposed-scrim
+tap instead: closeOverview clears foreground without closing the native app.
+Keep the observed overview frame and require the home tile check before launch.
+Do not tune compositor gesture thresholds to accommodate host injection timing.

@@ -99,7 +99,8 @@ Scheduler audit reports depend on new rendering activity; a stable scene may
 never produce another interval report. Retain those reports independently rather
 than blocking input on their arrival. Native readiness and pointer delivery do
 not prove presentation: terminal frame counts and direct captures remain separate.
-Pointer gestures launch Mousepad, return home, launch Foot and switch twice;
+Pointer gestures launch Mousepad, pull up to Overview and tap its exposed
+background to return home, launch Foot and switch twice;
 inspect all captures separately. Protocol-only success is not visual usability,
 authentication, phone multitouch or GPU qualification. Client diagnostics and
 cleanup retain their existing limits. No new binary is required for this probe.

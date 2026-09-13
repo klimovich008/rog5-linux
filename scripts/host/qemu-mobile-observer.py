@@ -441,7 +441,11 @@ class AppSwitchObserver(MobileObserver):
         ('home', '00-home-ready'),
         ('click', (77, 752)),
         ('client', ('mousepad', '01-mousepad-launched')),
-        ('gesture', ((270, 1194), (270, 1150), (270, 1060), (270, 970), (270, 880))),
+        ('home_gesture', ((270, 1194), (270, 1150), (270, 1060), (270, 970), (270, 880))),
+        ('capture', '02-overview-or-home'),
+        # Observed exposed background, outside card/tile/gesture regions.
+        # Overview scrim calls closeOverview(), which clears foreground.
+        ('click', (25, 1080)),
         ('home', '02-home-returned'),
         ('click', (205, 592)),
         ('client', ('foot', '03-foot-launched')),
@@ -505,16 +509,19 @@ class AppSwitchObserver(MobileObserver):
             self.button(True)
             self.sleep(.08)
             self.button(False)
-        elif operation == 'gesture':
+        elif operation in ('gesture', 'home_gesture'):
+            spacing = .12 if operation == 'home_gesture' else .025
             self.move(*value[0])
             self.button(True)
             # Keep consecutive gesture samples inside the Flutter velocity
             # tracker's history. Ordinary 200ms host polling is too sparse.
             for point in value[1:]:
-                self.sleep(.025)
+                self.sleep(spacing)
                 self.move(*point)
-            self.sleep(.025)
+            self.sleep(spacing)
             self.button(False)
+        elif operation == 'capture':
+            self.capture(value)
         else:
             raise ValueError('unknown fixed application action')
         self.result['actions'].append({'operation': operation, 'value': value})

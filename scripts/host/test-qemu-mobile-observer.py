@@ -876,14 +876,15 @@ class AppSwitchObservation(unittest.TestCase):
             self.advance(observer, protocol)
         result = observer.finish()
         self.assertEqual(result['status'], 'PASS')
-        self.assertEqual(client.buttons, [True, False]*5)
+        self.assertEqual(client.buttons, [True, False]*6)
         self.assertTrue(client.closed)
         self.assertLess(len(client.records), 64)
-        self.assertEqual(sleeps.count(.08), 2)
-        self.assertEqual(sleeps.count(.025), 13)
-        gestures = [row['value'] for row in result['actions'] if row['operation'] == 'gesture']
+        self.assertEqual(sleeps.count(.08), 3)
+        self.assertEqual(sleeps.count(.025), 8)
+        self.assertEqual(sleeps.count(.12), 5)
+        gestures = [row['value'] for row in result['actions'] if row['operation'].endswith('gesture')]
         self.assertEqual(gestures[1:], [((270,1194),(315,1194),(365,1194),(415,1194))]*2)
-        self.assertEqual(len(result['screenshots']), 6)
+        self.assertEqual(len(result['screenshots']), 7)
         self.assertIn('NOT RUN', result['visual_semantics'])
         self.assertEqual(result['phone_touch'], 'NOT RUN')
 
@@ -920,19 +921,19 @@ class AppSwitchObservation(unittest.TestCase):
 
     def test_stale_focus_does_not_prove_switch(self):
         observer, client, protocol, _ = self.observer()
-        while observer.stage < 8:
+        while observer.stage < 10:
             self.advance(observer, protocol)
         protocol.app = 'mousepad'  # No new focus enter since last capture.
         observer.tick(observer.next_at, True)
-        self.assertEqual(observer.stage, 8)
+        self.assertEqual(observer.stage, 10)
         self.focus(protocol, 'mousepad')
-        while observer.stage == 8:
+        while observer.stage == 10:
             observer.tick(observer.next_at, True)
-        self.assertEqual(observer.stage, 9)
+        self.assertEqual(observer.stage, 11)
         self.assertEqual(observer.finish('interrupted')['status'], 'FAIL')
 
     def test_interruption_at_each_stage_is_failure_and_cleans_up(self):
-        for stop in range(12):
+        for stop in range(14):
             with self.subTest(stop=stop):
                 observer, client, protocol, _ = self.observer('stage-'+str(stop))
                 for _ in range(stop):
