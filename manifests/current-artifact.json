@@ -1445,6 +1445,30 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none"
+    },
+    "authenticated_editor": {
+      "status": "FAIL_VM_ONLY",
+      "set_id": "private:rog5-authenticated-editor-20260913-r1",
+      "source_commit": "42f6cfbffc999d7ef0c11c8d6be23b5d01194640",
+      "source_tree": "3457c13d2f090a5279ee2c1c3fecb3b3be90b71a",
+      "evidence": {
+        "path": "test-results/2026-09-13-authenticated-editor-qualification.json",
+        "sha256": "8ad3203f1d023a5b9bd1b0d9257758a2affb52929d1ca38fba09f10939aece5b",
+        "size": 131462
+      },
+      "milestones": {
+        "host_observer_regressions": "PASS",
+        "actual_bounded_protocol_transport": "PASS_VM_ONLY first run",
+        "filename_contract_counterexample": "confirmed; corrected source, host log replay only",
+        "corrected_authenticated_OSK": "NOT RUN final VM: blocked before apps",
+        "service_start": "FAIL_VM_ONLY status124",
+        "final_vm_poweroff": "PASS_VM_ONLY",
+        "first_vm_shutdown": "FAIL_VM_ONLY init SIGBUS panic",
+        "practical_text_visual_semantics": "NOT RUN",
+        "phone": "NOT RUN"
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none"
     }
   },
   "denial_phone_linkage": {

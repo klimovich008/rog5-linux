@@ -2939,3 +2939,21 @@ command stdout; the prior uninstrumented124 cannot identify its failed boundary.
 Do not infer reliable startup or increase limits from this one near-limit pass.
 The final integrated tier ran once after runtime discovery (146s); unchanged
 kernel/runtime/Denial artifacts were reused and no expensive rebuild was needed.
+
+When moving a qualified GUI oracle into a real user session, preserve its exact
+input contract. Mousepad abbreviates a home-directory file title as ~/...; the
+existing /tmp oracle correctly rejected that different title, so no input ran.
+Replay the real attributed protocol before changing readiness predicates. Using
+the established /tmp file fixes the source mismatch without widening admission.
+Also reuse the qualified absolute tablet device for QMP absolute-axis gestures.
+
+The new stage receipts isolate a real service-start124 at21s against20s. GTK
+portal consumed13.678s CPU over20.446s wall time; cache creation is plausible,
+not established. The retained system font cache is empty, RAM /var starts empty,
+679 font files are present and their directory mtime exceeds the fixed guest
+clock. Measure cache preparation/consumption before changing timing budgets.
+Preserve the earlier timeout's failed executable-view cleanup and init panic;
+a later normal poweroff does not erase it. Check shutdown evidence even when an
+optional UI observation fails. New tests still need both manifest and public
+shell-selector registration until that explicit migration is complete; the
+consistency preflight caught this omission before any test body ran.
