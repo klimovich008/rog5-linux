@@ -1265,5 +1265,21 @@
         "render_errors": []
       }
     }
+  },
+  "denial_phone_linkage": {
+    "status": "PASS_LINKAGE_ONLY",
+    "set_id": "private:rog5-denial-phone-linkage-20260913-r1",
+    "source_commit": "8b6928778963ac5bdf8264f7b61f68268cfa8262",
+    "source_tree": "b97e7b0538dfab605fe900b970e096468d0ba8f4",
+    "evidence": {
+      "path": "test-results/2026-09-13-denial-phone-linkage-qualification.json",
+      "sha256": "1ca80316101b6cb97d0081787ee6fe4a9f4c142d3115701a4828356095e52900",
+      "size": 84888
+    },
+    "physical_status": "NOT RUN",
+    "authority": "none; offline fixture",
+    "current_candidate": null,
+    "compatible_with_frozen_trial_modules": false,
+    "note": "12 ARM64 loader checks passed; exact current userspace bytes retained. Corrected kernel/modules are a different cohort from the frozen phone trial. No Adreno initialization or phone execution."
   }
 }

@@ -2733,3 +2733,8 @@ removing explicit dlclose must fail that test. Keep libraries in separate loader
 probe processes so one probe's global state cannot mask another's dependencies.
 Generic VirGL evidence does not exercise the retained MSM DRI/Freedreno paths;
 load those exact package files offline before preparing a phone userspace binding.
+
+Register a new mandatory test in both selector and declarative manifest before
+freezing the integrated run. The linkage suite passed alone but its missing
+registration required another134-second active run. Check selected paths first;
+focused success alone does not establish CI coverage.

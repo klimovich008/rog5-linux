@@ -1,0 +1,2213 @@
+{
+  "schema": 1,
+  "status": "PASS_LINKAGE_ONLY",
+  "scope": "Offline ARM64 dynamic loader and retained kernel/firmware identities; no graphics initialization",
+  "starting": {
+    "starting_commit": "dc92882cec77a065b14bd9d9f262a8baf718efd6",
+    "previous_turn": "progress",
+    "source": {
+      "commit": "8b6928778963ac5bdf8264f7b61f68268cfa8262",
+      "tree": "b97e7b0538dfab605fe900b970e096468d0ba8f4"
+    },
+    "no_phone_operations": true
+  },
+  "final_source": {
+    "commit": "1e1dac85021ddbc2bb3025eaa0859df829347dd9",
+    "tree": "76b2b56a04424104a836fe2b549956a0fe9ce466"
+  },
+  "build": {
+    "source": {
+      "commit": "8b6928778963ac5bdf8264f7b61f68268cfa8262",
+      "tree": "b97e7b0538dfab605fe900b970e096468d0ba8f4"
+    },
+    "command": [
+      "podman",
+      "run",
+      "--name",
+      "rog5-linkage-probe-build-r1",
+      "--rm",
+      "--read-only",
+      "--read-only-tmpfs=false",
+      "--network=none",
+      "--memory=512m",
+      "--memory-swap=512m",
+      "--cpus=1",
+      "--pids-limit=64",
+      "--timeout=60",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/denial-runtime-linkage:/source:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1:/work:rw",
+      "-e",
+      "TMPDIR=/work/tmp",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "/opt/denial-rust/bin/rustc",
+      "--edition=2024",
+      "-Dwarnings",
+      "-C",
+      "opt-level=2",
+      "--target=aarch64-unknown-linux-gnu",
+      "-C",
+      "linker=/usr/bin/aarch64-linux-gnu-gcc",
+      "/source/probe.rs",
+      "-o",
+      "/work/linkage-probe"
+    ],
+    "exit_status": 0,
+    "seconds": 1.1059869139862712,
+    "source_file": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/denial-runtime-linkage/probe.rs",
+      "sha256": "de030c273ad65eada6f1d3fb9f4dc35ae06c6eba561a0759ce8e8691e554f142",
+      "size": 6212
+    },
+    "container_removed": true,
+    "output": {
+      "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+      "sha256": "00fd1f7eca8629eb8c69d6a5b2b434321da0f6527afb8806c8a8d2aca0f7fa49",
+      "size": 4655144
+    }
+  },
+  "audit_execution": {
+    "source": {
+      "commit": "8b6928778963ac5bdf8264f7b61f68268cfa8262",
+      "tree": "b97e7b0538dfab605fe900b970e096468d0ba8f4"
+    },
+    "command": [
+      "python3",
+      "-O",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/check-denial-runtime-linkage.py",
+      "--root",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "--tree",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+      "--tree-sha256",
+      "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+      "--bundle",
+      "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+      "--native",
+      "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+      "--probe",
+      "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+      "--output",
+      "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1"
+    ],
+    "exit_status": 0,
+    "seconds": 3.397578825999517
+  },
+  "audit": {
+    "status": "PASS_LINKAGE_ONLY",
+    "scope": "Audit actual ARM64 loader closure inside a read-only, device-free runtime root.",
+    "authority": "none",
+    "phone": "NOT RUN",
+    "graphics_initialization": "NOT RUN",
+    "runs": [
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-00",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "--list",
+          "/tmp/deniald"
+        ],
+        "unit": "rog5-linkage-03a68def636c-00",
+        "exit_status": 0,
+        "seconds": 0.08115220000036061,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/00.log",
+          "sha256": "98d6382bec6c6ed0ee8e1efde8a82421db6f5c5ef506ed1aec87df689fbbef82",
+          "size": 1379
+        },
+        "kind": "executable",
+        "target": "/tmp/deniald",
+        "status": "PASS",
+        "loaded_objects": [
+          "/usr/lib/libgbm.so.1",
+          "/usr/lib/libseat.so.1",
+          "/usr/lib/libudev.so.1",
+          "/usr/lib/libinput.so.10",
+          "/usr/lib/libxkbcommon.so.0",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libm.so.6",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libdrm.so.2",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libsystemd.so.0",
+          "/usr/lib/libmtdev.so.1",
+          "/usr/lib/libevdev.so.2",
+          "/usr/lib/libwacom.so.9",
+          "/usr/lib/liblua5.4.so.5.4",
+          "/usr/lib/libgudev-1.0.so.0",
+          "/usr/lib/libgobject-2.0.so.0",
+          "/usr/lib/libglib-2.0.so.0",
+          "/usr/lib/libffi.so.8",
+          "/usr/lib/libpcre2-8.so.0"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-01",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "--list",
+          "/usr/bin/foot"
+        ],
+        "unit": "rog5-linkage-03a68def636c-01",
+        "exit_status": 0,
+        "seconds": 0.08119146001990885,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/01.log",
+          "sha256": "b50f4e73cfb09194bb0e27cd4be755ca5229b854508c767dd2d526621860445b",
+          "size": 1513
+        },
+        "kind": "executable",
+        "target": "/usr/bin/foot",
+        "status": "PASS",
+        "loaded_objects": [
+          "/usr/lib/libm.so.6",
+          "/usr/lib/libpixman-1.so.0",
+          "/usr/lib/libwayland-client.so.0",
+          "/usr/lib/libwayland-cursor.so.0",
+          "/usr/lib/libxkbcommon.so.0",
+          "/usr/lib/libfontconfig.so.1",
+          "/usr/lib/libutf8proc.so.3",
+          "/usr/lib/libfcft.so.4",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libffi.so.8",
+          "/usr/lib/libfreetype.so.6",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libharfbuzz.so.0",
+          "/usr/lib/libz.so.1",
+          "/usr/lib/libbz2.so.1.0",
+          "/usr/lib/libpng16.so.16",
+          "/usr/lib/libbrotlidec.so.1",
+          "/usr/lib/libglib-2.0.so.0",
+          "/usr/lib/libgraphite2.so.3",
+          "/usr/lib/libbrotlicommon.so.1",
+          "/usr/lib/libpcre2-8.so.0"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-02",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "--list",
+          "/usr/bin/mousepad"
+        ],
+        "unit": "rog5-linkage-03a68def636c-02",
+        "exit_status": 0,
+        "seconds": 0.10121418201015331,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/02.log",
+          "sha256": "458b7565cd9aa5a9f7b713833efd7d1569e0c64d3a2ad64cbf2a682a191d76f7",
+          "size": 4883
+        },
+        "kind": "executable",
+        "target": "/usr/bin/mousepad",
+        "status": "PASS",
+        "loaded_objects": [
+          "/usr/lib/libmousepad.so.0",
+          "/usr/lib/libgio-2.0.so.0",
+          "/usr/lib/libgobject-2.0.so.0",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libglib-2.0.so.0",
+          "/usr/lib/libgmodule-2.0.so.0",
+          "/usr/lib/libgtk-3.so.0",
+          "/usr/lib/libgdk-3.so.0",
+          "/usr/lib/libpango-1.0.so.0",
+          "/usr/lib/libgtksourceview-4.so.0",
+          "/usr/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libz.so.1",
+          "/usr/lib/libmount.so.1",
+          "/usr/lib/libffi.so.8",
+          "/usr/lib/libpcre2-8.so.0",
+          "/usr/lib/libpangocairo-1.0.so.0",
+          "/usr/lib/libcairo.so.2",
+          "/usr/lib/libharfbuzz.so.0",
+          "/usr/lib/libpangoft2-1.0.so.0",
+          "/usr/lib/libfontconfig.so.1",
+          "/usr/lib/libfribidi.so.0",
+          "/usr/lib/libcairo-gobject.so.2",
+          "/usr/lib/libgdk_pixbuf-2.0.so.0",
+          "/usr/lib/libatk-1.0.so.0",
+          "/usr/lib/libepoxy.so.0",
+          "/usr/lib/libm.so.6",
+          "/usr/lib/libXi.so.6",
+          "/usr/lib/libX11.so.6",
+          "/usr/lib/libatk-bridge-2.0.so.0",
+          "/usr/lib/libcloudproviders.so.0",
+          "/usr/lib/libtinysparql-3.0.so.0",
+          "/usr/lib/libXfixes.so.3",
+          "/usr/lib/libxkbcommon.so.0",
+          "/usr/lib/libwayland-client.so.0",
+          "/usr/lib/libwayland-cursor.so.0",
+          "/usr/lib/libwayland-egl.so.1",
+          "/usr/lib/libXext.so.6",
+          "/usr/lib/libXcursor.so.1",
+          "/usr/lib/libXdamage.so.1",
+          "/usr/lib/libXcomposite.so.1",
+          "/usr/lib/libXrandr.so.2",
+          "/usr/lib/libXinerama.so.1",
+          "/usr/lib/libthai.so.0",
+          "/usr/lib/libxml2.so.16",
+          "/usr/lib/libblkid.so.1",
+          "/usr/lib/libsystemd.so.0",
+          "/usr/lib/libpng16.so.16",
+          "/usr/lib/libfreetype.so.6",
+          "/usr/lib/libXrender.so.1",
+          "/usr/lib/libxcb.so.1",
+          "/usr/lib/libxcb-render.so.0",
+          "/usr/lib/libxcb-shm.so.0",
+          "/usr/lib/libpixman-1.so.0",
+          "/usr/lib/libgraphite2.so.3",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libglycin-2.so.0",
+          "/usr/lib/libatspi.so.0",
+          "/usr/lib/libdbus-1.so.3",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libjson-glib-1.0.so.0",
+          "/usr/lib/libsqlite3.so.0",
+          "/usr/lib/libdatrie.so.1",
+          "/usr/lib/libicuuc.so.78",
+          "/usr/lib/libbz2.so.1.0",
+          "/usr/lib/libbrotlidec.so.1",
+          "/usr/lib/libXau.so.6",
+          "/usr/lib/libXdmcp.so.6",
+          "/usr/lib/liblcms2.so.2",
+          "/usr/lib/libseccomp.so.2",
+          "/usr/lib/libicudata.so.78",
+          "/usr/lib/libstdc++.so.6",
+          "/usr/lib/libbrotlicommon.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-03",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/tmp/flutter/lib/libflutter_engine.so",
+          "FlutterEngineGetProcAddresses",
+          "FlutterEngineRunsAOTCompiledDartCode",
+          "DenialFlutterEngineSetRenderWorkCallbacks",
+          "DenialFlutterEngineRenderOutputsWithWork"
+        ],
+        "unit": "rog5-linkage-03a68def636c-03",
+        "exit_status": 0,
+        "seconds": 0.14161103998776525,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/03.log",
+          "sha256": "d3d9bcd58795019f69fb25bfe978f2bce7e58afaa668a0c423089839fcc46d7e",
+          "size": 748
+        },
+        "kind": "library",
+        "target": "/tmp/flutter/lib/libflutter_engine.so",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/tmp/flutter/lib/libflutter_engine.so",
+          "/usr/lib/libbrotlicommon.so.1",
+          "/usr/lib/libbrotlidec.so.1",
+          "/usr/lib/libbz2.so.1.0",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libdl.so.2",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libfontconfig.so.1",
+          "/usr/lib/libfreetype.so.6",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libm.so.6",
+          "/usr/lib/libpng16.so.16",
+          "/usr/lib/libpthread.so.0",
+          "/usr/lib/libz.so.1",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-04",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/tmp/flutter/lib/libapp.so",
+          "_kDartVmSnapshotData",
+          "_kDartVmSnapshotInstructions",
+          "_kDartIsolateSnapshotData",
+          "_kDartIsolateSnapshotInstructions"
+        ],
+        "unit": "rog5-linkage-03a68def636c-04",
+        "exit_status": 0,
+        "seconds": 0.10122954301186837,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/04.log",
+          "sha256": "43f962ad3ed3a2ad64ba91769866b25dc1a74d12667271a72336a7e34706fe90",
+          "size": 345
+        },
+        "kind": "library",
+        "target": "/tmp/flutter/lib/libapp.so",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/tmp/flutter/lib/libapp.so",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libgcc_s.so.1",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-05",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/usr/lib/libEGL.so.1",
+          "eglGetDisplay",
+          "eglGetProcAddress"
+        ],
+        "unit": "rog5-linkage-03a68def636c-05",
+        "exit_status": 0,
+        "seconds": 0.10125412300112657,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/05.log",
+          "sha256": "6bb8ad74b1bd26c6133cc96fc4a6988e1e92b6fdb958b83c0d3e8a2a42682297",
+          "size": 276
+        },
+        "kind": "library",
+        "target": "/usr/lib/libEGL.so.1",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libEGL.so.1",
+          "/usr/lib/libGLdispatch.so.0",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libgcc_s.so.1",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-06",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/usr/lib/libEGL_mesa.so.0",
+          "__egl_Main"
+        ],
+        "unit": "rog5-linkage-03a68def636c-06",
+        "exit_status": 0,
+        "seconds": 0.6249508080072701,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/06.log",
+          "sha256": "5bf138baee3cf1f8d825ddac159643c43a0dd26fb77165d2a373d7f959e10333",
+          "size": 1301
+        },
+        "kind": "library",
+        "target": "/usr/lib/libEGL_mesa.so.0",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libEGL_mesa.so.0",
+          "/usr/lib/libLLVM.so.22.1",
+          "/usr/lib/libSPIRV-Tools.so",
+          "/usr/lib/libX11-xcb.so.1",
+          "/usr/lib/libX11.so.6",
+          "/usr/lib/libXau.so.6",
+          "/usr/lib/libXdmcp.so.6",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libdrm.so.2",
+          "/usr/lib/libdrm_amdgpu.so.1",
+          "/usr/lib/libdrm_intel.so.1",
+          "/usr/lib/libedit.so.0",
+          "/usr/lib/libelf.so.1",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libffi.so.8",
+          "/usr/lib/libgallium-26.2.2-arch1.1.so",
+          "/usr/lib/libgbm.so.1",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libicudata.so.78",
+          "/usr/lib/libicuuc.so.78",
+          "/usr/lib/libm.so.6",
+          "/usr/lib/libncursesw.so.6",
+          "/usr/lib/libpciaccess.so.0",
+          "/usr/lib/libsensors.so.5",
+          "/usr/lib/libstdc++.so.6",
+          "/usr/lib/libwayland-client.so.0",
+          "/usr/lib/libxcb-dri3.so.0",
+          "/usr/lib/libxcb-present.so.0",
+          "/usr/lib/libxcb-randr.so.0",
+          "/usr/lib/libxcb-shm.so.0",
+          "/usr/lib/libxcb-sync.so.1",
+          "/usr/lib/libxcb-xfixes.so.0",
+          "/usr/lib/libxcb.so.1",
+          "/usr/lib/libxml2.so.16",
+          "/usr/lib/libxshmfence.so.1",
+          "/usr/lib/libz.so.1",
+          "/usr/lib/libzstd.so.1",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-07",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/usr/lib/libGLESv2.so.2",
+          "glGetString",
+          "glCheckFramebufferStatus"
+        ],
+        "unit": "rog5-linkage-03a68def636c-07",
+        "exit_status": 0,
+        "seconds": 0.08107702899724245,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/07.log",
+          "sha256": "dc2068520e2aa20caa5f9116ed6487bb8f550617ff26f0173281ec4e0527af79",
+          "size": 287
+        },
+        "kind": "library",
+        "target": "/usr/lib/libGLESv2.so.2",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libGLESv2.so.2",
+          "/usr/lib/libGLdispatch.so.0",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libgcc_s.so.1",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-08",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/usr/lib/libgbm.so.1",
+          "gbm_create_device",
+          "gbm_bo_create_with_modifiers2"
+        ],
+        "unit": "rog5-linkage-03a68def636c-08",
+        "exit_status": 0,
+        "seconds": 0.08112340001389384,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/08.log",
+          "sha256": "694b7e548a0ffe29916d0aaecfa1b97a2ae05ec5bf2d4f662ff2cabc9afcae1e",
+          "size": 341
+        },
+        "kind": "library",
+        "target": "/usr/lib/libgbm.so.1",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libdrm.so.2",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libgbm.so.1",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libm.so.6",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-09",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/usr/lib/gbm/dri_gbm.so",
+          "gbmint_get_backend"
+        ],
+        "unit": "rog5-linkage-03a68def636c-09",
+        "exit_status": 0,
+        "seconds": 0.5242401730210986,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/09.log",
+          "sha256": "aeede3d57a25152e9ffef7b472bcfcb653d09fa82242295c80e2cf7b39117dcb",
+          "size": 1178
+        },
+        "kind": "library",
+        "target": "/usr/lib/gbm/dri_gbm.so",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/gbm/dri_gbm.so",
+          "/usr/lib/libLLVM.so.22.1",
+          "/usr/lib/libSPIRV-Tools.so",
+          "/usr/lib/libX11-xcb.so.1",
+          "/usr/lib/libXau.so.6",
+          "/usr/lib/libXdmcp.so.6",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libdrm.so.2",
+          "/usr/lib/libdrm_amdgpu.so.1",
+          "/usr/lib/libdrm_intel.so.1",
+          "/usr/lib/libedit.so.0",
+          "/usr/lib/libelf.so.1",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libffi.so.8",
+          "/usr/lib/libgallium-26.2.2-arch1.1.so",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libicudata.so.78",
+          "/usr/lib/libicuuc.so.78",
+          "/usr/lib/libm.so.6",
+          "/usr/lib/libncursesw.so.6",
+          "/usr/lib/libpciaccess.so.0",
+          "/usr/lib/libsensors.so.5",
+          "/usr/lib/libstdc++.so.6",
+          "/usr/lib/libxcb-dri3.so.0",
+          "/usr/lib/libxcb-present.so.0",
+          "/usr/lib/libxcb-randr.so.0",
+          "/usr/lib/libxcb-sync.so.1",
+          "/usr/lib/libxcb-xfixes.so.0",
+          "/usr/lib/libxcb.so.1",
+          "/usr/lib/libxml2.so.16",
+          "/usr/lib/libxshmfence.so.1",
+          "/usr/lib/libz.so.1",
+          "/usr/lib/libzstd.so.1",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-10",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/usr/lib/dri/msm_dri.so",
+          "__driDriverGetExtensions_msm"
+        ],
+        "unit": "rog5-linkage-03a68def636c-10",
+        "exit_status": 0,
+        "seconds": 0.08116006999625824,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/10.log",
+          "sha256": "41edeb955c7266e729a93c2f7265334a00f3c2675d1279f0eb828fa8ac213ccf",
+          "size": 349
+        },
+        "kind": "library",
+        "target": "/usr/lib/dri/msm_dri.so",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/dri/msm_dri.so",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libdrm.so.2",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libgbm.so.1",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libm.so.6",
+          "linux-vdso.so.1"
+        ]
+      },
+      {
+        "command": [
+          "systemd-run",
+          "--unit=rog5-linkage-03a68def636c-11",
+          "--user",
+          "--quiet",
+          "--wait",
+          "--pipe",
+          "--collect",
+          "-p",
+          "MemoryMax=512M",
+          "-p",
+          "MemorySwapMax=0",
+          "-p",
+          "TasksMax=64",
+          "-p",
+          "CPUQuota=100%",
+          "-p",
+          "RuntimeMaxSec=35s",
+          "bwrap",
+          "--unshare-all",
+          "--die-with-parent",
+          "--cap-drop",
+          "ALL",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "/",
+          "--dev",
+          "/dev",
+          "--proc",
+          "/proc",
+          "--tmpfs",
+          "/tmp",
+          "--ro-bind",
+          "/usr/bin/qemu-aarch64-static",
+          "/tmp/qemu",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+          "/tmp/deniald",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+          "/tmp/linkage-probe",
+          "--ro-bind",
+          "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+          "/tmp/flutter",
+          "--clearenv",
+          "--setenv",
+          "HOME",
+          "/tmp",
+          "--setenv",
+          "LC_ALL",
+          "C",
+          "--setenv",
+          "LD_BIND_NOW",
+          "1",
+          "--setenv",
+          "LD_LIBRARY_PATH",
+          "/tmp/flutter/lib:/usr/lib",
+          "--",
+          "/tmp/qemu",
+          "/tmp/linkage-probe",
+          "/usr/lib/libvulkan_freedreno.so",
+          "vk_icdGetInstanceProcAddr",
+          "vk_icdNegotiateLoaderICDInterfaceVersion"
+        ],
+        "unit": "rog5-linkage-03a68def636c-11",
+        "exit_status": 0,
+        "seconds": 0.12136708499747328,
+        "log": {
+          "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/audit-r1/11.log",
+          "sha256": "7aa4c1538c43092b89b1da51c2f00b7b15c6c759d8b6dc18175fe19782314e3e",
+          "size": 1026
+        },
+        "kind": "library",
+        "target": "/usr/lib/libvulkan_freedreno.so",
+        "status": "PASS",
+        "loaded_objects": [
+          "/lib/ld-linux-aarch64.so.1",
+          "/usr/lib/libSPIRV-Tools.so",
+          "/usr/lib/libX11-xcb.so.1",
+          "/usr/lib/libXau.so.6",
+          "/usr/lib/libXdmcp.so.6",
+          "/usr/lib/libc.so.6",
+          "/usr/lib/libdisplay-info.so.3",
+          "/usr/lib/libdrm.so.2",
+          "/usr/lib/libexpat.so.1",
+          "/usr/lib/libffi.so.8",
+          "/usr/lib/libgcc_s.so.1",
+          "/usr/lib/libm.so.6",
+          "/usr/lib/libstdc++.so.6",
+          "/usr/lib/libudev.so.1",
+          "/usr/lib/libvulkan_freedreno.so",
+          "/usr/lib/libwayland-client.so.0",
+          "/usr/lib/libxcb-dri3.so.0",
+          "/usr/lib/libxcb-keysyms.so.1",
+          "/usr/lib/libxcb-present.so.0",
+          "/usr/lib/libxcb-randr.so.0",
+          "/usr/lib/libxcb-shm.so.0",
+          "/usr/lib/libxcb-sync.so.1",
+          "/usr/lib/libxcb-xfixes.so.0",
+          "/usr/lib/libxcb.so.1",
+          "/usr/lib/libxshmfence.so.1",
+          "/usr/lib/libz.so.1",
+          "/usr/lib/libzstd.so.1",
+          "linux-vdso.so.1"
+        ]
+      }
+    ],
+    "profile": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/configs/denial/mobile-runtime-linkage.json",
+      "sha256": "5e808bd67807766cbd32fd1d495d2a553cd8d84f57c89a7c09a387941d26b277",
+      "size": 1522
+    },
+    "tree": {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+      "sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+      "size": 10419681
+    },
+    "inputs": {
+      "/tmp/deniald": {
+        "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+        "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+        "size": 15990872
+      },
+      "/tmp/linkage-probe": {
+        "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/linkage-probe",
+        "sha256": "00fd1f7eca8629eb8c69d6a5b2b434321da0f6527afb8806c8a8d2aca0f7fa49",
+        "size": 4655144
+      },
+      "/tmp/flutter/lib/libflutter_engine.so": {
+        "path": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libflutter_engine.so",
+        "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+        "size": 15999928
+      },
+      "/tmp/flutter/lib/libapp.so": {
+        "path": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture/lib/libapp.so",
+        "sha256": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+        "size": 10814352
+      }
+    },
+    "root": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "bundle": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/runtime-fixture",
+    "tools": {
+      "bwrap": {
+        "path": "/usr/bin/bwrap",
+        "sha256": "11e350f9154f8c8e30482fb087f4c3d033907452b7a5d82d027b6662d07f3ab6",
+        "size": 84424
+      },
+      "qemu-aarch64-static": {
+        "path": "/usr/bin/qemu-aarch64-static",
+        "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+        "size": 6348264
+      },
+      "systemd-run": {
+        "path": "/usr/bin/systemd-run",
+        "sha256": "f847163235e8489616888e350d8221a5846da47937d0ecac24802a3c810d0787",
+        "size": 84600
+      }
+    },
+    "driver_descriptors": [
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+        "sha256": "cd3881df4227c13ca7f9cfe6c78820f21d5f7a00a41b299214f6f827e63be369",
+        "size": 105
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/share/vulkan/icd.d/freedreno_icd.json",
+        "sha256": "169a5497ae2d8ca597d6e4120a7d85d6656703092b6e43146dd87ebdfcecd7e9",
+        "size": 141
+      }
+    ],
+    "runtime_files": [
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/ld-linux-aarch64.so.1",
+        "sha256": "b1f2738bdb51e6419d7062f96c8a44bd68853698dc5ac624fa6ca9f9b03d456d",
+        "size": 201832
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+        "sha256": "cd3881df4227c13ca7f9cfe6c78820f21d5f7a00a41b299214f6f827e63be369",
+        "size": 105
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/share/vulkan/icd.d/freedreno_icd.json",
+        "sha256": "169a5497ae2d8ca597d6e4120a7d85d6656703092b6e43146dd87ebdfcecd7e9",
+        "size": 141
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgbm.so.1.0.0",
+        "sha256": "e28a74e111cf6f9e2c0f5e1aa3edb0c431dfe088a24cd37da4a0f974eaa42dd1",
+        "size": 67616
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libseat.so.1",
+        "sha256": "068be394b87b65bf7a5dea79d39380c06faa6427386765cd9b85c79aa6cd35ce",
+        "size": 67608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libudev.so.1.7.14",
+        "sha256": "e039f972740ed58243c13e29be0675a7f51f457a5a91d6b726eb7044f22be3e7",
+        "size": 1906072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libinput.so.10.13.0",
+        "sha256": "9b94a6364a10e92f27bc82b7bfe9cae7cf8daa346c8fcc4bfe8c2b4ca11d388c",
+        "size": 528304
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxkbcommon.so.0.13.2",
+        "sha256": "f9637f999ea874ddab721f7e9bd37e321b0888739b9b325b2962955cd6ab5dd1",
+        "size": 395432
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgcc_s.so.1",
+        "sha256": "ac598673a4bf67c0295b6609e46b1fafd0d4adf3f80a513d61ac49ecff772e48",
+        "size": 133352
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libm.so.6",
+        "sha256": "71ed8de709c40acd4fd0177258fc71251a5acdb1d075122409ad42529d6c7a4e",
+        "size": 788960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libc.so.6",
+        "sha256": "6ab264fb4e8df9942b0fb75b48fcd5c30b2f081d8dfaa6c25d7be1d3fce5b2ab",
+        "size": 1853736
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdrm.so.2.134.0",
+        "sha256": "cd771d2c85a933b66874255b66edbf845b00519262b12d5994930ade3a56b48d",
+        "size": 133216
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libexpat.so.1.12.4",
+        "sha256": "58e5e6ebdcc2ae387debfeae2556748fac678ecc4a59deaf71ab695ab29ace94",
+        "size": 198640
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libsystemd.so.0.44.0",
+        "sha256": "72d678a063f9388b8b839fb0a71942e9582ab37a6b7ba5cd1045e64871696483",
+        "size": 2498712
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libmtdev.so.1.0.0",
+        "sha256": "986bdd80e455efac1ea418bbd3417951c263557d2889c940cfcd79adbc35cd22",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libevdev.so.2.3.0",
+        "sha256": "586e0b48c63e0c3c267fd19e49d9c6a3967f816f06822b9d6e55e07bd26d5620",
+        "size": 133216
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwacom.so.9.0.0",
+        "sha256": "2b2f0f3091697212c93c3a0b3678c036fef5e7bbdf7cd996829e6e33c0c07c66",
+        "size": 133272
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/liblua5.4.so.5.4.9",
+        "sha256": "6956ce4cfe711a916e12f2058e5ce1435dde7ed1ff952283e545e4a7494408aa",
+        "size": 329712
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgudev-1.0.so.0.3.0",
+        "sha256": "508f61dbbc432010500e7a4ca49ffa4b834a72e74c92f0d26229944629ba1cd3",
+        "size": 67544
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgobject-2.0.so.0.8800.3",
+        "sha256": "db2f18d8fd70549cfb99a4c53499b29154c42a4ee4746549ba594a4abf8d809f",
+        "size": 462680
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libglib-2.0.so.0.8800.3",
+        "sha256": "a94149b7c410bd66bc71491fe68fcade5bf736108ffca9fd1af23cf76eab37b7",
+        "size": 1576520
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libffi.so.8.5.0",
+        "sha256": "8be7610cc71df6b52d7ae8ad50ffd32fedbe47a64184efdb321c6789f84d1605",
+        "size": 67720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpcre2-8.so.0.16.0",
+        "sha256": "9743c89f9b3b7b4aa28049880086ebe85936d7259f87cf82fe52d60dd0f56650",
+        "size": 657720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/foot",
+        "sha256": "be6ded4faadf7c60da70c73c27830fa5b12b62e35f4a16550d2c845a5b88a169",
+        "size": 593760
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpixman-1.so.0.46.4",
+        "sha256": "5a10532bc2d6ab50fd022f0d09f9b53f2d1e7587aaeea7afd2696874dc4f404a",
+        "size": 657376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwayland-client.so.0.26.0",
+        "sha256": "ccae8b4a09ec07ce893cf276697bab766d7e406efe4c42e0149680c755b96437",
+        "size": 133952
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwayland-cursor.so.0.26.0",
+        "sha256": "d172c3875c6c385870a110703934ea080bdd472e8959117c44a33c2e53ed50e1",
+        "size": 80368
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfontconfig.so.1.17.0",
+        "sha256": "8a749c8c9d3dce3a83752bc304d257ac1895c0d2637c6f1ae54afb70906ab34b",
+        "size": 526328
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libutf8proc.so.3.2.3",
+        "sha256": "4f5857b51c129ba640d0207ccab97e691b6bef128b5d7984f8f35e1b5b744141",
+        "size": 395056
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfcft.so.4.3.3",
+        "sha256": "084e62898fa3aabef877dc56750716003efe2a55d26805bd820660927f47185a",
+        "size": 135304
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfreetype.so.6.20.6",
+        "sha256": "d66b8ccd73e4852f4c084fb35dd95d7374de2b06fba837f51b3efed6d34c0a72",
+        "size": 854248
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libharfbuzz.so.0.61440.0",
+        "sha256": "c7d1059ae2c670f798d276428968670d1ce872189dc75fd1027ed43ba78ceb78",
+        "size": 1445984
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libz.so.1.3.2",
+        "sha256": "f8d5729601ca8fb86a8d9d048eff241a0e349342da7a5cea11389d0e33ed0a43",
+        "size": 133128
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libbz2.so.1.0.8",
+        "sha256": "973f0f527699d7eda3dc15cbc8b236d0c1d877492c4e471b94b15cb51190684a",
+        "size": 70504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpng16.so.16.58.0",
+        "sha256": "5625ab5cb931571d68b18efd452c0a9c9adb97412becdd9eabe6f45be59b82b8",
+        "size": 264256
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libbrotlidec.so.1.2.0",
+        "sha256": "393cd16c4a9b5fc17961c8ac1f4bc5c7b0f3fe5b587bbbddd81f78a14b50462d",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgraphite2.so.3.3.1",
+        "sha256": "91a4f216f03d906d6417a1166c0e4d1bf8557848f7880d284e9f3eea84d920ff",
+        "size": 198640
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libbrotlicommon.so.1.2.0",
+        "sha256": "93d374c121f516fe27c7f52f1ac75443bfc221979999cf931ac4145f51d03424",
+        "size": 198528
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/bin/mousepad",
+        "sha256": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab",
+        "size": 67656
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libmousepad.so.0.0.0",
+        "sha256": "c662f1ab71b8318a07ed975d469c945fb75bd900158772dc3e7409b13c4dce3e",
+        "size": 527488
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgio-2.0.so.0.8800.3",
+        "sha256": "33d25537d9c5ef347a9b79e95e8fd1ef6de768396d24ab9c6f114cb5acbb1a54",
+        "size": 2428456
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgmodule-2.0.so.0.8800.3",
+        "sha256": "f6ec1950608783871653ba2476796b3de46433e1f7bb14c72fcd7eaa238f6140",
+        "size": 67536
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgtk-3.so.0.2420.32",
+        "sha256": "0baabc9210f3cbc007715fdd3bd69c26eac383ab16427182c094d7337db6d418",
+        "size": 8466632
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgdk-3.so.0.2420.32",
+        "sha256": "8aab3455ab4a7cc2c1dbe287be35aaf780943ac98805c85fd777be79563702de",
+        "size": 1186072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpango-1.0.so.0.5800.2",
+        "sha256": "a50a3c4e0eae528da8e0584bad64f4e4941d9d511eac801ea42b4a32cd5e0e29",
+        "size": 527960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgtksourceview-4.so.0.0.0",
+        "sha256": "c13cc2add6782febb0fd7ac61c4f678c095114dd9963f8bd61b41af611d456bf",
+        "size": 723056
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libmount.so.1.1.0",
+        "sha256": "cbb3219202f5ccc81ab892bc24b0bffc6c3d052e48e0d595d88fd4c1df7763b6",
+        "size": 526976
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpangocairo-1.0.so.0.5800.2",
+        "sha256": "96302baa4edc4972f8b0452ebe479a6a265901aafc8f06642c76ff54f728d8f8",
+        "size": 67608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libcairo.so.2.11804.4",
+        "sha256": "e177503dd5ce3d1c514bb64b6cc906c529f2344f6b07b5dd37dc0f1ae7e0a15e",
+        "size": 1317392
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpangoft2-1.0.so.0.5800.2",
+        "sha256": "7ebb5140f4afd32d852867b019caefb5ea03d58b1f1e554ac090cdce1006b335",
+        "size": 133040
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libfribidi.so.0.4.0",
+        "sha256": "55b23cbaad2fc61e03de59e6a9da06aec30ca24b8c6a2e51c7968cec7bbd869a",
+        "size": 133072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libcairo-gobject.so.2.11804.4",
+        "sha256": "c177034db0a79f0096aba5e9d8bd4e90030425024c307d5d7c7d0b6c8e665198",
+        "size": 67304
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgdk_pixbuf-2.0.so.0.4400.6",
+        "sha256": "0720a84038d25e38c5eea6e7f261cd465f3c188a3a13ad2b44e4df293a75d072",
+        "size": 265264
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libatk-1.0.so.0.26015.1",
+        "sha256": "d2ec588d350853666d8dafab949e4ff346bea0d731e6d39bee06f166c480c956",
+        "size": 198720
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libepoxy.so.0.0.0",
+        "sha256": "3e96fcda5f5843be7fcca2ba5aeac6fa09d73429a23baabf02d45af7b2d21ebc",
+        "size": 1406504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXi.so.6.1.0",
+        "sha256": "709397ff25e8c0385395e0d6df4f093ce32353862441db9fde9ab3192283c28e",
+        "size": 133192
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libX11.so.6.4.0",
+        "sha256": "47bbfc7dc44b2f7408250ad51fecf0fe9a65480d6aa3716d7b5bf6e910253212",
+        "size": 1389856
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libatk-bridge-2.0.so.0.0.0",
+        "sha256": "cf2ef64beb4826f31d52ec984736bf9edc1022fb8f522c83ebb06eb54366259f",
+        "size": 268496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libcloudproviders.so.0.4.1",
+        "sha256": "5dae7d09701f1c6d1e39ade7a9d1bde81b216dc737cb3d1e2f87662028d57d39",
+        "size": 133192
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libtinysparql-3.0.so.0.1101.0",
+        "sha256": "e09eea649e3868c96f133bd65f3d83cd1454cf5a6525897073af92b53e632946",
+        "size": 986480
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXfixes.so.3.1.0",
+        "sha256": "9df0e400823971f414abef56897aff6444926a88bb30222029c2c4fec9ee6afa",
+        "size": 67384
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libwayland-egl.so.1.26.0",
+        "sha256": "40f8c72ba7675193d014946dcee8da6f33b904667c22e1fefe8ca3cfc0d3dc4f",
+        "size": 67424
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXext.so.6.4.0",
+        "sha256": "5cf185138a80b6f1dcec100ee0b777b469beec699d10b284a53b9febcdd2bbb6",
+        "size": 134160
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXcursor.so.1.0.2",
+        "sha256": "1ce887ea4c05c75818e7cc24968c867b2191624223c8f3358b5bfa2ce48d72a6",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXdamage.so.1.1.0",
+        "sha256": "e6371addb3562bc128c6c62ea73bbb95b59b2e6ae988b8e5827c409eeba8fc4b",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXcomposite.so.1.0.0",
+        "sha256": "8276b444c0cdc352d9c5fe1b7f6bb5e07a42b66878a32386a7fa2384345181bb",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXrandr.so.2.2.0",
+        "sha256": "354311ad6b3a93fc755a9a34c58c9bf7aa7dc02ee1ab8e7178cc5f4929a3a6d5",
+        "size": 67472
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXinerama.so.1.0.0",
+        "sha256": "b757d3f3e823a9e476d54309e66fc889d0b93604db7edb5f0b35294a496ac2a5",
+        "size": 67472
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libthai.so.0.3.2",
+        "sha256": "356740303788d2e814db8b8191d5f8a570904b8d650b737d37fce39e92db2ffa",
+        "size": 68552
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxml2.so.16.1.4",
+        "sha256": "4b35c8763ef09eb47d84eebe1eb1096388851ab75b1c5ad79f1ddf8e49a4aa47",
+        "size": 1379200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libblkid.so.1.1.0",
+        "sha256": "07ec798050e65a5da9eae02ad6f3d86d1e938a17c20b012616ef259adeef4858",
+        "size": 461728
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXrender.so.1.3.0",
+        "sha256": "893463f7e5a4d0dc6e69218d9f8084740c894789da47b15c14967a1105907308",
+        "size": 67624
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb.so.1.1.0",
+        "sha256": "6bc5e4009e1bbc706479d1a4ebba7763c42f0d9c1655e237ca0f16e1a83aac39",
+        "size": 169888
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-render.so.0.0.0",
+        "sha256": "7b2308fe50c862ff8852bc9c5e33354923fad49e9e30064bcc08b5bfa6d3ce24",
+        "size": 55160
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-shm.so.0.0.0",
+        "sha256": "b5c9cf94623c26e216963515ca0c6781a5fd34f0a73dda22c84a0e2456d2c325",
+        "size": 14200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libglycin-2.so.0",
+        "sha256": "70889a485831446777424c82f48dc3f9a35fda09f501f744b9223f6271d8e609",
+        "size": 3892072
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libatspi.so.0.0.1",
+        "sha256": "31a9472ea490ee86c37a034a21aa3e6017e8c9f588800ba17ab8e732788cd5e3",
+        "size": 330112
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdbus-1.so.3.38.3",
+        "sha256": "06e6dd59186871e3c493fbcecb008996b5eb01b6085d449e1849ea369506ca87",
+        "size": 460896
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libjson-glib-1.0.so.0.1000.8",
+        "sha256": "13a692c2c562e6ff3c28701511caadd68d4a71e6c36cab372db44889ff53e5fa",
+        "size": 198608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libsqlite3.so.3.53.4",
+        "sha256": "2db449a85914b1fefa35388d205fa3a8dc946ee3e8ab289cb8a0bfbdc17f575f",
+        "size": 1657608
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdatrie.so.1.4.1",
+        "sha256": "11840392563ae6d57f3f14859c76823abdb5538e293669b0f9925be7d9ae0df6",
+        "size": 67456
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libicuuc.so.78.3",
+        "sha256": "76217efb5cf1c42284a1572e6b8f1b13147523b0072d3cc819458be5f657fe40",
+        "size": 2427016
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXau.so.6.0.0",
+        "sha256": "a92fa15e6ec8830a02c36ce6b398dbd736da3c59441addc03c210a55fee00001",
+        "size": 67376
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libXdmcp.so.6.0.0",
+        "sha256": "d16300a2508f4af718dfe2fa9a1d89c743b7befd8eb59f376a814f37c6e41e28",
+        "size": 67496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/liblcms2.so.2.0.19",
+        "sha256": "95ac8cee9257d197e6a231c7f8886c819c2c85380b002adccf8add7ad429e399",
+        "size": 472040
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libseccomp.so.2.6.0",
+        "sha256": "bb30f1c00ccfa041ada09a6276eb7d76e937ce58b27a9c7a02684b50a840f8a8",
+        "size": 198584
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libicudata.so.78.3",
+        "sha256": "2f624d6c2d92113a45906f245e0d50f4d28572cfe973ede09b25e8422460ba09",
+        "size": 33162960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libstdc++.so.6.0.35",
+        "sha256": "abdf011833740a6f0ca1654876f18d9a5911a9ad08806a38d015e60e3e516ab8",
+        "size": 3017768
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdl.so.2",
+        "sha256": "c368bb964d02a4cf1252f2e812e91f4206924ed4fccd9b68eaad676aafd0ce1f",
+        "size": 67672
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpthread.so.0",
+        "sha256": "27844a766189d65aa53c273fb6d807073fd5fe74021dc7f5dc13657760b5931f",
+        "size": 67672
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libEGL.so.1.1.0",
+        "sha256": "d2b76272182bccaf0b36d1e89e64998f1b5c7ab175e6dfe7b9910804c84970a0",
+        "size": 133024
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libGLdispatch.so.0.0.0",
+        "sha256": "4341cba6efd6f63fd079d444daa753691cb900b96e405a227e7cff1e90312d99",
+        "size": 1574936
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libEGL_mesa.so.0.0.0",
+        "sha256": "3dd8788d56eb97e5a07cece9d94003258673134ed2a0aae1699a675802e57500",
+        "size": 396360
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libLLVM.so.22.1",
+        "sha256": "b58132b38f1652282811f6ba505d57f4c6d1a3e79874de02a67c2e9ad9e2d032",
+        "size": 168704440
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libSPIRV-Tools.so",
+        "sha256": "cb516ba0183d76fe3c3b5844a9894d6f96249df4c669e86d8f38aed26cbfa2db",
+        "size": 2099960
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libX11-xcb.so.1.0.0",
+        "sha256": "c100d271ba9a49922b65d6d91be9376f3f5722341b52fd443036f516fe1d1403",
+        "size": 67144
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdrm_amdgpu.so.1.134.0",
+        "sha256": "dfc8b428ab28a55dd467960fc3f7e4794228dd1bf2c11fb2c93086a455202e8f",
+        "size": 67496
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdrm_intel.so.1.134.0",
+        "sha256": "4b36e1c0e49de408791f9110494afff0086b0aa969219a809ffe9b91033369f7",
+        "size": 200248
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libedit.so.0.0.78",
+        "sha256": "c49dac5cafc3958fb1e52b4be54fcdd660f78c32ab8b4b1cc126705cdd888ca4",
+        "size": 264360
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libelf-0.196.so",
+        "sha256": "e9afbe1e85f038a5fac5733b9e5ab253af3f5f3f0e2416c9232f8b1a09ab0578",
+        "size": 133256
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libgallium-26.2.2-arch1.1.so",
+        "sha256": "b552cd6c748afc4eda241b7506c6d102968775f6323d005b8ef6485ed8a70d1f",
+        "size": 53602840
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libncursesw.so.6.6",
+        "sha256": "893eea93d2c1011c1f9edee6393cd46475f115d9f2a788e3b55f34591020316b",
+        "size": 527568
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libpciaccess.so.0.11.1",
+        "sha256": "fcc51df5475c0fcfbee0ac51c8dc97738fb55f923cc8beeb41739bf353dd07af",
+        "size": 67576
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libsensors.so.5.0.0",
+        "sha256": "66f3ef8beae7a03ddb0d9d3732edb481552b929c19067ce32e67716a27bdfd01",
+        "size": 67504
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-dri3.so.0.1.0",
+        "sha256": "76fbf9d4e65cd07f42dbda1e354a31f56b6ce216aa5f257a6b757b68d4623c01",
+        "size": 18296
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-present.so.0.0.0",
+        "sha256": "edfb8b41ba9044ed1f771734a359d4aec994265127c5b5a07d0533b760f85c78",
+        "size": 14200
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-randr.so.0.1.0",
+        "sha256": "6ba3894ebbcaef9fd94720d75c34eb15a9ede62d29759621bd08cfa73fa930bf",
+        "size": 67448
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-sync.so.1.0.0",
+        "sha256": "6ae2354d68e507adc9bdaa9fd5e785b82c16e6ce73e7d7dbd7b07681cc237e71",
+        "size": 26488
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-xfixes.so.0.0.0",
+        "sha256": "b9b96393f66544f003c51e8c467793f64847fe5cfcef17b82e96c45944a70dd4",
+        "size": 34680
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxshmfence.so.1.0.0",
+        "sha256": "8d8678ee3b1d6a235c2d45bf5ac83f87f551fc6928c8cc22f2dd91703a3560c9",
+        "size": 67384
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libzstd.so.1.5.7",
+        "sha256": "14d907be630eb1670d14fc104a0982cca01feac5bc75f1846e54f6278c5ee2e2",
+        "size": 854104
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libGLESv2.so.2.1.0",
+        "sha256": "983e6c9e65341ff407020c71d25796bbac6144b112b7139c1704fe1d3f0c52b5",
+        "size": 198600
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/gbm/dri_gbm.so",
+        "sha256": "8c2f53f9b83f7b6ef7600cd62a06c5e242d76ba7f070071f809451227345742a",
+        "size": 133296
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/dri/libdril_dri.so",
+        "sha256": "c30aadeb71f1f780f2b636eef5bc15f1c18d7482692b63965a9b604d5e34f208",
+        "size": 133248
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libvulkan_freedreno.so",
+        "sha256": "814cf9767ee00171235039382dd2cdcef45325d3f40c0d1ee289f4577aef473c",
+        "size": 15086168
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libdisplay-info.so.0.3.0",
+        "sha256": "c0c314ecf1e018e0f7feb3647934ffe2d266cd9a99e4978ecb75b452d7326c48",
+        "size": 263984
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/libxcb-keysyms.so.1.0.0",
+        "sha256": "7ad13facf0aa5f58e092d4684afa6bc8fb0445219159d5c4f49afdf388cdf698",
+        "size": 67304
+      }
+    ]
+  },
+  "host_regression": {
+    "status": "PASS",
+    "cases": 13,
+    "seconds": 0.776,
+    "command": [
+      "env",
+      "TMPDIR=/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/tmp",
+      "RUSTC=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+      "python3",
+      "-O",
+      "scripts/host/test-denial-runtime-linkage.py"
+    ],
+    "mutation": {
+      "status": "EXPECTED FAIL",
+      "change": "Remove explicit library.close() before success receipt; retain Drop cleanup",
+      "case": "Linkage.test_library_cleanup_precedes_success",
+      "seconds": 0.743,
+      "observation": "Success appeared before destructor: 351 not less than 326"
+    }
+  },
+  "firmware": {
+    "status": "PASS_OFFLINE_FIRMWARE_BYTES",
+    "scope": "Retained old trial payload bytes; not firmware loading or current candidate qualification",
+    "archive": {
+      "path": "/home/deck/.local/state/rog5-denial-20260910-r1/gpu-iommu-payload-r2/composition-a/target.cpio.gz",
+      "sha256": "dc805f639acd6295138324ecb7e5c687d6d51e2e982509f0ba4e9835c4d9977b",
+      "size": 58613216
+    },
+    "firmware": [
+      {
+        "member": "rog5-native-wifi/firmware/qcom/a660_gmu.bin",
+        "size": 55252,
+        "sha256": "8acab7b417d9ebde89a1de9ae1e2c261d352fcab122e31ecd580cec9fe2ae5e7"
+      },
+      {
+        "member": "rog5-native-wifi/firmware/qcom/a660_sqe.fw",
+        "size": 43292,
+        "sha256": "d222f3fe290ef0516ee0ec43082596bad2df0fcbc2e0bbb26987623cef90cf76"
+      },
+      {
+        "member": "rog5-native-wifi/firmware/qcom/sm8350/a660_zap.mbn",
+        "size": 1054648,
+        "sha256": "5dbe91cb3fc9655ea2f2a9e1e169a0e30877bec84215899136a519444ca62a3d"
+      }
+    ],
+    "duration_seconds": 0.541698651999468,
+    "phone": "NOT RUN"
+  },
+  "kernel_binding": {
+    "image": {
+      "path": "/home/deck/.local/state/rog5-review-correctness-evidence-20260912-r1/board/build-r2/objects/arch/arm64/boot/Image",
+      "sha256": "0789c10855e74c2f54caee7437864235f5872118e9f697782cc8547b286d406a",
+      "size": 30851584,
+      "verified": true
+    },
+    "dtb": {
+      "path": "/home/deck/.local/state/rog5-mobile-dt-evidence-20260912-r1/composition/run-r3/composed-2.dtb",
+      "sha256": "deeb77287d20393c207469c8debf441c6b451aa1aad3cd764dd4e5e4156cdc57",
+      "size": 104996,
+      "verified": true
+    },
+    "metadata": {
+      "path": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-cohort-r1/module-provenance.json",
+      "sha256": "bfa19931ebdad5975d581efa85ee41e0d84ce85e14f3b20d04fdea79203db973",
+      "size": 379961,
+      "verified": true
+    },
+    "panel": {
+      "depends": "drm_display_helper,drm_kms_helper",
+      "firmware": "",
+      "name": "panel_asus_rog5_ams678",
+      "path": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-build/twin-c/module/panel-asus-rog5-ams678.ko",
+      "sha256": "e7a5ac14d92ded53ca480272f0272d8fe236a38b671c5deabb17ff44ba2a6191",
+      "size": 23128,
+      "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64",
+      "verified": true,
+      "observed_vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64"
+    },
+    "touch": {
+      "dependencies": [],
+      "depends": "",
+      "name": "rog5_fts3658u",
+      "path": "/home/deck/.local/state/rog5-touch-sleep-evidence-20260912-r1/module-build/twin-b/module/rog5_fts3658u.ko",
+      "sha256": "0a191f48fccfebbe08902e25ba63127b2e86c2a60d727234b53a1e8f83c9b59f",
+      "size": 17448,
+      "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64",
+      "verified": true,
+      "observed_vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64"
+    },
+    "device_tree": {
+      "gpu_zap_firmware_name": "qcom/sm8350/a660_zap.mbn",
+      "touch_parent": "/soc@0/geniqup@9c0000/i2c@990000",
+      "touch_parent_status": "disabled",
+      "touch_status": "disabled"
+    },
+    "status": "PASS_OFFLINE_IDENTITIES",
+    "duration_seconds": 0.0634454429964535,
+    "corrected_release": "7.1.4-rog5-production",
+    "frozen_trial_release": "7.1.4-g136f75ae869a",
+    "observed_historical_release": "7.1.4-g05941d04803f",
+    "compatible_with_frozen_trial": false,
+    "physical": "NOT RUN",
+    "msm": {
+      "path": "/home/deck/.local/state/rog5-provider-readiness-evidence-20260912-r1/module-cohort-r1/modules/lib/modules/7.1.4-rog5-production/kernel/drivers/gpu/drm/msm/msm.ko",
+      "sha256": "39980ab3f730c680e493dade37316133cd6d5047a55a49664a9ead39a822e703",
+      "name": "msm",
+      "vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64",
+      "depends": "drm_exec,drm_gpuvm,gpu-sched,drm_kms_helper,drm_client_lib,mdt_loader,ubwc_config,drm_display_helper,drm_dp_aux_bus",
+      "firmware": [],
+      "verified": true,
+      "observed_vermagic": "7.1.4-rog5-production SMP preempt mod_unload aarch64",
+      "note": "Empty modinfo firmware list does not establish absence of runtime firmware requests."
+    }
+  },
+  "initial_active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-phone-linkage-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "8b6928778963ac5bdf8264f7b61f68268cfa8262",
+      "source_tree": "b97e7b0538dfab605fe900b970e096468d0ba8f4",
+      "started": "2026-09-13T04:57:06.186945+00:00",
+      "exit_status": 0,
+      "duration_seconds": 133.66725973499706
+    },
+    "counts": {
+      "PASS": 92,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "limitation": "New linkage suite not registered yet; followed by final registered run"
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-phone-linkage-active-r2",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/active-r2-report",
+        "TMPDIR=/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "1e1dac85021ddbc2bb3025eaa0859df829347dd9",
+      "source_tree": "76b2b56a04424104a836fe2b549956a0fe9ce466",
+      "started": "2026-09-13T04:59:50.757601+00:00",
+      "exit_status": 0,
+      "duration_seconds": 134.41777170199202
+    },
+    "counts": {
+      "PASS": 93,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/active-r2-report/summary.json",
+      "sha256": "66dab5c69c7bf5844a2013e2fa5a809550dc0d3fcedce0efaf8fb5050653a093",
+      "size": 111742
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-denial-phone-linkage-20260913-r1/active-r2-report/summary.xml",
+      "sha256": "2e79ca7ffd23f03332b52f83fc300835f45b9d108a30bea5edcb1e499cfd3978",
+      "size": 56055
+    }
+  },
+  "setup_failures": [
+    {
+      "stage": "initial host regression",
+      "error": "rustc absent from default PATH; no tests executed",
+      "correction": "Use retained bounded compiler wrapper"
+    },
+    {
+      "stage": "first private archive audit",
+      "error": "Full stat equality treated legitimate read atime change as mutation",
+      "correction": "Compare device/inode/mode/owner/links/size/mtime/ctime, excluding access time; reverified archive bytes"
+    }
+  ],
+  "phone": "NOT RUN",
+  "graphics_vm_run_this_turn": false,
+  "production_candidate": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false,
+  "limitations": [
+    "dlopen can execute constructors, resolvers and destructors; symbol bodies are not called by probe",
+    "MSM DRI shim loading does not initialize Adreno or prove subsequent dynamic loads",
+    "Explicit loader lists do not run executable entrypoints",
+    "Corrected modules target 7.1.4-rog5-production, not frozen trial 7.1.4-g136f75ae869a or historical installed release",
+    "Current composed touch parent/controller remain disabled",
+    "Firmware bytes exist in historical trial payload; matching current production composition not created",
+    "All installed-byte and physical qualification limitations remain"
+  ]
+}

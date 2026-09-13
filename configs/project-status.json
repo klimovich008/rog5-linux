@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Keyboard animation/input geometry corrected; changed-AOT VM flow passes",
+  "phase": "Denial/Adreno userspace linkage checked; phone kernel/trial identities remain separate",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Patch0013 keeps keyboard rendering and native input on one frame-sampled position. Ten source cases and real ARM64 AOT build PASS; one103.927s changed-AOT VirGL VM passes launcher/switch/text flow with212 frames/page flips and clean cleanup. The dismissal capture remains intermediate; automatic caret visibility is not qualified. Next bind the exact current Denial/engine/AOT/runtime closure to the existing phone graphics/touch trial inputs offline, prioritizing native OLED/Adreno qualification over more VM polish. No candidate, admission or phone operation. Mobile physical rows NOT RUN; S06/R01 remain FAIL.",
-  "evidence": "test-results/2026-09-13-keyboard-geometry.md"
+  "next": "Twelve confined ARM64 loader checks PASS in3.398s;117 package files match the authenticated runtime. Corrected panel/touch/MSM modules and Image/DT identities verified offline; three GPU firmware members match the retained old trial payload. This is not Adreno initialization. Corrected modules target7.1.4-rog5-production; the frozen trial targets7.1.4-g136f75ae869a and cannot accept those substitutions. Touch remains disabled. Next qualify the existing GPU-query capability contract against the corrected production cohort offline, then prepare a separately reviewed exact-input trial only under fresh hardware authorization. No candidate, signing, admission, claims or phone operation; physical rows NOT RUN and S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-13-denial-phone-linkage.md"
 }

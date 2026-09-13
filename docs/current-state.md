@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Keyboard animation/input geometry corrected; changed-AOT VM flow passes**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Denial/Adreno userspace linkage checked; phone kernel/trial identities remain separate**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Patch0013 keeps keyboard rendering and native input on one frame-sampled position. Ten source cases and real ARM64 AOT build PASS; one103.927s changed-AOT VirGL VM passes launcher/switch/text flow with212 frames/page flips and clean cleanup. The dismissal capture remains intermediate; automatic caret visibility is not qualified. Next bind the exact current Denial/engine/AOT/runtime closure to the existing phone graphics/touch trial inputs offline, prioritizing native OLED/Adreno qualification over more VM polish. No candidate, admission or phone operation. Mobile physical rows NOT RUN; S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-keyboard-geometry.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Twelve confined ARM64 loader checks PASS in3.398s;117 package files match the authenticated runtime. Corrected panel/touch/MSM modules and Image/DT identities verified offline; three GPU firmware members match the retained old trial payload. This is not Adreno initialization. Corrected modules target7.1.4-rog5-production; the frozen trial targets7.1.4-g136f75ae869a and cannot accept those substitutions. Touch remains disabled. Next qualify the existing GPU-query capability contract against the corrected production cohort offline, then prepare a separately reviewed exact-input trial only under fresh hardware authorization. No candidate, signing, admission, claims or phone operation; physical rows NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-denial-phone-linkage.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
