@@ -7918,7 +7918,8 @@
       "python_optimized": true,
       "exact_source": false,
       "required_inputs": [
-        "scripts/host/test-qemu-virtio-drm.py"
+        "scripts/host/test-qemu-virtio-drm.py",
+        "tools/qemu-virtio-drm/nonroot-session.sh"
       ],
       "optional_subchecks": []
     },
@@ -8078,6 +8079,36 @@
         "tools/denial-runtime-linkage/probe.rs",
         "scripts/host/check-denial-runtime-linkage.py",
         "configs/denial/mobile-runtime-linkage.json"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-qemu-runtime-view.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "bwrap",
+        "bsdtar",
+        "vercmp"
+      ],
+      "resource_class": "namespace",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/prepare-qemu-runtime-view.py",
+        "scripts/host/test-mobile-runtime-materialization.py",
+        "scripts/host/materialize-mobile-runtime.py",
+        "scripts/host/check-mobile-package-closure.py"
       ],
       "optional_subchecks": []
     }

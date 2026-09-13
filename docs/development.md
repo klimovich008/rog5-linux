@@ -927,3 +927,24 @@ Client-wait interruption still reaches the independent service stop. Raw output
 remains in the newly created log. SIGKILL
 cannot execute Python cleanup, so the independent service deadline is still
 required. This host machinery does not grant phone execution authority.
+
+For a disk-bounded non-root VM fixture, `prepare-qemu-runtime-view.py` accepts the
+retained materialization receipt, matching tree manifest and cached archives.
+It rechecks archive and payload hashes, derives package-read modes, and creates
+a fresh QEMU `mapped-file` view. Regular bytes are hardlinked; mode metadata and
+symlink descriptions are separate host files. Source nlink/ctime change, but
+contents, owner/mode and xattrs must not. The view is not a normal host rootfs:
+use only `--runtime-security-model mapped-file` with the runner's read-only bind
+and read-only9P export. The recorded signature audit is reused, not rerun.
+
+`--non-root-session --observe-mobile-apps --runtime-security-model mapped-file`
+selects a separately qualified VM fixture with RAM-only mobile UID/GID1000,
+home and account-file bind mounts. Session bus, Denial and app exec paths require
+empty supplementary groups, all capabilities empty and NoNewPrivs. Root seatd
+owns device mediation; root udev and the bounded supervisor remain. This proves
+neither the mobile policy's logind seat handling nor authentication/lock-screen
+security. Account conflicts and missing identity records fail. Existing root
+observations retain their original default. `--link-payload` may also reuse
+regular immutable Denial/Flutter fixture bytes on the same filesystem; it refuses
+symlink payloads, changes nlink/ctime and records payload hashes without changing
+source permissions. Neither option admits or operates a phone candidate.

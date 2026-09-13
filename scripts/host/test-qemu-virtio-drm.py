@@ -20,7 +20,7 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
-def missing_runtime_inputs(runtime, shell, mobile=False, editor=False, native=False, launcher=False):
+def missing_runtime_inputs(runtime, shell, mobile=False, editor=False, native=False, launcher=False, nonroot=False):
     commands = ['bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest']
     commands += ['seatd', 'sleep', 'Xwayland', 'dbus-daemon'] if shell else []
     paths = ['usr/bin/'+name for name in commands]
@@ -38,7 +38,37 @@ def missing_runtime_inputs(runtime, shell, mobile=False, editor=False, native=Fa
                   'usr/share/applications/org.xfce.mousepad.desktop']
     if native:
         paths += ['usr/bin/mv', 'usr/lib/libwayland-client.so.0']
+    if nonroot:
+        paths += ['usr/bin/'+name for name in ('setpriv', 'mount', 'chown')]
+        paths += ['etc/passwd', 'etc/group']
     return [path for path in paths if not (runtime/path).is_file()]
+
+
+def link_payload_file(source, destination):
+    """Explicit disk-saving fixture mode; never alter shared inode permissions."""
+    if not stat.S_ISREG(os.lstat(source).st_mode):
+        raise ValueError('linked payload requires regular non-symlink files')
+    os.link(source, destination, follow_symlinks=False)
+    return destination
+
+
+def reject_payload_links(directory, names):
+    for name in names:
+        if (Path(directory)/name).is_symlink():
+            raise ValueError('linked payload excludes symlinks, including directory links')
+    return []
+
+
+def nonroot_result(serial, protocol):
+    expected = 'uid=1000 gid=1000 groups=none caps=zero nnp=1'
+    roles = {}
+    for role, text in [('bus', serial), ('denial', serial),
+                       ('mousepad', protocol), ('foot', protocol)]:
+        lines = [line for line in text.splitlines() if line.startswith('OBSERVE nonroot exec='+role+' ')]
+        roles[role] = len(lines) == 1 and lines[0] == 'OBSERVE nonroot exec='+role+' '+expected
+    return {'status': 'PASS' if all(roles.values()) else 'FAIL', 'exec_paths': roles,
+            'scope': 'VM UID1000 exec paths, empty groups/capabilities and NoNewPrivs; '
+                     'seatd fixture, not logind/login/lock-screen or phone qualification'}
 
 
 def mobile_ready(log):
@@ -282,6 +312,11 @@ def observer_poll_delay(observer, now):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', required=True, type=Path)
+    parser.add_argument('--runtime-security-model', choices=('none', 'mapped-file'), default='none')
+    parser.add_argument('--non-root-session', action='store_true',
+                        help='UID1000 seatd VM fixture; requires mapped-file runtime and app observation')
+    parser.add_argument('--link-payload', action='store_true',
+                        help='hardlink regular immutable fixture files; changes source nlink/ctime, never permissions')
     parser.add_argument('--kernel', required=True, type=Path)
     program = parser.add_mutually_exclusive_group(required=True)
     program.add_argument('--deniald', type=Path)
@@ -310,6 +345,9 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--deadline', type=int, default=120)
     args = parser.parse_args()
+    if args.non_root_session and (not args.observe_mobile_apps or args.native_screencopy
+                                  or args.runtime_security_model != 'mapped-file'):
+        parser.error('non-root session requires app observation and mapped-file runtime; excludes native capture')
     if args.observe_mobile_apps_text and not args.observe_mobile_apps:
         parser.error('launcher text observation requires --observe-mobile-apps')
     if args.trace_focus and not args.observe_mobile_apps:
@@ -340,6 +378,9 @@ def main():
     for tool in ('clang', 'cpio', 'gzip', 'podman'):
         if not shutil.which(tool):
             parser.error(f'BLOCKED missing {tool}')
+    if args.link_payload and ((args.egl_thread_probe or args.deniald).is_symlink()
+                              or (args.flutter_bundle and args.flutter_bundle.is_symlink())):
+        parser.error('linked payload excludes symlink executable/bundle inputs')
     runtime = args.runtime.resolve(strict=True)
     kernel = args.kernel.resolve(strict=True)
     executable = (args.egl_thread_probe or args.deniald).resolve(strict=True)
@@ -356,7 +397,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
     missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile,
-                                     args.observe_mobile_editor, bool(args.native_screencopy), launcher)
+                                     args.observe_mobile_editor, bool(args.native_screencopy), launcher, args.non_root_session)
     if missing:
         report = {'status': 'BLOCKED', 'scope': 'offline guest prerequisites',
                   'missing_runtime_inputs': missing, 'vm_started': False,
@@ -369,7 +410,8 @@ def main():
         (stage/directory).mkdir(parents=True, exist_ok=True)
     payload = output/'payload'
     payload.mkdir()
-    shutil.copy2(executable, payload/('egl-thread-probe' if args.egl_thread_probe else 'deniald'))
+    payload_copy = link_payload_file if args.link_payload else shutil.copy2
+    payload_copy(executable, payload/('egl-thread-probe' if args.egl_thread_probe else 'deniald'))
     if args.native_screencopy:
         shutil.copy2(args.native_screencopy.resolve(strict=True), payload/'screencopy')
         (stage/'stage/native-capture').mkdir()
@@ -380,8 +422,12 @@ def main():
         for required in ('lib/libflutter_engine.so', 'lib/libapp.so', 'data/icudtl.dat'):
             if not (bundle/required).is_file():
                 parser.error(f'missing Flutter bundle input: {required}')
-        shutil.copytree(bundle, payload/'flutter')
+        shutil.copytree(bundle, payload/'flutter', copy_function=payload_copy,
+                        ignore=reject_payload_links if args.link_payload else None)
     shutil.copy2(repo/'tools/qemu-virtio-drm/guest.sh', stage/'stage/guest.sh')
+    if args.non_root_session:
+        (stage/'stage/nonroot-session').write_text('1\n')
+        shutil.copy2(repo/'tools/qemu-virtio-drm/nonroot-session.sh', stage/'stage/nonroot-session.sh')
     (stage/'stage/graphics-mode').write_text('virgl\n' if render_node else 'software\n')
     if args.trace_focus:
         (stage/'stage/focus-trace').write_text('1\n')
@@ -412,6 +458,13 @@ def main():
               'egl_thread_probe_sha256': digest(executable) if args.egl_thread_probe else None,
               'container': args.image, 'runtime': str(runtime),
               'runtime_inventory_verified_by_this_runner': False,
+              'runtime_security_model': args.runtime_security_model,
+              'non_root_session_requested': args.non_root_session,
+              'payload_hardlinks': args.link_payload,
+              'payload_files': {str(path.relative_to(payload)): {
+                  'sha256': digest(path), 'bytes': path.stat().st_size,
+                  'mode': oct(stat.S_IMODE(path.stat().st_mode))}
+                  for path in sorted(payload.rglob('*')) if path.is_file()},
               'flutter_bundle': str(args.flutter_bundle) if args.flutter_bundle else None,
               'graphics_mode': 'virgl' if render_node else 'software',
               'host_render_node': render_node,
@@ -492,7 +545,7 @@ def main():
                    '-device', 'virtio-gpu-device,xres=640,yres=480',
                    '-device', 'virtio-keyboard-device', '-device', 'virtio-tablet-device',
                    '-device', 'virtio-rng-device',
-                   '-fsdev', 'local,id=rootfs,path=/runtime,security_model=none,readonly=on',
+                   '-fsdev', 'local,id=rootfs,path=/runtime,security_model='+args.runtime_security_model+',readonly=on',
                    '-device', 'virtio-9p-device,fsdev=rootfs,mount_tag=rootfs',
                    '-fsdev', 'local,id=payload,path=/payload,security_model=none,readonly=on',
                    '-device', 'virtio-9p-device,fsdev=payload,mount_tag=payload']
@@ -597,6 +650,8 @@ def main():
             if not final_protocol.terminal:
                 final_protocol.fail('missing dedicated terminal boundary')
             report['launcher_protocol'] = final_protocol.result()
+            if args.non_root_session:
+                report['non_root_session'] = nonroot_result(log, data.decode(errors='replace'))
             if args.observe_mobile_apps_text:
                 report['launcher_text_protocol'] = editor_result(data.decode(errors='replace'))
             report['launcher_apps_cleanup'] = 'PASS' if log.splitlines().count('PASS launcher apps cleanup') == 1 else 'FAIL'
@@ -628,6 +683,8 @@ def main():
         if args.observe_mobile_apps and (report.get('launcher_protocol', {}).get('status') != 'PASS'
                 or report.get('launcher_apps_cleanup') != 'PASS'):
             report['status'] = 'FAIL'
+        if args.non_root_session and report.get('non_root_session', {}).get('status') != 'PASS':
+            report['status'] = 'FAIL'
         if native_capture:
             report['native_capture'] = {'records': native_capture.records,
                 'status': 'PASS' if len(native_capture.records) == 2 else 'FAIL',
@@ -641,7 +698,7 @@ def main():
                 report['status'] = 'FAIL'
         report['duration_seconds'] = time.monotonic() - start
         for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
-                     stage/'stage/graphics-mode', stage/'stage/focus-trace', stage/'stage/shell-profile', stage/'stage/mobile-editor', stage/'stage/mobile-launcher',
+                     stage/'stage/graphics-mode', stage/'stage/nonroot-session', stage/'stage/nonroot-session.sh', stage/'stage/focus-trace', stage/'stage/shell-profile', stage/'stage/mobile-editor', stage/'stage/mobile-launcher',
                      stage/'stage/launcher-apps.sh', stage/'stage/evidence-writer', stage/'stage/launcher-evidence.sh', output/'protocol/events.log', output/'serial.log'):
             if path.is_file():
                 report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)

@@ -18,6 +18,97 @@ SPEC.loader.exec_module(GUEST)
 
 
 class RuntimePrerequisites(unittest.TestCase):
+    def nonroot_shell(self, expression, *args):
+        helper = Path(__file__).resolve().parents[2]/'tools/qemu-virtio-drm/nonroot-session.sh'
+        return subprocess.run(['bash', '-c', 'source "$1"; shift; '+expression,
+                               'test', str(helper), *map(str,args)],
+                              capture_output=True, text=True, timeout=3)
+
+    def test_nonroot_accounts_preserve_root_and_refuse_conflicts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            passwd, group, output = root/'passwd', root/'group', root/'out'
+            output.mkdir()
+            for extra, target in [('', passwd), ('mobile:x:42:42::/:/bin/sh\n', passwd),
+                                  ('existing:x:1000:7::/:/bin/sh\n', passwd),
+                                  ('mobile:x:42:\n', group), ('existing:x:1000:\n', group)]:
+                passwd.write_text('root:x:0:0::/root:/usr/bin/bash\n')
+                group.write_text('root:x:0:root\n')
+                with target.open('a') as stream:
+                    stream.write(extra)
+                before = (passwd.read_bytes(), group.read_bytes())
+                run = self.nonroot_shell('nonroot_accounts "$1" "$2" "$3"', passwd, group, output)
+                self.assertEqual(run.returncode == 0, not extra, run.stderr)
+                self.assertEqual(before, (passwd.read_bytes(), group.read_bytes()))
+                if not extra:
+                    self.assertEqual((output/'passwd').read_bytes(), before[0]+b'mobile:x:1000:1000:VM fixture:/run/mobile-home:/usr/bin/bash\n')
+                    self.assertEqual(stat.S_IMODE((output/'passwd').stat().st_mode), 0o644)
+
+    def test_nonroot_identity_requires_all_uid_gid_capability_and_nnp_fields(self):
+        valid = ('Uid:\t1000\t1000\t1000\t1000\nGid:\t1000\t1000\t1000\t1000\n'
+                 'Groups:\t\nNoNewPrivs:\t1\n'+''.join(key+':\t0000000000000000\n'
+                    for key in ('CapInh','CapPrm','CapEff','CapBnd','CapAmb')))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'status'
+            variants = [valid, valid.replace('Uid:\t1000', 'Uid:\t0'),
+                        valid.replace('Gid:\t1000', 'Gid:\t0'),
+                        valid.replace('Groups:\t', 'Groups:\t44'),
+                        valid.replace('NoNewPrivs:\t1', 'NoNewPrivs:\t0'),
+                        valid.replace('CapEff:\t0000000000000000', 'CapEff:\t0000000000000001'),
+                        valid.replace('CapAmb:\t0000000000000000\n','')]
+            for index, text in enumerate(variants):
+                path.write_text(text)
+                run = self.nonroot_shell('nonroot_identity denial "$1"', path)
+                self.assertEqual(run.returncode == 0, index == 0, run.stderr)
+                if index == 0:
+                    self.assertEqual(run.stdout, 'OBSERVE nonroot exec=denial uid=1000 gid=1000 groups=none caps=zero nnp=1\n')
+
+    def test_nonroot_run_executes_exact_privilege_drop_before_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            command = root/'setpriv'
+            command.write_text('#!/bin/bash\nprintf "%s\\n" "$@"\nexit 42\n')
+            command.chmod(0o700)
+            run = self.nonroot_shell('PATH="$1:$PATH"; nonroot_run /fixture/program argument; echo UNREACHABLE', root)
+            self.assertEqual(run.returncode, 42)
+            self.assertEqual(run.stdout.splitlines(), ['--reuid=1000','--regid=1000','--clear-groups',
+                '--bounding-set=-all','--inh-caps=-all','--ambient-caps=-all','--no-new-privs',
+                '/fixture/program','argument'])
+
+    def test_nonroot_result_requires_four_unique_exact_exec_paths(self):
+        lines = {role: 'OBSERVE nonroot exec='+role+' uid=1000 gid=1000 groups=none caps=zero nnp=1\n'
+                 for role in ('bus','denial','mousepad','foot')}
+        serial, protocol = lines['bus']+lines['denial'], lines['mousepad']+lines['foot']
+        self.assertEqual(GUEST.nonroot_result(serial, protocol)['status'], 'PASS')
+        for badserial, badprotocol in [(serial, ''), ('',protocol), (serial+lines['bus'],protocol),
+                                      (serial.replace('uid=1000','uid=0'),protocol),
+                                      (serial,protocol.replace('caps=zero','caps=unknown'))]:
+            self.assertEqual(GUEST.nonroot_result(badserial,badprotocol)['status'],'FAIL')
+
+    def test_nonroot_cli_refuses_unqualified_modes_before_any_io(self):
+        base=['python3',str(Path(__file__).with_name('test-qemu-virtio-drm.py')),
+              '--runtime','/missing','--kernel','/missing','--deniald','/missing',
+              '--image','0'*64,'--output','/missing-output','--non-root-session']
+        for flags in [[], ['--observe-mobile-apps'],
+                      ['--runtime-security-model','mapped-file'],
+                      ['--runtime-security-model','mapped-file','--observe-mobile-apps',
+                       '--native-screencopy','/missing']]:
+            run=subprocess.run(base+flags,capture_output=True,text=True,timeout=3)
+            self.assertNotEqual(run.returncode,0)
+            self.assertIn('non-root session requires app observation and mapped-file',run.stderr)
+
+    def test_link_payload_preserves_inode_mode_and_rejects_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); source=root/'source'; destination=root/'destination'
+            source.write_bytes(b'fixture'); source.chmod(0o555)
+            GUEST.link_payload_file(source,destination)
+            self.assertEqual(source.stat().st_ino,destination.stat().st_ino)
+            self.assertEqual(stat.S_IMODE(source.stat().st_mode),0o555)
+            link=root/'link'; link.symlink_to(source)
+            with self.assertRaises(ValueError): GUEST.link_payload_file(link,root/'bad')
+            with self.assertRaises(ValueError): GUEST.reject_payload_links(root,['link'])
+            with self.assertRaises(ValueError): GUEST.link_payload_file(root,root/'bad')
+
     @staticmethod
     def editor_lines():
         return [

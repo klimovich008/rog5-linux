@@ -30,6 +30,13 @@ ulimit -c 0
 export XDG_RUNTIME_DIR=/run/user/0
 mkdir -p "$XDG_RUNTIME_DIR" /run/seatd /run/dbus
 chmod 700 "$XDG_RUNTIME_DIR"
+nonroot_session=0
+if [[ -f /run/nonroot-session ]]; then
+    [[ $(cat /run/nonroot-session) == 1 && $(cat /run/mobile-launcher) == apps ]]
+    source /run/nonroot-session.sh
+    nonroot_prepare
+    nonroot_session=1
+fi
 mkdir -m 1777 /tmp/.X11-unix
 echo 'BEGIN virtual DRM discovery (phone hardware NOT RUN)'
 uname -a
@@ -81,10 +88,19 @@ elif [[ -d /run/payload/flutter ]]; then
     # UntilLogout supports initially inactive CRTCs; the external timer owns
     # this guest's lifetime. Keep seatd alive while Denial handles SIGTERM.
     export SEATD_SOCK=/run/seatd.sock
-    seatd &
+    seat_options=()
+    [[ $nonroot_session == 0 ]] || seat_options=(-u mobile)
+    seatd "${seat_options[@]}" &
     seat_pid=$!
     export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-    dbus-daemon --session --nofork --address="$DBUS_SESSION_BUS_ADDRESS" &
+    run_session_bus() {
+        if [[ $nonroot_session == 1 ]]; then
+            nonroot_run /usr/bin/bash /run/nonroot-session.sh exec bus dbus-daemon --session --nofork --address="$DBUS_SESSION_BUS_ADDRESS"
+        else
+            exec dbus-daemon --session --nofork --address="$DBUS_SESSION_BUS_ADDRESS"
+        fi
+    }
+    run_session_bus &
     bus_pid=$!
     udev_pid=''
     editor_pid=''
@@ -155,7 +171,18 @@ elif [[ -d /run/payload/flutter ]]; then
             evidence_prepared=1
         fi
         launcher_prepared=1
-        launcher_apps_prepare
+        if [[ $nonroot_session == 1 ]]; then
+            launcher_apps_prepare /run/launcher-apps /usr/share/applications /run/nonroot-session.sh
+            chown -R 1000:1000 /run/launcher-apps /run/gtk-runtime
+            chown 1000:1000 /tmp/rog5-text-probe.txt
+            # Root remains the sole evidence reader; mobile can traverse and
+            # write the FIFO, but cannot replace it or read other writers.
+            chown 0:1000 /run/launcher-evidence /run/launcher-evidence/events
+            chmod 710 /run/launcher-evidence
+            chmod 620 /run/launcher-evidence/events
+        else
+            launcher_apps_prepare
+        fi
         unset DENIA_START_LOCKED
         shell_options=()
         shell_seconds=90
@@ -191,7 +218,13 @@ elif [[ -d /run/payload/flutter ]]; then
         editor_pid=$!
     fi
     run_denial() {
-    timeout --preserve-status --kill-after=5 "$shell_seconds" /run/payload/deniald \
+    local -a prefix=()
+    if [[ $nonroot_session == 1 ]]; then
+        prefix=(setpriv --reuid=1000 --regid=1000 --clear-groups --bounding-set=-all
+                --inh-caps=-all --ambient-caps=-all --no-new-privs
+                /usr/bin/bash /run/nonroot-session.sh exec denial)
+    fi
+    timeout --preserve-status --kill-after=5 "$shell_seconds" "${prefix[@]}" /run/payload/deniald \
         --device /dev/dri/card0 --wayland \
         --flutter-bundle /run/payload/flutter "${shell_options[@]}"
     }
