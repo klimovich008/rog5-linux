@@ -2957,3 +2957,28 @@ a later normal poweroff does not erase it. Check shutdown evidence even when an
 optional UI observation fails. New tests still need both manifest and public
 shell-selector registration until that explicit migration is complete; the
 consistency preflight caught this omission before any test body ran.
+
+Font preparation and evidence caps (2026-09-13): extracted package data does not
+execute either Fontconfig hook. Cache generation alone left default config links
+absent and selected Adwaita Mono for sans. Restore the exact shipped defaults in
+RAM, preserve existing configurations, then verify nonroot processed-config and
+cache-load records. The real ARM64 isolated comparison selected Noto Sans after
+restoration. Keep source mtimes/guest clock unchanged; future-mtime warnings alone
+do not establish invalidation. Cold/warm user-mode fc-match took0.816/0.164s;
+these are not GTK startup timings.
+
+The cache-only VM delivered exact OSK events and visible test/tes/test, but its
+whole-session result failed because the first1MiB of verbose output omitted the
+terminal counters. Reserve bounded space for terminal/error records while draining
+the entire stream; overflow must fail. Normalize ANSI like the actual parser or
+an ANSI-split error can disappear from the projection. Host regressions demonstrate
+both failures before their fixes. Unterminated numeric terminal records remain an
+inherited parser limitation; no such record was established in either VM result.
+
+With restored defaults and verified mobile-user cache reuse, the next VM still
+hit service-start124 at20s, before apps. Missing font preparation is therefore not
+a sufficient explanation for the recurring timeout. Preserve that FAIL and the
+separate first-run visual success. Next inspect the actual service critical path
+and per-unit readiness under the retained CPU quota; do not rerun an unchanged
+VM or increase the deadline without measured justification. Focused post-VM ANSI
+normalization tests qualify that source correction; it was not rerun in a VM.

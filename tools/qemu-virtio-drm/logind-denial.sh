@@ -108,7 +108,9 @@ start_log() {
                 }
                 if (!capped) {print "OBSERVE Denial ordinary log capped; retaining terminal/error records"; capped=1}
                 head=0
-                lower=tolower($0)
+                plain=$0
+                gsub(/\033\[[0-?]*[ -/]*[@-~]/,"",plain)
+                lower=tolower(plain)
                 if (lower ~ /independently clocked flutter kms session complete|error|fail|exception|could not/) {
                     if (reserve >= length(line)) {printf "%s",line; reserve-=length(line); fflush()}
                     else overflow=1

@@ -605,6 +605,22 @@ exit "$reader"
                 self.assertIn(error, parser(log)['render_errors'])
                 self.assertEqual(parser(log)['status'], 'FAIL')
 
+    def test_ansi_normalization_matches_actual_session_parser_after_cap(self):
+        parser = self.session_parser()
+        errors = next(c for c in parser.__code__.co_consts if isinstance(c, tuple)
+                      and 'required Flutter native fence export failed' in c)
+        summary = 'independently clocked Flutter KMS session complete raster_frames=80 output_page_flips=79'
+        for error in [*errors, None]:
+            with self.subTest(error=error):
+                # The real parser strips ANSI at arbitrary boundaries, not just
+                # around whole tracing fields. Exercise that same contract.
+                tail = ''.join(c+'\x1b[0m' for c in (error or summary))+'\n'
+                if error: tail += summary+'\n'
+                payload = b'diagnostic trace\n'*70000 + tail.encode()
+                rc, log = self.drain_denial(payload)
+                self.assertEqual(rc, 0)
+                self.assertEqual(parser(log), parser(payload.decode()))
+
     def test_diagnostic_overflow_fails_after_draining_writer(self):
         rc, log = self.drain_denial(b'diagnostic trace\n'*70000 + b'ERROR repeated failure\n'*10000)
         self.assertEqual(rc, 42)
