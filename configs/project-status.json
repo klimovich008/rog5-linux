@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Native VM launcher discovered; application interaction next",
+  "phase": "VM launches both apps; visual switch leaves native keyboard focus behind",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "One 102.747-second VM run captured the unlocked home with Foot and Mousepad tiles;10 frames/page flips, no reported render errors, clean owned shutdown.77 focused host cases and 91 frozen active suites pass. Null-stdio launcher regression failed before and passes with a fixed guest-console sink. No binary rebuild. Next: activate the observed app tiles through the mobile UI, prove native toplevel readiness and switch between the two owned clients. App launch/switch and all mobile physical rows NOT RUN; S06/R01 FAIL. Earlier visual failures and stalls remain preserved. No phone, signing, candidate or claim operation occurred.",
-  "evidence": "test-results/2026-09-13-vm-launcher-discovery.md"
+  "next": "Final 102.435-second VM run visibly launched Mousepad and Foot, returned through Overview/home and restored Mousepad after a right swipe, but native keyboard focus stayed Foot. Full app-switch result FAIL; reverse switch NOT RUN. 79 frames/page flips and clean owned shutdown do not close the input failure. Earlier runs failed an event-driven-audit readiness gate and velocity-dependent home gesture; both are preserved and the harness corrected. 92 active suites PASS. Next: trace focus request ID, wire enqueue/drain and native activation; a source-level scheduling starvation path is demonstrated, but its role in this run is unproven. No binary rebuild or phone operation. All mobile physical rows NOT RUN; S06/R01 FAIL.",
+  "evidence": "test-results/2026-09-13-vm-app-switch.md"
 }

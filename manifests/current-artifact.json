@@ -932,7 +932,7 @@
         "size": 10814352
       }
     },
-    "current_mobile_observation": "mobile_launcher_discovery",
+    "current_mobile_observation": "mobile_app_switch_observation",
     "mobile_launcher_discovery": {
       "status": "PASS: unlocked launcher tiles directly inspected; app launch and switching NOT RUN",
       "set_id": "private:rog5-vm-launcher-20260913-r1",
@@ -951,6 +951,33 @@
       "raster_frames": 10,
       "output_page_flips": 10,
       "render_errors": []
+    },
+    "mobile_app_switch_observation": {
+      "status": "FAIL: app-switch native focus not transferred",
+      "set_id": "private:rog5-vm-app-switch-20260913-r1",
+      "harness_source_commit": "efb9af269d4ee4508d3de012244c4add6d1a9e15",
+      "harness_source_tree": "7ddb06c538412c091332140009ad632bc10fa029",
+      "reused_binary_observation": "mobile_content_sizing_observation",
+      "flutter_bundle": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+      "evidence": {
+        "path": "test-results/2026-09-13-vm-app-switch-qualification.json",
+        "sha256": "391ae0e03bcb424bc8d22558787a3dbc9670c1c3c35b7ca078f0552b546f099e",
+        "size": 148745
+      },
+      "scope": "offline ARM64 VirGL VM; native app launch and visual/native-focus discrepancy",
+      "visual_ui_launch": "PASS: Mousepad and Foot",
+      "visible_return_to_mousepad": "PASS",
+      "native_focus_return": "FAIL",
+      "second_return_to_foot": "NOT RUN",
+      "physical_status": "NOT RUN",
+      "authority": "none; offline VM observation only",
+      "terminal_counters": {
+        "status": "PASS",
+        "scope": "Denial terminal counters; not visual or phone proof",
+        "raster_frames": 79,
+        "output_page_flips": 79,
+        "render_errors": []
+      }
     }
   }
 }

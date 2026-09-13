@@ -1,0 +1,3547 @@
+{
+  "schema": 1,
+  "scope": "offline ARM64 VirGL VM; native app launch and visual/native-focus discrepancy",
+  "status": "FAIL: app-switch native focus not transferred",
+  "starting_commit": "658d6423de22aac3aa3b666f9a9177ccb44ffcc4",
+  "starting_tree": "21e06466e60a46bb51d3b9b8d8308000ad72c79c",
+  "executed_source": {
+    "source_commit": "efb9af269d4ee4508d3de012244c4add6d1a9e15",
+    "source_tree": "7ddb06c538412c091332140009ad632bc10fa029",
+    "changed_files": [
+      "docs/development-lessons.md",
+      "docs/development.md",
+      "scripts/host/qemu-mobile-observer.py",
+      "scripts/host/test-qemu-mobile-observer.py"
+    ]
+  },
+  "changed_source_files": [
+    "configs/repository-tests.json",
+    "docs/development-lessons.md",
+    "docs/development.md",
+    "scripts/host/qemu-launcher-protocol.py",
+    "scripts/host/qemu-mobile-observer.py",
+    "scripts/host/test-qemu-launcher-protocol.py",
+    "scripts/host/test-qemu-mobile-observer.py",
+    "scripts/host/test-qemu-virtio-drm.py",
+    "scripts/host/test-repository-linux.sh",
+    "tools/qemu-virtio-drm/guest.sh"
+  ],
+  "inputs": {
+    "scope": "34 exact retained inputs match previous discovery: kernel, deniald and32 runtime files",
+    "files": [
+      {
+        "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+        "sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+        "size": 6918152
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+        "sha256": "878ff4c6155279264782523837cf7672273f333a9a45318a7db9cc9fbf7ce19a",
+        "size": 15993640
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/AssetManifest.bin",
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+        "size": 2439
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/FontManifest.json",
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+        "size": 307
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/NOTICES.Z",
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+        "size": 14745
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/branding/denial-dark.svg",
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+        "size": 3344
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+        "size": 1617
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+        "size": 1775
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+        "size": 860
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+        "size": 836
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+        "size": 535
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+        "size": 1162
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+        "size": 748
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+        "size": 1204
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+        "size": 1298
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+        "size": 968
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+        "size": 993
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+        "size": 1075
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+        "size": 858
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+        "size": 813
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+        "size": 1227
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+        "size": 818
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+        "size": 1495
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+        "size": 277828
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+        "size": 273860
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+        "size": 273900
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+        "size": 408
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+        "size": 3913008
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+        "size": 1645184
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/shaders/ink_sparkle.frag",
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+        "size": 21856
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/flutter_assets/shaders/stretch_effect.frag",
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+        "size": 17624
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/data/icudtl.dat",
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+        "size": 10822192
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/lib/libapp.so",
+        "sha256": "85567c81c52a375d8fa424aaaa54a152440b2fd02d73632301b857da6b230b19",
+        "size": 10814352
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture/lib/libflutter_engine.so",
+        "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+        "size": 15999928
+      }
+    ]
+  },
+  "reused_artifact_provenance": "test-results/2026-09-13-mobile-content-sizing-qualification.json",
+  "focused": {
+    "r1": [
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-mobile-observer.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 2.519937719014706
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-launcher-protocol.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.1145233329734765
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-virtio-drm-prerequisites.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.2648972340102773
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-launcher-apps.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 2.3208394889952615
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "tools/qemu-virtio-drm/guest.sh"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.003760224994039163
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.015973426023265347
+      }
+    ],
+    "r2": [
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-mobile-observer.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 2.570335984986741
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-launcher-protocol.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.11449675500625744
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-virtio-drm-prerequisites.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.21454423299292102
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.01600261000567116
+      }
+    ],
+    "r3": [
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-mobile-observer.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 2.670036696974421
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-launcher-protocol.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.1144615949888248
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.016024048993131146
+      }
+    ]
+  },
+  "readiness_regression_before": {
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-qemu-launcher-protocol.py",
+      "LauncherProtocolTests.test_static_native_clients_need_no_later_audit_to_allow_capture"
+    ],
+    "duration_seconds": 0.060355610999977216,
+    "exit_code": 1,
+    "expected_exit_code": 1
+  },
+  "readiness_regression_after": {
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-qemu-launcher-protocol.py"
+    ],
+    "exit_code": 0,
+    "tests": 22,
+    "unittest_reported_duration_seconds": 0.029,
+    "wall_duration_seconds": null,
+    "result": "PASS",
+    "files": {
+      "scripts/host/qemu-launcher-protocol.py": "b3f11a5f42e1893775e08b8c677d6808dfb67c2b052860589a49022ef5d0dfac",
+      "scripts/host/test-qemu-launcher-protocol.py": "5851ea8016cabd81045488378a648fae056ef1ac8bd3afab19a2800c03e5c7eb"
+    },
+    "log_origin": "after.log transcribes the actual tool-returned unittest output; stdout was not redirected during the final run. Wall time was not recorded."
+  },
+  "readiness_source_proof": {
+    "scope": "read-only source and retained VM deduction; not a new VM or phone run",
+    "counterexample": "All new client rendering/presentation events occur less than1s after previous audit. maybe_report only runs on these events and before their counters increment. If scene becomes idle, pending positive counts are never emitted. Absence of two later reports cannot disprove native mapping or focus.",
+    "matching_hypothesis": "Exec wrapper does not remove foot identity: desktop basename foot.desktop, stripped foot and preserved Icon=foot remain candidates. matchesWindow uses candidate app IDs, not executable or DENIA_LAUNCH_REQUEST_ID.",
+    "sources": [
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/output_scheduler.rs",
+        "sha256": "392ce91ceb2773b5b1285b00696c69da58f97f9a1c45d0a5048de80150abd740",
+        "start_line": 20,
+        "end_line": 20,
+        "excerpt": "const OUTPUT_SCHEDULER_AUDIT_INTERVAL: Duration = Duration::from_secs(1);"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/output_scheduler.rs",
+        "sha256": "392ce91ceb2773b5b1285b00696c69da58f97f9a1c45d0a5048de80150abd740",
+        "start_line": 519,
+        "end_line": 529,
+        "excerpt": "    fn record_ready(\n        &mut self,\n        index: usize,\n        token: u64,\n        has_fence: bool,\n        rendered_at: Option<Instant>,\n        render_deadline: Instant,\n    ) {\n        self.maybe_report();\n        self.ready_published = self.ready_published.saturating_add(1);\n        if has_fence {"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/output_scheduler.rs",
+        "sha256": "392ce91ceb2773b5b1285b00696c69da58f97f9a1c45d0a5048de80150abd740",
+        "start_line": 557,
+        "end_line": 568,
+        "excerpt": "    fn record_fence_signal(&mut self, index: usize, token: u64) {\n        if self.ready_tokens.get(index).copied() != Some(token)\n            || self\n                .fence_signaled_at\n                .get(index)\n                .is_none_or(Option::is_some)\n        {\n            return;\n        }\n        self.maybe_report();\n        self.fence_signals = self.fence_signals.saturating_add(1);\n        let now = Instant::now();"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/output_scheduler.rs",
+        "sha256": "392ce91ceb2773b5b1285b00696c69da58f97f9a1c45d0a5048de80150abd740",
+        "start_line": 582,
+        "end_line": 590,
+        "excerpt": "    fn record_real_submission(\n        &mut self,\n        output_index: usize,\n        buffer_index: usize,\n        submitted_at: Instant,\n    ) {\n        self.maybe_report();\n        self.real_submissions = self.real_submissions.saturating_add(1);\n        self.volition_scheduled_submissions = self.volition_scheduled_submissions.saturating_add(1);"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/output_scheduler.rs",
+        "sha256": "392ce91ceb2773b5b1285b00696c69da58f97f9a1c45d0a5048de80150abd740",
+        "start_line": 625,
+        "end_line": 636,
+        "excerpt": "    fn record_presentation(\n        &mut self,\n        output_index: usize,\n        observed_at: Instant,\n        render_deadline: Instant,\n        presentation_target: Instant,\n        sequence: Option<u64>,\n    ) {\n        self.maybe_report();\n        self.presentations = self.presentations.saturating_add(1);\n        let delivered_at = Instant::now();\n        self.presentation_delivery"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/output_scheduler.rs",
+        "sha256": "392ce91ceb2773b5b1285b00696c69da58f97f9a1c45d0a5048de80150abd740",
+        "start_line": 730,
+        "end_line": 735,
+        "excerpt": "    fn maybe_report(&mut self) {\n        let elapsed = self.interval_started.elapsed();\n        if elapsed < OUTPUT_SCHEDULER_AUDIT_INTERVAL {\n            return;\n        }\n"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/output_scheduler.rs",
+        "sha256": "392ce91ceb2773b5b1285b00696c69da58f97f9a1c45d0a5048de80150abd740",
+        "start_line": 829,
+        "end_line": 840,
+        "excerpt": "            \"Denial/Volition output scheduler audit\"\n        );\n\n        self.interval_started = Instant::now();\n        self.ready_published = 0;\n        self.ready_with_fence = 0;\n        self.fence_signals = 0;\n        self.real_submissions = 0;\n        self.volition_scheduled_submissions = 0;\n        self.presentations = 0;\n        self.sequence_samples = 0;\n        self.sequence_delta_total = 0;"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/dart_shell/lib/src/launcher/services/app_launcher.dart",
+        "sha256": "e5435b45701fc51ab57b1501bee513a823582e8ca33eca4d9208995acc504bc0",
+        "start_line": 23,
+        "end_line": 50,
+        "excerpt": "  List<String> expectedWindowAppIds(DesktopApp app) {\n    final candidates = <String>{};\n\n    void add(String? value) {\n      final candidate = value?.trim();\n      if (candidate != null && candidate.isNotEmpty) {\n        candidates.add(candidate);\n      }\n    }\n\n    add(app.id);\n    if (app.id.toLowerCase().endsWith('.desktop')) {\n      add(app.id.substring(0, app.id.length - '.desktop'.length));\n    }\n    add(app.startupWmClass);\n\n    final icon = app.icon;\n    if (icon != null && !_genericIconNames.contains(icon.toLowerCase())) {\n      add(icon);\n    }\n\n    final argv = _execParser.parse(app.exec, app);\n    final executable = _executableFrom(argv);\n    if (executable != null) {\n      add(p.basename(executable));\n    }\n\n    return List<String>.unmodifiable(candidates);"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/dart_shell/lib/src/models/app_launch_request.dart",
+        "sha256": "5b7a1f8456067f3d55158ca1fe61691a1929d90dde2e4c91199fd88a2f2f551a",
+        "start_line": 30,
+        "end_line": 45,
+        "excerpt": "  bool matchesWindow(DenialWindow window) {\n    if (!window.isUserApp) {\n      return false;\n    }\n    final target = targetObjectId;\n    if (target != null) {\n      return window.objectId == target;\n    }\n    if (existingObjectIds.contains(window.objectId)) {\n      return false;\n    }\n    return expectedAppIds.contains(normalizeAppId(window.appId));\n  }\n\n  static String normalizeAppId(String value) {\n    return value.trim().toLowerCase();"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/wayland_frontend/presentation.rs",
+        "sha256": "23f366560d8e6a372ea86724ea7e17d174b6840f2ac382d4baad872d9b142c66",
+        "start_line": 75,
+        "end_line": 96,
+        "excerpt": "    pub(super) fn submit_window(&mut self, output: &Output, window: &Window) {\n        // Presentation feedback belongs to the buffer accepted by KMS and is\n        // therefore captured at submission. wl_surface.frame is deliberately\n        // not drained here; Denial's output timeline releases that scheduling\n        // hint independently of whether the scanout buffer changes.\n        if self.active == self.slots.len() {\n            self.slots\n                .push(PendingPresentation::new(output, self.refresh));\n        }\n        let pending = &mut self.slots[self.active];\n        debug_assert!(pending.feedbacks.is_empty());\n        debug_assert_eq!(pending.output.upgrade().as_ref(), Some(output));\n        pending.refresh = self.refresh;\n        collect_window_presentation_feedback(window, &mut pending.feedbacks);\n        self.active += 1;\n    }\n}\n\n/// Keeps frame scheduling and presentation feedback on their distinct\n/// protocol boundaries.\n///\n/// `wl_surface.frame` tells a client when it is useful to start producing the"
+      }
+    ]
+  },
+  "window_order_source_proof": {
+    "scope": "read-only exact-source deduction, no runtime or phone evidence",
+    "smithay_commit": "812bd33259ff58810dadef6086d8385eeac1ca55",
+    "conclusion": "Snapshots preserve current back-to-front stacking order, not creation order. For two ordinary native Wayland windows, activation raises the current window to the final user-app index. Positive horizontal drag means index -1. Once activation snapshot settles, both Foot->Mousepad and Mousepad->Foot therefore require a RIGHT drag. No wrapping exists; LEFT from final index has no target.",
+    "sources": [
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/dart_shell/lib/src/state/shell_state.dart",
+        "sha256": "53fbdfb1950ac5fd8b5354857474c202c8e2887dbe4f8cb1a81503d776df7f0a",
+        "start_line": 248,
+        "end_line": 299,
+        "excerpt": "        quickSettingsDragProgress > 0.0 ||\n        edgePanelDragProgress > 0.0) {\n      return null;\n    }\n\n    final dx = gestureDrag.dx;\n    if (dx == 0.0) {\n      return null;\n    }\n\n    return adjacentOpenAppWindow(dx > 0.0 ? -1 : 1);\n  }\n\n  DenialWindow? adjacentOpenAppWindow(int direction) {\n    if (direction == 0) {\n      return null;\n    }\n\n    final currentObjectId = foregroundObjectId ?? primaryWindow?.objectId;\n    var currentIndex = -1;\n    var lastUserIndex = -1;\n    var userWindowCount = 0;\n    for (var index = 0; index < windows.length; index += 1) {\n      final window = windows[index];\n      if (!window.isUserApp) {\n        continue;\n      }\n      userWindowCount += 1;\n      lastUserIndex = index;\n      if (window.objectId == currentObjectId) {\n        currentIndex = index;\n      }\n    }\n    if (userWindowCount < 2) {\n      return null;\n    }\n    if (currentIndex < 0) {\n      currentIndex = lastUserIndex;\n    }\n\n    for (\n      var targetIndex = currentIndex + direction;\n      targetIndex >= 0 && targetIndex < windows.length;\n      targetIndex += direction\n    ) {\n      final target = windows[targetIndex];\n      if (target.isUserApp) {\n        return target;\n      }\n    }\n    return null;\n  }"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/dart_shell/lib/src/state/shell_controller.dart",
+        "sha256": "cadeca2b986c3d57c8817d798f0092b76d81907fb689636ac431c6e9f3c311d7",
+        "start_line": 319,
+        "end_line": 385,
+        "excerpt": "  void _applyWindowSnapshot(DenialWindowSnapshot snapshot) {\n    if (_hasLoadedWindowSnapshot &&\n        snapshot.sequence < state.windowSnapshotSequence) {\n      return;\n    }\n\n    final windows = snapshot.windows;\n    if (_hasLoadedWindowSnapshot &&\n        _sameWindowSnapshots(state.windows, windows)) {\n      if (snapshot.sequence > state.windowSnapshotSequence) {\n        state = state.copyWith(windowSnapshotSequence: snapshot.sequence);\n      }\n      return;\n    }\n\n    _hasLoadedWindowSnapshot = true;\n    final stableWindows = List<DenialWindow>.unmodifiable(windows);\n    final request = state.launchRequest;\n    final launchWindow = request == null\n        ? null\n        : _matchingLaunchWindow(stableWindows, request);\n\n    if (launchWindow != null) {\n      final shouldActivate = state.launchingObjectId != launchWindow.objectId;\n      _rawGestureDrag = Offset.zero;\n      _gestureLockOrigin = Offset.zero;\n      _gestureAxis = _GestureAxis.undecided;\n      state = state.copyWith(\n        windows: stableWindows,\n        windowSnapshotSequence: snapshot.sequence,\n        overviewVisible: false,\n        gestureDrag: Offset.zero,\n        quickSettingsDragActive: false,\n        edgePanelVisible: false,\n        edgePanelDrag: Offset.zero,\n        edgePanelDragActive: false,\n        foregroundObjectId: launchWindow.objectId,\n        launchingObjectId: launchWindow.objectId,\n      );\n      if (shouldActivate) {\n        _bridge.focusWindow(launchWindow);\n      }\n      return;\n    }\n\n    final foregroundStillVisible = _hasWindow(\n      stableWindows,\n      state.foregroundObjectId,\n    );\n    final launchingStillVisible = _hasWindow(\n      stableWindows,\n      state.launchingObjectId,\n    );\n\n    state = state.copyWith(\n      windows: stableWindows,\n      windowSnapshotSequence: snapshot.sequence,\n      clearForegroundObjectId: !foregroundStillVisible,\n      clearLaunchingObjectId: !launchingStillVisible,\n    );\n  }\n\n  DenialWindow? _matchingLaunchWindow(\n    List<DenialWindow> windows,\n    AppLaunchRequest request,\n  ) {\n    final boundObjectId = state.launchingObjectId;"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/dart_shell/lib/src/platform/denial_wire.dart",
+        "sha256": "c255fda668674abe7861aad623a37baf5264f9b160a12d68bb455108590b7ce1",
+        "start_line": 1263,
+        "end_line": 1283,
+        "excerpt": "  List<DenialWindow>? decodeWindows(generated.WindowSnapshot snapshot) {\n    final source = snapshot.windows ?? const <generated.Window>[];\n    final restoredSource = snapshot.restoredWindowIds ?? const <int>[];\n    final restoredWindowIds = <int>{};\n    if (source.length > denialWireMaxWindows ||\n        restoredSource.length > source.length ||\n        restoredSource.any(\n          (windowId) => windowId <= 0 || !restoredWindowIds.add(windowId),\n        )) {\n      rejectedStructuredMessages += 1;\n      return null;\n    }\n\n    final windows = <DenialWindow>[];\n    final windowIds = <int>{};\n    var surfaceCount = 0;\n    for (final window in source) {\n      final title = window.title ?? '';\n      final appId = window.appId ?? '';\n      if (window.objectId <= 0 ||\n          window.surfaceId <= 0 ||"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/wayland_frontend/surface_pipeline.rs",
+        "sha256": "f5eaff308dc4a6dd85ddce422167765f032b4ab0b3201203cc50d3758a1b5109",
+        "start_line": 675,
+        "end_line": 685,
+        "excerpt": "        surface_windows.clear();\n        let mut complex_windows = std::mem::take(&mut self.scene_complex_windows_scratch);\n        complex_windows.clear();\n        let input_method_editor_rectangle = self.input_method_editor_rectangle_global();\n        let input_method_popups = self.input_method.visible_popups();\n        let mut window_count = 0;\n        for window in self.space.elements() {\n            let Some(surface) = self.window_root_surface(window) else {\n                continue;\n            };\n            let Some(stable_id) = self.surface_id(&surface) else {"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/wayland_frontend/window_management.rs",
+        "sha256": "5b6e1261686638932f38683df946a6a9378f5aff03be151d5acda7c8556b9256",
+        "start_line": 240,
+        "end_line": 249,
+        "excerpt": "        if let Some(x11) = window.x11_surface()\n            && let Err(error) = x11.set_hidden(false)\n        {\n            warn!(%error, window = x11.window_id(), \"could not restore activated X11 window\");\n        }\n        frontend.raise_window(window, true);\n        for candidate in frontend.space.elements() {\n            let changed = candidate.set_activated(candidate == window);\n            if let Some(toplevel) = candidate.toplevel()\n                && (changed || (candidate == window && resumed))"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/wayland_frontend/window_state.rs",
+        "sha256": "14562818e886499ba2c9ac8fa81e4f7a85649d2a0bf7fade31e05dcbd799e2b9",
+        "start_line": 30,
+        "end_line": 40,
+        "excerpt": "    ///\n    /// `Space` owns Denial's visual and Wayland hit-test order, but rootless\n    /// Xwayland keeps an independent X stack. Leaving the latter unchanged can\n    /// make an X client below the visible window continue receiving pointer\n    /// events in their overlap.\n    pub(super) fn raise_window(&mut self, window: &Window, activate: bool) {\n        self.space.raise_element(window, activate);\n        let Some(surface) = window.x11_surface().cloned() else {\n            return;\n        };\n        // Override-redirect popups are deliberately absent from XWM's EWMH"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/cargo-home/git/checkouts/smithay-312425d48e59d8c8/812bd33/src/desktop/space/mod.rs",
+        "sha256": "da2fdd6e47ed7a47bc3d42351725bd3cd08c3600388312a90aafb5420488890f",
+        "start_line": 164,
+        "end_line": 179,
+        "excerpt": "    }\n\n    /// Moves an already mapped [`SpaceElement`] to top of the stack\n    ///\n    /// This function does nothing for unmapped windows.\n    ///\n    /// If activate is true it will set the new windows state\n    /// to be activate and removes that state from every\n    /// other mapped window.\n    pub fn raise_element(&mut self, element: &E, activate: bool) {\n        if let Some(pos) = self.elements.iter().position(|inner| &inner.element == element) {\n            let inner = self.elements.remove(pos);\n            self.insert_elem(self.elements.len(), inner, activate);\n        }\n    }\n"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/cargo-home/git/checkouts/smithay-312425d48e59d8c8/812bd33/src/desktop/space/mod.rs",
+        "sha256": "da2fdd6e47ed7a47bc3d42351725bd3cd08c3600388312a90aafb5420488890f",
+        "start_line": 218,
+        "end_line": 229,
+        "excerpt": "    fn insert_elem(&mut self, index: usize, elem: InnerElement<E>, activate: bool) {\n        if activate {\n            elem.element.set_activate(true);\n            for e in self.elements.iter() {\n                e.element.set_activate(false);\n            }\n        }\n\n        self.elements.insert(index, elem);\n        self.elements.sort_by_key(|e1| e1.element.z_index());\n    }\n"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/cargo-home/git/checkouts/smithay-312425d48e59d8c8/812bd33/src/desktop/space/mod.rs",
+        "sha256": "da2fdd6e47ed7a47bc3d42351725bd3cd08c3600388312a90aafb5420488890f",
+        "start_line": 255,
+        "end_line": 260,
+        "excerpt": "\n    /// Iterate elements in z-order back to front\n    pub fn elements(&self) -> impl DoubleEndedIterator<Item = &E> + ExactSizeIterator {\n        self.elements.iter().map(|e| &e.element)\n    }\n"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/cargo-home/git/checkouts/smithay-312425d48e59d8c8/812bd33/src/desktop/space/wayland/window.rs",
+        "sha256": "ed1619f3348fc1d080bdd9cea581d0b73f72670b3915354db46a50e2ed7886d3",
+        "start_line": 15,
+        "end_line": 43,
+        "excerpt": "use super::{WindowOutputUserData, output_update};\n\nimpl SpaceElement for Window {\n    fn geometry(&self) -> Rectangle<i32, Logical> {\n        self.geometry()\n    }\n\n    fn bbox(&self) -> Rectangle<i32, Logical> {\n        self.bbox_with_popups()\n    }\n\n    fn is_in_input_region(&self, point: &Point<f64, Logical>) -> bool {\n        self.surface_under(*point, WindowSurfaceType::ALL).is_some()\n    }\n\n    fn z_index(&self) -> u8 {\n        self.0.z_index.load(std::sync::atomic::Ordering::SeqCst)\n    }\n\n    fn set_activate(&self, activated: bool) {\n        self.set_activated(activated);\n    }\n\n    #[profiling::function]\n    fn output_enter(&self, output: &Output, overlap: Rectangle<i32, Logical>) {\n        self.user_data().insert_if_missing(WindowOutputUserData::default);\n        {\n            let mut state = self\n                .user_data()"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/cargo-home/git/checkouts/smithay-312425d48e59d8c8/812bd33/src/desktop/wayland/window.rs",
+        "sha256": "8a330899410d3770928c1f5ab9c9bf641f720d708e2e71e03e9270ce20bac114",
+        "start_line": 180,
+        "end_line": 208,
+        "excerpt": "        Self::new_wayland_window(toplevel)\n    }\n\n    /// Construct a new [`Window`] from a xdg toplevel surface\n    pub fn new_wayland_window(toplevel: ToplevelSurface) -> Window {\n        let id = window_id::next();\n\n        Window(Arc::new(WindowInner {\n            id,\n            surface: WindowSurface::Wayland(toplevel),\n            bbox: Mutex::new(Rectangle::zero()),\n            z_index: AtomicU8::new(RenderZindex::Shell as u8),\n            user_data: UserDataMap::new(),\n        }))\n    }\n\n    /// Construct a new [`Window`] from an X11 surface\n    #[cfg(feature = \"xwayland\")]\n    pub fn new_x11_window(surface: X11Surface) -> Window {\n        let id = window_id::next();\n\n        Window(Arc::new(WindowInner {\n            id,\n            surface: WindowSurface::X11(surface),\n            bbox: Mutex::new(Rectangle::zero()),\n            z_index: AtomicU8::new(RenderZindex::Shell as u8),\n            user_data: UserDataMap::new(),\n        }))\n    }"
+      }
+    ],
+    "override_search": "rg -n override_z_index retained Denial compositor/src/bin/deniald: no matches (exit 1)"
+  },
+  "focus_source_proof": {
+    "scope": "Offline read-only source and retained ARM64 VirGL VM analysis; no new tests or runtime executions; not phone evidence",
+    "source_root": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration",
+    "source_identity_note": "Native staged source is not an independent Git checkout; exact excerpts are bound to per-file hashes below. Coordinator binds the existing native binary/source provenance.",
+    "vm_observation": {
+      "log": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/serial.log",
+      "sha256": "931c94a9e0ce272d90fc9c2fa76e220f1a8fde4bef3caf3d7554ed17e5178b46",
+      "bytes": 945232,
+      "native_keyboard_focus_events": [
+        {
+          "line": 1810,
+          "text": "EDITOR_WAYLAND [00:00:59.750838] {Default Queue} wl_keyboard#22.enter(3, wl_surface#24, array[0])"
+        },
+        {
+          "line": 2842,
+          "text": "EDITOR_WAYLAND [00:01:07.864027] {Default Queue} wl_keyboard#22.leave(14, wl_surface#24)"
+        },
+        {
+          "line": 2890,
+          "text": "FOOT_WAYLAND [00:01:08.061955] {Default Queue} wl_keyboard#21.enter(14, wl_surface#3, array[0])"
+        }
+      ],
+      "native_keyboard_enter_leave_count": 3,
+      "attributed_line_counts": {
+        "EDITOR_WAYLAND": 423,
+        "FOOT_WAYLAND": 195
+      },
+      "unanchored_prefix_lines": [],
+      "multiple_prefix_lines": [],
+      "malformed_keyboard_lines": [],
+      "launcher_log_limit_lines": [],
+      "parser_replay_observed": {
+        "focus_history": [
+          "mousepad",
+          "foot"
+        ],
+        "active_app": "foot",
+        "errors": [],
+        "mapped": {
+          "mousepad": true,
+          "foot": true
+        },
+        "ready": {
+          "mousepad": true,
+          "foot": true
+        }
+      },
+      "conclusion": "Raw client log records Mousepad initial enter, Mousepad leave and Foot enter only; no logged native keyboard reactivation of Mousepad after the visual switch. Parser agrees. Coordinator independently inspected waiting capture as visually showing Mousepad; this subtask did not independently inspect that image.",
+      "limits": "Absence of a logged event is evidence about retained logging, not a new physical observation. No prefix corruption/log cap was found."
+    },
+    "source_weakness": {
+      "status": "CONFIRMED source-level counterexample, not reproduced scheduling trace",
+      "counterexample": [
+        "Due service pass advances next_service by33.3ms before processing work. A Flutter platform message makes this pass due and process_events consumes that message, enqueueing a Focus command in runtime wire state.",
+        "If elapsed background time reaches2ms at either pre-window-management slice guard, the loop dispatchesZERO and continues before the sole command drain.",
+        "On later passes before the next cadence deadline, the queued runtime wire command does not itself make background_services_due true: interactive_service_work_pending only tests pending_shell_actions, pending_shortcut_launches and pending_window_events.",
+        "If every due service pass again spends at least2ms before the window-command drain, queued Focus remains indefinitely. No resume cursor/aging guarantee forces this stage to run."
+      ],
+      "idle_settings_claim": "NOT ESTABLISHED. Cached settings and UI-development paths may return quickly when unchanged. No measured stage cost establishes that they exhausted this VM budget."
+    },
+    "runtime_cause": {
+      "status": "UNPROVEN",
+      "missing_evidence": [
+        "Exact requested window ID at Dart switch completion",
+        "Successful native wire decode/enqueue of that Focus request",
+        "Queue depth and elapsed stage times at each slice exit",
+        "Command drain and native activation attempt/result for the matching ID"
+      ],
+      "next_experiment": "One bounded VM with correlated diagnostics at requested-ID, wire enqueue/drain and activation boundaries; preserve existing UI/reference/ownership/cleanup guards. No speculative scheduling fix before this trace."
+    },
+    "sources": [
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald.rs",
+        "sha256": "9d654093790531865b458ea563efa846eb08274ac6259dbbb5fe66c810ab94ed",
+        "start_line": 307,
+        "end_line": 307,
+        "excerpt": "const COMPOSITOR_BACKGROUND_SLICE: Duration = Duration::from_millis(2);"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_event_loop.rs",
+        "sha256": "a9db3d023641860504fddee140b7866f5d1d2eec8912df9b66c2159002bc6d43",
+        "start_line": 9,
+        "end_line": 56,
+        "excerpt": "const BACKGROUND_SERVICE_INTERVAL: Duration = Duration::from_nanos(1_000_000_000 / 30);\nconst BACKGROUND_MAINTENANCE_INTERVAL: Duration = Duration::from_millis(100);\n\nstruct OperationCadence {\n    next_service: Instant,\n    next_maintenance: Instant,\n}\n\nimpl OperationCadence {\n    fn new(now: Instant) -> Self {\n        Self {\n            next_service: now,\n            next_maintenance: now,\n        }\n    }\n\n    fn take_service_due(&mut self, now: Instant) -> bool {\n        take_periodic_deadline(now, &mut self.next_service, BACKGROUND_SERVICE_INTERVAL)\n    }\n\n    fn take_maintenance_due(&mut self, now: Instant) -> bool {\n        take_periodic_deadline(\n            now,\n            &mut self.next_maintenance,\n            BACKGROUND_MAINTENANCE_INTERVAL,\n        )\n    }\n\n    fn limit_dispatch_timeout(&self, now: Instant, timeout: Duration) -> Duration {\n        timeout\n            .min(self.next_service.saturating_duration_since(now))\n            .min(self.next_maintenance.saturating_duration_since(now))\n    }\n}\n\nfn take_periodic_deadline(now: Instant, deadline: &mut Instant, interval: Duration) -> bool {\n    if now < *deadline {\n        return false;\n    }\n    *deadline = now.checked_add(interval).unwrap_or(now);\n    true\n}\n\nfn interactive_service_work_pending(events: &RuntimeState) -> bool {\n    !events.pending_shell_actions.is_empty()\n        || !events.pending_shortcut_launches.is_empty()\n        || !events.pending_window_events.is_empty()\n}"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_event_loop.rs",
+        "sha256": "a9db3d023641860504fddee140b7866f5d1d2eec8912df9b66c2159002bc6d43",
+        "start_line": 341,
+        "end_line": 349,
+        "excerpt": "        }\n        let flutter_background_event = events\n            .flutter_events\n            .iter()\n            .any(flutter_runtime::RuntimeEvent::queues_background_service_work);\n        let background_services_due = operation_cadence.take_service_due(iteration_now)\n            || flutter_background_event\n            || interactive_service_work_pending(&events);\n        let background_maintenance_due = operation_cadence.take_maintenance_due(iteration_now)"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_event_loop.rs",
+        "sha256": "a9db3d023641860504fddee140b7866f5d1d2eec8912df9b66c2159002bc6d43",
+        "start_line": 1494,
+        "end_line": 1513,
+        "excerpt": "        }\n\n        let runtime = flutter\n            .as_mut()\n            .ok_or(\"Flutter runtime disappeared from event loop\")?;\n        if events.flutter_input.has_pending() {\n            runtime.process_input_batch(&mut events.flutter_input)?;\n        }\n        // Drain in place so the callback queue keeps its allocation across\n        // frame/engine dispatches. AwaitVSync and platform-task traffic is a\n        // steady-state hot path and must not rebuild this Vec every time.\n        let flutter_event_batch = events\n            .flutter_events\n            .len()\n            .min(MAX_FLUTTER_EVENTS_PER_ITERATION);\n        runtime.process_events(events.flutter_events.drain(..flutter_event_batch))?;\n        if background_started.elapsed() >= COMPOSITOR_BACKGROUND_SLICE {\n            event_loop.dispatch(Duration::ZERO, &mut events)?;\n            continue;\n        }"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_event_loop.rs",
+        "sha256": "a9db3d023641860504fddee140b7866f5d1d2eec8912df9b66c2159002bc6d43",
+        "start_line": 1542,
+        "end_line": 1560,
+        "excerpt": "        if background_services_due {\n            synchronize_clipboard(runtime, &mut events)?;\n            synchronize_system_control_events(runtime, &mut events)?;\n            synchronize_notification_events(runtime, &mut events)?;\n            synchronize_xembed_tray(runtime, &mut events)?;\n            synchronize_shell_keyboard(runtime, &mut events)?;\n            synchronize_settings(runtime, &mut events)?;\n            synchronize_system_bar_configuration(runtime, &mut events, Some(flutter_launcher));\n        }\n        if background_started.elapsed() >= COMPOSITOR_BACKGROUND_SLICE {\n            event_loop.dispatch(Duration::ZERO, &mut events)?;\n            continue;\n        }\n        if background_services_due {\n            synchronize_flutter_window_management(runtime, &mut events)?;\n        }\n        synchronize_flutter_scene(runtime, &mut events)?;\n        collect_flutter_output_damage(runtime, &mut frame_scheduler);\n        synchronize_flutter_input_layout(runtime, &mut events)?;"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_runtime/event_pipeline.rs",
+        "sha256": "14e00da56979cf76e1b876979030a8ef065f7bac3b20227b9938ec6b3ef20cb3",
+        "start_line": 142,
+        "end_line": 153,
+        "excerpt": "impl RuntimeEvent {\n    pub(crate) fn queues_background_service_work(&self) -> bool {\n        matches!(\n            self,\n            Self::Engine {\n                event: EngineEvent::PlatformMessage(_),\n                ..\n            }\n        )\n    }\n}"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/wire.rs",
+        "sha256": "dcc79affe446c409224eed512772a3a55782d2c8492258440c4ecace1bf8cadb",
+        "start_line": 618,
+        "end_line": 618,
+        "excerpt": "    pending_window_commands: VecDeque<WindowCommand>,"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/wire.rs",
+        "sha256": "dcc79affe446c409224eed512772a3a55782d2c8492258440c4ecace1bf8cadb",
+        "start_line": 673,
+        "end_line": 675,
+        "excerpt": "    pub fn drain_window_commands(&mut self) -> impl Iterator<Item = WindowCommand> + '_ {\n        self.pending_window_commands.drain(..)\n    }"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/wire/decode.rs",
+        "sha256": "626c77ef0d44ee6b9f1a48c1fe5162077b14e06caa1a7e3c646e3c727444cf59",
+        "start_line": 203,
+        "end_line": 238,
+        "excerpt": "            }\n            kind @ (fb::WindowRequestKind::CloseWindow\n            | fb::WindowRequestKind::FocusWindow\n            | fb::WindowRequestKind::ConfigureWindow) => {\n                if self.pending_window_commands.len() >= MAX_PENDING_WINDOW_COMMANDS {\n                    return Err(WireError::Count);\n                }\n                let window_id = request.window_id();\n                if window_id == 0 {\n                    return Err(WireError::Identity);\n                }\n                let command = match kind {\n                    fb::WindowRequestKind::CloseWindow => WindowCommand::Close { window_id },\n                    fb::WindowRequestKind::FocusWindow => WindowCommand::Focus { window_id },\n                    fb::WindowRequestKind::ConfigureWindow => {\n                        const EXACT: u32 = 1 << 0;\n                        const LAYOUT_DROP: u32 = 1 << 1;\n                        const FLAGS_MASK: u32 = EXACT | LAYOUT_DROP;\n                        let flags = request.flags();\n                        if flags & !FLAGS_MASK != 0 || flags & FLAGS_MASK == FLAGS_MASK {\n                            return Err(WireError::Flags);\n                        }\n                        let geometry =\n                            decode_window_geometry(request.geometry().ok_or(WireError::Geometry)?)?;\n                        WindowCommand::Configure {\n                            window_id,\n                            geometry,\n                            exact: flags & EXACT != 0,\n                            layout_drop: flags & LAYOUT_DROP != 0,\n                        }\n                    }\n                    _ => unreachable!(),\n                };\n                self.pending_window_commands.push_back(command);\n                Ok(None)\n            }"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_settings_sync.rs",
+        "sha256": "0185ad64aed0c13087f20666a9835f7b471927f939fc4e4177aee532db1a918c",
+        "start_line": 6,
+        "end_line": 16,
+        "excerpt": "pub(super) fn synchronize_flutter_window_management(\n    runtime: &mut flutter_runtime::FlutterRuntime,\n    events: &mut RuntimeState,\n) -> Result<(), Box<dyn Error>> {\n    if events.secure_session_locked() {\n        events.pending_shell_actions.clear();\n        events.pending_shortcut_launches.clear();\n        while runtime.take_application_launch().is_some() {}\n        runtime.drain_window_commands().for_each(drop);\n    } else {\n        while let Some(target) = events.pending_shortcut_launches.pop_front() {"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_settings_sync.rs",
+        "sha256": "0185ad64aed0c13087f20666a9835f7b471927f939fc4e4177aee532db1a918c",
+        "start_line": 56,
+        "end_line": 84,
+        "excerpt": "        let commands = runtime.drain_window_commands().collect::<Vec<_>>();\n        let mut wayland_commands = Vec::with_capacity(commands.len());\n        for command in commands {\n            let native_owned = command.window_id().is_some_and(|window_id| {\n                events\n                    .native_app_plugins\n                    .as_ref()\n                    .is_some_and(|manager| manager.owns_window(window_id))\n            });\n            if native_owned {\n                if let Some(manager) = events.native_app_plugins.as_mut()\n                    && let Err(error) = manager.apply_window_command(&command)\n                {\n                    warn!(%error, \"native application plugin window command failed\");\n                }\n            } else {\n                if matches!(command, wire::WindowCommand::Focus { .. })\n                    && let Some(manager) = events.native_app_plugins.as_mut()\n                    && let Err(error) = manager.clear_focus()\n                {\n                    warn!(%error, \"could not clear native application focus\");\n                }\n                wayland_commands.push(command);\n            }\n        }\n        wayland_frontend::apply_window_commands(events, wayland_commands);\n    }\n    if events.pending_window_events.is_empty() {\n        return Ok(());"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-render-work-20260913-r1/source-registration/compositor/src/bin/deniald/flutter_settings_sync.rs",
+        "sha256": "0185ad64aed0c13087f20666a9835f7b471927f939fc4e4177aee532db1a918c",
+        "start_line": 561,
+        "end_line": 587,
+        "excerpt": "    let layout_changed = events.wayland.as_mut().is_some_and(|frontend| {\n        let kind = frontend.settings.window_layout_kind();\n        frontend.set_window_layout_kind(kind)\n    });\n    if layout_changed {\n        events.scene_sync.mark_dirty();\n    }\n    publish_settings_document(events)?;\n    synchronize_committed_theme(runtime, events)?;\n    Ok(())\n}\n\n#[cfg(feature = \"flutter\")]\nfn publish_settings_document(events: &mut RuntimeState) -> Result<(), Box<dyn Error>> {\n    let (Some(publisher), Some(frontend)) =\n        (events.output_control.as_ref(), events.wayland.as_ref())\n    else {\n        return Ok(());\n    };\n    let revision = frontend.settings.revision();\n    if events.published_settings_document_revision == Some(revision) {\n        return Ok(());\n    }\n    if publisher.publish_settings_document(revision, frontend.settings.document_json()?) {\n        events.published_settings_document_revision = Some(revision);\n    }\n    Ok(())"
+      }
+    ]
+  },
+  "vm_runs": [
+    {
+      "source": {
+        "source_commit": "a984b605f594c9e616e52e097ae2cab961001df9",
+        "source_tree": "7d61d929fad5bc6c4fab63ef09df8610b926f146",
+        "changed_files": [
+          "configs/repository-tests.json",
+          "docs/development-lessons.md",
+          "docs/development.md",
+          "scripts/host/qemu-mobile-observer.py",
+          "scripts/host/test-qemu-mobile-observer.py",
+          "scripts/host/test-qemu-virtio-drm.py",
+          "scripts/host/test-repository-linux.sh",
+          "tools/qemu-virtio-drm/guest.sh",
+          "scripts/host/qemu-launcher-protocol.py",
+          "scripts/host/test-qemu-launcher-protocol.py"
+        ]
+      },
+      "driver": {
+        "command": [
+          "python3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+          "--runtime",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "--kernel",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+          "--deniald",
+          "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+          "--flutter-bundle",
+          "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+          "--image",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "--render-node",
+          "/dev/dri/renderD128",
+          "--output",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1",
+          "--deadline",
+          "120",
+          "--observe-mobile",
+          "--observe-mobile-apps",
+          "--launcher-reference",
+          "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png"
+        ],
+        "exit_status": 1,
+        "duration_seconds": 102.76917062699795
+      },
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+        "--runtime",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "--kernel",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+        "--deniald",
+        "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+        "--flutter-bundle",
+        "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+        "--image",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "--render-node",
+        "/dev/dri/renderD128",
+        "--output",
+        "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1",
+        "--deadline",
+        "120",
+        "--observe-mobile",
+        "--observe-mobile-apps",
+        "--launcher-reference",
+        "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png"
+      ],
+      "result": {
+        "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+        "started": "2026-09-13T02:11:33.667298+00:00",
+        "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+        "deniald_sha256": "878ff4c6155279264782523837cf7672273f333a9a45318a7db9cc9fbf7ce19a",
+        "egl_thread_probe_sha256": null,
+        "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "runtime_inventory_verified_by_this_runner": false,
+        "flutter_bundle": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+        "graphics_mode": "virgl",
+        "host_render_node": {
+          "path": "/dev/dri/renderD128",
+          "major": 226,
+          "minor": 128,
+          "scope": "host rendering only; no phone device"
+        },
+        "harness_sha256": "550b248068fb6df6f532962dcfca7b3c6faa9ac22af12429192a480cfe456e3d",
+        "init_source_sha256": "cc351dc5a61acce969b7ac7d2d085f2cf5c6ebdd98d33696a18d46f79cef271c",
+        "compile_command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/initramfs/init"
+        ],
+        "status": "FAIL",
+        "launcher_protocol_sha256": "c1344c72a5762e06a1e0031579e17b8aee5bf8ff51529b760094f1df5ea2aa32",
+        "app_binary_hashes": {
+          "foot": "be6ded4faadf7c60da70c73c27830fa5b12b62e35f4a16550d2c845a5b88a169",
+          "mousepad": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab"
+        },
+        "mobile_editor": false,
+        "mobile_launcher": false,
+        "mobile_apps": true,
+        "launcher_apps_sha256": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+        "observer_sha256": "eb42afe5152c605385971d3afd80e9070d6613d25ec224d2bcb4d1cf8c3d69e1",
+        "shell_profile": "mobile",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-virtual-drm-70e0c7e9834e",
+          "--network",
+          "none",
+          "--read-only",
+          "--memory",
+          "1536m",
+          "--memory-swap",
+          "1536m",
+          "--cpus",
+          "2",
+          "--pids-limit",
+          "64",
+          "--security-opt",
+          "no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/initramfs.cpio.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/payload:/payload:ro",
+          "--device",
+          "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+          "-e",
+          "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/observe:/observe:rw",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "egl-headless,rendernode=/dev/dri/renderD128",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+          "-device",
+          "virtio-gpu-gl-device,xres=540,yres=1224",
+          "-device",
+          "virtio-keyboard-device",
+          "-device",
+          "virtio-tablet-device",
+          "-device",
+          "virtio-rng-device",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload",
+          "-name",
+          "rog5-virtual-drm-70e0c7e9834e",
+          "-qmp",
+          "unix:/observe/qmp.sock,server=on,wait=off",
+          "-vnc",
+          "unix:/observe/vnc.sock"
+        ],
+        "mobile_observation": {
+          "status": "FAIL",
+          "scope": "Local VM captures and synthetic pointer delivery only",
+          "visual_semantics": "NOT RUN: inspect screenshots separately",
+          "phone_touch": "NOT RUN",
+          "profile": "mobile",
+          "capture_backend": "UNIX VNC raw",
+          "screenshots": [
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/observe/00-home-ready-probe-1.png",
+              "sha256": "b0ac3881aef8886fc23af7d18af680234999232cb6a6efdd9592f454c2ca5c5d",
+              "size": 4896,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/observe/00-home-ready-probe-2.png",
+              "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+              "size": 798785,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/observe/00-home-ready-probe-3.png",
+              "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+              "size": 650222,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/observe/01-mousepad-launched.png",
+              "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+              "size": 16846,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/observe/02-home-returned-probe-1.png",
+              "sha256": "95343b2c32fcfc558f5f6e29ebb2c64862eb6fb216b4f52c42dcbc98bb3766af",
+              "size": 650377,
+              "width": 540,
+              "height": 1224
+            }
+          ],
+          "actions": [
+            {
+              "operation": "home",
+              "value": "00-home-ready"
+            },
+            {
+              "operation": "click",
+              "value": [
+                77,
+                752
+              ]
+            },
+            {
+              "operation": "client",
+              "value": [
+                "mousepad",
+                "01-mousepad-launched"
+              ]
+            },
+            {
+              "operation": "gesture",
+              "value": [
+                [
+                  270,
+                  1194
+                ],
+                [
+                  270,
+                  1150
+                ],
+                [
+                  270,
+                  1060
+                ],
+                [
+                  270,
+                  970
+                ],
+                [
+                  270,
+                  880
+                ]
+              ]
+            },
+            {
+              "operation": "home",
+              "value": "02-home-returned"
+            },
+            {
+              "operation": "click",
+              "value": [
+                205,
+                592
+              ]
+            }
+          ],
+          "probe": "UI launch and switch native Mousepad and Foot",
+          "launcher_reference": {
+            "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+            "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+            "size": 650222,
+            "width": 540,
+            "height": 1224
+          },
+          "launcher_tiles": {
+            "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+            "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+          },
+          "waiting_for": {
+            "operation": "client",
+            "value": [
+              "foot",
+              "03-foot-launched"
+            ]
+          },
+          "tile_checks": [
+            {
+              "capture": "00-home-ready-probe-1",
+              "matched": false
+            },
+            {
+              "capture": "00-home-ready-probe-2",
+              "matched": false
+            },
+            {
+              "capture": "00-home-ready-probe-3",
+              "matched": true
+            },
+            {
+              "capture": "02-home-returned-probe-1",
+              "matched": true
+            }
+          ],
+          "qmp": [
+            {
+              "request": {
+                "execute": "qmp_capabilities",
+                "id": 1
+              },
+              "response": {
+                "return": {},
+                "id": 1
+              }
+            },
+            {
+              "request": {
+                "execute": "query-name",
+                "id": 2
+              },
+              "response": {
+                "return": {
+                  "name": "rog5-virtual-drm-70e0c7e9834e"
+                },
+                "id": 2
+              }
+            },
+            {
+              "request": {
+                "execute": "query-status",
+                "id": 3
+              },
+              "response": {
+                "return": {
+                  "status": "running",
+                  "singlestep": false,
+                  "running": true
+                },
+                "id": 3
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 4,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 4681
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 20148
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 4
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 5,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 5
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 6,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 6
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 7,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 31990
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 7
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 8,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 8
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 9,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 30811
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 9
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 10,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 28400
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 10
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 11,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 25989
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 11
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 12,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 23577
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 12
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 13,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 13
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 14,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 12462
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 15861
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 14
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 15,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 15
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 16,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 16
+              }
+            }
+          ],
+          "error": "guest ended before observation completed",
+          "pointer_released": true
+        },
+        "qemu_exit_status": 0,
+        "drm_discovery": "PASS",
+        "deniald_kms": "NOT RUN",
+        "deniald_cli": "NOT RUN",
+        "shell_exit": "PASS",
+        "shell_rendering": {
+          "status": "PASS",
+          "scope": "Denial terminal counters; not visual or phone proof",
+          "raster_frames": 65,
+          "output_page_flips": 65,
+          "render_errors": []
+        },
+        "launcher_protocol": {
+          "status": "FAIL",
+          "scope": "owned native Wayland toplevels and observed focus intervals; not visual or phone proof",
+          "owners": {
+            "mousepad": {
+              "pid": "144",
+              "start": "3515"
+            },
+            "foot": {
+              "pid": "250",
+              "start": "6703"
+            }
+          },
+          "mapped": {
+            "mousepad": true,
+            "foot": true
+          },
+          "ready": {
+            "mousepad": true,
+            "foot": false
+          },
+          "focus_history": [
+            "mousepad",
+            "foot"
+          ],
+          "focus_generation": 2,
+          "active_app": "foot",
+          "expected_sequence": [
+            "mousepad",
+            "foot",
+            "mousepad",
+            "foot"
+          ],
+          "client_state": {
+            "mousepad": {
+              "interval_seen": true,
+              "keyboard_focus": {},
+              "surfaces": {
+                "25": {
+                  "surface": "24",
+                  "title": true,
+                  "app_id": true,
+                  "configured": true,
+                  "serial": "5",
+                  "ack": true,
+                  "pending_attach": null,
+                  "committed": true,
+                  "dead": false
+                }
+              },
+              "toplevels": {
+                "26": "25"
+              }
+            },
+            "foot": {
+              "interval_seen": false,
+              "keyboard_focus": {
+                "21": "3"
+              },
+              "surfaces": {
+                "30": {
+                  "surface": "3",
+                  "title": true,
+                  "app_id": true,
+                  "configured": true,
+                  "serial": "13",
+                  "ack": true,
+                  "pending_attach": null,
+                  "committed": true,
+                  "dead": false
+                }
+              },
+              "toplevels": {
+                "31": "30"
+              }
+            }
+          },
+          "focus_visits": [
+            {
+              "app": "mousepad",
+              "interval_seen": true,
+              "presented_interval": true
+            },
+            {
+              "app": "foot",
+              "interval_seen": false,
+              "presented_interval": false
+            }
+          ],
+          "errors": [],
+          "post_terminal_exits": [
+            "OBSERVE launcher app=foot exit=230"
+          ],
+          "visual_semantics": "NOT RUN",
+          "phone": "NOT RUN"
+        },
+        "launcher_apps_cleanup": "PASS",
+        "container_removed": true,
+        "duration_seconds": 102.65593201899901,
+        "hashes": {
+          "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+          "initramfs/stage/guest.sh": "96481cde93e42a825ff3b2fdcaf8a80769c3f1391f4e5a92dbb4bf4302fb6e28",
+          "initramfs.cpio.gz": "bbb14ed08286d7c0ffacf5ed903e35ddef9b144f45e4ac4bf82eae9f56461ce3",
+          "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+          "initramfs/stage/shell-profile": "868250c5a708edf6ee929304d1abab17236fe50921efd3ffc0ca6a3f71637b61",
+          "initramfs/stage/mobile-launcher": "b4380551e0e3c34fd7ef8c4c3d7af64e628f07b0635e4a1164e6af2decff4a01",
+          "initramfs/stage/launcher-apps.sh": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+          "serial.log": "153e6a03fe22bd7986ea80ba188076f6d1a0b84a2dea977355aec9db169e81c3"
+        }
+      },
+      "raw_result": {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/guest-apps-r1/result.json",
+        "sha256": "98a9e227d11d3033069f2e3b67074020d5ede80bb005db78ea540b4820b7c242",
+        "size": 18991
+      }
+    },
+    {
+      "source": {
+        "source_commit": "31332c7110c974beeb714dd75300ff61fd728f41",
+        "source_tree": "20168e90817d5c5256d6f03fb832acf12fdca06c",
+        "changed_files": [
+          "docs/development-lessons.md",
+          "docs/development.md",
+          "scripts/host/qemu-launcher-protocol.py",
+          "scripts/host/qemu-mobile-observer.py",
+          "scripts/host/test-qemu-launcher-protocol.py",
+          "scripts/host/test-qemu-mobile-observer.py"
+        ]
+      },
+      "driver": {
+        "command": [
+          "python3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+          "--runtime",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "--kernel",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+          "--deniald",
+          "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+          "--flutter-bundle",
+          "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+          "--image",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "--render-node",
+          "/dev/dri/renderD128",
+          "--output",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2",
+          "--deadline",
+          "120",
+          "--observe-mobile",
+          "--observe-mobile-apps",
+          "--launcher-reference",
+          "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png"
+        ],
+        "exit_status": 1,
+        "duration_seconds": 75.88473801600048
+      },
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+        "--runtime",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "--kernel",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+        "--deniald",
+        "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+        "--flutter-bundle",
+        "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+        "--image",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "--render-node",
+        "/dev/dri/renderD128",
+        "--output",
+        "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2",
+        "--deadline",
+        "120",
+        "--observe-mobile",
+        "--observe-mobile-apps",
+        "--launcher-reference",
+        "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png"
+      ],
+      "result": {
+        "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+        "started": "2026-09-13T02:19:53.462819+00:00",
+        "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+        "deniald_sha256": "878ff4c6155279264782523837cf7672273f333a9a45318a7db9cc9fbf7ce19a",
+        "egl_thread_probe_sha256": null,
+        "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "runtime_inventory_verified_by_this_runner": false,
+        "flutter_bundle": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+        "graphics_mode": "virgl",
+        "host_render_node": {
+          "path": "/dev/dri/renderD128",
+          "major": 226,
+          "minor": 128,
+          "scope": "host rendering only; no phone device"
+        },
+        "harness_sha256": "550b248068fb6df6f532962dcfca7b3c6faa9ac22af12429192a480cfe456e3d",
+        "init_source_sha256": "cc351dc5a61acce969b7ac7d2d085f2cf5c6ebdd98d33696a18d46f79cef271c",
+        "compile_command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/initramfs/init"
+        ],
+        "status": "FAIL",
+        "launcher_protocol_sha256": "b3f11a5f42e1893775e08b8c677d6808dfb67c2b052860589a49022ef5d0dfac",
+        "app_binary_hashes": {
+          "foot": "be6ded4faadf7c60da70c73c27830fa5b12b62e35f4a16550d2c845a5b88a169",
+          "mousepad": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab"
+        },
+        "mobile_editor": false,
+        "mobile_launcher": false,
+        "mobile_apps": true,
+        "launcher_apps_sha256": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+        "observer_sha256": "c1b65e7785889f4c323076fc2a42681bc80e0754b83367981029ffe43e485c6e",
+        "shell_profile": "mobile",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-virtual-drm-86d74a235792",
+          "--network",
+          "none",
+          "--read-only",
+          "--memory",
+          "1536m",
+          "--memory-swap",
+          "1536m",
+          "--cpus",
+          "2",
+          "--pids-limit",
+          "64",
+          "--security-opt",
+          "no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/initramfs.cpio.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/payload:/payload:ro",
+          "--device",
+          "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+          "-e",
+          "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe:/observe:rw",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "egl-headless,rendernode=/dev/dri/renderD128",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+          "-device",
+          "virtio-gpu-gl-device,xres=540,yres=1224",
+          "-device",
+          "virtio-keyboard-device",
+          "-device",
+          "virtio-tablet-device",
+          "-device",
+          "virtio-rng-device",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload",
+          "-name",
+          "rog5-virtual-drm-86d74a235792",
+          "-qmp",
+          "unix:/observe/qmp.sock,server=on,wait=off",
+          "-vnc",
+          "unix:/observe/vnc.sock"
+        ],
+        "mobile_observation": {
+          "status": "FAIL",
+          "scope": "Local VM captures and synthetic pointer delivery only",
+          "visual_semantics": "NOT RUN: inspect screenshots separately",
+          "phone_touch": "NOT RUN",
+          "profile": "mobile",
+          "capture_backend": "UNIX VNC raw",
+          "screenshots": [
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/00-home-ready-probe-1.png",
+              "sha256": "b0ac3881aef8886fc23af7d18af680234999232cb6a6efdd9592f454c2ca5c5d",
+              "size": 4896,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/00-home-ready-probe-2.png",
+              "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+              "size": 798785,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/00-home-ready-probe-3.png",
+              "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+              "size": 798785,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/00-home-ready-probe-4.png",
+              "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+              "size": 650222,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/01-mousepad-launched-waiting.png",
+              "sha256": "6e453b60313206ecb6cb63e2327baf9933c5e646c1a541824bdcf18044fb087f",
+              "size": 5120,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/01-mousepad-launched.png",
+              "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+              "size": 16846,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-1.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-2.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-3.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-4.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-5.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-6.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-7.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/observe/02-home-returned-probe-8.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            }
+          ],
+          "actions": [
+            {
+              "operation": "home",
+              "value": "00-home-ready"
+            },
+            {
+              "operation": "click",
+              "value": [
+                77,
+                752
+              ]
+            },
+            {
+              "operation": "client",
+              "value": [
+                "mousepad",
+                "01-mousepad-launched"
+              ]
+            },
+            {
+              "operation": "gesture",
+              "value": [
+                [
+                  270,
+                  1194
+                ],
+                [
+                  270,
+                  1150
+                ],
+                [
+                  270,
+                  1060
+                ],
+                [
+                  270,
+                  970
+                ],
+                [
+                  270,
+                  880
+                ]
+              ]
+            }
+          ],
+          "probe": "UI launch and switch native Mousepad and Foot",
+          "launcher_reference": {
+            "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+            "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+            "size": 650222,
+            "width": 540,
+            "height": 1224
+          },
+          "launcher_tiles": {
+            "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+            "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+          },
+          "waiting_for": {
+            "operation": "home",
+            "value": "02-home-returned"
+          },
+          "tile_checks": [
+            {
+              "capture": "00-home-ready-probe-1",
+              "matched": false
+            },
+            {
+              "capture": "00-home-ready-probe-2",
+              "matched": false
+            },
+            {
+              "capture": "00-home-ready-probe-3",
+              "matched": false
+            },
+            {
+              "capture": "00-home-ready-probe-4",
+              "matched": true
+            },
+            {
+              "capture": "02-home-returned-probe-1",
+              "matched": false
+            },
+            {
+              "capture": "02-home-returned-probe-2",
+              "matched": false
+            },
+            {
+              "capture": "02-home-returned-probe-3",
+              "matched": false
+            },
+            {
+              "capture": "02-home-returned-probe-4",
+              "matched": false
+            },
+            {
+              "capture": "02-home-returned-probe-5",
+              "matched": false
+            },
+            {
+              "capture": "02-home-returned-probe-6",
+              "matched": false
+            },
+            {
+              "capture": "02-home-returned-probe-7",
+              "matched": false
+            },
+            {
+              "capture": "02-home-returned-probe-8",
+              "matched": false
+            }
+          ],
+          "qmp": [
+            {
+              "request": {
+                "execute": "qmp_capabilities",
+                "id": 1
+              },
+              "response": {
+                "return": {},
+                "id": 1
+              }
+            },
+            {
+              "request": {
+                "execute": "query-name",
+                "id": 2
+              },
+              "response": {
+                "return": {
+                  "name": "rog5-virtual-drm-86d74a235792"
+                },
+                "id": 2
+              }
+            },
+            {
+              "request": {
+                "execute": "query-status",
+                "id": 3
+              },
+              "response": {
+                "return": {
+                  "status": "running",
+                  "singlestep": false,
+                  "running": true
+                },
+                "id": 3
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 4,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 4681
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 20148
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 4
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 5,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 5
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 6,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 6
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 7,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 31990
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 7
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 8,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 8
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 9,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 30811
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 9
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 10,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 28400
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 10
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 11,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 25989
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 11
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 12,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 23577
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 12
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 13,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 13
+              }
+            }
+          ],
+          "error": "launcher tile readiness not observed",
+          "pointer_released": true
+        },
+        "error": "launcher tile readiness not observed",
+        "launcher_protocol": {
+          "status": "FAIL",
+          "scope": "owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof",
+          "owners": {
+            "mousepad": {
+              "pid": "142",
+              "start": "3662"
+            }
+          },
+          "mapped": {
+            "mousepad": true,
+            "foot": false
+          },
+          "ready": {
+            "mousepad": true,
+            "foot": false
+          },
+          "focus_history": [
+            "mousepad"
+          ],
+          "focus_generation": 1,
+          "active_app": "mousepad",
+          "expected_sequence": [
+            "mousepad",
+            "foot",
+            "mousepad",
+            "foot"
+          ],
+          "client_state": {
+            "mousepad": {
+              "interval_seen": true,
+              "keyboard_focus": {
+                "22": "24"
+              },
+              "surfaces": {
+                "25": {
+                  "surface": "24",
+                  "title": true,
+                  "app_id": true,
+                  "configured": true,
+                  "serial": "5",
+                  "ack": true,
+                  "pending_attach": null,
+                  "committed": true,
+                  "dead": false
+                }
+              },
+              "toplevels": {
+                "26": "25"
+              }
+            },
+            "foot": {
+              "interval_seen": false,
+              "keyboard_focus": {},
+              "surfaces": {},
+              "toplevels": {}
+            }
+          },
+          "focus_visits": [
+            {
+              "app": "mousepad",
+              "interval_seen": true,
+              "presented_interval": true,
+              "presentation_observation": {
+                "status": "PASS",
+                "scope": "later global output audit interval only; not attributed to this client",
+                "client_presentation": "NOT RUN"
+              }
+            }
+          ],
+          "presentation": "NOT RUN: no attributed client presentation feedback parsed",
+          "errors": [],
+          "post_terminal_exits": [],
+          "visual_semantics": "NOT RUN",
+          "phone": "NOT RUN"
+        },
+        "container_removed": true,
+        "duration_seconds": 75.7659163089993,
+        "hashes": {
+          "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+          "initramfs/stage/guest.sh": "96481cde93e42a825ff3b2fdcaf8a80769c3f1391f4e5a92dbb4bf4302fb6e28",
+          "initramfs.cpio.gz": "0f7169ee839ab986c8c21da4588f903e2b2feefbfa0df9626fabc8fa7b1db1af",
+          "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+          "initramfs/stage/shell-profile": "868250c5a708edf6ee929304d1abab17236fe50921efd3ffc0ca6a3f71637b61",
+          "initramfs/stage/mobile-launcher": "b4380551e0e3c34fd7ef8c4c3d7af64e628f07b0635e4a1164e6af2decff4a01",
+          "initramfs/stage/launcher-apps.sh": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+          "serial.log": "a24a6dbd6f29492d9b1dbf6b81b46c241d4eb37f9e511af123a4e20c25b36659"
+        }
+      },
+      "raw_result": {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r2/guest-apps-r2/result.json",
+        "sha256": "7561717b7b39001d830bb847a0757ce5adb749e356a5bc303e912e1f39d234d0",
+        "size": 20151
+      }
+    },
+    {
+      "source": {
+        "source_commit": "efb9af269d4ee4508d3de012244c4add6d1a9e15",
+        "source_tree": "7ddb06c538412c091332140009ad632bc10fa029",
+        "changed_files": [
+          "docs/development-lessons.md",
+          "docs/development.md",
+          "scripts/host/qemu-mobile-observer.py",
+          "scripts/host/test-qemu-mobile-observer.py"
+        ]
+      },
+      "driver": {
+        "command": [
+          "python3",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+          "--runtime",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+          "--kernel",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+          "--deniald",
+          "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+          "--flutter-bundle",
+          "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+          "--image",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "--render-node",
+          "/dev/dri/renderD128",
+          "--output",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3",
+          "--deadline",
+          "120",
+          "--observe-mobile",
+          "--observe-mobile-apps",
+          "--launcher-reference",
+          "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png"
+        ],
+        "exit_status": 1,
+        "duration_seconds": 102.52599498300697
+      },
+      "command": [
+        "python3",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+        "--runtime",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "--kernel",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+        "--deniald",
+        "/home/deck/.local/state/rog5-render-work-20260913-r1/native-registration-build/deniald-context",
+        "--flutter-bundle",
+        "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+        "--image",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "--render-node",
+        "/dev/dri/renderD128",
+        "--output",
+        "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3",
+        "--deadline",
+        "120",
+        "--observe-mobile",
+        "--observe-mobile-apps",
+        "--launcher-reference",
+        "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png"
+      ],
+      "result": {
+        "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+        "started": "2026-09-13T02:23:47.345321+00:00",
+        "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+        "deniald_sha256": "878ff4c6155279264782523837cf7672273f333a9a45318a7db9cc9fbf7ce19a",
+        "egl_thread_probe_sha256": null,
+        "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "runtime_inventory_verified_by_this_runner": false,
+        "flutter_bundle": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+        "graphics_mode": "virgl",
+        "host_render_node": {
+          "path": "/dev/dri/renderD128",
+          "major": 226,
+          "minor": 128,
+          "scope": "host rendering only; no phone device"
+        },
+        "harness_sha256": "550b248068fb6df6f532962dcfca7b3c6faa9ac22af12429192a480cfe456e3d",
+        "init_source_sha256": "cc351dc5a61acce969b7ac7d2d085f2cf5c6ebdd98d33696a18d46f79cef271c",
+        "compile_command": [
+          "clang",
+          "--target=aarch64-none-elf",
+          "-fuse-ld=lld",
+          "-nostdlib",
+          "-static",
+          "-fno-pic",
+          "-fno-stack-protector",
+          "-Werror",
+          "-Wall",
+          "-Wextra",
+          "-Wl,--build-id=none,--entry=_start",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+          "-o",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/initramfs/init"
+        ],
+        "status": "FAIL",
+        "launcher_protocol_sha256": "b3f11a5f42e1893775e08b8c677d6808dfb67c2b052860589a49022ef5d0dfac",
+        "app_binary_hashes": {
+          "foot": "be6ded4faadf7c60da70c73c27830fa5b12b62e35f4a16550d2c845a5b88a169",
+          "mousepad": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab"
+        },
+        "mobile_editor": false,
+        "mobile_launcher": false,
+        "mobile_apps": true,
+        "launcher_apps_sha256": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+        "observer_sha256": "832471881e571df55ba158a6cd8a6691be4ad46b5ea51b94544873d3de029e78",
+        "shell_profile": "mobile",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-virtual-drm-6adb603bd918",
+          "--network",
+          "none",
+          "--read-only",
+          "--memory",
+          "1536m",
+          "--memory-swap",
+          "1536m",
+          "--cpus",
+          "2",
+          "--pids-limit",
+          "64",
+          "--security-opt",
+          "no-new-privileges",
+          "-v",
+          "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/initramfs.cpio.gz:/initramfs.gz:ro",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/payload:/payload:ro",
+          "--device",
+          "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+          "-e",
+          "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+          "-v",
+          "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe:/observe:rw",
+          "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+          "qemu-system-aarch64",
+          "-M",
+          "virt",
+          "-cpu",
+          "max",
+          "-smp",
+          "2",
+          "-m",
+          "1024M",
+          "-accel",
+          "tcg,thread=multi",
+          "-global",
+          "virtio-mmio.force-legacy=false",
+          "-display",
+          "egl-headless,rendernode=/dev/dri/renderD128",
+          "-monitor",
+          "none",
+          "-nic",
+          "none",
+          "-serial",
+          "stdio",
+          "-no-reboot",
+          "-kernel",
+          "/Image",
+          "-initrd",
+          "/initramfs.gz",
+          "-append",
+          "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+          "-device",
+          "virtio-gpu-gl-device,xres=540,yres=1224",
+          "-device",
+          "virtio-keyboard-device",
+          "-device",
+          "virtio-tablet-device",
+          "-device",
+          "virtio-rng-device",
+          "-fsdev",
+          "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+          "-fsdev",
+          "local,id=payload,path=/payload,security_model=none,readonly=on",
+          "-device",
+          "virtio-9p-device,fsdev=payload,mount_tag=payload",
+          "-name",
+          "rog5-virtual-drm-6adb603bd918",
+          "-qmp",
+          "unix:/observe/qmp.sock,server=on,wait=off",
+          "-vnc",
+          "unix:/observe/vnc.sock"
+        ],
+        "mobile_observation": {
+          "status": "FAIL",
+          "scope": "Local VM captures and synthetic pointer delivery only",
+          "visual_semantics": "NOT RUN: inspect screenshots separately",
+          "phone_touch": "NOT RUN",
+          "profile": "mobile",
+          "capture_backend": "UNIX VNC raw",
+          "screenshots": [
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/00-home-ready-probe-1.png",
+              "sha256": "b0ac3881aef8886fc23af7d18af680234999232cb6a6efdd9592f454c2ca5c5d",
+              "size": 4896,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/00-home-ready-probe-2.png",
+              "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+              "size": 798785,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/00-home-ready-probe-3.png",
+              "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+              "size": 650222,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/01-mousepad-launched-waiting.png",
+              "sha256": "6e453b60313206ecb6cb63e2327baf9933c5e646c1a541824bdcf18044fb087f",
+              "size": 5120,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/01-mousepad-launched.png",
+              "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+              "size": 16846,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/02-overview-or-home.png",
+              "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+              "size": 222021,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/02-home-returned-probe-1.png",
+              "sha256": "fc06b48d5ee5519f70d2a266a138b9a0a1813a975ece9ac107ad439293a8be34",
+              "size": 650073,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/03-foot-launched.png",
+              "sha256": "bf2e811409dc592062e36e393f5593524a187d3eb428df1f066d3e0da340aa07",
+              "size": 10694,
+              "width": 540,
+              "height": 1224
+            },
+            {
+              "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/04-mousepad-restored-waiting.png",
+              "sha256": "49b97beb56c9ce43e311323e89da21dcc10be8799bbbc37223fd3986d3f09fa2",
+              "size": 16998,
+              "width": 540,
+              "height": 1224
+            }
+          ],
+          "actions": [
+            {
+              "operation": "home",
+              "value": "00-home-ready"
+            },
+            {
+              "operation": "click",
+              "value": [
+                77,
+                752
+              ]
+            },
+            {
+              "operation": "client",
+              "value": [
+                "mousepad",
+                "01-mousepad-launched"
+              ]
+            },
+            {
+              "operation": "home_gesture",
+              "value": [
+                [
+                  270,
+                  1194
+                ],
+                [
+                  270,
+                  1150
+                ],
+                [
+                  270,
+                  1060
+                ],
+                [
+                  270,
+                  970
+                ],
+                [
+                  270,
+                  880
+                ]
+              ]
+            },
+            {
+              "operation": "capture",
+              "value": "02-overview-or-home"
+            },
+            {
+              "operation": "click",
+              "value": [
+                25,
+                1080
+              ]
+            },
+            {
+              "operation": "home",
+              "value": "02-home-returned"
+            },
+            {
+              "operation": "click",
+              "value": [
+                205,
+                592
+              ]
+            },
+            {
+              "operation": "client",
+              "value": [
+                "foot",
+                "03-foot-launched"
+              ]
+            },
+            {
+              "operation": "gesture",
+              "value": [
+                [
+                  270,
+                  1194
+                ],
+                [
+                  315,
+                  1194
+                ],
+                [
+                  365,
+                  1194
+                ],
+                [
+                  415,
+                  1194
+                ]
+              ]
+            }
+          ],
+          "probe": "UI launch and switch native Mousepad and Foot",
+          "launcher_reference": {
+            "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+            "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+            "size": 650222,
+            "width": 540,
+            "height": 1224
+          },
+          "launcher_tiles": {
+            "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+            "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+          },
+          "waiting_for": {
+            "operation": "client",
+            "value": [
+              "mousepad",
+              "04-mousepad-restored"
+            ]
+          },
+          "tile_checks": [
+            {
+              "capture": "00-home-ready-probe-1",
+              "matched": false
+            },
+            {
+              "capture": "00-home-ready-probe-2",
+              "matched": false
+            },
+            {
+              "capture": "00-home-ready-probe-3",
+              "matched": true
+            },
+            {
+              "capture": "02-home-returned-probe-1",
+              "matched": true
+            }
+          ],
+          "qmp": [
+            {
+              "request": {
+                "execute": "qmp_capabilities",
+                "id": 1
+              },
+              "response": {
+                "return": {},
+                "id": 1
+              }
+            },
+            {
+              "request": {
+                "execute": "query-name",
+                "id": 2
+              },
+              "response": {
+                "return": {
+                  "name": "rog5-virtual-drm-6adb603bd918"
+                },
+                "id": 2
+              }
+            },
+            {
+              "request": {
+                "execute": "query-status",
+                "id": 3
+              },
+              "response": {
+                "return": {
+                  "status": "running",
+                  "singlestep": false,
+                  "running": true
+                },
+                "id": 3
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 4,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 4681
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 20148
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 4
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 5,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 5
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 6,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 6
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 7,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 31990
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 7
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 8,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 8
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 9,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 30811
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 9
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 10,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 28400
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 10
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 11,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 25989
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 11
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 12,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 23577
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 12
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 13,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 13
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 14,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 1520
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 28936
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 14
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 15,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 15
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 16,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 16
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 17,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 12462
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 15861
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 17
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 18,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 18
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 19,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 19
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 20,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 16414
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 31990
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 20
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 21,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 21
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 22,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 19150
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 31990
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 22
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 23,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 22189
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 31990
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 23
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 24,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "x",
+                        "value": 25229
+                      }
+                    },
+                    {
+                      "type": "abs",
+                      "data": {
+                        "axis": "y",
+                        "value": 31990
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 24
+              }
+            },
+            {
+              "request": {
+                "execute": "input-send-event",
+                "id": 25,
+                "arguments": {
+                  "events": [
+                    {
+                      "type": "btn",
+                      "data": {
+                        "button": "left",
+                        "down": false
+                      }
+                    }
+                  ]
+                }
+              },
+              "response": {
+                "return": {},
+                "id": 25
+              }
+            }
+          ],
+          "error": "guest ended before observation completed",
+          "pointer_released": true
+        },
+        "qemu_exit_status": 0,
+        "drm_discovery": "PASS",
+        "deniald_kms": "NOT RUN",
+        "deniald_cli": "NOT RUN",
+        "shell_exit": "PASS",
+        "shell_rendering": {
+          "status": "PASS",
+          "scope": "Denial terminal counters; not visual or phone proof",
+          "raster_frames": 79,
+          "output_page_flips": 79,
+          "render_errors": []
+        },
+        "launcher_protocol": {
+          "status": "FAIL",
+          "scope": "owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof",
+          "owners": {
+            "mousepad": {
+              "pid": "142",
+              "start": "3477"
+            },
+            "foot": {
+              "pid": "248",
+              "start": "6642"
+            }
+          },
+          "mapped": {
+            "mousepad": true,
+            "foot": true
+          },
+          "ready": {
+            "mousepad": true,
+            "foot": true
+          },
+          "focus_history": [
+            "mousepad",
+            "foot"
+          ],
+          "focus_generation": 2,
+          "active_app": "foot",
+          "expected_sequence": [
+            "mousepad",
+            "foot",
+            "mousepad",
+            "foot"
+          ],
+          "client_state": {
+            "mousepad": {
+              "interval_seen": true,
+              "keyboard_focus": {},
+              "surfaces": {
+                "25": {
+                  "surface": "24",
+                  "title": true,
+                  "app_id": true,
+                  "configured": true,
+                  "serial": "5",
+                  "ack": true,
+                  "pending_attach": null,
+                  "committed": true,
+                  "dead": false
+                }
+              },
+              "toplevels": {
+                "26": "25"
+              }
+            },
+            "foot": {
+              "interval_seen": true,
+              "keyboard_focus": {
+                "21": "3"
+              },
+              "surfaces": {
+                "30": {
+                  "surface": "3",
+                  "title": true,
+                  "app_id": true,
+                  "configured": true,
+                  "serial": "18",
+                  "ack": true,
+                  "pending_attach": null,
+                  "committed": true,
+                  "dead": false
+                }
+              },
+              "toplevels": {
+                "31": "30"
+              }
+            }
+          },
+          "focus_visits": [
+            {
+              "app": "mousepad",
+              "interval_seen": true,
+              "presented_interval": true,
+              "presentation_observation": {
+                "status": "PASS",
+                "scope": "later global output audit interval only; not attributed to this client",
+                "client_presentation": "NOT RUN"
+              }
+            },
+            {
+              "app": "foot",
+              "interval_seen": true,
+              "presented_interval": true,
+              "presentation_observation": {
+                "status": "PASS",
+                "scope": "later global output audit interval only; not attributed to this client",
+                "client_presentation": "NOT RUN"
+              }
+            }
+          ],
+          "presentation": "NOT RUN: no attributed client presentation feedback parsed",
+          "errors": [],
+          "post_terminal_exits": [
+            "OBSERVE launcher app=foot exit=230"
+          ],
+          "visual_semantics": "NOT RUN",
+          "phone": "NOT RUN"
+        },
+        "launcher_apps_cleanup": "PASS",
+        "container_removed": true,
+        "duration_seconds": 102.4348977820191,
+        "hashes": {
+          "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+          "initramfs/stage/guest.sh": "96481cde93e42a825ff3b2fdcaf8a80769c3f1391f4e5a92dbb4bf4302fb6e28",
+          "initramfs.cpio.gz": "c222d076366667321a58af1b03dc86fc11a172b4920fad02f4cc6b9a831ba7d6",
+          "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+          "initramfs/stage/shell-profile": "868250c5a708edf6ee929304d1abab17236fe50921efd3ffc0ca6a3f71637b61",
+          "initramfs/stage/mobile-launcher": "b4380551e0e3c34fd7ef8c4c3d7af64e628f07b0635e4a1164e6af2decff4a01",
+          "initramfs/stage/launcher-apps.sh": "f8d32c2b4fb7e7bf92608cd9519277fb34bb902830dddf7e40976273fab48a69",
+          "serial.log": "931c94a9e0ce272d90fc9c2fa76e220f1a8fde4bef3caf3d7554ed17e5178b46"
+        }
+      },
+      "raw_result": {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/result.json",
+        "sha256": "e93b2fec535afadbb20d5f83381ef2837f7a2bdb56af042769c2f4dc6b67f4fc",
+        "size": 26114
+      }
+    }
+  ],
+  "visual": {
+    "status": "FAIL: visual switch and native keyboard focus disagree",
+    "ui_launch_mousepad": "PASS",
+    "overview_and_home": "PASS",
+    "ui_launch_foot": "PASS",
+    "visible_return_to_mousepad": "PASS",
+    "native_focus_return_to_mousepad": "FAIL",
+    "second_return_to_foot": "NOT RUN",
+    "records": [
+      {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/01-mousepad-launched.png",
+        "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+        "assessment": "Mousepad visible with expected /tmp/rog5-text-probe.txt title and empty document; root fixture warning visible."
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/02-overview-or-home.png",
+        "sha256": "2c4c23243c7c8f1b09952ef147d64c5df616eb05b548b93b95ee3bad425030c5",
+        "assessment": "Overview card visible over dimmed launcher after deliberate upward pull."
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/02-home-returned-probe-1.png",
+        "sha256": "fc06b48d5ee5519f70d2a266a138b9a0a1813a975ece9ac107ad439293a8be34",
+        "assessment": "Undimmed home visible after exposed-background tap; Foot and Mousepad tiles present."
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/03-foot-launched.png",
+        "sha256": "bf2e811409dc592062e36e393f5593524a187d3eb428df1f066d3e0da340aa07",
+        "assessment": "Foot terminal visible with shell prompt; C locale fallback warning is guest fixture output."
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/r3/guest-apps-r3/observe/04-mousepad-restored-waiting.png",
+        "sha256": "49b97beb56c9ce43e311323e89da21dcc10be8799bbbc37223fd3986d3f09fa2",
+        "assessment": "Mousepad visibly restored after rightward switch gesture, but native keyboard focus remains Foot in raw client log."
+      }
+    ],
+    "scope": "direct inspection of these exact VM captures; no phone or attributed client presentation-feedback qualification"
+  },
+  "active": {
+    "counts": {
+      "PASS": 92,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "complete_report": {
+      "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/active-report/summary.json",
+      "sha256": "cc9e896aa74b7430f572774f5d23e5b2cf5d8d74c7f23544af1ed2828bad54c7",
+      "size": 111128
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/active-report/summary.xml",
+      "sha256": "328654af87d4b68a969aad0417ba9c9072ce56694e7ec09ef0deb287f816f748",
+      "size": 55929
+    },
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-app-switch-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "efb9af269d4ee4508d3de012244c4add6d1a9e15",
+      "source_tree": "7ddb06c538412c091332140009ad632bc10fa029",
+      "started": "2026-09-13T02:28:29.362374+00:00",
+      "exit_status": 0,
+      "duration_seconds": 137.98822435899638
+    }
+  },
+  "retention": {
+    "record": {
+      "path": "/home/deck/.local/state/rog5-vm-app-switch-20260913-r1/duplicate-payload-retention.json",
+      "sha256": "08a6db25fd6d47841c2909a60e67ab5dbbf7b3d2f9e45ca4f7dd32e5174d7960",
+      "size": 43931
+    },
+    "files_removed": 99,
+    "bytes_reclaimed": 180278691,
+    "only_verified_duplicates": true
+  },
+  "builds": "NOT RUN: native/engine/AOT/generic kernel reused; each VM initramfs compiled separately by recorded harness",
+  "phone_operations": "NOT RUN",
+  "candidate_creation": false,
+  "signing_or_claim_operations": "NOT RUN",
+  "protected_storage_mutation": false
+}
