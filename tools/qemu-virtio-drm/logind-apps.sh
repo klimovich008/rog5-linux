@@ -12,6 +12,7 @@ prepare_authenticated_apps() {
     local writer=${5:-/run/evidence-writer} sink=${6:-/dev/vport0p1}
     local token_file=${7:-/run/apps-observe-token} app prefix manager count=0 value
     launcher_guest_guard || return $?
+    [[ -z ${logind_apps_port:-} ]] || return 1
     [[ -x $writer && ( -c $sink || -p $sink ) && -f $token_file &&
        ! -L $token_file && ! -e $text && ! -L $text ]] || return 1
     read -r logind_apps_token < "$token_file" || return $?
@@ -27,7 +28,10 @@ prepare_authenticated_apps() {
     [[ -s $state/lifecycle.sh && $(stat -c '%u %a' "$state/lifecycle.sh") == "$EUID 600" ]] || return 1
     printf '%s\n' "$text" > "$state/text-path"
     printf '%s\n' "$writer" > "$state/writer-path"
-    launcher_evidence_prepare "$state/evidence" "$sink" "$writer" || return $?
+    # One O_RDWR open owns this duplex virtio-console port. The evidence cat
+    # duplicates it for writes; this controller alone reads acknowledgements.
+    exec {logind_apps_port}<> "$sink" || return $?
+    launcher_evidence_prepare "$state/evidence" "$sink" "$writer" "$logind_apps_port" || return $?
     logind_apps_evidence_owned=1
     for app in mousepad foot; do
         [[ -p $HOME/$app.pipe && ! -L $HOME/$app.pipe ]] || return 1
@@ -153,28 +157,26 @@ logind_apps_close() {
     echo 'PASS launcher-owned Foot and editor exited0 after host observation'
 }
 run_authenticated_apps() {
-    local state=${logind_apps_state:?} fd chunk reply='' rc deadline app
+    local state=${logind_apps_state:?} fd=${logind_apps_port:?} chunk reply='' rc deadline app
     logind_apps_record "$state" 'OBSERVE authenticated launcher flow-ready' || return $?
-    exec {fd}< "$logind_apps_sink"
     deadline=$((SECONDS+60))
     while :; do
-        require_running launcher || { exec {fd}<&-; return 1; }
+        require_running launcher || { return 1; }
         for app in mousepad foot; do
             [[ ! -e $state/$app/owner ]] || logind_apps_owner "$state" "$app" >/dev/null || {
-                exec {fd}<&-; return 1;
+                return 1;
             }
         done
-        ((SECONDS<deadline)) || { exec {fd}<&-; return 124; }
+        ((SECONDS<deadline)) || { return 124; }
         chunk=''; rc=0
         IFS= read -r -t .2 -u "$fd" chunk || rc=$?
         reply+=$chunk
-        ((${#reply}<=200)) || { exec {fd}<&-; return 1; }
+        ((${#reply}<=200)) || { return 1; }
         if ((rc==0)); then
-            exec {fd}<&-
             [[ $reply == "$logind_apps_token" ]] || return 1
             break
         fi
-        ((rc>128)) || { exec {fd}<&-; return 1; }
+        ((rc>128)) || { return 1; }
     done
     for app in mousepad foot; do logind_apps_owner "$state" "$app" >/dev/null || return 1; done
     logind_apps_record "$state" 'OBSERVE authenticated launcher teardown' || return $?
@@ -199,9 +201,18 @@ cleanup_authenticated_apps() {
     return "$failed"
 }
 finish_authenticated_apps() {
-    [[ ${logind_apps_evidence_owned:-0} == 1 ]] || return 0
-    logind_apps_evidence_owned=0
-    launcher_evidence_finish
+    local rc=0
+    # Called after app/compositor writers and prefix readers are reaped, including
+    # partial preparation. Drain cat before releasing the last port descriptor.
+    if [[ ${logind_apps_evidence_owned:-0} == 1 ]]; then
+        logind_apps_evidence_owned=0
+        launcher_evidence_finish || rc=$?
+    fi
+    if [[ -n ${logind_apps_port:-} ]]; then
+        exec {logind_apps_port}>&- || { ((rc!=0)) || rc=1; }
+        unset logind_apps_port
+    fi
+    return "$rc"
 }
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
     set -euo pipefail

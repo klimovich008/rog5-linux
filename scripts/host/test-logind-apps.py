@@ -105,7 +105,7 @@ else:
         self.processes.append(child)
         return child
 
-    def controller(self, prepare_only=False):
+    def controller(self, prepare_only=False, post_prepare=""):
         code = self.prefix + r'''
 readers=(); launcher=''; logind_apps_evidence_owned=0
 dbus-update-activation-environment(){ [[ $* == '--systemd XDG_DATA_HOME' ]]; }
@@ -116,13 +116,16 @@ cleanup_fixture(){
  stop_owned_group cleanup launcher || { [[ $rc != 0 ]] || rc=1; }
  for pid in "${readers[@]}"; do kill "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; done
  readers=()
+ old_port=${logind_apps_port:-}
  finish_authenticated_apps || { [[ $rc != 0 ]] || rc=1; }
+ [[ -z $old_port || ! -e /proc/$$/fd/$old_port ]] || rc=92
  exit "$rc"
 }
 trap cleanup_fixture EXIT
 trap 'exit 130' INT
 prepare_authenticated_apps "$1" "$2" "$3" "$4" "$5" "$6" "$7"
 '''
+        code += post_prepare + "\n"
         if not prepare_only:
             code += r'''
 sleep 60 & launcher=$!
@@ -158,6 +161,66 @@ finish_authenticated_apps
         self.until(lambda: b'EDITOR_WAYLAND fixture Mousepad protocol' in self.events
                    and b'FOOT_WAYLAND ROG5 controlled terminal:' in self.events)
         return controller, editor, foot
+
+    def test_inherited_evidence_descriptor_does_not_reopen_removed_sink(self):
+        alias = self.root / 'sink'
+        alias.symlink_to(self.sink)
+        code = self.prefix + r'''
+exec {port}<> "$1"
+rm -- "$1"
+launcher_evidence_prepare "$2" "$1" "$3" "$port"
+"$3" record inherited-port > "$2/events"
+launcher_evidence_finish
+exec {port}>&-
+'''
+        child = self.spawn(['bash', '-c', code, 'fixture', str(alias),
+                            str(self.root / 'evidence'), str(self.writer)])
+        out, err = child.communicate(timeout=3)
+        self.assertEqual(child.returncode, 0, err.decode())
+        self.until(lambda: b'inherited-port\n' in self.events)
+        self.assertFalse(alias.exists())
+
+    def test_controller_reads_open_descriptor_after_sink_path_removed(self):
+        alias = self.root / 'sink'
+        alias.symlink_to(self.sink)
+        self.sink = str(alias)
+        controller = self.controller(post_prepare='rm -- "$6"')
+        self.until(lambda: b'OBSERVE authenticated launcher flow-ready\n' in self.events)
+        editor = self.launch_tile('org.xfce.mousepad.desktop')
+        foot = self.launch_tile('foot.desktop')
+        self.until(lambda: b'EDITOR_WAYLAND fixture Mousepad protocol' in self.events
+                   and b'FOOT_WAYLAND ROG5 controlled terminal:' in self.events)
+        os.write(self.master, (self.token + '\n').encode())
+        out, err = controller.communicate(timeout=8)
+        self.assertEqual(controller.returncode, 0, out.decode() + err.decode())
+        self.assertEqual(editor.wait(timeout=2), 0)
+        self.assertEqual(foot.wait(timeout=2), 0)
+        self.assertFalse(alias.exists())
+
+    def test_finish_closes_port_after_partial_setup_or_failed_drain(self):
+        for owned, status in [(0, 0), (1, 42)]:
+            with self.subTest(owned=owned):
+                code = self.prefix + r'''
+exec {logind_apps_port}<> "$1"
+old=$logind_apps_port
+logind_apps_evidence_owned=$2
+launcher_evidence_finish() { return 42; }
+rc=0; finish_authenticated_apps || rc=$?
+[[ $rc == "$3" && ! -v logind_apps_port && ! -e /proc/$$/fd/$old ]]
+finish_authenticated_apps
+'''
+                child = self.spawn(['bash', '-c', code, 'fixture', self.sink,
+                                    str(owned), str(status)])
+                out, err = child.communicate(timeout=3)
+                self.assertEqual(child.returncode, 0, err.decode())
+
+    def test_invalid_inherited_descriptor_refuses_before_state_creation(self):
+        code = self.prefix + '\nlauncher_evidence_prepare "$1" "$2" "$3" 9999'
+        child = self.spawn(['bash', '-c', code, 'fixture', str(self.root / 'evidence'),
+                            self.sink, str(self.writer)])
+        child.communicate(timeout=3)
+        self.assertNotEqual(child.returncode, 0)
+        self.assertFalse((self.root / 'evidence').exists())
 
     def test_source_defines_functions_only(self):
         result = subprocess.run(['bash', '-c', 'source "$1"', 'fixture', str(TOOLS / 'logind-apps.sh')],
