@@ -2,6 +2,7 @@
 """Bounded actual guest log snapshots; fixtures never contact a device or bus."""
 import os
 from pathlib import Path
+import signal
 import subprocess
 import tempfile
 import threading
@@ -17,7 +18,13 @@ class DiagnosticSnapshot(unittest.TestCase):
         self.events=self.state/'evidence/events';os.mkfifo(self.events)
         self.log=self.root/'denial.log';self.log.write_text('ERROR icon decode failed\n')
         self.writer=self.root/'writer';self.writer.write_text('#!/usr/bin/python3\nimport sys\nassert sys.argv[1:]==["prefix","DENIAL_DIAGNOSTIC"]\nfor line in sys.stdin.buffer:\n sys.stdout.buffer.write(b"DENIAL_DIAGNOSTIC "+line)\n');self.writer.chmod(0o700)
-    def run_snapshot(self,read=True):
+        self.bin=self.root/'bin';self.bin.mkdir()
+        self.env=dict(os.environ,PATH=str(self.bin)+':/usr/bin:/bin')
+    def producer(self,body):
+        head=self.bin/'head';head.write_text('#!/bin/sh\n'+body+'\n');head.chmod(0o700)
+    def snapshot_command(self):
+        return ['bash','--noprofile','--norc','-c','source "$1"; logind_apps_writer=$2; logind_apps_snapshot "$3" "$4"','fixture',str(SOURCE),str(self.writer),str(self.state),str(self.log)]
+    def run_snapshot(self,read=True,expect_cleanup=True):
         data=[];thread=None;stop=threading.Event()
         if read:
             # O_RDWR keeps the reader alive even if a precondition rejects before open.
@@ -31,13 +38,67 @@ class DiagnosticSnapshot(unittest.TestCase):
                         stop.wait(.005);continue
                     if b:data.append(b)
             thread=threading.Thread(target=drain);thread.start()
-        command=['bash','--noprofile','--norc','-c','source "$1"; logind_apps_writer=$2; logind_apps_snapshot "$3" "$4"','fixture',str(SOURCE),str(self.writer),str(self.state),str(self.log)]
+        command=self.snapshot_command()
         start=time.monotonic()
-        try:p=subprocess.run(command,capture_output=True,timeout=7)
+        try:p=subprocess.run(command,capture_output=True,timeout=7,env=self.env)
         finally:
             stop.set()
             if thread:thread.join(timeout=1);self.assertFalse(thread.is_alive())
+        if expect_cleanup:self.assertEqual(list(self.state.glob('snapshot.*')),[])
         return p,b''.join(data),time.monotonic()-start
+    def test_local_preparation_timeout_reports_optional_not_run(self):
+        self.producer('echo "ROG5_PICTURE partial"; exec sleep 20')
+        p,data,elapsed=self.run_snapshot()
+        self.assertEqual(p.returncode,0,p.stderr)
+        self.assertEqual(data,b'DENIAL_DIAGNOSTIC snapshot-prepare status=124 optional=NOT_RUN\n')
+        self.assertGreater(elapsed,2.8);self.assertLess(elapsed,5.5)
+    def test_local_non_timeout_failure_is_fatal(self):
+        self.producer('exit 42')
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,42)
+        self.assertEqual(data,b'')
+    def test_optional_timeout_status_delivery_failure_is_fatal(self):
+        self.producer('exit 124');self.writer.write_text('#!/bin/sh\nexit 42\n')
+        p,_,_=self.run_snapshot();self.assertEqual(p.returncode,42)
+    def test_optional_timeout_status_fifo_open_is_bounded(self):
+        self.producer('exit 124')
+        p,_,elapsed=self.run_snapshot(read=False)
+        self.assertEqual(p.returncode,124)
+        self.assertIn(b'snapshot-transport status=124',p.stderr)
+        self.assertLess(elapsed,4)
+    def test_stalled_transport_remains_fatal(self):
+        self.writer.write_text('#!/bin/sh\nexec sleep 20\n')
+        p,_,elapsed=self.run_snapshot();self.assertEqual(p.returncode,124)
+        self.assertIn(b'snapshot-transport status=124',p.stderr)
+        self.assertLess(elapsed,4)
+    def fail_cleanup(self):
+        rm=self.bin/'rm';rm.write_text('#!/bin/sh\nexit 55\n');rm.chmod(0o700)
+    def test_cleanup_failure_prevents_success(self):
+        self.fail_cleanup()
+        p,_,_=self.run_snapshot(expect_cleanup=False)
+        self.assertNotEqual(p.returncode,0)
+        self.assertEqual(len(list(self.state.glob('snapshot.*'))),1)
+    def test_cleanup_failure_preserves_transport_error(self):
+        self.fail_cleanup();self.writer.write_text('#!/bin/sh\nexit 42\n')
+        p,_,_=self.run_snapshot(expect_cleanup=False)
+        self.assertEqual(p.returncode,42)
+        self.assertEqual(len(list(self.state.glob('snapshot.*'))),1)
+    def test_interrupted_preparation_cleans_private_snapshot(self):
+        marker=self.root/'producer-started'
+        self.producer('touch "'+str(marker)+'"; exec sleep 20')
+        process=subprocess.Popen(self.snapshot_command(),env=self.env,stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,start_new_session=True)
+        try:
+            deadline=time.monotonic()+2
+            while not marker.exists() and time.monotonic()<deadline:time.sleep(.01)
+            self.assertTrue(marker.exists())
+            os.killpg(process.pid,signal.SIGTERM)
+            process.communicate(timeout=3)
+            self.assertNotEqual(process.returncode,0)
+            self.assertEqual(list(self.state.glob('snapshot.*')),[])
+        finally:
+            try:os.killpg(process.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            process.communicate(timeout=2)
     def test_real_log_is_distinct_diagnostic_evidence(self):
         p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
         self.assertEqual(data,b'DENIAL_DIAGNOSTIC ERROR icon decode failed\n')

@@ -463,6 +463,40 @@ logind_apps_snapshot() {{
     def test_periodic_snapshot_timeout_remains_failure_with_reason(self):
         self.check_snapshot_failure_reason(124, True)
 
+    def check_optional_snapshot_close(self, periodic):
+        # Exercise the actual snapshot and controller, including both owned apps.
+        # Only local log preparation is injected; required evidence still flows.
+        if periodic:
+            self.command('head', '''
+[[ $1 == -c && $2 == 1048576 ]] || exec /usr/bin/head "$@"
+count=0
+[[ ! -f $HOME/head-count ]] || read -r count < "$HOME/head-count"
+((count+=1)); printf '%s\n' "$count" > "$HOME/head-count"
+[[ $count != 3 ]] || exit 124
+exec /usr/bin/head "$@"
+''')
+        else:
+            self.command('head', '[[ $1 == -c && $2 == 1048576 ]] || exec /usr/bin/head "$@"\nexit 124\n')
+        controller, editor, foot = self.ready_apps()
+        self.until(lambda: b'DENIAL_DIAGNOSTIC snapshot-prepare status=124 optional=NOT_RUN\n'
+                   in self.events, timeout=8)
+        self.assertIsNone(controller.poll())
+        self.assertIsNone(editor.poll()); self.assertIsNone(foot.poll())
+        os.write(self.master, (self.token+'\n').encode())
+        out, err = controller.communicate(timeout=8)
+        self.assertEqual(controller.returncode, 0, out.decode()+err.decode())
+        self.assertEqual(editor.wait(timeout=2), 0)
+        self.assertEqual(foot.wait(timeout=2), 0)
+        self.assertIn(b'OBSERVE authenticated launcher teardown\n', self.events)
+        for app in ('mousepad', 'foot'):
+            self.assertEqual((self.state/app/'finished').read_text(), '0\n')
+
+    def test_optional_snapshot_preparation_timeout_keeps_authenticated_close(self):
+        self.check_optional_snapshot_close(False)
+
+    def test_optional_periodic_preparation_timeout_keeps_authenticated_close(self):
+        self.check_optional_snapshot_close(True)
+
     def test_real_session_finish_passes_original_status_before_cleanup(self):
         finish = re.search(r'^finish\(\) \{.*?^\}', MAIN, re.M | re.S).group()
         marker = self.root/'apps-probe'; marker.touch()

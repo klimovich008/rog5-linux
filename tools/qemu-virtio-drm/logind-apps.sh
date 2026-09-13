@@ -6,12 +6,18 @@ logind_apps_record() {
     [[ -p $state/evidence/events && ! -L $state/evidence/events ]] || return 1
     timeout -k 1 2 "$logind_apps_writer" record "$*" > "$state/evidence/events"
 }
-logind_apps_snapshot() {
-    local state=$1 log=$2
+logind_apps_snapshot() (
+    local state=$1 log=$2 snapshot status=0
     [[ -f $log && ! -L $log && -p $state/evidence/events &&
        ! -L $state/evidence/events ]] || return 1
+    snapshot=$(mktemp -- "$state/snapshot.XXXXXXXX") || return $?
+    # A function subshell owns these traps without replacing the controller's.
+    trap 'status=$?; trap - EXIT; rm -f -- "$snapshot" || { [[ $status != 0 ]] || status=1; }; exit "$status"' EXIT
+    trap 'exit 143' TERM
+    trap 'exit 130' INT
     # Diagnostics are data, never client protocol or completion evidence.
-    # Bound the entire pipeline, including a FIFO with no remaining reader.
+    # Prepare them locally: this optional work must not share a deadline with
+    # required evidence transport. Never publish a partially prepared snapshot.
     timeout -k 1 3 /usr/bin/bash --noprofile --norc -c '
         set -o pipefail
         {
@@ -64,10 +70,25 @@ logind_apps_snapshot() {
         } |
         LC_ALL=C awk '\''BEGIN {remaining=30720}
             {line=substr($0,1,2000); cost=length(line)+19
-             if (cost<=remaining) {print line; remaining-=cost}}'\'' |
-        "$3" prefix DENIAL_DIAGNOSTIC > "$2/evidence/events"
-    ' diagnostic-snapshot "$log" "$state" "$logind_apps_writer"
-}
+             if (cost<=remaining) {print line; remaining-=cost}}'\'' > "$2"
+    ' diagnostic-snapshot "$log" "$snapshot" || status=$?
+    if [[ $status == 124 ]]; then
+        printf '%s\n' 'snapshot-prepare status=124 optional=NOT_RUN' > "$snapshot" || return $?
+    elif [[ $status != 0 ]]; then
+        printf 'DENIAL_DIAGNOSTIC snapshot-prepare status=%s optional=ERROR\n' "$status" >&2
+        return "$status"
+    fi
+    status=0
+    # FIFO open belongs inside timeout, even when only the NOT_RUN record is
+    # sent. Losing transport is fatal; it must never become optional success.
+    timeout -k 1 2 /usr/bin/bash --noprofile --norc -c '
+        exec "$1" prefix DENIAL_DIAGNOSTIC < "$2" > "$3"
+    ' diagnostic-transport "$logind_apps_writer" "$snapshot" "$state/evidence/events" || status=$?
+    if [[ $status != 0 ]]; then
+        printf 'DENIAL_DIAGNOSTIC snapshot-transport status=%s\n' "$status" >&2
+    fi
+    return "$status"
+)
 prepare_authenticated_apps() {
     local state=${1:-$HOME/launcher-apps} desktops=${2:-/usr/share/applications}
     local wrapper=${3:-/run/logind-apps.sh} text=${4:-/tmp/rog5-text-probe.txt}

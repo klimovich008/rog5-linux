@@ -8311,7 +8311,7 @@
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 30,
+      "deadline_seconds": 45,
       "prerequisites": [
         "python3",
         "bash"
@@ -8339,13 +8339,16 @@
         "rootfs"
       ],
       "mandatory": true,
-      "deadline_seconds": 15,
+      "deadline_seconds": 30,
       "prerequisites": [
         "python3",
         "bash",
         "tail",
         "awk",
-        "timeout"
+        "timeout",
+        "head",
+        "mktemp",
+        "rm"
       ],
       "resource_class": "isolated",
       "exclusivity_group": "none",
