@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Deferred-scene fix built; VM icons and two-app switching observed; caret baseline fails",
+  "phase": "GTK caret publication fixed offline; ARM64 module load passes; VM treatment pending",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Engine fix passes20 source cases, optimized repeat and105 active suites; ten ARM64 objects rebuilt. Engine-only VM shows icons and Mousepad\u2192Foot\u2192Mousepad, then fails lower-caret baseline. Client receives the low pointer press and damages a low caret region, while text-input still publishes the old top-row rectangle. Trace the exact GTK/IM spot-location publication before changing coordinate mapping or deadlines. Preserve expired-work guards, S06/R01 FAIL and physical NOT RUN; no phone operations.",
-  "evidence": "test-results/2026-09-13-pending-scene.md"
+  "next": "GTK source regression reproduces missing cursor publication; patch passes15 cases and ARM64 build/discovery. Stage an explicit hash-checked read-only VM module override before GTK cache generation, then repeat the real lower-caret/OSK sequence with unchanged engine/native/shell. Preserve earlier VM FAIL, S06/R01 FAIL and phone physical NOT RUN; no phone operations.",
+  "evidence": "test-results/2026-09-13-gtk-caret.md"
 }

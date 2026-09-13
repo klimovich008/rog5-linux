@@ -3128,3 +3128,14 @@ only on structural output changes. Reuse the previous verified link inputs and
 recompile the complete affected-header closure; this fix needed10 objects, not
 another complete engine build. VM results remain separate from source proof
 and from phone hardware qualification.
+
+GTK caret publication (2026-09-13): a low pointer press and low caret damage
+with an old text-input rectangle can isolate client IM publication from compositor
+coordinate mapping. Execute the actual setter/notification/commit path, and
+refresh surrounding text with geometry. Test retrieval reentry and focus loss.
+Use the existing process-group supervisor for source fixtures before freezing
+the integrated tier; plain subprocess timeouts do not supervise compiler children.
+A standalone GTK IM module built in under one second against the original Arch
+materialization; the mapped VM view is not a compiler sysroot because it encodes
+symlinks. Verify real ARM64 module discovery separately from interactive caret
+behavior, and keep immutable runtime replacement opt-in and VM-only.

@@ -1,0 +1,1125 @@
+{
+  "status": "SOURCE_FIX_BUILD_LOAD_PASS_VM_NOT_RUN",
+  "authority": "none; offline source/build/load fixture",
+  "source": {
+    "commit": "57a096e36406fef5ad557bae831eeccae32b474d",
+    "tree": "48fbac80bd7812b0638471a83e2a5f4a83a4c3a0"
+  },
+  "starting_commit": "0e7acb266fc2e326d9d0b84aaab33d5de27d52d5",
+  "previous_turn": "PROGRESS: verified cold archives reclaimed host space; no phone qualification",
+  "negative_control": {
+    "status": "FAIL",
+    "base_commit": "6a0b360d473f7c546314738c0c8dd9829eb9d3c2",
+    "unpatched": true,
+    "scope": "Host C source-function regression; GTK widget signals/window/protocol are adapters, short ASCII only; no real GTK/Wayland/phone execution",
+    "sections": {
+      "notify_im_change": "1944f4ff41f09c5e22a22ff8af57977c9bedeb99a2f6871394a2f2a288ca29f8",
+      "text_input_done": "1870adaf45cc8178f3ba4500c37ad37ccac2d9e532b0743902736a1b0886c236",
+      "notify_surrounding_text": "268591b0957a7b22b1490ec3da1470a8e079536e6fa5897233937107eb1499ff",
+      "notify_cursor_location": "dbace763f839a75472b57a282bc728b0a22fdcb5683db6e0215eae63fc9409f8",
+      "commit_state": "a80396854a4bb15ffc3d8f71e045f91b751d3471a2f3e67117a84826c29c9e2f",
+      "enable": "d2bd81e1e61ef8b1885434a674ec681da8168811ad6a15303b2108f95a944b36",
+      "gtk_im_context_wayland_reset": "b1e788fce8b651a46c6f99689b24f2227022a08757a161d832a1d89f56b52efb",
+      "gtk_im_context_wayland_set_cursor_location": "7fb7e5055bd0451a6885e1a9dc3b93e62c174c84b7ce2e4505ce061e346d4903",
+      "gtk_im_context_wayland_set_surrounding": "734a1c05519c12b1f6fe89b8d7b0e285e9951d75c35c3f75e22b35638f3806a4"
+    },
+    "runs": [
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "reset-then-low"
+        ],
+        "status": "FAIL",
+        "reason": "exit 1",
+        "seconds": 0.08471251701121219,
+        "stdout": "",
+        "stderr": "FAIL: new low spot must commit without release/key/focus\n",
+        "case": "reset-then-low"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "unchanged"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08459998498437926,
+        "stdout": "PASS unchanged\n",
+        "stderr": "",
+        "case": "unchanged"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "small-move"
+        ],
+        "status": "FAIL",
+        "reason": "exit 1",
+        "seconds": 0.08489762799581513,
+        "stdout": "",
+        "stderr": "FAIL: small moves publish without gesture reset\n",
+        "case": "small-move"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "pending-done"
+        ],
+        "status": "FAIL",
+        "reason": "exit 1",
+        "seconds": 0.08489595801802352,
+        "stdout": "",
+        "stderr": "FAIL: outstanding done must not starve geometry\n",
+        "case": "pending-done"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "reentry"
+        ],
+        "status": "FAIL",
+        "reason": "exit 1",
+        "seconds": 0.08412046000012197,
+        "stdout": "",
+        "stderr": "FAIL: same-rect retrieval reentry terminates\n",
+        "case": "reentry"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "retrieve-focus-out"
+        ],
+        "status": "FAIL",
+        "reason": "exit 1",
+        "seconds": 0.08419426999171264,
+        "stdout": "",
+        "stderr": "FAIL: retrieval state change stops publication\n",
+        "case": "retrieve-focus-out"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "retrieve-disabled"
+        ],
+        "status": "FAIL",
+        "reason": "exit 1",
+        "seconds": 0.08405097899958491,
+        "stdout": "",
+        "stderr": "FAIL: retrieval state change stops publication\n",
+        "case": "retrieve-disabled"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "disabled-enable"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08407815001555718,
+        "stdout": "PASS disabled-enable\n",
+        "stderr": "",
+        "case": "disabled-enable"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "no-global"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08430182299343869,
+        "stdout": "PASS no-global\n",
+        "stderr": "",
+        "case": "no-global"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "no-proxy"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08418424197589047,
+        "stdout": "PASS no-proxy\n",
+        "stderr": "",
+        "case": "no-proxy"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "no-current"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08427943201968446,
+        "stdout": "PASS no-current\n",
+        "stderr": "",
+        "case": "no-current"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "wrong-current"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08433336301823147,
+        "stdout": "PASS wrong-current\n",
+        "stderr": "",
+        "case": "wrong-current"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "unfocused"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08481271800701506,
+        "stdout": "PASS unfocused\n",
+        "stderr": "",
+        "case": "unfocused"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "no-window"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08427659200970083,
+        "stdout": "PASS no-window\n",
+        "stderr": "",
+        "case": "no-window"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture",
+          "disabled"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08424338200711645,
+        "stdout": "PASS disabled\n",
+        "stderr": "",
+        "case": "disabled"
+      }
+    ],
+    "process_runner_sha256": "44bf4da44ec26a89cb9e4412f0bff16177d487969fc54bc8f26f84878b34135c",
+    "source_sha256": "7f5bf63f9ad71da36d625d0870692f49bc6351a71757c0f8ac1fcec38c613c37",
+    "patched_source_sha256": "7f5bf63f9ad71da36d625d0870692f49bc6351a71757c0f8ac1fcec38c613c37",
+    "fixture_sha256": "14ae2f302863b752d2b34f09c315c35b00efdc5df14da7f7a958c14ce1b60705",
+    "compile": {
+      "command": [
+        "cc",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-misleading-indentation",
+        "-Wno-sign-compare",
+        "-Wno-unused-parameter",
+        "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture.c",
+        "-o",
+        "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/control-final-r2/fixture"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "seconds": 0.2060599510150496,
+      "stdout": "",
+      "stderr": ""
+    },
+    "seconds": 1.488538461009739,
+    "counts": {
+      "PASS": 9,
+      "FAIL": 6
+    }
+  },
+  "fixed": {
+    "status": "PASS",
+    "base_commit": "6a0b360d473f7c546314738c0c8dd9829eb9d3c2",
+    "unpatched": false,
+    "scope": "Host C source-function regression; GTK widget signals/window/protocol are adapters, short ASCII only; no real GTK/Wayland/phone execution",
+    "sections": {
+      "notify_im_change": "1944f4ff41f09c5e22a22ff8af57977c9bedeb99a2f6871394a2f2a288ca29f8",
+      "text_input_done": "1870adaf45cc8178f3ba4500c37ad37ccac2d9e532b0743902736a1b0886c236",
+      "notify_surrounding_text": "268591b0957a7b22b1490ec3da1470a8e079536e6fa5897233937107eb1499ff",
+      "notify_cursor_location": "dbace763f839a75472b57a282bc728b0a22fdcb5683db6e0215eae63fc9409f8",
+      "commit_state": "a80396854a4bb15ffc3d8f71e045f91b751d3471a2f3e67117a84826c29c9e2f",
+      "enable": "d2bd81e1e61ef8b1885434a674ec681da8168811ad6a15303b2108f95a944b36",
+      "gtk_im_context_wayland_reset": "b1e788fce8b651a46c6f99689b24f2227022a08757a161d832a1d89f56b52efb",
+      "gtk_im_context_wayland_set_cursor_location": "536cf6d9490b584eb3b7c030a4706623f6e3efafb6b759d3a1773dee994da9e6",
+      "gtk_im_context_wayland_set_surrounding": "734a1c05519c12b1f6fe89b8d7b0e285e9951d75c35c3f75e22b35638f3806a4"
+    },
+    "runs": [
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "reset-then-low"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08440068998606876,
+        "stdout": "PASS reset-then-low\n",
+        "stderr": "",
+        "case": "reset-then-low"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "unchanged"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08452822099206969,
+        "stdout": "PASS unchanged\n",
+        "stderr": "",
+        "case": "unchanged"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "small-move"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08445937998476438,
+        "stdout": "PASS small-move\n",
+        "stderr": "",
+        "case": "small-move"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "pending-done"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08421256800647825,
+        "stdout": "PASS pending-done\n",
+        "stderr": "",
+        "case": "pending-done"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "reentry"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.09169360299711116,
+        "stdout": "PASS reentry\n",
+        "stderr": "",
+        "case": "reentry"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "retrieve-focus-out"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08396763500059023,
+        "stdout": "PASS retrieve-focus-out\n",
+        "stderr": "",
+        "case": "retrieve-focus-out"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "retrieve-disabled"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08430532901547849,
+        "stdout": "PASS retrieve-disabled\n",
+        "stderr": "",
+        "case": "retrieve-disabled"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "disabled-enable"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08449491098872386,
+        "stdout": "PASS disabled-enable\n",
+        "stderr": "",
+        "case": "disabled-enable"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "no-global"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08443405097932555,
+        "stdout": "PASS no-global\n",
+        "stderr": "",
+        "case": "no-global"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "no-proxy"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08449622199987061,
+        "stdout": "PASS no-proxy\n",
+        "stderr": "",
+        "case": "no-proxy"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "no-current"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08422525902278721,
+        "stdout": "PASS no-current\n",
+        "stderr": "",
+        "case": "no-current"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "wrong-current"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08416508801747113,
+        "stdout": "PASS wrong-current\n",
+        "stderr": "",
+        "case": "wrong-current"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "unfocused"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08465912300744094,
+        "stdout": "PASS unfocused\n",
+        "stderr": "",
+        "case": "unfocused"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "no-window"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08429575900663622,
+        "stdout": "PASS no-window\n",
+        "stderr": "",
+        "case": "no-window"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture",
+          "disabled"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08901522698579356,
+        "stdout": "PASS disabled\n",
+        "stderr": "",
+        "case": "disabled"
+      }
+    ],
+    "process_runner_sha256": "44bf4da44ec26a89cb9e4412f0bff16177d487969fc54bc8f26f84878b34135c",
+    "source_sha256": "7f5bf63f9ad71da36d625d0870692f49bc6351a71757c0f8ac1fcec38c613c37",
+    "patch_sha256": "b0ed856690bbcfe542fea5506d88edebcc035a5fae81c70a05e352e4cc6e34bc",
+    "patched_source_sha256": "311ffa7483ef99f0cdf6bd3f585d1e418fc137e496f6d0668600edb61e48475d",
+    "fixture_sha256": "14ae2f302863b752d2b34f09c315c35b00efdc5df14da7f7a958c14ce1b60705",
+    "compile": {
+      "command": [
+        "cc",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-misleading-indentation",
+        "-Wno-sign-compare",
+        "-Wno-unused-parameter",
+        "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture.c",
+        "-o",
+        "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-r2/fixture"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "seconds": 0.21245195899973623,
+      "stdout": "",
+      "stderr": ""
+    },
+    "seconds": 1.513615125004435,
+    "counts": {
+      "PASS": 15,
+      "FAIL": 0
+    }
+  },
+  "optimized": {
+    "status": "PASS",
+    "base_commit": "6a0b360d473f7c546314738c0c8dd9829eb9d3c2",
+    "unpatched": false,
+    "scope": "Host C source-function regression; GTK widget signals/window/protocol are adapters, short ASCII only; no real GTK/Wayland/phone execution",
+    "sections": {
+      "notify_im_change": "1944f4ff41f09c5e22a22ff8af57977c9bedeb99a2f6871394a2f2a288ca29f8",
+      "text_input_done": "1870adaf45cc8178f3ba4500c37ad37ccac2d9e532b0743902736a1b0886c236",
+      "notify_surrounding_text": "268591b0957a7b22b1490ec3da1470a8e079536e6fa5897233937107eb1499ff",
+      "notify_cursor_location": "dbace763f839a75472b57a282bc728b0a22fdcb5683db6e0215eae63fc9409f8",
+      "commit_state": "a80396854a4bb15ffc3d8f71e045f91b751d3471a2f3e67117a84826c29c9e2f",
+      "enable": "d2bd81e1e61ef8b1885434a674ec681da8168811ad6a15303b2108f95a944b36",
+      "gtk_im_context_wayland_reset": "b1e788fce8b651a46c6f99689b24f2227022a08757a161d832a1d89f56b52efb",
+      "gtk_im_context_wayland_set_cursor_location": "536cf6d9490b584eb3b7c030a4706623f6e3efafb6b759d3a1773dee994da9e6",
+      "gtk_im_context_wayland_set_surrounding": "734a1c05519c12b1f6fe89b8d7b0e285e9951d75c35c3f75e22b35638f3806a4"
+    },
+    "runs": [
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "reset-then-low"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08456000502337702,
+        "stdout": "PASS reset-then-low\n",
+        "stderr": "",
+        "case": "reset-then-low"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "unchanged"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08543362299678847,
+        "stdout": "PASS unchanged\n",
+        "stderr": "",
+        "case": "unchanged"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "small-move"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08495925800525583,
+        "stdout": "PASS small-move\n",
+        "stderr": "",
+        "case": "small-move"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "pending-done"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08475442699273117,
+        "stdout": "PASS pending-done\n",
+        "stderr": "",
+        "case": "pending-done"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "reentry"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08468696600175463,
+        "stdout": "PASS reentry\n",
+        "stderr": "",
+        "case": "reentry"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "retrieve-focus-out"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.0846325549937319,
+        "stdout": "PASS retrieve-focus-out\n",
+        "stderr": "",
+        "case": "retrieve-focus-out"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "retrieve-disabled"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08485101800761186,
+        "stdout": "PASS retrieve-disabled\n",
+        "stderr": "",
+        "case": "retrieve-disabled"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "disabled-enable"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08447272397461347,
+        "stdout": "PASS disabled-enable\n",
+        "stderr": "",
+        "case": "disabled-enable"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "no-global"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08446995398844592,
+        "stdout": "PASS no-global\n",
+        "stderr": "",
+        "case": "no-global"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "no-proxy"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.0847676680132281,
+        "stdout": "PASS no-proxy\n",
+        "stderr": "",
+        "case": "no-proxy"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "no-current"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.0847662570013199,
+        "stdout": "PASS no-current\n",
+        "stderr": "",
+        "case": "no-current"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "wrong-current"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08445203400333412,
+        "stdout": "PASS wrong-current\n",
+        "stderr": "",
+        "case": "wrong-current"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "unfocused"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08591505899676122,
+        "stdout": "PASS unfocused\n",
+        "stderr": "",
+        "case": "unfocused"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "no-window"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08444804398459382,
+        "stdout": "PASS no-window\n",
+        "stderr": "",
+        "case": "no-window"
+      },
+      {
+        "command": [
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture",
+          "disabled"
+        ],
+        "status": "PASS",
+        "reason": "exit 0",
+        "seconds": 0.08457240500138141,
+        "stdout": "PASS disabled\n",
+        "stderr": "",
+        "case": "disabled"
+      }
+    ],
+    "process_runner_sha256": "44bf4da44ec26a89cb9e4412f0bff16177d487969fc54bc8f26f84878b34135c",
+    "source_sha256": "7f5bf63f9ad71da36d625d0870692f49bc6351a71757c0f8ac1fcec38c613c37",
+    "patch_sha256": "b0ed856690bbcfe542fea5506d88edebcc035a5fae81c70a05e352e4cc6e34bc",
+    "patched_source_sha256": "311ffa7483ef99f0cdf6bd3f585d1e418fc137e496f6d0668600edb61e48475d",
+    "fixture_sha256": "14ae2f302863b752d2b34f09c315c35b00efdc5df14da7f7a958c14ce1b60705",
+    "compile": {
+      "command": [
+        "cc",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-misleading-indentation",
+        "-Wno-sign-compare",
+        "-Wno-unused-parameter",
+        "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture.c",
+        "-o",
+        "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/patched-final-optimized-r2/fixture"
+      ],
+      "status": "PASS",
+      "reason": "exit 0",
+      "seconds": 0.2055488360056188,
+      "stdout": "",
+      "stderr": ""
+    },
+    "seconds": 1.5051835219783243,
+    "counts": {
+      "PASS": 15,
+      "FAIL": 0
+    }
+  },
+  "module": {
+    "status": "PASS",
+    "source": {
+      "commit": "fce5563dc70d432a71038c5d31479c2d22468f9b",
+      "tree": "d74579c9a182b06f172209c664b24b2040e56554"
+    },
+    "module": {
+      "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/im-wayland.so",
+      "sha256": "e69946659de0fbe3bb3a514b00340d362cc23f9cfc38cdabc2f05a72ad14c295",
+      "bytes": 74312
+    },
+    "source_files": [
+      {
+        "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-source-r1/imwayland.c",
+        "sha256": "311ffa7483ef99f0cdf6bd3f585d1e418fc137e496f6d0668600edb61e48475d",
+        "bytes": 31445
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-source-r1/config.h",
+        "sha256": "e0a05e90b35f9246e75834af876fb7f035cdb1bda9e97d23e3fe5b97d5732718",
+        "bytes": 95
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-source-r1/gtk/gtkintl.h",
+        "sha256": "954b7534c7eecc35623da99908ef5bcea474bb83744e3851f07c0f33bdee75cd",
+        "bytes": 324
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-source-r1/text-input-unstable-v3.xml",
+        "sha256": "89ba8a5c5beb1a234f575cf6af477e47c70f28fdd5c21b9b2ab924762f0bc4e8",
+        "bytes": 20598
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/text-input-unstable-v3-client-protocol.h",
+        "sha256": "67772afbbed485acfe67c7f5ea54622fbdb0ae009e69965d38eb0233233e8bc3",
+        "bytes": 28948
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/text-input-unstable-v3-protocol.c",
+        "sha256": "328617d6f4d21ec2315d2f545b7e320446861f5425f40f09ad2f913f63e7a82d",
+        "bytes": 3605
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/include/gdk/wayland/gdkwayland.h",
+        "sha256": "bcf6fd21e69630cf818ab849949f4ba5f1947e06af2fb2dc08bc03df03ecaa0b",
+        "bytes": 1459
+      }
+    ],
+    "toolchain": {
+      "container_image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "compiler_version": "aarch64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+      "tools": [
+        {
+          "path": "/usr/bin/aarch64-linux-gnu-gcc-13",
+          "sha256": "cd90adc7801f4595267f61a5d25bd3a0c6beb2f9f1f107ab919a97a12972dc9a",
+          "bytes": 1723848
+        },
+        {
+          "path": "/usr/libexec/gcc-cross/aarch64-linux-gnu/13/cc1",
+          "sha256": "a7f69616cf8ddbf5c52a5b61bc4c11f504ed9421e282e9083f0a7a22a3268dad",
+          "bytes": 31329392
+        },
+        {
+          "path": "/usr/bin/aarch64-linux-gnu-ld.bfd",
+          "sha256": "7c903ac277dd1f5c4397277db865f12d8239fe45782f71afbeb3d42180a4b1ae",
+          "bytes": 1690464
+        }
+      ]
+    },
+    "host_tools": [
+      {
+        "path": "/usr/bin/wayland-scanner",
+        "sha256": "a1a077a59e0ed46bbf250d3cbe6bf4d52b802b785d43ee856dee80f1d5910b6f",
+        "bytes": 47208
+      },
+      {
+        "path": "/usr/bin/pkgconf",
+        "sha256": "907d4703d8de943f2abfc1234464a39ae4a009a15f4c4dca8392370ee0fc5062",
+        "bytes": 41096
+      },
+      {
+        "path": "/usr/bin/qemu-aarch64-static",
+        "sha256": "ed7369115e3e3dbf6f4e2c491f2554153dc37e3f5484dd56ed51b434caf4c867",
+        "bytes": 6348264
+      }
+    ],
+    "runtime_inventory": {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/tree.json",
+      "sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+      "bytes": 10419681
+    },
+    "baseline_module": {
+      "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/gtk-3.0/3.0.0/immodules/im-wayland.so",
+      "sha256": "131de05564f6f24d54d35190742d17ffb9f302fdabdfe242b6bee0d709491d6a",
+      "bytes": 67656
+    },
+    "build": {
+      "status": "PASS",
+      "runs": [
+        {
+          "command": [
+            "/usr/bin/wayland-scanner",
+            "client-header",
+            "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-source-r1/text-input-unstable-v3.xml",
+            "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/text-input-unstable-v3-client-protocol.h"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "seconds": 0.003908190003130585
+        },
+        {
+          "command": [
+            "/usr/bin/wayland-scanner",
+            "private-code",
+            "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-source-r1/text-input-unstable-v3.xml",
+            "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/text-input-unstable-v3-protocol.c"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "seconds": 0.0035825339728035033
+        },
+        {
+          "command": [
+            "pkg-config",
+            "--cflags",
+            "--libs",
+            "gtk+-3.0",
+            "wayland-client"
+          ],
+          "exit": 0,
+          "stdout": "-I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/gtk-3.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/pango-1.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/cloudproviders -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/cairo -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/gdk-pixbuf-2.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/glycin-2 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/at-spi2-atk/2.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/at-spi-2.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/atk-1.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/dbus-1.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/dbus-1.0/include -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/fribidi -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/pixman-1 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/harfbuzz -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/freetype2 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/libpng16 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/gio-unix-2.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/glib-2.0 -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib/glib-2.0/include -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/libmount -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/blkid -I/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include/sysprof-6 -pthread -L/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/lib -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lcairo-gobject -lgdk_pixbuf-2.0 -latk-1.0 -lpango-1.0 -lcairo -lharfbuzz -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lz -lwayland-client -lm\n",
+          "stderr": "",
+          "seconds": 0.008863713999744505
+        },
+        {
+          "command": [
+            "podman",
+            "run",
+            "--rm",
+            "--name",
+            "rog5-gtk-caret-build-r2",
+            "--network=none",
+            "--memory=512m",
+            "--memory-swap=512m",
+            "--pids-limit=64",
+            "--cpus=1",
+            "--cap-drop=all",
+            "--security-opt=no-new-privileges",
+            "-v",
+            "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/sysroot:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-source-r1:/src:ro",
+            "-v",
+            "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2:/build:rw",
+            "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+            "/usr/bin/aarch64-linux-gnu-gcc",
+            "--sysroot=/sysroot",
+            "-fPIC",
+            "-O2",
+            "-shared",
+            "-I/src",
+            "-I/build",
+            "-I/build/include",
+            "-MMD",
+            "-MF",
+            "/build/dependencies.d",
+            "/src/imwayland.c",
+            "/build/text-input-unstable-v3-protocol.c",
+            "-o",
+            "/build/im-wayland.so",
+            "-Wl,-z,defs,-z,relro,-z,now,--as-needed",
+            "-Wl,-rpath-link,/sysroot/usr/lib",
+            "-I/sysroot/usr/include/gtk-3.0",
+            "-I/sysroot/usr/include/pango-1.0",
+            "-I/sysroot/usr/include",
+            "-I/sysroot/usr/include/cloudproviders",
+            "-I/sysroot/usr/include/cairo",
+            "-I/sysroot/usr/include/gdk-pixbuf-2.0",
+            "-I/sysroot/usr/include/glycin-2",
+            "-I/sysroot/usr/include/at-spi2-atk/2.0",
+            "-I/sysroot/usr/include/at-spi-2.0",
+            "-I/sysroot/usr/include/atk-1.0",
+            "-I/sysroot/usr/include/dbus-1.0",
+            "-I/sysroot/usr/lib/dbus-1.0/include",
+            "-I/sysroot/usr/include/fribidi",
+            "-I/sysroot/usr/include/pixman-1",
+            "-I/sysroot/usr/include/harfbuzz",
+            "-I/sysroot/usr/include/freetype2",
+            "-I/sysroot/usr/include/libpng16",
+            "-I/sysroot/usr/include/gio-unix-2.0",
+            "-I/sysroot/usr/include/glib-2.0",
+            "-I/sysroot/usr/lib/glib-2.0/include",
+            "-I/sysroot/usr/include/libmount",
+            "-I/sysroot/usr/include/blkid",
+            "-I/sysroot/usr/include/sysprof-6",
+            "-pthread",
+            "-L/sysroot/usr/lib",
+            "-lgtk-3",
+            "-lgdk-3",
+            "-lpangocairo-1.0",
+            "-lcairo-gobject",
+            "-lgdk_pixbuf-2.0",
+            "-latk-1.0",
+            "-lpango-1.0",
+            "-lcairo",
+            "-lharfbuzz",
+            "-lgio-2.0",
+            "-lgobject-2.0",
+            "-lglib-2.0",
+            "-lz",
+            "-lwayland-client",
+            "-lm"
+          ],
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "seconds": 0.9530613569950219
+        }
+      ],
+      "seconds": 0.9731117209885269,
+      "container_image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "phone_operations": 0,
+      "module_sha256": "e69946659de0fbe3bb3a514b00340d362cc23f9cfc38cdabc2f05a72ad14c295",
+      "module_size": 74312
+    },
+    "query": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--quiet",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-gtk-caret-query-r1",
+        "-p",
+        "MemoryMax=256M",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=32",
+        "-p",
+        "RuntimeMaxSec=30s",
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--cap-drop",
+        "ALL",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+        "/",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--tmpfs",
+        "/tmp",
+        "--ro-bind",
+        "/usr/bin/qemu-aarch64-static",
+        "/tmp/qemu",
+        "--ro-bind",
+        "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/im-wayland.so",
+        "/tmp/im-wayland.so",
+        "--clearenv",
+        "--setenv",
+        "HOME",
+        "/tmp",
+        "--setenv",
+        "LC_ALL",
+        "C",
+        "--",
+        "/tmp/qemu",
+        "/usr/bin/gtk-query-immodules-3.0",
+        "/tmp/im-wayland.so"
+      ],
+      "exit": 0,
+      "stdout": "# GTK+ Input Method Modules file\n# Automatically generated file, do not edit\n# Created by /usr/bin/gtk-query-immodules-3.0 from gtk+-3.24.52\n#\n\"/tmp/im-wayland.so\" \n\"wayland\" \"Wayland\" \"gtk30\" \"/usr/share/locale\" \"\" \n\n\n",
+      "stderr": "",
+      "seconds": 0.24928355199517682,
+      "phone_operations": 0,
+      "status": "PASS"
+    },
+    "limitations": [
+      "Upstream source corresponds to packaged version; exact distro packaging patch set not reproduced",
+      "Source test uses widget/protocol adapters; full widget and interactive VM treatment NOT RUN",
+      "No runtime payload replacement, signing, claim or phone execution"
+    ]
+  },
+  "elf_check": {
+    "status": "PASS",
+    "checks": {
+      "-h": {
+        "command": [
+          "readelf",
+          "-h",
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/im-wayland.so"
+        ],
+        "stdout": "ELF Header:\n  Magic:   7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00 \n  Class:                             ELF64\n  Data:                              2's complement, little endian\n  Version:                           1 (current)\n  OS/ABI:                            UNIX - System V\n  ABI Version:                       0\n  Type:                              DYN (Shared object file)\n  Machine:                           AArch64\n  Version:                           0x1\n  Entry point address:               0x0\n  Start of program headers:          64 (bytes into file)\n  Start of section headers:          72584 (bytes into file)\n  Flags:                             0x0\n  Size of this header:               64 (bytes)\n  Size of program headers:           56 (bytes)\n  Number of program headers:         7\n  Size of section headers:           64 (bytes)\n  Number of section headers:         27\n  Section header string table index: 26\n",
+        "stderr": ""
+      },
+      "-d": {
+        "command": [
+          "readelf",
+          "-d",
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/im-wayland.so"
+        ],
+        "stdout": "\nDynamic section at offset 0xfbf0 contains 33 entries:\n  Tag        Type                         Name/Value\n 0x0000000000000001 (NEEDED)             Shared library: [libgtk-3.so.0]\n 0x0000000000000001 (NEEDED)             Shared library: [libgdk-3.so.0]\n 0x0000000000000001 (NEEDED)             Shared library: [libpango-1.0.so.0]\n 0x0000000000000001 (NEEDED)             Shared library: [libgobject-2.0.so.0]\n 0x0000000000000001 (NEEDED)             Shared library: [libglib-2.0.so.0]\n 0x0000000000000001 (NEEDED)             Shared library: [libwayland-client.so.0]\n 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-aarch64.so.1]\n 0x000000000000000c (INIT)               0x18c0\n 0x000000000000000d (FINI)               0x343c\n 0x0000000000000019 (INIT_ARRAY)         0x1f9a8\n 0x000000000000001b (INIT_ARRAYSZ)       8 (bytes)\n 0x000000000000001a (FINI_ARRAY)         0x1f9b0\n 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)\n 0x000000006ffffef5 (GNU_HASH)           0x1f0\n 0x0000000000000005 (STRTAB)             0x780\n 0x0000000000000006 (SYMTAB)             0x228\n 0x000000000000000a (STRSZ)              1209 (bytes)\n 0x000000000000000b (SYMENT)             24 (bytes)\n 0x0000000000000003 (PLTGOT)             0x1fe40\n 0x0000000000000002 (PLTRELSZ)           1008 (bytes)\n 0x0000000000000014 (PLTREL)             RELA\n 0x0000000000000017 (JMPREL)             0x14d0\n 0x0000000000000007 (RELA)               0xcf0\n 0x0000000000000008 (RELASZ)             2016 (bytes)\n 0x0000000000000009 (RELAENT)            24 (bytes)\n 0x000000000000001e (FLAGS)              BIND_NOW\n 0x000000006ffffffb (FLAGS_1)            Flags: NOW\n 0x000000006ffffffe (VERNEED)            0xcb0\n 0x000000006fffffff (VERNEEDNUM)         2\n 0x000000006ffffff0 (VERSYM)             0xc3a\n 0x000000006ffffff9 (RELACOUNT)          73\n 0x0000000000000000 (NULL)               0x0\n",
+        "stderr": ""
+      },
+      "-Ws": {
+        "command": [
+          "readelf",
+          "-Ws",
+          "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/module-build-r2/im-wayland.so"
+        ],
+        "stdout": "\nSymbol table '.dynsym' contains 57 entries:\n   Num:    Value          Size Type    Bind   Vis      Ndx Name\n     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND \n     1: 00000000000018c0     0 SECTION LOCAL  DEFAULT    9 .init\n     2: 0000000000020000     0 SECTION LOCAL  DEFAULT   21 .data\n     3: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_free\n     4: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND wl_proxy_add_listener\n     5: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_display_get_default\n     6: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__\n     7: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_unref\n     8: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_signal_emit_by_name\n     9: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_strcmp0\n    10: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_strdup\n    11: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_utf8_pointer_to_offset\n    12: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND __stack_chk_guard@GLIBC_2.17 (2)\n    13: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_list_new\n    14: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_window_get_root_coords\n    15: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_display_get_default_seat\n    16: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_drag_check_threshold\n    17: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_wayland_seat_get_wl_seat\n    18: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_strndup\n    19: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND __cxa_finalize@GLIBC_2.17 (3)\n    20: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterTMCloneTable\n    21: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_new\n    22: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND g_utf8_skip\n    23: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_ref\n    24: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_gesture_multi_press_new\n    25: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMCloneTable\n    26: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND strncmp@GLIBC_2.17 (3)\n    27: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND wl_proxy_marshal_flags\n    28: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_weight_new\n    29: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_underline_new\n    30: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_get\n    31: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_utf8_find_prev_char\n    32: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_return_if_fail_warning\n    33: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_event_controller_reset\n    34: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __stack_chk_fail@GLIBC_2.17 (3)\n    35: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_wayland_display_get_wl_display\n    36: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND wl_registry_interface\n    37: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_signal_connect_data\n    38: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND wl_surface_interface\n    39: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_type_module_register_type\n    40: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_utf8_strlen\n    41: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND strcmp@GLIBC_2.17 (3)\n    42: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND wl_seat_interface\n    43: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_malloc0\n    44: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_im_context_simple_get_type\n    45: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND wl_proxy_get_version\n    46: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_event_controller_set_propagation_phase\n    47: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_list_insert\n    48: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_warn_message\n    49: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND strlen@GLIBC_2.17 (3)\n    50: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_type_class_peek_parent\n    51: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_window_get_user_data\n    52: 0000000000020068     8 OBJECT  GLOBAL DEFAULT   22 type_wayland\n    53: 0000000000003400    60 FUNC    GLOBAL DEFAULT   11 im_module_create\n    54: 00000000000033d4     4 FUNC    GLOBAL DEFAULT   11 im_module_exit\n    55: 0000000000003240   404 FUNC    GLOBAL DEFAULT   11 im_module_init\n    56: 00000000000033e0    24 FUNC    GLOBAL DEFAULT   11 im_module_list\n\nSymbol table '.symtab' contains 170 entries:\n   Num:    Value          Size Type    Bind   Vis      Ndx Name\n     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND \n     1: 00000000000001c8     0 SECTION LOCAL  DEFAULT    1 .note.gnu.build-id\n     2: 00000000000001f0     0 SECTION LOCAL  DEFAULT    2 .gnu.hash\n     3: 0000000000000228     0 SECTION LOCAL  DEFAULT    3 .dynsym\n     4: 0000000000000780     0 SECTION LOCAL  DEFAULT    4 .dynstr\n     5: 0000000000000c3a     0 SECTION LOCAL  DEFAULT    5 .gnu.version\n     6: 0000000000000cb0     0 SECTION LOCAL  DEFAULT    6 .gnu.version_r\n     7: 0000000000000cf0     0 SECTION LOCAL  DEFAULT    7 .rela.dyn\n     8: 00000000000014d0     0 SECTION LOCAL  DEFAULT    8 .rela.plt\n     9: 00000000000018c0     0 SECTION LOCAL  DEFAULT    9 .init\n    10: 00000000000018e0     0 SECTION LOCAL  DEFAULT   10 .plt\n    11: 0000000000001ba0     0 SECTION LOCAL  DEFAULT   11 .text\n    12: 000000000000343c     0 SECTION LOCAL  DEFAULT   12 .fini\n    13: 0000000000003450     0 SECTION LOCAL  DEFAULT   13 .rodata\n    14: 0000000000003724     0 SECTION LOCAL  DEFAULT   14 .eh_frame_hdr\n    15: 0000000000003868     0 SECTION LOCAL  DEFAULT   15 .eh_frame\n    16: 000000000001f9a8     0 SECTION LOCAL  DEFAULT   16 .init_array\n    17: 000000000001f9b0     0 SECTION LOCAL  DEFAULT   17 .fini_array\n    18: 000000000001f9b8     0 SECTION LOCAL  DEFAULT   18 .data.rel.ro\n    19: 000000000001fbf0     0 SECTION LOCAL  DEFAULT   19 .dynamic\n    20: 000000000001fe40     0 SECTION LOCAL  DEFAULT   20 .got\n    21: 0000000000020000     0 SECTION LOCAL  DEFAULT   21 .data\n    22: 0000000000020050     0 SECTION LOCAL  DEFAULT   22 .bss\n    23: 0000000000000000     0 SECTION LOCAL  DEFAULT   23 .comment\n    24: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crti.o\n    25: 0000000000001ba0     0 NOTYPE  LOCAL  DEFAULT   11 $x\n    26: 0000000000001ba0    20 FUNC    LOCAL  DEFAULT   11 call_weak_fn\n    27: 00000000000018c0     0 NOTYPE  LOCAL  DEFAULT    9 $x\n    28: 000000000000343c     0 NOTYPE  LOCAL  DEFAULT   12 $x\n    29: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtn.o\n    30: 00000000000018d0     0 NOTYPE  LOCAL  DEFAULT    9 $x\n    31: 0000000000003448     0 NOTYPE  LOCAL  DEFAULT   12 $x\n    32: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c\n    33: 0000000000001bc0     0 NOTYPE  LOCAL  DEFAULT   11 $x\n    34: 0000000000001bc0     0 FUNC    LOCAL  DEFAULT   11 deregister_tm_clones\n    35: 0000000000001bf0     0 FUNC    LOCAL  DEFAULT   11 register_tm_clones\n    36: 0000000000020000     0 NOTYPE  LOCAL  DEFAULT   21 $d\n    37: 0000000000001c30     0 FUNC    LOCAL  DEFAULT   11 __do_global_dtors_aux\n    38: 0000000000020050     1 OBJECT  LOCAL  DEFAULT   22 completed.0\n    39: 000000000001f9b0     0 NOTYPE  LOCAL  DEFAULT   17 $d\n    40: 000000000001f9b0     0 OBJECT  LOCAL  DEFAULT   17 __do_global_dtors_aux_fini_array_entry\n    41: 0000000000001c80     0 FUNC    LOCAL  DEFAULT   11 frame_dummy\n    42: 000000000001f9a8     0 NOTYPE  LOCAL  DEFAULT   16 $d\n    43: 000000000001f9a8     0 OBJECT  LOCAL  DEFAULT   16 __frame_dummy_init_array_entry\n    44: 000000000000387c     0 NOTYPE  LOCAL  DEFAULT   15 $d\n    45: 0000000000020050     0 NOTYPE  LOCAL  DEFAULT   22 $d\n    46: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS imwayland.c\n    47: 0000000000001c90     0 NOTYPE  LOCAL  DEFAULT   11 $x\n    48: 0000000000001c90    20 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_filter_keypress\n    49: 0000000000001ca4    20 FUNC    LOCAL  DEFAULT   11 pressed_cb\n    50: 0000000000001cc0    24 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_set_use_preedit\n    51: 0000000000001ce0    36 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_get_surrounding\n    52: 0000000000003450     0 NOTYPE  LOCAL  DEFAULT   13 $d\n    53: 0000000000001d04   104 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_init\n    54: 00000000000031a0   152 FUNC    LOCAL  DEFAULT   11 on_content_type_changed\n    55: 0000000000001d70   116 FUNC    LOCAL  DEFAULT   11 commit_state\n    56: 0000000000001de4   152 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_class_init\n    57: 0000000000003050   172 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_finalize\n    58: 0000000000002b70   452 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_set_client_window\n    59: 0000000000001f10   332 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_get_preedit_string\n    60: 0000000000003100   156 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_focus_in\n    61: 0000000000002f54    88 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_focus_out\n    62: 00000000000025e0    56 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_reset\n    63: 0000000000002620   240 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_set_cursor_location\n    64: 0000000000002dc0   224 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_set_surrounding\n    65: 00000000000025a0    56 FUNC    LOCAL  DEFAULT   11 gtk_im_context_wayland_commit\n    66: 0000000000001e80    76 FUNC    LOCAL  DEFAULT   11 text_input_preedit\n    67: 0000000000001ed0    56 FUNC    LOCAL  DEFAULT   11 text_input_commit\n    68: 0000000000002060   112 FUNC    LOCAL  DEFAULT   11 text_input_delete_surrounding_text\n    69: 00000000000020d0   288 FUNC    LOCAL  DEFAULT   11 notify_content_type.part.0\n    70: 00000000000021f0   560 FUNC    LOCAL  DEFAULT   11 notify_surrounding_text.part.0\n    71: 0000000000002420   384 FUNC    LOCAL  DEFAULT   11 notify_im_change\n    72: 0000000000002710   304 FUNC    LOCAL  DEFAULT   11 released_cb\n    73: 0000000000002840   236 FUNC    LOCAL  DEFAULT   11 registry_handle_global\n    74: 0000000000002930   196 FUNC    LOCAL  DEFAULT   11 text_input_preedit_apply.isra.0\n    75: 00000000000029f4   372 FUNC    LOCAL  DEFAULT   11 text_input_done\n    76: 0000000000002d34   136 FUNC    LOCAL  DEFAULT   11 registry_handle_global_remove\n    77: 0000000000002ea0   180 FUNC    LOCAL  DEFAULT   11 disable\n    78: 0000000000002fb0    28 FUNC    LOCAL  DEFAULT   11 text_input_leave\n    79: 0000000000002fd0   124 FUNC    LOCAL  DEFAULT   11 text_input_enter\n    80: 00000000000036c0     0 NOTYPE  LOCAL  DEFAULT   13 $d\n    81: 00000000000036c0    40 OBJECT  LOCAL  DEFAULT   13 CSWTCH.75\n    82: 00000000000036e8    24 OBJECT  LOCAL  DEFAULT   13 __func__.1\n    83: 0000000000003700    35 OBJECT  LOCAL  DEFAULT   13 __func__.0\n    84: 0000000000020058     0 NOTYPE  LOCAL  DEFAULT   22 $d\n    85: 0000000000020058     8 OBJECT  LOCAL  DEFAULT   22 parent_class\n    86: 0000000000020060     8 OBJECT  LOCAL  DEFAULT   22 global\n    87: 0000000000020008     0 NOTYPE  LOCAL  DEFAULT   21 $d\n    88: 0000000000020008     8 OBJECT  LOCAL  DEFAULT   21 info_list\n    89: 000000000001f9f8    40 OBJECT  LOCAL  DEFAULT   18 imwayland_info\n    90: 000000000001f9b8     0 NOTYPE  LOCAL  DEFAULT   18 $d\n    91: 000000000001f9b8    48 OBJECT  LOCAL  DEFAULT   18 text_input_listener\n    92: 000000000001f9e8    16 OBJECT  LOCAL  DEFAULT   18 registry_listener\n    93: 00000000000038e0     0 NOTYPE  LOCAL  DEFAULT   15 $d\n    94: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS text-input-unstable-v3-protocol.c\n    95: 00000000000034b0     0 NOTYPE  LOCAL  DEFAULT   13 $d\n    96: 0000000000020010     0 NOTYPE  LOCAL  DEFAULT   21 $d\n    97: 0000000000020010    64 OBJECT  LOCAL  DEFAULT   21 text_input_unstable_v3_types\n    98: 000000000001fa20     0 NOTYPE  LOCAL  DEFAULT   18 $d\n    99: 000000000001fa48    48 OBJECT  LOCAL  DEFAULT   18 zwp_text_input_manager_v3_requests\n   100: 000000000001fb30   192 OBJECT  LOCAL  DEFAULT   18 zwp_text_input_v3_requests\n   101: 000000000001faa0   144 OBJECT  LOCAL  DEFAULT   18 zwp_text_input_v3_events\n   102: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS crtstuff.c\n   103: 0000000000003f68     0 NOTYPE  LOCAL  DEFAULT   15 $d\n   104: 0000000000003f68     0 OBJECT  LOCAL  DEFAULT   15 __FRAME_END__\n   105: 0000000000000000     0 FILE    LOCAL  DEFAULT  ABS \n   106: 0000000000003724     0 NOTYPE  LOCAL  DEFAULT   14 __GNU_EH_FRAME_HDR\n   107: 000000000000343c     0 FUNC    LOCAL  DEFAULT   12 _fini\n   108: 000000000001ffa8     0 OBJECT  LOCAL  DEFAULT  ABS _GLOBAL_OFFSET_TABLE_\n   109: 000000000001fa78    40 OBJECT  LOCAL  DEFAULT   18 zwp_text_input_v3_interface\n   110: 0000000000020050     0 OBJECT  LOCAL  DEFAULT   21 __TMC_END__\n   111: 0000000000020000     0 OBJECT  LOCAL  DEFAULT   21 __dso_handle\n   112: 000000000001fa20    40 OBJECT  LOCAL  DEFAULT   18 zwp_text_input_manager_v3_interface\n   113: 000000000001fbf0     0 OBJECT  LOCAL  DEFAULT  ABS _DYNAMIC\n   114: 00000000000018c0     0 FUNC    LOCAL  DEFAULT    9 _init\n   115: 00000000000018e0     0 NOTYPE  LOCAL  DEFAULT   10 $x\n   116: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_free\n   117: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND wl_proxy_add_listener\n   118: 00000000000033d4     4 FUNC    GLOBAL DEFAULT   11 im_module_exit\n   119: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_display_get_default\n   120: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND __gmon_start__\n   121: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_unref\n   122: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_signal_emit_by_name\n   123: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_strcmp0\n   124: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_strdup\n   125: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_utf8_pointer_to_offset\n   126: 0000000000020068     8 OBJECT  GLOBAL DEFAULT   22 type_wayland\n   127: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND __stack_chk_guard@GLIBC_2.17\n   128: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_list_new\n   129: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_window_get_root_coords\n   130: 0000000000003240   404 FUNC    GLOBAL DEFAULT   11 im_module_init\n   131: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_display_get_default_seat\n   132: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_drag_check_threshold\n   133: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_wayland_seat_get_wl_seat\n   134: 0000000000003400    60 FUNC    GLOBAL DEFAULT   11 im_module_create\n   135: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_strndup\n   136: 0000000000000000     0 FUNC    WEAK   DEFAULT  UND __cxa_finalize@GLIBC_2.17\n   137: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterTMCloneTable\n   138: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_new\n   139: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND g_utf8_skip\n   140: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_ref\n   141: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_gesture_multi_press_new\n   142: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_registerTMCloneTable\n   143: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND strncmp@GLIBC_2.17\n   144: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND wl_proxy_marshal_flags\n   145: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_weight_new\n   146: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_underline_new\n   147: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_object_get\n   148: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_utf8_find_prev_char\n   149: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_return_if_fail_warning\n   150: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_event_controller_reset\n   151: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __stack_chk_fail@GLIBC_2.17\n   152: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_wayland_display_get_wl_display\n   153: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND wl_registry_interface\n   154: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_signal_connect_data\n   155: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND wl_surface_interface\n   156: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_type_module_register_type\n   157: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_utf8_strlen\n   158: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND strcmp@GLIBC_2.17\n   159: 0000000000000000     0 OBJECT  GLOBAL DEFAULT  UND wl_seat_interface\n   160: 00000000000033e0    24 FUNC    GLOBAL DEFAULT   11 im_module_list\n   161: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_malloc0\n   162: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_im_context_simple_get_type\n   163: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND wl_proxy_get_version\n   164: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gtk_event_controller_set_propagation_phase\n   165: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND pango_attr_list_insert\n   166: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_warn_message\n   167: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND strlen@GLIBC_2.17\n   168: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND g_type_class_peek_parent\n   169: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND gdk_window_get_user_data\n",
+        "stderr": ""
+      }
+    }
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-gtk-caret-active-r2",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-gtk-caret-20260913-r1/active-report-r2",
+        "TMPDIR=/home/deck/.local/state/rog5-gtk-caret-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "57a096e36406fef5ad557bae831eeccae32b474d",
+      "source_tree": "48fbac80bd7812b0638471a83e2a5f4a83a4c3a0",
+      "exit_status": 0,
+      "duration_seconds": 162.24079576600343
+    },
+    "counts": {
+      "PASS": 105,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "summary": {
+      "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/active-report-r2/summary.json",
+      "sha256": "4e58f1f443f7166ac4d12fca15930ac14757f05cd05747f21d59a2428c0116ed",
+      "bytes": 118750
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-gtk-caret-20260913-r1/active-report-r2/summary.xml",
+      "sha256": "e442c33e150a2b9b2a2816012654a543ffa92e13f9384355aa9533b0a9227fdd",
+      "bytes": 57356
+    }
+  },
+  "earlier_integration": {
+    "command": [
+      "systemd-run",
+      "--user",
+      "--wait",
+      "--pipe",
+      "--collect",
+      "--unit=rog5-gtk-caret-active-r1",
+      "-p",
+      "MemoryMax=1G",
+      "-p",
+      "MemorySwapMax=0",
+      "-p",
+      "TasksMax=256",
+      "-p",
+      "RuntimeMaxSec=600",
+      "-p",
+      "CPUQuota=200%",
+      "-p",
+      "Delegate=yes",
+      "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+      "env",
+      "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+      "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+      "ROG5_TEST_WORKERS=2",
+      "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-gtk-caret-20260913-r1/active-report",
+      "TMPDIR=/home/deck/.local/state/rog5-gtk-caret-20260913-r1/tmp",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+      "active"
+    ],
+    "source_commit": "fce5563dc70d432a71038c5d31479c2d22468f9b",
+    "source_tree": "d74579c9a182b06f172209c664b24b2040e56554",
+    "exit_status": 0,
+    "duration_seconds": 158.66945458602277
+  },
+  "interactive_vm_treatment": "NOT RUN",
+  "baseline_vm_failure": "test-results/2026-09-13-pending-scene.md: low pointer/caret damage with old text-input rectangle; retained FAIL",
+  "scope_limitations": [
+    "Production functions execute through host signal/window/protocol adapters, short ASCII only",
+    "Real ARM64 GTK query loads shared module without a display/widget",
+    "Pending preedit/commit application is not exercised by this host seam",
+    "Source tag corresponds to package version, not proof of exact distribution source patch closure"
+  ],
+  "phone_operations": 0,
+  "physical_status": "NOT RUN",
+  "signing_operations": 0,
+  "claims_consumed": 0,
+  "protected_storage_mutations": 0
+}

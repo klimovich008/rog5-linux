@@ -1629,6 +1629,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "gtk_caret": {
+      "status": "SOURCE_FIX_BUILD_LOAD_PASS_VM_NOT_RUN",
+      "set_id": "private:rog5-gtk-caret-20260913-r1",
+      "source_commit": "57a096e36406fef5ad557bae831eeccae32b474d",
+      "evidence": {
+        "path": "test-results/2026-09-13-gtk-caret-qualification.json",
+        "sha256": "bb28259c16e5dd613b2ca194db9b54a2506d0e1fea6a111a81c88144a1be702d",
+        "bytes": 63350
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline module fixture"
     }
   },
   "denial_phone_linkage": {

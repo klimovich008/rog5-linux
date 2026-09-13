@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Deferred-scene fix built; VM icons and two-app switching observed; caret baseline fails**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **GTK caret publication fixed offline; ARM64 module load passes; VM treatment pending**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Engine fix passes20 source cases, optimized repeat and105 active suites; ten ARM64 objects rebuilt. Engine-only VM shows icons and Mousepad→Foot→Mousepad, then fails lower-caret baseline. Client receives the low pointer press and damages a low caret region, while text-input still publishes the old top-row rectangle. Trace the exact GTK/IM spot-location publication before changing coordinate mapping or deadlines. Preserve expired-work guards, S06/R01 FAIL and physical NOT RUN; no phone operations. See [current repair evidence](../test-results/2026-09-13-pending-scene.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+GTK source regression reproduces missing cursor publication; patch passes15 cases and ARM64 build/discovery. Stage an explicit hash-checked read-only VM module override before GTK cache generation, then repeat the real lower-caret/OSK sequence with unchanged engine/native/shell. Preserve earlier VM FAIL, S06/R01 FAIL and phone physical NOT RUN; no phone operations. See [current repair evidence](../test-results/2026-09-13-gtk-caret.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
