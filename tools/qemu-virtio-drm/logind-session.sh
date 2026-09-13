@@ -12,16 +12,18 @@ logind_startup_timings() {
         systemd-journal-catalog-update.service systemd-tmpfiles-setup.service \
         systemd-tmpfiles-setup-dev-early.service systemd-udevd.service \
         systemd-udev-trigger.service systemd-logind.service sysinit.target) || status=$?
-    if ((status)); then
-        printf 'DIAGNOSTIC_UNIT_TIMINGS status=failed code=%s\n' "$status"
-        return "$status"
-    fi
+    # A timed-out multi-unit query can already contain useful complete units.
+    # Retain that bounded partial payload, with the original failure status.
     if ((${#record} == 0 || ${#record} > 16384)); then
-        echo 'DIAGNOSTIC_UNIT_TIMINGS status=invalid-size'
-        return 1
+        record=${record:0:16384}
+        ((status != 0)) || status=1
     fi
     # Encode all fields: diagnostics must never inject serial success markers.
     encoded=$(printf '%s' "$record" | LC_ALL=C od -An -v -tx1 | LC_ALL=C tr -d ' \n') || return $?
+    if ((status)); then
+        printf 'DIAGNOSTIC_UNIT_TIMINGS status=failed code=%s bytes=%s hex=%s\n' "$status" "${#record}" "$encoded"
+        return "$status"
+    fi
     printf 'DIAGNOSTIC_UNIT_TIMINGS status=read bytes=%s hex=%s\n' "${#record}" "$encoded"
 }
 logind_query_sessions() {
@@ -95,7 +97,9 @@ systemctl is-active systemd-user-sessions.service
 [[ ! -e /run/nologin ]]
 echo 'OBSERVE packaged Permit User Sessions removed startup nologin'
 udevadm settle --timeout=8
-if [[ -f /run/startup-only ]]; then logind_startup_timings; fi
+# A diagnostic failure must not prevent the independent PAM/cleanup probe.
+# Host startup-only qualification still requires a complete timing inventory.
+if [[ -f /run/startup-only ]]; then logind_startup_timings || :; fi
 if [[ -f /run/editor-probe || -f /run/apps-probe ]]; then
     [[ -c /dev/vport0p1 ]]
     expected_port=rog5.editor

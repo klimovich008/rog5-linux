@@ -33,10 +33,11 @@ STARTUP_UNITS = ('systemd-hwdb-update.service', 'ldconfig.service',
 
 def startup_result(serial):
     """Decode bounded diagnostic data without treating it as session proof."""
-    packet = re.findall(r'^DIAGNOSTIC_UNIT_TIMINGS status=read bytes=(\d+) hex=([0-9a-f]+)$', serial, re.M)
+    packet = re.findall(r'^(?:bash\[[1-9][0-9]*\]: )?DIAGNOSTIC_UNIT_TIMINGS status=read bytes=(\d+) hex=([0-9a-f]+)$', serial, re.M)
     handoff = re.findall(r'^OBSERVE pid1-handoff boottime=([0-9]+\.[0-9]+)$', serial, re.M)
     ready = 'PASS startup-only authenticated readiness; Denial NOT RUN'
-    if len(packet) != 1 or len(handoff) != 1 or serial.splitlines().count(ready) != 1:
+    readiness = re.findall(r'^(?:bash\[[1-9][0-9]*\]: )?'+re.escape(ready)+r'$', serial, re.M)
+    if len(packet) != 1 or len(handoff) != 1 or len(readiness) != 1:
         raise ValueError('missing or duplicate startup timing/readiness records')
     size, encoded = packet[0]
     if not 0 < int(size) <= 16384 or len(encoded) != 2 * int(size):
@@ -559,8 +560,8 @@ def main():
         if SUCCESS not in serial:
             raise RuntimeError('VM exited without authenticated session/device/scope-removal success evidence')
         if args.startup_only:
-            result['startup'] = startup_result(serial)
             result['rendering'] = {'status': 'NOT RUN', 'reason': 'explicit startup-only mode'}
+            result['startup'] = startup_result(serial)
         elif combined:
             import importlib.util
             spec = importlib.util.spec_from_file_location('drm_check', REPO/'scripts/host/test-qemu-virtio-drm.py')

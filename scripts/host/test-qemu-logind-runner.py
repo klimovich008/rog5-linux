@@ -1310,12 +1310,15 @@ class StartupOnly(unittest.TestCase):
             self.assertEqual(arguments[-9:], list(self.runner.STARTUP_UNITS))
             self.assertIn('ExecMainExitTimestampMonotonic', arguments)
             for code in (42, 124):
-                tool.write_text('#!/bin/bash\nexit '+str(code)+'\n')
+                tool.write_text('#!/bin/bash\ncat \"$DATA\"\nexit '+str(code)+'\n')
                 failed = subprocess.run(['bash','-c', 'set -euo pipefail; source "$1"; logind_startup_timings',
                                           'fixture', str(RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh')],
                                          env=env, capture_output=True, text=True, timeout=12)
                 self.assertEqual(failed.returncode, code)
                 self.assertNotIn('status=read', failed.stdout)
+                packet = re.search(r'bytes=(\d+) hex=([0-9a-f]+)', failed.stdout)
+                self.assertIsNotNone(packet, 'partial timing bytes discarded')
+                self.assertEqual(bytes.fromhex(packet[2]).decode(), data.rstrip('\n'))
 
     def test_actual_user_dispatch_skips_denial_only_for_explicit_marker(self):
         source = (RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-user.sh').read_text()
@@ -1342,6 +1345,26 @@ class StartupOnly(unittest.TestCase):
         self.assertEqual(set(result['units']), set(self.runner.STARTUP_UNITS))
         self.assertEqual(result['units']['ldconfig.service']['ExecMainExitTimestampMonotonic'], 950000)
         self.assertIn('microseconds', result['unit_clock'])
+
+    def test_actual_failed_collector_branch_continues_to_pam(self):
+        source = (RUNNER.parents[2]/'tools/qemu-virtio-drm/logind-session.sh').read_text()
+        branch = next(line for line in source.splitlines() if line.startswith('if [[ -f /run/startup-only ]'))
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory)/'startup-only'; marker.touch()
+            branch = branch.replace('/run/startup-only', str(marker))
+            code = 'set -euo pipefail; logind_startup_timings(){ echo QUERY_FAILED; return 124; };\n'+branch+'\necho PAM_CONTINUES'
+            result = subprocess.run(['bash','-c',code],capture_output=True,text=True,timeout=3)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'QUERY_FAILED\nPAM_CONTINUES\n')
+
+    def test_real_systemd_console_prefix_is_accepted(self):
+        framed = '\n'.join(line if line.startswith('OBSERVE pid1-') else 'bash[412]: '+line
+                            for line in self.serial().splitlines())+'\n'
+        self.assertEqual(self.runner.startup_result(framed)['status'], 'PASS')
+
+    def test_failed_partial_timing_data_never_qualifies(self):
+        serial = self.serial().replace('status=read bytes=', 'status=failed code=124 bytes=')
+        with self.assertRaises(ValueError): self.runner.startup_result(serial)
 
     def test_missing_or_duplicate_timing_proof_fails(self):
         serial = self.serial()
