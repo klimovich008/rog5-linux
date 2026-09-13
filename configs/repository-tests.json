@@ -8136,6 +8136,33 @@
         "packaging/arch/mobile/denial-mobile-session"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-denial-session-payload.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 30,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "scripts/host/compose-denial-session-payload.py",
+        "packaging/arch/mobile/denial-mobile-session",
+        "packaging/arch/mobile/denial-mobile.desktop",
+        "configs/mobile/session-policy.json"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

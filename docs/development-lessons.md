@@ -2787,3 +2787,12 @@ Use a deterministic guest clock for account-aging tests. Reusing retained Rust
 rlibs needs both target libraries and host proc-macro search paths, plus their
 thin-LTO configuration; a small extracted-backend build avoided another full
 compositor build while testing real PAM calls and conversation/result handling.
+
+For low-disk payload assembly, measure deterministic compression into a hash/count
+sink before reserving the real output, then require identical publication bytes.
+This avoids copying the full input tree or keeping two compressed archives.
+Check the reserve while streaming too. Publish the terminal receipt through a
+synced temporary file and an exclusive final link; directly writing the final
+receipt can expose partial JSON or stale success after an I/O failure. Retire old
+VM staging only after all files match a durable copy, retaining failed-run logs
+and a complete mapping; removing hardlinks usually reclaims no data blocks.

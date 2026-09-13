@@ -84,6 +84,28 @@ the matching engine/AOT/assets and authenticated package closure. Do not use
 automatic fastest-mode selection for the phone: its exact connector and60Hz
 output configuration still require matching artifact evidence.
 
+Use `python3 scripts/host/compose-denial-session-payload.py --help` to assemble
+the exact qualified Denial/Flutter payload plus the retained ARM64 denialctl,
+pinned upstream launcher and user target, and this mobile entry/desktop file.
+It consumes the non-root VM's complete payload inventory and the CLI build
+receipt; it checks every byte while streaming a deterministic root-owned tar.gz.
+Measurement and publication must produce identical compressed bytes. Measurement
+uses a hash/count sink, avoiding a second archive copy, and the3GiB host reserve
+is checked before and during writing. Inputs are never chmodded or extracted.
+The terminal provenance receipt is published only after the archive is complete;
+consumers must require the receipt and its matching archive hash. Interrupted
+receipt writes and failed synchronization do not leave a success receipt.
+Outputs must be fresh and outside immutable source trees.
+
+This is an unsigned session-files payload, not an installable rootfs, package
+closure or phone candidate. It does not supply machine-specific device/output
+configuration, create accounts, install hooks, enable services or grant admission.
+The future rootfs composition must enforce user-ID/home conflicts, original PAM
+package permissions, default-off remote services and explicit local logind login.
+Ordinary host fixtures test the archive and failure paths. Actual retained-byte
+composition, ARM64 CLI execution and logind/graphics VM qualification are separate
+manual checks; a host fixture PASS does not imply any of them ran.
+
 Do not carry the sanitized VM package permissions or NoNewPrivs policy into a
 password-authenticated session without qualification. The retained PAM1.7.2-2
 archive supplies root:root06755 unix_chkpwd. The actual pinned Denial PAM backend
