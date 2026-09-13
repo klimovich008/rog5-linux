@@ -2812,3 +2812,21 @@ root cause; retain telemetry and do not label it a proven memory-exhaustion even
 Boot-time ldconfig/hwdb generation dominates these fresh fixtures. Future caching
 must bind generated data to the exact runtime, rather than skipping required
 setup or repeatedly rebuilding unrelated kernels/compositor assets.
+
+For the actual local-session VM, start packaged `systemd-user-sessions.service`
+before testing the original login PAM profile: the custom target otherwise
+leaves `/run/nologin`, and authentication correctly refuses users. Successful
+PAM cleanup is not proof of scope removal; require successful enumerations of
+sessions and scopes before asserting absence. Query errors/timeouts are failures.
+Preserve an already-active fixture VT: `openvt -s -w` tries to deallocate it and
+fails after a successful test. Use its direct-exec mode with an explicit session
+leader, preserve foreground VT identity, and verify no attached processes remain.
+The bounded VM service and whole-PAM alarm remain the cleanup backstop.
+
+The 768MiB container reached about801MB while its512MiB guest stalled. Reusing
+identical VM bytes with a1024MiB container progressed through PAM, user manager
+and both mediated devices in114.228s; sampled peak was1,035,280,384bytes with zero
+max/OOM events and no swap. This supports increasing the harness budget, but
+no original cgroup event counters survived, so an OOM cause is not established.
+Guest RAM and kernel stay unchanged. Record host cgroup pressure when investigating
+TCG stalls; guest free memory alone does not describe QEMU's host allocations.

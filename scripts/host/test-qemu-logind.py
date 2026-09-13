@@ -242,7 +242,7 @@ def main():
         disk_guard(output)
         name = 'rog5-logind-vm-' + uuid.uuid4().hex[:16]
         command = ['podman', 'run', '--rm', '--name', name, '--pull=never', '--network=none', '--read-only',
-                   '--memory=768m', '--memory-swap=768m', '--cpus=2', '--pids-limit=64',
+                   '--memory=1024m', '--memory-swap=1024m', '--cpus=2', '--pids-limit=64',
                    '-v', f'{runtime}:/runtime:ro', '-v', f'{kernel}:/Image:ro',
                    '-v', f'{output / "initramfs.gz"}:/initramfs.gz:ro', '-v', f'{payload}:/payload:ro', args.qemu_image,
                    'qemu-system-aarch64', '-M', 'virt', '-cpu', 'max', '-smp', '1', '-m', '512M',

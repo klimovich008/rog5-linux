@@ -9,6 +9,12 @@ logind_cleanup_state() {
     while read -r first rest; do [[ $first != "session-$sid.scope" ]] || return 1; done <<< "$scopes"
     return 0
 }
+logind_tty_unowned() {
+    local rows tty pid
+    rows=$(timeout -k 1 3 ps -eo tty=,pid=) || return 2
+    while read -r tty pid; do [[ $tty != tty1 ]] || return 1; done <<< "$rows"
+    return 0
+}
 # Permit tests of the actual query boundary without executing the VM supervisor.
 if [[ ${BASH_SOURCE[0]} != "$0" ]]; then return 0; fi
 set -euo pipefail
@@ -33,11 +39,16 @@ cat > /run/start-local.sh <<'EOF'
 exec /run/payload/pam-session > /run/pam-session.log 2>&1
 EOF
 chmod 755 /run/start-local.sh
-owners=$(ps -t tty1 -o pid=) || [[ -z $owners ]]
-[[ -z $owners ]] || { echo "FAIL tty1 has attached processes: $owners"; exit 1; }
+logind_tty_unowned || { echo 'FAIL tty1 ownership not proven free'; exit 1; }
 # vconsole setup allocates VT1 even without a login process. Claim only this
 # proven unused terminal in the isolated fixture, never an operator session.
-timeout -k 1 45 openvt -f -c 1 -s -w -- /usr/bin/bash /run/start-local.sh
+# tty1 is already the foreground console; preserve its allocation. openvt -s -w
+# attempts to deallocate that same active console at exit. Direct exec preserves
+# the PAM command status; setsid supplies the session leader expected by -e.
+[[ $(fgconsole) == 1 ]]
+timeout -k 1 45 setsid --wait openvt -e -f -c 1 -- /usr/bin/bash /run/start-local.sh
+[[ $(fgconsole) == 1 ]]
+logind_tty_unowned || { echo 'FAIL tty1 cleanup not proven'; exit 1; }
 cat /run/pam-session.log
 grep -Fx 'PASS local active tty1 session, user manager and mediated devices' /run/pam-session.log
 grep -Fx 'PASS authenticated PAM local session and child execution' /run/pam-session.log

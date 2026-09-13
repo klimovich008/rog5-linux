@@ -1024,3 +1024,10 @@ observations retain their original default. `--link-payload` may also reuse
 regular immutable Denial/Flutter fixture bytes on the same filesystem; it refuses
 symlink payloads, changes nlink/ctime and records payload hashes without changing
 source permissions. Neither option admits or operates a phone candidate.
+
+The actual logind VM uses512MiB guest RAM inside a1024MiB/no-swap container;
+the extra host allowance covers measured QEMU allocations. It preserves the
+existing foreground tty1 through `setsid --wait openvt -e`, verifies it is
+unowned before and after, and requires successful session/scope enumeration
+after PAM logout. The original PAM checks and packaged Permit User Sessions
+service remain in the path. A timeout is failure, never cleanup qualification.

@@ -106,5 +106,20 @@ logind_cleanup_state "$6"
                 self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
 
 
+    def test_tty_ownership_requires_successful_enumeration(self):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-session.sh'
+        harness = r'''source "$1"
+ROWS=$2; RC=$3
+timeout(){ shift 3; "$@"; }
+ps(){ [[ "$*" == '-eo tty=,pid=' ]] || return 99; printf '%s\n' "$ROWS"; return "$RC"; }
+logind_tty_unowned
+'''
+        for rows, rc, expected in [('', 0, 0), ('? 1\ntty2 32', 0, 0), ('tty1 33', 0, 1), ('', 42, 2), ('', 124, 2)]:
+            with self.subTest(rows=rows, rc=rc):
+                result = subprocess.run(['bash', '-c', harness, 'fixture', str(script), rows, str(rc)],
+                                        capture_output=True, text=True, timeout=3)
+                self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
+
+
 if __name__ == '__main__':
     unittest.main()
