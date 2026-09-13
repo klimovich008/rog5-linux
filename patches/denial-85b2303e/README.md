@@ -5,6 +5,26 @@ Upstream compositor metadata declares GPL-3.0-or-later; retain its source notice
 This patch is not selected by a phone image builder and grants no installation,
 execution or admission authority.
 
+`0008-use-logical-window-content-size.patch` fixes shell presentation sizing:
+the surface tree already maps logical content, so its outer frame, status bar
+and preview aspect must use that logical size rather than backing-buffer pixel
+dimensions. The local Flutter app path supplies its existing logical layout
+size explicitly. Buffer sampling and surface/input coordinate mapping remain
+unchanged. The manual regression executes the production widget-construction
+method, metrics, content mapping and matching Flutter `applyBoxFit` with value
+adapters; it does not execute Flutter rendering or qualify a phone:
+
+```sh
+python3 scripts/host/test-mobile-content-sizing.py --source EXACT_DENIAL_TREE \
+  --flutter-box-fit EXACT_FLUTTER/packages/flutter/lib/src/painting/box_fit.dart \
+  --dart BOUNDED_DART_EXECUTABLE --output FRESH_DIRECTORY
+```
+
+Keep its source/tool hashes with the result. This exact-source check is manual;
+ordinary repository tiers do not silently count it as executed. The patch is
+not selected by any phone image builder. A matching shell AOT build and bounded
+VM observation are separate checks.
+
 An actual ARM64 VirGL guest exported XR24/Linear while Smithay’s EGL-derived render-format set contained only
 XR24/Invalid. Smithay consequently imported it as external-only and refused
 render-target binding. The patch intersects explicit formats strictly, requests

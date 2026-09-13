@@ -1,0 +1,92 @@
+diff --git a/dart_shell/lib/src/widgets/window_texture_rect.dart b/dart_shell/lib/src/widgets/window_texture_rect.dart
+--- a/dart_shell/lib/src/widgets/window_texture_rect.dart
++++ b/dart_shell/lib/src/widgets/window_texture_rect.dart
+@@ -38,8 +38,10 @@
+   }
+ 
+   Widget _buildTexture(BuildContext context, Size? targetSize) {
+-    final textureWidth = window.width.toDouble();
+-    final textureHeight = window.height.toDouble();
++    // Surface-tree coordinates are logical content, not backing-buffer pixels.
++    final contentSize = window.contentCoordinateRect.size;
++    final textureWidth = contentSize.width;
++    final textureHeight = contentSize.height;
+     final visualStatusBarHeight =
+         MediaQuery.paddingOf(context).top + ShellMetrics.appStatusBarHeight;
+     final statusBarHeight = ShellMetrics.appStatusBarTextureHeight(
+diff --git a/dart_shell/lib/src/input/input_layout.dart b/dart_shell/lib/src/input/input_layout.dart
+--- a/dart_shell/lib/src/input/input_layout.dart
++++ b/dart_shell/lib/src/input/input_layout.dart
+@@ -29,9 +29,11 @@
+   static double appStatusBarTextureHeight(
+     DenialWindow window, {
+     Size? targetSize,
++    Size? contentSize,
+     double visualHeight = appStatusBarHeight,
+   }) {
+-    if (!window.isUserApp || window.width <= 0) {
++    final size = contentSize ?? window.contentCoordinateRect.size;
++    if (!window.isUserApp || size.width <= 0.0) {
+       return 0.0;
+     }
+ 
+@@ -39,9 +41,9 @@
+         targetSize.width > 0.0 &&
+         targetSize.height > visualHeight &&
+         visualHeight > 0.0 &&
+-        window.height > 0) {
+-      final textureWidth = window.width.toDouble();
+-      final textureHeight = window.height.toDouble();
++        size.height > 0.0) {
++      final textureWidth = size.width;
++      final textureHeight = size.height;
+       final widthScale = targetSize.width / textureWidth;
+ 
+       if (widthScale.isFinite && widthScale > 0.0) {
+@@ -54,12 +56,13 @@
+       }
+     }
+ 
+-    final scale = window.scale120 > 0 ? window.scale120 / 120.0 : 1.0;
+-    return visualHeight * scale;
++    // The frame and status bar share logical units; buffer scale is irrelevant.
++    return visualHeight;
+   }
+ 
+   static double windowFrameTextureHeight(DenialWindow window) {
+-    return window.height.toDouble() + appStatusBarTextureHeight(window);
++    return window.contentCoordinateRect.height +
++        appStatusBarTextureHeight(window);
+   }
+ 
+   static Rect gestureRect(Size viewSize) {
+diff --git a/dart_shell/lib/src/widgets/window_geometry.dart b/dart_shell/lib/src/widgets/window_geometry.dart
+--- a/dart_shell/lib/src/widgets/window_geometry.dart
++++ b/dart_shell/lib/src/widgets/window_geometry.dart
+@@ -17,12 +17,13 @@
+   double max = kMaxPreviewAspect,
+ }) {
+   final fallbackAspect = fallback.clamp(min, max).toDouble();
+-  if (window.width <= 0 || window.height <= 0) {
++  final contentSize = window.contentCoordinateRect.size;
++  if (contentSize.width <= 0.0 || contentSize.height <= 0.0) {
+     return fallbackAspect;
+   }
+   final frameHeight = ShellMetrics.windowFrameTextureHeight(window);
+   if (frameHeight <= 0.0) {
+     return fallbackAspect;
+   }
+-  return (window.width / frameHeight).clamp(min, max).toDouble();
++  return (contentSize.width / frameHeight).clamp(min, max).toDouble();
+ }
+diff --git a/dart_shell/lib/src/widgets/window_content_rect.dart b/dart_shell/lib/src/widgets/window_content_rect.dart
+--- a/dart_shell/lib/src/widgets/window_content_rect.dart
++++ b/dart_shell/lib/src/widgets/window_content_rect.dart
+@@ -54,6 +54,7 @@
+         final statusBarHeight = ShellMetrics.appStatusBarTextureHeight(
+           window,
+           targetSize: targetSize,
++          contentSize: layoutSize,
+           visualHeight: visualStatusBarHeight,
+         );
+         final statusBarColor = window.statusColorArgb == null
