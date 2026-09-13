@@ -76,6 +76,17 @@ class LauncherProtocolTests(unittest.TestCase):
                 parser.feed(bytes([byte]))
             self.assertEqual(parser.result()['status'], 'PASS')
 
+    def test_static_native_clients_need_no_later_audit_to_allow_capture(self):
+        parser = self.parser()
+        # OutputSchedulerAudit reports only on activity after its one-second
+        # interval; a mapped scene can settle before any later report exists.
+        parser.feed(self.success_log().replace(self.audits(), '').encode())
+        self.assertTrue(parser.ready('mousepad'))
+        self.assertTrue(parser.ready('foot'))
+        self.assertTrue(parser.focused('foot'))
+        self.assertEqual(parser.focus_generation, 4)
+        self.assertEqual(parser.result()['status'], 'PASS')
+
     def test_each_missing_lifecycle_event_blocks_that_client(self):
         for app in ('mousepad', 'foot'):
             for index in range(len(self.lifecycle(app))):
@@ -135,25 +146,37 @@ class LauncherProtocolTests(unittest.TestCase):
         parser.feed((self.owner('foot')+self.wire('foot', *lines)+self.enter('foot')+self.audits()).encode())
         self.assertFalse(parser.ready('foot'))
 
-    def test_zero_or_first_interval_does_not_arm(self):
+    def test_zero_or_first_interval_is_not_presentation_proof(self):
         parser = self.parser()
+        parser.feed(self.audits().encode())  # Global output alone cannot map a client.
+        self.assertFalse(parser.ready('mousepad'))
         parser.feed((self.launch('mousepad')+self.enter('mousepad')).encode())
-        self.assertFalse(parser.ready('mousepad'))
-        parser.feed(b'Denial/Volition output scheduler audit presentations=2\n')
-        self.assertFalse(parser.ready('mousepad'))
-        parser.feed(self.audits(0).encode())
-        self.assertFalse(parser.ready('mousepad'))
-        parser.feed(b'Denial/Volition output scheduler audit presentations=1\n')
         self.assertTrue(parser.focused('mousepad'))
+        parser.feed(b'Denial/Volition output scheduler audit presentations=2\n')
+        self.assertFalse(parser.focus_visits[-1]['presented_interval'])
+        parser.feed(self.audits(0).encode())
+        self.assertFalse(parser.focus_visits[-1]['presented_interval'])
+        parser.feed(b'Denial/Volition output scheduler audit presentations=1\n')
+        self.assertTrue(parser.focus_visits[-1]['presented_interval'])
+        observation = parser.result()['focus_visits'][-1]['presentation_observation']
+        self.assertEqual(observation['status'], 'PASS')
+        self.assertEqual(observation['client_presentation'], 'NOT RUN')
+        self.assertIn('global output', observation['scope'])
 
-    def test_each_focus_visit_needs_later_positive_interval(self):
+    def test_each_focus_visit_reports_optional_global_interval_separately(self):
         parser = self.parser()
         text = self.success_log()
         parser.feed(text[:-len(self.audits())].encode())
-        self.assertFalse(parser.focused('foot'))  # New focus needs its own later interval.
-        self.assertEqual(parser.result()['status'], 'FAIL')
+        self.assertTrue(parser.focused('foot'))
+        result = parser.result()
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(result['focus_visits'][-1]['presentation_observation']['status'], 'NOT RUN')
         parser.feed(self.audits().encode())
-        self.assertEqual(parser.result()['status'], 'PASS')
+        result = parser.result()
+        self.assertEqual(result['focus_visits'][-1]['presentation_observation']['status'], 'PASS')
+        self.assertEqual(result['focus_visits'][-1]['presentation_observation']['client_presentation'], 'NOT RUN')
+        self.assertIn('no attributed client presentation', result['presentation'])
+        self.assertIn('mapping and focus sequence only', result['scope'])
 
     def test_wrong_keyboard_or_surface_leave_rejected(self):
         for before, after in [('wl_keyboard#6.leave', 'wl_keyboard#7.leave'),

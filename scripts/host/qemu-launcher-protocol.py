@@ -3,7 +3,8 @@
 
 The client debug stream proves protocol requests/events, not pixels or phone
 hardware. Prefixes come only from the guest-owned launcher supervisors. Object
-IDs are scoped to each client; presentation intervals only gate observation.
+IDs are scoped to each client. Native capture readiness is independent of
+activity-driven global audit reports; neither establishes per-client presentation.
 """
 import re
 
@@ -21,7 +22,7 @@ class LauncherProtocol:
         self.errors = []
         self.owners = {}
         self.clients = {app: {'surfaces': {}, 'toplevels': {}, 'focus': {},
-                             'mapped': False, 'interval_seen': False, 'ready': False}
+                             'mapped': False, 'interval_seen': False}
                         for app in self.APP_IDS}
         self.focus_history = []
         self.focus_visits = []
@@ -57,11 +58,11 @@ class LauncherProtocol:
         return not self.errors
 
     def ready(self, app):
-        return not self.errors and self.clients[app]['ready'] and self.clients[app]['mapped']
+        # This permits a settled diagnostic capture. It is not display proof.
+        return not self.errors and app in self.owners and self.clients[app]['mapped']
 
     def focused(self, app):
-        return (self.ready(app) and self.active_app == app and bool(self.focus_visits)
-                and self.focus_visits[-1]['presented_interval'])
+        return self.ready(app) and self.active_app == app
 
     @property
     def focus_generation(self):
@@ -108,8 +109,6 @@ class LauncherProtocol:
                 return
             for client in self.clients.values():
                 if client['mapped']:
-                    if client['interval_seen'] and int(counts[0]) > 0:
-                        client['ready'] = True
                     client['interval_seen'] = True
             if self.active_app and self.focus_visits:
                 visit = self.focus_visits[-1]
@@ -208,7 +207,7 @@ class LauncherProtocol:
         if client['mapped'] and not mapped:
             self.fail('previously mapped client lost its toplevel: '+app)
         if mapped != client['mapped']:
-            client['ready'] = client['interval_seen'] = False
+            client['interval_seen'] = False
         client['mapped'] = mapped
         focused = any(s['surface'] in client['focus'].values() for s in valid)
         if self.active_app == app and not focused:
@@ -225,12 +224,11 @@ class LauncherProtocol:
 
     def result(self, expected_sequence=DEFAULT_SEQUENCE):
         expected = list(expected_sequence)
-        matched = (self.focus_history == expected and all(
-            visit['presented_interval'] for visit in self.focus_visits))
+        matched = self.focus_history == expected
         valid = bool(expected) and matched and not self.errors and all(
             app in self.owners and self.clients[app]['mapped'] for app in self.APP_IDS)
         return {'status': 'PASS' if valid else 'FAIL',
-                'scope': 'owned native Wayland toplevels and observed focus intervals; not visual or phone proof',
+                'scope': 'owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof',
                 'owners': {app: {'pid': pid, 'start': start} for app, (pid, start) in self.owners.items()},
                 'mapped': {app: c['mapped'] for app, c in self.clients.items()},
                 'ready': {app: self.ready(app) for app in self.clients},
@@ -241,6 +239,10 @@ class LauncherProtocol:
                     'keyboard_focus': dict(c['focus']),
                     'surfaces': {oid: dict(s) for oid, s in c['surfaces'].items()},
                     'toplevels': dict(c['toplevels'])} for app, c in self.clients.items()},
-                'focus_visits': [dict(visit) for visit in self.focus_visits],
+                'focus_visits': [dict(visit, presentation_observation={
+                    'status': 'PASS' if visit['presented_interval'] else 'NOT RUN',
+                    'scope': 'later global output audit interval only; not attributed to this client',
+                    'client_presentation': 'NOT RUN'}) for visit in self.focus_visits],
+                'presentation': 'NOT RUN: no attributed client presentation feedback parsed',
                 'errors': list(self.errors), 'post_terminal_exits': list(self.teardown),
                 'visual_semantics': 'NOT RUN', 'phone': 'NOT RUN'}

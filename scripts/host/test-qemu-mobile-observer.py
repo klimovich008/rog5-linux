@@ -848,7 +848,11 @@ class AppSwitchObservation(unittest.TestCase):
     def advance(self, observer, protocol):
         if observer.STEPS[observer.stage][0] == 'client':
             self.focus(protocol, observer.STEPS[observer.stage][1][0])
-        observer.tick(observer.next_at, True)
+            stage = observer.stage
+            while observer.stage == stage:
+                observer.tick(observer.next_at, True)
+        else:
+            observer.tick(observer.next_at, True)
 
     def test_only_matching_tiles_and_fresh_native_focus_advance(self):
         observer, client, protocol, sleeps = self.observer()
@@ -864,6 +868,9 @@ class AppSwitchObservation(unittest.TestCase):
         self.assertEqual(observer.stage, 2)
         self.focus(protocol, 'mousepad')
         observer.tick(observer.next_at, True)
+        self.assertEqual(observer.stage, 2)  # Native focus alone does not skip settling.
+        while observer.stage == 2:
+            observer.tick(observer.next_at, True)
         self.assertEqual(observer.stage, 3)
         while not observer.complete:
             self.advance(observer, protocol)
@@ -879,6 +886,21 @@ class AppSwitchObservation(unittest.TestCase):
         self.assertEqual(len(result['screenshots']), 6)
         self.assertIn('NOT RUN', result['visual_semantics'])
         self.assertEqual(result['phone_touch'], 'NOT RUN')
+
+    def test_native_wait_retains_one_diagnostic_capture_without_more_input(self):
+        observer, client, protocol, _ = self.observer()
+        observer.tick(0, True)
+        observer.tick(observer.next_at, True)
+        observer.tick(observer.next_at, True)
+        buttons = list(client.buttons)
+        observer.tick(observer.next_at+9, True)
+        self.assertEqual(observer.stage, 2)
+        self.assertEqual(client.buttons, buttons)
+        self.assertTrue((observer.directory/'01-mousepad-launched-waiting.png').exists())
+        captures = client.capture_count
+        observer.tick(observer.next_at+9, True)
+        self.assertEqual(client.capture_count, captures)
+        self.assertEqual(observer.finish()['status'], 'FAIL')
 
     def test_missing_tiles_expires_without_input(self):
         # Change a pixel inside the inspected Foot icon, not the clock/status.
@@ -904,7 +926,8 @@ class AppSwitchObservation(unittest.TestCase):
         observer.tick(observer.next_at, True)
         self.assertEqual(observer.stage, 8)
         self.focus(protocol, 'mousepad')
-        observer.tick(observer.next_at, True)
+        while observer.stage == 8:
+            observer.tick(observer.next_at, True)
         self.assertEqual(observer.stage, 9)
         self.assertEqual(observer.finish('interrupted')['status'], 'FAIL')
 

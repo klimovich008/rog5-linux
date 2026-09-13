@@ -2647,3 +2647,11 @@ therefore use a right drag to the preceding window after activation settles.
 Inspect the launcher loading frame before using presentation as app readiness:
 matching the previously inspected icon regions excludes the Loading screen.
 Keep later native focus/presentation evidence separate from pointer delivery.
+
+Do not wait for a periodic-looking audit that only emits during new work. The
+first two-app VM launched Foot and mapped it at68.8 seconds, but waited until
+shutdown at100.6 because the last output audit was at68.6. Source inspection
+shows pending counts can stay buffered forever once rendering becomes idle.
+Use owned native lifecycle/focus readiness to schedule a settled capture; retain
+optional interval reports and actual captured pixels as distinct evidence.
+Extending the guest deadline would not repair this event-driven reporting gap.

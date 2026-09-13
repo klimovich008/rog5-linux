@@ -94,7 +94,11 @@ For launcher-based native app interaction, use `--observe-mobile-apps` with
 Foot and Mousepad icon regions must match before tile clicks; clock and battery
 pixels do not participate. Missing tiles stop input after eight bounded captures.
 The owned client parser requires app identity, configure/ack, committed buffer,
-keyboard focus and a later positive presentation interval for every visit.
+fresh keyboard focus and a1.5-second settling period for every capture.
+Scheduler audit reports depend on new rendering activity; a stable scene may
+never produce another interval report. Retain those reports independently rather
+than blocking input on their arrival. Native readiness and pointer delivery do
+not prove presentation: terminal frame counts and direct captures remain separate.
 Pointer gestures launch Mousepad, return home, launch Foot and switch twice;
 inspect all captures separately. Protocol-only success is not visual usability,
 authentication, phone multitouch or GPU qualification. Client diagnostics and

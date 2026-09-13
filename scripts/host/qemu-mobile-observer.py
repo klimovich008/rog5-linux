@@ -284,6 +284,7 @@ class MobileObserver:
             self.client = self.client_factory(self.directory/'qmp.sock', self.name)
             self.result['status'] = 'RUNNING'
         self.advance_stage = True
+        self.now = now
         delay = self.step()
         self.stage += int(self.advance_stage)
         self.next_at = now+delay
@@ -459,6 +460,8 @@ class AppSwitchObserver(MobileObserver):
         self.sleep = sleep
         self.probes = {}
         self.focus_count = 0
+        self.focus_settling = {}
+        self.client_wait = {}
         self.result.update(probe='UI launch and switch native Mousepad and Foot',
                            launcher_reference=png_identity(reference),
                            launcher_tiles=self.reference)
@@ -480,11 +483,22 @@ class AppSwitchObserver(MobileObserver):
                 return 1.0
         elif operation == 'client':
             app, label = value
+            started = self.client_wait.setdefault(self.stage, self.now)
+            generation = len(self.protocol.focus_history)
             if not (self.protocol.ready(app) and self.protocol.focused(app)
-                    and len(self.protocol.focus_history) > self.focus_count):
+                    and generation > self.focus_count):
+                self.focus_settling.pop(self.stage, None)
+                if self.now-started >= 8 and self.stage not in self.probes:
+                    self.capture(label+'-waiting')
+                    self.probes[self.stage] = 1
                 self.advance_stage = False
                 return .2
-            self.focus_count = len(self.protocol.focus_history)
+            if self.focus_settling.get(self.stage, (None,))[0] != generation:
+                self.focus_settling[self.stage] = (generation, self.now)
+            if self.now-self.focus_settling[self.stage][1] < 1.5:
+                self.advance_stage = False
+                return .2
+            self.focus_count = generation
             self.capture(label)
         elif operation == 'click':
             self.move(*value)
