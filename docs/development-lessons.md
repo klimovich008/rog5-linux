@@ -3021,3 +3021,15 @@ and explicit absent private bus addresses/runtime, avoiding inherited desktop
 environment and shell functions. Restore only the demonstrated leaked setting
 to ordinary effective defaults; retain the failed tier and restoration limits.
 A pure test isolation repair does not require rerunning an unchanged VM.
+
+GTK input-method discovery (2026-09-13): authenticated package extraction is not
+post-transaction initialization. A shipped im-wayland.so was insufficient without
+GTK's module cache; the real ARM64 query succeeded, and generating its cache in
+guest RAM changed Mousepad from no text-input binding to actual v3 caret reports
+in one288.4-second VM. Keep package discovery, environment transfer and client
+protocol proof separate. A display-free GTK instantiation probe was inconclusive;
+do not turn its initialization failures into a package or compositor diagnosis.
+Use `ln -T` for no-replacement file publication so a racing directory cannot
+produce a nested file and false success. Wait interruptibly and explicitly cancel
+GNU timeout's separate process group on helper interruption. Preserve zero-width
+caret rectangles; the observed GTK carets were width0,height20.

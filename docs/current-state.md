@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Authenticated VM launcher app switching, OSK text and cleanup qualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **GTK Wayland caret reporting qualified in VM; automatic viewport positioning open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-A complete authenticated ARM64 VirGL VM run passed UI launches of Mousepad and Foot, the four-visit focus sequence, exact OSK keys, visible test/tes/test, both normal client exits0,204frames/pageflips and PAM/logind cleanup/poweroff. Two earlier failed runs remain separate. Fixed single-open virtual-port handling, sticky observation failure and demonstrated completion races; the previous143 cause is not retrospectively proven. Next isolate automatic caret visibility when the OSK opens without the retained manual viewport pan, reusing the qualified session flow. Phone operations remain unauthorized; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-authenticated-apps.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The GTK package-hook cache is now generated in guest RAM and passed to GTK clients. Mousepad binds text-input v3 and emits10 caret rectangle requests; launcher switching, visible test/tes/test,207frames/pageflips and clean authenticated teardown passed. Final cache publication race fix has15passing host cases;102active suites passed. Next carry optional focused caret geometry and ownership through the existing Denial bridge, then use one visibility calculation for painting and native hit testing. Keep zero-width carets and manual fallback; remove scripted panning only in a separately qualified observation. Phone operations remain unauthorized; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-gtk-im-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

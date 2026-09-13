@@ -38,9 +38,11 @@ For an actual local Denial session with the document portal, use the separate
 It adds built-in FUSE to the virtual DRM prerequisites. The retained `virtio-drm`
 profile and its evidence remain unchanged. Require a usable `/dev/fuse` and a
 real document-portal mount in the VM; a successful modprobe unit is insufficient.
-Prepared RAM GTK schema/MIME caches must be imported into the D-Bus and systemd
-user activation environments using the explicit two-variable allowlist before
-launch. Cache transfer, service readiness, client lifetime and phone behavior
+Prepared RAM GTK schema/MIME/input-method caches must be imported into the D-Bus and systemd
+user activation environments using the explicit three-variable allowlist before
+launch. The GTK module hook is generated in guest RAM and selected with
+`GTK_IM_MODULE_FILE`; generation alone is not client protocol qualification.
+Cache transfer, service readiness, client lifetime and phone behavior
 remain separate checks. The combined VM also runs the packaged ARM64
 `fc-cache -s -v` in guest RAM before PAM startup, then checks a mobile-UID
 `fc-match` consumer with diagnostic cache records, unchanged cache inventory and

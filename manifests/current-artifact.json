@@ -1505,6 +1505,20 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "gtk_input_method_cache": {
+      "status": "PASS_VM_CACHE_AND_TEXT_INPUT; FINAL_PUBLICATION_GUARD_HOST_QUALIFIED",
+      "set_id": "private:rog5-gtk-im-cache-20260913-r1",
+      "source_commit": "aab9139271d06f039d8d2b91f14c94195fdef7d6",
+      "source_tree": "7b38dc2e05ddd80928f9012b36e0499a6ef162e5",
+      "host_fix_source_commit": "05ce1d6f66d3fa5b72ce0efebfe7a1edcc08cea3",
+      "evidence": {
+        "path": "test-results/2026-09-13-gtk-im-cache-qualification.json",
+        "sha256": "0676d7bf3aa16738ee5baa5de4061bf380e3225a1662603fe8eb574a3b5b908b",
+        "size": 283849
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {
