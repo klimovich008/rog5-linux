@@ -89,4 +89,44 @@ class DiagnosticSnapshot(unittest.TestCase):
     def test_writer_failure_propagates(self):
         self.writer.write_text('#!/bin/sh\nexit 42\n')
         p,_,_=self.run_snapshot();self.assertEqual(p.returncode,42)
+
+    def test_render_handoff_survives_noise_without_promoting_it_to_evidence(self):
+        self.log.write_text('\x1b[2m2026-09-13T00:03:01Z\x1b[0m INFO native: bounded render authorization trace '
+            'sequence=12 event="consume" view=1 work_id=Some(7) serial=Some(8) age_us=Some(25) slots=[ignored]\n'
+            '2026-09-13T00:03:02Z INFO native: Flutter per-output render audit '
+            'source="embedder" interval_ms=1001 presented_outputs=2 empty_transactions=0 '
+            'frame_damage_empty=0 buffer_damage_empty=0 '+('ignored=foo '*300)+
+            'last_frame_damage=0,0-540,1224 last_buffer_damage=0,0-540,1224\n'
+            + 'noise\n'*10000)
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
+        self.assertIn(b'RENDER_HANDOFF kind=authorization',data)
+        self.assertIn(b'event="consume"',data)
+        self.assertIn(b'work_id=Some(7)',data)
+        self.assertIn(b'last_frame_damage=0,0-540,1224',data)
+        self.assertNotIn(b'ignored=foo',data)
+        self.assertNotIn(b'\x1b',data)
+        self.assertTrue(all(x.startswith(b'DENIAL_DIAGNOSTIC ') for x in data.splitlines()))
+
+    def test_render_handoff_retains_latest_records_with_original_order(self):
+        self.log.write_text(''.join(f'2026-09-13T00:03:{i:02}Z INFO native: bounded render authorization trace '
+            f'sequence={i} event="grant" view=1 work_id=Some({i}) serial=Some({i})\n' for i in range(10))
+            + ''.join(f'2026-09-13T00:04:{i:02}Z INFO native: Flutter per-output render audit '
+            f'presented_outputs={i} last_frame_damage=- last_buffer_damage=-\n' for i in range(6))
+            + 'noise\n'*10000)
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
+        rows=[x for x in data.splitlines() if b'RENDER_HANDOFF ' in x]
+        self.assertEqual(len(rows),6)
+        self.assertIn(b'sequence=6 ',rows[0]);self.assertIn(b'sequence=9 ',rows[3])
+        self.assertIn(b'presented_outputs=4 ',rows[4]);self.assertIn(b'presented_outputs=5 ',rows[5])
+
+    def test_render_handoff_has_separate_budget_from_icon_stages(self):
+        self.log.write_text(('ROG5_PICTURE '+'x'*1000+'\n')*30
+            + '2026-09-13T00:03:01Z INFO native: Flutter per-output render audit '
+            'presented_outputs=7 last_frame_damage='+('1'*6000)+'\n'+'noise\n'*10000)
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
+        rows=[x for x in data.splitlines(keepends=True) if b'RENDER_HANDOFF ' in x]
+        self.assertTrue(rows)
+        self.assertLessEqual(sum(map(len,rows)),1792)
+        self.assertLessEqual(len(data),30720)
+        self.assertIn(b'ROG5_PICTURE ',data)
 if __name__=='__main__':unittest.main()

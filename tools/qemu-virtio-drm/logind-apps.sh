@@ -23,6 +23,43 @@ logind_apps_snapshot() {
                     line=substr($0,1,1000); cost=length(line)+19
                     if (cost<=remaining) {print line; remaining-=cost}}
             '\'' || exit $?
+            # Existing native audit fields are often older than the recent tail.
+            # Keep four latest authorizations and two latest presentation audits,
+            # compacted as diagnostic data; no new renderer logging or GL calls.
+            LC_ALL=C head -c 1048576 -- "$1" |
+            LC_ALL=C awk '\''
+                function compact(kind,   result,i,key,value,truncated) {
+                    result="RENDER_HANDOFF kind=" kind " time=" substr($1,1,40)
+                    truncated=0
+                    for(i=1;i<=NF;i++) {
+                        key=$i; sub(/=.*/,"",key)
+                        if(key ~ /^(sequence|event|view|work_id|serial|age_us|interval_ms|presented_outputs|empty_transactions|frame_damage_empty|buffer_damage_empty|last_frame_damage|last_buffer_damage)$/) {
+                            value=substr($i,length(key)+2)
+                            if(length(value)>96) {value=substr(value,1,96); truncated=1}
+                            result=result " " key "=" value
+                        }
+                    }
+                    return result " value_truncated=" truncated
+                }
+                {gsub(/\033\[[0-9;]*m/,"")}
+                index($0,"bounded render authorization trace") {
+                    auth[na%4]=compact("authorization"); na++
+                }
+                index($0,"Flutter per-output render audit") {
+                    present[np%2]=compact("presentation"); np++
+                }
+                END {
+                    remaining=1792
+                    for(i=(na>4 ? na-4 : 0);i<na;i++) {
+                        line=auth[i%4]; cost=length(line)+19
+                        if(cost<=remaining) {print line; remaining-=cost}
+                    }
+                    for(i=(np>2 ? np-2 : 0);i<np;i++) {
+                        line=present[i%2]; cost=length(line)+19
+                        if(cost<=remaining) {print line; remaining-=cost}
+                    }
+                }
+            '\'' || exit $?
             LC_ALL=C tail -c 4096 -- "$1"
         } |
         LC_ALL=C awk '\''BEGIN {remaining=30720}
