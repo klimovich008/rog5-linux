@@ -1,0 +1,3732 @@
+{
+  "schema": 1,
+  "scope": "Combined native launcher/switch and OSK text observation in generic ARM64 VirGL VM; no phone proof",
+  "starting": {
+    "commit": "07b7f692ab47b810b5c2023a748df6db19e72362",
+    "tree": "1a55abb341d05ee86f1340999ae84b8044f7f75e",
+    "previous_turn": "progress; complete two-app VM switching passed with dedicated protocol channel"
+  },
+  "executed_source": {
+    "commit": "6d01f0c3bb0a881103213140145c6258e99fe93e",
+    "tree": "5ee9d665372a6d0e16e805f51ecd48537f704f3d",
+    "files": {
+      "scripts/host/qemu-mobile-observer.py": "bb9eb76c8ecb6c2f50bf46d9d57ba22f6ab7b3314431c424c04a11f14427667e",
+      "scripts/host/test-qemu-virtio-drm.py": "86694d029c0f24be11cb10576fe6ed752ea443c8add8cc19489b5d7553753dc4"
+    },
+    "native_source_commit": "0f31e56bda1d692eaffa1bc6276bfb050379173e",
+    "aot_source_commit": "0c126920a25763bd38eca78f5971b13f87325424",
+    "writer_source_commit": "d9666184de8df6da54df96a09fbfd3eaf71d9010"
+  },
+  "focused": {
+    "scope": "Executed source observer fixtures, no VM/phone proof",
+    "status": "PASS",
+    "runs": [
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-mobile-observer.py"
+        ],
+        "cases": 51,
+        "unittest_seconds": 2.799,
+        "exit_status": 0
+      },
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-qemu-virtio-drm-prerequisites.py"
+        ],
+        "cases": 29,
+        "unittest_seconds": 0.282,
+        "exit_status": 0
+      }
+    ],
+    "review": "Independent read-only source/gesture/cleanup review found no blocker; exact gesture coordinates checked against retained Dart and prior keyboard capture"
+  },
+  "builds_executed": "NONE: unchanged native/engine/AOT/writer/kernel/runtime reused",
+  "reused_inputs": {
+    "native": {
+      "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+      "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+      "size": 15990872
+    },
+    "aot": {
+      "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/aot/libapp.so",
+      "sha256": "09a07cb992507e4ef3aab814fadb316aab7af51b4da520608856e52e91a93fcb",
+      "size": 10814352
+    },
+    "writer": {
+      "path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/build/evidence-writer",
+      "sha256": "f055f339f7f37493b7fc092e9744feeaf14943cef3441375d726ab01d05003e4",
+      "size": 398104
+    },
+    "runtime_binding": {
+      "status": "PASS",
+      "files": [
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/AssetManifest.bin",
+          "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+          "size": 2439,
+          "previous_sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/FontManifest.json",
+          "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+          "size": 307,
+          "previous_sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/NOTICES.Z",
+          "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+          "size": 14745,
+          "previous_sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/branding/denial-dark.svg",
+          "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+          "size": 3344,
+          "previous_sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+          "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+          "size": 1617,
+          "previous_sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+          "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+          "size": 1775,
+          "previous_sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+          "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+          "size": 860,
+          "previous_sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+          "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+          "size": 836,
+          "previous_sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+          "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+          "size": 535,
+          "previous_sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+          "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+          "size": 1162,
+          "previous_sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+          "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+          "size": 748,
+          "previous_sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+          "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+          "size": 1204,
+          "previous_sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+          "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+          "size": 1298,
+          "previous_sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+          "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+          "size": 968,
+          "previous_sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+          "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+          "size": 993,
+          "previous_sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+          "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+          "size": 1075,
+          "previous_sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+          "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+          "size": 858,
+          "previous_sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+          "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+          "size": 813,
+          "previous_sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+          "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+          "size": 1227,
+          "previous_sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+          "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+          "size": 818,
+          "previous_sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+          "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+          "size": 1495,
+          "previous_sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+          "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+          "size": 277828,
+          "previous_sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+          "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+          "size": 273860,
+          "previous_sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+          "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+          "size": 273900,
+          "previous_sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/icons/application-default-icon.svg",
+          "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+          "size": 408,
+          "previous_sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+          "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+          "size": 3913008,
+          "previous_sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+          "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+          "size": 1645184,
+          "previous_sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/shaders/ink_sparkle.frag",
+          "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+          "size": 21856,
+          "previous_sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/shaders/stretch_effect.frag",
+          "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+          "size": 17624,
+          "previous_sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/icudtl.dat",
+          "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+          "size": 10822192,
+          "previous_sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612",
+          "changed": false
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/lib/libapp.so",
+          "sha256": "09a07cb992507e4ef3aab814fadb316aab7af51b4da520608856e52e91a93fcb",
+          "size": 10814352,
+          "previous_sha256": "85567c81c52a375d8fa424aaaa54a152440b2fd02d73632301b857da6b230b19",
+          "changed": true
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/lib/libflutter_engine.so",
+          "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+          "size": 15999928,
+          "previous_sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418",
+          "changed": false
+        }
+      ],
+      "scope": "diagnostic shell AOT only changed; remaining runtime hash-identical"
+    }
+  },
+  "vm_driver": {
+    "command": [
+      "python3",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-qemu-virtio-drm.py",
+      "--runtime",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+      "--kernel",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image",
+      "--deniald",
+      "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+      "--flutter-bundle",
+      "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture",
+      "--image",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "--render-node",
+      "/dev/dri/renderD128",
+      "--output",
+      "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1",
+      "--deadline",
+      "120",
+      "--observe-mobile",
+      "--observe-mobile-apps",
+      "--launcher-reference",
+      "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+      "--trace-focus",
+      "--evidence-writer",
+      "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/build/evidence-writer",
+      "--observe-mobile-apps-text"
+    ],
+    "exit_status": 0,
+    "duration_seconds": 103.65927794299205,
+    "free_after": 3284373504
+  },
+  "vm": {
+    "scope": "generic ARM64 virtual DRM; phone hardware NOT RUN",
+    "started": "2026-09-13T04:07:23.356255+00:00",
+    "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+    "deniald_sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+    "egl_thread_probe_sha256": null,
+    "container": "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+    "runtime": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "runtime_inventory_verified_by_this_runner": false,
+    "flutter_bundle": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture",
+    "graphics_mode": "virgl",
+    "host_render_node": {
+      "path": "/dev/dri/renderD128",
+      "major": 226,
+      "minor": 128,
+      "scope": "host rendering only; no phone device"
+    },
+    "harness_sha256": "86694d029c0f24be11cb10576fe6ed752ea443c8add8cc19489b5d7553753dc4",
+    "init_source_sha256": "cc351dc5a61acce969b7ac7d2d085f2cf5c6ebdd98d33696a18d46f79cef271c",
+    "compile_command": [
+      "clang",
+      "--target=aarch64-none-elf",
+      "-fuse-ld=lld",
+      "-nostdlib",
+      "-static",
+      "-fno-pic",
+      "-fno-stack-protector",
+      "-Werror",
+      "-Wall",
+      "-Wextra",
+      "-Wl,--build-id=none,--entry=_start",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/qemu-virtio-drm/init.c",
+      "-o",
+      "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/initramfs/init"
+    ],
+    "status": "PASS",
+    "launcher_protocol_sha256": "eb5383f1fa91b60f88f1233c968bc898675926d914f3146ea16db50589d2d9a9",
+    "app_binary_hashes": {
+      "foot": "be6ded4faadf7c60da70c73c27830fa5b12b62e35f4a16550d2c845a5b88a169",
+      "mousepad": "5294cf7b9ce6d967c7e33b03ae42bb8c57fd8442df40192d835aea629c134bab"
+    },
+    "mobile_editor": false,
+    "mobile_launcher": false,
+    "mobile_apps": true,
+    "mobile_apps_text": true,
+    "launcher_apps_sha256": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+    "observer_sha256": "bb9eb76c8ecb6c2f50bf46d9d57ba22f6ab7b3314431c424c04a11f14427667e",
+    "shell_profile": "mobile",
+    "protocol_transport": {
+      "scope": "dedicated virtual serial; bounded atomic FIFO records",
+      "writer_sha256": "f055f339f7f37493b7fc092e9744feeaf14943cef3441375d726ab01d05003e4",
+      "setup_sha256": "5033c592e50161825f632673e3bdbe90b50fc37e57baeaa39f93ec909f1c1392",
+      "limit_bytes": 3145728
+    },
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-virtual-drm-0f6ef4aa7887",
+      "--network",
+      "none",
+      "--read-only",
+      "--memory",
+      "1536m",
+      "--memory-swap",
+      "1536m",
+      "--cpus",
+      "2",
+      "--pids-limit",
+      "64",
+      "--security-opt",
+      "no-new-privileges",
+      "-v",
+      "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root:/runtime:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/initramfs.cpio.gz:/initramfs.gz:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/payload:/payload:ro",
+      "--device",
+      "/dev/dri/renderD128:/dev/dri/renderD128:rw",
+      "-e",
+      "XDG_CACHE_HOME=/tmp/rog5-qemu-cache",
+      "-v",
+      "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe:/observe:rw",
+      "-v",
+      "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/protocol:/protocol:rw",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "qemu-system-aarch64",
+      "-M",
+      "virt",
+      "-cpu",
+      "max",
+      "-smp",
+      "2",
+      "-m",
+      "1024M",
+      "-accel",
+      "tcg,thread=multi",
+      "-global",
+      "virtio-mmio.force-legacy=false",
+      "-display",
+      "egl-headless,rendernode=/dev/dri/renderD128",
+      "-monitor",
+      "none",
+      "-nic",
+      "none",
+      "-serial",
+      "stdio",
+      "-no-reboot",
+      "-kernel",
+      "/Image",
+      "-initrd",
+      "/initramfs.gz",
+      "-append",
+      "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1",
+      "-device",
+      "virtio-gpu-gl-device,xres=540,yres=1224",
+      "-device",
+      "virtio-keyboard-device",
+      "-device",
+      "virtio-tablet-device",
+      "-device",
+      "virtio-rng-device",
+      "-fsdev",
+      "local,id=rootfs,path=/runtime,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+      "-fsdev",
+      "local,id=payload,path=/payload,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=payload,mount_tag=payload",
+      "-name",
+      "rog5-virtual-drm-0f6ef4aa7887",
+      "-qmp",
+      "unix:/observe/qmp.sock,server=on,wait=off",
+      "-vnc",
+      "unix:/observe/vnc.sock",
+      "-device",
+      "virtio-serial-device",
+      "-chardev",
+      "file,id=protocol,path=/protocol/events.log",
+      "-device",
+      "virtserialport,chardev=protocol,name=rog5.launcher,nr=1"
+    ],
+    "mobile_observation": {
+      "status": "PASS",
+      "scope": "Local VM captures and synthetic pointer delivery only",
+      "visual_semantics": "NOT RUN: inspect screenshots separately",
+      "phone_touch": "NOT RUN",
+      "profile": "mobile",
+      "capture_backend": "UNIX VNC raw",
+      "screenshots": [
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/00-home-ready-probe-1.png",
+          "sha256": "b0ac3881aef8886fc23af7d18af680234999232cb6a6efdd9592f454c2ca5c5d",
+          "size": 4896,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/00-home-ready-probe-2.png",
+          "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+          "size": 798785,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/00-home-ready-probe-3.png",
+          "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+          "size": 798785,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/00-home-ready-probe-4.png",
+          "sha256": "a7711662e76bbed9cdea9d7cddc8a9889bfe67afa74ca4b4caf6e1ea2ff463ad",
+          "size": 798785,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/00-home-ready-probe-5.png",
+          "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+          "size": 650222,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/01-mousepad-launched-waiting.png",
+          "sha256": "6e453b60313206ecb6cb63e2327baf9933c5e646c1a541824bdcf18044fb087f",
+          "size": 5120,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/01-mousepad-launched.png",
+          "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+          "size": 16846,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/02-overview-or-home.png",
+          "sha256": "0d4d166c9bb2e1fe684bb8d416238e5a81c60c1def0299a2c216d3a8f2788e9c",
+          "size": 222069,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/02-home-returned-probe-1.png",
+          "sha256": "fc06b48d5ee5519f70d2a266a138b9a0a1813a975ece9ac107ad439293a8be34",
+          "size": 650073,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/03-foot-launched.png",
+          "sha256": "f40b6a79eca8ef00bc08af5293104d5e68f04a0f9a34ab03e45c704d558d7fcd",
+          "size": 10531,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/04-mousepad-restored.png",
+          "sha256": "7634db02a682c6569c07e6daf839a876b271f5500b5b306d56ef64eb3a390d82",
+          "size": 16837,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/00-editor-empty.png",
+          "sha256": "f4179c8e87007e64b4a6edd440b15c3ebd9809b6f9f029d294ac99dd96270449",
+          "size": 16846,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/01-editor-keyboard.png",
+          "sha256": "0b49ffa6a186aa8b606088a4f8dbb7749538f8bd41ac622eec91b1339441239c",
+          "size": 24007,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/01b-editor-viewport-panned.png",
+          "sha256": "a6bc8d98528a0e555b6990247304cd918a9107b6a9d37938a5d6398f4386f9ba",
+          "size": 32777,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/02-editor-test.png",
+          "sha256": "adb3be97a92e25a6b7c23778e6d407f1d50e7154db5b957f42f58d1e8b029420",
+          "size": 35628,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/03-editor-tes.png",
+          "sha256": "f6dee4e8e07519d32474754036913a722040effa7d7322a699f460476204d8ea",
+          "size": 33756,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/04-editor-test-restored.png",
+          "sha256": "2436e3178cc406f7259a1b6b9a3dbbbcbd8f85f440a3e0ff0786e6fc0b6242b1",
+          "size": 33635,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/04b-editor-keyboard-dismissed.png",
+          "sha256": "d4d87f9a0eb1ac221d291aeb6fce8eda1ef29f9f7ca731712638af2a4d97d674",
+          "size": 19119,
+          "width": 540,
+          "height": 1224
+        },
+        {
+          "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/guest-text-r1/observe/05-foot-restored.png",
+          "sha256": "ec550f321f7848222a2c1006cf5bdcbe0ee9e183bc6c1a2ce3b63a5900b27a1f",
+          "size": 10527,
+          "width": 540,
+          "height": 1224
+        }
+      ],
+      "actions": [
+        {
+          "operation": "home",
+          "value": "00-home-ready"
+        },
+        {
+          "operation": "click",
+          "value": [
+            77,
+            752
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "mousepad",
+            "01-mousepad-launched"
+          ]
+        },
+        {
+          "operation": "home_gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              270,
+              1150
+            ],
+            [
+              270,
+              1060
+            ],
+            [
+              270,
+              970
+            ],
+            [
+              270,
+              880
+            ]
+          ]
+        },
+        {
+          "operation": "capture",
+          "value": "02-overview-or-home"
+        },
+        {
+          "operation": "click",
+          "value": [
+            25,
+            1080
+          ]
+        },
+        {
+          "operation": "home",
+          "value": "02-home-returned"
+        },
+        {
+          "operation": "click",
+          "value": [
+            205,
+            592
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "foot",
+            "03-foot-launched"
+          ]
+        },
+        {
+          "operation": "gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              315,
+              1194
+            ],
+            [
+              365,
+              1194
+            ],
+            [
+              415,
+              1194
+            ]
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "mousepad",
+            "04-mousepad-restored"
+          ]
+        },
+        {
+          "operation": "capture",
+          "value": "00-editor-empty"
+        },
+        {
+          "operation": "move",
+          "value": [
+            270,
+            200
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1218
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1180
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1140
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1100
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            500,
+            1060
+          ]
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "01-editor-keyboard"
+        },
+        {
+          "operation": "move",
+          "value": [
+            531,
+            240
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "move",
+          "value": [
+            531,
+            320
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            531,
+            400
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            531,
+            480
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            531,
+            560
+          ]
+        },
+        {
+          "operation": "move",
+          "value": [
+            531,
+            640
+          ]
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "01b-editor-viewport-panned"
+        },
+        {
+          "operation": "move",
+          "value": [
+            243,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "move",
+          "value": [
+            137,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "move",
+          "value": [
+            111,
+            1005
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "move",
+          "value": [
+            243,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "02-editor-test"
+        },
+        {
+          "operation": "move",
+          "value": [
+            501,
+            1089
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "03-editor-tes"
+        },
+        {
+          "operation": "move",
+          "value": [
+            243,
+            921
+          ]
+        },
+        {
+          "operation": "button",
+          "value": true
+        },
+        {
+          "operation": "button",
+          "value": false
+        },
+        {
+          "operation": "capture",
+          "value": "04-editor-test-restored"
+        },
+        {
+          "operation": "home_gesture",
+          "value": [
+            [
+              531,
+              640
+            ],
+            [
+              531,
+              560
+            ],
+            [
+              531,
+              480
+            ],
+            [
+              531,
+              400
+            ],
+            [
+              531,
+              320
+            ],
+            [
+              531,
+              240
+            ]
+          ]
+        },
+        {
+          "operation": "home_gesture",
+          "value": [
+            [
+              270,
+              868
+            ],
+            [
+              270,
+              898
+            ],
+            [
+              270,
+              958
+            ],
+            [
+              270,
+              1018
+            ],
+            [
+              270,
+              1078
+            ],
+            [
+              270,
+              1138
+            ],
+            [
+              270,
+              1198
+            ]
+          ]
+        },
+        {
+          "operation": "capture",
+          "value": "04b-editor-keyboard-dismissed"
+        },
+        {
+          "operation": "gesture",
+          "value": [
+            [
+              270,
+              1194
+            ],
+            [
+              315,
+              1194
+            ],
+            [
+              365,
+              1194
+            ],
+            [
+              415,
+              1194
+            ]
+          ]
+        },
+        {
+          "operation": "client",
+          "value": [
+            "foot",
+            "05-foot-restored"
+          ]
+        }
+      ],
+      "probe": "launcher app switching with native Mousepad OSK text entry",
+      "launcher_reference": {
+        "path": "/home/deck/.local/state/rog5-vm-launcher-20260913-r1/guest-launcher-discovery-r1/observe/01-launcher-settled.png",
+        "sha256": "65be5b89c92904794d7ac972dae2a8d109a73c093bde5b7b981d5069e5dfa397",
+        "size": 650222,
+        "width": 540,
+        "height": 1224
+      },
+      "launcher_tiles": {
+        "foot": "bd4084d0b45a8a6ca514ca5ac4c0a838089f7901bdf20f061d4d5789d0b3879e",
+        "mousepad": "250e97dad100697aa370048c683be2bd3aa70a7eca7b86fbe6404eb266e8eba5"
+      },
+      "qmp_request_limit": 96,
+      "tile_checks": [
+        {
+          "capture": "00-home-ready-probe-1",
+          "matched": false
+        },
+        {
+          "capture": "00-home-ready-probe-2",
+          "matched": false
+        },
+        {
+          "capture": "00-home-ready-probe-3",
+          "matched": false
+        },
+        {
+          "capture": "00-home-ready-probe-4",
+          "matched": false
+        },
+        {
+          "capture": "00-home-ready-probe-5",
+          "matched": true
+        },
+        {
+          "capture": "02-home-returned-probe-1",
+          "matched": true
+        }
+      ],
+      "qmp": [
+        {
+          "request": {
+            "execute": "qmp_capabilities",
+            "id": 1
+          },
+          "response": {
+            "return": {},
+            "id": 1
+          }
+        },
+        {
+          "request": {
+            "execute": "query-name",
+            "id": 2
+          },
+          "response": {
+            "return": {
+              "name": "rog5-virtual-drm-0f6ef4aa7887"
+            },
+            "id": 2
+          }
+        },
+        {
+          "request": {
+            "execute": "query-status",
+            "id": 3
+          },
+          "response": {
+            "return": {
+              "status": "running",
+              "singlestep": false,
+              "running": true
+            },
+            "id": 3
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 4,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 4681
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 20148
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 4
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 5,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 5
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 6,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 6
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 7,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 7
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 8,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 8
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 9,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 30811
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 9
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 10,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28400
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 10
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 11,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 25989
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 11
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 12,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 23577
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 12
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 13,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 13
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 14,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 1520
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28936
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 14
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 15,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 15
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 16,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 16
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 17,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 12462
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 15861
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 17
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 18,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 18
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 19,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 19
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 20,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 20
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 21,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 21
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 22,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 19150
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 22
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 23,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 22189
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 23
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 24,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 25229
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 24
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 25,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 25
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 26,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 5358
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 26
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 27,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 27
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 28,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 28
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 29,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 32633
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 29
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 30,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 30
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 31,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31615
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 31
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 32,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 30543
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 32
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 33,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 29472
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 33
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 34,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30396
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28400
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 34
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 35,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 35
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 36,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 6430
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 36
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 37,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 37
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 38,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 8574
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 38
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 39,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 10717
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 39
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 40,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 12860
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 40
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 41,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 15004
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 41
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 42,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 17147
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 42
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 43,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 43
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 44,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 14773
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 44
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 45,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 45
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 46,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 46
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 47,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 8329
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 47
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 48,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 48
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 49,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 49
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 50,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 6748
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 26926
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 50
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 51,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 51
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 52,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 52
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 53,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 14773
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 53
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 54,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 54
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 55,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 55
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 56,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 30457
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 29177
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 56
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 57,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 57
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 58,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 58
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 59,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 14773
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24676
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 59
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 60,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 60
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 61,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 61
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 62,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 17147
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 62
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 63,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 63
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 64,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 15004
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 64
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 65,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 12860
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 65
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 66,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 10717
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 66
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 67,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 8574
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 67
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 68,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 32281
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 6430
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 68
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 69,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 69
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 70,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 23256
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 70
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 71,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 71
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 72,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 24059
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 72
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 73,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 25667
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 73
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 74,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 27275
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 74
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 75,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 28882
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 75
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 76,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 30490
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 76
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 77,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 32097
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 77
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 78,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 78
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 79,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 16414
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 79
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 80,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": true
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 80
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 81,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 19150
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 81
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 82,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 22189
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 82
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 83,
+            "arguments": {
+              "events": [
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "x",
+                    "value": 25229
+                  }
+                },
+                {
+                  "type": "abs",
+                  "data": {
+                    "axis": "y",
+                    "value": 31990
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 83
+          }
+        },
+        {
+          "request": {
+            "execute": "input-send-event",
+            "id": 84,
+            "arguments": {
+              "events": [
+                {
+                  "type": "btn",
+                  "data": {
+                    "button": "left",
+                    "down": false
+                  }
+                }
+              ]
+            }
+          },
+          "response": {
+            "return": {},
+            "id": 84
+          }
+        }
+      ],
+      "pointer_released": true
+    },
+    "qemu_exit_status": 0,
+    "drm_discovery": "PASS",
+    "deniald_kms": "NOT RUN",
+    "deniald_cli": "NOT RUN",
+    "shell_exit": "PASS",
+    "shell_rendering": {
+      "status": "PASS",
+      "scope": "Denial terminal counters; not visual or phone proof",
+      "raster_frames": 208,
+      "output_page_flips": 208,
+      "render_errors": []
+    },
+    "launcher_protocol": {
+      "status": "PASS",
+      "scope": "owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof",
+      "owners": {
+        "mousepad": {
+          "pid": "146",
+          "start": "3861"
+        },
+        "foot": {
+          "pid": "256",
+          "start": "7221"
+        }
+      },
+      "mapped": {
+        "mousepad": true,
+        "foot": true
+      },
+      "ready": {
+        "mousepad": true,
+        "foot": true
+      },
+      "focus_history": [
+        "mousepad",
+        "foot",
+        "mousepad",
+        "foot"
+      ],
+      "focus_generation": 4,
+      "active_app": "foot",
+      "pending_focus": null,
+      "expected_sequence": [
+        "mousepad",
+        "foot",
+        "mousepad",
+        "foot"
+      ],
+      "client_state": {
+        "mousepad": {
+          "interval_seen": false,
+          "keyboard_focus": {},
+          "surfaces": {
+            "25": {
+              "surface": "24",
+              "title": true,
+              "app_id": true,
+              "configured": true,
+              "serial": "5",
+              "ack": true,
+              "pending_attach": null,
+              "committed": true,
+              "dead": false
+            }
+          },
+          "toplevels": {
+            "26": "25"
+          }
+        },
+        "foot": {
+          "interval_seen": false,
+          "keyboard_focus": {
+            "21": "3"
+          },
+          "surfaces": {
+            "30": {
+              "surface": "3",
+              "title": true,
+              "app_id": true,
+              "configured": true,
+              "serial": "65",
+              "ack": true,
+              "pending_attach": null,
+              "committed": true,
+              "dead": false
+            }
+          },
+          "toplevels": {
+            "31": "30"
+          }
+        }
+      },
+      "focus_visits": [
+        {
+          "app": "mousepad",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        },
+        {
+          "app": "foot",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        },
+        {
+          "app": "mousepad",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        },
+        {
+          "app": "foot",
+          "interval_seen": false,
+          "presented_interval": false,
+          "presentation_observation": {
+            "status": "NOT RUN",
+            "scope": "later global output audit interval only; not attributed to this client",
+            "client_presentation": "NOT RUN"
+          }
+        }
+      ],
+      "presentation": "NOT RUN: no attributed client presentation feedback parsed",
+      "errors": [],
+      "post_terminal_exits": [
+        "OBSERVE launcher app=mousepad exit=1",
+        "OBSERVE launcher app=foot exit=230"
+      ],
+      "visual_semantics": "NOT RUN",
+      "phone": "NOT RUN"
+    },
+    "launcher_text_protocol": {
+      "status": "PASS",
+      "scope": "native client Wayland protocol and OSK key lifecycle; visual text checked separately",
+      "native_toplevel_observed": true,
+      "keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "expected_keys": [
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          18,
+          1
+        ],
+        [
+          18,
+          0
+        ],
+        [
+          31,
+          1
+        ],
+        [
+          31,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          20,
+          1
+        ],
+        [
+          20,
+          0
+        ]
+      ],
+      "unfocused_keys": false
+    },
+    "launcher_apps_cleanup": "PASS",
+    "container_removed": true,
+    "duration_seconds": 103.51628207199974,
+    "hashes": {
+      "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+      "initramfs/stage/guest.sh": "98c84750791471a99d6c18ee9779b2d64261ece7ffdd026b64bb9301dfa855cd",
+      "initramfs.cpio.gz": "daa517d073b3ada650b7c635cf50acaab3dd20afa840c69d2bfe494be1171460",
+      "initramfs/stage/graphics-mode": "b81c494e66dbc87efcbdc6721a7c66f2b641ecf5ef5da7afe23a2b2fa270b54b",
+      "initramfs/stage/focus-trace": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "initramfs/stage/shell-profile": "868250c5a708edf6ee929304d1abab17236fe50921efd3ffc0ca6a3f71637b61",
+      "initramfs/stage/mobile-launcher": "b4380551e0e3c34fd7ef8c4c3d7af64e628f07b0635e4a1164e6af2decff4a01",
+      "initramfs/stage/launcher-apps.sh": "1940af6ca5ad9b37494eb5c246808649c299eacae02d583882144ddaed39b855",
+      "initramfs/stage/evidence-writer": "f055f339f7f37493b7fc092e9744feeaf14943cef3441375d726ab01d05003e4",
+      "initramfs/stage/launcher-evidence.sh": "5033c592e50161825f632673e3bdbe90b50fc37e57baeaa39f93ec909f1c1392",
+      "protocol/events.log": "b8fe2a272610ae39aa60b732d5634c3f7aea264ead34c8dfc635774c23e61e1d",
+      "serial.log": "a3f466e62be76749abdde433d74dce792757ce4d495c31eeb63cbd7ec582578c"
+    }
+  },
+  "visual": {
+    "scope": "Manual inspection of retained generic ARM64 VirGL captures; no phone evidence",
+    "text_sequence": "PASS",
+    "app_launch_and_return": "PASS",
+    "settled_editor_keyboard_dismissal": "NOT RUN: retained capture is intermediate",
+    "automatic_caret_visibility": "NOT RUN: explicit viewport pan used",
+    "observations": [
+      {
+        "file": "01-mousepad-launched.png",
+        "sha256": "261cbea95a7217b0f3a95eb2fa04c33af671871c15d737809dc0abbf9701f9a5",
+        "observation": "Full Mousepad header and empty document visible."
+      },
+      {
+        "file": "03-foot-launched.png",
+        "sha256": "f40b6a79eca8ef00bc08af5293104d5e68f04a0f9a34ab03e45c704d558d7fcd",
+        "observation": "Full Foot terminal and prompt visible."
+      },
+      {
+        "file": "04-mousepad-restored.png",
+        "sha256": "7634db02a682c6569c07e6daf839a876b271f5500b5b306d56ef64eb3a390d82",
+        "observation": "Full Mousepad header and document visible after return."
+      },
+      {
+        "file": "02-editor-test.png",
+        "sha256": "adb3be97a92e25a6b7c23778e6d407f1d50e7154db5b957f42f58d1e8b029420",
+        "observation": "Complete test visible with keyboard."
+      },
+      {
+        "file": "03-editor-tes.png",
+        "sha256": "f6dee4e8e07519d32474754036913a722040effa7d7322a699f460476204d8ea",
+        "observation": "Complete tes visible with keyboard after backspace."
+      },
+      {
+        "file": "04-editor-test-restored.png",
+        "sha256": "2436e3178cc406f7259a1b6b9a3dbbbcbd8f85f440a3e0ff0786e6fc0b6242b1",
+        "observation": "Complete test visible with keyboard after restoration."
+      },
+      {
+        "file": "04b-editor-keyboard-dismissed.png",
+        "sha256": "d4d87f9a0eb1ac221d291aeb6fce8eda1ef29f9f7ca731712638af2a4d97d674",
+        "observation": "Intermediate closing state: Mousepad header overlaps status area and keyboard key sliver remains at bottom. Does not establish settled dismissal."
+      },
+      {
+        "file": "05-foot-restored.png",
+        "sha256": "ec550f321f7848222a2c1006cf5bdcbe0ee9e183bc6c1a2ce3b63a5900b27a1f",
+        "observation": "Full Foot terminal and prompt visible; keyboard absent."
+      }
+    ],
+    "limitations": [
+      "No client-attributed presentation intervals",
+      "Root VM apps do not qualify the non-root mobile privilege model",
+      "Pointer injection is not phone touch qualification"
+    ]
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-launcher-text-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-launcher-text-20260913-r1/active-report",
+        "TMPDIR=/home/deck/.local/state/rog5-launcher-text-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "6d01f0c3bb0a881103213140145c6258e99fe93e",
+      "source_tree": "5ee9d665372a6d0e16e805f51ecd48537f704f3d",
+      "started": "2026-09-13T04:09:21.924103+00:00",
+      "exit_status": 0,
+      "duration_seconds": 133.81957316200715
+    },
+    "counts": {
+      "PASS": 92,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/active-report/summary.json",
+      "sha256": "72ae29c3de11d386b14e2d964ac23a09190eba7d724bb5becae5fd72e981d22d",
+      "size": 111143
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-launcher-text-20260913-r1/active-report/summary.xml",
+      "sha256": "635010f23ae5b74f56b8a2fdd0925ae8eb56488f82d84cc0a255f5732fb28870",
+      "size": 55944
+    }
+  },
+  "retention": {
+    "scope": "verified duplicate payload retirement only; unique logs/captures/images and runtime remain",
+    "container_name": "rog5-virtual-drm-769fac37ac8d",
+    "rows": [
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/deniald",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+        "size": 15990872,
+        "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/icudtl.dat",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/icudtl.dat",
+        "size": 10822192,
+        "sha256": "1cf67874b5a87a8363a86fb3f81e3cbbed54d389062dab8fb52308d5cf8c8612"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/lib/libapp.so",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/lib/libapp.so",
+        "size": 10814352,
+        "sha256": "09a07cb992507e4ef3aab814fadb316aab7af51b4da520608856e52e91a93fcb"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/lib/libflutter_engine.so",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/lib/libflutter_engine.so",
+        "size": 15999928,
+        "sha256": "a75c88d8f12d9ec7a24bb107ff9dc0349b6bb2d5b0f18cb4d40b9e54227e9418"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/AssetManifest.bin",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/AssetManifest.bin",
+        "size": 2439,
+        "sha256": "42aca56d2abba7082b382ad75a1ecc70269b0aceec7ac9afdc4203f3e6b52d74"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/FontManifest.json",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/FontManifest.json",
+        "size": 307,
+        "sha256": "a601a484f6893705b5656e09b20c056505d03ab32bc7b2ce9bdeb492a37de5a8"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/NOTICES.Z",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/NOTICES.Z",
+        "size": 14745,
+        "sha256": "eb51055926926405b37ca0cf63ee068fc2bbd7ce058b4f83d1bfd9c4a426952e"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/shaders/stretch_effect.frag",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/shaders/stretch_effect.frag",
+        "size": 17624,
+        "sha256": "62a899ff4e168ac6ca888ce7c2f40e5d3fbf8ca20a1c3ded781a116a6d7907e2"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/shaders/ink_sparkle.frag",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/shaders/ink_sparkle.frag",
+        "size": 21856,
+        "sha256": "1fe8436a743884cb65078fe8c7b38e18f5365f2a2961270916f426fd13c604af"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/fonts/MaterialIcons-Regular.otf",
+        "size": 1645184,
+        "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/icons/application-default-icon.svg",
+        "size": 408,
+        "sha256": "63a19d40ece87827c70b6720e1b8b58402b76934fcdd6d8ff79149de2786183a"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Bold.ttf",
+        "size": 277828,
+        "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Medium.ttf",
+        "size": 273860,
+        "sha256": "31c92d01a8a08528b718a43addf0ad3df0af2ca4b7b3290a452f70f358e14d3d"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/fonts/JetBrainsMono-Regular.ttf",
+        "size": 273900,
+        "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/wallpapers/trails-h-accent-9-dark.png",
+        "size": 3913008,
+        "sha256": "0af62259add37e1015ee421fc807c97b793a4e20878f0e2af3d687b61be5898f"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/branding/denial-dark.svg",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/branding/denial-dark.svg",
+        "size": 3344,
+        "sha256": "b1548f35018067510a44aef15d93d7ab17d3795796535f2b105ec9c3cf8c75f9"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/precision/00.png",
+        "size": 858,
+        "sha256": "46d75fd34edd1bd7aa245c2fc2097566a74630aaaf9c982e9a451d9d7f3bd9b7"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/vertical_resize/00.png",
+        "size": 818,
+        "sha256": "4fb3c9a492ab80fd564680a7109d34d68d2e0512a5ad30e353eda490a925c962"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/working/00.png",
+        "size": 1495,
+        "sha256": "abbfa01afdc9fbec0b509eb6d8c50fb431cbbab03e326ffdd3055335a4e7dad2"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/person/00.png",
+        "size": 993,
+        "sha256": "c357862cfe32761bcc97306748ed80fe838a60b97fb8a82d5c8757c7625e4150"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/help/00.png",
+        "size": 1162,
+        "sha256": "d7b014b6a75dc9e10df81012f4c7f5bf057dca6289acd89adacbb32313a97991"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/text/00.png",
+        "size": 813,
+        "sha256": "53be06c3019ed0a3828156bf921a57082efc30526f6792e4863957a58f8b113b"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/move/00.png",
+        "size": 1298,
+        "sha256": "a504afb93b238b09b6d6bc0ec9fab10ac32623d508eead2b9824e4a388713440"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/horizontal_resize/00.png",
+        "size": 748,
+        "sha256": "2e52273b1818bce1d55c76716bfbaf07a8475aa2582749717fb26a0910ac5f17"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nesw/00.png",
+        "size": 860,
+        "sha256": "cbf1aae7a189a89ee78b65794a3e4c80b58e8a30507244d1f64de7b7f1338adf"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/diagonal_nwse/00.png",
+        "size": 836,
+        "sha256": "806e3ed12b0975aa8a761fcc50cbf5173d5cdea80d4a13bf19534b31b9caf590"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/unavailable/00.png",
+        "size": 1227,
+        "sha256": "d7ef37a146f28299c0b8f1245cfe38992472db682ce40b9b34f6c58aee8b0db5"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/handwriting/00.png",
+        "size": 535,
+        "sha256": "63e8e9f9d033e8d78c030b28fd06c0f66aade3911d8c2269ebc71d5b8916e22c"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/link/00.png",
+        "size": 1204,
+        "sha256": "47bf9aeddc4bbfaf87893ee0ee487a54153fb81b8719ef679261f9979dc8f492"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/busy/00.png",
+        "size": 1775,
+        "sha256": "85399e7fba002da7ff45b0e2a67bf78c25de053031f630570c0a34fa9b0ee6bd"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/pin/00.png",
+        "size": 1075,
+        "sha256": "305566eb8f2fbb66e3aae10f4d7225670d9a11949f551e4c44a15405e0fa504a"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/normal/00.png",
+        "size": 968,
+        "sha256": "87ec56fcebf29b156dff1b6bbabf09ad49265fe20f6a4236d2b4c2b36ebc3fe5"
+      },
+      {
+        "removed_path": "/home/deck/.local/state/rog5-protocol-channel-20260913-r1/guest-channel-r1/payload/flutter/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "durable_source": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/runtime-fixture/data/flutter_assets/assets/cursors/bibata_modern_ice/alternate/00.png",
+        "size": 1617,
+        "sha256": "e34ff2163bb377d94b6b5f7801ed66e4d9fe55113d2c899d04fa2b3763434d86"
+      }
+    ],
+    "bytes": 60090129
+  },
+  "phone": "NOT RUN",
+  "production_candidate": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false
+}
