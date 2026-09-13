@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **GTK Wayland caret reporting qualified in VM; automatic viewport positioning open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Caret transport and keyboard fixes built; VM retest stopped at launcher readiness**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The GTK package-hook cache is now generated in guest RAM and passed to GTK clients. Mousepad binds text-input v3 and emits10 caret rectangle requests; launcher switching, visible test/tes/test,207frames/pageflips and clean authenticated teardown passed. Final cache publication race fix has15passing host cases;102active suites passed. Next carry optional focused caret geometry and ownership through the existing Denial bridge, then use one visibility calculation for painting and native hit testing. Keep zero-width carets and manual fallback; remove scripted panning only in a separately qualified observation. Phone operations remain unauthorized; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-gtk-im-cache.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Native caret and wire tests pass;40 merged Dart cases and102 active suites pass. The first no-pan VM lost the keyboard after te; source fixes separate geometry updates from keyboard visibility and publish matching input changes. The rebuilt shell retest failed before editor launch because launcher icons were absent. Capture bounded icon loading/decode/presentation diagnostics before another runtime attempt; retain both FAIL results and the older manual-pan qualification. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-caret-visibility.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

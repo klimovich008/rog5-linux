@@ -3033,3 +3033,16 @@ Use `ln -T` for no-replacement file publication so a racing directory cannot
 produce a nested file and false success. Wait interruptibly and explicitly cancel
 GNU timeout's separate process group on helper interruption. Preserve zero-width
 caret rectangles; the observed GTK carets were width0,height20.
+
+Caret/input integration (2026-09-13): shared geometry arithmetic also requires
+matching invalidation dependencies. Watch caret ownership, manual state and
+window metadata before scheduling native input publication. A geometry update
+is not a new keyboard-policy request; repeated false visibility must not undo
+an explicit manual opening. Exercise the real configured grace timer and
+activation/reset boundaries. Retain zero-width committed rectangles and do not
+invalidate unchanged geometry on same-editor touch. Reuse unchanged native
+artifacts: the corrective shell frontend/AOT build took45 seconds. A later
+launcher-readiness failure prevented the corrected keyboard retest; capture
+bounded loading/decoding/presentation diagnostics before changing icon behavior
+or repeating that VM. Identical short-interval screenshots alone do not prove
+a compositor deadlock, and forced host cleanup is not qualified guest teardown.

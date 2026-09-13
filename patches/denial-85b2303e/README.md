@@ -148,3 +148,19 @@ encoders and generated old/new readers. Set `RUSTC` to the matching compiler and
 `ROG5_ARM64_RUNNER` to a bounded ARM64 userspace runner. It uses thin LTO to match
 the retained bitcode-only dependency. These explicit-source tests do not run
 implicitly in repository tiers or qualify the full compositor, shell or phone.
+
+
+Patch0015 uses one caret-aware viewport offset for painting and native input,
+with bounded visibility margin and manual fallback. Patch0016 watches caret,
+manual mode and full window metadata in the publisher. Patch0017 separates
+caret updates from keyboard show/hide policy and cancels pending closure on an
+explicit opening. Apply after0014 in numeric order to matching shell source.
+
+The explicit-source runners `test-keyboard-caret-visibility.py`,
+`test-keyboard-input-publication.py` and `test-keyboard-visibility-policy.py`
+explain their source/Dart/output arguments through `--help`. The latter two
+also require the actual publisher/controller file. They execute production
+methods with adapters; full Flutter/provider delivery and real input require
+separate runtime evidence. The matching ARM64 shell builds, but its VM retest
+failed before keyboard interaction at icon readiness. See the
+[caret evidence](../../test-results/2026-09-13-caret-visibility.md).

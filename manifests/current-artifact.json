@@ -1519,6 +1519,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "caret_visibility": {
+      "status": "HOST_PASS; VM_FAIL_BEFORE_KEYBOARD_RETEST",
+      "set_id": "private:rog5-caret-visibility-20260913-r1",
+      "source_commit": "43ec481d5409288a8eb28dfd0f31c1781a9535be",
+      "source_tree": "c45922135868e50415cae2d99346f698acb4274e",
+      "evidence": {
+        "path": "test-results/2026-09-13-caret-visibility-qualification.json",
+        "sha256": "2efe8fba32972d86982db28a51cb6cc25fffb0f02097e9635e247eeb36e7f8d7",
+        "bytes": 136359
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {
