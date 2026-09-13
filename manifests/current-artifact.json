@@ -1378,6 +1378,24 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none"
+    },
+    "local_logind_session": {
+      "status": "PASS_VM_ONLY",
+      "set_id": "private:rog5-logind-boundary-20260913-r1",
+      "source_commit": "f29d7b835a6e7fa62dc62f2748678cf1f7337fa9",
+      "source_tree": "f888ea09fe0d3011d8db7838e4be5ff989c8192d",
+      "evidence": {
+        "path": "test-results/2026-09-13-logind-session-qualification.json",
+        "sha256": "7dae37bc410b6b13ca05270afc361f208b048172debd9073c1a0a9cafa468daa",
+        "size": 245867
+      },
+      "runtime_receipt": {
+        "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+        "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+        "bytes": 1102
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none"
     }
   },
   "denial_phone_linkage": {

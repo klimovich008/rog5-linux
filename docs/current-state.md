@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial session payload composed; packaged ARM64 CLI checks pass**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Authenticated local logind session and mediated virtual devices pass**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Exact retained Denial/engine/AOT/denialctl plus upstream launcher/target and the mobile entry form a deterministic unsigned session-files archive. All archive members and ARM64 CLI checks pass; the frozen active tier passes96 suites. This is not installed and supplies no machine configuration or account/service activation. Next qualify a real local logind session and device access in an isolated VM using the authenticated runtime and original PAM profile. Prior non-root rendering and eight PAM cases remain separate proofs. A660 XR24/fence/readback requires new physical authorization; mobile physical NOT RUN and S06/R01 FAIL remain. See [current repair evidence](../test-results/2026-09-13-session-payload.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The retained generic ARM64 VM now runs actual systemd PID1, original PAM login authentication, an active UID1000 tty1 session, user manager and libseat/logind DRM/input acquisition and release, followed by verified session/scope removal. This run contains no compositor; prior non-root rendering and packaged session payload remain separate proofs. Next combine the prepared Denial entry and native apps with this authenticated local-session route in one bounded VM run. Phone A660/display/touch requires fresh physical authorization. All mobile physical rows stay NOT RUN; S06/R01 stay FAIL. See [current repair evidence](../test-results/2026-09-13-logind-session.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

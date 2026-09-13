@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Denial session payload composed; packaged ARM64 CLI checks pass",
+  "phase": "Authenticated local logind session and mediated virtual devices pass",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Exact retained Denial/engine/AOT/denialctl plus upstream launcher/target and the mobile entry form a deterministic unsigned session-files archive. All archive members and ARM64 CLI checks pass; the frozen active tier passes96 suites. This is not installed and supplies no machine configuration or account/service activation. Next qualify a real local logind session and device access in an isolated VM using the authenticated runtime and original PAM profile. Prior non-root rendering and eight PAM cases remain separate proofs. A660 XR24/fence/readback requires new physical authorization; mobile physical NOT RUN and S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-13-session-payload.md"
+  "next": "The retained generic ARM64 VM now runs actual systemd PID1, original PAM login authentication, an active UID1000 tty1 session, user manager and libseat/logind DRM/input acquisition and release, followed by verified session/scope removal. This run contains no compositor; prior non-root rendering and packaged session payload remain separate proofs. Next combine the prepared Denial entry and native apps with this authenticated local-session route in one bounded VM run. Phone A660/display/touch requires fresh physical authorization. All mobile physical rows stay NOT RUN; S06/R01 stay FAIL.",
+  "evidence": "test-results/2026-09-13-logind-session.md"
 }
