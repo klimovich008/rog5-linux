@@ -1,0 +1,250 @@
+--- a/dart_shell/lib/src/widgets/app_icon.dart
++++ b/dart_shell/lib/src/widgets/app_icon.dart
+@@ -8,6 +8,7 @@
+ 
+ import '../theme/shell_theme.dart';
+ import '../theme/tokens.dart';
++import 'icon_stage_diagnostics.dart';
+ 
+ /// Loads a desktop SVG with a cache identity based on its stable file path.
+ ///
+@@ -26,7 +27,25 @@
+ 
+   @override
+   String provideSvg(void message) {
+-    return utf8.decode(File(path).readAsBytesSync(), allowMalformed: true);
++    iconStageDiagnostics.record('svg.file.begin', path: path, loader: this);
++    try {
++      final bytes = File(path).readAsBytesSync();
++      iconStageDiagnostics.record(
++        'svg.file.end',
++        path: path,
++        loader: this,
++        bytes: bytes.length,
++      );
++      return utf8.decode(bytes, allowMalformed: true);
++    } on Object catch (error) {
++      iconStageDiagnostics.record(
++        'svg.file.error',
++        path: path,
++        loader: this,
++        error: error,
++      );
++      rethrow;
++    }
+   }
+ 
+   @override
+@@ -54,17 +73,39 @@
+   Widget build(BuildContext context) {
+     final path = iconPath;
+     if (path == null) {
++      iconStageDiagnostics.record('select.fallback');
+       return const _FallbackAppIcon();
+     }
+     if (path.toLowerCase().endsWith('.svg')) {
++      final loader = DesktopAppSvgLoader(
++        path,
++        context.shellColors.fallbackAppIcon,
++      );
++      iconStageDiagnostics.record('select.svg', path: path, loader: loader);
+       return SvgPicture(
+-        DesktopAppSvgLoader(path, context.shellColors.fallbackAppIcon),
++        loader,
+         fit: BoxFit.contain,
+-        placeholderBuilder: (_) => const _FallbackAppIcon(),
+-        errorBuilder: (_, _, _) => const _FallbackAppIcon(),
++        placeholderBuilder: (_) {
++          iconStageDiagnostics.record(
++            'svg.placeholder',
++            path: path,
++            loader: loader,
++          );
++          return const _FallbackAppIcon();
++        },
++        errorBuilder: (_, error, _) {
++          iconStageDiagnostics.record(
++            'svg.error',
++            path: path,
++            loader: loader,
++            error: error,
++          );
++          return const _FallbackAppIcon();
++        },
+       );
+     }
+ 
++    iconStageDiagnostics.record('select.raster', path: path);
+     return LayoutBuilder(
+       builder: (context, constraints) {
+         final logicalWidth = constraints.hasBoundedWidth
+@@ -75,13 +116,31 @@
+                 .ceil()
+                 .clamp(85, 512)
+                 .toInt();
++        iconStageDiagnostics.record('raster.build', path: path);
+         return Image.file(
+           File(path),
+           fit: BoxFit.contain,
+           filterQuality: FilterQuality.medium,
+           cacheWidth: cacheWidth,
+           gaplessPlayback: true,
+-          errorBuilder: (_, _, _) => const _FallbackAppIcon(),
++          frameBuilder: (_, child, frame, wasSynchronouslyLoaded) {
++            if (frame == 0) {
++              iconStageDiagnostics.record(
++                'raster.first_frame',
++                path: path,
++                synchronous: wasSynchronouslyLoaded,
++              );
++            }
++            return child;
++          },
++          errorBuilder: (_, error, _) {
++            iconStageDiagnostics.record(
++              'raster.error',
++              path: path,
++              error: error,
++            );
++            return const _FallbackAppIcon();
++          },
+         );
+       },
+     );
+@@ -247,6 +306,10 @@
+ 
+   @override
+   Widget build(BuildContext context) {
++    iconStageDiagnostics.record(
++      'fallback.build',
++      path: AppIconImage.fallbackAsset,
++    );
+     return SvgPicture.asset(
+       AppIconImage.fallbackAsset,
+       fit: BoxFit.contain,
+--- /dev/null
++++ b/dart_shell/lib/src/widgets/icon_stage_diagnostics.dart
+@@ -0,0 +1,60 @@
++/// Temporary bounded observations for the home icon investigation.
++///
++/// Each isolate has its own instance and limit. Records contain a basename and
++/// deterministic path fingerprint, never a full path or exception message.
++class IconStageDiagnostics {
++  IconStageDiagnostics({void Function(String)? sink}) : _sink = sink ?? print;
++
++  static const int maxRecords = 48;
++  static const int maxPerStageAndSource = 2;
++
++  final void Function(String) _sink;
++  final Map<String, int> _counts = <String, int>{};
++  int _sequence = 0;
++
++  void record(
++    String stage, {
++    String? path,
++    Object? loader,
++    Object? error,
++    int? bytes,
++    bool? synchronous,
++  }) {
++    if (_sequence >= maxRecords) {
++      return;
++    }
++    final source = path == null ? 'none' : pathId(path);
++    final safeStage = _token(stage, 40);
++    final key = '$safeStage:$source';
++    final count = _counts[key] ?? 0;
++    if (count >= maxPerStageAndSource) {
++      return;
++    }
++    _counts[key] = count + 1;
++    _sequence += 1;
++    _sink(
++      'ROG5_ICON_STAGE source=shell seq=$_sequence stage=$safeStage '
++      'path=$source'
++      '${loader == null ? '' : ' loader=${_token(loader.runtimeType.toString(), 48)}#${loader.hashCode}'}'
++      '${error == null ? '' : ' error=${_token(error.runtimeType.toString(), 48)}'}'
++      '${bytes == null ? '' : ' bytes=$bytes'}'
++      '${synchronous == null ? '' : ' synchronous=$synchronous'}',
++    );
++  }
++
++  static String pathId(String path) {
++    var hash = 0x811c9dc5;
++    for (final unit in path.codeUnits) {
++      hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
++    }
++    final basename = path.substring(path.lastIndexOf('/') + 1);
++    return '${_token(basename, 40)}@${hash.toRadixString(16).padLeft(8, '0')}';
++  }
++
++  static String _token(String value, int limit) {
++    final clipped = value.length > limit ? value.substring(0, limit) : value;
++    return clipped.replaceAll(RegExp(r'[^a-zA-Z0-9_.-]'), '_');
++  }
++}
++
++final iconStageDiagnostics = IconStageDiagnostics();
+--- /dev/null
++++ b/dart_shell/test/widgets/icon_stage_diagnostics_test.dart
+@@ -0,0 +1,60 @@
++import 'package:denial_dart_shell/src/widgets/icon_stage_diagnostics.dart';
++import 'package:test/test.dart';
++
++void main() {
++  test('duplicate stages cannot exhaust the total record budget', () {
++    final records = <String>[];
++    final diagnostics = IconStageDiagnostics(sink: records.add);
++    for (var i = 0; i < 100; i += 1) {
++      diagnostics.record('svg.placeholder', path: '/icons/app.svg');
++    }
++    diagnostics.record('svg.error', path: '/icons/app.svg');
++
++    expect(records, hasLength(3));
++    expect(records.last, contains('seq=3 stage=svg.error'));
++  });
++
++  test('distinct paths and stages still obey the hard record cap', () {
++    final records = <String>[];
++    final diagnostics = IconStageDiagnostics(sink: records.add);
++    for (var i = 0; i < 1000; i += 1) {
++      diagnostics.record('select.svg', path: '/icons/$i.svg');
++    }
++
++    expect(records, hasLength(IconStageDiagnostics.maxRecords));
++    expect(records.last, contains('seq=48 '));
++  });
++
++  test('path identifiers are stable, bounded and distinguish directories', () {
++    const path = '/private/account/icons/app\n name.svg';
++    final identifier = IconStageDiagnostics.pathId(path);
++
++    expect(identifier, IconStageDiagnostics.pathId(path));
++    expect(identifier, startsWith('app__name.svg@'));
++    expect(identifier, isNot(contains('/private')));
++    expect(identifier, isNot(contains('\n')));
++    expect(
++      identifier,
++      isNot(IconStageDiagnostics.pathId('/other/icons/app\n name.svg')),
++    );
++    expect(
++      IconStageDiagnostics.pathId('/icons/${'a' * 200}.svg').length,
++      lessThanOrEqualTo(49),
++    );
++  });
++
++  test('errors report type without messages or full paths', () {
++    final records = <String>[];
++    final diagnostics = IconStageDiagnostics(sink: records.add);
++    diagnostics.record(
++      'svg.file.error',
++      path: '/private/account/app.svg',
++      error: StateError('SECRET file contents\nextra forged record'),
++    );
++
++    expect(records.single, contains('error=StateError'));
++    expect(records.single, isNot(contains('SECRET')));
++    expect(records.single, isNot(contains('/private/account')));
++    expect(records.single, isNot(contains('\n')));
++  });
++}

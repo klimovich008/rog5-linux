@@ -58,6 +58,18 @@ class DiagnosticSnapshot(unittest.TestCase):
         p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
         self.assertGreater(len(data),0);self.assertLessEqual(len(data),30720)
         self.assertTrue(all(len(x)<=2019 for x in data.splitlines(keepends=True)))
+    def test_early_icon_stage_survives_later_frame_noise(self):
+        self.log.write_text('flutter: ROG5_ICON_STAGE stage=decode-error\n'
+                            + 'frame noise\n' * 10000 + 'LATEST_FRAME\n')
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
+        self.assertIn(b'ROG5_ICON_STAGE stage=decode-error\n',data)
+        self.assertIn(b'LATEST_FRAME\n',data)
+        self.assertLessEqual(len(data),30720)
+    def test_icon_stage_flood_keeps_framed_budget(self):
+        self.log.write_text(('ROG5_ICON_STAGE ' + 'x'*5000 + '\n')*100)
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
+        self.assertLessEqual(len(data),30720)
+        self.assertTrue(all(len(x)<=2019 for x in data.splitlines(keepends=True)))
     def test_writer_failure_propagates(self):
         self.writer.write_text('#!/bin/sh\nexit 42\n')
         p,_,_=self.run_snapshot();self.assertEqual(p.returncode,42)

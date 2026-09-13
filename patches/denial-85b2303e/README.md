@@ -164,3 +164,11 @@ methods with adapters; full Flutter/provider delivery and real input require
 separate runtime evidence. The matching ARM64 shell builds, but its VM retest
 failed before keyboard interaction at icon readiness. See the
 [caret evidence](../../test-results/2026-09-13-caret-visibility.md).
+
+Patch0018 is temporary direct-home-icon instrumentation. It records selection,
+file reads, fallback/error and raster-frame callbacks without changing returned
+widgets or scheduling. The actual home path uses AppIconImage, bypassing the
+DeferredAppIcon queue. Pair it with copied flutter_svg2.3.0 and
+vector_graphics1.2.2 package diagnostics and explicit build overrides. The pure
+Dart helper test covers per-isolate caps and sanitized identifiers; it does not
+qualify release isolates or rendering. No phone image selects these diagnostics.
