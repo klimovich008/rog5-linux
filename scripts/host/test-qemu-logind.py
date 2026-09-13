@@ -308,7 +308,7 @@ def main():
         source_names = ['init.c', 'logind-seat-probe.rs', 'logind-pam-session.rs',
                         'logind-boot.sh', 'logind-session.sh', 'logind-user.sh', 'logind-observer.sh']
         if combined:
-            source_names += ['logind-denial.sh', 'logind-denial-prepare.sh', 'logind-font-cache.sh']
+            source_names += ['logind-denial.sh', 'logind-denial-prepare.sh', 'logind-font-cache.sh', 'logind-gtk-im-cache.sh']
         input_files = [regular(SOURCES / name) for name in source_names] + [kernel, libc, libloading, receipt, Path(__file__).resolve()]
         if combined:
             input_files += [regular(args.session_archive), regular(args.session_receipt), REPO/'scripts/host/test-qemu-virtio-drm.py']
@@ -366,7 +366,8 @@ def main():
                    'logind-user.sh': 'logind-user.sh', 'logind-observer.sh': 'independent-observer.sh'}
         if combined:
             scripts.update({'logind-denial.sh': 'logind-denial.sh', 'logind-denial-prepare.sh': 'logind-denial-prepare.sh',
-                            'logind-font-cache.sh': 'logind-font-cache.sh'})
+                            'logind-font-cache.sh': 'logind-font-cache.sh',
+                            'logind-gtk-im-cache.sh': 'logind-gtk-im-cache.sh'})
             (stage / 'stage/session-sha256').write_text(session_record['sha256']+'\n')
             os.link(args.session_archive, payload / 'session.tar.gz')
         if args.observe_editor:

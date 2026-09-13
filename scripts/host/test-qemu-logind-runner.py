@@ -245,49 +245,83 @@ class CacheEnvironment(unittest.TestCase):
         # mobile entry preflight. Old code executes it without any publication.
         prelaunch = source.split("trap 'exit 130' INT\n", 1)[1]
         prelaunch = prelaunch.split('/usr/bin/denial-mobile-session >', 1)[0]
+        cache_exports = '\n'.join(line for line in source.splitlines()
+                                 if re.match(r'^export (GSETTINGS_SCHEMA_DIR|XDG_DATA_DIRS|GTK_IM_MODULE_FILE)=', line))
+        cache_exports = cache_exports.replace('/run/gtk-runtime', '${1}')
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root/'schemas').mkdir(); (root/'mime').mkdir()
             if mode != 'missing_schema': (root/'schemas/gschemas.compiled').write_bytes(b'fixture')
             if mode != 'missing_mime': (root/'mime/mime.cache').write_bytes(b'fixture')
-            code = 'set -euo pipefail\n' + functions + r'''
-export GSETTINGS_SCHEMA_DIR=$1/schemas XDG_DATA_DIRS=$1:/usr/local/share:/usr/share
-MODE=$2
+            if mode not in ('missing_im', 'unset_im'):
+                (root/'immodules.cache').write_bytes(b'' if mode == 'empty_im' else b'fixture')
+            private_bin = root/'bin'; private_bin.mkdir()
+            runtime = root/'runtime'; runtime.mkdir(mode=0o700)
+            stubs = {
+                'timeout': r'''#!/bin/bash
+set -euo pipefail
+[[ ${1:-} == -k && ${2:-} == 1 && ${3:-} == 3 ]] || exit 97
+printf 'TIMEOUT %s\n' "$*" >&2
+exec /usr/bin/timeout "$@"
+''',
+                'dbus-update-activation-environment': r'''#!/bin/bash
+set -euo pipefail
+[[ $* == '--systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS GTK_IM_MODULE_FILE' ||
+   $* == '--systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS' ]] || exit 98
+[[ $DBUS_SESSION_BUS_ADDRESS == "unix:path=$XDG_RUNTIME_DIR/unavailable-session-bus" ]] || exit 99
+printf 'IMPORT %s\n' "$*"
+case $MODE in unavailable) exit 127;; update_fail) exit 69;; deadline) exit 124;; esac
+''',
+                'systemctl': r'''#!/bin/bash
+set -euo pipefail
+[[ $* == '--user show-environment' ]] || exit 98
+[[ $DBUS_SESSION_BUS_ADDRESS == "unix:path=$XDG_RUNTIME_DIR/unavailable-session-bus" ]] || exit 99
+printf 'MANAGER %s\n' "$*" >&2
+[[ $MODE != query_fail ]] || exit 42
+[[ $MODE != missing_value ]] || exit 0
+printf 'GSETTINGS_SCHEMA_DIR=%s\n' "$GSETTINGS_SCHEMA_DIR"
+if [[ $MODE == mismatch ]]; then printf 'XDG_DATA_DIRS=/wrong\n'
+else printf 'XDG_DATA_DIRS=%s\n' "$XDG_DATA_DIRS"; fi
+[[ $MODE != duplicate ]] || printf 'GSETTINGS_SCHEMA_DIR=%s\n' "$GSETTINGS_SCHEMA_DIR"
+if [[ $MODE == mismatch_im ]]; then printf 'GTK_IM_MODULE_FILE=/wrong\n'
+elif [[ $MODE != missing_im_value ]]; then printf 'GTK_IM_MODULE_FILE=%s\n' "${GTK_IM_MODULE_FILE:-}"; fi
+[[ $MODE != duplicate_im ]] || printf 'GTK_IM_MODULE_FILE=%s\n' "${GTK_IM_MODULE_FILE:-}"
+exit 0
+''',
+            }
+            for name, body in stubs.items():
+                target = private_bin/name; target.write_text(body); target.chmod(0o700)
+            code = 'set -euo pipefail\n' + functions + '\n' + cache_exports + r'''
+export MODE=$2
+[[ $MODE != unset_im ]] || unset GTK_IM_MODULE_FILE
 # FUSE access is checked separately; this fixture isolates cache publication.
 require_fuse_device(){ :; }
-# Only external transport is stubbed; production file validation and result
-# parsing execute unchanged. No host session bus or manager is contacted.
-timeout(){ printf 'TIMEOUT %s\n' "$*" >&2; shift 3; "$@"; }
-dbus-update-activation-environment(){
-    printf 'IMPORT %s\n' "$*"
-    case $MODE in unavailable) return 127;; update_fail) return 69;; deadline) return 124;; esac
-}
-systemctl(){
-    printf 'MANAGER %s\n' "$*" >&2
-    [[ $MODE != query_fail ]] || return 42
-    [[ $MODE != missing_value ]] || return 0
-    printf 'GSETTINGS_SCHEMA_DIR=%s\n' "$GSETTINGS_SCHEMA_DIR"
-    if [[ $MODE == mismatch ]]; then printf 'XDG_DATA_DIRS=/wrong\n'
-    else printf 'XDG_DATA_DIRS=%s\n' "$XDG_DATA_DIRS"; fi
-    [[ $MODE != duplicate ]] || printf 'GSETTINGS_SCHEMA_DIR=%s\n' "$GSETTINGS_SCHEMA_DIR"
-    return 0
-}
+# Real timeout execs only private executable transport stubs. No inherited
+# shell functions or real host bus/user-manager endpoint enters this fixture.
 /usr/bin/denial-mobile-session(){ printf 'MOBILE %s\n' "$*"; }
 ''' + prelaunch
+            environment = {
+                'PATH': f'{private_bin}:/usr/bin:/bin', 'HOME': directory,
+                'XDG_RUNTIME_DIR': str(runtime), 'LC_ALL': 'C',
+                'XDG_DATA_HOME': str(root/'data'), 'XDG_CONFIG_HOME': str(root/'config'),
+                'XDG_CACHE_HOME': str(root/'cache'),
+                'DBUS_SESSION_BUS_ADDRESS': f'unix:path={runtime}/unavailable-session-bus',
+                'DBUS_SYSTEM_BUS_ADDRESS': f'unix:path={runtime}/unavailable-system-bus',
+            }
             return subprocess.run(['bash', '-c', code, 'fixture', directory, mode],
-                                  capture_output=True, text=True, timeout=3)
+                                  env=environment, capture_output=True, text=True, timeout=3)
 
     def test_actual_prelaunch_publishes_only_cache_keys_and_verifies_manager(self):
         result = self.publish()
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
-        self.assertIn('IMPORT --systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS', result.stdout)
-        self.assertIn('MANAGER --user show-environment', result.stderr)
-        self.assertIn('TIMEOUT -k 1 3 dbus-update-activation-environment --systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS', result.stderr)
+        self.assertIn('IMPORT --systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS GTK_IM_MODULE_FILE\n', result.stdout)
+        self.assertEqual(result.stderr.count('MANAGER --user show-environment\n'), 1)
+        self.assertIn('TIMEOUT -k 1 3 dbus-update-activation-environment --systemd GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS GTK_IM_MODULE_FILE\n', result.stderr)
         self.assertIn('TIMEOUT -k 1 3 systemctl --user show-environment', result.stderr)
         self.assertLess(result.stdout.index('IMPORT '), result.stdout.index('MOBILE --check'))
 
     def test_missing_caches_prevent_publication_and_launch(self):
-        for mode in ['missing_schema', 'missing_mime']:
+        for mode in ['missing_schema', 'missing_mime', 'missing_im', 'empty_im', 'unset_im']:
             with self.subTest(mode=mode):
                 result = self.publish(mode)
                 self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
@@ -302,7 +336,7 @@ systemctl(){
                 self.assertNotIn('MOBILE ', result.stdout)
 
     def test_missing_duplicate_or_mismatched_manager_values_prevent_launch(self):
-        for mode in ['missing_value', 'duplicate', 'mismatch']:
+        for mode in ['missing_value', 'duplicate', 'mismatch', 'missing_im_value', 'duplicate_im', 'mismatch_im']:
             with self.subTest(mode=mode):
                 result = self.publish(mode)
                 self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)

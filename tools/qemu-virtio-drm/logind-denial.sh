@@ -4,6 +4,7 @@ set -euo pipefail
 [[ $EUID == 1000 && -d /sys/bus/virtio/devices && -f /run/session-sha256 ]]
 export GSETTINGS_SCHEMA_DIR=/run/gtk-runtime/schemas
 export XDG_DATA_DIRS=/run/gtk-runtime:/usr/local/share:/usr/share
+export GTK_IM_MODULE_FILE=/run/gtk-runtime/immodules.cache
 export DENIA_RENDER_AUDIT=1
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 [[ -S /run/user/1000/bus ]]
@@ -106,18 +107,19 @@ qualify_activated_services() {
     echo 'PASS activated accessibility and portal services with document FUSE mount'
 }
 publish_cache_environment() {
-    local manager key value schema_count=0 data_count=0
-    [[ -n ${GSETTINGS_SCHEMA_DIR:-} && -n ${XDG_DATA_DIRS:-} ]] || {
+    local manager key value schema_count=0 data_count=0 im_count=0
+    [[ -n ${GSETTINGS_SCHEMA_DIR:-} && -n ${XDG_DATA_DIRS:-} && -n ${GTK_IM_MODULE_FILE:-} ]] || {
         echo 'FAIL GTK cache environment missing' >&2; return 1;
     }
     [[ -r $GSETTINGS_SCHEMA_DIR/gschemas.compiled && -s $GSETTINGS_SCHEMA_DIR/gschemas.compiled &&
-       -r ${XDG_DATA_DIRS%%:*}/mime/mime.cache && -s ${XDG_DATA_DIRS%%:*}/mime/mime.cache ]] || {
-        echo 'FAIL GTK schema or MIME cache unavailable' >&2; return 1;
+       -r ${XDG_DATA_DIRS%%:*}/mime/mime.cache && -s ${XDG_DATA_DIRS%%:*}/mime/mime.cache &&
+       -r $GTK_IM_MODULE_FILE && -s $GTK_IM_MODULE_FILE ]] || {
+        echo 'FAIL GTK schema, MIME or input-method cache unavailable' >&2; return 1;
     }
     # Direct clients inherit these exports, but activated services use the
-    # already-running user manager/bus. Transfer only the two prepared paths.
+    # already-running user manager/bus. Transfer only the three prepared paths.
     timeout -k 1 3 dbus-update-activation-environment --systemd \
-        GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS || return $?
+        GSETTINGS_SCHEMA_DIR XDG_DATA_DIRS GTK_IM_MODULE_FILE || return $?
     manager=$(timeout -k 1 3 systemctl --user show-environment) || return $?
     while IFS='=' read -r key value; do
         case $key in
@@ -127,9 +129,12 @@ publish_cache_environment() {
             XDG_DATA_DIRS)
                 [[ $value == "$XDG_DATA_DIRS" ]] || return 1
                 data_count=$((data_count + 1));;
+            GTK_IM_MODULE_FILE)
+                [[ $value == "$GTK_IM_MODULE_FILE" ]] || return 1
+                im_count=$((im_count + 1));;
         esac
     done <<< "$manager"
-    [[ $schema_count == 1 && $data_count == 1 ]] || {
+    [[ $schema_count == 1 && $data_count == 1 && $im_count == 1 ]] || {
         echo 'FAIL activated GTK cache environment not confirmed' >&2; return 1;
     }
     echo 'PASS GTK cache environment transferred and verified in user manager'

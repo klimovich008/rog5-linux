@@ -187,6 +187,7 @@ active_tests=(
 	scripts/host/test-denial-session-payload.py
 	scripts/host/test-qemu-logind-runner.py
 	scripts/host/test-logind-font-cache.py
+	scripts/host/test-logind-gtk-im-cache.py
 	scripts/host/test-qemu-logind-editor.py
 	scripts/host/test-qemu-logind-apps.py
 	scripts/host/test-logind-apps.py
