@@ -932,7 +932,7 @@
         "size": 10814352
       }
     },
-    "current_mobile_observation": "mobile_launcher_text_observation",
+    "current_mobile_observation": "mobile_keyboard_geometry_observation",
     "mobile_launcher_discovery": {
       "status": "PASS: unlocked launcher tiles directly inspected; app launch and switching NOT RUN",
       "set_id": "private:rog5-vm-launcher-20260913-r1",
@@ -1193,6 +1193,75 @@
         "scope": "Denial terminal counters; not visual or phone proof",
         "raster_frames": 208,
         "output_page_flips": 208,
+        "render_errors": []
+      }
+    },
+    "mobile_keyboard_geometry_observation": {
+      "status": "PASS",
+      "set_id": "private:rog5-keyboard-geometry-20260913-r1",
+      "source_commit": "d2a2ae7c3e54d1c8b28353357adfa70761f0ddef",
+      "source_tree": "1394e5606b4dbb6bea7a8ac74bf10c041a91a712",
+      "aot": {
+        "path": "/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/aot/libapp.so",
+        "sha256": "e6434b805636598a937cfa69736012c213bd3e5b6c99f3607d495f7e4e292ba5",
+        "size": 10814352
+      },
+      "reused_native": {
+        "path": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/deniald-context",
+        "sha256": "40b1fc631643d602b57db2b988eb2caf8839e1e044890f7c9aa4ad0555bb8af0",
+        "size": 15990872
+      },
+      "evidence": {
+        "path": "test-results/2026-09-13-keyboard-geometry-qualification.json",
+        "sha256": "4b3e80352d856f64dcffb45ff08f343e5ed6b2baf01416a267bcdbe774ac5459",
+        "size": 135371
+      },
+      "visual": {
+        "scope": "Direct manual inspection of changed-AOT VM captures; no phone proof",
+        "text_sequence": "PASS",
+        "final_foot_and_keyboard_absent": "PASS",
+        "settled_editor_keyboard_dismissal": "NOT RUN: intermediate capture",
+        "automatic_caret_visibility": "NOT RUN: manual viewport pan retained",
+        "observations": [
+          {
+            "file": "02-editor-test.png",
+            "sha256": "f57b29441d2c820accee7f262c59308e17947df0aa08577d199061b9a509985b",
+            "observation": "Complete test visible with keyboard."
+          },
+          {
+            "file": "03-editor-tes.png",
+            "sha256": "f6dee4e8e07519d32474754036913a722040effa7d7322a699f460476204d8ea",
+            "observation": "Complete tes visible after backspace."
+          },
+          {
+            "file": "04-editor-test-restored.png",
+            "sha256": "2436e3178cc406f7259a1b6b9a3dbbbcbd8f85f440a3e0ff0786e6fc0b6242b1",
+            "observation": "Complete test restored."
+          },
+          {
+            "file": "04b-editor-keyboard-dismissed.png",
+            "sha256": "d4d87f9a0eb1ac221d291aeb6fce8eda1ef29f9f7ca731712638af2a4d97d674",
+            "observation": "Intermediate closing capture: header overlaps status area and keyboard key sliver remains. Settled dismissal not proven."
+          },
+          {
+            "file": "05-foot-restored.png",
+            "sha256": "ec550f321f7848222a2c1006cf5bdcbe0ee9e183bc6c1a2ce3b63a5900b27a1f",
+            "observation": "Full Foot terminal/prompt visible; keyboard absent."
+          }
+        ],
+        "limitations": [
+          "Adapter regressions establish geometry semantics; VM is a lifecycle/text regression, not a measurement of every intermediate native routing region",
+          "Client-attributed presentation intervals NOT RUN",
+          "Root VM apps do not qualify non-root mobile security"
+        ]
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline VM fixture",
+      "terminal_counters": {
+        "status": "PASS",
+        "scope": "Denial terminal counters; not visual or phone proof",
+        "raster_frames": 212,
+        "output_page_flips": 212,
         "render_errors": []
       }
     }

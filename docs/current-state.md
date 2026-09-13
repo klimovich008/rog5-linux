@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM launcher, app switching and OSK text flow qualified; phone qualification remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Keyboard animation/input geometry corrected; changed-AOT VM flow passes**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-One103.516s combined ARM64 VirGL VM run PASS: Mousepad -> Foot -> Mousepad -> Foot, exact focused test/backspace/restore events, visible test -> tes -> test,208 frames/page flips and clean cleanup. All binaries reused. The editor dismissal capture is intermediate; automatic caret visibility and settled keyboard return remain unqualified. Next inspect those bounded UI state transitions offline, then bind exact source/package inputs for separately authorized phone graphics/touch qualification. No new candidate or phone operation. Mobile physical rows NOT RUN; S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-launcher-text.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Patch0013 keeps keyboard rendering and native input on one frame-sampled position. Ten source cases and real ARM64 AOT build PASS; one103.927s changed-AOT VirGL VM passes launcher/switch/text flow with212 frames/page flips and clean cleanup. The dismissal capture remains intermediate; automatic caret visibility is not qualified. Next bind the exact current Denial/engine/AOT/runtime closure to the existing phone graphics/touch trial inputs offline, prioritizing native OLED/Adreno qualification over more VM polish. No candidate, admission or phone operation. Mobile physical rows NOT RUN; S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-keyboard-geometry.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
