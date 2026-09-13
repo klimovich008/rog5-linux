@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Authenticated VM text entry and cleanup qualified; startup allowance measured**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Authenticated VM launcher app switching, OSK text and cleanup qualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Two complete authenticated ARM64 VirGL VM runs passed with two native clients, exact OSK keys, visible test/tes/test,99frames/pageflips each and normal cleanup/poweroff. The first measured19.70s readiness under20s; the second18.94s under a calibrated25s VM-only allowance. All outer deadlines and physical guards are unchanged. This is scheduling headroom, not a proven cause or reliability fix for historical124 failures; both source identities and all failures remain separate. Next reuse the existing app-switch observer to qualify launcher-driven app launch/switch/text in the authenticated nonroot session, instead of directly launching the clients. Phone operations remain unauthorized; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-service-timing.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+A complete authenticated ARM64 VirGL VM run passed UI launches of Mousepad and Foot, the four-visit focus sequence, exact OSK keys, visible test/tes/test, both normal client exits0,204frames/pageflips and PAM/logind cleanup/poweroff. Two earlier failed runs remain separate. Fixed single-open virtual-port handling, sticky observation failure and demonstrated completion races; the previous143 cause is not retrospectively proven. Next isolate automatic caret visibility when the OSK opens without the retained manual viewport pan, reusing the qualified session flow. Phone operations remain unauthorized; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-authenticated-apps.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

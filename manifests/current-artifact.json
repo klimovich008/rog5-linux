@@ -1475,6 +1475,36 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none"
+    },
+    "authenticated_apps": {
+      "status": "PASS_VM_ONLY",
+      "set_id": "private:rog5-authenticated-apps-20260913-r1",
+      "source_commit": "7b9cf4cbe4dc6a23039dcf5c2bcbf54abe6be900",
+      "source_tree": "2703fe0fc08667efb5713748ef61411fb0a19afe",
+      "evidence": {
+        "path": "test-results/2026-09-13-authenticated-apps-qualification.json",
+        "sha256": "827ab25325d37d4929537e99f62dd83745f9694bc07303a1b2548c820837c090",
+        "size": 691110
+      },
+      "milestones": {
+        "authenticated_launcher_app_launch_switch": "PASS_VM_ONLY exact two native apps and four focus visits",
+        "OSK_protocol": "PASS_VM_ONLY exact12focused press/release events",
+        "visual_text": "PASS_VM_ONLY test/tes/test original captures inspected",
+        "single_open_duplex_transport": "PASS_VM_ONLY",
+        "client_cleanup": "PASS_VM_ONLY exact normalclose0 and both finalexits0",
+        "terminal_rendering": "PASS_VM_ONLY204rasterframes/204pageflips",
+        "PAM_logind_scope_and_VM_poweroff": "PASS_VM_ONLY",
+        "automatic_caret_visibility": "NOT RUN without retained manual pan",
+        "startup_reliability": "NOT QUALIFIED",
+        "phone": "NOT RUN"
+      },
+      "previous_direct_launch_evidence": {
+        "path": "test-results/2026-09-13-service-timing-qualification.json",
+        "sha256": "0c86c581c52562ca485ad3c833886578a685cc90d974fbc87df765838906d803",
+        "size": 198920
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {

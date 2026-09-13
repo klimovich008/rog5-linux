@@ -2996,3 +2996,28 @@ scheduling margin inside unchanged outer limits; the second complete run took
 fix or startup reliability qualification. Both runs delivered exact keys, visible
 text changes,99frames/page flips and complete shutdown. Reuse that evidence and
 move to launcher-driven app switching rather than repeat direct-launch typing.
+
+Authenticated launcher observation (2026-09-13): PTY fixtures do not enforce
+virtio-console's single-open rule. Open a duplex endpoint once during preparation,
+duplicate that description for the writer and let one owner read replies. Tests
+remove the original path to detect accidental reopens. Keep observation failure
+sticky: no later tick may send completion after an earlier failure. A host ACK
+requires both actual protocol oracles and fixed actions/captures; final success
+also requires exact client exits and the separate compositor/session cleanup.
+
+Child completion is concurrent with owner checks. Recheck the atomic finished
+record when a live-owner probe fails, then require its actual status; do not turn
+successful completion into cleanup of another closing app. Publish the status
+using temp+rename. The source race is demonstrated independently; sparse earlier
+VM logs cannot establish that it caused a particular signal exit. Record bounded
+atomic lifecycle phases before cleanup changes the evidence. Preserve visual/UI
+success separately from whole-session failure and avoid unchanged VM retries.
+
+Fixture command isolation: shell-function mocks do not intercept commands that
+timeout execs. A new launcher fixture consequently updated the host user manager
+and D-Bus activation XDG_DATA_HOME; the following container compile looked in its
+temporary path and failed125. Use private executable mocks with execution markers
+and explicit absent private bus addresses/runtime, avoiding inherited desktop
+environment and shell functions. Restore only the demonstrated leaked setting
+to ordinary effective defaults; retain the failed tier and restoration limits.
+A pure test isolation repair does not require rerunning an unchanged VM.
