@@ -2,12 +2,14 @@
 """Execute exact GTK cursor publication functions with bounded host adapters."""
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
 import re
 import resource
 import subprocess
+import sys
 import time
 
 BASE_SHA = '7f5bf63f9ad71da36d625d0870692f49bc6351a71757c0f8ac1fcec38c613c37'
@@ -36,9 +38,23 @@ def main():
     out = args.output.absolute()
     out.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
+    helper_path = repo / 'scripts/host/repository-test-report.py'
+    spec = importlib.util.spec_from_file_location('gtk_caret_processes', helper_path)
+    helper = importlib.util.module_from_spec(spec)
+    sys.dont_write_bytecode = True
+    spec.loader.exec_module(helper)
+
+    def execute(name, command, deadline):
+        stdout_path = out / (name + '.stdout.log')
+        stderr_path = out / (name + '.stderr.log')
+        with stdout_path.open('w') as stdout, stderr_path.open('w') as stderr:
+            status, reason, duration = helper.execute(command, deadline, stdout, stderr)
+        return dict(command=command, status=status, reason=reason, seconds=duration,
+                    stdout=stdout_path.read_text(), stderr=stderr_path.read_text())
+
     result = dict(status='FAIL', base_commit=BASE_COMMIT, unpatched=args.unpatched,
                   scope='Host C source-function regression; GTK widget signals/window/protocol are adapters, short ASCII only; no real GTK/Wayland/phone execution',
-                  sections={}, runs=[])
+                  sections={}, runs=[], process_runner_sha256=sha(helper_path.read_bytes()))
     try:
         source = args.source.read_bytes()
         if sha(source) != BASE_SHA:
@@ -68,16 +84,16 @@ def main():
         command = [os.environ.get('CC', 'cc'), '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
                    '-Wno-misleading-indentation', '-Wno-sign-compare', '-Wno-unused-parameter',
                    str(out / 'fixture.c'), '-o', str(out / 'fixture')]
-        run = subprocess.run(command, capture_output=True, text=True, timeout=30)
-        result['compile'] = dict(command=command, exit=run.returncode, stdout=run.stdout, stderr=run.stderr)
-        if run.returncode:
+        run = execute('compile', command, 30)
+        result['compile'] = run
+        if run['status'] != 'PASS':
             raise RuntimeError('fixture compilation failed')
         for case in CASES:
-            t = time.monotonic()
-            run = subprocess.run([str(out / 'fixture'), case], capture_output=True, text=True, timeout=3)
-            result['runs'].append(dict(case=case, status='PASS' if run.returncode == 0 else 'FAIL',
-                                      exit=run.returncode, stdout=run.stdout, stderr=run.stderr,
-                                      seconds=time.monotonic() - t))
+            run = execute(case, [str(out / 'fixture'), case], 3)
+            run['case'] = case
+            if run['status'] == 'PASS' and run['stdout'].splitlines().count('PASS ' + case) != 1:
+                run.update(status='FAIL', reason='missing or repeated exact PASS marker')
+            result['runs'].append(run)
         result['status'] = 'PASS' if all(r['status'] == 'PASS' for r in result['runs']) else 'FAIL'
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
         result['error'] = str(error)
