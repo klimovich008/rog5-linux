@@ -1304,5 +1304,20 @@
       "commit": "e11f5a8a90bb2b3656ae1708d54b0de2801ae79c",
       "tree": "65885b20acf1222568b7f578131cc45d5b7b5837"
     }
+  },
+  "nonroot_runtime_permissions": {
+    "status": "PASS_OFFLINE_PACKAGE_PERMISSIONS",
+    "set_id": "private:rog5-nonroot-runtime-20260913-r1/permissions",
+    "source_commit": "808b9c0c4d4b6794c097e1ad79fab1bf95d292e8",
+    "source_tree": "0bcde52c9b1cc5b004599bb7dcf64c1cf997081e",
+    "qualification": {
+      "path": "test-results/2026-09-13-nonroot-runtime-qualification.json",
+      "sha256": "29ebb4b10902bd925a341a7a77ff91a55b37ddaabe5838a765fae0902bcba36e",
+      "size": 11905
+    },
+    "nonroot_denial_session": "NOT RUN",
+    "physical_status": "NOT RUN",
+    "authority": "none; host permission fixture",
+    "candidate": null
   }
 }

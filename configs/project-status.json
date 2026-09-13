@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "XR24 probe recording and interrupted-service cleanup qualified offline",
+  "phase": "Non-root runtime permission prerequisite corrected and qualified offline",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Fixed the runner so observation and client-cleanup interruption cannot bypass owned-service stop; original and cleanup errors are retained.22 focused tests and four real ARM64/user-service cases PASS, with terminal service states and retained logs. Graphics calls are controlled fixtures; production kernel files are reference identities only. The pending physical boundary remains A660 XR24/fence/readback and needs separate authorization; frozen trial unchanged. Next qualify a non-root Denial/native-app session using the retained runtime and binaries offline, addressing the normal mobile privilege model without treating VM results as phone proof. No candidate, signing, admission or phone operation; mobile physical NOT RUN and S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-13-probe-recording.md"
+  "next": "The retained extractor used owner-only permissions, preventing an ordinary guest user from executing public programs. Added an explicit package-read profile while preserving the default and retained runtime.19 focused tests and two real non-owner container cases PASS; no capabilities or privileged mode bits. Full non-root Denial/native-app VM session remains NOT RUN: the separate1.6GB runtime would breach the3GiB disk reserve, and user/bus/seat setup remains to be qualified. Next prepare a bounded separate runtime view with authenticated permission metadata, then reuse the retained Denial/AOT bytes for non-root VM qualification. A660 XR24/fence/readback remains a separate authorized physical boundary; no phone operation, candidate, signing or claim. Physical NOT RUN and S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-13-nonroot-runtime.md"
 }

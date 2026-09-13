@@ -1,0 +1,324 @@
+{
+  "schema": 1,
+  "status": "PASS_OFFLINE_PACKAGE_PERMISSIONS",
+  "scope": "Authenticated-extractor permission policy and synthetic package access; no Denial or ARM64 VM execution",
+  "starting_commit": "a39dfe947a176f9029ff264b4605cedf8e27dc5a",
+  "starting_tree": "0417b32feb7f6d0dac8ba0ce9eafdbd607f6b51d",
+  "source_commit": "808b9c0c4d4b6794c097e1ad79fab1bf95d292e8",
+  "source_tree": "0bcde52c9b1cc5b004599bb7dcf64c1cf997081e",
+  "source_files": [
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/materialize-mobile-runtime.py",
+      "sha256": "566edaf2053ddcce3a694d1e937451297542c1dd61d034d5a7a51333a47f56eb",
+      "size": 9013
+    },
+    {
+      "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-mobile-runtime-materialization.py",
+      "sha256": "e1cfacc47d7642be1590b54fe5d1b5db54d8d7b998200a88173a4077db62f2e3",
+      "size": 12099
+    }
+  ],
+  "regression_before": {
+    "status": "EXPECTED FAIL",
+    "tests_run": 16,
+    "failed_subcases": 6,
+    "seconds": 0.573,
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-mobile-runtime-materialization.py"
+    ],
+    "log": {
+      "path": "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/before.log",
+      "sha256": "60ccc2e0b82a10f9436018a8daebd33ad13bb8e1f936ef515106678d30be1832",
+      "size": 7755
+    },
+    "original_source": {
+      "path": "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/materializer-before.py",
+      "sha256": "4e4c37516673c5d669f2aa6f9b26b49f1f4b65040a2dbab21dd40692f522eb29",
+      "size": 7789
+    },
+    "tested_source": {
+      "path": "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/materializer-profile-before.py",
+      "sha256": "c700ce6fd28f19b4f482b9a231da9366b05848674f2d1efebf2c199f95316ede",
+      "size": 8569
+    },
+    "note": "New profile argument/receipt plumbing with original extraction semantics; failures are actual 0700/0600 versus required package permissions, not unsupported-argument errors"
+  },
+  "regression_after": {
+    "status": "PASS",
+    "tests_run": 19,
+    "seconds": 0.876,
+    "command": [
+      "python3",
+      "-O",
+      "scripts/host/test-mobile-runtime-materialization.py"
+    ],
+    "log": {
+      "path": "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/focused.log",
+      "sha256": "cf13c99a426f76d8d1706d17b5ba7f3520d42d8423ec884b3d59af6e6949a27d",
+      "size": 2725
+    }
+  },
+  "nonowner_execution": {
+    "scope": "real non-owner access to extracted synthetic package in rootless host container; not ARM64 VM, Denial, authentication or phone evidence",
+    "source_commit": "a39dfe947a176f9029ff264b4605cedf8e27dc5a",
+    "source_sha256": "566edaf2053ddcce3a694d1e937451297542c1dd61d034d5a7a51333a47f56eb",
+    "fixture_sha256": "413e9e8b7c00aec9afccc40c474793359718d3662b883bd7fff561c6b6a5bdfd",
+    "image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "phone": "NOT RUN",
+    "cases": [
+      {
+        "policy": "owner-only",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-nonroot-permissions-owner-only",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--user=1000:1000",
+          "--cap-drop=ALL",
+          "--security-opt=no-new-privileges",
+          "--memory=128m",
+          "--memory-swap=128m",
+          "--cpus=1",
+          "--pids-limit=32",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/fixture-owner-only/root:/payload:ro",
+          "--entrypoint=/bin/sh",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "-c",
+          "exec /payload/app"
+        ],
+        "extraction_commands": [
+          [
+            "bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--cap-drop",
+            "ALL",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--ro-bind",
+            "/lib",
+            "/lib",
+            "--ro-bind",
+            "/lib64",
+            "/lib64",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/fixture.pkg.tar.xz",
+            "/archive",
+            "--bind",
+            "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/fixture-owner-only/root",
+            "/out",
+            "--chdir",
+            "/out",
+            "--clearenv",
+            "--setenv",
+            "LC_ALL",
+            "C",
+            "--",
+            "/usr/bin/bsdtar",
+            "-xkf",
+            "/archive",
+            "-C",
+            "/out",
+            "--no-same-owner",
+            "--no-same-permissions",
+            "--no-acls",
+            "--no-xattrs",
+            "--no-fflags",
+            "--exclude",
+            ".BUILDINFO",
+            "--exclude",
+            ".CHANGELOG",
+            "--exclude",
+            ".INSTALL",
+            "--exclude",
+            ".MTREE",
+            "--exclude",
+            ".PKGINFO"
+          ]
+        ],
+        "duration_seconds": 0.2938831420033239,
+        "exit_status": 126,
+        "expected_exit_status": 126,
+        "cleanup_exit_status": 0,
+        "tree_sha256": "e157e96de44149d39a74ab7b2fd4e0d3a61bf22dc60cedef816389893cc0b3da",
+        "log_sha256": "3a22172073ef94bb1877707c0f1d7928c0c83f599a235dc928e3daff9e04e417",
+        "status": "PASS"
+      },
+      {
+        "policy": "package-read",
+        "command": [
+          "podman",
+          "run",
+          "--rm",
+          "--name",
+          "rog5-nonroot-permissions-package-read",
+          "--pull=never",
+          "--network=none",
+          "--read-only",
+          "--user=1000:1000",
+          "--cap-drop=ALL",
+          "--security-opt=no-new-privileges",
+          "--memory=128m",
+          "--memory-swap=128m",
+          "--cpus=1",
+          "--pids-limit=32",
+          "-v",
+          "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/fixture-package-read/root:/payload:ro",
+          "--entrypoint=/bin/sh",
+          "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+          "-c",
+          "exec /payload/app"
+        ],
+        "extraction_commands": [
+          [
+            "bwrap",
+            "--unshare-all",
+            "--die-with-parent",
+            "--cap-drop",
+            "ALL",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--ro-bind",
+            "/lib",
+            "/lib",
+            "--ro-bind",
+            "/lib64",
+            "/lib64",
+            "--ro-bind",
+            "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/fixture.pkg.tar.xz",
+            "/archive",
+            "--bind",
+            "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/fixture-package-read/root",
+            "/out",
+            "--chdir",
+            "/out",
+            "--clearenv",
+            "--setenv",
+            "LC_ALL",
+            "C",
+            "--",
+            "/usr/bin/bsdtar",
+            "-xkf",
+            "/archive",
+            "-C",
+            "/out",
+            "--no-same-owner",
+            "--no-same-permissions",
+            "--no-acls",
+            "--no-xattrs",
+            "--no-fflags",
+            "--exclude",
+            ".BUILDINFO",
+            "--exclude",
+            ".CHANGELOG",
+            "--exclude",
+            ".INSTALL",
+            "--exclude",
+            ".MTREE",
+            "--exclude",
+            ".PKGINFO"
+          ]
+        ],
+        "duration_seconds": 0.2935651979933027,
+        "exit_status": 0,
+        "expected_exit_status": 0,
+        "cleanup_exit_status": 0,
+        "tree_sha256": "216783b8b645845229f07f22a6d329356a3fce2e93c5ad608c5ebd730a7feb67",
+        "log_sha256": "9ecde0c233f8e8a09eb461889d7b01c9cd241d98e57bccbf54febb559f821923",
+        "status": "PASS"
+      }
+    ],
+    "status": "PASS"
+  },
+  "execution_script": {
+    "path": "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/qualify-permissions.py",
+    "sha256": "a6d967dea440cf33a5399bb7af6956d2476811e86c518d32eed9d625b5637067",
+    "size": 3775
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-nonroot-runtime-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/active-final-report",
+        "TMPDIR=/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "808b9c0c4d4b6794c097e1ad79fab1bf95d292e8",
+      "source_tree": "0bcde52c9b1cc5b004599bb7dcf64c1cf997081e",
+      "started": "2026-09-13T05:48:25.329527+00:00",
+      "exit_status": 0,
+      "duration_seconds": 139.28788438998163
+    },
+    "counts": {
+      "PASS": 93,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/active-final-report/summary.json",
+      "sha256": "f24d7269953f081abc27f2ce173034035c1578ee80bb765b637525f20db6ce78",
+      "size": 111736
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-nonroot-runtime-20260913-r1/active-final-report/summary.xml",
+      "sha256": "156eb3ac1058671afb38490298a9519eba3c0e5891143d95802378142b60f5ea",
+      "size": 56049
+    }
+  },
+  "retained_runtime": {
+    "path": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root",
+    "tree_manifest_sha256": "a8bc7e9fedbf5d8d8c145c5c60fad328bb4ad96b261fa075544d42c3d16418b0",
+    "modifications": false,
+    "allocated_bytes_observed": 1611595776,
+    "new_full_materialization": "NOT RUN: insufficient disk for separate full tree plus 3 GiB reserve"
+  },
+  "limitations": [
+    "No new package authentication or complete ARM64 runtime extraction this turn; synthetic archives exercise the real extractor",
+    "Existing owner-only runtime and all Denial/engine/AOT bytes remain unchanged",
+    "UID1000 container access proves Unix permission behavior; not mobile account identity, logind, authentication, lock-screen security or Denial operation",
+    "Existing VM guest remains root; non-root compositor, bus, seat and launcher preparation remains required",
+    "No kernel build or VM graphics run; phone A660, scanout, touch, power and security remain NOT RUN"
+  ],
+  "phone_operations": false,
+  "candidate_creation": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false,
+  "physical": "NOT RUN"
+}
