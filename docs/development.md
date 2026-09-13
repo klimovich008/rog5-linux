@@ -33,6 +33,17 @@ inode bytes separately from the filesystem free-space delta, and do not count
 hardlinked copies repeatedly. Prefer one measured audit and targeted verification
 over repeated whole-home scans or another full build as a cleanup check.
 
+For unpublished failed filesystem-build scratch, a verified lossless sparse
+archive can retain the failure data without keeping its original allocation.
+Restore the archive into a fresh disk-backed directory and compare equal logical
+sizes plus every byte in the union of both files' data extents; mutual holes are
+zero. Record the archive hash, original metadata, verification and restore path
+before unlinking the exact originals. Do not report an extent-framed digest as
+a whole-file SHA-256. The second September 13 audit used this for two failed
+userdata population attempts; successful images and execution records stayed
+unchanged. Duplicate hashes alone do not authorize hardlinking signed or sealed
+artifacts: inode/link-count guards and historical path consumers still matter.
+
 ## Offline qualification and reporting
 
 The public `test-repository-linux.sh` tier commands are preserved. Test execution
