@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Native VM OSK text entry passes after logical-content sizing fix**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Native VM launcher discovered; application interaction next**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Corrected shell AOT shows complete test, tes and restored test after supported viewport pan. One 102.627-second VM run:127 frames/page flips, exact12 key events, no reported rendering errors. Production-code sizing regression:6 original failures,13 corrected passes. Shell frontend/AOT builds PASS; active tier:90 PASS. Next: launch and switch two native Wayland apps through the mobile UI; automatic caret tracking remains absent. Earlier visual failures and RCU stalls stay preserved. All mobile physical rows NOT RUN; S06/R01 FAIL. No phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-content-sizing.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+One 102.747-second VM run captured the unlocked home with Foot and Mousepad tiles;10 frames/page flips, no reported render errors, clean owned shutdown.77 focused host cases and 91 frozen active suites pass. Null-stdio launcher regression failed before and passes with a fixed guest-console sink. No binary rebuild. Next: activate the observed app tiles through the mobile UI, prove native toplevel readiness and switch between the two owned clients. App launch/switch and all mobile physical rows NOT RUN; S06/R01 FAIL. Earlier visual failures and stalls remain preserved. No phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-vm-launcher-discovery.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

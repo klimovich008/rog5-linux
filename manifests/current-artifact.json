@@ -932,6 +932,25 @@
         "size": 10814352
       }
     },
-    "current_mobile_observation": "mobile_content_sizing_observation"
+    "current_mobile_observation": "mobile_launcher_discovery",
+    "mobile_launcher_discovery": {
+      "status": "PASS: unlocked launcher tiles directly inspected; app launch and switching NOT RUN",
+      "set_id": "private:rog5-vm-launcher-20260913-r1",
+      "harness_source_commit": "b8cd837ca6dab7d74e7858587b671560c48b61e8",
+      "harness_source_tree": "8abe7a1e001c590300f86c8940474e73d28cbfc0",
+      "reused_binary_observation": "mobile_content_sizing_observation",
+      "flutter_bundle": "/home/deck/.local/state/rog5-mobile-sizing-20260913-r1/runtime-fixture",
+      "evidence": {
+        "path": "test-results/2026-09-13-vm-launcher-discovery-qualification.json",
+        "sha256": "4e686f1367d133eedf46b39f35afb240da4a9944aeab42d3b7a1ee56b3372c9c",
+        "size": 144260
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; offline VM observation only",
+      "scope": "VM terminal counters and separately inspected launcher capture; app interaction and phone tests NOT RUN",
+      "raster_frames": 10,
+      "output_page_flips": 10,
+      "render_errors": []
+    }
   }
 }
