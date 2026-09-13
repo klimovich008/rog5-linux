@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Native and VNC VM captures agree; editor white-output failure narrowed upstream of VNC**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **OSK viewport pan restores VM editor; leading text glyph remains unresolved**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-R3 completed in102.365 seconds with110 frames/page flips and exact OSK key delivery. Initial and final native/VNC PNG pairs are byte-identical; initial editor is correct, final application remains white. Capture transport PASS, visible editing FAIL. Two earlier pre-capture RCU stalls remain FAIL; polling-load reduction is not proven causal. Active tier:90 suites PASS. Next: observe client SHM snapshot and texture upload/composition boundaries without weakening renderer guards. Phone physical rows remain NOT RUN; S06/R01 remain FAIL. No phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-vm-native-capture.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The pinned shell shifts the application upward367.2px when OSK opens. Its supported right-edge pan restores the header and visible est/es/est text suffix during the test/deletion/restoration sequence. Complete visible text remains FAIL because the leading t is not shown. R1:102.345 seconds,124 frames/page flips, exact12 key events and no reported rendering errors. Active tier:90 PASS. Next: test logical-content versus backing-buffer sizing and verify exact document content; automatic caret tracking remains absent. Prior white-output failures and VM RCU stalls stay recorded. Phone physical rows NOT RUN; S06/R01 FAIL. No phone/signing/candidate/claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-vm-editor-pan.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

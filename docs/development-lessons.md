@@ -2609,3 +2609,13 @@ full renderer rebuild. Two earlier runs stalled in guest RCU/timer scheduling
 before any capture request. Reducing request polling from10Hz to1Hz removed
 unnecessary sleep-process churn and preceded success; do not claim causality
 from that single changed run. Preserve both failed traces and bounded deadlines.
+
+Inspect presentation policy before adding pixel instrumentation. The pinned
+mobile keyboard translates the entire application upward by 367.2 pixels at
+this output size, hiding a top-line editor. The existing right-edge pan restored
+the header and visible text suffix in one 102.345-second VM run with unchanged
+binaries. Preserve the unpanned capture as the control; do not reinterpret the
+historical visual failures as passes. Manual panning is not caret tracking, and
+visible suffix changes are not proof of the complete expected word: the leading
+glyph remains unshown. Check logical-content versus backing-buffer dimensions
+before attributing that remaining edge failure to the SHM upload path.
