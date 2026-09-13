@@ -41,7 +41,14 @@ real document-portal mount in the VM; a successful modprobe unit is insufficient
 Prepared RAM GTK schema/MIME caches must be imported into the D-Bus and systemd
 user activation environments using the explicit two-variable allowlist before
 launch. Cache transfer, service readiness, client lifetime and phone behavior
-remain separate checks.
+remain separate checks. The combined VM also runs the packaged ARM64
+`fc-cache -s -v` in guest RAM before PAM startup, then checks a mobile-UID
+`fc-match` consumer with diagnostic cache records, unchanged cache inventory and
+no user fallback. The extracted package closure did not execute the normal
+Fontconfig package hook. Keep font sources, timestamps and the fixture clock
+unchanged; retain future-mtime warnings rather than treating them as cache
+invalidation. No host-generated cache is transplanted into the VM.
+
 
 For the separate offline Denial DRM probe, build the pinned upstream kernel with
 `QEMU_KERNEL_PROFILE=virtio-drm JOBS=2 scripts/host/build-qemu-smoke-kernel.sh

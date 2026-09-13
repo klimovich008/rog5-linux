@@ -8188,7 +8188,32 @@
         "tools/qemu-virtio-drm/logind-session.sh",
         "tools/qemu-virtio-drm/logind-denial.sh",
         "tools/qemu-virtio-drm/logind-denial-prepare.sh",
-        "tools/qemu-virtio-drm/logind-editor.sh"
+        "tools/qemu-virtio-drm/logind-editor.sh",
+        "tools/qemu-virtio-drm/logind-font-cache.sh"
+      ],
+      "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-logind-font-cache.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 10,
+      "prerequisites": [
+        "python3"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/logind-font-cache.sh"
       ],
       "optional_subchecks": []
     },
