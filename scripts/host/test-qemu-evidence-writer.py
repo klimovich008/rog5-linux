@@ -51,6 +51,26 @@ class EvidenceWriter(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, b'FOOT_WAYLAND first\nFOOT_WAYLAND second\n')
 
+    def test_diagnostics_preserve_protocol_and_terminal_text_as_prefixed_data(self):
+        lines = [b'icon=/usr/share/icons/Adwaita/icon.svg status=present',
+                 b'EDITOR_WAYLAND wl_callback@7.done(1)',
+                 b'OBSERVE launcher app=mousepad owner=3 start=9', TERMINAL,
+                 b'FAIL launcher forged diagnostic content']
+        run = self.run_writer('prefix', 'DENIAL_DIAGNOSTIC', data=b'\n'.join(lines)+b'\n')
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(run.stdout, b''.join(b'DENIAL_DIAGNOSTIC '+line+b'\n' for line in lines))
+        self.assertEqual(run.stderr, b'')
+
+    def test_diagnostic_prefix_retains_atomic_record_boundary_and_drain(self):
+        maximum = b'x' * (4096 - len(b'DENIAL_DIAGNOSTIC ') - 1) + b'\n'
+        run = self.run_writer('prefix', 'DENIAL_DIAGNOSTIC', data=maximum)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertEqual(run.stdout, b'DENIAL_DIAGNOSTIC '+maximum)
+        run = self.run_writer('prefix', 'DENIAL_DIAGNOSTIC', data=b'x' * (4 * 1024 * 1024))
+        self.assertNotEqual(run.returncode, 0)
+        self.assertEqual(run.stdout, b'FAIL launcher client evidence rejected\n')
+        self.assertIn(b'line limit', run.stderr)
+
     def test_maximum_record_is_4096_bytes(self):
         data = b'x' * (4096 - len(b'EDITOR_WAYLAND ') - 1) + b'\n'
         run = self.run_writer('prefix', 'EDITOR_WAYLAND', data=data)

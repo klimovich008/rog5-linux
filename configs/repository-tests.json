@@ -8326,6 +8326,34 @@
         "tools/qemu-virtio-drm/launcher-evidence.sh"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-launcher-diagnostics.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 15,
+      "prerequisites": [
+        "python3",
+        "bash",
+        "tail",
+        "awk",
+        "timeout"
+      ],
+      "resource_class": "isolated",
+      "exclusivity_group": "none",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/qemu-virtio-drm/logind-apps.sh"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

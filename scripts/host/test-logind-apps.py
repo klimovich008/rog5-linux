@@ -28,6 +28,7 @@ class AuthenticatedApps(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='rog5-apps-test-')
         self.root = Path(self.temp.name)
         self.home = self.root / 'home'; self.home.mkdir()
+        (self.home/'denial.log').write_text('fixture compositor diagnostic\n')
         self.runtime = self.root / 'runtime'; self.runtime.mkdir(mode=0o700)
         self.command_log = self.root / 'external-commands.log'
         self.state = self.home / 'launcher-apps'

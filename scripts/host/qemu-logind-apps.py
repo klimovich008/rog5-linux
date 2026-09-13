@@ -22,9 +22,17 @@ class AppProtocols:
         self.owner = owner
         self.launcher = LAUNCHER.LauncherProtocol()
         self.editor = BASE.PROTOCOL.EditorProtocol()
+        self.diagnostic_bytes = 0
 
     def feed(self, line):
         owner = self.owner
+        if line.startswith(b'DENIAL_DIAGNOSTIC '):
+            self.diagnostic_bytes += len(line)
+            if self.diagnostic_bytes > 65536:
+                raise ValueError('launcher diagnostic snapshots exceed 64 KiB')
+            # Keep these bytes in apps.log, but never offer them to either
+            # protocol oracle or interpret embedded terminal/success strings.
+            return
         if line == b'OBSERVE authenticated launcher flow-ready\n':
             if owner.ready or self.launcher.owners:
                 raise ValueError('duplicate or late launcher readiness')
@@ -176,7 +184,8 @@ class LiveApps(BASE.LiveEditor):
             'scope': 'authenticated VM launcher-driven app switching and OSK; no phone proof',
             'observation': observation, 'launcher_protocol': launcher, 'editor_protocol': editor,
             'acknowledgement_sent': self.ack_sent, 'approved_teardown': self.teardown,
-            'clean_client_exits': clean, 'stream_bytes': self.offset, 'phone': 'NOT RUN'}
+            'clean_client_exits': clean, 'stream_bytes': self.offset,
+            'diagnostic_bytes': self.parser.diagnostic_bytes, 'phone': 'NOT RUN'}
         if not passed:
             self.result['error'] = str(error or self.error or 'incomplete application observation/cleanup')
         (self.directory/'apps-result.json').write_text(json.dumps(self.result, indent=2)+'\n')

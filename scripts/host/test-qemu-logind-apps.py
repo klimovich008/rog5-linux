@@ -124,6 +124,21 @@ class LiveAppsTests(unittest.TestCase):
         self.no_ack()
         self.assertEqual(self.apps.finish()['status'], 'FAIL')
 
+    def test_diagnostic_success_words_never_authorize_protocol_or_ack(self):
+        self.send(b'DENIAL_DIAGNOSTIC OBSERVE authenticated launcher flow-ready\n'
+                  b'DENIAL_DIAGNOSTIC independently clocked Flutter KMS session complete\n')
+        self.apps.tick(0)
+        self.assertFalse(self.apps.ready)
+        self.assertFalse(self.apps.ack_sent)
+        self.no_ack()
+        self.assertEqual(self.apps.parser.launcher.owners, {})
+        self.assertEqual(self.apps.finish()['status'], 'FAIL')
+
+    def test_diagnostic_byte_budget_fails_closed(self):
+        line=b'DENIAL_DIAGNOSTIC '+b'x'*2000+b'\n'
+        with self.assertRaisesRegex(ValueError, '64 KiB'):
+            for _ in range(34): self.apps.parser.feed(line)
+
     def test_both_protocol_oracles_cannot_ack_without_ui_actions(self):
         text = F.success_log().replace(F.leave('mousepad'), KEYS.decode()+F.leave('mousepad'), 1)
         self.send(READY+text.encode())

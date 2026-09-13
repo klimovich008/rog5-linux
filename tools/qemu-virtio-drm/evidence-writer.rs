@@ -77,7 +77,7 @@ fn drain_after(input: &mut impl Read, result: io::Result<()>) -> io::Result<()> 
 }
 
 fn prefix(input: &mut impl Read, output: &mut impl Write, name: &str) -> io::Result<()> {
-    if !matches!(name, "EDITOR_WAYLAND" | "FOOT_WAYLAND") {
+    if !matches!(name, "EDITOR_WAYLAND" | "FOOT_WAYLAND" | "DENIAL_DIAGNOSTIC") {
         return Err(invalid("unknown evidence prefix"));
     }
     let mut record = Vec::with_capacity(RECORD_LIMIT);

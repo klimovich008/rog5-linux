@@ -6,6 +6,21 @@ logind_apps_record() {
     [[ -p $state/evidence/events && ! -L $state/evidence/events ]] || return 1
     timeout -k 1 2 "$logind_apps_writer" record "$*" > "$state/evidence/events"
 }
+logind_apps_snapshot() {
+    local state=$1 log=$2
+    [[ -f $log && ! -L $log && -p $state/evidence/events &&
+       ! -L $state/evidence/events ]] || return 1
+    # Diagnostics are data, never client protocol or completion evidence.
+    # Bound the entire pipeline, including a FIFO with no remaining reader.
+    timeout -k 1 3 /usr/bin/bash --noprofile --norc -c '
+        set -o pipefail
+        LC_ALL=C tail -c 24576 -- "$1" |
+        LC_ALL=C awk '\''BEGIN {remaining=32768}
+            {line=substr($0,1,2000); cost=length(line)+19
+             if (cost<=remaining) {print line; remaining-=cost}}'\'' |
+        "$3" prefix DENIAL_DIAGNOSTIC > "$2/evidence/events"
+    ' diagnostic-snapshot "$log" "$state" "$logind_apps_writer"
+}
 prepare_authenticated_apps() {
     local state=${1:-$HOME/launcher-apps} desktops=${2:-/usr/share/applications}
     local wrapper=${3:-/run/logind-apps.sh} text=${4:-/tmp/rog5-text-probe.txt}
@@ -175,9 +190,11 @@ logind_apps_close() {
     echo 'PASS launcher-owned Foot and editor exited0 after host observation'
 }
 run_authenticated_apps() {
-    local state=${logind_apps_state:?} fd=${logind_apps_port:?} chunk reply='' rc deadline app
+    local state=${logind_apps_state:?} fd=${logind_apps_port:?} chunk reply='' rc deadline app snapshot_at
+    logind_apps_snapshot "$state" "$HOME/denial.log" || return $?
     logind_apps_record "$state" 'OBSERVE authenticated launcher flow-ready' || return $?
     deadline=$((SECONDS+60))
+    snapshot_at=$((SECONDS+5))
     while :; do
         require_running launcher || { return 1; }
         for app in mousepad foot; do
@@ -186,6 +203,10 @@ run_authenticated_apps() {
             }
         done
         ((SECONDS<deadline)) || { return 124; }
+        if ((snapshot_at && SECONDS>=snapshot_at)); then
+            logind_apps_snapshot "$state" "$HOME/denial.log" || return $?
+            snapshot_at=0
+        fi
         chunk=''; rc=0
         IFS= read -r -t .2 -u "$fd" chunk || rc=$?
         reply+=$chunk
