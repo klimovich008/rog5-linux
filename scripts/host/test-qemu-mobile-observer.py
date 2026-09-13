@@ -374,6 +374,134 @@ class MobileObservation(unittest.TestCase):
         self.observer.finish('test complete')
 
 
+class EditorObservation(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='qmp-editor-')
+        self.addCleanup(self.temp.cleanup)
+
+    def observer(self, label, **client_options):
+        directory = Path(self.temp.name) / label
+        client = CaptureClient(directory, **client_options)
+        observer = MOBILE.EditorObserver(directory, 'owned',
+            client_factory=lambda path, name: client)
+        (directory / 'qmp.sock').touch()
+        return observer, client
+
+    @staticmethod
+    def advance(observer, count):
+        for _ in range(count):
+            observer.tick(observer.next_at, True)
+
+    def test_editor_pointer_route_and_capture_order_are_bounded(self):
+        observer, client = self.observer('complete')
+        self.advance(observer, 33)
+        self.assertTrue(observer.complete)
+        result = observer.finish()
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(client.buttons, [True, False] * 8)
+        self.assertTrue(result['pointer_released'])
+        self.assertTrue(client.closed)
+        self.assertEqual(len(result['actions']), 33)
+        self.assertEqual([Path(row['path']).name for row in result['screenshots']], [
+            '00-editor-empty.png', '01-editor-keyboard.png', '02-editor-test.png',
+            '03-editor-tes.png', '04-editor-test-restored.png'])
+        # Decode the emitted QMP stream, independently of the STEPS table.
+        # Every press must target the editor, reveal strip or the four intended
+        # OSK controls. The fixture never sends a key, text or credential event.
+        pointer = {}
+        presses = []
+        for row in client.records:
+            self.assertIn(row['command'], ('screendump', 'input-send-event'))
+            if row['command'] == 'screendump':
+                continue
+            for event in row['arguments']['events']:
+                self.assertIn(event['type'], ('abs', 'btn'))
+                if event['type'] == 'abs':
+                    axis, value = event['data']['axis'], event['data']['value']
+                    self.assertIn(axis, ('x', 'y'))
+                    self.assertGreaterEqual(value, 0)
+                    self.assertLessEqual(value, 32767)
+                    pointer[axis] = round(value * (539 if axis == 'x' else 1223) / 32767)
+                else:
+                    self.assertEqual(set(event['data']), {'button', 'down'})
+                    self.assertEqual(event['data']['button'], 'left')
+                    if event['data']['down']:
+                        presses.append((pointer['x'], pointer['y']))
+        self.assertEqual(presses, [(270, 200), (500, 1218), (243, 921),
+                                  (137, 921), (111, 1005), (243, 921),
+                                  (501, 1089), (243, 921)])
+        self.assertIn('NOT RUN', result['visual_semantics'])
+        self.assertEqual(result['phone_touch'], 'NOT RUN')
+        self.assertEqual(json.loads((observer.directory / 'result.json').read_text()), result)
+        records = len(client.records)
+        observer.tick(observer.next_at + 1, True)
+        self.assertEqual(len(client.records), records)
+
+    def test_editor_ready_socket_and_clock_gate_all_actions(self):
+        observer, client = self.observer('gated')
+        observer.tick(0, False)
+        self.assertEqual(client.records, [])
+        (observer.directory / 'qmp.sock').unlink()
+        observer.tick(0, True)
+        self.assertEqual(client.records, [])
+        (observer.directory / 'qmp.sock').touch()
+        observer.tick(0, True)
+        self.assertEqual(observer.stage, 1)
+        records = len(client.records)
+        observer.tick(observer.next_at / 2, True)
+        self.assertEqual(observer.stage, 1)
+        self.assertEqual(len(client.records), records)
+        self.assertEqual(observer.finish()['status'], 'FAIL')
+
+    def test_editor_interruption_at_every_stage_releases_pointer(self):
+        for count in range(34):
+            with self.subTest(count=count):
+                observer, client = self.observer('interrupted-' + str(count))
+                self.advance(observer, count)
+                result = observer.finish('interrupted')
+                self.assertEqual(result['status'], 'FAIL')
+                self.assertTrue(result['pointer_released'])
+                self.assertEqual(client.buttons, [True, False] * (len(client.buttons) // 2))
+                self.assertEqual(client.closed, count > 0)
+
+    def test_editor_incomplete_run_cannot_pass_without_explicit_error(self):
+        for count in (0, 3, 6, 24, 28, 32):
+            with self.subTest(count=count):
+                observer, client = self.observer('incomplete-' + str(count))
+                self.advance(observer, count)
+                result = observer.finish()
+                self.assertEqual(result['status'], 'FAIL')
+                self.assertTrue(result['pointer_released'])
+                self.assertFalse(observer.complete)
+
+    def test_editor_each_capture_failure_cannot_pass(self):
+        for failed in range(1, 6):
+            with self.subTest(failed=failed):
+                observer, client = self.observer('capture-' + str(failed), fail_capture=failed)
+                with self.assertRaisesRegex(RuntimeError, 'capture rejected') as caught:
+                    self.advance(observer, 33)
+                result = observer.finish(caught.exception)
+                self.assertEqual(result['status'], 'FAIL')
+                self.assertFalse(observer.complete)
+                self.assertEqual(len(result['screenshots']), failed - 1)
+                self.assertTrue(result['pointer_released'])
+                self.assertTrue(client.closed)
+
+    def test_editor_lost_press_ack_releases_and_failed_release_is_recorded(self):
+        for fail_up in (False, True):
+            with self.subTest(fail_up=fail_up):
+                observer, client = self.observer('lost-ack-' + str(fail_up),
+                    fail_down=True, fail_up=fail_up)
+                with self.assertRaisesRegex(RuntimeError, 'acknowledgement') as caught:
+                    self.advance(observer, 3)
+                result = observer.finish(caught.exception)
+                self.assertEqual(result['status'], 'FAIL')
+                self.assertEqual(client.buttons, [True, False])
+                self.assertEqual(result['pointer_released'], not fail_up)
+                self.assertEqual('cleanup_error' in result, fail_up)
+                self.assertTrue(client.closed)
+
+
 class VNCCapture(unittest.TestCase):
     class FakeRFB:
         """One real UNIX peer with bounded I/O, explicit wire checks and cleanup."""

@@ -283,6 +283,11 @@ class MobileObserver:
                 return
             self.client = self.client_factory(self.directory/'qmp.sock', self.name)
             self.result['status'] = 'RUNNING'
+        delay = self.step()
+        self.stage += 1
+        self.next_at = now+delay
+
+    def step(self):
         if self.stage == 0:
             self.capture('00-mobile-locked')
             self.move(500, 1218)
@@ -318,8 +323,7 @@ class MobileObserver:
             self.complete = True
             self.result['status'] = 'PASS'
             delay = 0
-        self.stage += 1
-        self.next_at = now+delay
+        return delay
 
     def finish(self, error=None):
         cleanup_error = None
@@ -340,3 +344,39 @@ class MobileObserver:
             self.result['cleanup_error'] = cleanup_error
         (self.directory/'result.json').write_text(json.dumps(self.result, indent=2)+'\n')
         return self.result
+
+
+class EditorObserver(MobileObserver):
+    """Fixed native-client text probe; only OSK pointer presses type text."""
+    STEPS = [
+        ('capture', '00-editor-empty', .1),
+        ('move', (270, 200), .1), ('button', True, .1), ('button', False, .3),
+        ('move', (500, 1218), .1), ('button', True, .1),
+        *[('move', (500, y), .1) for y in (1180, 1140, 1100, 1060)],
+        ('button', False, 1.2), ('capture', '01-editor-keyboard', .1),
+        *[step for point in ((243, 921), (137, 921), (111, 1005), (243, 921))
+          for step in (('move', point, .1), ('button', True, .1), ('button', False, .3))],
+        ('capture', '02-editor-test', .1),
+        ('move', (501, 1089), .1), ('button', True, .1), ('button', False, 1.2),
+        ('capture', '03-editor-tes', .1),
+        ('move', (243, 921), .1), ('button', True, .1), ('button', False, 1.2),
+        ('capture', '04-editor-test-restored', 0),
+    ]
+
+    def step(self):
+        operation, value, delay = self.STEPS[self.stage]
+        if operation == 'capture':
+            self.capture(value)
+        elif operation == 'move':
+            self.move(*value)
+        elif operation == 'button':
+            self.button(value)
+        else:
+            raise ValueError('unknown fixed editor action')
+        self.result['actions'].append({'operation': operation,
+                                       'value': list(value) if isinstance(value, tuple) else value})
+        self.result['probe'] = 'native Mousepad OSK text entry; normal unlocked VM startup'
+        if self.stage == len(self.STEPS)-1:
+            self.complete = True
+            self.result['status'] = 'PASS'
+        return delay

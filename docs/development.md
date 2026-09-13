@@ -77,6 +77,18 @@ keyboard/mouse ID_INPUT properties before Denial; kernel event nodes alone do
 not prove libinput discovery. The daemon joins the owned guest cleanup.
 The existing default landscape, EGL-comparison and CLI probes remain separate.
 
+For native-client text delivery, add `--observe-mobile-editor` alongside
+`--observe-mobile`. This explicit mode uses normal unlocked startup, launches
+the retained Mousepad with `GDK_BACKEND=wayland` on the sole discovered guest
+socket, and opens an empty RAM file. It does not test authentication or launcher
+activation. Five captures cover the empty editor, OSK, `test`, deletion to `tes`,
+and restoration to `test`. Only pointer events press the OSK; direct keyboard
+injection is excluded. The client protocol must show a native toplevel and the
+exact key press/release sequence; actual rendered text needs separate image
+inspection. This mode allows60 seconds of compositor execution within the same
+120-second host bound. Mousepad has its own65-second bound and joins cleanup.
+The ordinary locked probe retains its45-second guest bound.
+
 The authenticated successor graph is
 `mobile-package-snapshot-20260912-xwayland.json` (326 packages). The historical
 315-package graph remains unchanged. A full-shell run now requires a guest

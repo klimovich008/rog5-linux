@@ -20,13 +20,15 @@ def digest(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
-def missing_runtime_inputs(runtime, shell, mobile=False):
+def missing_runtime_inputs(runtime, shell, mobile=False, editor=False):
     commands = ['bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest']
     commands += ['seatd', 'sleep', 'Xwayland', 'dbus-daemon'] if shell else []
     paths = ['usr/bin/'+name for name in commands]
     if mobile:
         paths += ['usr/bin/udevadm', 'usr/lib/systemd/systemd-udevd',
                   'usr/lib/udev/rules.d/60-input-id.rules']
+    if editor:
+        paths += ['usr/bin/mousepad']
     return [path for path in paths if not (runtime/path).is_file()]
 
 
@@ -69,6 +71,22 @@ def session_result(log):
     else:
         result['reason'] = 'zero frames/page flips or observed rendering errors'
     return result
+
+
+def editor_result(log):
+    """Native Wayland key delivery; text appearance needs separate inspection."""
+    text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', log)
+    keys = [(int(key), int(state)) for key, state in re.findall(
+        r'wl_keyboard[#@]\d+\.key\(\d+,\s*\d+,\s*(\d+),\s*([01])\)', text)]
+    expected = [(key, state) for key in (20, 18, 31, 20, 14, 20) for state in (1, 0)]
+    native = all(re.search(pattern, text) for pattern in (
+        r'xdg_wm_base[#@]\d+\.get_xdg_surface\(',
+        r'xdg_surface[#@]\d+\.get_toplevel\(',
+        r'xdg_toplevel[#@]\d+\.set_title\([^\n]*rog5-text-probe\.txt',
+    ))
+    return {'status': 'PASS' if native and keys == expected else 'FAIL',
+            'scope': 'native client Wayland protocol and OSK key lifecycle; visual text checked separately',
+            'native_toplevel_observed': native, 'keys': keys, 'expected_keys': expected}
 
 
 def render_node_identity(path):
@@ -114,6 +132,8 @@ def main():
     program.add_argument('--egl-thread-probe', type=Path,
                          help='standalone ARM64 EGL transfer comparison; no Denial execution')
     parser.add_argument('--flutter-bundle', type=Path)
+    parser.add_argument('--observe-mobile-editor', action='store_true',
+                        help='native Wayland Mousepad text probe; requires mobile observation')
     parser.add_argument('--observe-mobile', action='store_true',
                         help='portrait mobile profile, bounded QMP screenshots and OSK pointer gestures')
     parser.add_argument('--render-node', type=Path,
@@ -126,6 +146,8 @@ def main():
         parser.error('EGL thread probe requires VirGL and excludes Flutter bundle')
     if args.observe_mobile and (not args.flutter_bundle or not args.render_node):
         parser.error('mobile observation requires Flutter and an explicit VirGL render node')
+    if args.observe_mobile_editor and not args.observe_mobile:
+        parser.error('native editor probe requires --observe-mobile')
     render_node = render_node_identity(args.render_node) if args.render_node else None
     if not 30 <= args.deadline <= 300:
         parser.error('deadline must be between 30 and 300 seconds')
@@ -144,7 +166,7 @@ def main():
     output = args.output.absolute()
     output.mkdir(parents=True, exist_ok=False)
     repo = Path(__file__).resolve().parents[2]
-    missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile)
+    missing = missing_runtime_inputs(runtime, bool(args.flutter_bundle), args.observe_mobile, args.observe_mobile_editor)
     if missing:
         report = {'status': 'BLOCKED', 'scope': 'offline guest prerequisites',
                   'missing_runtime_inputs': missing, 'vm_started': False,
@@ -168,6 +190,8 @@ def main():
     (stage/'stage/graphics-mode').write_text('virgl\n' if render_node else 'software\n')
     if args.observe_mobile:
         (stage/'stage/shell-profile').write_text('mobile\n')
+    if args.observe_mobile_editor:
+        (stage/'stage/mobile-editor').write_text('mousepad\n')
     compile_command = ['clang', '--target=aarch64-none-elf', '-fuse-ld=lld',
                        '-nostdlib', '-static', '-fno-pic', '-fno-stack-protector',
                        '-Werror', '-Wall', '-Wextra',
@@ -198,7 +222,11 @@ def main():
             spec = importlib.util.spec_from_file_location('qemu_mobile_observer', observer_path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            observer = module.MobileObserver(output/'observe', name, capture_backend=module.capture_vnc)
+            observer_class = module.EditorObserver if args.observe_mobile_editor else module.MobileObserver
+            observer = observer_class(output/'observe', name, capture_backend=module.capture_vnc)
+            report['mobile_editor'] = args.observe_mobile_editor
+            if args.observe_mobile_editor:
+                report['editor_binary_sha256'] = digest(runtime/'usr/bin/mousepad')
             report['observer_sha256'] = digest(observer_path)
             report['shell_profile'] = 'mobile'
         subprocess.run(compile_command, check=True, timeout=30,
@@ -290,6 +318,8 @@ def main():
             report['deniald_kms'] = 'NOT RUN'
             report['shell_exit'] = 'PASS' if 'PASS actual deniald shell bounded exit' in log else 'FAIL'
             report['shell_rendering'] = session_result(log)
+        if args.observe_mobile_editor:
+            report['editor_protocol'] = editor_result(log)
         if (process.returncode == 0 and
                 report['drm_discovery'] == 'PASS' and
                 ((report.get('shell_exit') == 'PASS' and
@@ -307,6 +337,8 @@ def main():
             report['mobile_observation'] = observer.finish(observation_error)
         if report.get('mobile_observation', {}).get('status', 'PASS') != 'PASS':
             report['status'] = 'FAIL'
+        if args.observe_mobile_editor and report.get('editor_protocol', {}).get('status') != 'PASS':
+            report['status'] = 'FAIL'
         if launched:
             check = subprocess.run(['podman', 'container', 'exists', name], timeout=10)
             report['container_removed'] = check.returncode == 1
@@ -314,7 +346,7 @@ def main():
                 report['status'] = 'FAIL'
         report['duration_seconds'] = time.monotonic() - start
         for path in (stage/'init', stage/'stage/guest.sh', output/'initramfs.cpio.gz',
-                     stage/'stage/graphics-mode', stage/'stage/shell-profile', output/'serial.log'):
+                     stage/'stage/graphics-mode', stage/'stage/shell-profile', stage/'stage/mobile-editor', output/'serial.log'):
             if path.is_file():
                 report.setdefault('hashes', {})[str(path.relative_to(output))] = digest(path)
         (output/'result.json').write_text(json.dumps(report, indent=2)+'\n')

@@ -55,7 +55,8 @@ elif [[ -d /run/payload/flutter ]]; then
     dbus-daemon --session --nofork --address="$DBUS_SESSION_BUS_ADDRESS" &
     bus_pid=$!
     udev_pid=''
-    trap 'kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
+    editor_pid=''
+    trap 'if [[ -n $editor_pid ]]; then kill "$editor_pid"; wait "$editor_pid" || true; fi; kill "$bus_pid" "$seat_pid"; wait "$bus_pid" || true; wait "$seat_pid" || true; if [[ -n $udev_pid ]]; then kill "$udev_pid"; wait "$udev_pid" || true; fi' EXIT
     if [[ -f /run/shell-profile ]]; then
         # Fixed virtual devices need real udev input_id data for libinput.
         for event in /sys/class/input/event*; do
@@ -101,9 +102,35 @@ elif [[ -d /run/payload/flutter ]]; then
     done
     test -S "$SEATD_SOCK"
     test -S "$XDG_RUNTIME_DIR/bus"
-    timeout --preserve-status --kill-after=5 45 /run/payload/deniald \
+    shell_seconds=45
+    shell_options=(--start-locked)
+    if [[ -f /run/mobile-editor ]]; then
+        read -r editor < /run/mobile-editor
+        [[ $editor == mousepad && -f /run/shell-profile ]]
+        unset DENIA_START_LOCKED
+        shell_options=()
+        shell_seconds=60
+        : > /tmp/rog5-text-probe.txt
+        (
+            for ((attempt=0; attempt<250; attempt++)); do
+                sockets=()
+                for socket in "$XDG_RUNTIME_DIR"/wayland-*; do
+                    [[ ! -S $socket ]] || sockets+=("$socket")
+                done
+                [[ ${#sockets[@]} == 0 ]] || break
+                sleep 0.1
+            done
+            [[ ${#sockets[@]} == 1 ]] || { echo 'FAIL ambiguous/missing guest Wayland socket'; exit 1; }
+            echo 'OBSERVE native Mousepad launch; normal unlocked VM startup; RAM file only'
+            exec timeout --preserve-status --kill-after=2 65 env \
+                GDK_BACKEND=wayland WAYLAND_DEBUG=client WAYLAND_DISPLAY="${sockets[0]##*/}" \
+                mousepad /tmp/rog5-text-probe.txt
+        ) &
+        editor_pid=$!
+    fi
+    timeout --preserve-status --kill-after=5 "$shell_seconds" /run/payload/deniald \
         --device /dev/dri/card0 --wayland \
-        --flutter-bundle /run/payload/flutter --start-locked
+        --flutter-bundle /run/payload/flutter "${shell_options[@]}"
     echo 'PASS actual deniald shell bounded exit'
 else
     # Denial's bounded KMS diagnostic requires an existing mode to restore.

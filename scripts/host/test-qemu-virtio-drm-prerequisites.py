@@ -16,6 +16,52 @@ SPEC.loader.exec_module(GUEST)
 
 
 class RuntimePrerequisites(unittest.TestCase):
+    @staticmethod
+    def editor_log():
+        return '\n'.join([
+            '[100.01] -> xdg_wm_base#2.get_xdg_surface(new id xdg_surface#3, wl_surface#4)',
+            '[100.02] -> xdg_surface#3.get_toplevel(new id xdg_toplevel#5)',
+            '[100.03] -> xdg_toplevel#5.set_title("rog5-text-probe.txt - Mousepad")',
+            *[f'[101.00] wl_keyboard#6.key({index}, 1000, {key}, {state})'
+              for index, (key, state) in enumerate([
+                  (20, 1), (20, 0), (18, 1), (18, 0), (31, 1), (31, 0),
+                  (20, 1), (20, 0), (14, 1), (14, 0), (20, 1), (20, 0)])],
+        ])
+
+    def test_editor_protocol_accepts_exact_native_key_lifecycles_and_ansi(self):
+        log = self.editor_log()
+        for text in (log, log.replace('#', '@'), '\x1b[32m' + log + '\x1b[0m'):
+            with self.subTest(text=text[:40]):
+                result = GUEST.editor_result(text)
+                self.assertEqual(result['status'], 'PASS')
+                self.assertTrue(result['native_toplevel_observed'])
+                self.assertEqual(result['keys'], [
+                    (20, 1), (20, 0), (18, 1), (18, 0), (31, 1), (31, 0),
+                    (20, 1), (20, 0), (14, 1), (14, 0), (20, 1), (20, 0)])
+                self.assertIn('visual text checked separately', result['scope'])
+
+    def test_editor_protocol_requires_toplevel_and_exact_probe_title(self):
+        lines = self.editor_log().splitlines()
+        invalid = ['', '\n'.join(lines[3:]), '\n'.join(lines[:3]),
+                   self.editor_log().replace('rog5-text-probe.txt', 'unrelated.txt')]
+        invalid += ['\n'.join(lines[:index] + lines[index + 1:]) for index in range(3)]
+        for text in invalid:
+            with self.subTest(text=text[:70]):
+                self.assertEqual(GUEST.editor_result(text)['status'], 'FAIL')
+
+    def test_editor_protocol_rejects_extra_missing_wrong_and_unbalanced_keys(self):
+        lines = self.editor_log().splitlines()
+        invalid = [
+            '\n'.join(lines + [lines[-1]]),
+            '\n'.join(lines[:-1]),
+            '\n'.join(lines[:3] + lines[5:7] + lines[3:5] + lines[7:]),
+            self.editor_log().replace('1000, 18,', '1000, 19,'),
+            self.editor_log().replace('1000, 14, 0)', '1000, 14, 1)'),
+        ]
+        for text in invalid:
+            with self.subTest(text=text[-90:]):
+                self.assertEqual(GUEST.editor_result(text)['status'], 'FAIL')
+
     def test_egl_comparison_requires_all_modes_and_observations(self):
         lines = []
         for mode in ('exit', 'unbind', 'release'):
@@ -90,6 +136,40 @@ class RuntimePrerequisites(unittest.TestCase):
             (root / 'usr/bin/Xwayland').unlink()
             self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=True),
                              ['usr/bin/Xwayland'])
+
+    def test_native_editor_requires_mousepad_without_changing_default_modes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            required = ('usr/bin/' + name for name in (
+                'bash', 'cat', 'chmod', 'mkdir', 'uname', 'timeout', 'modetest',
+                'seatd', 'sleep', 'Xwayland', 'dbus-daemon', 'udevadm'))
+            for relative in (*required, 'usr/lib/systemd/systemd-udevd',
+                             'usr/lib/udev/rules.d/60-input-id.rules'):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            for mobile in (False, True):
+                with self.subTest(mobile=mobile):
+                    self.assertEqual(GUEST.missing_runtime_inputs(root, True, mobile=mobile), [])
+                    self.assertEqual(GUEST.missing_runtime_inputs(
+                        root, True, mobile=mobile, editor=False), [])
+                    self.assertEqual(GUEST.missing_runtime_inputs(
+                        root, True, mobile=mobile, editor=True), ['usr/bin/mousepad'])
+            editor = root / 'usr/bin/mousepad'
+            editor.mkdir()
+            self.assertEqual(GUEST.missing_runtime_inputs(
+                root, True, mobile=True, editor=True), ['usr/bin/mousepad'])
+            editor.rmdir()
+            editor.touch()
+            self.assertEqual(GUEST.missing_runtime_inputs(
+                root, True, mobile=True, editor=True), [])
+            (root / 'usr/bin/Xwayland').unlink()
+            self.assertEqual(GUEST.missing_runtime_inputs(
+                root, True, mobile=True, editor=True), ['usr/bin/Xwayland'])
+            editor.unlink()
+            self.assertCountEqual(GUEST.missing_runtime_inputs(
+                root, True, mobile=True, editor=True), ['usr/bin/Xwayland', 'usr/bin/mousepad'])
+            self.assertEqual(GUEST.missing_runtime_inputs(root, False), [])
 
     def test_actual_zero_frame_summary_is_failure(self):
         line = ('independently clocked Flutter KMS session complete '
