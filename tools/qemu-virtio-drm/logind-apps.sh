@@ -274,22 +274,29 @@ logind_apps_close() {
 }
 run_authenticated_apps() {
     local state=${logind_apps_state:?} fd=${logind_apps_port:?} chunk reply='' rc deadline app snapshot_at
+    logind_apps_phase=snapshot-initial
     logind_apps_snapshot "$state" "$HOME/denial.log" || return $?
+    logind_apps_phase=flow-ready
     logind_apps_record "$state" 'OBSERVE authenticated launcher flow-ready' || return $?
     deadline=$((SECONDS+60))
     snapshot_at=$((SECONDS+5))
     while :; do
+        logind_apps_phase=launcher-running
         require_running launcher || { return 1; }
         for app in mousepad foot; do
+            logind_apps_phase=owner-$app
             [[ ! -e $state/$app/owner ]] || logind_apps_owner "$state" "$app" >/dev/null || {
                 return 1;
             }
         done
+        logind_apps_phase=flow-deadline
         ((SECONDS<deadline)) || { return 124; }
         if ((snapshot_at && SECONDS>=snapshot_at)); then
+            logind_apps_phase=snapshot-periodic
             logind_apps_snapshot "$state" "$HOME/denial.log" || return $?
             snapshot_at=0
         fi
+        logind_apps_phase=acknowledgement
         chunk=''; rc=0
         IFS= read -r -t .2 -u "$fd" chunk || rc=$?
         reply+=$chunk
@@ -300,13 +307,26 @@ run_authenticated_apps() {
         fi
         ((rc>128)) || { return 1; }
     done
+    logind_apps_phase=final-owners
     for app in mousepad foot; do logind_apps_owner "$state" "$app" >/dev/null || return 1; done
+    logind_apps_phase=controlled-close
     logind_apps_record "$state" 'OBSERVE authenticated launcher teardown' || return $?
     logind_apps_close "$state"
 }
 cleanup_authenticated_apps() {
     local state=${logind_apps_state:-} app pid failed=0 deadline
+    local original=${1:-0} phase=${logind_apps_phase:-outside-flow}
     [[ -n $state ]] || return 0
+    # Publish the controller's cause BEFORE cleanup sends TERM to its clients.
+    # The owned O_RDWR keeper prevents FIFO open from waiting for a reader;
+    # record() bounds the write. Never replace an existing failure if this
+    # additional diagnostic cannot be delivered during partial teardown.
+    if [[ $original != 0 && ${logind_apps_evidence_owned:-0} == 1 &&
+          ${launcher_evidence_keep:-} =~ ^[0-9]+$ &&
+          -e /proc/self/fd/$launcher_evidence_keep ]]; then
+        logind_apps_record "$state" "DENIAL_DIAGNOSTIC controller-exit phase=$phase status=$original" ||
+            printf 'DENIAL_DIAGNOSTIC controller-exit phase=%s status=%s delivery=failed\n' "$phase" "$original" >&2
+    fi
     for app in mousepad foot; do
         [[ ! -f $state/$app/owner || -f $state/$app/finished ]] && continue
         pid=$(logind_apps_owner "$state" "$app") || {

@@ -137,7 +137,7 @@ else:
 readers=(); launcher=''; logind_apps_evidence_owned=0
 cleanup_fixture(){
  rc=$?; trap - EXIT
- cleanup_authenticated_apps || { [[ $rc != 0 ]] || rc=1; }
+ cleanup_authenticated_apps "$rc" || { [[ $rc != 0 ]] || rc=1; }
  stop_owned_group cleanup launcher || { [[ $rc != 0 ]] || rc=1; }
  for pid in "${readers[@]}"; do kill "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; done
  readers=()
@@ -430,6 +430,73 @@ cleanup_authenticated_apps
         self.assertNotEqual(foot.wait(timeout=2), 0)
         self.assertIn(b'phase=signal-TERM status=143', self.events)
         self.assertFalse((self.home / 'foot-close.pipe').exists())
+
+    def check_snapshot_failure_reason(self, status, periodic):
+        controller = self.controller(post_prepare=f'''
+snapshot_calls=0
+logind_apps_snapshot() {{
+ ((snapshot_calls+=1))
+ if ((snapshot_calls == {2 if periodic else 1})); then return {status}; fi
+}}
+''')
+        editor = None
+        if periodic:
+            self.until(lambda: b'OBSERVE authenticated launcher flow-ready\n' in self.events)
+            editor = self.launch_tile('org.xfce.mousepad.desktop')
+            self.until(lambda: b'EDITOR_WAYLAND fixture Mousepad protocol' in self.events)
+        out, err = controller.communicate(timeout=10)
+        self.assertEqual(controller.returncode, status, out.decode()+err.decode())
+        phase = 'snapshot-periodic' if periodic else 'snapshot-initial'
+        record = f'DENIAL_DIAGNOSTIC controller-exit phase={phase} status={status}\n'.encode()
+        self.assertIn(record, self.events)
+        self.assertNotIn(b'OBSERVE authenticated launcher teardown', self.events)
+        if editor:
+            self.assertEqual(editor.wait(timeout=2), 143)
+            self.assertLess(self.events.index(record), self.events.index(b'phase=signal-TERM'))
+
+    def test_initial_snapshot_failure_reason_survives_cleanup(self):
+        self.check_snapshot_failure_reason(42, False)
+
+    def test_periodic_snapshot_failure_reason_precedes_cleanup_term(self):
+        self.check_snapshot_failure_reason(42, True)
+
+    def test_periodic_snapshot_timeout_remains_failure_with_reason(self):
+        self.check_snapshot_failure_reason(124, True)
+
+    def test_real_session_finish_passes_original_status_before_cleanup(self):
+        finish = re.search(r'^finish\(\) \{.*?^\}', MAIN, re.M | re.S).group()
+        marker = self.root/'apps-probe'; marker.touch()
+        finish = finish.replace('/run/apps-probe', str(marker))
+        code = r'''
+readers=()
+cleanup_authenticated_apps(){ printf 'cleanup-status=%s\n' "$1"; return 55; }
+stop_all_owned(){ :; }
+remove_foot_close(){ :; }
+finish_authenticated_apps(){ :; }
+''' + finish + '\ntrap finish EXIT\nexit 42\n'
+        child = self.spawn(['bash', '-c', code])
+        out, err = child.communicate(timeout=3)
+        self.assertEqual(child.returncode, 42, err.decode())
+        self.assertTrue(out.startswith(b'cleanup-status=42\n'))
+
+    def test_failed_reason_delivery_does_not_replace_status_or_block_partial_cleanup(self):
+        code = self.prefix + r'''
+logind_apps_state=$1
+logind_apps_phase=snapshot-periodic
+logind_apps_record(){ return 55; }
+logind_apps_evidence_owned=1
+# Closed/absent keeper: no attempt to open the FIFO during partial setup.
+cleanup_authenticated_apps 42
+exec {launcher_evidence_keep}<> /dev/null
+cleanup_authenticated_apps 42
+exec {launcher_evidence_keep}>&-
+exit 42
+'''
+        child = self.spawn(['bash', '-c', code, 'fixture', str(self.state)])
+        out, err = child.communicate(timeout=3)
+        self.assertEqual(child.returncode, 42)
+        self.assertEqual(out, b'')
+        self.assertEqual(err, b'DENIAL_DIAGNOSTIC controller-exit phase=snapshot-periodic status=42 delivery=failed\n')
 
     def test_fragmented_host_ack_is_accumulated_without_accepting_prefix(self):
         controller, editor, foot = self.ready_apps()

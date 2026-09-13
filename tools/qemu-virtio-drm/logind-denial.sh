@@ -284,7 +284,7 @@ stop_all_owned() {
 finish() {
     local rc=$?
     trap - EXIT TERM INT
-    if [[ -f /run/apps-probe ]]; then cleanup_authenticated_apps || { [[ $rc != 0 ]] || rc=1; }; fi
+    if [[ -f /run/apps-probe ]]; then cleanup_authenticated_apps "$rc" || { [[ $rc != 0 ]] || rc=1; }; fi
     stop_all_owned cleanup || { [[ $rc != 0 ]] || rc=1; }
     remove_foot_close || { [[ $rc != 0 ]] || rc=1; }
     for pid in "${readers[@]}"; do kill -TERM "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; done
@@ -329,6 +329,7 @@ printf 'OBSERVE activated local Denial wayland=%s socket=%s\n' "$WAYLAND_DISPLAY
 qualify_activated_services
 if [[ -f /run/apps-probe ]]; then
     run_authenticated_apps
+    logind_apps_phase=flow-complete
     stop_all_owned stop
 elif [[ -f /run/editor-probe ]]; then
     run_authenticated_editor
