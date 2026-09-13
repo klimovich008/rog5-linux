@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Window focus delivery repaired; VM evidence transport still fails**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM native app switching qualified; phone qualification remains open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Patch 0012 fixes missing Wayland flush: 18 extracted Rust cases PASS; native build 211.575s. Bounded traces prove both switch commands activate the intended native app. The corrected-parser VM shows Mousepad and Foot returns and95 frames/page flips with clean cleanup, but automated acceptance remains FAIL: a Flutter partial console write prefixes Foot enter29, hiding it from the strict parser. Retained-log replay isolates this transport defect; no runtime result is relabelled. Next isolate bounded client evidence from the shared console, test concurrent writers offline, then one unchanged-binary VM. Mobile physical rows NOT RUN; S06/R01 remain FAIL. No phone operation. See [current repair evidence](../test-results/2026-09-13-focus-delivery.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Dedicated bounded Rust/FIFO/virtual-serial evidence channel fixes the console recording failure. One103.559s VM run PASS: Mousepad -> Foot -> Mousepad -> Foot,100 frames/page flips, no render errors, full launch/return captures inspected and clean cleanup. Compositor, engine and shell bytes unchanged. This is generic ARM64 VirGL evidence only. Next combine launcher-based app switching with OSK text/backspace/restoration using the same channel; then bind exact source/package inputs for the existing separately authorized phone graphics/touch process. No new candidate or phone operation. Mobile physical rows NOT RUN; S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-protocol-channel.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
