@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Denial mobile lockscreen and keyboard-layer interaction pass ARM64 VirGL VM; phone qualification open",
+  "phase": "Native editor and OSK key delivery pass ARM64 VM; visible text editing fails",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "The same ARM64 binaries visibly render the mobile lockscreen and respond to a keyboard reveal swipe plus letter/number/letter switching. Final VM:23 raster frames/page flips, no rendering errors. Bounded local capture and guest udev discovery are fixed; earlier failed attempts remain recorded. Active tier:88 suites PASS. Text entry, unlocking, applications and phone OLED/touch/A660 remain NOT RUN. S06/R01 stay FAIL; no phone, signing, candidate or claim operation occurred.",
-  "evidence": "test-results/2026-09-13-mobile-vm-input.md"
+  "next": "The retained binaries open Mousepad and deliver all12 expected OSK key events. R3:114 frames/page flips with no reported rendering errors, but captures after OSK reveal show a white application area, so visible text editing FAILS. GTK RAM-cache preparation and attributed window readiness are fixed; prior failed attempts are retained. Active tier:88 suites PASS. Next: compare native output screencopy with VNC before changing rendering. Phone physical rows remain NOT RUN; S06/R01 remain FAIL. No phone, signing, candidate or claim operation occurred.",
+  "evidence": "test-results/2026-09-13-mobile-vm-editor.md"
 }

@@ -2593,3 +2593,8 @@ preserve the read-only package tree and record derived hashes. Do not replace
 Glycin or disable its sandbox to treat an unrecognized MIME type. Gate synthetic
 input on the actual application window and subsequent presentation, and keep
 client protocol attribution separate from other D-Bus-activated clients.
+The final103.088-second run delivered every expected key but its captured
+application area was white. Keep visual editing FAIL separate from protocol and
+frame-counter PASS. Pair independent output captures before attributing this to
+the native client, compositor or VNC; constant client geometry rules out only
+the observed resize hypothesis. The frozen active tier took128.453 seconds.

@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Denial mobile lockscreen and keyboard-layer interaction pass ARM64 VirGL VM; phone qualification open**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Native editor and OSK key delivery pass ARM64 VM; visible text editing fails**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The same ARM64 binaries visibly render the mobile lockscreen and respond to a keyboard reveal swipe plus letter/number/letter switching. Final VM:23 raster frames/page flips, no rendering errors. Bounded local capture and guest udev discovery are fixed; earlier failed attempts remain recorded. Active tier:88 suites PASS. Text entry, unlocking, applications and phone OLED/touch/A660 remain NOT RUN. S06/R01 stay FAIL; no phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-vm-input.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The retained binaries open Mousepad and deliver all12 expected OSK key events. R3:114 frames/page flips with no reported rendering errors, but captures after OSK reveal show a white application area, so visible text editing FAILS. GTK RAM-cache preparation and attributed window readiness are fixed; prior failed attempts are retained. Active tier:88 suites PASS. Next: compare native output screencopy with VNC before changing rendering. Phone physical rows remain NOT RUN; S06/R01 remain FAIL. No phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-vm-editor.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and
