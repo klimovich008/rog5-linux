@@ -33,6 +33,13 @@ inode bytes separately from the filesystem free-space delta, and do not count
 hardlinked copies repeatedly. Prefer one measured audit and targeted verification
 over repeated whole-home scans or another full build as a cleanup check.
 
+Include nested historical checkouts and archived build directories in the
+initial inventory: auditing only the main `repo/build` missed compiler objects
+in July/August sibling wrappers. A retired output row does not retire its parent
+directory or sibling Images. Do not hardlink duplicate live artifacts: recovery
+readers can require a single link and bind device/inode identity. Persist each
+deletion intent before unlinking so interruption leaves a durable audit trail.
+
 For unpublished failed filesystem-build scratch, a verified lossless sparse
 archive can retain the failure data without keeping its original allocation.
 Restore the archive into a fresh disk-backed directory and compare equal logical
