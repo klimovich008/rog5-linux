@@ -2691,3 +2691,13 @@ on client input or presentation feedback; retry on empty passes because the
 pinned Wayland backend retains WouldBlock bytes while returning Ok. A socket
 fixture proves dispatch attempts and retry; only a client protocol trace proves
 actual Wayland delivery. Keep the diagnostic run's failure intact.
+
+
+Independent clients can print a new keyboard enter before the previous client's
+matching leave. The first flush treatment delivered serial23 in this order with
+a5ms logging gap; immediate global-order rejection aborted a useful VM run.
+Keep overlapping focus pending until the matching leave is observed, with no
+focus-generation advance or capture readiness meanwhile. Test the retained log
+offline before rerunning; distinguish partial replay from a complete session.
+Use the recorded command's --name for container checks: the report's container
+field identifies the image, not the running instance.

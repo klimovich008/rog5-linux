@@ -21,12 +21,13 @@ class LauncherProtocol:
         self.total = self.offset = 0
         self.errors = []
         self.owners = {}
-        self.clients = {app: {'surfaces': {}, 'toplevels': {}, 'focus': {},
+        self.clients = {app: {'surfaces': {}, 'toplevels': {}, 'focus': {}, 'focus_serials': {},
                              'mapped': False, 'interval_seen': False}
                         for app in self.APP_IDS}
         self.focus_history = []
         self.focus_visits = []
         self.active_app = None
+        self.pending_focus = None
         self.terminal = False
         self.teardown = []
 
@@ -62,7 +63,7 @@ class LauncherProtocol:
         return not self.errors and app in self.owners and self.clients[app]['mapped']
 
     def focused(self, app):
-        return self.ready(app) and self.active_app == app
+        return self.ready(app) and self.pending_focus is None and self.active_app == app
 
     @property
     def focus_generation(self):
@@ -110,7 +111,7 @@ class LauncherProtocol:
             for client in self.clients.values():
                 if client['mapped']:
                     client['interval_seen'] = True
-            if self.active_app and self.focus_visits:
+            if self.active_app and self.pending_focus is None and self.focus_visits:
                 visit = self.focus_visits[-1]
                 if visit['interval_seen'] and int(counts[0]) > 0 and self.ready(self.active_app):
                     visit['presented_interval'] = True
@@ -186,17 +187,30 @@ class LauncherProtocol:
                     self.fail('wl_surface destroyed before terminal session: '+app)
         elif interface == 'wl_keyboard' and not outgoing:
             if method == 'enter':
-                focused = re.fullmatch(r'\d+, wl_surface[#@](\d+), array\[\d+\]', args)
-                if focused:
+                entered = re.fullmatch(r'(\d+), wl_surface[#@](\d+), array\[\d+\]', args)
+                if entered:
+                    serial, surface = entered.groups()
+                    if self.pending_focus and (client['focus'].get(oid) != surface or
+                                               client['focus_serials'].get(oid) != serial):
+                        self.fail('new keyboard enter during unresolved focus transition: '+app)
+                        return
                     if len(client['focus']) >= 64 and oid not in client['focus']:
                         raise ValueError('launcher keyboard bound exceeded')
-                    client['focus'][oid] = focused[1]
+                    client['focus'][oid] = surface
+                    client['focus_serials'][oid] = serial
             elif method == 'leave':
-                left = re.fullmatch(r'\d+, wl_surface[#@](\d+)', args)
-                if not left or client['focus'].get(oid) != left[1]:
+                left = re.fullmatch(r'(\d+), wl_surface[#@](\d+)', args)
+                if not left or client['focus'].get(oid) != left[2]:
                     self.fail('keyboard leave object mismatch: '+app)
-                else:
-                    del client['focus'][oid]
+                    return
+                if self.pending_focus:
+                    pending = self.pending_focus
+                    if app != pending['from'] or left[1] != pending['serial']:
+                        self.fail('keyboard leave does not complete pending focus transition: '+app)
+                        return
+                    pending['leave_seen'] = True
+                del client['focus'][oid]
+                del client['focus_serials'][oid]
         self.refresh(app)
 
     def refresh(self, app):
@@ -209,23 +223,57 @@ class LauncherProtocol:
         if mapped != client['mapped']:
             client['interval_seen'] = False
         client['mapped'] = mapped
-        focused = any(s['surface'] in client['focus'].values() for s in valid)
-        if self.active_app == app and not focused:
+        # Separate clients log independently: a new enter can reach the host
+        # before the old leave. Correlate only this overlap by transition serial;
+        # never infer a completed switch from overlapping focus records.
+        focused = {}
+        for name, other in self.clients.items():
+            valid_surfaces = {state['surface'] for state in other['surfaces'].values()
+                              if state['committed'] and state['title'] and state['app_id'] and not state['dead']}
+            entries = {keyboard: surface for keyboard, surface in other['focus'].items()
+                       if surface in valid_surfaces}
+            if entries:
+                focused[name] = entries
+        if self.pending_focus:
+            pending = self.pending_focus
+            if pending['from'] in focused or not pending['leave_seen']:
+                return
+            if pending['to'] not in focused:
+                self.fail('pending focus target lost its mapped focus')
+                return
+            self.pending_focus = None
+            self.record_focus(pending['to'])
+            return
+        if self.active_app not in focused:
             self.active_app = None
-        if focused and self.active_app != app:
-            other = self.active_app
-            if other:
-                self.fail('new client focus before previous leave: '+other+' -> '+app)
-            self.active_app = app
-            if len(self.focus_history) >= 64:
-                raise ValueError('launcher focus transition bound exceeded')
-            self.focus_history.append(app)
-            self.focus_visits.append(dict(app=app, interval_seen=False, presented_interval=False))
+        if len(focused) > 1:
+            if self.active_app is None:
+                self.fail('overlapping focus without an established previous client')
+                return
+            target = next(name for name in focused if name != self.active_app)
+            serials = {self.clients[target]['focus_serials'][keyboard] for keyboard in focused[target]}
+            if len(serials) != 1:
+                self.fail('ambiguous pending keyboard focus serials: '+target)
+                return
+            self.pending_focus = {'from': self.active_app, 'to': target,
+                                  'serial': serials.pop(), 'leave_seen': False}
+            return
+        if focused:
+            target = next(iter(focused))
+            if target != self.active_app:
+                self.record_focus(target)
+
+    def record_focus(self, app):
+        self.active_app = app
+        if len(self.focus_history) >= 64:
+            raise ValueError('launcher focus transition bound exceeded')
+        self.focus_history.append(app)
+        self.focus_visits.append(dict(app=app, interval_seen=False, presented_interval=False))
 
     def result(self, expected_sequence=DEFAULT_SEQUENCE):
         expected = list(expected_sequence)
         matched = self.focus_history == expected
-        valid = bool(expected) and matched and not self.errors and all(
+        valid = bool(expected) and matched and self.pending_focus is None and not self.errors and all(
             app in self.owners and self.clients[app]['mapped'] for app in self.APP_IDS)
         return {'status': 'PASS' if valid else 'FAIL',
                 'scope': 'owned native Wayland mapping and focus sequence only; not presentation, visual or phone proof',
@@ -233,7 +281,8 @@ class LauncherProtocol:
                 'mapped': {app: c['mapped'] for app, c in self.clients.items()},
                 'ready': {app: self.ready(app) for app in self.clients},
                 'focus_history': list(self.focus_history), 'focus_generation': self.focus_generation,
-                'active_app': self.active_app, 'expected_sequence': expected,
+                'active_app': self.active_app, 'pending_focus': dict(self.pending_focus) if self.pending_focus else None,
+                'expected_sequence': expected,
                 'client_state': {app: {
                     'interval_seen': c['interval_seen'],
                     'keyboard_focus': dict(c['focus']),

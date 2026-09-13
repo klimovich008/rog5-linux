@@ -196,6 +196,60 @@ class LauncherProtocolTests(unittest.TestCase):
         self.assertEqual(len(parser.focus_history), 4)
         self.assertEqual(parser.result()['status'], 'PASS')
 
+    def test_cross_client_enter_before_matching_leave_is_pending(self):
+        parser = self.parser()
+        parser.feed((self.launch('mousepad')+self.enter('mousepad')+self.launch('foot')).encode())
+        generation = parser.focus_generation
+        parser.feed(self.wire('foot', 'wl_keyboard#6.enter(23, wl_surface#4, array[0])').encode())
+        self.assertEqual(parser.errors, [])
+        self.assertFalse(parser.focused('foot'))
+        self.assertFalse(parser.focused('mousepad'))
+        self.assertEqual(parser.focus_generation, generation)
+        self.assertEqual(parser.result(('mousepad',))['status'], 'FAIL')
+        parser.feed(self.wire('mousepad', 'wl_keyboard#6.leave(23, wl_surface#4)').encode())
+        self.assertEqual(parser.errors, [])
+        self.assertTrue(parser.focused('foot'))
+        self.assertEqual(parser.focus_history, ['mousepad', 'foot'])
+        self.assertEqual(parser.result(('mousepad', 'foot'))['status'], 'PASS')
+
+    def test_reordered_complete_sequence_byte_at_a_time(self):
+        parser = self.parser()
+        text = self.launch('mousepad')+self.enter('mousepad')+self.launch('foot')
+        for old, new, serial in [('mousepad', 'foot', 23), ('foot', 'mousepad', 24),
+                                 ('mousepad', 'foot', 25)]:
+            text += self.wire(new, f'wl_keyboard#6.enter({serial}, wl_surface#4, array[0])')
+            text += self.wire(old, f'wl_keyboard#6.leave({serial}, wl_surface#4)')
+        for byte in text.encode():
+            parser.feed(bytes([byte]))
+        self.assertEqual(parser.result()['status'], 'PASS')
+        self.assertEqual(parser.focus_generation, 4)
+        self.assertTrue(parser.focused('foot'))
+        self.assertIsNone(parser.pending_focus)
+
+    def test_reordered_transition_rejects_wrong_serial_or_endpoint(self):
+        for leave in ['wl_keyboard#6.leave(24, wl_surface#4)',
+                      'wl_keyboard#7.leave(23, wl_surface#4)',
+                      'wl_keyboard#6.leave(23, wl_surface#9)']:
+            with self.subTest(leave=leave):
+                parser = self.parser()
+                parser.feed((self.launch('mousepad')+self.enter('mousepad')+self.launch('foot')
+                             +self.wire('foot', 'wl_keyboard#6.enter(23, wl_surface#4, array[0])')
+                             +self.wire('mousepad', leave)).encode())
+                self.assertEqual(parser.result(('mousepad', 'foot'))['status'], 'FAIL')
+                self.assertFalse(parser.focused('foot'))
+                self.assertEqual(parser.focus_generation, 1)
+
+    def test_pending_duplicate_enter_does_not_complete_or_duplicate_switch(self):
+        parser = self.parser()
+        enter = self.wire('foot', 'wl_keyboard#6.enter(23, wl_surface#4, array[0])')
+        parser.feed((self.launch('mousepad')+self.enter('mousepad')+self.launch('foot')+enter+enter).encode())
+        self.assertEqual(parser.errors, [])
+        self.assertEqual(parser.focus_generation, 1)
+        self.assertFalse(parser.focused('foot'))
+        parser.feed(self.wire('mousepad', 'wl_keyboard#6.leave(23, wl_surface#4)').encode())
+        self.assertEqual(parser.focus_generation, 2)
+        self.assertTrue(parser.focused('foot'))
+
     def test_focus_before_initial_commit_is_recorded_only_after_mapping(self):
         parser = self.parser()
         lines = self.lifecycle('mousepad')
