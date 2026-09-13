@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Input origin corrected; VM startup timeout leaves bottom-caret untested",
+  "phase": "VM reaches Denial; recurring missing launcher icons block input qualification",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Input origin correction passes actual-method regressions and ARM64 shell compilation. The new VM run timed out at 300 s with no app-stream bytes or UI actions; bottom-caret runtime qualification remains NOT RUN. 104 active suites passed. Reuse the exact compiled shell/native/kernel inputs. Integrate the prepared, eight-case-tested encoded PAM-log/child-state diagnostic into the independent startup observer, then perform one diagnostic VM run under the unchanged 300 s deadline before retrying the bottom-caret interaction. No phone operations; physical NOT RUN; S06/R01 FAIL.",
-  "evidence": "test-results/2026-09-13-bottom-caret-input-origin.md"
+  "next": "Bounded startup diagnostics and105active suites pass. One VM reached Denial but eight captures lacked app/fallback icons; readiness correctly refused clicks. Three SVG decodes and seven build-picture records narrow the unresolved boundary to picture paint/render/presentation, without proving a scheduling cause. Instrument that actual path before another bounded comparison; preserve timing/readiness guards, the pointer-origin fix and existing binaries as control. Prior startup timeout remains FAIL; bottom-caret remains NOT RUN. No phone operations; physical NOT RUN; S06/R01 FAIL.",
+  "evidence": "test-results/2026-09-13-logind-startup-diagnostic.md"
 }

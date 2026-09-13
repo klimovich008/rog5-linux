@@ -3088,3 +3088,13 @@ surface coordinates, including nonzero XDG content origin and keyboard pan.
 Preserve explicit scaling limits. A post-tap text-input commit may reuse an old
 cursor rectangle; keep the rectangle request sequence separately and require
 fresh committed geometry evidence. Test these counterexamples before a VM run.
+
+Startup/icon boundary (2026-09-13): a missing app stream did not identify where
+PAM/user startup stalled because its log was retained until child exit. Bounded
+hex snapshots expose progress without allowing embedded success markers to
+qualify serial checks. A later run reached Denial but reproduced missing icons;
+SVG decode and widget build completed, which does not prove paint/presentation.
+Read full stage names before concluding a stage is absent, distinguish widget
+build from paint, and inspect the selected picture rendering strategy before
+instrumenting a raster-only path. Preserve each failure; do not loosen readiness
+or repeat an unchanged large build to investigate it.

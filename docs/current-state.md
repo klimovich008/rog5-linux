@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Input origin corrected; VM startup timeout leaves bottom-caret untested**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **VM reaches Denial; recurring missing launcher icons block input qualification**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Input origin correction passes actual-method regressions and ARM64 shell compilation. The new VM run timed out at 300 s with no app-stream bytes or UI actions; bottom-caret runtime qualification remains NOT RUN. 104 active suites passed. Reuse the exact compiled shell/native/kernel inputs. Integrate the prepared, eight-case-tested encoded PAM-log/child-state diagnostic into the independent startup observer, then perform one diagnostic VM run under the unchanged 300 s deadline before retrying the bottom-caret interaction. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-bottom-caret-input-origin.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Bounded startup diagnostics and105active suites pass. One VM reached Denial but eight captures lacked app/fallback icons; readiness correctly refused clicks. Three SVG decodes and seven build-picture records narrow the unresolved boundary to picture paint/render/presentation, without proving a scheduling cause. Instrument that actual path before another bounded comparison; preserve timing/readiness guards, the pointer-origin fix and existing binaries as control. Prior startup timeout remains FAIL; bottom-caret remains NOT RUN. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-logind-startup-diagnostic.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

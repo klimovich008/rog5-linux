@@ -1581,6 +1581,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "startup_diagnostic": {
+      "status": "FAIL_VM_LAUNCHER_ICONS",
+      "set_id": "private:rog5-startup-diagnostic-20260913-r1",
+      "source_commit": "96e5d19a38a7e9d0abd2951634c9e79b810ba3fd",
+      "evidence": {
+        "path": "test-results/2026-09-13-logind-startup-qualification.json",
+        "sha256": "08c8b031c59172ecf89f76e1509751ed94581eb60a4ac011288c03016c2e608c",
+        "bytes": 26569
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {
