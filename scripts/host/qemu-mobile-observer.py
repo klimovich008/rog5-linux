@@ -354,6 +354,12 @@ class EditorObserver(MobileObserver):
         ('move', (500, 1218), .1), ('button', True, .1),
         *[('move', (500, y), .1) for y in (1180, 1140, 1100, 1060)],
         ('button', False, 1.2), ('capture', '01-editor-keyboard', .1),
+        # The pinned mobile shell translates the app upward by the OSK height.
+        # Pan its stationary18px right-edge strip to reveal the editor's top
+        # line; preserve the unpanned capture as a separate observation.
+        ('move', (531, 240), .1), ('button', True, .1),
+        *[('move', (531, y), .1) for y in (320, 400, 480, 560, 640)],
+        ('button', False, 1.2), ('capture', '01b-editor-viewport-panned', .1),
         *[step for point in ((243, 921), (137, 921), (111, 1005), (243, 921))
           for step in (('move', point, .1), ('button', True, .1), ('button', False, .3))],
         ('capture', '02-editor-test', .1),

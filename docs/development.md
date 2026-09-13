@@ -81,11 +81,15 @@ For native-client text delivery, add `--observe-mobile-editor` alongside
 `--observe-mobile`. This explicit mode uses normal unlocked startup, launches
 the retained Mousepad with `GDK_BACKEND=wayland` on the sole discovered guest
 socket, and opens an empty RAM file. It does not test authentication or launcher
-activation. Five captures cover the empty editor, OSK, `test`, deletion to `tes`,
+activation. Six captures cover the empty editor, OSK, viewport pan, `test`, deletion to `tes`,
 and restoration to `test`. Only pointer events press the OSK; direct keyboard
 injection is excluded. The client protocol must show a native toplevel and the
 exact key press/release sequence; actual rendered text needs separate image
-inspection. This mode allows90 seconds of compositor execution within the same
+inspection. The pinned shell initially shifts the whole application upward by
+the keyboard height. The probe retains that unpanned capture, then drags its
+stationary right-edge viewport strip downward to reveal the top document line
+before typing. This tests supported manual panning, not automatic caret tracking.
+This mode allows90 seconds of compositor execution within the same
 120-second host bound: the retained cold GTK runtime first mapped near guest
 t=61 seconds. Mousepad has its own95-second bound and joins cleanup.
 The ordinary locked probe retains its45-second guest bound. Before D-Bus starts,
