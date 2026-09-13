@@ -70,6 +70,22 @@ class DiagnosticSnapshot(unittest.TestCase):
         p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
         self.assertLessEqual(len(data),30720)
         self.assertTrue(all(len(x)<=2019 for x in data.splitlines(keepends=True)))
+    def test_early_picture_paint_survives_later_frame_noise(self):
+        self.log.write_text('flutter: ROG5_PICTURE seq=1 stage=drawEnd frame_us=42\n'
+                            + 'frame noise\n' * 10000 + 'LATEST_FRAME\n')
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
+        self.assertIn(b'ROG5_PICTURE seq=1 stage=drawEnd frame_us=42\n',data)
+        self.assertIn(b'LATEST_FRAME\n',data)
+        self.assertLessEqual(len(data),30720)
+        self.assertTrue(all(x.startswith(b'DENIAL_DIAGNOSTIC ') for x in data.splitlines()))
+    def test_mixed_picture_and_icon_flood_keeps_framed_budget(self):
+        self.log.write_text((('ROG5_PICTURE ' + 'x'*5000 + '\n')
+                             + ('ROG5_ICON_STAGE ' + 'y'*5000 + '\n'))*100)
+        p,data,_=self.run_snapshot();self.assertEqual(p.returncode,0,p.stderr)
+        self.assertIn(b'ROG5_PICTURE ',data)
+        self.assertIn(b'ROG5_ICON_STAGE ',data)
+        self.assertLessEqual(len(data),30720)
+        self.assertTrue(all(len(x)<=2019 for x in data.splitlines(keepends=True)))
     def test_writer_failure_propagates(self):
         self.writer.write_text('#!/bin/sh\nexit 42\n')
         p,_,_=self.run_snapshot();self.assertEqual(p.returncode,42)

@@ -15,11 +15,11 @@ logind_apps_snapshot() {
     timeout -k 1 3 /usr/bin/bash --noprofile --norc -c '
         set -o pipefail
         {
-            # Retain early icon stages even after noisy frame diagnostics.
+            # Retain early icon and picture stages after noisy frame diagnostics.
             # Framed stage budget leaves room for a small recent tail.
             LC_ALL=C head -c 1048576 -- "$1" |
             LC_ALL=C awk '\''BEGIN {remaining=24576}
-                index($0,"ROG5_ICON_STAGE ") {
+                index($0,"ROG5_ICON_STAGE ") || index($0,"ROG5_PICTURE ") {
                     line=substr($0,1,1000); cost=length(line)+19
                     if (cost<=remaining) {print line; remaining-=cost}}
             '\'' || exit $?
