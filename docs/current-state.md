@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM desktop services qualified; Foot stop protocol needs correction**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Authenticated Denial VM session and normal terminal close qualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The generic ARM64 VirGL VM verifies GTK activation-cache transfer, four accessibility/portal services and a real document FUSE mount. Both native clients configured; Denial recorded27 frames/page flips and normal VM poweroff. Overall session remains FAIL: requested TERM returned Foot230, Mousepad0, launcher143. Pinned Foot source explains230 on forced termination; qualify its normal child-exit callback using an owned0600 FIFO stop token in one bounded VM without globally accepting230. Then require complete PAM/session/scope cleanup. Phone A660/display/touch remains unauthorized and NOT RUN; S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-session-services.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The generic ARM64 VirGL session now passes local PAM/logind authorization, four activated desktop services, document FUSE mount, two native client configurations, 30 raster frames/page flips and full client/PAM/scope cleanup. Foot exits0 through its normal child callback; deadlines remain unchanged. Service startup took19 of20 seconds; the preceding timeout remains FAIL with its exact stage unresolved. Next prepare the existing pointer-only OSK text-entry oracle for this authenticated session, reusing unchanged artifacts; client configuration alone does not prove practical app input. Phone A660/display/touch remains unauthorized and NOT RUN; S06/R01 remain FAIL. See [current repair evidence](../test-results/2026-09-13-terminal-close.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

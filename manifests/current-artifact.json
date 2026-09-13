@@ -1398,24 +1398,25 @@
       "authority": "none"
     },
     "authenticated_denial": {
-      "status": "FAIL_VM_ONLY",
-      "set_id": "private:rog5-session-services-20260913-r1",
-      "source_commit": "87d9289d3538421cc2c1f01a82259e87355bd470",
-      "source_tree": "bd68ed381774391fe35984774cb52c5057d41930",
+      "status": "PASS_VM_ONLY",
+      "set_id": "private:rog5-terminal-close-20260913-r1",
+      "source_commit": "de579359f37a87220da42fcb26fe473022d7ba48",
+      "source_tree": "c41d52a474c2bec74049155f6ad2e19cf9e9a58b",
       "evidence": {
-        "path": "test-results/2026-09-13-session-services-qualification.json",
-        "sha256": "87ef03327f843574d68824fe8af67ee900c891d8ea44098f9b362075d2e05db5",
-        "size": 215189
+        "path": "test-results/2026-09-13-terminal-close-qualification.json",
+        "sha256": "86ea19f3a119792849e4e9f9ab10a5fc2ced974d6d4c1b1f4bf248d018d21d5f",
+        "size": 109688
       },
       "partial_milestones": {
-        "cache_activation_environment": "PASS exact values imported and verified",
-        "desktop_services": "PASS four active services and actual /run/user/1000/doc fuse.portal mount",
-        "client_configuration": "PASS two native Wayland clients configured",
-        "client_teardown": "FAIL harness result: Foot230, Mousepad0, launcher143 after requested TERM. Pinned Foot source supports default failure-code return on its SIGTERM path; not proof of a render fault.",
-        "rendering": "PASS terminal counters only:27 raster frames/page flips, no recorded render errors",
-        "shutdown": "PASS normal systemd poweroff without panic; failed /var unmount message retained",
-        "complete_session": "FAIL; PAM child rejected Foot230, no complete local-scope-removal qualification",
-        "physical": "NOT RUN"
+        "local_pam_logind": "PASS_VM_ONLY",
+        "activated_desktop_services": "PASS_VM_ONLY",
+        "document_fuse_mount": "PASS_VM_ONLY",
+        "two_clients_configured": "PASS_VM_ONLY",
+        "foot_normal_exit": "PASS_VM_ONLY",
+        "pam_scope_cleanup": "PASS_VM_ONLY",
+        "rendering": "PASS_VM_ONLY",
+        "practical_application_text_entry": "NOT RUN in this authenticated VM",
+        "phone": "NOT RUN"
       },
       "physical_status": "NOT RUN",
       "authority": "none"

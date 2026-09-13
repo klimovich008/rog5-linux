@@ -2925,3 +2925,17 @@ turn ran three passing intermediate tiers while the VM still exposed staging
 prerequisites, then correctly ran one final frozen tier. The repeated full tiers
 added no information about the missing guest cmp or symlink spelling; constrained
 command-path and actual-producer regressions now cover those cheaply.
+
+A forced application stop need not report its normal child status. Exact Foot
+source/ELF review linked the recorded230 to its signal-abort path; do not globally
+allow that code. The controlled child-exit protocol returned0 in the real VM,
+then complete PAM/session/scope cleanup passed. Test the actual child command
+with real bounded FIFO opens and process waits; preserve failure cleanup.
+
+A successful diagnostic successor does not erase an earlier service timeout.
+This run measured service start19s against20s, state query1s against3s and mount
+query0s against3s. Keep explicit stage/status receipts on stderr and preserve
+command stdout; the prior uninstrumented124 cannot identify its failed boundary.
+Do not infer reliable startup or increase limits from this one near-limit pass.
+The final integrated tier ran once after runtime discovery (146s); unchanged
+kernel/runtime/Denial artifacts were reused and no expensive rebuild was needed.
