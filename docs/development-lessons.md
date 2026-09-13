@@ -3046,3 +3046,14 @@ launcher-readiness failure prevented the corrected keyboard retest; capture
 bounded loading/decoding/presentation diagnostics before changing icon behavior
 or repeating that VM. Identical short-interval screenshots alone do not prove
 a compositor deadlock, and forced host cleanup is not qualified guest teardown.
+
+Launcher failure diagnostics (2026-09-13): emit bounded excerpts before an
+observer refusal can remove the VM. Prefix diagnostics separately and exclude
+them from protocol/ACK/terminal qualification; bound both producer and consumer.
+The unchanged shell then completed no-pan test/tes/test; prior missing icons did
+not reproduce. Keep partial typing success separate from Mousepad cleanup137.
+The actual host supervisor proves GNU timeout can forward TERM and escalate two
+seconds later before its nominal65-second deadline. Guest137 alone does not
+identify the signal sender. Trace that boundary before widening grace; preserve
+all original errors and existing outer limits. A one-second helper build reused
+the full shell/kernel/engine rather than rebuilding them for log capture.

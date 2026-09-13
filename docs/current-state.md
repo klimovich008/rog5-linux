@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Caret transport and keyboard fixes built; VM retest stopped at launcher readiness**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **No-pan VM typing observed; Mousepad cleanup failed**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-Native caret and wire tests pass;40 merged Dart cases and102 active suites pass. The first no-pan VM lost the keyboard after te; source fixes separate geometry updates from keyboard visibility and publish matching input changes. The rebuilt shell retest failed before editor launch because launcher icons were absent. Capture bounded icon loading/decode/presentation diagnostics before another runtime attempt; retain both FAIL results and the older manual-pan qualification. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-caret-visibility.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+The unchanged corrected shell completed visible test/tes/test with OSK open, no scripted pan,12 expected key events and Mousepad/Foot switching. Diagnostic snapshots survived and185frames/pageflips completed. Overall VM FAIL: Foot exited0 but Mousepad returned137 during approved close; guest powered down but session cleanup failed. Actual host supervisor tracing reproduces2-second timeout escalation for a slow TERM handler; guest sender remains unproven. Add bounded sender/close-timing diagnostics before changing grace. Earlier missing launcher icons did not reproduce and remain unresolved.103active suites pass. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-launcher-diagnostics.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

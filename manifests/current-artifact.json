@@ -1532,6 +1532,19 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "launcher_diagnostics": {
+      "status": "PASS_OBSERVED_NO_PAN_TYPING; FAIL_MOUSEPAD_CLEANUP",
+      "set_id": "private:rog5-icon-diagnostic-20260913-r1",
+      "source_commit": "35b23112454ab9f9a021c46cff4abe33d967be5e",
+      "shell_source_commit": "43ec481d5409288a8eb28dfd0f31c1781a9535be",
+      "evidence": {
+        "path": "test-results/2026-09-13-launcher-diagnostics-qualification.json",
+        "sha256": "cfbdfbd7f62b13f1208d0acd7a0bdc4ef151595c78c96f0c81b6ac5baba816f7",
+        "bytes": 142636
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {

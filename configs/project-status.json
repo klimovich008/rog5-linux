@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Caret transport and keyboard fixes built; VM retest stopped at launcher readiness",
+  "phase": "No-pan VM typing observed; Mousepad cleanup failed",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Native caret and wire tests pass;40 merged Dart cases and102 active suites pass. The first no-pan VM lost the keyboard after te; source fixes separate geometry updates from keyboard visibility and publish matching input changes. The rebuilt shell retest failed before editor launch because launcher icons were absent. Capture bounded icon loading/decode/presentation diagnostics before another runtime attempt; retain both FAIL results and the older manual-pan qualification. No phone operations; physical NOT RUN; S06/R01 FAIL.",
-  "evidence": "test-results/2026-09-13-caret-visibility.md"
+  "next": "The unchanged corrected shell completed visible test/tes/test with OSK open, no scripted pan,12 expected key events and Mousepad/Foot switching. Diagnostic snapshots survived and185frames/pageflips completed. Overall VM FAIL: Foot exited0 but Mousepad returned137 during approved close; guest powered down but session cleanup failed. Actual host supervisor tracing reproduces2-second timeout escalation for a slow TERM handler; guest sender remains unproven. Add bounded sender/close-timing diagnostics before changing grace. Earlier missing launcher icons did not reproduce and remain unresolved.103active suites pass. No phone operations; physical NOT RUN; S06/R01 FAIL.",
+  "evidence": "test-results/2026-09-13-launcher-diagnostics.md"
 }
