@@ -1335,6 +1335,26 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "pam_backend_qualification": {
+      "status": "PASS_PAM_BACKEND_VM_AND_ENTRY_FIXTURES",
+      "set_id": "private:rog5-pam-boundary-20260913-r1",
+      "source_commit": "42ce254d23ce8de2e0af189e953d51ba368886e8",
+      "source_tree": "53d3a5deaf2e2962c8efcfba002899d520a6c707",
+      "evidence": {
+        "path": "test-results/2026-09-13-pam-session-qualification.json",
+        "sha256": "4a1a19a0191dd96122869e212c7624f2b59793e1b7b51a9c5609453b367cd111",
+        "size": 46124
+      },
+      "probe": {
+        "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4/pam-probe",
+        "sha256": "304985e2565aacdcbebed9de3d353027813b9946cb46a9039112754352098cf3",
+        "size": 567520
+      },
+      "case_count": 8,
+      "physical_status": "NOT RUN",
+      "authority": "none; synthetic VM fixture only",
+      "vm_source_commit": "1ebf577797694ca184dca7f3a136473bfe7047d9"
     }
   },
   "denial_phone_linkage": {

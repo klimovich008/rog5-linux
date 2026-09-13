@@ -1,0 +1,861 @@
+{
+  "schema": 1,
+  "status": "PASS_PAM_BACKEND_VM_AND_ENTRY_FIXTURES",
+  "scope": "actual ARM64 Denial PAM backend with synthetic guest accounts; target entry uses host fact fixtures",
+  "starting_commit": "c1dd5d34ff00ce772c5472150623fbe108af19c2",
+  "starting_tree": "59986cf9f9cd39a5279ae8e095b25a1727d5fd67",
+  "source_commit": "42ce254d23ce8de2e0af189e953d51ba368886e8",
+  "source_tree": "53d3a5deaf2e2962c8efcfba002899d520a6c707",
+  "previous_goal_turn": "no progress: revalidated already completed framebuffer review",
+  "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+  "authentication_sha256": "d836a408cdd882783e6c053afd55e04fc7c3377a0f7e0267f85f0343a7516677",
+  "native_source_authentication_unchanged": true,
+  "build": {
+    "status": "PASS",
+    "scope": "actual ARM64 Denial PAM backend compilation only; execution NOT RUN",
+    "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--pull=never",
+      "--name",
+      "rog5-pam-build-6555f86097f24336b1e184df844fec0c",
+      "--network=none",
+      "--read-only",
+      "--memory=512m",
+      "--memory-swap=512m",
+      "--cpus=1",
+      "--pids-limit=128",
+      "-v",
+      "/home/deck:/home/deck:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4:/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4:rw",
+      "--env",
+      "TMPDIR=/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4",
+      "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+      "/opt/denial-rust/bin/rustc",
+      "--edition=2024",
+      "--target=aarch64-unknown-linux-gnu",
+      "--crate-name=denial_pam_probe",
+      "--remap-path-prefix",
+      "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4=/rog5-pam-probe",
+      "-C",
+      "linker=/usr/bin/aarch64-linux-gnu-gcc",
+      "-C",
+      "opt-level=2",
+      "-C",
+      "lto=thin",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "strip=debuginfo",
+      "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4/pam-probe.rs",
+      "-o",
+      "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4/pam-probe",
+      "--extern",
+      "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+      "-L",
+      "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+      "--extern",
+      "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+      "-L",
+      "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+      "--extern",
+      "tracing=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib",
+      "-L",
+      "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+      "-L",
+      "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/release/deps"
+    ],
+    "exit_status": 0,
+    "cleanup_exit_status": 0,
+    "toolchain_image": "0f429c6fd38e4400d8638bff1f7da0170375275ab29201e327a3e236ed9df16d",
+    "duration_seconds": 6.463567200000398,
+    "authentication_sha256": "d836a408cdd882783e6c053afd55e04fc7c3377a0f7e0267f85f0343a7516677",
+    "fragment_sha256": "89e438d6fd00098cbc6ed2476bc718aec013135c69a7f71436458f3505a34be0",
+    "inputs": {
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/build-denial-pam-probe.py": "41531b1b0889be0a8c55b5bf0d82d6cfb9fe406dfca5599e10a19f27e0ecc586",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/denial-modifier-tests/pam-guest-main.rs": "a8b8248ac5ef6f92d904c041a75be5dd2b213b3c9d7124549bbaa1f581c4d2ab",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+      "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib": "d8971fe9a816ec662cb9d1ac278b775d360c755899949282fac400e66c59d017"
+    },
+    "outputs": {
+      "pam-probe": "304985e2565aacdcbebed9de3d353027813b9946cb46a9039112754352098cf3",
+      "build.log": "b19f6bf2463448ced7961bcd1128ed84ea9b879288db3d975add681e3b399e0c",
+      "pam-probe.rs": "a3f07aa1a6871de5d9ab71a53c02ad5f628ed33642c17a3b69bec6187629dbce"
+    }
+  },
+  "build_result": {
+    "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4/result.json",
+    "sha256": "ed4c34acb92304e8fc0269b93addc6158f3bebfb0f258c19c744a16f5b4bd46b",
+    "size": 4092
+  },
+  "probe": {
+    "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r4/pam-probe",
+    "sha256": "304985e2565aacdcbebed9de3d353027813b9946cb46a9039112754352098cf3",
+    "size": 567520
+  },
+  "package": {
+    "archive": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/packages/pam-1.7.2-2-aarch64.pkg.tar.xz",
+    "archive_sha256": "a0c3f35ba05a7da5de8e8cb7c50ff05c1e51512e6055ba6958ddb80e17dcd880",
+    "member": "usr/bin/unix_chkpwd",
+    "uid": 0,
+    "gid": 0,
+    "mode": "0o6755",
+    "size": 67536,
+    "sha256": "9766a85f7b027ca700306199da79054ab6991b6b5616d8507dbfd7e942f49722",
+    "retained_bytes_match": true,
+    "signature_audit": "reused retained materialization/result.json; not rerun",
+    "synthetic_fixture_clock": "2026-09-13 00:00:00 UTC",
+    "pambase": {
+      "archive": "/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/packages/pambase-20260616-1-any.pkg.tar.xz",
+      "sha256": "8824b4ddde15770edd4a760901b4c73add68bb18f639ded8316024bc1ab0210f",
+      "unchanged_pam_files": [
+        {
+          "path": "etc/pam.d/other",
+          "sha256": "d5ed59ec2157c19c87964a162f7ca84d53c19fb2bd68d3fbc1671ba8d906346f",
+          "package_mode": "0o644"
+        },
+        {
+          "path": "etc/pam.d/system-auth",
+          "sha256": "2bb19ead55a7b9014d107eec63cc015426c39d93ddc8af3322649ff5f8b45d5b",
+          "package_mode": "0o644"
+        },
+        {
+          "path": "etc/pam.d/system-local-login",
+          "sha256": "005736b9bd650ff5e5d82a7e288853776d5bb8c90185d5774c07231c1e1c64a9",
+          "package_mode": "0o644"
+        },
+        {
+          "path": "etc/pam.d/system-login",
+          "sha256": "7272120f0ee937cbe6ba0a6e748ea234ab6799e1e2966c83ee85f97d9f254fd9",
+          "package_mode": "0o644"
+        },
+        {
+          "path": "etc/pam.d/system-remote-login",
+          "sha256": "005736b9bd650ff5e5d82a7e288853776d5bb8c90185d5774c07231c1e1c64a9",
+          "package_mode": "0o644"
+        },
+        {
+          "path": "etc/pam.d/system-services",
+          "sha256": "6eb1acdd3fa9f71a7f93fbd529be57ea65bcafc6e3a98a06af4d88013fc6a567",
+          "package_mode": "0o644"
+        }
+      ]
+    }
+  },
+  "runtime_view": {
+    "path": "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/result.json",
+    "sha256": "acdec31d1cf5999a9f050faae36f33fe3cc20fd2df51410d113981b7412286f5",
+    "size": 1102
+  },
+  "vm": {
+    "status": "PASS",
+    "scope": "actual ARM64 Denial PAM backend with synthetic accounts; no logind/UI/phone",
+    "command": [
+      "podman",
+      "run",
+      "--rm",
+      "--name",
+      "rog5-pam-boundary-r3",
+      "--pull=never",
+      "--network=none",
+      "--read-only",
+      "--memory=512m",
+      "--memory-swap=512m",
+      "--cpus=2",
+      "--pids-limit=64",
+      "-v",
+      "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/guest-r3/initramfs.gz:/initramfs.gz:ro",
+      "-v",
+      "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/guest-r3/payload:/payload:ro",
+      "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+      "qemu-system-aarch64",
+      "-M",
+      "virt",
+      "-cpu",
+      "max",
+      "-smp",
+      "1",
+      "-m",
+      "256M",
+      "-accel",
+      "tcg,thread=multi",
+      "-global",
+      "virtio-mmio.force-legacy=false",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-nic",
+      "none",
+      "-serial",
+      "stdio",
+      "-no-reboot",
+      "-kernel",
+      "/Image",
+      "-initrd",
+      "/initramfs.gz",
+      "-append",
+      "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.pam_fixture=1",
+      "-fsdev",
+      "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+      "-fsdev",
+      "local,id=payload,path=/payload,security_model=none,readonly=on",
+      "-device",
+      "virtio-9p-device,fsdev=payload,mount_tag=payload"
+    ],
+    "source_commit": "1ebf577797694ca184dca7f3a136473bfe7047d9",
+    "duration_seconds": 18.994151331018656,
+    "exit_status": 0,
+    "cleanup_exit_status": 0,
+    "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+    "hashes": {
+      "serial.log": "6a0f3b099d2c6f7e1101fe2ca2ab404aaa23669188b26eef1998f2350d064d7d",
+      "initramfs.gz": "85dcd02a91fe0fdb864a078f622406889f0c611073f7b2d2a015e1b3342136e5",
+      "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+      "initramfs/stage/guest.sh": "a3b0d09c6c97174d506f448483965c4d32d6f56f83b3beebf80633eed904ea35",
+      "initramfs/stage/nonroot-session.sh": "dad5bc330935f8ca249c5499af0b8848eb4647d933acfc6625f048dab0b7a783"
+    }
+  },
+  "vm_driver": {
+    "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/run-vm-final.py",
+    "sha256": "89630af9d8239e621492a92f0544c981faa5190936daba1e4fe28619f1bf273c",
+    "size": 4014
+  },
+  "vm_driver_source": "from pathlib import Path\nimport hashlib,json,shutil,subprocess,time,resource\nif shutil.disk_usage(Path(__file__).parent).free < 3*1024**3+8*1024**2: raise RuntimeError('3 GiB reserve')\nW=Path('/home/deck/.local/state/rog5-review-correctness-20260912-r1')\nE=Path(__file__).resolve().parent\nO=E/'guest-r3';O.mkdir()\nstage=O/'initramfs'\nfor p in ('dev','sysroot','stage/payload'): (stage/p).mkdir(parents=True,exist_ok=True)\n(O/'payload').mkdir()\ndef sha(p):\n with p.open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()\nold=Path('/home/deck/.local/state/rog5-keyboard-geometry-20260913-r1/guest-keyboard-r1')\nold_result=json.loads((old/'result.json').read_text())\nassert sha(W/'tools/qemu-virtio-drm/init.c')==old_result['init_source_sha256']\nassert sha(old/'initramfs/init')==old_result['hashes']['initramfs/init']\nshutil.copy2(old/'initramfs/init',stage/'init')\nshutil.copy2(W/'tools/qemu-virtio-drm/nonroot-session.sh',stage/'stage/nonroot-session.sh')\nshutil.copy2(W/'tools/qemu-virtio-drm/pam-boundary.sh',stage/'stage/guest.sh')\nshutil.copy2(E/'build-r4/pam-probe',O/'payload/pam-probe')\nfor script in ('guest.sh','nonroot-session.sh'):\n subprocess.run(['bash','-n',str(stage/'stage'/script)],check=True)\nmembers=sorted(str(p.relative_to(stage)) for p in stage.rglob('*'))\narchive=subprocess.run(['cpio','--null','-o','--quiet','--format=newc','--owner=0:0'],input=('\\0'.join(members)+'\\0').encode(),cwd=stage,capture_output=True,check=True,timeout=10)\nwith (O/'initramfs.gz').open('xb') as f: subprocess.run(['gzip','-n'],input=archive.stdout,stdout=f,check=True,timeout=10)\nname='rog5-pam-boundary-r3';image='d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d'\ncommand=['podman','run','--rm','--name',name,'--pull=never','--network=none','--read-only','--memory=512m','--memory-swap=512m','--cpus=2','--pids-limit=64',\n '-v','/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root'+':/runtime:ro','-v',str(W/'build/qemu-virtio-drm/arch/arm64/boot/Image')+':/Image:ro','-v',str(O/'initramfs.gz')+':/initramfs.gz:ro','-v',str(O/'payload')+':/payload:ro',image,\n 'qemu-system-aarch64','-M','virt','-cpu','max','-smp','1','-m','256M','-accel','tcg,thread=multi','-global','virtio-mmio.force-legacy=false','-display','none','-monitor','none','-nic','none','-serial','stdio','-no-reboot','-kernel','/Image','-initrd','/initramfs.gz','-append','console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.pam_fixture=1',\n '-fsdev','local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on','-device','virtio-9p-device,fsdev=rootfs,mount_tag=rootfs','-fsdev','local,id=payload,path=/payload,security_model=none,readonly=on','-device','virtio-9p-device,fsdev=payload,mount_tag=payload']\nstarted=time.monotonic();status='FAIL'\ntry:\n with (O/'serial.log').open('xb') as f: r=subprocess.run(command,stdout=f,stderr=subprocess.STDOUT,timeout=60,preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE,(8*1024**2,8*1024**2)))\n log=(O/'serial.log').read_text();status='PASS' if r.returncode==0 and 'PASS actual Denial PAM backend: eight privilege/password/account boundary cases' in log and 'PASS guest-script exited cleanly' in log else 'FAIL'\nfinally:\n cleanup=subprocess.run(['podman','rm','--force','--ignore',name],capture_output=True,timeout=10)\nresult={'status':status,'scope':'actual ARM64 Denial PAM backend with synthetic accounts; no logind/UI/phone',\n 'command':command,'source_commit':subprocess.check_output(['git','-C',str(W),'rev-parse','HEAD'],text=True).strip(),\n 'duration_seconds':time.monotonic()-started,'exit_status':r.returncode,'cleanup_exit_status':cleanup.returncode,\n 'kernel_sha256':sha(W/'build/qemu-virtio-drm/arch/arm64/boot/Image'),\n 'hashes':{str(p.relative_to(O)):sha(p) for p in (O/'serial.log',O/'initramfs.gz',stage/'init',stage/'stage/guest.sh',stage/'stage/nonroot-session.sh')}}\n(O/'result.json').write_text(json.dumps(result,indent=2)+'\\n');print(json.dumps(result,indent=2))\nraise SystemExit(0 if status=='PASS' else 1)\n",
+  "cases": [
+    "CASE stripped_valid mode=755 nnp=0 service=rog5-fixture exit=0 PAM_BACKEND result=Failure secret_prompts=1",
+    "CASE packaged_nnp_valid mode=6755 nnp=1 service=rog5-fixture exit=0 PAM_BACKEND result=Failure secret_prompts=1",
+    "CASE packaged_valid mode=6755 nnp=0 service=rog5-fixture exit=0 PAM_BACKEND result=Success secret_prompts=1",
+    "CASE packaged_wrong mode=6755 nnp=0 service=rog5-fixture exit=0 PAM_BACKEND result=Failure secret_prompts=1",
+    "CASE login_valid mode=6755 nnp=0 service=login exit=0 PAM_BACKEND result=Success secret_prompts=1",
+    "CASE login_wrong mode=6755 nnp=0 service=login exit=0 PAM_BACKEND result=Failure secret_prompts=1",
+    "CASE login_expired mode=6755 nnp=0 service=login exit=0 PAM_BACKEND result=Error secret_prompts=1",
+    "CASE login_locked mode=6755 nnp=0 service=login exit=0 PAM_BACKEND result=Failure secret_prompts=1"
+  ],
+  "case_count": 8,
+  "entry": {
+    "path": "/home/deck/.local/state/rog5-review-correctness-20260912-r1/packaging/arch/mobile/denial-mobile-session",
+    "sha256": "001a38cf4d0b47657e2a430b201748f59e0f55e11e2beeb4eaf075db00fbdfe1",
+    "size": 6112
+  },
+  "focused": {
+    "source_commit": "1ebf577797694ca184dca7f3a136473bfe7047d9",
+    "runs": [
+      {
+        "command": [
+          "python3",
+          "-O",
+          "scripts/host/test-denial-mobile-session.py"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.3940796499955468
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "packaging/arch/mobile/denial-mobile-session"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.002506605989765376
+      },
+      {
+        "command": [
+          "bash",
+          "-n",
+          "tools/qemu-virtio-drm/pam-boundary.sh"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.002255850995425135
+      },
+      {
+        "command": [
+          "python3",
+          "scripts/host/build-denial-pam-probe.py",
+          "--help"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.04442075299448334
+      },
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_status": 0,
+        "duration_seconds": 0.004656464996514842
+      }
+    ]
+  },
+  "agent_checks": {
+    "scope": "entry implementation agent; offline host fixtures",
+    "test_count": 18,
+    "duration_seconds": 0.326,
+    "status": "PASS"
+  },
+  "active": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-pam-boundary-active-r2",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-pam-boundary-20260913-r1/active-entry-final-report",
+        "TMPDIR=/home/deck/.local/state/rog5-pam-boundary-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "42ce254d23ce8de2e0af189e953d51ba368886e8",
+      "source_tree": "53d3a5deaf2e2962c8efcfba002899d520a6c707",
+      "started": "2026-09-13T06:51:18.242026+00:00",
+      "exit_status": 0,
+      "duration_seconds": 151.73077898699557
+    },
+    "counts": {
+      "PASS": 95,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/active-entry-final-report/summary.json",
+      "sha256": "dbdc447f7342f36adc517527a8ec62053ebeb4f7121dfd3241eecdeee39f9733",
+      "size": 112943
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/active-entry-final-report/summary.xml",
+      "sha256": "549fea4d5b9fd264f260c4fc0b079b9e4abdf5dec3b9b4bb5cbdfc462bccb7c6",
+      "size": 56279
+    },
+    "peak_memory": "285.2 MiB; swap0B",
+    "tested_inputs": {
+      "source_head": "42ce254d23ce8de2e0af189e953d51ba368886e8",
+      "tested_tree": "3548c626f4adce6a508471710cb5cab4b5b5a318",
+      "note": "source files frozen; these evidence/status-only changes were present throughout the final active run, then publication records that result separately",
+      "metadata_inputs": {
+        "configs/project-status.json": "a9bb35e6c3de8bbcf51614de33b24b78f059237838bc4f8737ee5ccf63312c13",
+        "docs/current-state.md": "c190cd38321449a7e382d3c2cb920c3b6644f83a24edbe590005ebb616251e28",
+        "manifests/artifact-sets.json": "a90eae42bb9173a792ad236e8f7f549b0ce3a16b56d65be770111d6a2ca49085",
+        "manifests/current-artifact.json": "cdf3f1f0ff3fd96514068c64f713365f2234c6f0d85439f126e2461f1ae1abff",
+        "test-results/2026-09-13-pam-session-qualification.json": "4a28449f40ca60e14713bda5a4f8644feeb61f6436b99e5cb7958d7d618061d2",
+        "test-results/2026-09-13-pam-session.md": "a86fc87867a0022ff95a22a07b5b31eeda8e207cdfe971c327d213dfb93b0cab"
+      }
+    }
+  },
+  "earlier_attempts": {
+    "source_preflight": {
+      "status": "BLOCKED",
+      "stage": "initial source lookup before build",
+      "input": "/home/deck/.local/state/rog5-focus-trace-20260913-r1/fix-r1/source",
+      "error": "not a Git repository",
+      "resolution": "use retained upstream Git checkout; separately verify authentication.rs byte identity with current patched source",
+      "phone_operations": false
+    },
+    "build_r1": {
+      "status": "FAIL",
+      "scope": "actual ARM64 Denial PAM backend compilation only; execution NOT RUN",
+      "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+      "command": [
+        "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "strip=debuginfo",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r1/pam-probe.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r1/pam-probe",
+        "--extern",
+        "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--extern",
+        "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--extern",
+        "tracing=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps"
+      ],
+      "exit_status": 1,
+      "duration_seconds": 0.35095442400779575,
+      "authentication_sha256": "d836a408cdd882783e6c053afd55e04fc7c3377a0f7e0267f85f0343a7516677",
+      "fragment_sha256": "89e438d6fd00098cbc6ed2476bc718aec013135c69a7f71436458f3505a34be0",
+      "inputs": {
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/build-denial-pam-probe.py": "cb013719a7081f92325e17cb68eef8e7ae78458985b3d80507115b6f78ea81e7",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/denial-modifier-tests/pam-guest-main.rs": "a8b8248ac5ef6f92d904c041a75be5dd2b213b3c9d7124549bbaa1f581c4d2ab",
+        "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc": "72f93915dc58456942ed604954928809446a8a69559e66ad3d9069f7e1b21870",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib": "d8971fe9a816ec662cb9d1ac278b775d360c755899949282fac400e66c59d017"
+      },
+      "outputs": {
+        "build.log": "51213f2af815888cc4f7ec29f89b3ed10d0b4f7ec839cba663c642b8d431335d",
+        "pam-probe.rs": "a3f07aa1a6871de5d9ab71a53c02ad5f628ed33642c17a3b69bec6187629dbce"
+      }
+    },
+    "build_r1_log": {
+      "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r1/build.log",
+      "sha256": "51213f2af815888cc4f7ec29f89b3ed10d0b4f7ec839cba663c642b8d431335d",
+      "size": 300
+    },
+    "build_r2": {
+      "status": "FAIL",
+      "scope": "actual ARM64 Denial PAM backend compilation only; execution NOT RUN",
+      "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+      "command": [
+        "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "strip=debuginfo",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r2/pam-probe.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r2/pam-probe",
+        "--extern",
+        "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--extern",
+        "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--extern",
+        "tracing=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/release/deps"
+      ],
+      "exit_status": 1,
+      "duration_seconds": 0.8624004169832915,
+      "authentication_sha256": "d836a408cdd882783e6c053afd55e04fc7c3377a0f7e0267f85f0343a7516677",
+      "fragment_sha256": "89e438d6fd00098cbc6ed2476bc718aec013135c69a7f71436458f3505a34be0",
+      "inputs": {
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/build-denial-pam-probe.py": "619d5095a0e1d1f591f94d651ce3a1443a55bc16700b9a0070ebb9158b19d182",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/denial-modifier-tests/pam-guest-main.rs": "a8b8248ac5ef6f92d904c041a75be5dd2b213b3c9d7124549bbaa1f581c4d2ab",
+        "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc": "72f93915dc58456942ed604954928809446a8a69559e66ad3d9069f7e1b21870",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib": "d8971fe9a816ec662cb9d1ac278b775d360c755899949282fac400e66c59d017"
+      },
+      "outputs": {
+        "pam-probe.7lqzyvdvxgtxvub81ik53f46d.rcgu.o": "c58ee08291dbe3c83c1928612069546d364ad8238dffd4c02c0f3c9fe47fa26f",
+        "pam-probe.pam_probe.86c7607a261f12d8-cgu.1.rcgu.o": "a810bab2798c05ab7545040f38a36f9330a5b2e61b276ec0bc9558cd10de1d55",
+        "pam-probe.pam_probe.86c7607a261f12d8-cgu.0.rcgu.o": "f13614ca20831eddb122d60dac02d3e039e66952039a6b0aa1a4df23d4bfa00f",
+        "build.log": "2204ae9e0a15c916370e2246d063e5787a29a098d40c08cdd6c5593eadf0d390",
+        "pam-probe.rs": "a3f07aa1a6871de5d9ab71a53c02ad5f628ed33642c17a3b69bec6187629dbce"
+      }
+    },
+    "build_r2_log": {
+      "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r2/build.log",
+      "sha256": "2204ae9e0a15c916370e2246d063e5787a29a098d40c08cdd6c5593eadf0d390",
+      "size": 2642
+    },
+    "build_r3": {
+      "status": "PASS",
+      "scope": "actual ARM64 Denial PAM backend compilation only; execution NOT RUN",
+      "denial_commit": "85b2303e2f09ae7b7b993641f90061a200f03d53",
+      "command": [
+        "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc",
+        "--edition=2024",
+        "--target=aarch64-unknown-linux-gnu",
+        "-C",
+        "linker=/usr/bin/aarch64-linux-gnu-gcc",
+        "-C",
+        "opt-level=2",
+        "-C",
+        "lto=thin",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "strip=debuginfo",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r3/pam-probe.rs",
+        "-o",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/build-r3/pam-probe",
+        "--extern",
+        "libc=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--extern",
+        "libloading=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "--extern",
+        "tracing=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps",
+        "-L",
+        "dependency=/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/release/deps"
+      ],
+      "exit_status": 0,
+      "duration_seconds": 6.359758455015253,
+      "authentication_sha256": "d836a408cdd882783e6c053afd55e04fc7c3377a0f7e0267f85f0343a7516677",
+      "fragment_sha256": "89e438d6fd00098cbc6ed2476bc718aec013135c69a7f71436458f3505a34be0",
+      "inputs": {
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/build-denial-pam-probe.py": "4bec44f13a66174a5303f40ab45de1f1a808f7fcda5aa75637817c90ee805b5c",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/tools/denial-modifier-tests/pam-guest-main.rs": "a8b8248ac5ef6f92d904c041a75be5dd2b213b3c9d7124549bbaa1f581c4d2ab",
+        "/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1/rustc": "72f93915dc58456942ed604954928809446a8a69559e66ad3d9069f7e1b21870",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c",
+        "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib": "d8971fe9a816ec662cb9d1ac278b775d360c755899949282fac400e66c59d017"
+      },
+      "outputs": {
+        "pam-probe": "891c4b075900f5d0f992eac5cfc299bedd9deead3835c2942d170529b3eda344",
+        "build.log": "08f98e329addf0ee3e4ed00cf47c76b29c394a9d244f88201469ed8c54fb3e17",
+        "pam-probe.rs": "a3f07aa1a6871de5d9ab71a53c02ad5f628ed33642c17a3b69bec6187629dbce"
+      }
+    },
+    "vm_six_cases": {
+      "status": "PASS",
+      "scope": "actual ARM64 Denial PAM backend with synthetic accounts; no logind/UI/phone",
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-pam-boundary-r1",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=2",
+        "--pids-limit=64",
+        "-v",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/guest-r1/initramfs.gz:/initramfs.gz:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/guest-r1/payload:/payload:ro",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "qemu-system-aarch64",
+        "-M",
+        "virt",
+        "-cpu",
+        "max",
+        "-smp",
+        "1",
+        "-m",
+        "256M",
+        "-accel",
+        "tcg,thread=multi",
+        "-global",
+        "virtio-mmio.force-legacy=false",
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-nic",
+        "none",
+        "-serial",
+        "stdio",
+        "-no-reboot",
+        "-kernel",
+        "/Image",
+        "-initrd",
+        "/initramfs.gz",
+        "-append",
+        "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.pam_fixture=1",
+        "-fsdev",
+        "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+        "-fsdev",
+        "local,id=payload,path=/payload,security_model=none,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=payload,mount_tag=payload"
+      ],
+      "source_commit": "c1dd5d34ff00ce772c5472150623fbe108af19c2",
+      "duration_seconds": 13.679584504978266,
+      "exit_status": 0,
+      "cleanup_exit_status": 0,
+      "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+      "hashes": {
+        "serial.log": "53d261e69f40be97150d94ca4ec7e5559846d8f73950addf01c97a93d05d8b37",
+        "initramfs.gz": "7531a7b5a1f7a3db896437dfa053f339f4a9fa2ea013ae5daf01ccb5d399c29c",
+        "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+        "initramfs/stage/guest.sh": "55b753b7e85af3f35618bfdedd975623d84846e8ef63571e00881f43c2773f19",
+        "initramfs/stage/nonroot-session.sh": "dad5bc330935f8ca249c5499af0b8848eb4647d933acfc6625f048dab0b7a783"
+      }
+    },
+    "vm_eight_cases_pre_freeze": {
+      "status": "PASS",
+      "scope": "actual ARM64 Denial PAM backend with synthetic accounts; no logind/UI/phone",
+      "command": [
+        "podman",
+        "run",
+        "--rm",
+        "--name",
+        "rog5-pam-boundary-r2",
+        "--pull=never",
+        "--network=none",
+        "--read-only",
+        "--memory=512m",
+        "--memory-swap=512m",
+        "--cpus=2",
+        "--pids-limit=64",
+        "-v",
+        "/home/deck/.local/state/rog5-nonroot-session-20260913-r1/view-r1/root:/runtime:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/build/qemu-virtio-drm/arch/arm64/boot/Image:/Image:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/guest-r2/initramfs.gz:/initramfs.gz:ro",
+        "-v",
+        "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/guest-r2/payload:/payload:ro",
+        "d2ea0285ee5edfbf79679684ad70c53c06eb45b705e0fa1cf9967d1560f4023d",
+        "qemu-system-aarch64",
+        "-M",
+        "virt",
+        "-cpu",
+        "max",
+        "-smp",
+        "1",
+        "-m",
+        "256M",
+        "-accel",
+        "tcg,thread=multi",
+        "-global",
+        "virtio-mmio.force-legacy=false",
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-nic",
+        "none",
+        "-serial",
+        "stdio",
+        "-no-reboot",
+        "-kernel",
+        "/Image",
+        "-initrd",
+        "/initramfs.gz",
+        "-append",
+        "console=ttyAMA0 rdinit=/init panic=-1 rog5.virtual_drm=1 rog5.pam_fixture=1",
+        "-fsdev",
+        "local,id=rootfs,path=/runtime,security_model=mapped-file,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=rootfs,mount_tag=rootfs",
+        "-fsdev",
+        "local,id=payload,path=/payload,security_model=none,readonly=on",
+        "-device",
+        "virtio-9p-device,fsdev=payload,mount_tag=payload"
+      ],
+      "source_commit": "c1dd5d34ff00ce772c5472150623fbe108af19c2",
+      "duration_seconds": 18.74526658601826,
+      "exit_status": 0,
+      "cleanup_exit_status": 0,
+      "kernel_sha256": "34279d12dee925c4c58de9f49411c5e5f9fe85d016214e3939f80cd2f8b797f9",
+      "hashes": {
+        "serial.log": "6a0f3b099d2c6f7e1101fe2ca2ab404aaa23669188b26eef1998f2350d064d7d",
+        "initramfs.gz": "b2f5bf0b97336ee3cc92a7c0f3784a7bbd317230f8dae7eeebb0306b78cb1433",
+        "initramfs/init": "234e456d3e0498d2fd4504584491172170bfd86f7a46378f1512e050aa1727b5",
+        "initramfs/stage/guest.sh": "a3b0d09c6c97174d506f448483965c4d32d6f56f83b3beebf80633eed904ea35",
+        "initramfs/stage/nonroot-session.sh": "dad5bc330935f8ca249c5499af0b8848eb4647d933acfc6625f048dab0b7a783"
+      }
+    },
+    "notes": [
+      "Initial source path was an exported tree, not Git; use retained upstream Git object and compare matching patched authentication source.",
+      "First build lacked host tracing proc-macro path; second needed retained thin-LTO rlibs. Final builder owns a bounded rootless container and timeout cleanup.",
+      "First guest used the generic kernel epoch; synthetic password-change date was in future. Final disposable guest clock is fixed for account-aging cases.",
+      "Agent fixture first failed on an empty-group trailing newline removed by command substitution; regression now passes."
+    ]
+  },
+  "limits": {
+    "guest_memory_mib": 256,
+    "container_memory_mib": 512,
+    "swap": false,
+    "network": false,
+    "host_render_device_exposed": false,
+    "vm_deadline_seconds": 60,
+    "per_case_deadline_seconds": 8,
+    "serial_limit_mib": 8
+  },
+  "limitations": [
+    "No full Denial UI, logind service/TakeDevice, real login, lock-screen, user secret or phone execution in these PAM tests.",
+    "NoNewPrivs=0 and helper06755 are demonstrated prerequisites for this PAM1.7.2-2 profile, not a completed security assessment.",
+    "Wrapper checks metadata, not package identity or mount nosuid; installation must use authenticated bytes and separately qualified mounts/PAM/login.",
+    "Supplementary/effective privileges were not granted to the compositor. The guest set-ID helper elevation is part of the tested package authentication path.",
+    "No installable mobile package or board-specific session configuration was produced. Exact connector/60Hz, DRM/render-node choices and logind access remain unqualified.",
+    "The existing non-root VM profile remains unchanged; its NoNewPrivs rendering proof does not include password authentication."
+  ],
+  "physical": "NOT RUN",
+  "phone_operations": false,
+  "candidate_creation": false,
+  "signing_admission_claims": false,
+  "protected_storage_mutation": false,
+  "cleanup_final": {
+    "status": "PASS",
+    "container_exists_exit_status": {
+      "rog5-pam-build-6555f86097f24336b1e184df844fec0c": 1,
+      "rog5-pam-boundary-r1": 1,
+      "rog5-pam-boundary-r2": 1,
+      "rog5-pam-boundary-r3": 1
+    }
+  },
+  "first_integrated": {
+    "execution": {
+      "command": [
+        "systemd-run",
+        "--user",
+        "--wait",
+        "--pipe",
+        "--collect",
+        "--unit=rog5-pam-boundary-active-r1",
+        "-p",
+        "MemoryMax=1G",
+        "-p",
+        "MemorySwapMax=0",
+        "-p",
+        "TasksMax=256",
+        "-p",
+        "RuntimeMaxSec=600",
+        "-p",
+        "CPUQuota=200%",
+        "-p",
+        "Delegate=yes",
+        "--working-directory=/home/deck/.local/state/rog5-review-correctness-20260912-r1",
+        "env",
+        "PATH=/home/deck/.local/state/rog5-gbm-sync-evidence-20260912-r1:/home/deck/.local/bin:/home/deck/.codex/tmp/arg0/codex-arg0yf62hl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/deck/.local/bin:/home/deck/.opencode/bin:/home/deck/.local/bin:/home/deck/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/home/deck/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/home/deck/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/home/deck/.local/opt/chatgpt-official/resources",
+        "ROG5_WAYLAND_INCLUDE=/home/deck/.local/state/rog5-xwayland-runtime-evidence-20260912-r1/materialize/root/usr/include",
+        "ROG5_TEST_WORKERS=2",
+        "ROG5_TEST_REPORT_DIR=/home/deck/.local/state/rog5-pam-boundary-20260913-r1/active-qualified-report",
+        "TMPDIR=/home/deck/.local/state/rog5-pam-boundary-20260913-r1/tmp",
+        "/home/deck/.local/state/rog5-review-correctness-20260912-r1/scripts/host/test-repository-linux.sh",
+        "active"
+      ],
+      "source_commit": "1ebf577797694ca184dca7f3a136473bfe7047d9",
+      "source_tree": "fa68f1e2d52dbc9a571b302568eebba02c5bb346",
+      "started": "2026-09-13T06:45:59.887052+00:00",
+      "exit_status": 0,
+      "duration_seconds": 135.77814592802315
+    },
+    "counts": {
+      "PASS": 95,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0,
+      "NOT_SELECTED": 255
+    },
+    "subcheck_counts": {
+      "SKIPPED": 3
+    },
+    "json": {
+      "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/active-qualified-report/summary.json",
+      "sha256": "8e3b96333048b5aa633c5f46c1ae23881c6b0afadea00d8484c2f871a2d669a5",
+      "size": 112939
+    },
+    "junit": {
+      "path": "/home/deck/.local/state/rog5-pam-boundary-20260913-r1/active-qualified-report/summary.xml",
+      "sha256": "afb5ac14bce1ec25d1c38f7990758864335898fde8ac34738965e2dd280b5ee7",
+      "size": 56275
+    },
+    "peak_memory": "285.7 MiB; swap0B"
+  },
+  "vm_source_commit": "1ebf577797694ca184dca7f3a136473bfe7047d9",
+  "vm_source_tree": "fa68f1e2d52dbc9a571b302568eebba02c5bb346",
+  "dependency_closure": {
+    "status": "retained hashes recorded",
+    "basis": "target archive closure named by the retained link-error command; same extern artifacts/search paths used by final successful thin-LTO build; one retained host tracing proc-macro",
+    "files": [
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibc-d6fee8e8582c0cf2.rlib",
+        "size": 5719226,
+        "sha256": "1d214278f9f13f5874c31af68895d0f6362b85bc9605457b453d16abe8e253fe"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing-613154b13818fb9b.rlib",
+        "size": 693066,
+        "sha256": "d8971fe9a816ec662cb9d1ac278b775d360c755899949282fac400e66c59d017"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblog-0dffab508a61dbd5.rlib",
+        "size": 234054,
+        "sha256": "69808bf006f810adc97ffcd8ca614e4f21f4617f06384ac2e14956295e2746fe"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libpin_project_lite-64f176dbc5fc8989.rlib",
+        "size": 98670,
+        "sha256": "1f3cda5feb2f3148ac3c83517552b75f1d9ee1bafe119a0191967a7ff971c081"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libtracing_core-94f20bf5bc7b6f3b.rlib",
+        "size": 801896,
+        "sha256": "30d86d56b48264c37b1da5b33713d792633cb104985d9710ba17b5b29b9e2618"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libonce_cell-85f4795704a1391c.rlib",
+        "size": 250158,
+        "sha256": "e7715ade7bafb035a403101af60f6d256893e0f851f428221cf61cdcb26bac72"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/liblibloading-6021b2b44a1e2f3b.rlib",
+        "size": 170538,
+        "sha256": "aa88c5c2a50edee98ceaa053590c7db8093e44f1ed2229ea7f1a72df1919136c"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/aarch64-unknown-linux-gnu/release/deps/libcfg_if-b3c0563b5b731d85.rlib",
+        "size": 9258,
+        "sha256": "55a4bb6aa59fb487aa4af209edbd7f63f346f4f6fcec4a2cbfc321d54c90a637"
+      },
+      {
+        "path": "/home/deck/.local/state/rog5-denial-20260910-r1/cargo-arm64-r2/target/release/deps/libtracing_attributes-9c80c9cd5a01f1d2.so",
+        "size": 4283888,
+        "sha256": "56ea1183b0ec57c067f35a74dabfae742c4e75ad1a741e919d6c3a0fdc0fd4cd"
+      }
+    ],
+    "sysroot_and_compiler": "immutable toolchain container identity in build result"
+  },
+  "final_review_fix": "The entry now pins DENIAL_PAM_SERVICE=login and refuses a conflicting root configuration. Existing two fixtures extended; 18 PASS in0.346s. VM/backend bytes unchanged; final integrated source differs only in entry/tests plus bound evidence/status metadata.",
+  "preservation": {
+    "status": "PASS",
+    "historical_artifact_sets_unchanged": 514,
+    "prior_current_artifact_fields_unchanged": true,
+    "historical_current_state_body_unchanged": true,
+    "headless_baseline_unchanged": true
+  }
+}

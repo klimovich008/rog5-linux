@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "phase": "Non-root Denial and two native apps qualified in ARM64 VirGL VM",
+  "phase": "Denial PAM backend qualified in ARM64 VM; mobile session entry prepared",
   "artifact_pointer": "manifests/current-artifact.json",
   "mobile_contract": "configs/mobile/acceptance.json",
   "physical_tests": "NOT RUN",
@@ -9,6 +9,6 @@
     "S06": "FAIL",
     "R01": "FAIL"
   },
-  "next": "Final bounded VM passed: Denial, session bus, Mousepad and Foot use UID1000 with empty supplementary groups/capabilities and NoNewPrivs. It recorded 210 frames/page flips, four native focus visits and 12 OSK key events. Captures show test/tes/test and the mobile terminal; cleanup passed. The permission view avoids a 1.6 GB copy; all 55,811 original entries and guest metadata remain unchanged. Next prepare reproducible target-side non-root session composition against the existing mobile policy, resolving the seatd fixture versus logind/login boundary while reusing retained binaries. Automatic caret visibility and settled editor keyboard dismissal remain unqualified. A660 XR24/fence/readback needs its separate authorized physical trial. No phone operation, candidate, signing or claim; mobile physical NOT RUN and S06/R01 FAIL remain.",
-  "evidence": "test-results/2026-09-13-nonroot-session.md"
+  "next": "Eight actual PAM backend cases PASS in an isolated ARM64 VM: the correct synthetic password fails with stripped helper permissions or NoNewPrivs, succeeds with the packaged helper profile, and wrong/expired/locked accounts are refused. A separate mobile entry checks local logind self, user/runtime ownership, PAM prerequisites and explicit machine device/output configuration;18 host fixtures PASS. It is not installed and does not qualify real login, logind device access or the lock UI. Next assemble retained ARM64 Denial/engine/AOT/denialctl with upstream launcher/target and this entry, then qualify a real local logind session offline. Preserve the existing NoNewPrivs rendering fixture. A660 XR24/fence/readback needs separate physical authorization; no phone operation or candidate. Mobile physical NOT RUN and S06/R01 FAIL remain.",
+  "evidence": "test-results/2026-09-13-pam-session.md"
 }
