@@ -8052,6 +8052,34 @@
         "scripts/host/qemu-launcher-protocol.py"
       ],
       "optional_subchecks": []
+    },
+    {
+      "path": "scripts/host/test-denial-runtime-linkage.py",
+      "interpreter": "python3",
+      "tiers": [
+        "active",
+        "ci",
+        "nightly",
+        "quick",
+        "rootfs"
+      ],
+      "mandatory": true,
+      "deadline_seconds": 120,
+      "prerequisites": [
+        "python3",
+        "rustc",
+        "cc"
+      ],
+      "resource_class": "shared-state",
+      "exclusivity_group": "repository",
+      "python_optimized": true,
+      "exact_source": false,
+      "required_inputs": [
+        "tools/denial-runtime-linkage/probe.rs",
+        "scripts/host/check-denial-runtime-linkage.py",
+        "configs/denial/mobile-runtime-linkage.json"
+      ],
+      "optional_subchecks": []
     }
   ]
 }

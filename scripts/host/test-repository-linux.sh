@@ -173,6 +173,7 @@ native_wifi_probe_tests=(
 	scripts/device/test-pmic-pon-reader.py
 )
 active_tests=(
+	scripts/host/test-denial-runtime-linkage.py
 	scripts/host/test-qemu-mobile-observer.py
 	scripts/host/test-qemu-launcher-apps.py
 	scripts/host/test-qemu-launcher-protocol.py
