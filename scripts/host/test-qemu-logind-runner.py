@@ -169,6 +169,79 @@ exit "$producer"
             self.assertEqual((Path(directory)/'client.log').stat().st_size, 1048576)
 
 
+class ClientExit(unittest.TestCase):
+    def run_stop(self, first_exit, phase="stop"):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
+        source = script.read_text()
+        functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
+        # Execute the production terminal-stop block, including the old defective
+        # block before the correction. The children and Bash waits are real.
+        stop = source.split("sleep 3\n", 1)[1].split('# Require successful enumeration', 1)[0]
+        if phase == 'readiness':
+            stop = 'require_running foot\n'
+        elif phase == 'cleanup':
+            stop = 'exit 37\n'
+        elif phase == 'interrupt':
+            stop = "trap 'exit 143' TERM\nkill -TERM $$\n"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ['denial', 'foot', 'mousepad']:
+                (root/f'{name}.log').touch()
+            child = 'sleep 30' if first_exit is None else f'exit {first_exit}'
+            code = 'set -euo pipefail\n' + functions + r'''
+HOME=$1; readers=(); launcher=''; foot=''; editor=''
+trap finish EXIT
+bash -c "$2" & foot=$!
+sleep 30 & editor=$!
+sleep 30 & launcher=$!
+printf '%s\n' "$foot" "$editor" "$launcher" > "$HOME/pids"
+# Ensure the deliberately early child has exited before the stop request.
+if [[ $3 == early ]]; then wait "$foot" || :; fi
+''' + stop
+            result = subprocess.run(['bash', '-c', code, 'fixture', directory, child,
+                                     'live' if first_exit is None else 'early'],
+                                    capture_output=True, text=True, timeout=5)
+            for pid in map(int, (root/'pids').read_text().split()):
+                self.assertFalse(live(pid), f'owned process {pid} left running')
+            return result
+
+    def test_early_exit_records_status_and_reaps_other_clients(self):
+        for status in [0, 42, 124]:
+            with self.subTest(status=status):
+                result = self.run_stop(status)
+                self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+                self.assertRegex(result.stdout, rf'process=foot phase=stop .*status={status}(?: |$)')
+                self.assertIn('process=editor phase=stop', result.stdout)
+                self.assertIn('process=launcher phase=stop', result.stdout)
+
+    def test_requested_stop_records_all_client_statuses(self):
+        result = self.run_stop(None)
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        for name in ['foot', 'editor', 'launcher']:
+            self.assertRegex(result.stdout, rf'process={name} phase=stop .*status=143(?: |$)')
+
+
+    def test_readiness_retains_early_deadline_and_cleans_remaining_children(self):
+        result = self.run_stop(124, 'readiness')
+        self.assertEqual(result.returncode, 1, result.stdout+result.stderr)
+        self.assertRegex(result.stdout, r'process=foot phase=readiness .*status=124 ')
+        for name in ['editor', 'launcher']:
+            self.assertRegex(result.stdout, rf'process={name} phase=cleanup .*status=143 ')
+
+    def test_failure_cleanup_preserves_original_failure_and_child_status(self):
+        result = self.run_stop(42, 'cleanup')
+        self.assertEqual(result.returncode, 37, result.stdout+result.stderr)
+        self.assertRegex(result.stdout, r'process=foot phase=cleanup .*status=42 ')
+        for name in ['editor', 'launcher']:
+            self.assertRegex(result.stdout, rf'process={name} phase=cleanup .*status=143 ')
+
+    def test_interruption_captures_every_child_and_retains_signal_status(self):
+        result = self.run_stop(None, 'interrupt')
+        self.assertEqual(result.returncode, 143, result.stdout+result.stderr)
+        for name in ['foot', 'editor', 'launcher']:
+            self.assertRegex(result.stdout, rf'process={name} phase=cleanup .*status=143 ')
+
+
 class Archive(unittest.TestCase):
     def test_vm_panic_cannot_be_promoted_by_earlier_success(self):
         spec = importlib.util.spec_from_file_location('logind_runner', RUNNER)

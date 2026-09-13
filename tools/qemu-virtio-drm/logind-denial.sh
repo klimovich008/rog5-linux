@@ -24,15 +24,60 @@ start_log() {
 start_log denial
 start_log foot
 start_log mousepad
+reap_owned() {
+    local name=$1 phase=$2 sent=$3 pid status=0
+    local -n owned=$name
+    pid=$owned
+    wait "$pid" || status=$?
+    owned=''
+    printf 'OBSERVE process=%s phase=%s pid=%s status=%s term_sent=%s\n' \
+        "$name" "$phase" "$pid" "$status" "$sent"
+    last_status=$status
+}
+require_running() {
+    local name=$1
+    local -n owned=$name
+    if kill -0 "$owned" 2>/dev/null; then return 0; fi
+    reap_owned "$name" readiness no
+    # Even an early exit 0 is failure: the client must survive until our stop.
+    return 1
+}
+stop_owned_group() {
+    local phase=$1 name failed=0
+    shift
+    local -A term_sent=()
+    # Signal every child before waiting: one slow exit must not keep the other
+    # clients or compositor running until the outer session deadline.
+    for name in "$@"; do
+        local -n owned=$name
+        [[ -n $owned ]] || continue
+        term_sent[$name]=no
+        if kill -TERM "$owned" 2>/dev/null; then term_sent[$name]=yes; fi
+    done
+    for name in "$@"; do
+        [[ -v term_sent[$name] ]] || continue
+        # Always wait, including ESRCH and expired timeout(1) clients, retaining
+        # the original child status instead of letting set -e skip the rest.
+        reap_owned "$name" "$phase" "${term_sent[$name]}"
+        [[ ${term_sent[$name]} == yes && ( $last_status == 0 || $last_status == 143 ) ]] || failed=1
+    done
+    return "$failed"
+}
+stop_all_owned() {
+    local phase=$1 failed=0
+    if [[ $phase == stop ]]; then
+        # Preserve normal teardown order: clients close before the compositor.
+        stop_owned_group "$phase" foot editor || failed=1
+        stop_owned_group "$phase" launcher || failed=1
+    else
+        stop_owned_group "$phase" foot editor launcher || failed=1
+    fi
+    return "$failed"
+}
 finish() {
     local rc=$?
     trap - EXIT TERM INT
-    for pid in "$foot" "$editor" "$launcher"; do
-        [[ -z $pid ]] || kill -TERM "$pid" 2>/dev/null || :
-    done
-    for pid in "$foot" "$editor" "$launcher"; do
-        [[ -z $pid ]] || wait "$pid" 2>/dev/null || :
-    done
+    stop_all_owned cleanup || { [[ $rc != 0 ]] || rc=1; }
     for pid in "${readers[@]}"; do kill -TERM "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; done
     if [[ $rc != 0 ]]; then
         echo "FAIL combined user session status=$rc"
@@ -47,7 +92,7 @@ trap 'exit 130' INT
 /usr/bin/denial-mobile-session > "$HOME/denial.pipe" 2>&1 &
 launcher=$!
 for ((i=0;i<80;i++)); do
-    kill -0 "$launcher" || { cat "$HOME/denial.log"; exit 1; }
+    require_running launcher || { cat "$HOME/denial.log"; exit 1; }
     if systemctl --user is-active --quiet denial-session.target graphical-session.target; then break; fi
     sleep 0.25
 done
@@ -66,7 +111,7 @@ editor=$!
 WAYLAND_DEBUG=client timeout -k 2 65 foot > "$HOME/foot.pipe" 2>&1 &
 foot=$!
 for ((i=0;i<160;i++)); do
-    kill -0 "$launcher" && kill -0 "$editor" && kill -0 "$foot"
+    for name in launcher editor foot; do require_running "$name" || exit 1; done
     if grep -q 'xdg_toplevel.*configure' "$HOME/mousepad.log" && grep -q 'xdg_toplevel.*configure' "$HOME/foot.log"; then break; fi
     sleep 0.25
 done
@@ -74,11 +119,7 @@ grep -q 'xdg_toplevel.*configure' "$HOME/mousepad.log"
 grep -q 'xdg_toplevel.*configure' "$HOME/foot.log"
 echo 'PASS two native Wayland clients configured through authenticated session'
 sleep 3
-kill -TERM "$foot" "$editor"
-wait "$foot" || [[ $? == 143 ]]; foot=''
-wait "$editor" || [[ $? == 143 ]]; editor=''
-kill -TERM "$launcher"
-wait "$launcher" || [[ $? == 143 ]]; launcher=''
+stop_all_owned stop
 # Require successful enumeration, not a nonzero is-active result that could be an error.
 units=$(systemctl --user list-units --all --no-legend --no-pager --plain)
 while read -r unit load active rest; do
