@@ -1,0 +1,411 @@
+--- /dev/null
++++ b/dart_shell/lib/src/models/denial_text_input_caret.dart
+@@ -0,0 +1,28 @@
++import 'package:flutter/widgets.dart';
++
++import 'denial_window.dart';
++
++/// Native committed caret, normalized to its owning window's content origin.
++/// A zero-width insertion caret is valid; absence is represented by null.
++class DenialTextInputCaret {
++  const DenialTextInputCaret({
++    required this.windowId,
++    required this.surfaceId,
++    required this.rect,
++  });
++
++  final int windowId;
++  final int surfaceId;
++  final Rect rect;
++
++  bool get isValid =>
++      windowId > 0 && surfaceId > 0 &&
++      rect.left.isFinite && rect.top.isFinite &&
++      rect.width.isFinite && rect.height.isFinite &&
++      rect.width >= 0.0 && rect.height > 0.0;
++
++  bool belongsTo(DenialWindow? window) =>
++      isValid && window != null && window.objectId == windowId &&
++      (window.surfaceId == surfaceId ||
++          window.visibleSurfaceIds.contains(surfaceId));
++}
+--- /dev/null
++++ b/dart_shell/lib/src/input/keyboard_viewport.dart
+@@ -0,0 +1,54 @@
++import 'package:flutter/widgets.dart';
++
++import '../models/denial_text_input_caret.dart';
++import '../models/denial_window.dart';
++import 'input_layout.dart';
++
++/// Positive upward displacement shared by painting and native hit testing.
++/// Caret coordinates are already normalized; contentX/contentY are not removed
++/// again. A manual override is explicit and survives caret motion until reset.
++double keyboardViewportOffset({
++  required Size viewSize,
++  required double progress,
++  required double manualScroll,
++  required bool manualOverride,
++  DenialTextInputCaret? caret,
++  DenialWindow? window,
++}) {
++  if (!viewSize.width.isFinite || !viewSize.height.isFinite ||
++      viewSize.width <= 0.0 || viewSize.height <= 0.0 ||
++      !progress.isFinite) {
++    return 0.0;
++  }
++  final height = ShellMetrics.edgePanelHeight(viewSize) *
++      progress.clamp(0.0, 1.0).toDouble();
++  if (height <= 0.0) {
++    return 0.0;
++  }
++  final scroll = manualScroll.isFinite ? manualScroll : 0.0;
++  final fallback = (height - scroll).clamp(0.0, height).toDouble();
++  if (manualOverride || caret == null || !caret.belongsTo(window)) {
++    return fallback;
++  }
++  final source = window!.contentCoordinateRect;
++  final top = window.isUserApp ? ShellMetrics.appStatusBarHeight : 0.0;
++  final contentHeight = viewSize.height - top;
++  if (!source.width.isFinite || !source.height.isFinite ||
++      source.width <= 0.0 || source.height <= 0.0 || contentHeight <= 0.0) {
++    return fallback;
++  }
++  final scaleY = contentHeight / source.height;
++  final caretTop = top + caret.rect.top * scaleY;
++  final caretBottom = top + caret.rect.bottom * scaleY;
++  if (!caretTop.isFinite || !caretBottom.isFinite) {
++    return fallback;
++  }
++  const margin = 8.0;
++  final needed = (caretBottom + margin - (viewSize.height - height))
++      .clamp(0.0, height).toDouble();
++  // If an oversized/offscreen rectangle cannot fit, preserve its upper edge
++  // rather than translating it underneath the fixed status/header area.
++  final upperLimit = (caretTop - top - margin)
++      .clamp(0.0, height).toDouble();
++  return needed.clamp(0.0, upperLimit).toDouble();
++}
+--- a/dart_shell/lib/src/platform/denial_bridge.dart
++++ b/dart_shell/lib/src/platform/denial_bridge.dart
+@@ -8,6 +8,7 @@
+ import '../input/input_layout.dart';
+ import '../models/denial_drag_icon.dart';
+ import '../models/denial_cursor_state.dart';
++import '../models/denial_text_input_caret.dart';
+ import '../models/desktop_notification.dart';
+ import '../models/display_layout.dart';
+ import '../models/input_device_capabilities.dart';
+@@ -122,6 +123,8 @@
+     required this.legacy,
+     required this.contentHint,
+     required this.contentPurpose,
++    this.activationSerial = 0,
++    this.caret,
+   });
+ 
+   final bool active;
+@@ -129,6 +132,8 @@
+   final bool legacy;
+   final int contentHint;
+   final int contentPurpose;
++  final int activationSerial;
++  final DenialTextInputCaret? caret;
+ }
+ 
+ class DenialSettingsDocument {
+@@ -2625,6 +2630,13 @@
+           _cursorPositions.add(Offset(payload.x, payload.y));
+         }
+       } else if (payload is wire.TextInputState) {
++        final rawCaret = payload.caret;
++        final caret = rawCaret == null ? null : DenialTextInputCaret(
++          windowId: rawCaret.windowId,
++          surfaceId: rawCaret.surfaceId,
++          rect: Rect.fromLTWH(rawCaret.x.toDouble(), rawCaret.y.toDouble(),
++              rawCaret.width.toDouble(), rawCaret.height.toDouble()),
++        );
+         if ((!payload.inputPanelVisible || payload.active) &&
+             !_textInputStates.isClosed) {
+           _textInputStates.add(
+@@ -2634,6 +2646,9 @@
+               legacy: payload.legacy,
+               contentHint: payload.contentHint,
+               contentPurpose: payload.contentPurpose,
++              activationSerial: payload.activationSerial,
++              caret: payload.active && !payload.legacy && caret != null && caret.isValid
++                  ? caret : null,
+             ),
+           );
+         }
+--- a/dart_shell/lib/src/state/shell_state.dart
++++ b/dart_shell/lib/src/state/shell_state.dart
+@@ -3,6 +3,7 @@
+ import '../input/input_layout.dart';
+ import '../models/app_launch_request.dart';
+ import '../models/denial_window.dart';
++import '../models/denial_text_input_caret.dart';
+ 
+ class ShellState {
+   factory ShellState({
+@@ -18,6 +19,9 @@
+     required bool edgePanelDragActive,
+     required double edgePanelViewportScroll,
+     double edgePanelAnimationProgress = 0.0,
++    bool edgePanelViewportManual = false,
++    int textInputActivationSerial = 0,
++    DenialTextInputCaret? textInputCaret,
+     required bool locked,
+     required bool lockLayerVisible,
+     required int? foregroundObjectId,
+@@ -46,6 +50,9 @@
+       edgePanelDragActive: edgePanelDragActive,
+       edgePanelViewportScroll: edgePanelViewportScroll,
+       edgePanelAnimationProgress: edgePanelAnimationProgress,
++      edgePanelViewportManual: edgePanelViewportManual,
++      textInputActivationSerial: textInputActivationSerial,
++      textInputCaret: textInputCaret,
+       locked: locked,
+       lockLayerVisible: lockLayerVisible,
+       foregroundObjectId: foregroundObjectId,
+@@ -70,6 +77,9 @@
+     required this.edgePanelDragActive,
+     required this.edgePanelViewportScroll,
+     required this.edgePanelAnimationProgress,
++    required this.edgePanelViewportManual,
++    required this.textInputActivationSerial,
++    required this.textInputCaret,
+     required this.locked,
+     required this.lockLayerVisible,
+     required this.foregroundObjectId,
+@@ -116,6 +126,9 @@
+ 
+   /// Last frame-sampled visual position; the drag getter remains the target.
+   final double edgePanelAnimationProgress;
++  final bool edgePanelViewportManual;
++  final int textInputActivationSerial;
++  final DenialTextInputCaret? textInputCaret;
+   final bool locked;
+   final bool lockLayerVisible;
+   final int? foregroundObjectId;
+@@ -167,6 +180,10 @@
+     bool? edgePanelDragActive,
+     double? edgePanelViewportScroll,
+     double? edgePanelAnimationProgress,
++    bool? edgePanelViewportManual,
++    int? textInputActivationSerial,
++    DenialTextInputCaret? textInputCaret,
++    bool clearTextInputCaret = false,
+     bool? locked,
+     bool? lockLayerVisible,
+     int? foregroundObjectId,
+@@ -179,6 +196,32 @@
+   }) {
+     final nextWindows = windows ?? this.windows;
+     final windowsUnchanged = identical(nextWindows, this.windows);
++    final nextForeground = clearForegroundObjectId
++        ? null : foregroundObjectId ?? this.foregroundObjectId;
++    final nextLock = (locked ?? this.locked) ||
++        (lockLayerVisible ?? this.lockLayerVisible);
++    var nextCaret = clearTextInputCaret ? null : textInputCaret ?? this.textInputCaret;
++    // A fresh native message may precede its window snapshot. Retain it pending,
++    // but geometry always checks the actual input owner before using it. A
++    // later focus/removal/lock transition must not resurrect an older owner.
++    if (nextLock) {
++      nextCaret = null;
++    } else if (nextCaret != null) {
++      final pending = nextCaret;
++      DenialWindow? owner;
++      for (final candidate in nextWindows) {
++        if (candidate.objectId == pending.windowId) { owner = candidate; break; }
++      }
++      final wasKnown = windowByObjectId(pending.windowId) != null;
++      final focusChanged = nextForeground != this.foregroundObjectId;
++      if ((focusChanged && nextForeground != pending.windowId) ||
++          (!windowsUnchanged && wasKnown &&
++              (owner == null || !pending.belongsTo(owner)))) {
++        nextCaret = null;
++      }
++    }
++    final resetViewport = nextLock || nextForeground != this.foregroundObjectId ||
++        (!windowsUnchanged && this.textInputCaret != null && nextCaret == null);
+     return ShellState._(
+       windows: nextWindows,
+       windowsByObjectId: windowsUnchanged
+@@ -203,9 +246,13 @@
+       edgePanelDrag: edgePanelDrag ?? this.edgePanelDrag,
+       edgePanelDragActive: edgePanelDragActive ?? this.edgePanelDragActive,
+       edgePanelViewportScroll:
+-          edgePanelViewportScroll ?? this.edgePanelViewportScroll,
++          resetViewport ? 0.0 : edgePanelViewportScroll ?? this.edgePanelViewportScroll,
+       edgePanelAnimationProgress:
+           edgePanelAnimationProgress ?? this.edgePanelAnimationProgress,
++      edgePanelViewportManual: resetViewport ? false
++          : edgePanelViewportManual ?? this.edgePanelViewportManual,
++      textInputActivationSerial: textInputActivationSerial ?? this.textInputActivationSerial,
++      textInputCaret: nextCaret,
+       locked: locked ?? this.locked,
+       lockLayerVisible: lockLayerVisible ?? this.lockLayerVisible,
+       foregroundObjectId: clearForegroundObjectId
+--- a/dart_shell/lib/src/state/shell_controller.dart
++++ b/dart_shell/lib/src/state/shell_controller.dart
+@@ -165,6 +165,17 @@
+   }
+ 
+   void _handleTextInputState(DenialTextInputState input) {
++    // The wire orders messages; activation is an identity, not a monotonic
++    // counter (native restart/wrap can lower its numeric value).
++    final changed = input.activationSerial != state.textInputActivationSerial;
++    final caret = input.active && !input.legacy ? input.caret : null;
++    state = state.copyWith(
++      textInputActivationSerial: input.activationSerial,
++      textInputCaret: caret,
++      clearTextInputCaret: caret == null,
++      edgePanelViewportManual: changed ? false : null,
++      edgePanelViewportScroll: changed ? 0.0 : null,
++    );
+     if (!_automaticSoftwareKeyboard) {
+       return;
+     }
+@@ -880,23 +891,37 @@
+     // sheet cutoff, but apply it to all rendering and input geometry together.
+     final progress = value <= 0.001 ? 0.0 : value >= 0.999 ? 1.0 : value;
+     if (state.edgePanelAnimationProgress != progress) {
+-      state = state.copyWith(edgePanelAnimationProgress: progress);
+-    }
+-  }
+-
+-  void updateEdgePanelViewportScroll(double delta, double maxScroll) {
+-    if (!state.edgePanelVisible || delta == 0.0 || maxScroll <= 0.0) {
+-      return;
+-    }
+-
+-    final next = (state.edgePanelViewportScroll + delta)
++      state = state.copyWith(
++        edgePanelAnimationProgress: progress,
++        // Preserve the displayed manual viewport through the closing animation.
++        // A fully closed keyboard begins the next opening in automatic mode.
++        edgePanelViewportManual: progress == 0.0 ? false : null,
++        edgePanelViewportScroll: progress == 0.0 ? 0.0 : null,
++      );
++    }
++  }
++
++  void updateEdgePanelViewportScroll(
++    double delta,
++    double maxScroll, {
++    required double currentOffset,
++  }) {
++    if (!state.edgePanelVisible || !delta.isFinite || delta == 0.0 ||
++        !maxScroll.isFinite || maxScroll <= 0.0 || !currentOffset.isFinite) {
++      return;
++    }
++
++    final baseline = state.edgePanelViewportManual
++        ? state.edgePanelViewportScroll
++        : (maxScroll - currentOffset).clamp(0.0, maxScroll).toDouble();
++    final next = (baseline + delta)
+         .clamp(0.0, maxScroll)
+         .toDouble();
+-    if (next == state.edgePanelViewportScroll) {
+-      return;
+-    }
+-
+-    state = state.copyWith(edgePanelViewportScroll: next);
++    if (state.edgePanelViewportManual && next == state.edgePanelViewportScroll) {
++      return;
++    }
++
++    state = state.copyWith(edgePanelViewportScroll: next, edgePanelViewportManual: true);
+   }
+ 
+   void startEdgePanelDrag() {
+--- a/dart_shell/lib/src/state/shell_input_layout_coordinator.dart
++++ b/dart_shell/lib/src/state/shell_input_layout_coordinator.dart
+@@ -1,6 +1,7 @@
+ import 'package:flutter/widgets.dart';
+ 
+ import '../input/input_layout.dart';
++import '../input/keyboard_viewport.dart';
+ import '../input/shell_interaction_registry.dart';
+ import '../models/denial_window.dart';
+ import '../platform/denial_bridge.dart';
+@@ -65,11 +66,14 @@
+       return;
+     }
+ 
+-    final contentOffset = edgePanelActive
+-        ? (edgePanelRect.height - state.edgePanelViewportScroll)
+-              .clamp(0.0, edgePanelRect.height)
+-              .toDouble()
+-        : 0.0;
++    final contentOffset = keyboardViewportOffset(
++      viewSize: viewSize,
++      progress: edgePanelProgress,
++      manualScroll: state.edgePanelViewportScroll,
++      manualOverride: state.edgePanelViewportManual,
++      caret: state.textInputCaret,
++      window: state.inputWindow,
++    );
+     final inputBottom = edgePanelActive
+         ? edgePanelRect.top.clamp(0.0, viewSize.height).toDouble()
+         : viewSize.height;
+--- a/dart_shell/lib/src/widgets/edge_panel_layer.dart
++++ b/dart_shell/lib/src/widgets/edge_panel_layer.dart
+@@ -3,6 +3,7 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
+ import '../input/input_layout.dart';
++import '../input/keyboard_viewport.dart';
+ import '../platform/denial_bridge.dart';
+ import '../services/haptics_service.dart';
+ import '../state/shell_controller.dart';
+@@ -45,19 +46,24 @@
+         (state) => (
+           progress: state.edgePanelAnimationProgress,
+           scroll: state.edgePanelViewportScroll,
++          manual: state.edgePanelViewportManual,
++          caret: state.textInputCaret,
++          window: state.inputWindow,
+         ),
+       ),
+     );
+     return LayoutBuilder(
+       builder: (context, constraints) {
+-        final keyboardOffset =
+-            ShellMetrics.edgePanelHeight(constraints.biggest) *
+-            position.progress;
+-        final viewportScroll = position.scroll
+-            .clamp(0.0, keyboardOffset)
+-            .toDouble();
++        final offset = keyboardViewportOffset(
++          viewSize: constraints.biggest,
++          progress: position.progress,
++          manualScroll: position.scroll,
++          manualOverride: position.manual,
++          caret: position.caret,
++          window: position.window,
++        );
+         return Transform.translate(
+-          offset: Offset(0.0, -(keyboardOffset - viewportScroll)),
++          offset: Offset(0.0, -offset),
+           child: child,
+         );
+       },
+@@ -225,7 +231,15 @@
+         onVerticalDragUpdate: (details) {
+           controller.updateEdgePanelViewportScroll(
+             details.delta.dy * ShellMetrics.edgePanelScrollMultiplier,
+-            panelHeight,
++            panelHeight * progress,
++            currentOffset: keyboardViewportOffset(
++              viewSize: size,
++              progress: progress,
++              manualScroll: ref.read(shellControllerProvider).edgePanelViewportScroll,
++              manualOverride: ref.read(shellControllerProvider).edgePanelViewportManual,
++              caret: ref.read(shellControllerProvider).textInputCaret,
++              window: ref.read(shellControllerProvider).inputWindow,
++            ),
+           );
+         },
+         child: const SizedBox.expand(),

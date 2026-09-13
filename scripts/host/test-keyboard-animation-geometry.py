@@ -48,7 +48,8 @@ class ShellMetrics {
  @METRICS@
 }
 class Window {
- final isUserApp=true,objectId=7;final List<dynamic> popupRoots=[];
+ final isUserApp=true,objectId=7,surfaceId=7;final List<dynamic> popupRoots=[];
+ Rect get contentCoordinateRect=>const Rect.fromLTWH(0,0,540,1176);
  List<int> get visibleSurfaceIds=>[7];
  dynamic mapSurfaceRect(dynamic popup,Rect rect)=>throw StateError('unexpected popup');
 }
@@ -57,12 +58,14 @@ class State {
   quickSettingsVisible=false,quickSettingsDragActive=false,lockLayerVisible=false,
   launchTransitionActive=false;
  double edgePanelAnimationProgress=0,edgePanelViewportScroll=0;
+ bool edgePanelViewportManual=false;dynamic textInputCaret;
  Offset edgePanelDrag=Offset.zero,gestureDrag=Offset.zero,quickSettingsDrag=Offset.zero;
  double get edgePanelDragProgress=>edgePanelVisible?1:(edgePanelDrag.dy/368).clamp(0,1).toDouble();
  double get quickSettingsDragProgress=>0;
  Window? inputWindow=Window(),primaryWindow;
  State copyWith({bool? edgePanelVisible,bool? edgePanelDragActive,Offset? edgePanelDrag,
    double? edgePanelAnimationProgress,double? edgePanelViewportScroll,
+   bool? edgePanelViewportManual,
    bool? overviewVisible,Offset? gestureDrag,bool? quickSettingsVisible,
    Offset? quickSettingsDrag,bool? quickSettingsDragActive}) {
   final s=State();s.edgePanelVisible=edgePanelVisible??this.edgePanelVisible;
@@ -70,6 +73,8 @@ class State {
   s.edgePanelDrag=edgePanelDrag??this.edgePanelDrag;
   s.edgePanelAnimationProgress=edgePanelAnimationProgress??this.edgePanelAnimationProgress;
   s.edgePanelViewportScroll=edgePanelViewportScroll??this.edgePanelViewportScroll;
+  s.edgePanelViewportManual=edgePanelViewportManual??this.edgePanelViewportManual;
+  s.textInputCaret=textInputCaret;
   s.lockLayerVisible=lockLayerVisible;s.inputWindow=inputWindow;s.primaryWindow=primaryWindow;
   return s;
  }
@@ -130,6 +135,8 @@ class Transform extends Widget {
  final Offset offset;final Widget child;
 }
 @VIEWPORT@
+@CARET@
+@VIEWPORT_OFFSET@
 class SchedulerBinding {
  static final instance=SchedulerBinding();int next=0;final callbacks=<int,void Function(Duration)>{};
  int scheduleFrameCallback(void Function(Duration) cb){callbacks[++next]=cb;return next;}
@@ -231,7 +238,15 @@ def main():
         'CONTROL':'\n'.join(method(control,'  void '+n+'(') for n in ['openEdgePanel','closeEdgePanel','startEdgePanelDrag','updateEdgePanelDrag','endEdgePanelDrag']),
         'PUBLISH':method(layout,'  void publish(').replace('required ShellState state','required State state'),
         'REGIONS':method(layout,'  List<InputWindowRegion> _inputRegionsForWindow(').replace('required DenialWindow window','required Window window'),
-        'LAYER':'\n'.join(method(layer,'  void '+n+'(') for n in ['initState','dispose','_onPanelChanged'])}
+        'LAYER':'\n'.join(method(layer,'  void '+n+'(') for n in ['initState','dispose','_onPanelChanged']),
+        'CARET':'','VIEWPORT_OFFSET':''}
+    for key,name in [('CARET','models/denial_text_input_caret.dart'),
+                     ('VIEWPORT_OFFSET','input/keyboard_viewport.dart')]:
+        path=root/name
+        if path.exists():
+            paths.append(name)
+            pieces[key]='\n'.join(line for line in path.read_text().splitlines()
+                                  if not line.startswith('import ')).replace('DenialWindow','Window')
     if '  void updateEdgePanelAnimationProgress(' in control:
         pieces['CONTROL']+='\n'+method(control,'  void updateEdgePanelAnimationProgress(')
     else:
