@@ -26,6 +26,19 @@ headers, Module.symvers, build commands, toolchain identity and evidence.
 Signed packages, claims, rescue backups and retained root filesystems require
 their own reference/retirement audit; an old directory date is insufficient.
 
+After ordinary object cleanup, audit historical wrapper debug ELFs separately
+from boot Images. The September 13 sixth pass found 32 old ASUS wrapper
+`vmlinux` files occupying 17.96 GB, while remaining objects in the original
+workspace occupied only 1.58 MB. Their gate consumers use retained Images,
+AVBs and manifests; debug/relink reuse requires restoring the archived ELF.
+Treat temporary kallsyms link executables separately: completed paired builds
+can discard `.tmp_vmlinux1` and `.tmp_vmlinux2` after preserving the final ELF,
+module kit and receipt. Inspect symlinks with lstat before following source
+paths; historical wrapper source links may point into inaccessible namespaces.
+The exact audit, verified archives and restore instructions are private under
+`rog5-project-cleanup-20260913-r6`. Keep archive estimates separate from measured
+net savings, and do not count earlier cleanup passes again.
+
 Use disk-backed scratch and streaming hashes. Keep active dependency caches
 that materially shorten the next build; clearing old objects means that any
 later rebuild of those historical trees must regenerate them. Record allocated
