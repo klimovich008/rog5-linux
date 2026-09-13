@@ -26,6 +26,33 @@ logind_tty_unowned() {
     while read -r tty pid; do [[ $tty != tty1 ]] || return 1; done <<< "$rows"
     return 0
 }
+logind_restore_executable_view() {
+    # 2: overlay and alias remain; 1: only alias remains; 0: both released.
+    # Advance only after success, so EXIT cleanup cannot repeat an already
+    # completed /usr/bin unmount when releasing the alias failed.
+    if ((restore_needed == 2)); then
+        /run/original-bin/umount /usr/bin || return $?
+        restore_needed=1
+    fi
+    if ((restore_needed == 1)); then
+        # VM services still hold executable references through this alias, so
+        # ordinary unmount returns EBUSY. Detach only this owned bind, preserving
+        # open files and excluding it from late shutdown's forced unmounts.
+        # MNT_FORCE on a 9P alias can cancel the shared live-root session.
+        /usr/bin/umount --lazy /run/original-bin || return $?
+        restore_needed=0
+    fi
+}
+logind_finish() {
+    local rc=$? cleanup_rc=0
+    trap - EXIT
+    logind_restore_executable_view || cleanup_rc=$?
+    if ((cleanup_rc)); then
+        printf 'FAIL executable view cleanup stage=%s status=%s\n' "$restore_needed" "$cleanup_rc" >&2
+        ((rc != 0)) || rc=$cleanup_rc
+    fi
+    exit "$rc"
+}
 # Permit tests of the actual query boundary without executing the VM supervisor.
 if [[ ${BASH_SOURCE[0]} != "$0" ]]; then return 0; fi
 set -euo pipefail
@@ -33,8 +60,8 @@ read -r cmdline < /proc/cmdline
 [[ $EUID == 0 && " $cmdline " == *' rog5.logind_fixture=1 '* && -d /sys/bus/virtio/devices ]]
 trap 'echo "FAIL session supervisor line=$LINENO"; cat /run/pam-session.log 2>/dev/null || :; journalctl -b --no-pager -u systemd-logind -u user@1000 -n 80 || :' ERR
 restore_needed=0
-[[ ! -f /run/session-sha256 ]] || restore_needed=1
-trap 'rc=$?; if ((restore_needed)); then /run/original-bin/umount /usr/bin || rc=1; fi; exit "$rc"' EXIT
+[[ ! -f /run/session-sha256 ]] || restore_needed=2
+trap logind_finish EXIT
 systemctl is-active systemd-logind.service dbus.service systemd-udevd.service
 if [[ -e /run/nologin ]]; then
     echo 'OBSERVE startup nologin present before Permit User Sessions'
@@ -76,7 +103,6 @@ for ((i=0;i<10;i++)); do
     sleep 1
 done
 logind_cleanup_state "$sid" || { echo 'FAIL local session/scope retained or query failed'; exit 1; }
-# Restore canonical executable paths before systemd begins unmounting aliases.
-# Otherwise /usr/bin symlinks would point into an already-unmounted /run tree.
-if ((restore_needed)); then /run/original-bin/umount /usr/bin; restore_needed=0; fi
+# Restore canonical executable paths, then release their temporary 9P alias.
+logind_restore_executable_view
 echo 'PASS authenticated local logind session, mediated devices and removed scope'

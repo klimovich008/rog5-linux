@@ -150,6 +150,56 @@ logind_tty_unowned
                 self.assertEqual(result.returncode, expected, result.stdout+result.stderr)
 
 
+class ExecutableView(unittest.TestCase):
+    def restore(self, first=0, second=0, original=None):
+        script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-session.sh'
+        source = script.read_text()
+        restore_state = re.search(r'\|\| restore_needed=(\d+)', source).group(1)
+        exit_trap = re.search(r'^trap .* EXIT$', source, re.M).group()
+        success = source.split('# Restore canonical executable paths', 1)[1]
+        success = success.split("echo 'PASS authenticated", 1)[0]
+        # Remove the remainder of the first comment line after splitting.
+        success = success.split('\n', 1)[1]
+        body = success if original is None else f'exit {original}\n'
+        code = r'''
+set -euo pipefail
+source "$1"
+FIRST=$2; SECOND=$3
+/run/original-bin/umount(){ printf 'CALL original %s\n' "$*"; return "$FIRST"; }
+/usr/bin/umount(){ printf 'CALL canonical %s\n' "$*"; return "$SECOND"; }
+''' + f'restore_needed={restore_state}\n' + exit_trap + '\n' + body
+        return subprocess.run(['bash', '-c', code, 'fixture', str(script), str(first), str(second)],
+                              capture_output=True, text=True, timeout=3)
+
+    def test_lazy_alias_release_follows_canonical_restore_and_has_no_force(self):
+        result = self.restore()
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertEqual(result.stdout.splitlines(),
+                         ['CALL original /usr/bin', 'CALL canonical --lazy /run/original-bin'])
+
+    def test_first_failure_never_releases_alias_or_claims_success(self):
+        result = self.restore(first=42)
+        self.assertEqual(result.returncode, 42, result.stdout+result.stderr)
+        self.assertNotIn('CALL canonical', result.stdout)
+
+    def test_second_failure_never_repeats_successful_canonical_restore(self):
+        result = self.restore(second=43)
+        self.assertEqual(result.returncode, 43, result.stdout+result.stderr)
+        self.assertEqual(result.stdout.count('CALL original /usr/bin'), 1)
+        self.assertIn('CALL canonical --lazy /run/original-bin', result.stdout)
+
+    def test_exit_cleanup_keeps_original_failure_and_releases_both_mounts(self):
+        for first, second in [(0, 0), (42, 0), (0, 43)]:
+            with self.subTest(first=first, second=second):
+                result = self.restore(first, second, original=37)
+                self.assertEqual(result.returncode, 37, result.stdout+result.stderr)
+                self.assertIn('CALL original /usr/bin', result.stdout)
+                if not first:
+                    self.assertIn('CALL canonical --lazy /run/original-bin', result.stdout)
+                else:
+                    self.assertNotIn('CALL canonical', result.stdout)
+
+
 class ClientLog(unittest.TestCase):
     def test_actual_drainer_bounds_storage_without_killing_writer(self):
         script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh'
