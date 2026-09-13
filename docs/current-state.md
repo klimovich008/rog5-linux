@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **Native editor and OSK key delivery pass ARM64 VM; visible text editing fails**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **Native and VNC VM captures agree; editor white-output failure narrowed upstream of VNC**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-The retained binaries open Mousepad and deliver all12 expected OSK key events. R3:114 frames/page flips with no reported rendering errors, but captures after OSK reveal show a white application area, so visible text editing FAILS. GTK RAM-cache preparation and attributed window readiness are fixed; prior failed attempts are retained. Active tier:88 suites PASS. Next: compare native output screencopy with VNC before changing rendering. Phone physical rows remain NOT RUN; S06/R01 remain FAIL. No phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-vm-editor.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+R3 completed in102.365 seconds with110 frames/page flips and exact OSK key delivery. Initial and final native/VNC PNG pairs are byte-identical; initial editor is correct, final application remains white. Capture transport PASS, visible editing FAIL. Two earlier pre-capture RCU stalls remain FAIL; polling-load reduction is not proven causal. Active tier:90 suites PASS. Next: observe client SHM snapshot and texture upload/composition boundaries without weakening renderer guards. Phone physical rows remain NOT RUN; S06/R01 remain FAIL. No phone, signing, candidate or claim operation occurred. See [current repair evidence](../test-results/2026-09-13-mobile-vm-native-capture.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

@@ -2598,3 +2598,14 @@ application area was white. Keep visual editing FAIL separate from protocol and
 frame-counter PASS. Pair independent output captures before attributing this to
 the native client, compositor or VNC; constant client geometry rules out only
 the observed resize hypothesis. The frozen active tier took128.453 seconds.
+
+Native/VNC comparison (2026-09-13): both initial/final pairs were byte-identical
+in the102.365-second successful run, including the white final application.
+That locates the defect upstream of VNC readback without identifying the client,
+SHM upload/cache or composition stage. Keep an initial correct capture as the
+control and retain visible FAIL despite110 successful frame/page-flip counters.
+A small ARM64 protocol client and17 real callback/socket/build tests avoided a
+full renderer rebuild. Two earlier runs stalled in guest RCU/timer scheduling
+before any capture request. Reducing request polling from10Hz to1Hz removed
+unnecessary sleep-process churn and preceded success; do not claim causality
+from that single changed run. Preserve both failed traces and bounded deadlines.
