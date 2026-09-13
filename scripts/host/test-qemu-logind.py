@@ -64,8 +64,10 @@ def limits():
     resource.setrlimit(resource.RLIMIT_FSIZE, (LOG_LIMIT, LOG_LIMIT))
 
 
-def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, accepted=(0,)):
+def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, accepted=(0,), poll=None):
     """Own a process group and bound output, wall time, and descendant lifetime."""
+    if poll is not None and data is not None:
+        raise ValueError('live observation excludes command stdin')
     row = {'command': list(map(str, command)), 'started_utc': now(), 'deadline_seconds': deadline}
     if cwd is not None:
         row['cwd'] = str(cwd)
@@ -87,7 +89,16 @@ def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, 
                 # Publish ownership before delivering a pending cancellation.
                 signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
             try:
-                child.communicate(input=data, timeout=deadline)
+                if poll is None:
+                    child.communicate(input=data, timeout=deadline)
+                else:
+                    end = time.monotonic() + deadline
+                    while child.poll() is None:
+                        if time.monotonic() >= end:
+                            raise subprocess.TimeoutExpired(command, deadline)
+                        poll()
+                        time.sleep(.02)
+                    poll()
             except subprocess.TimeoutExpired:
                 row['status'] = 'FAIL_TIMEOUT'
                 raise RuntimeError(f'command exceeded {deadline}s: {command[0]}')
@@ -113,15 +124,20 @@ def execute(command, log, deadline, steps, *, cwd=None, data=None, stdout=None, 
             row['log'] = identity(log)
 
 
-def container(command, name, log, deadline, steps):
+def container(command, name, log, deadline, steps, *, poll=None, finalize=None):
     """Only the uniquely named container created by this invocation is cleaned."""
     original = None
     try:
-        execute(command, log, deadline, steps)
+        execute(command, log, deadline, steps, poll=poll)
     except BaseException as error:
         original = error
     finally:
         cleanup_error = None
+        if finalize is not None:
+            try:
+                finalize(original)
+            except BaseException as error:
+                original = original or error
         try:
             execute(['podman', 'rm', '--force', '--ignore', name], log.with_suffix('.cleanup.log'), 15, steps)
             # `exists` has useful nonzero semantics; preserve its exact result.
@@ -200,10 +216,14 @@ def main():
     parser.add_argument('--session-archive', type=Path)
     parser.add_argument('--session-receipt', type=Path)
     parser.add_argument('--host-render-node', type=Path)
+    parser.add_argument('--observe-editor', action='store_true',
+                        help='pointer-only OSK editor test in authenticated session; VM only')
     args = parser.parse_args()
     combined = args.session_archive is not None
     if len([p for p in (args.session_archive, args.session_receipt, args.host_render_node) if p is not None]) not in (0, 3):
         parser.error('combined session requires archive, receipt and explicit host render node')
+    if args.observe_editor and not combined:
+        parser.error('editor observation requires combined authenticated session')
     install_handlers()
     output = Path(args.output).resolve()
     if os.geteuid() == 0:
@@ -222,6 +242,7 @@ def main():
               'steps': [], 'inputs': {}, 'outputs': {},
               'runtime_limit': 'Runtime receipt identity is bound; complete runtime inventory/authentication is a prior external prerequisite, not rerun here.'}
     started = time.monotonic()
+    observer = None
     try:
         for image in (args.qemu_image, args.toolchain_image):
             if not re.fullmatch(r'[0-9a-f]{64}', image):
@@ -257,6 +278,9 @@ def main():
         input_files = [regular(SOURCES / name) for name in source_names] + [kernel, libc, libloading, receipt, Path(__file__).resolve()]
         if combined:
             input_files += [regular(args.session_archive), regular(args.session_receipt), REPO/'scripts/host/test-qemu-virtio-drm.py']
+        if args.observe_editor:
+            input_files += [SOURCES/'logind-editor.sh', REPO/'scripts/host/qemu-logind-editor.py',
+                            REPO/'scripts/host/qemu-mobile-observer.py']
         # libloading's retained Linux dependency is cfg-if. Freeze matching cached
         # candidates too; the compiler chooses the compatible crate metadata.
         dependency_dirs = sorted({libc.parent, libloading.parent})
@@ -304,6 +328,9 @@ def main():
             scripts.update({'logind-denial.sh': 'logind-denial.sh', 'logind-denial-prepare.sh': 'logind-denial-prepare.sh'})
             (stage / 'stage/session-sha256').write_text(session_record['sha256']+'\n')
             os.link(args.session_archive, payload / 'session.tar.gz')
+        if args.observe_editor:
+            scripts['logind-editor.sh'] = 'logind-editor.sh'
+            (stage / 'stage/editor-probe').write_text('1\n')
         for original, staged in scripts.items():
             target = stage / 'stage' / staged
             shutil.copyfile(SOURCES / original, target)
@@ -344,7 +371,28 @@ def main():
             pos = command.index(args.qemu_image)
             command[pos:pos] = ['--security-opt=no-new-privileges', '--device', str(args.host_render_node)+':/dev/dri/renderD128:rw',
                                 '-e', 'XDG_CACHE_HOME=/tmp/rog5-qemu-cache']
-        container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'])
+        if args.observe_editor:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location('logind_editor', REPO/'scripts/host/qemu-logind-editor.py')
+            module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+            observer = module.LiveEditor(output/'observe', name)
+            pos = command.index(args.qemu_image)
+            command[pos:pos] = ['-v', f'{output / "observe"}:/observe:rw']
+            command += ['-name', name, '-qmp', 'unix:/observe/qmp.sock,server=on,wait=off',
+                        '-vnc', 'unix:/observe/vnc.sock', '-device', 'virtio-tablet-device',
+                        '-device', 'virtio-serial-device',
+                        '-chardev', 'file,id=editor,path=/observe/editor.log',
+                        '-device', 'virtserialport,chardev=editor,name=rog5.editor,nr=1']
+        def finish_observer(error):
+            nonlocal observer
+            if observer:
+                current, observer = observer, None
+                result['editor_observation'] = current.finish(error)
+        container(command, name, output / 'serial.log', 300 if combined else 180, result['steps'],
+                  poll=observer.tick if observer else None, finalize=finish_observer)
+        if args.observe_editor:
+            if result['editor_observation']['status'] != 'PASS':
+                raise RuntimeError('requested editor observation incomplete or failed')
         serial = (output / 'serial.log').read_text(errors='replace')
         require_vm_poweroff(serial)
         if SUCCESS not in serial:
@@ -365,6 +413,8 @@ def main():
     except Exception as error:
         result['error'] = f'{type(error).__name__}: {error}'
     finally:
+        if observer:
+            result['editor_observation'] = observer.finish(result.get('error', 'VM incomplete'))
         result['duration_seconds'] = time.monotonic() - started
         result['ended_utc'] = now()
         for path in output.glob('*.log'):

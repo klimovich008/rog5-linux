@@ -12,6 +12,7 @@ launcher='' foot='' editor=''
 foot_close_owned=0
 foot_close_fifo=$HOME/foot-close.pipe
 readers=()
+if [[ -f /run/editor-probe ]]; then source /run/logind-editor.sh; fi
 require_fuse_device() {
     local device=${1:-/dev/fuse} helper=${2:-/usr/bin/fusermount3} metadata
     [[ -c $device && -r $device && -w $device ]] || {
@@ -89,6 +90,11 @@ publish_cache_environment() {
 start_log() {
     local name=$1
     mkfifo "$HOME/$name.pipe"
+    if [[ $name == mousepad && -f /run/editor-probe ]]; then
+        drain_editor_protocol < "$HOME/$name.pipe" > "$HOME/$name.log" &
+        readers+=("$!")
+        return 0
+    fi
     # Drain after the cap. RLIMIT_FSIZE would also cap the client's memfd/shm
     # buffers, which is unrelated to log storage and broke the real Foot run.
     LC_ALL=C awk 'BEGIN {remaining=1048576}
@@ -227,6 +233,10 @@ done <<< "$manager"
 [[ ${DENIAL_SOCKET:-} == "$XDG_RUNTIME_DIR/"* && -S $DENIAL_SOCKET ]]
 printf 'OBSERVE activated local Denial wayland=%s socket=%s\n' "$WAYLAND_DISPLAY" "$DENIAL_SOCKET"
 qualify_activated_services
+if [[ -f /run/editor-probe ]]; then
+    run_authenticated_editor
+    stop_all_owned stop
+else
 : > "$HOME/text.txt"
 GDK_BACKEND=wayland WAYLAND_DEBUG=client timeout -k 2 65 mousepad "$HOME/text.txt" > "$HOME/mousepad.pipe" 2>&1 &
 editor=$!
@@ -244,6 +254,7 @@ sleep 3
 close_foot_normally
 stop_all_owned stop
 # Require successful enumeration, not a nonzero is-active result that could be an error.
+fi
 units=$(systemctl --user list-units --all --no-legend --no-pager --plain)
 while read -r unit load active rest; do
     case "$unit" in denial-session.target|graphical-session.target) [[ $active == inactive ]];; esac

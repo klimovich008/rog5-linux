@@ -1053,3 +1053,16 @@ and logout cleanup must pass. Same-GPU rendering reuses the logind-acquired card
 descriptor; no supplemental render group or device permission change is needed.
 The archive and original runtime remain read-only; all installation paths in
 this test exist solely in VM RAM. This is not a phone composition or admission.
+
+The combined `test-qemu-logind.py` runner accepts `--observe-editor` only with
+its authenticated session archive/receipt and explicit host render fixture.
+It closes Foot normally before launching Mousepad, streams the editor's bounded
+attributed protocol through a dedicated virtual serial port, and reuses the
+pointer-only OSK sequence. The host waits for a committed native editor surface
+with stable keyboard focus; a title or configure marker alone is insufficient.
+It requires exact focused key press/release order and complete captures, as well
+as the existing rendering/PAM/scope cleanup. Visual text still requires separate
+image inspection. The normal logind-only and combined configuration tests retain
+their behavior. Client65s, user120s, PAM140s and VM300s limits are unchanged.
+Only the virtual port becomes guest mobile-owned; no host/phone device permissions
+or runtime package files are modified.

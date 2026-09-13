@@ -73,6 +73,41 @@ m.execute([sys.executable,'-c',{inner!r}],Path({str(root/'child.log')!r}),{0.3 i
                         try: os.killpg(child_pid, signal.SIGKILL)
                         except ProcessLookupError: pass
 
+    def test_live_observer_failure_reaps_owned_process(self):
+        spec = importlib.util.spec_from_file_location('runner_live', RUNNER)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); pidfile = root/'pid'
+            command = [sys.executable, '-c',
+                       'import os,time;from pathlib import Path;'
+                       f'Path({str(pidfile)!r}).write_text(str(os.getpid()));time.sleep(30)']
+            called = []
+            def observe():
+                if pidfile.exists():
+                    called.append(int(pidfile.read_text()))
+                    self.assertTrue(live(called[-1]))
+                    raise ValueError('deliberate observation failure')
+            with self.assertRaisesRegex(ValueError, 'deliberate observation failure'):
+                module.execute(command, root/'child.log', 3, [], poll=observe)
+            self.assertEqual(len(called), 1)
+            self.assertFalse(live(called[0]))
+
+    def test_observer_finalizes_before_container_removal_even_on_failure(self):
+        spec=importlib.util.spec_from_file_location('runner_finalize',RUNNER)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        events=[]; steps=[]
+        def execute(command, log, deadline, rows, **kwargs):
+            events.append(command[0] if command[0] != 'podman' else command[1])
+            rows.append({})
+            if command[0] == 'fixture': raise ValueError('original failure')
+        module.execute=execute
+        def finalize(error):
+            self.assertIn('original failure',str(error));events.append('finalize')
+            raise ValueError('release failed')
+        with self.assertRaisesRegex(RuntimeError,'original failure'):
+            module.container(['fixture'],'owned',Path('/unused.log'),1,steps,finalize=finalize)
+        self.assertEqual(events,['fixture','finalize','rm','container'])
+
     def test_sigterm_reaps_command(self):
         self.scenario('signal')
 
@@ -278,7 +313,7 @@ class ActivatedServices(unittest.TestCase):
     def qualify(self, mode='success'):
         source = (RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-denial.sh').read_text()
         functions = '\n'.join(re.findall(r'^\w+\(\) \{.*?^\}', source, re.M | re.S))
-        boundary = re.search(r"^printf 'OBSERVE activated local Denial.*?\n(.*?)^: >", source, re.M | re.S).group(1)
+        boundary = re.search(r"^printf 'OBSERVE activated local Denial.*?\n(.*?)^if \[\[ -f /run/editor-probe \]\]", source, re.M | re.S).group(1)
         code = 'set -euo pipefail\n' + functions + r'''
 export XDG_RUNTIME_DIR=/run/user/1000
 MODE=$1
@@ -705,6 +740,42 @@ remove_foot_close
                                         capture_output=True, text=True, timeout=3)
                 self.assertEqual(result.returncode, 1 if existing else 0, result.stdout+result.stderr)
                 self.assertEqual(fifo.exists(), existing)
+
+
+class EditorTransport(unittest.TestCase):
+    script = RUNNER.parents[1].parent/'tools/qemu-virtio-drm/logind-editor.sh'
+
+    def test_actual_awk_preserves_attribution_and_caps_both_outputs(self):
+        for data in [b'one\ntwo\n', b'x'*1024+b'\n' + (b'bounded line\n'*100000)]:
+            with self.subTest(size=len(data)), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); fifo = root/'wire'; os.mkfifo(fifo)
+                with (root/'wire.log').open('wb') as wire:
+                    reader = subprocess.Popen(['cat', str(fifo)], stdout=wire)
+                    try:
+                        result = subprocess.run(['bash', '-c', 'source "$1"; drain_editor_protocol "$2"',
+                                                 'fixture', str(self.script), str(fifo)],
+                                                input=data, capture_output=True, timeout=3)
+                        reader.wait(timeout=3)
+                    finally:
+                        if reader.poll() is None: reader.kill(); reader.wait()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, data[:1048576])
+                expected = b''.join(b'EDITOR_WAYLAND '+line+b'\n' for line in data.splitlines())[:1048576]
+                self.assertEqual((root/'wire.log').read_bytes(), expected)
+
+    def test_failed_foot_close_never_launches_editor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); (root/'foot.log').write_text('xdg_toplevel.configure\n')
+            code = r'''source "$1"
+HOME=$2; launcher=fixture; foot=fixture
+prepare_foot_close(){ :; }; launch_foot(){ :; }
+require_running(){ :; }; close_foot_normally(){ return 42; }
+run_authenticated_editor
+'''
+            result=subprocess.run(['bash','-c',code,'fixture',str(self.script),str(root)],
+                                  capture_output=True,text=True,timeout=3)
+            self.assertEqual(result.returncode,42,result.stdout+result.stderr)
+            self.assertFalse((root/'rog5-text-probe.txt').exists())
 
 
 class Archive(unittest.TestCase):

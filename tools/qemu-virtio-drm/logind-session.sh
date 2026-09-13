@@ -72,6 +72,11 @@ systemctl is-active systemd-user-sessions.service
 [[ ! -e /run/nologin ]]
 echo 'OBSERVE packaged Permit User Sessions removed startup nologin'
 udevadm settle --timeout=8
+if [[ -f /run/editor-probe ]]; then
+    [[ -c /dev/vport0p1 ]]
+    chown 1000:1000 /dev/vport0p1
+    chmod 600 /dev/vport0p1
+fi
 [[ -c /dev/dri/card0 && -c /dev/input/event0 ]]
 udevadm info --query=property /dev/dri/card0
 udevadm info --query=property /dev/input/event0
