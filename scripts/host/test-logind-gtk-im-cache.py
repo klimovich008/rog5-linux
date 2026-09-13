@@ -99,6 +99,31 @@ class GtkInputCache(unittest.TestCase):
             for p in processes:
                 if p.poll() is None: os.killpg(p.pid, signal.SIGKILL); p.wait()
 
+    def test_raced_destination_directory_cannot_receive_nested_cache(self):
+        destination = self.cache / 'immodules.cache'
+        self.env['DESTINATION'] = str(destination)
+        self.query('mkdir "$DESTINATION"; cat "$FIXTURE"\n')
+        r = self.run_helper()
+        self.assertTrue(destination.is_dir())
+        self.assertEqual(list(destination.iterdir()), [], r.stdout+r.stderr)
+        self.assertNotEqual(r.returncode, 0, r.stdout+r.stderr)
+        self.assertNotIn('PASS packaged', r.stdout)
+        self.assertEqual(list(self.cache.iterdir()), [destination])
+
+    def test_raced_destination_symlink_cannot_write_external_directory(self):
+        destination = self.cache / 'immodules.cache'
+        outside = self.root / 'retained'; outside.mkdir()
+        marker = outside / 'marker'; marker.write_text('retained')
+        self.env.update(DESTINATION=str(destination), OUTSIDE=str(outside))
+        self.query('ln -s "$OUTSIDE" "$DESTINATION"; cat "$FIXTURE"\n')
+        r = self.run_helper()
+        self.assertTrue(destination.is_symlink())
+        self.assertEqual(list(outside.iterdir()), [marker], r.stdout+r.stderr)
+        self.assertEqual(marker.read_text(), 'retained')
+        self.assertNotEqual(r.returncode, 0, r.stdout+r.stderr)
+        self.assertNotIn('PASS packaged', r.stdout)
+        self.assertEqual(list(self.cache.iterdir()), [destination])
+
     def test_interruption_removes_unpublished_cache(self):
         self.query('cat "$FIXTURE"; touch "$MARKER"; sleep 10\n')
         p = subprocess.Popen(self.cmd, env=self.env, stdout=subprocess.PIPE,

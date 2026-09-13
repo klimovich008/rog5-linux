@@ -48,6 +48,6 @@ prepare_gtk_im_cache() (
     }
     chmod 644 "$temporary/cache" || return $?
     # No existing cache is replaced, even if another preparer wins this race.
-    ln -- "$temporary/cache" "$root/immodules.cache" || return $?
+    ln -T -- "$temporary/cache" "$root/immodules.cache" || return $?
     echo 'PASS packaged GTK input-method cache prepared in RAM; client selection unqualified'
 )
