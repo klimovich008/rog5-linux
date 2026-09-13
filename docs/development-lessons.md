@@ -3071,3 +3071,13 @@ Home-icon test scope: HomeAppTile uses AppIconImage directly, bypassing the
 DeferredAppIcon queue. Pinned flutter_svg2.3.0 substitutes synchronous compute in
 debug; a widget-test PASS cannot establish release isolate completion. Match the
 actual consumer and build mode before choosing a regression or diagnostic seam.
+
+Release icon stages (2026-09-13): retain bounded early-stage records before a
+recent tail; startup evidence otherwise disappears under frame noise. Test that
+retention failure directly. Instrument the actual release path in copied pinned
+packages and preserve its Future/cache behavior. Real isolate method fixtures
+with compiler adapters and pure logger tests have different scope from the real
+ARM64 encoder/decoder and VM captures. A diagnostic run passed no-pan typing and
+clean close in290.357s, but non-reproduction is not a fix for earlier missing
+icons or137. Reuse its43.516-second shell build for the next distinct bottom-edge
+caret question; keep kernel/native/engine inputs and failure diagnostics intact.

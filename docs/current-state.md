@@ -1,9 +1,9 @@
 # ROG5 current state
 
 <!-- generated mobile status: begin -->
-Current structured status: **VM icon failure recurred; close diagnostics host-qualified**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
+Current structured status: **No-pan VM typing and clean session qualified; phone untested**. Mobile physical tests: **NOT RUN**. Headless S06: **FAIL**; R01: **FAIL**.
 
-New bounded close diagnostics pass27 supervisor and7 snapshot fixtures;103active suites pass. One233.810s VM failed launcher readiness: labels visible, icons absent in8captures, zero app actions/ACK. Guest close-sender test NOT RUN. Prior no-pan typing remains observed separately; Mousepad137 remains unresolved. Trace the direct home-tile icon load/decode/invalidation path before another VM; do not relax readiness or close grace. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-close-diagnostics.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
+Diagnostic release VM passed290.357s: icons visible, test/tes/test with OSK open/no pan,12keys, Mousepad/Foot switching,188frames/pageflips, both clients0, authenticated scope cleanup and VM poweroff. SVG encode/decode and widget stages retained. Earlier missing icons and Mousepad137 did not reproduce; causes remain open.103active suites pass. Reuse exact payload for a distinct bottom-edge caret observation; keep diagnostics armed rather than repeat unchanged runs or weaken readiness/grace. No phone operations; physical NOT RUN; S06/R01 FAIL. See [current repair evidence](../test-results/2026-09-13-icon-stage-diagnostics.md) and [artifact pointer](../manifests/current-artifact.json). Historical checkpoints below remain unchanged.
 <!-- generated mobile status: end -->
 
 Latest r137, 2026-09-12: **final IOMMU launcher, frozen input inventory and

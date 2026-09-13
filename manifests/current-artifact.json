@@ -1557,6 +1557,18 @@
       },
       "physical_status": "NOT RUN",
       "authority": "none; VM fixture only"
+    },
+    "icon_stages": {
+      "status": "PASS_VM_NO_PAN_TYPING_AND_CLEAN_SESSION",
+      "set_id": "private:rog5-icon-stage-20260913-r1",
+      "source_commit": "e95c425bd94fcf7135d92af0caec906103474deb",
+      "evidence": {
+        "path": "test-results/2026-09-13-icon-stage-qualification.json",
+        "sha256": "b5bcfd9634085455b047d293feb70654f4152d79ce49d9da73a44cf8ccc69933",
+        "bytes": 166207
+      },
+      "physical_status": "NOT RUN",
+      "authority": "none; VM fixture only"
     }
   },
   "denial_phone_linkage": {
